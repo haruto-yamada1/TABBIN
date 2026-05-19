@@ -8,6 +8,7 @@ import {
   GripVertical,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
+
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
 import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'
 import { useSortableCategoryDrag } from './shared/useSortableCategoryDrag'
@@ -32,14 +34,14 @@ import { CategorySection } from './TimeRemaining'
 type SortOrder = 'default' | 'asc' | 'desc'
 
 const nextSortOrderMap: Record<SortOrder, SortOrder> = {
-  default: 'asc',
   asc: 'desc',
+  default: 'asc',
   desc: 'default',
 }
 
 const sortIconMap = {
-  default: ArrowUpDown,
   asc: ArrowUpNarrowWide,
+  default: ArrowUpDown,
   desc: ArrowUpWideNarrow,
 } as const
 
@@ -87,7 +89,7 @@ const openTabsWithConfirm = ({
 // 並び替え可能なカテゴリセクションコンポーネント
 type SortableCategorySectionViewProps = SortableCategorySectionProps & {
   settings: UserSettings
-  handleDeleteAllTabs?: (urls: Array<{ url: string }>) => void
+  handleDeleteAllTabs?: (urls: { url: string }[]) => void
 }
 
 const useSortableCategorySectionView = ({
@@ -104,11 +106,11 @@ const useSortableCategorySectionView = ({
     useSortableCategoryDrag(id)
 
   const [isDeleting, setIsDeleting] = useState(false)
-  // sort order state: 'default' preserves manual drag order
+  // Sort order state: 'default' preserves manual drag order
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
-  const urls = props.urls ?? []
+  const urls = useMemo(() => props.urls ?? [], [props.urls])
   const urlCount = urls.length
-  // derive sorted urls by savedAt (default = original order)
+  // Derive sorted urls by savedAt (default = original order)
   const sortedUrls = useMemo(() => {
     if (sortOrder === 'default') {
       return urls
@@ -138,8 +140,8 @@ const useSortableCategorySectionView = ({
     t,
   )
   const sortLabelMap: Record<SortOrder, string> = {
-    default: t('savedTabs.sort.default'),
     asc: t('savedTabs.sort.asc'),
+    default: t('savedTabs.sort.default'),
     desc: t('savedTabs.sort.desc'),
   }
   const sortLabel = sortLabelMap[sortOrder]
@@ -156,15 +158,15 @@ const useSortableCategorySectionView = ({
 
   const handleToggleSort = (event: React.MouseEvent) => {
     event.stopPropagation()
-    setSortOrder(current => nextSortOrderMap[current])
+    setSortOrder((current) => nextSortOrderMap[current])
   }
 
   const handleOpenAllClick = (event: React.MouseEvent) => {
     event.stopPropagation()
     openTabsWithConfirm({
-      urlCount,
-      setIsOpenAllConfirmOpen,
       handleOpenAllTabs,
+      setIsOpenAllConfirmOpen,
+      urlCount,
       urls,
     })
   }
@@ -207,11 +209,11 @@ const useSortableCategorySectionView = ({
   }
 
   useDndMonitor({
+    onDragCancel: handleDragEndOrCancel,
+    onDragEnd: handleDragEndOrCancel,
     onDragStart: () => {
       setIsCollapsed(true)
     },
-    onDragEnd: handleDragEndOrCancel,
-    onDragCancel: handleDragEndOrCancel,
   })
 
   useEffect(() => {
@@ -238,7 +240,7 @@ const useSortableCategorySectionView = ({
         >
           {/* 折りたたみ切り替えボタン */}
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='secondary'
                 size='sm'
@@ -258,7 +260,7 @@ const useSortableCategorySectionView = ({
           </Tooltip>
           {/* ソート順切り替え */}
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='secondary'
                 size='sm'
@@ -287,7 +289,7 @@ const useSortableCategorySectionView = ({
             </h3>
             <span className='text-muted-foreground text-sm'>
               <Tooltip>
-                <TooltipTrigger asChild={true}>
+                <TooltipTrigger asChild>
                   <Badge variant='secondary'>{urlCount}</Badge>
                 </TooltipTrigger>
                 <SavedTabsResponsiveTooltipContent side='top'>

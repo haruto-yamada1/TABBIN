@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+
 import type { CustomProject } from '@/types/storage'
+
 import { moveUrlBetweenProjectsState } from './project-state'
 
 const createProjects = (): CustomProject[] => [
@@ -92,7 +94,7 @@ describe('moveUrlBetweenProjectsState', () => {
   })
 
   it('移動先 urls が未初期化でも配列を生成して追加できる', () => {
-    const projects = createProjects().map(project =>
+    const projects = createProjects().map((project) =>
       project.id === 'project-b' ? { ...project, urls: undefined } : project,
     )
 
@@ -117,7 +119,7 @@ describe('moveUrlBetweenProjectsState', () => {
   })
 
   it('移動元 urls が未初期化でも安全に処理できる', () => {
-    const projects = createProjects().map(project =>
+    const projects = createProjects().map((project) =>
       project.id === 'project-a' ? { ...project, urls: undefined } : project,
     )
 

@@ -1,12 +1,8 @@
-import {
-  type Dispatch,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   createParentCategory,
@@ -16,7 +12,7 @@ import {
 import { assignDomainToCategory } from '@/lib/storage/migration'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
-/** useCategoryModal フックの引数 */
+/** UseCategoryModal フックの引数 */
 interface UseCategoryModalParams {
   /** タブグループ一覧 */
   tabGroups: TabGroup[]
@@ -122,9 +118,9 @@ const applyDomainSelectionChange = async (params: {
   const nextDomainCategories = applyDomainCategoryToggle({
     currentMap: domainCategories,
     domainId,
+    newChecked,
     selectedCategory,
     selectedCategoryId,
-    newChecked,
   })
   const updatedCategories = await getParentCategories()
   setCategories(updatedCategories)
@@ -164,8 +160,8 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   })
   const { categories, domainCategories, selectedCategoryId } = categoryData
   const setCategories: Dispatch<SetStateAction<ParentCategory[]>> = useCallback(
-    action => {
-      setCategoryData(current => ({
+    (action) => {
+      setCategoryData((current) => ({
         ...current,
         categories:
           action instanceof Function ? action(current.categories) : action,
@@ -174,8 +170,8 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     [],
   )
   const setDomainCategories: Dispatch<SetStateAction<DomainCategoryMap>> =
-    useCallback(action => {
-      setCategoryData(current => ({
+    useCallback((action) => {
+      setCategoryData((current) => ({
         ...current,
         domainCategories:
           action instanceof Function
@@ -184,7 +180,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       }))
     }, [])
   const setSelectedCategoryId = useCallback((nextCategoryId: string | null) => {
-    setCategoryData(current => ({
+    setCategoryData((current) => ({
       ...current,
       selectedCategoryId: nextCategoryId,
     }))
@@ -263,7 +259,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     if (!selectedCategoryId) {
       return
     }
-    const selectedCategory = categories.find(c => c.id === selectedCategoryId)
+    const selectedCategory = categories.find((c) => c.id === selectedCategoryId)
     if (selectedCategory) {
       updateSelectedDomains(selectedCategory)
     }
@@ -277,13 +273,13 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
         updateSelectedDomains('uncategorized')
       } else {
         setSelectedCategoryId(value)
-        const selectedCategory = categories.find(c => c.id === value)
+        const selectedCategory = categories.find((c) => c.id === value)
         if (selectedCategory) {
           updateSelectedDomains(selectedCategory)
         }
       }
     },
-    [categories, updateSelectedDomains],
+    [categories, setSelectedCategoryId, updateSelectedDomains],
   )
 
   // --- 新規カテゴリ作成ハンドラ ---
@@ -300,7 +296,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     try {
       setIsCategoryUpdating(true)
       const newCategory = await createParentCategory(newCategoryName)
-      setCategories(prev => [...prev, newCategory])
+      setCategories((prev) => [...prev, newCategory])
       setSelectedCategoryId(newCategory.id)
       setNewCategoryName('')
       toast.success(t('savedTabs.categoryModal.created'))
@@ -322,12 +318,19 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     } finally {
       setIsCategoryUpdating(false)
     }
-  }, [newCategoryName, t, updateSelectedDomains, validateCategoryName])
+  }, [
+    newCategoryName,
+    setCategories,
+    setSelectedCategoryId,
+    t,
+    updateSelectedDomains,
+    validateCategoryName,
+  ])
 
   // --- 入力フィールド変更ハンドラ ---
   const handleCategoryNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
+      const { value } = e.target
       setNewCategoryName(value)
       const result = validateCategoryName(value)
       if (result.success) {
@@ -371,7 +374,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       setIsCategoryUpdating(true)
       await deleteParentCategory(categoryToDelete.id)
       const updatedCategories = categories.filter(
-        c => c.id !== categoryToDelete.id,
+        (c) => c.id !== categoryToDelete.id,
       )
       setCategories(updatedCategories)
       const updatedDomainCategories = clearCategoryFromDomainMap(
@@ -407,13 +410,16 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     categories,
     domainCategories,
     selectedCategoryId,
+    setCategories,
+    setDomainCategories,
+    setSelectedCategoryId,
     t,
     updateSelectedDomains,
   ])
 
   // --- 削除ボタンクリック ---
   const handleDeleteClick = useCallback(() => {
-    const target = categories.find(c => c.id === selectedCategoryId)
+    const target = categories.find((c) => c.id === selectedCategoryId)
     if (!target) {
       toast.error(t('savedTabs.categoryModal.deleteSelectionMissing'))
       return
@@ -427,19 +433,19 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     (domainId: string) => {
       const previousChecked = selectedDomains[domainId]
       const rollbackSelection = () =>
-        setSelectedDomains(prev => ({
+        setSelectedDomains((prev) => ({
           ...prev,
           [domainId]: previousChecked,
         }))
       const newChecked = !previousChecked
-      setSelectedDomains(prev => ({
+      setSelectedDomains((prev) => ({
         ...prev,
         [domainId]: newChecked,
       }))
       if (!selectedCategoryId) {
         return
       }
-      const group = tabGroups.find(g => g.id === domainId)
+      const group = tabGroups.find((g) => g.id === domainId)
       if (!group) {
         rollbackSelection()
         return
@@ -451,24 +457,26 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
         }
         return
       }
-      const selectedCategory = categories.find(c => c.id === selectedCategoryId)
+      const selectedCategory = categories.find(
+        (c) => c.id === selectedCategoryId,
+      )
       if (!selectedCategory) {
         rollbackSelection()
         return
       }
       setIsCategoryUpdating(true)
       void applyDomainSelectionChange({
-        domainId,
-        newChecked,
-        selectedCategoryId,
-        selectedCategory,
         domainCategories,
+        domainId,
         groupDomain: group.domain,
+        newChecked,
+        selectedCategory,
+        selectedCategoryId,
         setCategories,
         setDomainCategories,
         t,
       })
-        .catch(error => {
+        .catch((error) => {
           console.error('カテゴリの設定に失敗しました:', error)
           toast.error(t('savedTabs.categoryModal.toggleError'))
           rollbackSelection()
@@ -483,40 +491,42 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       tabGroups,
       domainCategories,
       categories,
+      setCategories,
+      setDomainCategories,
       t,
     ],
   )
   return {
     /** カテゴリ作成関連 */
     create: {
-      newCategoryName,
-      nameError,
-      handleCategoryNameChange,
-      handleKeyDown,
       handleBlur,
+      handleCategoryNameChange,
       handleCreateCategory,
-    },
-    /** カテゴリ選択関連 */
-    selection: {
-      categories,
-      selectedCategoryId,
-      handleCategoryChange,
+      handleKeyDown,
+      nameError,
+      newCategoryName,
     },
     /** 削除関連 */
     deletion: {
-      showDeleteConfirm,
-      setShowDeleteConfirm,
       categoryToDelete,
-      handleDeleteClick,
       handleDeleteCategory,
+      handleDeleteClick,
+      setShowDeleteConfirm,
+      showDeleteConfirm,
     },
     /** ドメイン選択関連 */
     domains: {
-      selectedDomains,
       domainCategories,
+      selectedDomains,
       toggleDomainSelection,
     },
     /** 処理中状態 */
     isLoading,
+    /** カテゴリ選択関連 */
+    selection: {
+      categories,
+      handleCategoryChange,
+      selectedCategoryId,
+    },
   }
 }

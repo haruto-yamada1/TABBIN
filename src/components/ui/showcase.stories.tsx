@@ -29,6 +29,7 @@
 // @covers components/ui/tooltip.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { lazy } from 'react'
+
 import { DeferredStoryLoader } from '@/lib/storybook/deferred-story'
 
 const UiShowcase = lazy(() => import('@/lib/storybook/ui-showcase-foundations'))

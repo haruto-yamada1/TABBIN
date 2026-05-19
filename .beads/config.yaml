@@ -1,4 +1,4 @@
 repos:
-  primary: "."
+  primary: '.'
   additional:
-    - "/Users/tarou/.beads-planning"
+    - '/Users/tarou/.beads-planning'

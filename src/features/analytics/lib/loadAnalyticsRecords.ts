@@ -5,7 +5,6 @@ import { getCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
 import { getUrlRecords } from '@/lib/storage/urls'
 import { filterItemsBySavableUrl } from '@/lib/url-filter'
-import type { TabGroup } from '@/types/storage'
 
 const loadAnalyticsRecords = async (): Promise<AiSavedUrlRecord[]> => {
   const [
@@ -28,7 +27,7 @@ const loadAnalyticsRecords = async (): Promise<AiSavedUrlRecord[]> => {
     customProjects,
     parentCategories,
     savedTabs: Array.isArray(savedTabsResult.savedTabs)
-      ? (savedTabsResult.savedTabs as TabGroup[])
+      ? savedTabsResult.savedTabs
       : [],
     urlRecords: filterItemsBySavableUrl(
       urlRecords,

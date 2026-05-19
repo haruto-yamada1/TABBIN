@@ -1,4 +1,4 @@
-// filepath: features/saved-tabs/hooks/useSortOrder.ts
+// Filepath: features/saved-tabs/hooks/useSortOrder.ts
 import { useMemo, useState } from 'react'
 
 /** ソート順の型 */
@@ -23,8 +23,8 @@ export const useSortOrder = <T>(items: T[], getKey: (item: T) => string) => {
     return arr
   }, [items, sortOrder, getKey])
   return {
-    sortOrder,
     setSortOrder,
+    sortOrder,
     sortedItems,
   }
 }

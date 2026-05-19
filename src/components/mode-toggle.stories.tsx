@@ -1,11 +1,12 @@
 // @covers components/mode-toggle.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { userEvent, within } from 'storybook/test'
+
 import { ModeToggle } from './mode-toggle'
 
 const meta = {
-  title: 'Components/ModeToggle',
   component: ModeToggle,
+  title: 'Components/ModeToggle',
 } satisfies Meta<typeof ModeToggle>
 
 type Story = StoryObj<typeof ModeToggle>

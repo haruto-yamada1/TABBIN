@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
@@ -10,7 +11,7 @@ const storyRoots = [
 ]
 
 const walk = (dir: string): string[] =>
-  readdirSync(dir).flatMap(entry => {
+  readdirSync(dir).flatMap((entry) => {
     const fullPath = path.join(dir, entry)
     const stats = statSync(fullPath)
 
@@ -38,7 +39,7 @@ const getStoryExports = (filePath: string) => {
   const contents = readFileSync(path.join(repoRoot, filePath), 'utf8')
 
   return [...contents.matchAll(/export const (\w+)\s*:\s*Story\b/g)].map(
-    match => match[1],
+    (match) => match[1],
   )
 }
 

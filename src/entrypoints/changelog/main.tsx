@@ -1,6 +1,6 @@
-import '@/assets/global.css'
 import { Check } from 'lucide-react'
 import type React from 'react'
+
 import { ThemeProvider } from '@/components/theme-provider'
 import { Card } from '@/components/ui/card'
 import { DocumentTitleSync } from '@/features/i18n/components/DocumentTitleSync'
@@ -8,6 +8,8 @@ import { I18nProvider, useI18n } from '@/features/i18n/context/I18nProvider'
 import { formatLocalizedDate } from '@/features/i18n/lib/date-format'
 import { getChangelogItems } from '@/features/i18n/messages'
 import { mountToElement } from '@/lib/react/render-root'
+
+import '@/assets/global.css'
 
 const App: React.FC = () => (
   <I18nProvider>
@@ -32,7 +34,7 @@ const ChangelogContent: React.FC = () => {
         </h1>
       </div>
       <div className='gap-y-12'>
-        {changelog.map(item => (
+        {changelog.map((item) => (
           <Card
             key={item.version}
             className='overflow-hidden rounded-xl border-primary border-t-4 shadow-xl transition-shadow duration-300 hover:shadow-2xl'
@@ -49,7 +51,7 @@ const ChangelogContent: React.FC = () => {
 
               <div className='mt-10'>
                 <ul className='gap-y-6'>
-                  {item.features.map(feature => (
+                  {item.features.map((feature) => (
                     <li
                       key={`${item.version}-${feature.text}`}
                       className='group flex items-start rounded-lg p-3 transition-colors duration-200 hover:bg-accent/10'
@@ -61,7 +63,7 @@ const ChangelogContent: React.FC = () => {
                         />
                       </div>
                       <p
-                        /* v8 ignore next -- coverage-only defensive branch. */
+                        /* V8 ignore next -- coverage-only defensive branch. */
                         className={`ml-4 text-base ${feature.highlight ? 'font-medium text-primary' : 'text-foreground'}`}
                       >
                         {feature.text}

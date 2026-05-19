@@ -1,6 +1,7 @@
 // @covers components/ui/select.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
+
 import {
   Select,
   SelectContent,
@@ -29,9 +30,9 @@ const SelectStory = () => {
 }
 
 export default {
-  title: 'UI/Select',
   component: Select,
   render: () => <SelectStory />,
+  title: 'UI/Select',
 } satisfies Meta<typeof Select>
 
 type Story = StoryObj<typeof Select>

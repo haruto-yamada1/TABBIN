@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type {
   CustomProject,
   ParentCategory,
@@ -223,7 +224,7 @@ vi.mock('@/features/saved-tabs/components/Header', () => ({
         search
         <input
           aria-label='search'
-          onChange={event => onSearchChange(event.target.value)}
+          onChange={(event) => onSearchChange(event.target.value)}
           value={searchQuery}
         />
       </label>
@@ -237,10 +238,10 @@ vi.mock('@/features/saved-tabs/custom/CustomModeContainer', () => ({
     mocked.customModeContainerSpy(props)
     return (
       <div data-testid='custom-projects'>
-        {projects.map(project => (
+        {projects.map((project) => (
           <section data-testid={`project-${project.id}`} key={project.id}>
             <div>{`project:${project.name}`}</div>
-            {(project.urls || []).map(url => (
+            {(project.urls || []).map((url) => (
               <div key={url.url}>{`url:${url.title}:${url.url}`}</div>
             ))}
           </section>
@@ -322,6 +323,7 @@ import {
   removeUrlsFromTabGroup,
 } from '@/lib/storage/tabs'
 import { getUrlRecords } from '@/lib/storage/urls'
+
 import { SavedTabsApp } from './SavedTabsApp'
 
 describe('SavedTabsApp custom search', () => {
@@ -616,7 +618,7 @@ describe('SavedTabsApp custom search', () => {
         getURL: vi.fn(),
       },
     } as unknown as typeof chrome
-    vi.mocked(syncStorageChanges).mockImplementationOnce(async options => {
+    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       options.setSettings({
         ...(mocked.settings as UserSettings),
         enableCategories: false,
@@ -1571,7 +1573,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,
@@ -1588,7 +1590,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,
@@ -1607,7 +1609,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,
@@ -1946,7 +1948,7 @@ describe('SavedTabsApp custom search', () => {
       },
     } as unknown as typeof chrome
 
-    vi.mocked(syncStorageChanges).mockImplementationOnce(async options => {
+    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       options.setSettings({
         ...(mocked.settings as UserSettings),
         openAllInNewWindow: true,
@@ -1973,7 +1975,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             settings: UserSettings
           }
         ).settings.openAllInNewWindow,
@@ -2177,7 +2179,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,
@@ -2738,7 +2740,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,

@@ -1,10 +1,11 @@
 import * as React from 'react'
+
 import { cn } from '@/lib/utils'
 
 // Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: '', dark: '.dark' } as const
+const THEMES = { dark: '.dark', light: '' } as const
 
-export type ChartConfig = {
+export interface ChartConfig {
   [key: string]: {
     label?: React.ReactNode
     icon?: React.ComponentType
@@ -14,26 +15,26 @@ export type ChartConfig = {
   )
 }
 
-type ChartContextProps = {
+interface ChartContextProps {
   config: ChartConfig
 }
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
 const RechartsResponsiveContainer = React.lazy(() =>
-  import('recharts').then(module => ({
+  import('recharts').then((module) => ({
     default: module.ResponsiveContainer,
   })),
 )
 
 const ChartTooltip = React.lazy(() =>
-  import('recharts').then(module => ({
+  import('recharts').then((module) => ({
     default: module.Tooltip,
   })),
 )
 
 const ChartLegend = React.lazy(() =>
-  import('recharts').then(module => ({
+  import('recharts').then((module) => ({
     default: module.Legend,
   })),
 )
@@ -147,11 +148,11 @@ const renderTooltipIndicator = ({
       className={cn(
         'shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]',
         {
+          'my-0.5': nestLabel && indicator === 'dashed',
           'size-2.5': indicator === 'dot',
-          'w-1': indicator === 'line',
           'w-0 border-[1.5px] border-dashed bg-transparent':
             indicator === 'dashed',
-          'my-0.5': nestLabel && indicator === 'dashed',
+          'w-1': indicator === 'line',
         },
       )}
       style={
@@ -303,9 +304,9 @@ const ChartTooltipContent = ({
               config,
               formatter,
               hideIndicator,
+              index: items.length,
               indicator,
               item,
-              index: items.length,
               nameKey,
               nestLabel,
               tooltipLabel,

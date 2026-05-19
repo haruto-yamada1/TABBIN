@@ -1,4 +1,5 @@
 import { Edit, Trash2 } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -10,6 +11,7 @@ import {
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
@@ -41,7 +43,7 @@ export const SubCategorySelector = () => {
         <div className='flex gap-2'>
           {!rename.isRenaming && (
             <Tooltip>
-              <TooltipTrigger asChild={true}>
+              <TooltipTrigger asChild>
                 <Button
                   variant='secondary'
                   size='sm'
@@ -62,7 +64,7 @@ export const SubCategorySelector = () => {
           )}
 
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='secondary'
                 size='sm'
@@ -97,7 +99,7 @@ export const SubCategorySelector = () => {
           />
         </SelectTrigger>
         <SelectContent>
-          {group.subCategories.map(cat => (
+          {group.subCategories.map((cat) => (
             <SelectItem key={cat} value={cat} className='cursor-pointer'>
               {cat}
             </SelectItem>

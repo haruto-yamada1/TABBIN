@@ -19,10 +19,10 @@ const countValues = (values: string[]): InterestEvidenceEntry[] => {
 
   return [...counts.entries()]
     .map(([value, count]) => ({
-      value,
       count,
+      value,
     }))
-    .sort(
+    .toSorted(
       (left, right) =>
         right.count - left.count || left.value.localeCompare(right.value),
     )
@@ -45,7 +45,7 @@ const createDomainChartSeries = (language: AppLanguage) => [
 ]
 
 const toChartData = (entries: InterestEvidenceEntry[]) =>
-  entries.map(entry => ({
+  entries.map((entry) => ({
     count: entry.count,
     label: entry.value,
   }))
@@ -88,7 +88,7 @@ const buildChartSpecs = ({
     })
   }
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (topDomains.length > 0) {
     chartSpecs.push({
       data: toChartData(topDomains),
@@ -111,12 +111,12 @@ export const inferUserInterests = (
   records: AiSavedUrlRecord[],
   language: AppLanguage = 'ja',
 ): InterestInferenceResult => {
-  const topDomains = countValues(records.map(record => record.domain)).slice(
+  const topDomains = countValues(records.map((record) => record.domain)).slice(
     0,
     3,
   )
   const topCategories = countValues(
-    records.flatMap(record => [
+    records.flatMap((record) => [
       ...new Set([
         ...record.parentCategories,
         ...record.subCategories,
@@ -129,12 +129,12 @@ export const inferUserInterests = (
   if (records.length === 0) {
     return {
       chartSpecs: [],
-      summary: getMessage(language, 'aiChat.interests.noDataSummary'),
-      isTentative: true,
       evidence: {
-        topDomains: [],
         topCategories: [],
+        topDomains: [],
       },
+      isTentative: true,
+      summary: getMessage(language, 'aiChat.interests.noDataSummary'),
     }
   }
 
@@ -145,27 +145,27 @@ export const inferUserInterests = (
         topDomains,
         topCategories,
       }),
-      summary: getMessage(language, 'aiChat.interests.tentativeSummary'),
-      isTentative: true,
       evidence: {
-        topDomains,
         topCategories,
+        topDomains,
       },
+      isTentative: true,
+      summary: getMessage(language, 'aiChat.interests.tentativeSummary'),
     }
   }
 
   const domainSummary = topDomains
-    .map(entry => `${entry.value}(${entry.count})`)
+    .map((entry) => `${entry.value}(${entry.count})`)
     .join(' / ')
   const categorySummary =
     topCategories.length > 0
       ? getMessage(language, 'aiChat.interests.categoryBias', undefined, {
           categories: topCategories
-            .map(entry => entry.value)
-            /* v8 ignore next -- coverage-only defensive branch. */
-            /* v8 ignore start -- coverage-only defensive branch. */
+            .map((entry) => entry.value)
+            /* V8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore start -- coverage-only defensive branch. */
             .join(language === 'ja' ? '、' : ', '),
-          /* v8 ignore stop */
+          /* V8 ignore stop */
         })
       : getMessage(language, 'aiChat.interests.categoryWeak')
 
@@ -175,14 +175,14 @@ export const inferUserInterests = (
       topDomains,
       topCategories,
     }),
+    evidence: {
+      topCategories,
+      topDomains,
+    },
+    isTentative: false,
     summary: getMessage(language, 'aiChat.interests.summary', undefined, {
       categorySummary,
       domainSummary,
     }),
-    isTentative: false,
-    evidence: {
-      topDomains,
-      topCategories,
-    },
   }
 }

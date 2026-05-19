@@ -84,18 +84,24 @@ const getSidebarStateFromLocation = (
 
 const getAppRoute = (item: SidebarItemId): string => {
   switch (item) {
-    case 'ai-chat':
+    case 'ai-chat': {
       return '/ai-chat'
-    case 'analytics':
+    }
+    case 'analytics': {
       return '/analytics'
-    case 'options':
+    }
+    case 'options': {
       return '/options'
-    case 'periodic-execution':
+    }
+    case 'periodic-execution': {
       return '/periodic-execution'
-    case 'saved-tabs-custom':
+    }
+    case 'saved-tabs-custom': {
       return '/saved-tabs?mode=custom'
-    case 'saved-tabs-domain':
+    }
+    case 'saved-tabs-domain': {
       return '/saved-tabs?mode=domain'
+    }
   }
 }
 
@@ -103,18 +109,24 @@ const getAppEntryHref = (route: string): string => `${APP_ENTRY_PATH}#${route}`
 
 const getPageHref = (item: SidebarItemId): string => {
   switch (item) {
-    case 'ai-chat':
+    case 'ai-chat': {
       return 'ai-chat.html'
-    case 'analytics':
+    }
+    case 'analytics': {
       return 'analytics.html'
-    case 'options':
+    }
+    case 'options': {
       return 'options.html'
-    case 'periodic-execution':
+    }
+    case 'periodic-execution': {
       return 'periodic-execution.html'
-    case 'saved-tabs-custom':
+    }
+    case 'saved-tabs-custom': {
       return 'saved-tabs.html?mode=custom'
-    case 'saved-tabs-domain':
+    }
+    case 'saved-tabs-domain': {
       return 'saved-tabs.html?mode=domain'
+    }
   }
 }
 

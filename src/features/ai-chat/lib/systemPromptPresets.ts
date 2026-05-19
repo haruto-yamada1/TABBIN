@@ -113,7 +113,7 @@ const normalizePromptPresets = (
           }
 
           const normalizedPreset = normalizePromptPreset(preset, language)
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           if (
             normalizedPreset.name.length > 0 &&
             normalizedPreset.template.length > 0
@@ -143,7 +143,7 @@ const normalizeAiSystemPromptSettings = (
   )
   const activeAiSystemPrompt =
     aiSystemPrompts.find(
-      prompt => prompt.id === settings.activeAiSystemPromptId,
+      (prompt) => prompt.id === settings.activeAiSystemPromptId,
     ) ?? aiSystemPrompts[0]
 
   return {

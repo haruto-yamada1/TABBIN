@@ -8,6 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
 
@@ -93,7 +94,7 @@ vi.mock('./TimeRemaining', () => ({
     categorySectionSpy(props)
     return (
       <div data-testid='category-section'>
-        {(props.urls || []).map(url => url.url).join(',')}
+        {(props.urls || []).map((url) => url.url).join(',')}
       </div>
     )
   },
@@ -321,7 +322,7 @@ describe('SortableCategorySection', () => {
   it('削除ボタンは handler がある時のみ描画され、confirmDeleteAll=false では即時削除し二重実行を防ぐ', async () => {
     const handleDeleteAllTabs = vi.fn(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           setTimeout(resolve, 0)
         }),
     )

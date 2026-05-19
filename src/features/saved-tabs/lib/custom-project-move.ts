@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+
 import type { CustomProject } from '@/types/storage'
 
 interface MoveCustomProjectUrlAndSyncStateParams {

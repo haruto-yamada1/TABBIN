@@ -2,253 +2,253 @@ lockfile_version: '1'
 generated_at: '2026-05-03T00:00:00+09:00'
 dependencies: []
 local_deployed_files:
-- .agents/skills/agent-introspection-debugging
-- .agents/skills/babysit
-- .agents/skills/brainstorming
-- .agents/skills/canvas
-- .agents/skills/check
-- .agents/skills/create-hook
-- .agents/skills/create-rule
-- .agents/skills/create-skill
-- .agents/skills/create-subagent
-- .agents/skills/cursor-sdk
-- .agents/skills/dispatching-parallel-agents
-- .agents/skills/e2e-testing
-- .agents/skills/executing-plans
-- .agents/skills/find-skills
-- .agents/skills/finishing-a-development-branch
-- .agents/skills/migrate-to-skills
-- .agents/skills/react-doctor
-- .agents/skills/receiving-code-review
-- .agents/skills/requesting-code-review
-- .agents/skills/security-review
-- .agents/skills/shell
-- .agents/skills/split-to-prs
-- .agents/skills/statusline
-- .agents/skills/subagent-driven-development
-- .agents/skills/systematic-debugging
-- .agents/skills/test-driven-development
-- .agents/skills/update-cli-config
-- .agents/skills/update-cursor-settings
-- .agents/skills/using-git-worktrees
-- .agents/skills/using-superpowers
-- .agents/skills/vercel-composition-patterns
-- .agents/skills/vercel-react-best-practices
-- .agents/skills/vercel-react-native-skills
-- .agents/skills/verification-before-completion
-- .agents/skills/web-design-guidelines
-- .agents/skills/writing-plans
-- .agents/skills/writing-skills
-- .claude/commands/code-style.md
-- .claude/commands/comment-rule.md
-- .claude/commands/harness-evaluator.md
-- .claude/hooks/TABBIN/scripts/stop-verify.sh
-- .claude/hooks/TABBIN/scripts/track-edit.sh
-- .claude/rules/00-context-mode.md
-- .claude/rules/01-rtk.md
-- .claude/rules/harness.md
-- .claude/rules/repository-guidelines.md
-- .claude/skills/agent-introspection-debugging
-- .claude/skills/babysit
-- .claude/skills/brainstorming
-- .claude/skills/canvas
-- .claude/skills/check
-- .claude/skills/create-hook
-- .claude/skills/create-rule
-- .claude/skills/create-skill
-- .claude/skills/create-subagent
-- .claude/skills/cursor-sdk
-- .claude/skills/dispatching-parallel-agents
-- .claude/skills/e2e-testing
-- .claude/skills/executing-plans
-- .claude/skills/find-skills
-- .claude/skills/finishing-a-development-branch
-- .claude/skills/migrate-to-skills
-- .claude/skills/react-doctor
-- .claude/skills/receiving-code-review
-- .claude/skills/requesting-code-review
-- .claude/skills/security-review
-- .claude/skills/shell
-- .claude/skills/split-to-prs
-- .claude/skills/statusline
-- .claude/skills/subagent-driven-development
-- .claude/skills/systematic-debugging
-- .claude/skills/test-driven-development
-- .claude/skills/update-cli-config
-- .claude/skills/update-cursor-settings
-- .claude/skills/using-git-worktrees
-- .claude/skills/using-superpowers
-- .claude/skills/vercel-composition-patterns
-- .claude/skills/vercel-react-best-practices
-- .claude/skills/vercel-react-native-skills
-- .claude/skills/verification-before-completion
-- .claude/skills/web-design-guidelines
-- .claude/skills/writing-plans
-- .claude/skills/writing-skills
-- .codex/hooks/TABBIN/scripts/stop-verify.sh
-- .codex/hooks/TABBIN/scripts/track-edit.sh
-- .cursor/hooks/TABBIN/scripts/stop-verify.sh
-- .cursor/hooks/TABBIN/scripts/track-edit.sh
-- .cursor/rules/00-context-mode.mdc
-- .cursor/rules/01-rtk.mdc
-- .cursor/rules/harness.mdc
-- .cursor/rules/repository-guidelines.mdc
-- .cursor/skills/agent-introspection-debugging
-- .cursor/skills/babysit
-- .cursor/skills/brainstorming
-- .cursor/skills/canvas
-- .cursor/skills/check
-- .cursor/skills/create-hook
-- .cursor/skills/create-rule
-- .cursor/skills/create-skill
-- .cursor/skills/create-subagent
-- .cursor/skills/cursor-sdk
-- .cursor/skills/dispatching-parallel-agents
-- .cursor/skills/e2e-testing
-- .cursor/skills/executing-plans
-- .cursor/skills/find-skills
-- .cursor/skills/finishing-a-development-branch
-- .cursor/skills/migrate-to-skills
-- .cursor/skills/react-doctor
-- .cursor/skills/receiving-code-review
-- .cursor/skills/requesting-code-review
-- .cursor/skills/security-review
-- .cursor/skills/shell
-- .cursor/skills/split-to-prs
-- .cursor/skills/statusline
-- .cursor/skills/subagent-driven-development
-- .cursor/skills/systematic-debugging
-- .cursor/skills/test-driven-development
-- .cursor/skills/update-cli-config
-- .cursor/skills/update-cursor-settings
-- .cursor/skills/using-git-worktrees
-- .cursor/skills/using-superpowers
-- .cursor/skills/vercel-composition-patterns
-- .cursor/skills/vercel-react-best-practices
-- .cursor/skills/vercel-react-native-skills
-- .cursor/skills/verification-before-completion
-- .cursor/skills/web-design-guidelines
-- .cursor/skills/writing-plans
-- .cursor/skills/writing-skills
-- .gemini/commands/code-style.toml
-- .gemini/commands/comment-rule.toml
-- .gemini/commands/harness-evaluator.toml
-- .gemini/hooks/TABBIN/scripts/stop-verify.sh
-- .gemini/hooks/TABBIN/scripts/track-edit.sh
-- .gemini/skills/agent-introspection-debugging
-- .gemini/skills/babysit
-- .gemini/skills/brainstorming
-- .gemini/skills/canvas
-- .gemini/skills/check
-- .gemini/skills/create-hook
-- .gemini/skills/create-rule
-- .gemini/skills/create-skill
-- .gemini/skills/create-subagent
-- .gemini/skills/cursor-sdk
-- .gemini/skills/dispatching-parallel-agents
-- .gemini/skills/e2e-testing
-- .gemini/skills/executing-plans
-- .gemini/skills/find-skills
-- .gemini/skills/finishing-a-development-branch
-- .gemini/skills/migrate-to-skills
-- .gemini/skills/react-doctor
-- .gemini/skills/receiving-code-review
-- .gemini/skills/requesting-code-review
-- .gemini/skills/security-review
-- .gemini/skills/shell
-- .gemini/skills/split-to-prs
-- .gemini/skills/statusline
-- .gemini/skills/subagent-driven-development
-- .gemini/skills/systematic-debugging
-- .gemini/skills/test-driven-development
-- .gemini/skills/update-cli-config
-- .gemini/skills/update-cursor-settings
-- .gemini/skills/using-git-worktrees
-- .gemini/skills/using-superpowers
-- .gemini/skills/vercel-composition-patterns
-- .gemini/skills/vercel-react-best-practices
-- .gemini/skills/vercel-react-native-skills
-- .gemini/skills/verification-before-completion
-- .gemini/skills/web-design-guidelines
-- .gemini/skills/writing-plans
-- .gemini/skills/writing-skills
-- .github/hooks/TABBIN-claude-quality-hooks.json
-- .github/hooks/scripts/TABBIN/scripts/stop-verify.sh
-- .github/hooks/scripts/TABBIN/scripts/track-edit.sh
-- .github/instructions/00-context-mode.instructions.md
-- .github/instructions/01-rtk.instructions.md
-- .github/instructions/harness.instructions.md
-- .github/instructions/repository-guidelines.instructions.md
-- .github/prompts/code-style.prompt.md
-- .github/prompts/comment-rule.prompt.md
-- .github/prompts/harness-evaluator.prompt.md
-- .github/skills/agent-introspection-debugging
-- .github/skills/babysit
-- .github/skills/brainstorming
-- .github/skills/canvas
-- .github/skills/check
-- .github/skills/create-hook
-- .github/skills/create-rule
-- .github/skills/create-skill
-- .github/skills/create-subagent
-- .github/skills/cursor-sdk
-- .github/skills/dispatching-parallel-agents
-- .github/skills/e2e-testing
-- .github/skills/executing-plans
-- .github/skills/find-skills
-- .github/skills/finishing-a-development-branch
-- .github/skills/migrate-to-skills
-- .github/skills/react-doctor
-- .github/skills/receiving-code-review
-- .github/skills/requesting-code-review
-- .github/skills/security-review
-- .github/skills/shell
-- .github/skills/split-to-prs
-- .github/skills/statusline
-- .github/skills/subagent-driven-development
-- .github/skills/systematic-debugging
-- .github/skills/test-driven-development
-- .github/skills/update-cli-config
-- .github/skills/update-cursor-settings
-- .github/skills/using-git-worktrees
-- .github/skills/using-superpowers
-- .github/skills/vercel-composition-patterns
-- .github/skills/vercel-react-best-practices
-- .github/skills/vercel-react-native-skills
-- .github/skills/verification-before-completion
-- .github/skills/web-design-guidelines
-- .github/skills/writing-plans
-- .github/skills/writing-skills
+  - .agents/skills/agent-introspection-debugging
+  - .agents/skills/babysit
+  - .agents/skills/brainstorming
+  - .agents/skills/canvas
+  - .agents/skills/check
+  - .agents/skills/create-hook
+  - .agents/skills/create-rule
+  - .agents/skills/create-skill
+  - .agents/skills/create-subagent
+  - .agents/skills/cursor-sdk
+  - .agents/skills/dispatching-parallel-agents
+  - .agents/skills/e2e-testing
+  - .agents/skills/executing-plans
+  - .agents/skills/find-skills
+  - .agents/skills/finishing-a-development-branch
+  - .agents/skills/migrate-to-skills
+  - .agents/skills/react-doctor
+  - .agents/skills/receiving-code-review
+  - .agents/skills/requesting-code-review
+  - .agents/skills/security-review
+  - .agents/skills/shell
+  - .agents/skills/split-to-prs
+  - .agents/skills/statusline
+  - .agents/skills/subagent-driven-development
+  - .agents/skills/systematic-debugging
+  - .agents/skills/test-driven-development
+  - .agents/skills/update-cli-config
+  - .agents/skills/update-cursor-settings
+  - .agents/skills/using-git-worktrees
+  - .agents/skills/using-superpowers
+  - .agents/skills/vercel-composition-patterns
+  - .agents/skills/vercel-react-best-practices
+  - .agents/skills/vercel-react-native-skills
+  - .agents/skills/verification-before-completion
+  - .agents/skills/web-design-guidelines
+  - .agents/skills/writing-plans
+  - .agents/skills/writing-skills
+  - .claude/commands/code-style.md
+  - .claude/commands/comment-rule.md
+  - .claude/commands/harness-evaluator.md
+  - .claude/hooks/TABBIN/scripts/stop-verify.sh
+  - .claude/hooks/TABBIN/scripts/track-edit.sh
+  - .claude/rules/00-context-mode.md
+  - .claude/rules/01-rtk.md
+  - .claude/rules/harness.md
+  - .claude/rules/repository-guidelines.md
+  - .claude/skills/agent-introspection-debugging
+  - .claude/skills/babysit
+  - .claude/skills/brainstorming
+  - .claude/skills/canvas
+  - .claude/skills/check
+  - .claude/skills/create-hook
+  - .claude/skills/create-rule
+  - .claude/skills/create-skill
+  - .claude/skills/create-subagent
+  - .claude/skills/cursor-sdk
+  - .claude/skills/dispatching-parallel-agents
+  - .claude/skills/e2e-testing
+  - .claude/skills/executing-plans
+  - .claude/skills/find-skills
+  - .claude/skills/finishing-a-development-branch
+  - .claude/skills/migrate-to-skills
+  - .claude/skills/react-doctor
+  - .claude/skills/receiving-code-review
+  - .claude/skills/requesting-code-review
+  - .claude/skills/security-review
+  - .claude/skills/shell
+  - .claude/skills/split-to-prs
+  - .claude/skills/statusline
+  - .claude/skills/subagent-driven-development
+  - .claude/skills/systematic-debugging
+  - .claude/skills/test-driven-development
+  - .claude/skills/update-cli-config
+  - .claude/skills/update-cursor-settings
+  - .claude/skills/using-git-worktrees
+  - .claude/skills/using-superpowers
+  - .claude/skills/vercel-composition-patterns
+  - .claude/skills/vercel-react-best-practices
+  - .claude/skills/vercel-react-native-skills
+  - .claude/skills/verification-before-completion
+  - .claude/skills/web-design-guidelines
+  - .claude/skills/writing-plans
+  - .claude/skills/writing-skills
+  - .codex/hooks/TABBIN/scripts/stop-verify.sh
+  - .codex/hooks/TABBIN/scripts/track-edit.sh
+  - .cursor/hooks/TABBIN/scripts/stop-verify.sh
+  - .cursor/hooks/TABBIN/scripts/track-edit.sh
+  - .cursor/rules/00-context-mode.mdc
+  - .cursor/rules/01-rtk.mdc
+  - .cursor/rules/harness.mdc
+  - .cursor/rules/repository-guidelines.mdc
+  - .cursor/skills/agent-introspection-debugging
+  - .cursor/skills/babysit
+  - .cursor/skills/brainstorming
+  - .cursor/skills/canvas
+  - .cursor/skills/check
+  - .cursor/skills/create-hook
+  - .cursor/skills/create-rule
+  - .cursor/skills/create-skill
+  - .cursor/skills/create-subagent
+  - .cursor/skills/cursor-sdk
+  - .cursor/skills/dispatching-parallel-agents
+  - .cursor/skills/e2e-testing
+  - .cursor/skills/executing-plans
+  - .cursor/skills/find-skills
+  - .cursor/skills/finishing-a-development-branch
+  - .cursor/skills/migrate-to-skills
+  - .cursor/skills/react-doctor
+  - .cursor/skills/receiving-code-review
+  - .cursor/skills/requesting-code-review
+  - .cursor/skills/security-review
+  - .cursor/skills/shell
+  - .cursor/skills/split-to-prs
+  - .cursor/skills/statusline
+  - .cursor/skills/subagent-driven-development
+  - .cursor/skills/systematic-debugging
+  - .cursor/skills/test-driven-development
+  - .cursor/skills/update-cli-config
+  - .cursor/skills/update-cursor-settings
+  - .cursor/skills/using-git-worktrees
+  - .cursor/skills/using-superpowers
+  - .cursor/skills/vercel-composition-patterns
+  - .cursor/skills/vercel-react-best-practices
+  - .cursor/skills/vercel-react-native-skills
+  - .cursor/skills/verification-before-completion
+  - .cursor/skills/web-design-guidelines
+  - .cursor/skills/writing-plans
+  - .cursor/skills/writing-skills
+  - .gemini/commands/code-style.toml
+  - .gemini/commands/comment-rule.toml
+  - .gemini/commands/harness-evaluator.toml
+  - .gemini/hooks/TABBIN/scripts/stop-verify.sh
+  - .gemini/hooks/TABBIN/scripts/track-edit.sh
+  - .gemini/skills/agent-introspection-debugging
+  - .gemini/skills/babysit
+  - .gemini/skills/brainstorming
+  - .gemini/skills/canvas
+  - .gemini/skills/check
+  - .gemini/skills/create-hook
+  - .gemini/skills/create-rule
+  - .gemini/skills/create-skill
+  - .gemini/skills/create-subagent
+  - .gemini/skills/cursor-sdk
+  - .gemini/skills/dispatching-parallel-agents
+  - .gemini/skills/e2e-testing
+  - .gemini/skills/executing-plans
+  - .gemini/skills/find-skills
+  - .gemini/skills/finishing-a-development-branch
+  - .gemini/skills/migrate-to-skills
+  - .gemini/skills/react-doctor
+  - .gemini/skills/receiving-code-review
+  - .gemini/skills/requesting-code-review
+  - .gemini/skills/security-review
+  - .gemini/skills/shell
+  - .gemini/skills/split-to-prs
+  - .gemini/skills/statusline
+  - .gemini/skills/subagent-driven-development
+  - .gemini/skills/systematic-debugging
+  - .gemini/skills/test-driven-development
+  - .gemini/skills/update-cli-config
+  - .gemini/skills/update-cursor-settings
+  - .gemini/skills/using-git-worktrees
+  - .gemini/skills/using-superpowers
+  - .gemini/skills/vercel-composition-patterns
+  - .gemini/skills/vercel-react-best-practices
+  - .gemini/skills/vercel-react-native-skills
+  - .gemini/skills/verification-before-completion
+  - .gemini/skills/web-design-guidelines
+  - .gemini/skills/writing-plans
+  - .gemini/skills/writing-skills
+  - .github/hooks/TABBIN-claude-quality-hooks.json
+  - .github/hooks/scripts/TABBIN/scripts/stop-verify.sh
+  - .github/hooks/scripts/TABBIN/scripts/track-edit.sh
+  - .github/instructions/00-context-mode.instructions.md
+  - .github/instructions/01-rtk.instructions.md
+  - .github/instructions/harness.instructions.md
+  - .github/instructions/repository-guidelines.instructions.md
+  - .github/prompts/code-style.prompt.md
+  - .github/prompts/comment-rule.prompt.md
+  - .github/prompts/harness-evaluator.prompt.md
+  - .github/skills/agent-introspection-debugging
+  - .github/skills/babysit
+  - .github/skills/brainstorming
+  - .github/skills/canvas
+  - .github/skills/check
+  - .github/skills/create-hook
+  - .github/skills/create-rule
+  - .github/skills/create-skill
+  - .github/skills/create-subagent
+  - .github/skills/cursor-sdk
+  - .github/skills/dispatching-parallel-agents
+  - .github/skills/e2e-testing
+  - .github/skills/executing-plans
+  - .github/skills/find-skills
+  - .github/skills/finishing-a-development-branch
+  - .github/skills/migrate-to-skills
+  - .github/skills/react-doctor
+  - .github/skills/receiving-code-review
+  - .github/skills/requesting-code-review
+  - .github/skills/security-review
+  - .github/skills/shell
+  - .github/skills/split-to-prs
+  - .github/skills/statusline
+  - .github/skills/subagent-driven-development
+  - .github/skills/systematic-debugging
+  - .github/skills/test-driven-development
+  - .github/skills/update-cli-config
+  - .github/skills/update-cursor-settings
+  - .github/skills/using-git-worktrees
+  - .github/skills/using-superpowers
+  - .github/skills/vercel-composition-patterns
+  - .github/skills/vercel-react-best-practices
+  - .github/skills/vercel-react-native-skills
+  - .github/skills/verification-before-completion
+  - .github/skills/web-design-guidelines
+  - .github/skills/writing-plans
+  - .github/skills/writing-skills
 local_deployed_file_hashes:
-  .claude/commands/code-style.md: sha256:de77ff2cf4c8c61ee1c0f803d501c34ef4b5da6db5ac36f5f229bef9d5cf1754
+  .claude/commands/code-style.md: sha256:92e72362699c129acd601ee5d1f68291e5bd6376b7026f84b54deedc68cca2a4
   .claude/commands/comment-rule.md: sha256:3b98a5328af95a4c48044587e834c15344c974c6e0fda468fd371fc62185aa15
   .claude/commands/harness-evaluator.md: sha256:a2c1efce5b01fe1319b1b14e8bfe2a33e2769081f57ad53bfec159cd03dfad4d
-  .claude/hooks/TABBIN/scripts/stop-verify.sh: sha256:922ccea50aec579fa683dcf391405763ed0844e9941659806eac2313d2123a92
-  .claude/hooks/TABBIN/scripts/track-edit.sh: sha256:d6b4478c8aa29104cdedf3ece343db387f1522cb457d4ddb3e0d3958262ebd13
+  .claude/hooks/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
+  .claude/hooks/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
   .claude/rules/00-context-mode.md: sha256:d401dc7362629b4ca86a965be6ce2eb5bd4a01df49ff2e7e0d66cef83a5005b3
   .claude/rules/01-rtk.md: sha256:b2bf8798e77e1cdcc0f0d31d5c5277c63dcb6086672e87ba0b7828dcfec7ca9b
   .claude/rules/harness.md: sha256:a5c5e148814e34810e365552df940d662264503e0165699cb3de609b006fc000
-  .claude/rules/repository-guidelines.md: sha256:c21a82eeb47071dc812162fc53b26573037442b87d067c9ee4fd0a31882d731f
-  .codex/hooks/TABBIN/scripts/stop-verify.sh: sha256:922ccea50aec579fa683dcf391405763ed0844e9941659806eac2313d2123a92
-  .codex/hooks/TABBIN/scripts/track-edit.sh: sha256:d6b4478c8aa29104cdedf3ece343db387f1522cb457d4ddb3e0d3958262ebd13
-  .cursor/hooks/TABBIN/scripts/stop-verify.sh: sha256:922ccea50aec579fa683dcf391405763ed0844e9941659806eac2313d2123a92
-  .cursor/hooks/TABBIN/scripts/track-edit.sh: sha256:d6b4478c8aa29104cdedf3ece343db387f1522cb457d4ddb3e0d3958262ebd13
+  .claude/rules/repository-guidelines.md: sha256:51d5beb33b3441858a452e31d1c013f9a41ef732b3d24478c99403f3e15f69f7
+  .codex/hooks/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
+  .codex/hooks/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
+  .cursor/hooks/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
+  .cursor/hooks/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
   .cursor/rules/00-context-mode.mdc: sha256:7a7d69afa8c55490fe5e945474c365e66d150a2360aa7449c11761371215f17f
   .cursor/rules/01-rtk.mdc: sha256:7c0b16527fe49e8d7180e1759cff25fd24a1e661371fe9d1faed760de44bc3e5
   .cursor/rules/harness.mdc: sha256:03a9236ec5f765fae086f853ca6b630a7673608c73fa49789347258690caeb6d
-  .cursor/rules/repository-guidelines.mdc: sha256:d277190dc7d5bc420a9e1c5901e92b3b06a1660cfe714eb6c8467a9cd57f0859
-  .gemini/commands/code-style.toml: sha256:a4dceec6355a772e17c0562978bae297998e17c3bd06ce8879df69391dfd319c
+  .cursor/rules/repository-guidelines.mdc: sha256:18add07365279952c8213f4cc7a67e443a70d2d2c660831211c7a6ce8e087490
+  .gemini/commands/code-style.toml: sha256:997fa8f57d7d440eff082e262255697e8d7cf9613e4b4a23852f3665877dbb16
   .gemini/commands/comment-rule.toml: sha256:4a448d0c0d7234702958fd7a5dca43882a81a256a70b69021ae5306648480dcc
   .gemini/commands/harness-evaluator.toml: sha256:22ba5f77dd806cc0dadbf08f6a66086733c7b4169e9cb8079be932ce79c3d017
-  .gemini/hooks/TABBIN/scripts/stop-verify.sh: sha256:922ccea50aec579fa683dcf391405763ed0844e9941659806eac2313d2123a92
-  .gemini/hooks/TABBIN/scripts/track-edit.sh: sha256:d6b4478c8aa29104cdedf3ece343db387f1522cb457d4ddb3e0d3958262ebd13
+  .gemini/hooks/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
+  .gemini/hooks/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
   .github/hooks/TABBIN-claude-quality-hooks.json: sha256:d0942a0d7ca72492714b67c0902a981d1124797ca1716e45da9e3e69308cc9c3
-  .github/hooks/scripts/TABBIN/scripts/stop-verify.sh: sha256:922ccea50aec579fa683dcf391405763ed0844e9941659806eac2313d2123a92
-  .github/hooks/scripts/TABBIN/scripts/track-edit.sh: sha256:d6b4478c8aa29104cdedf3ece343db387f1522cb457d4ddb3e0d3958262ebd13
+  .github/hooks/scripts/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
+  .github/hooks/scripts/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
   .github/instructions/00-context-mode.instructions.md: sha256:35a864d8df37bda3f7becc6781dff9b5968cd81e0c9dfd06ca46493f12caadff
   .github/instructions/01-rtk.instructions.md: sha256:17c762d7da8731a1415059900be8e37bb7cb17e859e0c2eddda7c4f933d491a3
   .github/instructions/harness.instructions.md: sha256:7ce2d5286262ffebe6a5dfa48911f37574a24a445fd3361f315eca651d38e946
-  .github/instructions/repository-guidelines.instructions.md: sha256:f66ea09d749d297f478dc0a5e3ab2a45e2f34d3cf34391da7ccb0180a5c8ab03
-  .github/prompts/code-style.prompt.md: sha256:3f48ef56a1d723dfac527ed0be2ce269a3041f6bf21ed5e74c6c4a2af804dc26
+  .github/instructions/repository-guidelines.instructions.md: sha256:36d6e89ff50d18f15a058ca551f77f37c2182e8422d76047b6f9a57b7b58110c
+  .github/prompts/code-style.prompt.md: sha256:bc5e6b6d5618fc04434f748cc0d121a5baaed2ff0b95992f0aa2301caf4ca0b9
   .github/prompts/comment-rule.prompt.md: sha256:891b46ab9aae6f4188397fad4b22425b55e928f0bcacb64007b4378912760f12
   .github/prompts/harness-evaluator.prompt.md: sha256:b65b2741dd0a1a7248dd3ae7923a28bb4ec2fd879b4588265fa394226adf704c

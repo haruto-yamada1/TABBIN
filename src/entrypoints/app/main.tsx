@@ -1,19 +1,18 @@
-import '@/assets/global.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { I18nProvider } from '@/features/i18n/context/I18nProvider'
 import { AppRouter } from '@/features/navigation/app/AppRouter'
 import { mountToElement } from '@/lib/react/render-root'
 
-const AppPage = () => {
-  return (
-    <I18nProvider>
-      <TooltipProvider>
-        <AppRouter />
-      </TooltipProvider>
-    </I18nProvider>
-  )
-}
+import '@/assets/global.css'
+
+const AppPage = () => (
+  <I18nProvider>
+    <TooltipProvider>
+      <AppRouter />
+    </TooltipProvider>
+  </I18nProvider>
+)
 
 document.addEventListener('DOMContentLoaded', () => {
   mountToElement(

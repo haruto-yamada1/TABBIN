@@ -4,27 +4,23 @@
  */
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import {
-  type Dispatch,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { saveParentCategories } from '@/lib/storage/categories'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
-/** useCategoryManagement フックの戻り値型 */
+/** UseCategoryManagement フックの戻り値型 */
 interface UseCategoryManagementReturn {
   /** 親カテゴリ一覧 */
   categories: ParentCategory[]
-  /** categories を直接更新するセッター */
+  /** Categories を直接更新するセッター */
   setCategories: Dispatch<SetStateAction<ParentCategory[]>>
   /** カテゴリ表示順序（カテゴリ ID 配列） */
   categoryOrder: string[]
-  /** categoryOrder を直接更新するセッター */
+  /** CategoryOrder を直接更新するセッター */
   setCategoryOrder: Dispatch<SetStateAction<string[]>>
   /** 並び替えモード中かどうか */
   isCategoryReorderMode: boolean
@@ -83,7 +79,7 @@ const removeSubCategoryFromGroup = (
   }
   console.log('削除前のサブカテゴリ:', group.subCategories)
   const updatedSubCategories =
-    group.subCategories?.filter(cat => cat !== categoryName) || []
+    group.subCategories?.filter((cat) => cat !== categoryName) || []
   console.log('削除後のサブカテゴリ:', updatedSubCategories)
   const updatedUrlSubCategories = {
     ...group.urlSubCategories,
@@ -97,10 +93,11 @@ const removeSubCategoryFromGroup = (
   }
   return {
     ...group,
-    subCategories: updatedSubCategories,
     categoryKeywords:
-      group.categoryKeywords?.filter(ck => ck.categoryName !== categoryName) ||
-      [],
+      group.categoryKeywords?.filter(
+        (ck) => ck.categoryName !== categoryName,
+      ) || [],
+    subCategories: updatedSubCategories,
     urlSubCategories: updatedUrlSubCategories,
   }
 }
@@ -147,10 +144,10 @@ const useCategoryManagement = (
   )
   const [tempCategoryOrder, setTempCategoryOrder] = useState<string[]>([])
 
-  // categories が変更されたときに categoryOrder を同期する
+  // Categories が変更されたときに categoryOrder を同期する
   useEffect(() => {
     if (categories.length > 0) {
-      setCategoryOrder(categories.map(cat => cat.id))
+      setCategoryOrder(categories.map((cat) => cat.id))
     }
   }, [categories])
 
@@ -176,12 +173,12 @@ const useCategoryManagement = (
           : []
 
         // 削除前にグループを取得して現在のカテゴリを確認
-        const targetGroup = savedTabs.find(group => group.id === groupId)
+        const targetGroup = savedTabs.find((group) => group.id === groupId)
         if (!targetGroup) {
           console.error('カテゴリ削除対象のグループが見つかりません:', groupId)
           return
         }
-        const updatedGroups = savedTabs.map(group =>
+        const updatedGroups = savedTabs.map((group) =>
           removeSubCategoryFromGroup(group, groupId, categoryName),
         )
         console.log(`カテゴリ ${categoryName} を削除します`)
@@ -209,10 +206,10 @@ const useCategoryManagement = (
       }
       const newOrder = buildReorderedCategoryOrder({
         activeId: active.id,
-        overId: over.id,
-        isCategoryReorderMode,
-        tempCategoryOrder,
         categoryOrder,
+        isCategoryReorderMode,
+        overId: over.id,
+        tempCategoryOrder,
       })
       if (!newOrder) {
         return
@@ -280,21 +277,21 @@ const useCategoryManagement = (
         console.log('カテゴリ内のドメイン順序を更新:', categoryId)
         console.log(
           '更新後のドメイン順序:',
-          updatedDomains.map(d => d.domain),
+          updatedDomains.map((d) => d.domain),
         )
 
         // 更新するカテゴリを探す
-        const targetCategory = categories.find(cat => cat.id === categoryId)
+        const targetCategory = categories.find((cat) => cat.id === categoryId)
         if (!targetCategory) {
           console.error('更新対象のカテゴリが見つかりません:', categoryId)
           return
         }
 
         // 更新するドメインIDの配列を作成
-        const updatedDomainIds = updatedDomains.map(domain => domain.id)
+        const updatedDomainIds = updatedDomains.map((domain) => domain.id)
 
         // カテゴリ内のドメイン順序を更新
-        const updatedCategories = categories.map(category => {
+        const updatedCategories = categories.map((category) => {
           if (category.id === categoryId) {
             return {
               ...category,
@@ -327,34 +324,34 @@ const useCategoryManagement = (
       tabGroups: TabGroup[],
     ): Promise<void> => {
       try {
-        const domainGroup = tabGroups.find(group => group.id === domainId)
+        const domainGroup = tabGroups.find((group) => group.id === domainId)
         if (!domainGroup) {
           return
         }
         let updatedCategories = [...categories]
         if (fromCategoryId) {
-          updatedCategories = updatedCategories.map(cat =>
+          updatedCategories = updatedCategories.map((cat) =>
             cat.id === fromCategoryId
               ? {
                   ...cat,
-                  domains: cat.domains.filter(d => d !== domainId),
                   domainNames: cat.domainNames
-                    ? cat.domainNames.filter(d => d !== domainGroup.domain)
+                    ? cat.domainNames.filter((d) => d !== domainGroup.domain)
                     : [],
+                  domains: cat.domains.filter((d) => d !== domainId),
                 }
               : cat,
           )
         }
-        updatedCategories = updatedCategories.map(cat =>
+        updatedCategories = updatedCategories.map((cat) =>
           cat.id === toCategoryId
             ? {
                 ...cat,
-                domains: cat.domains.includes(domainId)
-                  ? cat.domains
-                  : [...cat.domains, domainId],
                 domainNames: cat.domainNames?.includes(domainGroup.domain)
                   ? cat.domainNames
                   : [...(cat.domainNames || []), domainGroup.domain],
+                domains: cat.domains.includes(domainId)
+                  ? cat.domains
+                  : [...cat.domains, domainId],
               }
             : cat,
         )
@@ -371,18 +368,18 @@ const useCategoryManagement = (
   )
   return {
     categories,
-    setCategories,
     categoryOrder,
-    setCategoryOrder,
-    isCategoryReorderMode,
-    originalCategoryOrder,
-    tempCategoryOrder,
-    handleDeleteCategory,
+    handleCancelCategoryReorder,
     handleCategoryDragEnd,
     handleConfirmCategoryReorder,
-    handleCancelCategoryReorder,
-    handleUpdateDomainsOrder,
+    handleDeleteCategory,
     handleMoveDomainToCategory,
+    handleUpdateDomainsOrder,
+    isCategoryReorderMode,
+    originalCategoryOrder,
+    setCategories,
+    setCategoryOrder,
+    tempCategoryOrder,
   }
 }
 

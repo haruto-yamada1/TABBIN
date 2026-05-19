@@ -100,7 +100,7 @@ describe('useSharedAiChatHistory', () => {
     expect(mocked.saveConversationHistory).not.toHaveBeenCalled()
     expect(result.current.activeConversation?.title).toBe('新しい会話')
     expect(result.current.historyItems).toHaveLength(2)
-    expect(result.current.historyItems.map(item => item.id)).toEqual([
+    expect(result.current.historyItems.map((item) => item.id)).toEqual([
       'conversation-2',
       'conversation-1',
     ])
@@ -280,7 +280,7 @@ describe('useSharedAiChatHistory', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.historyItems.map(item => item.id)).toEqual([
+      expect(result.current.historyItems.map((item) => item.id)).toEqual([
         'conversation-2',
         'conversation-1',
       ])
@@ -294,7 +294,7 @@ describe('useSharedAiChatHistory', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.historyItems.map(item => item.id)).toEqual([
+    expect(result.current.historyItems.map((item) => item.id)).toEqual([
       'conversation-2',
       'conversation-1',
     ])
@@ -332,7 +332,7 @@ describe('useSharedAiChatHistory', () => {
       })
     })
 
-    expect(result.current.historyItems.map(item => item.id)).toEqual([
+    expect(result.current.historyItems.map((item) => item.id)).toEqual([
       'conversation-1',
       'conversation-2',
     ])
@@ -372,7 +372,7 @@ describe('useSharedAiChatHistory', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.historyItems.map(item => item.id)).toEqual([
+    expect(result.current.historyItems.map((item) => item.id)).toEqual([
       'conversation-c',
       'conversation-b',
       'conversation-a',
@@ -386,7 +386,7 @@ describe('useSharedAiChatHistory', () => {
         ) => void)
       | undefined
     mocked.loadConversationHistory.mockReturnValue(
-      new Promise(resolve => {
+      new Promise((resolve) => {
         resolveHistory = resolve
       }),
     )
@@ -457,7 +457,7 @@ describe('useSharedAiChatHistory', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.historyItems.map(item => item.id)).toEqual([
+      expect(result.current.historyItems.map((item) => item.id)).toEqual([
         'conversation-1',
       ])
       expect(result.current.activeConversation?.id).toBe('conversation-1')

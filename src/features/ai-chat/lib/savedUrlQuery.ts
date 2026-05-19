@@ -4,6 +4,7 @@ import type {
   AiSavedUrlRecord,
   AiSavedUrlSortDirection,
 } from '@/features/ai-chat/types'
+
 import {
   searchSavedUrls as filterSavedUrlsByQuery,
   findUrlsAddedInMonth,
@@ -67,14 +68,14 @@ const paginateSavedUrlRecords = (
   const endIndex = startIndex + pageSize
 
   return {
+    hasNextPage: totalPages > 0 && page < totalPages,
+    hasPreviousPage: totalItems > 0 && page > 1,
     items: sortedRecords.slice(startIndex, endIndex),
     page,
     pageSize,
+    sortDirection,
     totalItems,
     totalPages,
-    hasNextPage: totalPages > 0 && page < totalPages,
-    hasPreviousPage: totalItems > 0 && page > 1,
-    sortDirection,
   }
 }
 

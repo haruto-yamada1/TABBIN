@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import type { CustomProjectCardProps } from '@/features/saved-tabs/types/CustomProjectCard.types'
 import type { UserSettings } from '@/types/storage'
 

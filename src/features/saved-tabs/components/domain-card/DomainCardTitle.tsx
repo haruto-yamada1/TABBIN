@@ -1,6 +1,8 @@
 import { GripVertical } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+
 import { SavedTabsResponsiveTooltipContent } from '../shared/SavedTabsResponsive'
 import { useDomainCard } from './DomainCardContext'
 
@@ -26,7 +28,7 @@ export const DomainCardTitle = () => {
       </h2>
       <span className='text-muted-foreground text-sm'>
         <Tooltip>
-          <TooltipTrigger asChild={true}>
+          <TooltipTrigger asChild>
             <Badge variant='secondary'>{group.urls?.length || 0}</Badge>
           </TooltipTrigger>
           <SavedTabsResponsiveTooltipContent side='top'>
@@ -37,7 +39,7 @@ export const DomainCardTitle = () => {
       {categoryId ? (
         <span className='text-muted-foreground text-sm'>
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Badge variant='secondary'>{visibleSubCategoryCount}</Badge>
             </TooltipTrigger>
             <SavedTabsResponsiveTooltipContent side='top'>

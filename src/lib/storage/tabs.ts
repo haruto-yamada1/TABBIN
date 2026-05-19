@@ -1,4 +1,5 @@
 import type { SubCategoryKeyword, TabGroup, UrlRecord } from '@/types/storage'
+
 import {
   getDomainCategorySettings,
   saveDomainCategorySettings,
@@ -26,7 +27,7 @@ const resolveTabGroupUrlsFromMap = (
     return []
   }
 
-  return tabGroup.urlIds.flatMap(id => {
+  return tabGroup.urlIds.flatMap((id) => {
     const record = urlRecordMap.get(id)
     return record
       ? [
@@ -48,9 +49,9 @@ const resolveTabGroupsWithUrls = async (
 
   await migrateToUrlsStorage()
   const urlRecords = await getUrlRecords()
-  const urlRecordMap = new Map(urlRecords.map(record => [record.id, record]))
+  const urlRecordMap = new Map(urlRecords.map((record) => [record.id, record]))
 
-  return groups.map(group => ({
+  return groups.map((group) => ({
     ...group,
     urls: resolveTabGroupUrlsFromMap(group, urlRecordMap),
   }))
@@ -62,18 +63,18 @@ const resolveTabGroupsWithUrls = async (
 const getTabGroupUrls = async (
   tabGroup: TabGroup,
 ): Promise<
-  Array<
-    UrlRecord & {
-      subCategory?: string
-    }
-  >
+  (UrlRecord & {
+    subCategory?: string
+  })[]
 > => {
   // 新形式のみサポート: URLIDsから参照して取得
   if (tabGroup.urlIds && tabGroup.urlIds.length > 0) {
     // マイグレーションを実行（未実行の場合）
     await migrateToUrlsStorage()
     const urlRecords = await getUrlRecordsByIds(tabGroup.urlIds)
-    const urlRecordMap = new Map(urlRecords.map(record => [record.id, record]))
+    const urlRecordMap = new Map(
+      urlRecords.map((record) => [record.id, record]),
+    )
     return resolveTabGroupUrlsFromMap(tabGroup, urlRecordMap)
   }
   return []
@@ -90,14 +91,14 @@ const getMigratedTabGroupById = async (
   const { savedTabs = [] } = await chrome.storage.local.get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
-  const groupIndex = savedTabs.findIndex(group => group.id === groupId)
+  const groupIndex = savedTabs.findIndex((group) => group.id === groupId)
   if (groupIndex === -1) {
     return null
   }
   return {
-    savedTabs,
-    groupIndex,
     group: savedTabs[groupIndex],
+    groupIndex,
+    savedTabs,
   }
 }
 
@@ -135,7 +136,7 @@ const addUrlToTabGroup = async (
   }
 
   // サブカテゴリが指定されている場合は設定
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (subCategory) {
     if (!group.urlSubCategories) {
       group.urlSubCategories = {}
@@ -160,7 +161,7 @@ const addSubCategoryToGroup = async (
   }
   const updatedGroups = savedTabs.map((existingGroup: TabGroup) => {
     if (existingGroup.id === groupId) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       const subCategories = existingGroup.subCategories || []
       if (!subCategories.includes(subCategoryName)) {
         return {
@@ -178,10 +179,10 @@ const addSubCategoryToGroup = async (
   })
 
   // ドメイン別設定にも保存して永続化
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (group) {
     const settings = await getDomainCategorySettings()
-    const existingSetting = settings.find(s => s.domain === group.domain)
+    const existingSetting = settings.find((s) => s.domain === group.domain)
     if (existingSetting) {
       // 既存の設定がある場合は更新
       if (!existingSetting.subCategories.includes(subCategoryName)) {
@@ -191,9 +192,9 @@ const addSubCategoryToGroup = async (
     } else {
       // 新しい設定を作成
       settings.push({
+        categoryKeywords: [],
         domain: group.domain,
         subCategories: [subCategoryName],
-        categoryKeywords: [],
       })
       await saveDomainCategorySettings(settings)
     }
@@ -213,10 +214,10 @@ const setUrlSubCategory = async (
   // 新形式のみサポート: URLIDsからURLレコードを探してサブカテゴリを設定
   if (group.urlIds && group.urlIds.length > 0) {
     const urlRecords = await getUrlRecordsByIds(group.urlIds)
-    const urlRecord = urlRecords.find(record => record.url === url)
-    /* v8 ignore next -- coverage-only defensive branch. */
+    const urlRecord = urlRecords.find((record) => record.url === url)
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (urlRecord) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (!group.urlSubCategories) {
         group.urlSubCategories = {}
       }
@@ -252,7 +253,7 @@ const setCategoryKeywords = async (
         (ck: SubCategoryKeyword) => ck.categoryName === categoryName,
       )
       const updatedCategoryKeywords = [...categoryKeywords]
-      if (categoryIndex >= 0) {
+      if (categoryIndex !== -1) {
         // 既存カテゴリの更新
         updatedCategoryKeywords[categoryIndex] = {
           ...updatedCategoryKeywords[categoryIndex],
@@ -281,16 +282,16 @@ const setCategoryKeywords = async (
   })
 
   // ドメイン別設定にも保存して永続化
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (group) {
     const settings = await getDomainCategorySettings()
-    const existingSetting = settings.find(s => s.domain === group.domain)
+    const existingSetting = settings.find((s) => s.domain === group.domain)
     if (existingSetting) {
       // 既存の設定がある場合は更新
       const keywordIndex = existingSetting.categoryKeywords.findIndex(
-        ck => ck.categoryName === categoryName,
+        (ck) => ck.categoryName === categoryName,
       )
-      if (keywordIndex >= 0) {
+      if (keywordIndex !== -1) {
         // 既存のキーワード設定を更新
         existingSetting.categoryKeywords[keywordIndex].keywords = keywords
       } else {
@@ -301,13 +302,13 @@ const setCategoryKeywords = async (
         })
       }
       await saveDomainCategorySettings(settings)
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
     } else {
       // 新しい設定を作成
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       settings.push({
         domain: group.domain,
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         subCategories: group.subCategories || [],
         categoryKeywords: [
           {
@@ -316,7 +317,7 @@ const setCategoryKeywords = async (
           },
         ],
       })
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       await saveDomainCategorySettings(settings)
     }
   }
@@ -352,9 +353,9 @@ const categorizeUrlIdsByKeywords = (
   const updatedSubCategories: Record<string, string> = {
     ...currentMapping,
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!categoryKeywords) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return updatedSubCategories
   }
   for (const urlRecord of urlRecords) {
@@ -376,9 +377,9 @@ const applySubCategoryMapping = (
   groupId: string,
   mapping: Record<string, string>,
 ): void => {
-  const groupIndex = groups.findIndex(group => group.id === groupId)
-  /* v8 ignore next -- coverage-only defensive branch. */
-  if (groupIndex >= 0) {
+  const groupIndex = groups.findIndex((group) => group.id === groupId)
+  /* V8 ignore next -- coverage-only defensive branch. */
+  if (groupIndex !== -1) {
     groups[groupIndex].urlSubCategories = mapping
   }
 } // キーワードに基づいて自動的にURLを分類する（新形式対応）
@@ -421,7 +422,7 @@ const addSubCategoryWithKeywords = async (
   await addSubCategoryToGroup(groupId, subCategoryName)
 
   // キーワードがあれば設定
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (keywords.length > 0) {
     await setCategoryKeywords(groupId, subCategoryName, keywords)
   }
@@ -430,12 +431,12 @@ const restoreCategorySettings = async (
   tabGroup: TabGroup,
 ): Promise<TabGroup> => {
   const settings = await getDomainCategorySettings()
-  const domainSettings = settings.find(s => s.domain === tabGroup.domain)
+  const domainSettings = settings.find((s) => s.domain === tabGroup.domain)
   if (domainSettings) {
     return {
       ...tabGroup,
-      subCategories: domainSettings.subCategories,
       categoryKeywords: domainSettings.categoryKeywords,
+      subCategories: domainSettings.subCategories,
     }
   }
   return tabGroup
@@ -454,19 +455,19 @@ const reorderTabGroupUrls = async (
   const { savedTabs, groupIndex, group } = tabGroupState
 
   // 新形式のみサポート: URLIDsから現在のURLレコードを取得
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (group.urlIds && group.urlIds.length > 0) {
     const urlRecords = await getUrlRecordsByIds(group.urlIds)
 
     // 新しい順序に基づいてURLIDsを並び替え
     const groupUrlIds = new Set(group.urlIds)
     const urlRecordsByUrl = new Map(
-      urlRecords.map(record => [record.url, record]),
+      urlRecords.map((record) => [record.url, record]),
     )
     const reorderedUrlIds: string[] = []
     for (const url of newUrlOrder) {
       const urlRecord = urlRecordsByUrl.get(url)
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (urlRecord && groupUrlIds.has(urlRecord.id)) {
         reorderedUrlIds.push(urlRecord.id)
       }
@@ -506,17 +507,17 @@ const removeUrlFromTabGroup = async (
   const { savedTabs, groupIndex, group } = tabGroupState
 
   // 新形式のみサポート: URLIDsからURLを削除
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (group.urlIds && group.urlIds.length > 0) {
     const urlRecords = await getUrlRecordsByIds(group.urlIds)
-    const urlRecord = urlRecords.find(record => record.url === url)
-    /* v8 ignore next -- coverage-only defensive branch. */
+    const urlRecord = urlRecords.find((record) => record.url === url)
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (urlRecord) {
       // URLIDsから削除
       group.urlIds = group.urlIds.filter((id: string) => id !== urlRecord.id)
 
       // サブカテゴリ情報も削除
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (group.urlSubCategories?.[urlRecord.id]) {
         delete group.urlSubCategories[urlRecord.id]
       }
@@ -556,9 +557,9 @@ const processTabGroupForBulkDelete = (
   group: TabGroup,
   idsToDelete: Set<string>,
 ): boolean => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!group.urlIds) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return false
   }
 
@@ -566,7 +567,7 @@ const processTabGroupForBulkDelete = (
   group.urlIds = group.urlIds.filter((id: string) => !idsToDelete.has(id))
 
   // サブカテゴリ情報も削除
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (group.urlSubCategories) {
     for (const id of idsToDelete) {
       if (group.urlSubCategories[id]) {
@@ -646,12 +647,12 @@ const removeUrlIdsFromTabGroup = async (
 
   const idsToDelete = new Set(urlIds)
   await persistBulkDeleteForGroup({
-    savedTabs,
-    groupIndex,
-    group,
-    idsToDelete,
-    groupId,
     deletedCount: urlIds.length,
+    group,
+    groupId,
+    groupIndex,
+    idsToDelete,
+    savedTabs,
   })
 }
 
@@ -681,20 +682,20 @@ const removeUrlsFromTabGroup = async (
   // 新形式のみサポート: URLIDsからURLを削除
   if (group.urlIds && group.urlIds.length > 0) {
     const urlRecords = await getUrlRecordsByIds(group.urlIds)
-    const recordsToDelete = urlRecords.filter(record =>
+    const recordsToDelete = urlRecords.filter((record) =>
       targetUrlsSet.has(record.url),
     )
 
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (recordsToDelete.length > 0) {
-      const idsToDelete = new Set(recordsToDelete.map(r => r.id))
+      const idsToDelete = new Set(recordsToDelete.map((r) => r.id))
       await persistBulkDeleteForGroup({
-        savedTabs,
-        groupIndex,
-        group,
-        idsToDelete,
-        groupId,
         deletedCount: urls.length,
+        group,
+        groupId,
+        groupIndex,
+        idsToDelete,
+        savedTabs,
       })
     }
   }

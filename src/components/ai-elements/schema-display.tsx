@@ -3,6 +3,7 @@
 import { ChevronRightIcon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
 import { createContext, use, useMemo } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
@@ -161,7 +162,7 @@ export type SchemaDisplayPathProps = HTMLAttributes<HTMLSpanElement>
 
 const renderHighlightedPath = (path: string) => {
   const parts = path.split(/(\{[^}]+\})/g)
-  return parts.map(part => {
+  return parts.map((part) => {
     if (!part) {
       return null
     }
@@ -248,7 +249,7 @@ export const SchemaDisplayParameters = ({
       <CollapsibleContent>
         <div className='divide-y border-t'>
           {children ??
-            parameters?.map(param => (
+            parameters?.map((param) => (
               <SchemaDisplayParameter key={param.name} {...param} />
             ))}
         </div>
@@ -318,7 +319,7 @@ export const SchemaDisplayRequest = ({
       <CollapsibleContent>
         <div className='border-t'>
           {children ??
-            requestBody?.map(prop => (
+            requestBody?.map((prop) => (
               <SchemaDisplayProperty key={prop.name} {...prop} depth={0} />
             ))}
         </div>
@@ -346,7 +347,7 @@ export const SchemaDisplayResponse = ({
       <CollapsibleContent>
         <div className='border-t'>
           {children ??
-            responseBody?.map(prop => (
+            responseBody?.map((prop) => (
               <SchemaDisplayProperty key={prop.name} {...prop} depth={0} />
             ))}
         </div>
@@ -421,7 +422,7 @@ export const SchemaDisplayProperty = ({
         )}
         <CollapsibleContent>
           <div className='divide-y border-t'>
-            {properties?.map(prop => (
+            {properties?.map((prop) => (
               <SchemaDisplayProperty
                 key={prop.name}
                 {...prop}

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +14,7 @@ import {
 describe('AlertDialogコンポーネント', () => {
   it('Triggerにdata-slotを付与して描画する', () => {
     render(
-      <AlertDialog open={true}>
+      <AlertDialog open>
         <AlertDialogTrigger>Open Alert</AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogTitle>Title</AlertDialogTitle>
@@ -32,7 +33,7 @@ describe('AlertDialogコンポーネント', () => {
 
   it('Actionにbutton variantとsizeを適用できる', () => {
     render(
-      <AlertDialog open={true}>
+      <AlertDialog open>
         <AlertDialogContent>
           <AlertDialogTitle>Title</AlertDialogTitle>
           <AlertDialogDescription>Description</AlertDialogDescription>

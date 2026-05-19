@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { UserSettings } from '@/types/storage'
+
 import { loadAnalyticsRecords } from './loadAnalyticsRecords'
 
 const mocks = vi.hoisted(() => ({

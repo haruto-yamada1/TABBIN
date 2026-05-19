@@ -7,6 +7,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { ExternalLink, GripVertical, Settings, Trash2 } from 'lucide-react'
 import { memo, useMemo, useReducer, useState } from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import type { SortOrder } from '../hooks/useSortOrder'
 import type { CustomProjectCategoryProps } from '../types/CustomProjectCategory.types'
 import { ProjectUrlItem } from './ProjectUrlItem'
@@ -100,36 +102,34 @@ const CategoryHeaderMain = ({
   setIsCollapsed,
   setUserCollapsedState,
   setSortOrder,
-}: CategoryHeaderMainProps) => {
-  return (
-    <div
-      {...attributes}
-      {...listeners}
-      className='flex grow cursor-grab items-center gap-2 overflow-hidden hover:cursor-grab active:cursor-grabbing'
-    >
-      <CardCollapseControl
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        setUserCollapsedState={setUserCollapsedState}
-        isDisabled={isCollapseDisabled}
-        onPointerDown={event => event.stopPropagation()}
-      />
-      <CardSortControl
-        sortOrder={sortOrder}
-        setSortOrder={setSortOrder}
-        onPointerDown={event => event.stopPropagation()}
-      />
+}: CategoryHeaderMainProps) => (
+  <div
+    {...attributes}
+    {...listeners}
+    className='flex grow cursor-grab items-center gap-2 overflow-hidden hover:cursor-grab active:cursor-grabbing'
+  >
+    <CardCollapseControl
+      isCollapsed={isCollapsed}
+      setIsCollapsed={setIsCollapsed}
+      setUserCollapsedState={setUserCollapsedState}
+      isDisabled={isCollapseDisabled}
+      onPointerDown={(event) => event.stopPropagation()}
+    />
+    <CardSortControl
+      sortOrder={sortOrder}
+      setSortOrder={setSortOrder}
+      onPointerDown={(event) => event.stopPropagation()}
+    />
 
-      <div className='shrink-0 text-muted-foreground'>
-        <GripVertical size={16} aria-hidden='true' />
-      </div>
-      <h3 className='m-0 border-none bg-transparent p-0 font-medium text-lg'>
-        {category}
-      </h3>
-      <Badge variant='secondary'>{urlCount}</Badge>
+    <div className='shrink-0 text-muted-foreground'>
+      <GripVertical size={16} aria-hidden='true' />
     </div>
-  )
-}
+    <h3 className='m-0 border-none bg-transparent p-0 font-medium text-lg'>
+      {category}
+    </h3>
+    <Badge variant='secondary'>{urlCount}</Badge>
+  </div>
+)
 
 interface CategoryHeaderActionsProps {
   showManageActions: boolean
@@ -152,7 +152,7 @@ const CategoryHeaderActions = ({
     <div className='flex items-center gap-1'>
       {showManageActions && (
         <Tooltip>
-          <TooltipTrigger asChild={true}>
+          <TooltipTrigger asChild>
             <Button
               variant='secondary'
               size='sm'
@@ -175,7 +175,7 @@ const CategoryHeaderActions = ({
       {showBulkActions && (
         <>
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='secondary'
                 size='sm'
@@ -195,7 +195,7 @@ const CategoryHeaderActions = ({
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='secondary'
                 size='sm'
@@ -247,48 +247,46 @@ const CategoryContent = ({
   handleDeleteUrl,
   handleSetUrlCategory,
   settings,
-}: CategoryContentProps) => {
-  return (
-    <CardContent
-      ref={setDroppableRef}
-      className='p-2'
-      data-is-drop-area='true'
-      data-category-name={category}
-      data-project-id={projectId}
-      data-is-category='true'
-      data-type='category'
-      data-category-drop-id={categoryDropId}
-    >
-      {urls.length > 0 ? (
-        <SortableContext
-          items={urls.map(item => item.url)}
-          strategy={verticalListSortingStrategy}
-        >
-          <ul className={`gap-y-1 ${isOver ? 'rounded bg-primary/5 p-1' : ''}`}>
-            {urls.map(item => (
-              <ProjectUrlItem
-                key={item.url}
-                item={item}
-                projectId={projectId}
-                handleOpenUrl={handleOpenUrl}
-                handleDeleteUrl={handleDeleteUrl}
-                handleSetCategory={handleSetUrlCategory}
-                availableCategories={['undefined']}
-                settings={settings}
-              />
-            ))}
-          </ul>
-        </SortableContext>
-      ) : (
-        <div
-          className={`rounded border-2 border-dashed p-4 py-2 text-center text-muted-foreground ${
-            isOver ? 'border-primary bg-primary/10' : ''
-          }`}
-        />
-      )}
-    </CardContent>
-  )
-}
+}: CategoryContentProps) => (
+  <CardContent
+    ref={setDroppableRef}
+    className='p-2'
+    data-is-drop-area='true'
+    data-category-name={category}
+    data-project-id={projectId}
+    data-is-category='true'
+    data-type='category'
+    data-category-drop-id={categoryDropId}
+  >
+    {urls.length > 0 ? (
+      <SortableContext
+        items={urls.map((item) => item.url)}
+        strategy={verticalListSortingStrategy}
+      >
+        <ul className={`gap-y-1 ${isOver ? 'rounded bg-primary/5 p-1' : ''}`}>
+          {urls.map((item) => (
+            <ProjectUrlItem
+              key={item.url}
+              item={item}
+              projectId={projectId}
+              handleOpenUrl={handleOpenUrl}
+              handleDeleteUrl={handleDeleteUrl}
+              handleSetCategory={handleSetUrlCategory}
+              availableCategories={['undefined']}
+              settings={settings}
+            />
+          ))}
+        </ul>
+      </SortableContext>
+    ) : (
+      <div
+        className={`rounded border-2 border-dashed p-4 py-2 text-center text-muted-foreground ${
+          isOver ? 'border-primary bg-primary/10' : ''
+        }`}
+      />
+    )}
+  </CardContent>
+)
 
 interface CategoryManageDialogProps {
   category: string
@@ -333,8 +331,8 @@ const CategoryManageDialog = ({
   return (
     <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
       <DialogContent
-        onClick={event => event.stopPropagation()}
-        onPointerDown={event => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader>
@@ -353,7 +351,7 @@ const CategoryManageDialog = ({
             <Input
               id='rename-input'
               value={newCategoryName}
-              onChange={event => setNewCategoryName(event.target.value)}
+              onChange={(event) => setNewCategoryName(event.target.value)}
               onBlur={onRename}
               placeholder={t('savedTabs.projectCategory.renamePlaceholder')}
               className={`w-full rounded border p-2 ${renameError ? 'border-red-500' : ''}`}
@@ -489,25 +487,25 @@ const useCustomProjectCategoryView = ({
   const { t } = useI18n()
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
-      id: category,
       data: {
         ...dragData,
         categoryName: category,
-        projectId,
         isCategory: true,
+        projectId,
       },
+      id: category,
     })
 
   const categoryDropId = `category-drop-${projectId}-${category}`
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
-    id: categoryDropId,
     data: {
-      type: 'category',
       categoryName: category,
-      projectId,
-      isDropArea: true,
       isCategory: true,
+      isDropArea: true,
+      projectId,
+      type: 'category',
     },
+    id: categoryDropId,
   })
 
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
@@ -574,11 +572,11 @@ const useCustomProjectCategoryView = ({
     if (handleDeleteUrlsFromProject) {
       await handleDeleteUrlsFromProject(
         projectId,
-        sortedCategoryUrls.map(item => item.url),
+        sortedCategoryUrls.map((item) => item.url),
       )
     } else {
       await Promise.all(
-        sortedCategoryUrls.map(item => handleDeleteUrl(projectId, item.url)),
+        sortedCategoryUrls.map((item) => handleDeleteUrl(projectId, item.url)),
       )
     }
   }

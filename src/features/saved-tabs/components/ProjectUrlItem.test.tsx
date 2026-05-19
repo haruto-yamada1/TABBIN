@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { UserSettings } from '@/types/storage'
+
 import type { ProjectUrlItemProps } from './ProjectUrlItem'
 
 const { useSortableMock } = vi.hoisted(() => ({
@@ -265,7 +267,7 @@ describe('ProjectUrlItem', () => {
 
     fireEvent.dragStart(link, { dataTransfer })
     const blurCall = [...addEventListenerSpy.mock.calls]
-      .reverse()
+      .toReversed()
       .find(([eventName]) => eventName === 'blur')
     if (!blurCall || !(blurCall[1] instanceof Function)) {
       throw new Error('blur handler was not captured')
@@ -302,7 +304,7 @@ describe('ProjectUrlItem', () => {
 
     fireEvent.dragStart(link, { dataTransfer })
     const blurCall = [...addEventListenerSpy.mock.calls]
-      .reverse()
+      .toReversed()
       .find(([eventName]) => eventName === 'blur')
     if (!blurCall || !(blurCall[1] instanceof Function)) {
       throw new Error('blur handler was not captured')
@@ -334,7 +336,7 @@ describe('ProjectUrlItem', () => {
 
     fireEvent.dragStart(link, { dataTransfer })
     const blurCall = [...addEventListenerSpy.mock.calls]
-      .reverse()
+      .toReversed()
       .find(([eventName]) => eventName === 'blur')
     if (!blurCall || !(blurCall[1] instanceof Function)) {
       throw new Error('blur handler was not captured')

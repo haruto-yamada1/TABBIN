@@ -4,6 +4,7 @@
 
 import { getUserSettings } from '@/lib/storage/settings'
 import { filterItemsBySavableUrl } from '@/lib/url-filter'
+
 import { showNotification } from './alarm-notification'
 
 /**
@@ -20,7 +21,7 @@ export const filterTabsByUserSettings = async (
     // 固定タブを除外
     if (settings.excludePinnedTabs) {
       const beforeCount = filteredTabs.length
-      filteredTabs = filteredTabs.filter(tab => !tab.pinned)
+      filteredTabs = filteredTabs.filter((tab) => !tab.pinned)
       const afterCount = filteredTabs.length
       if (beforeCount !== afterCount) {
         console.log(

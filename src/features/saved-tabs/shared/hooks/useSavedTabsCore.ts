@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+
 import { useCategoryManagement } from '@/features/saved-tabs/hooks/useCategoryManagement'
 import { useProjectManagement } from '@/features/saved-tabs/hooks/useProjectManagement'
 import { useTabData } from '@/features/saved-tabs/hooks/useTabData'
@@ -19,8 +20,8 @@ const useSavedTabsCore = (
 
   return {
     categoryState,
-    tabDataState,
     projectState,
+    tabDataState,
   }
 }
 

@@ -1,5 +1,6 @@
 import { generateText, stepCountIs } from 'ai'
 import { createOllama } from 'ai-sdk-ollama'
+
 import { AI_CHAT_TOOL_TITLES } from '@/constants/aiChatTools'
 import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
 import { buildAiSavedUrlRecords } from '@/features/ai-chat/lib/buildAiContext'
@@ -22,6 +23,7 @@ import { getCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
 import { getUrlRecords } from '@/lib/storage/urls'
 import type { AiChatToolTrace, OllamaErrorDetails } from '@/types/background'
+
 import { createAiChatTools } from './ai-chat-tools'
 
 interface OllamaModelOption {
@@ -63,15 +65,13 @@ interface RunAiChatRequestOptions {
 const getAiChatUiLocale = () =>
   typeof chrome !== 'undefined'
     ? (chrome.i18n?.getUILanguage?.() ?? 'ja')
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    : /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       'ja'
-/* v8 ignore stop */
+/* V8 ignore stop */
 
 const getNormalizedAiChatSettings = async () =>
-  normalizeAiSystemPromptSettings(
-    ((await getUserSettings()) ?? {}) as import('@/types/storage').UserSettings,
-  )
+  normalizeAiSystemPromptSettings((await getUserSettings()) ?? {})
 
 const OLLAMA_BASE_URL = 'http://localhost:11434'
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`
@@ -93,7 +93,7 @@ const getExtensionOrigin = (): string | null => {
       }
     }
   } catch {
-    // fallback to runtime.id
+    // Fallback to runtime.id
   }
 
   const extensionId = chrome?.runtime?.id
@@ -152,13 +152,12 @@ const createOllamaForbiddenErrorMessage = (language: AppLanguage): string => {
   ].join('\n')
 }
 
-const createOllamaConnectionErrorMessage = (language: AppLanguage): string => {
-  return [
+const createOllamaConnectionErrorMessage = (language: AppLanguage): string =>
+  [
     getMessage(language, 'aiChat.ollama.connectionError'),
     `${getMessage(language, 'aiChat.ollama.downloadUrl')} ${OLLAMA_DOWNLOAD_URL}`,
     createOllamaSetupInstructions(language),
   ].join('\n')
-}
 
 const createOllamaError = (
   message: string,
@@ -240,7 +239,7 @@ const createUserMessageContent = (
   )
   const text = [content, textAttachmentContext].filter(Boolean).join('\n\n')
   const imageAttachments = attachments.filter(
-    attachment => attachment.kind === 'image',
+    (attachment) => attachment.kind === 'image',
   )
 
   return [
@@ -248,7 +247,7 @@ const createUserMessageContent = (
       text,
       type: 'text' as const,
     },
-    ...imageAttachments.map(attachment => ({
+    ...imageAttachments.map((attachment) => ({
       data: attachment.content,
       mediaType: attachment.mediaType,
       type: 'file' as const,
@@ -288,15 +287,15 @@ const getPaginatedToolTotalCount = (output: unknown): number | null => {
     return null
   }
 
-  const totalItems = (output as { totalItems?: unknown }).totalItems
+  const { totalItems } = output as { totalItems?: unknown }
   return typeof totalItems === 'number' ? totalItems : null
 }
 
 const getToolListSeparator = (language: AppLanguage) =>
-  /* v8 ignore next -- coverage-only defensive branch. */
-  /* v8 ignore start -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore start -- coverage-only defensive branch. */
   language === 'en' ? ', ' : '、'
-/* v8 ignore stop */
+/* V8 ignore stop */
 
 interface GenerateTextToolCallLike {
   input: unknown
@@ -310,10 +309,10 @@ interface GenerateTextToolResultLike {
 }
 
 interface GenerateTextResultLike {
-  steps?: Array<{
+  steps?: {
     toolCalls?: GenerateTextToolCallLike[]
     toolResults?: GenerateTextToolResultLike[]
-  }>
+  }[]
   toolCalls?: GenerateTextToolCallLike[]
   toolResults?: GenerateTextToolResultLike[]
 }
@@ -322,12 +321,12 @@ const getAllToolCalls = (
   result: GenerateTextResultLike,
 ): GenerateTextToolCallLike[] => {
   const mergedToolCalls = [
-    ...(result.steps ?? []).flatMap(step => step.toolCalls ?? []),
+    ...(result.steps ?? []).flatMap((step) => step.toolCalls ?? []),
     ...(result.toolCalls ?? []),
   ]
   const seen = new Set<string>()
 
-  return mergedToolCalls.filter(toolCall => {
+  return mergedToolCalls.filter((toolCall) => {
     if (seen.has(toolCall.toolCallId)) {
       return false
     }
@@ -341,12 +340,12 @@ const getAllToolResults = (
   result: GenerateTextResultLike,
 ): GenerateTextToolResultLike[] => {
   const mergedToolResults = [
-    ...(result.steps ?? []).flatMap(step => step.toolResults ?? []),
+    ...(result.steps ?? []).flatMap((step) => step.toolResults ?? []),
     ...(result.toolResults ?? []),
   ]
   const seen = new Set<string>()
 
-  return mergedToolResults.filter(toolResult => {
+  return mergedToolResults.filter((toolResult) => {
     if (seen.has(toolResult.toolCallId)) {
       return false
     }
@@ -364,33 +363,30 @@ const createToolTracesFromParts = ({
   toolResults: GenerateTextToolResultLike[]
 }): AiChatToolTrace[] => {
   const toolResultsById = new Map(
-    toolResults.map(toolResult => [toolResult.toolCallId, toolResult]),
+    toolResults.map((toolResult) => [toolResult.toolCallId, toolResult]),
   )
 
-  return toolCalls.map(toolCall => {
+  return toolCalls.map((toolCall) => {
     const toolResult = toolResultsById.get(toolCall.toolCallId)
 
     return {
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      title: getToolTitle(toolCall.toolName),
-      type: 'dynamic-tool',
-      state: toolResult ? 'output-available' : 'input-available',
+      errorText: undefined,
       input: toolCall.input,
       output: toolResult?.output,
-      errorText: undefined,
+      state: toolResult ? 'output-available' : 'input-available',
+      title: getToolTitle(toolCall.toolName),
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      type: 'dynamic-tool',
     }
   })
 }
 
-const createToolTraces = (
-  result: GenerateTextResultLike,
-): AiChatToolTrace[] => {
-  return createToolTracesFromParts({
+const createToolTraces = (result: GenerateTextResultLike): AiChatToolTrace[] =>
+  createToolTracesFromParts({
     toolCalls: getAllToolCalls(result),
     toolResults: getAllToolResults(result),
   })
-}
 
 const summarizePromptIntent = (
   prompt: string,
@@ -465,7 +461,7 @@ const createReasoningSummary = ({
     `- ${getMessage(language, 'background.aiChat.reasoning.toolsLabel')} ${
       toolTraces.length > 0
         ? toolTraces
-            .map(toolTrace => toolTrace.title)
+            .map((toolTrace) => toolTrace.title)
             .join(getToolListSeparator(language))
         : getMessage(language, 'background.aiChat.none')
     }`,
@@ -475,7 +471,7 @@ const createReasoningSummary = ({
         : getMessage(language, 'background.aiChat.reasoning.policyWithoutTools')
     }`,
     ...toolTraces.map(
-      toolTrace =>
+      (toolTrace) =>
         `- ${toolTrace.title}: ${summarizeToolTrace(toolTrace, language)}`,
     ),
   ].join('\n')
@@ -524,7 +520,7 @@ const getChartSpecsFromOutput = (output: unknown): AiChartSpec[] => {
     return []
   }
 
-  const chartSpecs = (output as { chartSpecs?: unknown }).chartSpecs
+  const { chartSpecs } = output as { chartSpecs?: unknown }
   if (!Array.isArray(chartSpecs)) {
     return []
   }
@@ -535,7 +531,7 @@ const getChartSpecsFromOutput = (output: unknown): AiChartSpec[] => {
 const getChartsFromToolTraces = (
   toolTraces: AiChatToolTrace[],
 ): AiChartSpec[] =>
-  toolTraces.flatMap(toolTrace => getChartSpecsFromOutput(toolTrace.output))
+  toolTraces.flatMap((toolTrace) => getChartSpecsFromOutput(toolTrace.output))
 
 const CHART_REQUEST_PATTERN =
   /円グラフ|棒グラフ|線グラフ|レーダー|グラフ|チャート|割合|比率|構成|ジャンル|カテゴリ|傾向/u
@@ -580,7 +576,7 @@ const listLocalOllamaModels = async (
   const payload = (await response.json()) as Record<string, unknown>
   const models = Array.isArray(payload.models) ? payload.models : []
 
-  return models.flatMap(model => {
+  return models.flatMap((model) => {
     if (!model || typeof model !== 'object') {
       return []
     }
@@ -602,9 +598,9 @@ const listLocalOllamaModels = async (
 
     return [
       {
-        name,
         label: parameterSize ? `${name} (${parameterSize})` : name,
         modifiedAt,
+        name,
       },
     ]
   })
@@ -624,7 +620,7 @@ const runAiChatRequest = async (
   if (!settings.ollamaModel) {
     throw new Error('Ollama model is not configured')
   }
-  const ollamaModel = settings.ollamaModel
+  const { ollamaModel } = settings
 
   const [urlRecords, customProjects, parentCategories, savedTabsResult] =
     await Promise.all([
@@ -655,13 +651,8 @@ const runAiChatRequest = async (
   const result = await (async () => {
     try {
       return await generateText({
-        model: ollama(ollamaModel),
-        system: buildFinalSystemPrompt({
-          savedUrlContext: createContextSummary(records, language),
-          template: activeSystemPrompt.template,
-        }),
         messages: [
-          ...history.map(message =>
+          ...history.map((message) =>
             message.role === 'user'
               ? {
                   role: 'user' as const,
@@ -681,7 +672,8 @@ const runAiChatRequest = async (
             content: createUserMessageContent(prompt, attachments, language),
           },
         ],
-        onStepFinish: stepResult => {
+        model: ollama(ollamaModel),
+        onStepFinish: (stepResult) => {
           const stepToolTraces = createToolTracesFromParts({
             toolCalls: stepResult.toolCalls ?? [],
             toolResults: stepResult.toolResults ?? [],
@@ -703,6 +695,10 @@ const runAiChatRequest = async (
           })
         },
         stopWhen: stepCountIs(5),
+        system: buildFinalSystemPrompt({
+          savedUrlContext: createContextSummary(records, language),
+          template: activeSystemPrompt.template,
+        }),
         tools,
       })
     } catch (error) {
@@ -729,13 +725,13 @@ const runAiChatRequest = async (
   return {
     answer: result.text,
     charts: toolCharts.length > 0 ? toolCharts : fallbackCharts,
-    recordCount: records.length,
     reasoning: createReasoningSummary({
       language,
       prompt,
       recordCount: records.length,
       toolTraces,
     }),
+    recordCount: records.length,
     toolTraces,
   }
 }

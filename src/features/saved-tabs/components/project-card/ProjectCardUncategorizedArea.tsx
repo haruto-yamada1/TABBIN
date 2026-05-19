@@ -1,7 +1,9 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { ProjectUrlItem } from '@/features/saved-tabs/components/ProjectUrlItem'
+
 import { useProjectCard } from './ProjectCardContext'
 
 /**
@@ -49,7 +51,7 @@ export const ProjectCardUncategorizedArea = () => {
         )}
 
         <SortableContext
-          items={urls.uncategorizedUrls.map(item => item.url)}
+          items={urls.uncategorizedUrls.map((item) => item.url)}
           strategy={verticalListSortingStrategy}
         >
           <ul
@@ -60,7 +62,7 @@ export const ProjectCardUncategorizedArea = () => {
             data-uncategorized-list='true'
             style={{ overflow: 'hidden' }}
           >
-            {urls.uncategorizedUrls.map(item => (
+            {urls.uncategorizedUrls.map((item) => (
               <ProjectUrlItem
                 key={item.url}
                 item={item}
@@ -68,7 +70,7 @@ export const ProjectCardUncategorizedArea = () => {
                 handleOpenUrl={handlers.handleOpenUrl}
                 handleDeleteUrl={handlers.handleDeleteUrl}
                 handleSetCategory={handlers.handleSetUrlCategory}
-                isInUncategorizedArea={true}
+                isInUncategorizedArea
                 parentType='uncategorized'
                 settings={settings}
               />
@@ -105,7 +107,7 @@ export const ProjectCardUncategorizedArea = () => {
           const selectedUrl = window.getSelection()?.toString()
           if (
             selectedUrl &&
-            urls.projectUrls.some(u => u.url === selectedUrl)
+            urls.projectUrls.some((u) => u.url === selectedUrl)
           ) {
             handlers.handleSetUrlCategory(project.id, selectedUrl, undefined)
           }

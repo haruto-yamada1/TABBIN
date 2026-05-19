@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+
 import { useTheme } from '@/components/theme-provider'
 import { colorOptions } from '@/constants/colorOptions'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -14,7 +15,7 @@ export const useColorSettings = (
   // カラー設定ハンドラ
   const handleColorChange = async (key: string, value: string) => {
     try {
-      const newColors = { ...(settings.colors || {}), [key]: value }
+      const newColors = { ...settings.colors, [key]: value }
       const newSettings = { ...settings, colors: newColors }
       setSettings(newSettings)
 

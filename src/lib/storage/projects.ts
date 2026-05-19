@@ -1,10 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
+
 import type {
   CustomProject,
   ProjectKeywordSettings,
   TabGroup,
   UrlRecord,
 } from '@/types/storage'
+
 import {
   findMatchingProjectIdForSavedTab,
   normalizeProjectKeywords,
@@ -31,22 +33,20 @@ interface SavedTabItem {
 const getProjectUrls = async (
   project: CustomProject,
 ): Promise<
-  Array<
-    UrlRecord & {
-      notes?: string
-      category?: string
-    }
-  >
+  (UrlRecord & {
+    notes?: string
+    category?: string
+  })[]
 > => {
   // 新形式のみサポート: URLIDsから参照して取得
   if (project.urlIds && project.urlIds.length > 0) {
     // マイグレーションを実行（未実行の場合）
     await migrateToUrlsStorage()
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
-    return urlRecords.map(record => ({
+    return urlRecords.map((record) => ({
       ...record,
-      notes: project.urlMetadata?.[record.id]?.notes,
       category: project.urlMetadata?.[record.id]?.category,
+      notes: project.urlMetadata?.[record.id]?.notes,
     }))
   }
   return []
@@ -61,7 +61,7 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
       customProjects?: CustomProject[]
       customProjectOrder?: string[]
     }>(['customProjects', 'customProjectOrder'])
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     const customProjects = data.customProjects || []
     const projectOrder = data.customProjectOrder || []
     console.log(
@@ -152,7 +152,9 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
 
   // 重複チェック
   if (
-    projects.some(project => project.name.toLowerCase() === name.toLowerCase())
+    projects.some(
+      (project) => project.name.toLowerCase() === name.toLowerCase(),
+    )
   ) {
     throw new Error(`DUPLICATE_PROJECT_NAME:${name}`)
   }
@@ -172,18 +174,18 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
   // 新規プロジェクトを常に先頭に配置し、既存順序は維持する
   const { customProjectOrder = [] } =
     await chrome.storage.local.get('customProjectOrder')
-  const currentIdsInDisplayOrder = projects.map(project => project.id)
+  const currentIdsInDisplayOrder = projects.map((project) => project.id)
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
         (id): id is string =>
           typeof id === 'string' && currentIdsInDisplayOrder.includes(id),
       )
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    : /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       []
-  /* v8 ignore stop */
+  /* V8 ignore stop */
   const missingIds = currentIdsInDisplayOrder.filter(
-    id => !normalizedOrder.includes(id),
+    (id) => !normalizedOrder.includes(id),
   )
   const nextOrder = [newProject.id, ...normalizedOrder, ...missingIds]
   await chrome.storage.local.set({
@@ -198,10 +200,10 @@ const appendUncategorizedProjectToOrder = async (): Promise<void> => {
     await chrome.storage.local.get('customProjectOrder')
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    : /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       []
-  /* v8 ignore stop */
+  /* V8 ignore stop */
   if (normalizedOrder.includes(CUSTOM_UNCATEGORIZED_PROJECT_ID)) {
     return
   }
@@ -211,19 +213,19 @@ const appendUncategorizedProjectToOrder = async (): Promise<void> => {
 }
 
 const buildUncategorizedProject = (): CustomProject => ({
+  categories: [],
+  createdAt: Date.now(),
   id: CUSTOM_UNCATEGORIZED_PROJECT_ID,
   name: CUSTOM_UNCATEGORIZED_PROJECT_NAME,
   projectKeywords: normalizeProjectKeywords(undefined),
-  urlIds: [],
-  categories: [],
-  createdAt: Date.now(),
   updatedAt: Date.now(),
+  urlIds: [],
 })
 
 const getOrCreateUncategorizedProject = async (): Promise<CustomProject> => {
   const projects = await getCustomProjects()
   const found = projects.find(
-    project => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
+    (project) => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
   )
   if (found) {
     return found
@@ -247,8 +249,8 @@ const uniqueSavedTabItems = (items: SavedTabItem[]): SavedTabItem[] => {
     }
     seen.add(trimmedUrl)
     uniqueItems.push({
-      url: trimmedUrl,
       title: item.title || '',
+      url: trimmedUrl,
     })
   }
   return uniqueItems
@@ -265,7 +267,7 @@ const addUrlsToUncategorizedProject = async (
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
   let targetIndex = projects.findIndex(
-    project => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
+    (project) => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
   )
   if (targetIndex === -1) {
     projects.push(buildUncategorizedProject())
@@ -274,9 +276,9 @@ const addUrlsToUncategorizedProject = async (
   }
 
   const targetProject = projects[targetIndex]
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!targetProject.urlIds) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     targetProject.urlIds = []
   }
   const urlIdSet = new Set(targetProject.urlIds)
@@ -295,9 +297,9 @@ const addUrlsToUncategorizedProject = async (
     if (recordIndex == null) {
       const newRecord: UrlRecord = {
         id: uuidv4(),
-        url: item.url,
-        title: item.title || '',
         savedAt: now,
+        title: item.title || '',
+        url: item.url,
       }
       updatedUrlRecords.push(newRecord)
       recordIndexByUrl.set(item.url, updatedUrlRecords.length - 1)
@@ -305,12 +307,12 @@ const addUrlsToUncategorizedProject = async (
       urlId = newRecord.id
     } else {
       const existingRecord = updatedUrlRecords[recordIndex]
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       const nextTitle = item.title || existingRecord.title || ''
       updatedUrlRecords[recordIndex] = {
         ...existingRecord,
-        title: nextTitle,
         savedAt: now,
+        title: nextTitle,
       }
       urlRecordsChanged = true
       urlId = existingRecord.id
@@ -330,7 +332,7 @@ const addUrlsToUncategorizedProject = async (
     targetProject.urlIds.push(urlId)
   }
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (urlRecordsChanged) {
     await saveUrlRecords(updatedUrlRecords)
   }
@@ -347,31 +349,31 @@ const getCustomProjectOrder = async (): Promise<string[]> => {
     ? customProjectOrder.filter(
         (projectId): projectId is string => typeof projectId === 'string',
       )
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    : /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       []
-  /* v8 ignore stop */
+  /* V8 ignore stop */
 }
 const ensureProjectUrlIds = (project: CustomProject): void => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!project.urlIds) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     project.urlIds = []
   }
 }
 const addUrlIdToProject = (project: CustomProject, urlId: string): boolean => {
   ensureProjectUrlIds(project)
-  let urlIds = project.urlIds
-  /* v8 ignore next -- coverage-only defensive branch. */
+  let { urlIds } = project
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!urlIds) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     urlIds = []
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     project.urlIds = urlIds
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (urlIds.includes(urlId)) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return false
   }
   urlIds.push(urlId)
@@ -387,7 +389,7 @@ const removeUrlIdFromProject = (
     return false
   }
 
-  project.urlIds = project.urlIds.filter(id => id !== urlId)
+  project.urlIds = project.urlIds.filter((id) => id !== urlId)
   if (project.urlMetadata?.[urlId]) {
     delete project.urlMetadata[urlId]
   }
@@ -424,13 +426,13 @@ const setProjectUrlMetadata = (
   if (!(notes || category)) {
     return
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!project.urlMetadata) {
     project.urlMetadata = {}
   }
   project.urlMetadata[urlId] = {
-    notes,
     category,
+    notes,
   }
 }
 const getDomainFromUrl = (url: string): string => {
@@ -461,10 +463,10 @@ const addUrlIdToDomainMode = async (
     ensureUrlIdInGroup(domainGroup, urlId)
   } else {
     savedTabs.push({
-      id: uuidv4(),
       domain,
-      urlIds: [urlId],
+      id: uuidv4(),
       savedAt: Date.now(),
+      urlIds: [urlId],
     })
   }
   await chrome.storage.local.set({
@@ -485,7 +487,7 @@ const addUrlToCustomProject = async (
     // マイグレーションを実行（未実行の場合）
     await migrateToUrlsStorage()
     const projects = await getCustomProjects()
-    const projectIndex = projects.findIndex(p => p.id === projectId)
+    const projectIndex = projects.findIndex((p) => p.id === projectId)
     if (projectIndex === -1) {
       throw new Error(`Project with ID ${projectId} not found`)
     }
@@ -508,7 +510,7 @@ const addUrlToCustomProject = async (
     projects[projectIndex] = project
     await saveCustomProjects(projects)
     console.log(
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       `${isNewUrl ? '新しい' : '既存の'}URLをプロジェクトに${isNewUrl ? '追加' : '更新'}しました: ${url}`,
     )
   } catch (error) {
@@ -530,17 +532,17 @@ const saveUrlsToCustomProjects = async (
     getCustomProjectOrder(),
   ])
   const matchingProjects = projects.filter(
-    project => project.id !== CUSTOM_UNCATEGORIZED_PROJECT_ID,
+    (project) => project.id !== CUSTOM_UNCATEGORIZED_PROJECT_ID,
   )
   const uncategorizedItems: SavedTabItem[] = []
 
   const matchedItems = normalizedItems.reduce<
-    Array<{ item: SavedTabItem; projectId: string }>
+    { item: SavedTabItem; projectId: string }[]
   >((items, item) => {
     const projectId = findMatchingProjectIdForSavedTab({
+      projectOrder,
       projects: matchingProjects,
       savedTab: item,
-      projectOrder,
     })
 
     if (!projectId) {
@@ -567,7 +569,7 @@ const removeUrlFromCustomProject = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
@@ -576,10 +578,10 @@ const removeUrlFromCustomProject = async (
   // 新形式のみサポート: URLIDsからURLを削除
   if (project.urlIds && project.urlIds.length > 0) {
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
-    const urlRecord = urlRecords.find(record => record.url === url)
-    /* v8 ignore next -- coverage-only defensive branch. */
+    const urlRecord = urlRecords.find((record) => record.url === url)
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (urlRecord) {
-      project.urlIds = project.urlIds.filter(id => id !== urlRecord.id)
+      project.urlIds = project.urlIds.filter((id) => id !== urlRecord.id)
 
       // メタデータも削除
       if (project.urlMetadata?.[urlRecord.id]) {
@@ -601,8 +603,8 @@ const removeUrlFromCustomProject = async (
     const urlRecords = await getUrlRecordsByIds(
       savedTabs.flatMap((group: TabGroup) => group.urlIds || []),
     )
-    const urlRecord = urlRecords.find(record => record.url === url)
-    /* v8 ignore next -- coverage-only defensive branch. */
+    const urlRecord = urlRecords.find((record) => record.url === url)
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (urlRecord) {
       const updatedGroups = savedTabs.reduce<TabGroup[]>((groups, group) => {
         if (!group.urlIds) {
@@ -610,7 +612,7 @@ const removeUrlFromCustomProject = async (
           return groups
         }
 
-        const updatedUrlIds = group.urlIds.filter(id => id !== urlRecord.id)
+        const updatedUrlIds = group.urlIds.filter((id) => id !== urlRecord.id)
         if (updatedUrlIds.length > 0) {
           groups.push({
             ...group,
@@ -645,23 +647,23 @@ const syncDeleteToDomainMode = async (
     const urlRecords = await getUrlRecordsByIds(
       savedTabs.flatMap((g: TabGroup) => g.urlIds || []),
     )
-    const recordsToDelete = urlRecords.filter(record =>
+    const recordsToDelete = urlRecords.filter((record) =>
       targetUrlsSet.has(record.url),
     )
 
     if (recordsToDelete.length > 0) {
-      const idsToDelete = new Set(recordsToDelete.map(r => r.id))
+      const idsToDelete = new Set(recordsToDelete.map((r) => r.id))
       const updatedGroups = savedTabs.reduce<TabGroup[]>((groups, group) => {
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         if (!group.urlIds) {
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           groups.push(group)
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           return groups
         }
 
-        const updatedUrlIds = group.urlIds.filter(id => !idsToDelete.has(id))
-        /* v8 ignore next -- coverage-only defensive branch. */
+        const updatedUrlIds = group.urlIds.filter((id) => !idsToDelete.has(id))
+        /* V8 ignore next -- coverage-only defensive branch. */
         if (updatedUrlIds.length > 0) {
           groups.push({
             ...group,
@@ -693,13 +695,13 @@ const updateProjectUrlIdsAndMetadata = (
     return false
   }
 
-  const hasOverlap = project.urlIds.some(id => idsToDelete.has(id))
+  const hasOverlap = project.urlIds.some((id) => idsToDelete.has(id))
   if (hasOverlap) {
-    project.urlIds = project.urlIds.filter(id => !idsToDelete.has(id))
+    project.urlIds = project.urlIds.filter((id) => !idsToDelete.has(id))
 
     if (project.urlMetadata) {
       for (const id of idsToDelete) {
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         if (project.urlMetadata[id]) {
           delete project.urlMetadata[id]
         }
@@ -725,7 +727,7 @@ const removeUrlsFromCustomProject = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
@@ -733,17 +735,17 @@ const removeUrlsFromCustomProject = async (
   const project = projects[projectIndex]
   const targetUrlsSet = new Set(urls)
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (project.urlIds && project.urlIds.length > 0) {
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
-    const recordsToDelete = urlRecords.filter(record =>
+    const recordsToDelete = urlRecords.filter((record) =>
       targetUrlsSet.has(record.url),
     )
 
     if (recordsToDelete.length > 0) {
-      const idsToDelete = new Set(recordsToDelete.map(r => r.id))
+      const idsToDelete = new Set(recordsToDelete.map((r) => r.id))
 
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (updateProjectUrlIdsAndMetadata(project, idsToDelete)) {
         projects[projectIndex] = project
         await saveCustomProjects(projects)
@@ -765,16 +767,16 @@ const removeUrlFromAllCustomProjects = async (url: string): Promise<void> => {
     let hasChanges = false
 
     const urlRecords = await getUrlRecords()
-    const urlRecord = urlRecords.find(record => record.url === url)
+    const urlRecord = urlRecords.find((record) => record.url === url)
     if (!urlRecord) {
       return
     }
 
     for (const project of projects) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       const projectUrlIdSet = new Set(project.urlIds ?? [])
       if (projectUrlIdSet.has(urlRecord.id)) {
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         project.urlIds = (project.urlIds ?? []).filter(
           (id: string) => id !== urlRecord.id,
         )
@@ -830,7 +832,7 @@ const removeUrlsFromAllCustomProjects = async (
     const targetUrlsSet = new Set(urls)
 
     const urlRecords = await getUrlRecords()
-    const recordsToDelete = urlRecords.filter(record =>
+    const recordsToDelete = urlRecords.filter((record) =>
       targetUrlsSet.has(record.url),
     )
 
@@ -838,7 +840,7 @@ const removeUrlsFromAllCustomProjects = async (
       return
     }
 
-    const idsToDelete = new Set(recordsToDelete.map(r => r.id))
+    const idsToDelete = new Set(recordsToDelete.map((r) => r.id))
     const hasChanges = processProjectsForBulkDelete(projects, idsToDelete)
 
     if (hasChanges) {
@@ -889,11 +891,11 @@ const ensureProjectMetadataEntry = (
   project: CustomProject,
   urlId: string,
 ): void => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!project.urlMetadata) {
     project.urlMetadata = {}
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!project.urlMetadata[urlId]) {
     project.urlMetadata[urlId] = {}
   }
@@ -906,9 +908,9 @@ const mergeUrlsIntoUncategorized = (
   if (!(projectToDelete.urlIds && projectToDelete.urlIds.length > 0)) {
     return
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!uncategorizedProject.urlIds) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     uncategorizedProject.urlIds = []
   }
   const targetUrlSet = new Set(uncategorizedProject.urlIds)
@@ -923,10 +925,10 @@ const mergeUrlsIntoUncategorized = (
       continue
     }
     ensureProjectMetadataEntry(uncategorizedProject, urlId)
-    const urlMetadata = uncategorizedProject.urlMetadata
-    /* v8 ignore next -- coverage-only defensive branch. */
+    const { urlMetadata } = uncategorizedProject
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (!urlMetadata) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       continue
     }
     urlMetadata[urlId].notes = metadata.notes
@@ -938,7 +940,7 @@ const findOrCreateUncategorizedProject = async (
   projects: CustomProject[],
 ): Promise<CustomProject> => {
   const existing = projects.find(
-    project => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
+    (project) => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
   )
   if (existing) {
     return existing
@@ -954,12 +956,12 @@ const removeProjectIdFromOrder = async (projectId: string): Promise<void> => {
     await chrome.storage.local.get('customProjectOrder')
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    : /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       []
-  /* v8 ignore stop */
+  /* V8 ignore stop */
   await chrome.storage.local.set({
-    customProjectOrder: normalizedOrder.filter(id => id !== projectId),
+    customProjectOrder: normalizedOrder.filter((id) => id !== projectId),
   })
 }
 
@@ -968,13 +970,15 @@ const deleteCustomProject = async (projectId: string): Promise<void> => {
     throw new Error('Uncategorized project cannot be deleted')
   }
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
 
   const projectToDelete = projects[projectIndex]
-  const remainingProjects = projects.filter(project => project.id !== projectId)
+  const remainingProjects = projects.filter(
+    (project) => project.id !== projectId,
+  )
 
   const uncategorizedProject =
     await findOrCreateUncategorizedProject(remainingProjects)
@@ -991,12 +995,13 @@ const updateCustomProjectName = async (
   // 同名プロジェクトの重複チェック（自分自身は除く）
   if (
     projects.some(
-      p => p.name.toLowerCase() === newName.toLowerCase() && p.id !== projectId,
+      (p) =>
+        p.name.toLowerCase() === newName.toLowerCase() && p.id !== projectId,
     )
   ) {
     throw new Error(`DUPLICATE_PROJECT_NAME:${newName}`)
   }
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
@@ -1012,7 +1017,7 @@ const addCategoryToProject = async (
   categoryName: string,
 ): Promise<void> => {
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
@@ -1028,10 +1033,10 @@ const addCategoryToProject = async (
   project.updatedAt = Date.now()
 
   // カテゴリ順序が存在しなければ初期化
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (project.categoryOrder) {
     // 新しいカテゴリを順序にも追加
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     project.categoryOrder = [...project.categoryOrder, categoryName]
   } else {
     project.categoryOrder = project.categories
@@ -1044,25 +1049,25 @@ const removeCategoryFromProject = async (
   categoryName: string,
 ): Promise<void> => {
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
   const project = projects[projectIndex]
 
   // カテゴリを削除
-  project.categories = project.categories.filter(cat => cat !== categoryName)
+  project.categories = project.categories.filter((cat) => cat !== categoryName)
 
   // カテゴリ順序も更新
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (project.categoryOrder) {
     project.categoryOrder = project.categoryOrder.filter(
-      cat => cat !== categoryName,
+      (cat) => cat !== categoryName,
     )
   }
 
   // このカテゴリに所属するURLのカテゴリをnullに設定（新形式対応）
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (project.urlMetadata) {
     for (const [urlId, meta] of Object.entries(project.urlMetadata)) {
       if (meta?.category === categoryName) {
@@ -1082,18 +1087,18 @@ const setUrlCategory = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
   const project = projects[projectIndex]
 
   // 新形式のみサポート: URLIDsからURLレコードを探してカテゴリを設定
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (project.urlIds && project.urlIds.length > 0) {
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
-    const urlRecord = urlRecords.find(record => record.url === url)
-    /* v8 ignore next -- coverage-only defensive branch. */
+    const urlRecord = urlRecords.find((record) => record.url === url)
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (urlRecord) {
       if (!project.urlMetadata) {
         project.urlMetadata = {}
@@ -1113,7 +1118,7 @@ const updateCategoryOrder = async (
   newOrder: string[],
 ): Promise<void> => {
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
@@ -1128,13 +1133,13 @@ const reorderProjectUrls = async (
   urls: CustomProject['urls'],
 ): Promise<void> => {
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
   const project = projects[projectIndex]
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (project.urlIds && project.urlIds.length > 0 && urls) {
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
     const urlToIds = new Map<string, string[]>()
@@ -1151,16 +1156,16 @@ const reorderProjectUrls = async (
     for (const item of urls) {
       const idQueue = urlToIds.get(item.url)
       const nextId = idQueue?.shift()
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (nextId) {
         orderedIds.push(nextId)
       }
     }
 
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (orderedIds.length > 0) {
       const orderedSet = new Set(orderedIds)
-      const remainingIds = project.urlIds.filter(id => !orderedSet.has(id))
+      const remainingIds = project.urlIds.filter((id) => !orderedSet.has(id))
       project.urlIds = [...orderedIds, ...remainingIds]
     }
   }
@@ -1182,10 +1187,10 @@ const moveUrlBetweenCustomProjects = async (
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
   const sourceIndex = projects.findIndex(
-    project => project.id === sourceProjectId,
+    (project) => project.id === sourceProjectId,
   )
   const targetIndex = projects.findIndex(
-    project => project.id === targetProjectId,
+    (project) => project.id === targetProjectId,
   )
   if (sourceIndex === -1 || targetIndex === -1) {
     throw new Error('Source or target project not found')
@@ -1198,22 +1203,22 @@ const moveUrlBetweenCustomProjects = async (
   }
 
   const sourceRecords = await getUrlRecordsByIds(sourceProject.urlIds)
-  const urlRecord = sourceRecords.find(record => record.url === url)
+  const urlRecord = sourceRecords.find((record) => record.url === url)
   if (!urlRecord) {
     throw new Error('URL not found in source project')
   }
 
   const urlId = urlRecord.id
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!targetProject.urlIds) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     targetProject.urlIds = []
   }
   if (targetProject.urlIds.includes(urlId)) {
     throw new Error('URL already exists in target project')
   }
 
-  sourceProject.urlIds = sourceProject.urlIds.filter(id => id !== urlId)
+  sourceProject.urlIds = sourceProject.urlIds.filter((id) => id !== urlId)
   targetProject.urlIds.push(urlId)
 
   const sourceMetadata = sourceProject.urlMetadata?.[urlId]
@@ -1221,7 +1226,7 @@ const moveUrlBetweenCustomProjects = async (
     delete sourceProject.urlMetadata[urlId]
   }
   if (sourceMetadata?.notes) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (!targetProject.urlMetadata) {
       targetProject.urlMetadata = {}
     }
@@ -1255,7 +1260,7 @@ const renameCategoryInProject = async (
   newCategoryName: string,
 ): Promise<void> => {
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
@@ -1265,17 +1270,17 @@ const renameCategoryInProject = async (
       `Category name ${newCategoryName} already exists in project ${projectId}`,
     )
   }
-  project.categories = project.categories.map(cat =>
+  project.categories = project.categories.map((cat) =>
     cat === oldCategoryName ? newCategoryName : cat,
   )
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (project.categoryOrder) {
-    project.categoryOrder = project.categoryOrder.map(cat =>
+    project.categoryOrder = project.categoryOrder.map((cat) =>
       cat === oldCategoryName ? newCategoryName : cat,
     )
   }
   // URLメタデータのカテゴリ名を更新（新形式対応）
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (project.urlMetadata) {
     for (const [urlId, meta] of Object.entries(project.urlMetadata)) {
       if (meta?.category === oldCategoryName) {
@@ -1293,7 +1298,7 @@ const updateProjectKeywords = async (
   projectKeywords: ProjectKeywordSettings,
 ): Promise<void> => {
   const projects = await getCustomProjects()
-  const projectIndex = projects.findIndex(p => p.id === projectId)
+  const projectIndex = projects.findIndex((p) => p.id === projectId)
   if (projectIndex === -1) {
     throw new Error(`Project with ID ${projectId} not found`)
   }

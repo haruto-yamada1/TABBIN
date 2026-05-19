@@ -4,8 +4,10 @@ import Ansi from 'ansi-to-react'
 import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
 import { createContext, use, useMemo, useRef } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+
 import { Shimmer } from './shimmer'
 import { useCopyState } from './use-copy-state'
 

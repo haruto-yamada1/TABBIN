@@ -1,10 +1,12 @@
-import '../src/assets/global.css'
 import type { Preview } from '@storybook/react'
+
 import {
   previewDecorators,
   previewGlobalTypes,
   previewParameters,
 } from '../src/lib/storybook/preview'
+
+import '../src/assets/global.css'
 
 export default {
   decorators: previewDecorators,

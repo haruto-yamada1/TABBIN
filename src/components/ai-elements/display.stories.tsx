@@ -25,6 +25,7 @@
 // @covers components/ai-elements/transcription.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { lazy } from 'react'
+
 import { DeferredStoryLoader } from '@/lib/storybook/deferred-story'
 
 const ReviewArtifacts = lazy(

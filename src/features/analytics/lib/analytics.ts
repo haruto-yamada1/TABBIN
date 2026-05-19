@@ -107,9 +107,9 @@ interface AnalyticsMessages {
 const CHART_COLORS = ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5']
 const UNCATEGORIZED_LABEL = 'Uncategorized'
 const DEFAULT_ANALYTICS_MESSAGES: AnalyticsMessages = {
+  chartDailySavedTrend: 'Daily saved trend',
   chartDescriptionAggregated: '{{count}} saved records aggregated',
   chartDescriptionCompareMode: '{{count}} saved records compared by mode',
-  chartDailySavedTrend: 'Daily saved trend',
   chartMonthlySavedTrend: 'Monthly saved trend',
   chartSavedCountByDomain: 'Saved count by domain',
   chartSavedCountByParentCategory: 'Saved count by parent category',
@@ -142,17 +142,17 @@ const RANGE_IN_DAYS: Record<
   Exclude<AnalyticsTimeRange, 'all' | 'custom'>,
   number
 > = {
-  '7d': 7,
   '30d': 30,
-  '90d': 90,
   '365d': 365,
+  '7d': 7,
+  '90d': 90,
 }
 
 const lowerCaseSet = (values: string[]): Set<string> =>
   new Set(
     values.reduce<string[]>((items, value) => {
       const normalizedValue = value.trim().toLowerCase()
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (normalizedValue) {
         items.push(normalizedValue)
       }
@@ -164,10 +164,10 @@ const interpolate = (
   template: string,
   values: Record<string, string>,
 ): string =>
-  /* v8 ignore next -- coverage-only defensive branch. */
-  /* v8 ignore start -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore start -- coverage-only defensive branch. */
   template.replaceAll(/\{\{(\w+)\}\}/g, (_, token) => values[token] ?? '')
-/* v8 ignore stop */
+/* V8 ignore stop */
 
 const getDefaultAnalyticsQuery = (): AnalyticsQuery => ({
   chartType: 'bar',
@@ -196,14 +196,13 @@ const isWithinCustomDateRange = (
   savedAt: number,
   customDateRange: AnalyticsDateRange | undefined,
   timeZone?: string,
-): boolean => {
-  return isTimestampInLocalDateRange(
+): boolean =>
+  isTimestampInLocalDateRange(
     savedAt,
     customDateRange?.from,
     customDateRange?.to,
     timeZone,
   )
-}
 
 const matchesMode = (
   record: AiSavedUrlRecord,
@@ -264,12 +263,12 @@ const arrayMatchesFilters = (
 
   if (
     includedSet.size > 0 &&
-    ![...normalizedValues].some(value => includedSet.has(value))
+    ![...normalizedValues].some((value) => includedSet.has(value))
   ) {
     return false
   }
 
-  if ([...normalizedValues].some(value => excludedSet.has(value))) {
+  if ([...normalizedValues].some((value) => excludedSet.has(value))) {
     return false
   }
 
@@ -313,25 +312,29 @@ const matchesFilters = (
   )
 
 const sortEntries = (
-  entries: Array<{ count: number; label: string }>,
+  entries: { count: number; label: string }[],
   sort: AnalyticsSort,
 ) => {
   entries.sort((left, right) => {
     switch (sort) {
-      case 'label-asc':
+      case 'label-asc': {
         return left.label.localeCompare(right.label, 'en')
-      case 'label-desc':
+      }
+      case 'label-desc': {
         return right.label.localeCompare(left.label, 'en')
-      case 'value-asc':
+      }
+      case 'value-asc': {
         return (
           left.count - right.count ||
           left.label.localeCompare(right.label, 'en')
         )
-      default:
+      }
+      default: {
         return (
           right.count - left.count ||
           left.label.localeCompare(right.label, 'en')
         )
+      }
     }
   })
 }
@@ -358,30 +361,36 @@ const getLabelsForGroup = (
   uncategorizedLabel = UNCATEGORIZED_LABEL,
 ): string[] => {
   switch (groupBy) {
-    case 'domain':
+    case 'domain': {
       return [record.domain]
-    case 'parentCategory':
+    }
+    case 'parentCategory': {
       return record.parentCategories.length > 0
         ? record.parentCategories
         : [uncategorizedLabel]
-    case 'subCategory':
+    }
+    case 'subCategory': {
       return record.subCategories.length > 0
         ? record.subCategories
         : [uncategorizedLabel]
-    case 'project':
+    }
+    case 'project': {
       return record.savedInProjects.length > 0
         ? record.savedInProjects
         : [uncategorizedLabel]
-    case 'projectCategory':
+    }
+    case 'projectCategory': {
       return record.projectCategories.length > 0
         ? record.projectCategories
         : [uncategorizedLabel]
-    /* v8 ignore next -- coverage-only defensive branch. */
+    }
+    /* V8 ignore next -- coverage-only defensive branch. */
     case 'timeRecent':
-    /* v8 ignore next -- coverage-only defensive branch. */
-    case 'timeTop':
+    /* V8 ignore next -- coverage-only defensive branch. */
+    case 'timeTop': {
       /* v8 ignore next -- coverage-only defensive branch. */
       return [getTimeBucketLabel(record.savedAt, 'day')]
+    }
   }
 }
 
@@ -390,22 +399,28 @@ const getSingleSeriesTitle = (
   messages: AnalyticsMessages,
 ): string => {
   switch (groupBy) {
-    case 'domain':
+    case 'domain': {
       return messages.chartSavedCountByDomain
-    case 'parentCategory':
+    }
+    case 'parentCategory': {
       return messages.chartSavedCountByParentCategory
-    case 'subCategory':
+    }
+    case 'subCategory': {
       return messages.chartSavedCountBySubCategory
-    case 'project':
+    }
+    case 'project': {
       return messages.chartSavedCountByProject
-    case 'projectCategory':
+    }
+    case 'projectCategory': {
       return messages.chartSavedCountByProjectCategory
-    /* v8 ignore next -- coverage-only defensive branch. */
+    }
+    /* V8 ignore next -- coverage-only defensive branch. */
     case 'timeRecent':
-    /* v8 ignore next -- coverage-only defensive branch. */
-    case 'timeTop':
+    /* V8 ignore next -- coverage-only defensive branch. */
+    case 'timeTop': {
       /* v8 ignore next -- coverage-only defensive branch. */
       return messages.chartDailySavedTrend
+    }
   }
 }
 
@@ -414,19 +429,22 @@ const getTimeTitle = (
   messages: AnalyticsMessages,
 ): string => {
   switch (bucket) {
-    case 'week':
+    case 'week': {
       return messages.chartWeeklySavedTrend
-    case 'month':
+    }
+    case 'month': {
       return messages.chartMonthlySavedTrend
-    default:
+    }
+    default: {
       return messages.chartDailySavedTrend
+    }
   }
 }
 
 const getNormalizedCount = (count: number, total: number): number => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (total === 0) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return 0
   }
 
@@ -434,7 +452,7 @@ const getNormalizedCount = (count: number, total: number): number => {
 }
 
 const sortTimeEntriesByTotalDesc = (
-  entries: Array<{ count: number; label: string }>,
+  entries: { count: number; label: string }[],
 ) => {
   entries.sort(
     (left, right) =>
@@ -499,7 +517,7 @@ const createSingleSeriesChart = (
         return entries.slice(0, query.limit)
       })()
   const total = limitedEntries.reduce((sum, entry) => sum + entry.count, 0)
-  const data = limitedEntries.map(entry => ({
+  const data = limitedEntries.map((entry) => ({
     count: query.normalize
       ? getNormalizedCount(entry.count, total)
       : entry.count,
@@ -512,7 +530,6 @@ const createSingleSeriesChart = (
     description: interpolate(messages.chartDescriptionAggregated, {
       count: String(filteredRecords.length),
     }),
-    showLegend: query.chartType !== 'pie',
     series: [
       {
         colorToken: CHART_COLORS[0],
@@ -522,6 +539,7 @@ const createSingleSeriesChart = (
           : messages.chartSeriesSavedCount,
       },
     ],
+    showLegend: query.chartType !== 'pie',
     stacked: query.stacked,
     title:
       query.title ??
@@ -586,7 +604,7 @@ const createModeComparisonChart = (
     label,
   }))
   const data = query.normalize
-    ? rawData.map(entry => {
+    ? rawData.map((entry) => {
         const total = entry.domain + entry.custom
         return {
           custom: getNormalizedCount(entry.custom, total),
@@ -617,7 +635,7 @@ const createModeComparisonChart = (
     title: query.title ?? getTimeTitle(query.timeBucket, messages),
     type: query.chartType,
     valueFormat: query.normalize ? 'percent' : 'count',
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     xKey: query.chartType === 'pie' ? undefined : 'label',
   }
 }
@@ -635,7 +653,7 @@ const filterAnalyticsRecords = (
   }
 
   return records.filter(
-    record =>
+    (record) =>
       matchesMode(record, normalizedQuery.mode) &&
       isWithinTimeRange(record.savedAt, {
         customDateRange: normalizedQuery.customDateRange,

@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { UserSettings } from '@/types/storage'
+
 import type { ProjectUrlItemProps } from './ProjectUrlItem'
 
 const projectUrlItemAdditionalI18nState = vi.hoisted(() => ({

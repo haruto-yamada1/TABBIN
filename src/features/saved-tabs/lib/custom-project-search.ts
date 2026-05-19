@@ -1,4 +1,5 @@
 import Fuse from 'fuse.js'
+
 import { getProjectUrls } from '@/lib/storage/projects'
 import type { CustomProject } from '@/types/storage'
 
@@ -24,18 +25,11 @@ const mapMatchedUrlsToProject = (
   project: CustomProject,
   matchedUrls: Awaited<ReturnType<typeof getProjectUrls>>,
 ): CustomProject => {
-  const matchedUrlIds = matchedUrls.map(url => url.id)
+  const matchedUrlIds = matchedUrls.map((url) => url.id)
 
   return {
     ...project,
     urlIds: matchedUrlIds,
-    urls: matchedUrls.map(url => ({
-      url: url.url,
-      title: url.title,
-      notes: url.notes,
-      savedAt: url.savedAt,
-      category: url.category,
-    })),
     urlMetadata: project.urlMetadata
       ? Object.fromEntries(
           Object.entries(project.urlMetadata).filter(([id]) =>
@@ -43,6 +37,13 @@ const mapMatchedUrlsToProject = (
           ),
         )
       : project.urlMetadata,
+    urls: matchedUrls.map((url) => ({
+      url: url.url,
+      title: url.title,
+      notes: url.notes,
+      savedAt: url.savedAt,
+      category: url.category,
+    })),
   }
 }
 
@@ -58,11 +59,11 @@ export const filterCustomProjectsByQuery = async ({
 
   const matchedProjects = new Fuse(customProjects, projectFuseOptions)
     .search(normalizedQuery)
-    .map(result => result.item)
+    .map((result) => result.item)
   const matchedProjectSet = new Set(matchedProjects)
 
   const urlMatchedProjects = await Promise.all(
-    customProjects.flatMap(project =>
+    customProjects.flatMap((project) =>
       matchedProjectSet.has(project)
         ? []
         : [
@@ -78,7 +79,7 @@ export const filterCustomProjectsByQuery = async ({
               )
                 .search(normalizedQuery)
                 .reduce<ProjectUrlItem[]>((items, result) => {
-                  /* v8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore next -- coverage-only defensive branch. */
                   if (!seenUrls.has(result.item.url)) {
                     seenUrls.add(result.item.url)
                     items.push(result.item)
@@ -104,5 +105,5 @@ export const filterCustomProjectsByQuery = async ({
     uniqueProjects.set(project.id, project)
   }
 
-  return Array.from(uniqueProjects.values())
+  return [...uniqueProjects.values()]
 }

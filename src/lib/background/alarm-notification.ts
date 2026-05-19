@@ -11,7 +11,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
   try {
     console.log('期限切れタブのチェックアラームを設定しています...')
 
-    // chrome.alarmsが利用可能か確認
+    // Chrome.alarmsが利用可能か確認
     if (!chrome.alarms) {
       console.error(
         'chrome.alarms APIが利用できません。Manifest.jsonで権限を確認してください。',
@@ -35,12 +35,12 @@ const setupExpiredTabsCheckAlarm = (): void => {
     }
 
     // 既存のアラームを確認
-    chrome.alarms.get('checkExpiredTabs', alarm => {
+    chrome.alarms.get('checkExpiredTabs', (alarm) => {
       if (alarm) {
         console.log('既存のアラームを検出:', alarm)
         try {
           // 既存のアラームをクリア（必要に応じて）
-          chrome.alarms.clear('checkExpiredTabs', wasCleared => {
+          chrome.alarms.clear('checkExpiredTabs', (wasCleared) => {
             console.log('既存のアラームをクリア:', wasCleared)
             createAlarm()
           })
@@ -56,7 +56,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
     })
 
     // アラームリスナーを登録
-    chrome.alarms.onAlarm.addListener(alarm => {
+    chrome.alarms.onAlarm.addListener((alarm) => {
       console.log(
         `アラームが発火しました: ${alarm.name} (${new Date().toLocaleString()})`,
       )
@@ -82,7 +82,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
  */
 const scheduleInitialCheck = (): void => {
   Promise.resolve().then(async () => {
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
     checkAndRemoveExpiredTabs()
   })
 }
@@ -98,10 +98,10 @@ const showNotification = async (
     const iconUrl = chrome.runtime.getURL('icon/128.png')
     console.log('通知アイコンURL:', iconUrl)
     chrome.notifications.create({
-      type: 'basic',
       iconUrl,
-      title,
       message,
+      title,
+      type: 'basic',
     })
   } catch (notificationError) {
     // 通知エラーをキャッチしても処理を続行

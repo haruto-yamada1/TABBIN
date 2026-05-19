@@ -2,6 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { lazy } from 'react'
 import { describe, expect, it } from 'vitest'
+
 import { DeferredStoryLoader } from './deferred-story'
 
 const HeavyStory = lazy(async () => ({

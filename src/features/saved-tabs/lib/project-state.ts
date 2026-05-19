@@ -1,4 +1,5 @@
 import { produce } from 'immer'
+
 import type { CustomProject } from '@/types/storage'
 
 type ProjectUrl = NonNullable<CustomProject['urls']>[number]
@@ -21,10 +22,12 @@ export const moveUrlBetweenProjectsState = ({
   url,
   movedAt = Date.now(),
 }: MoveUrlBetweenProjectsStateParams): CustomProject[] =>
-  produce(projects, draft => {
+  produce(projects, (draft) => {
     for (const project of draft) {
       if (project.id === sourceProjectId) {
-        project.urls = (project.urls || []).filter(item => item.url !== url.url)
+        project.urls = (project.urls || []).filter(
+          (item) => item.url !== url.url,
+        )
         project.updatedAt = movedAt
         continue
       }

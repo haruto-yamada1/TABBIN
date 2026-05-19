@@ -1,9 +1,6 @@
-import {
-  type LazyExoticComponent,
-  Suspense,
-  startTransition,
-  useState,
-} from 'react'
+import { Suspense, startTransition, useState } from 'react'
+import type { LazyExoticComponent } from 'react'
+
 import { Button } from '@/components/ui/button'
 
 interface DeferredStoryLoaderProps {

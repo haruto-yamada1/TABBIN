@@ -24,7 +24,7 @@ type ClickListener = (
   tab?: chrome.tabs.Tab,
 ) => void | Promise<void>
 
-const flushAsync = () => new Promise(resolve => setTimeout(resolve, 0))
+const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 const createChromeHarness = (
   options: {

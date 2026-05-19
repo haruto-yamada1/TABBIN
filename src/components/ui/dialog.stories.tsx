@@ -1,5 +1,6 @@
 // @covers components/ui/dialog.tsx
 import type { Meta, StoryObj } from '@storybook/react'
+
 import { Button } from './button'
 import {
   Dialog,
@@ -11,9 +12,8 @@ import {
 } from './dialog'
 
 export default {
-  title: 'UI/Dialog',
   component: Dialog,
-  render: args => (
+  render: (args) => (
     <Dialog {...args}>
       <DialogContent>
         <DialogHeader>
@@ -29,6 +29,7 @@ export default {
       </DialogContent>
     </Dialog>
   ),
+  title: 'UI/Dialog',
 } satisfies Meta<typeof Dialog>
 
 type Story = StoryObj<typeof Dialog>

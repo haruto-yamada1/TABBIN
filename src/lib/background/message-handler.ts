@@ -10,11 +10,11 @@ import type {
   BackgroundMessage,
   OllamaErrorDetails,
   OllamaModelListResponse,
-  RunAiChatStreamPortMessage,
   StatusResponse,
   TimeRemainingResponse,
 } from '@/types/background'
 import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
+
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
 import {
   checkAndRemoveExpiredTabs,
@@ -63,46 +63,57 @@ const setupMessageListener = (): void => {
     }
     const typedMessage = message as BackgroundMessage
     switch (typedMessage.action) {
-      case 'urlDragStarted':
+      case 'urlDragStarted': {
         handleUrlDragStartedMessage(typedMessage.url, sendResponse)
         return true
-      case 'urlDropped':
+      }
+      case 'urlDropped': {
         handleUrlDroppedMessage(typedMessage, sendResponse)
         return true
-      case 'removeUrlFromStorage':
+      }
+      case 'removeUrlFromStorage': {
         handleRemoveUrlMessage(typedMessage.url, sendResponse)
         return true
-      case 'removeUrlRecordsFromStorage':
+      }
+      case 'removeUrlRecordsFromStorage': {
         handleRemoveUrlRecordsMessage(typedMessage.urlIds, sendResponse)
         return true
-      case 'calculateTimeRemaining':
+      }
+      case 'calculateTimeRemaining': {
         handleCalculateTimeRemainingMessage(typedMessage, sendResponse)
         return true
-      case 'checkExpiredTabs':
+      }
+      case 'checkExpiredTabs': {
         handleCheckExpiredTabsMessage(typedMessage, sendResponse)
         return true
-      case 'updateTabTimestamps':
+      }
+      case 'updateTabTimestamps': {
         handleUpdateTabTimestampsMessage(typedMessage, sendResponse)
         return true
-      case 'getAlarmStatus':
+      }
+      case 'getAlarmStatus': {
         handleGetAlarmStatusMessage(sendResponse)
         return true
-      case 'listOllamaModels':
+      }
+      case 'listOllamaModels': {
         handleListOllamaModelsMessage(sendResponse)
         return true
-      case 'runAiChat':
+      }
+      case 'runAiChat': {
         handleRunAiChatMessage(typedMessage, sendResponse)
         return true
-      default:
+      }
+      default: {
         console.warn('未知のメッセージアクション:', message.action)
         sendResponse({
           status: 'unknown_action',
         })
         return false
+      }
     }
   })
 
-  chrome.runtime.onConnect?.addListener(port => {
+  chrome.runtime.onConnect?.addListener((port) => {
     if (port.name !== AI_CHAT_STREAM_PORT_NAME) {
       return
     }
@@ -136,19 +147,19 @@ const handleUrlDroppedMessage = (
 ): void => {
   console.log('URLドロップを検知:', message.url)
 
-  // fromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
+  // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (message.fromExternal === true) {
     handleUrlDropped(message.url, message.fromExternal)
-      .then(status => {
+      .then((status) => {
         sendResponse({
           status,
         })
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('URL削除エラー:', error)
         sendResponse({
-          status: 'error',
           error: error.toString(),
+          status: 'error',
         })
       })
   } else {
@@ -171,10 +182,10 @@ const handleRemoveUrlMessage = (
         status: 'removed',
       }),
     )
-    .catch(error =>
+    .catch((error) =>
       sendResponse({
-        status: 'error',
         error,
+        status: 'error',
       }),
     )
 }
@@ -183,18 +194,18 @@ const handleRemoveUrlRecordsMessage = (
   urlIds: string[],
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   removeUrlRecordsFromStorage(Array.isArray(urlIds) ? urlIds : [])
-    .then(removedCount =>
+    .then((removedCount) =>
       sendResponse({
         removedCount,
         status: 'removed',
       }),
     )
-    .catch(error =>
+    .catch((error) =>
       sendResponse({
         status: 'error',
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         error: error instanceof Error ? error.message : String(error),
       }),
     )
@@ -234,8 +245,8 @@ const handleCalculateTimeRemainingMessage = (
     const expirationTime = savedAt + expirationMs
     const remainingMs = expirationTime - now
     sendResponse({
-      timeRemaining: remainingMs,
       expirationTime,
+      timeRemaining: remainingMs,
     })
   } catch (error) {
     console.error('残り時間計算エラー:', error)
@@ -260,16 +271,16 @@ const handleCheckExpiredTabsMessage = (
   // 設定情報も出力
   chrome.storage.local.get<{
     userSettings?: import('@/types/storage').UserSettings
-  }>(['userSettings'], data => {
+  }>(['userSettings'], (data) => {
     console.log('現在のストレージ内の設定:', data)
   })
 
-  // updateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
+  // UpdateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
   if (message.updateTimestamps) {
     console.log(`タブの保存時刻を更新します (${message.period || '不明'})`)
     // 処理の簡略化 - まずタイムスタンプを更新し、待機せずにチェック実行
     updateTabTimestamps(message.period)
-      .then(_result => {
+      .then((_result) => {
         console.log('タブの時刻更新完了。チェックを実行します。')
 
         // 設定を再読み込みし、チェック実行
@@ -281,7 +292,7 @@ const handleCheckExpiredTabsMessage = (
               success: true,
             })
           })
-          .catch(error => {
+          .catch((error) => {
             console.error('チェックエラー:', error)
             sendResponse({
               error: String(error),
@@ -289,7 +300,7 @@ const handleCheckExpiredTabsMessage = (
             })
           })
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('タイムスタンプ更新エラー:', error)
         sendResponse({
           error: String(error),
@@ -305,7 +316,7 @@ const handleCheckExpiredTabsMessage = (
           status: 'completed',
         })
       })
-      .catch(error =>
+      .catch((error) =>
         sendResponse({
           error: String(error),
           status: 'error',
@@ -324,13 +335,13 @@ const handleUpdateTabTimestampsMessage = (
 ): void => {
   console.log('タブの保存時刻を強制的に更新:', message.period)
   updateTabTimestamps(message.period)
-    .then(result => {
+    .then((result) => {
       sendResponse({
-        status: 'completed',
         result,
+        status: 'completed',
       })
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('時刻更新エラー:', error)
       sendResponse({
         error: String(error),
@@ -344,7 +355,7 @@ const handleUpdateTabTimestampsMessage = (
 const handleGetAlarmStatusMessage = (
   sendResponse: (response: AlarmStatusResponse) => void,
 ): void => {
-  chrome.alarms.get('checkExpiredTabs', alarm => {
+  chrome.alarms.get('checkExpiredTabs', (alarm) => {
     const status = alarm
       ? {
           exists: true,
@@ -362,17 +373,17 @@ const handleListOllamaModelsMessage = (
   sendResponse: (response: OllamaModelListResponse) => void,
 ): void => {
   listLocalOllamaModels()
-    .then(models => {
+    .then((models) => {
       sendResponse({
-        status: 'ok',
         models,
+        status: 'ok',
       })
     })
-    .catch(error => {
+    .catch((error) => {
       sendResponse({
-        status: 'error',
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),
+        status: 'error',
       })
     })
 }
@@ -381,34 +392,34 @@ const handleRunAiChatMessage = (
   message: {
     attachments?: import('@/features/ai-chat/types').AiChatAttachment[]
     prompt: string
-    history: Array<{
+    history: {
       role: 'user' | 'assistant'
       content: string
       attachments?: import('@/features/ai-chat/types').AiChatAttachment[]
-    }>
+    }[]
   },
   sendResponse: (response: AiChatResponse) => void,
 ): void => {
   runAiChatRequest({
     attachments: message.attachments,
-    prompt: message.prompt,
     history: message.history,
+    prompt: message.prompt,
   })
-    .then(result => {
+    .then((result) => {
       sendResponse({
-        status: 'ok',
         answer: result.answer,
         charts: result.charts,
-        recordCount: result.recordCount,
         reasoning: result.reasoning,
+        recordCount: result.recordCount,
+        status: 'ok',
         toolTraces: result.toolTraces,
       })
     })
-    .catch(error => {
+    .catch((error) => {
       sendResponse({
-        status: 'error',
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),
+        status: 'error',
       })
     })
 }
@@ -421,39 +432,39 @@ const handleAiChatStreamPortMessage = (
     return
   }
 
-  const runMessage = message as RunAiChatStreamPortMessage
+  const runMessage = message
 
   runAiChatRequest(
     {
       attachments: runMessage.attachments,
-      prompt: runMessage.prompt,
       history: runMessage.history,
+      prompt: runMessage.prompt,
     },
     {
-      onStepUpdate: stepUpdate => {
+      onStepUpdate: (stepUpdate) => {
         port.postMessage({
-          type: 'step',
           reasoning: stepUpdate.reasoning,
           toolTraces: stepUpdate.toolTraces,
+          type: 'step',
         })
       },
     },
   )
-    .then(result => {
+    .then((result) => {
       port.postMessage({
-        type: 'complete',
         answer: result.answer,
         charts: result.charts,
-        recordCount: result.recordCount,
         reasoning: result.reasoning,
+        recordCount: result.recordCount,
         toolTraces: result.toolTraces,
+        type: 'complete',
       })
     })
-    .catch(error => {
+    .catch((error) => {
       const errorMessage: AiChatStreamErrorMessage = {
-        type: 'error',
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),
+        type: 'error',
       }
 
       port.postMessage(errorMessage)

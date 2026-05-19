@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import {
   cleanup,
   fireEvent,
@@ -10,6 +11,7 @@ import {
   within,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
 import type { UserSettings } from '@/types/storage'
 
@@ -136,7 +138,6 @@ const createChromeMock = () =>
         (callback: (info: chrome.runtime.PlatformInfo) => void) => {
           callback({
             arch: 'x86-64',
-            // biome-ignore lint/style/useNamingConvention: Chrome PlatformInfo uses nacl_arch
             nacl_arch: 'x86-64',
             os: mocked.platformOs as chrome.runtime.PlatformOs,
           })
@@ -821,7 +822,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           handlePortMessage = listener
         }),
       },
@@ -1205,7 +1206,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           handlePortMessage = listener
         }),
       },
@@ -1248,8 +1249,8 @@ describe('SavedTabsChatWidget', () => {
       await screen.findByText((_, element) =>
         Boolean(
           element?.tagName === 'P' &&
-            element.textContent ===
-              'The added URL this month is https://react.dev/learn.',
+          element.textContent ===
+            'The added URL this month is https://react.dev/learn.',
         ),
       ),
     ).toBeTruthy()
@@ -1359,7 +1360,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           handlePortMessage = listener
         }),
       },
@@ -1487,8 +1488,8 @@ describe('SavedTabsChatWidget', () => {
       await screen.findByText((_, element) =>
         Boolean(
           element?.tagName === 'P' &&
-            element.textContent ===
-              'The added URL this month is https://react.dev/learn.',
+          element.textContent ===
+            'The added URL this month is https://react.dev/learn.',
         ),
       ),
     ).toBeTruthy()
@@ -1496,8 +1497,8 @@ describe('SavedTabsChatWidget', () => {
     const answerText = screen.getByText((_, element) =>
       Boolean(
         element?.tagName === 'P' &&
-          element.textContent ===
-            'The added URL this month is https://react.dev/learn.',
+        element.textContent ===
+          'The added URL this month is https://react.dev/learn.',
       ),
     )
 
@@ -1517,7 +1518,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           handlePortMessage = listener
         }),
       },
@@ -1604,7 +1605,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           handlePortMessage = listener
         }),
       },
@@ -1896,7 +1897,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           handlePortMessage = listener
         }),
       },

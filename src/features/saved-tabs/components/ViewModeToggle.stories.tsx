@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { type ComponentProps, useReducer } from 'react'
+import { useReducer } from 'react'
+import type { ComponentProps } from 'react'
+
 import { SavedTabsResponsiveLayoutProvider } from '@/features/saved-tabs/contexts/SavedTabsResponsiveLayoutContext'
+
 import { ViewModeToggle } from './ViewModeToggle'
 
 const ViewModeToggleStoryRender = (
@@ -26,12 +29,12 @@ const ViewModeToggleStoryRender = (
 }
 
 const meta = {
-  title: 'Features/SavedTabs/ViewModeToggle',
-  component: ViewModeToggle,
   args: {
     onChange: () => undefined,
   },
+  component: ViewModeToggle,
   render: ViewModeToggleStoryRender,
+  title: 'Features/SavedTabs/ViewModeToggle',
 } satisfies Meta<typeof ViewModeToggle>
 
 type Story = StoryObj<typeof ViewModeToggle>

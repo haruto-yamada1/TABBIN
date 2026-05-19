@@ -1,5 +1,5 @@
 import type { Active, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
-// filepath: features/saved-tabs/hooks/useCategoryDnD.ts
+// Filepath: features/saved-tabs/hooks/useCategoryDnD.ts
 import { useState } from 'react'
 
 const parseCategoryNameFromOverId = (overId: string): string | undefined => {
@@ -12,14 +12,13 @@ const parseCategoryNameFromOverId = (overId: string): string | undefined => {
 const isUncategorizedDrop = (
   over: DragOverEvent['over'],
   projectId: string,
-): boolean => {
-  return Boolean(
+): boolean =>
+  Boolean(
     over?.id === `uncategorized-${projectId}` ||
-      (typeof over?.id === 'string' &&
-        String(over.id).includes('uncategorized')) ||
-      over?.data?.current?.type === 'uncategorized',
+    (typeof over?.id === 'string' &&
+      String(over.id).includes('uncategorized')) ||
+    over?.data?.current?.type === 'uncategorized',
   )
-}
 const resolveOverCategoryName = (
   over: DragOverEvent['over'],
 ): string | null => {
@@ -83,10 +82,10 @@ export const useCategoryDnD = () => {
     }
 
     // URLドラッグ開始時は不要な再レンダーを避ける
-    setActiveId(prev => (prev === null ? prev : null))
-    setDraggedOverCategory(prev => (prev === null ? prev : null))
-    setIsDraggingCategory(prev => (prev ? false : prev))
-    setDraggedCategoryName(prev => (prev === null ? prev : null))
+    setActiveId((prev) => (prev === null ? prev : null))
+    setDraggedOverCategory((prev) => (prev === null ? prev : null))
+    setIsDraggingCategory((prev) => (prev ? false : prev))
+    setDraggedCategoryName((prev) => (prev === null ? prev : null))
   }
 
   // ドラッグ中
@@ -108,7 +107,7 @@ export const useCategoryDnD = () => {
     const nextCategoryName = isUncategorizedDrop(over, project.id)
       ? null
       : resolveOverCategoryName(over)
-    setDraggedOverCategory(prev =>
+    setDraggedOverCategory((prev) =>
       prev === nextCategoryName ? prev : nextCategoryName,
     )
   }
@@ -121,14 +120,14 @@ export const useCategoryDnD = () => {
     setDraggedOverCategory(null)
   }
   return {
-    isDraggingCategory,
-    draggedCategoryName,
     activeId,
+    draggedCategoryName,
     draggedOverCategory,
-    setDraggedOverCategory,
-    setActiveId,
-    handleDragStart,
     handleDragOver,
+    handleDragStart,
+    isDraggingCategory,
     resetDnD,
+    setActiveId,
+    setDraggedOverCategory,
   }
 }

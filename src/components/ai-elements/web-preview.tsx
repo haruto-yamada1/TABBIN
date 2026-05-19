@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -275,7 +276,7 @@ export const WebPreviewConsole = ({
               {t('common.noConsoleOutput')}
             </p>
           ) : (
-            logs.map(log => (
+            logs.map((log) => (
               <div
                 className={cn(
                   'text-xs',

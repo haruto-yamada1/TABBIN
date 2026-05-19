@@ -39,14 +39,14 @@ const AI_CHAT_TOOL_DEFINITIONS = [
 type AiChatToolDefinition = (typeof AI_CHAT_TOOL_DEFINITIONS)[number]
 
 const AI_CHAT_TOOL_TITLES = Object.fromEntries(
-  AI_CHAT_TOOL_DEFINITIONS.map(toolDefinition => [
+  AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => [
     toolDefinition.name,
     toolDefinition.title,
   ]),
 ) as Record<AiChatToolDefinition['name'], AiChatToolDefinition['title']>
 
 const AI_CHAT_TOOL_DESCRIPTIONS = Object.fromEntries(
-  AI_CHAT_TOOL_DEFINITIONS.map(toolDefinition => [
+  AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => [
     toolDefinition.name,
     toolDefinition.description,
   ]),

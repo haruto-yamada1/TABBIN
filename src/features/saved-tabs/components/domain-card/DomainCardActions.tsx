@@ -1,5 +1,6 @@
 import { ExternalLink, Settings, Trash } from 'lucide-react'
 import { useCallback, useState } from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
 import { handleSaveKeywords } from '@/features/saved-tabs/lib/category-keywords'
+
 import { useDomainCard } from './DomainCardContext'
 
 /**
@@ -36,7 +38,7 @@ export const DomainCardActions = () => {
   const hasSearchQuery = searchQuery.trim().length > 0
 
   const executeDeleteAll = useCallback(() => {
-    const visibleUrls = (group.urls || []).map(item => item.url)
+    const visibleUrls = (group.urls || []).map((item) => item.url)
 
     if (hasSearchQuery && handlers.handleDeleteUrls && visibleUrls.length > 0) {
       void handlers.handleDeleteUrls(group.id, visibleUrls)
@@ -51,7 +53,7 @@ export const DomainCardActions = () => {
       <div className='flex shrink-0 items-center gap-2'>
         {/* 子カテゴリ管理 */}
         <Tooltip>
-          <TooltipTrigger asChild={true}>
+          <TooltipTrigger asChild>
             <Button
               variant='secondary'
               size='sm'
@@ -74,11 +76,11 @@ export const DomainCardActions = () => {
 
         {/* すべて開く */}
         <Tooltip>
-          <TooltipTrigger asChild={true}>
+          <TooltipTrigger asChild>
             <Button
               variant='secondary'
               size='sm'
-              onClick={e => {
+              onClick={(e) => {
                 if ((group.urls?.length || 0) >= 10) {
                   setIsOpenAllConfirmOpen(true)
                   return
@@ -107,11 +109,11 @@ export const DomainCardActions = () => {
 
         {/* グループ削除 */}
         <Tooltip>
-          <TooltipTrigger asChild={true}>
+          <TooltipTrigger asChild>
             <Button
               variant='secondary'
               size='sm'
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation()
                 e.preventDefault()
                 if (settings.confirmDeleteAll) {

@@ -6,11 +6,10 @@ import {
 } from '@/components/ui/dialog'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { TabGroup } from '@/types/storage'
+
 import { useCategoryModal } from '../../hooks/useCategoryModal'
-import {
-  CategoryModalContext,
-  type CategoryModalContextType,
-} from './CategoryModalContext'
+import { CategoryModalContext } from './CategoryModalContext'
+import type { CategoryModalContextType } from './CategoryModalContext'
 
 /** CategoryModalRoot の props */
 interface CategoryModalRootProps {
@@ -42,7 +41,7 @@ export const CategoryModalRoot = ({
 
   return (
     <CategoryModalContext value={contextValue}>
-      <Dialog open={true} onOpenChange={() => onClose()}>
+      <Dialog open onOpenChange={() => onClose()}>
         <DialogContent className='flex max-h-[90vh] flex-col overflow-hidden sm:max-w-[500px]'>
           <DialogHeader>
             <DialogTitle>{t('savedTabs.categoryModal.title')}</DialogTitle>

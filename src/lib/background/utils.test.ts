@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { UserSettings } from '@/types/storage'
 
 vi.mock('@/lib/storage/settings', () => ({
@@ -10,6 +11,7 @@ vi.mock('./alarm-notification', () => ({
 }))
 
 import { getUserSettings } from '@/lib/storage/settings'
+
 import { filterTabsByUserSettings } from './utils'
 
 const buildSettings = (override: Partial<UserSettings> = {}): UserSettings => ({

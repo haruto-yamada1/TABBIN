@@ -1,4 +1,5 @@
 import { Bot, Globe } from 'lucide-react'
+
 import {
   CodeBlock,
   CodeBlockActions,

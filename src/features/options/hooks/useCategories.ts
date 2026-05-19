@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
+
 import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 import {
@@ -38,7 +39,7 @@ export const useCategories = () => {
         ])
         setCategoryState({
           language: resolveLanguage(
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             settings.language ?? 'system',
             getUiLocale(),
           ),
@@ -54,7 +55,7 @@ export const useCategories = () => {
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: { [key: string]: chrome.storage.StorageChange },
+      changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.parentCategories) {
@@ -63,7 +64,7 @@ export const useCategories = () => {
         )
           ? (changes.parentCategories.newValue as ParentCategory[])
           : []
-        setCategoryState(prev => ({
+        setCategoryState((prev) => ({
           ...prev,
           parentCategories: nextParentCategories,
         }))
@@ -73,10 +74,10 @@ export const useCategories = () => {
         const nextSettings = changes.userSettings.newValue as {
           language?: 'en' | 'ja' | 'system'
         }
-        setCategoryState(prev => ({
+        setCategoryState((prev) => ({
           ...prev,
           language: resolveLanguage(
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             nextSettings.language ?? 'system',
             getUiLocale(),
           ),
@@ -106,7 +107,7 @@ export const useCategories = () => {
         .max(25, t('options.categories.validation.maxLength'))
         .safeParse(newCategoryName.trim())
       if (!validationResult.success) {
-        const message = validationResult.error.issues[0].message
+        const { message } = validationResult.error.issues[0]
         setCategoryError(message)
         setTimeout(() => setCategoryError(null), 3000)
         return false
@@ -114,7 +115,8 @@ export const useCategories = () => {
 
       // 重複をチェック
       const isDuplicate = parentCategories.some(
-        cat => cat.name.toLowerCase() === newCategoryName.trim().toLowerCase(),
+        (cat) =>
+          cat.name.toLowerCase() === newCategoryName.trim().toLowerCase(),
       )
 
       if (isDuplicate) {
@@ -152,12 +154,12 @@ export const useCategories = () => {
   }
 
   return {
-    parentCategories,
-    newCategoryName,
-    setNewCategoryName,
     categoryError,
-    setCategoryError,
     handleAddCategory,
     handleCategoryKeyDown,
+    newCategoryName,
+    parentCategories,
+    setCategoryError,
+    setNewCategoryName,
   }
 }

@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { TabGroup, UserSettings } from '@/types/storage'
+
 import { useTabData } from './useTabData'
 
 const {
@@ -46,7 +48,7 @@ describe('useTabData', () => {
     getParentCategoriesMock.mockReset()
     getParentCategoriesMock.mockResolvedValue([])
     resolveTabGroupsWithUrlsMock.mockReset()
-    resolveTabGroupsWithUrlsMock.mockImplementation(async groups => groups)
+    resolveTabGroupsWithUrlsMock.mockImplementation(async (groups) => groups)
     getUserSettingsMock.mockReset()
     getUserSettingsMock.mockResolvedValue({} as UserSettings)
     migrateParentCategoriesToDomainNamesMock.mockReset()
@@ -366,7 +368,7 @@ describe('useTabData', () => {
     })
 
     await act(async () => {
-      result.current.setTabGroups(previous => [...previous, appendedGroup])
+      result.current.setTabGroups((previous) => [...previous, appendedGroup])
     })
 
     expect(result.current.tabGroups).toEqual([...storedGroups, appendedGroup])

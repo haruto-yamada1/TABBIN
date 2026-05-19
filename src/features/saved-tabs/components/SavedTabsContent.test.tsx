@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
 
@@ -382,7 +383,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     let resolveUpdate: (() => void) | undefined
     const handleDeleteAllTabs = vi.fn().mockImplementationOnce(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           resolveUpdate = resolve
         }),
     )

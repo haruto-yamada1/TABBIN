@@ -74,7 +74,7 @@ const createChromeHarness = (
       }
     }
     if (Array.isArray(keys)) {
-      return Object.fromEntries(keys.map(key => [key, storage[key]]))
+      return Object.fromEntries(keys.map((key) => [key, storage[key]]))
     }
     if (typeof keys === 'object') {
       const defaults = keys as Record<string, unknown>
@@ -154,7 +154,7 @@ const flushMicrotasks = async (): Promise<void> => {
   await Promise.resolve()
   await Promise.resolve()
   await Promise.resolve()
-  await new Promise(resolve => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
 }
 interface LoadBackgroundOptions {
   initialStorage?: Record<string, unknown>
@@ -191,7 +191,7 @@ const triggerInstalled = async (
   reason: 'install' | 'update' | 'chrome_update',
 ): Promise<void> => {
   await Promise.all(
-    harness.onInstalledListeners.map(listener =>
+    harness.onInstalledListeners.map((listener) =>
       listener({
         reason,
       }),
@@ -199,7 +199,7 @@ const triggerInstalled = async (
   )
 }
 const triggerStartup = async (harness: ChromeHarness): Promise<void> => {
-  await Promise.all(harness.onStartupListeners.map(listener => listener()))
+  await Promise.all(harness.onStartupListeners.map((listener) => listener()))
 }
 beforeEach(() => {
   vi.restoreAllMocks()

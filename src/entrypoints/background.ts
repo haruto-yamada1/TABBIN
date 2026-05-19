@@ -12,6 +12,7 @@ if (!import.meta.env.DEV) {
 }
 
 import { defineBackground } from 'wxt/utils/define-background'
+
 import { setupExpiredTabsCheckAlarm } from '@/lib/background/alarm-notification'
 // 分離したモジュールをインポート
 import { createContextMenus } from '@/lib/background/context-menu'
@@ -24,22 +25,22 @@ import { migrateParentCategoriesToDomainNames } from '@/lib/storage/migration'
 
 export default defineBackground(() => {
   // 拡張機能インストール・更新時の処理
-  chrome.runtime.onInstalled.addListener(async details => {
+  chrome.runtime.onInstalled.addListener(async (details) => {
     const manifestVersion = chrome.runtime.getManifest().version
 
     try {
       if (details.reason === 'install') {
         await openSavedTabsPage()
         await chrome.storage.local.set({
-          seenVersion: manifestVersion,
           changelogShown: true,
+          seenVersion: manifestVersion,
         })
-        /* v8 ignore next -- chrome_update/no-op branch is covered by behavior tests but not V8 branch accounting. */
+        /* V8 ignore next -- chrome_update/no-op branch is covered by behavior tests but not V8 branch accounting. */
       } else if (details.reason === 'update') {
         // バージョンアップ時に変更点を表示（一度だけ）
         const items = await chrome.storage.local.get({
-          seenVersion: '',
           changelogShown: false,
+          seenVersion: '',
         })
 
         if (items.seenVersion !== manifestVersion) {
@@ -56,8 +57,8 @@ export default defineBackground(() => {
               url: chrome.runtime.getURL('changelog.html'),
             })
             await chrome.storage.local.set({
-              seenVersion: manifestVersion,
               changelogShown: true, // 表示したことをマークする
+              seenVersion: manifestVersion,
             })
             console.log(
               `新バージョン ${manifestVersion} の変更履歴を表示しました`,

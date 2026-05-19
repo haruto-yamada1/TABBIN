@@ -16,6 +16,7 @@ vi.mock('@/lib/storage/urls', () => ({
 import { removeUrlFromAllCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
 import { deleteUrlRecord, invalidateUrlCache } from '@/lib/storage/urls'
+
 import {
   clearDraggedUrlInfo,
   getDraggedUrlInfo,
@@ -92,7 +93,7 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
 
     if (Array.isArray(keys)) {
       return Object.fromEntries(
-        keys.map(key => [key, storageState[key as keyof StorageState]]),
+        keys.map((key) => [key, storageState[key as keyof StorageState]]),
       )
     }
 
@@ -390,7 +391,7 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    vi.mocked(chrome.storage.local.get).mockImplementation(async key => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,
@@ -530,7 +531,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
     let callCount = 0
-    vi.mocked(chrome.storage.local.get).mockImplementation(async key => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
       callCount += 1
       if (callCount === 1 && key === 'savedTabs') {
         return { savedTabs: storageState.savedTabs }
@@ -556,7 +557,7 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    vi.mocked(chrome.storage.local.get).mockImplementation(async key => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,
@@ -893,7 +894,7 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    vi.mocked(chrome.storage.local.get).mockImplementation(async key => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,

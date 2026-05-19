@@ -14,7 +14,7 @@ const ensureDomainNameInParentCategory = async (
   }
   const parentCategories = await getParentCategories()
   const parentCategory = parentCategories.find(
-    cat => cat.id === groupToRemove.parentCategoryId,
+    (cat) => cat.id === groupToRemove.parentCategoryId,
   )
   if (!parentCategory) {
     return
@@ -30,7 +30,7 @@ const ensureDomainNameInParentCategory = async (
     domainNames: [...(parentCategory.domainNames || []), groupToRemove.domain],
   }
   await saveParentCategories(
-    parentCategories.map(cat =>
+    parentCategories.map((cat) =>
       cat.id === groupToRemove.parentCategoryId ? updatedCategory : cat,
     ),
   )

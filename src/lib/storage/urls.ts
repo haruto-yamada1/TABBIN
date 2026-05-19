@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+
 import type { UrlRecord } from '@/types/storage'
 
 /** セッション中のインメモリキャッシュ */
@@ -57,16 +58,16 @@ const saveUrlRecords = async (urlRecords: UrlRecord[]): Promise<void> => {
  */
 const getUrlRecordById = async (id: string): Promise<UrlRecord | null> => {
   const urlRecords = await getUrlRecords()
-  /* v8 ignore next -- coverage-only defensive branch. */
-  return urlRecords.find(record => record.id === id) || null
+  /* V8 ignore next -- coverage-only defensive branch. */
+  return urlRecords.find((record) => record.id === id) || null
 }
 /**
  * 複数のIDからURLレコードを取得する
  */
 const getUrlRecordsByIds = async (ids: string[]): Promise<UrlRecord[]> => {
   const urlRecords = await getUrlRecords()
-  const recordMap = new Map(urlRecords.map(record => [record.id, record]))
-  return ids.flatMap(id => {
+  const recordMap = new Map(urlRecords.map((record) => [record.id, record]))
+  return ids.flatMap((id) => {
     const record = recordMap.get(id)
     return record ? [record] : []
   })
@@ -76,8 +77,8 @@ const getUrlRecordsByIds = async (ids: string[]): Promise<UrlRecord[]> => {
  */
 const findUrlRecordByUrl = async (url: string): Promise<UrlRecord | null> => {
   const urlRecords = await getUrlRecords()
-  /* v8 ignore next -- coverage-only defensive branch. */
-  return urlRecords.find(record => record.url === url) || null
+  /* V8 ignore next -- coverage-only defensive branch. */
+  return urlRecords.find((record) => record.url === url) || null
 }
 /**
  * 新しいURLレコードを作成または既存のものを更新する
@@ -91,7 +92,7 @@ const createOrUpdateUrlRecord = async (
   const urlRecords = await getUrlRecords()
 
   // 既存のURLレコードを検索
-  const existingRecord = urlRecords.find(record => record.url === url)
+  const existingRecord = urlRecords.find((record) => record.url === url)
   if (existingRecord) {
     if (options.preserveExistingOnDuplicate) {
       return existingRecord
@@ -100,27 +101,27 @@ const createOrUpdateUrlRecord = async (
     // 既存のレコードを更新
     const updatedRecord: UrlRecord = {
       ...existingRecord,
-      title,
       favIconUrl,
       savedAt: Date.now(), // 更新時刻を記録
+      title,
     }
     const updatedRecords = urlRecords.map(
-      record =>
-        /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      (record) =>
+        /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         record.id === existingRecord.id ? updatedRecord : record,
-      /* v8 ignore stop */
+      /* V8 ignore stop */
     )
     await saveUrlRecords(updatedRecords)
     return updatedRecord
   }
   // 新しいレコードを作成
   const newRecord: UrlRecord = {
-    id: uuidv4(),
-    url,
-    title,
     favIconUrl,
+    id: uuidv4(),
     savedAt: Date.now(),
+    title,
+    url,
   }
   await saveUrlRecords([...urlRecords, newRecord])
   return newRecord
@@ -161,11 +162,11 @@ const createOrUpdateUrlRecordsBatch = async (
     const recordIndex = recordIndexByUrl.get(input.url)
     if (recordIndex == null) {
       const newRecord: UrlRecord = {
-        id: uuidv4(),
-        url: input.url,
-        title: input.title,
         favIconUrl: input.favIconUrl,
+        id: uuidv4(),
         savedAt: now + offset,
+        title: input.title,
+        url: input.url,
       }
       offset += 1
       records.push(newRecord)
@@ -182,9 +183,9 @@ const createOrUpdateUrlRecordsBatch = async (
 
     const updatedRecord: UrlRecord = {
       ...existingRecord,
-      title: input.title,
       favIconUrl: input.favIconUrl,
       savedAt: now + offset,
+      title: input.title,
     }
     offset += 1
     records[recordIndex] = updatedRecord
@@ -205,7 +206,7 @@ const deleteUrlRecord = async (id: string): Promise<boolean> => {
     return false
   }
   const urlRecords = await getUrlRecords()
-  const filteredRecords = urlRecords.filter(record => record.id !== id)
+  const filteredRecords = urlRecords.filter((record) => record.id !== id)
   if (filteredRecords.length < urlRecords.length) {
     await saveUrlRecords(filteredRecords)
     console.log(`URLレコード ${id} を削除しました`)
@@ -231,14 +232,14 @@ const isUrlRecordReferenced = async (urlId: string): Promise<boolean> => {
     const { customProjects = [] } = customProjectsResult
 
     const referencedUrlIds = new Set([
-      /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      ...savedTabs.flatMap(tabGroup => tabGroup.urlIds ?? []),
-      /* v8 ignore stop */
-      /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      ...customProjects.flatMap(project => project.urlIds ?? []),
-      /* v8 ignore stop */
+      /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
+      ...savedTabs.flatMap((tabGroup) => tabGroup.urlIds ?? []),
+      /* V8 ignore stop */
+      /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
+      ...customProjects.flatMap((project) => project.urlIds ?? []),
+      /* V8 ignore stop */
     ])
     return referencedUrlIds.has(urlId)
   } catch (error) {
@@ -267,7 +268,7 @@ const cleanupUnreferencedUrls = async (): Promise<number> => {
 
     // SavedTabsから参照されているURLIDを収集
     for (const tabGroup of savedTabs) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (tabGroup.urlIds) {
         for (const id of tabGroup.urlIds) {
           referencedIds.add(id)
@@ -277,7 +278,7 @@ const cleanupUnreferencedUrls = async (): Promise<number> => {
 
     // CustomProjectsから参照されているURLIDを収集
     for (const project of customProjects) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (project.urlIds) {
         for (const id of project.urlIds) {
           referencedIds.add(id)
@@ -286,7 +287,7 @@ const cleanupUnreferencedUrls = async (): Promise<number> => {
     }
 
     // 未参照のURLレコードをフィルタリング
-    const referencedRecords = urlRecords.filter(record =>
+    const referencedRecords = urlRecords.filter((record) =>
       referencedIds.has(record.id),
     )
     const deletedCount = urlRecords.length - referencedRecords.length
@@ -329,13 +330,13 @@ const deduplicateUrlRecords = async (): Promise<number> => {
         urlMap.set(record.url, record)
       }
     }
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (duplicateIds.length > 0) {
       // 重複IDの参照を更新
       await updateUrlReferences(duplicateIds, replacementIdMap)
 
       // 重複レコードを削除
-      const deduplicatedRecords = Array.from(urlMap.values())
+      const deduplicatedRecords = [...urlMap.values()]
       await saveUrlRecords(deduplicatedRecords)
       console.log(`${duplicateIds.length}個の重複URLレコードを統合しました`)
     }
@@ -360,18 +361,18 @@ const updateUrlReferences = async (
     let tabsUpdated = false
     const duplicateIdSet = new Set(duplicateIds)
     for (const tabGroup of savedTabs) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (tabGroup.urlIds) {
         const updatedIds = tabGroup.urlIds.map((id: string) => {
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           if (duplicateIdSet.has(id)) {
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             return replacementIdMap.get(id) || id
           }
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           return id
         })
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         if (JSON.stringify(updatedIds) !== JSON.stringify(tabGroup.urlIds)) {
           tabGroup.urlIds = updatedIds
           tabsUpdated = true
@@ -390,18 +391,18 @@ const updateUrlReferences = async (
     }>('customProjects')
     let projectsUpdated = false
     for (const project of customProjects) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (project.urlIds) {
         const updatedIds = project.urlIds.map((id: string) => {
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           if (duplicateIdSet.has(id)) {
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             return replacementIdMap.get(id) || id
           }
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           return id
         })
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         if (JSON.stringify(updatedIds) !== JSON.stringify(project.urlIds)) {
           project.urlIds = updatedIds
           projectsUpdated = true

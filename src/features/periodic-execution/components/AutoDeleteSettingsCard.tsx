@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -69,14 +70,14 @@ export const AutoDeleteSettingsCard = ({
               />
             </SelectTrigger>
             <SelectContent
-              onPointerDownOutside={event => {
+              onPointerDownOutside={(event) => {
                 event.preventDefault()
               }}
               className='p-0'
             >
               <ScrollArea className='h-[120px]'>
                 <div className='p-1'>
-                  {autoDeleteOptions.map(option => (
+                  {autoDeleteOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {t(option.labelKey)}
                     </SelectItem>

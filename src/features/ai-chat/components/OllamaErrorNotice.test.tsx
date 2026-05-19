@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import {
   cleanup,
   fireEvent,
@@ -9,6 +10,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { OllamaErrorNotice } from './OllamaErrorNotice'
 
 const mocked = vi.hoisted(() => ({
@@ -160,7 +162,7 @@ describe('OllamaErrorNotice', () => {
     })
     expect(copyButton.getAttribute('title')).toBe('Copied')
 
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       setTimeout(resolve, 2100)
     })
 

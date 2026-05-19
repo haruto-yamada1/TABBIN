@@ -1,5 +1,6 @@
 import type { Tool as AiTool } from 'ai'
 import { Copy, ExternalLink } from 'lucide-react'
+
 import {
   Agent,
   AgentContent,
@@ -65,8 +66,8 @@ const sampleTool = {
   description: 'Cluster tabs by project and urgency',
   inputSchema: {
     properties: {
-      projectId: { type: 'string' },
       includeArchived: { type: 'boolean' },
+      projectId: { type: 'string' },
     },
     required: ['projectId'],
     type: 'object',

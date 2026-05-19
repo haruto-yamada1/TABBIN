@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
 
 const headerI18nState = vi.hoisted(() => ({

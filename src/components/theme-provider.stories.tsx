@@ -1,6 +1,8 @@
 // @covers components/theme-provider.tsx
 import type { Meta, StoryObj } from '@storybook/react'
+
 import { Button } from '@/components/ui/button'
+
 import { useTheme } from './theme-provider'
 
 const ThemeConsumer = () => {
@@ -23,8 +25,8 @@ const ThemeConsumer = () => {
 }
 
 const meta = {
-  title: 'Components/ThemeProvider',
   component: ThemeConsumer,
+  title: 'Components/ThemeProvider',
 } satisfies Meta<typeof ThemeConsumer>
 
 type Story = StoryObj<typeof ThemeConsumer>

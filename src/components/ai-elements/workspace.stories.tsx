@@ -8,7 +8,9 @@
 // @covers components/ai-elements/web-preview.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { CheckCircle2, Lightbulb, Search } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
+
 import {
   Conversation,
   ConversationContent,

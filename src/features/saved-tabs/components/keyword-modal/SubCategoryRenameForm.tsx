@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
+
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { useKeywordModal } from './KeywordModalContext'
 
 /**
@@ -43,7 +45,7 @@ export const SubCategoryRenameForm = () => {
         className={`w-full rounded border p-2 ${rename.categoryRenameError ? 'border-red-500' : ''}`}
         data-rename-input='true'
         onBlur={rename.handleSaveRenaming}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
             e.currentTarget.blur()

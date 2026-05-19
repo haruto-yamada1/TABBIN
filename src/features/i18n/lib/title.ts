@@ -16,9 +16,7 @@ export const resolveTitleKey = (page: TitlePageKey) =>
 export const getDocumentTitle = (
   language: AppLanguage,
   page: TitlePageKey,
-): string => {
-  return getMessage(language, resolveTitleKey(page))
-}
+): string => getMessage(language, resolveTitleKey(page))
 
 export const resolveDocumentTitle = (
   languageSetting: LanguageSetting,
@@ -36,20 +34,27 @@ export const resolveTitlePageKeyFromPathname = (
     pathname.replace(/\/+$/, '').replace(/\.html$/, '') || '/'
 
   switch (normalizedPathname) {
-    case '/ai-chat':
+    case '/ai-chat': {
       return 'aiChat'
-    case '/analytics':
+    }
+    case '/analytics': {
       return 'analytics'
-    case '/changelog':
+    }
+    case '/changelog': {
       return 'changelog'
-    case '/options':
+    }
+    case '/options': {
       return 'options'
-    case '/periodic-execution':
+    }
+    case '/periodic-execution': {
       return 'periodicExecution'
-    case '/saved-tabs':
+    }
+    case '/saved-tabs': {
       return 'savedTabs'
-    default:
+    }
+    default: {
       return 'app'
+    }
   }
 }
 

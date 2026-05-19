@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { ProjectDragHandlers } from '@/features/saved-tabs/contexts/DragHandlersContext'
 import type { CustomProjectSectionProps } from '@/features/saved-tabs/types/CustomProjectSection.types'
 import type { UserSettings } from '@/types/storage'
@@ -168,13 +169,13 @@ vi.mock('./CustomProjectCard', async () => {
         clearDragState: () => {
           handlerSpies.clearDragState()
         },
-        handleCategoryDragEnd: event => {
+        handleCategoryDragEnd: (event) => {
           handlerSpies.handleCategoryDragEnd(event)
         },
         handleDragOver: (event, project) => {
           handlerSpies.handleDragOver(event, project)
         },
-        handleDragStart: event => {
+        handleDragStart: (event) => {
           handlerSpies.handleDragStart(event)
         },
         handleUrlDragEnd: (event, isUncategorizedOver) => {

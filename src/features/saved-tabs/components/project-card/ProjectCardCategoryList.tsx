@@ -1,6 +1,8 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useMemo } from 'react'
+
 import { CustomProjectCategory } from '@/features/saved-tabs/components/CustomProjectCategory'
+
 import { useProjectCard } from './ProjectCardContext'
 
 /**
@@ -36,7 +38,7 @@ export const ProjectCardCategoryList = () => {
       items={categoryOrder}
       strategy={verticalListSortingStrategy}
     >
-      {categoryOrder.map(categoryName => (
+      {categoryOrder.map((categoryName) => (
         <div key={`${project.id}-${categoryName}`} className='mb-4'>
           <CustomProjectCategory
             projectId={project.id}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+
 import { autoDeleteOptions } from '@/constants/autoDeleteOptions'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { UserSettings } from '@/types/storage'
@@ -32,7 +33,7 @@ export const useAutoDeletePeriod = (
 
   // 確認表示を隠す
   const hideConfirmation = () => {
-    setConfirmationState(prev => ({
+    setConfirmationState((prev) => ({
       ...prev,
       isVisible: false,
     }))
@@ -81,7 +82,7 @@ export const useAutoDeletePeriod = (
 
     // 選択した期間のラベルを取得
     const selectedOption = autoDeleteOptions.find(
-      opt => opt.value === periodToApply,
+      (opt) => opt.value === periodToApply,
     )
     const periodLabel = selectedOption
       ? t(selectedOption.labelKey)
@@ -132,7 +133,7 @@ export const useAutoDeletePeriod = (
           toast.success(t('options.autoDelete.disabled'))
         } else {
           const selectedOption = autoDeleteOptions.find(
-            opt => opt.value === periodToApply,
+            (opt) => opt.value === periodToApply,
           )
           const periodLabel = selectedOption
             ? t(selectedOption.labelKey)
@@ -150,11 +151,11 @@ export const useAutoDeletePeriod = (
         chrome.runtime.sendMessage(
           {
             action: 'checkExpiredTabs',
-            updateTimestamps: needsTimestampUpdate,
-            period: periodToApply,
             forceReload: true,
+            period: periodToApply,
+            updateTimestamps: needsTimestampUpdate,
           },
-          response => console.log('応答:', response),
+          (response) => console.log('応答:', response),
         )
       })
 
@@ -171,11 +172,11 @@ export const useAutoDeletePeriod = (
   }
 
   return {
-    pendingAutoDeletePeriod,
-    confirmationState,
-    hideConfirmation,
-    handleAutoDeletePeriodChange,
-    prepareAutoDeletePeriod,
     applyAutoDeletePeriod,
+    confirmationState,
+    handleAutoDeletePeriodChange,
+    hideConfirmation,
+    pendingAutoDeletePeriod,
+    prepareAutoDeletePeriod,
   }
 }

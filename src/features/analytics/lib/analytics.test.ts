@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
+
 import {
   filterAnalyticsRecords,
   generateAnalyticsResult,
@@ -650,7 +652,7 @@ describe('analytics', () => {
     const presets = getAnalyticsPresets()
 
     expect(presets.length).toBeGreaterThanOrEqual(6)
-    expect(presets.map(preset => preset.id)).toContain('top-domains-30d')
-    expect(presets.map(preset => preset.id)).toContain('mode-comparison-30d')
+    expect(presets.map((preset) => preset.id)).toContain('top-domains-30d')
+    expect(presets.map((preset) => preset.id)).toContain('mode-comparison-30d')
   })
 })

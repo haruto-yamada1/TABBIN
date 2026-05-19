@@ -141,7 +141,7 @@ test.describe('saved-tabs stories', () => {
           savedTabs: Array<{ id: string; urlIds?: string[] }>
         }>(serviceWorker, ['savedTabs'])
         return (
-          data.savedTabs.find(group => group.id === 'group-example')?.urlIds
+          data.savedTabs.find((group) => group.id === 'group-example')?.urlIds
             ?.length ?? 0
         )
       })
@@ -225,7 +225,7 @@ test.describe('saved-tabs stories', () => {
           viewMode: string
         }>(serviceWorker, ['customProjects', 'viewMode'])
         return {
-          names: data.customProjects.map(project => project.name),
+          names: data.customProjects.map((project) => project.name),
           viewMode: data.viewMode,
         }
       })

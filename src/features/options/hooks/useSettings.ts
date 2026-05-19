@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -20,7 +21,7 @@ export const useSettings = () => {
   const [excludePatternInput, setExcludePatternInput] = useState('')
   const settingsRef = useRef(settings)
   const setSettings = (nextSettings: React.SetStateAction<UserSettings>) => {
-    setSettingsState(prev => ({
+    setSettingsState((prev) => ({
       ...prev,
       settings:
         typeof nextSettings === 'function'
@@ -55,15 +56,15 @@ export const useSettings = () => {
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: { [key: string]: chrome.storage.StorageChange },
+      changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.userSettings) {
         if (changes.userSettings.newValue) {
-          // newValue は完全な UserSettings オブジェクトであると期待
+          // NewValue は完全な UserSettings オブジェクトであると期待
           setSettings(changes.userSettings.newValue as UserSettings)
         } else {
-          // userSettings がストレージから削除された場合 (newValue が undefined)
+          // UserSettings がストレージから削除された場合 (newValue が undefined)
           // デフォルト設定に戻す
           setSettings(defaultSettings)
         }
@@ -89,7 +90,7 @@ export const useSettings = () => {
       // 保存する前に空の行を除外
       const cleanSettings = {
         ...settingsRef.current,
-        excludePatterns: settingsRef.current.excludePatterns.filter(p =>
+        excludePatterns: settingsRef.current.excludePatterns.filter((p) =>
           normalizeExcludePattern(p),
         ),
       }
@@ -126,7 +127,7 @@ export const useSettings = () => {
   ) => {
     // 空の行も含めて全ての行を保持
     const patterns = e.target.value.split('\n')
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       excludePatterns: patterns,
     }))
@@ -151,7 +152,7 @@ export const useSettings = () => {
     }
 
     const hasDuplicate = settingsRef.current.excludePatterns.some(
-      pattern => normalizeExcludePattern(pattern) === trimmedPattern,
+      (pattern) => normalizeExcludePattern(pattern) === trimmedPattern,
     )
     if (hasDuplicate) {
       return false
@@ -180,7 +181,7 @@ export const useSettings = () => {
     const newSettings = {
       ...settingsRef.current,
       excludePatterns: settingsRef.current.excludePatterns.filter(
-        pattern => normalizeExcludePattern(pattern) !== targetPattern,
+        (pattern) => normalizeExcludePattern(pattern) !== targetPattern,
       ),
     }
 
@@ -198,14 +199,14 @@ export const useSettings = () => {
     addExcludePattern,
     excludePatternInput,
     handleExcludePatternInputChange,
-    settings,
-    setSettings,
+    handleExcludePatternsBlur,
+    handleExcludePatternsChange,
+    handleSaveSettings,
     isLoading,
     removeExcludePattern,
     setExcludePatternInput,
+    setSettings,
+    settings,
     updateSetting,
-    handleSaveSettings,
-    handleExcludePatternsChange,
-    handleExcludePatternsBlur,
   }
 }

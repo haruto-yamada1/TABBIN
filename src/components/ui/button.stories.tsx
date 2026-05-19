@@ -1,15 +1,16 @@
 // @covers components/ui/button.tsx
 import type { Meta, StoryObj } from '@storybook/react'
+
 import { Button } from './button'
 
 export default {
-  title: 'UI/Button',
-  component: Button,
   args: {
     children: '保存する',
     size: 'default',
     variant: 'default',
   },
+  component: Button,
+  title: 'UI/Button',
 } satisfies Meta<typeof Button>
 
 type Story = StoryObj<typeof Button>

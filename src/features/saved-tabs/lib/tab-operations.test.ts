@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { TabGroup } from '@/types/storage'
 
 vi.mock('@/lib/storage/categories', () => ({
@@ -14,6 +15,7 @@ import {
   updateDomainCategoryMapping,
   updateDomainCategorySettings,
 } from '@/lib/storage/categories'
+
 import { handleTabGroupRemoval, safelyUpdateGroupUrls } from './tab-operations'
 
 interface LocalStore {

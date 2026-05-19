@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type {
   AiChatConversation,
   AiChatConversationMessage,
@@ -58,6 +59,7 @@ import {
   createOrUpdateUrlRecord,
   createOrUpdateUrlRecordsBatch,
 } from '@/lib/storage/urls'
+
 import { downloadAsJson, exportSettings, importSettings } from './import-export'
 
 type StorageStore = Record<string, unknown>
@@ -1246,7 +1248,7 @@ describe('import-export ユーティリティ', () => {
     const result = await exportSettings()
 
     const placeholderGroup = result.savedTabs.find(
-      tab => tab.id === 'placeholder-no-savedat',
+      (tab) => tab.id === 'placeholder-no-savedat',
     )
     expect(placeholderGroup?.urls?.[0]).toEqual(
       expect.objectContaining({
@@ -1256,7 +1258,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     const titlelessGroup = result.savedTabs.find(
-      tab => tab.id === 'titleless-record-group',
+      (tab) => tab.id === 'titleless-record-group',
     )
     expect(titlelessGroup?.urls?.[0]).toEqual(
       expect.objectContaining({
@@ -1727,9 +1729,9 @@ describe('import-export ユーティリティ', () => {
     ): keys is Record<string, unknown> =>
       Boolean(
         keys &&
-          typeof keys === 'object' &&
-          !Array.isArray(keys) &&
-          'urls' in keys,
+        typeof keys === 'object' &&
+        !Array.isArray(keys) &&
+        'urls' in keys,
       )
 
     const buildUndefinedResponse = (
@@ -1742,7 +1744,7 @@ describe('import-export ユーティリティ', () => {
         return { [keys]: undefined }
       }
       if (Array.isArray(keys)) {
-        return Object.fromEntries(keys.map(key => [key, undefined]))
+        return Object.fromEntries(keys.map((key) => [key, undefined]))
       }
       return Object.fromEntries(Object.entries(keys))
     }
@@ -1811,13 +1813,13 @@ describe('import-export ユーティリティ', () => {
       set.mock.calls.some(([payload]) =>
         Boolean(
           (payload as Record<string, unknown>)?.urls &&
-            Array.isArray((payload as Record<string, unknown>).urls) &&
-            ((payload as Record<string, unknown>).urls as unknown[]).some(
-              record =>
-                typeof record === 'object' &&
-                record !== null &&
-                (record as { id?: string }).id === 'raw-fallback-id',
-            ),
+          Array.isArray((payload as Record<string, unknown>).urls) &&
+          ((payload as Record<string, unknown>).urls as unknown[]).some(
+            (record) =>
+              typeof record === 'object' &&
+              record !== null &&
+              (record as { id?: string }).id === 'raw-fallback-id',
+          ),
         ),
       ),
     ).toBe(false)
@@ -2498,7 +2500,7 @@ describe('import-export ユーティリティ', () => {
     expect(savedTabsArg).toHaveLength(2)
 
     const mergedExisting = savedTabsArg.find(
-      tab => tab.domain === 'https://existing.example.com',
+      (tab) => tab.domain === 'https://existing.example.com',
     )
     expect(mergedExisting).toEqual(
       expect.objectContaining({
@@ -2528,7 +2530,7 @@ describe('import-export ユーティリティ', () => {
     ])
 
     const mergedNewDomain = savedTabsArg.find(
-      tab => tab.domain === 'https://new.example.com',
+      (tab) => tab.domain === 'https://new.example.com',
     )
     expect(mergedNewDomain).toEqual(
       expect.objectContaining({

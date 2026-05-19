@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import {
   cleanup,
   fireEvent,
@@ -10,6 +11,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { CustomProject } from '@/types/storage'
 
 const projectManagementModalI18nState = vi.hoisted(() => ({
@@ -108,7 +110,7 @@ describe('ProjectManagementModal', () => {
 
   const flushAnimationFrames = () => {
     const callbacks = requestAnimationFrameCallbacks.splice(0)
-    callbacks.forEach(callback => {
+    callbacks.forEach((callback) => {
       callback(0)
     })
   }
@@ -163,7 +165,7 @@ describe('ProjectManagementModal', () => {
   it('未分類プロジェクトでは名前変更と削除操作を表示しない', () => {
     render(
       <ProjectManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         project={uncategorizedProject}
       />,
@@ -183,7 +185,7 @@ describe('ProjectManagementModal', () => {
 
     render(
       <ProjectManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         project={project}
         onRenameProject={onRenameProject}
@@ -220,11 +222,7 @@ describe('ProjectManagementModal', () => {
 
   it('Escape でリネームをキャンセルし、未設定ハンドラではエラーを握る', async () => {
     render(
-      <ProjectManagementModal
-        isOpen={true}
-        onClose={vi.fn()}
-        project={project}
-      />,
+      <ProjectManagementModal isOpen onClose={vi.fn()} project={project} />,
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'Project Alpha' }))
@@ -261,7 +259,7 @@ describe('ProjectManagementModal', () => {
 
     render(
       <ProjectManagementModal
-        isOpen={true}
+        isOpen
         onClose={onClose}
         project={project}
         onDeleteProject={onDeleteProject}
@@ -292,14 +290,14 @@ describe('ProjectManagementModal', () => {
     const onClose = vi.fn()
     const onRenameProject = vi.fn(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           resolveRename = resolve
         }),
     )
 
     render(
       <ProjectManagementModal
-        isOpen={true}
+        isOpen
         onClose={onClose}
         project={project}
         onRenameProject={onRenameProject}
@@ -338,7 +336,7 @@ describe('ProjectManagementModal', () => {
 
     render(
       <ProjectManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         project={project}
         onUpdateProjectKeywords={onUpdateProjectKeywords}
@@ -380,11 +378,7 @@ describe('ProjectManagementModal', () => {
 
   it('削除ハンドラ未設定でも例外で落とさない', async () => {
     render(
-      <ProjectManagementModal
-        isOpen={true}
-        onClose={vi.fn()}
-        project={project}
-      />,
+      <ProjectManagementModal isOpen onClose={vi.fn()} project={project} />,
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
@@ -403,20 +397,20 @@ describe('ProjectManagementModal', () => {
     let resolveDelete: (() => void) | undefined
     const onRenameProject = vi.fn(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           resolveRename = resolve
         }),
     )
     const onDeleteProject = vi.fn(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           resolveDelete = resolve
         }),
     )
 
     const { rerender } = render(
       <ProjectManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         project={project}
         onRenameProject={onRenameProject}
@@ -440,7 +434,7 @@ describe('ProjectManagementModal', () => {
 
     rerender(
       <ProjectManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         project={project}
         onDeleteProject={onDeleteProject}

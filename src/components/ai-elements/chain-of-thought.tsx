@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react'
 import { BrainIcon, ChevronDownIcon, DotIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import { createContext, memo, use, useMemo } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,

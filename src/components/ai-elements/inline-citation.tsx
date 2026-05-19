@@ -3,6 +3,7 @@
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { useCallback, useEffect, useState } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import {
   Carousel,
@@ -153,7 +154,7 @@ export const InlineCitationCarouselIndex = ({
     })
 
     const handleSelect = () => {
-      setCarouselState(prev => ({
+      setCarouselState((prev) => ({
         ...prev,
         current: api.selectedScrollSnap() + 1,
       }))

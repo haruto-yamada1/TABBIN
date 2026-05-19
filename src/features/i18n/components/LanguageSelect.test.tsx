@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
 import { defaultSettings } from '@/lib/storage/settings'
+
 import { I18nProvider, useI18n } from '../context/I18nProvider'
 import { LanguageSelect } from './LanguageSelect'
 
@@ -34,7 +36,7 @@ vi.mock('@/components/ui/select', () => ({
   }) => (
     <select
       aria-label='language-select'
-      onChange={event => onValueChange?.(event.target.value)}
+      onChange={(event) => onValueChange?.(event.target.value)}
       value={value}
     >
       {children}

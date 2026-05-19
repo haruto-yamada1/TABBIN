@@ -8,7 +8,9 @@ import {
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { UserSettings } from '@/types/storage'
+
 import { OptionsRoute } from './OptionsRoute'
 
 const optionsRouteMocks = vi.hoisted(() => ({
@@ -52,7 +54,7 @@ vi.mock('@/components/ui/select', () => ({
   }) => (
     <select
       aria-label='click-behavior'
-      onChange={event => onValueChange?.(event.target.value)}
+      onChange={(event) => onValueChange?.(event.target.value)}
       value={value}
     >
       {children}
@@ -85,7 +87,7 @@ vi.mock('@/components/ui/checkbox', () => ({
     <input
       checked={Boolean(checked)}
       id={id}
-      onChange={event => onCheckedChange?.(event.target.checked)}
+      onChange={(event) => onCheckedChange?.(event.target.checked)}
       type='checkbox'
     />
   ),

@@ -1,14 +1,15 @@
 import { useDndMonitor } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { type CSSProperties, useMemo } from 'react'
+import { useMemo } from 'react'
+import type { CSSProperties } from 'react'
+
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
+
 import { useDomainCardState } from '../../hooks/useDomainCardState'
-import {
-  DomainCardContext,
-  type DomainCardContextType,
-} from './DomainCardContext'
+import { DomainCardContext } from './DomainCardContext'
+import type { DomainCardContextType } from './DomainCardContext'
 
 /** DomainCardRoot の props */
 interface DomainCardRootProps {
@@ -50,8 +51,8 @@ export const DomainCardRoot = ({
 
   const state = useDomainCardState({
     group,
-    handleDeleteUrls: handlers.handleDeleteUrls,
     handleDeleteCategory,
+    handleDeleteUrls: handlers.handleDeleteUrls,
     isReorderMode,
   })
 
@@ -77,15 +78,15 @@ export const DomainCardRoot = ({
 
   const contextValue: DomainCardContextType = useMemo(
     () => ({
-      state,
-      group,
-      settings,
       categoryId,
-      searchQuery,
-      visibleSubCategoryCount,
-      isReorderMode,
-      sortable: { attributes, listeners },
+      group,
       handlers,
+      isReorderMode,
+      searchQuery,
+      settings,
+      sortable: { attributes, listeners },
+      state,
+      visibleSubCategoryCount,
     }),
     [
       state,

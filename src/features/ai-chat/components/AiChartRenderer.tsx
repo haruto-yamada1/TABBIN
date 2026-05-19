@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
+
 import {
-  type ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
+import type { ChartConfig } from '@/components/ui/chart'
 import type { AiChartSeries, AiChartSpec } from '@/features/ai-chat/types'
 import {
   Area,
@@ -45,7 +46,7 @@ const getChartColor = (colorToken: string) => `var(--${colorToken})`
 
 const createChartConfig = (series: AiChartSeries[]): ChartConfig =>
   Object.fromEntries(
-    series.map(item => [
+    series.map((item) => [
       item.dataKey,
       {
         color: getChartColor(item.colorToken),
@@ -60,7 +61,7 @@ const isFiniteNumber = (value: unknown): value is number =>
 const hasValidSeries = (spec: AiChartSpec): boolean =>
   spec.series.length > 0 &&
   spec.series.every(
-    item =>
+    (item) =>
       item &&
       typeof item.colorToken === 'string' &&
       item.colorToken.length > 0 &&
@@ -71,8 +72,8 @@ const hasValidSeries = (spec: AiChartSpec): boolean =>
   )
 
 const hasUsableData = (spec: AiChartSpec): boolean =>
-  spec.data.some(datum =>
-    spec.series.some(series => isFiniteNumber(datum[series.dataKey])),
+  spec.data.some((datum) =>
+    spec.series.some((series) => isFiniteNumber(datum[series.dataKey])),
   )
 
 const isRenderableChartSpec = (spec: AiChartSpec): boolean =>
@@ -168,7 +169,7 @@ const createTooltipChartClickHandler = ({
     }
 
     const labelKey = spec.categoryKey || spec.xKey || 'label'
-    const activeLabel = state.activeLabel
+    const { activeLabel } = state
     if (typeof activeLabel !== 'string' && typeof activeLabel !== 'number') {
       return
     }
@@ -179,7 +180,7 @@ const createTooltipChartClickHandler = ({
         ? state.activeDataKey
         : primarySeries.dataKey
     const matchingDatum = spec.data.find(
-      datum => String(datum[labelKey] ?? '') === label,
+      (datum) => String(datum[labelKey] ?? '') === label,
     )
     const value = matchingDatum?.[seriesKey]
 
@@ -217,7 +218,7 @@ const renderPieChart = ({
     <ChartTooltip
       content={
         <ChartTooltipContent
-          formatter={value => formatChartValue(value, spec.valueFormat)}
+          formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }
       cursor={false}
@@ -265,7 +266,7 @@ const CartesianChartContent = ({
     <ChartTooltip
       content={
         <ChartTooltipContent
-          formatter={value => formatChartValue(value, spec.valueFormat)}
+          formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }
       cursor={false}
@@ -287,7 +288,7 @@ const renderBarChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map(series => (
+        series={props.spec.series.map((series) => (
           <Bar
             dataKey={series.dataKey}
             fill={getChartColor(series.colorToken)}
@@ -319,7 +320,7 @@ const renderLineChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map(series => (
+        series={props.spec.series.map((series) => (
           <Line
             dataKey={series.dataKey}
             dot={false}
@@ -347,7 +348,7 @@ const renderAreaChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map(series => (
+        series={props.spec.series.map((series) => (
           <Area
             dataKey={series.dataKey}
             fill={getChartColor(series.colorToken)}
@@ -390,7 +391,7 @@ const renderRadarChart = ({
     <ChartTooltip
       content={
         <ChartTooltipContent
-          formatter={value => formatChartValue(value, spec.valueFormat)}
+          formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }
       cursor={false}
@@ -398,7 +399,7 @@ const renderRadarChart = ({
     <ChartLegendBlock shouldShowLegend={shouldShowLegend} />
     <PolarGrid />
     <PolarAngleAxis dataKey={categoryKey} />
-    {spec.series.map(series => (
+    {spec.series.map((series) => (
       <Radar
         dataKey={series.dataKey}
         fill={getChartColor(series.colorToken)}
@@ -424,7 +425,7 @@ const renderChartContent = ({
   spec: AiChartSpec
 }) => {
   switch (spec.type) {
-    case 'pie':
+    case 'pie': {
       return renderPieChart({
         categoryKey,
         onChartPointClick,
@@ -432,28 +433,32 @@ const renderChartContent = ({
         shouldShowLegend,
         spec,
       })
-    case 'bar':
+    }
+    case 'bar': {
       return renderBarChart({
         onChartPointClick,
         primarySeries,
         shouldShowLegend,
         spec,
       })
-    case 'line':
+    }
+    case 'line': {
       return renderLineChart({
         onChartPointClick,
         primarySeries,
         shouldShowLegend,
         spec,
       })
-    case 'area':
+    }
+    case 'area': {
       return renderAreaChart({
         onChartPointClick,
         primarySeries,
         shouldShowLegend,
         spec,
       })
-    case 'radar':
+    }
+    case 'radar': {
       return renderRadarChart({
         categoryKey,
         onChartPointClick,
@@ -461,8 +466,10 @@ const renderChartContent = ({
         shouldShowLegend,
         spec,
       })
-    default:
+    }
+    default: {
       return null
+    }
   }
 }
 
@@ -525,7 +532,7 @@ const AiChartRenderer = ({
 
   return (
     <div className='space-y-3 pt-3'>
-      {renderableCharts.map(spec => (
+      {renderableCharts.map((spec) => (
         <AiChart
           key={`${spec.type}-${spec.title}`}
           onChartPointClick={onChartPointClick}

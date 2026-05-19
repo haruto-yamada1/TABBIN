@@ -10,6 +10,7 @@ import {
   filterItemsBySavableUrl,
   normalizeUrlCandidate,
 } from '@/lib/url-filter'
+
 import { getBackgroundLanguage } from './i18n'
 import { openSavedTabsPage } from './saved-tabs-page'
 import { filterTabsByUserSettings, showNotification } from './utils'
@@ -33,7 +34,7 @@ const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
     const windows = await chrome.windows.getAll({
       populate: true,
     })
-    const tabs = windows.flatMap(window => window.tabs ?? [])
+    const tabs = windows.flatMap((window) => window.tabs ?? [])
     if (tabs.length > 0) {
       return tabs
     }
@@ -48,28 +49,28 @@ const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
 }
 
 const toSavedTabItems = async (
-  tabs: Array<{
+  tabs: {
     url?: string
     title?: string
-  }>,
+  }[],
 ): Promise<
-  Array<{
+  {
     url: string
     title: string
-  }>
+  }[]
 > => {
   const { excludePatterns } = await getUserSettings()
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   return filterItemsBySavableUrl(tabs, excludePatterns ?? []).reduce<
-    Array<{ title: string; url: string }>
+    { title: string; url: string }[]
   >((items, tab) => {
     const normalizedUrl = normalizeUrlCandidate(tab.url)
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (normalizedUrl) {
       items.push({
-        url: normalizedUrl,
         title: tab.title || '',
+        url: normalizedUrl,
       })
     }
     return items
@@ -77,15 +78,15 @@ const toSavedTabItems = async (
 }
 
 const toResultItems = (
-  tabs: Array<{
+  tabs: {
     url?: string
     title?: string
-  }>,
-): Array<{
+  }[],
+): {
   url: string
   title: string
-}> => {
-  return tabs.reduce<Array<{ title: string; url: string }>>((items, tab) => {
+}[] =>
+  tabs.reduce<Array<{ title: string; url: string }>>((items, tab) => {
     const normalizedUrl = normalizeUrlCandidate(tab.url)
     if (normalizedUrl) {
       items.push({
@@ -95,13 +96,12 @@ const toResultItems = (
     }
     return items
   }, [])
-}
 
 const syncSavedTabsToCustomMode = async (
-  tabs: Array<{
+  tabs: {
     url?: string
     title?: string
-  }>,
+  }[],
 ): Promise<void> => {
   const savedTabItems = await toSavedTabItems(tabs)
   if (savedTabItems.length === 0) {
@@ -127,7 +127,7 @@ const notifyAndCloseTabs = async (
           .then(() => {
             console.log(`${tabIdsToClose.length}個のタブを一括で閉じました`)
           })
-          .catch(error => {
+          .catch((error) => {
             console.error('タブを閉じる際にエラー:', error)
           })
       : Promise.resolve(),
@@ -149,19 +149,23 @@ export const handleExtensionActionClick = async (): Promise<void> => {
 
     // 選択された挙動に基づいて処理を実行
     switch (clickBehavior) {
-      case 'saveCurrentTab':
+      case 'saveCurrentTab': {
         await handleSaveCurrentTab()
         break
-      case 'saveSameDomainTabs':
+      }
+      case 'saveSameDomainTabs': {
         await handleSaveSameDomainTabs()
         break
-      case 'saveAllWindowsTabs':
+      }
+      case 'saveAllWindowsTabs': {
         await handleSaveAllWindowsTabs()
         break
-      default:
+      }
+      default: {
         // 既存の処理: 現在のウィンドウのタブをすべて保存（saveWindowTabsを含む）
         await handleSaveWindowTabs()
         break
+      }
     }
   } catch (error: unknown) {
     console.error(
@@ -212,7 +216,7 @@ export const handleSaveCurrentTab = async (): Promise<
           .then(() => {
             console.log(`タブ ${activeTab.id} を閉じました`)
           })
-          .catch(error => {
+          .catch((error) => {
             console.error('タブを閉じる際にエラー:', error)
           })
       : Promise.resolve(),
@@ -245,7 +249,7 @@ export const handleSaveSameDomainTabs = async (): Promise<
     const tabs = await chrome.tabs.query({
       currentWindow: true,
     })
-    const sameDomainTabs = tabs.filter(tab => {
+    const sameDomainTabs = tabs.filter((tab) => {
       if (!tab.url) {
         return false
       }
@@ -285,7 +289,9 @@ export const handleSaveSameDomainTabs = async (): Promise<
       .reduce<number[]>((ids, tab) => {
         if (
           tab.id &&
-          !settings.excludePatterns.some(pattern => tab.url?.includes(pattern))
+          !settings.excludePatterns.some((pattern) =>
+            tab.url?.includes(pattern),
+          )
         ) {
           ids.push(tab.id)
         }
@@ -404,8 +410,8 @@ export const handleSaveWindowTabs = async (): Promise<
       tab.id !== savedTabsTabId &&
       tab.url &&
       !settings.excludePatterns.some(
-        /* v8 ignore next -- coverage-only defensive branch. */
-        pattern => (tab.url?.split(pattern).length ?? 0) > 1,
+        /* V8 ignore next -- coverage-only defensive branch. */
+        (pattern) => (tab.url?.split(pattern).length ?? 0) > 1,
       )
     ) {
       tabIdsToClose.push(tab.id)

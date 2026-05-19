@@ -1,5 +1,6 @@
 import { tool } from 'ai'
 import { z } from 'zod'
+
 import { AI_CHAT_TOOL_DESCRIPTIONS } from '@/constants/aiChatTools'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
 import {
@@ -47,12 +48,12 @@ const TOOL_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
 const mapRecordForToolOutput = (
   record: AiSavedUrlRecord,
 ): AiSavedUrlToolItem => ({
-  url: record.url,
-  title: record.title,
   domain: record.domain,
+  parentCategories: record.parentCategories,
   savedAt: record.savedAt,
   savedInProjects: record.savedInProjects,
-  parentCategories: record.parentCategories,
+  title: record.title,
+  url: record.url,
 })
 
 const mapPageForToolOutput = (
@@ -147,33 +148,14 @@ const createAiChatTools = (
   records: AiSavedUrlRecord[],
   language: AppLanguage = 'ja',
 ) => ({
-  getCurrentDateTime: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.getCurrentDateTime,
-    inputSchema: z.object({}),
-    execute: async () => createCurrentDateTimeOutput(),
-  }),
-  listSavedUrls: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.listSavedUrls,
-    inputSchema: paginationSchema,
-    execute: async input =>
-      mapPageForToolOutput(listSavedUrlPage(records, input)),
-  }),
   findUrlsByMonth: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.findUrlsByMonth,
     inputSchema: paginationSchema.extend({
       year: z.number().int(),
       month: z.number().int().min(1).max(12),
     }),
-    execute: async input =>
+    execute: async (input) =>
       mapPageForToolOutput(findSavedUrlsAddedInMonthPage(records, input)),
-  }),
-  searchSavedUrls: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.searchSavedUrls,
-    inputSchema: paginationSchema.extend({
-      query: z.string().min(1),
-    }),
-    execute: async input =>
-      mapPageForToolOutput(searchSavedUrlsPage(records, input)),
   }),
   generateSavedTabsAnalytics: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.generateSavedTabsAnalytics,
@@ -225,15 +207,34 @@ const createAiChatTools = (
         .default('all'),
       title: z.string().trim().optional(),
     }),
-    execute: async input =>
+    execute: async (input) =>
       generateAnalyticsResult(records, normalizeAnalyticsQuery(input), {
         messages: createAnalyticsMessages(language),
       }),
+  }),
+  getCurrentDateTime: tool({
+    description: AI_CHAT_TOOL_DESCRIPTIONS.getCurrentDateTime,
+    inputSchema: z.object({}),
+    execute: async () => createCurrentDateTimeOutput(),
   }),
   inferUserInterests: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.inferUserInterests,
     inputSchema: z.object({}),
     execute: async () => inferUserInterests(records, language),
+  }),
+  listSavedUrls: tool({
+    description: AI_CHAT_TOOL_DESCRIPTIONS.listSavedUrls,
+    inputSchema: paginationSchema,
+    execute: async (input) =>
+      mapPageForToolOutput(listSavedUrlPage(records, input)),
+  }),
+  searchSavedUrls: tool({
+    description: AI_CHAT_TOOL_DESCRIPTIONS.searchSavedUrls,
+    inputSchema: paginationSchema.extend({
+      query: z.string().min(1),
+    }),
+    execute: async (input) =>
+      mapPageForToolOutput(searchSavedUrlsPage(records, input)),
   }),
 })
 

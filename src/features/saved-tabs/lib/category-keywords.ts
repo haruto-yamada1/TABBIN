@@ -9,8 +9,8 @@ export const handleSaveKeywords = async (
   try {
     await setCategoryKeywords(groupId, categoryName, keywords)
     console.log('カテゴリキーワードを保存しました:', {
-      groupId,
       categoryName,
+      groupId,
       keywords,
     })
   } catch (error) {

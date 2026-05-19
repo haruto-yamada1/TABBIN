@@ -1,4 +1,5 @@
-import { type Page, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('https://demo.playwright.dev/todomvc')
@@ -442,7 +443,7 @@ const checkNumberOfTodosInLocalStorage = async (
   expected: number,
 ) => {
   return await page.waitForFunction(
-    e => JSON.parse(localStorage['react-todos']).length === e,
+    (e) => JSON.parse(localStorage['react-todos']).length === e,
     expected,
   )
 }
@@ -452,7 +453,7 @@ const checkNumberOfCompletedTodosInLocalStorage = async (
   expected: number,
 ) => {
   return await page.waitForFunction(
-    e =>
+    (e) =>
       JSON.parse(localStorage['react-todos']).filter(
         (todo: { completed: boolean }) => todo.completed,
       ).length === e,
@@ -462,7 +463,7 @@ const checkNumberOfCompletedTodosInLocalStorage = async (
 
 const checkTodosInLocalStorage = async (page: Page, title: string) => {
   return await page.waitForFunction(
-    t =>
+    (t) =>
       JSON.parse(localStorage['react-todos'])
         .map((todo: { title: string }) => todo.title)
         .includes(t),

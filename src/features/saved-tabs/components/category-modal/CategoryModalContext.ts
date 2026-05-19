@@ -1,5 +1,6 @@
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { TabGroup } from '@/types/storage'
+
 import type { useCategoryModal } from '../../hooks/useCategoryModal'
 
 /** CategoryModal のコンテキスト型 */

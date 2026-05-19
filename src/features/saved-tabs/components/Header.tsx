@@ -1,6 +1,7 @@
 import { Plus, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
+
 import { CategoryModal } from './CategoryModal'
 import {
   SavedTabsResponsiveLabel,
@@ -111,7 +113,7 @@ export const Header = ({
     }
 
     const exists = customProjects.some(
-      project => project.name.toLowerCase() === name.toLowerCase(),
+      (project) => project.name.toLowerCase() === name.toLowerCase(),
     )
     if (exists) {
       toast.error(t('savedTabs.projectNameDuplicate'))
@@ -133,7 +135,7 @@ export const Header = ({
             aria-label={t('savedTabs.searchPlaceholder')}
             placeholder={t('savedTabs.searchPlaceholder')}
             value={searchQuery}
-            onChange={e => onSearchChange(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className='h-9 w-full pr-9'
           />
           {searchQuery && (
@@ -153,7 +155,7 @@ export const Header = ({
       <div className='flex shrink-0 items-center gap-1 whitespace-nowrap'>
         {currentMode === 'domain' && (
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='outline'
                 size='sm'
@@ -173,7 +175,7 @@ export const Header = ({
         )}
         {currentMode === 'custom' && (
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='outline'
                 size='sm'
@@ -230,7 +232,7 @@ export const Header = ({
             <Input
               ref={handleNewProjectNameInputRef}
               value={newProjectName}
-              onChange={e => setNewProjectName(e.target.value)}
+              onChange={(e) => setNewProjectName(e.target.value)}
               onKeyDown={handleCustomProjectEnter}
               placeholder={t('savedTabs.newProjectPlaceholder')}
               className='mb-2 w-full'

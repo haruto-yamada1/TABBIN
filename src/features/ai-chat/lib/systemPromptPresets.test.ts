@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+
 import type { UserSettings } from '@/types/storage'
+
 import {
   DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
   DEFAULT_AI_SYSTEM_PROMPT_TEMPLATE,

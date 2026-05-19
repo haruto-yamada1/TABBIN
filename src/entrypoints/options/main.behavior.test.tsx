@@ -2,6 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { OptionsPage } from '@/features/options/routes/OptionsRoute'
 import type { UserSettings } from '@/types/storage'
 
@@ -102,7 +103,7 @@ vi.mock('@/components/ui/checkbox', () => ({
       id={id}
       type='checkbox'
       checked={checked}
-      onChange={event => onCheckedChange?.(event.target.checked)}
+      onChange={(event) => onCheckedChange?.(event.target.checked)}
     />
   ),
 }))

@@ -8,6 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { CustomProjectSectionProps } from '@/features/saved-tabs/types/CustomProjectSection.types'
 import type { UserSettings } from '@/types/storage'
 

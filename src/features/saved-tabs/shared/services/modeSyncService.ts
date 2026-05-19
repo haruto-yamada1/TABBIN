@@ -1,4 +1,5 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
+
 import { invalidateUrlCache } from '@/lib/storage/urls'
 import type {
   CustomProject,
@@ -7,6 +8,7 @@ import type {
   UserSettings,
   ViewMode,
 } from '@/types/storage'
+
 import type { ModeSyncEvent } from '../types/mode'
 
 interface SyncStorageChangesParams {
@@ -66,9 +68,9 @@ const applyUserSettingsChange = (
   const nextSettings = changes.userSettings.newValue as
     | Partial<UserSettings>
     | undefined
-  setSettings(prev => ({
+  setSettings((prev) => ({
     ...prev,
-    ...(nextSettings ?? {}),
+    ...nextSettings,
   }))
 }
 
@@ -110,7 +112,7 @@ const applyProjectChange = (
       ? (changes.customProjectOrder.newValue as string[])
       : null
 
-  setCustomProjects(prevProjects => {
+  setCustomProjects((prevProjects) => {
     const mergedProjects = nextCustomProjects
       ? mergeProjectReferences(prevProjects, nextCustomProjects)
       : prevProjects
@@ -181,32 +183,29 @@ const isPlainObjectEqual = (
   return true
 }
 
-const areProjectsEqual = (a: CustomProject, b: CustomProject): boolean => {
-  return (
-    a.id === b.id &&
-    a.name === b.name &&
-    a.createdAt === b.createdAt &&
-    a.updatedAt === b.updatedAt &&
-    areStringArraysEqual(a.urlIds, b.urlIds) &&
-    areStringArraysEqual(a.categories, b.categories) &&
-    areStringArraysEqual(a.categoryOrder, b.categoryOrder) &&
-    isPlainObjectEqual(
-      a.urlMetadata as Record<string, unknown> | undefined,
-      b.urlMetadata as Record<string, unknown> | undefined,
-    ) &&
-    isPlainObjectEqual(
-      a.urls as unknown as Record<string, unknown> | undefined,
-      b.urls as unknown as Record<string, unknown> | undefined,
-    )
+const areProjectsEqual = (a: CustomProject, b: CustomProject): boolean =>
+  a.id === b.id &&
+  a.name === b.name &&
+  a.createdAt === b.createdAt &&
+  a.updatedAt === b.updatedAt &&
+  areStringArraysEqual(a.urlIds, b.urlIds) &&
+  areStringArraysEqual(a.categories, b.categories) &&
+  areStringArraysEqual(a.categoryOrder, b.categoryOrder) &&
+  isPlainObjectEqual(
+    a.urlMetadata as Record<string, unknown> | undefined,
+    b.urlMetadata as Record<string, unknown> | undefined,
+  ) &&
+  isPlainObjectEqual(
+    a.urls as unknown as Record<string, unknown> | undefined,
+    b.urls as unknown as Record<string, unknown> | undefined,
   )
-}
 
 const mergeProjectReferences = (
   prevProjects: CustomProject[],
   nextProjects: CustomProject[],
 ): CustomProject[] => {
-  const prevById = new Map(prevProjects.map(project => [project.id, project]))
-  return nextProjects.map(project => {
+  const prevById = new Map(prevProjects.map((project) => [project.id, project]))
+  return nextProjects.map((project) => {
     const prevProject = prevById.get(project.id)
     if (prevProject && areProjectsEqual(prevProject, project)) {
       return prevProject

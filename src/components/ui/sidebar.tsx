@@ -1,7 +1,9 @@
 import { Slot } from '@radix-ui/react-slot'
-import { type VariantProps, cva } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
+import type { VariantProps } from 'class-variance-authority'
 import { PanelLeft } from 'lucide-react'
 import * as React from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -68,11 +70,11 @@ const persistSidebarWidth = (width: number): void => {
       String(clampSidebarWidth(width)),
     )
   } catch {
-    // localStorage が使えない環境では保持をスキップする
+    // LocalStorage が使えない環境では保持をスキップする
   }
 }
 
-type SidebarContextProps = {
+interface SidebarContextProps {
   state: 'expanded' | 'collapsed'
   open: boolean
   setOpen: (open: boolean) => void
@@ -127,16 +129,17 @@ const SidebarProvider = ({
       }
 
       // This sets the cookie to keep the sidebar state.
-      // biome-ignore lint/suspicious/noDocumentCookie: shadcn sidebar persists open state with a cookie
+      // oxlint-disable-next-line unicorn/no-document-cookie -- shadcn sidebar persists open state with a cookie
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
     [setOpenProp, open],
   )
 
   // Helper to toggle the sidebar.
-  const toggleSidebar = React.useCallback(() => {
-    return setOpen(open => !open)
-  }, [setOpen])
+  const toggleSidebar = React.useCallback(
+    () => setOpen((open) => !open),
+    [setOpen],
+  )
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -156,7 +159,7 @@ const SidebarProvider = ({
 
   React.useEffect(() => {
     const handleWindowResize = () => {
-      setSidebarWidth(currentWidth => {
+      setSidebarWidth((currentWidth) => {
         const nextWidth = clampSidebarWidth(currentWidth)
         if (nextWidth === currentWidth) {
           return currentWidth
@@ -179,12 +182,12 @@ const SidebarProvider = ({
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
-      state,
+      isMobile,
       open,
       setOpen,
-      sidebarWidth,
       setSidebarWidth,
-      isMobile,
+      sidebarWidth,
+      state,
       toggleSidebar,
     }),
     [state, open, setOpen, sidebarWidth, isMobile, toggleSidebar],
@@ -370,7 +373,7 @@ const SidebarTrigger = ({
       variant='ghost'
       size='icon'
       className={cn('h-7 w-7', className)}
-      onClick={event => {
+      onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
@@ -419,121 +422,107 @@ const SidebarInset = ({
   className,
   ref,
   ...props
-}: React.ComponentProps<'main'>) => {
-  return (
-    <main
-      ref={ref}
-      className={cn(
-        'relative flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-background',
-        'peer-data-[variant=inset]:m-2 peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 peer-data-[variant=inset]:ml-0 peer-data-[variant=inset]:rounded-xl peer-data-[variant=inset]:shadow',
-        className,
-      )}
-      {...props}
-    />
-  )
-}
+}: React.ComponentProps<'main'>) => (
+  <main
+    ref={ref}
+    className={cn(
+      'relative flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-background',
+      'peer-data-[variant=inset]:m-2 peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 peer-data-[variant=inset]:ml-0 peer-data-[variant=inset]:rounded-xl peer-data-[variant=inset]:shadow',
+      className,
+    )}
+    {...props}
+  />
+)
 SidebarInset.displayName = 'SidebarInset'
 
 const SidebarInput = ({
   className,
   ref,
   ...props
-}: React.ComponentProps<typeof Input>) => {
-  return (
-    <Input
-      ref={ref}
-      data-sidebar='input'
-      className={cn(
-        'h-8 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-        className,
-      )}
-      {...props}
-    />
-  )
-}
+}: React.ComponentProps<typeof Input>) => (
+  <Input
+    ref={ref}
+    data-sidebar='input'
+    className={cn(
+      'h-8 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+      className,
+    )}
+    {...props}
+  />
+)
 SidebarInput.displayName = 'SidebarInput'
 
 const SidebarHeader = ({
   className,
   ref,
   ...props
-}: React.ComponentProps<'div'>) => {
-  return (
-    <div
-      ref={ref}
-      data-sidebar='header'
-      className={cn('flex flex-col gap-2 p-2', className)}
-      {...props}
-    />
-  )
-}
+}: React.ComponentProps<'div'>) => (
+  <div
+    ref={ref}
+    data-sidebar='header'
+    className={cn('flex flex-col gap-2 p-2', className)}
+    {...props}
+  />
+)
 SidebarHeader.displayName = 'SidebarHeader'
 
 const SidebarFooter = ({
   className,
   ref,
   ...props
-}: React.ComponentProps<'div'>) => {
-  return (
-    <div
-      ref={ref}
-      data-sidebar='footer'
-      className={cn('flex flex-col gap-2 p-2', className)}
-      {...props}
-    />
-  )
-}
+}: React.ComponentProps<'div'>) => (
+  <div
+    ref={ref}
+    data-sidebar='footer'
+    className={cn('flex flex-col gap-2 p-2', className)}
+    {...props}
+  />
+)
 SidebarFooter.displayName = 'SidebarFooter'
 
 const SidebarSeparator = ({
   className,
   ref,
   ...props
-}: React.ComponentProps<typeof Separator>) => {
-  return (
-    <Separator
-      ref={ref}
-      data-sidebar='separator'
-      className={cn('mx-2 w-auto bg-sidebar-border', className)}
-      {...props}
-    />
-  )
-}
+}: React.ComponentProps<typeof Separator>) => (
+  <Separator
+    ref={ref}
+    data-sidebar='separator'
+    className={cn('mx-2 w-auto bg-sidebar-border', className)}
+    {...props}
+  />
+)
 SidebarSeparator.displayName = 'SidebarSeparator'
 
 const SidebarContent = ({
   className,
   ref,
   ...props
-}: React.ComponentProps<'div'>) => {
-  return (
-    <div
-      ref={ref}
-      data-sidebar='content'
-      className={cn(
-        'flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-x-hidden',
-        className,
-      )}
-      {...props}
-    />
-  )
-}
+}: React.ComponentProps<'div'>) => (
+  <div
+    ref={ref}
+    data-sidebar='content'
+    className={cn(
+      'flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-x-hidden',
+      className,
+    )}
+    {...props}
+  />
+)
 SidebarContent.displayName = 'SidebarContent'
 
 const SidebarGroup = ({
   className,
   ref,
   ...props
-}: React.ComponentProps<'div'>) => {
-  return (
-    <div
-      ref={ref}
-      data-sidebar='group'
-      className={cn('relative flex w-full min-w-0 flex-col p-2', className)}
-      {...props}
-    />
-  )
-}
+}: React.ComponentProps<'div'>) => (
+  <div
+    ref={ref}
+    data-sidebar='group'
+    className={cn('relative flex w-full min-w-0 flex-col p-2', className)}
+    {...props}
+  />
+)
 SidebarGroup.displayName = 'SidebarGroup'
 
 const SidebarGroupLabel = ({
@@ -629,21 +618,21 @@ SidebarMenuItem.displayName = 'SidebarMenuItem'
 const sidebarMenuButtonVariants = cva(
   'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
   {
+    defaultVariants: {
+      size: 'default',
+      variant: 'default',
+    },
     variants: {
+      size: {
+        default: 'h-8 text-sm',
+        lg: 'h-12 text-sm',
+        sm: 'h-7 text-xs',
+      },
       variant: {
         default: 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         outline:
           'bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]',
       },
-      size: {
-        default: 'h-8 text-sm',
-        sm: 'h-7 text-xs',
-        lg: 'h-12 text-sm',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
     },
   },
 )
@@ -671,7 +660,7 @@ const SidebarMenuButton = ({
       data-sidebar='menu-button'
       data-size={size}
       data-active={isActive}
-      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+      className={cn(sidebarMenuButtonVariants({ size, variant }), className)}
       {...props}
     />
   )
@@ -765,9 +754,9 @@ const SidebarMenuSkeleton = ({
   showIcon?: boolean
 }) => {
   // Random width between 50 to 90%.
-  const [width] = React.useState(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  })
+  const [width] = React.useState(
+    () => `${Math.floor(Math.random() * 40) + 50}%`,
+  )
 
   return (
     <div

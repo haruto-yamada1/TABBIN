@@ -58,12 +58,12 @@ describe('setupMessageListener', () => {
       },
       runtime: {
         onConnect: {
-          addListener: vi.fn(callback => {
+          addListener: vi.fn((callback) => {
             portListener = callback
           }),
         },
         onMessage: {
-          addListener: vi.fn(callback => {
+          addListener: vi.fn((callback) => {
             listener = callback
           }),
         },
@@ -653,7 +653,7 @@ describe('setupMessageListener', () => {
       },
       runtime: {
         onMessage: {
-          addListener: vi.fn(callback => {
+          addListener: vi.fn((callback) => {
             listener = callback
           }),
         },
@@ -841,7 +841,7 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           onPortMessage = listener
         }),
       },
@@ -987,7 +987,7 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           onPortMessage = listener
         }),
       },
@@ -1026,7 +1026,7 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           onPortMessage = listener
         }),
       },
@@ -1060,7 +1060,7 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn(listener => {
+        addListener: vi.fn((listener) => {
           onPortMessage = listener
         }),
       },

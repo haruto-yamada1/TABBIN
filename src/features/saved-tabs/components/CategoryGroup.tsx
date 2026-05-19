@@ -1,5 +1,7 @@
 import { memo, useMemo } from 'react'
+
 import type { CategoryGroupProps } from '@/types/saved-tabs'
+
 import { CategoryGroupActions } from './category-group/CategoryGroupActions'
 import { CategoryGroupContent } from './category-group/CategoryGroupContent'
 import {
@@ -35,16 +37,16 @@ const CategoryGroupComponent = ({
 }: CategoryGroupProps) => {
   const handlers = useMemo(
     () => ({
-      handleOpenAllTabs,
+      handleDeleteCategory,
       handleDeleteGroup,
       handleDeleteGroups,
       handleDeleteUrl,
       handleDeleteUrls,
-      handleOpenTab,
-      handleUpdateUrls,
-      handleUpdateDomainsOrder,
       handleMoveDomainToCategory,
-      handleDeleteCategory,
+      handleOpenAllTabs,
+      handleOpenTab,
+      handleUpdateDomainsOrder,
+      handleUpdateUrls,
     }),
     [
       handleOpenAllTabs,

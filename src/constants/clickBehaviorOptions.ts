@@ -2,14 +2,14 @@
  * Click behavior option definitions.
  */
 export const clickBehaviorOptions = [
-  { value: 'saveCurrentTab', labelKey: 'options.clickBehavior.currentTab' },
-  { value: 'saveWindowTabs', labelKey: 'options.clickBehavior.windowTabs' },
+  { labelKey: 'options.clickBehavior.currentTab', value: 'saveCurrentTab' },
+  { labelKey: 'options.clickBehavior.windowTabs', value: 'saveWindowTabs' },
   {
-    value: 'saveSameDomainTabs',
     labelKey: 'options.clickBehavior.sameDomain',
+    value: 'saveSameDomainTabs',
   },
   {
-    value: 'saveAllWindowsTabs',
     labelKey: 'options.clickBehavior.allWindows',
+    value: 'saveAllWindowsTabs',
   },
 ] as const

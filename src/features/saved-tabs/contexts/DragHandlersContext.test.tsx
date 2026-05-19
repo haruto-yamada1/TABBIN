@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
 import { DragHandlersContext, useDragHandlers } from './DragHandlersContext'
 
 const Consumer = () => {

@@ -1,22 +1,18 @@
 import type { CollisionDetection, DragEndEvent } from '@dnd-kit/core'
 import { closestCenter } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import {
-  type Dispatch,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { getMessage } from '@/features/i18n/lib/language'
 import { getProjectUrls } from '@/lib/storage/projects'
 import type { CustomProject, UrlRecord } from '@/types/storage'
+
 import { useCategoryDnD } from './useCategoryDnD'
 
-/** useCustomProjectCard フックの引数 */
+/** UseCustomProjectCard フックの引数 */
 interface UseCustomProjectCardParams {
   /** プロジェクトデータ */
   project: CustomProject
@@ -44,7 +40,7 @@ const isPointerDroppedInUncategorizedArea = (
   if (!hasSourceCategory || !(event.activatorEvent instanceof MouseEvent)) {
     return false
   }
-  const activatorEvent = event.activatorEvent as MouseEvent
+  const activatorEvent = event.activatorEvent
   const { delta } = event
   const dropX = activatorEvent.clientX + delta.x
   const dropY = activatorEvent.clientY + delta.y
@@ -72,15 +68,15 @@ const reorderUrlsInBucket = (
   actualUrl: string,
   overId: string,
 ): ProjectUrlItem[] | null => {
-  const urlsInTarget = projectUrls.filter(u => u.category === sourceCategory)
-  const oldIndex = urlsInTarget.findIndex(u => u.url === actualUrl)
-  const newIndex = urlsInTarget.findIndex(u => u.url === overId)
+  const urlsInTarget = projectUrls.filter((u) => u.category === sourceCategory)
+  const oldIndex = urlsInTarget.findIndex((u) => u.url === actualUrl)
+  const newIndex = urlsInTarget.findIndex((u) => u.url === overId)
   if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
     return null
   }
   const moved = arrayMove(urlsInTarget, oldIndex, newIndex)
   let movedIndex = 0
-  return projectUrls.map(u => {
+  return projectUrls.map((u) => {
     if (u.category === sourceCategory) {
       return moved[movedIndex++]
     }
@@ -134,8 +130,8 @@ const applyMovedCategoryToUrls = (
   urls: ProjectUrlItem[],
   actualUrl: string,
   overCategory: string | undefined,
-): ProjectUrlItem[] => {
-  return urls.map(url =>
+): ProjectUrlItem[] =>
+  urls.map((url) =>
     url.url === actualUrl
       ? {
           ...url,
@@ -143,7 +139,6 @@ const applyMovedCategoryToUrls = (
         }
       : url,
   )
-}
 const handleProcessedUrlDrop = (params: {
   projectId: string
   actualUrl: string
@@ -183,9 +178,9 @@ const handleProcessedUrlDrop = (params: {
   }
   if (
     shouldMoveToUncategorized({
+      dragSourceCategory,
       event,
       isUncategorizedOver,
-      dragSourceCategory,
       over,
       projectId,
     })
@@ -195,10 +190,10 @@ const handleProcessedUrlDrop = (params: {
   }
   const urlToUrlDropResult = processUrlToUrlDrop({
     active: event.active,
+    actualUrl,
+    dragSourceCategory,
     over,
     projectUrls,
-    dragSourceCategory,
-    actualUrl,
   })
   if (urlToUrlDropResult.kind === 'reordered') {
     handleReorderUrls(projectId, urlToUrlDropResult.reorderedUrls)
@@ -209,7 +204,7 @@ const handleProcessedUrlDrop = (params: {
   }
   if (urlToUrlDropResult.kind === 'moved') {
     handleSetUrlCategory(projectId, actualUrl, urlToUrlDropResult.overCategory)
-    setProjectUrls(prev =>
+    setProjectUrls((prev) =>
       applyMovedCategoryToUrls(
         prev,
         actualUrl,
@@ -302,8 +297,8 @@ export const useCustomProjectCard = ({
   })
   const { isLoadingUrls, projectUrls } = urlState
   const setProjectUrls: Dispatch<SetStateAction<ProjectUrlItem[]>> =
-    useCallback(action => {
-      setUrlState(current => ({
+    useCallback((action) => {
+      setUrlState((current) => ({
         ...current,
         projectUrls:
           action instanceof Function ? action(current.projectUrls) : action,
@@ -343,11 +338,12 @@ export const useCustomProjectCard = ({
       setUrlState({ isLoadingUrls: false, projectUrls: nextProjectUrls })
     }
     loadProjectUrls()
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- URL loading intentionally tracks the project fields that affect stored URLs.
   }, [project.id, project.updatedAt, project.urlIds, project.urls])
 
   // --- 衝突検出ストラテジー ---
   const collisionDetectionStrategy: CollisionDetection = useCallback(
-    args => closestCenter(args),
+    (args) => closestCenter(args),
     [],
   )
 
@@ -364,18 +360,18 @@ export const useCustomProjectCard = ({
         return
       }
       handleProcessedUrlDrop({
-        projectId: project.id,
         actualUrl,
-        dragSourceCategory,
-        over,
-        event,
-        isUncategorizedOver,
-        projectUrls,
-        handleSetUrlCategory,
-        handleReorderUrls,
-        setProjectUrls,
         clearDragState,
+        dragSourceCategory,
+        event,
+        handleReorderUrls,
+        handleSetUrlCategory,
+        isUncategorizedOver,
         language,
+        over,
+        projectId: project.id,
+        projectUrls,
+        setProjectUrls,
       })
     },
     [
@@ -385,6 +381,7 @@ export const useCustomProjectCard = ({
       handleReorderUrls,
       setActiveId,
       setDraggedOverCategory,
+      setProjectUrls,
       language,
     ],
   )
@@ -439,7 +436,10 @@ export const useCustomProjectCard = ({
           const urlAttr =
             targetElement.getAttribute('data-url') ||
             targetElement.closest('[data-url]')?.getAttribute('data-url')
-          if (urlAttr && projectUrlsRef.current.some(u => u.url === urlAttr)) {
+          if (
+            urlAttr &&
+            projectUrlsRef.current.some((u) => u.url === urlAttr)
+          ) {
             handleSetUrlCategoryRef.current(project.id, urlAttr, undefined)
             toast.success(t('savedTabs.tab.categoryClearedAlt'))
           }
@@ -452,32 +452,32 @@ export const useCustomProjectCard = ({
   }, [project.id, t])
 
   // --- 計算済みデータ ---
-  const uncategorizedUrls = projectUrls.filter(url => !url.category)
+  const uncategorizedUrls = projectUrls.filter((url) => !url.category)
   const categoryOrder = project.categoryOrder || project.categories
   return {
-    /** プロジェクトURL関連 */
-    urls: {
-      projectUrls,
-      setProjectUrls,
-      isLoadingUrls,
-      uncategorizedUrls,
-    },
-    /** DnD関連 */
-    dnd: {
-      isDraggingCategory,
-      draggedCategoryName,
-      activeId,
-      draggedOverCategory,
-      setDraggedOverCategory,
-      setActiveId,
-      handleDragStart,
-      handleDragOver,
-      handleUrlDragEnd,
-      handleCategoryDragEnd,
-      collisionDetectionStrategy,
-      resetDnD,
-    },
     /** カテゴリ表示順 */
     categoryOrder,
+    /** DnD関連 */
+    dnd: {
+      activeId,
+      collisionDetectionStrategy,
+      draggedCategoryName,
+      draggedOverCategory,
+      handleCategoryDragEnd,
+      handleDragOver,
+      handleDragStart,
+      handleUrlDragEnd,
+      isDraggingCategory,
+      resetDnD,
+      setActiveId,
+      setDraggedOverCategory,
+    },
+    /** プロジェクトURL関連 */
+    urls: {
+      isLoadingUrls,
+      projectUrls,
+      setProjectUrls,
+      uncategorizedUrls,
+    },
   }
 }

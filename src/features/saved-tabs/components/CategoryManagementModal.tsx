@@ -2,6 +2,7 @@ import { Edit, Plus, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -71,10 +72,10 @@ const createCategoryNameSchema = (
     })
 
 const categoryNameSchema = {
-  schema: createCategoryNameSchema(),
   safeParse(value: string) {
     return this.schema.safeParse(value)
   },
+  schema: createCategoryNameSchema(),
 }
 const createCategoryManagementFormState = (
   categoryName: string,
@@ -127,8 +128,8 @@ const updateCategoryWithDomain = async (
     cat.id === categoryId
       ? {
           ...cat,
-          domains: [...cat.domains, selectedDomain],
           domainNames: [...existingDomainNames, selectedDomainInfo.domain],
+          domains: [...cat.domains, selectedDomain],
         }
       : cat,
   )
@@ -165,19 +166,19 @@ const useCategoryManagementModalView = ({
     createCategoryManagementFormState(category.name),
   )
   const setCategoryNameError = (categoryNameError: string | null) => {
-    setFormState(prev => ({ ...prev, categoryNameError }))
+    setFormState((prev) => ({ ...prev, categoryNameError }))
   }
   const setIsProcessing = (isProcessing: boolean) => {
-    setFormState(prev => ({ ...prev, isProcessing }))
+    setFormState((prev) => ({ ...prev, isProcessing }))
   }
   const setIsRenaming = (isRenaming: boolean) => {
-    setFormState(prev => ({ ...prev, isRenaming }))
+    setFormState((prev) => ({ ...prev, isRenaming }))
   }
   const setLocalCategoryName = (localCategoryName: string) => {
-    setFormState(prev => ({ ...prev, localCategoryName }))
+    setFormState((prev) => ({ ...prev, localCategoryName }))
   }
   const setNewCategoryName = (newCategoryName: string) => {
-    setFormState(prev => ({ ...prev, newCategoryName }))
+    setFormState((prev) => ({ ...prev, newCategoryName }))
   }
   const [isSaving, setIsSaving] = useState(false) // 保存処理中の状態
   const [availableDomains, setAvailableDomains] = useState<AvailableDomain[]>(
@@ -225,12 +226,12 @@ const useCategoryManagementModalView = ({
       const currentDomainIdSet = new Set(currentDomainIds)
 
       // 他のすべてのドメインを取得
-      const otherDomains = (savedTabs as TabGroup[]).reduce<AvailableDomain[]>(
+      const otherDomains = savedTabs.reduce<AvailableDomain[]>(
         (domains, tab) => {
           if (!currentDomainIdSet.has(tab.id)) {
             domains.push({
-              id: tab.id,
               domain: tab.domain,
+              id: tab.id,
             })
           }
           return domains
@@ -277,7 +278,7 @@ const useCategoryManagementModalView = ({
 
   // 入力変更時の処理
   const handleCategoryNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
+    const { value } = e.target
     setNewCategoryName(value)
     validateCategoryName(value) // リアルタイムバリデーション
   }
@@ -286,13 +287,13 @@ const useCategoryManagementModalView = ({
   const handleSaveRenaming = async () => {
     console.log('Modal - handleSaveRenaming開始', {
       currentCategory: category,
-      localState: {
-        isRenaming,
-        isProcessing,
-        newCategoryName,
-        localCategoryName,
-      },
       hasUpdateCallback: Boolean(onCategoryUpdate),
+      localState: {
+        isProcessing,
+        isRenaming,
+        localCategoryName,
+        newCategoryName,
+      },
     })
 
     // バリデーション
@@ -304,11 +305,11 @@ const useCategoryManagementModalView = ({
     const trimmedName = newCategoryName.trim()
     console.log('Modal - 処理開始:', {
       categoryId: category.id,
-      oldName: category.name,
       newName: trimmedName,
+      oldName: category.name,
     })
     try {
-      // onCategoryUpdateが提供されていない場合はエラー
+      // OnCategoryUpdateが提供されていない場合はエラー
       if (!onCategoryUpdate) {
         throw new Error('カテゴリ更新機能が利用できません')
       }
@@ -344,8 +345,8 @@ const useCategoryManagementModalView = ({
       )
       if (finalCategory?.name !== trimmedName) {
         console.error('Modal - 最終確認でカテゴリ名が一致しません:', {
-          expected: trimmedName,
           actual: finalCategory?.name,
+          expected: trimmedName,
         })
         throw new Error('カテゴリ名の更新が完了していません')
       }
@@ -354,27 +355,27 @@ const useCategoryManagementModalView = ({
       console.log('Modal - カテゴリ更新が完了しました')
       toast.success(
         t('savedTabs.categoryManagement.renamed', undefined, {
-          before: category.name,
           after: trimmedName,
+          before: category.name,
         }),
       )
       setLocalCategoryName(trimmedName)
       setIsRenaming(false)
     } catch (error) {
       console.error('Modal - カテゴリ名の更新に失敗:', {
-        error,
         categoryId: category.id,
-        oldName: category.name,
-        newName: trimmedName,
+        error,
         isProcessing,
+        newName: trimmedName,
+        oldName: category.name,
         stack: error instanceof Error ? error.stack : undefined,
       })
       toast.error(t('savedTabs.categoryManagement.renameError'))
     } finally {
       console.log('Modal - 処理完了', {
         isProcessing,
-        newCategoryName,
         localCategoryName,
+        newCategoryName,
       })
       setIsProcessing(false)
     }
@@ -392,7 +393,7 @@ const useCategoryManagementModalView = ({
       }>('parentCategories')
       const parentCategories: ParentCategory[] = data.parentCategories ?? []
       const updatedCategories = parentCategories.filter(
-        cat => cat.id !== category.id,
+        (cat) => cat.id !== category.id,
       )
       await chrome.storage.local.set({
         parentCategories: updatedCategories,
@@ -419,7 +420,7 @@ const useCategoryManagementModalView = ({
     setIsProcessing(true)
     try {
       const selectedDomainInfo = availableDomains.find(
-        d => d.id === selectedDomain,
+        (d) => d.id === selectedDomain,
       )
       if (!selectedDomainInfo) {
         throw new Error('ドメインが見つかりません')
@@ -431,14 +432,14 @@ const useCategoryManagementModalView = ({
       )
       toast.success(
         t('savedTabs.categoryModal.domainAssigned', undefined, {
-          domain: selectedDomainInfo.domain,
           categoryName: category.name,
+          domain: selectedDomainInfo.domain,
         }),
       )
 
       // 追加したドメインをリストから削除
       const updatedAvailableDomains = availableDomains.filter(
-        d => d.id !== selectedDomain,
+        (d) => d.id !== selectedDomain,
       )
       setAvailableDomains(updatedAvailableDomains)
 
@@ -477,7 +478,7 @@ const useCategoryManagementModalView = ({
       }
 
       // 削除するドメインの情報を取得
-      const domainInfo = domains.find(d => d.id === domainId)
+      const domainInfo = domains.find((d) => d.id === domainId)
       if (!domainInfo) {
         throw new Error('ドメインが見つかりません')
       }
@@ -487,10 +488,10 @@ const useCategoryManagementModalView = ({
         if (cat.id === category.id) {
           return {
             ...cat,
-            domains: cat.domains.filter(d => d !== domainId),
             domainNames: (cat.domainNames || []).filter(
-              d => d !== domainInfo.domain,
+              (d) => d !== domainInfo.domain,
             ),
+            domains: cat.domains.filter((d) => d !== domainId),
           }
         }
         return cat
@@ -502,17 +503,17 @@ const useCategoryManagementModalView = ({
       })
 
       // 削除したドメインをセレクトボックスに追加
-      setAvailableDomains(prev => [
+      setAvailableDomains((prev) => [
         ...prev,
         {
-          id: domainInfo.id,
           domain: domainInfo.domain,
+          id: domainInfo.id,
         },
       ])
       toast.success(
         t('savedTabs.categoryModal.domainRemoved', undefined, {
-          domain: domainInfo.domain,
           categoryName: category.name,
+          domain: domainInfo.domain,
         }),
       )
 
@@ -563,7 +564,7 @@ const useCategoryManagementModalView = ({
               {!isRenaming && (
                 <div className='flex items-center gap-2'>
                   <Tooltip>
-                    <TooltipTrigger asChild={true}>
+                    <TooltipTrigger asChild>
                       <Button
                         variant='secondary'
                         size='sm'
@@ -581,7 +582,7 @@ const useCategoryManagementModalView = ({
                     </SavedTabsResponsiveTooltipContent>
                   </Tooltip>
                   <Tooltip>
-                    <TooltipTrigger asChild={true}>
+                    <TooltipTrigger asChild>
                       <Button
                         variant='secondary'
                         size='sm'
@@ -636,7 +637,7 @@ const useCategoryManagementModalView = ({
                       handleCancelRenaming()
                     }
                   }}
-                  onKeyDown={e => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
                       const trimmedName = newCategoryName.trim()
@@ -715,7 +716,7 @@ const useCategoryManagementModalView = ({
                   {t('savedTabs.categoryManagement.registeredDomainsEmpty')}
                 </p>
               ) : (
-                domains.map(domain => (
+                domains.map((domain) => (
                   <Badge
                     key={domain.id}
                     variant='outline'
@@ -723,7 +724,7 @@ const useCategoryManagementModalView = ({
                   >
                     {domain.domain}
                     <Tooltip>
-                      <TooltipTrigger asChild={true}>
+                      <TooltipTrigger asChild>
                         <Button
                           variant='ghost'
                           size='sm'
@@ -767,7 +768,7 @@ const useCategoryManagementModalView = ({
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableDomains.map(domain => (
+                    {availableDomains.map((domain) => (
                       <SelectItem
                         key={domain.id}
                         value={domain.id}
@@ -779,11 +780,11 @@ const useCategoryManagementModalView = ({
                   </SelectContent>
                 </Select>
                 <Tooltip>
-                  <TooltipTrigger asChild={true}>
+                  <TooltipTrigger asChild>
                     <Button
                       variant='default'
                       size='icon'
-                      onClick={e => {
+                      onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
                         handleAddDomain()

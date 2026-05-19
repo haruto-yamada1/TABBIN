@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -42,7 +43,7 @@ export const AiChatRoute = () => {
     const handleResize = () => {
       const isCompactViewport = window.innerWidth < AI_CHAT_HISTORY_BREAKPOINT
 
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (isCompactViewportRef.current !== isCompactViewport) {
         isCompactViewportRef.current = isCompactViewport
         setIsHistoryVisible(!isCompactViewport)
@@ -81,7 +82,7 @@ export const AiChatRoute = () => {
 
             <ScrollArea className='min-h-0 flex-1'>
               <div className='space-y-1.5 px-3 pb-3'>
-                {historyItems.map(historyItem => (
+                {historyItems.map((historyItem) => (
                   <div
                     key={historyItem.id}
                     className={`w-full rounded-2xl border px-3.5 py-3 text-left transition ${
@@ -114,7 +115,7 @@ export const AiChatRoute = () => {
                           { title: historyItem.title },
                         )}
                         className='shrink-0 justify-self-end text-muted-foreground hover:text-destructive'
-                        onClick={event => {
+                        onClick={(event) => {
                           event.stopPropagation()
                           setPendingDeleteHistoryItem(historyItem)
                         }}
@@ -136,7 +137,7 @@ export const AiChatRoute = () => {
             <div className='flex min-h-0 flex-1 overflow-hidden'>
               <SavedTabsChatWidget
                 conversationId={activeConversation.id}
-                defaultOpen={true}
+                defaultOpen
                 historyVariant='sidebar-toggle'
                 initialMessages={activeConversation.messages}
                 onCreateConversation={createConversation}
@@ -144,7 +145,7 @@ export const AiChatRoute = () => {
                 mode='page'
                 onMessagesChange={updateMessages}
                 onToggleHistory={() => {
-                  setIsHistoryVisible(current => !current)
+                  setIsHistoryVisible((current) => !current)
                 }}
               />
             </div>
@@ -154,11 +155,11 @@ export const AiChatRoute = () => {
 
       <Dialog
         open={pendingDeleteHistoryItem !== null}
-        /* v8 ignore next -- coverage-only defensive branch. */
-        onOpenChange={open => {
-          /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
+        onOpenChange={(open) => {
+          /* V8 ignore next -- coverage-only defensive branch. */
           if (!open) {
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             setPendingDeleteHistoryItem(null)
           }
         }}
@@ -184,9 +185,9 @@ export const AiChatRoute = () => {
               type='button'
               variant='destructive'
               onClick={() => {
-                /* v8 ignore next -- coverage-only defensive branch. */
+                /* V8 ignore next -- coverage-only defensive branch. */
                 if (!pendingDeleteHistoryItem) {
-                  /* v8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore next -- coverage-only defensive branch. */
                   return
                 }
 

@@ -1,6 +1,8 @@
 import { ExternalLink, Trash2 } from 'lucide-react'
-import { type CSSProperties, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { toast } from 'sonner'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,10 +40,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  type AiChartPointSelection,
-  AiChartRenderer,
-} from '@/features/ai-chat/components/AiChartRenderer'
+import { AiChartRenderer } from '@/features/ai-chat/components/AiChartRenderer'
+import type { AiChartPointSelection } from '@/features/ai-chat/components/AiChartRenderer'
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
 import type {
@@ -50,21 +50,21 @@ import type {
   AiSavedUrlRecord,
 } from '@/features/ai-chat/types'
 import {
-  type AnalyticsQuery,
   filterAnalyticsRecords,
   generateAnalyticsResult,
   getDefaultAnalyticsQuery,
   normalizeAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
+import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
-  type SavedAnalyticsView,
   createSavedAnalyticsView,
   deleteSavedAnalyticsView,
   loadSavedAnalyticsViews,
   saveSavedAnalyticsViews,
 } from '@/lib/storage/analytics'
+import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
 import type { AiChatToolTrace } from '@/types/background'
 import type {
@@ -101,7 +101,7 @@ const getLatestAnalyticsQuery = (
     return null
   }
 
-  for (const toolTrace of [...toolTraces].reverse()) {
+  for (const toolTrace of [...toolTraces].toReversed()) {
     if (toolTrace.toolName !== 'generateSavedTabsAnalytics') {
       continue
     }
@@ -114,7 +114,7 @@ const getLatestAnalyticsQuery = (
       continue
     }
 
-    const query = output.query
+    const { query } = output
     if (isAnalyticsQuery(query)) {
       return query
     }
@@ -129,7 +129,7 @@ const getLatestAssistantCharts = (
   charts: AiChartSpec[]
   query: AnalyticsQuery | null
 } | null => {
-  for (const message of [...messages].reverse()) {
+  for (const message of [...messages].toReversed()) {
     if (message.role !== 'assistant' || !message.charts?.length) {
       continue
     }
@@ -162,7 +162,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> =>
           return
         }
 
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         reject(new Error(response?.error || 'removeUrlFromStorage failed'))
       },
     )
@@ -182,7 +182,7 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
         }
 
         reject(
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           new Error(response?.error || 'removeUrlRecordsFromStorage failed'),
         )
       },
@@ -216,10 +216,10 @@ const getAnalyticsDeleteUndoSnapshot =
     ])
 
 const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
-  /* v8 ignore next -- coverage-only defensive branch. */
-  /* v8 ignore start -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore start -- coverage-only defensive branch. */
   Array.isArray(value) ? value : undefined
-/* v8 ignore stop */
+/* V8 ignore stop */
 
 const createAnalyticsDeleteUndoPayload = (
   snapshot: AnalyticsDeleteUndoSnapshot,
@@ -231,23 +231,23 @@ const createAnalyticsDeleteUndoPayload = (
   const parentCategories = getSnapshotArray(snapshot.parentCategories)
   const urls = getSnapshotArray(snapshot.urls)
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (savedTabs) {
     payload.savedTabs = savedTabs
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (customProjects) {
     payload.customProjects = customProjects
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (customProjectOrder) {
     payload.customProjectOrder = customProjectOrder
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (parentCategories) {
     payload.parentCategories = parentCategories
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (urls) {
     payload.urls = urls
   }
@@ -283,7 +283,7 @@ const getDrilldownLabelsForRecord = (
 ): string[] => {
   switch (query.groupBy) {
     case 'timeRecent':
-    case 'timeTop':
+    case 'timeTop': {
       return (
         generateAnalyticsResult(
           [record],
@@ -305,30 +305,36 @@ const getDrilldownLabelsForRecord = (
         }, []) ?? []
         /* v8 ignore stop */
       )
-    case 'parentCategory':
+    }
+    case 'parentCategory': {
       return record.parentCategories.length > 0
         ? record.parentCategories
         : [uncategorizedLabel]
-    case 'subCategory':
+    }
+    case 'subCategory': {
       return record.subCategories.length > 0
         ? record.subCategories
         : [uncategorizedLabel]
-    case 'project':
+    }
+    case 'project': {
       return record.savedInProjects.length > 0
         ? record.savedInProjects
         : /* v8 ignore next -- coverage-only defensive branch. */
           /* v8 ignore start -- coverage-only defensive branch. */
           [uncategorizedLabel]
-    /* v8 ignore stop */
-    case 'projectCategory':
+    }
+    /* V8 ignore stop */
+    case 'projectCategory': {
       return record.projectCategories.length > 0
         ? record.projectCategories
         : /* v8 ignore next -- coverage-only defensive branch. */
           /* v8 ignore start -- coverage-only defensive branch. */
           [uncategorizedLabel]
-    /* v8 ignore stop */
-    default:
+    }
+    /* V8 ignore stop */
+    default: {
       return [record.domain]
+    }
   }
 }
 
@@ -376,7 +382,7 @@ const matchesDrilldownLabel = ({
     return false
   }
 
-  if (!matchesDrilldownMode({ record, query, seriesKey })) {
+  if (!matchesDrilldownMode({ query, record, seriesKey })) {
     return false
   }
 
@@ -385,7 +391,7 @@ const matchesDrilldownLabel = ({
     query,
     uncategorizedLabel,
     chartMessages,
-  ).some(value => value.toLowerCase() === normalizedLabel)
+  ).some((value) => value.toLowerCase() === normalizedLabel)
 }
 
 const getViewNameValidationError = ({
@@ -401,7 +407,7 @@ const getViewNameValidationError = ({
     return 'required'
   }
 
-  return savedViews.some(view => view.name.trim() === trimmedViewName)
+  return savedViews.some((view) => view.name.trim() === trimmedViewName)
     ? 'duplicate'
     : null
 }
@@ -423,10 +429,10 @@ const useAnalyticsRouteView = () => {
   }))
   const { records, savedViews, settings } = analyticsData
   const setRecords = (records: typeof awaitableEmptyRecords) => {
-    setAnalyticsData(current => ({ ...current, records }))
+    setAnalyticsData((current) => ({ ...current, records }))
   }
   const setSavedViews = (savedViews: SavedAnalyticsView[]) => {
-    setAnalyticsData(current => ({ ...current, savedViews }))
+    setAnalyticsData((current) => ({ ...current, savedViews }))
   }
   const [query, setQuery] = useState<AnalyticsQuery>(() =>
     normalizeAnalyticsRouteQuery(defaultAnalyticsQuery),
@@ -474,6 +480,7 @@ const useAnalyticsRouteView = () => {
       chartWeeklySavedTrend: t('analytics.chart.weeklySavedTrend'),
       uncategorizedLabel: t('analytics.uncategorized'),
     }),
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- chart labels intentionally recompute when the active language changes.
     [language],
   )
   const analyticsGroupByOptions = [
@@ -483,20 +490,20 @@ const useAnalyticsRouteView = () => {
     { label: t('analytics.groupBy.parentCategory'), value: 'parentCategory' },
     { label: t('analytics.groupBy.subCategory'), value: 'subCategory' },
     { label: t('analytics.groupBy.project'), value: 'project' },
-  ] as const satisfies ReadonlyArray<{
+  ] as const satisfies readonly {
     label: string
     value: AnalyticsQuery['groupBy']
-  }>
+  }[]
   const analyticsChartTypeOptions = [
     { label: t('analytics.chartType.bar'), value: 'bar' },
     { label: t('analytics.chartType.line'), value: 'line' },
     { label: t('analytics.chartType.area'), value: 'area' },
     { label: t('analytics.chartType.pie'), value: 'pie' },
     { label: t('analytics.chartType.radar'), value: 'radar' },
-  ] as const satisfies ReadonlyArray<{
+  ] as const satisfies readonly {
     label: string
     value: AnalyticsQuery['chartType']
-  }>
+  }[]
 
   useEffect(() => {
     let cancelled = false
@@ -571,7 +578,7 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleDeleteView = async (viewId: string) => {
-    const nextViews = savedViews.filter(view => view.id !== viewId)
+    const nextViews = savedViews.filter((view) => view.id !== viewId)
     setSavedViews(nextViews)
     await deleteSavedAnalyticsView(viewId)
   }
@@ -598,13 +605,13 @@ const useAnalyticsRouteView = () => {
     seriesKey,
     spec,
   }: AiChartPointSelection) => {
-    const matchingRecords = filteredRecords.filter(record =>
+    const matchingRecords = filteredRecords.filter((record) =>
       matchesDrilldownLabel({
+        chartMessages,
         label,
         query,
         record,
         seriesKey,
-        chartMessages,
         uncategorizedLabel: t('analytics.uncategorized'),
       }),
     )
@@ -624,10 +631,10 @@ const useAnalyticsRouteView = () => {
   }
 
   const rebuildDrilldownSelection = (nextRecords: AiSavedUrlRecord[]) => {
-    setDrilldownSelection(currentSelection => {
-      /* v8 ignore next -- coverage-only defensive branch. */
+    setDrilldownSelection((currentSelection) => {
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (!currentSelection) {
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         return null
       }
 
@@ -635,13 +642,13 @@ const useAnalyticsRouteView = () => {
         ...currentSelection,
         matchingRecords: filterAnalyticsRecords(nextRecords, query, {
           messages: chartMessages,
-        }).filter(record =>
+        }).filter((record) =>
           matchesDrilldownLabel({
+            chartMessages,
             label: currentSelection.label,
             query,
             record,
             seriesKey: currentSelection.seriesKey,
-            chartMessages,
             uncategorizedLabel: t('analytics.uncategorized'),
           }),
         ),
@@ -685,9 +692,9 @@ const useAnalyticsRouteView = () => {
   }
 
   const performDelete = async (record: AiSavedUrlRecord) => {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (deletingUrl || isBulkDeleting) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -711,9 +718,9 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleDeleteClick = (record: AiSavedUrlRecord) => {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (deletingUrl || isBulkDeleting) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -726,7 +733,7 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleOpenAllDrilldownRecords = () => {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     const matchingRecords = drilldownSelection?.matchingRecords ?? []
     for (const record of matchingRecords) {
       window.open(record.url, '_blank', 'noopener,noreferrer')
@@ -734,11 +741,11 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleOpenAllClick = () => {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     const recordCount = drilldownSelection?.matchingRecords.length ?? 0
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (recordCount === 0) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -751,11 +758,11 @@ const useAnalyticsRouteView = () => {
   }
 
   const performBulkDelete = async () => {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     const matchingRecords = drilldownSelection?.matchingRecords ?? []
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (matchingRecords.length === 0 || deletingUrl || isBulkDeleting) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -763,7 +770,7 @@ const useAnalyticsRouteView = () => {
       setIsBulkDeleting(true)
       const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
       const nextRecords = await removeUrlRecordsFromStorage(
-        matchingRecords.map(record => record.id),
+        matchingRecords.map((record) => record.id),
       ).then(() => refreshRecords())
       rebuildDrilldownSelection(nextRecords)
       showDeleteUndoToast({
@@ -779,15 +786,15 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleDeleteAllClick = () => {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (deletingUrl || isBulkDeleting) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       return
     }
 
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (!drilldownSelection?.matchingRecords.length) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -845,10 +852,10 @@ const useAnalyticsRouteView = () => {
                           aria-invalid={viewNameError !== null}
                           className='rounded-xl bg-background'
                           id='analytics-view-name'
-                          onChange={event => {
+                          onChange={(event) => {
                             const nextValue = event.target.value
                             setViewName(nextValue)
-                            setViewNameError(currentError =>
+                            setViewNameError((currentError) =>
                               currentError
                                 ? getViewNameValidationError({
                                     savedViews,
@@ -872,7 +879,7 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.groupByLabel')}
                         </Label>
                         <Select
-                          onValueChange={value =>
+                          onValueChange={(value) =>
                             applyQuery({
                               ...query,
                               groupBy: value as AnalyticsQuery['groupBy'],
@@ -888,7 +895,7 @@ const useAnalyticsRouteView = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {analyticsGroupByOptions.map(option => (
+                            {analyticsGroupByOptions.map((option) => (
                               <SelectItem
                                 key={option.value}
                                 value={option.value}
@@ -907,7 +914,7 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.chartTypeLabel')}
                         </Label>
                         <Select
-                          onValueChange={value =>
+                          onValueChange={(value) =>
                             applyQuery({
                               ...query,
                               chartType: value as AnalyticsQuery['chartType'],
@@ -923,7 +930,7 @@ const useAnalyticsRouteView = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {analyticsChartTypeOptions.map(option => (
+                            {analyticsChartTypeOptions.map((option) => (
                               <SelectItem
                                 key={option.value}
                                 value={option.value}
@@ -943,7 +950,7 @@ const useAnalyticsRouteView = () => {
                           className='rounded-xl bg-background'
                           id='analytics-limit'
                           min={1}
-                          onChange={event =>
+                          onChange={(event) =>
                             applyQuery({
                               ...query,
                               limit: Math.max(
@@ -992,7 +999,7 @@ const useAnalyticsRouteView = () => {
                         </p>
                       ) : (
                         <div className='space-y-2'>
-                          {savedViews.map(view => (
+                          {savedViews.map((view) => (
                             <Card
                               className='rounded-2xl border-border p-3 shadow-none'
                               key={view.id}
@@ -1128,7 +1135,7 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.drilldownEmpty')}
                         </p>
                       ) : (
-                        drilldownSelection.matchingRecords.map(record => (
+                        drilldownSelection.matchingRecords.map((record) => (
                           <Card
                             className='rounded-2xl border-border bg-card p-3 shadow-none'
                             key={record.id}
@@ -1146,7 +1153,7 @@ const useAnalyticsRouteView = () => {
                                   >
                                     {record.domain}
                                   </Badge>
-                                  {record.parentCategories.map(category => (
+                                  {record.parentCategories.map((category) => (
                                     <Badge
                                       className='rounded-full'
                                       key={`${record.id}-${category}`}
@@ -1155,7 +1162,7 @@ const useAnalyticsRouteView = () => {
                                       {category}
                                     </Badge>
                                   ))}
-                                  {record.savedInProjects.map(project => (
+                                  {record.savedInProjects.map((project) => (
                                     <Badge
                                       className='rounded-full'
                                       key={`${record.id}-${project}`}
@@ -1170,7 +1177,7 @@ const useAnalyticsRouteView = () => {
                                 <time className='text-muted-foreground text-xs'>
                                   {formatLocaleDateTime(
                                     record.savedAt,
-                                    /* v8 ignore next -- coverage-only defensive branch. */
+                                    /* V8 ignore next -- coverage-only defensive branch. */
                                     language === 'ja' ? 'ja-JP' : 'en-US',
                                   )}
                                 </time>
@@ -1256,10 +1263,10 @@ const useAnalyticsRouteView = () => {
       <Toaster />
 
       <AlertDialog
-        onOpenChange={isOpen => {
-          /* v8 ignore next -- coverage-only defensive branch. */
+        onOpenChange={(isOpen) => {
+          /* V8 ignore next -- coverage-only defensive branch. */
           if (!isOpen && isBulkDeleting) {
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             return
           }
           setIsBulkDeleteConfirmOpen(isOpen)
@@ -1279,7 +1286,7 @@ const useAnalyticsRouteView = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              onClick={event => {
+              onClick={(event) => {
                 event.preventDefault()
                 void performBulkDelete()
               }}
@@ -1319,13 +1326,13 @@ const useAnalyticsRouteView = () => {
       </AlertDialog>
 
       <AlertDialog
-        onOpenChange={isOpen => {
-          /* v8 ignore next -- coverage-only defensive branch. */
+        onOpenChange={(isOpen) => {
+          /* V8 ignore next -- coverage-only defensive branch. */
           if (!isOpen && deletingUrl) {
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             return
           }
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           if (!isOpen) {
             setDeleteTarget(null)
           }
@@ -1345,11 +1352,11 @@ const useAnalyticsRouteView = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              onClick={event => {
+              onClick={(event) => {
                 event.preventDefault()
-                /* v8 ignore next -- coverage-only defensive branch. */
+                /* V8 ignore next -- coverage-only defensive branch. */
                 if (!deleteTarget) {
-                  /* v8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore next -- coverage-only defensive branch. */
                   return
                 }
 

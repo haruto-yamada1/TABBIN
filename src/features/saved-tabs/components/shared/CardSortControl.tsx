@@ -1,7 +1,9 @@
 import { ArrowUpDown, ArrowUpNarrowWide, ArrowUpWideNarrow } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import type { SortOrder } from '../../hooks/useSortOrder'
 import { SavedTabsResponsiveTooltipContent } from './SavedTabsResponsive'
 
@@ -42,14 +44,14 @@ export const CardSortControl = ({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild={true}>
+      <TooltipTrigger asChild>
         <Button
           variant='secondary'
           size='sm'
           onPointerDown={onPointerDown}
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation()
-            setSortOrder(o => {
+            setSortOrder((o) => {
               if (o === 'default') {
                 return 'asc'
               }

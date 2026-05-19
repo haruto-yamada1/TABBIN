@@ -22,6 +22,7 @@ import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
+
 import { ThemeProvider, useTheme } from './theme-provider'
 
 type StorageListener = (
@@ -224,7 +225,7 @@ describe('ThemeProvider', () => {
     expect(
       storageOnChangedMock.removeListener.mock.calls
         .slice(removeCallsBeforeUnmount)
-        .map(call => call[0]),
+        .map((call) => call[0]),
     ).toEqual(expect.arrayContaining(subscribedListeners))
   })
 

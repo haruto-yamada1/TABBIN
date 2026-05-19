@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 const mocks = vi.hoisted(() => {
@@ -39,7 +40,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
 
     if (Array.isArray(keys)) {
       return Object.fromEntries(
-        keys.map(key => [key, state[key as keyof StorageState]]),
+        keys.map((key) => [key, state[key as keyof StorageState]]),
       )
     }
 

@@ -1,4 +1,5 @@
 import type { FileUIPart } from 'ai'
+
 import type { AiChatAttachment } from '@/features/ai-chat/types'
 import { getMessage } from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
@@ -23,7 +24,7 @@ const decodeBase64 = (value: string): Uint8Array => {
       ? atob(value)
       : Buffer.from(value, 'base64').toString('binary')
 
-  return Uint8Array.from(binaryValue, char => char.charCodeAt(0))
+  return Uint8Array.from(binaryValue, (char) => char.charCodeAt(0))
 }
 
 const decodeTextWithCharset = (
@@ -31,7 +32,7 @@ const decodeTextWithCharset = (
   charset: string | undefined,
 ): string => {
   try {
-    return new TextDecoder(charset || 'utf-8').decode(value)
+    return new TextDecoder(charset || 'utf8').decode(value)
   } catch {
     return new TextDecoder('utf-8').decode(value)
   }
@@ -45,9 +46,10 @@ const parseDataUrl = (
   payload: string
   usesBase64: boolean
 } | null => {
-  const matched = dataUrl.match(
-    /^data:(?<mediaType>[^;,]+)?(?:;charset=(?<charset>[^;,]+))?(?<base64>;base64)?,(?<payload>[\s\S]*)$/u,
-  )
+  const matched =
+    /^data:(?<mediaType>[^;,]+)?(?:;charset=(?<charset>[^;,]+))?(?<base64>;base64)?,(?<payload>[\s\S]*)$/u.exec(
+      dataUrl,
+    )
 
   if (!matched?.groups) {
     return null
@@ -114,7 +116,7 @@ const convertPromptInputFilesToAiChatAttachments = async (
   files: FileUIPart[],
   language: AppLanguage = 'ja',
 ): Promise<AiChatAttachment[]> =>
-  files.map(file => {
+  files.map((file) => {
     const filename = getAttachmentFilename(file)
     const mediaType = file.mediaType || 'application/octet-stream'
     const kind = getAttachmentKind(mediaType)
@@ -139,7 +141,7 @@ const buildTextAttachmentContext = (
   language: AppLanguage = 'ja',
 ): string => {
   const textAttachments = attachments.filter(
-    attachment =>
+    (attachment) =>
       attachment.kind === 'text' && attachment.content.trim().length > 0,
   )
 

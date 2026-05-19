@@ -1,10 +1,12 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useMemo, useRef } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { TabGroup } from '@/types/storage'
+
 import { useCategoryModalContext } from './CategoryModalContext'
 
 interface DomainCategoryInfo {
@@ -25,8 +27,8 @@ interface DomainState {
 const sortTabGroups = (
   tabGroups: TabGroup[],
   domainCategories: DomainState['domainCategories'],
-): TabGroup[] => {
-  return tabGroups.toSorted((a, b) => {
+): TabGroup[] =>
+  tabGroups.toSorted((a, b) => {
     const aHasCategory = Boolean(domainCategories[a.id])
     const bHasCategory = Boolean(domainCategories[b.id])
     if (!aHasCategory && bHasCategory) {
@@ -37,7 +39,6 @@ const sortTabGroups = (
     }
     return a.domain.localeCompare(b.domain)
   })
-}
 
 const getVisibleTabGroups = ({
   tabGroups,
@@ -51,7 +52,7 @@ const getVisibleTabGroups = ({
   if (selectedCategoryId !== 'uncategorized') {
     return tabGroups
   }
-  return tabGroups.filter(group => !domainCategories[group.id])
+  return tabGroups.filter((group) => !domainCategories[group.id])
 }
 
 const getDomainRowClass = (
@@ -191,18 +192,21 @@ export const DomainSelectionList = () => {
   const visibleTabGroups = useMemo(
     () =>
       getVisibleTabGroups({
-        tabGroups: sortedTabGroups,
-        selectedCategoryId: selection.selectedCategoryId,
         domainCategories: domains.domainCategories,
+        selectedCategoryId: selection.selectedCategoryId,
+        tabGroups: sortedTabGroups,
       }),
     [sortedTabGroups, selection.selectedCategoryId, domains.domainCategories],
   )
 
   const rowVirtualizer = useVirtualizer({
     count: visibleTabGroups.length,
-    getScrollElement: () => scrollElementRef.current,
     estimateSize: () => 56,
-    overscan: 8,
+    getScrollElement: () => scrollElementRef.current,
+    initialRect: {
+      height: 560,
+      width: 0,
+    },
     observeElementRect: (_instance, cb) => {
       cb({
         width: 0,
@@ -210,10 +214,7 @@ export const DomainSelectionList = () => {
       })
       return () => {}
     },
-    initialRect: {
-      width: 0,
-      height: 560,
-    },
+    overscan: 8,
   })
 
   if (selection.categories.length === 0) {
@@ -241,18 +242,18 @@ export const DomainSelectionList = () => {
           position: 'relative',
         }}
       >
-        {rowVirtualizer.getVirtualItems().map(virtualItem => {
+        {rowVirtualizer.getVirtualItems().map((virtualItem) => {
           const group = visibleTabGroups[virtualItem.index]
 
           return (
             <div
               key={group.id}
               style={{
-                position: 'absolute',
                 left: 0,
+                position: 'absolute',
                 top: 0,
-                width: '100%',
                 transform: `translateY(${virtualItem.start}px)`,
+                width: '100%',
               }}
             >
               <DomainRow

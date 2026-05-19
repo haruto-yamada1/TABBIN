@@ -60,9 +60,9 @@ const sendWithChromeRuntime = async (
   runtime: ChromeRuntime,
   message: unknown,
 ): Promise<unknown> =>
-  new Promise(resolve => {
+  new Promise((resolve) => {
     try {
-      runtime.sendMessage?.(message, response => {
+      runtime.sendMessage?.(message, (response) => {
         resolve(response)
       })
     } catch {

@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import {
   act,
   cleanup,
@@ -12,6 +13,7 @@ import {
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
+
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const categoryManagementModalI18nState = vi.hoisted(() => ({
@@ -167,8 +169,8 @@ const getLatestButtonProps = (
   predicate: (props: Record<string, unknown>) => boolean,
 ) =>
   [...buttonPropsSpy.mock.calls]
-    .map(call => call[0] as Record<string, unknown>)
-    .reverse()
+    .map((call) => call[0] as Record<string, unknown>)
+    .toReversed()
     .find(predicate)
 
 const createDeferred = <T,>() => {
@@ -279,7 +281,7 @@ describe('CategoryManagementModal', () => {
     const onClose = vi.fn()
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={onClose}
         category={createCategory()}
         domains={createDomains()}
@@ -302,7 +304,7 @@ describe('CategoryManagementModal', () => {
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={[]}
@@ -326,7 +328,7 @@ describe('CategoryManagementModal', () => {
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -355,7 +357,7 @@ describe('CategoryManagementModal', () => {
     const onCategoryUpdate = vi.fn(
       async (categoryId: string, newName: string) => {
         storageState.parentCategories = storageState.parentCategories.map(
-          cat => (cat.id === categoryId ? { ...cat, name: newName } : cat),
+          (cat) => (cat.id === categoryId ? { ...cat, name: newName } : cat),
         )
         await deferredUpdate.promise
       },
@@ -363,7 +365,7 @@ describe('CategoryManagementModal', () => {
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -441,14 +443,14 @@ describe('CategoryManagementModal', () => {
     const onCategoryUpdate = vi.fn(
       async (categoryId: string, newName: string) => {
         storageState.parentCategories = storageState.parentCategories.map(
-          cat => (cat.id === categoryId ? { ...cat, name: newName } : cat),
+          (cat) => (cat.id === categoryId ? { ...cat, name: newName } : cat),
         )
       },
     )
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={onClose}
         category={createCategory()}
         domains={createDomains()}
@@ -489,7 +491,7 @@ describe('CategoryManagementModal', () => {
   it('リネーム失敗時（callbackなし/更新確認失敗）に toast.error を出す', async () => {
     const { rerender } = render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -519,7 +521,7 @@ describe('CategoryManagementModal', () => {
     ]
     rerender(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -566,14 +568,14 @@ describe('CategoryManagementModal', () => {
     const onCategoryUpdate = vi.fn(
       async (categoryId: string, newName: string) => {
         storageState.parentCategories = storageState.parentCategories.map(
-          cat => (cat.id === categoryId ? { ...cat, name: newName } : cat),
+          (cat) => (cat.id === categoryId ? { ...cat, name: newName } : cat),
         )
       },
     )
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -598,7 +600,7 @@ describe('CategoryManagementModal', () => {
   it('リネーム保存で non-Error を投げた場合も stack なしでハンドリングする', async () => {
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -632,7 +634,7 @@ describe('CategoryManagementModal', () => {
   it('リネーム保存時に validateCategoryName が false を返した場合は処理を中止する', async () => {
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -673,7 +675,7 @@ describe('CategoryManagementModal', () => {
     const onClose = vi.fn()
     const { rerender } = render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={onClose}
         category={createCategory()}
         domains={createDomains()}
@@ -697,7 +699,7 @@ describe('CategoryManagementModal', () => {
     ]
     rerender(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -720,7 +722,7 @@ describe('CategoryManagementModal', () => {
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={[]}
@@ -750,7 +752,7 @@ describe('CategoryManagementModal', () => {
     })
 
     const deleteConfirmButtonProps = getLatestButtonProps(
-      props =>
+      (props) =>
         props.variant === 'destructive' &&
         props.size === 'sm' &&
         props.onClick instanceof Function,
@@ -772,7 +774,7 @@ describe('CategoryManagementModal', () => {
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={[currentDomain]}
@@ -808,7 +810,7 @@ describe('CategoryManagementModal', () => {
     cleanup()
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={[]}
@@ -860,7 +862,7 @@ describe('CategoryManagementModal', () => {
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={[domains3[0] as TabGroup]}
@@ -882,7 +884,7 @@ describe('CategoryManagementModal', () => {
     })
 
     const plusButtonProps = getLatestButtonProps(
-      props =>
+      (props) =>
         props.variant === 'default' &&
         props.size === 'icon' &&
         props.onClick instanceof Function,
@@ -927,7 +929,7 @@ describe('CategoryManagementModal', () => {
       ]),
     )
     expect(
-      firstSetArg?.parentCategories?.find(cat => cat.id === 'cat-1'),
+      firstSetArg?.parentCategories?.find((cat) => cat.id === 'cat-1'),
     ).toEqual(
       expect.objectContaining({
         domains: ['g1', 'g2'],
@@ -946,7 +948,7 @@ describe('CategoryManagementModal', () => {
     storageState.parentCategories = []
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={[currentDomain]}
@@ -981,7 +983,7 @@ describe('CategoryManagementModal', () => {
     toastErrorSpy.mockClear()
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={[currentDomain]}
@@ -1003,7 +1005,7 @@ describe('CategoryManagementModal', () => {
       ] as unknown[]
       if (
         context.every(
-          item =>
+          (item) =>
             Boolean(item) &&
             typeof item === 'object' &&
             'id' in (item as Record<string, unknown>) &&
@@ -1027,7 +1029,7 @@ describe('CategoryManagementModal', () => {
     const originalReadyState = document.readyState
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -1104,7 +1106,7 @@ describe('CategoryManagementModal', () => {
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -1126,7 +1128,7 @@ describe('CategoryManagementModal', () => {
     })
 
     const removeButtonProps = getLatestButtonProps(
-      props =>
+      (props) =>
         props['aria-label'] === 'ドメインを削除' &&
         props.onClick instanceof Function,
     ) as { onClick?: () => void } | undefined
@@ -1162,7 +1164,7 @@ describe('CategoryManagementModal', () => {
     setupChrome()
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
@@ -1194,7 +1196,7 @@ describe('CategoryManagementModal', () => {
     setupChrome()
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={weirdDomains}
@@ -1212,7 +1214,7 @@ describe('CategoryManagementModal', () => {
 
     render(
       <CategoryManagementModal
-        isOpen={true}
+        isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}

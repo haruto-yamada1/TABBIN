@@ -9,6 +9,7 @@ import {
   PlusIcon,
 } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +18,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
+
 import { useCopyState } from './use-copy-state'
 
 export type CommitProps = ComponentProps<typeof Collapsible>

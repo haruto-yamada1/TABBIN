@@ -3,6 +3,7 @@
  */
 
 import type { DynamicToolUIPart } from 'ai'
+
 import type { AiChartSpec, AiChatAttachment } from '@/features/ai-chat/types'
 
 /**
@@ -107,11 +108,11 @@ export interface ListOllamaModelsMessage extends BaseMessage {
 export interface RunAiChatMessage extends BaseMessage {
   action: 'runAiChat'
   prompt: string
-  history: Array<{
+  history: {
     role: 'user' | 'assistant'
     content: string
     attachments?: AiChatAttachment[]
-  }>
+  }[]
   attachments?: AiChatAttachment[]
 }
 
@@ -163,11 +164,11 @@ export interface OllamaErrorDetails {
 
 export interface OllamaModelListResponse {
   status: 'ok' | 'error'
-  models?: Array<{
+  models?: {
     name: string
     label: string
     modifiedAt?: string
-  }>
+  }[]
   error?: string
   ollamaError?: OllamaErrorDetails
 }
@@ -199,11 +200,11 @@ export const AI_CHAT_STREAM_PORT_NAME = 'ai-chat-stream'
 export interface RunAiChatStreamPortMessage {
   type: 'run'
   prompt: string
-  history: Array<{
+  history: {
     role: 'user' | 'assistant'
     content: string
     attachments?: AiChatAttachment[]
-  }>
+  }[]
   attachments?: AiChatAttachment[]
 }
 

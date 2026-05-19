@@ -1,17 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
-  testDir: './e2e',
-  globalSetup: './e2e/global-setup.ts',
-  testMatch: '**/*.story.spec.ts',
-  fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
-  use: {
-    trace: 'on-first-retry',
-  },
+  fullyParallel: false,
+  globalSetup: './e2e/global-setup.ts',
   projects: [
     {
       name: 'chromium',
@@ -20,4 +12,12 @@ export default defineConfig({
       },
     },
   ],
+  reporter: 'html',
+  retries: process.env.CI ? 2 : 0,
+  testDir: './e2e',
+  testMatch: '**/*.story.spec.ts',
+  use: {
+    trace: 'on-first-retry',
+  },
+  workers: process.env.CI ? 1 : undefined,
 })

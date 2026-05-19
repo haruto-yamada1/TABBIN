@@ -45,7 +45,7 @@ const isUrlExcludedByPatterns = (
   }
 
   const normalizedPatterns = normalizeExcludePatterns(excludePatterns)
-  return normalizedPatterns.some(pattern => normalizedUrl.includes(pattern))
+  return normalizedPatterns.some((pattern) => normalizedUrl.includes(pattern))
 }
 
 const isSavableUrl = (
@@ -66,7 +66,7 @@ const isSavableUrl = (
 const filterItemsBySavableUrl = <T extends { url?: string | null }>(
   items: T[],
   excludePatterns: string[],
-): T[] => items.filter(item => isSavableUrl(item.url, excludePatterns))
+): T[] => items.filter((item) => isSavableUrl(item.url, excludePatterns))
 
 export {
   filterItemsBySavableUrl,

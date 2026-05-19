@@ -1,13 +1,14 @@
 // @vitest-environment node
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const componentsRoot = path.join(repoRoot, 'components')
 
 const walk = (dir: string): string[] =>
-  readdirSync(dir).flatMap(entry => {
+  readdirSync(dir).flatMap((entry) => {
     const fullPath = path.join(dir, entry)
     const stats = statSync(fullPath)
 
@@ -45,16 +46,16 @@ const storyFiles = walk(componentsRoot).reduce<string[]>((files, filePath) => {
   return files
 }, [])
 
-const coveredComponentFiles = storyFiles.flatMap(filePath => {
+const coveredComponentFiles = storyFiles.flatMap((filePath) => {
   const contents = readFileSync(path.join(repoRoot, filePath), 'utf8')
 
-  return [...contents.matchAll(/@covers\s+([^\s]+)/g)].map(match => match[1])
+  return [...contents.matchAll(/@covers\s+([^\s]+)/g)].map((match) => match[1])
 })
 
 describe('storybook component coverage', () => {
   it('covers every component in components/ with at least one story file', () => {
     const uncovered = componentFiles.filter(
-      filePath => !coveredComponentFiles.includes(filePath),
+      (filePath) => !coveredComponentFiles.includes(filePath),
     )
 
     expect(uncovered).toEqual([])

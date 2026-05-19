@@ -7,6 +7,7 @@ import {
   within,
 } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import type { ViewMode } from '@/types/storage'
 
 const viewModeI18nState = vi.hoisted(() => ({
@@ -94,6 +95,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 }))
 
 import { SavedTabsResponsiveLayoutProvider } from '@/features/saved-tabs/contexts/SavedTabsResponsiveLayoutContext'
+
 import { ViewModeToggle } from './ViewModeToggle'
 
 describe('ViewModeToggle', () => {
@@ -151,7 +153,7 @@ describe('ViewModeToggle', () => {
 
   it('compact layout ではラベルを隠して tooltip を表示対象にする', () => {
     render(
-      <SavedTabsResponsiveLayoutProvider isCompactLayout={true}>
+      <SavedTabsResponsiveLayoutProvider isCompactLayout>
         <ViewModeToggle currentMode='domain' onChange={vi.fn()} />
       </SavedTabsResponsiveLayoutProvider>,
     )

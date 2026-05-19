@@ -10,6 +10,7 @@ import type {
   ThemedToken,
 } from 'shiki'
 import { createHighlighter } from 'shiki'
+
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+
 import { useCopyState } from './use-copy-state'
 
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
@@ -144,7 +146,7 @@ const getHighlighter = (
 const createRawTokens = (code: string): TokenizedCode => ({
   bg: 'transparent',
   fg: 'inherit',
-  tokens: code.split('\n').map(line =>
+  tokens: code.split('\n').map((line) =>
     line === ''
       ? []
       : [
@@ -182,7 +184,7 @@ export const highlightCode = (
   // Start highlighting in background - fire-and-forget async pattern
   getHighlighter(language)
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
-    .then(highlighter => {
+    .then((highlighter) => {
       const availableLangs = highlighter.getLoadedLanguages()
       const langToUse = availableLangs.includes(language) ? language : 'text'
 
@@ -213,7 +215,7 @@ export const highlightCode = (
       }
     })
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then), eslint-plugin-promise(prefer-await-to-callbacks)
-    .catch(error => {
+    .catch((error) => {
       console.error('Failed to highlight code:', error)
       subscribers.delete(tokensCacheKey)
     })
@@ -276,7 +278,7 @@ const CodeBlockBody = memo(
               '[counter-increment:line_0] [counter-reset:line]',
           )}
         >
-          {keyedLines.map(keyedLine => (
+          {keyedLines.map((keyedLine) => (
             <LineSpan
               key={keyedLine.key}
               keyedLine={keyedLine}
@@ -391,7 +393,7 @@ export const CodeBlockContent = ({
     setTokenized(highlightCode(code, language) ?? rawTokens)
 
     // Subscribe to async highlighting result
-    highlightCode(code, language, result => {
+    highlightCode(code, language, (result) => {
       if (!cancelled) {
         setTokenized(result)
       }

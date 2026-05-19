@@ -18,6 +18,7 @@ import {
   useRef,
   useState,
 } from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -71,7 +72,7 @@ const parseStackFrame = (line: string): StackFrame => {
   const trimmed = line.trim()
 
   // Pattern: at functionName (filePath:line:column)
-  const withParensMatch = trimmed.match(STACK_FRAME_WITH_PARENS_REGEX)
+  const withParensMatch = STACK_FRAME_WITH_PARENS_REGEX.exec(trimmed)
   if (withParensMatch) {
     const [, functionName, filePath, lineNum, colNum] = withParensMatch
     const isInternal =
@@ -89,7 +90,7 @@ const parseStackFrame = (line: string): StackFrame => {
   }
 
   // Pattern: at filePath:line:column (no function name)
-  const withoutFnMatch = trimmed.match(STACK_FRAME_WITHOUT_FN_REGEX)
+  const withoutFnMatch = STACK_FRAME_WITHOUT_FN_REGEX.exec(trimmed)
   if (withoutFnMatch) {
     const [, filePath, lineNum, colNum] = withoutFnMatch
     const isInternal =
@@ -118,7 +119,7 @@ const parseStackFrame = (line: string): StackFrame => {
 }
 
 const parseStackTrace = (trace: string): ParsedStackTrace => {
-  const lines = trace.split('\n').filter(line => line.trim())
+  const lines = trace.split('\n').filter((line) => line.trim())
 
   if (lines.length === 0) {
     return {
@@ -134,7 +135,7 @@ const parseStackTrace = (trace: string): ParsedStackTrace => {
   let errorMessage = firstLine
 
   // Try to extract error type from "ErrorType: message" format
-  const errorMatch = firstLine.match(ERROR_TYPE_REGEX)
+  const errorMatch = ERROR_TYPE_REGEX.exec(firstLine)
   if (errorMatch) {
     const [, type, msg] = errorMatch
     errorType = type
@@ -489,11 +490,11 @@ export const StackTraceFrames = memo(
 
     const framesToShow = showInternalFrames
       ? trace.frames
-      : trace.frames.filter(f => !f.isInternal)
+      : trace.frames.filter((f) => !f.isInternal)
 
     return (
       <div className={cn('space-y-1 p-3', className)} {...props}>
-        {framesToShow.map(frame => (
+        {framesToShow.map((frame) => (
           <div
             className={cn(
               'text-xs',

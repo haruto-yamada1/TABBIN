@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { ImportExportSettings } from './ImportExportSettings'
 
 vi.mock('sonner', () => ({
@@ -82,6 +83,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 }))
 
 import { toast } from 'sonner'
+
 import {
   downloadAsJson,
   exportSettings,
@@ -139,8 +141,8 @@ const getDropzoneFileInput = (container: HTMLElement): HTMLInputElement => {
     document.querySelectorAll('input[type="file"]'),
   ) as HTMLInputElement[]
   const dropzoneInput =
-    fileInputs.find(input => !input.classList.contains('hidden')) ??
-    fileInputs.find(input => input !== getHiddenFileInput(container))
+    fileInputs.find((input) => !input.classList.contains('hidden')) ??
+    fileInputs.find((input) => input !== getHiddenFileInput(container))
   if (!dropzoneInput) {
     throw new Error('dropzone file input not found')
   }
@@ -522,7 +524,7 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     unmount()
 
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(importSettings).toHaveBeenCalledWith(
       readerContent,
       true,
@@ -546,7 +548,7 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     unmount()
 
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
   })
 })

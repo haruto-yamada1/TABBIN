@@ -33,6 +33,7 @@ import {
   useRef,
   useState,
 } from 'react'
+
 import {
   Command,
   CommandEmpty,
@@ -85,7 +86,7 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     const blob = await response.blob()
     // FileReader uses callback-based API, wrapping in Promise is necessary
     // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const reader = new FileReader()
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
       reader.onloadend = () => resolve(reader.result as string)
@@ -192,9 +193,9 @@ export const PromptInputProvider = ({
       return
     }
 
-    setAttachmentFiles(prev => [
+    setAttachmentFiles((prev) => [
       ...prev,
-      ...incoming.map(file => ({
+      ...incoming.map((file) => ({
         filename: file.name,
         id: nanoid(),
         mediaType: file.type,
@@ -205,17 +206,17 @@ export const PromptInputProvider = ({
   }, [])
 
   const remove = useCallback((id: string) => {
-    setAttachmentFiles(prev => {
-      const found = prev.find(f => f.id === id)
+    setAttachmentFiles((prev) => {
+      const found = prev.find((f) => f.id === id)
       if (found?.url) {
         URL.revokeObjectURL(found.url)
       }
-      return prev.filter(f => f.id !== id)
+      return prev.filter((f) => f.id !== id)
     })
   }, [])
 
   const clear = useCallback(() => {
-    setAttachmentFiles(prev => {
+    setAttachmentFiles((prev) => {
       for (const f of prev) {
         if (f.url) {
           URL.revokeObjectURL(f.url)
@@ -369,7 +370,7 @@ export type PromptInputProps = Omit<
   HTMLAttributes<HTMLFormElement>,
   'onSubmit' | 'onError'
 > & {
-  // e.g., "image/*" or leave undefined for any
+  // E.g., "image/*" or leave undefined for any
   accept?: string
   multiple?: boolean
   // When true, accepts drops anywhere on document. Default false (opt-in).
@@ -378,7 +379,7 @@ export type PromptInputProps = Omit<
   syncHiddenInput?: boolean
   // Minimal constraints
   maxFiles?: number
-  // bytes
+  // Bytes
   maxFileSize?: number
   onError?: (err: {
     code: 'max_files' | 'max_file_size' | 'accept'
@@ -406,7 +407,7 @@ const usePromptInputView = ({
   const t = useI18nText()
   // Try to use a provider controller if present
   const controller = useOptionalPromptInputController()
-  const usingProvider = !!controller
+  const usingProvider = Boolean(controller)
 
   // Refs
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -414,7 +415,7 @@ const usePromptInputView = ({
 
   // ----- Local attachments (only used when no provider)
   const [items, setItems] = useState<(FileUIPart & { id: string })[]>([])
-  const files = usingProvider ? controller.attachments.files : items
+  const files = controller?.attachments.files ?? items
 
   // ----- Local referenced sources (always local to PromptInput)
   const [referencedSources, setReferencedSources] = useState<
@@ -446,9 +447,9 @@ const usePromptInputView = ({
         return items
       }, [])
 
-      return patterns.some(pattern => {
+      return patterns.some((pattern) => {
         if (pattern.endsWith('/*')) {
-          // e.g: image/* -> image/
+          // E.g: image/* -> image/
           const prefix = pattern.slice(0, -1)
           return f.type.startsWith(prefix)
         }
@@ -461,7 +462,7 @@ const usePromptInputView = ({
   const addLocal = useCallback(
     (fileList: File[] | FileList) => {
       const incoming = [...fileList]
-      const accepted = incoming.filter(f => matchesAccept(f))
+      const accepted = incoming.filter((f) => matchesAccept(f))
       if (incoming.length && accepted.length === 0) {
         onError?.({
           code: 'accept',
@@ -480,7 +481,7 @@ const usePromptInputView = ({
         return
       }
 
-      setItems(prev => {
+      setItems((prev) => {
         const capacity =
           typeof maxFiles === 'number'
             ? Math.max(0, maxFiles - prev.length)
@@ -511,12 +512,12 @@ const usePromptInputView = ({
 
   const removeLocal = useCallback(
     (id: string) =>
-      setItems(prev => {
-        const found = prev.find(file => file.id === id)
+      setItems((prev) => {
+        const found = prev.find((file) => file.id === id)
         if (found?.url) {
           URL.revokeObjectURL(found.url)
         }
-        return prev.filter(file => file.id !== id)
+        return prev.filter((file) => file.id !== id)
       }),
     [],
   )
@@ -525,7 +526,7 @@ const usePromptInputView = ({
   const addWithProviderValidation = useCallback(
     (fileList: File[] | FileList) => {
       const incoming = [...fileList]
-      const accepted = incoming.filter(f => matchesAccept(f))
+      const accepted = incoming.filter((f) => matchesAccept(f))
       if (incoming.length && accepted.length === 0) {
         onError?.({
           code: 'accept',
@@ -569,7 +570,7 @@ const usePromptInputView = ({
     () =>
       usingProvider
         ? controller?.attachments.clear()
-        : setItems(prev => {
+        : setItems((prev) => {
             for (const file of prev) {
               if (file.url) {
                 URL.revokeObjectURL(file.url)
@@ -583,10 +584,9 @@ const usePromptInputView = ({
   const clearReferencedSources = useCallback(() => setReferencedSources([]), [])
 
   const add = usingProvider ? addWithProviderValidation : addLocal
-  const remove = usingProvider ? controller.attachments.remove : removeLocal
-  const openFileDialog = usingProvider
-    ? controller.attachments.openFileDialog
-    : openFileDialogLocal
+  const remove = controller?.attachments.remove ?? removeLocal
+  const openFileDialog =
+    controller?.attachments.openFileDialog ?? openFileDialogLocal
 
   const clear = useCallback(() => {
     clearAttachments()
@@ -595,11 +595,11 @@ const usePromptInputView = ({
 
   // Let provider know about our hidden file input so external menus can call openFileDialog()
   useEffect(() => {
-    if (!usingProvider) {
+    if (!controller) {
       return
     }
     controller.__registerFileInput(inputRef, () => inputRef.current?.click())
-  }, [usingProvider, controller])
+  }, [controller])
 
   // Note: File input cannot be programmatically set for security reasons
   // The syncHiddenInput prop is no longer functional
@@ -616,7 +616,7 @@ const usePromptInputView = ({
       return
     }
     if (globalDrop) {
-      // when global drop is on, let the document-level handler own drops
+      // When global drop is on, let the document-level handler own drops
       return
     }
 
@@ -682,7 +682,7 @@ const usePromptInputView = ({
   )
 
   const addSelectedFiles: ChangeEventHandler<HTMLInputElement> = useCallback(
-    event => {
+    (event) => {
       if (event.currentTarget.files) {
         add(event.currentTarget.files)
       }
@@ -697,7 +697,7 @@ const usePromptInputView = ({
       add,
       clear: clearAttachments,
       fileInputRef: inputRef,
-      files: files.map(item => ({ ...item, id: item.id })),
+      files: files.map((item) => ({ ...item, id: item.id })),
       openFileDialog,
       remove,
     }),
@@ -708,14 +708,14 @@ const usePromptInputView = ({
     () => ({
       add: (incoming: SourceDocumentUIPart[] | SourceDocumentUIPart) => {
         const array = Array.isArray(incoming) ? incoming : [incoming]
-        setReferencedSources(prev => [
+        setReferencedSources((prev) => [
           ...prev,
-          ...array.map(s => ({ ...s, id: nanoid() })),
+          ...array.map((s) => ({ ...s, id: nanoid() })),
         ])
       },
       clear: clearReferencedSources,
       remove: (id: string) => {
-        setReferencedSources(prev => prev.filter(s => s.id !== id))
+        setReferencedSources((prev) => prev.filter((s) => s.id !== id))
       },
       sources: referencedSources,
     }),
@@ -723,11 +723,11 @@ const usePromptInputView = ({
   )
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
-    async event => {
+    async (event) => {
       event.preventDefault()
 
       const form = event.currentTarget
-      const text = usingProvider
+      const text = controller
         ? controller.textInput.value
         : (() => {
             const formData = new FormData(form)
@@ -735,7 +735,7 @@ const usePromptInputView = ({
           })()
 
       // Reset form immediately after capturing text to avoid race condition
-      // where user input during async blob conversion would be lost
+      // Where user input during async blob conversion would be lost
       if (!usingProvider) {
         form.reset()
       }
@@ -763,7 +763,7 @@ const usePromptInputView = ({
           try {
             await result
             clear()
-            if (usingProvider) {
+            if (controller) {
               controller.textInput.clear()
             }
           } catch {
@@ -772,7 +772,7 @@ const usePromptInputView = ({
         } else {
           // Sync function completed without throwing, clear inputs
           clear()
-          if (usingProvider) {
+          if (controller) {
             controller.textInput.clear()
           }
         }
@@ -847,7 +847,7 @@ export const PromptInputTextarea = ({
   const isComposingRef = useRef(false)
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
-    e => {
+    (e) => {
       // Call the external onKeyDown handler first
       onKeyDown?.(e)
 
@@ -894,7 +894,7 @@ export const PromptInputTextarea = ({
   )
 
   const handlePaste: ClipboardEventHandler<HTMLTextAreaElement> = useCallback(
-    event => {
+    (event) => {
       const items = event.clipboardData?.items
 
       if (!items) {
@@ -1091,7 +1091,7 @@ export const PromptInputActionMenuItem = ({
 )
 
 // Note: Actions that perform side-effects (like opening a file dialog)
-// are provided in opt-in modules (e.g., prompt-input-attachments).
+// Are provided in opt-in modules (e.g., prompt-input-attachments).
 
 export type PromptInputSubmitProps = ComponentProps<typeof InputGroupButton> & {
   status?: ChatStatus

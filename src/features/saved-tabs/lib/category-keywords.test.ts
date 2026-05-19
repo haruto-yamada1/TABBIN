@@ -5,6 +5,7 @@ vi.mock('@/lib/storage/tabs', () => ({
 }))
 
 import { setCategoryKeywords } from '@/lib/storage/tabs'
+
 import { handleSaveKeywords } from './category-keywords'
 
 describe('handleSaveKeywords関数', () => {

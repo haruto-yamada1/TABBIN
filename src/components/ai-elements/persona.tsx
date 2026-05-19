@@ -10,6 +10,7 @@ import {
 } from '@rive-app/react-webgl2'
 import type { FC, ReactNode } from 'react'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
+
 import { cn } from '@/lib/utils'
 
 export type PersonaState =
@@ -211,20 +212,20 @@ export const Persona: FC<PersonaProps> = memo(
 
     const stableCallbacks = useMemo(
       () => ({
-        onLoad: (loadedRive =>
+        onLoad: ((loadedRive) =>
           callbacksRef.current.onLoad?.(
             loadedRive,
           )) as RiveParameters['onLoad'],
-        onLoadError: (err =>
+        onLoadError: ((err) =>
           callbacksRef.current.onLoadError?.(
             err,
           )) as RiveParameters['onLoadError'],
-        onPause: (event =>
+        onPause: ((event) =>
           callbacksRef.current.onPause?.(event)) as RiveParameters['onPause'],
-        onPlay: (event =>
+        onPlay: ((event) =>
           callbacksRef.current.onPlay?.(event)) as RiveParameters['onPlay'],
         onReady: () => callbacksRef.current.onReady?.(),
-        onStop: (event =>
+        onStop: ((event) =>
           callbacksRef.current.onStop?.(event)) as RiveParameters['onStop'],
       }),
       [],

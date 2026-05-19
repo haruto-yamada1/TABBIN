@@ -2,7 +2,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { CustomProject, UserSettings } from '@/types/storage'
+
 import { useProjectManagement } from './useProjectManagement'
 
 const projectManagementMocks = vi.hoisted(() => ({
@@ -196,7 +198,7 @@ describe('useProjectManagement', () => {
     let resolveProjects: (projects: CustomProject[]) => void = () => undefined
     projectManagementMocks.getCustomProjects.mockImplementationOnce(
       () =>
-        new Promise<CustomProject[]>(resolve => {
+        new Promise<CustomProject[]>((resolve) => {
           resolveProjects = resolve
         }),
     )
@@ -272,7 +274,7 @@ describe('useProjectManagement', () => {
     let resolveCreate: (value: CustomProject) => void = () => undefined
     projectManagementMocks.createCustomProject.mockImplementation(
       () =>
-        new Promise<CustomProject>(resolve => {
+        new Promise<CustomProject>((resolve) => {
           resolveCreate = resolve
         }),
     )
@@ -492,7 +494,7 @@ describe('useProjectManagement', () => {
       'Inbox',
       'Later',
     )
-    expect(result.current.customProjects.map(project => project.id)).toEqual([
+    expect(result.current.customProjects.map((project) => project.id)).toEqual([
       'project-1',
       'project-2',
     ])
@@ -531,7 +533,7 @@ describe('useProjectManagement', () => {
       await result.current.handleReorderProjects(['project-2'])
     })
 
-    expect(result.current.customProjects.map(project => project.id)).toEqual([
+    expect(result.current.customProjects.map((project) => project.id)).toEqual([
       'project-2',
       'project-1',
       'project-3',

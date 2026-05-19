@@ -1,5 +1,6 @@
 import { ThemeProvider as NextThemeProvider } from 'next-themes'
 import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -10,13 +11,13 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel'
 import {
-  type ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
+import type { ChartConfig } from '@/components/ui/chart'
 import {
   Sidebar,
   SidebarContent,
@@ -84,7 +85,7 @@ const DataShowcase = () => (
       <div className='mx-12'>
         <Carousel>
           <CarouselContent>
-            {['Inbox', 'Focus', 'Research'].map(item => (
+            {['Inbox', 'Focus', 'Research'].map((item) => (
               <CarouselItem className='md:basis-1/2' key={item}>
                 <Card>
                   <CardHeader>
