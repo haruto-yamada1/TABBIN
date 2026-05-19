@@ -1,13 +1,14 @@
 // @covers components/ui/loading-state.tsx
 import type { Meta, StoryObj } from '@storybook/react'
+
 import { LoadingState } from './loading-state'
 
 export default {
-  title: 'UI/LoadingState',
-  component: LoadingState,
   args: {
     minHeightClassName: 'min-h-[200px]',
   },
+  component: LoadingState,
+  title: 'UI/LoadingState',
 } satisfies Meta<typeof LoadingState>
 
 type Story = StoryObj<typeof LoadingState>

@@ -18,10 +18,10 @@ applyTo: "**/*"
 - `bun run compile`: TypeScript の型チェックを実行します（`tsgo --noEmit`）。
 - `bun run test` / `bun run test:coverage`: Vitest テストを実行します（coverage は任意）。
 - `bun run e2e`: Playwright のブラウザテストを実行します。
-- `bun run quality`: format、lint、Biome check、test、Knip、重複チェックを実行します。
+- `bun run quality`: format、lint、test、Knip、重複チェックを実行します。
 
 ## コーディングスタイルと命名規則
-TypeScript + React を ES modules で使います。format / lint は Biome（`biome.json`）で強制されます。2 スペースインデント、80 文字幅、シングルクォート、セミコロンなし（`asNeeded`）です。import 整理は Biome に任せてください。
+TypeScript + React を ES modules で使います。format は oxfmt（`.oxfmtrc.json`）、lint は Oxlint（`.oxlintrc.json`）で強制されます。2 スペースインデント、80 文字幅、シングルクォート、セミコロンなしです。import 整理は oxfmt の `sortImports` に任せてください。
 
 React コンポーネントは `PascalCase.tsx`（例: `ImportExportSettings.tsx`）、ユーティリティや定数は `camelCase.ts`（例: `autoDeleteOptions.ts`）を使います。現実的な範囲で、テストは検証対象のコードの近くに置いてください。
 

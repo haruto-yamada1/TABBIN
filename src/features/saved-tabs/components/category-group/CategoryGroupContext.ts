@@ -1,7 +1,9 @@
 import type { useSortable } from '@dnd-kit/sortable'
+
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
+
 import type { useCategoryGroupState } from '../../hooks/useCategoryGroupState'
 
 /** CategoryGroup のコンテキスト型 */

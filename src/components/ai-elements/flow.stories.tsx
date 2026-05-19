@@ -6,15 +6,13 @@
 // @covers components/ai-elements/panel.tsx
 // @covers components/ai-elements/toolbar.tsx
 import type { Meta, StoryObj } from '@storybook/react'
-import {
-  type Edge as FlowEdge,
-  type Node as FlowNode,
-  MarkerType,
-  Position,
-} from '@xyflow/react'
+import { MarkerType, Position } from '@xyflow/react'
+import type { Edge as FlowEdge, Node as FlowNode } from '@xyflow/react'
 import { Eye, WandSparkles } from 'lucide-react'
 import type { ReactElement } from 'react'
+
 import { Button } from '@/components/ui/button'
+
 import { Canvas } from './canvas'
 import { Connection } from './connection'
 import { Controls } from './controls'
@@ -32,11 +30,11 @@ import { Panel } from './panel'
 import { Toolbar } from './toolbar'
 
 export default {
-  title: 'AI Elements/Flow',
   component: Canvas,
   parameters: {
     layout: 'fullscreen',
   },
+  title: 'AI Elements/Flow',
 } satisfies Meta<typeof Canvas>
 
 type Story = StoryObj<typeof Canvas>

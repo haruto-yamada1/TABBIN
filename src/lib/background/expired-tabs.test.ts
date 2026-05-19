@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { TabGroup } from '@/types/storage'
+
 import {
   checkAndRemoveExpiredTabs,
   getExpirationPeriodMs,
@@ -365,7 +367,7 @@ describe('expired-tabs ユーティリティ', () => {
         ],
       })
       expect(
-        store.savedTabs?.every(group => group.savedAt === now - 40000),
+        store.savedTabs?.every((group) => group.savedAt === now - 40000),
       ).toBe(true)
     })
     it('1min 期間ではテストオフセットを使う', async () => {

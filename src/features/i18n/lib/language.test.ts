@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import * as messagesModule from '@/features/i18n/messages'
+
 import { getMessage, resolveLanguage, resolveUiLanguage } from './language'
 
 describe('language helpers', () => {
@@ -40,7 +42,7 @@ describe('language helpers', () => {
   })
 
   it('日本語に未翻訳のキーがあれば英語へフォールバックする', () => {
-    vi.spyOn(messagesModule, 'getMessages').mockImplementation(language => {
+    vi.spyOn(messagesModule, 'getMessages').mockImplementation((language) => {
       if (language === 'ja') {
         return {} as ReturnType<typeof messagesModule.getMessages>
       }

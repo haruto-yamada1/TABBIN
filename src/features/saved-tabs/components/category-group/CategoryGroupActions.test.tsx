@@ -42,7 +42,7 @@ vi.mock('../shared/CardGroupActions', () => ({
     return (
       <button
         onClick={() => {
-          void (props.onDeleteAll as (() => void) | undefined)?.()
+          ;(props.onDeleteAll as (() => void) | undefined)?.()
         }}
         type='button'
       >

@@ -1,4 +1,5 @@
 import { memo } from 'react'
+
 import type { CustomProjectCardProps } from '../types/CustomProjectCard.types'
 import { ProjectCardCategoryList } from './project-card/ProjectCardCategoryList'
 import { ProjectCardDragOverlay } from './project-card/ProjectCardDragOverlay'
@@ -40,23 +41,23 @@ const CustomProjectCard = memo(
       isProjectReorderMode={isProjectReorderMode}
       isCrossProjectUrlDragActive={isCrossProjectUrlDragActive}
       handlers={{
-        handleOpenUrl,
-        handleDeleteUrl,
         handleAddCategory,
         handleDeleteCategory,
-        handleRenameCategory,
-        handleSetUrlCategory,
-        handleOpenAllUrls,
         handleDeleteProject,
-        handleRenameProject,
-        handleUpdateProjectKeywords,
+        handleDeleteUrl,
         handleDeleteUrlsFromProject,
+        handleOpenAllUrls,
+        handleOpenUrl,
+        handleRenameCategory,
+        handleRenameProject,
+        handleSetUrlCategory,
+        handleUpdateProjectKeywords,
       }}
       hookHandlers={{
         handleDeleteUrl,
+        handleReorderUrls,
         handleSetUrlCategory,
         handleUpdateCategoryOrder,
-        handleReorderUrls,
       }}
     >
       <ProjectCardCategoryList />

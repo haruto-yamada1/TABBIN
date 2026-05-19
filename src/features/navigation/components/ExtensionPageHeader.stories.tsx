@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react'
+
 import { ExtensionPageHeader } from './ExtensionPageHeader'
 
 const meta = {
-  title: 'Features/Navigation/ExtensionPageHeader',
-  component: ExtensionPageHeader,
   args: {
     title: '保存済みタブ',
   },
+  component: ExtensionPageHeader,
+  title: 'Features/Navigation/ExtensionPageHeader',
 } satisfies Meta<typeof ExtensionPageHeader>
 
 type Story = StoryObj<typeof ExtensionPageHeader>

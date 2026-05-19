@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { inferUserInterests } from './inferInterests'
 
 describe('inferUserInterests', () => {

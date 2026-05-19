@@ -5,7 +5,7 @@
 import type { AutoDeletePeriod } from '@/types/background'
 import type { TabGroup } from '@/types/storage'
 
-const AUTO_DELETE_PERIODS: AutoDeletePeriod[] = [
+const AUTO_DELETE_PERIODS = new Set<AutoDeletePeriod>([
   'never',
   '30sec',
   '1min',
@@ -16,11 +16,11 @@ const AUTO_DELETE_PERIODS: AutoDeletePeriod[] = [
   '30days',
   '180days',
   '365days',
-]
+])
 export const isAutoDeletePeriod = (
   period: string,
 ): period is AutoDeletePeriod => {
-  return AUTO_DELETE_PERIODS.includes(period as AutoDeletePeriod)
+  return AUTO_DELETE_PERIODS.has(period as AutoDeletePeriod)
 }
 /**
  * 期限の文字列を対応するミリ秒に変換
@@ -34,29 +34,39 @@ export const getExpirationPeriodMs = (
 
   // テスト用に30秒も追加
   switch (period) {
-    case '30sec':
+    case '30sec': {
       return 30 * 1000
+    }
     // テスト用30秒
-    case '1min':
+    case '1min': {
       return minute
-    case '1hour':
+    }
+    case '1hour': {
       return hour
-    case '1day':
+    }
+    case '1day': {
       return day
-    case '7days':
+    }
+    case '7days': {
       return 7 * day
-    case '14days':
+    }
+    case '14days': {
       return 14 * day
-    case '30days':
+    }
+    case '30days': {
       return 30 * day
-    case '180days':
+    }
+    case '180days': {
       return 180 * day
+    }
     // 約6ヶ月
-    case '365days':
+    case '365days': {
       return 365 * day
+    }
     // 1年
-    default:
+    default: {
       return null
+    }
     // "never" または無効な値
   }
 }
@@ -116,7 +126,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
     const updatedTabs = savedTabs.reduce<TabGroup[]>((groups, group) => {
       const originalUrls = group.urls ?? []
       const originalUrlCount = originalUrls.length
-      const filteredUrls = originalUrls.filter(urlEntry => {
+      const filteredUrls = originalUrls.filter((urlEntry) => {
         const urlSavedAt = urlEntry.savedAt ?? group.savedAt ?? currentTime
         const isUrlExpired = urlSavedAt < cutoffTime
         if (isUrlExpired) {
@@ -141,7 +151,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 
     // 更新後のURL数を計算
     const updatedUrlCount: number = updatedTabs.reduce(
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       (acc: number, g) => acc + (g.urls?.length ?? 0),
       0,
     )

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+
 import { formatFixedDatetime } from './localDateTime'
 
 interface TimeRemainingResponse {
@@ -63,9 +64,8 @@ const applyTimeRemainingResponse = (
  * @param timestamp ミリ秒タイムスタンプ
  * @returns フォーマットされた日時文字列
  */
-export const formatDatetime = (timestamp?: number): string => {
-  return formatFixedDatetime(timestamp)
-}
+export const formatDatetime = (timestamp?: number): string =>
+  formatFixedDatetime(timestamp)
 /**
  * 残り時間を表示するコンポーネント
  *
@@ -94,10 +94,10 @@ export const TimeRemaining = ({
       chrome.runtime.sendMessage(
         {
           action: 'calculateTimeRemaining',
-          savedAt,
           autoDeletePeriod,
+          savedAt,
         },
-        response =>
+        (response) =>
           applyTimeRemainingResponse(response, setTimeLeft, setColorClass),
       )
     }
@@ -106,7 +106,7 @@ export const TimeRemaining = ({
     calculateTimeLeft()
 
     // 1分ごとに更新
-    const timer = setInterval(calculateTimeLeft, 60000)
+    const timer = setInterval(calculateTimeLeft, 60_000)
     return () => clearInterval(timer)
   }, [savedAt, autoDeletePeriod])
   if (!timeLeft) {

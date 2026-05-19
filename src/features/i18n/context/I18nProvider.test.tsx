@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { LanguageSetting } from '@/features/i18n/messages'
+
 import {
   I18nProvider,
   getFallbackText,

@@ -31,52 +31,54 @@ export const buildAiSavedUrlRecords = ({
   parentCategories,
 }: BuildAiSavedUrlRecordsInput): AiSavedUrlRecord[] =>
   urlRecords
-    .map(record => {
-      const matchingGroups = savedTabs.filter(group =>
+    .map((record) => {
+      const matchingGroups = savedTabs.filter((group) =>
         group.urlIds?.includes(record.id),
       )
-      const matchingProjects = customProjects.filter(project =>
+      const matchingProjects = customProjects.filter((project) =>
         project.urlIds?.includes(record.id),
       )
       const subCategories = unique(
-        matchingGroups.flatMap(group => {
+        matchingGroups.flatMap((group) => {
           const value = group.urlSubCategories?.[record.id]
           return typeof value === 'string' ? [value] : []
         }),
       )
       const projectCategories = unique(
-        matchingProjects.flatMap(project => {
+        matchingProjects.flatMap((project) => {
           const value = project.urlMetadata?.[record.id]?.category
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           return typeof value === 'string' ? [value] : []
         }),
       )
       const parentCategoryNames = unique(
-        matchingGroups.flatMap(group =>
+        matchingGroups.flatMap((group) =>
           parentCategories.flatMap(
-            category =>
+            (category) =>
               category.domains.includes(group.id) ||
               category.domainNames.includes(group.domain)
                 ? [category.name]
-                : /* v8 ignore next -- coverage-only defensive branch. */
-                  /* v8 ignore start -- coverage-only defensive branch. */
+                : /* V8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore start -- coverage-only defensive branch. */
                   [],
-            /* v8 ignore stop */
+            /* V8 ignore stop */
           ),
         ),
       )
 
       return {
-        id: record.id,
-        url: record.url,
-        title: record.title,
         domain: getDomainFromUrl(record.url),
-        savedAt: record.savedAt,
-        savedInTabGroups: unique(matchingGroups.map(group => group.domain)),
-        savedInProjects: unique(matchingProjects.map(project => project.name)),
-        subCategories,
-        projectCategories,
+        id: record.id,
         parentCategories: parentCategoryNames,
+        projectCategories,
+        savedAt: record.savedAt,
+        savedInProjects: unique(
+          matchingProjects.map((project) => project.name),
+        ),
+        savedInTabGroups: unique(matchingGroups.map((group) => group.domain)),
+        subCategories,
+        title: record.title,
+        url: record.url,
       }
     })
     .sort((left, right) => right.savedAt - left.savedAt)
@@ -86,11 +88,10 @@ export const findUrlsAddedInMonth = (
   year: number,
   month: number,
   timeZone?: string,
-): AiSavedUrlRecord[] => {
-  return records.filter(record =>
+): AiSavedUrlRecord[] =>
+  records.filter((record) =>
     isTimestampInLocalMonth(record.savedAt, year, month, timeZone),
   )
-}
 
 export const searchSavedUrls = (
   records: AiSavedUrlRecord[],
@@ -102,7 +103,7 @@ export const searchSavedUrls = (
     return records
   }
 
-  return records.filter(record => {
+  return records.filter((record) => {
     const haystacks = [
       record.title,
       record.url,
@@ -113,7 +114,7 @@ export const searchSavedUrls = (
       ...record.parentCategories,
     ]
 
-    return haystacks.some(value =>
+    return haystacks.some((value) =>
       value.toLowerCase().includes(normalizedQuery),
     )
   })

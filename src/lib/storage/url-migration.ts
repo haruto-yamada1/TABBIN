@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
+
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
+
 import { invalidateUrlCache } from './urls'
 
 /** モジュールスコープのメモ化フラグ（ページセッション中の重複ストレージアクセスを防ぐ） */
@@ -11,9 +13,6 @@ interface UrlMapEntry {
 }
 
 type UrlMap = Map<string, UrlMapEntry>
-type LegacyTabUrl = NonNullable<TabGroup['urls']>[number]
-type LegacyProjectUrl = NonNullable<CustomProject['urls']>[number]
-
 interface UrlMigrationData {
   existingUrls: UrlRecord[]
   savedTabs: TabGroup[]
@@ -60,22 +59,22 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
   return {
     existingUrls: Array.isArray(existingUrlsResult.urls)
       ? (existingUrlsResult.urls as UrlRecord[])
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         [],
-    /* v8 ignore stop */
+    /* V8 ignore stop */
     savedTabs: Array.isArray(savedTabsResult.savedTabs)
-      ? (savedTabsResult.savedTabs as TabGroup[])
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      ? savedTabsResult.savedTabs
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         [],
-    /* v8 ignore stop */
+    /* V8 ignore stop */
     customProjects: Array.isArray(customProjectsResult.customProjects)
-      ? (customProjectsResult.customProjects as CustomProject[])
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      ? customProjectsResult.customProjects
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         [],
-    /* v8 ignore stop */
+    /* V8 ignore stop */
   }
 }
 
@@ -116,7 +115,7 @@ const upsertUrlEntry = (
   const newRecord: UrlRecord = {
     id: uuidv4(),
     url: legacyUrl.url,
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     title: legacyUrl.title || '',
     savedAt: legacyUrl.savedAt || Date.now(),
     favIconUrl: undefined,
@@ -132,18 +131,18 @@ const upsertUrlEntry = (
 }
 
 const migrateTabGroupUrls = (tabGroup: TabGroup, urlMap: UrlMap): void => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (
     !(tabGroup.urls && Array.isArray(tabGroup.urls) && tabGroup.urls.length > 0)
   ) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return
   }
 
   const urlIds: string[] = []
   const urlSubCategories: Record<string, string> = {}
 
-  for (const urlItem of tabGroup.urls as LegacyTabUrl[]) {
+  for (const urlItem of tabGroup.urls) {
     const urlEntry = upsertUrlEntry(urlMap, urlItem)
     urlIds.push(urlEntry.id)
 
@@ -154,7 +153,7 @@ const migrateTabGroupUrls = (tabGroup: TabGroup, urlMap: UrlMap): void => {
 
   tabGroup.urlIds = urlIds
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (Object.keys(urlSubCategories).length > 0) {
     tabGroup.urlSubCategories = urlSubCategories
   }
@@ -164,11 +163,11 @@ const migrateTabGroupUrls = (tabGroup: TabGroup, urlMap: UrlMap): void => {
 }
 
 const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (
     !(project.urls && Array.isArray(project.urls) && project.urls.length > 0)
   ) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return
   }
 
@@ -181,7 +180,7 @@ const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
     }
   > = {}
 
-  for (const urlItem of project.urls as LegacyProjectUrl[]) {
+  for (const urlItem of project.urls) {
     const urlEntry = upsertUrlEntry(urlMap, urlItem)
     urlIds.push(urlEntry.id)
 
@@ -205,7 +204,7 @@ const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
 
   project.urlIds = urlIds
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (Object.keys(urlMetadata).length > 0) {
     project.urlMetadata = urlMetadata
   }
@@ -219,12 +218,12 @@ const persistUrlsMigrationResult = async (
   savedTabs: TabGroup[],
   customProjects: CustomProject[],
 ): Promise<void> => {
-  const allUrlRecords = Array.from(urlMap.values()).map(entry => entry.record)
+  const allUrlRecords = [...urlMap.values()].map((entry) => entry.record)
 
   await chrome.storage.local.set({
-    urls: allUrlRecords,
-    savedTabs,
     customProjects,
+    savedTabs,
+    urls: allUrlRecords,
     urlsMigrationCompleted: true,
   })
 

@@ -1,5 +1,6 @@
 import { Check, Plus, X } from 'lucide-react'
 import { useRef, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,11 +34,11 @@ const NewSubCategoryField = ({
       id='new-subcategory'
       type='text'
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value)}
       onBlur={onAdd}
       placeholder={placeholder}
       className='w-full rounded border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
-      onKeyDown={e => {
+      onKeyDown={(e) => {
         if (e.key === 'Enter') {
           e.preventDefault()
           onAdd()
@@ -87,7 +88,7 @@ const useSubCategoryKeywordManagerView = ({
     }
     setActiveCategory(categoryName)
     const categoryKeywords = tabGroup.categoryKeywords?.find(
-      ck => ck.categoryName === categoryName,
+      (ck) => ck.categoryName === categoryName,
     )
     setKeywords(categoryKeywords?.keywords || [])
   }
@@ -98,7 +99,8 @@ const useSubCategoryKeywordManagerView = ({
       // 重複チェックを追加
       if (
         keywords.some(
-          keyword => keyword.toLowerCase() === newKeyword.trim().toLowerCase(),
+          (keyword) =>
+            keyword.toLowerCase() === newKeyword.trim().toLowerCase(),
         )
       ) {
         alert(t('savedTabs.keywords.duplicate'))
@@ -109,7 +111,7 @@ const useSubCategoryKeywordManagerView = ({
       setKeywords(updatedKeywords)
       setCategoryKeywords(tabGroup.id, activeCategory, updatedKeywords)
         .then(() => setNewKeyword(''))
-        .catch(err => console.error('キーワード保存エラー:', err))
+        .catch((error) => console.error('キーワード保存エラー:', error))
     }
   }
 
@@ -118,7 +120,7 @@ const useSubCategoryKeywordManagerView = ({
     if (activeCategory) {
       try {
         // キーワードをフィルタリング
-        const updatedKeywords = keywords.filter(k => k !== keywordToRemove)
+        const updatedKeywords = keywords.filter((k) => k !== keywordToRemove)
 
         // UI状態を先に更新
         setKeywords(updatedKeywords)
@@ -132,7 +134,7 @@ const useSubCategoryKeywordManagerView = ({
 
         // エラー時はキーワードリストを再取得して状態を元に戻す
         const categoryKeywords = tabGroup.categoryKeywords?.find(
-          ck => ck.categoryName === activeCategory,
+          (ck) => ck.categoryName === activeCategory,
         )
         setKeywords(categoryKeywords?.keywords || [])
 
@@ -156,11 +158,11 @@ const useSubCategoryKeywordManagerView = ({
       // 子カテゴリを追加
       const updatedTabGroup = {
         ...tabGroup,
-        subCategories: [...(tabGroup.subCategories || []), categoryName],
         categoryKeywords: [
           ...(tabGroup.categoryKeywords || []),
           { categoryName, keywords: [] },
         ],
+        subCategories: [...(tabGroup.subCategories || []), categoryName],
       }
 
       const success = await updateTabGroup(updatedTabGroup)
@@ -178,7 +180,7 @@ const useSubCategoryKeywordManagerView = ({
 
     try {
       // 確認ダイアログを一時的にスキップ (問題特定のため)
-      // if (confirm(`子カテゴリ "${categoryToRemove}" を削除してもよろしいですか？`)) {
+      // If (confirm(`子カテゴリ "${categoryToRemove}" を削除してもよろしいですか？`)) {
 
       // 選択中のカテゴリを削除する場合は選択を解除
       if (activeCategory === categoryToRemove) {
@@ -186,7 +188,7 @@ const useSubCategoryKeywordManagerView = ({
         setKeywords([])
       }
 
-      // saved-tabs/main.tsxのパターンに基づく直接的な実装
+      // Saved-tabs/main.tsxのパターンに基づく直接的な実装
       console.log('削除するカテゴリ:', categoryToRemove)
       console.log('タブグループID:', tabGroup.id)
 
@@ -224,8 +226,8 @@ const useSubCategoryKeywordManagerView = ({
       // グループを更新
       const updatedGroup = {
         ...groupToUpdate,
-        subCategories: updatedSubCategories,
         categoryKeywords: updatedCategoryKeywords,
+        subCategories: updatedSubCategories,
       }
 
       // 保存
@@ -316,11 +318,12 @@ const useSubCategoryKeywordManagerView = ({
       if (tab.id === tabGroup.id) {
         // 1. subCategories配列を更新
         const updatedSubCategories =
-          tab.subCategories?.map(cat => (cat === oldName ? newName : cat)) || []
+          tab.subCategories?.map((cat) => (cat === oldName ? newName : cat)) ||
+          []
 
         // 2. categoryKeywords内の該当カテゴリを更新
         const updatedCategoryKeywords =
-          tab.categoryKeywords?.map(ck => {
+          tab.categoryKeywords?.map((ck) => {
             if (ck.categoryName === oldName) {
               return { ...ck, categoryName: newName }
             }
@@ -328,7 +331,7 @@ const useSubCategoryKeywordManagerView = ({
           }) || []
 
         // 3. 各URLのサブカテゴリ参照を更新
-        const updatedUrls = (tab.urls || []).map(url => {
+        const updatedUrls = (tab.urls || []).map((url) => {
           if (url.subCategory === oldName) {
             return { ...url, subCategory: newName }
           }
@@ -337,22 +340,23 @@ const useSubCategoryKeywordManagerView = ({
 
         // 4. カテゴリ順序配列があれば更新
         const updatedSubCategoryOrder =
-          tab.subCategoryOrder?.map(cat => (cat === oldName ? newName : cat)) ||
-          []
+          tab.subCategoryOrder?.map((cat) =>
+            cat === oldName ? newName : cat,
+          ) || []
 
         const updatedSubCategoryOrderWithUncategorized =
-          tab.subCategoryOrderWithUncategorized?.map(cat =>
+          tab.subCategoryOrderWithUncategorized?.map((cat) =>
             cat === oldName ? newName : cat,
           ) || []
 
         return {
           ...tab,
-          subCategories: updatedSubCategories,
           categoryKeywords: updatedCategoryKeywords,
-          urls: updatedUrls,
+          subCategories: updatedSubCategories,
           subCategoryOrder: updatedSubCategoryOrder,
           subCategoryOrderWithUncategorized:
             updatedSubCategoryOrderWithUncategorized,
+          urls: updatedUrls,
         }
       }
       return tab
@@ -403,7 +407,7 @@ const useSubCategoryKeywordManagerView = ({
 
       {/* 子カテゴリボタン一覧 - レスポンシブ対応を改善 */}
       <div className='mb-3 flex flex-wrap gap-2'>
-        {tabGroup.subCategories.map(category => (
+        {tabGroup.subCategories.map((category) => (
           <div key={category} className='flex max-w-full items-center'>
             <Button
               type='button'
@@ -451,8 +455,8 @@ const useSubCategoryKeywordManagerView = ({
                   ref={renameInputRef}
                   type='text'
                   value={newCategoryName}
-                  onChange={e => setNewCategoryName(e.target.value)}
-                  onKeyDown={e => {
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
                       completeRename()
@@ -530,10 +534,10 @@ const useSubCategoryKeywordManagerView = ({
                 id={`keyword-input-${activeCategory}`}
                 type='text'
                 value={newKeyword}
-                onChange={e => setNewKeyword(e.target.value)}
+                onChange={(e) => setNewKeyword(e.target.value)}
                 placeholder={t('savedTabs.keywords.placeholder')}
                 className='grow rounded-l border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
-                onKeyDown={e => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     handleAddKeyword()
@@ -564,7 +568,7 @@ const useSubCategoryKeywordManagerView = ({
                 {t('savedTabs.keywords.empty')}
               </p>
             ) : (
-              keywords.map(keyword => (
+              keywords.map((keyword) => (
                 <div
                   key={keyword}
                   className='flex max-w-full items-center rounded bg-muted px-2 py-1 text-foreground text-sm'

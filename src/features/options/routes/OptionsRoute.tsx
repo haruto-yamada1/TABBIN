@@ -1,5 +1,6 @@
 import { Plus, RotateCcw, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+
 import { ModeToggle } from '@/components/mode-toggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -85,7 +86,7 @@ const useOptionsRouteView = () => {
 
   const updateFontSizePercent = async (value: number) => {
     const normalizedValue = normalizeFontSizePercent(value)
-    setFontSizeValues(prev => ({
+    setFontSizeValues((prev) => ({
       ...prev,
       fontSizeInputValue: String(normalizedValue),
     }))
@@ -109,7 +110,7 @@ const useOptionsRouteView = () => {
   const handleFontSizeInputChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    setFontSizeValues(prev => ({
+    setFontSizeValues((prev) => ({
       ...prev,
       fontSizeInputValue: event.target.value,
     }))
@@ -118,7 +119,7 @@ const useOptionsRouteView = () => {
   const commitFontSizeInputValue = async () => {
     const trimmedValue = fontSizeInputValue.trim()
     if (!trimmedValue) {
-      setFontSizeValues(prev => ({
+      setFontSizeValues((prev) => ({
         ...prev,
         fontSizeInputValue: String(fontSizePercent),
       }))
@@ -126,14 +127,14 @@ const useOptionsRouteView = () => {
     }
 
     const nextValue = Number(trimmedValue)
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (Number.isNaN(nextValue)) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      setFontSizeValues(prev => ({
+      /* V8 ignore next -- coverage-only defensive branch. */
+      setFontSizeValues((prev) => ({
         ...prev,
         fontSizeInputValue: String(fontSizePercent),
       }))
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -194,7 +195,7 @@ const useOptionsRouteView = () => {
   if (isLoading) {
     return <LoadingState minHeightClassName='min-h-[300px]' />
   }
-  const activeExcludePatterns = settings.excludePatterns.filter(pattern =>
+  const activeExcludePatterns = settings.excludePatterns.filter((pattern) =>
     pattern.trim(),
   )
 
@@ -234,7 +235,7 @@ const useOptionsRouteView = () => {
             </Label>
             <div className='gap-y-2'>
               <Select
-                /* v8 ignore next -- coverage-only defensive branch. */
+                /* V8 ignore next -- coverage-only defensive branch. */
                 value={settings.clickBehavior || 'saveWindowTabs'}
                 onValueChange={handleClickBehaviorChange}
               >
@@ -247,7 +248,7 @@ const useOptionsRouteView = () => {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {clickBehaviorOptions.map(option => (
+                  {clickBehaviorOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {t(option.labelKey)}
                     </SelectItem>
@@ -439,14 +440,14 @@ const useOptionsRouteView = () => {
             </div>
             <div className='mt-3 flex flex-wrap gap-2 rounded-md border border-border bg-background/40 p-3'>
               {activeExcludePatterns.length === 0 ? (
-                /* v8 ignore next -- coverage-only defensive branch. */
-                /* v8 ignore start -- coverage-only defensive branch. */
+                /* V8 ignore next -- coverage-only defensive branch. */
+                /* V8 ignore start -- coverage-only defensive branch. */
                 <p className='text-muted-foreground text-sm'>
                   {t('options.excludePatterns.empty')}
                 </p>
               ) : (
-                activeExcludePatterns.map(pattern => (
-                  /* v8 ignore stop */
+                activeExcludePatterns.map((pattern) => (
+                  /* V8 ignore stop */
                   <Badge
                     key={pattern}
                     variant='outline'
@@ -520,7 +521,7 @@ const useOptionsRouteView = () => {
                 max={MAX_FONT_SIZE_PERCENT}
                 step={FONT_SIZE_PERCENT_STEP}
                 value={fontSizeSliderValue}
-                onChange={event => {
+                onChange={(event) => {
                   void handleFontSizeSliderChange(event)
                 }}
                 onMouseUp={() => {
@@ -532,7 +533,7 @@ const useOptionsRouteView = () => {
                 onBlur={() => {
                   void commitFontSizeSliderValue()
                 }}
-                onKeyUp={event => {
+                onKeyUp={(event) => {
                   if (
                     ![
                       'ArrowLeft',
@@ -570,13 +571,13 @@ const useOptionsRouteView = () => {
                   max={MAX_FONT_SIZE_PERCENT}
                   step={FONT_SIZE_PERCENT_STEP}
                   value={fontSizeInputValue}
-                  onChange={event => {
+                  onChange={(event) => {
                     void handleFontSizeInputChange(event)
                   }}
                   onBlur={() => {
                     void commitFontSizeInputValue()
                   }}
-                  onKeyDown={event => {
+                  onKeyDown={(event) => {
                     if (event.key !== 'Enter') {
                       return
                     }

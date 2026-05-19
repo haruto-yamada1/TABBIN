@@ -6,6 +6,7 @@ import {
   useMemo,
   useReducer,
 } from 'react'
+
 import { colorOptions } from '@/constants/colorOptions'
 import { toFontScaleValue } from '@/constants/fontSize'
 import {
@@ -26,8 +27,8 @@ interface ThemeProviderState {
   setTheme: (theme: Theme) => void
 }
 const initialState: ThemeProviderState = {
-  theme: 'system',
   setTheme: () => null,
+  theme: 'system',
 }
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
@@ -74,7 +75,7 @@ export const ThemeProvider = ({
   useEffect(() => {
     const storageLocal = getChromeStorageLocal()
     if (storageLocal) {
-      storageLocal.get(storageKey).then(result => {
+      storageLocal.get(storageKey).then((result) => {
         if (result[storageKey]) {
           setThemeState(result[storageKey] as Theme)
         }
@@ -85,9 +86,7 @@ export const ThemeProvider = ({
 
     // ストレージの変更を監視
     const handleStorageChange = (
-      changes: {
-        [key: string]: chrome.storage.StorageChange
-      },
+      changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
       if (areaName === 'local' && changes[storageKey]) {
@@ -130,7 +129,7 @@ export const ThemeProvider = ({
         })
       return
     } else {
-      // dark または light モードの直接適用
+      // Dark または light モードの直接適用
       root.classList.add(theme)
     }
 
@@ -148,9 +147,7 @@ export const ThemeProvider = ({
   // ユーザー設定のカラー変更を監視し、即座にCSS変数を更新
   useEffect(() => {
     const listener = (
-      changes: {
-        [key: string]: chrome.storage.StorageChange
-      },
+      changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.userSettings) {
@@ -188,8 +185,8 @@ export const ThemeProvider = ({
   )
   const value = useMemo(
     () => ({
-      theme,
       setTheme,
+      theme,
     }),
     [theme, setTheme],
   )

@@ -1,24 +1,25 @@
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { CardGroupActions } from '../shared/CardGroupActions'
 import { useCategoryGroup } from './CategoryGroupContext'
 
 const getVisibleUrls = (group: {
-  urls?: Array<{
+  urls?: {
     url: string
-  }>
-}): string[] => (group.urls || []).map(item => item.url)
+  }[]
+}): string[] => (group.urls || []).map((item) => item.url)
 
 const deleteVisibleUrlsByGroup = async (
-  groups: Array<{
+  groups: {
     id: string
     urls?: Array<{
       url: string
     }>
-  }>,
+  }[],
   handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>,
 ): Promise<void> => {
   await Promise.all(
-    groups.map(async group => {
+    groups.map(async (group) => {
       const visibleUrls = getVisibleUrls(group)
       if (visibleUrls.length === 0) {
         return
@@ -39,7 +40,7 @@ export const CategoryGroupActions = () => {
   const { modal, reorder } = state
 
   const domainsToUse = reorder.isReorderMode ? reorder.tempDomainOrder : domains
-  const urlsToOpen = domainsToUse.flatMap(group => group.urls || [])
+  const urlsToOpen = domainsToUse.flatMap((group) => group.urls || [])
   const hasSearchQuery = searchQuery.trim().length > 0
 
   /** カテゴリ内の全ドメインを削除する処理（確認済みの場合） */
@@ -54,7 +55,7 @@ export const CategoryGroupActions = () => {
       : domains
 
     if (handlers.handleDeleteGroups) {
-      await handlers.handleDeleteGroups(domainsToDelete.map(d => d.id))
+      await handlers.handleDeleteGroups(domainsToDelete.map((d) => d.id))
     } else {
       await Promise.all(
         domainsToDelete.map(({ id }) => handlers.handleDeleteGroup(id)),

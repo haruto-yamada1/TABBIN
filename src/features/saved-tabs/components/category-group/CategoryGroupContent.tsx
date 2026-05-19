@@ -11,8 +11,10 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+
 import { CardContent } from '@/components/ui/card'
 import { SortableDomainCard } from '@/features/saved-tabs/components/SortableDomainCard'
+
 import { useCategoryGroup } from './CategoryGroupContext'
 
 /**
@@ -50,10 +52,10 @@ export const CategoryGroupContent = () => {
         onDragEnd={reorder.handleDragEnd}
       >
         <SortableContext
-          items={displayDomains.map(domain => domain.id)}
+          items={displayDomains.map((domain) => domain.id)}
           strategy={verticalListSortingStrategy}
         >
-          {displayDomains.map(group => (
+          {displayDomains.map((group) => (
             <SortableDomainCard
               key={group.id}
               group={group}

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { openSavedTabsPage, resetSavedTabsPageId } from './saved-tabs-page'
 
 interface TabsHarness {
@@ -275,7 +276,7 @@ describe('saved-tabs-page', () => {
     chromeTabs.get.mockRejectedValue(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
       () =>
-        new Promise<chrome.tabs.Tab[]>(resolve => {
+        new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve
         }),
     )
@@ -289,7 +290,7 @@ describe('saved-tabs-page', () => {
 
     chromeTabs.get.mockImplementationOnce(
       () =>
-        new Promise<chrome.tabs.Tab>(resolve => {
+        new Promise<chrome.tabs.Tab>((resolve) => {
           resolveGet = resolve
         }),
     )
@@ -309,7 +310,7 @@ describe('saved-tabs-page', () => {
     chromeTabs.get.mockRejectedValueOnce(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
       () =>
-        new Promise<chrome.tabs.Tab[]>(resolve => {
+        new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve
         }),
     )

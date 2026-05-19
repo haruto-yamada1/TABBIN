@@ -4,19 +4,19 @@ import type { CSSProperties } from 'react'
 
 export const useSortableCategoryDrag = (id: string) => {
   const sortable = useSortable({
-    id,
     data: {
       type: 'category-section',
     },
+    id,
   })
   const { transform, transition, isDragging } = sortable
 
   const style: CSSProperties = {
+    opacity: isDragging ? 0.8 : 1,
+    position: isDragging ? 'relative' : 'static',
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 100 : 'auto',
-    position: isDragging ? 'relative' : 'static',
-    opacity: isDragging ? 0.8 : 1,
   }
 
   return { ...sortable, style }

@@ -2,10 +2,12 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronRight, GripVertical, X } from 'lucide-react'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, UserSettings } from '@/types/storage'
+
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
@@ -77,7 +79,6 @@ const ProjectUrlItemComponent = ({
     transition,
     isDragging,
   } = useSortable({
-    id: originalUrl,
     data: {
       type: 'url',
       url: originalUrl,
@@ -97,6 +98,7 @@ const ProjectUrlItemComponent = ({
         : undefined,
       isInUncategorizedArea, // 未分類エリア内にあるかの情報を追加
     },
+    id: originalUrl,
   })
 
   const style = {
@@ -108,11 +110,11 @@ const ProjectUrlItemComponent = ({
     chrome.runtime.sendMessage(
       {
         action: 'urlDropped',
-        url: originalUrl,
-        groupId: projectId,
         fromExternal: true,
+        groupId: projectId,
+        url: originalUrl,
       },
-      response => {
+      (response) => {
         console.log('外部ドロップ後の応答:', response)
       },
     )
@@ -136,10 +138,10 @@ const ProjectUrlItemComponent = ({
     chrome.runtime.sendMessage(
       {
         action: 'urlDragStarted',
-        url: originalUrl,
         groupId: projectId,
+        url: originalUrl,
       },
-      response => {
+      (response) => {
         console.log('ドラッグ開始通知の応答:', response)
       },
     )
@@ -208,7 +210,7 @@ const ProjectUrlItemComponent = ({
             type='button'
             variant='ghost'
             size='sm'
-            draggable={true}
+            draggable
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={() => handleOpenUrl(item.url)}
@@ -235,7 +237,7 @@ const ProjectUrlItemComponent = ({
           <Button
             variant='ghost'
             size='sm'
-            onClick={e => {
+            onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
               if (settings.confirmDeleteEach) {

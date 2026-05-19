@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import { describe, expect, it } from 'vitest'
 
 const storageDir = dirname(fileURLToPath(import.meta.url))
@@ -13,7 +14,7 @@ const listSourceFiles = (directory: string): string[] => {
     withFileTypes: true,
   })
 
-  return entries.flatMap(entry => {
+  return entries.flatMap((entry) => {
     const fullPath = join(directory, entry.name)
 
     if (entry.isDirectory()) {
@@ -86,7 +87,7 @@ const collectStaticImports = (
 }
 
 const normalizeCycle = (cycle: string[]): string => {
-  const labels = cycle.map(file => relative(storageDir, file))
+  const labels = cycle.map((file) => relative(storageDir, file))
   const rotations = labels.map((_, index) =>
     [...labels.slice(index), ...labels.slice(0, index)].join(' -> '),
   )
@@ -149,7 +150,7 @@ describe('lib/storage import graph', () => {
   it('静的 import cycle を持たない', () => {
     const files = new Set(listSourceFiles(storageDir))
     const graph = new Map(
-      [...files].map(file => [file, collectStaticImports(file, files)]),
+      [...files].map((file) => [file, collectStaticImports(file, files)]),
     )
 
     expect(findCycles(graph)).toEqual([])

@@ -14,8 +14,10 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useState } from 'react'
+
 import { reorderTabGroupUrls } from '@/lib/storage/tabs'
 import type { CategorySectionProps } from '@/types/saved-tabs'
+
 import { SortableUrlItem } from './SortableUrlItem'
 
 const EMPTY_CATEGORY_URLS: NonNullable<CategorySectionProps['urls']> = []
@@ -31,7 +33,7 @@ export const CategorySection = ({
   scrollTarget = true,
   settings,
 }: CategorySectionProps) => {
-  const urlsKey = urls.map(item => item.url).join('\0')
+  const urlsKey = urls.map((item) => item.url).join('\0')
   const [optimisticOrder, setOptimisticOrder] = useState<{
     sourceKey: string
     urls: typeof urls
@@ -53,8 +55,8 @@ export const CategorySection = ({
 
     if (over && active.id !== over.id) {
       // 現在のURL配列から新しい順序を作成
-      const oldIndex = displayUrls.findIndex(item => item.url === active.id)
-      const newIndex = displayUrls.findIndex(item => item.url === over.id)
+      const oldIndex = displayUrls.findIndex((item) => item.url === active.id)
+      const newIndex = displayUrls.findIndex((item) => item.url === over.id)
 
       if (oldIndex !== -1 && newIndex !== -1) {
         // 並び替えた新しい配列を作成
@@ -68,7 +70,7 @@ export const CategorySection = ({
           // 新形式のURL並び替え関数を呼び出し
           await reorderTabGroupUrls(
             groupId,
-            newUrls.map(item => item.url),
+            newUrls.map((item) => item.url),
           )
 
           // 親コンポーネントに通知してUIを更新
@@ -95,11 +97,11 @@ export const CategorySection = ({
         id={`category-${categoryName}-${groupId}`}
       >
         <SortableContext
-          items={displayUrls.map(item => item.url)}
+          items={displayUrls.map((item) => item.url)}
           strategy={verticalListSortingStrategy}
         >
           <ul className='space-y-0.5'>
-            {displayUrls.map(item => (
+            {displayUrls.map((item) => (
               <SortableUrlItem
                 key={item.url}
                 url={item.url}

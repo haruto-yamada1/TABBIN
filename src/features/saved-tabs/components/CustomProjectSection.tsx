@@ -19,6 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader } from '@/components/ui/card'
@@ -33,10 +34,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject } from '@/types/storage'
-import {
-  DragHandlersContext,
-  type ProjectDragHandlers,
-} from '../contexts/DragHandlersContext'
+
+import { DragHandlersContext } from '../contexts/DragHandlersContext'
+import type { ProjectDragHandlers } from '../contexts/DragHandlersContext'
 import type { CustomProjectSectionProps } from '../types/CustomProjectSection.types'
 import { CustomProjectCard } from './CustomProjectCard'
 import { CardCollapseControl } from './shared/CardCollapseControl'
@@ -73,7 +73,7 @@ const ProjectDragPreview = ({ project }: { project: CustomProject }) => (
           isCollapsed={false}
           setIsCollapsed={() => {}}
           setUserCollapsedState={() => {}}
-          isDisabled={true}
+          isDisabled
         />
         <CardSortControl sortOrder='default' setSortOrder={() => {}} />
         <CardGroupTitle
@@ -128,9 +128,8 @@ const parseActiveDragData = (value: unknown): ActiveDragData | null => {
 const resolveActiveDragData = (
   current: unknown,
   fallback: ActiveDragData | null,
-): ActiveDragData | null => {
-  return parseActiveDragData(current) ?? fallback ?? lastKnownActiveDragData
-}
+): ActiveDragData | null =>
+  parseActiveDragData(current) ?? fallback ?? lastKnownActiveDragData
 
 const buildDragDebugPayload = (
   activeId: string,
@@ -139,13 +138,13 @@ const buildDragDebugPayload = (
 ): DragDebugPayload => ({
   activeId,
   activeType: activeData?.type ?? null,
-  sourceProjectId: activeData?.projectId ?? null,
   overId: typeof over?.id === 'string' ? over.id : null,
-  overType: over?.data?.current?.type ?? null,
   overProjectId:
     typeof over?.data?.current?.projectId === 'string'
       ? over.data.current.projectId
       : null,
+  overType: over?.data?.current?.type ?? null,
+  sourceProjectId: activeData?.projectId ?? null,
   targetProjectId: resolveTargetProjectId(over),
 })
 
@@ -161,19 +160,19 @@ const updateCrossProjectDragState = ({
   setIsCrossProjectUrlDragActive: React.Dispatch<React.SetStateAction<boolean>>
 }) => {
   if (!over || activeData?.type !== 'url') {
-    setDraggedOverProjectId(prev => (prev === null ? prev : null))
+    setDraggedOverProjectId((prev) => (prev === null ? prev : null))
     return
   }
 
   const sourceProjectId = activeData.projectId
   const projectId = over.data?.current?.projectId
   if (projectId && sourceProjectId && projectId !== sourceProjectId) {
-    setDraggedOverProjectId(prev => (prev === projectId ? prev : projectId))
+    setDraggedOverProjectId((prev) => (prev === projectId ? prev : projectId))
     setIsCrossProjectUrlDragActive(true)
     return
   }
 
-  setDraggedOverProjectId(prev => (prev === null ? prev : null))
+  setDraggedOverProjectId((prev) => (prev === null ? prev : null))
 }
 
 const resetSectionDragState = ({
@@ -268,7 +267,7 @@ const applyProjectDragStartState = ({
 }) => {
   setDraggedItem(null)
   const project = projects.find(
-    currentProject => currentProject.id === projectId,
+    (currentProject) => currentProject.id === projectId,
   )
   if (project) {
     setIsProjectReorderMode(true)
@@ -314,13 +313,13 @@ const handleDragEndByType = ({
     return
   }
 
-  const oldIndex = projects.findIndex(project => project.id === activeId)
-  const newIndex = projects.findIndex(project => project.id === over.id)
+  const oldIndex = projects.findIndex((project) => project.id === activeId)
+  const newIndex = projects.findIndex((project) => project.id === over.id)
 
   if (oldIndex !== -1 && newIndex !== -1 && handleReorderProjects) {
     handleReorderProjects(
       arrayMove(
-        projects.map(project => project.id),
+        projects.map((project) => project.id),
         oldIndex,
         newIndex,
       ),
@@ -367,11 +366,11 @@ const useCustomProjectSectionView = ({
     clearErrors,
     formState: { errors },
   } = useForm<CreateProjectFormValues>({
-    resolver: zodResolver(createProjectSchema),
     defaultValues: {
       name: '',
     },
     reValidateMode: 'onChange',
+    resolver: zodResolver(createProjectSchema),
   })
   const nameError = errors.name?.message ?? null
 
@@ -435,13 +434,13 @@ const useCustomProjectSectionView = ({
     const trimmedName = name.trim()
 
     if (
-      projects.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())
+      projects.some((p) => p.name.toLowerCase() === trimmedName.toLowerCase())
     ) {
       setError('name', {
-        type: 'manual',
         message: t('savedTabs.projects.duplicateName', undefined, {
           name: trimmedName,
         }),
+        type: 'manual',
       })
       return
     }
@@ -477,14 +476,14 @@ const useCustomProjectSectionView = ({
 
     activeDragDataRef.current = {
       projectId,
-      type,
       title,
+      type,
       url,
     }
     lastKnownActiveDragData = {
       projectId,
-      type,
       title,
+      type,
       url,
     }
 
@@ -492,21 +491,21 @@ const useCustomProjectSectionView = ({
       applyUrlDragStartState({
         activeId: String(event.active.id),
         projectId,
-        title,
-        url,
-        setIsProjectReorderMode,
+        setDraggedItem,
+        setDraggedOverProjectId,
         setDraggedProject,
         setIsCrossProjectUrlDragActive,
-        setDraggedOverProjectId,
-        setDraggedItem,
+        setIsProjectReorderMode,
+        title,
+        url,
       })
     } else if (type === 'project') {
       applyProjectDragStartState({
         projectId,
         projects,
         setDraggedItem,
-        setIsProjectReorderMode,
         setDraggedProject,
+        setIsProjectReorderMode,
       })
     }
 
@@ -544,7 +543,7 @@ const useCustomProjectSectionView = ({
 
     // 全てのプロジェクトへ伝播させる (hoverが外れたことを伝えるため)
     Object.entries(projectDragHandlersRef.current).forEach(([id, handlers]) => {
-      const project = projects.find(p => p.id === id)
+      const project = projects.find((p) => p.id === id)
       if (project) {
         handlers.handleDragOver(event, project)
       }
@@ -559,24 +558,24 @@ const useCustomProjectSectionView = ({
       activeDragDataRef.current,
     )
     handleDragEndByType({
-      activeId: String(active.id),
       activeData,
+      activeId: String(active.id),
       event,
-      over,
-      projects,
-      projectDragHandlersRef,
       handleReorderProjects,
       handleUrlDragSequence,
+      over,
+      projectDragHandlersRef,
+      projects,
     })
 
     resetSectionDragState({
-      setIsProjectReorderMode,
-      setIsCrossProjectUrlDragActive,
-      setDraggedItem,
-      setDraggedProject,
-      setDraggedOverProjectId,
       activeDragDataRef,
       lastDragOverDebugRef,
+      setDraggedItem,
+      setDraggedOverProjectId,
+      setDraggedProject,
+      setIsCrossProjectUrlDragActive,
+      setIsProjectReorderMode,
     })
   }
 
@@ -645,11 +644,11 @@ const useCustomProjectSectionView = ({
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={projects.map(project => project.id)}
+              items={projects.map((project) => project.id)}
               strategy={verticalListSortingStrategy}
             >
               <div>
-                {projects.map(project => (
+                {projects.map((project) => (
                   <CustomProjectCard
                     key={project.id}
                     project={project}

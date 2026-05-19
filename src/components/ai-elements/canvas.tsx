@@ -1,6 +1,7 @@
 import type { ReactFlowProps } from '@xyflow/react'
 import { Background, ReactFlow } from '@xyflow/react'
 import type { ReactNode } from 'react'
+
 import '@xyflow/react/dist/style.css'
 
 type CanvasProps = ReactFlowProps & {
@@ -15,7 +16,7 @@ export const Canvas = ({ children, ...props }: CanvasProps) => (
     fitView
     panOnDrag={false}
     panOnScroll
-    selectionOnDrag={true}
+    selectionOnDrag
     zoomOnDoubleClick={false}
     {...props}
   >

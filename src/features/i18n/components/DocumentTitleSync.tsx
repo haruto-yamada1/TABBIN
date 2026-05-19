@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { TitlePageKey } from '@/features/i18n/lib/title'
 import { getDocumentTitle } from '@/features/i18n/lib/title'

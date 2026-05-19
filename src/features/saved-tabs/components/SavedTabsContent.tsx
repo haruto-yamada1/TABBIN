@@ -1,5 +1,6 @@
 import { GripVertical } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +15,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { removeUrlsFromTabGroup } from '@/lib/storage/tabs'
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
+
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
 import { OpenAllTabsConfirmDialog } from './shared/OpenAllTabsConfirmDialog'
 import { useSortableCategoryDrag } from './shared/useSortableCategoryDrag'
@@ -28,7 +30,7 @@ export const SortableCategorySection = ({
   ...props
 }: SortableCategorySectionProps & {
   settings: UserSettings
-  handleDeleteAllTabs?: (urls: Array<{ url: string }>) => void // 新しいプロップの型定義
+  handleDeleteAllTabs?: (urls: { url: string }[]) => void // 新しいプロップの型定義
 }) => {
   const { t } = useI18n()
   const { attributes, listeners, setNodeRef, isDragging, style } =
@@ -42,7 +44,7 @@ export const SortableCategorySection = ({
     props.categoryName === '__uncategorized'
       ? t('savedTabs.uncategorized')
       : props.categoryName
-  const urls = props.urls ?? []
+  const urls = useMemo(() => props.urls ?? [], [props.urls])
   const urlCount = urls.length
 
   /**
@@ -55,7 +57,7 @@ export const SortableCategorySection = ({
     setIsDeleting(true)
     try {
       const urlsToDelete = [...urls]
-      const urlsToRemove = urlsToDelete.map(item => item.url)
+      const urlsToRemove = urlsToDelete.map((item) => item.url)
       if (handleDeleteAllTabs) {
         await handleDeleteAllTabs(urlsToDelete)
       } else {
@@ -121,7 +123,7 @@ export const SortableCategorySection = ({
             deleteLabel={t('savedTabs.deleteAll')}
             deletingLabel={t('savedTabs.deletingAll')}
             deleteTooltip={t('savedTabs.deleteAllTabs')}
-            onOpenAll={e => {
+            onOpenAll={(e) => {
               if (urlCount >= 10) {
                 e.stopPropagation()
                 setIsOpenAllConfirmOpen(true)

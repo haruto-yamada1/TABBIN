@@ -2,10 +2,20 @@ import { defineConfig } from 'vitest/config'
 import { WxtVitest } from 'wxt/testing'
 
 export default defineConfig({
+  optimizeDeps: {
+    exclude: ['lightningcss', 'fsevents'],
+  },
+
+  plugins: [WxtVitest()],
+
   test: {
-    mockReset: true,
-    restoreMocks: true,
     environment: 'node',
+    exclude: [
+      '**/node_modules/**',
+      '**/stories/**',
+      '**/*.stories.ts',
+      '.storybook/**',
+    ],
     include: [
       'src/entrypoints/**/*.test.ts',
       'src/components/**/*.test.ts',
@@ -19,19 +29,10 @@ export default defineConfig({
       'src/utils/**/*.test.ts',
       'src/utils/**/*.test.tsx',
     ],
-    exclude: [
-      '**/node_modules/**',
-      '**/stories/**',
-      '**/*.stories.ts',
-      '.storybook/**',
-    ],
+    mockReset: true,
+    restoreMocks: true,
     typecheck: {
       enabled: false,
     },
-  },
-
-  plugins: [WxtVitest()],
-  optimizeDeps: {
-    exclude: ['lightningcss', 'fsevents'],
   },
 })

@@ -8,6 +8,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom'
+
 import { AiChatRoute } from '@/features/ai-chat/routes/AiChatRoute'
 import { AnalyticsRoute } from '@/features/analytics/routes/AnalyticsRoute'
 import {
@@ -17,6 +18,7 @@ import {
 import { OptionsRoute } from '@/features/options/routes/OptionsRoute'
 import { PeriodicExecutionRoute } from '@/features/periodic-execution/routes/PeriodicExecutionRoute'
 import { SavedTabsRoute } from '@/features/saved-tabs/routes/SavedTabsRoute'
+
 import { AppLayout } from './AppLayout'
 
 interface AppRouterProps {
@@ -45,7 +47,7 @@ const SavedTabsRoutePage = () => {
     }
     const nextRoute = getSavedTabsHrefForMode('domain')
     const currentRoute = `${routerLocation.pathname}${routerLocation.search}`
-    /* v8 ignore next -- /saved-tabs without a mode query cannot equal the domain route. */
+    /* V8 ignore next -- /saved-tabs without a mode query cannot equal the domain route. */
     if (currentRoute === nextRoute) {
       return
     }
@@ -76,7 +78,7 @@ const AppRoutes = () => (
     <Route element={<AppLayout />}>
       <Route
         index
-        element={<Navigate to={getSavedTabsEntryRoute()} replace={true} />}
+        element={<Navigate to={getSavedTabsEntryRoute()} replace />}
       />
       <Route path='/saved-tabs' element={<SavedTabsRoutePage />} />
       <Route path='/ai-chat' element={<AiChatRoute />} />
@@ -85,7 +87,7 @@ const AppRoutes = () => (
       <Route path='/periodic-execution' element={<PeriodicExecutionRoute />} />
       <Route
         path='*'
-        element={<Navigate to={getSavedTabsEntryRoute()} replace={true} />}
+        element={<Navigate to={getSavedTabsEntryRoute()} replace />}
       />
     </Route>
   </Routes>

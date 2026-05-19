@@ -74,7 +74,7 @@ describe('ScrollAreaコンポーネント', () => {
 
     const scrollbar = screen
       .getAllByTestId('scrollbar')
-      .find(el => el.getAttribute('data-orientation') === 'horizontal')
+      .find((el) => el.getAttribute('data-orientation') === 'horizontal')
     if (!scrollbar) {
       throw new Error('horizontal scrollbar not found')
     }

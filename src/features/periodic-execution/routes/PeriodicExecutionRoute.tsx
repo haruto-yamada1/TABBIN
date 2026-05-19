@@ -31,7 +31,7 @@ export const PeriodicExecutionRoute = () => {
           confirmationState={confirmationState}
           hideConfirmation={hideConfirmation}
           pendingAutoDeletePeriod={pendingAutoDeletePeriod}
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           selectedAutoDeletePeriod={settings.autoDeletePeriod ?? 'never'}
           onAutoDeletePeriodChange={handleAutoDeletePeriodChange}
           onPrepareAutoDeletePeriod={prepareAutoDeletePeriod}

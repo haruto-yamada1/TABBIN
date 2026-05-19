@@ -11,10 +11,12 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+
 import { CardContent } from '@/components/ui/card'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { SortableCategorySection } from '@/features/saved-tabs/components/SortableCategorySection'
 import { CategorySection } from '@/features/saved-tabs/components/TimeRemaining'
+
 import { useDomainCard } from './DomainCardContext'
 
 /**
@@ -89,7 +91,7 @@ export const DomainCardContent = () => {
           items={categoryIds}
           strategy={verticalListSortingStrategy}
         >
-          {categoryIds.map(categoryName => {
+          {categoryIds.map((categoryName) => {
             const urls = computed.categorizedUrls[categoryName] || []
             if (urls.length === 0) {
               return null
@@ -105,7 +107,7 @@ export const DomainCardContent = () => {
                 handleOpenTab={handlers.handleOpenTab}
                 handleUpdateUrls={handlers.handleUpdateUrls}
                 handleOpenAllTabs={handlers.handleOpenAllTabs}
-                handleDeleteAllTabs={urls =>
+                handleDeleteAllTabs={(urls) =>
                   categoryActions.handleDeleteAllTabsInCategory(
                     categoryName,
                     urls,

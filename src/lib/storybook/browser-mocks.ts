@@ -28,7 +28,7 @@ class StorybookMediaRecorder extends EventTarget {
   state: RecordingState = 'inactive'
   stream: MediaStream
 
-  private listeners = new Map<string, Set<MediaRecorderListener>>()
+  private readonly listeners = new Map<string, Set<MediaRecorderListener>>()
 
   constructor(stream: MediaStream) {
     super()
@@ -103,9 +103,7 @@ const emitStorageChanges = (changes: StorybookStorageState) => {
         oldValue: undefined,
       },
     ]),
-  ) as {
-    [key: string]: chrome.storage.StorageChange
-  }
+  ) as Record<string, chrome.storage.StorageChange>
 
   for (const listener of storageListeners) {
     listener(formattedChanges, 'local')

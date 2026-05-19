@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type {
   DomainParentCategoryMapping,
   ParentCategory,
@@ -70,7 +71,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
     }
     if (Array.isArray(keys)) {
       return Object.fromEntries(
-        keys.map(key => [key, state[key as keyof StorageState]]),
+        keys.map((key) => [key, state[key as keyof StorageState]]),
       )
     }
     return {
@@ -249,7 +250,7 @@ describe('migration storage facade', () => {
         name: 'Mapped',
       }),
     ])
-    mocks.restoreCategorySettings.mockImplementation(async group => ({
+    mocks.restoreCategorySettings.mockImplementation(async (group) => ({
       ...group,
       categoryKeywords:
         group.domain === 'https://mapped.example.com'
@@ -527,7 +528,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs?.map(group => group.id)).toEqual([
+    expect(state.savedTabs?.map((group) => group.id)).toEqual([
       'duplicate-id',
       'uuid-1',
     ])

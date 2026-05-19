@@ -8,14 +8,9 @@ import {
   ChevronsDown,
   ChevronsUp,
 } from 'lucide-react'
-import {
-  type RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -25,12 +20,14 @@ import {
 } from '@/components/ui/tooltip'
 import { useI18nText } from '@/features/i18n/context/I18nProvider'
 import {
-  type ScrollControlAvailability,
-  type ScrollDirection,
-  type ScrollTargetType,
   getRelativeScrollTarget,
   getScrollControlAvailability,
   scrollContainerToTarget,
+} from '@/features/saved-tabs/lib/scroll-controls'
+import type {
+  ScrollControlAvailability,
+  ScrollDirection,
+  ScrollTargetType,
 } from '@/features/saved-tabs/lib/scroll-controls'
 import type { ViewMode } from '@/types/storage'
 
@@ -134,7 +131,7 @@ const SavedTabsScrollControlButton = ({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild={true}>
+      <TooltipTrigger asChild>
         <Button
           type='button'
           variant='secondary'

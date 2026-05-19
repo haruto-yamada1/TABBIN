@@ -1,5 +1,6 @@
 import { Trash } from 'lucide-react'
 import type { ReactNode } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -30,7 +31,7 @@ export const DeleteEntityConfirmPanel = ({
     <p className='mb-2 text-zinc-700 dark:text-zinc-300'>{description}</p>
     <div className='flex justify-end gap-2'>
       <Tooltip>
-        <TooltipTrigger asChild={true}>
+        <TooltipTrigger asChild>
           <Button
             variant='ghost'
             size='sm'
@@ -45,7 +46,7 @@ export const DeleteEntityConfirmPanel = ({
         </SavedTabsResponsiveTooltipContent>
       </Tooltip>
       <Tooltip>
-        <TooltipTrigger asChild={true}>
+        <TooltipTrigger asChild>
           <Button
             variant='destructive'
             size='sm'

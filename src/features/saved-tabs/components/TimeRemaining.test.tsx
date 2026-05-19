@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { UserSettings } from '@/types/storage'
 
 const { dndContextHandlersRef, reorderTabGroupUrlsMock } = vi.hoisted(() => ({
@@ -109,7 +110,7 @@ describe('CategorySection', () => {
     let resolvePersist: (() => void) | null = null
     reorderTabGroupUrlsMock.mockImplementation(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           resolvePersist = resolve
         }),
     )
@@ -117,7 +118,9 @@ describe('CategorySection', () => {
     render(<CategorySection {...props} />)
 
     expect(
-      screen.getAllByTestId('sortable-url-item').map(node => node.textContent),
+      screen
+        .getAllByTestId('sortable-url-item')
+        .map((node) => node.textContent),
     ).toEqual(['https://a.com', 'https://b.com', 'https://c.com'])
 
     act(() => {
@@ -128,7 +131,9 @@ describe('CategorySection', () => {
     })
 
     expect(
-      screen.getAllByTestId('sortable-url-item').map(node => node.textContent),
+      screen
+        .getAllByTestId('sortable-url-item')
+        .map((node) => node.textContent),
     ).toEqual(['https://b.com', 'https://a.com', 'https://c.com'])
     expect(props.handleUpdateUrls).not.toHaveBeenCalled()
 
@@ -162,7 +167,7 @@ describe('CategorySection', () => {
       expect(
         screen
           .getAllByTestId('sortable-url-item')
-          .map(node => node.textContent),
+          .map((node) => node.textContent),
       ).toEqual(['https://a.com', 'https://b.com', 'https://c.com'])
     })
     expect(props.handleUpdateUrls).not.toHaveBeenCalled()
@@ -188,7 +193,9 @@ describe('CategorySection', () => {
     expect(reorderTabGroupUrlsMock).not.toHaveBeenCalled()
     expect(props.handleUpdateUrls).not.toHaveBeenCalled()
     expect(
-      screen.getAllByTestId('sortable-url-item').map(node => node.textContent),
+      screen
+        .getAllByTestId('sortable-url-item')
+        .map((node) => node.textContent),
     ).toEqual(['https://a.com', 'https://b.com', 'https://c.com'])
   })
 })

@@ -3,6 +3,7 @@
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { createContext, use } from 'react'
+
 import {
   InputGroup,
   InputGroupAddon,
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/input-group'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
+
 import { useCopyState } from './use-copy-state'
 
 interface SnippetContextType {

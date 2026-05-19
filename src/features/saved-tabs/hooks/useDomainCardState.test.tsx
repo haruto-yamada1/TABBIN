@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { TabGroup } from '@/types/storage'
+
 import { useDomainCardState } from './useDomainCardState'
 
 const useDomainCardStateI18nState = vi.hoisted(() => ({
@@ -51,6 +53,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 })
 
 import { toast } from 'sonner'
+
 import {
   createParentCategory,
   getParentCategories,
@@ -233,14 +236,14 @@ describe('useDomainCardState', () => {
       result.current.sort.setSortOrder('asc')
     })
     expect(
-      result.current.computed.categorizedUrls.news.map(item => item.title),
+      result.current.computed.categorizedUrls.news.map((item) => item.title),
     ).toEqual(['Older', 'Newer'])
 
     act(() => {
       result.current.sort.setSortOrder('desc')
     })
     expect(
-      result.current.computed.categorizedUrls.news.map(item => item.title),
+      result.current.computed.categorizedUrls.news.map((item) => item.title),
     ).toEqual(['Newer', 'Older'])
     expect(result.current.computed.categorizedUrls.__uncategorized).toEqual([
       expect.objectContaining({

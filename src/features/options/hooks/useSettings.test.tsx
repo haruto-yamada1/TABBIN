@@ -2,6 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { useSettings } from './useSettings'
 
 vi.mock('@/lib/storage/settings', () => {

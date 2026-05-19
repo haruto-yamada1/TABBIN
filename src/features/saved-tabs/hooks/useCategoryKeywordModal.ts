@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -15,7 +16,7 @@ const categoryNameSchema = z
     message: 'カテゴリ名は25文字以下にしてください',
   })
 
-/** useCategoryKeywordModal フックの引数 */
+/** UseCategoryKeywordModal フックの引数 */
 interface UseCategoryKeywordModalParams {
   /** タブグループデータ */
   group: TabGroup
@@ -38,7 +39,7 @@ const resolveSelectedParentCategoryId = (
     return group.parentCategoryId
   }
   const matchedCategory = storedCategories.find(
-    category =>
+    (category) =>
       category.domains.includes(group.id) ||
       category.domainNames.includes(group.domain),
   )
@@ -54,10 +55,11 @@ const renameCategoryInTab = (
     return tab
   }
   const updatedSubCategories =
-    tab.subCategories?.map(cat => (cat === activeCategory ? validName : cat)) ||
-    []
+    tab.subCategories?.map((cat) =>
+      cat === activeCategory ? validName : cat,
+    ) || []
   const updatedCategoryKeywords =
-    tab.categoryKeywords?.map(ck =>
+    tab.categoryKeywords?.map((ck) =>
       ck.categoryName === activeCategory
         ? {
             ...ck,
@@ -65,7 +67,7 @@ const renameCategoryInTab = (
           }
         : ck,
     ) || []
-  const updatedUrls = (tab.urls || []).map(url =>
+  const updatedUrls = (tab.urls || []).map((url) =>
     url.subCategory === activeCategory
       ? {
           ...url,
@@ -73,19 +75,19 @@ const renameCategoryInTab = (
         }
       : url,
   )
-  const updatedSubCategoryOrder = (tab.subCategoryOrder || []).map(cat =>
+  const updatedSubCategoryOrder = (tab.subCategoryOrder || []).map((cat) =>
     cat === activeCategory ? validName : cat,
   )
   const updatedAllOrder = (tab.subCategoryOrderWithUncategorized || []).map(
-    cat => (cat === activeCategory ? validName : cat),
+    (cat) => (cat === activeCategory ? validName : cat),
   )
   return {
     ...tab,
-    subCategories: updatedSubCategories,
     categoryKeywords: updatedCategoryKeywords,
-    urls: updatedUrls,
+    subCategories: updatedSubCategories,
     subCategoryOrder: updatedSubCategoryOrder,
     subCategoryOrderWithUncategorized: updatedAllOrder,
+    urls: updatedUrls,
   }
 }
 /**
@@ -111,14 +113,14 @@ export const useCategoryKeywordModal = ({
 
   // --- キーワード・リネーム状態 ---
   const [categoryEditState, setCategoryEditState] = useState({
-    keywords: [] as string[],
     isRenaming: false,
+    keywords: [] as string[],
     newCategoryName: '',
   })
   const { keywords, isRenaming, newCategoryName } = categoryEditState
   const updateCategoryEditState = useCallback(
     (updates: Partial<typeof categoryEditState>) => {
-      setCategoryEditState(current => ({ ...current, ...updates }))
+      setCategoryEditState((current) => ({ ...current, ...updates }))
     },
     [],
   )
@@ -187,7 +189,7 @@ export const useCategoryKeywordModal = ({
       const { parentCategories: stored = [] } = await chrome.storage.local.get<{
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories')
-      const storedCategories = stored as ParentCategory[]
+      const storedCategories = stored
       setInternalParentCategories(storedCategories)
       if (onUpdateParentCategories) {
         await onUpdateParentCategories(storedCategories)
@@ -203,15 +205,7 @@ export const useCategoryKeywordModal = ({
       console.error('親カテゴリの読み込みに失敗:', error)
       toast.error(t('savedTabs.categoryModal.loadError'))
     }
-  }, [
-    isOpen,
-    group.parentCategoryId,
-    group.id,
-    group.domain,
-    onUpdateParentCategories,
-    selectedParentCategory,
-    t,
-  ])
+  }, [isOpen, group, onUpdateParentCategories, selectedParentCategory, t])
 
   // --- モーダル開閉時の初期化 ---
   useEffect(() => {
@@ -221,9 +215,9 @@ export const useCategoryKeywordModal = ({
 
     void loadParentCategories()
 
-    const handleStorageChange = (changes: {
-      [key: string]: chrome.storage.StorageChange
-    }) => {
+    const handleStorageChange = (
+      changes: Record<string, chrome.storage.StorageChange>,
+    ) => {
       if (changes.parentCategories) {
         void loadParentCategories()
       }
@@ -240,10 +234,10 @@ export const useCategoryKeywordModal = ({
   useEffect(() => {
     if (isOpen && activeCategory) {
       const categoryKeywords = group.categoryKeywords?.find(
-        ck => ck.categoryName === activeCategory,
+        (ck) => ck.categoryName === activeCategory,
       )
       const loadedKeywords = categoryKeywords?.keywords || []
-      setCategoryEditState(current => ({
+      setCategoryEditState((current) => ({
         ...current,
         isRenaming: false,
         keywords: loadedKeywords,
@@ -259,7 +253,7 @@ export const useCategoryKeywordModal = ({
     }
     const trimmedKeyword = newKeyword.trim()
     const isDuplicate = keywords.some(
-      keyword => keyword.toLowerCase() === trimmedKeyword.toLowerCase(),
+      (keyword) => keyword.toLowerCase() === trimmedKeyword.toLowerCase(),
     )
     if (isDuplicate) {
       toast.error(t('savedTabs.keywords.duplicate'))
@@ -282,17 +276,17 @@ export const useCategoryKeywordModal = ({
   // --- キーワード削除 ---
   const handleRemoveKeyword = useCallback(
     async (keywordToRemove: string) => {
-      const updatedKeywords = keywords.filter(k => k !== keywordToRemove)
+      const updatedKeywords = keywords.filter((k) => k !== keywordToRemove)
       updateCategoryEditState({ keywords: updatedKeywords })
       try {
         const { savedTabs = [] } = await chrome.storage.local.get<{
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
-        const updatedGroups = (savedTabs as TabGroup[]).map(g =>
+        const updatedGroups = savedTabs.map((g) =>
           g.id === group.id
             ? {
                 ...g,
-                categoryKeywords: (g.categoryKeywords || []).map(ck =>
+                categoryKeywords: (g.categoryKeywords || []).map((ck) =>
                   ck.categoryName === activeCategory
                     ? {
                         ...ck,
@@ -300,7 +294,7 @@ export const useCategoryKeywordModal = ({
                       }
                     : ck,
                 ),
-                urls: (g.urls || []).map(item =>
+                urls: (g.urls || []).map((item) =>
                   item.subCategory === activeCategory
                     ? {
                         ...item,
@@ -324,21 +318,21 @@ export const useCategoryKeywordModal = ({
   // --- サブカテゴリ名入力ハンドラ ---
   const handleSubCategoryNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
+      const { value } = e.target
       setNewSubCategory(value)
       validateCategoryName(value, setSubCategoryNameError)
     },
-    [validateCategoryName, updateCategoryEditState],
+    [validateCategoryName],
   )
 
   // --- リネーム入力ハンドラ ---
   const handleRenameCategoryNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
+      const { value } = e.target
       updateCategoryEditState({ newCategoryName: value })
       validateCategoryName(value, setCategoryRenameError)
     },
-    [validateCategoryName],
+    [validateCategoryName, updateCategoryEditState],
   )
 
   // --- サブカテゴリ追加 ---
@@ -509,8 +503,8 @@ export const useCategoryKeywordModal = ({
       setCategoryRenameError(null)
       toast.success(
         t('savedTabs.subCategory.renamed', undefined, {
-          before: activeCategory,
           after: validName,
+          before: activeCategory,
         }),
       )
     } catch (error) {
@@ -530,47 +524,47 @@ export const useCategoryKeywordModal = ({
     updateCategoryEditState,
   ])
   return {
-    /** サブカテゴリ関連 */
-    subcategory: {
-      activeCategory,
-      setActiveCategory,
-      newSubCategory,
-      subCategoryNameError,
-      handleSubCategoryNameChange,
-      handleAddSubCategory,
+    /** 削除関連 */
+    deletion: {
+      handleDeleteCategory,
+      setShowDeleteConfirm,
+      showDeleteConfirm,
     },
+    /** 共通 */
+    isProcessing,
     /** キーワード関連 */
     keywords: {
+      handleAddKeyword,
+      handleRemoveKeyword,
       keywords,
       newKeyword,
       setNewKeyword,
-      handleAddKeyword,
-      handleRemoveKeyword,
     },
-    /** リネーム関連 */
-    rename: {
-      isRenaming,
-      newCategoryName,
-      categoryRenameError,
-      handleRenameCategoryNameChange,
-      handleStartRenaming,
-      handleCancelRenaming,
-      handleSaveRenaming,
-    },
-    /** 削除関連 */
-    deletion: {
-      showDeleteConfirm,
-      setShowDeleteConfirm,
-      handleDeleteCategory,
-    },
+    modalContentRef,
     /** 親カテゴリ関連 */
     parentCategory: {
       internalParentCategories,
       selectedParentCategory,
       setSelectedParentCategory,
     },
-    /** 共通 */
-    isProcessing,
-    modalContentRef,
+    /** リネーム関連 */
+    rename: {
+      categoryRenameError,
+      handleCancelRenaming,
+      handleRenameCategoryNameChange,
+      handleSaveRenaming,
+      handleStartRenaming,
+      isRenaming,
+      newCategoryName,
+    },
+    /** サブカテゴリ関連 */
+    subcategory: {
+      activeCategory,
+      handleAddSubCategory,
+      handleSubCategoryNameChange,
+      newSubCategory,
+      setActiveCategory,
+      subCategoryNameError,
+    },
   }
 }

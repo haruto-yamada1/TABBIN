@@ -1,4 +1,5 @@
 import { ArrowUpRight, FileText } from 'lucide-react'
+
 import {
   ChainOfThought,
   ChainOfThoughtContent,
@@ -109,10 +110,10 @@ const DataSurfaces = () => (
     <Section title='Context + Chain of Thought'>
       <div className='gap-y-4'>
         <Context
-          maxTokens={128000}
+          maxTokens={128_000}
           modelId='openai/gpt-4.1-mini'
           usage={{ inputTokens: 8200, outputTokens: 1200 } as never}
-          usedTokens={18400}
+          usedTokens={18_400}
         >
           <ContextTrigger />
           <ContextContent>
@@ -353,9 +354,7 @@ const DataSurfaces = () => (
         <JSXPreview
           bindings={{ count: 12 }}
           className='gap-y-3 rounded-lg border p-3'
-          jsx={
-            '<div><strong>{count}</strong> saved tabs ready for review.</div>'
-          }
+          jsx='<div><strong>{count}</strong> saved tabs ready for review.</div>'
         >
           <JSXPreviewContent />
           <JSXPreviewError />

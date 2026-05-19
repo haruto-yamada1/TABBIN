@@ -1,7 +1,9 @@
 import type { useSortable } from '@dnd-kit/sortable'
+
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
+
 import type { useDomainCardState } from '../../hooks/useDomainCardState'
 
 /** DomainCard のコンテキスト型 */

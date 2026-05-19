@@ -103,7 +103,7 @@ describe('sendRuntimeMessage', () => {
 
     const [first, second] = await sendRuntimeMessage({
       action: 'first',
-    }).then(async firstResponse => [
+    }).then(async (firstResponse) => [
       firstResponse,
       await sendRuntimeMessage({
         action: 'second',

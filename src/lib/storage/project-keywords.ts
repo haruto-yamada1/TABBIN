@@ -48,7 +48,7 @@ const getDomainFromUrl = (url: string): string => {
 
 const includesKeyword = (target: string, keywords: string[]): boolean => {
   const normalizedTarget = target.toLowerCase()
-  return keywords.some(keyword =>
+  return keywords.some((keyword) =>
     normalizedTarget.includes(keyword.toLowerCase()),
   )
 }
@@ -80,14 +80,14 @@ const buildOrderedProjects = (
   projects: CustomProject[],
   projectOrder: string[],
 ): CustomProject[] => {
-  const projectById = new Map(projects.map(project => [project.id, project]))
+  const projectById = new Map(projects.map((project) => [project.id, project]))
   const projectOrderSet = new Set(projectOrder)
-  const orderedProjects = projectOrder.flatMap(projectId => {
+  const orderedProjects = projectOrder.flatMap((projectId) => {
     const project = projectById.get(projectId)
     return project ? [project] : []
   })
   const remainingProjects = projects.filter(
-    project => !projectOrderSet.has(project.id),
+    (project) => !projectOrderSet.has(project.id),
   )
   return [...orderedProjects, ...remainingProjects]
 }
@@ -95,9 +95,9 @@ const buildOrderedProjects = (
 const normalizeProjectKeywords = (
   projectKeywords: ProjectKeywordSettings | undefined,
 ): ProjectKeywordSettings => ({
+  domainKeywords: normalizeKeywordArray(projectKeywords?.domainKeywords),
   titleKeywords: normalizeKeywordArray(projectKeywords?.titleKeywords),
   urlKeywords: normalizeKeywordArray(projectKeywords?.urlKeywords),
-  domainKeywords: normalizeKeywordArray(projectKeywords?.domainKeywords),
 })
 
 const findMatchingProjectIdForSavedTab = ({
@@ -106,7 +106,7 @@ const findMatchingProjectIdForSavedTab = ({
   projectOrder,
 }: FindMatchingProjectIdForSavedTabParams): string | undefined => {
   const orderedProjects = buildOrderedProjects(projects, projectOrder)
-  const matchedProject = orderedProjects.find(project =>
+  const matchedProject = orderedProjects.find((project) =>
     projectMatchesSavedTab(project, savedTab),
   )
   return matchedProject?.id

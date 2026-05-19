@@ -1,4 +1,5 @@
 import type * as React from 'react'
+
 import { TooltipContent } from '@/components/ui/tooltip'
 import { useSavedTabsResponsiveLayout } from '@/features/saved-tabs/contexts/SavedTabsResponsiveLayoutContext'
 import { cn } from '@/lib/utils'

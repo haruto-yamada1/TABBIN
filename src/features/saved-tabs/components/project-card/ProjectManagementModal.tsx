@@ -1,6 +1,7 @@
 import { Edit, Trash2, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -50,10 +51,10 @@ const createProjectNameSchema = (
     })
 
 const projectNameSchema = {
-  schema: createProjectNameSchema(),
   safeParse(value: string) {
     return this.schema.safeParse(value)
   },
+  schema: createProjectNameSchema(),
 }
 
 const normalizeKeyword = (value: string): string => value.trim()
@@ -99,19 +100,19 @@ interface ProjectManagementModalState {
 const createProjectManagementModalState = (
   project: CustomProject,
 ): ProjectManagementModalState => ({
-  isRenaming: false,
-  newProjectName: project.name,
+  domainKeywords: project.projectKeywords?.domainKeywords || [],
   isProcessing: false,
+  isRenaming: false,
   isSaving: false,
   localProjectName: project.name,
+  newDomainKeyword: '',
+  newProjectName: project.name,
+  newTitleKeyword: '',
+  newUrlKeyword: '',
   projectNameError: null,
   showDeleteConfirm: false,
   titleKeywords: project.projectKeywords?.titleKeywords || [],
   urlKeywords: project.projectKeywords?.urlKeywords || [],
-  domainKeywords: project.projectKeywords?.domainKeywords || [],
-  newTitleKeyword: '',
-  newUrlKeyword: '',
-  newDomainKeyword: '',
 })
 
 const ProjectKeywordSection = ({
@@ -137,10 +138,10 @@ const ProjectKeywordSection = ({
         id={inputId}
         aria-label={label}
         value={newKeyword}
-        onChange={e => onKeywordChange(e.target.value)}
+        onChange={(e) => onKeywordChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
             onAddKeyword()
@@ -159,7 +160,7 @@ const ProjectKeywordSection = ({
             {t('savedTabs.keywords.empty')}
           </p>
         ) : (
-          keywords.map(keyword => (
+          keywords.map((keyword) => (
             <Badge
               key={keyword}
               variant='outline'
@@ -222,7 +223,7 @@ const useProjectManagementModalView = ({
     newDomainKeyword,
   } = modalState
   const updateModalState = (updates: Partial<ProjectManagementModalState>) => {
-    setModalState(current => ({ ...current, ...updates }))
+    setModalState((current) => ({ ...current, ...updates }))
   }
 
   const inputRef = useRef<HTMLInputElement>(null)
@@ -278,7 +279,7 @@ const useProjectManagementModalView = ({
 
   // 入力変更時の処理
   const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
+    const { value } = e.target
     updateModalState({ newProjectName: value })
     validateProjectName(value)
   }
@@ -329,9 +330,9 @@ const useProjectManagementModalView = ({
 
   const handleSaveProjectKeywords = async (
     nextProjectKeywords: ProjectKeywordSettings = {
+      domainKeywords,
       titleKeywords,
       urlKeywords,
-      domainKeywords,
     },
   ) => {
     try {
@@ -340,9 +341,9 @@ const useProjectManagementModalView = ({
       }
 
       await onUpdateProjectKeywords(project.id, {
+        domainKeywords: nextProjectKeywords.domainKeywords,
         titleKeywords: nextProjectKeywords.titleKeywords,
         urlKeywords: nextProjectKeywords.urlKeywords,
-        domainKeywords: nextProjectKeywords.domainKeywords,
       })
     } catch (error) {
       console.error('プロジェクトキーワードの更新に失敗:', error)
@@ -361,7 +362,7 @@ const useProjectManagementModalView = ({
       return
     }
     const isDuplicate = keywords.some(
-      currentKeyword =>
+      (currentKeyword) =>
         currentKeyword.toLowerCase() === normalizedKeyword.toLowerCase(),
     )
     if (isDuplicate) {
@@ -372,11 +373,11 @@ const useProjectManagementModalView = ({
     setKeywords(updatedKeywords)
     clearInput()
     void handleSaveProjectKeywords({
+      domainKeywords:
+        section === 'domainKeywords' ? updatedKeywords : domainKeywords,
       titleKeywords:
         section === 'titleKeywords' ? updatedKeywords : titleKeywords,
       urlKeywords: section === 'urlKeywords' ? updatedKeywords : urlKeywords,
-      domainKeywords:
-        section === 'domainKeywords' ? updatedKeywords : domainKeywords,
     })
   }
 
@@ -387,15 +388,15 @@ const useProjectManagementModalView = ({
     keywords: string[],
   ) => {
     const updatedKeywords = keywords.filter(
-      keyword => keyword !== keywordToRemove,
+      (keyword) => keyword !== keywordToRemove,
     )
     setKeywords(updatedKeywords)
     void handleSaveProjectKeywords({
+      domainKeywords:
+        section === 'domainKeywords' ? updatedKeywords : domainKeywords,
       titleKeywords:
         section === 'titleKeywords' ? updatedKeywords : titleKeywords,
       urlKeywords: section === 'urlKeywords' ? updatedKeywords : urlKeywords,
-      domainKeywords:
-        section === 'domainKeywords' ? updatedKeywords : domainKeywords,
     })
   }
 
@@ -433,7 +434,7 @@ const useProjectManagementModalView = ({
               {!isRenaming && !isUncategorizedProject && (
                 <div className='flex items-center gap-2'>
                   <Tooltip>
-                    <TooltipTrigger asChild={true}>
+                    <TooltipTrigger asChild>
                       <Button
                         variant='secondary'
                         size='sm'
@@ -451,7 +452,7 @@ const useProjectManagementModalView = ({
                     </SavedTabsResponsiveTooltipContent>
                   </Tooltip>
                   <Tooltip>
-                    <TooltipTrigger asChild={true}>
+                    <TooltipTrigger asChild>
                       <Button
                         variant='secondary'
                         size='sm'
@@ -505,7 +506,7 @@ const useProjectManagementModalView = ({
                       handleCancelRenaming()
                     }
                   }}
-                  onKeyDown={e => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
                       const trimmedName = newProjectName.trim()
@@ -568,34 +569,34 @@ const useProjectManagementModalView = ({
                 keywords={titleKeywords}
                 newKeyword={newTitleKeyword}
                 disabled={isProcessing}
-                onKeywordChange={value =>
+                onKeywordChange={(value) =>
                   updateModalState({ newTitleKeyword: value })
                 }
                 onAddKeyword={() =>
                   addKeyword({
+                    clearInput: () => updateModalState({ newTitleKeyword: '' }),
                     keyword: newTitleKeyword,
                     keywords: titleKeywords,
                     section: 'titleKeywords',
-                    setKeywords: keywords =>
+                    setKeywords: (keywords) =>
                       updateModalState({ titleKeywords: keywords }),
-                    clearInput: () => updateModalState({ newTitleKeyword: '' }),
                   })
                 }
                 onBlurKeyword={() =>
                   addKeyword({
+                    clearInput: () => updateModalState({ newTitleKeyword: '' }),
                     keyword: newTitleKeyword,
                     keywords: titleKeywords,
                     section: 'titleKeywords',
-                    setKeywords: keywords =>
+                    setKeywords: (keywords) =>
                       updateModalState({ titleKeywords: keywords }),
-                    clearInput: () => updateModalState({ newTitleKeyword: '' }),
                   })
                 }
-                onRemoveKeyword={keyword =>
+                onRemoveKeyword={(keyword) =>
                   removeKeyword(
                     keyword,
                     'titleKeywords',
-                    keywords => updateModalState({ titleKeywords: keywords }),
+                    (keywords) => updateModalState({ titleKeywords: keywords }),
                     titleKeywords,
                   )
                 }
@@ -613,34 +614,34 @@ const useProjectManagementModalView = ({
                 keywords={urlKeywords}
                 newKeyword={newUrlKeyword}
                 disabled={isProcessing}
-                onKeywordChange={value =>
+                onKeywordChange={(value) =>
                   updateModalState({ newUrlKeyword: value })
                 }
                 onAddKeyword={() =>
                   addKeyword({
+                    clearInput: () => updateModalState({ newUrlKeyword: '' }),
                     keyword: newUrlKeyword,
                     keywords: urlKeywords,
                     section: 'urlKeywords',
-                    setKeywords: keywords =>
+                    setKeywords: (keywords) =>
                       updateModalState({ urlKeywords: keywords }),
-                    clearInput: () => updateModalState({ newUrlKeyword: '' }),
                   })
                 }
                 onBlurKeyword={() =>
                   addKeyword({
+                    clearInput: () => updateModalState({ newUrlKeyword: '' }),
                     keyword: newUrlKeyword,
                     keywords: urlKeywords,
                     section: 'urlKeywords',
-                    setKeywords: keywords =>
+                    setKeywords: (keywords) =>
                       updateModalState({ urlKeywords: keywords }),
-                    clearInput: () => updateModalState({ newUrlKeyword: '' }),
                   })
                 }
-                onRemoveKeyword={keyword =>
+                onRemoveKeyword={(keyword) =>
                   removeKeyword(
                     keyword,
                     'urlKeywords',
-                    keywords => updateModalState({ urlKeywords: keywords }),
+                    (keywords) => updateModalState({ urlKeywords: keywords }),
                     urlKeywords,
                   )
                 }
@@ -658,36 +659,37 @@ const useProjectManagementModalView = ({
                 keywords={domainKeywords}
                 newKeyword={newDomainKeyword}
                 disabled={isProcessing}
-                onKeywordChange={value =>
+                onKeywordChange={(value) =>
                   updateModalState({ newDomainKeyword: value })
                 }
                 onAddKeyword={() =>
                   addKeyword({
+                    clearInput: () =>
+                      updateModalState({ newDomainKeyword: '' }),
                     keyword: newDomainKeyword,
                     keywords: domainKeywords,
                     section: 'domainKeywords',
-                    setKeywords: keywords =>
+                    setKeywords: (keywords) =>
                       updateModalState({ domainKeywords: keywords }),
-                    clearInput: () =>
-                      updateModalState({ newDomainKeyword: '' }),
                   })
                 }
                 onBlurKeyword={() =>
                   addKeyword({
+                    clearInput: () =>
+                      updateModalState({ newDomainKeyword: '' }),
                     keyword: newDomainKeyword,
                     keywords: domainKeywords,
                     section: 'domainKeywords',
-                    setKeywords: keywords =>
+                    setKeywords: (keywords) =>
                       updateModalState({ domainKeywords: keywords }),
-                    clearInput: () =>
-                      updateModalState({ newDomainKeyword: '' }),
                   })
                 }
-                onRemoveKeyword={keyword =>
+                onRemoveKeyword={(keyword) =>
                   removeKeyword(
                     keyword,
                     'domainKeywords',
-                    keywords => updateModalState({ domainKeywords: keywords }),
+                    (keywords) =>
+                      updateModalState({ domainKeywords: keywords }),
                     domainKeywords,
                   )
                 }

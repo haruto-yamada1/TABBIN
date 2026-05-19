@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+
 import { useSortOrder } from './useSortOrder'
 
 interface Item {
@@ -16,7 +17,7 @@ const items: Item[] = [
 describe('useSortOrderフック', () => {
   it('デフォルトでは元の順序を返す', () => {
     const { result } = renderHook(() =>
-      useSortOrder(items, item => item.domain),
+      useSortOrder(items, (item) => item.domain),
     )
 
     expect(result.current.sortOrder).toBe('default')
@@ -25,14 +26,14 @@ describe('useSortOrderフック', () => {
 
   it('sortOrder が asc のとき昇順に並べ替える', () => {
     const { result } = renderHook(() =>
-      useSortOrder(items, item => item.domain),
+      useSortOrder(items, (item) => item.domain),
     )
 
     act(() => {
       result.current.setSortOrder('asc')
     })
 
-    expect(result.current.sortedItems.map(item => item.domain)).toEqual([
+    expect(result.current.sortedItems.map((item) => item.domain)).toEqual([
       'alpha.example.com',
       'beta.example.com',
       'zeta.example.com',
@@ -41,14 +42,14 @@ describe('useSortOrderフック', () => {
 
   it('sortOrder が desc のとき降順に並べ替える', () => {
     const { result } = renderHook(() =>
-      useSortOrder(items, item => item.domain),
+      useSortOrder(items, (item) => item.domain),
     )
 
     act(() => {
       result.current.setSortOrder('desc')
     })
 
-    expect(result.current.sortedItems.map(item => item.domain)).toEqual([
+    expect(result.current.sortedItems.map((item) => item.domain)).toEqual([
       'zeta.example.com',
       'beta.example.com',
       'alpha.example.com',

@@ -1,5 +1,6 @@
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { CustomProject, UserSettings } from '@/types/storage'
+
 import type { useCustomProjectCard } from '../../hooks/useCustomProjectCard'
 import type { CustomProjectCardProps } from '../../types/CustomProjectCard.types'
 

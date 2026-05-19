@@ -2,10 +2,12 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { SortableUrlItemProps } from '@/types/saved-tabs'
 import { TimeRemaining, formatDatetime } from '@/utils/datetime'
+
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
@@ -32,10 +34,10 @@ export const SortableUrlItem = ({
   const { t } = useI18n()
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
-      id,
       data: {
         categoryContext, // カテゴリコンテキストをデータに追加
       },
+      id,
     })
 
   const isDraggingRef = useRef(false)
@@ -67,10 +69,10 @@ export const SortableUrlItem = ({
     chrome.runtime.sendMessage(
       {
         action: 'urlDragStarted',
-        url,
         groupId,
+        url,
       },
-      response => {
+      (response) => {
         console.log('ドラッグ開始通知の応答:', response)
       },
     )
@@ -82,11 +84,11 @@ export const SortableUrlItem = ({
     chrome.runtime.sendMessage(
       {
         action: 'urlDropped',
-        url,
-        groupId,
         fromExternal: true,
+        groupId,
+        url,
       },
-      response => {
+      (response) => {
         console.log('外部ドロップ後の応答:', response)
       },
     )
@@ -157,8 +159,8 @@ export const SortableUrlItem = ({
             type='button'
             variant='ghost'
             size='sm'
-            draggable={true}
-            onDragStart={e => handleDragStart(e, url as string)}
+            draggable
+            onDragStart={(e) => handleDragStart(e, url)}
             onDragEnd={handleDragEnd}
             onClick={() => handleOpenTab(url)}
             className='ml-2 flex h-full cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'

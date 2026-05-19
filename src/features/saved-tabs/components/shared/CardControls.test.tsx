@@ -2,7 +2,9 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import type { SortOrder } from '@/features/saved-tabs/hooks/useSortOrder'
+
 import { CardCollapseControl } from './CardCollapseControl'
 import { CardGroupTitle } from './CardGroupTitle'
 import { CardReorderControls } from './CardReorderControls'
@@ -114,7 +116,7 @@ describe('CardCollapseControl', () => {
         isCollapsed={false}
         setIsCollapsed={setIsCollapsed}
         setUserCollapsedState={setUserCollapsedState}
-        isDisabled={true}
+        isDisabled
         disabledMessage='並び替えモード中'
       />,
     )
@@ -157,7 +159,7 @@ describe('CardReorderControls', () => {
 
     render(
       <CardReorderControls
-        isReorderMode={true}
+        isReorderMode
         onCancel={onCancel}
         onConfirm={onConfirm}
       />,

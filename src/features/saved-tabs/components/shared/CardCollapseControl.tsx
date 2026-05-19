@@ -1,7 +1,9 @@
 import { ChevronDown, ChevronUp } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { SavedTabsResponsiveTooltipContent } from './SavedTabsResponsive'
 
 /** CardCollapseControl の props */
@@ -42,12 +44,12 @@ export const CardCollapseControl = ({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild={true}>
+      <TooltipTrigger asChild>
         <Button
           variant='secondary'
           size='sm'
           onPointerDown={onPointerDown}
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation()
             const newState = !isCollapsed
             setIsCollapsed(newState)

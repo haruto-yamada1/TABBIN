@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { TabGroup, UrlRecord } from '@/types/storage'
 
 const mocks = vi.hoisted(() => ({

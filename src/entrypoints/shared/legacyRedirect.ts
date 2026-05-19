@@ -16,7 +16,7 @@ const syncDocumentTitle = (
 const redirectToApp = (
   pathname = window.location.pathname,
   search = window.location.search,
-  replace: (href: string) => void = href => window.location.replace(href),
+  replace: (href: string) => void = (href) => window.location.replace(href),
 ) => {
   const nextHref = getLegacyRedirectHref(pathname, search)
   replace(nextHref)

@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+
 import { Input } from './input'
 
 describe('Inputコンポーネント', () => {
   it('aria-invalid=true のときエラー表示用クラスを持つ', () => {
-    render(<Input aria-invalid={true} aria-label='Invalid input' />)
+    render(<Input aria-invalid aria-label='Invalid input' />)
 
     const input = screen.getByRole('textbox', { name: 'Invalid input' })
     expect(input.getAttribute('aria-invalid')).toBe('true')

@@ -30,7 +30,7 @@ const buildConversationTitle = (
   defaultTitle = DEFAULT_CONVERSATION_TITLE,
 ): string => {
   const firstUserMessage = messages.find(
-    message => message.role === 'user' && message.content.trim().length > 0,
+    (message) => message.role === 'user' && message.content.trim().length > 0,
   )
 
   if (!firstUserMessage) {
@@ -98,10 +98,10 @@ const normalizeConversationHistory = ({
 } => {
   let hasChanges = false
 
-  const normalizedConversations = conversations.map(conversation => {
+  const normalizedConversations = conversations.map((conversation) => {
     let conversationChanged = false
 
-    const messages = conversation.messages.map(message => {
+    const messages = conversation.messages.map((message) => {
       if (message.role !== 'assistant' || message.isStreaming !== true) {
         return message
       }
@@ -166,14 +166,14 @@ const loadConversationHistory = async (
   const activeConversationId =
     typeof stored[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] === 'string' &&
     normalizedHistory.conversations.some(
-      conversation =>
+      (conversation) =>
         conversation.id === stored[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY],
     )
-      ? (stored[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] as string)
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      ? stored[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         normalizedHistory.conversations[0].id
-  /* v8 ignore stop */
+  /* V8 ignore stop */
 
   if (normalizedHistory.hasChanges) {
     await storageLocal.set({

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
 import { getMessage, resolveUiLanguage } from '@/features/i18n/lib/language'
 
 const mocked = vi.hoisted(() => ({

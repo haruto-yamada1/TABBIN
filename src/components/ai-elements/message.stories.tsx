@@ -1,6 +1,7 @@
 // @covers components/ai-elements/message.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { Copy, ThumbsUp } from 'lucide-react'
+
 import {
   Message,
   MessageAction,
@@ -15,11 +16,11 @@ import {
 } from './message'
 
 export default {
-  title: 'AI Elements/Message',
   args: {
     from: 'assistant',
   },
   component: Message,
+  title: 'AI Elements/Message',
 } satisfies Meta<typeof Message>
 
 type Story = StoryObj<typeof Message>

@@ -10,15 +10,10 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import {
-  type KeyboardEvent as ReactKeyboardEvent,
-  type ReactNode,
-  useEffect,
-  useReducer,
-  useRef,
-  useState,
-} from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { toast } from 'sonner'
+
 import {
   Attachment,
   AttachmentInfo,
@@ -40,8 +35,6 @@ import {
 import {
   PromptInput,
   PromptInputFooter,
-  type PromptInputMessage,
-  type PromptInputProps,
   PromptInputSelect,
   PromptInputSelectContent,
   PromptInputSelectItem,
@@ -50,6 +43,10 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   usePromptInputAttachments,
+} from '@/components/ai-elements/prompt-input'
+import type {
+  PromptInputMessage,
+  PromptInputProps,
 } from '@/components/ai-elements/prompt-input'
 import {
   Reasoning,
@@ -97,10 +94,8 @@ import {
 } from '@/components/ui/tooltip'
 import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
 import { AiChartRenderer } from '@/features/ai-chat/components/AiChartRenderer'
-import {
-  OllamaErrorNotice,
-  type OllamaErrorPlatform,
-} from '@/features/ai-chat/components/OllamaErrorNotice'
+import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
+import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
 import { OllamaModelSelector } from '@/features/ai-chat/components/OllamaModelSelector'
 import {
   AI_CHAT_MAX_ATTACHMENTS,
@@ -346,11 +341,11 @@ const createChatMessage = (
 ): ChatMessage => ({
   attachments: metadata?.attachments,
   charts: metadata?.charts,
-  id: createMessageId(),
-  role,
   content,
+  id: createMessageId(),
   isStreaming: metadata?.isStreaming,
   reasoning: metadata?.reasoning,
+  role,
   toolTraces: metadata?.toolTraces,
 })
 
@@ -391,7 +386,7 @@ const getUniquePromptName = (
 ): string => {
   const normalizedBaseName =
     clampPromptName(baseName) || t('aiChat.systemPrompt.new')
-  const existingNames = new Set(presets.map(preset => preset.name.trim()))
+  const existingNames = new Set(presets.map((preset) => preset.name.trim()))
   const initialCandidateName = buildPromptNameCandidate(
     normalizedBaseName,
     t,
@@ -420,20 +415,20 @@ const getSelectedPrompt = (
   presets: AiSystemPromptPreset[],
   selectedPromptId: string,
 ): AiSystemPromptPreset | undefined =>
-  presets.find(prompt => prompt.id === selectedPromptId)
+  presets.find((prompt) => prompt.id === selectedPromptId)
 
 const getPromptManagerValidationError = (
   presets: AiSystemPromptPreset[],
   t: TranslateFn,
 ): string => {
-  const trimmedPresets = presets.map(prompt => ({
+  const trimmedPresets = presets.map((prompt) => ({
     name: prompt.name.trim(),
     template: prompt.template.trim(),
   }))
 
   if (
     trimmedPresets.some(
-      prompt => prompt.name.length === 0 || prompt.template.length === 0,
+      (prompt) => prompt.name.length === 0 || prompt.template.length === 0,
     )
   ) {
     return t('aiChat.systemPrompt.validation.empty')
@@ -441,7 +436,7 @@ const getPromptManagerValidationError = (
 
   if (
     trimmedPresets.some(
-      prompt => prompt.name.length > MAX_AI_SYSTEM_PROMPT_NAME_LENGTH,
+      (prompt) => prompt.name.length > MAX_AI_SYSTEM_PROMPT_NAME_LENGTH,
     )
   ) {
     return t('aiChat.systemPrompt.validation.maxLength', undefined, {
@@ -495,8 +490,8 @@ const getRuntimePlatform = async (): Promise<OllamaErrorPlatform> => {
 
   try {
     const platformInfo = await new Promise<chrome.runtime.PlatformInfo | null>(
-      resolve => {
-        chrome.runtime.getPlatformInfo(info => {
+      (resolve) => {
+        chrome.runtime.getPlatformInfo((info) => {
           resolve(info ?? null)
         })
       },
@@ -518,16 +513,20 @@ const getAttachmentInputErrorMessage = (
   t: TranslateFn,
 ) => {
   switch (error.code) {
-    case 'accept':
+    case 'accept': {
       return t('aiChat.attachments.unsupportedType')
-    case 'max_file_size':
+    }
+    case 'max_file_size': {
       return t('aiChat.attachments.maxFileSize')
-    case 'max_files':
+    }
+    case 'max_files': {
       return t('aiChat.attachments.maxFiles', undefined, {
         count: String(AI_CHAT_MAX_ATTACHMENTS),
       })
-    default:
+    }
+    default: {
       return error.message
+    }
   }
 }
 
@@ -576,7 +575,7 @@ const getConversationCopyText = (
             : t('aiChat.copy.assistant'),
           message.attachments?.length
             ? `${t('aiChat.copy.attachments')} ${message.attachments
-                .map(attachment => attachment.filename)
+                .map((attachment) => attachment.filename)
                 .join(', ')}`
             : '',
           message.content.trim(),
@@ -603,20 +602,20 @@ const getSourceItems = (output: unknown): ChatMessageSource[] => {
     typeof output === 'object' &&
     Array.isArray((output as { items?: unknown[] }).items)
   ) {
-    items = (output as { items: unknown[] }).items
+    ;({ items } = output as { items: unknown[] })
   }
 
-  return items.flatMap(item => {
+  return items.flatMap((item) => {
     if (!item || typeof item !== 'object') {
       return []
     }
 
-    const url = (item as { url?: unknown }).url
+    const { url } = item as { url?: unknown }
     if (typeof url !== 'string' || url.length === 0) {
       return []
     }
 
-    const title = (item as { title?: unknown }).title
+    const { title } = item as { title?: unknown }
 
     return [
       {
@@ -635,8 +634,8 @@ const getMessageSources = (
 ): ChatMessageSource[] => {
   const seenUrls = new Set<string>()
 
-  return toolTraces.flatMap(toolTrace =>
-    getSourceItems(toolTrace.output).filter(source => {
+  return toolTraces.flatMap((toolTrace) =>
+    getSourceItems(toolTrace.output).filter((source) => {
       if (seenUrls.has(source.url)) {
         return false
       }
@@ -707,7 +706,7 @@ const AssistantMessageDiagnostics = ({
           <p className='pl-1 font-medium text-[11px] text-muted-foreground uppercase tracking-wide'>
             {t('aiChat.toolsRun')}
           </p>
-          {toolTraces.map(toolTrace => (
+          {toolTraces.map((toolTrace) => (
             <Tool
               className='mb-0 border-border/70 bg-background/70'
               key={toolTrace.toolCallId}
@@ -746,7 +745,7 @@ const ChatPromptIntro = ({
     t('aiChat.suggestion.favoriteContent'),
     t('aiChat.suggestion.recommendation'),
   ]
-  const suggestionItems = suggestions.map(suggestion => (
+  const suggestionItems = suggestions.map((suggestion) => (
     <Suggestion
       className={
         isCompactLayout
@@ -821,7 +820,7 @@ const SystemPromptSelector = ({
       </PromptInputSelectTrigger>
       <PromptInputSelectContent>
         {prompts.length > 0 ? (
-          prompts.map(prompt => (
+          prompts.map((prompt) => (
             <PromptInputSelectItem key={prompt.id} value={prompt.id}>
               {prompt.name}
             </PromptInputSelectItem>
@@ -899,7 +898,7 @@ const SystemPromptManagerDialog = ({
 
             <div className='min-h-0 flex-1 overflow-y-auto p-3'>
               <div className='grid gap-2'>
-                {presets.map(prompt => (
+                {presets.map((prompt) => (
                   <Button
                     className={cn(
                       'cursor-pointer overflow-hidden rounded-md border p-3 text-left transition-colors',
@@ -946,7 +945,7 @@ const SystemPromptManagerDialog = ({
                         className='flex-1'
                         maxLength={MAX_AI_SYSTEM_PROMPT_NAME_LENGTH}
                         value={selectedPrompt.name}
-                        onChange={event =>
+                        onChange={(event) =>
                           onChangePromptName(event.target.value)
                         }
                       />
@@ -982,7 +981,7 @@ const SystemPromptManagerDialog = ({
                       aria-label={t('aiChat.systemPrompt.bodyLabel')}
                       className='min-h-[420px] resize-y'
                       value={selectedPrompt.template}
-                      onChange={event =>
+                      onChange={(event) =>
                         onChangePromptTemplate(event.target.value)
                       }
                     />
@@ -998,7 +997,7 @@ const SystemPromptManagerDialog = ({
                       </p>
                     </div>
                     <div className='grid gap-2 xl:grid-cols-2'>
-                      {AI_CHAT_TOOL_DEFINITIONS.map(toolDefinition => (
+                      {AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => (
                         <div
                           className='rounded-md border border-border/70 bg-muted/20 p-3'
                           key={toolDefinition.name}
@@ -1115,7 +1114,7 @@ const ChatHistoryDropdown = ({
 
           <div className='max-h-80 gap-y-1 overflow-y-auto'>
             {historyItems.length > 0 ? (
-              historyItems.map(historyItem => (
+              historyItems.map((historyItem) => (
                 <div
                   key={historyItem.id}
                   className={cn(
@@ -1153,7 +1152,7 @@ const ChatHistoryDropdown = ({
                           { title: historyItem.title },
                         )}
                         className='shrink-0 justify-self-end text-muted-foreground hover:text-destructive'
-                        onClick={event => {
+                        onClick={(event) => {
                           event.stopPropagation()
                           setIsOpen(false)
                           setPendingDeleteHistoryItem(historyItem)
@@ -1176,7 +1175,7 @@ const ChatHistoryDropdown = ({
 
       <Dialog
         open={pendingDeleteHistoryItem !== null}
-        onOpenChange={open => {
+        onOpenChange={(open) => {
           if (!open) {
             setPendingDeleteHistoryItem(null)
           }
@@ -1388,7 +1387,7 @@ const ChatPromptAttachments = () => {
 
   return (
     <Attachments className='w-full px-3 pb-1' variant='inline'>
-      {attachments.files.map(file => (
+      {attachments.files.map((file) => (
         <Attachment
           data={file}
           key={file.id}
@@ -1441,11 +1440,11 @@ const ChatMessageAttachments = ({
 
   return (
     <Attachments className='mb-2 w-full' variant='inline'>
-      {attachments.map(attachment => (
+      {attachments.map((attachment) => (
         <Attachment
           data={{
-            id: getAttachmentId(attachment),
             filename: attachment.filename,
+            id: getAttachmentId(attachment),
             mediaType: attachment.mediaType,
             type: 'file',
             url: attachment.kind === 'image' ? attachment.content : '',
@@ -1530,7 +1529,7 @@ const ChatConversationMessage = ({
             <ChevronDown className='size-4' />
           </SourcesTrigger>
           <SourcesContent className='w-full'>
-            {messageSources.map(source => (
+            {messageSources.map((source) => (
               <Source href={source.url} key={source.url} title={source.title} />
             ))}
           </SourcesContent>
@@ -1649,7 +1648,7 @@ const ChatPromptComposer = ({
       maxFiles={AI_CHAT_MAX_ATTACHMENTS}
       maxFileSize={AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES}
       multiple
-      onError={error => {
+      onError={(error) => {
         toast.error(getAttachmentInputErrorMessage(error, t))
       }}
       onSubmit={onSubmit}
@@ -1658,7 +1657,7 @@ const ChatPromptComposer = ({
         aria-label={t('aiChat.inputLabel')}
         className={cn('min-h-16', isCompactLayout && 'min-h-24 text-sm')}
         value={input}
-        onChange={event => onInputChange(event.target.value)}
+        onChange={(event) => onInputChange(event.target.value)}
         onKeyDown={handleTextareaKeyDown}
         disabled={!isConfigured || isSavingModel}
         placeholder={
@@ -1835,7 +1834,7 @@ const SavedTabsChatPanel = ({
                 className={cn(isCompactLayout && 'gap-5 p-3')}
                 scrollClassName='overscroll-contain'
               >
-                {messages.map(message => (
+                {messages.map((message) => (
                   <ChatConversationMessage
                     key={message.id}
                     message={message}
@@ -2020,7 +2019,7 @@ const useSavedTabsChatWidgetView = ({
   useEffect(() => {
     let isMounted = true
 
-    void getRuntimePlatform().then(nextPlatform => {
+    void getRuntimePlatform().then((nextPlatform) => {
       if (isMounted) {
         setPlatform(nextPlatform)
       }
@@ -2034,7 +2033,7 @@ const useSavedTabsChatWidgetView = ({
   useEffect(() => {
     let isMounted = true
 
-    loadWidgetSettings().then(nextSettings => {
+    loadWidgetSettings().then((nextSettings) => {
       if (isMounted) {
         setSettings(nextSettings)
         setSidebarWidth(loadSidebarWidth())
@@ -2056,7 +2055,7 @@ const useSavedTabsChatWidgetView = ({
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: { [key: string]: chrome.storage.StorageChange },
+      changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
       if (areaName !== 'local' || !changes.userSettings) {
@@ -2084,7 +2083,7 @@ const useSavedTabsChatWidgetView = ({
   useEffect(() => {
     const handleWindowResize = () => {
       setViewportWidth(window.innerWidth)
-      setSidebarWidth(currentWidth => clampSidebarWidth(currentWidth))
+      setSidebarWidth((currentWidth) => clampSidebarWidth(currentWidth))
     }
 
     window.addEventListener('resize', handleWindowResize)
@@ -2128,10 +2127,10 @@ const useSavedTabsChatWidgetView = ({
     options?: {
       commit?: boolean
     },
-  ) => {
-    return updateMessageList(
-      currentMessages =>
-        currentMessages.map(message =>
+  ) =>
+    updateMessageList(
+      (currentMessages) =>
+        currentMessages.map((message) =>
           message.id === messageId
             ? {
                 ...message,
@@ -2141,20 +2140,18 @@ const useSavedTabsChatWidgetView = ({
         ),
       options,
     )
-  }
 
   const removeMessage = (
     messageId: string,
     options?: {
       commit?: boolean
     },
-  ) => {
-    return updateMessageList(
-      currentMessages =>
-        currentMessages.filter(message => message.id !== messageId),
+  ) =>
+    updateMessageList(
+      (currentMessages) =>
+        currentMessages.filter((message) => message.id !== messageId),
       options,
     )
-  }
 
   const disconnectActivePort = (suppressDisconnectError = false) => {
     const activePort = activePortRef.current
@@ -2219,9 +2216,9 @@ const useSavedTabsChatWidgetView = ({
     }
 
     setModelOptions(
-      response.models.map(model => ({
-        name: model.name,
+      response.models.map((model) => ({
         label: model.label,
+        name: model.name,
       })),
     )
     setSetupOllamaError(undefined)
@@ -2330,15 +2327,15 @@ const useSavedTabsChatWidgetView = ({
     update: (prompt: AiSystemPromptPreset) => AiSystemPromptPreset,
   ) => {
     setPromptManagerError('')
-    setPromptDrafts(currentPrompts =>
-      currentPrompts.map(prompt =>
+    setPromptDrafts((currentPrompts) =>
+      currentPrompts.map((prompt) =>
         prompt.id === selectedPromptIdInModal ? update(prompt) : prompt,
       ),
     )
   }
 
   const handleChangePromptName = (value: string) => {
-    updateSelectedPromptDraft(prompt => ({
+    updateSelectedPromptDraft((prompt) => ({
       ...prompt,
       name: value,
       updatedAt: Date.now(),
@@ -2346,7 +2343,7 @@ const useSavedTabsChatWidgetView = ({
   }
 
   const handleChangePromptTemplate = (value: string) => {
-    updateSelectedPromptDraft(prompt => ({
+    updateSelectedPromptDraft((prompt) => ({
       ...prompt,
       template: value,
       updatedAt: Date.now(),
@@ -2355,7 +2352,7 @@ const useSavedTabsChatWidgetView = ({
 
   const handleCreatePrompt = () => {
     setPromptManagerError('')
-    setPromptDrafts(currentPrompts => {
+    setPromptDrafts((currentPrompts) => {
       if (currentPrompts.length >= MAX_AI_SYSTEM_PROMPT_PRESETS) {
         return currentPrompts
       }
@@ -2378,7 +2375,7 @@ const useSavedTabsChatWidgetView = ({
 
   const handleDuplicatePrompt = () => {
     setPromptManagerError('')
-    setPromptDrafts(currentPrompts => {
+    setPromptDrafts((currentPrompts) => {
       const selectedPrompt = getSelectedPrompt(
         currentPrompts,
         selectedPromptIdInModal,
@@ -2410,20 +2407,20 @@ const useSavedTabsChatWidgetView = ({
 
   const handleDeletePrompt = () => {
     setPromptManagerError('')
-    setPromptDrafts(currentPrompts => {
+    setPromptDrafts((currentPrompts) => {
       if (currentPrompts.length <= 1) {
         return currentPrompts
       }
 
       const selectedIndex = currentPrompts.findIndex(
-        prompt => prompt.id === selectedPromptIdInModal,
+        (prompt) => prompt.id === selectedPromptIdInModal,
       )
       if (selectedIndex === -1) {
         return currentPrompts
       }
 
       const nextPrompts = currentPrompts.filter(
-        prompt => prompt.id !== selectedPromptIdInModal,
+        (prompt) => prompt.id !== selectedPromptIdInModal,
       )
       const fallbackPrompt =
         nextPrompts[selectedIndex] ??
@@ -2446,7 +2443,7 @@ const useSavedTabsChatWidgetView = ({
       return
     }
 
-    const normalizedPrompts = promptDrafts.map(prompt => ({
+    const normalizedPrompts = promptDrafts.map((prompt) => ({
       ...prompt,
       name: prompt.name.trim(),
       template: prompt.template.trim(),
@@ -2695,9 +2692,9 @@ const useSavedTabsChatWidgetView = ({
       })
 
       streamPort.postMessage({
-        type: 'run',
-        prompt: nextPrompt,
         history,
+        prompt: nextPrompt,
+        type: 'run',
         ...(attachments.length > 0 ? { attachments } : {}),
       })
       return true
@@ -2715,29 +2712,29 @@ const useSavedTabsChatWidgetView = ({
       return
     }
 
-    const history = messages.map(message => ({
+    const history = messages.map((message) => ({
       ...(message.role === 'user' && message.attachments?.length
         ? { attachments: message.attachments }
         : {}),
-      role: message.role,
       content: message.content,
+      role: message.role,
     }))
 
     const assistantMessageId = createMessageId()
     const requestGeneration = conversationGenerationRef.current
     updateMessageList(
-      currentMessages => [
+      (currentMessages) => [
         ...currentMessages,
         createChatMessage('user', nextPrompt, {
           attachments,
         }),
         {
           charts: [],
-          id: assistantMessageId,
-          role: 'assistant',
           content: '',
+          id: assistantMessageId,
           isStreaming: true,
           reasoning: createInitialStreamingReasoning(nextPrompt, t),
+          role: 'assistant',
           toolTraces: [],
         },
       ],
@@ -2869,10 +2866,10 @@ const useSavedTabsChatWidgetView = ({
         onResizeStart={handleResizeStart}
         onSelectHistoryItem={onSelectHistoryItem}
         onSelectModel={handleSelectModel}
-        onSelectSuggestion={value => {
+        onSelectSuggestion={(value) => {
           void submitPrompt(value)
         }}
-        onSelectSystemPrompt={promptId => {
+        onSelectSystemPrompt={(promptId) => {
           void handleSelectSystemPrompt(promptId)
         }}
         onSubmit={handleSubmit}
@@ -2882,7 +2879,7 @@ const useSavedTabsChatWidgetView = ({
           isConfigured,
           isConversationCopied,
           isCopyDisabled: messages.every(
-            message => message.content.trim().length === 0,
+            (message) => message.content.trim().length === 0,
           ),
           isLoadingModels,
           isOpen,
@@ -2911,7 +2908,7 @@ const useSavedTabsChatWidgetView = ({
         onDeletePrompt={handleDeletePrompt}
         onDuplicatePrompt={handleDuplicatePrompt}
         onSave={handleSavePromptManager}
-        onSelectPrompt={promptId => {
+        onSelectPrompt={(promptId) => {
           setPromptManagerError('')
           setSelectedPromptIdInModal(promptId)
         }}

@@ -61,7 +61,7 @@ const saveSavedAnalyticsViews = async (
 
 const deleteSavedAnalyticsView = async (viewId: string): Promise<void> => {
   const currentViews = await loadSavedAnalyticsViews()
-  const nextViews = currentViews.filter(view => view.id !== viewId)
+  const nextViews = currentViews.filter((view) => view.id !== viewId)
   await saveSavedAnalyticsViews(nextViews)
 }
 

@@ -125,8 +125,8 @@ describe('CardGroupActions', () => {
       <CardGroupActions
         onOpenAll={onOpenAll}
         onDeleteAll={onDeleteAll}
-        onConfirmOpenAll={true}
-        onConfirmDeleteAll={true}
+        onConfirmOpenAll
+        onConfirmDeleteAll
         openAllThreshold={20}
         itemName='URL'
         warningMessage='すべて削除します'

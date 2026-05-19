@@ -1,6 +1,8 @@
 import { ExternalLink, Trash } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
@@ -31,7 +33,7 @@ export const CategoryBulkActionButtons = ({
 }: CategoryBulkActionButtonsProps) => (
   <div className='flex items-center gap-2'>
     <Tooltip>
-      <TooltipTrigger asChild={true}>
+      <TooltipTrigger asChild>
         <Button
           variant='secondary'
           size='sm'
@@ -50,7 +52,7 @@ export const CategoryBulkActionButtons = ({
 
     {showDeleteAction && (
       <Tooltip>
-        <TooltipTrigger asChild={true}>
+        <TooltipTrigger asChild>
           <Button
             variant='secondary'
             size='sm'

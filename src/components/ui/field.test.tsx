@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
+
 import { Field, FieldDescription, FieldError, FieldLabel } from './field'
 
 describe('Fieldコンポーネント', () => {
@@ -10,7 +11,7 @@ describe('Fieldコンポーネント', () => {
 
   it('data-invalid のとき説明とエラー表示をまとめて描画できる', () => {
     render(
-      <Field data-invalid={true}>
+      <Field data-invalid>
         <FieldLabel htmlFor='field-input'>Invalid Input</FieldLabel>
         <input aria-describedby='field-error' id='field-input' />
         <FieldDescription>Helper text</FieldDescription>

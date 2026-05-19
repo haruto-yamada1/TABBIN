@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+
 import type {
   DomainCategorySettings,
   DomainParentCategoryMapping,
@@ -27,16 +28,16 @@ export const createParentCategory = async (
 
   // 重複チェック: 同じ名前のカテゴリが既に存在するかを確認
   const duplicateCategory = categories.find(
-    category => category.name.toLowerCase() === name.toLowerCase(),
+    (category) => category.name.toLowerCase() === name.toLowerCase(),
   )
   if (duplicateCategory) {
     throw new Error(`DUPLICATE_CATEGORY_NAME:${name}`)
   }
   const newCategory: ParentCategory = {
+    domainNames: [], // 空の配列で初期化
+    domains: [],
     id: uuidv4(),
     name,
-    domains: [],
-    domainNames: [], // 空の配列で初期化
   }
   await saveParentCategories([...categories, newCategory])
   return newCategory
@@ -46,7 +47,7 @@ export const findCategoryByDomainName = async (
 ): Promise<ParentCategory | null> => {
   const categories = await getParentCategories()
   return (
-    categories.find(category => category.domainNames.includes(domainName)) ||
+    categories.find((category) => category.domainNames.includes(domainName)) ||
     null
   )
 } // ドメインのカテゴリ設定を取得する関数
@@ -73,20 +74,20 @@ export const updateDomainCategorySettings = async (
   const settings = await getDomainCategorySettings()
 
   // 既存の設定を探す
-  const existingIndex = settings.findIndex(s => s.domain === domain)
-  if (existingIndex >= 0) {
+  const existingIndex = settings.findIndex((s) => s.domain === domain)
+  if (existingIndex !== -1) {
     // 既存の設定を更新
     settings[existingIndex] = {
+      categoryKeywords,
       domain,
       subCategories,
-      categoryKeywords,
     }
   } else {
     // 新しい設定を追加
     settings.push({
+      categoryKeywords,
       domain,
       subCategories,
-      categoryKeywords,
     })
   }
   await saveDomainCategorySettings(settings)
@@ -113,24 +114,24 @@ export const updateDomainCategoryMapping = async (
   const mappings = await getDomainCategoryMappings()
 
   // 既存のマッピングを探す
-  const existingIndex = mappings.findIndex(m => m.domain === domain)
+  const existingIndex = mappings.findIndex((m) => m.domain === domain)
   if (categoryId === null) {
     // カテゴリIDがnullの場合は、マッピングを削除
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (existingIndex >= 0) {
+    /* V8 ignore next -- coverage-only defensive branch. */
+    if (existingIndex !== -1) {
       mappings.splice(existingIndex, 1)
       await saveDomainCategoryMappings(mappings)
     }
     return
   }
-  if (existingIndex >= 0) {
+  if (existingIndex !== -1) {
     // 既存のマッピングを更新
     mappings[existingIndex].categoryId = categoryId
   } else {
     // 新しいマッピングを追加
     mappings.push({
-      domain,
       categoryId,
+      domain,
     })
   }
   await saveDomainCategoryMappings(mappings)
@@ -143,17 +144,17 @@ export const deleteParentCategory = async (
     const categories = await getParentCategories()
 
     // 削除するカテゴリを見つける
-    const categoryToDelete = categories.find(cat => cat.id === categoryId)
+    const categoryToDelete = categories.find((cat) => cat.id === categoryId)
     if (!categoryToDelete) {
       throw new Error(`カテゴリID ${categoryId} が見つかりません`)
     }
 
     // このカテゴリに属しているドメイン名のリスト
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     const affectedDomainNames = categoryToDelete.domainNames || []
 
     // カテゴリを除外したリストを作成
-    const updatedCategories = categories.filter(cat => cat.id !== categoryId)
+    const updatedCategories = categories.filter((cat) => cat.id !== categoryId)
 
     // カテゴリリストを更新
     await saveParentCategories(updatedCategories)
@@ -161,7 +162,7 @@ export const deleteParentCategory = async (
     // このカテゴリに関連付けられていたすべてのドメインのマッピングを削除
     const mappings = await getDomainCategoryMappings()
     const updatedMappings = mappings.filter(
-      mapping => mapping.categoryId !== categoryId,
+      (mapping) => mapping.categoryId !== categoryId,
     )
 
     // マッピングを更新

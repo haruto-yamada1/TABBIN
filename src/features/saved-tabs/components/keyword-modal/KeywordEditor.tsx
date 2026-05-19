@@ -1,9 +1,11 @@
 import { X } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { useKeywordModal } from './KeywordModalContext'
 
 /**
@@ -34,10 +36,10 @@ export const KeywordEditor = () => {
         <Input
           id='keyword-input'
           value={keywordsState.newKeyword}
-          onChange={e => keywordsState.setNewKeyword(e.target.value)}
+          onChange={(e) => keywordsState.setNewKeyword(e.target.value)}
           placeholder={t('savedTabs.keywords.placeholder')}
           className='grow rounded border p-2'
-          onKeyDown={e => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
               keywordsState.handleAddKeyword()
@@ -56,7 +58,7 @@ export const KeywordEditor = () => {
         {keywordsState.keywords.length === 0 ? (
           <p className='text-zinc-500'>{t('savedTabs.keywords.empty')}</p>
         ) : (
-          keywordsState.keywords.map(keyword => (
+          keywordsState.keywords.map((keyword) => (
             <Badge
               key={keyword}
               variant='outline'

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+
 import {
   Dialog,
   DialogClose,
@@ -13,7 +14,7 @@ import {
 describe('Dialogコンポーネント', () => {
   it('トリガーとクローズを描画する', () => {
     render(
-      <Dialog open={true}>
+      <Dialog open>
         <DialogTrigger>Open Dialog</DialogTrigger>
         <DialogContent>
           <DialogTitle>Dialog Title</DialogTitle>

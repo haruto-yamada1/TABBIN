@@ -13,12 +13,15 @@ import { cn } from '@/lib/utils'
 const languageOptions: LanguageSetting[] = ['system', 'ja', 'en']
 const getLanguageOptionKey = (option: LanguageSetting) => {
   switch (option) {
-    case 'system':
+    case 'system': {
       return 'language.system'
-    case 'ja':
+    }
+    case 'ja': {
       return 'language.japanese'
-    case 'en':
+    }
+    case 'en': {
       return 'language.english'
+    }
   }
 }
 
@@ -41,7 +44,7 @@ export const LanguageSelect = ({
       </Label>
       <Select
         value={languageSetting}
-        onValueChange={value =>
+        onValueChange={(value) =>
           void setLanguageSetting(value as LanguageSetting)
         }
       >
@@ -53,7 +56,7 @@ export const LanguageSelect = ({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {languageOptions.map(option => (
+          {languageOptions.map((option) => (
             <SelectItem key={option} value={option}>
               {t(getLanguageOptionKey(option))}
             </SelectItem>

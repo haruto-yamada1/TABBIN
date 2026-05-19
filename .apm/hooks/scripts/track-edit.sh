@@ -33,7 +33,8 @@ const relevantExtensions = new Set([
 ])
 const relevantBasenames = new Set([
   '.jscpd.json',
-  'biome.json',
+  '.oxfmtrc.json',
+  '.oxlintrc.json',
   'bun.lock',
   'package.json',
   'postcss.config.cjs',

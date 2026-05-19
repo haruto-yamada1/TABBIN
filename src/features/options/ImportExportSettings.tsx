@@ -2,6 +2,7 @@ import { AlertCircle, Download, Upload } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { toast } from 'sonner'
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -78,7 +79,7 @@ export const ImportExportSettings: React.FC = () => {
       setIsImporting(true)
 
       const reader = new FileReader()
-      reader.onload = async event => {
+      reader.onload = async (event) => {
         try {
           const content = event.target?.result as string
           if (!content) {
@@ -120,7 +121,7 @@ export const ImportExportSettings: React.FC = () => {
     [mergeData, t],
   )
 
-  // react-dropzoneの設定
+  // React-dropzoneの設定
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
@@ -131,12 +132,12 @@ export const ImportExportSettings: React.FC = () => {
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
     accept: {
       'application/json': ['.json'],
     },
     maxFiles: 1,
     multiple: false,
+    onDrop,
   })
 
   return (
@@ -199,7 +200,7 @@ export const ImportExportSettings: React.FC = () => {
                 <Checkbox
                   id='merge-data'
                   checked={mergeData}
-                  onCheckedChange={checked => setMergeData(checked === true)}
+                  onCheckedChange={(checked) => setMergeData(checked === true)}
                 />
                 <Label htmlFor='merge-data' className='cursor-pointer'>
                   {t('options.importExport.merge')}

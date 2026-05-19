@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -10,6 +11,7 @@ import {
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
@@ -40,7 +42,7 @@ export const CategorySelector = () => {
           selection.selectedCategoryId &&
           selection.selectedCategoryId !== 'uncategorized' && (
             <Tooltip>
-              <TooltipTrigger asChild={true}>
+              <TooltipTrigger asChild>
                 <Button
                   variant='secondary'
                   size='sm'
@@ -70,7 +72,7 @@ export const CategorySelector = () => {
           />
         </SelectTrigger>
         <SelectContent>
-          {selection.categories.map(category => (
+          {selection.categories.map((category) => (
             <SelectItem key={category.id} value={category.id}>
               {category.name}
             </SelectItem>

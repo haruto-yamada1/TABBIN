@@ -1,8 +1,5 @@
-import {
-  type AppLanguage,
-  type LanguageSetting,
-  getMessages,
-} from '@/features/i18n/messages'
+import { getMessages } from '@/features/i18n/messages'
+import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
 
 const DEFAULT_LANGUAGE: AppLanguage = 'en'
 

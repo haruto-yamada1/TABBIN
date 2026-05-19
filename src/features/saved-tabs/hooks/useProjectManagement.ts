@@ -4,15 +4,10 @@
  * プロジェクト内カテゴリ管理を担うカスタムフック。
  */
 
-import {
-  type Dispatch,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   addCategoryToProject,
@@ -115,19 +110,19 @@ const showCustomProjectDeleteUndoToast = ({
   )
 }
 
-/** useProjectManagement フックの戻り値型 */
+/** UseProjectManagement フックの戻り値型 */
 interface UseProjectManagementReturn {
   /** カスタムプロジェクト一覧 */
   customProjects: CustomProject[]
-  /** customProjects を直接更新するセッター */
+  /** CustomProjects を直接更新するセッター */
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
   /** 現在のビューモード */
   viewMode: ViewMode
-  /** viewMode を直接更新するセッター */
+  /** ViewMode を直接更新するセッター */
   setViewMode: Dispatch<SetStateAction<ViewMode>>
-  /** customProjects の最新値を保持する ref（非同期処理用） */
+  /** CustomProjects の最新値を保持する ref（非同期処理用） */
   customProjectsRef: React.RefObject<CustomProject[]>
-  /** viewMode の最新値を保持する ref（非同期処理用） */
+  /** ViewMode の最新値を保持する ref（非同期処理用） */
   viewModeRef: React.RefObject<ViewMode>
   /** ドメインモードのデータをカスタムプロジェクトに同期する */
   syncDomainDataToCustomProjects: () => Promise<CustomProject[]>
@@ -264,15 +259,15 @@ const useProjectManagement = (
   const { t } = useI18n()
   const [customProjects, setCustomProjects] = useState<CustomProject[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>(
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     initialViewMode ?? 'domain',
   )
   const customProjectsRef = useRef<CustomProject[]>([])
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   const viewModeRef = useRef<ViewMode>(initialViewMode ?? 'domain')
   const creatingProjectNamesRef = useRef<Set<string>>(new Set())
 
-  // ref を最新の state に同期する
+  // Ref を最新の state に同期する
   useEffect(() => {
     customProjectsRef.current = customProjects
   }, [customProjects])
@@ -294,8 +289,8 @@ const useProjectManagement = (
         const latestProjects = await getCustomProjects()
         setCustomProjects(latestProjects)
         return latestProjects
-      } catch (e) {
-        console.error('プロジェクト再取得エラー:', e)
+      } catch (error) {
+        console.error('プロジェクト再取得エラー:', error)
         return []
       }
     }
@@ -313,9 +308,9 @@ const useProjectManagement = (
         console.log('カスタムモードに切り替え: データ同期を開始')
         await syncDomainDataToCustomProjects()
       } catch (error) {
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         console.error('ビューモード変更エラー:', error)
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         toast.error(t('savedTabs.viewMode.changeError'))
       }
     },
@@ -337,9 +332,9 @@ const useProjectManagement = (
       creatingProjectNamesRef.current.add(projectKey)
       try {
         const newProject = await createCustomProject(normalizedName)
-        setCustomProjects(prev => {
+        setCustomProjects((prev) => {
           const withoutCreated = prev.filter(
-            project => project.id !== newProject.id,
+            (project) => project.id !== newProject.id,
           )
           return [newProject, ...withoutCreated]
         })
@@ -373,12 +368,14 @@ const useProjectManagement = (
   const handleDeleteProject = useCallback(
     async (projectId: string): Promise<void> => {
       try {
-        const project = customProjectsRef.current.find(p => p.id === projectId)
+        const project = customProjectsRef.current.find(
+          (p) => p.id === projectId,
+        )
         if (!project) {
           return
         }
         await deleteCustomProject(projectId)
-        setCustomProjects(prev => prev.filter(p => p.id !== projectId))
+        setCustomProjects((prev) => prev.filter((p) => p.id !== projectId))
         toast.success(
           t('savedTabs.projects.deleted', undefined, {
             name: project.name,
@@ -397,19 +394,19 @@ const useProjectManagement = (
     async (projectId: string, newName: string): Promise<void> => {
       try {
         await updateCustomProjectName(projectId, newName)
-        setCustomProjects(prev =>
+        setCustomProjects((prev) =>
           prev.map(
-            p =>
+            (p) =>
               p.id === projectId
                 ? {
                     ...p,
                     name: newName,
                     updatedAt: Date.now(),
                   }
-                : /* v8 ignore next -- coverage-only defensive branch. */
-                  /* v8 ignore start -- coverage-only defensive branch. */
+                : /* V8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore start -- coverage-only defensive branch. */
                   p,
-            /* v8 ignore stop */
+            /* V8 ignore stop */
           ),
         )
         toast.success(t('savedTabs.projectManagement.renamed'))
@@ -440,19 +437,19 @@ const useProjectManagement = (
     ): Promise<void> => {
       try {
         await updateProjectKeywords(projectId, projectKeywords)
-        setCustomProjects(prev =>
+        setCustomProjects((prev) =>
           prev.map(
-            project =>
+            (project) =>
               project.id === projectId
                 ? {
                     ...project,
                     projectKeywords,
                     updatedAt: Date.now(),
                   }
-                : /* v8 ignore next -- coverage-only defensive branch. */
-                  /* v8 ignore start -- coverage-only defensive branch. */
+                : /* V8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore start -- coverage-only defensive branch. */
                   project,
-            /* v8 ignore stop */
+            /* V8 ignore stop */
           ),
         )
         toast.success(t('savedTabs.projects.keywordsUpdated'))
@@ -537,8 +534,8 @@ const useProjectManagement = (
     async (projectId: string, categoryName: string): Promise<void> => {
       try {
         await addCategoryToProject(projectId, categoryName)
-        setCustomProjects(prev =>
-          prev.map(p => {
+        setCustomProjects((prev) =>
+          prev.map((p) => {
             if (p.id !== projectId) {
               return p
             }
@@ -547,19 +544,19 @@ const useProjectManagement = (
             }
 
             const updatedCategories = [...p.categories, categoryName]
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             const baseCategoryOrder = p.categoryOrder ?? p.categories
             return {
               ...p,
               categories: updatedCategories,
-              /* v8 ignore start -- coverage-only defensive branch. */
+              /* V8 ignore start -- coverage-only defensive branch. */
               categoryOrder: baseCategoryOrder.includes(categoryName)
-                ? /* v8 ignore next -- coverage-only defensive branch. */
-                  /* v8 ignore start -- coverage-only defensive branch. */
+                ? /* V8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore start -- coverage-only defensive branch. */
                   baseCategoryOrder
-                : /* v8 ignore stop */
+                : /* V8 ignore stop */
                   [...baseCategoryOrder, categoryName],
-              /* v8 ignore stop */
+              /* V8 ignore stop */
               updatedAt: Date.now(),
             }
           }),
@@ -622,8 +619,8 @@ const useProjectManagement = (
       try {
         console.log(`カテゴリ順序を更新: ${projectId}`, newOrder)
         await updateCategoryOrder(projectId, newOrder)
-        setCustomProjects(prev =>
-          prev.map(p =>
+        setCustomProjects((prev) =>
+          prev.map((p) =>
             p.id === projectId
               ? {
                   ...p,
@@ -646,13 +643,13 @@ const useProjectManagement = (
     async (projectId: string, urls: CustomProject['urls']): Promise<void> => {
       try {
         await reorderProjectUrls(projectId, urls)
-        setCustomProjects(prev =>
-          prev.map(p =>
+        setCustomProjects((prev) =>
+          prev.map((p) =>
             p.id === projectId
               ? {
                   ...p,
-                  urls,
                   updatedAt: Date.now(),
+                  urls,
                 }
               : p,
           ),
@@ -671,7 +668,7 @@ const useProjectManagement = (
       try {
         console.log('プロジェクト順序を更新:', newOrder)
         await updateProjectOrder(newOrder)
-        setCustomProjects(prev =>
+        setCustomProjects((prev) =>
           prev.toSorted((a, b) => {
             const indexA = newOrder.indexOf(a.id)
             const indexB = newOrder.indexOf(b.id)
@@ -706,33 +703,33 @@ const useProjectManagement = (
           oldCategoryName,
           newCategoryName,
         )
-        setCustomProjects(prev =>
-          prev.map(project =>
+        setCustomProjects((prev) =>
+          prev.map((project) =>
             project.id === projectId
               ? {
                   ...project,
-                  categories: project.categories.map(cat =>
+                  categories: project.categories.map((cat) =>
                     cat === oldCategoryName ? newCategoryName : cat,
                   ),
                   categoryOrder: project.categoryOrder
-                    ? project.categoryOrder.map(cat =>
+                    ? project.categoryOrder.map((cat) =>
                         cat === oldCategoryName ? newCategoryName : cat,
                       )
-                    : /* v8 ignore next -- coverage-only defensive branch. */
-                      /* v8 ignore start -- coverage-only defensive branch. */
+                    : /* V8 ignore next -- coverage-only defensive branch. */
+                      /* V8 ignore start -- coverage-only defensive branch. */
                       project.categoryOrder,
-                  /* v8 ignore stop */
-                  urls: project.urls?.map(item => ({
+                  /* V8 ignore stop */
+                  urls: project.urls?.map((item) => ({
                     ...item,
                     category:
-                      /* v8 ignore start -- coverage-only defensive branch. */
+                      /* V8 ignore start -- coverage-only defensive branch. */
                       item.category === oldCategoryName
-                        ? /* v8 ignore next -- coverage-only defensive branch. */
-                          /* v8 ignore start -- coverage-only defensive branch. */
+                        ? /* V8 ignore next -- coverage-only defensive branch. */
+                          /* V8 ignore start -- coverage-only defensive branch. */
                           newCategoryName
-                        : /* v8 ignore stop */
+                        : /* V8 ignore stop */
                           item.category,
-                    /* v8 ignore stop */
+                    /* V8 ignore stop */
                   })),
                 }
               : project,
@@ -756,7 +753,7 @@ const useProjectManagement = (
         console.log(
           '初回ロード: ビューモードとカスタムプロジェクトを取得します',
         )
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         const mode = initialViewMode ?? 'domain'
         setViewMode(mode)
         console.log(`ビューモード: ${mode}`)
@@ -781,27 +778,27 @@ const useProjectManagement = (
   }, [initialViewMode])
   return {
     customProjects,
-    setCustomProjects,
-    viewMode,
-    setViewMode,
     customProjectsRef,
-    viewModeRef,
-    syncDomainDataToCustomProjects,
-    handleViewModeChange,
+    handleAddCategory,
+    handleAddUrlToProject,
     handleCreateProject,
     handleDeleteProject,
-    handleRenameProject,
-    handleUpdateProjectKeywords,
-    handleAddUrlToProject,
+    handleDeleteProjectCategory,
     handleDeleteUrlFromProject,
     handleDeleteUrlsFromProject,
-    handleAddCategory,
-    handleDeleteProjectCategory,
+    handleRenameCategory,
+    handleRenameProject,
+    handleReorderProjects,
+    handleReorderUrls,
     handleSetUrlCategory,
     handleUpdateCategoryOrder,
-    handleReorderUrls,
-    handleReorderProjects,
-    handleRenameCategory,
+    handleUpdateProjectKeywords,
+    handleViewModeChange,
+    setCustomProjects,
+    setViewMode,
+    syncDomainDataToCustomProjects,
+    viewMode,
+    viewModeRef,
   }
 }
 

@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { useKeywordModal } from './KeywordModalContext'
 
 /**
@@ -21,7 +22,7 @@ export const SubCategoryAddSection = () => {
           onChange={subcategory.handleSubCategoryNameChange}
           placeholder={t('savedTabs.subCategory.addPlaceholder')}
           className={`grow rounded border p-2 ${subcategory.subCategoryNameError ? 'border-red-500' : ''}`}
-          onKeyDown={e => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
               subcategory.handleAddSubCategory()

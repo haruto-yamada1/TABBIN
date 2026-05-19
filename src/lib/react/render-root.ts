@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { type Root, createRoot } from 'react-dom/client'
+import { createRoot } from 'react-dom/client'
+import type { Root } from 'react-dom/client'
 
 const ROOT_KEY = '__tabbinReactRoot__'
 

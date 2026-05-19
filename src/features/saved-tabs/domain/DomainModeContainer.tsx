@@ -1,23 +1,22 @@
-import {
-  DndContext as DndKitContext,
-  type DragEndEvent,
-  closestCenter,
-} from '@dnd-kit/core'
+import { DndContext as DndKitContext, closestCenter } from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Check, X } from 'lucide-react'
-import { type ComponentProps, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import type { ComponentProps } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { CategoryGroup } from '@/features/saved-tabs/components/CategoryGroup'
-import { SortableDomainCard } from '@/features/saved-tabs/components/SortableDomainCard'
 import { CardGroupActions } from '@/features/saved-tabs/components/shared/CardGroupActions'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
+import { SortableDomainCard } from '@/features/saved-tabs/components/SortableDomainCard'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 type DndSensors = ComponentProps<typeof DndKitContext>['sensors']
@@ -68,17 +67,17 @@ interface DomainModeContainerProps {
 }
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
-  /* v8 ignore next -- coverage-only defensive branch. */
-  /* v8 ignore start -- coverage-only defensive branch. */
-  (group.urls || []).map(item => item.url)
-/* v8 ignore stop */
+  /* V8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore start -- coverage-only defensive branch. */
+  (group.urls || []).map((item) => item.url)
+/* V8 ignore stop */
 
 const deleteVisibleUrlsForGroups = async (
   groups: TabGroup[],
   handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>,
 ): Promise<void> => {
   await Promise.all(
-    groups.map(async group => {
+    groups.map(async (group) => {
       const visibleUrls = getVisibleGroupUrls(group)
       if (visibleUrls.length === 0) {
         return
@@ -124,7 +123,7 @@ export const DomainModeContainer = ({
   } = state
   const { t } = useI18n()
   const categoryMap = useMemo(
-    () => new Map(categories.map(category => [category.id, category])),
+    () => new Map(categories.map((category) => [category.id, category])),
     [categories],
   )
   const handleMoveDomainToCategoryWithTabGroups = useCallback(
@@ -139,8 +138,8 @@ export const DomainModeContainer = ({
   )
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
   const uncategorizedUrlsToOpen = useMemo(
-    /* v8 ignore next -- coverage-only defensive branch. */
-    () => uncategorizedForDisplay.flatMap(group => group.urls || []),
+    /* V8 ignore next -- coverage-only defensive branch. */
+    () => uncategorizedForDisplay.flatMap((group) => group.urls || []),
     [uncategorizedForDisplay],
   )
   const displayedUncategorizedTabCount = uncategorizedUrlsToOpen.length
@@ -156,8 +155,8 @@ export const DomainModeContainer = ({
       return
     }
 
-    const uncategorizedIds = uncategorizedForDisplay.map(group => group.id)
-    /* v8 ignore next -- the bulk delete action is only rendered when at least one uncategorized group is visible. */
+    const uncategorizedIds = uncategorizedForDisplay.map((group) => group.id)
+    /* V8 ignore next -- the bulk delete action is only rendered when at least one uncategorized group is visible. */
     if (uncategorizedIds.length === 0) {
       return
     }
@@ -165,8 +164,14 @@ export const DomainModeContainer = ({
       await handleDeleteGroups(uncategorizedIds)
       return
     }
-    await Promise.all(uncategorizedIds.map(id => handleDeleteGroup(id)))
-  }, [handleDeleteGroup, handleDeleteGroups, uncategorizedForDisplay])
+    await Promise.all(uncategorizedIds.map((id) => handleDeleteGroup(id)))
+  }, [
+    handleDeleteGroup,
+    handleDeleteGroups,
+    handleDeleteUrls,
+    searchQuery,
+    uncategorizedForDisplay,
+  ])
 
   if (isLoading) {
     return <LoadingState />
@@ -185,7 +190,7 @@ export const DomainModeContainer = ({
             strategy={verticalListSortingStrategy}
           >
             <div className='flex flex-col gap-1'>
-              {categoryOrderForDisplay.map(categoryId => {
+              {categoryOrderForDisplay.map((categoryId) => {
                 if (!categoryId) {
                   return null
                 }
@@ -193,7 +198,7 @@ export const DomainModeContainer = ({
                 if (!category) {
                   return null
                 }
-                /* v8 ignore next -- coverage-only defensive branch. */
+                /* V8 ignore next -- coverage-only defensive branch. */
                 const domainGroups = categorized[categoryId] || []
                 if (domainGroups.length === 0) {
                   return null
@@ -228,7 +233,7 @@ export const DomainModeContainer = ({
 
       {shouldShowUncategorizedSectionHeader && (
         <div
-          /* v8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore next -- coverage-only defensive branch. */
           className={`sticky top-0 z-50 flex items-center justify-between bg-card ${hasVisibleCategoryGroups ? 'mt-6' : 'mt-2'}`}
           data-saved-tabs-scroll-target='parent'
         >
@@ -240,7 +245,7 @@ export const DomainModeContainer = ({
               <div className='flex items-center gap-3 text-muted-foreground text-sm'>
                 <span className='text-muted-foreground text-sm'>
                   <Tooltip>
-                    <TooltipTrigger asChild={true}>
+                    <TooltipTrigger asChild>
                       <Badge variant='secondary'>
                         {displayedUncategorizedTabCount}
                       </Badge>
@@ -252,7 +257,7 @@ export const DomainModeContainer = ({
                 </span>
                 <span className='text-muted-foreground text-sm'>
                   <Tooltip>
-                    <TooltipTrigger asChild={true}>
+                    <TooltipTrigger asChild>
                       <Badge variant='secondary'>
                         {displayedUncategorizedDomainCount}
                       </Badge>
@@ -282,7 +287,7 @@ export const DomainModeContainer = ({
             {isUncategorizedReorderMode && (
               <div className='pointer-events-auto ml-2 flex shrink-0 gap-2'>
                 <Tooltip>
-                  <TooltipTrigger asChild={true}>
+                  <TooltipTrigger asChild>
                     <Button
                       variant='outline'
                       size='sm'
@@ -302,7 +307,7 @@ export const DomainModeContainer = ({
                 </Tooltip>
 
                 <Tooltip>
-                  <TooltipTrigger asChild={true}>
+                  <TooltipTrigger asChild>
                     <Button
                       variant='default'
                       size='sm'
@@ -333,11 +338,11 @@ export const DomainModeContainer = ({
           onDragEnd={handleUncategorizedDragEnd}
         >
           <SortableContext
-            items={uncategorizedForDisplay.map(group => group.id)}
+            items={uncategorizedForDisplay.map((group) => group.id)}
             strategy={verticalListSortingStrategy}
           >
             <div className='mt-2 flex flex-col gap-1'>
-              {uncategorizedForDisplay.map(group => (
+              {uncategorizedForDisplay.map((group) => (
                 <SortableDomainCard
                   key={group.id}
                   group={group}

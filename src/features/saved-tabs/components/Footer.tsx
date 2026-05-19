@@ -1,4 +1,5 @@
 import { Check, X } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -23,7 +24,7 @@ export const CategoryReorderFooter = ({
       <div className='container mx-auto flex items-center justify-center gap-4 px-4 py-3'>
         <div className='flex items-center gap-2'>
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='outline'
                 size='sm'
@@ -41,7 +42,7 @@ export const CategoryReorderFooter = ({
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='default'
                 size='sm'

@@ -1,4 +1,4 @@
-// filepath: features/saved-tabs/types/CustomProjectSection.types.ts
+// Filepath: features/saved-tabs/types/CustomProjectSection.types.ts
 import type {
   CustomProject,
   ProjectKeywordSettings,

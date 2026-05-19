@@ -14,6 +14,7 @@ import {
 } from 'react'
 import type { TProps as JsxParserProps } from 'react-jsx-parser'
 import JsxParser from 'react-jsx-parser'
+
 import { cn } from '@/lib/utils'
 
 interface JSXPreviewContextValue {
@@ -48,7 +49,7 @@ const matchJsxTag = (code: string) => {
     return null
   }
 
-  const match = code.match(TAG_REGEX)
+  const match = TAG_REGEX.exec(code)
 
   if (!match || match.index === undefined) {
     return null
@@ -105,7 +106,7 @@ const completeJsxTag = (code: string) => {
     result +
     stack
       .toReversed()
-      .map(tag => `</${tag}>`)
+      .map((tag) => `</${tag}>`)
       .join('')
   )
 }

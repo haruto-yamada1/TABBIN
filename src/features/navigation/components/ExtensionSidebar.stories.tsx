@@ -1,15 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react'
+
 import { SidebarProvider } from '@/components/ui/sidebar'
 import {
   analyticsSidebarState,
   savedTabsSidebarState,
 } from '@/lib/storybook/fixtures'
+
 import { ExtensionSidebar } from './ExtensionSidebar'
 
 const meta = {
-  title: 'Features/Navigation/ExtensionSidebar',
   component: ExtensionSidebar,
-  render: args => {
+  render: (args) => {
     window.localStorage.setItem('tabbin-extension-sidebar-width', '256')
 
     return (
@@ -20,6 +21,7 @@ const meta = {
       </div>
     )
   },
+  title: 'Features/Navigation/ExtensionSidebar',
 } satisfies Meta<typeof ExtensionSidebar>
 
 type Story = StoryObj<typeof ExtensionSidebar>

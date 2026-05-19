@@ -1,12 +1,12 @@
 // @covers components/ui/alert.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { AlertCircle, ShieldAlert } from 'lucide-react'
+
 import { Alert, AlertDescription, AlertTitle } from './alert'
 
 export default {
-  title: 'UI/Alert',
   component: Alert,
-  render: args => (
+  render: (args) => (
     <Alert {...args}>
       {args.variant === 'destructive' ? (
         <ShieldAlert className='size-4' />
@@ -19,6 +19,7 @@ export default {
       </AlertDescription>
     </Alert>
   ),
+  title: 'UI/Alert',
 } satisfies Meta<typeof Alert>
 
 type Story = StoryObj<typeof Alert>

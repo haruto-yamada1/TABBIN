@@ -1,5 +1,6 @@
 import { Folder, Globe } from 'lucide-react'
 import type { ReactNode } from 'react'
+
 import {
   Select,
   SelectContent,
@@ -10,6 +11,7 @@ import {
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ViewMode } from '@/types/storage'
+
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
@@ -50,7 +52,7 @@ export const ViewModeToggle = ({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild={true}>
+      <TooltipTrigger asChild>
         <div>
           <Select value={currentMode} onValueChange={onChange}>
             <SelectTrigger

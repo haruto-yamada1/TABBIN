@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -117,7 +118,7 @@ export const MicSelectorTrigger = ({
 
   useEffect(() => {
     // Create a ResizeObserver to detect width changes
-    const resizeObserver = new ResizeObserver(entries => {
+    const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const newWidth = (entry.target as HTMLElement).offsetWidth
         if (newWidth) {
@@ -231,7 +232,7 @@ export const MicSelectorLabel = ({
   className,
   ...props
 }: MicSelectorLabelProps) => {
-  const matches = device.label.match(deviceIdRegex)
+  const matches = deviceIdRegex.exec(device.label)
 
   if (!matches) {
     return (
@@ -259,7 +260,7 @@ export const MicSelectorValue = ({
   ...props
 }: MicSelectorValueProps) => {
   const { data, value } = use(MicSelectorContext)
-  const currentDevice = data.find(d => d.deviceId === value)
+  const currentDevice = data.find((d) => d.deviceId === value)
 
   if (!currentDevice) {
     return (
@@ -291,7 +292,7 @@ export const useAudioDevices = () => {
 
       const deviceList = await navigator.mediaDevices.enumerateDevices()
       const audioInputs = deviceList.filter(
-        device => device.kind === 'audioinput',
+        (device) => device.kind === 'audioinput',
       )
 
       setDevices(audioInputs)
@@ -325,7 +326,7 @@ export const useAudioDevices = () => {
 
       const deviceList = await navigator.mediaDevices.enumerateDevices()
       const audioInputs = deviceList.filter(
-        device => device.kind === 'audioinput',
+        (device) => device.kind === 'audioinput',
       )
 
       setDevices(audioInputs)

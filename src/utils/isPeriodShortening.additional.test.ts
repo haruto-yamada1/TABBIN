@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { isPeriodShortening } from './isPeriodShortening'
 
 describe('isPeriodShortening の追加ケース', () => {

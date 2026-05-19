@@ -9,6 +9,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { Link, useInRouterContext } from 'react-router-dom'
+
 import { Button } from '@/components/ui/button'
 import {
   Sidebar,
@@ -32,11 +33,13 @@ import {
 } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
-  type SidebarItemId,
-  type SidebarState,
   getAppEntryHref,
   getAppRoute,
   getSavedTabsEntryRoute,
+} from '@/features/navigation/lib/pageNavigation'
+import type {
+  SidebarItemId,
+  SidebarState,
 } from '@/features/navigation/lib/pageNavigation'
 import { cn } from '@/lib/utils'
 
@@ -88,11 +91,11 @@ const LinkLabel = ({
   )
 }
 
-const topLevelItems: Array<{
+const topLevelItems: {
   icon: React.ComponentType<{ className?: string }>
   id: SidebarItemId
   labelKey: string
-}> = [
+}[] = [
   {
     icon: MessageCircleMore,
     id: 'ai-chat',
@@ -110,11 +113,11 @@ const topLevelItems: Array<{
   },
 ]
 
-const tabListItems: Array<{
+const tabListItems: {
   icon: React.ComponentType<{ className?: string }>
   id: SidebarItemId
   labelKey: string
-}> = [
+}[] = [
   {
     icon: Globe,
     id: 'saved-tabs-domain',
@@ -215,7 +218,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
         String(ICON_RAIL_WIDTH_PX),
       )
     } catch {
-      // localStorage が使えない環境では保持をスキップする
+      // LocalStorage が使えない環境では保持をスキップする
     }
   }
   const handleExpandSidebar = () => {
@@ -228,7 +231,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
         String(EXPANDED_SIDEBAR_WIDTH_PX),
       )
     } catch {
-      // localStorage が使えない環境では保持をスキップする
+      // LocalStorage が使えない環境では保持をスキップする
     }
   }
   const savedTabsHref = getSavedTabsEntryRoute()
@@ -239,7 +242,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
       label: t('sidebar.tabList'),
       to: savedTabsHref,
     },
-    ...topLevelItems.map(item => ({
+    ...topLevelItems.map((item) => ({
       icon: item.icon,
       isActive: state.item === item.id,
       label: t(item.labelKey),
@@ -312,7 +315,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
             {isIconCollapsed ? (
               <div className='flex h-full flex-col items-center'>
                 <div className='flex flex-col items-center gap-3 pt-2'>
-                  {railItems.map(item => (
+                  {railItems.map((item) => (
                     <IconRailLink key={item.label} {...item} />
                   ))}
                 </div>
@@ -339,7 +342,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
                     </LinkLabel>
                   </SidebarMenuButton>
                   <SidebarMenuSub className={expandedSubmenuClass}>
-                    {tabListItems.map(item => (
+                    {tabListItems.map((item) => (
                       <SidebarMenuSubItem key={item.id}>
                         {(() => {
                           const label = t(item.labelKey)
@@ -365,7 +368,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
                     ))}
                   </SidebarMenuSub>
                 </SidebarMenuItem>
-                {topLevelItems.map(item => (
+                {topLevelItems.map((item) => (
                   <SidebarMenuItem key={item.id}>
                     {(() => {
                       const label = t(item.labelKey)

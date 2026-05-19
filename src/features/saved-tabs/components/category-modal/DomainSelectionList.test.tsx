@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import {
   cleanup,
   fireEvent,
@@ -10,7 +11,9 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import type { TabGroup } from '@/types/storage'
+
 import { DomainSelectionList } from './DomainSelectionList'
 
 const domainSelectionI18nState = vi.hoisted(() => ({
@@ -72,7 +75,9 @@ const setCategoryModalContext = ({
   domainCategories: Record<string, { id: string; name: string } | null>
   toggleDomainSelection?: (domainId: string) => void
 }) => {
-  const selectedDomains = Object.fromEntries(tabGroups.map(g => [g.id, false]))
+  const selectedDomains = Object.fromEntries(
+    tabGroups.map((g) => [g.id, false]),
+  )
 
   useCategoryModalContextMock.mockReturnValue({
     state: {
@@ -122,7 +127,7 @@ describe('DomainSelectionList', () => {
   it('大量ドメインでも初期表示は仮想化された行だけを描画する', async () => {
     const tabGroups = createTabGroups(120)
     const domainCategories = Object.fromEntries(
-      tabGroups.map(g => [g.id, null]),
+      tabGroups.map((g) => [g.id, null]),
     ) as Record<string, { id: string; name: string } | null>
 
     setCategoryModalContext({
@@ -169,7 +174,7 @@ describe('DomainSelectionList', () => {
   it('未分類選択で全ドメインが分類済みなら分類済みメッセージを表示する', () => {
     const tabGroups = createTabGroups(2)
     const domainCategories = Object.fromEntries(
-      tabGroups.map(g => [g.id, { id: 'cat-1', name: 'カテゴリ1' }]),
+      tabGroups.map((g) => [g.id, { id: 'cat-1', name: 'カテゴリ1' }]),
     ) as Record<string, { id: string; name: string } | null>
 
     setCategoryModalContext({

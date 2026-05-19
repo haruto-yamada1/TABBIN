@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { getFallbackText } from './useI18nText'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({

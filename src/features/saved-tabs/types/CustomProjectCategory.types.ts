@@ -1,4 +1,4 @@
-// filepath: features/saved-tabs/types/CustomProjectCategory.types.ts
+// Filepath: features/saved-tabs/types/CustomProjectCategory.types.ts
 import type { CustomProject, UserSettings } from '@/types/storage'
 
 export interface CustomProjectCategoryProps {

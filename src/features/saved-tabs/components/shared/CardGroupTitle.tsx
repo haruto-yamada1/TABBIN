@@ -20,28 +20,26 @@ export const CardGroupTitle = ({
   sortableAttributes,
   sortableListeners,
   className = '',
-}: CardGroupTitleProps) => {
-  return (
-    <div
-      className={`flex w-full cursor-grab items-center gap-2 text-foreground hover:cursor-grab active:cursor-grabbing ${className}`}
-      {...sortableAttributes}
-      {...sortableListeners}
-    >
-      <GripVertical
-        size={16}
-        aria-hidden='true'
-        className='shrink-0 text-muted-foreground'
-      />
-      <div className='flex min-w-0 items-center gap-2'>
-        <h2 className='truncate font-semibold text-foreground text-xl'>
-          {title}
-        </h2>
-        {badges && (
-          <span className='flex shrink-0 gap-2 text-muted-foreground'>
-            {badges}
-          </span>
-        )}
-      </div>
+}: CardGroupTitleProps) => (
+  <div
+    className={`flex w-full cursor-grab items-center gap-2 text-foreground hover:cursor-grab active:cursor-grabbing ${className}`}
+    {...sortableAttributes}
+    {...sortableListeners}
+  >
+    <GripVertical
+      size={16}
+      aria-hidden='true'
+      className='shrink-0 text-muted-foreground'
+    />
+    <div className='flex min-w-0 items-center gap-2'>
+      <h2 className='truncate font-semibold text-foreground text-xl'>
+        {title}
+      </h2>
+      {badges && (
+        <span className='flex shrink-0 gap-2 text-muted-foreground'>
+          {badges}
+        </span>
+      )}
     </div>
-  )
-}
+  </div>
+)

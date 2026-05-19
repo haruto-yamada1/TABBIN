@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
+
 import type { CustomProject } from '@/types/storage'
+
 import { filterCustomProjectsByQuery } from './custom-project-search'
 
 const createProjects = (): CustomProject[] => [

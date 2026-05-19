@@ -1,11 +1,14 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { type CSSProperties, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { useDragHandlers } from '../../contexts/DragHandlersContext'
 import { useCustomProjectCard } from '../../hooks/useCustomProjectCard'
 import type { SortOrder } from '../../hooks/useSortOrder'
@@ -14,10 +17,8 @@ import { CardCollapseControl } from '../shared/CardCollapseControl'
 import { CardGroupActions } from '../shared/CardGroupActions'
 import { CardGroupTitle } from '../shared/CardGroupTitle'
 import { CardSortControl } from '../shared/CardSortControl'
-import {
-  ProjectCardContext,
-  type ProjectCardContextType,
-} from './ProjectCardContext'
+import { ProjectCardContext } from './ProjectCardContext'
+import type { ProjectCardContextType } from './ProjectCardContext'
 import { ProjectManagementModal } from './ProjectManagementModal'
 
 const sortProjectUrls = <
@@ -57,7 +58,7 @@ interface ProjectCardRootProps {
   isCrossProjectUrlDragActive?: boolean
   /** 操作ハンドラ */
   handlers: ProjectCardContextType['handlers']
-  /** useCustomProjectCard に渡すハンドラ */
+  /** UseCustomProjectCard に渡すハンドラ */
   hookHandlers: {
     handleDeleteUrl: CustomProjectCardProps['handleDeleteUrl']
     handleSetUrlCategory: CustomProjectCardProps['handleSetUrlCategory']
@@ -85,11 +86,11 @@ export const ProjectCardRoot = ({
 }: ProjectCardRootProps) => {
   const { t } = useI18n()
   const hookState = useCustomProjectCard({
-    project,
     handleDeleteUrl: hookHandlers.handleDeleteUrl,
+    handleReorderUrls: hookHandlers.handleReorderUrls,
     handleSetUrlCategory: hookHandlers.handleSetUrlCategory,
     handleUpdateCategoryOrder: hookHandlers.handleUpdateCategoryOrder,
-    handleReorderUrls: hookHandlers.handleReorderUrls,
+    project,
   })
 
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false)
@@ -102,7 +103,7 @@ export const ProjectCardRoot = ({
     [urls.projectUrls, sortOrder],
   )
   const sortedUncategorizedUrls = useMemo(
-    () => sortedProjectUrls.filter(url => !url.category),
+    () => sortedProjectUrls.filter((url) => !url.category),
     [sortedProjectUrls],
   )
 
@@ -115,52 +116,52 @@ export const ProjectCardRoot = ({
     attributes,
     listeners,
   } = useSortable({
-    id: project.id,
     data: {
-      type: 'project',
-      projectId: project.id,
       name: project.name,
+      projectId: project.id,
+      type: 'project',
     },
+    id: project.id,
   })
 
   const style: CSSProperties = {
     containIntrinsicSize: '360px',
     contentVisibility: 'auto',
+    opacity: isDragging ? 0.5 : 1,
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   }
 
   // このプロジェクトをドロップターゲットとして設定
   const { setNodeRef: setProjectDroppableRef, isOver: isProjectOver } =
     useDroppable({
-      id: `project-${project.id}`,
       data: {
-        type: 'project',
         projectId: project.id,
+        type: 'project',
       },
+      id: `project-${project.id}`,
     })
 
   const {
     setNodeRef: setProjectHeaderDroppableRef,
     isOver: isProjectHeaderOver,
   } = useDroppable({
-    id: `project-header-${project.id}`,
     data: {
-      type: 'project-header',
       projectId: project.id,
+      type: 'project-header',
     },
+    id: `project-header-${project.id}`,
   })
 
   // 未分類URLエリア用のドロップ領域
   const { setNodeRef: setUncategorizedDropRef, isOver: isUncategorizedOver } =
     useDroppable({
-      id: `uncategorized-${project.id}`,
       data: {
-        type: 'uncategorized',
-        projectId: project.id,
         isDropArea: true,
+        projectId: project.id,
+        type: 'uncategorized',
       },
+      id: `uncategorized-${project.id}`,
     })
 
   // 両方のrefを組み合わせる
@@ -174,11 +175,11 @@ export const ProjectCardRoot = ({
 
   useEffect(() => {
     registerHandlers(project.id, {
-      handleDragStart: dnd.handleDragStart,
-      handleDragOver: dnd.handleDragOver,
-      handleCategoryDragEnd: dnd.handleCategoryDragEnd,
-      handleUrlDragEnd: dnd.handleUrlDragEnd,
       clearDragState: dnd.resetDnD,
+      handleCategoryDragEnd: dnd.handleCategoryDragEnd,
+      handleDragOver: dnd.handleDragOver,
+      handleDragStart: dnd.handleDragStart,
+      handleUrlDragEnd: dnd.handleUrlDragEnd,
     })
     return () => unregisterHandlers(project.id)
   }, [project.id, registerHandlers, unregisterHandlers, dnd])
@@ -195,6 +196,8 @@ export const ProjectCardRoot = ({
 
   const contextValue: ProjectCardContextType = useMemo(
     () => ({
+      categoryOrder,
+      handlers,
       hookState: {
         ...hookState,
         urls: {
@@ -203,13 +206,11 @@ export const ProjectCardRoot = ({
           uncategorizedUrls: sortedUncategorizedUrls,
         },
       },
-      project,
-      settings,
-      isUncategorizedOver,
       isExternalItemOver,
+      isUncategorizedOver,
+      project,
       setUncategorizedDropRef,
-      categoryOrder,
-      handlers,
+      settings,
     }),
     [
       hookState,
@@ -267,9 +268,9 @@ export const ProjectCardRoot = ({
               projectUrlCount > 0
                 ? () => {
                     handlers.handleOpenAllUrls?.(
-                      sortedProjectUrls.map(u => ({
-                        url: u.url,
+                      sortedProjectUrls.map((u) => ({
                         title: u.title || '',
+                        url: u.url,
                       })),
                     )
                   }
@@ -281,7 +282,7 @@ export const ProjectCardRoot = ({
                     if (handlers.handleDeleteUrlsFromProject) {
                       await handlers.handleDeleteUrlsFromProject(
                         project.id,
-                        sortedProjectUrls.map(u => u.url),
+                        sortedProjectUrls.map((u) => u.url),
                       )
                     } else {
                       // プロジェクト内のすべてのURLを削除

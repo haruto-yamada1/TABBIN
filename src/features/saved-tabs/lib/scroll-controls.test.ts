@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+
 import {
   SCROLL_TARGET_ATTRIBUTE,
   getRelativeScrollTarget,

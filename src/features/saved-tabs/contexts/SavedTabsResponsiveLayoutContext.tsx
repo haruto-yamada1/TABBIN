@@ -1,4 +1,5 @@
-import { type PropsWithChildren, createContext, use } from 'react'
+import { createContext, use } from 'react'
+import type { PropsWithChildren } from 'react'
 
 interface SavedTabsResponsiveLayoutContextValue {
   isCompactLayout: boolean

@@ -2,11 +2,13 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
+
 import { useSortOrder } from './useSortOrder'
 
-/** useCategoryGroupState フックの引数 */
+/** UseCategoryGroupState フックの引数 */
 interface UseCategoryGroupStateParams {
   /** 親カテゴリデータ */
   category: ParentCategory
@@ -27,17 +29,17 @@ const ensureCategoryPresence = (
   categoryId: string,
   newName: string,
 ): ParentCategory[] => {
-  const existingCategory = categoryGroups.find(cat => cat.id === categoryId)
+  const existingCategory = categoryGroups.find((cat) => cat.id === categoryId)
   if (existingCategory) {
     return categoryGroups
   }
   return [
     ...categoryGroups,
     {
+      domainNames: [],
+      domains: [],
       id: categoryId,
       name: newName,
-      domains: [],
-      domainNames: [],
     },
   ]
 }
@@ -45,8 +47,8 @@ const renameCategoryInGroups = (
   categoryGroups: ParentCategory[],
   categoryId: string,
   newName: string,
-): ParentCategory[] => {
-  return categoryGroups.map(cat => {
+): ParentCategory[] =>
+  categoryGroups.map((cat) => {
     if (cat.id !== categoryId) {
       return cat
     }
@@ -56,7 +58,6 @@ const renameCategoryInGroups = (
       domainNames: [...(cat.domainNames || [])],
     }
   })
-}
 const confirmCategorySaved = async (
   categoryId: string,
   newName: string,
@@ -113,14 +114,14 @@ export const useCategoryGroupState = ({
     userCollapsedState: false,
   })
   const setIsCollapsed = useCallback((nextIsCollapsed: boolean) => {
-    setCollapseState(prev => ({
+    setCollapseState((prev) => ({
       ...prev,
       isCollapsed: nextIsCollapsed,
     }))
   }, [])
   const setUserCollapsedState = useCallback(
     (nextUserCollapsedState: boolean) => {
-      setCollapseState(prev => ({
+      setCollapseState((prev) => ({
         ...prev,
         userCollapsedState: nextUserCollapsedState,
       }))
@@ -145,7 +146,7 @@ export const useCategoryGroupState = ({
     sortOrder,
     setSortOrder,
     sortedItems: sortedDomains,
-  } = useSortOrder(localDomains, d => d.domain)
+  } = useSortOrder(localDomains, (d) => d.domain)
 
   // --- カテゴリ名更新ハンドラ ---
   const handleCategoryUpdate = useCallback(
@@ -153,8 +154,8 @@ export const useCategoryGroupState = ({
       try {
         console.log('CategoryGroup - handleCategoryUpdate開始:', {
           categoryId,
-          newName,
           currentCategory: category,
+          newName,
         })
         const result = await chrome.storage.local.get<{
           parentCategories?: ParentCategory[]
@@ -191,12 +192,12 @@ export const useCategoryGroupState = ({
     if (!(isReorderMode || isCategoryReorderMode)) {
       setIsCollapsed(false)
     }
-  }, [isReorderMode, isCategoryReorderMode])
+  }, [isReorderMode, isCategoryReorderMode, setIsCollapsed])
   const dndMonitorHandlers = useMemo(
     () => ({
-      onDragStart: handleGlobalDragStart,
-      onDragEnd: handleGlobalDragFinish,
       onDragCancel: handleGlobalDragFinish,
+      onDragEnd: handleGlobalDragFinish,
+      onDragStart: handleGlobalDragStart,
     }),
     [handleGlobalDragStart, handleGlobalDragFinish],
   )
@@ -206,7 +207,7 @@ export const useCategoryGroupState = ({
     if (isDraggingGlobal && !isCategoryReorderMode) {
       setIsCollapsed(true)
     }
-  }, [isDraggingGlobal, isCategoryReorderMode])
+  }, [isDraggingGlobal, isCategoryReorderMode, setIsCollapsed])
 
   // --- 親カテゴリ並び替えモード中の折りたたみ ---
   const prevReorderModeRef = useRef<boolean>(false)
@@ -218,7 +219,7 @@ export const useCategoryGroupState = ({
       })
       prevReorderModeRef.current = true
     } else if (!isCategoryReorderMode && prevReorderModeRef.current) {
-      setCollapseState(prev => ({
+      setCollapseState((prev) => ({
         ...prev,
         isCollapsed: userCollapsedState,
       }))
@@ -269,9 +270,11 @@ export const useCategoryGroupState = ({
       if (over && active.id !== over.id) {
         const currentOrder = isReorderMode ? tempDomainOrder : localDomains
         const oldIndex = currentOrder.findIndex(
-          domain => domain.id === active.id,
+          (domain) => domain.id === active.id,
         )
-        const newIndex = currentOrder.findIndex(domain => domain.id === over.id)
+        const newIndex = currentOrder.findIndex(
+          (domain) => domain.id === over.id,
+        )
         if (oldIndex !== -1 && newIndex !== -1) {
           const updatedDomains = arrayMove(currentOrder, oldIndex, newIndex)
           if (isReorderMode) {
@@ -279,7 +282,7 @@ export const useCategoryGroupState = ({
           } else {
             setIsReorderMode(true)
             setOriginalDomainOrder(
-              localDomains.map(domain => {
+              localDomains.map((domain) => {
                 const { urls, ...rest } = domain
                 return {
                   ...rest,
@@ -288,7 +291,7 @@ export const useCategoryGroupState = ({
               }),
             )
             setTempDomainOrder(
-              updatedDomains.map(domain => {
+              updatedDomains.map((domain) => {
                 const { urls, ...rest } = domain
                 return {
                   ...rest,
@@ -343,7 +346,7 @@ export const useCategoryGroupState = ({
       await handleDeleteGroup(domainId)
       if (isReorderMode) {
         const filteredTempOrder = tempDomainOrder.filter(
-          domain => domain.id !== domainId,
+          (domain) => domain.id !== domainId,
         )
         setTempDomainOrder(filteredTempOrder)
         if (filteredTempOrder.length === 0) {
@@ -359,42 +362,42 @@ export const useCategoryGroupState = ({
     collapse: {
       isCollapsed,
       setIsCollapsed,
-      userCollapsedState,
       setUserCollapsedState,
+      userCollapsedState,
     },
-    /** ソート関連 */
-    sort: {
-      sortOrder,
-      setSortOrder,
-      sortedDomains,
-    },
+    /** DnDモニターハンドラ */
+    dndMonitorHandlers,
+    /** カテゴリ更新 */
+    handleCategoryUpdate,
+    /** ローカルドメイン */
+    localDomains,
     /** モーダル関連 */
     modal: {
       isModalOpen,
       setIsModalOpen,
     },
-    /** ドメイン並び替え関連 */
-    reorder: {
-      isReorderMode,
-      tempDomainOrder,
-      isDraggingDomains,
-      handleDragStart,
-      handleDragEnd,
-      handleConfirmReorder,
-      handleCancelReorder,
-      handleDeleteSingleDomain,
-    },
     /** ネイティブDnDイベント */
     nativeDnD: {
-      handleDragOver,
       handleDragLeave,
+      handleDragOver,
       handleDrop,
     },
-    /** ローカルドメイン */
-    localDomains,
-    /** カテゴリ更新 */
-    handleCategoryUpdate,
-    /** DnDモニターハンドラ */
-    dndMonitorHandlers,
+    /** ドメイン並び替え関連 */
+    reorder: {
+      handleCancelReorder,
+      handleConfirmReorder,
+      handleDeleteSingleDomain,
+      handleDragEnd,
+      handleDragStart,
+      isDraggingDomains,
+      isReorderMode,
+      tempDomainOrder,
+    },
+    /** ソート関連 */
+    sort: {
+      setSortOrder,
+      sortOrder,
+      sortedDomains,
+    },
   }
 }

@@ -121,7 +121,7 @@ describe('select ui', () => {
   it('SelectTrigger は aria-invalid=true のときエラー表示用クラスを持つ', () => {
     render(
       <Select>
-        <SelectTrigger aria-invalid={true}>
+        <SelectTrigger aria-invalid>
           <SelectValue>Invalid Value</SelectValue>
         </SelectTrigger>
         <SelectContent>

@@ -1,5 +1,7 @@
 import { DragOverlay } from '@dnd-kit/core'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { useProjectCard } from './ProjectCardContext'
 
 /**
@@ -16,7 +18,7 @@ export const ProjectCardDragOverlay = () => {
   }
 
   const activeUrl = urls.projectUrls.find(
-    u =>
+    (u) =>
       u.url === dnd.activeId?.id || u.url === dnd.activeId?.data?.current?.url,
   )
 

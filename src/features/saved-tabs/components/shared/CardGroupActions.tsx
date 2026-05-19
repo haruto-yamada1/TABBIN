@@ -1,5 +1,6 @@
 import { ExternalLink, Settings, Trash } from 'lucide-react'
 import { useState } from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
@@ -59,7 +61,7 @@ export const CardGroupActions = ({
         {/* 管理ボタン (オプション) */}
         {onManage && (
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='secondary'
                 size='sm'
@@ -82,7 +84,7 @@ export const CardGroupActions = ({
         {/* すべて開く */}
         {onOpenAll && (
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='secondary'
                 size='sm'
@@ -111,11 +113,11 @@ export const CardGroupActions = ({
         {/* すべて削除 */}
         {onDeleteAll && (
           <Tooltip>
-            <TooltipTrigger asChild={true}>
+            <TooltipTrigger asChild>
               <Button
                 variant='secondary'
                 size='sm'
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation()
                   e.preventDefault()
                   if (onConfirmDeleteAll) {

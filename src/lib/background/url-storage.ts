@@ -25,9 +25,7 @@ const setDraggedUrlInfo = (info: DraggedUrlInfo): void => {
 /**
  * ドラッグ情報を取得
  */
-const getDraggedUrlInfo = (): DraggedUrlInfo | null => {
-  return draggedUrlInfo
-}
+const getDraggedUrlInfo = (): DraggedUrlInfo | null => draggedUrlInfo
 /**
  * ドラッグ情報をクリア
  */
@@ -53,12 +51,12 @@ const removeUrlIdFromGroup = (
   if (!(Array.isArray(group.urlIds) && group.urlIds.includes(matchedUrlId))) {
     return [group]
   }
-  const updatedUrlIds = group.urlIds.filter(id => id !== matchedUrlId)
+  const updatedUrlIds = group.urlIds.filter((id) => id !== matchedUrlId)
   const updatedUrlSubCategories = group.urlSubCategories
     ? Object.fromEntries(
-        Object.entries(group.urlSubCategories).filter(([urlId]) => {
-          return urlId !== matchedUrlId
-        }),
+        Object.entries(group.urlSubCategories).filter(
+          ([urlId]) => urlId !== matchedUrlId,
+        ),
       )
     : undefined
   if (updatedUrlIds.length === 0) {
@@ -85,7 +83,7 @@ const removeLegacyUrlFromGroup = (
   if (!Array.isArray(group.urls)) {
     return [group]
   }
-  const updatedUrls = group.urls.filter(item => item.url !== url)
+  const updatedUrls = group.urls.filter((item) => item.url !== url)
   if (updatedUrls.length === group.urls.length) {
     return [group]
   }
@@ -139,7 +137,7 @@ interface BulkParentCategoriesRemovalResult {
 }
 
 const createUrlIdSet = (urlIds: string[]): Set<string> =>
-  new Set(urlIds.filter(id => typeof id === 'string' && id.length > 0))
+  new Set(urlIds.filter((id) => typeof id === 'string' && id.length > 0))
 
 const removeUrlIdsFromRecord = <T>(
   record: Record<string, T> | undefined,
@@ -178,7 +176,7 @@ const removeUrlIdsFromSavedTabs = (
       continue
     }
 
-    const updatedUrlIds = group.urlIds.filter(id => !urlIds.has(id))
+    const updatedUrlIds = group.urlIds.filter((id) => !urlIds.has(id))
     if (updatedUrlIds.length === group.urlIds.length) {
       updatedTabs.push(group)
       continue
@@ -202,13 +200,13 @@ const removeUrlIdsFromSavedTabs = (
       urlIds: updatedUrlIds,
       ...(hasSubCategoryChanges && updatedUrlSubCategories
         ? { urlSubCategories: updatedUrlSubCategories }
-        : /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
+        : /* V8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore start -- coverage-only defensive branch. */
           {}),
-      /* v8 ignore stop */
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore stop */
+      /* V8 ignore next -- coverage-only defensive branch. */
       ...(!hasSubCategoryChanges && group.urlSubCategories
-        ? /* v8 ignore next -- coverage-only defensive branch. */
+        ? /* V8 ignore next -- coverage-only defensive branch. */
           { urlSubCategories: group.urlSubCategories }
         : {}),
     })
@@ -228,10 +226,10 @@ const removeUrlIdsFromCustomProjects = (
   const now = Date.now()
   let hasChanges = false
 
-  const updatedProjects = customProjects.map(project => {
-    /* v8 ignore next -- coverage-only defensive branch. */
+  const updatedProjects = customProjects.map((project) => {
+    /* V8 ignore next -- coverage-only defensive branch. */
     const currentUrlIds = Array.isArray(project.urlIds) ? project.urlIds : []
-    const updatedUrlIds = currentUrlIds.filter(id => !urlIds.has(id))
+    const updatedUrlIds = currentUrlIds.filter((id) => !urlIds.has(id))
     const { hasChanges: hasMetadataChanges, record: updatedUrlMetadata } =
       removeUrlIdsFromRecord(project.urlMetadata, urlIds)
     const hasUrlIdChanges = updatedUrlIds.length !== currentUrlIds.length
@@ -269,13 +267,13 @@ const removeGroupsFromParentCategories = (
 
   const groupIdsToRemove = new Set(groupIds)
   let hasChanges = false
-  const updatedCategories = parentCategories.map(category => {
+  const updatedCategories = parentCategories.map((category) => {
     if (!Array.isArray(category.domains)) {
       return category
     }
 
     const updatedDomains = category.domains.filter(
-      id => !groupIdsToRemove.has(id),
+      (id) => !groupIdsToRemove.has(id),
     )
     if (updatedDomains.length === category.domains.length) {
       return category
@@ -302,7 +300,7 @@ const removeUrlRecordsById = (
   removedCount: number
   urls: UrlRecord[]
 } => {
-  const updatedUrls = urls.filter(record => !urlIds.has(record.id))
+  const updatedUrls = urls.filter((record) => !urlIds.has(record.id))
 
   return {
     hasChanges: updatedUrls.length !== urls.length,
@@ -326,7 +324,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
     const urlRecords = Array.isArray(storageResult.urls)
       ? storageResult.urls
       : []
-    const matchedUrlId = urlRecords.find(record => record.url === url)?.id
+    const matchedUrlId = urlRecords.find((record) => record.url === url)?.id
     const removedGroupIds: string[] = []
 
     // URLを含むグループのみを更新（新形式 urlIds / 旧形式 urls の両方に対応）
@@ -336,7 +334,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
 
     // 空になったグループに紐づくカテゴリ更新を先に実行する
     await Promise.all(
-      removedGroupIds.map(groupId => handleTabGroupRemoval(groupId)),
+      removedGroupIds.map((groupId) => handleTabGroupRemoval(groupId)),
     )
 
     // 更新したグループをストレージに保存
@@ -370,24 +368,24 @@ const removeUrlRecordsFromStorage = async (
     )
     const savedTabs = Array.isArray(storageResult.savedTabs)
       ? storageResult.savedTabs
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         []
-    /* v8 ignore stop */
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore stop */
+    /* V8 ignore next -- coverage-only defensive branch. */
     const urls = Array.isArray(storageResult.urls) ? storageResult.urls : []
     const customProjects = Array.isArray(storageResult.customProjects)
       ? storageResult.customProjects
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         []
-    /* v8 ignore stop */
+    /* V8 ignore stop */
     const parentCategories = Array.isArray(storageResult.parentCategories)
       ? storageResult.parentCategories
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         []
-    /* v8 ignore stop */
+    /* V8 ignore stop */
 
     const savedTabsResult = removeUrlIdsFromSavedTabs(savedTabs, targetUrlIds)
     const customProjectsResult = removeUrlIdsFromCustomProjects(
@@ -416,7 +414,7 @@ const removeUrlRecordsFromStorage = async (
 
     if (Object.keys(payload).length > 0) {
       await chrome.storage.local.set(payload)
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (urlsResult.hasChanges) {
         invalidateUrlCache()
       }
@@ -470,7 +468,7 @@ const removeFromParentCategories = async (groupId: string): Promise<void> => {
     // ドメイン名を保持したままドメインIDのみを削除
     const updatedCategories = parentCategories.map(
       (category: ParentCategory) => {
-        // domainNamesは変更せず、domainsからIDのみを削除
+        // DomainNamesは変更せず、domainsからIDのみを削除
         const updated = {
           ...category,
           domains: category.domains.filter((id: string) => id !== groupId),
@@ -517,9 +515,9 @@ const handleUrlDragStarted = (url: string): void => {
 
   // ドラッグ情報を一時保存
   draggedUrlInfo = {
-    url,
-    timestamp: Date.now(),
     processed: false,
+    timestamp: Date.now(),
+    url,
   }
 
   // ドラッグ情報の自動タイムアウト（10秒）
@@ -528,7 +526,7 @@ const handleUrlDragStarted = (url: string): void => {
       console.log('ドラッグ情報のタイムアウト:', draggedUrlInfo.url)
       draggedUrlInfo = null
     }
-  }, 10000)
+  }, 10_000)
 
   // タイムアウトIDを保存しておくことで、必要に応じてキャンセル可能
   if (draggedUrlInfo) {
@@ -544,7 +542,7 @@ const handleUrlDropped = async (
 ): Promise<string> => {
   console.log('URLドロップを検知:', url)
 
-  // fromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
+  // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (fromExternal === true) {
     try {
       const settings = await getUserSettings()

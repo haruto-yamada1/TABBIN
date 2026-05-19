@@ -6,11 +6,10 @@ import {
 } from '@/components/ui/dialog'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
+
 import { useCategoryKeywordModal } from '../../hooks/useCategoryKeywordModal'
-import {
-  KeywordModalContext,
-  type KeywordModalContextType,
-} from './KeywordModalContext'
+import { KeywordModalContext } from './KeywordModalContext'
+import type { KeywordModalContextType } from './KeywordModalContext'
 
 const EMPTY_PARENT_CATEGORIES: NonNullable<
   CategoryKeywordModalProps['parentCategories']
@@ -54,10 +53,10 @@ export const KeywordModalRoot = ({
   const { t } = useI18n()
   const state = useCategoryKeywordModal({
     group,
-    isOpen,
-    onSave,
-    onDeleteCategory,
     initialParentCategories,
+    isOpen,
+    onDeleteCategory,
+    onSave,
     onUpdateParentCategories,
   })
 
@@ -66,8 +65,8 @@ export const KeywordModalRoot = ({
   }
 
   const contextValue: KeywordModalContextType = {
-    state,
     group,
+    state,
   }
 
   return (
@@ -75,9 +74,9 @@ export const KeywordModalRoot = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           className='max-h-[90vh] overflow-y-auto'
-          onClick={e => e.stopPropagation()}
-          onPointerDown={e => e.stopPropagation()}
-          onKeyDown={e => {
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.stopPropagation()
             }

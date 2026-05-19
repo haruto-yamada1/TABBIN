@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
+
 import {
   createSavedAnalyticsView,
   deleteSavedAnalyticsView,
@@ -14,7 +16,7 @@ const storageMocks = vi.hoisted(() => {
     getChromeStorageLocal: vi.fn(() => ({
       get: vi.fn(async (keys: string | string[]) => {
         if (Array.isArray(keys)) {
-          return Object.fromEntries(keys.map(key => [key, state[key]]))
+          return Object.fromEntries(keys.map((key) => [key, state[key]]))
         }
 
         return {

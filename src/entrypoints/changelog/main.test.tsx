@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { getChangelogItems } from '@/features/i18n/messages'
 
 const mocked = vi.hoisted(() => ({
@@ -112,11 +113,11 @@ describe('changelog bootstrap', () => {
     const englishItems = getChangelogItems('en')
 
     expect(englishItems).toHaveLength(japaneseItems.length)
-    expect(englishItems.map(item => item.version)).toEqual(
-      japaneseItems.map(item => item.version),
+    expect(englishItems.map((item) => item.version)).toEqual(
+      japaneseItems.map((item) => item.version),
     )
-    expect(englishItems.map(item => item.features.length)).toEqual(
-      japaneseItems.map(item => item.features.length),
+    expect(englishItems.map((item) => item.features.length)).toEqual(
+      japaneseItems.map((item) => item.features.length),
     )
   })
 })

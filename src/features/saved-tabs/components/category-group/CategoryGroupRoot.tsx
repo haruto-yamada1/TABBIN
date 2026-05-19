@@ -2,15 +2,15 @@ import { useDndMonitor } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMemo } from 'react'
+
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { CategoryManagementModal } from '@/features/saved-tabs/components/CategoryManagementModal'
 import { useCategoryGroupState } from '@/features/saved-tabs/hooks/useCategoryGroupState'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
-import {
-  CategoryGroupContext,
-  type CategoryGroupContextType,
-} from './CategoryGroupContext'
+
+import { CategoryGroupContext } from './CategoryGroupContext'
+import type { CategoryGroupContextType } from './CategoryGroupContext'
 
 /** CategoryGroupRoot の props */
 interface CategoryGroupRootProps {
@@ -48,8 +48,8 @@ export const CategoryGroupRoot = ({
   const state = useCategoryGroupState({
     category,
     domains,
-    handleUpdateDomainsOrder: handlers.handleUpdateDomainsOrder,
     handleDeleteGroup: handlers.handleDeleteGroup,
+    handleUpdateDomainsOrder: handlers.handleUpdateDomainsOrder,
     isCategoryReorderMode,
   })
 
@@ -65,31 +65,31 @@ export const CategoryGroupRoot = ({
   useDndMonitor(state.dndMonitorHandlers)
 
   // このカテゴリ内のすべてのURLを取得
-  const allUrls = domains.flatMap(group => group.urls || [])
+  const allUrls = domains.flatMap((group) => group.urls || [])
 
   // 検索でヒットしないカテゴリは非表示
   const hasSearchQuery = searchQuery.trim().length > 0
   const hasVisibleDomains = domains.some(
-    domain => (domain.urls?.length || 0) > 0,
+    (domain) => (domain.urls?.length || 0) > 0,
   )
 
   // 検索結果に応じたドメイン数を計算
   const visibleDomainsCount = hasSearchQuery
-    ? domains.filter(domain => (domain.urls?.length || 0) > 0).length
+    ? domains.filter((domain) => (domain.urls?.length || 0) > 0).length
     : domains.length
 
   const contextValue: CategoryGroupContextType = useMemo(
     () => ({
-      state,
+      allUrls,
       category,
       domains,
-      settings,
+      handlers,
       isCategoryReorderMode,
       searchQuery,
-      visibleDomainsCount,
-      allUrls,
+      settings,
       sortable: { attributes, listeners },
-      handlers,
+      state,
+      visibleDomainsCount,
     }),
     [
       state,
@@ -123,7 +123,7 @@ export const CategoryGroupRoot = ({
         })}
         onDragOver={state.nativeDnD.handleDragOver}
         onDragLeave={state.nativeDnD.handleDragLeave}
-        onDrop={e =>
+        onDrop={(e) =>
           state.nativeDnD.handleDrop(e, handlers.handleMoveDomainToCategory)
         }
       >

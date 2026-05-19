@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { userEvent, within } from 'storybook/test'
+
 import { ImportExportSettings } from './ImportExportSettings'
 
 const meta = {
-  title: 'Features/Options/ImportExportSettings',
   component: ImportExportSettings,
+  title: 'Features/Options/ImportExportSettings',
 } satisfies Meta<typeof ImportExportSettings>
 
 type Story = StoryObj<typeof ImportExportSettings>

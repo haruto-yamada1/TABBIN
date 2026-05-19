@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+
 import { CardGroupTitle } from '../shared/CardGroupTitle'
 import { SavedTabsResponsiveTooltipContent } from '../shared/SavedTabsResponsive'
 import { useCategoryGroup } from './CategoryGroupContext'
@@ -15,7 +16,7 @@ export const CategoryGroupTitle = () => {
   const badges = (
     <>
       <Tooltip>
-        <TooltipTrigger asChild={true}>
+        <TooltipTrigger asChild>
           <Badge variant='secondary'>{allUrls?.length ?? 0}</Badge>
         </TooltipTrigger>
         <SavedTabsResponsiveTooltipContent side='top'>
@@ -23,7 +24,7 @@ export const CategoryGroupTitle = () => {
         </SavedTabsResponsiveTooltipContent>
       </Tooltip>
       <Tooltip>
-        <TooltipTrigger asChild={true}>
+        <TooltipTrigger asChild>
           <Badge variant='secondary'>{visibleDomainsCount}</Badge>
         </TooltipTrigger>
         <SavedTabsResponsiveTooltipContent side='top'>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+
 import {
   Accordion,
   AccordionContent,
@@ -131,11 +132,11 @@ const UiShowcase = () => {
           </div>
         </div>
 
-        <Field className='max-w-md gap-2' data-invalid={true}>
+        <Field className='max-w-md gap-2' data-invalid>
           <FieldLabel htmlFor='showcase-invalid'>Workspace name</FieldLabel>
           <Input
             aria-describedby='showcase-invalid-error'
-            aria-invalid={true}
+            aria-invalid
             id='showcase-invalid'
             defaultValue='tabbin'
           />
@@ -168,7 +169,7 @@ const UiShowcase = () => {
           <div className='flex items-center gap-2'>
             <Checkbox
               checked={checked}
-              onCheckedChange={value => setChecked(value === true)}
+              onCheckedChange={(value) => setChecked(value === true)}
             />
             <span className='text-sm'>Sync across windows</span>
           </div>

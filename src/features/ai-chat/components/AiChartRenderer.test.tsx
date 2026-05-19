@@ -1,5 +1,6 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import type { AiChartSpec } from '@/features/ai-chat/types'
 
 const mocked = vi.hoisted(() => ({

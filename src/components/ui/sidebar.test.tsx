@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { getMessage, resolveUiLanguage } from '@/features/i18n/lib/language'
 
 const { useIsMobileMock } = vi.hoisted(() => ({

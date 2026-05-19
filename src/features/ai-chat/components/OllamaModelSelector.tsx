@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+
 import {
   PromptInputSelect,
   PromptInputSelectContent,
@@ -8,10 +9,8 @@ import {
 } from '@/components/ai-elements/prompt-input'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  OllamaErrorNotice,
-  type OllamaErrorPlatform,
-} from '@/features/ai-chat/components/OllamaErrorNotice'
+import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
+import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
 import type { OllamaErrorDetails } from '@/types/background'
@@ -51,7 +50,7 @@ const getSelectableModels = (
     return models
   }
 
-  const hasSelectedModel = models.some(model => model.name === selectedModel)
+  const hasSelectedModel = models.some((model) => model.name === selectedModel)
   if (hasSelectedModel) {
     return models
   }
@@ -126,7 +125,7 @@ const ModelOptions = ({
   t: (key: string) => string
 }) => {
   if (selectableModels.length > 0) {
-    return selectableModels.map(model => (
+    return selectableModels.map((model) => (
       <PromptInputSelectItem key={model.name} value={model.name}>
         {model.label}
       </PromptInputSelectItem>
@@ -197,7 +196,7 @@ const OllamaModelSelector = ({
   const fetchOnOpen = behavior?.fetchOnOpen ?? false
   const hideFetchButton = behavior?.hideFetchButton ?? false
   const isCompactLayout = layout === 'compact'
-  const isLoading = status.isLoading
+  const { isLoading } = status
   const isSaving = status.isSaving ?? false
   const selectableModels = useMemo(
     () => getSelectableModels(models, selectedModel),

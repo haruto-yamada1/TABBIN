@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { SortableUrlItemProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
 
@@ -63,6 +64,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 })
 
 import { formatDatetime } from '@/utils/datetime'
+
 import { SortableUrlItem } from './SortableUrlItem'
 
 const sendMessageMock = vi.fn()
@@ -105,7 +107,7 @@ const getLatestWindowBlurHandler = (
   addEventListenerSpy: ReturnType<typeof vi.spyOn>,
 ) => {
   const call = [...addEventListenerSpy.mock.calls]
-    .reverse()
+    .toReversed()
     .find(([eventName]) => eventName === 'blur')
 
   if (!call || !(call[1] instanceof Function)) {

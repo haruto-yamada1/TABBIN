@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+
 import { Button } from './button'
 
 describe('Buttonコンポーネント', () => {
@@ -16,7 +17,7 @@ describe('Buttonコンポーネント', () => {
 
   it('asChild が true のとき子要素を描画する', () => {
     render(
-      <Button asChild={true}>
+      <Button asChild>
         <a href='/docs'>Read Docs</a>
       </Button>,
     )

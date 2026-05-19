@@ -1,4 +1,5 @@
 import { z } from 'zod'
+
 import {
   ACTIVE_AI_CHAT_CONVERSATION_ID_KEY,
   AI_CHAT_CONVERSATIONS_KEY,
@@ -56,14 +57,14 @@ const resolveCurrentLanguage = (settings: Pick<UserSettings, 'language'>) =>
 const getPlaceholderUrlTitle = (
   language: UserSettings['language'] | undefined,
 ): string =>
-  /* v8 ignore start -- coverage-only defensive branch. */
+  /* V8 ignore start -- coverage-only defensive branch. */
   resolveCurrentLanguage({ language }) === 'en'
-    ? /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    ? /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       'Recovered data (missing original URL)'
-    : /* v8 ignore stop */
+    : /* V8 ignore stop */
       '復元データ（元URL欠損）'
-/* v8 ignore stop */
+/* V8 ignore stop */
 
 // インポート時のURL形式に対応するインターフェース
 interface ImportedUrlData {
@@ -104,13 +105,13 @@ interface ImportedCustomProjectData {
     domainKeywords?: unknown[]
   }
   urlIds?: string[]
-  urls?: Array<{
+  urls?: {
     url: string
     title?: string
     notes?: string
     savedAt?: number
     category?: string
-  }>
+  }[]
   urlMetadata?: Record<
     string,
     {
@@ -151,13 +152,16 @@ const importedUrlDataSchema = z.object({
   savedAt: z.number().optional(),
 })
 const importedUrlRecordSchema = z.object({
-  id: z.string(),
-  url: z.string(),
-  title: z.string().optional(),
-  savedAt: z.number().optional(),
   favIconUrl: z.string().optional(),
+  id: z.string(),
+  savedAt: z.number().optional(),
+  title: z.string().optional(),
+  url: z.string(),
 })
 const importedCustomProjectSchema = z.object({
+  categories: z.array(z.unknown()).optional(),
+  categoryOrder: z.array(z.unknown()).optional(),
+  createdAt: z.number().optional(),
   id: z.string(),
   name: z.string(),
   projectKeywords: z
@@ -167,7 +171,17 @@ const importedCustomProjectSchema = z.object({
       domainKeywords: z.array(z.unknown()).optional(),
     })
     .optional(),
+  updatedAt: z.number().optional(),
   urlIds: z.array(z.string()).optional(),
+  urlMetadata: z
+    .record(
+      z.string(),
+      z.object({
+        notes: z.string().optional(),
+        category: z.string().optional(),
+      }),
+    )
+    .optional(),
   urls: z
     .array(
       z.object({
@@ -179,19 +193,6 @@ const importedCustomProjectSchema = z.object({
       }),
     )
     .optional(),
-  urlMetadata: z
-    .record(
-      z.string(),
-      z.object({
-        notes: z.string().optional(),
-        category: z.string().optional(),
-      }),
-    )
-    .optional(),
-  categories: z.array(z.unknown()).optional(),
-  categoryOrder: z.array(z.unknown()).optional(),
-  createdAt: z.number().optional(),
-  updatedAt: z.number().optional(),
 })
 const analyticsQuerySchema = z.object({
   chartType: z.enum(['area', 'bar', 'line', 'pie', 'radar']),
@@ -246,43 +247,43 @@ const aiChartSeriesSchema = z.object({
   label: z.string(),
 })
 const aiChartSpecSchema = z.object({
-  type: z.enum(['area', 'bar', 'line', 'pie', 'radar']),
-  title: z.string(),
+  categoryKey: z.string().optional(),
   data: z.array(
     z.record(z.string(), z.union([z.number(), z.string(), z.null()])),
   ),
-  series: z.array(aiChartSeriesSchema),
-  categoryKey: z.string().optional(),
   description: z.string().optional(),
   emptyMessage: z.string().optional(),
+  series: z.array(aiChartSeriesSchema),
   showLegend: z.boolean().optional(),
   stacked: z.boolean().optional(),
+  title: z.string(),
+  type: z.enum(['area', 'bar', 'line', 'pie', 'radar']),
   valueFormat: z.enum(['count', 'date', 'label', 'percent']).optional(),
   xKey: z.string().optional(),
 })
 const aiChatAttachmentSchema = z.object({
-  filename: z.string(),
-  mediaType: z.string(),
-  kind: z.enum(['text', 'image']),
   content: z.string(),
+  filename: z.string(),
+  kind: z.enum(['text', 'image']),
+  mediaType: z.string(),
 })
 const aiChatToolTraceSchema = z.object({
-  toolCallId: z.string(),
-  toolName: z.string(),
-  title: z.string(),
-  type: z.string(),
-  state: z.string(),
+  errorText: z.string().optional(),
   input: z.unknown(),
   output: z.unknown().optional(),
-  errorText: z.string().optional(),
+  state: z.string(),
+  title: z.string(),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  type: z.string(),
 })
 const ollamaErrorDetailsSchema = z.object({
-  kind: z.enum(['forbidden', 'notInstalledOrNotRunning']),
-  faqUrl: z.string(),
-  downloadUrl: z.string(),
-  baseUrl: z.string(),
-  tagsUrl: z.string(),
   allowedOrigins: z.string().optional(),
+  baseUrl: z.string(),
+  downloadUrl: z.string(),
+  faqUrl: z.string(),
+  kind: z.enum(['forbidden', 'notInstalledOrNotRunning']),
+  tagsUrl: z.string(),
 })
 const aiChatConversationMessageSchema = z.object({
   attachments: z.array(aiChatAttachmentSchema).optional(),
@@ -331,30 +332,16 @@ const buildConvertedUrlData = (
 const convertImportedUrlsWithPreloadedMap = (
   urls: ImportedUrlData[],
   urlRecordMapByUrl: Map<string, UrlRecord>,
-): ConvertedUrlData => {
-  return buildConvertedUrlData(urls, urlData =>
+): ConvertedUrlData =>
+  buildConvertedUrlData(urls, (urlData) =>
     urlRecordMapByUrl.get(normalizeUrlKey(urlData.url)),
   )
-}
 
 // バックアップデータのバリデーションスキーマ
 const backupDataSchema = z.object({
   version: z.string(),
   timestamp: z.string(),
   userSettings: z.object({
-    removeTabAfterOpen: z.boolean(),
-    removeTabAfterExternalDrop: z.boolean().optional(),
-    excludePatterns: z.array(z.string()),
-    enableCategories: z.boolean(),
-    showSavedTime: z.boolean(),
-    autoDeletePeriod: z.string().optional(),
-    clickBehavior: z.enum([
-      'saveCurrentTab',
-      'saveWindowTabs',
-      'saveSameDomainTabs',
-      'saveAllWindowsTabs',
-    ]),
-    ollamaModel: z.string().optional(),
     activeAiSystemPromptId: z.string().optional(),
     aiSystemPrompts: z
       .array(
@@ -367,6 +354,19 @@ const backupDataSchema = z.object({
         }),
       )
       .optional(),
+    autoDeletePeriod: z.string().optional(),
+    clickBehavior: z.enum([
+      'saveCurrentTab',
+      'saveWindowTabs',
+      'saveSameDomainTabs',
+      'saveAllWindowsTabs',
+    ]),
+    enableCategories: z.boolean(),
+    excludePatterns: z.array(z.string()),
+    ollamaModel: z.string().optional(),
+    removeTabAfterExternalDrop: z.boolean().optional(),
+    removeTabAfterOpen: z.boolean(),
+    showSavedTime: z.boolean(),
   }),
   parentCategories: z.array(
     z.object({
@@ -374,7 +374,7 @@ const backupDataSchema = z.object({
       name: z.string(),
       domains: z.array(z.string()),
       domainNames: z.array(z.string()),
-      // keywords はスキーマ上は許可するが、処理中に適切に扱う
+      // Keywords はスキーマ上は許可するが、処理中に適切に扱う
       keywords: z.array(z.string()).optional(),
     }),
   ),
@@ -419,7 +419,7 @@ const convertImportedUrlsToNewFormat = async (
 
   const urlRecordMapByUrlFromSingleUpdate = new Map<string, UrlRecord>()
   const urlRecordEntries = await Promise.all(
-    urls.map(async urlData => {
+    urls.map(async (urlData) => {
       try {
         // URLレコードを作成または更新
         const urlRecord = await createOrUpdateUrlRecord(
@@ -447,7 +447,7 @@ const convertImportedUrlsToNewFormat = async (
   )
 }
 /**
- * categoryKeywordsを型安全に正規化する
+ * CategoryKeywordsを型安全に正規化する
  */
 const normalizeCategoryKeywords = (
   keywords: unknown[] | undefined,
@@ -496,7 +496,7 @@ const normalizeSubCategories = (items: unknown[] | undefined): string[] => {
       'name' in item &&
       typeof item.name === 'string'
     ) {
-      name = item.name
+      ;({ name } = item)
     }
     if (!name || seen.has(name)) {
       continue
@@ -514,9 +514,9 @@ const normalizeStringArray = (items: unknown[] | undefined): string[] => {
   const values: string[] = []
   const seen = new Set<string>()
   for (const item of items) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (typeof item !== 'string' || seen.has(item)) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       continue
     }
     seen.add(item)
@@ -530,7 +530,7 @@ const normalizeSubCategoryOrder = (
   validCategories: string[],
 ): string[] | undefined => {
   const validCategorySet = new Set(validCategories)
-  const normalized = normalizeStringArray(items).filter(category =>
+  const normalized = normalizeStringArray(items).filter((category) =>
     validCategorySet.has(category),
   )
   return normalized.length > 0 ? normalized : undefined
@@ -542,7 +542,7 @@ const normalizeSubCategoryOrderWithUncategorized = (
 ): string[] | undefined => {
   const validCategorySet = new Set(validCategories)
   const normalized = normalizeStringArray(items).filter(
-    category =>
+    (category) =>
       category === '__uncategorized' || validCategorySet.has(category),
   )
   return normalized.length > 0 ? normalized : undefined
@@ -621,30 +621,30 @@ const mergeOrderedSubCategoriesWithUncategorized = ({
 const normalizeProjectKeywords = (
   projectKeywords: ImportedCustomProjectData['projectKeywords'],
 ): ProjectKeywordSettings => ({
+  domainKeywords: normalizeStringArray(projectKeywords?.domainKeywords),
   titleKeywords: normalizeStringArray(projectKeywords?.titleKeywords),
   urlKeywords: normalizeStringArray(projectKeywords?.urlKeywords),
-  domainKeywords: normalizeStringArray(projectKeywords?.domainKeywords),
 })
 
 const normalizeImportedCustomProject = (
   project: ImportedCustomProjectData,
 ): CustomProject => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   const createdAt = project.createdAt || Date.now()
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   const updatedAt = project.updatedAt || createdAt
   const urlIds = Array.isArray(project.urlIds)
     ? project.urlIds.filter((id): id is string => typeof id === 'string')
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    : /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       []
-  /* v8 ignore stop */
+  /* V8 ignore stop */
   const urls = Array.isArray(project.urls)
     ? project.urls.reduce<NonNullable<CustomProject['urls']>>((items, item) => {
         if (item?.url) {
           items.push({
             url: item.url,
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             title: item.title || '',
             notes: item.notes,
             savedAt: item.savedAt,
@@ -681,11 +681,11 @@ const buildCustomProjectUrlIdList = (tabGroups: TabGroup[]): string[] => {
   const orderedUrlIds: string[] = []
   const seen = new Set<string>()
   for (const group of tabGroups) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     for (const urlId of group.urlIds || []) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (seen.has(urlId)) {
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         continue
       }
       seen.add(urlId)
@@ -739,13 +739,13 @@ const buildUncategorizedCustomProject = (
     return stripCustomProjectUrls(project)
   }
   return {
+    categories: [],
+    createdAt: now,
     id: CUSTOM_UNCATEGORIZED_PROJECT_ID,
     name: getUncategorizedProjectName(language),
     projectKeywords: normalizeProjectKeywords(undefined),
-    urlIds: [],
-    categories: [],
-    createdAt: now,
     updatedAt: now,
+    urlIds: [],
   }
 }
 
@@ -765,7 +765,7 @@ const alignCustomProjectsWithSavedTabs = ({
 } => {
   const orderedTabUrlIds = buildCustomProjectUrlIdList(tabGroups)
   const allowedUrlIdSet = new Set(orderedTabUrlIds)
-  const normalizedProjects = customProjects.map(project =>
+  const normalizedProjects = customProjects.map((project) =>
     stripCustomProjectUrls(normalizeImportedCustomProject(project)),
   )
   const normalizedOrder = normalizeCustomProjectOrder(
@@ -773,22 +773,22 @@ const alignCustomProjectsWithSavedTabs = ({
     normalizedProjects,
   )
   const projectById = new Map(
-    normalizedProjects.map(project => [project.id, project]),
+    normalizedProjects.map((project) => [project.id, project]),
   )
-  const orderedProjects = normalizedOrder.flatMap(projectId => {
+  const orderedProjects = normalizedOrder.flatMap((projectId) => {
     const project = projectById.get(projectId)
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return project ? [project] : []
   })
   const normalizedOrderSet = new Set(normalizedOrder)
   const remainingProjects = normalizedProjects.filter(
-    project => !normalizedOrderSet.has(project.id),
+    (project) => !normalizedOrderSet.has(project.id),
   )
   const allProjects = [...orderedProjects, ...remainingProjects]
   const assignedUrlIds = new Set<string>()
-  const sanitizedProjects = allProjects.map(project => {
+  const sanitizedProjects = allProjects.map((project) => {
     const nextUrlIds: string[] = []
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     for (const urlId of project.urlIds || []) {
       if (!allowedUrlIdSet.has(urlId) || assignedUrlIds.has(urlId)) {
         continue
@@ -799,12 +799,12 @@ const alignCustomProjectsWithSavedTabs = ({
     return buildSanitizedCustomProject(project, nextUrlIds)
   })
   const missingUrlIds = orderedTabUrlIds.filter(
-    urlId => !assignedUrlIds.has(urlId),
+    (urlId) => !assignedUrlIds.has(urlId),
   )
   if (missingUrlIds.length > 0) {
     const now = Date.now()
     const uncategorizedIndex = sanitizedProjects.findIndex(
-      project => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
+      (project) => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
     )
     const uncategorizedProject = buildUncategorizedCustomProject(
       now,
@@ -813,14 +813,14 @@ const alignCustomProjectsWithSavedTabs = ({
         ? undefined
         : sanitizedProjects[uncategorizedIndex],
     )
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     const uncategorizedUrlIds = uncategorizedProject.urlIds || []
     uncategorizedProject.urlIds = uncategorizedUrlIds
     const urlIdSet = new Set(uncategorizedUrlIds)
     for (const urlId of missingUrlIds) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       if (urlIdSet.has(urlId)) {
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         continue
       }
       urlIdSet.add(urlId)
@@ -837,11 +837,11 @@ const alignCustomProjectsWithSavedTabs = ({
     }
   }
   return {
-    customProjects: sanitizedProjects,
     customProjectOrder: normalizeCustomProjectOrder(
       customProjectOrder,
       sanitizedProjects,
     ),
+    customProjects: sanitizedProjects,
   }
 }
 
@@ -866,31 +866,31 @@ const convertCustomProjectToExportUrls = (
 
   for (const urlId of project.urlIds) {
     const urlRecord =
-      /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       urlRecordMap.get(urlId) || placeholderUrlRecordMap.get(urlId)
-    /* v8 ignore stop */
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore stop */
+    /* V8 ignore next -- coverage-only defensive branch. */
     const resolvedUrlRecord = urlRecord || {
       id: urlId,
-      url: `https://tabbin.invalid/#tabbin-export-custom-missing-${project.id}-${urlId}`,
-      title: placeholderUrlTitle,
       savedAt:
         typeof project.updatedAt === 'number'
           ? /* v8 ignore next -- coverage-only defensive branch. */
             project.updatedAt + offset
           : /* v8 ignore next -- coverage-only defensive branch. */
             Date.now() + offset,
+      title: placeholderUrlTitle,
+      url: `https://tabbin.invalid/#tabbin-export-custom-missing-${project.id}-${urlId}`,
     }
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (!(urlRecord || placeholderUrlRecordMap.has(urlId))) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       placeholderUrlRecordMap.set(urlId, resolvedUrlRecord)
     }
     offset += 1
     exportedUrls.push({
       url: resolvedUrlRecord.url,
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       title: resolvedUrlRecord.title || '',
       notes: project.urlMetadata?.[urlId]?.notes,
       savedAt: resolvedUrlRecord.savedAt,
@@ -932,13 +932,13 @@ const normalizeCustomProjectOrder = (
   order: string[] | undefined,
   projects: CustomProject[],
 ): string[] => {
-  const existingIds = new Set(projects.map(project => project.id))
+  const existingIds = new Set(projects.map((project) => project.id))
   const normalizedOrder = Array.isArray(order)
-    ? order.filter(id => typeof id === 'string' && existingIds.has(id))
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    ? order.filter((id) => typeof id === 'string' && existingIds.has(id))
+    : /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       []
-  /* v8 ignore stop */
+  /* V8 ignore stop */
   const normalizedOrderSet = new Set(normalizedOrder)
   const missingIds = projects.reduce<string[]>((ids, project) => {
     if (!normalizedOrderSet.has(project.id)) {
@@ -958,17 +958,17 @@ const mergeImportedCustomProjects = (
   customProjects: CustomProject[]
   customProjectOrder: string[]
 } => {
-  const normalizedCurrentProjects = currentProjects.map(project =>
+  const normalizedCurrentProjects = currentProjects.map((project) =>
     normalizeImportedCustomProject(project),
   )
-  const normalizedImportedProjects = importedProjects.map(project =>
+  const normalizedImportedProjects = importedProjects.map((project) =>
     normalizeImportedCustomProject(project),
   )
   const currentIds = new Set(
-    normalizedCurrentProjects.map(project => project.id),
+    normalizedCurrentProjects.map((project) => project.id),
   )
   const newProjects = normalizedImportedProjects.filter(
-    project => !currentIds.has(project.id),
+    (project) => !currentIds.has(project.id),
   )
   const mergedProjects = [...normalizedCurrentProjects, ...newProjects]
   const normalizedCurrentOrder = normalizeCustomProjectOrder(
@@ -979,27 +979,27 @@ const mergeImportedCustomProjects = (
     importedOrder,
     normalizedImportedProjects,
   )
-  const newProjectIds = new Set(newProjects.map(project => project.id))
-  const appendedImportedIds = normalizedImportedOrder.filter(id =>
+  const newProjectIds = new Set(newProjects.map((project) => project.id))
+  const appendedImportedIds = normalizedImportedOrder.filter((id) =>
     newProjectIds.has(id),
   )
   const appendedImportedIdSet = new Set(appendedImportedIds)
   const remainingIds = newProjects.reduce<string[]>((ids, project) => {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     if (!appendedImportedIdSet.has(project.id)) {
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       ids.push(project.id)
     }
     return ids
   }, [])
 
   return {
-    customProjects: mergedProjects,
     customProjectOrder: [
       ...normalizedCurrentOrder,
       ...appendedImportedIds,
       ...remainingIds,
     ],
+    customProjects: mergedProjects,
   }
 }
 
@@ -1010,15 +1010,15 @@ const overwriteImportedCustomProjects = (
   customProjects: CustomProject[]
   customProjectOrder: string[]
 } => {
-  const customProjects = importedProjects.map(project =>
+  const customProjects = importedProjects.map((project) =>
     normalizeImportedCustomProject(project),
   )
   return {
-    customProjects,
     customProjectOrder: normalizeCustomProjectOrder(
       importedOrder,
       customProjects,
     ),
+    customProjects,
   }
 }
 
@@ -1027,9 +1027,9 @@ const restoreImportedCustomProjectUrlsFromIds = (
   importedUrlRecordMap: Map<string, ImportedUrlRecordData>,
   currentUrlRecordMap: Map<string, UrlRecord>,
 ): ImportedCustomProjectUrlData[] => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!Array.isArray(project.urlIds) || project.urlIds.length === 0) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return []
   }
 
@@ -1042,7 +1042,7 @@ const restoreImportedCustomProjectUrlsFromIds = (
     }
     restoredUrls.push({
       url: urlRecord.url,
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       title: urlRecord.title || '',
       savedAt: urlRecord.savedAt,
       notes: project.urlMetadata?.[urlId]?.notes,
@@ -1056,16 +1056,14 @@ const normalizeImportedCustomProjectsForImport = (
   projects: ImportedCustomProjectData[] | undefined,
   importedUrlRecordMap: Map<string, ImportedUrlRecordData>,
   currentUrlRecordMap: Map<string, UrlRecord>,
-): Array<
-  ImportedCustomProjectData & { urls: ImportedCustomProjectUrlData[] }
-> => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+): (ImportedCustomProjectData & { urls: ImportedCustomProjectUrlData[] })[] => {
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (!Array.isArray(projects)) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return []
   }
 
-  return projects.map(project => {
+  return projects.map((project) => {
     if (Array.isArray(project.urls)) {
       return {
         ...project,
@@ -1094,7 +1092,7 @@ const convertImportedCustomProjectUrlsToStorage = async (
   urlMetadata?: CustomProject['urlMetadata']
 }> => {
   const convertedUrls = await Promise.all(
-    urls.map(async urlData => {
+    urls.map(async (urlData) => {
       try {
         const normalizedUrl = normalizeUrlKey(urlData.url)
         const preloadedUrlRecord = urlRecordMapByUrl?.get(normalizedUrl)
@@ -1102,7 +1100,7 @@ const convertImportedCustomProjectUrlsToStorage = async (
           preloadedUrlRecord ||
           (await createOrUpdateUrlRecord(
             urlData.url,
-            /* v8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore next -- coverage-only defensive branch. */
             urlData.title || '',
             undefined,
             IMPORT_URL_RECORD_OPTIONS,
@@ -1112,9 +1110,9 @@ const convertImportedCustomProjectUrlsToStorage = async (
           metadata:
             urlData.notes || urlData.category
               ? {
-                  /* v8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore next -- coverage-only defensive branch. */
                   ...(urlData.notes ? { notes: urlData.notes } : {}),
-                  /* v8 ignore next -- coverage-only defensive branch. */
+                  /* V8 ignore next -- coverage-only defensive branch. */
                   ...(urlData.category ? { category: urlData.category } : {}),
                 }
               : undefined,
@@ -1157,7 +1155,7 @@ const resolveImportedCustomProject = async (
   if (project.urls.length === 0 && Array.isArray(project.urlIds)) {
     return {
       ...normalizeImportedCustomProject(project),
-      /* v8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore next -- coverage-only defensive branch. */
       ...(categoryOrder.length > 0 ? { categoryOrder } : {}),
     }
   }
@@ -1177,27 +1175,26 @@ const resolveImportedCustomProject = async (
       : {}),
     categories: normalizeStringArray(project.categories),
     ...(categoryOrder.length > 0 ? { categoryOrder } : {}),
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     createdAt: project.createdAt || Date.now(),
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     updatedAt: project.updatedAt || project.createdAt || Date.now(),
   }
 }
 
 const resolveImportedCustomProjects = async (
-  projects: Array<
-    ImportedCustomProjectData & { urls: ImportedCustomProjectUrlData[] }
-  >,
+  projects: (ImportedCustomProjectData & {
+    urls: ImportedCustomProjectUrlData[]
+  })[],
   urlRecordMapByUrl?: Map<string, UrlRecord>,
-): Promise<CustomProject[]> => {
-  return Promise.all(
-    projects.map(project =>
+): Promise<CustomProject[]> =>
+  Promise.all(
+    projects.map((project) =>
       resolveImportedCustomProject(project, urlRecordMapByUrl),
     ),
   )
-}
 /**
- * categoryKeywordsをカテゴリ名単位でマージする
+ * CategoryKeywordsをカテゴリ名単位でマージする
  */
 const mergeCategoryKeywords = (
   existing: SubCategoryKeyword[] | undefined,
@@ -1220,7 +1217,7 @@ const mergeCategoryKeywords = (
       ],
     })
   }
-  return Array.from(keywordMap.values())
+  return [...keywordMap.values()]
 }
 /**
  * サブカテゴリを順序を保ってマージする（既存優先）
@@ -1253,11 +1250,11 @@ const mergeUrlData = (
     urlIdSet.add(urlId)
   }
   const mergedUrlSubCategories = {
-    ...(existingTab.urlSubCategories || {}),
-    ...(importedUrlData.urlSubCategories || {}),
+    ...existingTab.urlSubCategories,
+    ...importedUrlData.urlSubCategories,
   }
   return {
-    urlIds: Array.from(urlIdSet),
+    urlIds: [...urlIdSet],
     urlSubCategories:
       Object.keys(mergedUrlSubCategories).length > 0
         ? mergedUrlSubCategories
@@ -1290,28 +1287,28 @@ const convertTabGroupToExportUrls = (
       urlRecordMap.get(urlId) || placeholderUrlRecordMap.get(urlId)
     const resolvedUrlRecord = urlRecord || {
       id: urlId,
-      url: `${baseDomain}/#tabbin-export-missing-${urlId}`,
-      title: placeholderUrlTitle,
       savedAt:
         typeof tab.savedAt === 'number'
           ? tab.savedAt + offset
           : Date.now() + offset,
+      title: placeholderUrlTitle,
+      url: `${baseDomain}/#tabbin-export-missing-${urlId}`,
     }
     if (!(urlRecord || placeholderUrlRecordMap.has(urlId))) {
       placeholderUrlRecordMap.set(urlId, resolvedUrlRecord)
     }
     offset += 1
     exportedUrls.push({
-      url: resolvedUrlRecord.url,
-      title: resolvedUrlRecord.title || '',
       savedAt: resolvedUrlRecord.savedAt,
       subCategory: tab.urlSubCategories?.[urlId],
+      title: resolvedUrlRecord.title || '',
+      url: resolvedUrlRecord.url,
     })
   }
   return exportedUrls
 }
 /**
- * urlIds形式のタブデータをURL配列に復元する
+ * UrlIds形式のタブデータをURL配列に復元する
  */
 const restoreImportedUrlsFromIds = (
   tab: ImportedTabData,
@@ -1329,11 +1326,11 @@ const restoreImportedUrlsFromIds = (
       continue
     }
     restoredUrls.push({
-      url: urlRecord.url,
-      title: urlRecord.title || '',
       favIconUrl: urlRecord.favIconUrl,
       savedAt: urlRecord.savedAt,
       subCategory: tab.urlSubCategories?.[urlId],
+      title: urlRecord.title || '',
+      url: urlRecord.url,
     })
   }
   return restoredUrls
@@ -1343,27 +1340,23 @@ const normalizeImportedTabsForImport = (
   importedUrlRecordMap: Map<string, ImportedUrlRecordData>,
   currentUrlRecordMap: Map<string, UrlRecord>,
 ): {
-  normalizedImportedTabs: Array<
-    ImportedTabData & {
-      urls: ImportedUrlData[]
-    }
-  >
-  unresolvedTabs: Array<{
+  normalizedImportedTabs: (ImportedTabData & {
+    urls: ImportedUrlData[]
+  })[]
+  unresolvedTabs: {
     domain: string
     urlIds: string[]
     savedAt?: number
-  }>
+  }[]
 } => {
-  const unresolvedTabs: Array<{
+  const unresolvedTabs: {
     domain: string
     urlIds: string[]
     savedAt?: number
-  }> = []
-  const normalizedImportedTabs: Array<
-    ImportedTabData & {
-      urls: ImportedUrlData[]
-    }
-  > = importedTabs.map(tab => {
+  }[] = []
+  const normalizedImportedTabs: (ImportedTabData & {
+    urls: ImportedUrlData[]
+  })[] = importedTabs.map((tab) => {
     if (Array.isArray(tab.urls)) {
       return {
         ...tab,
@@ -1382,8 +1375,8 @@ const normalizeImportedTabsForImport = (
     ) {
       unresolvedTabs.push({
         domain: tab.domain,
-        urlIds: Array.from(new Set(tab.urlIds)),
         savedAt: tab.savedAt,
+        urlIds: Array.from(new Set(tab.urlIds)),
       })
     }
     return {
@@ -1421,7 +1414,7 @@ const resolveUrlDataForStorage = (
   ) {
     return convertedUrlData
   }
-  const rawUrlIds = Array.from(new Set(tab.urlIds))
+  const rawUrlIds = [...new Set(tab.urlIds)]
   const rawSubCategories = tab.urlSubCategories
     ? Object.fromEntries(
         Object.entries(tab.urlSubCategories).filter(([urlId]) =>
@@ -1441,16 +1434,16 @@ const resolveUrlDataForStorage = (
  * バックアップ内にURL実体が無いurlIdsに対して、代替URLレコードを生成する
  */
 const ensurePlaceholderUrlRecords = async (
-  unresolvedTabs: Array<{
+  unresolvedTabs: {
     domain: string
     urlIds: string[]
     savedAt?: number
-  }>,
+  }[],
   placeholderUrlTitle: string,
 ): Promise<number> => {
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (unresolvedTabs.length === 0) {
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     return 0
   }
   const urlsData = await chrome.storage.local.get({
@@ -1459,7 +1452,7 @@ const ensurePlaceholderUrlRecords = async (
   const currentUrlRecords: UrlRecord[] = Array.isArray(urlsData.urls)
     ? urlsData.urls
     : []
-  const existingIdSet = new Set(currentUrlRecords.map(record => record.id))
+  const existingIdSet = new Set(currentUrlRecords.map((record) => record.id))
   const newRecords: UrlRecord[] = []
   let offset = 0
   for (const tab of unresolvedTabs) {
@@ -1519,55 +1512,55 @@ const exportSettings = async (): Promise<BackupData> => {
     const storedCustomProjects: CustomProject[] = Array.isArray(
       storageData.customProjects,
     )
-      ? storageData.customProjects.map(project =>
+      ? storageData.customProjects.map((project) =>
           normalizeImportedCustomProject(project),
         )
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         []
-    /* v8 ignore stop */
+    /* V8 ignore stop */
     const customProjectOrder = Array.isArray(storageData.customProjectOrder)
       ? storageData.customProjectOrder.filter(
           (id): id is string => typeof id === 'string',
         )
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         []
-    /* v8 ignore stop */
+    /* V8 ignore stop */
     const aiChatConversations: AiChatConversation[] = Array.isArray(
       storageData[AI_CHAT_CONVERSATIONS_KEY],
     )
       ? storageData[AI_CHAT_CONVERSATIONS_KEY]
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         []
-    /* v8 ignore stop */
+    /* V8 ignore stop */
     const activeAiChatConversationId =
       typeof storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] === 'string'
         ? storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]
-        : /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
+        : /* V8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore start -- coverage-only defensive branch. */
           ''
-    /* v8 ignore stop */
+    /* V8 ignore stop */
     const savedAnalyticsViews: SavedAnalyticsView[] = Array.isArray(
       storageData.savedAnalyticsViews,
     )
       ? storageData.savedAnalyticsViews
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      : /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         []
-    /* v8 ignore stop */
+    /* V8 ignore stop */
     const urlRecords: UrlRecord[] = Array.isArray(storageData.urls)
       ? storageData.urls
       : []
     const urlRecordMap = new Map(
-      urlRecords.map(urlRecord => [urlRecord.id, urlRecord]),
+      urlRecords.map((urlRecord) => [urlRecord.id, urlRecord]),
     )
     const placeholderUrlRecordMap = new Map<string, UrlRecord>()
     const placeholderUrlTitle = getPlaceholderUrlTitle(
       resolveCurrentLanguage(userSettings),
     )
-    const normalizedSavedTabs: TabGroup[] = savedTabs.map(tab => ({
+    const normalizedSavedTabs: TabGroup[] = savedTabs.map((tab) => ({
       ...tab,
       urls: convertTabGroupToExportUrls(
         tab,
@@ -1576,7 +1569,7 @@ const exportSettings = async (): Promise<BackupData> => {
         placeholderUrlTitle,
       ),
     }))
-    const customProjects = storedCustomProjects.map(project =>
+    const customProjects = storedCustomProjects.map((project) =>
       toExportCustomProject(
         project,
         urlRecordMap,
@@ -1590,7 +1583,7 @@ const exportSettings = async (): Promise<BackupData> => {
         mergedUrlRecordMap.set(id, urlRecord)
       }
     }
-    const exportUrlRecords = Array.from(mergedUrlRecordMap.values())
+    const exportUrlRecords = [...mergedUrlRecordMap.values()]
     if (placeholderUrlRecordMap.size > 0) {
       console.warn(
         `エクスポート補完: ${placeholderUrlRecordMap.size}件の欠損URLに代替URLを付与`,
@@ -1599,25 +1592,27 @@ const exportSettings = async (): Promise<BackupData> => {
 
     // バックアップデータを作成
     const backupData: BackupData = {
-      version: chrome.runtime.getManifest().version || '1.0.0',
-      timestamp: new Date().toISOString(),
-      userSettings,
-      parentCategories,
-      savedTabs: normalizedSavedTabs,
-      aiChatConversations,
       activeAiChatConversationId,
-      customProjects,
+      aiChatConversations,
       customProjectOrder: normalizeCustomProjectOrder(
         customProjectOrder,
         customProjects,
       ),
+      customProjects,
+      parentCategories,
       savedAnalyticsViews,
+      savedTabs: normalizedSavedTabs,
+      timestamp: new Date().toISOString(),
       urls: exportUrlRecords,
+      userSettings,
+      version: chrome.runtime.getManifest().version || '1.0.0',
     }
     return backupData
   } catch (error) {
     console.error('エクスポート中にエラーが発生しました:', error)
-    throw new Error('データのエクスポート中にエラーが発生しました')
+    throw new Error('データのエクスポート中にエラーが発生しました', {
+      cause: error,
+    })
   }
 }
 
@@ -1675,11 +1670,10 @@ const parseBackupData = (jsonData: string): BackupData | null => {
 }
 const createImportedUrlRecordMap = (
   importedData: BackupData,
-): Map<string, ImportedUrlRecordData> => {
-  return new Map(
-    (importedData.urls || []).map(urlRecord => [urlRecord.id, urlRecord]),
+): Map<string, ImportedUrlRecordData> =>
+  new Map(
+    (importedData.urls || []).map((urlRecord) => [urlRecord.id, urlRecord]),
   )
-}
 const createCurrentUrlRecordMap = async (): Promise<Map<string, UrlRecord>> => {
   const currentUrlsData = await chrome.storage.local.get({
     urls: [],
@@ -1687,27 +1681,27 @@ const createCurrentUrlRecordMap = async (): Promise<Map<string, UrlRecord>> => {
   const currentUrlRecords: UrlRecord[] = Array.isArray(currentUrlsData.urls)
     ? currentUrlsData.urls
     : []
-  return new Map(currentUrlRecords.map(urlRecord => [urlRecord.id, urlRecord]))
+  return new Map(
+    currentUrlRecords.map((urlRecord) => [urlRecord.id, urlRecord]),
+  )
 }
 const mergeUserSettings = (
   currentSettings: UserSettings,
   importedSettings: UserSettings,
-): UserSettings => {
-  return {
-    ...currentSettings,
-    ...importedSettings,
-    excludePatterns: [
-      ...new Set([
-        ...currentSettings.excludePatterns,
-        ...importedSettings.excludePatterns,
-      ]),
-    ],
-  }
-}
+): UserSettings => ({
+  ...currentSettings,
+  ...importedSettings,
+  excludePatterns: [
+    ...new Set([
+      ...currentSettings.excludePatterns,
+      ...importedSettings.excludePatterns,
+    ]),
+  ],
+})
 const normalizeImportedCategory = (
   category: ParentCategory,
 ): ParentCategory => {
-  const { keywords, ...rest } = category as ParentCategory & {
+  const { keywords: _keywords, ...rest } = category as ParentCategory & {
     keywords?: string[]
   }
   return rest
@@ -1731,14 +1725,14 @@ const mergeParentCategoriesData = (
     }
     categoryMap.set(importedCategory.id, {
       ...existing,
-      name: importedCategory.name,
-      domains: [...new Set([...existing.domains, ...importedCategory.domains])],
       domainNames: [
         ...new Set([...existing.domainNames, ...importedCategory.domainNames]),
       ],
+      domains: [...new Set([...existing.domains, ...importedCategory.domains])],
+      name: importedCategory.name,
     })
   }
-  return Array.from(categoryMap.values())
+  return [...categoryMap.values()]
 }
 const resolveImportedTabUrlData = async (
   importedTab: NormalizedImportedTab,
@@ -1862,7 +1856,7 @@ const mergeTabsByDomain = async (
     tabMapByDomain.set(tab.domain, tab)
   }
   const mergedImportedTabs = await Promise.all(
-    normalizedImportedTabs.map(async importedTab => {
+    normalizedImportedTabs.map(async (importedTab) => {
       const existingTab = tabMapByDomain.get(importedTab.domain)
       if (existingTab) {
         console.log(`マージ処理: 既存ドメイン ${importedTab.domain}`)
@@ -1885,19 +1879,18 @@ const mergeTabsByDomain = async (
   for (const { domain, tab } of mergedImportedTabs) {
     tabMapByDomain.set(domain, tab)
   }
-  return Array.from(tabMapByDomain.values())
+  return [...tabMapByDomain.values()]
 }
 const buildOverwriteTabs = async (
   normalizedImportedTabs: NormalizedImportedTab[],
   urlRecordMapByUrl?: Map<string, UrlRecord>,
-): Promise<TabGroup[]> => {
-  return Promise.all(
-    normalizedImportedTabs.map(async importedTab => {
+): Promise<TabGroup[]> =>
+  Promise.all(
+    normalizedImportedTabs.map(async (importedTab) => {
       console.log(`上書きモード: ${importedTab.domain} を新形式に変換中...`)
       return buildMergedNewDomainTab(importedTab, urlRecordMapByUrl)
     }),
   )
-}
 const createUnresolvedWarning = async (
   unresolvedTabs: UnresolvedImportTab[],
   translate?: Translate,
@@ -1905,70 +1898,70 @@ const createUnresolvedWarning = async (
   if (unresolvedTabs.length === 0) {
     return ''
   }
-  /* v8 ignore start -- coverage-only defensive branch. */
+  /* V8 ignore start -- coverage-only defensive branch. */
   const placeholderUrlTitle = translate
-    ? /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    ? /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       translate('options.importExport.placeholderUrlTitle')
-    : /* v8 ignore stop */
+    : /* V8 ignore stop */
       getPlaceholderUrlTitle(resolveCurrentLanguage(await getUserSettings()))
-  /* v8 ignore stop */
+  /* V8 ignore stop */
   const placeholderCount = await ensurePlaceholderUrlRecords(
     unresolvedTabs,
     placeholderUrlTitle,
   )
-  /* v8 ignore start -- coverage-only defensive branch. */
+  /* V8 ignore start -- coverage-only defensive branch. */
   return translate
-    ? /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    ? /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       translate('options.importExport.unresolvedWarning', undefined, {
         count: String(unresolvedTabs.length),
         placeholderCount: String(placeholderCount),
       })
-    : /* v8 ignore stop */
+    : /* V8 ignore stop */
       ''
-  /* v8 ignore stop */
+  /* V8 ignore stop */
 }
 const countAddedCategories = (
   importedCategories: ParentCategory[],
   currentCategories: ParentCategory[],
-): number => {
-  return importedCategories.filter(
-    imported => !currentCategories.some(current => current.id === imported.id),
+): number =>
+  importedCategories.filter(
+    (imported) =>
+      !currentCategories.some((current) => current.id === imported.id),
   ).length
-}
 const countAddedDomains = (
   normalizedImportedTabs: NormalizedImportedTab[],
   currentTabs: TabGroup[],
 ): number => {
-  const currentDomains = new Set(currentTabs.map(tab => tab.domain))
-  return normalizedImportedTabs.filter(tab => !currentDomains.has(tab.domain))
+  const currentDomains = new Set(currentTabs.map((tab) => tab.domain))
+  return normalizedImportedTabs.filter((tab) => !currentDomains.has(tab.domain))
     .length
 }
 const buildBulkUrlRecordMap = async (
   normalizedImportedTabs: NormalizedImportedTab[],
-  normalizedImportedCustomProjects: Array<
-    ImportedCustomProjectData & { urls: ImportedCustomProjectUrlData[] }
-  >,
+  normalizedImportedCustomProjects: (ImportedCustomProjectData & {
+    urls: ImportedCustomProjectUrlData[]
+  })[],
 ): Promise<Map<string, UrlRecord> | undefined> => {
   const importedUrlItems = [
-    ...normalizedImportedTabs.flatMap(tab =>
-      tab.urls.map(urlData => ({
-        url: normalizeUrlKey(urlData.url),
-        title: urlData.title || '',
+    ...normalizedImportedTabs.flatMap((tab) =>
+      tab.urls.map((urlData) => ({
         favIconUrl: urlData.favIconUrl,
+        title: urlData.title || '',
+        url: normalizeUrlKey(urlData.url),
       })),
     ),
-    ...normalizedImportedCustomProjects.flatMap(project =>
-      project.urls.map(urlData => ({
+    ...normalizedImportedCustomProjects.flatMap((project) =>
+      project.urls.map((urlData) => ({
         url: normalizeUrlKey(urlData.url),
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         title: urlData.title || '',
       })),
     ),
   ]
   const shouldBatchCustomProjectUrls = normalizedImportedCustomProjects.some(
-    project => project.urls.length > 0,
+    (project) => project.urls.length > 0,
   )
   if (
     !shouldBatchCustomProjectUrls &&
@@ -1982,31 +1975,26 @@ const buildBulkUrlRecordMap = async (
     IMPORT_URL_RECORD_OPTIONS,
   )
 }
-const shouldImportCustomProjects = (importedData: BackupData): boolean => {
-  return Array.isArray(importedData.customProjects)
-}
-const shouldImportAiChatHistory = (importedData: BackupData): boolean => {
-  return (
-    Array.isArray(importedData.aiChatConversations) ||
-    typeof importedData.activeAiChatConversationId === 'string'
-  )
-}
-const shouldImportSavedAnalyticsViews = (importedData: BackupData): boolean => {
-  return Array.isArray(importedData.savedAnalyticsViews)
-}
+const shouldImportCustomProjects = (importedData: BackupData): boolean =>
+  Array.isArray(importedData.customProjects)
+const shouldImportAiChatHistory = (importedData: BackupData): boolean =>
+  Array.isArray(importedData.aiChatConversations) ||
+  typeof importedData.activeAiChatConversationId === 'string'
+const shouldImportSavedAnalyticsViews = (importedData: BackupData): boolean =>
+  Array.isArray(importedData.savedAnalyticsViews)
 const mergeAiChatConversations = (
   currentConversations: AiChatConversation[],
   importedConversations: AiChatConversation[],
 ): AiChatConversation[] => {
   const conversationMap = new Map(
-    currentConversations.map(conversation => [conversation.id, conversation]),
+    currentConversations.map((conversation) => [conversation.id, conversation]),
   )
 
   for (const importedConversation of importedConversations) {
     conversationMap.set(importedConversation.id, importedConversation)
   }
 
-  return Array.from(conversationMap.values())
+  return [...conversationMap.values()]
 }
 const resolveAiChatActiveConversationId = ({
   conversations,
@@ -2020,7 +2008,7 @@ const resolveAiChatActiveConversationId = ({
   if (
     typeof importedActiveConversationId === 'string' &&
     conversations.some(
-      conversation => conversation.id === importedActiveConversationId,
+      (conversation) => conversation.id === importedActiveConversationId,
     )
   ) {
     return importedActiveConversationId
@@ -2028,7 +2016,7 @@ const resolveAiChatActiveConversationId = ({
 
   if (
     typeof fallbackId === 'string' &&
-    conversations.some(conversation => conversation.id === fallbackId)
+    conversations.some((conversation) => conversation.id === fallbackId)
   ) {
     return fallbackId
   }
@@ -2055,7 +2043,7 @@ const resolveMergedAiChatHistory = ({
 
   const conversations = mergeAiChatConversations(
     currentConversations,
-    /* v8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
     importedData.aiChatConversations || [],
   )
 
@@ -2080,7 +2068,7 @@ const resolveOverwriteAiChatHistory = (
     return undefined
   }
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   const conversations = importedData.aiChatConversations || []
 
   return {
@@ -2095,13 +2083,13 @@ const mergeSavedAnalyticsViews = (
   currentViews: SavedAnalyticsView[],
   importedViews: SavedAnalyticsView[],
 ): SavedAnalyticsView[] => {
-  const viewMap = new Map(currentViews.map(view => [view.id, view]))
+  const viewMap = new Map(currentViews.map((view) => [view.id, view]))
 
   for (const importedView of importedViews) {
     viewMap.set(importedView.id, importedView)
   }
 
-  return Array.from(viewMap.values())
+  return [...viewMap.values()]
 }
 interface ImportExecutionParams {
   importedData: BackupData
@@ -2151,7 +2139,7 @@ const importWithMerge = async ({
   const currentCustomProjects: CustomProject[] = Array.isArray(
     storageData.customProjects,
   )
-    ? storageData.customProjects.map(project =>
+    ? storageData.customProjects.map((project) =>
         normalizeImportedCustomProject(project),
       )
     : []
@@ -2196,7 +2184,7 @@ const importWithMerge = async ({
           ...normalizeCustomProjectOrder(
             importedData.customProjectOrder,
             resolvedImportedCustomProjects,
-          ).filter(id => !currentCustomProjectOrder.includes(id)),
+          ).filter((id) => !currentCustomProjectOrder.includes(id)),
         ]
       : currentCustomProjectOrder,
     customProjects: shouldImportCustomProjects(importedData)
@@ -2220,7 +2208,7 @@ const importWithMerge = async ({
   )
     ? mergeSavedAnalyticsViews(
         currentSavedAnalyticsViews,
-        /* v8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore next -- coverage-only defensive branch. */
         importedData.savedAnalyticsViews || [],
       )
     : undefined
@@ -2257,18 +2245,18 @@ const importWithMerge = async ({
   console.log('マージ完了: 新形式URLデータで保存済み')
   return {
     success: true,
-    /* v8 ignore start -- coverage-only defensive branch. */
+    /* V8 ignore start -- coverage-only defensive branch. */
     message: translate
-      ? /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      ? /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         translate('options.importExport.mergeSuccess', undefined, {
           categories: String(addedCategories),
           domains: String(addedDomains),
           unresolved: unresolvedWarning,
         })
-      : /* v8 ignore stop */
+      : /* V8 ignore stop */
         `データをマージしました (${addedCategories}個のカテゴリと${addedDomains}個のドメインを追加)${unresolvedWarning}`,
-    /* v8 ignore stop */
+    /* V8 ignore stop */
   }
 }
 const importWithOverwrite = async ({
@@ -2305,10 +2293,10 @@ const importWithOverwrite = async ({
   const overwriteSavedAnalyticsViews = shouldImportSavedAnalyticsViews(
     importedData,
   )
-    ? /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
+    ? /* V8 ignore next -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       importedData.savedAnalyticsViews || []
-    : /* v8 ignore stop */
+    : /* V8 ignore stop */
       undefined
   await Promise.all([
     saveUserSettings({
@@ -2343,18 +2331,18 @@ const importWithOverwrite = async ({
   )
   return {
     success: true,
-    /* v8 ignore start -- coverage-only defensive branch. */
+    /* V8 ignore start -- coverage-only defensive branch. */
     message: translate
-      ? /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
+      ? /* V8 ignore next -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         translate('options.importExport.replaceSuccess', undefined, {
-          version: importedData.version,
           timestamp: formattedTimestamp,
           unresolved: unresolvedWarning,
+          version: importedData.version,
         })
-      : /* v8 ignore stop */
+      : /* V8 ignore stop */
         `設定とタブデータを置き換えました（バージョン: ${importedData.version}、作成日時: ${formattedTimestamp}）${unresolvedWarning}`,
-    /* v8 ignore stop */
+    /* V8 ignore stop */
   }
 }
 const importSettings = async (
@@ -2371,14 +2359,14 @@ const importSettings = async (
     if (!importedData) {
       return {
         success: false,
-        /* v8 ignore start -- coverage-only defensive branch. */
+        /* V8 ignore start -- coverage-only defensive branch. */
         message: translate
-          ? /* v8 ignore next -- coverage-only defensive branch. */
-            /* v8 ignore start -- coverage-only defensive branch. */
+          ? /* V8 ignore next -- coverage-only defensive branch. */
+            /* V8 ignore start -- coverage-only defensive branch. */
             translate('options.importExport.importFormatError')
-          : /* v8 ignore stop */
+          : /* V8 ignore stop */
             'インポートされたデータの形式が正しくありません',
-        /* v8 ignore stop */
+        /* V8 ignore stop */
       }
     }
     const importedUrlRecordMap = createImportedUrlRecordMap(importedData)
@@ -2413,39 +2401,39 @@ const importSettings = async (
     if (unresolvedTabs.length > 0) {
       console.warn(
         'URLデータ未解決ドメイン（代替URLを生成して継続）:',
-        unresolvedTabs.map(tab => tab.domain).join(', '),
+        unresolvedTabs.map((tab) => tab.domain).join(', '),
       )
     }
     if (mergeData) {
       return importWithMerge({
+        bulkUrlRecordMap,
         importedData,
         normalizedImportedTabs,
-        unresolvedTabs,
         resolvedImportedCustomProjects,
-        bulkUrlRecordMap,
         translate,
+        unresolvedTabs,
       })
     }
     return importWithOverwrite({
+      bulkUrlRecordMap,
       importedData,
       normalizedImportedTabs,
-      unresolvedTabs,
       resolvedImportedCustomProjects,
-      bulkUrlRecordMap,
       translate,
+      unresolvedTabs,
     })
   } catch (error) {
     console.error('インポートエラー:', error)
     return {
       success: false,
-      /* v8 ignore start -- coverage-only defensive branch. */
+      /* V8 ignore start -- coverage-only defensive branch. */
       message: translate
-        ? /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
+        ? /* V8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore start -- coverage-only defensive branch. */
           translate('options.importExport.importError')
-        : /* v8 ignore stop */
+        : /* V8 ignore stop */
           'データのインポート中にエラーが発生しました',
-      /* v8 ignore stop */
+      /* V8 ignore stop */
     }
   }
 }

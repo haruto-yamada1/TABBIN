@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 const mocks = vi.hoisted(() => {
@@ -38,7 +39,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
 
     if (Array.isArray(keys)) {
       return Object.fromEntries(
-        keys.map(key => [key, state[key as keyof StorageState]]),
+        keys.map((key) => [key, state[key as keyof StorageState]]),
       )
     }
 
@@ -413,7 +414,7 @@ describe('projects storage', () => {
         name: '未分類',
       }),
     )
-    expect(state.customProjects?.map(project => project.id)).toEqual([
+    expect(state.customProjects?.map((project) => project.id)).toEqual([
       'project-1',
       'custom-uncategorized',
     ])
@@ -848,10 +849,10 @@ describe('projects storage', () => {
     ])
 
     vi.mocked(chrome.storage.local.get)
-      .mockImplementationOnce(async keys => {
+      .mockImplementationOnce(async (keys) => {
         if (Array.isArray(keys)) {
           return Object.fromEntries(
-            keys.map(key => [key, state[key as keyof StorageState]]),
+            keys.map((key) => [key, state[key as keyof StorageState]]),
           )
         }
         return {
@@ -985,10 +986,10 @@ describe('projects storage', () => {
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
     vi.mocked(chrome.storage.local.get)
-      .mockImplementationOnce(async keys => {
+      .mockImplementationOnce(async (keys) => {
         if (Array.isArray(keys)) {
           return Object.fromEntries(
-            keys.map(key => [key, state[key as keyof StorageState]]),
+            keys.map((key) => [key, state[key as keyof StorageState]]),
           )
         }
         return {

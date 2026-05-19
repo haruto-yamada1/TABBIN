@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import {
   cleanup,
   fireEvent,
@@ -9,12 +10,15 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { Children, Fragment, type ReactNode, isValidElement } from 'react'
+import { Children, isValidElement } from 'react'
+import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings } from '@/lib/storage/settings'
+
 import { AnalyticsRoute } from './AnalyticsRoute'
 
 const analyticsRouteMocks = vi.hoisted(() => ({
@@ -73,7 +77,7 @@ vi.mock('@/lib/storage/settings', async () => {
 
 vi.mock('@/components/ui/select', () => {
   const SelectTrigger = ({ children }: { children?: ReactNode }) => (
-    <Fragment>{children}</Fragment>
+    <>{children}</>
   )
   const SelectValue = ({
     children,
@@ -81,13 +85,11 @@ vi.mock('@/components/ui/select', () => {
   }: {
     children?: ReactNode
     placeholder?: string
-  }) => <Fragment>{children ?? placeholder}</Fragment>
+  }) => <>{children ?? placeholder}</>
   const SelectContent = ({ children }: { children?: ReactNode }) => (
-    <Fragment>{children}</Fragment>
+    <>{children}</>
   )
-  const SelectItem = ({ children }: { children?: ReactNode }) => (
-    <Fragment>{children}</Fragment>
-  )
+  const SelectItem = ({ children }: { children?: ReactNode }) => <>{children}</>
 
   const Select = ({
     children,
@@ -133,10 +135,10 @@ vi.mock('@/components/ui/select', () => {
         aria-label={triggerProps['aria-label'] as string | undefined}
         className={triggerProps.className as string | undefined}
         id={triggerProps.id as string | undefined}
-        onChange={event => onValueChange?.(event.target.value)}
+        onChange={(event) => onValueChange?.(event.target.value)}
         value={value}
       >
-        {items.map(item => (
+        {items.map((item) => (
           <option key={item.value} value={item.value}>
             {item.children}
           </option>
@@ -168,7 +170,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
     }) => void
   }) => (
     <div>
-      {charts.map(chart => (
+      {charts.map((chart) => (
         <div key={chart.title}>
           <div>{chart.title}</div>
           <div>{JSON.stringify(chart.data ?? [])}</div>
@@ -698,7 +700,7 @@ describe('AnalyticsRoute', () => {
   it('初期ロード中に unmount されても state 更新しない', async () => {
     let resolveRecords: ((value: AiSavedUrlRecord[]) => void) | undefined
     analyticsRouteMocks.loadRecordsMock.mockReturnValueOnce(
-      new Promise(resolve => {
+      new Promise((resolve) => {
         resolveRecords = resolve
       }),
     )

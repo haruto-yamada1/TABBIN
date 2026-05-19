@@ -56,7 +56,7 @@ export interface UserSettings {
   removeTabAfterExternalDrop: boolean
   excludePatterns: string[]
   enableCategories: boolean // カテゴリ機能の有効/無効
-  autoDeletePeriod?: string // never, 1hour, 1day, 7days, 14days, 30days, 180days, 365days
+  autoDeletePeriod?: string // Never, 1hour, 1day, 7days, 14days, 30days, 180days, 365days
   showSavedTime: boolean // 保存日時を表示するかどうか
   clickBehavior:
     | 'saveCurrentTab'

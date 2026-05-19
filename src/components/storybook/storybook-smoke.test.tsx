@@ -2,6 +2,7 @@
 import { composeStories } from '@storybook/react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
 import * as messageStories from '@/components/ai-elements/message.stories'
 import * as modeToggleStories from '@/components/mode-toggle.stories'
 import * as buttonStories from '@/components/ui/button.stories'
@@ -9,6 +10,7 @@ import * as ollamaStories from '@/features/ai-chat/components/OllamaErrorNotice.
 import * as headerStories from '@/features/navigation/components/ExtensionPageHeader.stories'
 import * as importExportStories from '@/features/options/ImportExportSettings.stories'
 import * as viewModeStories from '@/features/saved-tabs/components/ViewModeToggle.stories'
+
 import preview from '../../../.storybook/preview'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({

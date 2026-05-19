@@ -1,4 +1,5 @@
 import { Profiler, useEffect, useRef, useState } from 'react'
+
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
@@ -43,7 +44,7 @@ export const SavedTabsRoute = ({
         return
       }
 
-      setLeftPaneWidth(currentWidth =>
+      setLeftPaneWidth((currentWidth) =>
         currentWidth === roundedWidth ? currentWidth : roundedWidth,
       )
     }
@@ -62,7 +63,7 @@ export const SavedTabsRoute = ({
       }
     }
 
-    const observer = new ResizeObserver(entries => {
+    const observer = new ResizeObserver((entries) => {
       updateLeftPaneWidth(entries[0]?.contentRect.width ?? Number.NaN)
     })
 
@@ -94,8 +95,8 @@ export const SavedTabsRoute = ({
             isCompactLayout={isCompactLeftPaneLayout}
           >
             {isDevProfileEnabled ? (
-              /* v8 ignore next -- coverage-only defensive branch. */
-              /* v8 ignore start -- coverage-only defensive branch. */
+              /* V8 ignore next -- coverage-only defensive branch. */
+              /* V8 ignore start -- coverage-only defensive branch. */
               <Profiler id='SavedTabs' onRender={handleSavedTabsRender}>
                 <SavedTabsApp
                   initialViewMode={initialViewMode}
@@ -105,7 +106,7 @@ export const SavedTabsRoute = ({
               </Profiler>
             ) : (
               <SavedTabsApp
-                /* v8 ignore stop */
+                /* V8 ignore stop */
                 initialViewMode={initialViewMode}
                 isAiSidebarOpen={isAiSidebarOpen}
                 onViewModeNavigate={onViewModeNavigate}

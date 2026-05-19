@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom'
+
 import { DocumentTitleSync } from '@/features/i18n/components/DocumentTitleSync'
 import { resolveTitlePageKeyFromPathname } from '@/features/i18n/lib/title'
 import { ExtensionPageShell } from '@/features/navigation/components/ExtensionPageShell'

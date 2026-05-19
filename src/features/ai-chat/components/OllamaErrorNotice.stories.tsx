@@ -1,17 +1,19 @@
 import type { Meta, StoryObj } from '@storybook/react'
+
 import {
   ollamaConnectionError,
   ollamaForbiddenError,
 } from '@/lib/storybook/fixtures'
+
 import { OllamaErrorNotice } from './OllamaErrorNotice'
 
 const meta = {
-  title: 'Features/AiChat/OllamaErrorNotice',
-  component: OllamaErrorNotice,
   args: {
     platform: 'mac',
   },
-  render: args => <OllamaErrorNotice className='max-w-xl' {...args} />,
+  component: OllamaErrorNotice,
+  render: (args) => <OllamaErrorNotice className='max-w-xl' {...args} />,
+  title: 'Features/AiChat/OllamaErrorNotice',
 } satisfies Meta<typeof OllamaErrorNotice>
 
 type Story = StoryObj<typeof OllamaErrorNotice>

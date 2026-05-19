@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+
 import {
   buildConversationTitle,
   createConversationRecord,
@@ -74,7 +75,7 @@ const resolveNextActiveConversationId = ({
     return nextConversations[0].id
   }
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   if (
     pendingConversationId !== null &&
     activeConversationId === pendingConversationId
@@ -82,7 +83,7 @@ const resolveNextActiveConversationId = ({
     return pendingConversationId
   }
 
-  /* v8 ignore next -- coverage-only defensive branch. */
+  /* V8 ignore next -- coverage-only defensive branch. */
   return currentActiveConversationId
 }
 
@@ -106,7 +107,7 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
     void loadConversationHistory(
       newConversationTitle,
       interruptedResponseMessage,
-    ).then(nextState => {
+    ).then((nextState) => {
       if (!isMounted) {
         return
       }
@@ -127,7 +128,7 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
     (
       update: (current: ConversationHistoryState) => ConversationHistoryState,
     ) => {
-      setHistoryState(current => {
+      setHistoryState((current) => {
         if (!current) {
           return current
         }
@@ -155,14 +156,14 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
 
   const deleteConversation = useCallback(
     (conversationId: string) => {
-      setHistoryState(current => {
+      setHistoryState((current) => {
         if (!current) {
           return current
         }
 
         const nextConversations = sortConversationsByRecent(
           current.conversations.filter(
-            conversation => conversation.id !== conversationId,
+            (conversation) => conversation.id !== conversationId,
           ),
         )
 
@@ -198,7 +199,7 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
   const selectConversation = useCallback(
     (conversationId: string) => {
       setPendingConversationId(null)
-      persistHistory(current => {
+      persistHistory((current) => {
         if (current.activeConversationId === conversationId) {
           return current
         }
@@ -219,7 +220,7 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
       }
 
       const hasStartedConversation = messages.some(
-        message => message.content.trim().length > 0,
+        (message) => message.content.trim().length > 0,
       )
 
       if (
@@ -237,16 +238,16 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
         })
 
         setPendingConversationId(null)
-        persistHistory(current => {
+        persistHistory((current) => {
           const existingConversation = current.conversations.find(
-            currentConversation =>
+            (currentConversation) =>
               currentConversation.id === pendingConversationId,
           )
 
           return {
             activeConversationId: conversation.id,
             conversations: existingConversation
-              ? current.conversations.map(currentConversation =>
+              ? current.conversations.map((currentConversation) =>
                   currentConversation.id === pendingConversationId
                     ? {
                         ...currentConversation,
@@ -265,9 +266,9 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
         return
       }
 
-      persistHistory(current => ({
+      persistHistory((current) => ({
         ...current,
-        conversations: current.conversations.map(conversation =>
+        conversations: current.conversations.map((conversation) =>
           conversation.id === activeConversationId
             ? {
                 ...conversation,
@@ -300,10 +301,10 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
   }
 
   const currentConversationId =
-    /* v8 ignore next -- coverage-only defensive branch. */
-    /* v8 ignore start -- coverage-only defensive branch. */
+    /* V8 ignore next -- coverage-only defensive branch. */
+    /* V8 ignore start -- coverage-only defensive branch. */
     activeConversationId ?? historyState.activeConversationId
-  /* v8 ignore stop */
+  /* V8 ignore stop */
 
   const conversations = sortConversationsByRecent(historyState.conversations)
 
@@ -314,13 +315,13 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
           id: pendingConversationId,
         })
       : (conversations.find(
-          conversation => conversation.id === currentConversationId,
-          /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
+          (conversation) => conversation.id === currentConversationId,
+          /* V8 ignore next -- coverage-only defensive branch. */
+          /* V8 ignore start -- coverage-only defensive branch. */
         ) ?? conversations[0])
-  /* v8 ignore stop */
+  /* V8 ignore stop */
 
-  const historyItems = conversations.map(conversation => ({
+  const historyItems = conversations.map((conversation) => ({
     id: conversation.id,
     isActive: conversation.id === currentConversationId,
     preview: getConversationPreview(conversation, historyStartPrompt),

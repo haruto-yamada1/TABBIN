@@ -1,6 +1,8 @@
 import { memo, useMemo } from 'react'
+
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
+
 import { DomainCardActions } from './domain-card/DomainCardActions'
 import { DomainCardContent } from './domain-card/DomainCardContent'
 import {
@@ -35,11 +37,11 @@ const SortableDomainCardComponent = ({
 }: SortableDomainCardProps & { settings: UserSettings }) => {
   const handlers = useMemo(
     () => ({
-      handleOpenAllTabs,
       handleDeleteGroup,
       handleDeleteGroups,
       handleDeleteUrl,
       handleDeleteUrls,
+      handleOpenAllTabs,
       handleOpenTab,
       handleUpdateUrls,
     }),

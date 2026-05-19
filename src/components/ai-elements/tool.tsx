@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import { isValidElement } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/collapsible'
 import { getFallbackText, useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
+
 import { CodeBlock } from './code-block'
 
 export type ToolProps = ComponentProps<typeof Collapsible>

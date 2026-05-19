@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 const domainModeI18nState = vi.hoisted(() => ({

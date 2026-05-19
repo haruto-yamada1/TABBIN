@@ -4,6 +4,7 @@
 
 import { getBackgroundMessage } from '@/lib/background/i18n'
 import type { ContextMenuId } from '@/types/background'
+
 import {
   handleSaveAllWindowsTabs,
   handleSaveCurrentTab,
@@ -34,16 +35,16 @@ const createContextMenus = (): void => {
               setupMenuClickHandler()
               console.log('コンテキストメニューを作成しました')
             })
-            .catch(e => {
-              console.error('メニュー作成エラー:', e)
+            .catch((error) => {
+              console.error('メニュー作成エラー:', error)
             })
-        } catch (e) {
+        } catch (error) {
           /* v8 ignore next -- coverage-only defensive branch. */
-          console.error('メニュー作成エラー:', e)
+          console.error('メニュー作成エラー:', error)
         }
       })
-    } catch (e) {
-      console.error('メニュー削除中のエラー:', e)
+    } catch (error) {
+      console.error('メニュー削除中のエラー:', error)
     }
   } else {
     console.error(
@@ -68,49 +69,49 @@ const createMenuItems = async (): Promise<void> => {
     getBackgroundMessage('background.contextMenu.saveSameDomainTabs'),
     getBackgroundMessage('background.contextMenu.saveAllWindowsTabs'),
   ])
-  const menuItems: Array<{
+  const menuItems: {
     id: ContextMenuId
     title: string
     type?: 'separator'
     contexts: ['page']
-  }> = [
+  }[] = [
     {
+      contexts: ['page'],
       id: 'openSavedTabs',
       title: openSavedTabs,
-      contexts: ['page'],
     },
     {
+      contexts: ['page'],
       id: 'sepOpenSavedTabs',
       title: '',
       type: 'separator',
-      contexts: ['page'],
     },
     {
+      contexts: ['page'],
       id: 'saveCurrentTab',
       title: saveCurrentTab,
-      contexts: ['page'],
     },
     {
+      contexts: ['page'],
       id: 'saveAllTabs',
       title: saveAllTabs,
-      contexts: ['page'],
     },
     {
+      contexts: ['page'],
       id: 'saveSameDomainTabs',
       title: saveSameDomainTabs,
-      contexts: ['page'],
     },
     {
+      contexts: ['page'],
       id: 'saveAllWindowsTabs',
       title: saveAllWindowsTabs,
-      contexts: ['page'],
     },
   ]
   for (const item of menuItems) {
     chrome.contextMenus.create({
+      contexts: item.contexts,
       id: item.id,
       title: item.title,
-      contexts: item.contexts,
       ...(item.type && {
         type: item.type,
       }),
@@ -125,21 +126,26 @@ const setupMenuClickHandler = (): void => {
     console.log(`コンテキストメニューがクリックされました: ${info.menuItemId}`)
     try {
       switch (info.menuItemId) {
-        case 'saveCurrentTab':
+        case 'saveCurrentTab': {
           await handleSaveCurrentTab()
           break
-        case 'saveAllTabs':
+        }
+        case 'saveAllTabs': {
           await handleSaveWindowTabs()
           break
-        case 'saveSameDomainTabs':
+        }
+        case 'saveSameDomainTabs': {
           await handleSaveSameDomainTabs()
           break
-        case 'saveAllWindowsTabs':
+        }
+        case 'saveAllWindowsTabs': {
           await handleSaveAllWindowsTabs()
           break
-        case 'openSavedTabs':
+        }
+        case 'openSavedTabs': {
           await openSavedTabsPage()
           break
+        }
       }
     } catch (error) {
       console.error('コンテキストメニュー処理エラー:', error)

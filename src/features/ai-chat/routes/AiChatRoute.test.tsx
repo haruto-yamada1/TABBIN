@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -139,7 +140,7 @@ describe('AiChatRoute', () => {
     fireEvent.click(
       screen
         .getAllByRole('button', { name: /別の会話/ })
-        .find(button => button.className.includes('flex-col')) as HTMLElement,
+        .find((button) => button.className.includes('flex-col')) as HTMLElement,
     )
     expect(mocked.selectConversation).toHaveBeenCalledWith('conversation-2')
 
@@ -157,7 +158,7 @@ describe('AiChatRoute', () => {
 
     const conversationButton = screen
       .getAllByRole('button', { name: /最初の会話/ })
-      .find(button => button.className.includes('flex-col'))
+      .find((button) => button.className.includes('flex-col'))
     const conversationRow = conversationButton?.parentElement
     const textRows = conversationButton?.querySelectorAll('p')
     const title = textRows?.[0]

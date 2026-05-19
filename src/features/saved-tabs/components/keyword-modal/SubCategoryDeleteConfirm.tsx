@@ -1,6 +1,8 @@
 import { Trash } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { SavedTabsResponsiveLabel } from '../shared/SavedTabsResponsive'
 import { useKeywordModal } from './KeywordModalContext'
 

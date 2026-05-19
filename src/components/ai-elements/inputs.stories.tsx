@@ -7,7 +7,9 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { ImageIcon, MicIcon, PlusIcon, SparklesIcon } from 'lucide-react'
 import { useState } from 'react'
+
 import { Button } from '@/components/ui/button'
+
 import {
   MicSelector,
   MicSelectorContent,
@@ -107,10 +109,10 @@ import {
 } from './voice-selector'
 
 export default {
-  title: 'AI Elements/Inputs',
   parameters: {
     layout: 'padded',
   },
+  title: 'AI Elements/Inputs',
 } satisfies Meta
 
 type Story = StoryObj
@@ -148,11 +150,11 @@ const SelectorGallery = () => {
           <MicSelectorContent>
             <MicSelectorInput />
             <MicSelectorList>
-              {devices =>
+              {(devices) =>
                 devices.length === 0 ? (
                   <MicSelectorEmpty />
                 ) : (
-                  devices.map(device => (
+                  devices.map((device) => (
                     <MicSelectorItem
                       key={device.deviceId}
                       value={device.deviceId}
@@ -341,7 +343,7 @@ const ComposerPlayground = () => {
               </PromptInputActionMenu>
               <SpeechInput
                 onAudioRecorded={async () => 'Recorded from fallback audio'}
-                onTranscriptionChange={text =>
+                onTranscriptionChange={(text) =>
                   setResult(`Transcribed: ${text}`)
                 }
                 variant='outline'

@@ -3,6 +3,7 @@
 import type { ToolUIPart } from 'ai'
 import { ChevronDownIcon, Code } from 'lucide-react'
 import type { ComponentProps } from 'react'
+
 import {
   Collapsible,
   CollapsibleContent,
@@ -10,6 +11,7 @@ import {
 } from '@/components/ui/collapsible'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+
 import { getStatusBadge } from './tool'
 
 export type SandboxRootProps = ComponentProps<typeof Collapsible>

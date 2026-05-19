@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
+
 import { redirectToApp } from './main'
 
 describe('ai-chat bootstrap', () => {

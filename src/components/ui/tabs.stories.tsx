@@ -1,10 +1,10 @@
 // @covers components/ui/tabs.tsx
 import type { Meta, StoryObj } from '@storybook/react'
+
 import { Card, CardContent, CardHeader, CardTitle } from './card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs'
 
 export default {
-  title: 'UI/Tabs',
   component: Tabs,
   render: () => (
     <Tabs className='w-[420px]' defaultValue='overview'>
@@ -39,6 +39,7 @@ export default {
       </TabsContent>
     </Tabs>
   ),
+  title: 'UI/Tabs',
 } satisfies Meta<typeof Tabs>
 
 type Story = StoryObj<typeof Tabs>

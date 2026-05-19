@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+
 import type { CustomProject } from '@/types/storage'
+
 import {
   findMatchingProjectIdForSavedTab,
   normalizeProjectKeywords,

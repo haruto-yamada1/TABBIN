@@ -1,8 +1,10 @@
 import { Check, X } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
+
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
@@ -47,7 +49,7 @@ export const CardReorderControls = ({
   return (
     <div className={cn('flex shrink-0 items-center gap-2', className)}>
       <Tooltip>
-        <TooltipTrigger asChild={true}>
+        <TooltipTrigger asChild>
           <Button
             variant='outline'
             size='sm'
@@ -67,7 +69,7 @@ export const CardReorderControls = ({
       </Tooltip>
 
       <Tooltip>
-        <TooltipTrigger asChild={true}>
+        <TooltipTrigger asChild>
           <Button
             variant='default'
             size='sm'
