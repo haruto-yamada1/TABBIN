@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Planner"
+  short_description: "Plan TABBIN harness runs before implementation"
+  default_prompt: "TABBIN の ACTIVE harness run を確認し、要件、制約、担当、検証方針を planner.json と orchestrator.json に記録してください。"

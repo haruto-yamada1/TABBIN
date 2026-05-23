@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Generator"
+  short_description: "Implement TABBIN harness plans and record checkpoints"
+  default_prompt: "ACTIVE harness run の planner.json と orchestrator.json を読み、実装、検証、checkpoint 記録まで進めてください。"

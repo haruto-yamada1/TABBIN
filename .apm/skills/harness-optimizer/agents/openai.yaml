@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Optimizer"
+  short_description: "Extract learning candidates from harness reviews"
+  default_prompt: "ACTIVE harness run の Evaluator 指摘と governance event を確認し、learning.json に再発防止候補を整理してください。"
