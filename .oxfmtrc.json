@@ -30,6 +30,7 @@
     ".gemini/**",
     ".github/hooks/**",
     ".github/skills/**",
+    "**/*.md",
     "wxt.config.ts",
     "node_modules/**",
     "apm_modules/**",

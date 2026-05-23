@@ -10,6 +10,9 @@
 - `skills/`: 対応エージェントへ配布するユーザー管理の skill。
 - `prompts/`: 対応クライアントのコマンドとして APM が配布する prompt。
 - `hooks/`: 対応クライアントへ配布する hook 定義とスクリプト。
+- `harness/`: Orchestrator/Generator/Evaluator ハーネスの schema など、運用補助の
+  source-of-truth。
+- `SKILLS.md`: ハーネスの頼み方と、配布 skill / agent の用途一覧。
 
 ## 使い方
 

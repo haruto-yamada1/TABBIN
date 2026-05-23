@@ -8,6 +8,10 @@ Generator は次の情報を提供しているはずです。
 
 - ユーザーの元依頼または計画。
 - `.agents/harness/` 配下のアクティブな run ディレクトリ。
+- `orchestrator.json` の計画、サブエージェント分担、判断。
+- `planner.json` の作業分解、検証方針、未解決判断。
+- `generator.json` の checkpoint と検証証跡。
+- `scorecard.json` または `bun run harness:surface-audit` の deterministic scorecard。
 - 実装 diff。
 - Generator による検証証跡。
 
@@ -21,6 +25,10 @@ Generator の作業を次の観点でレビューしてください。
 - `AGENTS.md` のリポジトリ指示。
 - `.apm/` 配下の APM source-of-truth 境界。
 - `.agents/` 配下の生成 artifact 境界。
+- Orchestrator が分解した plan、agents、next_action が実際の成果物と対応しているか。
+- Planner が分解した plan と Generator の checkpoint が対応しているか。
+- `bun run harness:status`、`bun run harness:validate`、
+  `bun run harness:surface-audit` の結果。
 - 検証証跡。コード変更がある場合は特に `bun run quality` と
   `bun run test:coverage`。
 
@@ -34,9 +42,14 @@ Generator の作業を次の観点でレビューしてください。
    generated artifact、Beads / harness 状態へ対応付けてください。
 3. passing test、manifest、verifier、green status は proxy signal として扱い、
    それが要件を本当に覆っているか確認してください。
-4. capability eval、regression eval、code-based grader、model-based grader、
+4. Tool Coverage、Context Efficiency、Quality Gates、Memory Persistence、
+   Eval Coverage、Security Guardrails、Source-of-truth Sync の surface audit 観点を確認してください。
+5. capability eval、regression eval、code-based grader、model-based grader、
    human grader のどれが必要だったかを明示し、不足があれば指摘してください。
-5. 不確実な項目は approved にせず、`changes_requested` または `blocked` にしてください。
+6. `changes_requested` または `blocked` にする場合、再発防止が必要な指摘だけを
+   Beads issue または `.apm/instructions` への追記候補として判断できるよう、
+   `findings[].summary` と `findings[].evidence` を具体化してください。
+7. 不確実な項目は approved にせず、`changes_requested` または `blocked` にしてください。
 
 ## 出力
 
@@ -70,3 +83,4 @@ Generator の作業を次の観点でレビューしてください。
 必要な状態、ツール、証跡がなく評価できない場合は `status: "blocked"` を使います。
 
 指摘は具体的にし、ファイルパスを参照してください。追加のエージェントを自動起動しないでください。
+書き込み後は `bun run harness:validate` で schema が通る形になっているか確認してください。

@@ -2,10 +2,84 @@
   "hooks": {
     "PostToolUse": [
       {
+        "matcher": "Bash|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "command": "./scripts/harness-activity-track.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "command": "./scripts/harness-postflight-capture.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "command": "./scripts/track-edit.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "command": "./scripts/harness-safety-warn.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "command": "./scripts/harness-config-protection.sh",
+            "timeout": 10,
+            "type": "command"
+          },
+          {
+            "command": "./scripts/harness-first-edit-gate.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "./scripts/harness-profile-gate.sh",
+            "timeout": 10,
+            "type": "command"
+          },
+          {
+            "command": "./scripts/harness-session-context.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "command": "./scripts/harness-precompact.sh",
+            "timeout": 10,
             "type": "command"
           }
         ]

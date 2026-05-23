@@ -2,8 +2,11 @@ lockfile_version: '1'
 generated_at: '2026-05-03T00:00:00+09:00'
 dependencies: []
 local_deployed_files:
+  - .agents/skills/agent-automation-recommender
   - .agents/skills/agent-introspection-debugging
+  - .agents/skills/animation-best-practices
   - .agents/skills/babysit
+  - .agents/skills/beads
   - .agents/skills/brainstorming
   - .agents/skills/canvas
   - .agents/skills/check
@@ -17,9 +20,14 @@ local_deployed_files:
   - .agents/skills/executing-plans
   - .agents/skills/find-skills
   - .agents/skills/finishing-a-development-branch
+  - .agents/skills/harness-evaluator
+  - .agents/skills/harness-generator
+  - .agents/skills/harness-optimizer
+  - .agents/skills/harness-planner
   - .agents/skills/migrate-to-skills
   - .agents/skills/react-doctor
   - .agents/skills/receiving-code-review
+  - .agents/skills/remotion-best-practices
   - .agents/skills/requesting-code-review
   - .agents/skills/security-review
   - .agents/skills/shell
@@ -39,17 +47,36 @@ local_deployed_files:
   - .agents/skills/web-design-guidelines
   - .agents/skills/writing-plans
   - .agents/skills/writing-skills
+  - .claude/commands/agent-automation-recommendations.md
   - .claude/commands/code-style.md
   - .claude/commands/comment-rule.md
+  - .claude/commands/harness-audit.md
   - .claude/commands/harness-evaluator.md
+  - .claude/commands/harness-learn.md
+  - .claude/commands/harness-loop-status.md
+  - .claude/commands/harness-model-route.md
+  - .claude/commands/harness-orchestrate.md
+  - .claude/commands/harness-quality-gate.md
+  - .claude/commands/harness-status.md
+  - .claude/hooks/TABBIN/scripts/harness-activity-track.sh
+  - .claude/hooks/TABBIN/scripts/harness-config-protection.sh
+  - .claude/hooks/TABBIN/scripts/harness-first-edit-gate.sh
+  - .claude/hooks/TABBIN/scripts/harness-postflight-capture.sh
+  - .claude/hooks/TABBIN/scripts/harness-precompact.sh
+  - .claude/hooks/TABBIN/scripts/harness-profile-gate.sh
+  - .claude/hooks/TABBIN/scripts/harness-safety-warn.sh
+  - .claude/hooks/TABBIN/scripts/harness-session-context.sh
   - .claude/hooks/TABBIN/scripts/stop-verify.sh
   - .claude/hooks/TABBIN/scripts/track-edit.sh
   - .claude/rules/00-context-mode.md
   - .claude/rules/01-rtk.md
   - .claude/rules/harness.md
   - .claude/rules/repository-guidelines.md
+  - .claude/skills/agent-automation-recommender
   - .claude/skills/agent-introspection-debugging
+  - .claude/skills/animation-best-practices
   - .claude/skills/babysit
+  - .claude/skills/beads
   - .claude/skills/brainstorming
   - .claude/skills/canvas
   - .claude/skills/check
@@ -63,9 +90,14 @@ local_deployed_files:
   - .claude/skills/executing-plans
   - .claude/skills/find-skills
   - .claude/skills/finishing-a-development-branch
+  - .claude/skills/harness-evaluator
+  - .claude/skills/harness-generator
+  - .claude/skills/harness-optimizer
+  - .claude/skills/harness-planner
   - .claude/skills/migrate-to-skills
   - .claude/skills/react-doctor
   - .claude/skills/receiving-code-review
+  - .claude/skills/remotion-best-practices
   - .claude/skills/requesting-code-review
   - .claude/skills/security-review
   - .claude/skills/shell
@@ -85,16 +117,35 @@ local_deployed_files:
   - .claude/skills/web-design-guidelines
   - .claude/skills/writing-plans
   - .claude/skills/writing-skills
+  - .codex/hooks/TABBIN/scripts/harness-activity-track.sh
+  - .codex/hooks/TABBIN/scripts/harness-config-protection.sh
+  - .codex/hooks/TABBIN/scripts/harness-first-edit-gate.sh
+  - .codex/hooks/TABBIN/scripts/harness-postflight-capture.sh
+  - .codex/hooks/TABBIN/scripts/harness-precompact.sh
+  - .codex/hooks/TABBIN/scripts/harness-profile-gate.sh
+  - .codex/hooks/TABBIN/scripts/harness-safety-warn.sh
+  - .codex/hooks/TABBIN/scripts/harness-session-context.sh
   - .codex/hooks/TABBIN/scripts/stop-verify.sh
   - .codex/hooks/TABBIN/scripts/track-edit.sh
+  - .cursor/hooks/TABBIN/scripts/harness-activity-track.sh
+  - .cursor/hooks/TABBIN/scripts/harness-config-protection.sh
+  - .cursor/hooks/TABBIN/scripts/harness-first-edit-gate.sh
+  - .cursor/hooks/TABBIN/scripts/harness-postflight-capture.sh
+  - .cursor/hooks/TABBIN/scripts/harness-precompact.sh
+  - .cursor/hooks/TABBIN/scripts/harness-profile-gate.sh
+  - .cursor/hooks/TABBIN/scripts/harness-safety-warn.sh
+  - .cursor/hooks/TABBIN/scripts/harness-session-context.sh
   - .cursor/hooks/TABBIN/scripts/stop-verify.sh
   - .cursor/hooks/TABBIN/scripts/track-edit.sh
   - .cursor/rules/00-context-mode.mdc
   - .cursor/rules/01-rtk.mdc
   - .cursor/rules/harness.mdc
   - .cursor/rules/repository-guidelines.mdc
+  - .cursor/skills/agent-automation-recommender
   - .cursor/skills/agent-introspection-debugging
+  - .cursor/skills/animation-best-practices
   - .cursor/skills/babysit
+  - .cursor/skills/beads
   - .cursor/skills/brainstorming
   - .cursor/skills/canvas
   - .cursor/skills/check
@@ -108,9 +159,14 @@ local_deployed_files:
   - .cursor/skills/executing-plans
   - .cursor/skills/find-skills
   - .cursor/skills/finishing-a-development-branch
+  - .cursor/skills/harness-evaluator
+  - .cursor/skills/harness-generator
+  - .cursor/skills/harness-optimizer
+  - .cursor/skills/harness-planner
   - .cursor/skills/migrate-to-skills
   - .cursor/skills/react-doctor
   - .cursor/skills/receiving-code-review
+  - .cursor/skills/remotion-best-practices
   - .cursor/skills/requesting-code-review
   - .cursor/skills/security-review
   - .cursor/skills/shell
@@ -130,13 +186,32 @@ local_deployed_files:
   - .cursor/skills/web-design-guidelines
   - .cursor/skills/writing-plans
   - .cursor/skills/writing-skills
+  - .gemini/commands/agent-automation-recommendations.toml
   - .gemini/commands/code-style.toml
   - .gemini/commands/comment-rule.toml
+  - .gemini/commands/harness-audit.toml
   - .gemini/commands/harness-evaluator.toml
+  - .gemini/commands/harness-learn.toml
+  - .gemini/commands/harness-loop-status.toml
+  - .gemini/commands/harness-model-route.toml
+  - .gemini/commands/harness-orchestrate.toml
+  - .gemini/commands/harness-quality-gate.toml
+  - .gemini/commands/harness-status.toml
+  - .gemini/hooks/TABBIN/scripts/harness-activity-track.sh
+  - .gemini/hooks/TABBIN/scripts/harness-config-protection.sh
+  - .gemini/hooks/TABBIN/scripts/harness-first-edit-gate.sh
+  - .gemini/hooks/TABBIN/scripts/harness-postflight-capture.sh
+  - .gemini/hooks/TABBIN/scripts/harness-precompact.sh
+  - .gemini/hooks/TABBIN/scripts/harness-profile-gate.sh
+  - .gemini/hooks/TABBIN/scripts/harness-safety-warn.sh
+  - .gemini/hooks/TABBIN/scripts/harness-session-context.sh
   - .gemini/hooks/TABBIN/scripts/stop-verify.sh
   - .gemini/hooks/TABBIN/scripts/track-edit.sh
+  - .gemini/skills/agent-automation-recommender
   - .gemini/skills/agent-introspection-debugging
+  - .gemini/skills/animation-best-practices
   - .gemini/skills/babysit
+  - .gemini/skills/beads
   - .gemini/skills/brainstorming
   - .gemini/skills/canvas
   - .gemini/skills/check
@@ -150,9 +225,14 @@ local_deployed_files:
   - .gemini/skills/executing-plans
   - .gemini/skills/find-skills
   - .gemini/skills/finishing-a-development-branch
+  - .gemini/skills/harness-evaluator
+  - .gemini/skills/harness-generator
+  - .gemini/skills/harness-optimizer
+  - .gemini/skills/harness-planner
   - .gemini/skills/migrate-to-skills
   - .gemini/skills/react-doctor
   - .gemini/skills/receiving-code-review
+  - .gemini/skills/remotion-best-practices
   - .gemini/skills/requesting-code-review
   - .gemini/skills/security-review
   - .gemini/skills/shell
@@ -173,17 +253,36 @@ local_deployed_files:
   - .gemini/skills/writing-plans
   - .gemini/skills/writing-skills
   - .github/hooks/TABBIN-claude-quality-hooks.json
+  - .github/hooks/scripts/TABBIN/scripts/harness-activity-track.sh
+  - .github/hooks/scripts/TABBIN/scripts/harness-config-protection.sh
+  - .github/hooks/scripts/TABBIN/scripts/harness-first-edit-gate.sh
+  - .github/hooks/scripts/TABBIN/scripts/harness-postflight-capture.sh
+  - .github/hooks/scripts/TABBIN/scripts/harness-precompact.sh
+  - .github/hooks/scripts/TABBIN/scripts/harness-profile-gate.sh
+  - .github/hooks/scripts/TABBIN/scripts/harness-safety-warn.sh
+  - .github/hooks/scripts/TABBIN/scripts/harness-session-context.sh
   - .github/hooks/scripts/TABBIN/scripts/stop-verify.sh
   - .github/hooks/scripts/TABBIN/scripts/track-edit.sh
   - .github/instructions/00-context-mode.instructions.md
   - .github/instructions/01-rtk.instructions.md
   - .github/instructions/harness.instructions.md
   - .github/instructions/repository-guidelines.instructions.md
+  - .github/prompts/agent-automation-recommendations.prompt.md
   - .github/prompts/code-style.prompt.md
   - .github/prompts/comment-rule.prompt.md
+  - .github/prompts/harness-audit.prompt.md
   - .github/prompts/harness-evaluator.prompt.md
+  - .github/prompts/harness-learn.prompt.md
+  - .github/prompts/harness-loop-status.prompt.md
+  - .github/prompts/harness-model-route.prompt.md
+  - .github/prompts/harness-orchestrate.prompt.md
+  - .github/prompts/harness-quality-gate.prompt.md
+  - .github/prompts/harness-status.prompt.md
+  - .github/skills/agent-automation-recommender
   - .github/skills/agent-introspection-debugging
+  - .github/skills/animation-best-practices
   - .github/skills/babysit
+  - .github/skills/beads
   - .github/skills/brainstorming
   - .github/skills/canvas
   - .github/skills/check
@@ -197,9 +296,14 @@ local_deployed_files:
   - .github/skills/executing-plans
   - .github/skills/find-skills
   - .github/skills/finishing-a-development-branch
+  - .github/skills/harness-evaluator
+  - .github/skills/harness-generator
+  - .github/skills/harness-optimizer
+  - .github/skills/harness-planner
   - .github/skills/migrate-to-skills
   - .github/skills/react-doctor
   - .github/skills/receiving-code-review
+  - .github/skills/remotion-best-practices
   - .github/skills/requesting-code-review
   - .github/skills/security-review
   - .github/skills/shell
@@ -220,35 +324,99 @@ local_deployed_files:
   - .github/skills/writing-plans
   - .github/skills/writing-skills
 local_deployed_file_hashes:
+  .claude/commands/agent-automation-recommendations.md: sha256:f6a4ff4422ee67a743a174f2eba7fd3d9f5571bc0b800344fb85e15e6e64f033
   .claude/commands/code-style.md: sha256:92e72362699c129acd601ee5d1f68291e5bd6376b7026f84b54deedc68cca2a4
   .claude/commands/comment-rule.md: sha256:3b98a5328af95a4c48044587e834c15344c974c6e0fda468fd371fc62185aa15
-  .claude/commands/harness-evaluator.md: sha256:a2c1efce5b01fe1319b1b14e8bfe2a33e2769081f57ad53bfec159cd03dfad4d
+  .claude/commands/harness-audit.md: sha256:6f9aff28b024338432385b88bda06bd2f6ab9c791d2e19e76ffb70bdb72a91c6
+  .claude/commands/harness-evaluator.md: sha256:0fe160117cb6428e517fda89ebff6d63a11bc13f12a24a3085ae975f5a32e77b
+  .claude/commands/harness-learn.md: sha256:ce9bfec9cdc68826f97aa7a514f40e621fdd1776c83a2d7645d1189c52204b78
+  .claude/commands/harness-loop-status.md: sha256:975ddbef1bf9b93820322794a8a0a3f3855585dfba790da706312ab9d9de055b
+  .claude/commands/harness-model-route.md: sha256:388a7ee1c6b88a77a317a6061b04eb1487f66ca78bda28a4c384f1da0d722be2
+  .claude/commands/harness-orchestrate.md: sha256:482ff630472882c856f42f49fd05c34f1ef648feccdb13d809f3cc8fad12d95d
+  .claude/commands/harness-quality-gate.md: sha256:05c134a2c1f1aff93aab35bad1a500769db9b2d4185c2a31c1cca7ef359f1fb1
+  .claude/commands/harness-status.md: sha256:2928fb7449728ab05c5a3757d9ae818097e7ed73843f02ec0d3a0ebae4a792fc
+  .claude/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
+  .claude/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
+  .claude/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .claude/hooks/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
+  .claude/hooks/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
+  .claude/hooks/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
+  .claude/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
+  .claude/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .claude/hooks/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
   .claude/hooks/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
   .claude/rules/00-context-mode.md: sha256:d401dc7362629b4ca86a965be6ce2eb5bd4a01df49ff2e7e0d66cef83a5005b3
   .claude/rules/01-rtk.md: sha256:b2bf8798e77e1cdcc0f0d31d5c5277c63dcb6086672e87ba0b7828dcfec7ca9b
-  .claude/rules/harness.md: sha256:a5c5e148814e34810e365552df940d662264503e0165699cb3de609b006fc000
+  .claude/rules/harness.md: sha256:e83acff10bac1d7d63345c293d6fe57287a64af65745f9dae4103afc68059074
   .claude/rules/repository-guidelines.md: sha256:51d5beb33b3441858a452e31d1c013f9a41ef732b3d24478c99403f3e15f69f7
+  .codex/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
+  .codex/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
+  .codex/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .codex/hooks/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
+  .codex/hooks/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
+  .codex/hooks/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
+  .codex/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
+  .codex/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .codex/hooks/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
   .codex/hooks/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
+  .cursor/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
+  .cursor/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
+  .cursor/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .cursor/hooks/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
+  .cursor/hooks/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
+  .cursor/hooks/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
+  .cursor/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
+  .cursor/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .cursor/hooks/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
   .cursor/hooks/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
   .cursor/rules/00-context-mode.mdc: sha256:7a7d69afa8c55490fe5e945474c365e66d150a2360aa7449c11761371215f17f
   .cursor/rules/01-rtk.mdc: sha256:7c0b16527fe49e8d7180e1759cff25fd24a1e661371fe9d1faed760de44bc3e5
-  .cursor/rules/harness.mdc: sha256:03a9236ec5f765fae086f853ca6b630a7673608c73fa49789347258690caeb6d
+  .cursor/rules/harness.mdc: sha256:b9f09801330d85c20be4d46c95f38bd555fff07cbf85e463c31e80d25082e2a2
   .cursor/rules/repository-guidelines.mdc: sha256:18add07365279952c8213f4cc7a67e443a70d2d2c660831211c7a6ce8e087490
+  .gemini/commands/agent-automation-recommendations.toml: sha256:ce578d722cab82c16a65ed4a38696e8570a9205b38e99a84a8fbfc362375876a
   .gemini/commands/code-style.toml: sha256:997fa8f57d7d440eff082e262255697e8d7cf9613e4b4a23852f3665877dbb16
   .gemini/commands/comment-rule.toml: sha256:4a448d0c0d7234702958fd7a5dca43882a81a256a70b69021ae5306648480dcc
-  .gemini/commands/harness-evaluator.toml: sha256:22ba5f77dd806cc0dadbf08f6a66086733c7b4169e9cb8079be932ce79c3d017
+  .gemini/commands/harness-audit.toml: sha256:c8a368b6d452c65948255a2e70054158d11f3ff4a7375d48dae5d13dbde76d78
+  .gemini/commands/harness-evaluator.toml: sha256:964932c9305d7044654be8cf1e5fd6615784b52b22316534c0ff17d026a2afb8
+  .gemini/commands/harness-learn.toml: sha256:82c700619e2cec757b19faa82934a0eb94fbbd1d524dde7694a018e7b49c19cd
+  .gemini/commands/harness-loop-status.toml: sha256:fb3a1038c49a906958dd8207759312e2a459ef7d7da1813c20229454fce11da0
+  .gemini/commands/harness-model-route.toml: sha256:47c2bca236d40e8d432833714d1023b9464a3f3abaaac4f725f412d9dbad15b3
+  .gemini/commands/harness-orchestrate.toml: sha256:7640bec5b0dd34a04332fd31db7675cf7e98cf4ddcf4eccad64a1b332e363f5d
+  .gemini/commands/harness-quality-gate.toml: sha256:d99d54371d718d6027fe94720ecc9299539778e667bf36c0090a564527fe5060
+  .gemini/commands/harness-status.toml: sha256:9e4382bf4a7ad6c60a059a788a2a0b7d7c10f454ea40ca79f2e196c6192a0bed
+  .gemini/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
+  .gemini/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
+  .gemini/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .gemini/hooks/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
+  .gemini/hooks/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
+  .gemini/hooks/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
+  .gemini/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
+  .gemini/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .gemini/hooks/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
   .gemini/hooks/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
-  .github/hooks/TABBIN-claude-quality-hooks.json: sha256:d0942a0d7ca72492714b67c0902a981d1124797ca1716e45da9e3e69308cc9c3
+  .github/hooks/TABBIN-claude-quality-hooks.json: sha256:cd22a0cb3e7a616c8e1394bac9444833d92fe5f8195bf8eb625891fc9c9af69d
+  .github/hooks/scripts/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
+  .github/hooks/scripts/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
+  .github/hooks/scripts/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .github/hooks/scripts/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
+  .github/hooks/scripts/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
+  .github/hooks/scripts/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
+  .github/hooks/scripts/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
+  .github/hooks/scripts/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .github/hooks/scripts/TABBIN/scripts/stop-verify.sh: sha256:b6d5edab5d9725f4427012300c4621ad9f92c61f1c09626ea77150f651da81b7
   .github/hooks/scripts/TABBIN/scripts/track-edit.sh: sha256:06795ba0dcb255a0810e41a5c71dfbbcb2031d094888d8516d9a0bc1f535ca5b
   .github/instructions/00-context-mode.instructions.md: sha256:35a864d8df37bda3f7becc6781dff9b5968cd81e0c9dfd06ca46493f12caadff
   .github/instructions/01-rtk.instructions.md: sha256:17c762d7da8731a1415059900be8e37bb7cb17e859e0c2eddda7c4f933d491a3
-  .github/instructions/harness.instructions.md: sha256:7ce2d5286262ffebe6a5dfa48911f37574a24a445fd3361f315eca651d38e946
+  .github/instructions/harness.instructions.md: sha256:a33254f29460eb58e085e8513f1a980205b6f84c881b1a9c9cf21f70cff71ac0
   .github/instructions/repository-guidelines.instructions.md: sha256:36d6e89ff50d18f15a058ca551f77f37c2182e8422d76047b6f9a57b7b58110c
+  .github/prompts/agent-automation-recommendations.prompt.md: sha256:4a5126ce538fa571ff76f84ca2e099a416ed4f00cde623fd498cbb62275f5d3c
   .github/prompts/code-style.prompt.md: sha256:bc5e6b6d5618fc04434f748cc0d121a5baaed2ff0b95992f0aa2301caf4ca0b9
   .github/prompts/comment-rule.prompt.md: sha256:891b46ab9aae6f4188397fad4b22425b55e928f0bcacb64007b4378912760f12
-  .github/prompts/harness-evaluator.prompt.md: sha256:b65b2741dd0a1a7248dd3ae7923a28bb4ec2fd879b4588265fa394226adf704c
+  .github/prompts/harness-audit.prompt.md: sha256:6131fa375bc1ec31073dd72e01c7eacc27afdb09c47e4c9c045c992e450f9261
+  .github/prompts/harness-evaluator.prompt.md: sha256:c869f24e61a394aba0d4fb371fe6420c8fb6b6cb43189a5a17557c50030b61e7
+  .github/prompts/harness-learn.prompt.md: sha256:4e8a2a00a116cb6fbddd5f333b87ab39cfc89cdaf4d84b8ecadf7bcbe41c7cd3
+  .github/prompts/harness-loop-status.prompt.md: sha256:7eb4d5f66476045a3203e0dff9eede30b3f546b1273af84c7beab9b4aee46ec5
+  .github/prompts/harness-model-route.prompt.md: sha256:a3b8f0c55a855d63248d3846cfae9a693b74bffe38f04d19084a045e9852045d
+  .github/prompts/harness-orchestrate.prompt.md: sha256:2f82d9f20758473e3279cbc620ae5334c1500956dda86a678c424ef3bf9c401c
+  .github/prompts/harness-quality-gate.prompt.md: sha256:18421cb44befd7bbef539df13fa2afbca7934fc85db7c1533b46b6d8686b1d07
+  .github/prompts/harness-status.prompt.md: sha256:b92ab78f36e8e36f04adfe9c6b44a786acfc40df8efb3c7488350fcd3027afcb
