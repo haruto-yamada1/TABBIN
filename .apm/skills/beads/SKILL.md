@@ -1,33 +1,35 @@
 ---
 name: beads
-description: Use when working in a repository that uses bd or Beads for durable project task tracking, issue dependencies, blocker management, multi-session handoff, or shared work memory. Trigger when the user asks to find ready work, claim or close tasks, create follow-up work, inspect blockers, recover project context, or choose between local planning and persistent project tracking.
+description: bd または Beads を使うリポジトリで、永続的な project task tracking、issue dependency、blocker 管理、multi-session handoff、共有 work memory を扱うときに使います。ready work の確認、task の claim / close、follow-up 作成、blocker 調査、project context 復元、local plan と永続 tracking の使い分けを求められたときに発火します。
 ---
 
 # Beads
 
-Use Beads as the shared project task system. Local plans, scratch files, and personal memories are useful, but they are not the durable source of truth for project work.
+Beads を共有 project task system として使います。local plan、scratch file、
+personal memory は有用ですが、project work の永続的な source of truth ではありません。
 
-## First Step
+## 最初の手順
 
-Run:
+次を実行します。
 
 ```bash
 bd prime
 ```
 
-If that prints nothing, check whether the repository has an active Beads workspace:
+出力が無い場合は、リポジトリに active な Beads workspace があるかを確認します。
 
 ```bash
 bd where
 ```
 
-## Preferred Route
+## 優先ルート
 
-Use the `bd` CLI when shell access is available. It is the most compact and direct Beads interface.
+shell access が利用できる場合は `bd` CLI を使います。これは最も compact で直接的な
+Beads interface です。
 
-## Core CLI Workflow
+## 基本 CLI ワークフロー
 
-1. Find work:
+1. work を探します。
 
 ```bash
 bd ready
@@ -35,46 +37,49 @@ bd list --status=open
 bd list --status=in_progress
 ```
 
-2. Inspect before editing:
+2. 編集前に確認します。
 
 ```bash
 bd show <id>
 ```
 
-3. Claim work atomically:
+3. work を atomic に claim します。
 
 ```bash
 bd update <id> --claim
 ```
 
-4. Create durable follow-up work when implementation reveals new tasks:
+4. 実装中に新しい task が見つかった場合、永続的な follow-up work を作ります。
 
 ```bash
-bd create "Short title" --description="Why this exists and what needs to be done" --type=task --priority=2
+bd create "短いタイトル" --description="なぜ必要で、何をする必要があるか" --type=task --priority=2
 ```
 
-5. Close completed work:
+5. 完了した work を close します。
 
 ```bash
 bd close <id> --reason="Completed"
 ```
 
-## What Belongs In Beads
+## Beads に置くもの
 
-Use Beads for:
+Beads は次に使います。
 
-- shared project tasks
-- blockers and dependencies
-- discovered follow-up work
-- work that must survive thread reset, compaction, or handoff
-- status that another person or agent should be able to resume
+- 共有 project task。
+- blocker と dependency。
+- 発見した follow-up work。
+- thread reset、compaction、handoff をまたいで残す必要がある work。
+- 別の人または agent が resume できるべき status。
 
-Use agent-local planning tools only for the current turn's execution checklist. Do not treat them as shared project state.
+agent-local planning tool は、現在の turn の execution checklist にだけ使います。
+共有 project state として扱ってはいけません。
 
-## Rules
+## ルール
 
-- Do not create markdown TODO files as the source of truth when Beads is available.
-- Do not use `bd edit`; it opens an interactive editor. Use `bd update` flags instead.
-- Prefer `--json` when parsing `bd` output programmatically.
-- If hooks are installed, `bd prime` may already be injected. Run it manually when context is missing.
-- Do not auto-close or mutate tasks unless the work is actually complete.
+- Beads が利用できる場合、markdown TODO file を source of truth として作りません。
+- `bd edit` は使いません。interactive editor を開くため、代わりに `bd update` の
+  flag を使います。
+- `bd` output を programmatic に parse する場合は `--json` を優先します。
+- hook が installed の場合、`bd prime` はすでに injected されていることがあります。
+  context が不足している場合は手動で実行します。
+- work が実際に完了していない限り、task を自動 close または mutate しません。
