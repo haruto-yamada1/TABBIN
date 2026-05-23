@@ -30,6 +30,9 @@ const relevantExtensions = new Set([
   '.mts',
   '.ts',
   '.tsx',
+  '.yaml',
+  '.yml',
+  '.md',
 ])
 const relevantBasenames = new Set([
   '.jscpd.json',
