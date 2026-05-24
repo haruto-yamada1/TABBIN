@@ -3,6 +3,8 @@
 import {
   buildHarnessAudit,
   buildHarnessProfile,
+  buildHarnessRepoStatus,
+  buildHarnessSecurityAudit,
   buildHarnessSurfaceAudit,
   buildHarnessStatusMarkdown,
   checkpointHarnessRun,
@@ -24,7 +26,9 @@ type CommandName =
   | 'learn'
   | 'plan'
   | 'profile'
+  | 'repo-status'
   | 'schemas'
+  | 'security-audit'
   | 'start'
   | 'status'
   | 'surface-audit'
@@ -45,7 +49,9 @@ if (
     'learn',
     'plan',
     'profile',
+    'repo-status',
     'schemas',
+    'security-audit',
     'start',
     'status',
     'surface-audit',
@@ -167,6 +173,16 @@ if (command === 'surface-audit') {
   process.exit(0)
 }
 
+if (command === 'security-audit') {
+  console.log(buildHarnessSecurityAudit({ projectRoot, runId }))
+  process.exit(0)
+}
+
+if (command === 'repo-status') {
+  console.log(buildHarnessRepoStatus({ projectRoot, runId }))
+  process.exit(0)
+}
+
 if (command === 'learn') {
   const result = learnFromHarnessRun({ projectRoot, runId })
   console.log(`harness: learning candidates written (${result.path})`)
@@ -214,6 +230,8 @@ function printUsage() {
       '  status    ACTIVE run の Markdown handoff を出力する',
       '  audit     変更ファイル、証跡、follow-up 候補を確認する',
       '  surface-audit deterministic scorecard と APM 同期を確認する',
+      '  security-audit agent surface の危険な hook / prompt / skill を確認する',
+      '  repo-status ACTIVE run がなくても repo readiness を表示する',
       '  learn     evaluator / governance から learning.json を更新する',
       '  profile   agent / hook / command surface を表示する',
       '  governance governance.jsonl に判断・警告・学習候補を記録する',

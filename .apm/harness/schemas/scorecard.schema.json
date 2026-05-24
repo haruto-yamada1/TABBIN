@@ -31,6 +31,15 @@
     "next_action": {
       "type": "string"
     },
+    "overall_score": {
+      "type": "number"
+    },
+    "top_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "verification": {
       "type": "array",
       "items": {
@@ -77,6 +86,18 @@
           },
           "notes": {
             "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "max_score": {
+            "type": "number"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }

@@ -191,10 +191,17 @@ JSON ファイルは小さく保ち、`status`、`summary`、`updated_at`、`nex
 - `bun run harness:audit`: 変更ファイル、schema、検証証跡、Evaluator 状態、
   follow-up 候補を一覧化します。
 - `bun run harness:surface-audit`: Tool Coverage、Context Efficiency、Quality Gates、
-  Memory Persistence、Eval Coverage、Security Guardrails、Source-of-truth Sync の
-  deterministic scorecard と APM 同期を確認します。
+  Memory Persistence、Eval Coverage、Security Guardrails、Source-of-truth Sync、
+  Cost Efficiency、GitHub Integration の score 付き deterministic scorecard と
+  Top 3 actions を確認します。
+- `bun run harness:security-audit`: `.apm/hooks`、`.apm/skills`、`.apm/prompts` の
+  agent surface を静的検査し、直接 HTTP 取得、inline eval、prompt injection リスク、
+  secret らしき値を確認します。
+- `bun run harness:repo-status`: ACTIVE run がない状態でも repo readiness、
+  surface score、security finding 数、次アクションを表示します。
 - `bun run harness:learn`: Evaluator の指摘や governance event から `learning.json` を
-  更新します。
+  更新し、候補ごとに Beads issue、`.apm/hooks`、`.apm/skills`、`.apm/prompts`、
+  `.apm/instructions` などの手動昇格先を明示します。
 - `bun run harness:profile`: agent / hook / command surface の現在の運用 profile を表示します。
 - `bun run harness:governance -- --kind <kind> --severity <level> --message <text>`:
   判断、警告、再発防止候補を `governance.jsonl` に記録します。
@@ -207,6 +214,8 @@ APM prompt として次の入口を提供します。`/plan` とは衝突させ�
 - `harness-orchestrate`: ECC の workflow command に相当する主入口です。
 - `harness-status`: ACTIVE run の状態と handoff を確認します。
 - `harness-audit`: 完了前に schema、変更ファイル、証跡、follow-up 候補を監査します。
+- `harness-security-audit`: agent surface の security guardrails を手動監査します。
+- `harness-repo-status`: ACTIVE run の有無に関係なく repo readiness を確認します。
 - `harness-quality-gate`: 完了前の品質ゲートを手動実行し、証跡を状態へ反映します。
 - `harness-loop-status`: Orchestrator / Planner / Generator / Evaluator の進捗を確認します。
 - `harness-model-route`: main session / Planner / Explorer / Worker / Evaluator /
@@ -225,6 +234,8 @@ APM skill として `harness-planner`、`harness-generator`、`harness-evaluator
    担当ファイル、責任範囲、他者変更を戻さないことを明示します。
 4. Generator が実装と検証を行い、`bun run harness:checkpoint` で証跡を残します。
 5. Generator は `bun run harness:validate`、対象テスト、必要な品質ゲートを実行します。
+   完了前には必要に応じて `bun run harness:surface-audit`、
+   `bun run harness:security-audit`、`bun run harness:repo-status` も確認します。
 6. Evaluator を新しいコンテキストで起動するときは、`bun run harness:evaluate` の後に
    `.apm/prompts/harness-evaluator.prompt.md` を使います。
 7. Evaluator は `approved`、`changes_requested`、`blocked` のいずれかを

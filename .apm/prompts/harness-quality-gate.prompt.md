@@ -13,6 +13,9 @@ bun run quality
 bun run test:coverage
 bun run harness:validate
 bun run harness:audit
+bun run harness:surface-audit
+bun run harness:security-audit
+bun run harness:repo-status
 ```
 
 ## 方針

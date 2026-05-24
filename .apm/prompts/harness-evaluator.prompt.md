@@ -11,7 +11,9 @@ Generator は次の情報を提供しているはずです。
 - `orchestrator.json` の計画、サブエージェント分担、判断。
 - `planner.json` の作業分解、検証方針、未解決判断。
 - `generator.json` の checkpoint と検証証跡。
-- `scorecard.json` または `bun run harness:surface-audit` の deterministic scorecard。
+- `scorecard.json` または `bun run harness:surface-audit` の score 付き
+  deterministic scorecard。
+- 必要に応じた `bun run harness:security-audit` と `bun run harness:repo-status` の結果。
 - 実装 diff。
 - Generator による検証証跡。
 
@@ -28,7 +30,8 @@ Generator の作業を次の観点でレビューしてください。
 - Orchestrator が分解した plan、agents、next_action が実際の成果物と対応しているか。
 - Planner が分解した plan と Generator の checkpoint が対応しているか。
 - `bun run harness:status`、`bun run harness:validate`、
-  `bun run harness:surface-audit` の結果。
+  `bun run harness:surface-audit`、`bun run harness:security-audit`、
+  `bun run harness:repo-status` の結果。
 - 検証証跡。コード変更がある場合は特に `bun run quality` と
   `bun run test:coverage`。
 
@@ -43,7 +46,8 @@ Generator の作業を次の観点でレビューしてください。
 3. passing test、manifest、verifier、green status は proxy signal として扱い、
    それが要件を本当に覆っているか確認してください。
 4. Tool Coverage、Context Efficiency、Quality Gates、Memory Persistence、
-   Eval Coverage、Security Guardrails、Source-of-truth Sync の surface audit 観点を確認してください。
+   Eval Coverage、Security Guardrails、Source-of-truth Sync、Cost Efficiency、
+   GitHub Integration の surface audit 観点を確認してください。
 5. capability eval、regression eval、code-based grader、model-based grader、
    human grader のどれが必要だったかを明示し、不足があれば指摘してください。
 6. `changes_requested` または `blocked` にする場合、再発防止が必要な指摘だけを
