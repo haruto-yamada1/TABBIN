@@ -16,7 +16,7 @@ AI に次のように依頼してください。
 大きめの作業全体を Orchestrator 入口で進めたい場合は、次のように依頼します。
 
 ```text
-harness-orchestrate で <やりたいこと> を進めて
+$harness-orchestrate で <やりたいこと> を進めて
 ```
 
 役割を明示したい場合は、次のように依頼します。
@@ -78,6 +78,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 
 | skill | 使う場面 |
 | --- | --- |
+| `harness-orchestrate` | ハーネス全体の入口です。複雑な作業を開始し、Planner / Generator / Evaluator / Optimizer の流れを管理します。 |
 | `harness-planner` | ハーネス run の要件、制約、検証方針を分解し、`planner.json` と `orchestrator.json` を更新します。 |
 | `harness-generator` | Planner の plan に沿って実装し、checkpoint と検証証跡を `generator.json` に残します。 |
 | `harness-evaluator` | fresh-context で成果物、証跡、source-of-truth を評価し、`evaluator.json` に判断を書きます。 |
@@ -173,7 +174,7 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 
 | 状況 | 最初に使う skill | 必要に応じて併用する skill |
 | --- | --- | --- |
-| 複雑な作業全体を任せる | `harness-orchestrate` / `harness-planner` | `harness-generator`、`harness-evaluator`、`harness-optimizer` |
+| 複雑な作業全体を任せる | `harness-orchestrate` | `harness-planner`、`harness-generator`、`harness-evaluator`、`harness-optimizer` |
 | まだ設計が固まっていない | `brainstorming` | `writing-plans`、`harness-planner` |
 | 実装計画がすでにある | `executing-plans` | `harness-generator`、`subagent-driven-development` |
 | 複数 agent に分担できる | `subagent-driven-development` | `dispatching-parallel-agents`、`harness-generator` |
@@ -204,6 +205,6 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 - ハーネス系 skill は `.agents/harness/` の状態ファイルへ証跡を残す運用役です。
 - 汎用 skill はハーネス外の小さな作業や、他クライアントでも使いやすい入口として残します。
 
-迷った場合は、まず workflow の入口を 1 つ選びます。大きい作業なら `harness-orchestrate`、
+迷った場合は、まず workflow の入口を 1 つ選びます。大きい作業なら `$harness-orchestrate`、
 不具合なら `systematic-debugging`、品質確認なら `check`、UI なら `web-design-guidelines` を
 最初に使い、足りない専門観点を後から足してください。
