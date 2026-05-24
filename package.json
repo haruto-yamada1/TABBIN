@@ -31,6 +31,8 @@
     "harness:status": "bun tools/scripts/harness.ts status",
     "harness:audit": "bun tools/scripts/harness.ts audit",
     "harness:surface-audit": "bun tools/scripts/harness.ts surface-audit",
+    "harness:security-audit": "bun tools/scripts/harness.ts security-audit",
+    "harness:repo-status": "bun tools/scripts/harness.ts repo-status",
     "harness:learn": "bun tools/scripts/harness.ts learn",
     "harness:profile": "bun tools/scripts/harness.ts profile",
     "harness:governance": "bun tools/scripts/harness.ts governance",

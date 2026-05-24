@@ -31,6 +31,15 @@
     "next_action": {
       "type": "string"
     },
+    "overall_score": {
+      "type": "number"
+    },
+    "top_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "verification": {
       "type": "array",
       "items": {
@@ -72,6 +81,9 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          },
+          "target": {
             "type": "string"
           }
         }

@@ -80,15 +80,25 @@ interface ChecklistRecord {
 
 interface ScorecardRecord {
   evidence?: string
+  findings?: string[]
+  max_score?: number
   name?: string
   notes?: string
+  score?: number
   status?: string
 }
 
 interface LearningRecord {
+  target?: string
   source?: string
   status?: string
   summary?: string
+}
+
+interface SecurityFinding {
+  file: string
+  severity: string
+  summary: string
 }
 
 interface HarnessStateFile {
@@ -98,8 +108,10 @@ interface HarnessStateFile {
   checklist?: ChecklistRecord[]
   findings?: FindingRecord[]
   next_action?: string
+  overall_score?: number
   plan?: PlanRecord[]
   role?: string
+  top_actions?: string[]
   status?: HarnessStateStatus
   summary?: string
   updated_at?: string
@@ -247,6 +259,9 @@ const scorecardSchema: JsonSchema = {
     status: { type: 'string' },
     evidence: { type: 'string' },
     notes: { type: 'string' },
+    score: { type: 'number' },
+    max_score: { type: 'number' },
+    findings: { type: 'array', items: { type: 'string' } },
   },
 }
 
@@ -258,6 +273,7 @@ const learningSchema: JsonSchema = {
     source: { type: 'string' },
     summary: { type: 'string' },
     status: { type: 'string' },
+    target: { type: 'string' },
   },
 }
 
@@ -266,6 +282,8 @@ const baseStateProperties: Record<string, JsonSchema> = {
   summary: { type: 'string' },
   updated_at: { type: 'string' },
   next_action: { type: 'string' },
+  overall_score: { type: 'number' },
+  top_actions: { type: 'array', items: { type: 'string' } },
   verification: { type: 'array', items: verificationSchema },
 }
 
@@ -638,6 +656,40 @@ export function buildHarnessAudit(
   return `${lines.join('\n')}\n`
 }
 
+export function buildHarnessRepoStatus(options: HarnessRunOptions): string {
+  const snapshot = loadHarnessSnapshot(options)
+  const validation = validateHarnessRun(options)
+  const categories = buildSurfaceAuditCategories(options.projectRoot)
+  const securityFindings = collectSecurityFindings(options.projectRoot)
+  const score = summarizeScore(categories)
+  const readiness =
+    score.overallScore === score.maxScore && securityFindings.length === 0
+      ? 'ready'
+      : 'needs_attention'
+  let schemaStatus = 'not_applicable'
+  if (snapshot) {
+    schemaStatus = validation.ok ? 'valid' : 'invalid'
+  }
+  const lines = [
+    '# ハーネス Repo Status',
+    '',
+    `- ACTIVE run: ${snapshot ? `\`${snapshot.runId}\`` : 'なし'}`,
+    `- readiness: ${readiness}`,
+    `- overall_score: ${score.overallScore}/${score.maxScore}`,
+    `- schema: ${schemaStatus}`,
+    `- security_findings: ${securityFindings.length}`,
+    '',
+    '## 次アクション',
+    ...listLines(
+      topActionLines(categories, securityFindings),
+      '追加アクションなし。',
+    ),
+    '',
+  ]
+
+  return `${lines.join('\n')}\n`
+}
+
 export function planHarnessRun(options: HarnessPlanOptions): HarnessFileResult {
   const resolved = requireHarnessRun(options)
   const updatedAt = new Date().toISOString()
@@ -756,6 +808,7 @@ export function learnFromHarnessRun(
       source: 'evaluator.json',
       summary: finding.summary ?? 'Evaluator finding summary なし',
       status: 'candidate',
+      target: learningTargetForFinding(finding),
     })),
     ...readGovernanceLearningCandidates(resolved.runDirectory),
   ]
@@ -776,6 +829,7 @@ export function learnFromHarnessRun(
               source: 'learn',
               summary: '学習候補なし',
               status: 'recorded',
+              target: 'Beads issue または .apm/instructions',
             },
           ],
     verification: [],
@@ -787,27 +841,38 @@ export function learnFromHarnessRun(
 export function buildHarnessSurfaceAudit(options: HarnessRunOptions): string {
   const categories = buildSurfaceAuditCategories(options.projectRoot)
   const sourceFindings = collectSourceOfTruthFindings(options.projectRoot)
+  const securityFindings = collectSecurityFindings(options.projectRoot)
   const validation = validateHarnessRun(options)
   const resolved = resolveHarnessRun(options)
+  const score = summarizeScore(categories)
+  const topActions = topActionLines(categories, [
+    ...sourceFindings,
+    ...securityFindings,
+  ])
   if (resolved && existsSync(resolved.runDirectory)) {
     writeJsonFile(path.join(resolved.runDirectory, 'scorecard.json'), {
-      status: sourceFindings.length === 0 ? 'done' : 'changes_requested',
+      status:
+        sourceFindings.length === 0 && securityFindings.length === 0
+          ? 'done'
+          : 'changes_requested',
       summary:
-        sourceFindings.length === 0
+        sourceFindings.length === 0 && securityFindings.length === 0
           ? 'deterministic scorecard は通過した。'
-          : 'source-of-truth sync に確認事項がある。',
+          : 'surface audit に確認事項がある。',
       updated_at: new Date().toISOString(),
       next_action:
-        sourceFindings.length === 0
+        topActions.length === 0
           ? 'Evaluator は scorecard を評価証跡として参照できる。'
-          : 'drift / orphan を `.apm` source から修正する。',
+          : topActions[0],
+      overall_score: score.overallScore,
+      top_actions: topActions,
       categories,
       verification: [
         {
           command: 'bun run harness:surface-audit',
-          status: sourceFindings.length === 0 ? 'passed' : 'review',
+          status: topActions.length === 0 ? 'passed' : 'review',
           notes:
-            'deterministic scorecard と APM source-of-truth sync を確認した。',
+            'deterministic scorecard、security guardrails、APM source-of-truth sync を確認した。',
         },
       ],
     })
@@ -818,14 +883,38 @@ export function buildHarnessSurfaceAudit(options: HarnessRunOptions): string {
     `- run: \`${validation.runId ?? 'なし'}\``,
     `- schema: ${validation.ok ? 'valid' : 'invalid'}`,
     '',
+    `- overall_score: ${score.overallScore}/${score.maxScore}`,
+    '',
     '## deterministic scorecard',
     ...categories.map(
       (category) =>
-        `- ${category.name}: ${category.status} - ${category.evidence} (${category.notes})`,
+        `- ${category.name}: ${category.score}/${category.max_score} ${category.status} - ${category.evidence} (${category.notes})`,
     ),
+    '',
+    '## Top 3 actions',
+    ...listLines(topActions.slice(0, 3), '追加アクションなし。'),
     '',
     '## APM source-of-truth sync',
     ...listLines(sourceFindings, 'drift / orphan は検出されませんでした。'),
+    '',
+  ]
+
+  return `${lines.join('\n')}\n`
+}
+
+export function buildHarnessSecurityAudit(options: HarnessRunOptions): string {
+  const findings = collectSecurityFindings(options.projectRoot)
+  const grouped = findings.map(
+    (finding) => `[${finding.severity}] ${finding.file}: ${finding.summary}`,
+  )
+  const lines = [
+    '# ハーネス Security Audit',
+    '',
+    `- findings: ${findings.length}`,
+    `- status: ${findings.length === 0 ? 'passed' : 'review'}`,
+    '',
+    '## findings',
+    ...listLines(grouped, '危険な agent surface は検出されませんでした。'),
     '',
   ]
 
@@ -1215,6 +1304,7 @@ function readGovernanceLearningCandidates(
       source: `governance:${event.kind ?? 'manual'}`,
       summary: event.message ?? 'governance message なし',
       status: 'candidate',
+      target: learningTargetForSummary(event.message ?? ''),
     }))
 }
 
@@ -1227,11 +1317,15 @@ function surfaceAuditCategoryNames() {
     'Eval Coverage',
     'Security Guardrails',
     'Source-of-truth Sync',
+    'Cost Efficiency',
+    'GitHub Integration',
   ]
 }
 
 function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
   const scriptNames = readPackageScriptNames(projectRoot)
+  const sourceFindings = collectSourceOfTruthFindings(projectRoot)
+  const securityFindings = collectSecurityFindings(projectRoot)
   const checks: Record<string, { evidence: string; ok: boolean }> = {
     'Tool Coverage': {
       ok:
@@ -1251,7 +1345,9 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
     'Quality Gates': {
       ok:
         scriptNames.includes('harness:validate') &&
-        scriptNames.includes('harness:surface-audit'),
+        scriptNames.includes('harness:surface-audit') &&
+        scriptNames.includes('harness:security-audit') &&
+        scriptNames.includes('harness:repo-status'),
       evidence: 'package.json scripts',
     },
     'Memory Persistence': {
@@ -1269,6 +1365,7 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
     },
     'Security Guardrails': {
       ok:
+        securityFindings.length === 0 &&
         existsSync(
           path.join(projectRoot, '.apm/hooks/scripts/harness-safety-warn.sh'),
         ) &&
@@ -1281,22 +1378,200 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
       evidence: '.apm/hooks/scripts/harness-safety-warn.sh',
     },
     'Source-of-truth Sync': {
-      ok: collectSourceOfTruthFindings(projectRoot).length === 0,
+      ok: sourceFindings.length === 0,
       evidence: '.apm source と generated surfaces',
+    },
+    'Cost Efficiency': {
+      ok:
+        existsSync(
+          path.join(projectRoot, '.apm/instructions/01-rtk.instructions.md'),
+        ) &&
+        existsSync(
+          path.join(
+            projectRoot,
+            '.apm/instructions/00-context-mode.instructions.md',
+          ),
+        ),
+      evidence: 'context-mode / RTK routing',
+    },
+    'GitHub Integration': {
+      ok:
+        existsSync(path.join(projectRoot, '.github/workflows')) ||
+        existsSync(path.join(projectRoot, '.github/instructions')),
+      evidence: '.github/workflows または .github/instructions',
     },
   }
 
   return surfaceAuditCategoryNames().map((name) => {
     const check = checks[name]
+    const findings = findingsForCategory(name, sourceFindings, securityFindings)
+    const ok = Boolean(check?.ok)
     return {
       name,
-      status: check?.ok ? 'covered' : 'review',
+      status: ok ? 'covered' : 'review',
       evidence: check?.evidence ?? '未定義',
-      notes: check?.ok
-        ? 'deterministic check passed'
-        : '確認または同期が必要です。',
+      notes: ok ? 'deterministic check passed' : '確認または同期が必要です。',
+      score: ok ? 10 : 4,
+      max_score: 10,
+      findings,
     }
   })
+}
+
+function summarizeScore(categories: ScorecardRecord[]) {
+  const overallScore = categories.reduce(
+    (total, category) => total + (category.score ?? 0),
+    0,
+  )
+  const maxScore = categories.reduce(
+    (total, category) => total + (category.max_score ?? 10),
+    0,
+  )
+  return { maxScore, overallScore }
+}
+
+function topActionLines(
+  categories: ScorecardRecord[],
+  extraFindings: (SecurityFinding | string)[] = [],
+) {
+  const categoryActions = categories
+    .filter((category) => (category.score ?? 0) < (category.max_score ?? 10))
+    .map(
+      (category) =>
+        `[${category.name}] ${category.evidence} を確認し、source-of-truth から不足を補う。`,
+    )
+  const extraActions = extraFindings.map((finding) => {
+    if (typeof finding === 'string') {
+      return `[Source-of-truth Sync] ${finding}`
+    }
+    return `[Security Guardrails] ${finding.file}: ${finding.summary}`
+  })
+  return [...categoryActions, ...extraActions].slice(0, 3)
+}
+
+function findingsForCategory(
+  name: string,
+  sourceFindings: string[],
+  securityFindings: SecurityFinding[],
+) {
+  if (name === 'Source-of-truth Sync') {
+    return sourceFindings
+  }
+  if (name === 'Security Guardrails') {
+    return securityFindings.map(
+      (finding) => `${finding.file}: ${finding.summary}`,
+    )
+  }
+  return []
+}
+
+function collectSecurityFindings(projectRoot: string): SecurityFinding[] {
+  const findings: SecurityFinding[] = []
+  const files = [
+    ...listFiles(path.join(projectRoot, '.apm/hooks/scripts')),
+    ...listFiles(path.join(projectRoot, '.apm/skills')),
+    ...listFiles(path.join(projectRoot, '.apm/prompts')),
+  ].filter((file) => /\.(sh|md|json|yaml|yml|ts|js)$/.test(file))
+
+  for (const file of files) {
+    const relativePath = toProjectRelativePath(projectRoot, file)
+    const content = safeRead(file)
+    if (!content) {
+      continue
+    }
+    const scannedContent = securityRelevantContent(file, content)
+    const isExecutableSurface = /\.(sh|ts|js|json|yaml|yml)$/.test(file)
+    const checks: Array<[RegExp, string, string, boolean]> = [
+      [
+        /\bcurl\b|\bwget\b/,
+        'high',
+        'curl / wget による直接取得があります。',
+        isExecutableSurface,
+      ],
+      [
+        /\bnode\s+-e\b|\bpython\d?\s+-c\b/,
+        'medium',
+        'inline eval 形式の実行があります。',
+        isExecutableSurface,
+      ],
+      [
+        /そのまま実行|ignore previous/i,
+        'medium',
+        '外部または本文の指示を無条件に扱う prompt injection リスクがあります。',
+        true,
+      ],
+      [
+        /(api[_-]?key|secret|token|password)\s*[:=]\s*['"][^'"]+['"]/i,
+        'high',
+        'secret らしき値が agent surface に含まれています。',
+        isExecutableSurface,
+      ],
+    ]
+    for (const [pattern, severity, summary, enabled] of checks) {
+      if (enabled && pattern.test(scannedContent)) {
+        findings.push({ file: relativePath, severity, summary })
+      }
+    }
+  }
+
+  return findings
+}
+
+function securityRelevantContent(filePath: string, content: string) {
+  if (!filePath.endsWith('.sh')) {
+    return content
+  }
+
+  return content.replace(
+    /\n[^\n]*<<['"]?([A-Z][A-Z0-9_]*)['"]?\n[\s\S]*?\n\1\n/g,
+    '\n',
+  )
+}
+
+function listFiles(root: string): string[] {
+  if (!existsSync(root)) {
+    return []
+  }
+  const files: string[] = []
+  const visit = (current: string) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const entryPath = path.join(current, entry.name)
+      if (entry.isDirectory()) {
+        visit(entryPath)
+      } else {
+        files.push(entryPath)
+      }
+    }
+  }
+  visit(root)
+  return files
+}
+
+function safeRead(filePath: string) {
+  try {
+    return readFileSync(filePath, 'utf8')
+  } catch {
+    return ''
+  }
+}
+
+function learningTargetForFinding(finding: FindingRecord) {
+  return learningTargetForSummary(
+    `${finding.summary ?? ''} ${finding.evidence ?? ''}`,
+  )
+}
+
+function learningTargetForSummary(summary: string) {
+  if (/hook|PreToolUse|Stop|SessionStart|PreCompact/i.test(summary)) {
+    return '.apm/hooks または .apm/instructions/harness.instructions.md'
+  }
+  if (/skill|prompt|Evaluator|Generator|Planner/i.test(summary)) {
+    return '.apm/skills または .apm/prompts'
+  }
+  if (/Beads|issue|follow-up/i.test(summary)) {
+    return 'Beads issue'
+  }
+  return 'Beads issue または .apm/instructions'
 }
 
 function readPackageScriptNames(projectRoot: string) {

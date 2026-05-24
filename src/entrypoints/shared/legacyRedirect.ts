@@ -23,10 +23,18 @@ const redirectToApp = (
   return nextHref
 }
 
-const initializeLegacyRedirect = () => {
+interface LegacyRedirectOptions {
+  replace?: (href: string) => void
+}
+
+const initializeLegacyRedirect = (options: LegacyRedirectOptions = {}) => {
   document.addEventListener('DOMContentLoaded', () => {
     syncDocumentTitle()
-    redirectToApp()
+    redirectToApp(
+      window.location.pathname,
+      window.location.search,
+      options.replace,
+    )
   })
 }
 

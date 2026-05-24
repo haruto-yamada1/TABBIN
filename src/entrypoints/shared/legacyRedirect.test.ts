@@ -26,8 +26,9 @@ describe('legacyRedirect', () => {
 
   it('DOMContentLoaded で title 同期と redirect を実行する', () => {
     const addEventListenerSpy = vi.spyOn(document, 'addEventListener')
+    const replace = vi.fn()
 
-    initializeLegacyRedirect()
+    initializeLegacyRedirect({ replace })
 
     expect(addEventListenerSpy).toHaveBeenCalledWith(
       'DOMContentLoaded',
@@ -42,5 +43,6 @@ describe('legacyRedirect', () => {
     listener?.()
 
     expect(document.title).toBe('TABBIN')
+    expect(replace).toHaveBeenCalledWith('app.html#/saved-tabs')
   })
 })
