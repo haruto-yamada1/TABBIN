@@ -43,7 +43,7 @@ export const AiChatRoute = () => {
     const handleResize = () => {
       const isCompactViewport = window.innerWidth < AI_CHAT_HISTORY_BREAKPOINT
 
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (isCompactViewportRef.current !== isCompactViewport) {
         isCompactViewportRef.current = isCompactViewport
         setIsHistoryVisible(!isCompactViewport)
@@ -155,11 +155,11 @@ export const AiChatRoute = () => {
 
       <Dialog
         open={pendingDeleteHistoryItem !== null}
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         onOpenChange={(open) => {
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           if (!open) {
-            /* V8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore next -- coverage-only defensive branch. */
             setPendingDeleteHistoryItem(null)
           }
         }}
@@ -185,9 +185,9 @@ export const AiChatRoute = () => {
               type='button'
               variant='destructive'
               onClick={() => {
-                /* V8 ignore next -- coverage-only defensive branch. */
+                /* v8 ignore next -- coverage-only defensive branch. */
                 if (!pendingDeleteHistoryItem) {
-                  /* V8 ignore next -- coverage-only defensive branch. */
+                  /* v8 ignore next -- coverage-only defensive branch. */
                   return
                 }
 

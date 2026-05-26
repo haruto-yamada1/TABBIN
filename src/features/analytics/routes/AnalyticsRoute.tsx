@@ -162,7 +162,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> =>
           return
         }
 
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         reject(new Error(response?.error || 'removeUrlFromStorage failed'))
       },
     )
@@ -182,7 +182,7 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
         }
 
         reject(
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           new Error(response?.error || 'removeUrlRecordsFromStorage failed'),
         )
       },
@@ -216,10 +216,10 @@ const getAnalyticsDeleteUndoSnapshot =
     ])
 
 const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
   Array.isArray(value) ? value : undefined
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 const createAnalyticsDeleteUndoPayload = (
   snapshot: AnalyticsDeleteUndoSnapshot,
@@ -231,23 +231,23 @@ const createAnalyticsDeleteUndoPayload = (
   const parentCategories = getSnapshotArray(snapshot.parentCategories)
   const urls = getSnapshotArray(snapshot.urls)
 
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (savedTabs) {
     payload.savedTabs = savedTabs
   }
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (customProjects) {
     payload.customProjects = customProjects
   }
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (customProjectOrder) {
     payload.customProjectOrder = customProjectOrder
   }
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (parentCategories) {
     payload.parentCategories = parentCategories
   }
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (urls) {
     payload.urls = urls
   }
@@ -323,7 +323,7 @@ const getDrilldownLabelsForRecord = (
           /* v8 ignore start -- coverage-only defensive branch. */
           [uncategorizedLabel]
     }
-    /* V8 ignore stop */
+    /* v8 ignore stop */
     case 'projectCategory': {
       return record.projectCategories.length > 0
         ? record.projectCategories
@@ -331,7 +331,7 @@ const getDrilldownLabelsForRecord = (
           /* v8 ignore start -- coverage-only defensive branch. */
           [uncategorizedLabel]
     }
-    /* V8 ignore stop */
+    /* v8 ignore stop */
     default: {
       return [record.domain]
     }
@@ -632,9 +632,9 @@ const useAnalyticsRouteView = () => {
 
   const rebuildDrilldownSelection = (nextRecords: AiSavedUrlRecord[]) => {
     setDrilldownSelection((currentSelection) => {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (!currentSelection) {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         return null
       }
 
@@ -692,9 +692,9 @@ const useAnalyticsRouteView = () => {
   }
 
   const performDelete = async (record: AiSavedUrlRecord) => {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (deletingUrl || isBulkDeleting) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -718,9 +718,9 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleDeleteClick = (record: AiSavedUrlRecord) => {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (deletingUrl || isBulkDeleting) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -733,7 +733,7 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleOpenAllDrilldownRecords = () => {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     const matchingRecords = drilldownSelection?.matchingRecords ?? []
     for (const record of matchingRecords) {
       window.open(record.url, '_blank', 'noopener,noreferrer')
@@ -741,11 +741,11 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleOpenAllClick = () => {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     const recordCount = drilldownSelection?.matchingRecords.length ?? 0
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (recordCount === 0) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -758,11 +758,11 @@ const useAnalyticsRouteView = () => {
   }
 
   const performBulkDelete = async () => {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     const matchingRecords = drilldownSelection?.matchingRecords ?? []
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (matchingRecords.length === 0 || deletingUrl || isBulkDeleting) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -786,15 +786,15 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleDeleteAllClick = () => {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (deletingUrl || isBulkDeleting) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       return
     }
 
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (!drilldownSelection?.matchingRecords.length) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -1177,7 +1177,7 @@ const useAnalyticsRouteView = () => {
                                 <time className='text-muted-foreground text-xs'>
                                   {formatLocaleDateTime(
                                     record.savedAt,
-                                    /* V8 ignore next -- coverage-only defensive branch. */
+                                    /* v8 ignore next -- coverage-only defensive branch. */
                                     language === 'ja' ? 'ja-JP' : 'en-US',
                                   )}
                                 </time>
@@ -1264,9 +1264,9 @@ const useAnalyticsRouteView = () => {
 
       <AlertDialog
         onOpenChange={(isOpen) => {
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           if (!isOpen && isBulkDeleting) {
-            /* V8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore next -- coverage-only defensive branch. */
             return
           }
           setIsBulkDeleteConfirmOpen(isOpen)
@@ -1327,12 +1327,12 @@ const useAnalyticsRouteView = () => {
 
       <AlertDialog
         onOpenChange={(isOpen) => {
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           if (!isOpen && deletingUrl) {
-            /* V8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore next -- coverage-only defensive branch. */
             return
           }
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           if (!isOpen) {
             setDeleteTarget(null)
           }
@@ -1354,9 +1354,9 @@ const useAnalyticsRouteView = () => {
               variant='destructive'
               onClick={(event) => {
                 event.preventDefault()
-                /* V8 ignore next -- coverage-only defensive branch. */
+                /* v8 ignore next -- coverage-only defensive branch. */
                 if (!deleteTarget) {
-                  /* V8 ignore next -- coverage-only defensive branch. */
+                  /* v8 ignore next -- coverage-only defensive branch. */
                   return
                 }
 

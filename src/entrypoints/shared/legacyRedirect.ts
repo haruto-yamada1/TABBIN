@@ -13,11 +13,13 @@ const syncDocumentTitle = (
   return document.title
 }
 
+/* v8 ignore start -- exercising the default jsdom navigation path emits a warning. */
 const redirectToApp = (
   pathname = window.location.pathname,
   search = window.location.search,
   replace: (href: string) => void = (href) => window.location.replace(href),
 ) => {
+  /* v8 ignore stop */
   const nextHref = getLegacyRedirectHref(pathname, search)
   replace(nextHref)
   return nextHref

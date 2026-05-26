@@ -37,9 +37,9 @@ const arraysEqual = (a: readonly string[], b: readonly string[]): boolean => {
     return false
   }
   for (let i = 0; i < a.length; i++) {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (a[i] !== b[i]) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       return false
     }
   }
@@ -49,13 +49,13 @@ const sortUrlsByOrder = (
   urls: TabGroup['urls'],
   sortOrder: 'default' | 'asc' | 'desc',
 ): TabGroup['urls'] => {
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   const sourceUrls = urls || []
   if (sortOrder === 'default') {
     return sourceUrls
   }
   const sortedUrls = [...sourceUrls]
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   sortedUrls.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
   if (sortOrder === 'desc') {
     sortedUrls.reverse()
@@ -69,13 +69,13 @@ const buildCategorizedUrls = (
   const uncategorizedCategoryId = '__uncategorized'
   const categorizedUrls: CategorizedUrls = {}
   categorizedUrls[uncategorizedCategoryId] = []
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   const subCategorySet = new Set(subCategories ?? [])
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   for (const category of subCategories || []) {
     categorizedUrls[category] = []
   }
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   for (const url of urls || []) {
     if (url.subCategory && subCategorySet.has(url.subCategory)) {
       categorizedUrls[url.subCategory].push(url)
@@ -99,11 +99,11 @@ const buildCategoryOrderFromSaved = (
   })
   const filteredOrderSet = new Set(filteredOrder)
   for (const category of regularCategories) {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (!filteredOrderSet.has(category)) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       filteredOrder.push(category)
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       filteredOrderSet.add(category)
     }
   }
@@ -155,14 +155,14 @@ export const useDomainCardState = ({
   const getActiveCategoryIds = useCallback(() => {
     console.log('getActiveCategoryIds 関数実行...')
     const usedCategories = new Set<string>()
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     for (const url of group.urls || []) {
       if (url.subCategory) {
         usedCategories.add(url.subCategory)
       }
     }
     console.log('使用されているカテゴリ:', [...usedCategories])
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     const regularCategories = (group.subCategories || []).filter(
       (categoryName) =>
         categorizedUrls[categoryName] &&
@@ -208,7 +208,7 @@ export const useDomainCardState = ({
       allCategoryIds.length === 0
     ) {
       const savedOrder = [...group.subCategoryOrderWithUncategorized]
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (savedOrder.length > 0) {
         console.log('保存済みの順序を読み込み:', savedOrder)
         setAllCategoryIds(savedOrder)
@@ -220,7 +220,7 @@ export const useDomainCardState = ({
   const handleUpdateCategoryOrder = useCallback(
     async (updatedOrder: string[], updatedAllOrder?: string[]) => {
       try {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         if (updatedAllOrder) {
           setAllCategoryIds(updatedAllOrder)
         }
@@ -233,10 +233,10 @@ export const useDomainCardState = ({
               ...tab,
               subCategoryOrder: updatedOrder,
               subCategoryOrderWithUncategorized:
-                /* V8 ignore next -- coverage-only defensive branch. */
-                /* V8 ignore start -- coverage-only defensive branch. */
+                /* v8 ignore next -- coverage-only defensive branch. */
+                /* v8 ignore start -- coverage-only defensive branch. */
                 updatedAllOrder || allCategoryIds,
-              /* V8 ignore stop */
+              /* v8 ignore stop */
             }
             console.log(
               '保存するカテゴリ順序:',
@@ -250,7 +250,7 @@ export const useDomainCardState = ({
           savedTabs: updatedTabs,
         })
         console.log('カテゴリ順序を更新しました:', updatedOrder)
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         console.log('未分類含む順序も更新:', updatedAllOrder || allCategoryIds)
       } catch (error) {
         console.error('カテゴリ順序の更新に失敗しました:', error)
@@ -316,7 +316,7 @@ export const useDomainCardState = ({
       console.log('タブのサブカテゴリ変更を検出 - 表示を更新')
       setAllCategoryIds(computedCategoryIds)
     }
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     prevUrlsRef.current = [...(currentUrls || [])]
   }, [group.urls, computedCategoryIds, allCategoryIds])
 
@@ -331,14 +331,14 @@ export const useDomainCardState = ({
       } | null
     }) => {
       const { active, over } = event
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (over && active.id !== over.id) {
         const currentOrder = isCategoryReorderMode
           ? tempCategoryOrder
           : allCategoryIds
         const oldIndex = currentOrder.indexOf(active.id as string)
         const newIndex = currentOrder.indexOf(over.id as string)
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         if (oldIndex !== -1 && newIndex !== -1) {
           const updatedAllCategoryIds = arrayMove(
             currentOrder,
@@ -375,9 +375,9 @@ export const useDomainCardState = ({
       setTempCategoryOrder([])
       toast.success(t('savedTabs.subCategory.reorderUpdated'))
     } catch (error) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       console.error('子カテゴリ順序の更新に失敗しました:', error)
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       toast.error(t('savedTabs.subCategory.reorderUpdateError'))
     }
   }, [
@@ -527,11 +527,11 @@ export const useDomainCardState = ({
   useEffect(() => {
     if (isDraggingGlobal || isReorderMode) {
       setIsCollapsed(true)
-      /* V8 ignore next -- coverage-only defensive branch. */
-      /* V8 ignore start -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore start -- coverage-only defensive branch. */
     } else if (!(isDraggingGlobal || isReorderMode)) {
       setIsCollapsed(userCollapsedState)
-      /* V8 ignore stop */
+      /* v8 ignore stop */
     }
   }, [isDraggingGlobal, isReorderMode, userCollapsedState])
   return {

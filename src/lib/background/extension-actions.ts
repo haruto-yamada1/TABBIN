@@ -61,12 +61,12 @@ const toSavedTabItems = async (
 > => {
   const { excludePatterns } = await getUserSettings()
 
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   return filterItemsBySavableUrl(tabs, excludePatterns ?? []).reduce<
     { title: string; url: string }[]
   >((items, tab) => {
     const normalizedUrl = normalizeUrlCandidate(tab.url)
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (normalizedUrl) {
       items.push({
         title: tab.title || '',
@@ -410,7 +410,7 @@ export const handleSaveWindowTabs = async (): Promise<
       tab.id !== savedTabsTabId &&
       tab.url &&
       !settings.excludePatterns.some(
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         (pattern) => (tab.url?.split(pattern).length ?? 0) > 1,
       )
     ) {

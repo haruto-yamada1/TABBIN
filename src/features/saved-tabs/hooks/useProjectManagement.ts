@@ -259,11 +259,11 @@ const useProjectManagement = (
   const { t } = useI18n()
   const [customProjects, setCustomProjects] = useState<CustomProject[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>(
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     initialViewMode ?? 'domain',
   )
   const customProjectsRef = useRef<CustomProject[]>([])
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   const viewModeRef = useRef<ViewMode>(initialViewMode ?? 'domain')
   const creatingProjectNamesRef = useRef<Set<string>>(new Set())
 
@@ -308,9 +308,9 @@ const useProjectManagement = (
         console.log('カスタムモードに切り替え: データ同期を開始')
         await syncDomainDataToCustomProjects()
       } catch (error) {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         console.error('ビューモード変更エラー:', error)
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         toast.error(t('savedTabs.viewMode.changeError'))
       }
     },
@@ -403,10 +403,10 @@ const useProjectManagement = (
                     name: newName,
                     updatedAt: Date.now(),
                   }
-                : /* V8 ignore next -- coverage-only defensive branch. */
-                  /* V8 ignore start -- coverage-only defensive branch. */
+                : /* v8 ignore next -- coverage-only defensive branch. */
+                  /* v8 ignore start -- coverage-only defensive branch. */
                   p,
-            /* V8 ignore stop */
+            /* v8 ignore stop */
           ),
         )
         toast.success(t('savedTabs.projectManagement.renamed'))
@@ -446,10 +446,10 @@ const useProjectManagement = (
                     projectKeywords,
                     updatedAt: Date.now(),
                   }
-                : /* V8 ignore next -- coverage-only defensive branch. */
-                  /* V8 ignore start -- coverage-only defensive branch. */
+                : /* v8 ignore next -- coverage-only defensive branch. */
+                  /* v8 ignore start -- coverage-only defensive branch. */
                   project,
-            /* V8 ignore stop */
+            /* v8 ignore stop */
           ),
         )
         toast.success(t('savedTabs.projects.keywordsUpdated'))
@@ -544,19 +544,19 @@ const useProjectManagement = (
             }
 
             const updatedCategories = [...p.categories, categoryName]
-            /* V8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore next -- coverage-only defensive branch. */
             const baseCategoryOrder = p.categoryOrder ?? p.categories
             return {
               ...p,
               categories: updatedCategories,
-              /* V8 ignore start -- coverage-only defensive branch. */
+              /* v8 ignore start -- coverage-only defensive branch. */
               categoryOrder: baseCategoryOrder.includes(categoryName)
-                ? /* V8 ignore next -- coverage-only defensive branch. */
-                  /* V8 ignore start -- coverage-only defensive branch. */
+                ? /* v8 ignore next -- coverage-only defensive branch. */
+                  /* v8 ignore start -- coverage-only defensive branch. */
                   baseCategoryOrder
-                : /* V8 ignore stop */
+                : /* v8 ignore stop */
                   [...baseCategoryOrder, categoryName],
-              /* V8 ignore stop */
+              /* v8 ignore stop */
               updatedAt: Date.now(),
             }
           }),
@@ -715,21 +715,21 @@ const useProjectManagement = (
                     ? project.categoryOrder.map((cat) =>
                         cat === oldCategoryName ? newCategoryName : cat,
                       )
-                    : /* V8 ignore next -- coverage-only defensive branch. */
-                      /* V8 ignore start -- coverage-only defensive branch. */
+                    : /* v8 ignore next -- coverage-only defensive branch. */
+                      /* v8 ignore start -- coverage-only defensive branch. */
                       project.categoryOrder,
-                  /* V8 ignore stop */
+                  /* v8 ignore stop */
                   urls: project.urls?.map((item) => ({
                     ...item,
                     category:
-                      /* V8 ignore start -- coverage-only defensive branch. */
+                      /* v8 ignore start -- coverage-only defensive branch. */
                       item.category === oldCategoryName
-                        ? /* V8 ignore next -- coverage-only defensive branch. */
-                          /* V8 ignore start -- coverage-only defensive branch. */
+                        ? /* v8 ignore next -- coverage-only defensive branch. */
+                          /* v8 ignore start -- coverage-only defensive branch. */
                           newCategoryName
-                        : /* V8 ignore stop */
+                        : /* v8 ignore stop */
                           item.category,
-                    /* V8 ignore stop */
+                    /* v8 ignore stop */
                   })),
                 }
               : project,
@@ -753,7 +753,7 @@ const useProjectManagement = (
         console.log(
           '初回ロード: ビューモードとカスタムプロジェクトを取得します',
         )
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         const mode = initialViewMode ?? 'domain'
         setViewMode(mode)
         console.log(`ビューモード: ${mode}`)

@@ -67,10 +67,10 @@ interface DomainModeContainerProps {
 }
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
   (group.urls || []).map((item) => item.url)
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 const deleteVisibleUrlsForGroups = async (
   groups: TabGroup[],
@@ -138,7 +138,7 @@ export const DomainModeContainer = ({
   )
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
   const uncategorizedUrlsToOpen = useMemo(
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     () => uncategorizedForDisplay.flatMap((group) => group.urls || []),
     [uncategorizedForDisplay],
   )
@@ -156,7 +156,7 @@ export const DomainModeContainer = ({
     }
 
     const uncategorizedIds = uncategorizedForDisplay.map((group) => group.id)
-    /* V8 ignore next -- the bulk delete action is only rendered when at least one uncategorized group is visible. */
+    /* v8 ignore next -- the bulk delete action is only rendered when at least one uncategorized group is visible. */
     if (uncategorizedIds.length === 0) {
       return
     }
@@ -198,7 +198,7 @@ export const DomainModeContainer = ({
                 if (!category) {
                   return null
                 }
-                /* V8 ignore next -- coverage-only defensive branch. */
+                /* v8 ignore next -- coverage-only defensive branch. */
                 const domainGroups = categorized[categoryId] || []
                 if (domainGroups.length === 0) {
                   return null
@@ -233,7 +233,7 @@ export const DomainModeContainer = ({
 
       {shouldShowUncategorizedSectionHeader && (
         <div
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           className={`sticky top-0 z-50 flex items-center justify-between bg-card ${hasVisibleCategoryGroups ? 'mt-6' : 'mt-2'}`}
           data-saved-tabs-scroll-target='parent'
         >

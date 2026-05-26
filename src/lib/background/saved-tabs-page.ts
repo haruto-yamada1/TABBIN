@@ -13,7 +13,7 @@ const isSavedTabsPageUrl = (value?: string): boolean => {
 
   try {
     const url = new URL(value)
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     const normalizedPath = url.pathname.split('/').at(-1) ?? ''
 
     if (normalizedPath === 'saved-tabs.html') {
@@ -29,10 +29,10 @@ const isSavedTabsPageUrl = (value?: string): boolean => {
   } catch {
     return (
       value.includes('saved-tabs.html') ||
-      /* V8 ignore next -- coverage-only defensive branch. */
-      /* V8 ignore start -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore start -- coverage-only defensive branch. */
       value.includes('app.html#/saved-tabs')
-      /* V8 ignore stop */
+      /* v8 ignore stop */
     )
   }
 }

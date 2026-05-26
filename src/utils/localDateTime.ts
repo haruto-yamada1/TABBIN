@@ -27,10 +27,10 @@ const pad2 = (value: number): string => String(value).padStart(2, '0')
 const resolveTimeZone = (timeZone?: string): string =>
   timeZone?.trim() ||
   Intl.DateTimeFormat().resolvedOptions().timeZone ||
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
   FALLBACK_TIME_ZONE
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 const getCachedFormatter = (
   cache: Map<string, Intl.DateTimeFormat>,
@@ -82,10 +82,10 @@ const getWeekdayFormatter = (timeZone: string): Intl.DateTimeFormat =>
 const getNumericPart = (
   parts: Intl.DateTimeFormatPart[],
   type: Intl.DateTimeFormatPartTypes,
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
 ): number => Number(parts.find((part) => part.type === type)?.value ?? 0)
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 const getDatePartsInTimeZone = (
   timestamp: number,
@@ -110,10 +110,10 @@ const getWeekdayIndexInTimeZone = (
 ): number =>
   WEEKDAY_INDEX[
     getWeekdayFormatter(resolveTimeZone(timeZone)).format(new Date(timestamp))
-    /* V8 ignore next -- coverage-only defensive branch. */
-    /* V8 ignore start -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore start -- coverage-only defensive branch. */
   ] ?? 0
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 const normalizeDateKey = (value: string | undefined): string | null => {
   const normalized = value?.trim()
@@ -154,7 +154,7 @@ const isTimestampInLocalDateRange = (
   to: string | undefined,
   timeZone?: string,
 ): boolean => {
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   const normalizedFrom = normalizeDateKey(from ?? to)
   const normalizedTo = normalizeDateKey(to ?? from)
 

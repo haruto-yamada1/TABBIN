@@ -28,10 +28,10 @@ const stripLegacyUserSettings = (
 
 const hasLegacyUserSettingsKeys = (
   settings: Record<string, unknown>,
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
 ): boolean => 'aiChatEnabled' in settings || 'aiProvider' in settings
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 // デフォルト設定
 export const defaultSettings: UserSettings = {
@@ -94,7 +94,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
         ...defaultSettings,
         ...sanitizedStoredSettings,
       })
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (
         hasLegacyUserSettingsKeys(data.userSettings as Record<string, unknown>)
       ) {

@@ -26,6 +26,7 @@ export default defineConfig({
       ],
     },
     environment: 'jsdom',
+    setupFiles: ['./src/test/setup-console.ts'],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
