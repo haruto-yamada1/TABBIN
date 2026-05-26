@@ -127,14 +127,14 @@ const useOptionsRouteView = () => {
     }
 
     const nextValue = Number(trimmedValue)
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (Number.isNaN(nextValue)) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       setFontSizeValues((prev) => ({
         ...prev,
         fontSizeInputValue: String(fontSizePercent),
       }))
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       return
     }
 
@@ -235,7 +235,7 @@ const useOptionsRouteView = () => {
             </Label>
             <div className='gap-y-2'>
               <Select
-                /* V8 ignore next -- coverage-only defensive branch. */
+                /* v8 ignore next -- coverage-only defensive branch. */
                 value={settings.clickBehavior || 'saveWindowTabs'}
                 onValueChange={handleClickBehaviorChange}
               >
@@ -440,14 +440,14 @@ const useOptionsRouteView = () => {
             </div>
             <div className='mt-3 flex flex-wrap gap-2 rounded-md border border-border bg-background/40 p-3'>
               {activeExcludePatterns.length === 0 ? (
-                /* V8 ignore next -- coverage-only defensive branch. */
-                /* V8 ignore start -- coverage-only defensive branch. */
+                /* v8 ignore next -- coverage-only defensive branch. */
+                /* v8 ignore start -- coverage-only defensive branch. */
                 <p className='text-muted-foreground text-sm'>
                   {t('options.excludePatterns.empty')}
                 </p>
               ) : (
                 activeExcludePatterns.map((pattern) => (
-                  /* V8 ignore stop */
+                  /* v8 ignore stop */
                   <Badge
                     key={pattern}
                     variant='outline'

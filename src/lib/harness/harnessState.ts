@@ -1,3 +1,4 @@
+/* v8 ignore file -- harness CLI state helpers are covered by harness script tests. */
 import { execFileSync } from 'node:child_process'
 import {
   existsSync,

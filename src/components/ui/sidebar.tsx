@@ -398,6 +398,7 @@ const SidebarRail = ({
   return (
     <button
       ref={ref}
+      type='button'
       data-sidebar='rail'
       aria-label={sidebarToggleLabel}
       tabIndex={-1}

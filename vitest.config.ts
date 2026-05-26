@@ -31,6 +31,7 @@ export default defineConfig({
     ],
     mockReset: true,
     restoreMocks: true,
+    setupFiles: ['./src/test/setup-console.ts'],
     typecheck: {
       enabled: false,
     },

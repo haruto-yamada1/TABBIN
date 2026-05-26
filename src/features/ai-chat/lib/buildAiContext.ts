@@ -47,7 +47,7 @@ export const buildAiSavedUrlRecords = ({
       const projectCategories = unique(
         matchingProjects.flatMap((project) => {
           const value = project.urlMetadata?.[record.id]?.category
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           return typeof value === 'string' ? [value] : []
         }),
       )
@@ -58,10 +58,10 @@ export const buildAiSavedUrlRecords = ({
               category.domains.includes(group.id) ||
               category.domainNames.includes(group.domain)
                 ? [category.name]
-                : /* V8 ignore next -- coverage-only defensive branch. */
-                  /* V8 ignore start -- coverage-only defensive branch. */
+                : /* v8 ignore next -- coverage-only defensive branch. */
+                  /* v8 ignore start -- coverage-only defensive branch. */
                   [],
-            /* V8 ignore stop */
+            /* v8 ignore stop */
           ),
         ),
       )

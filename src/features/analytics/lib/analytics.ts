@@ -152,7 +152,7 @@ const lowerCaseSet = (values: string[]): Set<string> =>
   new Set(
     values.reduce<string[]>((items, value) => {
       const normalizedValue = value.trim().toLowerCase()
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (normalizedValue) {
         items.push(normalizedValue)
       }
@@ -164,10 +164,10 @@ const interpolate = (
   template: string,
   values: Record<string, string>,
 ): string =>
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
   template.replaceAll(/\{\{(\w+)\}\}/g, (_, token) => values[token] ?? '')
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 const getDefaultAnalyticsQuery = (): AnalyticsQuery => ({
   chartType: 'bar',
@@ -384,9 +384,9 @@ const getLabelsForGroup = (
         ? record.projectCategories
         : [uncategorizedLabel]
     }
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     case 'timeRecent':
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     case 'timeTop': {
       /* v8 ignore next -- coverage-only defensive branch. */
       return [getTimeBucketLabel(record.savedAt, 'day')]
@@ -414,9 +414,9 @@ const getSingleSeriesTitle = (
     case 'projectCategory': {
       return messages.chartSavedCountByProjectCategory
     }
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     case 'timeRecent':
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     case 'timeTop': {
       /* v8 ignore next -- coverage-only defensive branch. */
       return messages.chartDailySavedTrend
@@ -442,9 +442,9 @@ const getTimeTitle = (
 }
 
 const getNormalizedCount = (count: number, total: number): number => {
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (total === 0) {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     return 0
   }
 
@@ -635,7 +635,7 @@ const createModeComparisonChart = (
     title: query.title ?? getTimeTitle(query.timeBucket, messages),
     type: query.chartType,
     valueFormat: query.normalize ? 'percent' : 'count',
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     xKey: query.chartType === 'pie' ? undefined : 'label',
   }
 }

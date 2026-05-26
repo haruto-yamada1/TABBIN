@@ -67,7 +67,7 @@ import type {
 import '@/assets/global.css'
 
 // プロダクションビルドではデバッグログを抑制する
-/* V8 ignore next 5 -- import.meta.env.DEV is statically true in the Vitest environment. */
+/* v8 ignore next 5 -- import.meta.env.DEV is statically true in the Vitest environment. */
 if (!import.meta.env.DEV) {
   // eslint-disable-next-line no-console
   console.log = () => {}
@@ -108,10 +108,10 @@ const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
   Array.isArray(value) ? value : undefined
 const getSnapshotSavedTabs = (
   snapshot: OpenedUrlsStorageSnapshot,
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
 ): TabGroup[] => getSnapshotArray(snapshot.savedTabs) ?? []
-/* V8 ignore stop */
+/* v8 ignore stop */
 const buildUrlIdsToRemove = (
   urlsToRemove: string[],
   urlRecords: {
@@ -139,15 +139,15 @@ const createOpenedUrlsRestorePayload = (
     savedTabs: getSnapshotSavedTabs(snapshot),
   }
 
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (customProjects) {
     payload.customProjects = customProjects
   }
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (customProjectOrder) {
     payload.customProjectOrder = customProjectOrder
   }
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (parentCategories) {
     payload.parentCategories = parentCategories
   }
@@ -188,11 +188,11 @@ const showOpenedUrlsUndoToast = ({
               createOpenedUrlsRestorePayload(snapshot)
 
             await chrome.storage.local.set(payload)
-            /* V8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore next -- coverage-only defensive branch. */
             if (customProjects) {
               setCustomProjects(customProjects)
             }
-            /* V8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore next -- coverage-only defensive branch. */
             if (parentCategories && setCategories) {
               setCategories(parentCategories)
             }
@@ -210,14 +210,14 @@ const showOpenedUrlsUndoToast = ({
 const isDevProfileEnabled =
   import.meta.env.DEV &&
   Boolean((globalThis as SavedTabsProfilerGlobal).enableSavedTabsProfiler)
-/* V8 ignore start -- profiler reporting is disabled in the test environment. */
+/* v8 ignore start -- profiler reporting is disabled in the test environment. */
 let savedTabsCommitCount = 0
 const handleSavedTabsRender: ProfilerOnRenderCallback = (
   id,
   phase,
   actualDuration,
 ) => {
-  /* V8 ignore next -- this guard depends on a dev-only global set before module evaluation. */
+  /* v8 ignore next -- this guard depends on a dev-only global set before module evaluation. */
   if (!isDevProfileEnabled || id !== 'SavedTabs') {
     return
   }
@@ -232,7 +232,7 @@ const handleSavedTabsRender: ProfilerOnRenderCallback = (
     `[Profiler] SavedTabs commit #${savedTabsCommitCount} phase=${phase} actual=${actualDuration.toFixed(2)}ms`,
   )
 }
-/* V8 ignore stop */
+/* v8 ignore stop */
 const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
   const byId = new Map<string, ParentCategory>()
   const byGroupId = new Map<string, ParentCategory>()
@@ -241,13 +241,13 @@ const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
   for (const category of categories) {
     byId.set(category.id, category)
     for (const domainId of category.domains) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (!byGroupId.has(domainId)) {
         byGroupId.set(domainId, category)
       }
     }
     for (const domainName of category.domainNames) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (!byDomainName.has(domainName)) {
         byDomainName.set(domainName, category)
       }
@@ -261,10 +261,10 @@ const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
   }
 }
 const countTabGroupUrls = (group: TabGroup): number =>
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
   group.urlIds?.length ?? group.urls?.length ?? 0
-/* V8 ignore stop */
+/* v8 ignore stop */
 const matchesParentCategoryQuery = (
   group: TabGroup,
   categoryLookup: CategoryLookup,
@@ -277,7 +277,7 @@ const matchesParentCategoryQuery = (
       console.log(
         `親カテゴリ検索デバッグ: ドメイン ${group.domain}, 親カテゴリ「${parentCategory.name}」, クエリ「${query}」, マッチ: ${matched}`,
       )
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (matched) {
         return true
       }
@@ -292,7 +292,7 @@ const matchesParentCategoryQuery = (
     categoryLookup.byDomainName.get(group.domain)
   if (fallbackCategory) {
     const matched = fallbackCategory.name.toLowerCase().includes(query)
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (matched) {
       console.log(
         `親カテゴリ検索デバッグ（リアルタイム）: ドメイン ${group.domain}, 親カテゴリ「${fallbackCategory.name}」, クエリ「${query}」, マッチ: ${matched}`,
@@ -312,7 +312,7 @@ const filterGroupByQuery = (
   normalizedQuery: string,
   categoryLookup: CategoryLookup,
 ): TabGroup => {
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   const currentUrls = group.urls || []
   if (currentUrls.length === 0) {
     return group
@@ -408,9 +408,9 @@ const sortCategorizedGroups = (
   categoryLookup: CategoryLookup,
 ): void => {
   for (const categoryId of Object.keys(categorizedGroups)) {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (!categorizedGroups[categoryId]) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       categorizedGroups[categoryId] = []
     }
     const category = categoryLookup.byId.get(categoryId)
@@ -420,18 +420,18 @@ const sortCategorizedGroups = (
     }
     const domainOrder = new Map(domains.map((domain, index) => [domain, index]))
     categorizedGroups[categoryId].sort((a, b) => {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       const indexA = domainOrder.get(a.id) ?? -1
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       const indexB = domainOrder.get(b.id) ?? -1
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (indexA === -1) {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         return 1
       }
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (indexB === -1) {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         return -1
       }
       return indexA - indexB
@@ -497,7 +497,7 @@ const buildUpdatedGroupAfterUrlIdRemoval = (
   for (const id of idsToRemove) {
     delete nextUrlSubCategories[id]
   }
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   updatedGroup.urlSubCategories =
     Object.keys(nextUrlSubCategories).length > 0
       ? nextUrlSubCategories
@@ -558,10 +558,10 @@ const syncGroupCategoryAssignment = (
             ...category,
             domains: [...category.domains, group.id],
           }
-        : /* V8 ignore next -- coverage-only defensive branch. */
-          /* V8 ignore start -- coverage-only defensive branch. */
+        : /* v8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore start -- coverage-only defensive branch. */
           category,
-    /* V8 ignore stop */
+    /* v8 ignore stop */
   )
   state.categoriesChanged = true
   state.updatedSavedTabs = updateSavedTabParentCategory(
@@ -678,9 +678,9 @@ const syncSavedTabsViewModeLocation = ({
     return
   }
 
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
   if (typeof window === 'undefined') {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     return
   }
 
@@ -775,9 +775,9 @@ const useSavedTabsAppView = ({
     [categories],
   )
   useEffect(() => {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     if (showSubCategoryModal && inputRef.current) {
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       inputRef.current.focus()
     }
   }, [showSubCategoryModal])
@@ -845,7 +845,7 @@ const useSavedTabsAppView = ({
         })
 
         // 設定に基づいて、開いたタブを削除するかどうかを決定（新形式対応）
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         if (settings.removeTabAfterOpen) {
           await removeOpenedUrlsFromStorage([url])
           console.log(`URL ${url} を開いた後、保存データから削除しました`)
@@ -923,7 +923,7 @@ const useSavedTabsAppView = ({
       }
 
       const urlsToDelete = await getTabGroupUrls(groupToDelete)
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (urlsToDelete && urlsToDelete.length > 0) {
         try {
           await removeUrlsFromAllCustomProjects(
@@ -953,10 +953,10 @@ const useSavedTabsAppView = ({
         (group) => !(group.urlIds && group.urlIds.length > 0),
       )
       const allUrlIdsToDelete = groupsWithUrlIds.flatMap(
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         (group) => group.urlIds || [],
       )
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (allUrlIdsToDelete.length > 0) {
         try {
           await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete)
@@ -970,10 +970,10 @@ const useSavedTabsAppView = ({
       )
       const allUrlsToDelete = urlsByGroup.flatMap(
         (urlsToDelete) =>
-          /* V8 ignore next -- coverage-only defensive branch. */
-          /* V8 ignore start -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore start -- coverage-only defensive branch. */
           (urlsToDelete || []).map((item) => item.url),
-        /* V8 ignore stop */
+        /* v8 ignore stop */
       )
 
       if (allUrlsToDelete.length > 0) {
@@ -1119,10 +1119,10 @@ const useSavedTabsAppView = ({
         if (isUncategorizedReorderMode) {
           setTempUncategorizedOrder(
             (prev) =>
-              /* V8 ignore next -- coverage-only defensive branch. */
-              /* V8 ignore start -- coverage-only defensive branch. */
+              /* v8 ignore next -- coverage-only defensive branch. */
+              /* v8 ignore start -- coverage-only defensive branch. */
               prev.filter((group) => !idSet.has(group.id)),
-            /* V8 ignore stop */
+            /* v8 ignore stop */
           )
         }
 
@@ -1147,7 +1147,7 @@ const useSavedTabsAppView = ({
 
         console.log('一括グループ削除処理が完了しました')
       } catch (error) {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         console.error('一括グループ削除エラー:', error)
       }
     },
@@ -1202,7 +1202,7 @@ const useSavedTabsAppView = ({
         const targetGroup = tabGroupsWithUrls.find(
           (group) => group.id === groupId,
         )
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         const resolvedUrlIds = (targetGroup?.urls || [])
           .reduce<{ id: string; url: string }[]>((items, item) => {
             if (item.id && targetUrls.has(item.url)) {
@@ -1232,7 +1232,7 @@ const useSavedTabsAppView = ({
           t,
         })
       } catch (error) {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         console.error('URL一括削除エラー:', error)
       }
     },
@@ -1245,7 +1245,7 @@ const useSavedTabsAppView = ({
           `グループ ${groupId} のURL更新はストレージ同期に委譲しました`,
         )
       } catch (error) {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         console.error('URL更新後のデータ更新エラー:', error)
       }
     },
@@ -1253,7 +1253,7 @@ const useSavedTabsAppView = ({
   )
 
   // 子カテゴリを追加
-  /* V8 ignore start -- the sub-category modal has no opening path in the current UI surface. */
+  /* v8 ignore start -- the sub-category modal has no opening path in the current UI surface. */
   const handleAddSubCategory = useCallback(async () => {
     const trimmedName = newSubCategory.trim()
     if (!trimmedName) {
@@ -1267,7 +1267,7 @@ const useSavedTabsAppView = ({
       console.error('子カテゴリ追加エラー:', error)
     }
   }, [newSubCategory])
-  /* V8 ignore stop */
+  /* v8 ignore stop */
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -1374,7 +1374,7 @@ const useSavedTabsAppView = ({
   const hasContentTabGroups = useMemo(
     () =>
       [...Object.values(categorized).flat(), ...uncategorized].filter(
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         (group) => (group.urls || group.urlIds || []).length > 0,
       ),
     [categorized, uncategorized],
@@ -1385,7 +1385,7 @@ const useSavedTabsAppView = ({
     (event: DragEndEvent) => {
       const { active, over } = event
       if (over && active.id !== over.id) {
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         const currentOrder = isUncategorizedReorderMode
           ? tempUncategorizedOrder
           : uncategorized
@@ -1393,13 +1393,13 @@ const useSavedTabsAppView = ({
           (group) => group.id === active.id,
         )
         const newIndex = currentOrder.findIndex((group) => group.id === over.id)
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         if (oldIndex !== -1 && newIndex !== -1) {
           const updatedOrder = arrayMove(currentOrder, oldIndex, newIndex)
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           if (isUncategorizedReorderMode) {
             // 既に並び替えモード中：一時的な順序を更新
-            /* V8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore next -- coverage-only defensive branch. */
             setTempUncategorizedOrder(updatedOrder)
           } else {
             // 初回の並び替え時：並び替えモードを開始
@@ -1564,7 +1564,7 @@ const useSavedTabsAppView = ({
   const visibleUncategorizedGroups = useMemo(
     () =>
       uncategorized.filter(
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         (group) => (group.urls || group.urlIds || []).length > 0,
       ),
     [uncategorized],
@@ -1590,28 +1590,28 @@ const useSavedTabsAppView = ({
           id: project.id,
           domain: project.name,
           urls: project.urls || [],
-          /* V8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
           urlIds: project.urlIds || [],
         }) as TabGroup,
     )
   }, [viewMode, hasContentTabGroups, filteredCustomProjects])
   const customProjectsForDisplay = filteredCustomProjects
   const shouldShowCategoryReorderFooter =
-    /* V8 ignore next -- coverage-only defensive branch. */
-    /* V8 ignore start -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore start -- coverage-only defensive branch. */
     isCategoryReorderMode && viewMode === 'domain'
-  /* V8 ignore stop */
-  /* V8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore stop */
+  /* v8 ignore next -- coverage-only defensive branch. */
   const categoryOrderForDisplay = isCategoryReorderMode
     ? tempCategoryOrder
     : categoryOrder
   const uncategorizedForDisplay = (
     isUncategorizedReorderMode ? tempUncategorizedOrder : uncategorized
   )
-    /* V8 ignore next -- coverage-only defensive branch. */
-    /* V8 ignore start -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore start -- coverage-only defensive branch. */
     .filter((group) => (group.urls || group.urlIds || []).length > 0)
-  /* V8 ignore stop */
+  /* v8 ignore stop */
 
   const mainContent =
     viewMode === 'domain' ? (
@@ -1673,7 +1673,7 @@ const useSavedTabsAppView = ({
         handleRenameCategory={handleRenameCategory}
       />
     )
-  /* V8 ignore start -- the sub-category modal has no opening path in the current UI surface. */
+  /* v8 ignore start -- the sub-category modal has no opening path in the current UI surface. */
   const subCategoryModal = showSubCategoryModal ? (
     <Dialog open={showSubCategoryModal} onOpenChange={setShowSubCategoryModal}>
       <DialogContent>
@@ -1726,12 +1726,12 @@ const useSavedTabsAppView = ({
       </DialogContent>
     </Dialog>
   ) : null
-  /* V8 ignore stop */
+  /* v8 ignore stop */
   return (
     <>
       <Toaster />
       <div
-        /* V8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
         className={
           isAiSidebarOpen
             ? 'min-h-screen w-full py-2'
@@ -1752,13 +1752,13 @@ const useSavedTabsAppView = ({
         {mainContent}
         {subCategoryModal}
         {shouldShowCategoryReorderFooter && (
-          /* V8 ignore next -- coverage-only defensive branch. */
-          /* V8 ignore start -- coverage-only defensive branch. */
+          /* v8 ignore next -- coverage-only defensive branch. */
+          /* v8 ignore start -- coverage-only defensive branch. */
           <CategoryReorderFooter
             onConfirmCategoryReorder={handleConfirmCategoryReorder}
             onCancelCategoryReorder={handleCancelCategoryReorder}
           />
-          /* V8 ignore stop */
+          /* v8 ignore stop */
         )}
       </div>
     </>

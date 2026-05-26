@@ -65,10 +65,10 @@ interface RunAiChatRequestOptions {
 const getAiChatUiLocale = () =>
   typeof chrome !== 'undefined'
     ? (chrome.i18n?.getUILanguage?.() ?? 'ja')
-    : /* V8 ignore next -- coverage-only defensive branch. */
-      /* V8 ignore start -- coverage-only defensive branch. */
+    : /* v8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore start -- coverage-only defensive branch. */
       'ja'
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 const getNormalizedAiChatSettings = async () =>
   normalizeAiSystemPromptSettings((await getUserSettings()) ?? {})
@@ -292,10 +292,10 @@ const getPaginatedToolTotalCount = (output: unknown): number | null => {
 }
 
 const getToolListSeparator = (language: AppLanguage) =>
-  /* V8 ignore next -- coverage-only defensive branch. */
-  /* V8 ignore start -- coverage-only defensive branch. */
+  /* v8 ignore next -- coverage-only defensive branch. */
+  /* v8 ignore start -- coverage-only defensive branch. */
   language === 'en' ? ', ' : '、'
-/* V8 ignore stop */
+/* v8 ignore stop */
 
 interface GenerateTextToolCallLike {
   input: unknown

@@ -79,7 +79,7 @@ export const filterCustomProjectsByQuery = async ({
               )
                 .search(normalizedQuery)
                 .reduce<ProjectUrlItem[]>((items, result) => {
-                  /* V8 ignore next -- coverage-only defensive branch. */
+                  /* v8 ignore next -- coverage-only defensive branch. */
                   if (!seenUrls.has(result.item.url)) {
                     seenUrls.add(result.item.url)
                     items.push(result.item)

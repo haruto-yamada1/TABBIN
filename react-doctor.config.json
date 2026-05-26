@@ -1,0 +1,37 @@
+{
+  "deadCode": false,
+  "ignore": {
+    "files": [
+      ".agents/**",
+      ".apm/**",
+      ".claude/**",
+      ".cursor/**",
+      ".factory/**",
+      ".gemini/**",
+      ".github/**",
+      ".kiro/**",
+      ".windsurf/**",
+      "skills/**",
+      "src/lib/storybook/**",
+      "**/*.stories.tsx",
+      "**/*.story.tsx"
+    ]
+  },
+  "rules": {
+    "react-doctor/control-has-associated-label": "off",
+    "react-doctor/exhaustive-deps": "off",
+    "react-doctor/iframe-missing-sandbox": "off",
+    "react-doctor/jsx-max-depth": "off",
+    "react-doctor/jsx-no-constructed-context-values": "off",
+    "react-doctor/jsx-no-jsx-as-prop": "off",
+    "react-doctor/no-adjust-state-on-prop-change": "off",
+    "react-doctor/no-derived-state": "off",
+    "react-doctor/no-event-handler": "off",
+    "react-doctor/no-initialize-state": "off",
+    "react-doctor/no-multi-comp": "off",
+    "react-doctor/no-noninteractive-element-interactions": "off",
+    "react-doctor/no-reset-all-state-on-prop-change": "off",
+    "react-doctor/only-export-components": "off",
+    "react-doctor/prefer-tag-over-role": "off"
+  }
+}

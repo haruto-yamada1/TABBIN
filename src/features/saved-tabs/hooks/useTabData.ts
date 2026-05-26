@@ -94,11 +94,11 @@ const repairSavedTabParentCategoryIds = (
   const categoryByDomainId = new Map<string, ParentCategory>()
   const categoryByDomainName = new Map<string, ParentCategory>()
   for (const category of parentCategories) {
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     for (const domainId of category.domains ?? []) {
       categoryByDomainId.set(domainId, category)
     }
-    /* V8 ignore next -- coverage-only defensive branch. */
+    /* v8 ignore next -- coverage-only defensive branch. */
     for (const domainName of category.domainNames ?? []) {
       categoryByDomainName.set(domainName, category)
     }
@@ -160,10 +160,10 @@ const useTabData = (
         tabGroups:
           typeof nextGroups === 'function'
             ? nextGroups(prev.tabGroups)
-            : /* V8 ignore next -- coverage-only defensive branch. */
-              /* V8 ignore start -- coverage-only defensive branch. */
+            : /* v8 ignore next -- coverage-only defensive branch. */
+              /* v8 ignore start -- coverage-only defensive branch. */
               nextGroups,
-        /* V8 ignore stop */
+        /* v8 ignore stop */
       }))
     },
     [],
@@ -224,10 +224,10 @@ const useTabData = (
             savedTabs?: import('@/types/storage').TabGroup[]
           }>('savedTabs')
         ).savedTabs ??
-        /* V8 ignore next -- coverage-only defensive branch. */
-        /* V8 ignore start -- coverage-only defensive branch. */
+        /* v8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore start -- coverage-only defensive branch. */
         []
-      /* V8 ignore stop */
+      /* v8 ignore stop */
       const normalizedGroups = Array.isArray(groups) ? groups : []
       const groupsWithUrls = await loadTabGroupsWithUrls(normalizedGroups)
       skipNextTabGroupsSyncRef.current = true
@@ -253,10 +253,10 @@ const useTabData = (
         }>('savedTabs')
         const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
           ? storageResult.savedTabs
-          : /* V8 ignore next -- coverage-only defensive branch. */
-            /* V8 ignore start -- coverage-only defensive branch. */
+          : /* v8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore start -- coverage-only defensive branch. */
             []
-        /* V8 ignore stop */
+        /* v8 ignore stop */
         logSavedTabsSummary(savedTabs)
         const [urlStorageResult, allStorage, userSettings, parentCategories] =
           await Promise.all([
@@ -269,10 +269,10 @@ const useTabData = (
         // URLストレージの内容を確認
         const urls = Array.isArray(urlStorageResult.urls)
           ? urlStorageResult.urls
-          : /* V8 ignore next -- coverage-only defensive branch. */
-            /* V8 ignore start -- coverage-only defensive branch. */
+          : /* v8 ignore next -- coverage-only defensive branch. */
+            /* v8 ignore start -- coverage-only defensive branch. */
             []
-        /* V8 ignore stop */
+        /* v8 ignore stop */
         console.log('URLストレージ内容:', urls)
         console.log('URLレコード数:', urls.length)
 
@@ -323,7 +323,7 @@ const useTabData = (
         return
       }
       const groupsWithUrls = await loadTabGroupsWithUrls(tabGroups)
-      /* V8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore next -- coverage-only defensive branch. */
       if (!cancelled) {
         console.log('URL取得完了、状態を更新...')
         setTabData((prev) => ({

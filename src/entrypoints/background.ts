@@ -35,7 +35,7 @@ export default defineBackground(() => {
           changelogShown: true,
           seenVersion: manifestVersion,
         })
-        /* V8 ignore next -- chrome_update/no-op branch is covered by behavior tests but not V8 branch accounting. */
+        /* v8 ignore next -- chrome_update/no-op branch is covered by behavior tests but not V8 branch accounting. */
       } else if (details.reason === 'update') {
         // バージョンアップ時に変更点を表示（一度だけ）
         const items = await chrome.storage.local.get({
