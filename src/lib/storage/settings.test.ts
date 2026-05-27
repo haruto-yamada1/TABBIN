@@ -95,7 +95,7 @@ describe('settings storage', () => {
       }),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const { defaultSettings, getUserSettings } = await loadModule()
 
@@ -138,7 +138,7 @@ describe('settings storage', () => {
       }),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     await expect(saveUserSettings(defaultSettings)).rejects.toThrow(
       'write failed',

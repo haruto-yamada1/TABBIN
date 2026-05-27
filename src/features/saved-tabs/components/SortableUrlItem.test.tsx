@@ -290,8 +290,8 @@ describe('SortableUrlItem', () => {
   })
 
   it('ドラッグ開始でデータとメッセージを設定し、ドラッグ終了でクリーンアップする', () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
+    using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+    using removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'move',
@@ -331,7 +331,7 @@ describe('SortableUrlItem', () => {
   })
 
   it('blur済みかつdropEffect=linkのとき外部ドロップメッセージを送る', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+    using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'link',
@@ -376,7 +376,7 @@ describe('SortableUrlItem', () => {
   })
 
   it('dropEffectがlink以外のときは外部ドロップメッセージを送らない', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+    using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'none',
@@ -420,7 +420,7 @@ describe('SortableUrlItem', () => {
   })
 
   it('ドラッグ終了後にblurイベントが来ても外部ドロップ扱いしない', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+    using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'link',
@@ -443,7 +443,7 @@ describe('SortableUrlItem', () => {
   })
 
   it('アンマウント時にwindow blurリスナーを解除する', () => {
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
+    using removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
     const { unmount } = render(<SortableUrlItem {...createProps()} />)
 
     unmount()

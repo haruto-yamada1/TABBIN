@@ -597,7 +597,7 @@ describe('url-storage', () => {
   })
 
   it('setTimeoutコールバック即時実行時は timeoutId を設定しない分岐を通る', () => {
-    const setTimeoutSpy = vi
+    using _setTimeoutSpy = vi
       .spyOn(globalThis, 'setTimeout')
       .mockImplementation(((
         callback: TimerHandler,
@@ -613,7 +613,6 @@ describe('url-storage', () => {
     handleUrlDragStarted('https://instant.example.com')
 
     expect(getDraggedUrlInfo()).toBeNull()
-    setTimeoutSpy.mockRestore()
   })
 
   it('ドラッグ情報がない状態の handleTabCreated は何もしない', async () => {

@@ -6,7 +6,7 @@ import { Transcription, TranscriptionSegment } from './transcription'
 
 describe('Transcription', () => {
   it('render prop から返した segment 一覧で key warning を出さない', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     render(
       <Transcription
@@ -28,7 +28,5 @@ describe('Transcription', () => {
     expect(screen.getByText('First segment')).toBeTruthy()
     expect(screen.getByText('Second segment')).toBeTruthy()
     expect(errorSpy).not.toHaveBeenCalled()
-
-    errorSpy.mockRestore()
   })
 })

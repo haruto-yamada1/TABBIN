@@ -250,7 +250,7 @@ describe('ProjectUrlItem', () => {
   })
 
   it('外部D&D成立時にurlDroppedメッセージを送る', () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+    using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',
@@ -287,7 +287,7 @@ describe('ProjectUrlItem', () => {
   })
 
   it('dropEffectがlink以外ならurlDroppedメッセージを送らない', () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+    using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',
@@ -319,7 +319,7 @@ describe('ProjectUrlItem', () => {
   })
 
   it('ドラッグ終了後にblurが発生してもurlDroppedメッセージを送らない', () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+    using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',

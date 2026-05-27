@@ -212,7 +212,7 @@ describe('categories storage', () => {
       },
     } as unknown as typeof chrome
 
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { deleteParentCategory } = await loadModule()
 
     await deleteParentCategory('cat-1')

@@ -13,9 +13,11 @@ interface CategoryReorderFooterProps {
   onCancelCategoryReorder?: () => void
 }
 
+const noopCategoryReorderAction = () => {}
+
 export const CategoryReorderFooter = ({
-  onConfirmCategoryReorder = () => {},
-  onCancelCategoryReorder = () => {},
+  onConfirmCategoryReorder = noopCategoryReorderAction,
+  onCancelCategoryReorder = noopCategoryReorderAction,
 }: CategoryReorderFooterProps) => {
   const { t } = useI18n()
 

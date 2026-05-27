@@ -709,13 +709,13 @@ describe('SavedTabsRoute', () => {
   it('ResizeObserver が無い環境では window resize を使って左ペイン幅を追従する', () => {
     vi.stubGlobal('ResizeObserver', undefined)
 
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener')
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
+    using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
+    using removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
 
     const { unmount } = render(createElement(SavedTabsRoute))
 
     const leftPane = screen.getByTestId('saved-tabs-left-pane')
-    const getBoundingClientRectSpy = vi.spyOn(leftPane, 'getBoundingClientRect')
+    using getBoundingClientRectSpy = vi.spyOn(leftPane, 'getBoundingClientRect')
     getBoundingClientRectSpy.mockReturnValue({
       width: 900,
     } as DOMRect)

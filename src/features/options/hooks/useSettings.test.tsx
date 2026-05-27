@@ -89,26 +89,22 @@ describe('useSettingsフック', () => {
   })
 
   it('読み込み失敗時はデフォルト設定にフォールバックする', async () => {
-    const consoleErrorSpy = vi
+    using consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined)
     vi.mocked(getUserSettings).mockRejectedValue(new Error('load failed'))
 
-    try {
-      const { result } = renderHook(() => useSettings())
+    const { result } = renderHook(() => useSettings())
 
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false)
-      })
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
 
-      expect(result.current.settings).toEqual(defaultSettings)
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '設定の読み込みエラー:',
-        expect.any(Error),
-      )
-    } finally {
-      consoleErrorSpy.mockRestore()
-    }
+    expect(result.current.settings).toEqual(defaultSettings)
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '設定の読み込みエラー:',
+      expect.any(Error),
+    )
   })
 
   it('updateSetting はローカル状態を更新し設定を永続化する', async () => {

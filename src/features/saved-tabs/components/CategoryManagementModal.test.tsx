@@ -340,8 +340,8 @@ describe('CategoryManagementModal', () => {
       '例: ビジネスツール、技術情報',
     )) as HTMLInputElement
 
-    const focusSpy = vi.spyOn(input, 'focus')
-    const selectSpy = vi.spyOn(input, 'select')
+    using focusSpy = vi.spyOn(input, 'focus')
+    using selectSpy = vi.spyOn(input, 'select')
     rafCallback?.(0)
     expect(focusSpy).toHaveBeenCalled()
     expect(selectSpy).toHaveBeenCalled()
@@ -400,7 +400,7 @@ describe('CategoryManagementModal', () => {
     ).toBeTruthy()
 
     // エラーあり blur -> focus 維持
-    const focusSpy = vi.spyOn(input, 'focus')
+    using focusSpy = vi.spyOn(input, 'focus')
     fireEvent.blur(input)
     expect(focusSpy).toHaveBeenCalled()
 
@@ -648,7 +648,7 @@ describe('CategoryManagementModal', () => {
     )
     fireEvent.change(input, { target: { value: 'valid-name' } })
 
-    const safeParseSpy = vi
+    using _safeParseSpy = vi
       .spyOn(categoryNameSchema, 'safeParse')
       .mockImplementationOnce(
         () =>
@@ -668,7 +668,6 @@ describe('CategoryManagementModal', () => {
     await waitFor(() => {
       expect(screen.getByText('カテゴリ名が無効です')).toBeTruthy()
     })
-    safeParseSpy.mockRestore()
   })
 
   it('親カテゴリ削除の成功/失敗を処理する', async () => {
@@ -998,7 +997,7 @@ describe('CategoryManagementModal', () => {
     }
 
     const originalFind = Array.prototype.find
-    const findSpy = vi.spyOn(Array.prototype, 'find')
+    using findSpy = vi.spyOn(Array.prototype, 'find')
     findSpy.mockImplementation((predicate, thisArg) => {
       const context = findSpy.mock.contexts[
         findSpy.mock.calls.length - 1
@@ -1022,7 +1021,6 @@ describe('CategoryManagementModal', () => {
     await waitFor(() => {
       expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
     })
-    findSpy.mockRestore()
   })
 
   it('ドメイン削除の成功/失敗と closeガード（loading中）を処理する', async () => {

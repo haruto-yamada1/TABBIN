@@ -352,7 +352,7 @@ describe('CustomProjectCategory', () => {
   })
 
   it('10件以上の一括開く確認ダイアログで handleOpenAllUrls 未指定時は window.open にフォールバックする', async () => {
-    const openSpy = vi.spyOn(window, 'open')
+    using openSpy = vi.spyOn(window, 'open')
     render(
       <CustomProjectCategory
         {...createProps({
