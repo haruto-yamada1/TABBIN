@@ -317,7 +317,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     mocked.migrateParentCategoriesToDomainNames.mockRejectedValueOnce(
       new Error('migration failed'),
     )
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     await loadBackground({
       clearAfterImport: false,
     })

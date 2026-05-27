@@ -22,6 +22,7 @@ import {
 import { ViewModeToggle } from './ViewModeToggle'
 
 const EMPTY_CUSTOM_PROJECTS: CustomProject[] = []
+const noopCreateProject = () => {}
 
 interface HeaderProps {
   tabGroups: TabGroup[]
@@ -45,7 +46,7 @@ export const Header = ({
   onSearchChange,
   customProjects = EMPTY_CUSTOM_PROJECTS,
   filteredCustomProjects,
-  onCreateProject = () => {},
+  onCreateProject = noopCreateProject,
 }: HeaderProps) => {
   const { t } = useI18n()
   const [isModalOpen, setIsModalOpen] = useState(false)

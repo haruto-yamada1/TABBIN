@@ -25,7 +25,7 @@ describe('legacyRedirect', () => {
   })
 
   it('DOMContentLoaded で title 同期と redirect を実行する', () => {
-    const addEventListenerSpy = vi.spyOn(document, 'addEventListener')
+    using addEventListenerSpy = vi.spyOn(document, 'addEventListener')
     const replace = vi.fn()
 
     initializeLegacyRedirect({ replace })

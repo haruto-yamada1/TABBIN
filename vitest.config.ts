@@ -29,8 +29,6 @@ export default defineConfig({
       'src/utils/**/*.test.ts',
       'src/utils/**/*.test.tsx',
     ],
-    mockReset: true,
-    restoreMocks: true,
     setupFiles: ['./src/test/setup-console.ts'],
     typecheck: {
       enabled: false,

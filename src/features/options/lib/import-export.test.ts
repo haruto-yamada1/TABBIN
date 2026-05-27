@@ -1271,7 +1271,7 @@ describe('import-export ユーティリティ', () => {
   it('マージ済みプレースホルダーマップの has() が予期せず true を返しても処理できる', async () => {
     const originalHas = Map.prototype.has
     let hasCallCount = 0
-    const hasSpy = vi.spyOn(Map.prototype, 'has')
+    using hasSpy = vi.spyOn(Map.prototype, 'has')
     hasSpy.mockImplementation((key: unknown) => {
       hasCallCount += 1
       if (hasCallCount === 2 && key === 'forced-skip-placeholder-id') {
@@ -1300,7 +1300,6 @@ describe('import-export ユーティリティ', () => {
     const result = await exportSettings()
 
     expect(result.savedTabs[0]?.urls).toHaveLength(1)
-    hasSpy.mockRestore()
   })
 
   it('ストレージアクセス失敗時に正規化されたエラーを投げる', async () => {
@@ -1359,10 +1358,10 @@ describe('import-export ユーティリティ', () => {
       value: revokeObjectUrl,
     })
 
-    const clickSpy = vi
+    using clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => {})
-    const rafSpy = vi
+    using _rafSpy = vi
       .spyOn(globalThis, 'requestAnimationFrame')
       .mockImplementation((callback: FrameRequestCallback) => {
         callback(0)
@@ -1384,9 +1383,6 @@ describe('import-export ユーティリティ', () => {
     expect(clickSpy).toHaveBeenCalledTimes(1)
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:mock-url')
     expect(document.querySelector('a[download="backup.json"]')).toBeNull()
-
-    rafSpy.mockRestore()
-    clickSpy.mockRestore()
 
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
@@ -2267,7 +2263,7 @@ describe('import-export ユーティリティ', () => {
 
   it('merge モードでは has() 後の keyword map 参照が undefined を返しても処理できる', async () => {
     const originalGet = Map.prototype.get
-    const getSpy = vi.spyOn(Map.prototype, 'get')
+    using getSpy = vi.spyOn(Map.prototype, 'get')
     getSpy.mockImplementation((key: unknown) => {
       if (key === 'force-undefined-existing-item') {
         return
@@ -2333,8 +2329,6 @@ describe('import-export ユーティリティ', () => {
 
     expect(result.success).toBe(true)
     expect(set).toHaveBeenCalled()
-
-    getSpy.mockRestore()
   })
 
   it('importSettings は merge モードで既存データとインポートデータを結合する', async () => {

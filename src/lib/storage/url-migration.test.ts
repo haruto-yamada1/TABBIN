@@ -238,7 +238,7 @@ describe('url-migration', () => {
       },
     } as unknown as typeof chrome
 
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { migrateToUrlsStorage } = await loadModule()
 
     await expect(migrateToUrlsStorage()).rejects.toThrow('storage failed')

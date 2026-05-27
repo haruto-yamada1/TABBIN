@@ -64,20 +64,16 @@ describe('useCategoriesフック', () => {
   it('カテゴリ読み込み失敗時にエラーをログ出力する', async () => {
     const error = new Error('load failed')
     vi.mocked(getParentCategories).mockRejectedValue(error)
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    using consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    try {
-      renderHook(() => useCategories())
+    renderHook(() => useCategories())
 
-      await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith(
-          'カテゴリの読み込みエラー:',
-          error,
-        )
-      })
-    } finally {
-      consoleError.mockRestore()
-    }
+    await waitFor(() => {
+      expect(consoleError).toHaveBeenCalledWith(
+        'カテゴリの読み込みエラー:',
+        error,
+      )
+    })
   })
 
   it('カテゴリ名の重複追加を防ぐ（大文字小文字を区別しない）', async () => {
@@ -210,42 +206,38 @@ describe('useCategoriesフック', () => {
     const error = new Error('create failed')
     vi.mocked(getParentCategories).mockResolvedValue([])
     vi.mocked(createParentCategory).mockRejectedValue(error)
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    using consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
+    const { result } = renderHook(() => useCategories())
+
+    await waitFor(() => {
+      expect(result.current.parentCategories).toEqual([])
+    })
+
+    vi.useFakeTimers()
     try {
-      const { result } = renderHook(() => useCategories())
-
-      await waitFor(() => {
-        expect(result.current.parentCategories).toEqual([])
+      act(() => {
+        result.current.setNewCategoryName('Work')
       })
 
-      vi.useFakeTimers()
-      try {
-        act(() => {
-          result.current.setNewCategoryName('Work')
-        })
+      let success = true
+      await act(async () => {
+        success = await result.current.handleAddCategory()
+      })
 
-        let success = true
-        await act(async () => {
-          success = await result.current.handleAddCategory()
-        })
+      expect(success).toBe(false)
+      expect(consoleError).toHaveBeenCalledWith('カテゴリ追加エラー:', error)
+      expect(result.current.categoryError).toBe(
+        'カテゴリの追加に失敗しました。',
+      )
 
-        expect(success).toBe(false)
-        expect(consoleError).toHaveBeenCalledWith('カテゴリ追加エラー:', error)
-        expect(result.current.categoryError).toBe(
-          'カテゴリの追加に失敗しました。',
-        )
+      act(() => {
+        vi.advanceTimersByTime(3000)
+      })
 
-        act(() => {
-          vi.advanceTimersByTime(3000)
-        })
-
-        expect(result.current.categoryError).toBe(null)
-      } finally {
-        vi.useRealTimers()
-      }
+      expect(result.current.categoryError).toBe(null)
     } finally {
-      consoleError.mockRestore()
+      vi.useRealTimers()
     }
   })
 
