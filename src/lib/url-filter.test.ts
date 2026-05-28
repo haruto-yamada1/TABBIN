@@ -35,6 +35,8 @@ describe('url-filter', () => {
 
   it('保存可能な URL だけを抽出する', () => {
     expect(isSavableUrl('https://example.com/a', [])).toBe(true)
+    expect(isSavableUrl('file:///tmp/example.txt', [])).toBe(true)
+    expect(isSavableUrl('about:blank', [])).toBe(true)
     expect(isSavableUrl('https://example.com/private', ['private'])).toBe(false)
     expect(isSavableUrl('   ', [])).toBe(false)
 
@@ -42,12 +44,18 @@ describe('url-filter', () => {
       filterItemsBySavableUrl(
         [
           { id: 'valid', url: 'https://example.com/a' },
+          { id: 'file', url: 'file:///tmp/example.txt' },
+          { id: 'about', url: 'about:blank' },
           { id: 'excluded', url: 'https://example.com/private' },
           { id: 'missing' },
           { id: 'invalid', url: 'not a url' },
         ],
         ['private'],
       ),
-    ).toEqual([{ id: 'valid', url: 'https://example.com/a' }])
+    ).toEqual([
+      { id: 'valid', url: 'https://example.com/a' },
+      { id: 'file', url: 'file:///tmp/example.txt' },
+      { id: 'about', url: 'about:blank' },
+    ])
   })
 })
