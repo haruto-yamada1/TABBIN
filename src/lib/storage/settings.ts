@@ -15,6 +15,12 @@ type LegacyUserSettings = UserSettings & {
   aiProvider?: 'none' | 'ollama'
 }
 
+const DEFAULT_EXCLUDE_PATTERNS = [
+  'about:',
+  'chrome-extension://',
+  'chrome://',
+] as const
+
 const stripLegacyUserSettings = (
   settings: LegacyUserSettings,
 ): UserSettings => {
@@ -33,12 +39,37 @@ const hasLegacyUserSettingsKeys = (
 ): boolean => 'aiChatEnabled' in settings || 'aiProvider' in settings
 /* v8 ignore stop */
 
+const mergeExcludePatterns = (
+  excludePatterns: string[] | undefined,
+): string[] => {
+  const mergedPatterns = new Set<string>(DEFAULT_EXCLUDE_PATTERNS)
+
+  for (const pattern of excludePatterns ?? []) {
+    if (typeof pattern !== 'string') {
+      continue
+    }
+    const normalizedPattern = pattern.trim()
+    if (normalizedPattern) {
+      mergedPatterns.add(normalizedPattern)
+    }
+  }
+
+  return [...mergedPatterns]
+}
+
+const mergeStoredUserSettings = (
+  settings: UserSettings,
+): UserSettings => ({
+  ...settings,
+  excludePatterns: mergeExcludePatterns(settings.excludePatterns),
+})
+
 // デフォルト設定
 export const defaultSettings: UserSettings = {
   language: 'system',
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
-  excludePatterns: ['chrome-extension://', 'chrome://'],
+  excludePatterns: [...DEFAULT_EXCLUDE_PATTERNS],
   enableCategories: true,
   // デフォルトは有効
   autoDeletePeriod: 'never',
@@ -90,13 +121,18 @@ export const getUserSettings = async (): Promise<UserSettings> => {
       const sanitizedStoredSettings = stripLegacyUserSettings(
         data.userSettings as LegacyUserSettings,
       )
+      const mergedStoredSettings = mergeStoredUserSettings(
+        sanitizedStoredSettings,
+      )
       const normalizedSettings = normalizeAiSystemPromptSettings({
         ...defaultSettings,
-        ...sanitizedStoredSettings,
+        ...mergedStoredSettings,
       })
       /* v8 ignore next -- coverage-only defensive branch. */
       if (
-        hasLegacyUserSettingsKeys(data.userSettings as Record<string, unknown>)
+        hasLegacyUserSettingsKeys(data.userSettings as Record<string, unknown>) ||
+        JSON.stringify(sanitizedStoredSettings.excludePatterns ?? []) !==
+          JSON.stringify(mergedStoredSettings.excludePatterns)
       ) {
         await storageLocal.set({
           userSettings: normalizedSettings,
@@ -124,7 +160,9 @@ export const saveUserSettings = async (
   settings: UserSettings,
 ): Promise<void> => {
   try {
-    const normalizedSettings = normalizeAiSystemPromptSettings(settings)
+    const normalizedSettings = normalizeAiSystemPromptSettings(
+      mergeStoredUserSettings(settings),
+    )
     console.log('ユーザー設定を保存:', normalizedSettings)
     const storageLocal = getChromeStorageLocal()
     if (!storageLocal) {

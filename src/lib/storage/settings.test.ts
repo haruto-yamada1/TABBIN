@@ -72,6 +72,80 @@ describe('settings storage', () => {
     })
   })
 
+  it('保存済みの excludePatterns に既定の内部ページ除外を補完し、既存の手動追加は保持する', async () => {
+    const storageLocal = {
+      get: vi.fn(async () => ({
+        userSettings: {
+          excludePatterns: ['custom-pattern', 'chrome://'],
+        },
+      })),
+      set: vi.fn(async () => undefined),
+    }
+    mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
+
+    const { getUserSettings } = await loadModule()
+
+    await expect(getUserSettings()).resolves.toMatchObject({
+      excludePatterns: expect.arrayContaining([
+        'about:',
+        'chrome-extension://',
+        'chrome://',
+        'custom-pattern',
+      ]),
+      normalized: true,
+    })
+    expect(storageLocal.set).toHaveBeenCalledWith({
+      userSettings: expect.objectContaining({
+        excludePatterns: expect.arrayContaining([
+          'about:',
+          'custom-pattern',
+          'chrome://',
+        ]),
+      }),
+    })
+  })
+
+  it('保存時も excludePatterns に既定の内部ページ除外を補完する', async () => {
+    const storageLocal = {
+      set: vi.fn(async () => undefined),
+    }
+    mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
+
+    const { saveUserSettings } = await loadModule()
+
+    await saveUserSettings({
+      activeAiSystemPromptId: 'default-id',
+      aiSystemPrompts: [],
+      autoDeletePeriod: 'never',
+      clickBehavior: 'saveSameDomainTabs',
+      colors: {},
+      confirmDeleteAll: false,
+      confirmDeleteEach: false,
+      enableCategories: true,
+      excludePatterns: ['custom-pattern'],
+      excludePinnedTabs: true,
+      fontSizePercent: 100,
+      language: 'system',
+      ollamaModel: '',
+      openAllInNewWindow: false,
+      openUrlInBackground: true,
+      removeTabAfterExternalDrop: true,
+      removeTabAfterOpen: true,
+      showSavedTime: false,
+    })
+
+    expect(storageLocal.set).toHaveBeenCalledWith({
+      userSettings: expect.objectContaining({
+        excludePatterns: expect.arrayContaining([
+          'about:',
+          'custom-pattern',
+          'chrome://',
+        ]),
+        normalized: true,
+      }),
+    })
+  })
+
   it('保存済み設定がない場合は正規化したデフォルト設定を返す', async () => {
     const storageLocal = {
       get: vi.fn(async () => ({})),
