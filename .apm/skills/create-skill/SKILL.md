@@ -414,6 +414,7 @@ If you have access to the AskQuestion tool, use it for efficient structured gath
 2. Write the SKILL.md file with frontmatter
 3. Create any supporting reference files
 4. Create any utility scripts if needed
+5. TABBIN project skill を追加または削除した場合は、`.apm/SKILLS.md` の skill 一覧にも用途を追記または削除します。
 
 ### Phase 4: Verification
 
@@ -422,6 +423,7 @@ If you have access to the AskQuestion tool, use it for efficient structured gath
 3. Ensure consistent terminology throughout
 4. Verify all file references are one level deep
 5. Test that the skill can be discovered and applied
+6. TABBIN project skill の場合は、`.apm/SKILLS.md` に新しい skill が記載されていることを確認します。
 
 ---
 
