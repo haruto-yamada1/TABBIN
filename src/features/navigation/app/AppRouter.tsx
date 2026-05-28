@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import {
   HashRouter,
   MemoryRouter,
@@ -9,21 +9,52 @@ import {
   useNavigate,
 } from 'react-router-dom'
 
-import { AiChatRoute } from '@/features/ai-chat/routes/AiChatRoute'
-import { AnalyticsRoute } from '@/features/analytics/routes/AnalyticsRoute'
 import {
   getSavedTabsEntryRoute,
   getSavedTabsHrefForMode,
 } from '@/features/navigation/lib/pageNavigation'
-import { OptionsRoute } from '@/features/options/routes/OptionsRoute'
-import { PeriodicExecutionRoute } from '@/features/periodic-execution/routes/PeriodicExecutionRoute'
-import { SavedTabsRoute } from '@/features/saved-tabs/routes/SavedTabsRoute'
 
 import { AppLayout } from './AppLayout'
 
 interface AppRouterProps {
   initialEntries?: string[]
 }
+
+const AiChatRoutePage = lazy(() =>
+  import('@/features/ai-chat/routes/AiChatRoute').then(({ AiChatRoute }) => ({
+    default: AiChatRoute,
+  })),
+)
+
+const AnalyticsRoutePage = lazy(() =>
+  import('@/features/analytics/routes/AnalyticsRoute').then(
+    ({ AnalyticsRoute }) => ({
+      default: AnalyticsRoute,
+    }),
+  ),
+)
+
+const OptionsRoutePage = lazy(() =>
+  import('@/features/options/routes/OptionsRoute').then(({ OptionsRoute }) => ({
+    default: OptionsRoute,
+  })),
+)
+
+const PeriodicExecutionRoutePage = lazy(() =>
+  import('@/features/periodic-execution/routes/PeriodicExecutionRoute').then(
+    ({ PeriodicExecutionRoute }) => ({
+      default: PeriodicExecutionRoute,
+    }),
+  ),
+)
+
+const SavedTabsRouteComponent = lazy(() =>
+  import('@/features/saved-tabs/routes/SavedTabsRoute').then(
+    ({ SavedTabsRoute }) => ({
+      default: SavedTabsRoute,
+    }),
+  ),
+)
 
 const SavedTabsRoutePage = () => {
   const routerLocation = useLocation()
@@ -66,10 +97,12 @@ const SavedTabsRoutePage = () => {
   }
 
   return (
-    <SavedTabsRoute
-      search={routerLocation.search}
-      onViewModeNavigate={handleViewModeNavigate}
-    />
+    <Suspense fallback={null}>
+      <SavedTabsRouteComponent
+        search={routerLocation.search}
+        onViewModeNavigate={handleViewModeNavigate}
+      />
+    </Suspense>
   )
 }
 
@@ -81,10 +114,38 @@ const AppRoutes = () => (
         element={<Navigate to={getSavedTabsEntryRoute()} replace />}
       />
       <Route path='/saved-tabs' element={<SavedTabsRoutePage />} />
-      <Route path='/ai-chat' element={<AiChatRoute />} />
-      <Route path='/analytics' element={<AnalyticsRoute />} />
-      <Route path='/options' element={<OptionsRoute />} />
-      <Route path='/periodic-execution' element={<PeriodicExecutionRoute />} />
+      <Route
+        path='/ai-chat'
+        element={
+          <Suspense fallback={null}>
+            <AiChatRoutePage />
+          </Suspense>
+        }
+      />
+      <Route
+        path='/analytics'
+        element={
+          <Suspense fallback={null}>
+            <AnalyticsRoutePage />
+          </Suspense>
+        }
+      />
+      <Route
+        path='/options'
+        element={
+          <Suspense fallback={null}>
+            <OptionsRoutePage />
+          </Suspense>
+        }
+      />
+      <Route
+        path='/periodic-execution'
+        element={
+          <Suspense fallback={null}>
+            <PeriodicExecutionRoutePage />
+          </Suspense>
+        }
+      />
       <Route
         path='*'
         element={<Navigate to={getSavedTabsEntryRoute()} replace />}

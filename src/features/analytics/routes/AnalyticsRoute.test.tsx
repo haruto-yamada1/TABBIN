@@ -297,21 +297,27 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
   ),
 }))
 
-vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
-  SavedTabsChatWidget: ({
+function emitAnalyticsMessages(
+  onMessagesChange: ((messages: unknown[]) => void) | undefined,
+  messages: unknown[],
+) {
+  analyticsRouteMocks.updateMessagesMock(messages)
+  onMessagesChange?.(messages)
+}
+
+vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
+  LazySavedTabsChatWidget: ({
     historyVariant,
     onMessagesChange,
     onOpenChange,
-    title,
   }: {
     historyVariant?: string
     onMessagesChange?: (messages: unknown[]) => void
     onOpenChange?: (isOpen: boolean) => void
-    title?: string
   }) => (
     <div>
       <div>{`history-variant:${historyVariant ?? 'none'}`}</div>
-      <div>{`active-title:${title ?? ''}`}</div>
+      <div>active-title:Analytics Chat</div>
       <button onClick={() => onOpenChange?.(true)} type='button'>
         open-sidebar
       </button>
@@ -320,7 +326,7 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
       </button>
       <button
         onClick={() =>
-          onMessagesChange?.([
+          emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
                 {
@@ -385,7 +391,7 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
       </button>
       <button
         onClick={() =>
-          onMessagesChange?.([
+          emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
                 {
@@ -412,12 +418,15 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
       >
         emit-chart-only
       </button>
-      <button onClick={() => onMessagesChange?.([])} type='button'>
+      <button
+        onClick={() => emitAnalyticsMessages(onMessagesChange, [])}
+        type='button'
+      >
         emit-empty-messages
       </button>
       <button
         onClick={() =>
-          onMessagesChange?.([
+          emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [],
               content: 'user message',
@@ -432,7 +441,7 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
       </button>
       <button
         onClick={() =>
-          onMessagesChange?.([
+          emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
                 {

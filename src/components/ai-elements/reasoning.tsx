@@ -1,10 +1,6 @@
 'use client'
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
-import { cjk } from '@streamdown/cjk'
-import { code } from '@streamdown/code'
-import { math } from '@streamdown/math'
-import { mermaid } from '@streamdown/mermaid'
 import { BrainIcon, ChevronDownIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import {
@@ -16,7 +12,6 @@ import {
   useMemo,
   useRef,
 } from 'react'
-import { Streamdown } from 'streamdown'
 
 import {
   Collapsible,
@@ -27,6 +22,7 @@ import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
 import { Shimmer } from './shimmer'
+import { StreamdownMarkdown } from './streamdown-renderer'
 
 interface ReasoningContextValue {
   isStreaming: boolean
@@ -241,8 +237,6 @@ export type ReasoningContentProps = ComponentProps<
   children: string
 }
 
-const streamdownPlugins = { cjk, code, math, mermaid }
-
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
     <CollapsibleContent
@@ -253,7 +247,7 @@ export const ReasoningContent = memo(
       )}
       {...props}
     >
-      <Streamdown plugins={streamdownPlugins}>{children}</Streamdown>
+      <StreamdownMarkdown>{children}</StreamdownMarkdown>
     </CollapsibleContent>
   ),
 )

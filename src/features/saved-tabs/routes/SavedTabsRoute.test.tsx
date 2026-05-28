@@ -126,25 +126,25 @@ vi.mock('@/features/ai-chat/hooks/useSharedAiChatHistory', () => ({
   useSharedAiChatHistory: historyMock.useSharedAiChatHistory,
 }))
 
-vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
-  SavedTabsChatWidget: ({
-    onDeleteHistoryItem,
+vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
+  LazySavedTabsChatWidget: ({
     historyVariant,
-    onSelectHistoryItem,
     onOpenChange,
-    title,
   }: {
     historyVariant?: string
-    onDeleteHistoryItem?: (conversationId: string) => void
-    onSelectHistoryItem?: (conversationId: string) => void
     onOpenChange?: (isOpen: boolean) => void
-    title?: string
-  }) =>
-    createElement(
+  }) => {
+    const history = historyMock.useSharedAiChatHistory()
+
+    return createElement(
       'div',
       null,
       createElement('div', null, `history-variant:${historyVariant ?? 'none'}`),
-      createElement('div', null, `active-title:${title ?? ''}`),
+      createElement(
+        'div',
+        null,
+        `active-title:${history.activeConversation?.title ?? ''}`,
+      ),
       createElement(
         'button',
         {
@@ -164,7 +164,7 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
       createElement(
         'button',
         {
-          onClick: () => onDeleteHistoryItem?.('conversation-2'),
+          onClick: () => history.deleteConversation('conversation-2'),
           type: 'button',
         },
         'delete-history',
@@ -172,12 +172,13 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
       createElement(
         'button',
         {
-          onClick: () => onSelectHistoryItem?.('conversation-2'),
+          onClick: () => history.selectConversation('conversation-2'),
           type: 'button',
         },
         'select-history',
       ),
-    ),
+    )
+  },
 }))
 
 import { SavedTabsRoute } from './SavedTabsRoute'

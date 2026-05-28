@@ -1,7 +1,6 @@
 import { Profiler, useEffect, useRef, useState } from 'react'
 
-import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
-import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
+import { LazySavedTabsChatWidget } from '@/features/ai-chat/components/LazySavedTabsChatWidget'
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
 import {
   SavedTabsApp,
@@ -23,14 +22,6 @@ export const SavedTabsRoute = ({
   onViewModeNavigate,
   search,
 }: SavedTabsRouteProps) => {
-  const {
-    activeConversation,
-    createConversation,
-    deleteConversation,
-    historyItems,
-    selectConversation,
-    updateMessages,
-  } = useSharedAiChatHistory()
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false)
   const [leftPaneWidth, setLeftPaneWidth] = useState(() => window.innerWidth)
   const leftPaneRef = useRef<HTMLDivElement>(null)
@@ -119,17 +110,9 @@ export const SavedTabsRoute = ({
           viewMode={initialViewMode}
         />
       </div>
-      <SavedTabsChatWidget
-        conversationId={activeConversation?.id}
-        historyItems={historyItems}
+      <LazySavedTabsChatWidget
         historyVariant='dropdown'
-        initialMessages={activeConversation?.messages}
-        onCreateConversation={createConversation}
-        onDeleteHistoryItem={deleteConversation}
-        onMessagesChange={updateMessages}
         onOpenChange={setIsAiSidebarOpen}
-        onSelectHistoryItem={selectConversation}
-        title={activeConversation?.title}
       />
     </div>
   )

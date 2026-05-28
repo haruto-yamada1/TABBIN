@@ -19,6 +19,7 @@
 // @covers components/ai-elements/shimmer.tsx
 // @covers components/ai-elements/snippet.tsx
 // @covers components/ai-elements/stack-trace.tsx
+// @covers components/ai-elements/streamdown-renderer.tsx
 // @covers components/ai-elements/terminal.tsx
 // @covers components/ai-elements/test-results.tsx
 // @covers components/ai-elements/tool.tsx
