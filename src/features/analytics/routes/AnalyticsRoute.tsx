@@ -42,8 +42,7 @@ import {
 } from '@/components/ui/tooltip'
 import { AiChartRenderer } from '@/features/ai-chat/components/AiChartRenderer'
 import type { AiChartPointSelection } from '@/features/ai-chat/components/AiChartRenderer'
-import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
-import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
+import { LazySavedTabsChatWidget } from '@/features/ai-chat/components/LazySavedTabsChatWidget'
 import type {
   AiChartSpec,
   AiChatConversationMessage,
@@ -414,14 +413,6 @@ const getViewNameValidationError = ({
 
 const useAnalyticsRouteView = () => {
   const { language, t } = useI18n()
-  const {
-    activeConversation,
-    createConversation,
-    deleteConversation,
-    historyItems,
-    selectConversation,
-    updateMessages,
-  } = useSharedAiChatHistory()
   const [analyticsData, setAnalyticsData] = useState(() => ({
     records: awaitableEmptyRecords,
     savedViews: [] as SavedAnalyticsView[],
@@ -584,8 +575,6 @@ const useAnalyticsRouteView = () => {
   }
 
   const handleMessagesChange = (messages: AiChatConversationMessage[]) => {
-    updateMessages(messages)
-
     const latestAssistantCharts = getLatestAssistantCharts(messages)
     if (!latestAssistantCharts) {
       return
@@ -1248,16 +1237,9 @@ const useAnalyticsRouteView = () => {
         </div>
       </main>
 
-      <SavedTabsChatWidget
-        conversationId={activeConversation?.id}
-        historyItems={historyItems}
+      <LazySavedTabsChatWidget
         historyVariant='dropdown'
-        initialMessages={activeConversation?.messages}
-        onCreateConversation={createConversation}
-        onDeleteHistoryItem={deleteConversation}
         onMessagesChange={handleMessagesChange}
-        onSelectHistoryItem={selectConversation}
-        title={activeConversation?.title}
       />
 
       <Toaster />

@@ -4,16 +4,13 @@
     "src/entrypoints/**/*.{ts,tsx}",
     "src/components/**/*.{test,stories}.{ts,tsx}",
     "src/features/**/*.{test,stories}.{ts,tsx}",
-    "src/hooks/**/*.{test,stories}.{ts,tsx}",
     "src/lib/**/*.{test,stories}.{ts,tsx}",
     "src/utils/**/*.{test,stories}.{ts,tsx}",
     "e2e/**/*.{ts,tsx}",
     "tools/**/*.{ts,tsx}",
     ".storybook/**/*.{ts,tsx}",
     "vitest.config.ts",
-    "vitest.ci.config.ts",
-    "vitest.workspace.ts",
-    "wxt.config.ts"
+    "vitest.workspace.ts"
   ],
   "project": [
     "src/components/**/*.{ts,tsx}",
@@ -43,16 +40,9 @@
   "ignoreFiles": ["src/stories/**", "tests/**"],
   "ignoreDependencies": [
     "@ai-sdk/react",
-    "@wxt-dev/i18n",
     "@storybook/addon-onboarding",
     "@storybook/builder-vite",
     "@testing-library/jest-dom",
-    "@vitest/coverage-v8",
-    "@types/chrome",
-    "@types/node",
-    "@types/react",
-    "@types/react-dom",
-    "@types/webextension-polyfill",
     "autoprefixer",
     "path",
     "postcss"

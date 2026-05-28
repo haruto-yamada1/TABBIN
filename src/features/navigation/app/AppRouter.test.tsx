@@ -2,6 +2,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+const routeModuleLoads = vi.hoisted(() => ({
+  aiChat: 0,
+}))
+
 vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => false,
 }))
@@ -63,9 +67,12 @@ vi.mock('@/features/saved-tabs/routes/SavedTabsRoute', () => ({
   ),
 }))
 
-vi.mock('@/features/ai-chat/routes/AiChatRoute', () => ({
-  AiChatRoute: () => <div>ai-chat-route</div>,
-}))
+vi.mock('@/features/ai-chat/routes/AiChatRoute', () => {
+  routeModuleLoads.aiChat += 1
+  return {
+    AiChatRoute: () => <div>ai-chat-route</div>,
+  }
+})
 
 vi.mock('@/features/analytics/routes/AnalyticsRoute', () => ({
   AnalyticsRoute: () => <div>analytics-route</div>,
@@ -90,6 +97,17 @@ describe('AppRouter', () => {
     cleanup()
   })
 
+  it('saved-tabs 初期表示では ai-chat route module を読み込まない', async () => {
+    expect(routeModuleLoads.aiChat).toBe(0)
+
+    render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
+
+    expect(
+      await screen.findByText('saved-tabs-route:?mode=domain'),
+    ).toBeTruthy()
+    expect(routeModuleLoads.aiChat).toBe(0)
+  })
+
   it('ルートパスは domain mode の saved-tabs に redirect する', async () => {
     render(<AppRouter initialEntries={['/']} />)
 
@@ -98,7 +116,7 @@ describe('AppRouter', () => {
     ).toBeTruthy()
   })
 
-  it('サイドバークリックで SPA 遷移する', () => {
+  it('サイドバークリックで SPA 遷移する', async () => {
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     const analyticsLink = screen.getAllByRole('link', {
@@ -110,7 +128,7 @@ describe('AppRouter', () => {
 
     fireEvent.click(analyticsLink)
 
-    expect(screen.getByText('analytics-route')).toBeTruthy()
+    expect(await screen.findByText('analytics-route')).toBeTruthy()
   })
 
   it('router context では内部リンクが app.html ではなく route を指す', () => {
@@ -133,32 +151,50 @@ describe('AppRouter', () => {
     ).toBe('/saved-tabs?mode=custom')
   })
 
-  it('analytics route を開ける', () => {
+  it('analytics route を開ける', async () => {
     render(<AppRouter initialEntries={['/analytics']} />)
 
-    expect(screen.getByText('analytics-route')).toBeTruthy()
+    expect(await screen.findByText('analytics-route')).toBeTruthy()
   })
 
-  it('options route を開ける', () => {
+  it('options route を開ける', async () => {
     render(<AppRouter initialEntries={['/options']} />)
 
-    expect(screen.getByText('options-route')).toBeTruthy()
+    expect(await screen.findByText('options-route')).toBeTruthy()
   })
 
-  it('SavedTabsRoute から別 mode を選ぶと replace navigate する', () => {
+  it('ai-chat route を開ける', async () => {
+    render(<AppRouter initialEntries={['/ai-chat']} />)
+
+    expect(await screen.findByText('ai-chat-route')).toBeTruthy()
+  })
+
+  it('periodic-execution route を開ける', async () => {
+    render(<AppRouter initialEntries={['/periodic-execution']} />)
+
+    expect(await screen.findByText('periodic-execution-route')).toBeTruthy()
+  })
+
+  it('SavedTabsRoute から別 mode を選ぶと replace navigate する', async () => {
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
+    await screen.findByText('saved-tabs-route:?mode=domain')
     fireEvent.click(screen.getByRole('button', { name: 'navigate-custom' }))
 
-    expect(screen.getByText('saved-tabs-route:?mode=custom')).toBeTruthy()
+    expect(
+      await screen.findByText('saved-tabs-route:?mode=custom'),
+    ).toBeTruthy()
   })
 
-  it('SavedTabsRoute から同じ mode を選んだ場合は再 navigate しない', () => {
+  it('SavedTabsRoute から同じ mode を選んだ場合は再 navigate しない', async () => {
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
+    await screen.findByText('saved-tabs-route:?mode=domain')
     fireEvent.click(screen.getByRole('button', { name: 'navigate-domain' }))
 
-    expect(screen.getByText('saved-tabs-route:?mode=domain')).toBeTruthy()
+    expect(
+      await screen.findByText('saved-tabs-route:?mode=domain'),
+    ).toBeTruthy()
   })
 
   it('mode 指定が無い saved-tabs route は domain で開く', async () => {
@@ -187,11 +223,13 @@ describe('AppRouter', () => {
     ).toBeTruthy()
   })
 
-  it('initialEntries が無い場合は HashRouter を使う', () => {
+  it('initialEntries が無い場合は HashRouter を使う', async () => {
     window.history.replaceState({}, '', '/app.html#/saved-tabs?mode=custom')
 
     render(<AppRouter />)
 
-    expect(screen.getByText('saved-tabs-route:?mode=custom')).toBeTruthy()
+    expect(
+      await screen.findByText('saved-tabs-route:?mode=custom'),
+    ).toBeTruthy()
   })
 })

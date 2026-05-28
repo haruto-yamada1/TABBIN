@@ -1,9 +1,5 @@
 'use client'
 
-import { cjk } from '@streamdown/cjk'
-import { code } from '@streamdown/code'
-import { math } from '@streamdown/math'
-import { mermaid } from '@streamdown/mermaid'
 import type { UIMessage } from 'ai'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'
@@ -17,7 +13,6 @@ import {
   useReducer,
   useState,
 } from 'react'
-import { Streamdown } from 'streamdown'
 
 import { Button } from '@/components/ui/button'
 import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group'
@@ -29,6 +24,8 @@ import {
 } from '@/components/ui/tooltip'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
+
+import { StreamdownMarkdown } from './streamdown-renderer'
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage['role']
@@ -324,13 +321,11 @@ export const MessageBranchPage = ({
   )
 }
 
-export type MessageResponseProps = ComponentProps<typeof Streamdown>
-
-const streamdownPlugins = { cjk, code, math, mermaid }
+export type MessageResponseProps = ComponentProps<typeof StreamdownMarkdown>
 
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown
+    <StreamdownMarkdown
       className={cn(
         'wrap-anywhere size-full min-w-0 max-w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
         '[&_li]:wrap-anywhere [&_p]:wrap-anywhere',
@@ -339,7 +334,6 @@ export const MessageResponse = memo(
         '**:data-[streamdown=code-block-body]:max-w-full **:data-[streamdown=code-block-body]:overflow-x-hidden',
         className,
       )}
-      plugins={streamdownPlugins}
       {...props}
     />
   ),

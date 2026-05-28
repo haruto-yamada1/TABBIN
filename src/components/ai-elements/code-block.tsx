@@ -4,12 +4,13 @@ import { CheckIcon, CopyIcon } from 'lucide-react'
 import type { CSSProperties, ComponentProps, HTMLAttributes } from 'react'
 import { createContext, memo, use, useEffect, useMemo, useState } from 'react'
 import type {
-  BundledLanguage,
-  BundledTheme,
-  HighlighterGeneric,
+  HighlighterCore,
+  LanguageRegistration,
   ThemedToken,
-} from 'shiki'
-import { createHighlighter } from 'shiki'
+  ThemeRegistration,
+} from 'shiki/core'
+import { createHighlighterCore } from 'shiki/core'
+import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -87,10 +88,27 @@ const LineSpan = ({
 // Types
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string
-  language: BundledLanguage
+  language: string
   showLineNumbers?: boolean
   wrapLongLines?: boolean
 }
+
+type SupportedCodeLanguage =
+  | 'bash'
+  | 'css'
+  | 'diff'
+  | 'html'
+  | 'javascript'
+  | 'json'
+  | 'jsx'
+  | 'markdown'
+  | 'python'
+  | 'text'
+  | 'tsx'
+  | 'typescript'
+  | 'yaml'
+
+type HighlightLanguage = Exclude<SupportedCodeLanguage, 'text'>
 
 interface TokenizedCode {
   tokens: ThemedToken[][]
@@ -108,10 +126,7 @@ const CodeBlockContext = createContext<CodeBlockContextType>({
 })
 
 // Highlighter cache (singleton per language)
-const highlighterCache = new Map<
-  string,
-  Promise<HighlighterGeneric<BundledLanguage, BundledTheme>>
->()
+const highlighterCache = new Map<string, Promise<HighlighterCore>>()
 
 // Token cache
 const tokensCache = new Map<string, TokenizedCode>()
@@ -119,24 +134,95 @@ const tokensCache = new Map<string, TokenizedCode>()
 // Subscribers for async token updates
 const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>()
 
-const getTokensCacheKey = (code: string, language: BundledLanguage) => {
+const codeLanguageAliases: Record<string, SupportedCodeLanguage> = {
+  bash: 'bash',
+  css: 'css',
+  diff: 'diff',
+  html: 'html',
+  javascript: 'javascript',
+  js: 'javascript',
+  json: 'json',
+  jsx: 'jsx',
+  markdown: 'markdown',
+  md: 'markdown',
+  mjs: 'javascript',
+  py: 'python',
+  python: 'python',
+  sh: 'bash',
+  shell: 'bash',
+  shellscript: 'bash',
+  text: 'text',
+  ts: 'typescript',
+  tsx: 'tsx',
+  typescript: 'typescript',
+  yml: 'yaml',
+  yaml: 'yaml',
+  zsh: 'bash',
+}
+
+export const getSupportedCodeLanguage = (
+  language: string,
+): SupportedCodeLanguage => {
+  const normalizedLanguage = language.trim().toLowerCase()
+  return codeLanguageAliases[normalizedLanguage] ?? 'text'
+}
+
+const languageLoaders: Record<
+  HighlightLanguage,
+  () => Promise<LanguageRegistration[]>
+> = {
+  bash: async () => (await import('shiki/langs/bash.mjs')).default,
+  css: async () => (await import('shiki/langs/css.mjs')).default,
+  diff: async () => (await import('shiki/langs/diff.mjs')).default,
+  html: async () => (await import('shiki/langs/html.mjs')).default,
+  javascript: async () => (await import('shiki/langs/javascript.mjs')).default,
+  json: async () => (await import('shiki/langs/json.mjs')).default,
+  jsx: async () => (await import('shiki/langs/jsx.mjs')).default,
+  markdown: async () => (await import('shiki/langs/markdown.mjs')).default,
+  python: async () => (await import('shiki/langs/python.mjs')).default,
+  tsx: async () => (await import('shiki/langs/tsx.mjs')).default,
+  typescript: async () => (await import('shiki/langs/typescript.mjs')).default,
+  yaml: async () => (await import('shiki/langs/yaml.mjs')).default,
+}
+
+let themesPromise: Promise<ThemeRegistration[]> | null = null
+
+const loadThemes = () => {
+  themesPromise ??= Promise.all([
+    import('shiki/themes/github-light.mjs'),
+    import('shiki/themes/github-dark.mjs'),
+  ]).then(([githubLight, githubDark]) => [
+    githubLight.default,
+    githubDark.default,
+  ])
+
+  return themesPromise
+}
+
+const getTokensCacheKey = (code: string, language: SupportedCodeLanguage) => {
   const start = code.slice(0, 100)
   const end = code.length > 100 ? code.slice(-100) : ''
   return `${language}:${code.length}:${start}:${end}`
 }
 
 const getHighlighter = (
-  language: BundledLanguage,
-): Promise<HighlighterGeneric<BundledLanguage, BundledTheme>> => {
+  language: HighlightLanguage,
+): Promise<HighlighterCore> => {
   const cached = highlighterCache.get(language)
   if (cached) {
     return cached
   }
 
-  const highlighterPromise = createHighlighter({
-    langs: [language],
-    themes: ['github-light', 'github-dark'],
-  })
+  const highlighterPromise = Promise.all([
+    languageLoaders[language](),
+    loadThemes(),
+  ]).then(([langs, themes]) =>
+    createHighlighterCore({
+      engine: createJavaScriptRegexEngine({ forgiving: true }),
+      langs,
+      themes,
+    }),
+  )
 
   highlighterCache.set(language, highlighterPromise)
   return highlighterPromise
@@ -161,11 +247,16 @@ const createRawTokens = (code: string): TokenizedCode => ({
 // Synchronous highlight with callback for async results
 export const highlightCode = (
   code: string,
-  language: BundledLanguage,
+  language: string,
   // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-callbacks)
   callback?: (result: TokenizedCode) => void,
 ): TokenizedCode | null => {
-  const tokensCacheKey = getTokensCacheKey(code, language)
+  const supportedLanguage = getSupportedCodeLanguage(language)
+  if (supportedLanguage === 'text') {
+    return createRawTokens(code)
+  }
+
+  const tokensCacheKey = getTokensCacheKey(code, supportedLanguage)
 
   // Return cached result if available
   const cached = tokensCache.get(tokensCacheKey)
@@ -182,11 +273,13 @@ export const highlightCode = (
   }
 
   // Start highlighting in background - fire-and-forget async pattern
-  getHighlighter(language)
+  getHighlighter(supportedLanguage)
     // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
     .then((highlighter) => {
       const availableLangs = highlighter.getLoadedLanguages()
-      const langToUse = availableLangs.includes(language) ? language : 'text'
+      const langToUse = availableLangs.includes(supportedLanguage)
+        ? supportedLanguage
+        : 'text'
 
       const result = highlighter.codeToTokens(code, {
         lang: langToUse,
@@ -374,7 +467,7 @@ export const CodeBlockContent = ({
   wrapLongLines = false,
 }: {
   code: string
-  language: BundledLanguage
+  language: string
   showLineNumbers?: boolean
   wrapLongLines?: boolean
 }) => {

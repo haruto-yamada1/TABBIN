@@ -105,6 +105,35 @@ describe('settings storage', () => {
     })
   })
 
+  it('保存済みの excludePatterns から空白と非文字列を除外する', async () => {
+    const storageLocal = {
+      get: vi.fn(async () => ({
+        userSettings: {
+          excludePatterns: [' custom-pattern ', '   ', 123, null],
+        },
+      })),
+      set: vi.fn(async () => undefined),
+    }
+    mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
+
+    const { getUserSettings } = await loadModule()
+
+    await expect(getUserSettings()).resolves.toMatchObject({
+      excludePatterns: expect.arrayContaining([
+        'about:',
+        'chrome-extension://',
+        'chrome://',
+        'custom-pattern',
+      ]),
+      normalized: true,
+    })
+    expect(storageLocal.set).toHaveBeenCalledWith({
+      userSettings: expect.objectContaining({
+        excludePatterns: expect.not.arrayContaining(['   ', 123, null]),
+      }),
+    })
+  })
+
   it('保存時も excludePatterns に既定の内部ページ除外を補完する', async () => {
     const storageLocal = {
       set: vi.fn(async () => undefined),
