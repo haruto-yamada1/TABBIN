@@ -57,9 +57,7 @@ const mergeExcludePatterns = (
   return [...mergedPatterns]
 }
 
-const mergeStoredUserSettings = (
-  settings: UserSettings,
-): UserSettings => ({
+const mergeStoredUserSettings = (settings: UserSettings): UserSettings => ({
   ...settings,
   excludePatterns: mergeExcludePatterns(settings.excludePatterns),
 })
@@ -130,7 +128,9 @@ export const getUserSettings = async (): Promise<UserSettings> => {
       })
       /* v8 ignore next -- coverage-only defensive branch. */
       if (
-        hasLegacyUserSettingsKeys(data.userSettings as Record<string, unknown>) ||
+        hasLegacyUserSettingsKeys(
+          data.userSettings as Record<string, unknown>,
+        ) ||
         JSON.stringify(sanitizedStoredSettings.excludePatterns ?? []) !==
           JSON.stringify(mergedStoredSettings.excludePatterns)
       ) {

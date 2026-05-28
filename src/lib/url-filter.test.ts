@@ -42,10 +42,10 @@ describe('url-filter', () => {
 
     expect(
       filterItemsBySavableUrl(
-          [
-            { id: 'valid', url: 'https://example.com/a' },
-            { id: 'file', url: 'file:///tmp/example.txt' },
-            { id: 'about', url: 'about:blank' },
+        [
+          { id: 'valid', url: 'https://example.com/a' },
+          { id: 'file', url: 'file:///tmp/example.txt' },
+          { id: 'about', url: 'about:blank' },
           { id: 'excluded', url: 'https://example.com/private' },
           { id: 'missing' },
           { id: 'invalid', url: 'not a url' },
