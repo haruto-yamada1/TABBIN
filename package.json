@@ -145,5 +145,10 @@
     "vite": "^8.0.14",
     "vitest": "^4.1.7",
     "wxt": "^0.20.26"
-  }
+  },
+  "engines": {
+    "bun": "1.2.8",
+    "node": "22.x"
+  },
+  "packageManager": "bun@1.2.8"
 }
