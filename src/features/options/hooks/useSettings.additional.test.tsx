@@ -1,9 +1,16 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
+import { toast } from 'sonner'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useSettings } from './useSettings'
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+  },
+}))
 
 vi.mock('@/lib/storage/settings', () => {
   const defaultSettings = {
@@ -39,6 +46,13 @@ type StorageListener = (
   changes: { [key: string]: chrome.storage.StorageChange },
   areaName: string,
 ) => void
+
+interface RetryToastOptions {
+  action?: {
+    label: string
+    onClick: () => Promise<void> | void
+  }
+}
 
 const listeners: StorageListener[] = []
 
@@ -111,8 +125,61 @@ describe('useSettings の追加分岐', () => {
     })
 
     expect(success).toBe(false)
-    expect(result.current.settings.showSavedTime).toBe(true)
+    expect(result.current.settings.showSavedTime).toBe(false)
+    expect(toast.error).toHaveBeenCalledWith(
+      '設定の保存に失敗しました',
+      expect.objectContaining({
+        action: expect.objectContaining({ label: '再試行' }),
+      }),
+    )
     expect(consoleErrorSpy).toHaveBeenCalled()
+
+    const retryToast = vi.mocked(toast.error).mock.calls.at(-1)?.[1] as
+      | RetryToastOptions
+      | undefined
+    vi.mocked(saveUserSettings).mockResolvedValueOnce(undefined)
+
+    await act(async () => {
+      await retryToast?.action?.onClick()
+    })
+
+    expect(result.current.settings.showSavedTime).toBe(true)
+    expect(saveUserSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ showSavedTime: true }),
+    )
+  })
+
+  it('再試行も失敗したときはロールバック状態を保って再通知する', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    vi.mocked(getUserSettings).mockResolvedValue(defaultSettings)
+    vi.mocked(saveUserSettings).mockRejectedValue(new Error('persist failed'))
+
+    const { result } = renderHook(() => useSettings())
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    await act(async () => {
+      await result.current.updateSetting('showSavedTime', true)
+    })
+
+    const retryToast = vi.mocked(toast.error).mock.calls.at(-1)?.[1] as
+      | RetryToastOptions
+      | undefined
+
+    await act(async () => {
+      await retryToast?.action?.onClick()
+    })
+
+    expect(result.current.settings.showSavedTime).toBe(false)
+    expect(toast.error).toHaveBeenCalledTimes(2)
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '設定の再保存エラー:',
+      expect.any(Error),
+    )
   })
 
   it('handleSaveSettings で保存エラーを握りつぶす', async () => {
@@ -139,6 +206,15 @@ describe('useSettings の追加分岐', () => {
     })
 
     expect(saveUserSettings).toHaveBeenCalled()
+    expect(result.current.settings.excludePatterns).toEqual(
+      defaultSettings.excludePatterns,
+    )
+    expect(toast.error).toHaveBeenCalledWith(
+      '設定の保存に失敗しました',
+      expect.objectContaining({
+        action: expect.objectContaining({ label: '再試行' }),
+      }),
+    )
     expect(consoleErrorSpy).toHaveBeenCalled()
   })
 
@@ -234,6 +310,15 @@ describe('useSettings の追加分岐', () => {
     })
 
     expect(success).toBe(false)
+    expect(result.current.settings.excludePatterns).toEqual(
+      defaultSettings.excludePatterns,
+    )
+    expect(toast.error).toHaveBeenCalledWith(
+      '設定の保存に失敗しました',
+      expect.objectContaining({
+        action: expect.objectContaining({ label: '再試行' }),
+      }),
+    )
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       '除外パターンの追加エラー:',
       expect.any(Error),
@@ -281,6 +366,15 @@ describe('useSettings の追加分岐', () => {
       await result.current.removeExcludePattern('chrome://')
     })
 
+    expect(result.current.settings.excludePatterns).toEqual(
+      defaultSettings.excludePatterns,
+    )
+    expect(toast.error).toHaveBeenCalledWith(
+      '設定の保存に失敗しました',
+      expect.objectContaining({
+        action: expect.objectContaining({ label: '再試行' }),
+      }),
+    )
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       '除外パターンの削除エラー:',
       expect.any(Error),
