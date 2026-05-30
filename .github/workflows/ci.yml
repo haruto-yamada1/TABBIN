@@ -59,8 +59,10 @@ jobs:
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: extension-build
-          path: dist/
+          name: extension-build-chrome
+          path: .output/chrome-mv3
+          if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7
 
   run-tests:
