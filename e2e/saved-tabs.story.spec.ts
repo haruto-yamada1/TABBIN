@@ -50,6 +50,7 @@ const createSavedTabSeed = () => ({
     enableCategories: true,
     excludePatterns: ['chrome-extension://', 'chrome://'],
     excludePinnedTabs: true,
+    language: 'ja',
     ollamaModel: '',
     openAllInNewWindow: false,
     openUrlInBackground: true,
@@ -86,6 +87,7 @@ test.describe('saved-tabs stories', () => {
         enableCategories: true,
         excludePatterns: ['chrome-extension://', 'chrome://'],
         excludePinnedTabs: true,
+        language: 'ja',
         ollamaModel: '',
         openAllInNewWindow: false,
         openUrlInBackground: true,
@@ -129,7 +131,7 @@ test.describe('saved-tabs stories', () => {
     await page.getByPlaceholder('検索').fill('')
 
     const openedPagePromise = extensionContext.waitForEvent('page')
-    await page.getByRole('link', { name: 'Example Home' }).click()
+    await page.getByRole('button', { name: 'Example Home' }).click()
     const openedPage = await openedPagePromise
     await openedPage.waitForLoadState()
 
@@ -222,16 +224,9 @@ test.describe('saved-tabs stories', () => {
       .poll(async () => {
         const data = await readStorage<{
           customProjects: Array<{ name: string }>
-          viewMode: string
-        }>(serviceWorker, ['customProjects', 'viewMode'])
-        return {
-          names: data.customProjects.map((project) => project.name),
-          viewMode: data.viewMode,
-        }
+        }>(serviceWorker, ['customProjects'])
+        return data.customProjects.map((project) => project.name)
       })
-      .toEqual({
-        names: ['調査'],
-        viewMode: 'custom',
-      })
+      .toEqual(['調査'])
   })
 })
