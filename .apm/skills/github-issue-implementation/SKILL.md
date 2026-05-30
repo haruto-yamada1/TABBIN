@@ -1,17 +1,17 @@
 ---
 name: github-issue-implementation
-description: GitHub issue URL を渡され、issue の内容を起点に repository 確認、作業ブランチ作成、実装、検証、完了報告まで進める依頼で使います。issue 番号だけでなく URL、関連 PR、コメント確認、develop ベースの修正開始が必要なときに発火します。
+description: GitHub issue URL を渡され、issue の内容を起点に repository 確認、作業ブランチ作成、実装、検証、完了報告まで進める依頼で使います。issue 番号だけでなく URL、関連 PR、コメント確認、現在のブランチを起点に修正開始が必要なときに発火します。
 ---
 
 # GitHub Issue 実装
 
-GitHub issue URL から作業対象を特定し、`origin/develop` ベースの専用ブランチで実装します。人間や他エージェントの未コミット変更を上書きせず、不明点や権限不足があれば実装前に止めます。
+GitHub issue URL から作業対象を特定し、現在のブランチを起点に専用ブランチで実装します。人間や他エージェントの未コミット変更を上書きせず、不明点や権限不足があれば実装前に止めます。
 
 ## 使う場面
 
 - ユーザーが GitHub issue URL を渡して「対応して」「実装して」「直して」と依頼したとき。
 - issue 本文、コメント、関連 PR を確認してから作業ブランチを作る必要があるとき。
-- `develop` を最新化して issue ごとのブランチで実装を始めるとき。
+- 現在のブランチを起点に issue ごとのブランチで実装を始めるとき。
 
 使わない場面:
 
@@ -37,17 +37,16 @@ GitHub issue URL から作業対象を特定し、`origin/develop` ベースの�
    - 他者変更や無関係な変更を退避、上書き、revert しません。
    - 変更が衝突しそうなら、branch 作成や実装前に人間へ確認します。
 
-4. `develop` を最新化します。
-   - `git fetch origin develop`
-   - `git switch develop`
-   - `git pull --ff-only origin develop` または `git reset --hard origin/develop`
-   - `git reset --hard` は破壊的操作なので、人間が明示許可した場合だけ使います。通常は `git pull --ff-only` を優先します。
+4. 現在のブランチを確認します。
+   - `git branch --show-current` で起点ブランチを確認します。
+   - 既存変更や作業中の状態を踏まえ、ここから issue 用ブランチを切る前提を確認します。
 
 5. issue 用ブランチを作成します。
    - branch 名は `issue-<number>-<slug>` にします。
    - `<slug>` は issue title を短く kebab-case 化し、意味が残る範囲で簡潔にします。
    - 例: `issue-123-fix-tab-restore`
    - 作成コマンド例: `git switch -c issue-123-fix-tab-restore`
+   - 現在のブランチを起点に新しい branch を作成します。
    - 既存 branch と衝突する場合は、現在の branch 一覧を確認してから人間へ確認します。
 
 6. 実装前に止める条件を確認します。
@@ -84,7 +83,7 @@ GitHub issue URL から作業対象を特定し、`origin/develop` ベースの�
 
 ## よくあるミス
 
-- `develop` へ移動する前に未コミット変更を確認しない。
+- 起点ブランチを確認する前に未コミット変更を確認しない。
 - 他者変更を `stash`、`checkout`、`reset` で勝手に退避または破棄する。
 - `gh` の認証失敗を無視して、issue 内容を推測で実装する。
 - branch 名に issue 番号を入れ忘れる。
