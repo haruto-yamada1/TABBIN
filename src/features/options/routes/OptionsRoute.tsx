@@ -652,7 +652,11 @@ const useOptionsRouteView = () => {
           <Button
             type='button'
             onClick={() =>
-              window.open('https://forms.gle/c9gBiF2TmgXaeU7J6', '_blank')
+              window.open(
+                'https://forms.gle/c9gBiF2TmgXaeU7J6',
+                '_blank',
+                'noopener,noreferrer',
+              )
             }
             className='w-full cursor-pointer'
           >
@@ -668,7 +672,11 @@ const useOptionsRouteView = () => {
             type='button'
             className='w-full cursor-pointer'
             onClick={() =>
-              window.open(chrome.runtime.getURL('changelog.html'), '_blank')
+              window.open(
+                chrome.runtime.getURL('changelog.html'),
+                '_blank',
+                'noopener,noreferrer',
+              )
             }
           >
             {t('options.releaseNotes')}

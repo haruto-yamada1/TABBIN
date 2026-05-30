@@ -240,10 +240,12 @@ describe('OptionsRoute', () => {
     expect(window.open).toHaveBeenCalledWith(
       'https://forms.gle/c9gBiF2TmgXaeU7J6',
       '_blank',
+      'noopener,noreferrer',
     )
     expect(window.open).toHaveBeenCalledWith(
       'chrome-extension://tabbin/changelog.html',
       '_blank',
+      'noopener,noreferrer',
     )
   })
 })
