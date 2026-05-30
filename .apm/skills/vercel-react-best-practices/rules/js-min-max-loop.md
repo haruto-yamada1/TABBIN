@@ -1,15 +1,15 @@
 ---
-title: Use Loop for Min/Max Instead of Sort
+title: ソートの代わりにループで min/max を求める
 impact: LOW
-impactDescription: O(n) instead of O(n log n)
+impactDescription: O(n log n) ではなく O(n)
 tags: javascript, arrays, performance, sorting, algorithms
 ---
 
-## Use Loop for Min/Max Instead of Sort
+## ソートの代わりにループで min/max を求める
 
-Finding the smallest or largest element only requires a single pass through the array. Sorting is wasteful and slower.
+最小/最大要素の探索は配列を 1 回走査すれば足ります。ソートは無駄で遅くなります。
 
-**Incorrect (O(n log n) - sort to find latest):**
+**不適切（O(n log n) - 最新を求めるためにソート）:**
 
 ```typescript
 interface Project {
@@ -24,9 +24,9 @@ function getLatestProject(projects: Project[]) {
 }
 ```
 
-Sorts the entire array just to find the maximum value.
+最大値を求めるだけなのに配列全体をソートします。
 
-**Incorrect (O(n log n) - sort for oldest and newest):**
+**不適切（O(n log n) - 最古と最新をソートで求める）:**
 
 ```typescript
 function getOldestAndNewest(projects: Project[]) {
@@ -35,9 +35,9 @@ function getOldestAndNewest(projects: Project[]) {
 }
 ```
 
-Still sorts unnecessarily when only min/max are needed.
+min/max だけ必要なのに不必要にソートしています。
 
-**Correct (O(n) - single loop):**
+**適切（O(n) - 単一ループ）:**
 
 ```typescript
 function getLatestProject(projects: Project[]) {
@@ -69,9 +69,9 @@ function getOldestAndNewest(projects: Project[]) {
 }
 ```
 
-Single pass through the array, no copying, no sorting.
+配列を 1 回走査、コピーなし、ソートなし。
 
-**Alternative (Math.min/Math.max for small arrays):**
+**代替案（小さな配列向け Math.min/Math.max）:**
 
 ```typescript
 const numbers = [5, 2, 8, 1, 9]
@@ -79,4 +79,4 @@ const min = Math.min(...numbers)
 const max = Math.max(...numbers)
 ```
 
-This works for small arrays, but can be slower or just throw an error for very large arrays due to spread operator limitations. Maximal array length is approximately 124000 in Chrome 143 and 638000 in Safari 18; exact numbers may vary - see [the fiddle](https://jsfiddle.net/qw1jabsx/4/). Use the loop approach for reliability.
+小さな配列では有効ですが、スプレッド演算子の制限により非常に大きな配列では遅くなるかエラーになる可能性があります。最大配列長は Chrome 143 で約 124000、Safari 18 で 638000 程度です（環境により異なります）— [the fiddle](https://jsfiddle.net/qw1jabsx/4/) を参照。信頼性のためループアプローチを使用してください。

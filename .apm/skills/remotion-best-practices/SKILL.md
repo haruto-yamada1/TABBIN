@@ -1,29 +1,29 @@
 ---
 name: remotion-best-practices
-description: Best practices for Remotion - Video creation in React
+description: Remotion（React による動画作成）のベストプラクティス
 metadata:
   tags: remotion, video, react, animation, composition
 ---
 
-## When to use
+## 使用タイミング
 
-Use this skills whenever you are dealing with Remotion code to obtain the domain-specific knowledge.
+Remotion コードを扱うときは、domain-specific な知識を得るためにこの skill を使います。
 
 ## Captions
 
-When dealing with captions or subtitles, load the [./rules/subtitles.md](./rules/subtitles.md) file for more information.
+caption または subtitle を扱う場合は、詳細は [./rules/subtitles.md](./rules/subtitles.md) を読み込んでください。
 
 ## Using FFmpeg
 
-For some video operations, such as trimming videos or detecting silence, FFmpeg should be used. Load the [./rules/ffmpeg.md](./rules/ffmpeg.md) file for more information.
+動画の trim や silence 検出など一部の video 操作には FFmpeg を使います。詳細は [./rules/ffmpeg.md](./rules/ffmpeg.md) を読み込んでください。
 
 ## Audio visualization
 
-When needing to visualize audio (spectrum bars, waveforms, bass-reactive effects), load the [./rules/audio-visualization.md](./rules/audio-visualization.md) file for more information.
+audio の可視化（spectrum bar、waveform、bass-reactive effect など）が必要な場合は、[./rules/audio-visualization.md](./rules/audio-visualization.md) を読み込んでください。
 
-## How to use
+## 使い方
 
-Read individual rule files for detailed explanations and code examples:
+詳細な説明と code example は個別の rule file を読んでください:
 
 - [rules/3d.md](rules/3d.md) - 3D content in Remotion using Three.js and React Three Fiber
 - [rules/animations.md](rules/animations.md) - Fundamental animation skills for Remotion

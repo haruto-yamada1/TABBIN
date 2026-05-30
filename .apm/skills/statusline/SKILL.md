@@ -1,17 +1,14 @@
 ---
 name: statusline
-description: >-
-  Configure a custom status line in the CLI. Use when the user mentions status
-  line, statusline, statusLine, CLI status bar, prompt footer customization, or
-  wants to add session context above the prompt.
+description: CLI の custom status line を設定します。status line、statusline、statusLine、CLI status bar、prompt footer のカスタマイズ、prompt 上への session context 追加を依頼されたときに使います。
 ---
-# CLI Status Line
+# CLI status line
 
-The CLI supports a user-configurable status line rendered above the prompt. A command is spawned on each conversation update, receives a JSON payload on stdin describing the session, and its stdout is displayed as the status line. The spec is aligned with [Claude Code's status line](https://code.claude.com/docs/en/statusline).
+CLI は prompt 上に user-configurable な status line を表示できます。conversation 更新のたびに command が spawn され、stdin で session を記述する JSON payload を受け取り、stdout が status line として表示されます。spec は [Claude Code's status line](https://code.claude.com/docs/en/statusline) に整合しています。
 
 ## Configuration
 
-Add a `statusLine` entry to `~/.cursor/cli-config.json`:
+`~/.cursor/cli-config.json` に `statusLine` entry を追加:
 
 ```json
 {
@@ -23,19 +20,19 @@ Add a `statusLine` entry to `~/.cursor/cli-config.json`:
 }
 ```
 
-The `command` field supports full paths, `~` expansion, and shell-style argument splitting. You can point it at a script file or use an inline command like `jq -r '...'`.
+`command` field は full path、`~` expansion、shell-style argument splitting をサポート。script file を指すか、inline command（例: `jq -r '...'`）も使えます。
 
 | Field | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `type` | yes | — | Must be `"command"` |
-| `command` | yes | — | Path to an executable or inline command. `~` is expanded. |
-| `padding` | no | `0` | Horizontal inset (in characters) for the status line container. |
-| `updateIntervalMs` | no | `300` | Minimum interval between invocations. Clamped to >= 300ms. |
-| `timeoutMs` | no | `2000` | Maximum time the command may run before it is killed. |
+| `type` | yes | — | `"command"` であること |
+| `command` | yes | — | executable path または inline command。`~` は expand される |
+| `padding` | no | `0` | status line container の horizontal inset（文字数） |
+| `updateIntervalMs` | no | `300` | invocation 間の最小 interval。>= 300ms に clamp |
+| `timeoutMs` | no | `2000` | command の最大実行時間。超過で kill |
 
 ## Stdin payload
 
-The command receives a JSON object on stdin. The TypeScript interface is `StatusLinePayload` in `packages/agent-cli/src/hooks/use-status-line.ts`.
+command は stdin で JSON object を受け取ります。TypeScript interface は `packages/agent-cli/src/hooks/use-status-line.ts` の `StatusLinePayload` です。
 
 ### Full JSON schema
 
@@ -83,48 +80,48 @@ The command receives a JSON object on stdin. The TypeScript interface is `Status
 
 | Field | Description |
 |-------|-------------|
-| `session_id` | Unique session identifier |
-| `session_name` | Custom session name. Absent if no name has been set |
-| `transcript_path` | Path to conversation transcript file |
-| `render_width_chars` | Usable terminal columns minus built-in padding |
-| `cwd`, `workspace.current_dir` | Current working directory (both contain the same value) |
-| `workspace.project_dir` | Directory where transcripts are stored |
-| `workspace.added_dirs` | Additional directories (empty array for now) |
-| `model.id`, `model.display_name` | Current model identifier and display name |
-| `model.param_summary` | Formatted parameter summary (e.g. "(Thinking)", "High"). Absent when empty |
-| `model.max_mode` | `true` when max mode is enabled. Absent otherwise |
+| `session_id` | 一意 session identifier |
+| `session_name` | custom session name。name 未設定時は absent |
+| `transcript_path` | conversation transcript file の path |
+| `render_width_chars` | 利用可能 terminal 列数（built-in padding を除く） |
+| `cwd`, `workspace.current_dir` | current working directory（同じ値） |
+| `workspace.project_dir` | transcript 保存 directory |
+| `workspace.added_dirs` | 追加 directory（現状 empty array） |
+| `model.id`, `model.display_name` | 現在 model identifier と display name |
+| `model.param_summary` | formatted parameter summary（例: "(Thinking)", "High"）。空の場合 absent |
+| `model.max_mode` | max mode 有効時 `true`。それ以外 absent |
 | `version` | CLI version string |
-| `output_style.name` | `"default"` or `"compact"` |
-| `context_window.total_input_tokens` | Estimated input tokens (derived from used_percentage) |
-| `context_window.total_output_tokens` | Cumulative output tokens (null when not tracked) |
-| `context_window.context_window_size` | Maximum context window size in tokens |
-| `context_window.used_percentage` | Percentage of context window used |
-| `context_window.remaining_percentage` | Percentage of context window remaining |
-| `context_window.current_usage` | Token counts from the last API call (null before first call) |
-| `vim.mode` | `"NORMAL"` or `"INSERT"` when vim mode is enabled |
-| `worktree.name` | Worktree name when running inside a worktree |
-| `worktree.path` | Absolute path to the worktree directory |
+| `output_style.name` | `"default"` または `"compact"` |
+| `context_window.total_input_tokens` | 推定 input token（used_percentage から導出） |
+| `context_window.total_output_tokens` | 累積 output token（未 track 時 null） |
+| `context_window.context_window_size` | context window 最大 token 数 |
+| `context_window.used_percentage` | 使用 context window 割合 |
+| `context_window.remaining_percentage` | 残り context window 割合 |
+| `context_window.current_usage` | 直近 API call の token count（初回 call 前 null） |
+| `vim.mode` | vim mode 有効時 `"NORMAL"` または `"INSERT"` |
+| `worktree.name` | worktree 内実行時の worktree name |
+| `worktree.path` | worktree directory の absolute path |
 
-### Fields that may be absent
+### absent になりうる Field
 
-- `session_name` — only present when a custom name has been set
-- `model.param_summary` — only present when model has non-default parameters
-- `model.max_mode` — only present when max mode is enabled
-- `vim` — only present when vim mode is enabled
-- `worktree` — only present when running in a worktree
+- `session_name` — custom name 設定時のみ
+- `model.param_summary` — model に non-default parameter がある場合のみ
+- `model.max_mode` — max mode 有効時のみ
+- `vim` — vim mode 有効時のみ
+- `worktree` — worktree 内実行時のみ
 
-### Fields that may be null
+### null になりうる Field
 
-- `context_window.current_usage` — null before the first API call
-- `context_window.used_percentage`, `context_window.remaining_percentage` — may be null early in the session
+- `context_window.current_usage` — 初回 API call 前 null
+- `context_window.used_percentage`, `context_window.remaining_percentage` — session 序盤 null の場合あり
 
 ## Stdout / rendering
 
-- **Multiple lines** are supported: each line of stdout renders as a separate row in the status area.
-- **ANSI color codes** are supported (use chalk, tput, `\033[32m`, etc.).
-- If the command exits non-zero with empty stdout, the status line is not updated (previous text is kept).
-- If the command times out or a new update arrives while the script is running, the in-flight process is killed.
-- The status line runs locally and does not consume API tokens.
+- **複数行** 対応: stdout の各行が status area の別 row として render
+- **ANSI color code** 対応（chalk、tput、`\033[32m` など）
+- command が non-zero exit かつ empty stdout の場合、status line は更新されない（前の text を保持）
+- command が timeout、または script 実行中に新 update が来た場合、in-flight process は kill
+- status line は local 実行で API token を消費しない
 
 ## Examples
 
@@ -172,7 +169,7 @@ echo -e "\033[36m[$MODEL]\033[0m 📁 ${DIR##*/}$BRANCH"
 echo -e "ctx $PCT%"
 ```
 
-### Inline jq command (no script file)
+### Inline jq command（script file 不要）
 
 ```json
 {
@@ -185,10 +182,10 @@ echo -e "ctx $PCT%"
 
 ## Testing
 
-Test a script with mock input:
+mock input で script をテスト:
 
 ```bash
 echo '{"model":{"display_name":"Opus"},"context_window":{"used_percentage":25}}' | ./statusline.sh
 ```
 
-The command is spawned with `child_process.spawn` (no shell on Unix, `shell: true` on Windows for .cmd/.bat compatibility). Updates are debounced at the configured interval. If a new update triggers while a script is running, the in-flight process is killed via `AbortController` and the new invocation starts immediately.
+command は `child_process.spawn` で spawn（Unix では shell なし、Windows では .cmd/.bat 互換のため `shell: true`）。update は設定 interval で debounce。script 実行中に新 update が来た場合、in-flight process は `AbortController` で kill され、新 invocation が即開始されます。

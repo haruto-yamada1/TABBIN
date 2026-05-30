@@ -1,15 +1,15 @@
 ---
-title: Animate Transform and Opacity Instead of Layout Properties
+title: レイアウトプロパティではなく transform と opacity をアニメーション
 impact: HIGH
-impactDescription: GPU-accelerated animations, no layout recalculation
+impactDescription: GPU アクセラレーション、レイアウト再計算なし
 tags: animation, performance, reanimated, transform, opacity
 ---
 
-## Animate Transform and Opacity Instead of Layout Properties
+## レイアウトプロパティではなく transform と opacity をアニメーション
 
-Avoid animating `width`, `height`, `top`, `left`, `margin`, or `padding`. These trigger layout recalculation on every frame. Instead, use `transform` (scale, translate) and `opacity` which run on the GPU without triggering layout.
+`width`、`height`、`top`、`left`、`margin`、`padding` のアニメーションは避けてください。これらはフレームごとにレイアウト再計算をトリガーします。代わりに `transform`（scale、translate）と `opacity` を使い、レイアウトをトリガーせず GPU で実行します。
 
-**Incorrect (animates height, triggers layout every frame):**
+**不適切（height をアニメーション、毎フレームレイアウト）:**
 
 ```tsx
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated'
@@ -24,7 +24,7 @@ function CollapsiblePanel({ expanded }: { expanded: boolean }) {
 }
 ```
 
-**Correct (animates scaleY, GPU-accelerated):**
+**適切（scaleY をアニメーション、GPU アクセラレーション）:**
 
 ```tsx
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated'
@@ -45,7 +45,7 @@ function CollapsiblePanel({ expanded }: { expanded: boolean }) {
 }
 ```
 
-**Correct (animates translateY for slide animations):**
+**適切（スライドアニメーションに translateY）:**
 
 ```tsx
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated'
@@ -62,4 +62,4 @@ function SlideIn({ visible }: { visible: boolean }) {
 }
 ```
 
-GPU-accelerated properties: `transform` (translate, scale, rotate), `opacity`. Everything else triggers layout.
+GPU アクセラレーション対象: `transform`（translate、scale、rotate）、`opacity`。それ以外はレイアウトをトリガーします。

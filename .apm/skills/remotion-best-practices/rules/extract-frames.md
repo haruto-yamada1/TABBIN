@@ -1,17 +1,17 @@
 ---
 name: extract-frames
-description: Extract frames from videos at specific timestamps using Mediabunny
+description: Remotion からフレームを抽出
 metadata:
   tags: frames, extract, video, thumbnail, filmstrip, canvas
 ---
 
-# Extracting frames from videos
+# 動画からフレームを抽出
 
-Use Mediabunny to extract frames from videos at specific timestamps. This is useful for generating thumbnails, filmstrips, or processing individual frames.
+Mediabunny で特定タイムスタンプのフレームを抽出します。サムネイル、フィルムストリップ、個別フレーム処理に便利です。
 
-## The `extractFrames()` function
+## `extractFrames()` 関数
 
-This function can be copy-pasted into any project.
+この関数は任意のプロジェクトへコピペできます。
 
 ```tsx
 import { ALL_FORMATS, Input, UrlSource, VideoSample, VideoSampleSink } from "mediabunny";
@@ -92,9 +92,9 @@ export async function extractFrames({
 }
 ```
 
-## Basic usage
+## 基本用法
 
-Extract frames at specific timestamps:
+特定タイムスタンプでフレームを抽出:
 
 ```tsx
 await extractFrames({
@@ -110,9 +110,9 @@ await extractFrames({
 });
 ```
 
-## Creating a filmstrip
+## フィルムストリップの作成
 
-Use a callback function to dynamically calculate timestamps based on video metadata:
+callback で動画 metadata に基づきタイムスタンプを動的計算:
 
 ```tsx
 const canvasWidth = 500;
@@ -146,9 +146,9 @@ await extractFrames({
 });
 ```
 
-## Cancellation with AbortSignal
+## AbortSignal によるキャンセル
 
-Cancel frame extraction after a timeout:
+タイムアウト後にフレーム抽出をキャンセル:
 
 ```tsx
 const controller = new AbortController();
@@ -176,7 +176,7 @@ try {
 }
 ```
 
-## Timeout with Promise.race
+## Promise.race によるタイムアウト
 
 ```tsx
 const controller = new AbortController();

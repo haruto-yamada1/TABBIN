@@ -1,19 +1,15 @@
 ---
-title: Use Compound Components Over Polymorphic Children
+title: 多態的 children より複合コンポーネントを使用
 impact: MEDIUM
-impactDescription: flexible composition, clearer API
+impactDescription: 柔軟な合成、明確な API
 tags: design-system, components, composition
 ---
 
-## Use Compound Components Over Polymorphic Children
+## 多態的 children より複合コンポーネントを使用
 
-Don't create components that can accept a string if they aren't a text node. If
-a component can receive a string child, it must be a dedicated `*Text`
-component. For components like buttons, which can have both a View (or
-Pressable) together with text, use compound components, such a `Button`,
-`ButtonText`, and `ButtonIcon`.
+テキストノードでないコンポーネントが文字列を受け取れるようにしないでください。文字列の子を受け取れる場合は専用の `*Text` コンポーネントである必要があります。View（または Pressable）とテキストの両方を持つボタンなどには、`Button`、`ButtonText`、`ButtonIcon` のような複合コンポーネントを使用します。
 
-**Incorrect (polymorphic children):**
+**不適切（多態的 children）:**
 
 ```tsx
 import { Pressable, Text } from 'react-native'
@@ -37,7 +33,7 @@ function Button({ children, icon }: ButtonProps) {
 <Button><CustomText>Save</CustomText></Button>
 ```
 
-**Correct (compound components):**
+**適切（複合コンポーネント）:**
 
 ```tsx
 import { Pressable, Text } from 'react-native'

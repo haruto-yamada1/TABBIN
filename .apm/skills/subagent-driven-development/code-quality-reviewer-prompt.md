@@ -1,10 +1,10 @@
-# Code Quality Reviewer Prompt Template
+# コード品質レビュアー プロンプトテンプレート
 
-Use this template when dispatching a code quality reviewer subagent.
+コード品質レビュアーサブエージェントを dispatch するときにこのテンプレートを使います。
 
-**Purpose:** Verify implementation is well-built (clean, tested, maintainable)
+**目的:** 実装がよく作られているか（クリーン、テスト済み、保守可能）を検証する
 
-**Only dispatch after spec compliance review passes.**
+**spec 準拠レビューが通った後にのみ dispatch すること。**
 
 ```
 Task tool (superpowers:code-reviewer):
@@ -17,4 +17,4 @@ Task tool (superpowers:code-reviewer):
   DESCRIPTION: [task summary]
 ```
 
-**Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment
+**コードレビュアーの返答:** Strengths、Issues (Critical/Important/Minor)、Assessment

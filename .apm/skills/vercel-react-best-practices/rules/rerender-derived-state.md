@@ -1,15 +1,15 @@
 ---
-title: Subscribe to Derived State
+title: 派生 state を購読する
 impact: MEDIUM
-impactDescription: reduces re-render frequency
+impactDescription: 再レンダー頻度を低減
 tags: rerender, derived-state, media-query, optimization
 ---
 
-## Subscribe to Derived State
+## 派生 state を購読する
 
-Subscribe to derived boolean state instead of continuous values to reduce re-render frequency.
+連続値ではなく派生した boolean state を購読し、再レンダー頻度を低減します。
 
-**Incorrect (re-renders on every pixel change):**
+**不適切（ピクセル変更ごとに再レンダー）:**
 
 ```tsx
 function Sidebar() {
@@ -19,7 +19,7 @@ function Sidebar() {
 }
 ```
 
-**Correct (re-renders only when boolean changes):**
+**適切（boolean 変更時のみ再レンダー）:**
 
 ```tsx
 function Sidebar() {

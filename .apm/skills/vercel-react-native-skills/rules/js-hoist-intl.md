@@ -1,17 +1,15 @@
 ---
-title: Hoist Intl Formatter Creation
+title: Intl フォーマッター作成を巻き上げ
 impact: LOW-MEDIUM
-impactDescription: avoids expensive object recreation
+impactDescription: 高コストなオブジェクト再作成を回避
 tags: javascript, intl, optimization, memoization
 ---
 
-## Hoist Intl Formatter Creation
+## Intl フォーマッター作成を巻き上げ
 
-Don't create `Intl.DateTimeFormat`, `Intl.NumberFormat`, or
-`Intl.RelativeTimeFormat` inside render or loops. These are expensive to
-instantiate. Hoist to module scope when the locale/options are static.
+レンダーやループ内で `Intl.DateTimeFormat`、`Intl.NumberFormat`、`Intl.RelativeTimeFormat` を作成しないでください。インスタンス化は高コストです。ロケール/オプションが静的ならモジュールスコープに巻き上げます。
 
-**Incorrect (new formatter every render):**
+**不適切（レンダーごとに新しいフォーマッター）:**
 
 ```tsx
 function Price({ amount }: { amount: number }) {
@@ -23,7 +21,7 @@ function Price({ amount }: { amount: number }) {
 }
 ```
 
-**Correct (hoisted to module scope):**
+**適切（モジュールスコープに巻き上げ）:**
 
 ```tsx
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -36,7 +34,7 @@ function Price({ amount }: { amount: number }) {
 }
 ```
 
-**For dynamic locales, memoize:**
+**動的ロケールはメモ化:**
 
 ```tsx
 const dateFormatter = useMemo(
@@ -45,7 +43,7 @@ const dateFormatter = useMemo(
 )
 ```
 
-**Common formatters to hoist:**
+**巻き上げる一般的なフォーマッター:**
 
 ```tsx
 // Module-level formatters
@@ -57,5 +55,4 @@ const relativeFormatter = new Intl.RelativeTimeFormat('en-US', {
 })
 ```
 
-Creating `Intl` objects is significantly more expensive than `RegExp` or plain
-objects—each instantiation parses locale data and builds internal lookup tables.
+`Intl` オブジェクトの作成は `RegExp` やプレーンオブジェクトより大幅に高コストです。各インスタンス化でロケールデータを解析し内部ルックアップテーブルを構築します。

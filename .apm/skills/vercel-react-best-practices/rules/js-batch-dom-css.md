@@ -1,15 +1,15 @@
 ---
-title: Avoid Layout Thrashing
+title: レイアウトスラッシングを避ける
 impact: MEDIUM
-impactDescription: prevents forced synchronous layouts and reduces performance bottlenecks
+impactDescription: 強制同期レイアウトを防ぎパフォーマンスボトルネックを低減
 tags: javascript, dom, css, performance, reflow, layout-thrashing
 ---
 
-## Avoid Layout Thrashing
+## レイアウトスラッシングを避ける
 
-Avoid interleaving style writes with layout reads. When you read a layout property (like `offsetWidth`, `getBoundingClientRect()`, or `getComputedStyle()`) between style changes, the browser is forced to trigger a synchronous reflow.
+スタイル書き込みとレイアウト読み取りを交互に行わないでください。スタイル変更の間にレイアウトプロパティ（`offsetWidth`、`getBoundingClientRect()`、`getComputedStyle()` など）を読むと、ブラウザは同期 reflow を強制されます。
 
-**This is OK (browser batches style changes):**
+**問題なし（ブラウザがスタイル変更をバッチ処理）:**
 ```typescript
 function updateElementStyles(element: HTMLElement) {
   // Each line invalidates style, but browser batches the recalculation
@@ -20,7 +20,7 @@ function updateElementStyles(element: HTMLElement) {
 }
 ```
 
-**Incorrect (interleaved reads and writes force reflows):**
+**不適切（読み書きの交互実行が reflow を強制）:**
 ```typescript
 function layoutThrashing(element: HTMLElement) {
   element.style.width = '100px'
@@ -30,7 +30,7 @@ function layoutThrashing(element: HTMLElement) {
 }
 ```
 
-**Correct (batch writes, then read once):**
+**適切（書き込みをバッチ化し、1 回だけ読み取り）:**
 ```typescript
 function updateElementStyles(element: HTMLElement) {
   // Batch all writes together
@@ -44,7 +44,7 @@ function updateElementStyles(element: HTMLElement) {
 }
 ```
 
-**Correct (batch reads, then writes):**
+**適切（読み取りをバッチ化し、その後書き込み）:**
 ```typescript
 function avoidThrashing(element: HTMLElement) {
   // Read phase - all layout queries first
@@ -58,7 +58,7 @@ function avoidThrashing(element: HTMLElement) {
 }
 ```
 
-**Better: use CSS classes**
+**より良い方法: CSS クラスを使用**
 ```css
 .highlighted-box {
   width: 100px;
@@ -75,7 +75,7 @@ function updateElementStyles(element: HTMLElement) {
 }
 ```
 
-**React example:**
+**React の例:**
 ```tsx
 // Incorrect: interleaving style changes with layout queries
 function Box({ isHighlighted }: { isHighlighted: boolean }) {
@@ -102,6 +102,6 @@ function Box({ isHighlighted }: { isHighlighted: boolean }) {
 }
 ```
 
-Prefer CSS classes over inline styles when possible. CSS files are cached by the browser, and classes provide better separation of concerns and are easier to maintain.
+可能な場合はインラインスタイルより CSS クラスを優先してください。CSS ファイルはブラウザにキャッシュされ、クラスは関心の分離が良く保守しやすくなります。
 
-See [this gist](https://gist.github.com/paulirish/5d52fb081b3570c81e3a) and [CSS Triggers](https://csstriggers.com/) for more information on layout-forcing operations.
+レイアウト強制操作の詳細は [this gist](https://gist.github.com/paulirish/5d52fb081b3570c81e3a) と [CSS Triggers](https://csstriggers.com/) を参照してください。

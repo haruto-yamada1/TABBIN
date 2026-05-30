@@ -1,17 +1,15 @@
 ---
-title: Never Use && with Potentially Falsy Values
+title: falsy になり得る値で && を使わない
 impact: CRITICAL
-impactDescription: prevents production crash
+impactDescription: 本番クラッシュを防ぐ
 tags: rendering, conditional, jsx, crash
 ---
 
-## Never Use && with Potentially Falsy Values
+## falsy になり得る値で && を使わない
 
-Never use `{value && <Component />}` when `value` could be an empty string or
-`0`. These are falsy but JSX-renderable—React Native will try to render them as
-text outside a `<Text>` component, causing a hard crash in production.
+`value` が空文字列や `0` になり得る場合、`{value && <Component />}` は使わないでください。これらは falsy ですが JSX でレンダリング可能です。React Native は `<Text>` 外でテキストとしてレンダリングしようとし、本番でハードクラッシュします。
 
-**Incorrect (crashes if count is 0 or name is ""):**
+**不適切（count が 0 または name が "" のときクラッシュ）:**
 
 ```tsx
 function Profile({ name, count }: { name: string; count: number }) {
@@ -25,7 +23,7 @@ function Profile({ name, count }: { name: string; count: number }) {
 // If name="" or count=0, renders the falsy value → crash
 ```
 
-**Correct (ternary with null):**
+**適切（null 付き三項演算子）:**
 
 ```tsx
 function Profile({ name, count }: { name: string; count: number }) {
@@ -38,7 +36,7 @@ function Profile({ name, count }: { name: string; count: number }) {
 }
 ```
 
-**Correct (explicit boolean coercion):**
+**適切（明示的 boolean 変換）:**
 
 ```tsx
 function Profile({ name, count }: { name: string; count: number }) {
@@ -51,7 +49,7 @@ function Profile({ name, count }: { name: string; count: number }) {
 }
 ```
 
-**Best (early return):**
+**最良（早期 return）:**
 
 ```tsx
 function Profile({ name, count }: { name: string; count: number }) {
@@ -66,9 +64,6 @@ function Profile({ name, count }: { name: string; count: number }) {
 }
 ```
 
-Early returns are clearest. When using conditionals inline, prefer ternary or
-explicit boolean checks.
+早期 return が最も明確です。インライン条件を使う場合は三項演算子または明示的 boolean チェックを優先してください。
 
-**Lint rule:** Enable `react/jsx-no-leaked-render` from
-[eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-leaked-render.md)
-to catch this automatically.
+**Lint ルール:** [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/jsx-no-leaked-render.md) の `react/jsx-no-leaked-render` を有効にして自動検出してください。

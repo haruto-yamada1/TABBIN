@@ -1,18 +1,15 @@
 ---
-title: State Must Represent Ground Truth
+title: state は ground truth を表す必要がある
 impact: HIGH
-impactDescription: cleaner logic, easier debugging, single source of truth
+impactDescription: ロジックの明確化、デバッグ容易、単一の source of truth
 tags: state, derived-state, reanimated, hooks
 ---
 
-## State Must Represent Ground Truth
+## state は ground truth を表す必要がある
 
-State variables—both React `useState` and Reanimated shared values—should
-represent the actual state of something (e.g., `pressed`, `progress`, `isOpen`),
-not derived visual values (e.g., `scale`, `opacity`, `translateY`). Derive
-visual values from state using computation or interpolation.
+React `useState` と Reanimated shared value の両方で、state 変数は視覚的な派生値（`scale`、`opacity`、`translateY` など）ではなく、何かの実際の状態（`pressed`、`progress`、`isOpen` など）を表すべきです。計算や補間で state から視覚値を派生させます。
 
-**Incorrect (storing the visual output):**
+**不適切（視覚出力を保存）:**
 
 ```tsx
 const scale = useSharedValue(1)
@@ -30,7 +27,7 @@ const animatedStyle = useAnimatedStyle(() => ({
 }))
 ```
 
-**Correct (storing the state, deriving the visual):**
+**適切（state を保存し、視覚を派生）:**
 
 ```tsx
 const pressed = useSharedValue(0) // 0 = not pressed, 1 = pressed
@@ -48,20 +45,16 @@ const animatedStyle = useAnimatedStyle(() => ({
 }))
 ```
 
-**Why this matters:**
+**重要な理由:**
 
-State variables should represent real "state", not necessarily a desired end
-result.
+state 変数は必ずしも最終結果ではなく、実際の「状態」を表すべきです。
 
-1. **Single source of truth** — The state (`pressed`) describes what's
-   happening; visuals are derived
-2. **Easier to extend** — Adding opacity, rotation, or other effects just
-   requires more interpolations from the same state
-3. **Debugging** — Inspecting `pressed = 1` is clearer than `scale = 0.95`
-4. **Reusable logic** — The same `pressed` value can drive multiple visual
-   properties
+1. **単一の source of truth** — state（`pressed`）が何が起きているかを記述し、視覚は派生
+2. **拡張しやすい** — 同じ state から opacity や rotation などを補間で追加可能
+3. **デバッグ** — `pressed = 1` の方が `scale = 0.95` より明確
+4. **再利用可能なロジック** — 同じ `pressed` 値が複数の視覚プロパティを駆動
 
-**Same principle for React state:**
+**React state でも同じ原則:**
 
 ```tsx
 // Incorrect: storing derived values
@@ -77,4 +70,4 @@ const [isExpanded, setIsExpanded] = useState(false)
 const height = isExpanded ? 200 : 0
 ```
 
-State is the minimal truth. Everything else is derived.
+state は最小限の真実。それ以外はすべて派生です。

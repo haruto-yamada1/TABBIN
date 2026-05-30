@@ -1,13 +1,13 @@
 ---
 name: trimming
-description: Trimming patterns for Remotion - cut the beginning or end of animations
+description: Remotion のトリムパターン — アニメーションの先頭・末尾カット
 metadata:
   tags: sequence, trim, clip, cut, offset
 ---
 
 Use `<Sequence>` with a negative `from` value to trim the start of an animation.
 
-## Trim the Beginning
+## 先頭をトリム
 
 A negative `from` value shifts time backwards, making the animation start partway through:
 
@@ -21,10 +21,10 @@ const fps = useVideoConfig();
 </Sequence>;
 ```
 
-The animation appears 15 frames into its progress - the first 15 frames are trimmed off.
+animation appears 15 frames into its progress - the first 15 frames are trimmed off。
 Inside `<MyAnimation>`, `useCurrentFrame()` starts at 15 instead of 0.
 
-## Trim the End
+## 末尾をトリム
 
 Use `durationInFrames` to unmount content after a specified duration:
 
@@ -34,9 +34,9 @@ Use `durationInFrames` to unmount content after a specified duration:
 </Sequence>
 ```
 
-The animation plays for 45 frames, then the component unmounts.
+animation plays for 45 frames, then the component unmounts。
 
-## Trim and Delay
+## トリムと遅延
 
 Nest sequences to both trim the beginning and delay when it appears:
 
@@ -48,4 +48,4 @@ Nest sequences to both trim the beginning and delay when it appears:
 </Sequence>
 ```
 
-The inner sequence trims 15 frames from the start, and the outer sequence delays the result by 30 frames.
+inner sequence trims 15 frames from the start, and the outer sequence delays the result by 30 frames。

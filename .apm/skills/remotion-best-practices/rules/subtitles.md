@@ -1,17 +1,17 @@
 ---
 name: subtitles
-description: subtitles and caption rules
+description: 字幕とキャプションのルール
 metadata:
   tags: subtitles, captions, remotion, json
 ---
 
-All captions must be processed in JSON. The captions must use the `Caption` type which is the following:
+すべてのキャプションは JSON で処理する必要があります。キャプションは次の `Caption` 型を使います:
 
 ```ts
 import type { Caption } from "@remotion/captions";
 ```
 
-This is the definition:
+型定義:
 
 ```ts
 type Caption = {
@@ -23,14 +23,14 @@ type Caption = {
 };
 ```
 
-## Generating captions
+## キャプション生成
 
-To transcribe video and audio files to generate captions, load the [./transcribe-captions.md](./transcribe-captions.md) file for more instructions.
+動画・音声からキャプションを生成する手順は [./transcribe-captions.md](./transcribe-captions.md) を参照してください。
 
-## Displaying captions
+## キャプション表示
 
-To display captions in your video, load the [./display-captions.md](./display-captions.md) file for more instructions.
+動画へのキャプション表示は [./display-captions.md](./display-captions.md) を参照してください。
 
-## Importing captions
+## キャプション import
 
-To import captions from a .srt file, load the [./import-srt-captions.md](./import-srt-captions.md) file for more instructions.
+.srt からの import は [./import-srt-captions.md](./import-srt-captions.md) を参照してください。

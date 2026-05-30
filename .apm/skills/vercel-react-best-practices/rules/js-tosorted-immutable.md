@@ -1,15 +1,15 @@
 ---
-title: Use toSorted() Instead of sort() for Immutability
+title: 不変性のため sort() の代わりに toSorted() を使用
 impact: MEDIUM-HIGH
-impactDescription: prevents mutation bugs in React state
+impactDescription: React state の mutation バグを防ぐ
 tags: javascript, arrays, immutability, react, state, mutation
 ---
 
-## Use toSorted() Instead of sort() for Immutability
+## 不変性のため sort() の代わりに toSorted() を使用
 
-`.sort()` mutates the array in place, which can cause bugs with React state and props. Use `.toSorted()` to create a new sorted array without mutation.
+`.sort()` は配列をインプレースで変更し、React state や props でバグの原因になります。mutation なしで新しいソート済み配列を作る `.toSorted()` を使用します。
 
-**Incorrect (mutates original array):**
+**不適切（元の配列を変更）:**
 
 ```typescript
 function UserList({ users }: { users: User[] }) {
@@ -22,7 +22,7 @@ function UserList({ users }: { users: User[] }) {
 }
 ```
 
-**Correct (creates new array):**
+**適切（新しい配列を作成）:**
 
 ```typescript
 function UserList({ users }: { users: User[] }) {
@@ -35,23 +35,23 @@ function UserList({ users }: { users: User[] }) {
 }
 ```
 
-**Why this matters in React:**
+**React で重要な理由:**
 
-1. Props/state mutations break React's immutability model - React expects props and state to be treated as read-only
-2. Causes stale closure bugs - Mutating arrays inside closures (callbacks, effects) can lead to unexpected behavior
+1. props/state の mutation は React の不変性モデルを破る — React は props と state を読み取り専用として扱うことを期待
+2. stale closure バグの原因 — クロージャ（コールバック、effect）内で配列を変更すると予期しない挙動になる
 
-**Browser support (fallback for older browsers):**
+**ブラウザサポート（旧ブラウザ向けフォールバック）:**
 
-`.toSorted()` is available in all modern browsers (Chrome 110+, Safari 16+, Firefox 115+, Node.js 20+). For older environments, use spread operator:
+`.toSorted()` はすべてのモダンブラウザ（Chrome 110+、Safari 16+、Firefox 115+、Node.js 20+）で利用可能です。旧環境ではスプレッド演算子を使用:
 
 ```typescript
 // Fallback for older browsers
 const sorted = [...items].sort((a, b) => a.value - b.value)
 ```
 
-**Other immutable array methods:**
+**その他の不変配列メソッド:**
 
-- `.toSorted()` - immutable sort
-- `.toReversed()` - immutable reverse
-- `.toSpliced()` - immutable splice
-- `.with()` - immutable element replacement
+- `.toSorted()` - 不変ソート
+- `.toReversed()` - 不変リバース
+- `.toSpliced()` - 不変スプライス
+- `.with()` - 不変要素置換

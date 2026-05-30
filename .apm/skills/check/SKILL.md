@@ -3,7 +3,7 @@ name: check
 description: "$check に対応する品質チェック実行スキル。npm run quality を実行し、format/lint/type/test の失敗を自動修正ループで解消する。品質ゲート実行、CI失敗修正、lint/type/test エラーの自動修正を求められたときに使用する。"
 ---
 
-# Check
+# 品質チェック
 
 `$check` で `npm run quality` を実行し、失敗時はログを読んで修正し、再実行して収束させる。
 

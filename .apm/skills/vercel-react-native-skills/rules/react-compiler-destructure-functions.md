@@ -1,19 +1,17 @@
 ---
-title: Destructure Functions Early in Render (React Compiler)
+title: レンダー早期に関数を分割代入（React Compiler）
 impact: HIGH
-impactDescription: stable references, fewer re-renders
+impactDescription: 安定した参照、再レンダー削減
 tags: rerender, hooks, performance, react-compiler
 ---
 
-## Destructure Functions Early in Render
+## レンダー早期に関数を分割代入
 
-This rule is only applicable if you are using the React Compiler.
+このルールは React Compiler を使用している場合のみ適用されます。
 
-Destructure functions from hooks at the top of render scope. Never dot into
-objects to call functions. Destructured functions are stable references; dotting
-creates new references and breaks memoization.
+フックから関数をレンダースコープの先頭で分割代入します。オブジェクトにドットして関数を呼ばないでください。分割代入した関数は安定した参照です。ドットアクセスは新しい参照を作りメモ化を壊します。
 
-**Incorrect (dotting into object):**
+**不適切（オブジェクトにドット）:**
 
 ```tsx
 import { useRouter } from 'expo-router'
@@ -31,7 +29,7 @@ function SaveButton(props) {
 }
 ```
 
-**Correct (destructure early):**
+**適切（早期分割代入）:**
 
 ```tsx
 import { useRouter } from 'expo-router'

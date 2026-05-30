@@ -1,18 +1,15 @@
 ---
-title: Use Native Modals Over JS-Based Bottom Sheets
+title: JS ベース Bottom Sheet よりネイティブ Modal を使用
 impact: HIGH
-impactDescription: native performance, gestures, accessibility
+impactDescription: ネイティブパフォーマンス、ジェスチャー、アクセシビリティ
 tags: modals, bottom-sheet, native, react-navigation
 ---
 
-## Use Native Modals Over JS-Based Bottom Sheets
+## JS ベース Bottom Sheet よりネイティブ Modal を使用
 
-Use native `<Modal>` with `presentationStyle="formSheet"` or React Navigation
-v7's native form sheet instead of JS-based bottom sheet libraries. Native modals
-have built-in gestures, accessibility, and better performance. Rely on native UI
-for low-level primitives.
+JS ベースの bottom sheet ライブラリの代わりに、ネイティブ `<Modal>` と `presentationStyle="formSheet"`、または React Navigation v7 のネイティブ form sheet を使用します。ネイティブ modal は組み込みジェスチャー、アクセシビリティ、より良いパフォーマンスを持ちます。低レベルプリミティブはネイティブ UI に任せます。
 
-**Incorrect (JS-based bottom sheet):**
+**不適切（JS ベース bottom sheet）:**
 
 ```tsx
 import BottomSheet from 'custom-js-bottom-sheet'
@@ -33,7 +30,7 @@ function MyScreen() {
 }
 ```
 
-**Correct (native Modal with formSheet):**
+**適切（formSheet 付きネイティブ Modal）:**
 
 ```tsx
 import { Modal, View, Text, Button } from 'react-native'
@@ -59,7 +56,7 @@ function MyScreen() {
 }
 ```
 
-**Correct (React Navigation v7 native form sheet):**
+**適切（React Navigation v7 ネイティブ form sheet）:**
 
 ```tsx
 // In your navigator
@@ -73,5 +70,4 @@ function MyScreen() {
 />
 ```
 
-Native modals provide swipe-to-dismiss, proper keyboard avoidance, and
-accessibility out of the box.
+ネイティブ modal はスワイプで閉じる、適切なキーボード回避、アクセシビリティを標準で提供します。

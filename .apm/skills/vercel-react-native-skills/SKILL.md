@@ -11,7 +11,7 @@ metadata:
   version: '1.0.0'
 ---
 
-# React Native Skills
+# React Native skill
 
 Comprehensive best practices for React Native and Expo applications. Contains
 rules across multiple categories covering performance, animations, UI patterns,

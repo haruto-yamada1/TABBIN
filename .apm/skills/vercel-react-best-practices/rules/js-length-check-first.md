@@ -1,17 +1,17 @@
 ---
-title: Early Length Check for Array Comparisons
+title: 配列比較の早期長さチェック
 impact: MEDIUM-HIGH
-impactDescription: avoids expensive operations when lengths differ
+impactDescription: 長さが異なる場合の高コスト操作を回避
 tags: javascript, arrays, performance, optimization, comparison
 ---
 
-## Early Length Check for Array Comparisons
+## 配列比較の早期長さチェック
 
-When comparing arrays with expensive operations (sorting, deep equality, serialization), check lengths first. If lengths differ, the arrays cannot be equal.
+高コスト操作（ソート、深い等価性、シリアライズ）で配列を比較する場合、まず長さをチェックします。長さが異なれば配列は等しくなり得ません。
 
-In real-world applications, this optimization is especially valuable when the comparison runs in hot paths (event handlers, render loops).
+実アプリケーションでは、比較がホットパス（イベントハンドラー、レンダーループ）で実行される場合に特に有効です。
 
-**Incorrect (always runs expensive comparison):**
+**不適切（常に高コスト比較を実行）:**
 
 ```typescript
 function hasChanges(current: string[], original: string[]) {
@@ -20,9 +20,9 @@ function hasChanges(current: string[], original: string[]) {
 }
 ```
 
-Two O(n log n) sorts run even when `current.length` is 5 and `original.length` is 100. There is also overhead of joining the arrays and comparing the strings.
+`current.length` が 5 で `original.length` が 100 でも 2 つの O(n log n) ソートが実行されます。配列の join と文字列比較のオーバーヘッドもあります。
 
-**Correct (O(1) length check first):**
+**適切（O(1) の長さチェックを先に）:**
 
 ```typescript
 function hasChanges(current: string[], original: string[]) {
@@ -42,8 +42,8 @@ function hasChanges(current: string[], original: string[]) {
 }
 ```
 
-This new approach is more efficient because:
-- It avoids the overhead of sorting and joining the arrays when lengths differ
-- It avoids consuming memory for the joined strings (especially important for large arrays)
-- It avoids mutating the original arrays
-- It returns early when a difference is found
+この新しいアプローチがより効率的な理由:
+- 長さが異なる場合のソートと join のオーバーヘッドを回避
+- join 文字列のメモリ消費を回避（大きな配列で特に重要）
+- 元の配列を変更しない
+- 差異が見つかった時点で早期 return

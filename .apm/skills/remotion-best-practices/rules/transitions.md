@@ -1,26 +1,26 @@
 ---
 name: transitions
-description: Scene transitions and overlays for Remotion using TransitionSeries.
+description: TransitionSeries によるシーン遷移とオーバーレイ
 metadata:
   tags: transitions, overlays, fade, slide, wipe, scenes
 ---
 
 ## TransitionSeries
 
-`<TransitionSeries>` arranges scenes and supports two ways to enhance the cut point between them:
+`<TransitionSeries>` はシーンを並べ、カット点を強化する 2 つの方法をサポートします:
 
-- **Transitions** (`<TransitionSeries.Transition>`) — crossfade, slide, wipe, etc. between two scenes. Shortens the timeline because both scenes play simultaneously during the transition.
-- **Overlays** (`<TransitionSeries.Overlay>`) — render an effect (e.g. a light leak) on top of the cut point without shortening the timeline.
+- **Transitions** (`<TransitionSeries.Transition>`) — 2 シーン間の crossfade、slide、wipe など。transition 中は両シーンが同時再生されるため timeline が短くなります。
+- **Overlays** (`<TransitionSeries.Overlay>`) — ライトリークなどの effect をカット点上に重ね、timeline を短くしません。
 
-Children are absolutely positioned.
+子要素は absolute positioning されます。
 
-## Prerequisites
+## 前提条件
 
 ```bash
 npx remotion add @remotion/transitions
 ```
 
-## Transition example
+## Transition の例
 
 ```tsx
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
@@ -40,9 +40,9 @@ import { fade } from "@remotion/transitions/fade";
 </TransitionSeries>;
 ```
 
-## Overlay example
+## Overlay の例
 
-Any React component can be used as an overlay. For a ready-made effect, see the **light-leaks** rule.
+任意の React コンポーネントを overlay にできます。既製 effect には **light-leaks** rule を参照。
 
 ```tsx
 import { TransitionSeries } from "@remotion/transitions";
@@ -61,9 +61,9 @@ import { LightLeak } from "@remotion/light-leaks";
 </TransitionSeries>;
 ```
 
-## Mixing transitions and overlays
+## Transition と Overlay の併用
 
-Transitions and overlays can coexist in the same `<TransitionSeries>`, but an overlay cannot be adjacent to a transition or another overlay.
+同一 `<TransitionSeries>` 内で transition と overlay を共存できますが、overlay は transition や別 overlay に隣接できません。
 
 ```tsx
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
@@ -92,21 +92,21 @@ import { LightLeak } from "@remotion/light-leaks";
 
 ## Transition props
 
-`<TransitionSeries.Transition>` requires:
+`<TransitionSeries.Transition>` には次が必要:
 
-- `presentation` — the visual effect (e.g. `fade()`, `slide()`, `wipe()`).
-- `timing` — controls speed and easing (e.g. `linearTiming()`, `springTiming()`).
+- `presentation` — 視覚 effect（例: `fade()`、`slide()`、`wipe()`）
+- `timing` — 速度と easing（例: `linearTiming()`、`springTiming()`）
 
 ## Overlay props
 
-`<TransitionSeries.Overlay>` accepts:
+`<TransitionSeries.Overlay>` は次を受け取ります:
 
-- `durationInFrames` — how long the overlay is visible (positive integer).
-- `offset?` — shifts the overlay relative to the cut point center. Positive = later, negative = earlier. Default: `0`.
+- `durationInFrames` — overlay 表示時間（正の整数）
+- `offset?` — カット点中心からのずれ。正 = 遅く、負 = 早く。既定: `0`
 
-## Available transition types
+## 利用可能な transition 型
 
-Import transitions from their respective modules:
+各 module から import:
 
 ```tsx
 import { fade } from "@remotion/transitions/fade";
@@ -116,7 +116,7 @@ import { flip } from "@remotion/transitions/flip";
 import { clockWipe } from "@remotion/transitions/clock-wipe";
 ```
 
-## Slide transition with direction
+## 方向付き slide transition
 
 ```tsx
 import { slide } from "@remotion/transitions/slide";
@@ -127,34 +127,34 @@ import { slide } from "@remotion/transitions/slide";
 />;
 ```
 
-Directions: `"from-left"`, `"from-right"`, `"from-top"`, `"from-bottom"`
+方向: `"from-left"`, `"from-right"`, `"from-top"`, `"from-bottom"`
 
-## Timing options
+## タイミングオプション
 
 ```tsx
 import { linearTiming, springTiming } from "@remotion/transitions";
 
-// Linear timing - constant speed
+// Linear timing — 一定速度
 linearTiming({ durationInFrames: 20 });
 
-// Spring timing - organic motion
+// Spring timing — 有機的な動き
 springTiming({ config: { damping: 200 }, durationInFrames: 25 });
 ```
 
-## Duration calculation
+## 期間の計算
 
-Transitions overlap adjacent scenes, so the total composition length is **shorter** than the sum of all sequence durations. Overlays do **not** affect the total duration.
+Transition は隣接シーンを overlap するため、composition 全体の長さは全 sequence duration の合計より **短く** なります。Overlay は合計 duration に **影響しません**。
 
-For example, with two 60-frame sequences and a 15-frame transition:
+例: 60 フレーム × 2 sequence と 15 フレーム transition:
 
-- Without transitions: `60 + 60 = 120` frames
-- With transition: `60 + 60 - 15 = 105` frames
+- transition なし: `60 + 60 = 120` フレーム
+- transition あり: `60 + 60 - 15 = 105` フレーム
 
-Adding an overlay between two other sequences does not change the total.
+他 2 sequence 間の overlay 追加は合計を変えません。
 
-### Getting the duration of a transition
+### transition の duration を取得
 
-Use the `getDurationInFrames()` method on the timing object:
+timing オブジェクトの `getDurationInFrames()` を使います:
 
 ```tsx
 import { linearTiming, springTiming } from "@remotion/transitions";
@@ -162,17 +162,17 @@ import { linearTiming, springTiming } from "@remotion/transitions";
 const linearDuration = linearTiming({
   durationInFrames: 20,
 }).getDurationInFrames({ fps: 30 });
-// Returns 20
+// 20 を返す
 
 const springDuration = springTiming({
   config: { damping: 200 },
 }).getDurationInFrames({ fps: 30 });
-// Returns calculated duration based on spring physics
+// spring 物理に基づく duration を返す
 ```
 
-For `springTiming` without an explicit `durationInFrames`, the duration depends on `fps` because it calculates when the spring animation settles.
+`durationInFrames` 未指定の `springTiming` では、spring が落ち着くタイミングに依存するため duration は `fps` に依存します。
 
-### Calculating total composition duration
+### composition 合計 duration の計算
 
 ```tsx
 import { linearTiming } from "@remotion/transitions";
@@ -189,5 +189,5 @@ const transition2Duration = timing2.getDurationInFrames({ fps: 30 });
 
 const totalDuration =
   scene1Duration + scene2Duration + scene3Duration - transition1Duration - transition2Duration;
-// 60 + 60 + 60 - 15 - 20 = 145 frames
+// 60 + 60 + 60 - 15 - 20 = 145 フレーム
 ```

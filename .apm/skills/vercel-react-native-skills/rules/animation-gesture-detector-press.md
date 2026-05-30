@@ -1,18 +1,15 @@
 ---
-title: Use GestureDetector for Animated Press States
+title: アニメーション付き Press 状態に GestureDetector を使用
 impact: MEDIUM
-impactDescription: UI thread animations, smoother press feedback
+impactDescription: UI スレッドアニメーション、滑らかな press フィードバック
 tags: animation, gestures, press, reanimated
 ---
 
-## Use GestureDetector for Animated Press States
+## アニメーション付き Press 状態に GestureDetector を使用
 
-For animated press states (scale, opacity on press), use `GestureDetector` with
-`Gesture.Tap()` and shared values instead of Pressable's
-`onPressIn`/`onPressOut`. Gesture callbacks run on the UI thread as worklets—no
-JS thread round-trip for press animations.
+アニメーション付き press 状態（scale、opacity）には、Pressable の `onPressIn`/`onPressOut` の代わりに `GestureDetector` と `Gesture.Tap()`、shared value を使用します。ジェスチャーコールバックは worklet として UI スレッドで実行され、press アニメーションの JS スレッド往復がありません。
 
-**Incorrect (Pressable with JS thread callbacks):**
+**不適切（JS スレッドコールバック付き Pressable）:**
 
 ```tsx
 import { Pressable } from 'react-native'
@@ -43,7 +40,7 @@ function AnimatedButton({ onPress }: { onPress: () => void }) {
 }
 ```
 
-**Correct (GestureDetector with UI thread worklets):**
+**適切（UI スレッド worklet 付き GestureDetector）:**
 
 ```tsx
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -87,9 +84,7 @@ function AnimatedButton({ onPress }: { onPress: () => void }) {
 }
 ```
 
-Store the press **state** (0 or 1), then derive the scale via `interpolate`.
-This keeps the shared value as ground truth. Use `runOnJS` to call JS functions
-from worklets. Use `.set()` and `.get()` for React Compiler compatibility.
+press **state**（0 または 1）を保存し、`interpolate` で scale を派生させます。shared value を ground truth に保ちます。worklet から JS 関数を呼ぶには `runOnJS` を使用します。React Compiler 互換のため `.set()` と `.get()` を使用します。
 
-Reference:
+参考:
 [Gesture Handler Tap Gesture](https://docs.swmansion.com/react-native-gesture-handler/docs/gestures/tap-gesture)

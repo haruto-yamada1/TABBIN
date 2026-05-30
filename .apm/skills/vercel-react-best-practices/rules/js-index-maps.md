@@ -1,15 +1,15 @@
 ---
-title: Build Index Maps for Repeated Lookups
+title: 繰り返しルックアップ用のインデックス Map を構築
 impact: LOW-MEDIUM
-impactDescription: 1M ops to 2K ops
+impactDescription: 100万操作を2000操作に
 tags: javascript, map, indexing, optimization, performance
 ---
 
-## Build Index Maps for Repeated Lookups
+## 繰り返しルックアップ用のインデックス Map を構築
 
-Multiple `.find()` calls by the same key should use a Map.
+同じキーでの複数 `.find()` 呼び出しには Map を使用します。
 
-**Incorrect (O(n) per lookup):**
+**不適切（ルックアップごとに O(n)）:**
 
 ```typescript
 function processOrders(orders: Order[], users: User[]) {
@@ -20,7 +20,7 @@ function processOrders(orders: Order[], users: User[]) {
 }
 ```
 
-**Correct (O(1) per lookup):**
+**適切（ルックアップごとに O(1)）:**
 
 ```typescript
 function processOrders(orders: Order[], users: User[]) {
@@ -33,5 +33,5 @@ function processOrders(orders: Order[], users: User[]) {
 }
 ```
 
-Build map once (O(n)), then all lookups are O(1).
-For 1000 orders × 1000 users: 1M ops → 2K ops.
+Map を 1 回構築（O(n)）すれば、すべてのルックアップは O(1) です。
+1000 注文 × 1000 ユーザー: 100万操作 → 2000 操作。

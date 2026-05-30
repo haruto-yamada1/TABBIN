@@ -1,35 +1,35 @@
 ---
 name: voiceover
-description: Adding AI-generated voiceover to Remotion compositions using ElevenLabs TTS
+description: ElevenLabs TTS で AI ナレーションを追加
 metadata:
   tags: voiceover, audio, elevenlabs, tts, speech, calculateMetadata, dynamic duration
 ---
 
-# Adding AI voiceover to a Remotion composition
+# Remotion composition への AI ナレーション追加
 
-Use ElevenLabs TTS to generate speech audio per scene, then use [`calculateMetadata`](./calculate-metadata) to dynamically size the composition to match the audio.
+ElevenLabs TTS でシーンごとに音声を生成し、[`calculateMetadata`](./calculate-metadata) で composition の長さをオーディオに合わせて動的に調整します。
 
-## Prerequisites
+## 前提条件
 
-An **ElevenLabs API key** is required. Store it in a `.env` file at the project root:
+**ElevenLabs API キー**が必要です。プロジェクトルートの `.env` に保存します:
 
 ```
 ELEVENLABS_API_KEY=your_key_here
 ```
 
-**MUST** ask the user for their ElevenLabs API key if no `.env` file exists or `ELEVENLABS_API_KEY` is not set. **MUST NOT** fall back to other TTS tools.
+`.env` がない、または `ELEVENLABS_API_KEY` が未設定の場合、ユーザーに ElevenLabs API キーを **必ず** 確認してください。他 TTS ツールへの **フォールバック禁止** です。
 
-When running the generation script, use the `--env-file` flag to load the `.env` file:
+生成スクリプト実行時は `--env-file` フラグで `.env` を読み込みます:
 
 ```bash
 node --env-file=.env --strip-types generate-voiceover.ts
 ```
 
-## Generating audio with ElevenLabs
+## ElevenLabs でオーディオ生成
 
-Create a script that reads the config, calls the ElevenLabs API for each scene, and writes MP3 files to the `public/` directory so Remotion can access them via `staticFile()`.
+設定を読み、各シーンで ElevenLabs API を呼び、`public/` に MP3 を書き出すスクリプトを作成します。Remotion は `staticFile()` でアクセスできます。
 
-The core API call for a single scene:
+1 シーン向けのコア API 呼び出し:
 
 ```ts title="generate-voiceover.ts"
 const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -54,9 +54,9 @@ const audioBuffer = Buffer.from(await response.arrayBuffer());
 writeFileSync(`public/voiceover/${compositionId}/${scene.id}.mp3`, audioBuffer);
 ```
 
-## Dynamic composition duration with calculateMetadata
+## calculateMetadata による動的 composition 期間
 
-Use [`calculateMetadata`](./calculate-metadata.md) to measure the [audio durations](./get-audio-duration.md) and set the composition length accordingly.
+[オーディオの長さ](./get-audio-duration.md)を計測し composition の長さを設定するには [`calculateMetadata`](./calculate-metadata.md) を使用します。
 
 ```tsx
 import { CalculateMetadataFunction, staticFile } from "remotion";
@@ -85,14 +85,14 @@ export const calculateMetadata: CalculateMetadataFunction<Props> = async ({ prop
 };
 ```
 
-The computed `sceneDurations` are passed into the component via a `voiceover` prop so the component knows how long each scene should be.
+計算した `sceneDurations` は `voiceover` prop 経由でコンポーネントに渡し、各シーンの長さをコンポーネントが把握できるようにします。
 
-If the composition uses [`<TransitionSeries>`](./transitions.md), subtract the overlap from total duration: [./transitions.md#calculating-total-composition-duration](./transitions.md#calculating-total-composition-duration)
+composition が [`<TransitionSeries>`](./transitions.md) を使う場合、合計 duration からオーバーラップを差し引きます: [./transitions.md#calculating-total-composition-duration](./transitions.md#calculating-total-composition-duration)
 
-## Rendering audio in the component
+## コンポーネント内でのオーディオレンダリング
 
-See [audio.md](./audio.md) for more information on how to render audio in the component.
+コンポーネント内でのオーディオレンダリングの詳細は [audio.md](./audio.md) を参照してください。
 
-## Delaying audio start
+## オーディオ開始の遅延
 
-See [audio.md#delaying](./audio.md#delaying) for more information on how to delay the audio start.
+オーディオ開始の遅延の詳細は [audio.md#delaying](./audio.md#delaying) を参照してください。

@@ -1,11 +1,11 @@
 ---
 name: sequencing
-description: Sequencing patterns for Remotion - delay, trim, limit duration of items
+description: Remotion のシーケンスパターン — 遅延、トリム、期間制限
 metadata:
   tags: sequence, series, timing, delay, trim
 ---
 
-Use `<Sequence>` to delay when an element appears in the timeline.
+`<Sequence>` で timeline 上の要素出現タイミングを遅延できます。
 
 ```tsx
 import { Sequence } from "remotion";
@@ -20,8 +20,8 @@ const {fps} = useVideoConfig();
 </Sequence>
 ```
 
-This will by default wrap the component in an absolute fill element.  
-If the items should not be wrapped, use the `layout` prop:
+既定ではコンポーネントを absolute fill 要素で包みます。  
+包みたくない場合は `layout` prop を使います:
 
 ```tsx
 <Sequence layout="none">
@@ -29,10 +29,10 @@ If the items should not be wrapped, use the `layout` prop:
 </Sequence>
 ```
 
-## Premounting
+## プリマウント
 
-This loads the component in the timeline before it is actually played.  
-Always premount any `<Sequence>`!
+実際の再生前に timeline 上でコンポーネントを読み込みます。  
+`<Sequence>` は **常に** premount してください。
 
 ```tsx
 <Sequence premountFor={1 * fps}>
@@ -42,7 +42,7 @@ Always premount any `<Sequence>`!
 
 ## Series
 
-Use `<Series>` when elements should play one after another without overlap.
+要素を重ならず順番に再生するときは `<Series>` を使います。
 
 ```tsx
 import { Series } from "remotion";
@@ -60,11 +60,11 @@ import { Series } from "remotion";
 </Series>;
 ```
 
-Same as with `<Sequence>`, the items will be wrapped in an absolute fill element by default when using `<Series.Sequence>`, unless the `layout` prop is set to `none`.
+`<Sequence>` と同様、`<Series.Sequence>` も `layout` が `none` でない限り absolute fill で包まれます。
 
-### Series with overlaps
+### 重なりのある Series
 
-Use negative offset for overlapping sequences:
+重なる sequence には負の offset を使います:
 
 ```tsx
 <Series>
@@ -72,26 +72,26 @@ Use negative offset for overlapping sequences:
     <SceneA />
   </Series.Sequence>
   <Series.Sequence offset={-15} durationInFrames={60}>
-    {/* Starts 15 frames before SceneA ends */}
+    {/* SceneA 終了 15 フレーム前に開始 */}
     <SceneB />
   </Series.Sequence>
 </Series>
 ```
 
-## Frame References Inside Sequences
+## Sequence 内のフレーム参照
 
-Inside a Sequence, `useCurrentFrame()` returns the local frame (starting from 0):
+Sequence 内では `useCurrentFrame()` は local frame（0 から）を返します:
 
 ```tsx
 <Sequence from={60} durationInFrames={30}>
   <MyComponent />
-  {/* Inside MyComponent, useCurrentFrame() returns 0-29, not 60-89 */}
+  {/* MyComponent 内では useCurrentFrame() は 0-29（60-89 ではない） */}
 </Sequence>
 ```
 
-## Nested Sequences
+## ネストした Sequence
 
-Sequences can be nested for complex timing:
+複雑なタイミングには Sequence のネストを使います:
 
 ```tsx
 <Sequence from={0} durationInFrames={120}>
@@ -105,9 +105,9 @@ Sequences can be nested for complex timing:
 </Sequence>
 ```
 
-## Nesting compositions within another
+## 別 Composition 内へのネスト
 
-To add a composition within another composition, you can use the `<Sequence>` component with a `width` and `height` prop to specify the size of the composition.
+composition 内に別 composition を入れるには、`<Sequence>` に `width` / `height` を指定します。
 
 ```tsx
 <AbsoluteFill>

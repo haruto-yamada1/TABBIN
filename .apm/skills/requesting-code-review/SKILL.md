@@ -1,52 +1,53 @@
 ---
 name: requesting-code-review
-description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+description: タスク完了時、大きな機能実装後、merge 前に要件を満たしているか検証するときに使います。
 ---
 
-# Requesting Code Review
+# コードレビューの依頼
 
-Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
+superpowers:code-reviewer サブエージェントを dispatch し、問題が連鎖する前に捕捉します。
 
-**Core principle:** Review early, review often.
+**核心原則:** 早く、頻繁にレビューする。
 
-## When to Request Review
+## レビューを依頼するタイミング
 
-**Mandatory:**
-- After each task in subagent-driven development
-- After completing major feature
-- Before merge to main
+**必須:**
+- subagent-driven development の各タスク後
+- 大きな機能完了後
+- main への merge 前
 
-**Optional but valuable:**
-- When stuck (fresh perspective)
-- Before refactoring (baseline check)
-- After fixing complex bug
+**任意だが有用:**
+- 行き詰まったとき（新鮮な視点）
+- リファクタ前（ベースライン確認）
+- 複雑な bug 修正後
 
-## How to Request
+## 依頼方法
 
-**1. Get git SHAs:**
+**1. git SHA を取得:**
+
 ```bash
 BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**2. Dispatch code-reviewer subagent:**
+**2. code-reviewer サブエージェントを dispatch:**
 
-Use Task tool with superpowers:code-reviewer type, fill template at `code-reviewer.md`
+Task tool で superpowers:code-reviewer タイプを使い、`code-reviewer.md` のテンプレートを埋める。
 
-**Placeholders:**
-- `{WHAT_WAS_IMPLEMENTED}` - What you just built
-- `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
-- `{DESCRIPTION}` - Brief summary
+**プレースホルダー:**
+- `{WHAT_WAS_IMPLEMENTED}` - 今作った内容
+- `{PLAN_OR_REQUIREMENTS}` - あるべき振る舞い
+- `{BASE_SHA}` - 開始 commit
+- `{HEAD_SHA}` - 終了 commit
+- `{DESCRIPTION}` - 短い要約
 
-**3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
-- Push back if reviewer is wrong (with reasoning)
+**3. フィードバックに対応:**
+- Critical issue は即修正
+- Important issue は進む前に修正
+- Minor issue は後回しメモ
+- reviewer が誤りなら理由付きで push back
 
-## Example
+## 例
 
 ```
 [Just completed Task 2: Add verification function]
@@ -74,32 +75,32 @@ You: [Fix progress indicators]
 [Continue to Task 3]
 ```
 
-## Integration with Workflows
+## ワークフロー連携
 
 **Subagent-Driven Development:**
-- Review after EACH task
-- Catch issues before they compound
-- Fix before moving to next task
+- 各タスク後にレビュー
+- 問題が複合化する前に捕捉
+- 次タスクへ進む前に修正
 
 **Executing Plans:**
-- Review after each batch (3 tasks)
-- Get feedback, apply, continue
+- 各バッチ（3 タスク）後にレビュー
+- フィードバックを反映して続行
 
-**Ad-Hoc Development:**
-- Review before merge
-- Review when stuck
+**アドホック開発:**
+- merge 前にレビュー
+- 行き詰まったときにレビュー
 
-## Red Flags
+## レッドフラグ
 
-**Never:**
-- Skip review because "it's simple"
-- Ignore Critical issues
-- Proceed with unfixed Important issues
-- Argue with valid technical feedback
+**絶対にやらない:**
+- 「単純だから」レビューを省略
+- Critical issue を無視
+- Important issue 未修正のまま進む
+- 妥当な技術的フィードバックと議論
 
-**If reviewer wrong:**
-- Push back with technical reasoning
-- Show code/tests that prove it works
-- Request clarification
+**reviewer が誤っている場合:**
+- 技術的理由で push back
+- 動作を示す code/test を提示
+- 必要なら clarification を依頼
 
-See template at: requesting-code-review/code-reviewer.md
+テンプレート: requesting-code-review/code-reviewer.md

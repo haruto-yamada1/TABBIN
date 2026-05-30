@@ -1,28 +1,28 @@
 ---
 name: display-captions
-description: Displaying captions in Remotion with TikTok-style pages and word highlighting
+description: Remotion でのキャプション表示
 metadata:
   tags: captions, subtitles, display, tiktok, highlight
 ---
 
-# Displaying captions in Remotion
+# Remotion でキャプションを表示
 
-This guide explains how to display captions in Remotion, assuming you already have captions in the [`Caption`](https://www.remotion.dev/docs/captions/caption) format.
+このガイドは、すでに [`Caption`](https://www.remotion.dev/docs/captions/caption) 形式のキャプションがある前提で、Remotion への表示方法を説明します。
 
-## Prerequisites
+## 前提条件
 
-Read [Transcribing audio](transcribe-captions.md) for how to generate captions.
+キャプション生成方法は [Transcribing audio](transcribe-captions.md) を参照してください。
 
-First, the [`@remotion/captions`](https://www.remotion.dev/docs/captions) package needs to be installed.
-If it is not installed, use the following command:
+[`@remotion/captions`](https://www.remotion.dev/docs/captions) パッケージを先にインストールします。
+未インストールの場合は次のコマンドを使用:
 
 ```bash
 npx remotion add @remotion/captions
 ```
 
-## Fetching captions
+## キャプションの取得
 
-First, fetch your captions JSON file. Use [`useDelayRender()`](https://www.remotion.dev/docs/use-delay-render) to hold the render until the captions are loaded:
+まずキャプション JSON を fetch します。読み込み完了まで render を保留するには [`useDelayRender()`](https://www.remotion.dev/docs/use-delay-render) を使います:
 
 ```tsx
 import { useState, useEffect, useCallback } from "react";
@@ -36,7 +36,7 @@ export const MyComponent: React.FC = () => {
 
   const fetchCaptions = useCallback(async () => {
     try {
-      // Assuming captions.json is in the public/ folder.
+      // captions.json が public/ フォルダにある想定
       const response = await fetch(staticFile("captions123.json"));
       const data = await response.json();
       setCaptions(data);
@@ -54,22 +54,22 @@ export const MyComponent: React.FC = () => {
     return null;
   }
 
-  return <AbsoluteFill>{/* Render captions here */}</AbsoluteFill>;
+  return <AbsoluteFill>{/* ここにキャプションを render */}</AbsoluteFill>;
 };
 ```
 
-## Creating pages
+## ページの作成
 
-Use `createTikTokStyleCaptions()` to group captions into pages. The `combineTokensWithinMilliseconds` option controls how many words appear at once:
+`createTikTokStyleCaptions()` でキャプションをページにグループ化します。`combineTokensWithinMilliseconds` で同時表示する語数を制御します:
 
 ```tsx
 import { useMemo } from "react";
 import { createTikTokStyleCaptions } from "@remotion/captions";
 import type { Caption } from "@remotion/captions";
 
-// How often captions should switch (in milliseconds)
-// Higher values = more words per page
-// Lower values = fewer words (more word-by-word)
+// キャプション切り替え間隔（ミリ秒）
+// 大きい値 = 1 ページあたりの語数が増える
+// 小さい値 = 語数が減る（より word-by-word）
 const SWITCH_CAPTIONS_EVERY_MS = 1200;
 
 const { pages } = useMemo(() => {
@@ -80,9 +80,9 @@ const { pages } = useMemo(() => {
 }, [captions]);
 ```
 
-## Rendering with Sequences
+## Sequence で render
 
-Map over the pages and render each one in a `<Sequence>`. Calculate the start frame and duration from the page timing:
+各ページを `<Sequence>` で render します。開始フレームと duration はページのタイミングから計算します:
 
 ```tsx
 import { Sequence, useVideoConfig, AbsoluteFill } from "remotion";
@@ -117,18 +117,18 @@ const CaptionedContent: React.FC = () => {
 };
 ```
 
-## White-space preservation
+## 空白の保持
 
-The captions are whitespace sensitive. You should include spaces in the `text` field before each word. Use `whiteSpace: "pre"` to preserve the whitespace in the captions.
+キャプションは空白に sensitive です。各語の前に `text` フィールドへ空白を含めてください。`whiteSpace: "pre"` で空白を保持します。
 
-## Separate component for captions
+## キャプション用の別コンポーネント
 
-Put captioning logic in a separate component.  
-Make a new file for it.
+キャプション logic は別コンポーネントに分離してください。  
+専用ファイルを新規作成します。
 
-## Word highlighting
+## 語のハイライト
 
-A caption page contains `tokens` which you can use to highlight the currently spoken word:
+caption page には `tokens` があり、現在発話中の語をハイライトできます:
 
 ```tsx
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
@@ -140,9 +140,9 @@ const CaptionPage: React.FC<{ page: TikTokPage }> = ({ page }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Current time relative to the start of the sequence
+  // Sequence 開始からの相対時間
   const currentTimeMs = (frame / fps) * 1000;
-  // Convert to absolute time by adding the page start
+  // ページ開始を加えて絶対時間に変換
   const absoluteTimeMs = page.startMs + currentTimeMs;
 
   return (
@@ -163,10 +163,10 @@ const CaptionPage: React.FC<{ page: TikTokPage }> = ({ page }) => {
 };
 ```
 
-## Display captions alongside video content
+## 動画コンテンツと並べてキャプションを表示
 
-By default, put the captions alongside the video content, so the captions are in sync.  
-For each video, make a new captions JSON file.
+既定では、キャプションを動画コンテンツと並べて同期表示します。  
+動画ごとに新しい captions JSON ファイルを用意してください。
 
 ```tsx
 <AbsoluteFill>

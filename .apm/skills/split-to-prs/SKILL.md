@@ -1,35 +1,33 @@
 ---
 name: split-to-prs
-description: >-
-  Split current work into small reviewable PRs. Use when the user asks to split
-  a chat, set of changes, branch, or PR.
+description: 現在の作業を小さく review しやすい PR に分割するときに使います。チャット、変更セット、branch、PR の分割依頼時に発火します。
 ---
-# Split to PRs
+# PR への分割
 
-Turn one pile of work into a few small PRs.
+1 つの作業 pile を、review しやすい小さな PR に分割します。
 
-## Hard rules
+## 厳守ルール
 
-- Do not create branches, commit, push, or open PRs until the user approves the split plan.
-- Never discard user work. No destructive git commands (`reset --hard`, `clean -fdx`, branch deletion, force-push, history rewrite) without explicit approval.
-- Always save a recoverable snapshot before moving work around. This often starts from dirty work on `main`, so do not assume there is already a safe branch.
-- Stage only named files or hunks. No `git add .` / `git add -A`.
+- split plan の承認前に branch 作成、commit、push、PR 作成を行いません。
+- ユーザーの作業を破棄しません。明示的な承認なしに destructive git コマンド（`reset --hard`、`clean -fdx`、branch 削除、force-push、history rewrite）は使いません。
+- 作業を移す前に必ず復元可能な snapshot を保存します。`main` 上の dirty work から始まることが多いため、すでに安全な branch があると仮定しません。
+- 指定された file または hunk のみ stage します。`git add .` / `git add -A` は使いません。
 
-## 1. Check the state
+## 1. 状態を確認
 
-Compare the current work to the repo's default branch, including committed and uncommitted changes. Summarize the real slices you see, and use the chat history to recover intent.
+default branch との差分（committed と uncommitted の両方）を比較します。実際の slice を要約し、チャット履歴から intent を復元します。
 
-## 2. Propose the split
+## 2. split を提案
 
-Use judgment on detail. Usually PR titles are enough. Add a one-line scope note only when a title is unclear. Show a Mermaid diagram when there are multiple slices.
+詳細度は状況判断します。通常は PR タイトルで十分です。タイトルだけでは不明な場合のみ 1 行の scope note を追加します。複数 slice がある場合は Mermaid 図を示します。
 
-Default to independent PRs off the default branch. Stack PRs only when the dependency is real.
+既定は default branch からの独立 PR です。dependency が本当にある場合のみ PR を stack します。
 
-Ask for approval before starting.
+開始前に承認を求めます。
 
-## 3. Execute the split
+## 3. split を実行
 
-- If there is uncommitted work, save a recoverable snapshot without changing the working tree:
+- uncommitted work がある場合、working tree を変えずに復元可能な snapshot を保存します:
 
   ```bash
   SHA=$(git stash create "pre-split")
@@ -38,8 +36,8 @@ Ask for approval before starting.
   fi
   ```
 
-- For each approved slice, create a branch from the right base, stage and commit only the planned files or hunks, then push and open the PR.
+- 承認された各 slice について、適切な base から branch を作成し、計画された file または hunk のみ stage して commit し、push して PR を開きます。
 
-## 4. Report back
+## 4. 報告
 
-Keep it short: PR titles and URLs, plus anything left on the starting branch or working tree. Do not delete the backup ref or original branch unless the user asks.
+短く報告します: PR タイトルと URL、開始 branch または working tree に残ったもの。ユーザーが求めない限り backup ref や元 branch は削除しません。

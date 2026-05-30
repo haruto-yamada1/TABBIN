@@ -1,20 +1,17 @@
 ---
-title: Optimize List Performance with Stable Object References
+title: 安定したオブジェクト参照でリストパフォーマンスを最適化
 impact: CRITICAL
-impactDescription: virtualization relies on reference stability
+impactDescription: 仮想化は参照の安定性に依存
 tags: lists, performance, flatlist, virtualization
 ---
 
-## Optimize List Performance with Stable Object References
+## 安定したオブジェクト参照でリストパフォーマンスを最適化
 
-Don't map or filter data before passing to virtualized lists. Virtualization
-relies on object reference stability to know what changed—new references cause
-full re-renders of all visible items. Attempt to prevent frequent renders at the
-list-parent level.
+仮想化リストに渡す前にデータを map や filter しないでください。仮想化は何が変わったかを知るためにオブジェクト参照の安定性に依存します。新しい参照は表示中のすべてのアイテムの完全再レンダーを引き起こします。リスト親レベルでの頻繁なレンダーを防いでください。
 
-Where needed, use context selectors within list items.
+必要に応じて、リストアイテム内で context セレクターを使用します。
 
-**Incorrect (creates new object references on every keystroke):**
+**不適切（キー入力ごとに新しいオブジェクト参照を作成）:**
 
 ```tsx
 function DomainSearch() {
@@ -40,7 +37,7 @@ function DomainSearch() {
 }
 ```
 
-**Correct (stable references, transform inside items):**
+**適切（安定した参照、アイテム内で変換）:**
 
 ```tsx
 const renderItem = ({ item }) => <DomainItem tld={item} />
@@ -65,10 +62,9 @@ function DomainItem({ tld }: { tld: Tld }) {
 }
 ```
 
-**Updating parent array reference:**
+**親配列参照の更新:**
 
-Creating a new array instance can be okay, as long as its inner object
-references are stable. For instance, if you sort a list of objects:
+内部オブジェクト参照が安定していれば、新しい配列インスタンスの作成は問題ありません。例えばオブジェクトのリストをソートする場合:
 
 ```tsx
 // good: creates a new array instance without mutating the inner objects
@@ -78,10 +74,9 @@ const sortedTlds = tlds.toSorted((a, b) => a.name.localeCompare(b.name))
 return <LegendList data={sortedTlds} renderItem={renderItem} />
 ```
 
-Even though this creates a new array instance `sortedTlds`, the inner object
-references are stable.
+`sortedTlds` という新しい配列インスタンスを作っても、内部オブジェクト参照は安定しています。
 
-**With zustand for dynamic data (avoids parent re-renders):**
+**動的データに zustand を使用（親の再レンダーを回避）:**
 
 ```tsx
 const useSearchStore = create<{ keyword: string }>(() => ({ keyword: '' }))
@@ -109,16 +104,11 @@ function DomainItem({ tld }: { tld: Tld }) {
 }
 ```
 
-Virtualization can now skip items that haven't changed when typing. Only visible
-items (~20) re-render on keystroke, rather than the parent.
+入力時、仮想化は変更のないアイテムをスキップできます。親ではなく表示中のアイテム（約 20 件）だけがキー入力ごとに再レンダーされます。
 
-**Deriving state within list items based on parent data (avoids parent
-re-renders):**
+**親データに基づくリストアイテム内での state 派生（親の再レンダーを回避）:**
 
-For components where the data is conditional based on the parent state, this
-pattern is even more important. For example, if you are checking if an item is
-favorited, toggling favorites only re-renders one component if the item itself
-is in charge of accessing the state rather than the parent:
+データが親 state に条件付きで依存するコンポーネントでは、このパターンはさらに重要です。例えばアイテムがお気に入りかどうかを確認する場合、親ではなくアイテム自身が state にアクセスすると、お気に入り切り替えは 1 コンポーネントだけ再レンダーします:
 
 ```tsx
 function DomainItemFavoriteButton({ tld }: { tld: Tld }) {
@@ -127,6 +117,4 @@ function DomainItemFavoriteButton({ tld }: { tld: Tld }) {
 }
 ```
 
-Note: if you're using the React Compiler, you can read React Context values
-directly within list items. Although this is slightly slower than using a
-Zustand selector in most cases, the effect may be negligible.
+注: React Compiler を使用している場合、リストアイテム内で React Context 値を直接読めます。多くの場合 Zustand セレクターよりやや遅いですが、影響は無視できる程度のことが多いです。

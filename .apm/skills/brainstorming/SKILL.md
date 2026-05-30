@@ -1,96 +1,96 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: 創造的な作業の前に必ず使います — 機能作成、コンポーネント構築、機能追加、挙動変更の前に。実装前にユーザー意図、要件、設計を探索します。
 ---
 
-# Brainstorming Ideas Into Designs
+# アイデアを設計へ
 
-## Overview
+## 概要
 
-Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+自然な対話を通じて、アイデアを完全な設計と仕様へ昇華させる。
 
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+まず現在のプロジェクト文脈を理解し、一度に 1 つずつ質問してアイデアを具体化する。何を作るか理解できたら設計を提示し、ユーザー承認を得る。
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+設計を提示しユーザーが承認するまで、実装 skill の呼び出し、コード記述、プロジェクトのスキャフォールド、いかなる実装アクションも行わない。認識上の単純さに関わらず、すべてのプロジェクトに適用する。
 </HARD-GATE>
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+## アンチパターン: 「設計不要なほど単純」
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+すべてのプロジェクトがこのプロセスを通る。todo リスト、単一関数ユーティリティ、設定変更 — すべて。「単純」なプロジェクトこそ、未検証の前提が最も無駄な作業を生む。設計は短くてよい（本当に単純なら数文で足りる）が、**必ず** 提示して承認を得る。
 
-## Checklist
+## チェックリスト
 
-You MUST create a task for each of these items and complete them in order:
+次の各項目について todo を作成し、順番に完了する:
 
-1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-3. **Propose 2-3 approaches** — with trade-offs and your recommendation
-4. **Present design** — in sections scaled to their complexity, get user approval after each section
-5. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
-6. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+1. **プロジェクト文脈の探索** — ファイル、ドキュメント、直近の commit を確認
+2. **明確化の質問** — 一度に 1 つ、目的・制約・成功基準を理解
+3. **2〜3 案の提示** — トレードオフと推奨案を含める
+4. **設計の提示** — 複雑さに応じたセクションで、各セクション後に承認を得る
+5. **設計ドキュメントの作成** — `docs/plans/YYYY-MM-DD-<topic>-design.md` に保存して commit
+6. **実装への移行** — writing-plans skill を呼び出して実装計画を作成
 
-## Process Flow
+## プロセスフロー
 
 ```dot
 digraph brainstorming {
-    "Explore project context" [shape=box];
-    "Ask clarifying questions" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
-    "Write design doc" [shape=box];
-    "Invoke writing-plans skill" [shape=doublecircle];
+    "プロジェクト文脈の探索" [shape=box];
+    "明確化の質問" [shape=box];
+    "2〜3 案の提示" [shape=box];
+    "設計セクションの提示" [shape=box];
+    "ユーザーが設計を承認?" [shape=diamond];
+    "設計ドキュメント作成" [shape=box];
+    "writing-plans skill を呼び出す" [shape=doublecircle];
 
-    "Explore project context" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc" [label="yes"];
-    "Write design doc" -> "Invoke writing-plans skill";
+    "プロジェクト文脈の探索" -> "明確化の質問";
+    "明確化の質問" -> "2〜3 案の提示";
+    "2〜3 案の提示" -> "設計セクションの提示";
+    "設計セクションの提示" -> "ユーザーが設計を承認?";
+    "ユーザーが設計を承認?" -> "設計セクションの提示" [label="no, revise"];
+    "ユーザーが設計を承認?" -> "設計ドキュメント作成" [label="yes"];
+    "設計ドキュメント作成" -> "writing-plans skill を呼び出す";
 }
 ```
 
-**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+**終端状態は writing-plans の呼び出し。** frontend-design、mcp-builder、その他の実装 skill は呼び出さない。brainstorming の後に呼び出す skill は writing-plans **のみ**。
 
-## The Process
+## プロセス
 
-**Understanding the idea:**
-- Check out the current project state first (files, docs, recent commits)
-- Ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
-- Focus on understanding: purpose, constraints, success criteria
+**アイデアの理解:**
+- まず現在のプロジェクト状態を確認（ファイル、ドキュメント、直近の commit）
+- 一度に 1 つずつ質問してアイデアを具体化
+- 可能なら選択式を優先。自由記述も可
+- 1 メッセージ 1 質問 — 深掘りが必要なら複数に分割
+- 目的、制約、成功基準の理解に集中
 
-**Exploring approaches:**
-- Propose 2-3 different approaches with trade-offs
-- Present options conversationally with your recommendation and reasoning
-- Lead with your recommended option and explain why
+**アプローチの探索:**
+- 2〜3 の異なるアプローチとトレードオフを提示
+- 推奨案と理由を会話形式で提示
+- 推奨案を先に示し、理由を説明
 
-**Presenting the design:**
-- Once you believe you understand what you're building, present the design
-- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling, testing
-- Be ready to go back and clarify if something doesn't make sense
+**設計の提示:**
+- 何を作るか理解できたら設計を提示
+- セクションの長さは複雑さに応じる: 単純なら数文、複雑なら 200〜300 語
+- 各セクション後に「ここまで問題ないか」を確認
+- アーキテクチャ、コンポーネント、データフロー、エラー処理、テストをカバー
+- 不明点があれば戻って明確化する
 
-## After the Design
+## 設計後
 
-**Documentation:**
-- Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
-- Use elements-of-style:writing-clearly-and-concisely skill if available
-- Commit the design document to git
+**ドキュメント:**
+- 確定した設計を `docs/plans/YYYY-MM-DD-<topic>-design.md` に書く
+- 利用可能なら elements-of-style:writing-clearly-and-concisely skill を使う
+- 設計ドキュメントを git に commit
 
-**Implementation:**
-- Invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other skill. writing-plans is the next step.
+**実装:**
+- writing-plans skill を呼び出して詳細な実装計画を作成
+- 他の skill は呼び出さない。次のステップは writing-plans。
 
-## Key Principles
+## 重要な原則
 
-- **One question at a time** - Don't overwhelm with multiple questions
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - Remove unnecessary features from all designs
-- **Explore alternatives** - Always propose 2-3 approaches before settling
-- **Incremental validation** - Present design, get approval before moving on
-- **Be flexible** - Go back and clarify when something doesn't make sense
+- **一度に 1 質問** — 複数質問で圧倒しない
+- **選択式を優先** — 可能なら自由記述より答えやすい
+- **YAGNI を徹底** — 不要な機能を設計から除外
+- **代替案を探索** — 決める前に必ず 2〜3 案を提示
+- **段階的な検証** — 設計を提示し、進む前に承認を得る
+- **柔軟に** — 不明点があれば戻って明確化

@@ -1,34 +1,34 @@
 ---
 name: timing
-description: Interpolation curves in Remotion - linear, easing, spring animations
+description: Remotion の補間カーブ — linear、easing、spring
 metadata:
   tags: spring, bounce, easing, interpolation
 ---
 
-A simple linear interpolation is done using the `interpolate` function.
+単純な線形補間には `interpolate` を使います。
 
-```ts title="Going from 0 to 1 over 100 frames"
+```ts title="100 フレームで 0 から 1 へ"
 import { interpolate } from "remotion";
 
 const opacity = interpolate(frame, [0, 100], [0, 1]);
 ```
 
-By default, the values are not clamped, so the value can go outside the range [0, 1].  
-Here is how they can be clamped:
+既定では値は clamp されず、[0, 1] の範囲外にもなり得ます。  
+clamp する例:
 
-```ts title="Going from 0 to 1 over 100 frames with extrapolation"
+```ts title="extrapolation 付きで 100 フレームで 0 から 1 へ"
 const opacity = interpolate(frame, [0, 100], [0, 1], {
   extrapolateRight: "clamp",
   extrapolateLeft: "clamp",
 });
 ```
 
-## Spring animations
+## Spring アニメーション
 
-Spring animations have a more natural motion.  
-They go from 0 to 1 over time.
+Spring アニメーションはより自然な動きです。  
+時間とともに 0 から 1 へ進みます。
 
-```ts title="Spring animation from 0 to 1 over 100 frames"
+```ts title="100 フレームで 0 から 1 への spring"
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
 
 const frame = useCurrentFrame();
@@ -40,12 +40,12 @@ const scale = spring({
 });
 ```
 
-### Physical properties
+### 物理プロパティ
 
-The default configuration is: `mass: 1, damping: 10, stiffness: 100`.  
-This leads to the animation having a bit of bounce before it settles.
+既定設定は `mass: 1, damping: 10, stiffness: 100` です。  
+落ち着く前に少し bounce する動きになります。
 
-The config can be overwritten like this:
+設定は次のように上書きできます:
 
 ```ts
 const scale = spring({
@@ -55,21 +55,21 @@ const scale = spring({
 });
 ```
 
-The recommended configuration for a natural motion without a bounce is: `{ damping: 200 }`.
+bounce のない自然な動きの推奨設定は `{ damping: 200 }` です。
 
-Here are some common configurations:
+よく使う設定:
 
 ```tsx
-const smooth = { damping: 200 }; // Smooth, no bounce (subtle reveals)
-const snappy = { damping: 20, stiffness: 200 }; // Snappy, minimal bounce (UI elements)
-const bouncy = { damping: 8 }; // Bouncy entrance (playful animations)
-const heavy = { damping: 15, stiffness: 80, mass: 2 }; // Heavy, slow, small bounce
+const smooth = { damping: 200 }; // 滑らか、bounce なし（控えめな reveal）
+const snappy = { damping: 20, stiffness: 200 }; // キビキビ、最小 bounce（UI 要素）
+const bouncy = { damping: 8 }; // bounce あり entrance（遊び心のあるアニメ）
+const heavy = { damping: 15, stiffness: 80, mass: 2 }; // 重く遅く、小さな bounce
 ```
 
-### Delay
+### 遅延
 
-The animation starts immediately by default.  
-Use the `delay` parameter to delay the animation by a number of frames.
+既定ではアニメーションは即座に開始します。  
+`delay` でフレーム数だけ遅延できます。
 
 ```tsx
 const entrance = spring({
@@ -79,10 +79,10 @@ const entrance = spring({
 });
 ```
 
-### Duration
+### duration
 
-A `spring()` has a natural duration based on the physical properties.  
-To stretch the animation to a specific duration, use the `durationInFrames` parameter.
+`spring()` の自然な duration は物理プロパティで決まります。  
+特定 duration に伸ばすには `durationInFrames` を使います。
 
 ```tsx
 const spring = spring({
@@ -92,9 +92,9 @@ const spring = spring({
 });
 ```
 
-### Combining spring() with interpolate()
+### `spring()` と `interpolate()` の組み合わせ
 
-Map spring output (0-1) to custom ranges:
+spring 出力（0-1）を任意範囲へ map:
 
 ```tsx
 const springProgress = spring({
@@ -102,15 +102,15 @@ const springProgress = spring({
   fps,
 });
 
-// Map to rotation
+// 回転へ map
 const rotation = interpolate(springProgress, [0, 1], [0, 360]);
 
 <div style={{ rotate: rotation + "deg" }} />;
 ```
 
-### Adding springs
+### spring の加算
 
-Springs return just numbers, so math can be performed:
+Spring は数値を返すので演算できます:
 
 ```tsx
 const frame = useCurrentFrame();
@@ -130,9 +130,9 @@ const outAnimation = spring({
 const scale = inAnimation - outAnimation;
 ```
 
-## Easing
+## イージング
 
-Easing can be added to the `interpolate` function:
+`interpolate` に easing を追加できます:
 
 ```ts
 import { interpolate, Easing } from "remotion";
@@ -144,21 +144,21 @@ const value1 = interpolate(frame, [0, 100], [0, 1], {
 });
 ```
 
-The default easing is `Easing.linear`.  
-There are various other convexities:
+既定 easing は `Easing.linear` です。  
+他の convexity:
 
-- `Easing.in` for starting slow and accelerating
-- `Easing.out` for starting fast and slowing down
+- `Easing.in` — ゆっくり始まり加速
+- `Easing.out` — 速く始まり減速
 - `Easing.inOut`
 
-and curves (sorted from most linear to most curved):
+curve（直線に近い順）:
 
 - `Easing.quad`
 - `Easing.sin`
 - `Easing.exp`
 - `Easing.circle`
 
-Convexities and curves need be combined for an easing function:
+convexity と curve は組み合わせて easing 関数にします:
 
 ```ts
 const value1 = interpolate(frame, [0, 100], [0, 1], {
@@ -168,7 +168,7 @@ const value1 = interpolate(frame, [0, 100], [0, 1], {
 });
 ```
 
-Cubic bezier curves are also supported:
+cubic bezier もサポート:
 
 ```ts
 const value1 = interpolate(frame, [0, 100], [0, 1], {

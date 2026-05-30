@@ -1,26 +1,26 @@
-# Testing Anti-Patterns
+# テストのアンチパターン
 
-**Load this reference when:** writing or changing tests, adding mocks, or tempted to add test-only methods to production code.
+**このリファレンスを読み込むタイミング:** テストの記述・変更、mock の追加、本番コードにテスト専用メソッドを追加したくなったとき。
 
-## Overview
+## 概要
 
-Tests must verify real behavior, not mock behavior. Mocks are a means to isolate, not the thing being tested.
+テストは mock の挙動ではなく、実挙動を検証しなければならない。mock は隔離の手段であり、テスト対象ではない。
 
-**Core principle:** Test what the code does, not what the mocks do.
+**中核原則:** コードが何をするかをテストする。mock が何をするかではない。
 
-**Following strict TDD prevents these anti-patterns.**
+**厳格な TDD がこれらのアンチパターンを防ぐ。**
 
-## The Iron Laws
+## 鉄則
 
 ```
-1. NEVER test mock behavior
-2. NEVER add test-only methods to production classes
-3. NEVER mock without understanding dependencies
+1. mock の挙動を NEVER テストする
+2. 本番クラスにテスト専用メソッドを NEVER 追加する
+3. 依存を理解せず mock しない
 ```
 
-## Anti-Pattern 1: Testing Mock Behavior
+## アンチパターン 1: mock 挙動のテスト
 
-**The violation:**
+**違反:**
 ```typescript
 // ❌ BAD: Testing that the mock exists
 test('renders sidebar', () => {
@@ -29,14 +29,14 @@ test('renders sidebar', () => {
 });
 ```
 
-**Why this is wrong:**
-- You're verifying the mock works, not that the component works
-- Test passes when mock is present, fails when it's not
-- Tells you nothing about real behavior
+**なぜ間違い:**
+- mock が動くことを検証しているだけで、コンポーネントは検証していない
+- mock があれば通り、なければ失敗
+- 実挙動について何も教えてくれない
 
-**your human partner's correction:** "Are we testing the behavior of a mock?"
+**human partner の指摘:** 「mock の挙動をテストしていないか？」
 
-**The fix:**
+**修正:**
 ```typescript
 // ✅ GOOD: Test real component or don't mock it
 test('renders sidebar', () => {
@@ -48,21 +48,21 @@ test('renders sidebar', () => {
 // Don't assert on the mock - test Page's behavior with sidebar present
 ```
 
-### Gate Function
+### ゲート関数
 
 ```
-BEFORE asserting on any mock element:
-  Ask: "Am I testing real component behavior or just mock existence?"
+mock 要素に assert する前:
+  自問: 「実コンポーネントの挙動をテストしているか、mock の存在だけか？」
 
-  IF testing mock existence:
-    STOP - Delete the assertion or unmock the component
+  IF mock の存在をテストしている:
+    STOP — assert を削除するかコンポーネントの mock を外す
 
-  Test real behavior instead
+  代わりに実挙動をテスト
 ```
 
-## Anti-Pattern 2: Test-Only Methods in Production
+## アンチパターン 2: 本番コードのテスト専用メソッド
 
-**The violation:**
+**違反:**
 ```typescript
 // ❌ BAD: destroy() only used in tests
 class Session {
@@ -76,13 +76,13 @@ class Session {
 afterEach(() => session.destroy());
 ```
 
-**Why this is wrong:**
-- Production class polluted with test-only code
-- Dangerous if accidentally called in production
-- Violates YAGNI and separation of concerns
-- Confuses object lifecycle with entity lifecycle
+**なぜ間違い:**
+- 本番クラスがテスト専用コードで汚染される
+- 本番で誤って呼ばれると危険
+- YAGNI と関心の分離に反する
+- オブジェクトライフサイクルとエンティティライフサイクルを混同
 
-**The fix:**
+**修正:**
 ```typescript
 // ✅ GOOD: Test utilities handle test cleanup
 // Session has no destroy() - it's stateless in production
@@ -99,25 +99,25 @@ export async function cleanupSession(session: Session) {
 afterEach(() => cleanupSession(session));
 ```
 
-### Gate Function
+### ゲート関数
 
 ```
-BEFORE adding any method to production class:
-  Ask: "Is this only used by tests?"
+本番クラスにメソッドを追加する前:
+  自問: 「テストでのみ使うか？」
 
   IF yes:
-    STOP - Don't add it
-    Put it in test utilities instead
+    STOP — 追加しない
+    test utilities に置く
 
-  Ask: "Does this class own this resource's lifecycle?"
+  自問: 「このクラスがこのリソースのライフサイクルを所有するか？」
 
   IF no:
-    STOP - Wrong class for this method
+    STOP — このメソッドのクラスが間違っている
 ```
 
-## Anti-Pattern 3: Mocking Without Understanding
+## アンチパターン 3: 理解なしの mock
 
-**The violation:**
+**違反:**
 ```typescript
 // ❌ BAD: Mock breaks test logic
 test('detects duplicate server', () => {
@@ -131,12 +131,12 @@ test('detects duplicate server', () => {
 });
 ```
 
-**Why this is wrong:**
-- Mocked method had side effect test depended on (writing config)
-- Over-mocking to "be safe" breaks actual behavior
-- Test passes for wrong reason or fails mysteriously
+**なぜ間違い:**
+- mock したメソッドにテストが依存する副作用（config 書き込み）があった
+- 「安全のため」の過剰 mock が実挙動を壊す
+- 間違った理由で通るか、謎の失敗になる
 
-**The fix:**
+**修正:**
 ```typescript
 // ✅ GOOD: Mock at correct level
 test('detects duplicate server', () => {
@@ -148,35 +148,35 @@ test('detects duplicate server', () => {
 });
 ```
 
-### Gate Function
+### ゲート関数
 
 ```
-BEFORE mocking any method:
-  STOP - Don't mock yet
+メソッドを mock する前:
+  STOP — まだ mock しない
 
-  1. Ask: "What side effects does the real method have?"
-  2. Ask: "Does this test depend on any of those side effects?"
-  3. Ask: "Do I fully understand what this test needs?"
+  1. 自問: 「実メソッドにはどんな副作用があるか？」
+  2. 自問: 「このテストはその副作用のいずれかに依存するか？」
+  3. 自問: 「このテストが必要とすることを完全に理解しているか？」
 
-  IF depends on side effects:
-    Mock at lower level (the actual slow/external operation)
-    OR use test doubles that preserve necessary behavior
-    NOT the high-level method the test depends on
+  IF 副作用に依存:
+    より低いレベル（実際の遅い/外部操作）で mock
+    または必要な挙動を保つ test double
+    テストが依存する高レベルメソッドは NOT
 
-  IF unsure what test depends on:
-    Run test with real implementation FIRST
-    Observe what actually needs to happen
-    THEN add minimal mocking at the right level
+  IF 依存が不明:
+    まず実装でテストを実行
+    実際に何が必要か観察
+    その後、正しいレベルで最小 mock を追加
 
-  Red flags:
-    - "I'll mock this to be safe"
-    - "This might be slow, better mock it"
-    - Mocking without understanding the dependency chain
+  危険信号:
+    - 「安全のため mock しよう」
+    - 「遅いかも、mock した方がいい」
+    - 依存チェーンを理解せず mock
 ```
 
-## Anti-Pattern 4: Incomplete Mocks
+## アンチパターン 4: 不完全な mock
 
-**The violation:**
+**違反:**
 ```typescript
 // ❌ BAD: Partial mock - only fields you think you need
 const mockResponse = {
@@ -188,15 +188,15 @@ const mockResponse = {
 // Later: breaks when code accesses response.metadata.requestId
 ```
 
-**Why this is wrong:**
-- **Partial mocks hide structural assumptions** - You only mocked fields you know about
-- **Downstream code may depend on fields you didn't include** - Silent failures
-- **Tests pass but integration fails** - Mock incomplete, real API complete
-- **False confidence** - Test proves nothing about real behavior
+**なぜ間違い:**
+- **部分 mock は構造的前提を隠す** — 知っているフィールドだけ mock
+- **下流コードが含めなかったフィールドに依存するかも** — サイレント失敗
+- **テストは通るが統合は失敗** — mock 不完全、実 API は完全
+- **誤った自信** — テストは実挙動について何も証明しない
 
-**The Iron Rule:** Mock the COMPLETE data structure as it exists in reality, not just fields your immediate test uses.
+**鉄則:** 即座のテストで使うフィールドだけでなく、現実と同じ完全なデータ構造を mock する。
 
-**The fix:**
+**修正:**
 ```typescript
 // ✅ GOOD: Mirror real API completeness
 const mockResponse = {
@@ -207,93 +207,93 @@ const mockResponse = {
 };
 ```
 
-### Gate Function
+### ゲート関数
 
 ```
-BEFORE creating mock responses:
-  Check: "What fields does the real API response contain?"
+mock レスポンスを作る前:
+  確認: 「実 API レスポンスにはどんなフィールドがあるか？」
 
-  Actions:
-    1. Examine actual API response from docs/examples
-    2. Include ALL fields system might consume downstream
-    3. Verify mock matches real response schema completely
+  アクション:
+    1. ドキュメント/例から実 API レスポンスを調べる
+    2. 下流が消費しうる ALL フィールドを含める
+    3. mock が実レスポンス schema と完全に一致することを検証
 
-  Critical:
-    If you're creating a mock, you must understand the ENTIRE structure
-    Partial mocks fail silently when code depends on omitted fields
+  重要:
+    mock を作るなら ENTIRE 構造を理解している必要がある
+    部分 mock は省略フィールドに依存するコードでサイレント失敗
 
-  If uncertain: Include all documented fields
+  不明なら: ドキュメント化された全フィールドを含める
 ```
 
-## Anti-Pattern 5: Integration Tests as Afterthought
+## アンチパターン 5: 後付けの統合テスト
 
-**The violation:**
+**違反:**
 ```
 ✅ Implementation complete
 ❌ No tests written
 "Ready for testing"
 ```
 
-**Why this is wrong:**
-- Testing is part of implementation, not optional follow-up
-- TDD would have caught this
-- Can't claim complete without tests
+**なぜ間違い:**
+- テストは実装の一部であり、任意の後処理ではない
+- TDD なら検知していた
+- テストなしに完了と言えない
 
-**The fix:**
+**修正:**
 ```
-TDD cycle:
-1. Write failing test
-2. Implement to pass
-3. Refactor
-4. THEN claim complete
+TDD サイクル:
+1. 失敗テストを書く
+2. 通す実装
+3. リファクタ
+4. その後に完了と言う
 ```
 
-## When Mocks Become Too Complex
+## mock が複雑すぎるとき
 
-**Warning signs:**
-- Mock setup longer than test logic
-- Mocking everything to make test pass
-- Mocks missing methods real components have
-- Test breaks when mock changes
+**警告サイン:**
+- mock セットアップがテストロジックより長い
+- テストを通すために全部 mock
+- mock に実コンポーネントのメソッドが欠けている
+- mock 変更でテストが壊れる
 
-**your human partner's question:** "Do we need to be using a mock here?"
+**human partner の質問:** 「ここで mock が必要か？」
 
-**Consider:** Integration tests with real components often simpler than complex mocks
+**検討:** 実コンポーネントの統合テストの方が複雑 mock より単純なことが多い
 
-## TDD Prevents These Anti-Patterns
+## TDD がこれらを防ぐ理由
 
-**Why TDD helps:**
-1. **Write test first** → Forces you to think about what you're actually testing
-2. **Watch it fail** → Confirms test tests real behavior, not mocks
-3. **Minimal implementation** → No test-only methods creep in
-4. **Real dependencies** → You see what the test actually needs before mocking
+**TDD が役立つ理由:**
+1. **先にテスト** → 実際に何をテストするか考えさせる
+2. **失敗を見る** → 実コードに対する失敗を確認、mock ではない
+3. **最小実装** → テスト専用メソッドの混入を防ぐ
+4. **実依存** → mock 前にテストが本当に必要とすることを見る
 
-**If you're testing mock behavior, you violated TDD** - you added mocks without watching test fail against real code first.
+**mock 挙動をテストしているなら TDD 違反** — 実コードに対する失敗を見ずに mock を追加した。
 
-## Quick Reference
+## クイックリファレンス
 
-| Anti-Pattern | Fix |
+| アンチパターン | 修正 |
 |--------------|-----|
-| Assert on mock elements | Test real component or unmock it |
-| Test-only methods in production | Move to test utilities |
-| Mock without understanding | Understand dependencies first, mock minimally |
-| Incomplete mocks | Mirror real API completely |
-| Tests as afterthought | TDD - tests first |
-| Over-complex mocks | Consider integration tests |
+| mock 要素に assert | 実コンポーネントをテストするか mock を外す |
+| 本番のテスト専用メソッド | test utilities に移す |
+| 理解なしの mock | 先に依存を理解、最小限 mock |
+| 不完全 mock | 実 API を完全に反映 |
+| 後付けテスト | TDD — テストファースト |
+| 過剰に複雑な mock | 統合テストを検討 |
 
-## Red Flags
+## 危険信号
 
-- Assertion checks for `*-mock` test IDs
-- Methods only called in test files
-- Mock setup is >50% of test
-- Test fails when you remove mock
-- Can't explain why mock is needed
-- Mocking "just to be safe"
+- `*-mock` test ID をチェックする assertion
+- テストファイルでのみ呼ばれるメソッド
+- mock セットアップがテストの 50% 超
+- mock を外すとテスト失敗
+- なぜ mock が必要か説明できない
+- 「安全のため」mock
 
-## The Bottom Line
+## 結論
 
-**Mocks are tools to isolate, not things to test.**
+**mock は隔離のツールであり、テスト対象ではない。**
 
-If TDD reveals you're testing mock behavior, you've gone wrong.
+TDD で mock 挙動をテストしていると分かったら、間違っている。
 
-Fix: Test real behavior or question why you're mocking at all.
+修正: 実挙動をテストするか、なぜ mock しているか問い直す。

@@ -1,15 +1,15 @@
 ---
-title: Use Lazy State Initialization
+title: 遅延 state 初期化を使用
 impact: MEDIUM
-impactDescription: wasted computation on every render
+impactDescription: 毎レンダーでの無駄な計算を回避
 tags: react, hooks, useState, performance, initialization
 ---
 
-## Use Lazy State Initialization
+## 遅延 state 初期化を使用
 
-Pass a function to `useState` for expensive initial values. Without the function form, the initializer runs on every render even though the value is only used once.
+高コストな初期値には `useState` に関数を渡します。関数形式を使わないと、値は 1 回しか使われないのに初期化子が毎レンダー実行されます。
 
-**Incorrect (runs on every render):**
+**不適切（毎レンダー実行）:**
 
 ```tsx
 function FilteredList({ items }: { items: Item[] }) {
@@ -31,7 +31,7 @@ function UserProfile() {
 }
 ```
 
-**Correct (runs only once):**
+**適切（1 回だけ実行）:**
 
 ```tsx
 function FilteredList({ items }: { items: Item[] }) {
@@ -53,6 +53,6 @@ function UserProfile() {
 }
 ```
 
-Use lazy initialization when computing initial values from localStorage/sessionStorage, building data structures (indexes, maps), reading from the DOM, or performing heavy transformations.
+localStorage/sessionStorage から初期値を計算、データ構造（インデックス、マップ）の構築、DOM からの読み取り、重い変換を行う場合に遅延初期化を使用します。
 
-For simple primitives (`useState(0)`), direct references (`useState(props.value)`), or cheap literals (`useState({})`), the function form is unnecessary.
+単純なプリミティブ（`useState(0)`）、直接参照（`useState(props.value)`）、低コストなリテラル（`useState({})`）では関数形式は不要です。

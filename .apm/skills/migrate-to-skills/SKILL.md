@@ -1,17 +1,13 @@
 ---
 name: migrate-to-skills
-description: >-
-  Convert 'Applied intelligently' Cursor rules (.cursor/rules/*.mdc) and slash
-  commands (.cursor/commands/*.md) to Agent Skills format (.cursor/skills/). Use
-  when you want to migrate rules or commands to skills, convert .mdc rules to
-  SKILL.md format, or consolidate commands into the skills directory.
+description: Cursor rule（.cursor/rules/*.mdc）と slash command（.cursor/commands/*.md）を Agent Skills 形式（.cursor/skills/）へ変換します。rule や command を skill へ migrate、.mdc rule を SKILL.md 形式へ変換、command を skills directory に統合したいときに使います。
 disable-model-invocation: true
 ---
-# Migrate Rules and Slash Commands to Skills
+# rule と slash command から skill への移行
 
-Convert Cursor rules ("Applied intelligently") and slash commands to Agent Skills format.
+Cursor rule（"Applied intelligently"）と slash command を Agent Skills 形式へ変換します。
 
-**CRITICAL: Preserve the exact body content. Do not modify, reformat, or "improve" it - copy verbatim.**
+**CRITICAL: body content を正確に保持してください。modify、reformat、「改善」はせず — verbatim でコピーします。**
 
 ## Locations
 
@@ -21,15 +17,15 @@ Convert Cursor rules ("Applied intelligently") and slash commands to Agent Skill
 | User | `~/.cursor/commands/*.md` |
 
 Notes:
-- Cursor rules inside the project can live in nested directories. Be thorough in your search and use glob patterns to find them.
-- Ignore anything in ~/.cursor/worktrees
-- Ignore anything in ~/.cursor/skills-cursor. This is reserved for Cursor's internal built-in skills and is managed automatically by the system.
+- project 内の Cursor rule は nested directory に置ける場合があります。徹底的に検索し、glob pattern で見つけてください。
+- `~/.cursor/worktrees` 内は無視
+- `~/.cursor/skills-cursor` 内は無視。Cursor internal built-in skill 用で、system が自動管理します。
 
-## Finding Files to Migrate
+## 移行対象 File の見つけ方
 
-**Rules**: Migrate if rule has a `description` but NO `globs` and NO `alwaysApply: true`.
+**Rules**: `description` があり、`globs` がなく、`alwaysApply: true` でもない rule を migrate。
 
-**Commands**: Migrate all - they're plain markdown without frontmatter.
+**Commands**: すべて migrate — frontmatter なし plain markdown。
 
 ## Conversion Format
 
@@ -56,7 +52,7 @@ description: What this rule does
 Body content...
 ```
 
-Changes: Add `name` field, remove `globs`/`alwaysApply`, keep body exactly.
+Changes: `name` field を追加、`globs`/`alwaysApply` を削除、body はそのまま。
 
 ### Commands: .md → SKILL.md
 
@@ -77,58 +73,57 @@ disable-model-invocation: true
 Instructions here...
 ```
 
-Changes: Add frontmatter with `name` (from filename), `description` (infer from content), and `disable-model-invocation: true`, keep body exactly.
+Changes: frontmatter に `name`（filename から）、`description`（content から推測）、`disable-model-invocation: true` を追加、body はそのまま。
 
-**Note:** The `disable-model-invocation: true` field prevents the model from automatically invoking this skill. Slash commands are designed to be explicitly triggered by the user via the `/` menu, not automatically suggested by the model.
+**Note:** `disable-model-invocation: true` は model の自動 invoke を防ぎます。slash command は `/` menu からユーザーが明示的に trigger する設計であり、model が自動提案するものではありません。
 
 ## Notes
 
-- `name` must be lowercase with hyphens only
-- `description` is critical for skill discovery
-- Optionally delete originals after verifying migration works
+- `name` は小文字とハイフンのみ
+- `description` は skill discovery に critical
+- migrate 動作確認後、必要なら original を削除
 
-### Migrate a Rule (.mdc → SKILL.md)
+### Rule を migrate（.mdc → SKILL.md）
 
-1. Read the rule file
-2. Extract the `description` from the frontmatter
-3. Extract the body content (everything after the closing `---` of the frontmatter)
-4. Create the skill directory: `.cursor/skills/{skill-name}/` (skill name = filename without .mdc)
-5. Write `SKILL.md` with new frontmatter (`name` and `description`) + the EXACT original body content (preserve all whitespace, formatting, code blocks verbatim)
-6. Delete the original rule file
+1. rule file を読む
+2. frontmatter から `description` を extract
+3. body content を extract（frontmatter 閉じ `---` 以降すべて）
+4. skill directory を作成: `.cursor/skills/{skill-name}/`（skill name = .mdc なし filename）
+5. 新 frontmatter（`name` と `description`）+ **EXACT** original body content で `SKILL.md` を書く（whitespace、formatting、code block を verbatim 保持）
+6. original rule file を削除
 
-### Migrate a Command (.md → SKILL.md)
+### Command を migrate（.md → SKILL.md）
 
-1. Read the command file
-2. Extract description from the first heading (remove `#` prefix)
-3. Create the skill directory: `.cursor/skills/{skill-name}/` (skill name = filename without .md)
-4. Write `SKILL.md` with new frontmatter (`name`, `description`, and `disable-model-invocation: true`) + blank line + the EXACT original file content (preserve all whitespace, formatting, code blocks verbatim)
-5. Delete the original command file
+1. command file を読む
+2. 最初の heading から description を extract（`#` prefix を除去）
+3. skill directory を作成: `.cursor/skills/{skill-name}/`（skill name = .md なし filename）
+4. 新 frontmatter（`name`、`description`、`disable-model-invocation: true`）+ 空行 + **EXACT** original file content で `SKILL.md` を書く（whitespace、formatting、code block を verbatim 保持）
+5. original command file を削除
 
-**CRITICAL: Copy the body content character-for-character. Do not reformat, fix typos, or "improve" anything.**
+**CRITICAL: body content を character-for-character でコピー。reformat、typo 修正、「改善」はしない。**
 
-## Workflow
+## ワークフロー
 
-If you have the Task tool available:
-DO NOT start to read all of the files yourself. That function should be delegated to the subagents. Your job is to dispatch the subagents for each category of files and wait for the results.
+Task tool が使える場合:
+すべての file を自分で読み始めないでください。その作業は subagent に delegate します。あなたの役割は category ごとに subagent を dispatch し、結果を待つことです。
 
-1. [ ] Create the skills directories if they don't exist (`.cursor/skills/` for project, `~/.cursor/skills/` for user)
-2. Dispatch three fast general purpose subagents (NOT explore) in parallel to do the following steps for project rules (pattern: `{workspaceFolder}/**/.cursor/rules/*.mdc`), user commands (pattern: `~/.cursor/commands/*.md`), and project commands (pattern: `{workspaceFolder}/**/.cursor/commands/*.md`):
-  I. [ ] Find files to migrate in the given pattern
-  II. [ ] For rules, check if it's an "applied intelligently" rule (has `description`, no `globs`, no `alwaysApply: true`). Commands are always migrated. DO NOT use the terminal to read files. Use the read tool.
-  III. [ ] Make a list of files to migrate. If empty, done.
-  IV. [ ] For each file, read it, then write the new skill file preserving the body content EXACTLY. DO NOT use the terminal to write these files. Use the edit tool.
-  V. [ ] Delete the original file. DO NOT use the terminal to delete these files. Use the delete tool.
-  VI. [ ] Return a list of all the skill files that were migrated along with the original file paths.
-3. [ ] Wait for all subagents to complete and summarize the results to the user. IMPORTANT: Make sure to let them know if they want to undo the migration, to ask you to.
-4. [ ] If the user asks you to undo the migration, do the opposite of the above steps to restore the original files.
+1. [ ] skills directory がなければ作成（project: `.cursor/skills/`、user: `~/.cursor/skills/`）
+2. 3 つの fast general purpose subagent（explore ではない）を parallel dispatch し、project rules（pattern: `{workspaceFolder}/**/.cursor/rules/*.mdc`）、user commands（pattern: `~/.cursor/commands/*.md`）、project commands（pattern: `{workspaceFolder}/**/.cursor/commands/*.md`）について次を実行:
+  I. [ ] 指定 pattern で migrate 対象 file を見つける
+  II. [ ] rule の場合、"applied intelligently" rule か確認（`description` あり、`globs` なし、`alwaysApply: true` なし）。command は常に migrate。terminal で file を読まない。read tool を使う。
+  III. [ ] migrate 対象 list を作る。空なら完了。
+  IV. [ ] 各 file について読み、body content を **EXACT** に保持して新 skill file を書く。terminal で書かない。edit tool を使う。
+  V. [ ] original file を削除。terminal で削除しない。delete tool を使う。
+  VI. [ ] migrate した skill file と original file path の list を返す。
+3. [ ] すべての subagent 完了を待ち、結果をユーザーに要約。IMPORTANT: undo したい場合は依頼すればよいことを伝える。
+4. [ ] ユーザーが undo を求めた場合、上記の逆操作で original file を復元。
 
-
-If you don't have the Task tool available:
-1. [ ] Create the skills directories if they don't exist (`.cursor/skills/` for project, `~/.cursor/skills/` for user)
-2. [ ] Find files to migrate in both project (`.cursor/`) and user (`~/.cursor/`) directories
-3. [ ] For rules, check if it's an "applied intelligently" rule (has `description`, no `globs`, no `alwaysApply: true`). Commands are always migrated. DO NOT use the terminal to read files. Use the read tool.
-4. [ ] Make a list of files to migrate. If empty, done.
-5. [ ] For each file, read it, then write the new skill file preserving the body content EXACTLY. DO NOT use the terminal to write these files. Use the edit tool.
-6. [ ] Delete the original file. DO NOT use the terminal to delete these files. Use the delete tool.
-7. [ ] Summarize the results to the user. IMPORTANT: Make sure to let them know if they want to undo the migration, to ask you to.
-8. [ ] If the user asks you to undo the migration, do the opposite of the above steps to restore the original files.
+Task tool が使えない場合:
+1. [ ] skills directory がなければ作成（project: `.cursor/skills/`、user: `~/.cursor/skills/`）
+2. [ ] project（`.cursor/`）と user（`~/.cursor/`）両方で migrate 対象 file を見つける
+3. [ ] rule の場合、"applied intelligently" rule か確認（`description` あり、`globs` なし、`alwaysApply: true` なし）。command は常に migrate。terminal で file を読まない。read tool を使う。
+4. [ ] migrate 対象 list を作る。空なら完了。
+5. [ ] 各 file について読み、body content を **EXACT** に保持して新 skill file を書く。terminal で書かない。edit tool を使う。
+6. [ ] original file を削除。terminal で削除しない。delete tool を使う。
+7. [ ] 結果をユーザーに要約。IMPORTANT: undo したい場合は依頼すればよいことを伝える。
+8. [ ] ユーザーが undo を求めた場合、上記の逆操作で original file を復元。

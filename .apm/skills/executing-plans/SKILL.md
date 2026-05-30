@@ -1,84 +1,84 @@
 ---
 name: executing-plans
-description: Use when you have a written implementation plan to execute in a separate session with review checkpoints
+description: 別セッションでレビューチェックポイント付きで実行する書面の実装計画があるときに使います。
 ---
 
-# Executing Plans
+# 計画の実行
 
-## Overview
+## 概要
 
-Load plan, review critically, execute tasks in batches, report for review between batches.
+計画を読み込み、批判的にレビューし、タスクをバッチで実行し、バッチ間でレビュー用に報告する。
 
-**Core principle:** Batch execution with checkpoints for architect review.
+**中核原則:** アーキテクトレビュー用チェックポイント付きのバッチ実行。
 
-**Announce at start:** "I'm using the executing-plans skill to implement this plan."
+**開始時に宣言:** 「executing-plans skill を使ってこの計画を実装します。」
 
-## The Process
+## プロセス
 
-### Step 1: Load and Review Plan
-1. Read plan file
-2. Review critically - identify any questions or concerns about the plan
-3. If concerns: Raise them with your human partner before starting
-4. If no concerns: Create TodoWrite and proceed
+### ステップ 1: 計画の読み込みとレビュー
+1. 計画ファイルを読む
+2. 批判的にレビュー — 計画についての質問や懸念を特定
+3. 懸念がある場合: 開始前に human partner に提起
+4. 懸念がなければ: TodoWrite を作成して進む
 
-### Step 2: Execute Batch
-**Default: First 3 tasks**
+### ステップ 2: バッチ実行
+**既定: 最初の 3 タスク**
 
-For each task:
-1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
-3. Run verifications as specified
-4. Mark as completed
+各タスクについて:
+1. in_progress にマーク
+2. 各ステップを厳密に従う（計画は bite-sized ステップ）
+3. 指定どおり検証を実行
+4. completed にマーク
 
-### Step 3: Report
-When batch complete:
-- Show what was implemented
-- Show verification output
-- Say: "Ready for feedback."
+### ステップ 3: 報告
+バッチ完了時:
+- 実装内容を示す
+- 検証出力を示す
+- 「フィードバックをお待ちしています。」と伝える
 
-### Step 4: Continue
-Based on feedback:
-- Apply changes if needed
-- Execute next batch
-- Repeat until complete
+### ステップ 4: 継続
+フィードバックに基づき:
+- 必要なら変更を適用
+- 次のバッチを実行
+- 完了まで繰り返す
 
-### Step 5: Complete Development
+### ステップ 5: 開発の完了
 
-After all tasks complete and verified:
-- Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
-- Follow that skill to verify tests, present options, execute choice
+すべてのタスクが完了し検証済みの後:
+- 宣言: 「finishing-a-development-branch skill を使ってこの作業を完了します。」
+- **必須 SUB-SKILL:** superpowers:finishing-a-development-branch を使う
+- その skill に従いテストを検証し、選択肢を提示し、選択を実行
 
-## When to Stop and Ask for Help
+## 停止して助けを求めるとき
 
-**STOP executing immediately when:**
-- Hit a blocker mid-batch (missing dependency, test fails, instruction unclear)
-- Plan has critical gaps preventing starting
-- You don't understand an instruction
-- Verification fails repeatedly
+**次の場合は直ちに実行を STOP:**
+- バッチ途中でブロッカー（依存欠如、テスト失敗、指示不明）
+- 計画に開始を妨げる重大な欠落
+- 指示が理解できない
+- 検証が繰り返し失敗
 
-**Ask for clarification rather than guessing.**
+**推測せず明確化を求める。**
 
-## When to Revisit Earlier Steps
+## 以前のステップに戻るとき
 
-**Return to Review (Step 1) when:**
-- Partner updates the plan based on your feedback
-- Fundamental approach needs rethinking
+**レビュー（ステップ 1）に戻る場合:**
+- partner がフィードバックに基づき計画を更新した
+- 根本的なアプローチの再考が必要
 
-**Don't force through blockers** - stop and ask.
+**ブロッカーを無理に進めない** — 停止して質問。
 
-## Remember
-- Review plan critically first
-- Follow plan steps exactly
-- Don't skip verifications
-- Reference skills when plan says to
-- Between batches: just report and wait
-- Stop when blocked, don't guess
-- Never start implementation on main/master branch without explicit user consent
+## 覚えておくこと
+- まず計画を批判的にレビュー
+- 計画ステップを厳密に従う
+- 検証を省略しない
+- 計画で skill 参照があれば従う
+- バッチ間: 報告して待つだけ
+- ブロックされたら停止、推測しない
+- 明示的なユーザー同意なしに main/master で実装を開始しない
 
-## Integration
+## 連携
 
-**Required workflow skills:**
-- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
-- **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+**必須ワークフロー skill:**
+- **superpowers:using-git-worktrees** — 必須: 開始前に隔離 workspace をセットアップ
+- **superpowers:writing-plans** — この skill が実行する計画を作成
+- **superpowers:finishing-a-development-branch** — 全タスク完了後の開発完了

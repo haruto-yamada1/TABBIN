@@ -1,15 +1,15 @@
 ---
-title: Use expo-image for Optimized Images
+title: 最適化画像に expo-image を使用
 impact: HIGH
-impactDescription: memory efficiency, caching, blurhash placeholders, progressive loading
+impactDescription: メモリ効率、キャッシュ、blurhash プレースホルダー、プログレッシブ読み込み
 tags: images, performance, expo-image, ui
 ---
 
-## Use expo-image for Optimized Images
+## 最適化画像に expo-image を使用
 
-Use `expo-image` instead of React Native's `Image`. It provides memory-efficient caching, blurhash placeholders, progressive loading, and better performance for lists.
+React Native の `Image` の代わりに `expo-image` を使用します。メモリ効率の良いキャッシュ、blurhash プレースホルダー、プログレッシブ読み込み、リスト向けのより良いパフォーマンスを提供します。
 
-**Incorrect (React Native Image):**
+**不適切（React Native Image）:**
 
 ```tsx
 import { Image } from 'react-native'
@@ -19,7 +19,7 @@ function Avatar({ url }: { url: string }) {
 }
 ```
 
-**Correct (expo-image):**
+**適切（expo-image）:**
 
 ```tsx
 import { Image } from 'expo-image'
@@ -29,7 +29,7 @@ function Avatar({ url }: { url: string }) {
 }
 ```
 
-**With blurhash placeholder:**
+**blurhash プレースホルダー付き:**
 
 ```tsx
 <Image
@@ -41,7 +41,7 @@ function Avatar({ url }: { url: string }) {
 />
 ```
 
-**With priority and caching:**
+**priority と caching 付き:**
 
 ```tsx
 <Image
@@ -52,15 +52,15 @@ function Avatar({ url }: { url: string }) {
 />
 ```
 
-**Key props:**
+**主要 props:**
 
-- `placeholder` — Blurhash or thumbnail while loading
-- `contentFit` — `cover`, `contain`, `fill`, `scale-down`
-- `transition` — Fade-in duration (ms)
-- `priority` — `low`, `normal`, `high`
-- `cachePolicy` — `memory`, `disk`, `memory-disk`, `none`
-- `recyclingKey` — Unique key for list recycling
+- `placeholder` — 読み込み中の Blurhash またはサムネイル
+- `contentFit` — `cover`、`contain`、`fill`、`scale-down`
+- `transition` — フェードイン時間（ms）
+- `priority` — `low`、`normal`、`high`
+- `cachePolicy` — `memory`、`disk`、`memory-disk`、`none`
+- `recyclingKey` — リストリサイクル用の一意キー
 
-For cross-platform (web + native), use `SolitoImage` from `solito/image` which uses `expo-image` under the hood.
+クロスプラットフォーム（web + native）では、内部で `expo-image` を使う `solito/image` の `SolitoImage` を使用します。
 
-Reference: [expo-image](https://docs.expo.dev/versions/latest/sdk/image/)
+参考: [expo-image](https://docs.expo.dev/versions/latest/sdk/image/)

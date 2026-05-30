@@ -1,119 +1,119 @@
-# Creation Log: Systematic Debugging Skill
+# 作成ログ: Systematic Debugging skill
 
-Reference example of extracting, structuring, and bulletproofing a critical skill.
+重要 skill の抽出、構造化、bulletproofing のリファレンス例。
 
-## Source Material
+## ソース素材
 
-Extracted debugging framework from `/Users/jesse/.claude/CLAUDE.md`:
-- 4-phase systematic process (Investigation → Pattern Analysis → Hypothesis → Implementation)
-- Core mandate: ALWAYS find root cause, NEVER fix symptoms
-- Rules designed to resist time pressure and rationalization
+`/Users/jesse/.claude/CLAUDE.md` から debug フレームワークを抽出:
+- 4 フェーズの体系的プロセス（調査 → パターン分析 → 仮説 → 実装）
+- 中核 mandate: 常に根本原因を見つけ、症状を NEVER 修正
+- 時間的プレッシャーと言い訳に耐えるルール
 
-## Extraction Decisions
+## 抽出の判断
 
-**What to include:**
-- Complete 4-phase framework with all rules
-- Anti-shortcuts ("NEVER fix symptom", "STOP and re-analyze")
-- Pressure-resistant language ("even if faster", "even if I seem in a hurry")
-- Concrete steps for each phase
+**含めるもの:**
+- すべてのルール付き完全 4 フェーズフレームワーク
+- アンチショートカット（「症状を NEVER 修正」「STOP して再分析」）
+- プレッシャー耐性言語（「速くても」「急いでいるように見えても」）
+- 各フェーズの具体ステップ
 
-**What to leave out:**
-- Project-specific context
-- Repetitive variations of same rule
-- Narrative explanations (condensed to principles)
+**除外するもの:**
+- プロジェクト固有コンテキスト
+- 同一ルールの反復バリエーション
+- 叙述説明（原則に凝縮）
 
-## Structure Following skill-creation/SKILL.md
+## skill-creation/SKILL.md に沿った構造
 
-1. **Rich when_to_use** - Included symptoms and anti-patterns
-2. **Type: technique** - Concrete process with steps
-3. **Keywords** - "root cause", "symptom", "workaround", "debugging", "investigation"
-4. **Flowchart** - Decision point for "fix failed" → re-analyze vs add more fixes
-5. **Phase-by-phase breakdown** - Scannable checklist format
-6. **Anti-patterns section** - What NOT to do (critical for this skill)
+1. **豊富な when_to_use** — 症状とアンチパターンを含む
+2. **Type: technique** — ステップ付き具体プロセス
+3. **Keywords** — "root cause"、"symptom"、"workaround"、"debugging"、"investigation"
+4. **フローチャート** — 「修正失敗」→ 再分析 vs 追加修正の分岐点
+5. **フェーズ別 breakdown** — スキャン可能なチェックリスト形式
+6. **アンチパターンセクション** — してはいけないこと（この skill に重要）
 
-## Bulletproofing Elements
+## bulletproofing 要素
 
-Framework designed to resist rationalization under pressure:
+時間的プレッシャー下の言い訳に耐えるよう設計:
 
-### Language Choices
-- "ALWAYS" / "NEVER" (not "should" / "try to")
+### 言語選択
+- "ALWAYS" / "NEVER"（"should" / "try to" ではない）
 - "even if faster" / "even if I seem in a hurry"
-- "STOP and re-analyze" (explicit pause)
-- "Don't skip past" (catches the actual behavior)
+- "STOP and re-analyze"（明示的 pause）
+- "Don't skip past"（実際の行動を捕まえる）
 
-### Structural Defenses
-- **Phase 1 required** - Can't skip to implementation
-- **Single hypothesis rule** - Forces thinking, prevents shotgun fixes
-- **Explicit failure mode** - "IF your first fix doesn't work" with mandatory action
-- **Anti-patterns section** - Shows exactly what shortcuts look like
+### 構造的防御
+- **フェーズ 1 必須** — 実装にスキップ不可
+- **単一仮説ルール** — 思考を強制、shotgun 修正を防ぐ
+- **明示的失敗モード** — 「最初の修正が効かない IF」と必須アクション
+- **アンチパターンセクション** — ショートカットの正確な姿を示す
 
-### Redundancy
-- Root cause mandate in overview + when_to_use + Phase 1 + implementation rules
-- "NEVER fix symptom" appears 4 times in different contexts
-- Each phase has explicit "don't skip" guidance
+### 冗長性
+- overview + when_to_use + フェーズ 1 + 実装ルールに根本原因 mandate
+- 「症状を NEVER 修正」が異なる文脈で 4 回出現
+- 各フェーズに明示的「スキップしない」ガイダンス
 
-## Testing Approach
+## テストアプローチ
 
-Created 4 validation tests following skills/meta/testing-skills-with-subagents:
+skills/meta/testing-skills-with-subagents に沿い 4 検証テストを作成:
 
-### Test 1: Academic Context (No Pressure)
-- Simple bug, no time pressure
-- **Result:** Perfect compliance, complete investigation
+### テスト 1: 学術的文脈（プレッシャーなし）
+- 単純バグ、時間的プレッシャーなし
+- **結果:** 完全遵守、完全調査
 
-### Test 2: Time Pressure + Obvious Quick Fix
-- User "in a hurry", symptom fix looks easy
-- **Result:** Resisted shortcut, followed full process, found real root cause
+### テスト 2: 時間的プレッシャー + obvious な早い修正
+- ユーザー「急いでいる」、症状修正が簡単に見える
+- **結果:** ショートカットに抵抗、完全プロセス、真の根本原因発見
 
-### Test 3: Complex System + Uncertainty
-- Multi-layer failure, unclear if can find root cause
-- **Result:** Systematic investigation, traced through all layers, found source
+### テスト 3: 複雑システム + 不確実性
+- 多層失敗、根本原因が見つかるか不明
+- **結果:** 体系的調査、全レイヤートレース、ソース発見
 
-### Test 4: Failed First Fix
-- Hypothesis doesn't work, temptation to add more fixes
-- **Result:** Stopped, re-analyzed, formed new hypothesis (no shotgun)
+### テスト 4: 最初の修正失敗
+- 仮説が効かない、追加修正の誘惑
+- **結果:** 停止、再分析、新仮説（shotgun なし）
 
-**All tests passed.** No rationalizations found.
+**すべてのテスト通過。** 言い訳なし。
 
-## Iterations
+## イテレーション
 
-### Initial Version
-- Complete 4-phase framework
-- Anti-patterns section
-- Flowchart for "fix failed" decision
+### 初版
+- 完全 4 フェーズフレームワーク
+- アンチパターンセクション
+- 「修正失敗」判断用フローチャート
 
-### Enhancement 1: TDD Reference
-- Added link to skills/testing/test-driven-development
-- Note explaining TDD's "simplest code" ≠ debugging's "root cause"
-- Prevents confusion between methodologies
+### 強化 1: TDD 参照
+- skills/testing/test-driven-development へのリンク追加
+- TDD の「最も単純なコード」≠ debug の「根本原因」を説明
+- 方法論間の混乱を防ぐ
 
-## Final Outcome
+## 最終成果
 
-Bulletproof skill that:
-- ✅ Clearly mandates root cause investigation
-- ✅ Resists time pressure rationalization
-- ✅ Provides concrete steps for each phase
-- ✅ Shows anti-patterns explicitly
-- ✅ Tested under multiple pressure scenarios
-- ✅ Clarifies relationship to TDD
-- ✅ Ready for use
+bulletproof skill:
+- ✅ 根本原因調査を明確に mandate
+- ✅ 時間的プレッシャー言い訳に抵抗
+- ✅ 各フェーズの具体ステップ提供
+- ✅ アンチパターンを明示
+- ✅ 複数プレッシャーシナリオでテスト
+- ✅ TDD との関係を明確化
+- ✅ 利用可能
 
-## Key Insight
+## 重要な洞察
 
-**Most important bulletproofing:** Anti-patterns section showing exact shortcuts that feel justified in the moment. When Claude thinks "I'll just add this one quick fix", seeing that exact pattern listed as wrong creates cognitive friction.
+**最も重要な bulletproofing:** アンチパターンセクションが、瞬間的に正当化されそうなショートカットの正確なパターンを示す。Claude が「この 1 つだけ早い修正を」と思ったとき、そのパターンが wrong として listed されていると認知的摩擦が生まれる。
 
-## Usage Example
+## 利用例
 
-When encountering a bug:
-1. Load skill: skills/debugging/systematic-debugging
-2. Read overview (10 sec) - reminded of mandate
-3. Follow Phase 1 checklist - forced investigation
-4. If tempted to skip - see anti-pattern, stop
-5. Complete all phases - root cause found
+バグ遭遇時:
+1. skill 読み込み: skills/debugging/systematic-debugging
+2. overview 読む（10 秒）— mandate を思い出す
+3. フェーズ 1 チェックリストに従う — 調査を強制
+4. スキップしたくなったら — アンチパターンを見て STOP
+5. 全フェーズ完了 — 根本原因発見
 
-**Time investment:** 5-10 minutes
-**Time saved:** Hours of symptom-whack-a-mole
+**時間投資:** 5〜10 分
+**節約時間:** 症状 whack-a-mole の数時間
 
 ---
 
 *Created: 2025-10-03*
-*Purpose: Reference example for skill extraction and bulletproofing*
+*Purpose: skill 抽出と bulletproofing のリファレンス例*

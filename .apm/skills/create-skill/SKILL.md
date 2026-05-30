@@ -1,35 +1,33 @@
 ---
 name: create-skill
-description: >-
-  Create Cursor Agent Skills. Use when authoring a new skill or asking about
-  SKILL.md structure.
+description: Cursor Agent Skill を作成します。新しい skill の執筆、SKILL.md 構造についての質問時に使います。
 ---
-# Creating Skills in Cursor
+# Cursor skill の作成
 
-This skill guides you through creating effective Agent Skills for Cursor. Skills are markdown files that teach the agent how to perform specific tasks: reviewing PRs using team standards, generating commit messages in a preferred format, querying database schemas, or any specialized workflow.
+Cursor 向けの effective Agent Skill 作成手順です。skill は markdown file で、agent に specific task の実行方法を教えます。例: team standard による PR review、好みの format での commit message 生成、database schema query、任意の specialized workflow など。
 
-## Before You Begin: Gather Requirements
+## 開始前: 要件の収集
 
-Before creating a skill, gather essential information from the user about:
+skill 作成前に、ユーザーから次の essential information を収集します:
 
-1. **Purpose and scope**: What specific task or workflow should this skill help with?
-2. **Target location**: Should this be a personal skill (~/.cursor/skills/) or project skill (.cursor/skills/)?
-3. **Trigger scenarios**: When should the agent automatically apply this skill?
-4. **Key domain knowledge**: What specialized information does the agent need that it wouldn't already know?
-5. **Output format preferences**: Are there specific templates, formats, or styles required?
-6. **Existing patterns**: Are there existing examples or conventions to follow?
+1. **Purpose and scope**: この skill が支援すべき specific task または workflow は何か
+2. **Target location**: personal skill（~/.cursor/skills/）か project skill（.cursor/skills/）か
+3. **Trigger scenarios**: agent がいつ自動的にこの skill を適用すべきか
+4. **Key domain knowledge**: agent が既知でない specialized information は何か
+5. **Output format preferences**: 特定 template、format、style が必要か
+6. **Existing patterns**: 従う existing example や convention はあるか
 
-### Verbatim text from the user
+### ユーザーからの verbatim text
 
-If the user includes exact wording to use in the skill, respect it and use it **verbatim** in `SKILL.md` (same words, same order). Do not paraphrase, soften, or expand their copy, and do not add unrequested headings or commentary around it.
+ユーザーが skill 内で使う exact wording を含める場合、respect し `SKILL.md` に **verbatim** で使う（同じ語、同じ順）。paraphrase、soften、expand しない。依頼されていない heading や commentary を周囲に追加しない。
 
-### Inferring from Context
+### コンテキストからの推測
 
-If you have previous conversation context, infer the skill from what was discussed. You can create skills based on workflows, patterns, or domain knowledge that emerged in the conversation.
+会話 context がある場合、議論内容から skill を推測できます。会話で出た workflow、pattern、domain knowledge に基づいて skill を作成できます。
 
-### Gathering Additional Information
+### 追加情報の収集
 
-If you need clarification, use the AskQuestion tool when available:
+clarification が必要な場合、AskQuestion tool が使えれば使用:
 
 ```
 Example AskQuestion usage:
@@ -37,7 +35,7 @@ Example AskQuestion usage:
 - "Should this skill include executable scripts?" with options like ["Yes", "No"]
 ```
 
-If the AskQuestion tool is not available, ask these questions conversationally.
+AskQuestion tool が使えない場合、会話で質問します。
 
 ---
 
@@ -45,7 +43,7 @@ If the AskQuestion tool is not available, ask these questions conversationally.
 
 ### Directory Layout
 
-Skills are stored as directories containing a `SKILL.md` file:
+skill は `SKILL.md` を含む directory として保存:
 
 ```
 skill-name/
@@ -64,11 +62,11 @@ skill-name/
 | Personal | ~/.cursor/skills/skill-name/ | Available across all your projects |
 | Project | .cursor/skills/skill-name/ | Shared with anyone using the repository |
 
-**IMPORTANT**: Never create skills in `~/.cursor/skills-cursor/`. This directory is reserved for Cursor's internal built-in skills and is managed automatically by the system.
+**IMPORTANT**: `~/.cursor/skills-cursor/` に skill を作らない。この directory は Cursor internal built-in skill 用で system が自動管理。
 
 ### SKILL.md Structure
 
-Every skill requires a `SKILL.md` file with YAML frontmatter and markdown body:
+すべての skill に YAML frontmatter と markdown body 付き `SKILL.md` が必要:
 
 ```markdown
 ---
@@ -86,7 +84,7 @@ Clear, step-by-step guidance for the agent.
 Concrete examples of using this skill.
 ```
 
-Default `disable-model-invocation: true` so the skill only loads when named explicitly. Omit it only when the agent should auto-invoke from ambient context.
+default `disable-model-invocation: true` で、明示的に name 指定時のみ load。ambient context から agent が auto-invoke すべき場合のみ omit。
 
 ### Required Metadata Fields
 
@@ -97,26 +95,26 @@ Default `disable-model-invocation: true` so the skill only loads when named expl
 
 ---
 
-## Writing Effective Descriptions
+## 効果的な Description の書き方
 
-The description is **critical** for skill discovery. The agent uses it to decide when to apply your skill.
+description は skill discovery に **critical**。agent が skill 適用タイミングを決めるために使う。
 
-### Description Best Practices
+### Description ベストプラクティス
 
-1. **Write in third person** (the description is injected into the system prompt):
+1. **三人称で書く**（description は system prompt に inject される）:
    - ✅ Good: "Processes Excel files and generates reports"
    - ❌ Avoid: "I can help you process Excel files"
    - ❌ Avoid: "You can use this to process Excel files"
 
-2. **Be specific and include trigger terms**:
+2. **具体的に trigger term を含める**:
    - ✅ Good: "Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files or when the user mentions PDFs, forms, or document extraction."
    - ❌ Vague: "Helps with documents"
 
-3. **Include both WHAT and WHEN**:
-   - WHAT: What the skill does (specific capabilities)
-   - WHEN: When the agent should use it (trigger scenarios)
+3. **WHAT と WHEN の両方を含める**:
+   - WHAT: skill が何をするか（specific capabilities）
+   - WHEN: agent がいつ使うか（trigger scenarios）
 
-### Description Examples
+### Description 例
 
 ```yaml
 # PDF Processing
@@ -138,11 +136,11 @@ description: Review code for quality, security, and best practices following tea
 
 ### 1. Concise is Key
 
-The context window is shared with conversation history, other skills, and requests. Every token competes for space.
+context window は conversation history、他 skill、request と共有。すべての token が space を競う。
 
-**Default assumption**: The agent is already very smart. Only add context it doesn't already have.
+**Default assumption**: agent はすでに very smart。持っていない context だけ追加。
 
-Challenge each piece of information:
+各情報に challenge:
 - "Does the agent really need this explanation?"
 - "Can I assume the agent knows this?"
 - "Does this paragraph justify its token cost?"
@@ -173,11 +171,11 @@ recommend pdfplumber because it's easy to use and handles most cases well...
 
 ### 2. Keep SKILL.md Under 500 Lines
 
-For optimal performance, the main SKILL.md file should be concise. Use progressive disclosure for detailed content.
+optimal performance のため main SKILL.md は concise に。詳細 content は progressive disclosure。
 
 ### 3. Progressive Disclosure
 
-Put essential information in SKILL.md; detailed reference material in separate files that the agent reads only when needed.
+essential information を SKILL.md に。詳細 reference material は agent が必要時のみ読む separate file に。
 
 ```markdown
 # PDF Processing
@@ -190,11 +188,11 @@ Put essential information in SKILL.md; detailed reference material in separate f
 - For usage examples, see [examples.md](examples.md)
 ```
 
-**Keep references one level deep** - link directly from SKILL.md to reference files. Deeply nested references may result in partial reads.
+**Keep references one level deep** — SKILL.md から reference file へ直接 link。deeply nested reference は partial read になりうる。
 
 ### 4. Set Appropriate Degrees of Freedom
 
-Match specificity to the task's fragility:
+task の fragility に合わせ specificity を調整:
 
 | Freedom Level | When to Use | Example |
 |---------------|-------------|---------|
@@ -208,7 +206,7 @@ Match specificity to the task's fragility:
 
 ### Template Pattern
 
-Provide output format templates:
+output format template を提供:
 
 ```markdown
 ## Report structure
@@ -233,7 +231,7 @@ Use this template:
 
 ### Examples Pattern
 
-For skills where output quality depends on seeing examples:
+output quality が example 依存の skill:
 
 ```markdown
 ## Commit message format
@@ -259,7 +257,7 @@ Use UTC timestamps consistently across report generation
 
 ### Workflow Pattern
 
-Break complex operations into clear steps with checklists:
+complex operation を clear step と checklist に分解:
 
 ```markdown
 ## Form filling workflow
@@ -282,7 +280,7 @@ Run: \`python scripts/analyze_form.py input.pdf\`
 
 ### Conditional Workflow Pattern
 
-Guide through decision points:
+decision point を guide:
 
 ```markdown
 ## Document modification workflow
@@ -300,7 +298,7 @@ Guide through decision points:
 
 ### Feedback Loop Pattern
 
-For quality-critical tasks, implement validation loops:
+quality-critical task では validation loop:
 
 ```markdown
 ## Document editing process
@@ -318,11 +316,11 @@ For quality-critical tasks, implement validation loops:
 
 ## Utility Scripts
 
-Pre-made scripts offer advantages over generated code:
-- More reliable than generated code
-- Save tokens (no code in context)
-- Save time (no code generation)
-- Ensure consistency across uses
+pre-made script は generated code より有利:
+- generated code より reliable
+- token 節約（context に code 不要）
+- 時間節約（code generation 不要）
+- 使用間で consistency
 
 ```markdown
 ## Utility scripts
@@ -339,7 +337,7 @@ python scripts/validate.py fields.json
 \`\`\`
 ```
 
-Make clear whether the agent should **execute** the script (most common) or **read** it as reference.
+agent が script を **execute** すべきか **read** して reference にすべきか明確に。
 
 ---
 
@@ -376,7 +374,7 @@ Use the v2 API endpoint.
 ```
 
 ### 4. Inconsistent Terminology
-Choose one term and use it throughout:
+1 term を選び throughout 使用:
 - ✅ Always "API endpoint" (not mixing "URL", "route", "path")
 - ✅ Always "field" (not mixing "box", "element", "control")
 
@@ -388,48 +386,48 @@ Choose one term and use it throughout:
 
 ## Skill Creation Workflow
 
-When helping a user create a skill, follow this process:
+ユーザーが skill 作成を依頼した場合、この process に従う:
 
 ### Phase 1: Discovery
 
-Gather information about:
-1. The skill's purpose and primary use case
-2. Storage location (personal vs project)
-3. Trigger scenarios
-4. Any specific requirements or constraints
-5. Existing examples or patterns to follow
+次について情報収集:
+1. skill の purpose と primary use case
+2. storage location（personal vs project）
+3. trigger scenarios
+4. specific requirement や constraint
+5. 従う existing example や pattern
 
-If you have access to the AskQuestion tool, use it for efficient structured gathering. Otherwise, ask conversationally.
+AskQuestion tool が使えれば structured gathering に使用。使えない場合は conversational に質問。
 
 ### Phase 2: Design
 
-1. Draft the skill name (lowercase, hyphens, max 64 chars)
-2. Write a specific, third-person description
-3. Outline the main sections needed
-4. Identify if supporting files or scripts are needed
+1. skill name を draft（lowercase、hyphens、max 64 chars）
+2. specific な三人称 description を書く
+3. 必要な main section を outline
+4. supporting file や script が必要か特定
 
 ### Phase 3: Implementation
 
-1. Create the directory structure
-2. Write the SKILL.md file with frontmatter
-3. Create any supporting reference files
-4. Create any utility scripts if needed
-5. TABBIN project skill を追加または削除した場合は、`.apm/SKILLS.md` の skill 一覧にも用途を追記または削除します。
+1. directory structure を作成
+2. frontmatter 付き SKILL.md を書く
+3. supporting reference file を作成
+4. 必要な utility script を作成
+5. TABBIN project skill を追加または削除した場合、`.apm/SKILLS.md` の skill 一覧にも用途を追記または削除します。
 
 ### Phase 4: Verification
 
-1. Verify the SKILL.md is under 500 lines
-2. Check that the description is specific and includes trigger terms
-3. Ensure consistent terminology throughout
-4. Verify all file references are one level deep
-5. Test that the skill can be discovered and applied
-6. TABBIN project skill の場合は、`.apm/SKILLS.md` に新しい skill が記載されていることを確認します。
+1. SKILL.md が 500 行未満であることを verify
+2. description が specific で trigger term を含むことを check
+3. terminology が throughout 一貫していることを ensure
+4. すべての file reference が one level deep であることを verify
+5. skill が discover され apply できることを test
+6. TABBIN project skill の場合、`.apm/SKILLS.md` に新しい skill が記載されていることを確認します。
 
 ---
 
 ## Complete Example
 
-Here's a complete example of a well-structured skill:
+well-structured skill の complete example:
 
 **Directory structure:**
 ```
@@ -483,7 +481,7 @@ Format feedback as:
 
 ## Summary Checklist
 
-Before finalizing a skill, verify:
+skill finalize 前に verify:
 
 ### Core Quality
 - [ ] Description is specific and includes key terms

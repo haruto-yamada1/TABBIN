@@ -1,34 +1,34 @@
 ---
 name: writing-plans
-description: Use when you have a spec or requirements for a multi-step task, before touching code
+description: 複数ステップのタスクに仕様や要件があるとき、コードに触れる前に使います。
 ---
 
-# Writing Plans
+# 計画の作成
 
-## Overview
+## 概要
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+コードベースの文脈ゼロ、好みも疑わしいエンジニアを想定して、包括的な実装計画を書く。各タスクで触るファイル、コード、確認すべきテスト・ドキュメント、検証方法をすべて記載。計画全体を bite-sized タスクに分割。DRY。YAGNI。TDD。頻繁な commit。
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+熟練開発者だが、ツールセットや問題領域はほぼ知らないと想定。良いテスト設計もあまり知らないと想定。
 
-**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+**開始時に宣言:** 「writing-plans skill を使って実装計画を作成します。」
 
-**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+**コンテキスト:** brainstorming skill が作成した専用 worktree で実行する想定。
 
-**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+**計画の保存先:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 
-## Bite-Sized Task Granularity
+## bite-sized タスクの粒度
 
-**Each step is one action (2-5 minutes):**
-- "Write the failing test" - step
-- "Run it to make sure it fails" - step
-- "Implement the minimal code to make the test pass" - step
-- "Run the tests and make sure they pass" - step
-- "Commit" - step
+**各ステップは 1 アクション（2〜5 分）:**
+- 「失敗するテストを書く」— 1 ステップ
+- 「失敗することを確認するために実行」— 1 ステップ
+- 「テストを通す最小コードを実装」— 1 ステップ
+- 「テストを実行して通ることを確認」— 1 ステップ
+- 「commit」— 1 ステップ
 
-## Plan Document Header
+## 計画ドキュメントのヘッダー
 
-**Every plan MUST start with this header:**
+**すべての計画は次のヘッダーで始める:**
 
 ```markdown
 # [Feature Name] Implementation Plan
@@ -44,7 +44,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ---
 ```
 
-## Task Structure
+## タスク構造
 
 ````markdown
 ### Task N: [Component Name]
@@ -87,30 +87,30 @@ git commit -m "feat: add specific feature"
 ```
 ````
 
-## Remember
-- Exact file paths always
-- Complete code in plan (not "add validation")
-- Exact commands with expected output
-- Reference relevant skills with @ syntax
-- DRY, YAGNI, TDD, frequent commits
+## 覚えておくこと
+- 常に正確なファイルパス
+- 計画に完全なコード（「バリデーションを追加」ではない）
+- 期待出力付きの正確なコマンド
+- 関連 skill は @ 構文で参照
+- DRY、YAGNI、TDD、頻繁な commit
 
-## Execution Handoff
+## 実行の引き渡し
 
-After saving the plan, offer execution choice:
+計画保存後、実行方法を提示:
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+**「計画を `docs/plans/<filename>.md` に保存しました。実行方法は 2 つ:**
 
-**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+**1. サブエージェント駆動（このセッション）** — タスクごとに新しいサブエージェントを dispatch、タスク間でレビュー、高速イテレーション
 
-**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+**2. 並行セッション（別セッション）** — executing-plans で新セッションを開き、チェックポイント付きバッチ実行
 
-**Which approach?"**
+**どちらにしますか？」**
 
-**If Subagent-Driven chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
-- Stay in this session
-- Fresh subagent per task + code review
+**サブエージェント駆動を選んだ場合:**
+- **必須 SUB-SKILL:** superpowers:subagent-driven-development を使う
+- このセッションで継続
+- タスクごとに新しいサブエージェント + コードレビュー
 
-**If Parallel Session chosen:**
-- Guide them to open new session in worktree
-- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+**並行セッションを選んだ場合:**
+- worktree で新セッションを開くよう案内
+- **必須 SUB-SKILL:** 新セッションでは superpowers:executing-plans を使う

@@ -1,16 +1,15 @@
 ---
-title: Load fonts natively at build time
+title: ビルド時にネイティブでフォントを読み込む
 impact: LOW
-impactDescription: fonts available at launch, no async loading
+impactDescription: 起動時にフォント利用可能、非同期読み込み不要
 tags: fonts, expo, performance, config-plugin
 ---
 
-## Use Expo Config Plugin for Font Loading
+## フォント読み込みに Expo Config Plugin を使用
 
-Use the `expo-font` config plugin to embed fonts at build time instead of
-`useFonts` or `Font.loadAsync`. Embedded fonts are more efficient.
+`useFonts` や `Font.loadAsync` の代わりに `expo-font` config plugin でビルド時にフォントを埋め込みます。埋め込みフォントの方が効率的です。
 
-**Incorrect (async font loading):**
+**不適切（非同期フォント読み込み）:**
 
 ```tsx
 import { useFonts } from 'expo-font'
@@ -33,7 +32,7 @@ function App() {
 }
 ```
 
-**Correct (config plugin, fonts embedded at build):**
+**適切（config plugin、ビルド時にフォント埋め込み）:**
 
 ```json
 // app.json
@@ -64,8 +63,7 @@ function App() {
 }
 ```
 
-After adding fonts to the config plugin, run `npx expo prebuild` and rebuild the
-native app.
+config plugin にフォントを追加した後、`npx expo prebuild` を実行しネイティブアプリを再ビルドしてください。
 
-Reference:
+参考:
 [Expo Font Documentation](https://docs.expo.dev/versions/latest/sdk/font/)

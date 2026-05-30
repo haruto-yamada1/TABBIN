@@ -1,18 +1,18 @@
 ---
 name: charts
-description: Chart and data visualization patterns for Remotion. Use when creating bar charts, pie charts, line charts, stock graphs, or any data-driven animations.
+description: Remotion でのチャート描画
 metadata:
   tags: charts, data, visualization, bar-chart, pie-chart, line-chart, stock-chart, svg-paths, graphs
 ---
 
-# Charts in Remotion
+# Remotion でのチャート
 
-Create charts using React code - HTML, SVG, and D3.js are all supported.
+React code でチャートを作成します。HTML、SVG、D3.js すべてサポートされます。
 
-Disable all animations from third party libraries - they cause flickering.  
-Drive all animations from `useCurrentFrame()`.
+サードパーティライブラリのアニメーションはすべて無効にしてください。ちらつきの原因になります。  
+すべてのアニメーションは `useCurrentFrame()` から駆動します。
 
-## Bar Chart
+## 棒グラフ
 
 ```tsx
 const STAGGER_DELAY = 5;
@@ -30,9 +30,9 @@ const bars = data.map((item, i) => {
 });
 ```
 
-## Pie Chart
+## 円グラフ
 
-Animate segments using stroke-dashoffset, starting from 12 o'clock:
+12 時方向から始め、`stroke-dashoffset` でセグメントをアニメーションします:
 
 ```tsx
 const progress = interpolate(frame, [0, 100], [0, 1]);
@@ -53,14 +53,14 @@ const offset = interpolate(progress, [0, 1], [segmentLength, 0]);
 />;
 ```
 
-## Line Chart / Path Animation
+## 折れ線グラフ / パスアニメーション
 
-Use `@remotion/paths` for animating SVG paths (line charts, stock graphs, signatures).
+SVG path のアニメーション（折れ線、株価、署名など）には `@remotion/paths` を使います。
 
-Install: `npx remotion add @remotion/paths`  
-Docs: https://remotion.dev/docs/paths.md
+インストール: `npx remotion add @remotion/paths`  
+ドキュメント: https://remotion.dev/docs/paths.md
 
-### Convert data points to SVG path
+### データ点を SVG path に変換
 
 ```tsx
 type Point = { x: number; y: number };
@@ -71,7 +71,7 @@ const generateLinePath = (points: Point[]): string => {
 };
 ```
 
-### Draw path with animation
+### アニメーション付きで path を描画
 
 ```tsx
 import { evolvePath } from "@remotion/paths";
@@ -95,7 +95,7 @@ const { strokeDasharray, strokeDashoffset } = evolvePath(progress, path);
 />;
 ```
 
-### Follow path with marker/arrow
+### マーカー/矢印で path を追従
 
 ```tsx
 import { getLength, getPointAtLength, getTangentAtLength } from "@remotion/paths";

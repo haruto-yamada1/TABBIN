@@ -1,17 +1,15 @@
 ---
-title: Never Track Scroll Position in useState
+title: useState でスクロール位置を追跡しない
 impact: HIGH
-impactDescription: prevents render thrashing during scroll
+impactDescription: スクロール中のレンダースラッシングを防ぐ
 tags: scroll, performance, reanimated, useRef
 ---
 
-## Never Track Scroll Position in useState
+## useState でスクロール位置を追跡しない
 
-Never store scroll position in `useState`. Scroll events fire rapidly—state
-updates cause render thrashing and dropped frames. Use a Reanimated shared value
-for animations or a ref for non-reactive tracking.
+スクロール位置を `useState` に保存しないでください。スクロールイベントは高頻度で発火し、state 更新はレンダースラッシングとフレームドロップを引き起こします。アニメーションには Reanimated shared value、非リアクティブな追跡には ref を使用します。
 
-**Incorrect (useState causes jank):**
+**不適切（useState がカクつきの原因）:**
 
 ```tsx
 import { useState } from 'react'
@@ -32,7 +30,7 @@ function Feed() {
 }
 ```
 
-**Correct (Reanimated for animations):**
+**適切（アニメーションに Reanimated）:**
 
 ```tsx
 import Animated, {
@@ -60,7 +58,7 @@ function Feed() {
 }
 ```
 
-**Correct (ref for non-reactive tracking):**
+**適切（非リアクティブ追跡に ref）:**
 
 ```tsx
 import { useRef } from 'react'

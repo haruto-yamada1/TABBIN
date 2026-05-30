@@ -1,32 +1,32 @@
 ---
 name: lottie
-description: Embedding Lottie animations in Remotion.
+description: Remotion での Lottie アニメーション埋め込み
 metadata:
   category: Animation
 ---
 
-# Using Lottie Animations in Remotion
+# Remotion で Lottie アニメーションを使う
 
-## Prerequisites
+## 前提条件
 
-First, the @remotion/lottie package needs to be installed.  
-If it is not, use the following command:
+`@remotion/lottie` パッケージを先にインストールします。  
+未インストールの場合は次のコマンドを使用:
 
 ```bash
-npx remotion add @remotion/lottie # If project uses npm
-bunx remotion add @remotion/lottie # If project uses bun
-yarn remotion add @remotion/lottie # If project uses yarn
-pnpm exec remotion add @remotion/lottie # If project uses pnpm
+npx remotion add @remotion/lottie # npm プロジェクト
+bunx remotion add @remotion/lottie # bun プロジェクト
+yarn remotion add @remotion/lottie # yarn プロジェクト
+pnpm exec remotion add @remotion/lottie # pnpm プロジェクト
 ```
 
-## Displaying a Lottie file
+## Lottie ファイルの表示
 
-To import a Lottie animation:
+Lottie アニメーションを import する手順:
 
-- Fetch the Lottie asset
-- Wrap the loading process in `delayRender()` and `continueRender()`
-- Save the animation data in a state
-- Render the Lottie animation using the `Lottie` component from the `@remotion/lottie` package
+- Lottie asset を fetch
+- 読み込みを `delayRender()` / `continueRender()` で包む
+- animation data を state に保存
+- `@remotion/lottie` の `Lottie` コンポーネントで render
 
 ```tsx
 import { Lottie, LottieAnimationData } from "@remotion/lottie";
@@ -58,9 +58,9 @@ export const MyAnimation = () => {
 };
 ```
 
-## Styling and animating
+## スタイルとアニメーション
 
-Lottie supports the `style` prop to allow styles and animations:
+Lottie は `style` prop でスタイルとアニメーションを指定できます:
 
 ```tsx
 return <Lottie animationData={animationData} style={{ width: 400, height: 400 }} />;

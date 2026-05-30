@@ -1,17 +1,15 @@
 ---
-title: Install Native Dependencies in App Directory
+title: アプリディレクトリにネイティブ依存関係をインストール
 impact: CRITICAL
-impactDescription: required for autolinking to work
+impactDescription: autolinking 動作に必須
 tags: monorepo, native, autolinking, installation
 ---
 
-## Install Native Dependencies in App Directory
+## アプリディレクトリにネイティブ依存関係をインストール
 
-In a monorepo, packages with native code must be installed in the native app's
-directory directly. Autolinking only scans the app's `node_modules`—it won't
-find native dependencies installed in other packages.
+モノレポでは、ネイティブコードを含むパッケージをネイティブアプリのディレクトリに直接インストールする必要があります。autolinking はアプリの `node_modules` のみをスキャンし、他パッケージにインストールされたネイティブ依存関係は見つけません。
 
-**Incorrect (native dep in shared package only):**
+**不適切（共有パッケージのみにネイティブ dep）:**
 
 ```
 packages/
@@ -21,9 +19,9 @@ packages/
     package.json  # missing react-native-reanimated
 ```
 
-Autolinking fails—native code not linked.
+autolinking 失敗 — ネイティブコードがリンクされない。
 
-**Correct (native dep in app directory):**
+**適切（アプリディレクトリにもネイティブ dep）:**
 
 ```
 packages/
@@ -42,5 +40,4 @@ packages/
 }
 ```
 
-Even if the shared package uses the native dependency, the app must also list it
-for autolinking to detect and link the native code.
+共有パッケージがネイティブ依存関係を使っていても、autolinking がネイティブコードを検出・リンクするにはアプリ側にも記載が必要です。
