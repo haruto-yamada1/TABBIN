@@ -10,6 +10,8 @@ _散らかりがちなタブをスマートに整理し、生産性を向上さ�
 
 [🚀 Chrome ウェブストアでインストール](https://chromewebstore.google.com/detail/tabbin/dljblklbpmoocinnlcejeokopmfoldaj)
 
+[プライバシーとデータの扱い](PRIVACY.md)
+
 ## 📋 概要
 
 TABBIN(タビン)はブラウザのタブを整理・分類する拡張機能です。散らかりがちなタブをスマートに管理し、快適なブラウジング体験を実現します。
