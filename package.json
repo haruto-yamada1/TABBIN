@@ -1,8 +1,8 @@
 {
-  "name": "wxt-react-starter",
-  "version": "0.0.0",
+  "name": "tabbin",
+  "version": "2.0.6",
   "private": true,
-  "description": "manifest.json description",
+  "description": "An extension for organizing and categorizing browser tabs so cluttered tab lists stay manageable.",
   "type": "module",
   "scripts": {
     "dev": "wxt",
