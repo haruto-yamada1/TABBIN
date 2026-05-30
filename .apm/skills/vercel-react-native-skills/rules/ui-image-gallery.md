@@ -1,18 +1,15 @@
 ---
-title: Use Galeria for Image Galleries and Lightbox
+title: 画像ギャラリーとライトボックスに Galeria を使用
 impact: MEDIUM
-impactDescription:
-  native shared element transitions, pinch-to-zoom, pan-to-close
+impactDescription: ネイティブ shared element 遷移、ピンチズーム、パンで閉じる
 tags: images, gallery, lightbox, expo-image, ui
 ---
 
-## Use Galeria for Image Galleries and Lightbox
+## 画像ギャラリーとライトボックスに Galeria を使用
 
-For image galleries with lightbox (tap to fullscreen), use `@nandorojo/galeria`.
-It provides native shared element transitions with pinch-to-zoom, double-tap
-zoom, and pan-to-close. Works with any image component including `expo-image`.
+ライトボックス付き画像ギャラリー（タップで全画面）には `@nandorojo/galeria` を使用します。ピンチズーム、ダブルタップズーム、パンで閉じるネイティブ shared element 遷移を提供します。`expo-image` を含む任意の画像コンポーネントと動作します。
 
-**Incorrect (custom modal implementation):**
+**不適切（カスタム modal 実装）:**
 
 ```tsx
 function ImageGallery({ urls }: { urls: string[] }) {
@@ -33,7 +30,7 @@ function ImageGallery({ urls }: { urls: string[] }) {
 }
 ```
 
-**Correct (Galeria with expo-image):**
+**適切（expo-image 付き Galeria）:**
 
 ```tsx
 import { Galeria } from '@nandorojo/galeria'
@@ -52,7 +49,7 @@ function ImageGallery({ urls }: { urls: string[] }) {
 }
 ```
 
-**Single image:**
+**単一画像:**
 
 ```tsx
 import { Galeria } from '@nandorojo/galeria'
@@ -69,7 +66,7 @@ function Avatar({ url }: { url: string }) {
 }
 ```
 
-**With low-res thumbnails and high-res fullscreen:**
+**低解像度サムネイルと高解像度全画面:**
 
 ```tsx
 <Galeria urls={highResUrls}>
@@ -81,7 +78,7 @@ function Avatar({ url }: { url: string }) {
 </Galeria>
 ```
 
-**With FlashList:**
+**FlashList 付き:**
 
 ```tsx
 <Galeria urls={urls}>
@@ -98,7 +95,6 @@ function Avatar({ url }: { url: string }) {
 </Galeria>
 ```
 
-Works with `expo-image`, `SolitoImage`, `react-native` Image, or any image
-component.
+`expo-image`、`SolitoImage`、`react-native` Image、任意の画像コンポーネントと動作します。
 
-Reference: [Galeria](https://github.com/nandorojo/galeria)
+参考: [Galeria](https://github.com/nandorojo/galeria)

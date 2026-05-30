@@ -1,16 +1,15 @@
 ---
-title: Import from Design System Folder
+title: デザインシステムフォルダからインポート
 impact: LOW
-impactDescription: enables global changes and easy refactoring
+impactDescription: グローバル変更と容易なリファクタリングを可能に
 tags: imports, architecture, design-system
 ---
 
-## Import from Design System Folder
+## デザインシステムフォルダからインポート
 
-Re-export dependencies from a design system folder. App code imports from there,
-not directly from packages. This enables global changes and easy refactoring.
+デザインシステムフォルダから依存関係を再エクスポートします。アプリコードはパッケージから直接ではなく、そこからインポートします。これによりグローバル変更と容易なリファクタリングが可能になります。
 
-**Incorrect (imports directly from package):**
+**不適切（パッケージから直接インポート）:**
 
 ```tsx
 import { View, Text } from 'react-native'
@@ -26,7 +25,7 @@ function Profile() {
 }
 ```
 
-**Correct (imports from design system):**
+**適切（デザインシステムからインポート）:**
 
 ```tsx
 // components/view.tsx
@@ -65,4 +64,4 @@ function Profile() {
 }
 ```
 
-Start by simply re-exporting. Customize later without changing app code.
+まず単純な再エクスポートから始め、後からアプリコードを変えずにカスタマイズできます。

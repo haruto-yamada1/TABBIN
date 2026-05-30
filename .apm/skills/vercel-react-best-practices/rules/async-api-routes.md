@@ -1,15 +1,15 @@
 ---
-title: Prevent Waterfall Chains in API Routes
+title: API ルートのウォーターフォール連鎖を防ぐ
 impact: CRITICAL
-impactDescription: 2-10× improvement
+impactDescription: 2〜10倍の改善
 tags: api-routes, server-actions, waterfalls, parallelization
 ---
 
-## Prevent Waterfall Chains in API Routes
+## API ルートのウォーターフォール連鎖を防ぐ
 
-In API routes and Server Actions, start independent operations immediately, even if you don't await them yet.
+API ルートと Server Actions では、まだ await しない場合でも、独立した操作をすぐに開始します。
 
-**Incorrect (config waits for auth, data waits for both):**
+**不適切（config が auth を待ち、data が両方を待つ）:**
 
 ```typescript
 export async function GET(request: Request) {
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 }
 ```
 
-**Correct (auth and config start immediately):**
+**適切（auth と config を即座に開始）:**
 
 ```typescript
 export async function GET(request: Request) {
@@ -35,4 +35,4 @@ export async function GET(request: Request) {
 }
 ```
 
-For operations with more complex dependency chains, use `better-all` to automatically maximize parallelism (see Dependency-Based Parallelization).
+より複雑な依存関係チェーンがある操作には、並列性を自動最大化する `better-all` を使用します（依存関係ベースの並列化を参照）。

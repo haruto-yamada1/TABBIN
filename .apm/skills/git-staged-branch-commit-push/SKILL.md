@@ -7,7 +7,7 @@ description: >-
 disable-model-invocation: true
 ---
 
-# Staged Branch Commit Push
+# staged 変更の branch commit push
 
 ## 目的
 

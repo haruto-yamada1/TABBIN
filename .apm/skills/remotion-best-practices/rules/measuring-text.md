@@ -1,23 +1,23 @@
 ---
 name: measuring-text
-description: Measuring text dimensions, fitting text to containers, and checking overflow
+description: テキスト寸法の計測、コンテナへのフィット、オーバーフロー確認
 metadata:
   tags: measure, text, layout, dimensions, fitText, fillTextBox
 ---
 
-# Measuring text in Remotion
+# Remotion でのテキスト計測
 
-## Prerequisites
+## 前提条件
 
-Install @remotion/layout-utils if it is not already installed:
+未インストールなら `@remotion/layout-utils` をインストール:
 
 ```bash
 npx remotion add @remotion/layout-utils
 ```
 
-## Measuring text dimensions
+## テキスト寸法の計測
 
-Use `measureText()` to calculate the width and height of text:
+`measureText()` でテキストの width / height を計算:
 
 ```tsx
 import { measureText } from "@remotion/layout-utils";
@@ -30,11 +30,11 @@ const { width, height } = measureText({
 });
 ```
 
-Results are cached - duplicate calls return the cached result.
+結果は cache されます。同じ呼び出しは cache を返します。
 
-## Fitting text to a width
+## 幅にテキストをフィット
 
-Use `fitText()` to find the optimal font size for a container:
+`fitText()` でコンテナに最適な font size を求めます:
 
 ```tsx
 import { fitText } from "@remotion/layout-utils";
@@ -49,7 +49,7 @@ const { fontSize } = fitText({
 return (
   <div
     style={{
-      fontSize: Math.min(fontSize, 80), // Cap at 80px
+      fontSize: Math.min(fontSize, 80), // 80px で cap
       fontFamily: "Inter",
       fontWeight: "bold",
     }}
@@ -59,9 +59,9 @@ return (
 );
 ```
 
-## Checking text overflow
+## テキストオーバーフローの確認
 
-Use `fillTextBox()` to check if text exceeds a box:
+`fillTextBox()` でテキストが box を超えるか確認:
 
 ```tsx
 import { fillTextBox } from "@remotion/layout-utils";
@@ -76,15 +76,15 @@ for (const word of words) {
     fontSize: 24,
   });
   if (exceedsBox) {
-    // Text would overflow, handle accordingly
+    // オーバーフローするので適宜処理
     break;
   }
 }
 ```
 
-## Best practices
+## ベストプラクティス
 
-**Load fonts first:** Only call measurement functions after fonts are loaded.
+**先にフォントを読み込む:** 計測関数はフォント読み込み後にのみ呼び出してください。
 
 ```tsx
 import { loadFont } from "@remotion/google-fonts/Inter";
@@ -95,7 +95,7 @@ const { fontFamily, waitUntilDone } = loadFont("normal", {
 });
 
 waitUntilDone().then(() => {
-  // Now safe to measure
+  // ここで計測して安全
   const { width } = measureText({
     text: "Hello",
     fontFamily,
@@ -104,18 +104,18 @@ waitUntilDone().then(() => {
 });
 ```
 
-**Use validateFontIsLoaded:** Catch font loading issues early:
+**validateFontIsLoaded を使う:** フォント読み込み問題を早期検出:
 
 ```tsx
 measureText({
   text: "Hello",
   fontFamily: "MyCustomFont",
   fontSize: 32,
-  validateFontIsLoaded: true, // Throws if font not loaded
+  validateFontIsLoaded: true, // 未読み込みなら throw
 });
 ```
 
-**Match font properties:** Use the same properties for measurement and rendering:
+**font property を一致させる:** 計測と render で同じ property を使う:
 
 ```tsx
 const fontStyle = {
@@ -133,7 +133,7 @@ const { width } = measureText({
 return <div style={fontStyle}>Hello</div>;
 ```
 
-**Avoid padding and border:** Use `outline` instead of `border` to prevent layout differences:
+**padding / border を避ける:** layout 差を防ぐため `border` の代わりに `outline` を使う:
 
 ```tsx
 <div style={{ outline: "2px solid red" }}>Text</div>

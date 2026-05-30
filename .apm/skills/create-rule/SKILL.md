@@ -1,44 +1,40 @@
 ---
 name: create-rule
-description: >-
-  Create Cursor rules for persistent AI guidance. Use when you want to create a
-  rule, add coding standards, set up project conventions, configure
-  file-specific patterns, create RULE.md files, or asks about .cursor/rules/ or
-  AGENTS.md.
+description: 永続的な AI ガイダンス用の Cursor rule を作成します。rule 追加、コーディング標準、プロジェクト規約、file-specific パターン、RULE.md 作成、`.cursor/rules/` や AGENTS.md についての質問時に使います。
 ---
-# Creating Cursor Rules
+# Cursor rule の作成
 
-Create project rules in `.cursor/rules/` to provide persistent context for the AI agent.
+`.cursor/rules/` に project rule を作成し、AI agent へ永続的な context を提供します。
 
-## Gather Requirements
+## 要件の収集
 
-Before creating a rule, determine:
+rule 作成前に次を決めます:
 
-1. **Purpose**: What should this rule enforce or teach?
-2. **Scope**: Should it always apply, or only for specific files?
-3. **File patterns**: If file-specific, which glob patterns?
+1. **Purpose**: この rule で何を enforce または teach するか
+2. **Scope**: 常に適用するか、特定 file のみか
+3. **File patterns**: file-specific の場合、どの glob pattern か
 
-### Inferring from Context
+### コンテキストからの推測
 
-If you have previous conversation context, infer rules from what was discussed. You can create multiple rules if the conversation covers distinct topics or patterns. Don't ask redundant questions if the context already provides the answers.
+会話に context がある場合、議論内容から rule を推測できます。会話が distinct な topic や pattern を複数扱う場合、複数 rule を作成して構いません。context ですでに答えが分かっている redundant な質問は避けます。
 
-### Required Questions
+### 必須の質問
 
-If the user hasn't specified scope, ask:
-- "Should this rule always apply, or only when working with specific files?"
+ユーザーが scope を指定していない場合、次を尋ねます:
+- 「この rule は常に適用しますか、特定 file 作業時のみですか？」
 
-If they mentioned specific files and haven't provided concrete patterns, ask:
-- "Which file patterns should this rule apply to?" (e.g., `**/*.ts`, `backend/**/*.py`)
+特定 file に言及があり、具体的 pattern が未指定の場合、次を尋ねます:
+- 「どの file pattern に適用しますか？」（例: `**/*.ts`、`backend/**/*.py`）
 
-It's very important that we get clarity on the file patterns.
+file pattern の明確化は重要です。
 
-Use the AskQuestion tool when available to gather this efficiently.
+AskQuestion tool が使える場合は、効率的に収集します。
 
 ---
 
 ## Rule File Format
 
-Rules are `.mdc` files in `.cursor/rules/` with YAML frontmatter:
+rule は YAML frontmatter 付きの `.mdc` file です:
 
 ```
 .cursor/rules/
@@ -65,9 +61,9 @@ Your rule content here...
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `description` | string | What the rule does (shown in rule picker) |
-| `globs` | string | File pattern - rule applies when matching files are open |
-| `alwaysApply` | boolean | If true, applies to every session |
+| `description` | string | rule の内容（rule picker に表示） |
+| `globs` | string | file pattern — 一致 file を開いているときに適用 |
+| `alwaysApply` | boolean | true の場合、すべての session に適用 |
 
 ---
 
@@ -75,7 +71,7 @@ Your rule content here...
 
 ### Always Apply
 
-For universal standards that should apply to every conversation:
+すべての会話に適用する universal standard の場合:
 
 ```yaml
 ---
@@ -86,7 +82,7 @@ alwaysApply: true
 
 ### Apply to Specific Files
 
-For rules that apply when working with certain file types:
+特定 file type 作業時のみ適用する rule の場合:
 
 ```yaml
 ---
@@ -98,18 +94,18 @@ alwaysApply: false
 
 ---
 
-## Best Practices
+## ベストプラクティス
 
-### Keep Rules Concise
+### Rule は簡潔に
 
-- **Under 50 lines**: Rules should be concise and to the point
-- **One concern per rule**: Split large rules into focused pieces
-- **Actionable**: Write like clear internal docs
-- **Concrete examples**: Ideally provide concrete examples of how to fix issues
+- **50 行未満**: rule は簡潔に要点だけ
+- **1 rule 1 concern**: 大きい rule は focused な piece に分割
+- **Actionable**: 明確な internal doc のように書く
+- **Concrete examples**: 可能なら issue の直し方の具体例を示す
 
 ---
 
-## Example Rules
+## Rule 例
 
 ### TypeScript Standards
 
@@ -158,7 +154,7 @@ alwaysApply: false
 
 ## Checklist
 
-- [ ] File is `.mdc` format in `.cursor/rules/`
-- [ ] Frontmatter configured correctly
-- [ ] Content under 500 lines
-- [ ] Includes concrete examples
+- [ ] file が `.mdc` 形式で `.cursor/rules/` にある
+- [ ] frontmatter が正しく設定されている
+- [ ] content が 500 行未満
+- [ ] concrete example を含む

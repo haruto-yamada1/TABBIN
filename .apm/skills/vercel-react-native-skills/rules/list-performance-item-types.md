@@ -1,18 +1,15 @@
 ---
-title: Use Item Types for Heterogeneous Lists
+title: 異種リストに item 型を使用
 impact: HIGH
-impactDescription: efficient recycling, less layout thrashing
+impactDescription: 効率的なリサイクル、レイアウトスラッシング低減
 tags: list, performance, recycling, heterogeneous, LegendList
 ---
 
-## Use Item Types for Heterogeneous Lists
+## 異種リストに item 型を使用
 
-When a list has different item layouts (messages, images, headers, etc.), use a
-`type` field on each item and provide `getItemType` to the list. This puts items
-into separate recycling pools so a message component never gets recycled into an
-image component.
+リストに異なるアイテムレイアウト（メッセージ、画像、ヘッダーなど）がある場合、各アイテムに `type` フィールドを設け、リストに `getItemType` を提供します。これによりアイテムが別々のリサイクルプールに入り、メッセージコンポーネントが画像コンポーネントにリサイクルされることがなくなります。
 
-**Incorrect (single component with conditionals):**
+**不適切（条件分岐の単一コンポーネント）:**
 
 ```tsx
 type Item = { id: string; text?: string; imageUrl?: string; isHeader?: boolean }
@@ -38,7 +35,7 @@ function Feed({ items }: { items: Item[] }) {
 }
 ```
 
-**Correct (typed items with separate components):**
+**適切（型付きアイテムと別コンポーネント）:**
 
 ```tsx
 type HeaderItem = { id: string; type: 'header'; title: string }
@@ -68,13 +65,12 @@ function Feed({ items }: { items: FeedItem[] }) {
 }
 ```
 
-**Why this matters:**
+**重要な理由:**
 
-- **Recycling efficiency**: Items with the same type share a recycling pool
-- **No layout thrashing**: A header never recycles into an image cell
-- **Type safety**: TypeScript can narrow the item type in each branch
-- **Better size estimation**: Use `getEstimatedItemSize` with `itemType` for
-  accurate estimates per type
+- **リサイクル効率**: 同じ型のアイテムがリサイクルプールを共有
+- **レイアウトスラッシングなし**: ヘッダーが画像セルにリサイクルされない
+- **型安全性**: TypeScript が各分岐で item 型を絞り込める
+- **より良いサイズ推定**: 型ごとに正確な推定のため `getEstimatedItemSize` と `itemType` を使用
 
 ```tsx
 <LegendList
@@ -100,5 +96,5 @@ function Feed({ items }: { items: FeedItem[] }) {
 />
 ```
 
-Reference:
+参考:
 [LegendList getItemType](https://legendapp.com/open-source/list/api/props/#getitemtype-v2)

@@ -1,16 +1,15 @@
 ---
-title: Use Pressable Instead of Touchable Components
+title: Touchable コンポーネントの代わりに Pressable を使用
 impact: LOW
-impactDescription: modern API, more flexible
+impactDescription: モダン API、より柔軟
 tags: ui, pressable, touchable, gestures
 ---
 
-## Use Pressable Instead of Touchable Components
+## Touchable コンポーネントの代わりに Pressable を使用
 
-Never use `TouchableOpacity` or `TouchableHighlight`. Use `Pressable` from
-`react-native` or `react-native-gesture-handler` instead.
+`TouchableOpacity` や `TouchableHighlight` は使わないでください。代わりに `react-native` または `react-native-gesture-handler` の `Pressable` を使用します。
 
-**Incorrect (legacy Touchable components):**
+**不適切（レガシー Touchable コンポーネント）:**
 
 ```tsx
 import { TouchableOpacity } from 'react-native'
@@ -24,7 +23,7 @@ function MyButton({ onPress }: { onPress: () => void }) {
 }
 ```
 
-**Correct (Pressable):**
+**適切（Pressable）:**
 
 ```tsx
 import { Pressable } from 'react-native'
@@ -38,7 +37,7 @@ function MyButton({ onPress }: { onPress: () => void }) {
 }
 ```
 
-**Correct (Pressable from gesture handler for lists):**
+**適切（リスト向け gesture handler の Pressable）:**
 
 ```tsx
 import { Pressable } from 'react-native-gesture-handler'
@@ -52,10 +51,6 @@ function ListItem({ onPress }: { onPress: () => void }) {
 }
 ```
 
-Use `react-native-gesture-handler` Pressable inside scrollable lists for better
-gesture coordination, as long as you are using the ScrollView from
-`react-native-gesture-handler` as well.
+`react-native-gesture-handler` の ScrollView も使用している場合、より良いジェスチャー協調のためスクロール可能リスト内では `react-native-gesture-handler` の Pressable を使用します。
 
-**For animated press states (scale, opacity changes):** Use `GestureDetector`
-with Reanimated shared values instead of Pressable's style callback. See the
-`animation-gesture-detector-press` rule.
+**アニメーション付き press state（scale、opacity 変更）:** Pressable の style コールバックの代わりに Reanimated shared value と `GestureDetector` を使用します。`animation-gesture-detector-press` ルールを参照してください。

@@ -1,26 +1,26 @@
 ---
 name: transcribe-captions
-description: Transcribing audio to generate captions in Remotion
+description: オーディオの文字起こしでキャプション生成
 metadata:
   tags: captions, transcribe, whisper, audio, speech-to-text
 ---
 
-# Transcribing audio
+# オーディオの文字起こし
 
-To transcribe audio to generate captions in Remotion, you can use the [`transcribe()`](https://www.remotion.dev/docs/install-whisper-cpp/transcribe) function from the [`@remotion/install-whisper-cpp`](https://www.remotion.dev/docs/install-whisper-cpp) package.
+Remotion でキャプション生成するには、[`@remotion/install-whisper-cpp`](https://www.remotion.dev/docs/install-whisper-cpp) の [`transcribe()`](https://www.remotion.dev/docs/install-whisper-cpp/transcribe) を使います。
 
-## Prerequisites
+## 前提条件
 
-First, the @remotion/install-whisper-cpp package needs to be installed.
-If it is not installed, use the following command:
+`@remotion/install-whisper-cpp` パッケージを先にインストールします。
+未インストールの場合は次のコマンドを使用:
 
 ```bash
 npx remotion add @remotion/install-whisper-cpp
 ```
 
-## Transcribing
+## 文字起こし
 
-Make a Node.js script to download Whisper.cpp and a model, and transcribe the audio.
+Whisper.cpp と model を download し、オーディオを文字起こしする Node.js スクリプトを作成します。
 
 ```ts
 import path from "path";
@@ -44,7 +44,7 @@ await downloadWhisperModel({
   folder: to,
 });
 
-// Convert the audio to a 16KHz wav file first if needed:
+// 必要なら先に 16KHz wav に変換:
 // import {execSync} from 'child_process';
 // execSync('ffmpeg -i /path/to/audio.mp4 -ar 16000 /path/to/audio.wav -y');
 
@@ -56,15 +56,15 @@ const whisperCppOutput = await transcribe({
   tokenLevelTimestamps: true,
 });
 
-// Optional: Apply our recommended postprocessing
+// 任意: 推奨 postprocessing を適用
 const { captions } = toCaptions({
   whisperCppOutput,
 });
 
-// Write it to the public/ folder so it can be fetched from Remotion
+// Remotion から fetch できるよう public/ に書き出し
 fs.writeFileSync("captions123.json", JSON.stringify(captions, null, 2));
 ```
 
-Transcribe each clip individually and create multiple JSON files.
+クリップごとに文字起こしし、複数 JSON を作成します。
 
-See [Displaying captions](display-captions.md) for how to display the captions in Remotion.
+Remotion での表示は [Displaying captions](display-captions.md) を参照してください。

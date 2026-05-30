@@ -1,31 +1,31 @@
 ---
 name: ffmpeg
-description: Using FFmpeg and FFprobe in Remotion
+description: Remotion での FFmpeg 利用
 metadata:
   tags: ffmpeg, ffprobe, video, trimming
 ---
 
-## FFmpeg in Remotion
+## Remotion での FFmpeg
 
-`ffmpeg` and `ffprobe` do not need to be installed. They are available via the `bunx remotion ffmpeg` and `bunx remotion ffprobe`:
+`ffmpeg` と `ffprobe` の個別インストールは不要です。`bunx remotion ffmpeg` と `bunx remotion ffprobe` 経由で利用できます:
 
 ```bash
 bunx remotion ffmpeg -i input.mp4 output.mp3
 bunx remotion ffprobe input.mp4
 ```
 
-### Trimming videos
+### 動画のトリミング
 
-You have 2 options for trimming videos:
+動画トリミングには 2 つの方法があります:
 
-1. Use the FFMpeg command line. You MUST re-encode the video to avoid frozen frames at the start of the video.
+1. FFMpeg コマンドラインを使う。動画先頭のフリーズフレームを避けるため、**必ず** 再 encode してください。
 
 ```bash
-# Re-encodes from the exact frame
+# 正確なフレームから再 encode
 bunx remotion ffmpeg -ss 00:00:05 -i public/input.mp4 -to 00:00:10 -c:v libx264 -c:a aac public/output.mp4
 ```
 
-2. Use the `trimBefore` and `trimAfter` props of the `<Video>` component. The benefit is that this is non-destructive and you can change the trim at any time.
+2. `<Video>` の `trimBefore` / `trimAfter` prop を使う。非破壊で、いつでも trim を変更できます。
 
 ```tsx
 import { Video } from "@remotion/media";

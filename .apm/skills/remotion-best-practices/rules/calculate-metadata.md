@@ -1,13 +1,13 @@
 ---
 name: calculate-metadata
-description: Dynamically set composition duration, dimensions, and props
+description: calculateMetadata による動的メタデータ
 metadata:
   tags: calculateMetadata, duration, dimensions, props, dynamic
 ---
 
-# Using calculateMetadata
+# calculateMetadata の利用
 
-Use `calculateMetadata` on a `<Composition>` to dynamically set duration, dimensions, and transform props before rendering.
+`<Composition>` の `calculateMetadata` で、render 前に duration、dimensions、props を動的に設定します。
 
 ```tsx
 <Composition
@@ -22,9 +22,9 @@ Use `calculateMetadata` on a `<Composition>` to dynamically set duration, dimens
 />
 ```
 
-## Setting duration based on a video
+## 動画に基づいて duration を設定
 
-Use the [`getVideoDuration`](./get-video-duration.md) and [`getVideoDimensions`](./get-video-dimensions.md) skills to get the video duration and dimensions:
+動画の duration と dimensions を取得するには [`getVideoDuration`](./get-video-duration.md) と [`getVideoDimensions`](./get-video-dimensions.md) skill を参照してください:
 
 ```tsx
 import { CalculateMetadataFunction } from "remotion";
@@ -39,9 +39,9 @@ const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props }) =>
 };
 ```
 
-## Matching dimensions of a video
+## 動画の dimensions に合わせる
 
-Use the [`getVideoDimensions`](./get-video-dimensions.md) skill to get the video dimensions:
+dimensions 取得には [`getVideoDimensions`](./get-video-dimensions.md) skill を使います:
 
 ```tsx
 import { CalculateMetadataFunction } from "remotion";
@@ -58,7 +58,7 @@ const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props }) =>
 };
 ```
 
-## Setting duration based on multiple videos
+## 複数動画に基づいて duration を設定
 
 ```tsx
 const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props }) => {
@@ -73,9 +73,9 @@ const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props }) =>
 };
 ```
 
-## Setting a default outName
+## 既定の outName を設定
 
-Set the default output filename based on props:
+props に基づいて既定の出力ファイル名を設定します:
 
 ```tsx
 const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props }) => {
@@ -85,9 +85,9 @@ const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props }) =>
 };
 ```
 
-## Transforming props
+## props の変換
 
-Fetch data or transform props before rendering:
+render 前にデータを fetch したり props を変換します:
 
 ```tsx
 const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props, abortSignal }) => {
@@ -103,16 +103,16 @@ const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props, abor
 };
 ```
 
-The `abortSignal` cancels stale requests when props change in the Studio.
+Studio で props が変わったとき、古い request は `abortSignal` でキャンセルされます。
 
-## Return value
+## 戻り値
 
-All fields are optional. Returned values override the `<Composition>` props:
+すべてのフィールドは任意です。返した値は `<Composition>` の props を上書きします:
 
-- `durationInFrames`: Number of frames
-- `width`: Composition width in pixels
-- `height`: Composition height in pixels
-- `fps`: Frames per second
-- `props`: Transformed props passed to the component
-- `defaultOutName`: Default output filename
-- `defaultCodec`: Default codec for rendering
+- `durationInFrames`: フレーム数
+- `width`: composition の幅（ピクセル）
+- `height`: composition の高さ（ピクセル）
+- `fps`: 1 秒あたりのフレーム数
+- `props`: コンポーネントへ渡す変換後 props
+- `defaultOutName`: 既定の出力ファイル名
+- `defaultCodec`: render の既定 codec

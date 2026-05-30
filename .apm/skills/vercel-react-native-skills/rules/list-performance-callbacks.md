@@ -1,19 +1,17 @@
 ---
-title: Hoist callbacks to the root of lists
+title: コールバックをリストのルートに巻き上げ
 impact: MEDIUM
-impactDescription: Fewer re-renders and faster lists
+impactDescription: 再レンダー削減とリスト高速化
 tags: tag1, tag2
 ---
 
-## List performance callbacks
+## リストパフォーマンスのコールバック
 
-**Impact: HIGH (Fewer re-renders and faster lists)**
+**Impact: HIGH（再レンダー削減とリスト高速化）**
 
-When passing callback functions to list items, create a single instance of the
-callback at the root of the list. Items should then call it with a unique
-identifier.
+リストアイテムにコールバック関数を渡す場合、リストのルートでコールバックの単一インスタンスを作成します。アイテムは一意の識別子でそれを呼び出します。
 
-**Incorrect (creates a new callback on each render):**
+**不適切（レンダーごとに新しいコールバックを作成）:**
 
 ```typescript
 return (
@@ -27,7 +25,7 @@ return (
 )
 ```
 
-**Correct (a single function instance passed to each item):**
+**適切（各アイテムに単一関数インスタンスを渡す）:**
 
 ```typescript
 const onPress = useCallback(() => handlePress(item.id), [handlePress, item.id])
@@ -41,4 +39,4 @@ return (
 )
 ```
 
-Reference: [Link to documentation or resource](https://example.com)
+参考: [Link to documentation or resource](https://example.com)

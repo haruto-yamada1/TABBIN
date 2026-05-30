@@ -1,54 +1,54 @@
 ---
 name: maps
-description: Make map animations with Mapbox
+description: Mapbox で地図アニメーションを作成
 metadata:
   tags: map, map animation, mapbox
 ---
 
-Maps can be added to a Remotion video with Mapbox.  
-The [Mapbox documentation](https://docs.mapbox.com/mapbox-gl-js/api/) has the API reference.
+Mapbox で Remotion 動画に地図を追加できます。  
+[Mapbox documentation](https://docs.mapbox.com/mapbox-gl-js/api/) に API リファレンスがあります。
 
-## Prerequisites
+## 前提条件
 
-Mapbox and `@turf/turf` need to be installed.
+Mapbox と `@turf/turf` をインストールします。
 
-Search the project for lockfiles and run the correct command depending on the package manager:
+lockfile を検索し、package manager に応じたコマンドを実行:
 
-If `package-lock.json` is found, use the following command:
+`package-lock.json` がある場合:
 
 ```bash
 npm i mapbox-gl @turf/turf @types/mapbox-gl
 ```
 
-If `bun.lock` is found, use the following command:
+`bun.lock` がある場合:
 
 ```bash
 bun i mapbox-gl @turf/turf @types/mapbox-gl
 ```
 
-If `yarn.lock` is found, use the following command:
+`yarn.lock` がある場合:
 
 ```bash
 yarn add mapbox-gl @turf/turf @types/mapbox-gl
 ```
 
-If `pnpm-lock.yaml` is found, use the following command:
+`pnpm-lock.yaml` がある場合:
 
 ```bash
 pnpm i mapbox-gl @turf/turf @types/mapbox-gl
 ```
 
-The user needs to create a free Mapbox account and create an access token by visiting https://console.mapbox.com/account/access-tokens/.
+ユーザーは無料 Mapbox アカウントを作成し、https://console.mapbox.com/account/access-tokens/ で access token を取得する必要があります。
 
-The mapbox token needs to be added to the `.env` file:
+Mapbox token は `.env` に追加します:
 
 ```txt title=".env"
-REMOTION_MAPBOX_TOKEN==pk.your-mapbox-access-token
+REMOTION_MAPBOX_TOKEN=pk.your-mapbox-access-token
 ```
 
-## Adding a map
+## 地図の追加
 
-Here is a basic example of a map in Remotion.
+Remotion で地図を表示する基本例:
 
 ```tsx
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -155,24 +155,24 @@ export const MyComposition = () => {
 };
 ```
 
-The following is important in Remotion:
+Remotion では次が重要です:
 
-- Animations must be driven by `useCurrentFrame()` and animations that Mapbox brings itself should be disabled. For example, the `fadeDuration` prop should be set to `0`, `interactive` should be set to `false`, etc.
-- Loading the map should be delayed using `useDelayRender()` and the map should be set to `null` until it is loaded.
-- The element containing the ref MUST have an explicit width and height and `position: "absolute"`.
-- Do not add a `_map.remove();` cleanup function.
+- アニメーションは `useCurrentFrame()` で駆動し、Mapbox 自身のアニメーションは無効化します。例: `fadeDuration` を `0`、`interactive` を `false` など。
+- 地図読み込みは `useDelayRender()` で遅延し、読み込み完了まで map を `null` にします。
+- ref を持つ要素には **必ず** 明示的な width / height と `position: "absolute"` が必要です。
+- `_map.remove();` の cleanup は追加しないでください。
 
-## Drawing lines
+## 線の描画
 
-Unless I request it, do not add a glow effect to the lines.
-Unless I request it, do not add additional points to the lines.
+依頼がない限り、線に glow effect を追加しないでください。  
+依頼がない限り、線に追加ポイントを入れないでください。
 
-## Map style
+## 地図スタイル
 
-By default, use the `mapbox://styles/mapbox/standard` style.  
-Hide the labels from the base map style.
+既定では `mapbox://styles/mapbox/standard` スタイルを使います。  
+ベース map スタイルのラベルは非表示にします。
 
-Unless I request otherwise, remove all features from the Mapbox Standard style.
+依頼がない限り、Mapbox Standard スタイルの feature をすべて削除します。
 
 ```tsx
 // Hide all features from the Mapbox Standard style
@@ -204,11 +204,11 @@ _map.setConfigProperty("basemap", "colorRoads", "transparent");
 _map.setConfigProperty("basemap", "colorTrunks", "transparent");
 ```
 
-## Animating the camera
+## カメラのアニメーション
 
-You can animate the camera along the line by adding a `useEffect` hook that updates the camera position based on the current frame.
+`useEffect` で現在フレームに基づき camera position を更新すれば、線に沿って camera をアニメーションできます。
 
-Unless I ask for it, do not jump between camera angles.
+依頼がない限り、camera angle 間を jump させないでください。
 
 ```tsx
 import * as turf from "@turf/turf";
@@ -254,20 +254,20 @@ useEffect(() => {
 }, [lineCoordinates, fps, frame, handle, map]);
 ```
 
-Notes:
+注意:
 
-IMPORTANT: Keep the camera by default so north is up.
-IMPORTANT: For multi-step animations, set all properties at all stages (zoom, position, line progress) to prevent jumps. Override initial values.
+重要: 既定では camera を北が上になるよう保ちます。  
+重要: 多段アニメーションでは、すべての stage で zoom、position、line progress などすべての property を設定し、jump を防ぎます。初期値を上書きします。
 
-- The progress is clamped to a minimum value to avoid the line being empty, which can lead to turf errors
-- See [Timing](./timing.md) for more options for timing.
-- Consider the dimensions of the composition and make the lines thick enough and the label font size large enough to be legible for when the composition is scaled down.
+- progress は最小値で clamp し、線が空になって turf error になるのを防ぎます
+- timing の詳細は [Timing](./timing.md) を参照
+- composition の dimensions を考慮し、縮小時も読めるよう線の太さと label font size を十分大きくします
 
-## Animating lines
+## 線のアニメーション
 
-### Straight lines (linear interpolation)
+### 直線（線形補間）
 
-To animate a line that appears straight on the map, use linear interpolation between coordinates. Do NOT use turf's `lineSliceAlong` or `along` functions, as they use geodesic (great circle) calculations which appear curved on a Mercator projection.
+map 上で直線に見える線をアニメーションするには、座標間の線形補間を使います。turf の `lineSliceAlong` / `along` は **使わない** でください。geodesic（大圏）計算のため Mercator 投影では曲がって見えます。
 
 ```tsx
 const frame = useCurrentFrame();
@@ -308,9 +308,9 @@ useEffect(() => {
 }, [frame, map, durationInFrames]);
 ```
 
-### Curved lines (geodesic/great circle)
+### 曲線（geodesic / 大圏）
 
-To animate a line that follows the geodesic (great circle) path between two points, use turf's `lineSliceAlong`. This is useful for showing flight paths or the actual shortest distance on Earth.
+2 点間の geodesic（大圏）経路に沿う線には turf の `lineSliceAlong` を使います。飛行経路や地球上の最短距離表示に便利です。
 
 ```tsx
 import * as turf from "@turf/turf";
@@ -327,9 +327,9 @@ if (source) {
 }
 ```
 
-## Markers
+## マーカー
 
-Add labels, and markers where appropriate.
+適宜 label と marker を追加します。
 
 ```tsx
 _map.addSource("markers", {
@@ -377,18 +377,18 @@ _map.addLayer({
 });
 ```
 
-Make sure they are big enough. Check the composition dimensions and scale the labels accordingly.
-For a composition size of 1920x1080, the label font size should be at least 40px.
+十分大きくします。composition dimensions を確認し、label を比例して scale します。  
+1920x1080 の composition では label font size は少なくとも 40px にします。
 
-IMPORTANT: Keep the `text-offset` small enough so it is close to the marker. Consider the marker circle radius. For a circle radius of 40, this is a good offset:
+重要: `text-offset` は marker に近い値に保ちます。marker circle radius を考慮します。radius 40 なら次が良い offset です:
 
 ```tsx
 "text-offset": [0, 0.5],
 ```
 
-## 3D buildings
+## 3D 建物
 
-To enable 3D buildings, use the following code:
+3D 建物を有効にするコード:
 
 ```tsx
 _map.setConfigProperty("basemap", "show3dObjects", true);
@@ -396,9 +396,9 @@ _map.setConfigProperty("basemap", "show3dLandmarks", true);
 _map.setConfigProperty("basemap", "show3dBuildings", true);
 ```
 
-## Rendering
+## レンダリング
 
-When rendering a map animation, make sure to render with the following flags:
+地図アニメーションを render するときは次の flag を付けてください:
 
 ```
 npx remotion render --gl=angle --concurrency=1

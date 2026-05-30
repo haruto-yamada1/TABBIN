@@ -1,19 +1,19 @@
 ---
 name: assets
-description: Importing images, videos, audio, and fonts into Remotion
+description: Remotion での静的アセットの扱い
 metadata:
   tags: assets, staticFile, images, fonts, public
 ---
 
-# Importing assets in Remotion
+# Remotion でのアセット import
 
-## The public folder
+## public フォルダ
 
-Place assets in the `public/` folder at your project root.
+プロジェクトルートの `public/` フォルダにアセットを置きます。
 
-## Using staticFile()
+## 利用: staticFile()
 
-You MUST use `staticFile()` to reference files from the `public/` folder:
+`public/` フォルダのファイルを参照するときは **必ず** `staticFile()` を使います:
 
 ```tsx
 import { Img, staticFile } from "remotion";
@@ -23,11 +23,11 @@ export const MyComposition = () => {
 };
 ```
 
-The function returns an encoded URL that works correctly when deploying to subdirectories.
+この関数は、サブディレクトリへ deploy しても正しく動く encoded URL を返します。
 
-## Using with components
+## 利用: コンポーネントとの組み合わせ
 
-**Images:**
+**画像:**
 
 ```tsx
 import { Img, staticFile } from "remotion";
@@ -35,7 +35,7 @@ import { Img, staticFile } from "remotion";
 <Img src={staticFile("photo.png")} />;
 ```
 
-**Videos:**
+**動画:**
 
 ```tsx
 import { Video } from "@remotion/media";
@@ -44,7 +44,7 @@ import { staticFile } from "remotion";
 <Video src={staticFile("clip.mp4")} />;
 ```
 
-**Audio:**
+**音声:**
 
 ```tsx
 import { Audio } from "@remotion/media";
@@ -53,7 +53,7 @@ import { staticFile } from "remotion";
 <Audio src={staticFile("music.mp3")} />;
 ```
 
-**Fonts:**
+**フォント:**
 
 ```tsx
 import { staticFile } from "remotion";
@@ -63,16 +63,16 @@ await fontFamily.load();
 document.fonts.add(fontFamily);
 ```
 
-## Remote URLs
+## リモート URL
 
-Remote URLs can be used directly without `staticFile()`:
+リモート URL は `staticFile()` なしで直接使えます:
 
 ```tsx
 <Img src="https://example.com/image.png" />
 <Video src="https://remotion.media/video.mp4" />
 ```
 
-## Important notes
+## 重要な注意点
 
-- Remotion components (`<Img>`, `<Video>`, `<Audio>`) ensure assets are fully loaded before rendering
-- Special characters in filenames (`#`, `?`, `&`) are automatically encoded
+- Remotion コンポーネント（`<Img>`、`<Video>`、`<Audio>`）は、render 前にアセットが完全に読み込まれることを保証します
+- ファイル名の特殊文字（`#`、`?`、`&`）は自動的に encode されます

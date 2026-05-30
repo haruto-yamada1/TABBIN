@@ -1,6 +1,6 @@
 ---
 name: measuring-dom-nodes
-description: Measuring DOM element dimensions in Remotion
+description: Remotion での DOM 要素寸法の計測
 metadata:
   tags: measure, layout, dimensions, getBoundingClientRect, scale
 ---
@@ -9,7 +9,7 @@ metadata:
 
 Remotion applies a `scale()` transform to the video container, which affects values from `getBoundingClientRect()`. Use `useCurrentScale()` to get correct measurements.
 
-## Measuring element dimensions
+## 要素寸法の計測
 
 ```tsx
 import { useCurrentScale } from "remotion";

@@ -1,31 +1,31 @@
 ---
 name: import-srt-captions
-description: Importing .srt subtitle files into Remotion using @remotion/captions
+description: SRT キャプションのインポート
 metadata:
   tags: captions, subtitles, srt, import, parse
 ---
 
-# Importing .srt subtitles into Remotion
+# Remotion への .srt 字幕 import
 
-If you have an existing `.srt` subtitle file, you can import it into Remotion using `parseSrt()` from `@remotion/captions`.
+既存の `.srt` 字幕ファイルがある場合、`@remotion/captions` の `parseSrt()` で Remotion に import できます。
 
-If you don't have a .srt file, read [Transcribing audio](transcribe-captions.md) for how to generate captions instead.
+.srt がない場合は [Transcribing audio](transcribe-captions.md) でキャプション生成方法を参照してください。
 
-## Prerequisites
+## 前提条件
 
-First, the @remotion/captions package needs to be installed.
-If it is not installed, use the following command:
+`@remotion/captions` パッケージを先にインストールします。
+未インストールの場合は次のコマンドを使用:
 
 ```bash
-npx remotion add @remotion/captions # If project uses npm
-bunx remotion add @remotion/captions # If project uses bun
-yarn remotion add @remotion/captions # If project uses yarn
-pnpm exec remotion add @remotion/captions # If project uses pnpm
+npx remotion add @remotion/captions # npm プロジェクト
+bunx remotion add @remotion/captions # bun プロジェクト
+yarn remotion add @remotion/captions # yarn プロジェクト
+pnpm exec remotion add @remotion/captions # pnpm プロジェクト
 ```
 
-## Reading an .srt file
+## .srt ファイルの読み込み
 
-Use `staticFile()` to reference an `.srt` file in your `public` folder, then fetch and parse it:
+`public` フォルダの `.srt` を `staticFile()` で参照し、fetch して parse します:
 
 ```tsx
 import { useState, useEffect, useCallback } from "react";
@@ -58,12 +58,12 @@ export const MyComponent: React.FC = () => {
     return null;
   }
 
-  return <AbsoluteFill>{/* Use captions here */}</AbsoluteFill>;
+  return <AbsoluteFill>{/* ここで captions を利用 */}</AbsoluteFill>;
 };
 ```
 
-Remote URLs are also supported - you can `fetch()` a remote file via URL instead of using `staticFile()`.
+リモート URL もサポートされます。`staticFile()` の代わりに URL 経由で `fetch()` できます。
 
-## Using imported captions
+## 利用: import した captions
 
-Once parsed, the captions are in the `Caption` format and can be used with all `@remotion/captions` utilities.
+parse 後は `Caption` 形式になり、`@remotion/captions` のすべての utility と組み合わせられます。

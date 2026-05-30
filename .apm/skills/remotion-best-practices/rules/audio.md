@@ -1,24 +1,24 @@
 ---
 name: audio
-description: Using audio and sound in Remotion - importing, trimming, volume, speed, pitch
+description: Remotion でのオーディオの埋め込み
 metadata:
   tags: audio, media, trim, volume, speed, loop, pitch, mute, sound, sfx
 ---
 
-# Using audio in Remotion
+# Remotion でのオーディオ利用
 
-## Prerequisites
+## 前提条件
 
-First, the @remotion/media package needs to be installed.
-If it is not installed, use the following command:
+まず @remotion/media パッケージをインストールする必要があります。
+未インストールの場合は次のコマンドを使用:
 
 ```bash
 npx remotion add @remotion/media
 ```
 
-## Importing Audio
+## オーディオのインポート
 
-Use `<Audio>` from `@remotion/media` to add audio to your composition.
+composition にオーディオを追加するには `@remotion/media` の `<Audio>` を使用します。
 
 ```tsx
 import { Audio } from "@remotion/media";
@@ -29,18 +29,18 @@ export const MyComposition = () => {
 };
 ```
 
-Remote URLs are also supported:
+リモート URL もサポートされます:
 
 ```tsx
 <Audio src="https://remotion.media/audio.mp3" />
 ```
 
-By default, audio plays from the start, at full volume and full length.
-Multiple audio tracks can be layered by adding multiple `<Audio>` components.
+デフォルトではオーディオは先頭からフル音量・フル長で再生されます。
+複数の `<Audio>` コンポーネントでトラックを重ねられます。
 
-## Trimming
+## トリミング
 
-Use `trimBefore` and `trimAfter` to remove portions of the audio. Values are in frames.
+オーディオの一部を削除するには `trimBefore` と `trimAfter` を使用します。値はフレーム単位です。
 
 ```tsx
 const { fps } = useVideoConfig();
@@ -54,11 +54,11 @@ return (
 );
 ```
 
-The audio still starts playing at the beginning of the composition - only the specified portion is played.
+オーディオは composition の先頭から再生開始しますが、指定した部分だけが再生されます。
 
-## Delaying
+## 遅延
 
-Wrap the audio in a `<Sequence>` to delay when it starts:
+開始を遅らせるにはオーディオを `<Sequence>` でラップします:
 
 ```tsx
 import { Sequence, staticFile } from "remotion";
@@ -73,17 +73,17 @@ return (
 );
 ```
 
-The audio will start playing after 1 second.
+オーディオは 1 秒後に再生を開始します。
 
-## Volume
+## 音量
 
-Set a static volume (0 to 1):
+静的音量を設定（0 から 1）:
 
 ```tsx
 <Audio src={staticFile("audio.mp3")} volume={0.5} />
 ```
 
-Or use a callback for dynamic volume based on the current frame:
+または現在フレームに基づく動的音量にコールバックを使用:
 
 ```tsx
 import { interpolate } from "remotion";
@@ -98,11 +98,11 @@ return (
 );
 ```
 
-The value of `f` starts at 0 when the audio begins to play, not the composition frame.
+`f` の値は composition フレームではなく、オーディオ再生開始時に 0 から始まります。
 
-## Muting
+## ミュート
 
-Use `muted` to silence the audio. It can be set dynamically:
+オーディオを無音にするには `muted` を使用します。動的に設定可能です:
 
 ```tsx
 const frame = useCurrentFrame();
@@ -116,26 +116,26 @@ return (
 );
 ```
 
-## Speed
+## 速度
 
-Use `playbackRate` to change the playback speed:
+再生速度を変えるには `playbackRate` を使用:
 
 ```tsx
 <Audio src={staticFile("audio.mp3")} playbackRate={2} /> {/* 2x speed */}
 <Audio src={staticFile("audio.mp3")} playbackRate={0.5} /> {/* Half speed */}
 ```
 
-Reverse playback is not supported.
+逆再生はサポートされていません。
 
-## Looping
+## ループ
 
-Use `loop` to loop the audio indefinitely:
+オーディオを無限ループするには `loop` を使用:
 
 ```tsx
 <Audio src={staticFile("audio.mp3")} loop />
 ```
 
-Use `loopVolumeCurveBehavior` to control how the frame count behaves when looping:
+ループ時のフレームカウントの挙動は `loopVolumeCurveBehavior` で制御:
 
 - `"repeat"`: Frame count resets to 0 each loop (default)
 - `"extend"`: Frame count continues incrementing
@@ -149,9 +149,9 @@ Use `loopVolumeCurveBehavior` to control how the frame count behaves when loopin
 />
 ```
 
-## Pitch
+## ピッチ
 
-Use `toneFrequency` to adjust the pitch without affecting speed. Values range from 0.01 to 2:
+速度に影響せずピッチを調整するには `toneFrequency` を使用。値は 0.01 から 2:
 
 ```tsx
 <Audio
@@ -164,4 +164,4 @@ Use `toneFrequency` to adjust the pitch without affecting speed. Values range fr
 />
 ```
 
-Pitch shifting only works during server-side rendering, not in the Remotion Studio preview or in the `<Player />`.
+ピッチシフトはサーバー側レンダリング時のみ有効で、Remotion Studio プレビューや `<Player />` では動作しません。

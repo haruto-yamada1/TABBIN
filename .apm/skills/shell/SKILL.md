@@ -1,24 +1,21 @@
 ---
 name: shell
-description: >-
-  Runs the rest of a /shell request as a literal shell command. Use only when
-  the user explicitly invokes /shell and wants the following text executed
-  directly in the terminal.
+description: /shell リクエストの残りを literal な shell コマンドとして実行します。ユーザーが明示的に /shell を呼び出し、その後のテキストを terminal で直接実行したいときだけ使います。
 disable-model-invocation: true
 ---
-# Run Shell Commands
+# shell コマンドの実行
 
-Use this skill only when the user explicitly invokes `/shell`.
+ユーザーが明示的に `/shell` を呼び出したときだけ、この skill を使います。
 
-## Behavior
+## 動作
 
-1. Treat all user text after the `/shell` invocation as the literal shell command to run.
-2. Execute that command immediately with the terminal tool.
-3. Do not rewrite, explain, or "improve" the command before running it.
-4. Do not inspect the repository first unless the command itself requires repository context.
-5. If the user invokes `/shell` without any following text, ask them which command to run.
+1. `/shell` 呼び出し以降のユーザー入力をすべて、実行する literal な shell コマンドとして扱います。
+2. そのコマンドを terminal tool で即座に実行します。
+3. 実行前にコマンドを書き換え、説明、または「改善」しません。
+4. コマンド自体が repository context を必要としない限り、先に repository を調査しません。
+5. ユーザーが `/shell` だけを呼び出し、続くテキストがない場合は、実行するコマンドを尋ねます。
 
-## Response
+## 応答
 
-- Run the command first.
-- Then briefly report the exit status and any important stdout or stderr.
+- 先にコマンドを実行します。
+- その後、exit status と重要な stdout または stderr を簡潔に報告します。

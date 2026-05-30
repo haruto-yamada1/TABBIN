@@ -1,19 +1,19 @@
 ---
-title: Authenticate Server Actions Like API Routes
+title: API ルートと同様に Server Actions を認証
 impact: CRITICAL
-impactDescription: prevents unauthorized access to server mutations
+impactDescription: サーバー mutation への不正アクセスを防ぐ
 tags: server, server-actions, authentication, security, authorization
 ---
 
-## Authenticate Server Actions Like API Routes
+## API ルートと同様に Server Actions を認証
 
-**Impact: CRITICAL (prevents unauthorized access to server mutations)**
+**Impact: CRITICAL（サーバー mutation への不正アクセスを防ぐ）**
 
-Server Actions (functions with `"use server"`) are exposed as public endpoints, just like API routes. Always verify authentication and authorization **inside** each Server Action—do not rely solely on middleware, layout guards, or page-level checks, as Server Actions can be invoked directly.
+Server Actions（`"use server"` 付き関数）は API ルートと同様に公開エンドポイントとして露出します。各 Server Action **内部**で必ず認証と認可を検証してください。Server Actions は直接呼び出せるため、middleware、layout ガード、ページレベルのチェックだけに頼ってはいけません。
 
-Next.js documentation explicitly states: "Treat Server Actions with the same security considerations as public-facing API endpoints, and verify if the user is allowed to perform a mutation."
+Next.js ドキュメントには次のように明記されています: 「Server Actions は公開 API エンドポイントと同じセキュリティ考慮事項で扱い、ユーザーが mutation を実行する権限があるか検証してください。」
 
-**Incorrect (no authentication check):**
+**不適切（認証チェックなし）:**
 
 ```typescript
 'use server'
@@ -25,7 +25,7 @@ export async function deleteUser(userId: string) {
 }
 ```
 
-**Correct (authentication inside the action):**
+**適切（アクション内部で認証）:**
 
 ```typescript
 'use server'
@@ -51,7 +51,7 @@ export async function deleteUser(userId: string) {
 }
 ```
 
-**With input validation:**
+**入力検証付き:**
 
 ```typescript
 'use server'
@@ -93,4 +93,4 @@ export async function updateProfile(data: unknown) {
 }
 ```
 
-Reference: [https://nextjs.org/docs/app/guides/authentication](https://nextjs.org/docs/app/guides/authentication)
+参考: [https://nextjs.org/docs/app/guides/authentication](https://nextjs.org/docs/app/guides/authentication)

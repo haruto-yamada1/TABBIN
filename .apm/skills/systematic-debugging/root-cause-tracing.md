@@ -1,48 +1,48 @@
-# Root Cause Tracing
+# 根本原因トレース
 
-## Overview
+## 概要
 
-Bugs often manifest deep in the call stack (git init in wrong directory, file created in wrong location, database opened with wrong path). Your instinct is to fix where the error appears, but that's treating a symptom.
+バグは call stack の深部に現れることが多い（間違ったディレクトリでの git init、間違った場所のファイル作成、間違ったパスでの DB オープン）。本能はエラーが現れる場所を直すことだが、それは症状への対処。
 
-**Core principle:** Trace backward through the call chain until you find the original trigger, then fix at the source.
+**中核原則:** call chain を後方にトレースして元トリガーを見つけ、ソースで修正。
 
-## When to Use
+## いつ使うか
 
 ```dot
 digraph when_to_use {
-    "Bug appears deep in stack?" [shape=diamond];
-    "Can trace backwards?" [shape=diamond];
-    "Fix at symptom point" [shape=box];
-    "Trace to original trigger" [shape=box];
-    "BETTER: Also add defense-in-depth" [shape=box];
+    "スタック深部にバグ?" [shape=diamond];
+    "後方トレース可能?" [shape=diamond];
+    "症状点で修正" [shape=box];
+    "元トリガーまでトレース" [shape=box];
+    "BETTER: defense-in-depth も追加" [shape=box];
 
-    "Bug appears deep in stack?" -> "Can trace backwards?" [label="yes"];
-    "Can trace backwards?" -> "Trace to original trigger" [label="yes"];
-    "Can trace backwards?" -> "Fix at symptom point" [label="no - dead end"];
-    "Trace to original trigger" -> "BETTER: Also add defense-in-depth";
+    "スタック深部にバグ?" -> "後方トレース可能?" [label="yes"];
+    "後方トレース可能?" -> "元トリガーまでトレース" [label="yes"];
+    "後方トレース可能?" -> "症状点で修正" [label="no - dead end"];
+    "元トリガーまでトレース" -> "BETTER: defense-in-depth も追加";
 }
 ```
 
-**Use when:**
-- Error happens deep in execution (not at entry point)
-- Stack trace shows long call chain
-- Unclear where invalid data originated
-- Need to find which test/code triggers the problem
+**使う場合:**
+- 実行深部でエラー（エントリポイントではない）
+- スタックトレースに長い call chain
+- 無効データの発生源が不明
+- どのテスト/コードが問題をトリガーするか特定が必要
 
-## The Tracing Process
+## トレースプロセス
 
-### 1. Observe the Symptom
+### 1. 症状の観察
 ```
 Error: git init failed in /Users/jesse/project/packages/core
 ```
 
-### 2. Find Immediate Cause
-**What code directly causes this?**
+### 2. 直接原因の特定
+**これを直接引き起こすコードは？**
 ```typescript
 await execFileAsync('git', ['init'], { cwd: projectDir });
 ```
 
-### 3. Ask: What Called This?
+### 3. 自問: 誰がこれを呼んだ？
 ```typescript
 WorktreeManager.createSessionWorktree(projectDir, sessionId)
   → called by Session.initializeWorkspace()
@@ -50,22 +50,22 @@ WorktreeManager.createSessionWorktree(projectDir, sessionId)
   → called by test at Project.create()
 ```
 
-### 4. Keep Tracing Up
-**What value was passed?**
-- `projectDir = ''` (empty string!)
-- Empty string as `cwd` resolves to `process.cwd()`
-- That's the source code directory!
+### 4. 上へトレースを続ける
+**どんな値が渡された？**
+- `projectDir = ''`（空文字列！）
+- 空文字列を `cwd` にすると `process.cwd()` に解決
+- それがソースコードディレクトリ！
 
-### 5. Find Original Trigger
-**Where did empty string come from?**
+### 5. 元トリガーの特定
+**空文字列はどこから？**
 ```typescript
 const context = setupCoreTest(); // Returns { tempDir: '' }
 Project.create('name', context.tempDir); // Accessed before beforeEach!
 ```
 
-## Adding Stack Traces
+## スタックトレースの追加
 
-When you can't trace manually, add instrumentation:
+手動トレースできない場合、instrumentation を追加:
 
 ```typescript
 // Before the problematic operation
@@ -82,88 +82,88 @@ async function gitInit(directory: string) {
 }
 ```
 
-**Critical:** Use `console.error()` in tests (not logger - may not show)
+**重要:** テストでは `console.error()` を使う（logger ではない — 表示されないかも）
 
-**Run and capture:**
+**実行してキャプチャ:**
 ```bash
 npm test 2>&1 | grep 'DEBUG git init'
 ```
 
-**Analyze stack traces:**
-- Look for test file names
-- Find the line number triggering the call
-- Identify the pattern (same test? same parameter?)
+**スタックトレース分析:**
+- テストファイル名を探す
+- call をトリガーする行番号を特定
+- パターンを特定（同じテスト？同じパラメータ？）
 
-## Finding Which Test Causes Pollution
+## どのテストが汚染するか特定
 
-If something appears during tests but you don't know which test:
+テスト中に現れるがどのテストか分からない場合:
 
-Use the bisection script `find-polluter.sh` in this directory:
+このディレクトリの bisection スクリプト `find-polluter.sh` を使う:
 
 ```bash
 ./find-polluter.sh '.git' 'src/**/*.test.ts'
 ```
 
-Runs tests one-by-one, stops at first polluter. See script for usage.
+テストを 1 件ずつ実行し、最初の polluter で停止。用法はスクリプト参照。
 
-## Real Example: Empty projectDir
+## 実例: 空 projectDir
 
-**Symptom:** `.git` created in `packages/core/` (source code)
+**症状:** `packages/core/`（ソースコード）に `.git` 作成
 
-**Trace chain:**
-1. `git init` runs in `process.cwd()` ← empty cwd parameter
-2. WorktreeManager called with empty projectDir
-3. Session.create() passed empty string
-4. Test accessed `context.tempDir` before beforeEach
-5. setupCoreTest() returns `{ tempDir: '' }` initially
+**トレース chain:**
+1. `git init` が `process.cwd()` で実行 ← 空 cwd パラメータ
+2. 空 projectDir で WorktreeManager 呼び出し
+3. Session.create() が空文字列を渡した
+4. テストが beforeEach 前に `context.tempDir` にアクセス
+5. setupCoreTest() が初期 `{ tempDir: '' }` を返す
 
-**Root cause:** Top-level variable initialization accessing empty value
+**根本原因:** トップレベル変数初期化が空値にアクセス
 
-**Fix:** Made tempDir a getter that throws if accessed before beforeEach
+**修正:** tempDir を beforeEach 前アクセスで throw する getter に変更
 
-**Also added defense-in-depth:**
-- Layer 1: Project.create() validates directory
-- Layer 2: WorkspaceManager validates not empty
-- Layer 3: NODE_ENV guard refuses git init outside tmpdir
-- Layer 4: Stack trace logging before git init
+**defense-in-depth も追加:**
+- Layer 1: Project.create() がディレクトリを検証
+- Layer 2: WorkspaceManager が空でないことを検証
+- Layer 3: NODE_ENV ガードが tmpdir 外の git init を拒否
+- Layer 4: git init 前のスタックトレース logging
 
-## Key Principle
+## 重要原則
 
 ```dot
 digraph principle {
-    "Found immediate cause" [shape=ellipse];
-    "Can trace one level up?" [shape=diamond];
-    "Trace backwards" [shape=box];
-    "Is this the source?" [shape=diamond];
-    "Fix at source" [shape=box];
-    "Add validation at each layer" [shape=box];
-    "Bug impossible" [shape=doublecircle];
-    "NEVER fix just the symptom" [shape=octagon, style=filled, fillcolor=red, fontcolor=white];
+    "直接原因を発見" [shape=ellipse];
+    "1 レベル上へトレース可能?" [shape=diamond];
+    "後方トレース" [shape=box];
+    "これがソース?" [shape=diamond];
+    "ソースで修正" [shape=box];
+    "各レイヤーに validation 追加" [shape=box];
+    "バグ不可能" [shape=doublecircle];
+    "症状だけを NEVER 修正" [shape=octagon, style=filled, fillcolor=red, fontcolor=white];
 
-    "Found immediate cause" -> "Can trace one level up?";
-    "Can trace one level up?" -> "Trace backwards" [label="yes"];
-    "Can trace one level up?" -> "NEVER fix just the symptom" [label="no"];
-    "Trace backwards" -> "Is this the source?";
-    "Is this the source?" -> "Trace backwards" [label="no - keeps going"];
-    "Is this the source?" -> "Fix at source" [label="yes"];
-    "Fix at source" -> "Add validation at each layer";
-    "Add validation at each layer" -> "Bug impossible";
+    "直接原因を発見" -> "1 レベル上へトレース可能?";
+    "1 レベル上へトレース可能?" -> "後方トレース" [label="yes"];
+    "1 レベル上へトレース可能?" -> "症状だけを NEVER 修正" [label="no"];
+    "後方トレース" -> "これがソース?";
+    "これがソース?" -> "後方トレース" [label="no - keeps going"];
+    "これがソース?" -> "ソースで修正" [label="yes"];
+    "ソースで修正" -> "各レイヤーに validation 追加";
+    "各レイヤーに validation 追加" -> "バグ不可能";
 }
 ```
 
-**NEVER fix just where the error appears.** Trace back to find the original trigger.
+**エラーが現れる場所だけを NEVER 修正。** 後方トレースして元トリガーを見つける。
 
-## Stack Trace Tips
+## スタックトレースのヒント
 
-**In tests:** Use `console.error()` not logger - logger may be suppressed
-**Before operation:** Log before the dangerous operation, not after it fails
-**Include context:** Directory, cwd, environment variables, timestamps
-**Capture stack:** `new Error().stack` shows complete call chain
+**テスト:** logger ではなく `console.error()` — logger は抑制されるかも
+**操作前:** 失敗後ではなく危険操作前に log
+**コンテキスト含める:** directory、cwd、環境変数、タイムスタンプ
+**スタックキャプチャ:** `new Error().stack` で完全 call chain
 
-## Real-World Impact
+## 実世界への影響
 
-From debugging session (2025-10-03):
-- Found root cause through 5-level trace
-- Fixed at source (getter validation)
-- Added 4 layers of defense
-- 1847 tests passed, zero pollution
+debug セッションより（2025-10-03）:
+- 5 レベルトレースで根本原因発見
+- ソースで修正（getter validation）
+- 4 レイヤーの defense 追加
+- 1847 テスト通過、汚染ゼロ

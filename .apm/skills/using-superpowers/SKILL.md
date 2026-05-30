@@ -1,95 +1,95 @@
 ---
 name: using-superpowers
-description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+description: 会話を開始するときに使います。skill の見つけ方と使い方を確立し、明確化の質問を含むいかなる応答の前にも Skill ツールの呼び出しを必須とします。
 ---
 
 <EXTREMELY-IMPORTANT>
-If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+skill が 1% でも当てはまりそうなら、**必ず** skill を呼び出してください。
 
-IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
+skill がタスクに当てはまるなら、選択の余地はありません。**使わなければなりません。**
 
-This is not negotiable. This is not optional. You cannot rationalize your way out of this.
+これは交渉の余地がありません。任意ではありません。言い訳して回避できません。
 </EXTREMELY-IMPORTANT>
 
-## How to Access Skills
+## skill へのアクセス方法
 
-**In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
+**Claude Code では:** `Skill` ツールを使います。skill を呼び出すと内容が読み込まれ提示されるので、そのまま従ってください。skill ファイルに Read ツールは使わないでください。
 
-**In other environments:** Check your platform's documentation for how skills are loaded.
+**その他の環境では:** プラットフォームのドキュメントで skill の読み込み方法を確認してください。
 
-# Using Skills
+# skill の使い方
 
-## The Rule
+## ルール
 
-**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.
+**応答やアクションの前に、関連する skill または依頼された skill を呼び出す。** 1% でも当てはまりそうなら呼び出して確認する。呼び出した skill が状況に合わなければ、使わなくてよい。
 
 ```dot
 digraph skill_flow {
-    "User message received" [shape=doublecircle];
-    "About to EnterPlanMode?" [shape=doublecircle];
-    "Already brainstormed?" [shape=diamond];
-    "Invoke brainstorming skill" [shape=box];
-    "Might any skill apply?" [shape=diamond];
-    "Invoke Skill tool" [shape=box];
-    "Announce: 'Using [skill] to [purpose]'" [shape=box];
-    "Has checklist?" [shape=diamond];
-    "Create TodoWrite todo per item" [shape=box];
-    "Follow skill exactly" [shape=box];
-    "Respond (including clarifications)" [shape=doublecircle];
+    "ユーザーメッセージ受信" [shape=doublecircle];
+    "EnterPlanMode 前?" [shape=doublecircle];
+    "すでに brainstorm 済?" [shape=diamond];
+    "brainstorming skill を呼び出す" [shape=box];
+    "当てはまる skill がある?" [shape=diamond];
+    "Skill ツールを呼び出す" [shape=box];
+    "宣言: '[skill] を [目的] に使う'" [shape=box];
+    "チェックリストあり?" [shape=diamond];
+    "TodoWrite で項目ごとに todo 作成" [shape=box];
+    "skill に厳密に従う" [shape=box];
+    "応答（明確化を含む）" [shape=doublecircle];
 
-    "About to EnterPlanMode?" -> "Already brainstormed?";
-    "Already brainstormed?" -> "Invoke brainstorming skill" [label="no"];
-    "Already brainstormed?" -> "Might any skill apply?" [label="yes"];
-    "Invoke brainstorming skill" -> "Might any skill apply?";
+    "EnterPlanMode 前?" -> "すでに brainstorm 済?";
+    "すでに brainstorm 済?" -> "brainstorming skill を呼び出す" [label="no"];
+    "すでに brainstorm 済?" -> "当てはまる skill がある?" [label="yes"];
+    "brainstorming skill を呼び出す" -> "当てはまる skill がある?";
 
-    "User message received" -> "Might any skill apply?";
-    "Might any skill apply?" -> "Invoke Skill tool" [label="yes, even 1%"];
-    "Might any skill apply?" -> "Respond (including clarifications)" [label="definitely not"];
-    "Invoke Skill tool" -> "Announce: 'Using [skill] to [purpose]'";
-    "Announce: 'Using [skill] to [purpose]'" -> "Has checklist?";
-    "Has checklist?" -> "Create TodoWrite todo per item" [label="yes"];
-    "Has checklist?" -> "Follow skill exactly" [label="no"];
-    "Create TodoWrite todo per item" -> "Follow skill exactly";
+    "ユーザーメッセージ受信" -> "当てはまる skill がある?";
+    "当てはまる skill がある?" -> "Skill ツールを呼び出す" [label="yes, even 1%"];
+    "当てはまる skill がある?" -> "応答（明確化を含む）" [label="definitely not"];
+    "Skill ツールを呼び出す" -> "宣言: '[skill] を [目的] に使う'";
+    "宣言: '[skill] を [目的] に使う'" -> "チェックリストあり?";
+    "チェックリストあり?" -> "TodoWrite で項目ごとに todo 作成" [label="yes"];
+    "チェックリストあり?" -> "skill に厳密に従う" [label="no"];
+    "TodoWrite で項目ごとに todo 作成" -> "skill に厳密に従う";
 }
 ```
 
-## Red Flags
+## 危険信号
 
-These thoughts mean STOP—you're rationalizing:
+次の考えは **STOP** — 言い訳しているサインです:
 
-| Thought | Reality |
+| 考え | 現実 |
 |---------|---------|
-| "This is just a simple question" | Questions are tasks. Check for skills. |
-| "I need more context first" | Skill check comes BEFORE clarifying questions. |
-| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
-| "I can check git/files quickly" | Files lack conversation context. Check for skills. |
-| "Let me gather information first" | Skills tell you HOW to gather information. |
-| "This doesn't need a formal skill" | If a skill exists, use it. |
-| "I remember this skill" | Skills evolve. Read current version. |
-| "This doesn't count as a task" | Action = task. Check for skills. |
-| "The skill is overkill" | Simple things become complex. Use it. |
-| "I'll just do this one thing first" | Check BEFORE doing anything. |
-| "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
-| "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
+| 「単純な質問だから」 | 質問もタスク。skill を確認する。 |
+| 「先にコンテキストが必要」 | skill 確認は明確化の質問より前。 |
+| 「先にコードベースを探索しよう」 | skill が探索の仕方を教える。先に確認。 |
+| 「git/ファイルをすぐ確認できる」 | ファイルに会話コンテキストはない。skill を確認。 |
+| 「先に情報を集めよう」 | skill が情報収集の仕方を教える。 |
+| 「正式な skill は不要」 | skill があれば使う。 |
+| 「skill を覚えている」 | skill は進化する。現行版を読む。 |
+| 「これはタスクに当たらない」 | アクション = タスク。skill を確認。 |
+| 「skill は大げさ」 | 単純なことも複雑化する。使う。 |
+| 「この 1 件だけ先にやる」 | 何かする前に確認。 |
+| 「生産的に感じる」 | 規律のない行動は時間の無駄。skill が防ぐ。 |
+| 「意味は分かっている」 | 概念を知る ≠ skill を使う。呼び出す。 |
 
-## Skill Priority
+## skill の優先順位
 
-When multiple skills could apply, use this order:
+複数の skill が当てはまる場合、この順序で使います:
 
-1. **Process skills first** (brainstorming, debugging) - these determine HOW to approach the task
-2. **Implementation skills second** (frontend-design, mcp-builder) - these guide execution
+1. **プロセス skill を先に**（brainstorming、debugging）— タスクへの進め方を決める
+2. **実装 skill を次に**（frontend-design、mcp-builder）— 実行を導く
 
-"Let's build X" → brainstorming first, then implementation skills.
-"Fix this bug" → debugging first, then domain-specific skills.
+「X を作ろう」→ 先に brainstorming、次に実装 skill。
+「このバグを直して」→ 先に debugging、次にドメイン固有 skill。
 
-## Skill Types
+## skill の種類
 
-**Rigid** (TDD, debugging): Follow exactly. Don't adapt away discipline.
+**厳格**（TDD、debugging）: 厳密に従う。規律を緩めない。
 
-**Flexible** (patterns): Adapt principles to context.
+**柔軟**（パターン）: 原則を文脈に合わせて適用。
 
-The skill itself tells you which.
+どちらかは skill 自身が示す。
 
-## User Instructions
+## ユーザー指示
 
-Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
+指示は **何を** するかであり、**どう** するかではない。「X を追加」「Y を修正」でもワークフローを省略しない。

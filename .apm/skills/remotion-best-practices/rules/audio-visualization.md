@@ -1,21 +1,21 @@
 ---
 name: audio-visualization
-description: Audio visualization patterns - spectrum bars, waveforms, bass-reactive effects
+description: Remotion でのオーディオ可視化
 metadata:
   tags: audio, visualization, spectrum, waveform, bass, music, audiogram, frequency
 ---
 
-# Audio Visualization in Remotion
+# Remotion でのオーディオ可視化
 
-## Prerequisites
+## 前提条件
 
 ```bash
 npx remotion add @remotion/media-utils
 ```
 
-## Loading Audio Data
+## オーディオデータの読み込み
 
-Use `useWindowedAudioData()` (https://www.remotion.dev/docs/use-windowed-audio-data) to load audio data:
+`useWindowedAudioData()` (https://www.remotion.dev/docs/use-windowed-audio-data) でオーディオデータを読み込み:
 
 ```tsx
 import { useWindowedAudioData } from "@remotion/media-utils";
@@ -32,9 +32,9 @@ const { audioData, dataOffsetInSeconds } = useWindowedAudioData({
 });
 ```
 
-## Spectrum Bar Visualization
+## スペクトラムバー可視化
 
-Use `visualizeAudio()` (https://www.remotion.dev/docs/visualize-audio) to get frequency data for bar charts:
+棒グラフ用の周波数データには `visualizeAudio()` (https://www.remotion.dev/docs/visualize-audio) を使います:
 
 ```tsx
 import { useWindowedAudioData, visualizeAudio } from "@remotion/media-utils";
@@ -80,15 +80,15 @@ return (
 );
 ```
 
-- `numberOfSamples` must be power of 2 (32, 64, 128, 256, 512, 1024)
-- Values range 0-1; left of array = bass, right = highs
-- Use `optimizeFor: "speed"` for Lambda or high sample counts
+- `numberOfSamples` は 2 の累乗（32, 64, 128, 256, 512, 1024）
+- 値は 0-1。配列左 = bass、右 = 高域
+- Lambda や高 sample 数では `optimizeFor: "speed"` を使う
 
-**Important:** When passing `audioData` to child components, also pass the `frame` from the parent. Do not call `useCurrentFrame()` in each child - this causes discontinuous visualization when children are inside `<Sequence>` with offsets.
+**重要:** `audioData` を子コンポーネントへ渡すときは、親の `frame` も渡してください。各子で `useCurrentFrame()` を呼ぶと、offset 付き `<Sequence>` 内で可視化が不連続になります。
 
-## Waveform Visualization
+## 波形可視化
 
-Use `visualizeAudioWaveform()` (https://www.remotion.dev/docs/media-utils/visualize-audio-waveform) with `createSmoothSvgPath()` (https://www.remotion.dev/docs/media-utils/create-smooth-svg-path) for oscilloscope-style displays:
+オシロスコープ風表示には `visualizeAudioWaveform()` (https://www.remotion.dev/docs/media-utils/visualize-audio-waveform) と `createSmoothSvgPath()` (https://www.remotion.dev/docs/media-utils/create-smooth-svg-path) を使います:
 
 ```tsx
 import {
@@ -136,9 +136,9 @@ return (
 );
 ```
 
-## Bass-Reactive Effects
+## bass 反応エフェクト
 
-Extract low frequencies for beat-reactive animations:
+低域を抽出して beat 反応アニメーションに使います:
 
 ```tsx
 const frequencies = visualizeAudio({
@@ -157,9 +157,9 @@ const scale = 1 + bassIntensity * 0.5;
 const opacity = Math.min(0.6, bassIntensity * 0.8);
 ```
 
-## Volume-Based Waveform
+## 音量ベース波形
 
-Use `getWaveformPortion()` (https://www.remotion.dev/docs/get-waveform-portion) when you need simplified volume data instead of frequency spectrum:
+周波数スペクトラムではなく簡略化した音量データが必要な場合は `getWaveformPortion()` (https://www.remotion.dev/docs/get-waveform-portion) を使います:
 
 ```tsx
 import { getWaveformPortion } from "@remotion/media-utils";
@@ -176,13 +176,13 @@ const waveform = getWaveformPortion({
   numberOfSamples: 50,
 });
 
-// Returns array of { index, amplitude } objects (amplitude: 0-1)
+// { index, amplitude } の配列（amplitude: 0-1）
 waveform.map((bar) => <div key={bar.index} style={{ height: bar.amplitude * 100 }} />);
 ```
 
-## Postprocessing
+## 後処理
 
-Low frequencies naturally dominate. Apply logarithmic scaling for visual balance:
+低域が自然に支配的になります。視覚バランスのため対数スケーリングを適用:
 
 ```tsx
 const minDb = -100;

@@ -1,15 +1,15 @@
 ---
-title: Use contentInsetAdjustmentBehavior for Safe Areas
+title: Safe Area に contentInsetAdjustmentBehavior を使用
 impact: MEDIUM
-impactDescription: native safe area handling, no layout shifts
+impactDescription: ネイティブ safe area 処理、レイアウトシフトなし
 tags: safe-area, scrollview, layout
 ---
 
-## Use contentInsetAdjustmentBehavior for Safe Areas
+## Safe Area に contentInsetAdjustmentBehavior を使用
 
-Use `contentInsetAdjustmentBehavior="automatic"` on the root ScrollView instead of wrapping content in SafeAreaView or manual padding. This lets iOS handle safe area insets natively with proper scroll behavior.
+コンテンツを SafeAreaView や手動 padding でラップする代わりに、ルート ScrollView で `contentInsetAdjustmentBehavior="automatic"` を使用します。iOS が適切なスクロール挙動で safe area inset をネイティブに処理します。
 
-**Incorrect (SafeAreaView wrapper):**
+**不適切（SafeAreaView ラッパー）:**
 
 ```tsx
 import { SafeAreaView, ScrollView, View, Text } from 'react-native'
@@ -27,7 +27,7 @@ function MyScreen() {
 }
 ```
 
-**Incorrect (manual safe area padding):**
+**不適切（手動 safe area padding）:**
 
 ```tsx
 import { ScrollView, View, Text } from 'react-native'
@@ -46,7 +46,7 @@ function MyScreen() {
 }
 ```
 
-**Correct (native content inset adjustment):**
+**適切（ネイティブ content inset 調整）:**
 
 ```tsx
 import { ScrollView, View, Text } from 'react-native'
@@ -62,4 +62,4 @@ function MyScreen() {
 }
 ```
 
-The native approach handles dynamic safe areas (keyboard, toolbars) and allows content to scroll behind the status bar naturally.
+ネイティブアプローチは動的 safe area（キーボード、ツールバー）を処理し、コンテンツがステータスバーの後ろに自然にスクロールできます。

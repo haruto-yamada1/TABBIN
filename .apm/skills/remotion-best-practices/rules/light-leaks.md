@@ -1,25 +1,25 @@
 ---
 name: light-leaks
-description: Light leak overlay effects for Remotion using @remotion/light-leaks.
+description: Remotion でのライトリーク効果
 metadata:
   tags: light-leaks, overlays, effects, transitions
 ---
 
-## Light Leaks
+## ライトリーク
 
-This only works from Remotion 4.0.415 and up. Use `npx remotion versions` to check your Remotion version and `npx remotion upgrade` to upgrade your Remotion version.
+Remotion 4.0.415 以降のみ動作します。`npx remotion versions` でバージョン確認、`npx remotion upgrade` で upgrade できます。
 
-`<LightLeak>` from `@remotion/light-leaks` renders a WebGL-based light leak effect. It reveals during the first half of its duration and retracts during the second half.
+`@remotion/light-leaks` の `<LightLeak>` は WebGL ベースのライトリーク効果です。duration の前半で reveal、後半で retract します。
 
-Typically used inside a `<TransitionSeries.Overlay>` to play over the cut point between two scenes. See the **transitions** rule for `<TransitionSeries>` and overlay usage.
+通常は 2 シーン間のカット点上で `<TransitionSeries.Overlay>` 内に使います。**transitions** rule の `<TransitionSeries>` / overlay 用法を参照してください。
 
-## Prerequisites
+## 前提条件
 
 ```bash
 npx remotion add @remotion/light-leaks
 ```
 
-## Basic usage with TransitionSeries
+## TransitionSeries との基本用法
 
 ```tsx
 import { TransitionSeries } from "@remotion/transitions";
@@ -40,25 +40,25 @@ import { LightLeak } from "@remotion/light-leaks";
 
 ## Props
 
-- `durationInFrames?` — defaults to the parent sequence/composition duration. The effect reveals during the first half and retracts during the second half.
-- `seed?` — determines the shape of the light leak pattern. Different seeds produce different patterns. Default: `0`.
-- `hueShift?` — rotates the hue in degrees (`0`–`360`). Default: `0` (yellow-to-orange). `120` = green, `240` = blue.
+- `durationInFrames?` — 親 sequence/composition の duration が既定。前半で reveal、後半で retract。
+- `seed?` — ライトリークパターンの形状。seed ごとに異なるパターン。既定: `0`。
+- `hueShift?` — 色相回転（度、`0`–`360`）。既定: `0`（黄〜橙）。`120` = 緑、`240` = 青。
 
-## Customizing the look
+## 見た目のカスタマイズ
 
 ```tsx
 import { LightLeak } from "@remotion/light-leaks";
 
-// Blue-tinted light leak with a different pattern
+// 青みのライトリーク、別パターン
 <LightLeak seed={5} hueShift={240} />;
 
-// Green-tinted light leak
+// 緑みのライトリーク
 <LightLeak seed={2} hueShift={120} />;
 ```
 
-## Standalone usage
+## 単体利用
 
-`<LightLeak>` can also be used outside of `<TransitionSeries>`, for example as a decorative overlay in any composition:
+`<LightLeak>` は `<TransitionSeries>` 外でも、任意 composition の装飾 overlay として使えます:
 
 ```tsx
 import { AbsoluteFill } from "remotion";

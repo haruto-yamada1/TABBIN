@@ -1,15 +1,15 @@
 ---
 name: images
-description: Embedding images in Remotion using the <Img> component
+description: Remotion での画像の埋め込み
 metadata:
   tags: images, img, staticFile, png, jpg, svg, webp
 ---
 
-# Using images in Remotion
+# Remotion での画像利用
 
-## The `<Img>` component
+## `<Img>` コンポーネント
 
-Always use the `<Img>` component from `remotion` to display images:
+画像表示には **常に** `remotion` の `<Img>` を使います:
 
 ```tsx
 import { Img, staticFile } from "remotion";
@@ -19,19 +19,19 @@ export const MyComposition = () => {
 };
 ```
 
-## Important restrictions
+## 重要な制約
 
-**You MUST use the `<Img>` component from `remotion`.** Do not use:
+**`remotion` の `<Img>` を使う必要があります。** 次は使わないでください:
 
-- Native HTML `<img>` elements
-- Next.js `<Image>` component
+- ネイティブ HTML `<img>`
+- Next.js `<Image>`
 - CSS `background-image`
 
-The `<Img>` component ensures images are fully loaded before rendering, preventing flickering and blank frames during video export.
+`<Img>` は render 前に画像が完全読み込みされることを保証し、export 時のちらつきや空白フレームを防ぎます。
 
-## Local images with staticFile()
+## staticFile() でローカル画像
 
-Place images in the `public/` folder and use `staticFile()` to reference them:
+`public/` に画像を置き、`staticFile()` で参照します:
 
 ```
 my-video/
@@ -49,21 +49,21 @@ import { Img, staticFile } from "remotion";
 <Img src={staticFile("logo.png")} />;
 ```
 
-## Remote images
+## リモート画像
 
-Remote URLs can be used directly without `staticFile()`:
+リモート URL は `staticFile()` なしで直接使えます:
 
 ```tsx
 <Img src="https://example.com/image.png" />
 ```
 
-Ensure remote images have CORS enabled.
+リモート画像は CORS が有効である必要があります。
 
-For animated GIFs, use the `<Gif>` component from `@remotion/gif` instead.
+アニメーション GIF には `@remotion/gif` の `<Gif>` を使います。
 
-## Sizing and positioning
+## サイズと配置
 
-Use the `style` prop to control size and position:
+サイズと位置は `style` prop で制御します:
 
 ```tsx
 <Img
@@ -79,35 +79,35 @@ Use the `style` prop to control size and position:
 />
 ```
 
-## Dynamic image paths
+## 動的な画像パス
 
-Use template literals for dynamic file references:
+動的参照には template literal を使います:
 
 ```tsx
 import { Img, staticFile, useCurrentFrame } from "remotion";
 
 const frame = useCurrentFrame();
 
-// Image sequence
+// 画像シーケンス
 <Img src={staticFile(`frames/frame${frame}.png`)} />
 
-// Selecting based on props
+// props に基づく選択
 <Img src={staticFile(`avatars/${props.userId}.png`)} />
 
-// Conditional images
+// 条件付き画像
 <Img src={staticFile(`icons/${isActive ? "active" : "inactive"}.svg`)} />
 ```
 
-This pattern is useful for:
+次の用途に便利です:
 
-- Image sequences (frame-by-frame animations)
-- User-specific avatars or profile images
-- Theme-based icons
-- State-dependent graphics
+- 画像シーケンス（フレーム単位アニメーション）
+- ユーザー固有のアバター / プロフィール画像
+- テーマ別アイコン
+- 状態依存グラフィック
 
-## Getting image dimensions
+## 画像 dimensions の取得
 
-Use `getImageDimensions()` to get the dimensions of an image:
+`getImageDimensions()` で画像サイズを取得できます:
 
 ```tsx
 import { getImageDimensions, staticFile } from "remotion";
@@ -115,7 +115,7 @@ import { getImageDimensions, staticFile } from "remotion";
 const { width, height } = await getImageDimensions(staticFile("photo.png"));
 ```
 
-This is useful for calculating aspect ratios or sizing compositions:
+アスペクト比や composition サイズ計算に便利です:
 
 ```tsx
 import { getImageDimensions, staticFile, CalculateMetadataFunction } from "remotion";

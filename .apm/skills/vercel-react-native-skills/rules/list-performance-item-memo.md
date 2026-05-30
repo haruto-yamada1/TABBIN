@@ -1,17 +1,15 @@
 ---
-title: Pass Primitives to List Items for Memoization
+title: メモ化のためリストアイテムにプリミティブを渡す
 impact: HIGH
-impactDescription: enables effective memo() comparison
+impactDescription: 効果的な memo() 比較を可能にする
 tags: lists, performance, memo, primitives
 ---
 
-## Pass Primitives to List Items for Memoization
+## メモ化のためリストアイテムにプリミティブを渡す
 
-When possible, pass only primitive values (strings, numbers, booleans) as props
-to list item components. Primitives enable shallow comparison in `memo()` to
-work correctly, skipping re-renders when values haven't changed.
+可能な限り、リストアイテムコンポーネントにはプリミティブ値（文字列、数値、boolean）だけを props として渡します。プリミティブにより `memo()` の浅い比較が正しく機能し、値が変わっていない場合の再レンダーをスキップできます。
 
-**Incorrect (object prop requires deep comparison):**
+**不適切（オブジェクト prop は深い比較が必要）:**
 
 ```tsx
 type User = { id: string; name: string; email: string; avatar: string }
@@ -25,9 +23,9 @@ const UserRow = memo(function UserRow({ user }: { user: User }) {
 renderItem={({ item }) => <UserRow user={item} />}
 ```
 
-This can still be optimized, but it is harder to memoize properly.
+最適化は可能ですが、適切にメモ化するのはより難しくなります。
 
-**Correct (primitive props enable shallow comparison):**
+**適切（プリミティブ props で浅い比較を可能に）:**
 
 ```tsx
 const UserRow = memo(function UserRow({
@@ -49,7 +47,7 @@ renderItem={({ item }) => (
 )}
 ```
 
-**Pass only what you need:**
+**必要なものだけ渡す:**
 
 ```tsx
 // Incorrect: passing entire item when you only need name
@@ -59,7 +57,7 @@ renderItem={({ item }) => (
 <UserRow name={item.name} avatarUrl={item.avatar} />
 ```
 
-**For callbacks, hoist or use item ID:**
+**コールバックは巻き上げるか item ID を使用:**
 
 ```tsx
 // Incorrect: inline function creates new reference
@@ -76,7 +74,6 @@ const UserRow = memo(function UserRow({ id, name }: Props) {
 })
 ```
 
-Primitive props make memoization predictable and effective.
+プリミティブ props によりメモ化が予測可能で効果的になります。
 
-**Note:** If you have the React Compiler enabled, you do not need to use
-`memo()` or `useCallback()`, but the object references still apply.
+**注:** React Compiler が有効な場合、`memo()` や `useCallback()` は不要ですが、オブジェクト参照の考慮は引き続き適用されます。

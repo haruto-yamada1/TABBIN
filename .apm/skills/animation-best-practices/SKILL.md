@@ -1,24 +1,24 @@
 ---
 name: animation-best-practices
-description: CSS and UI animation patterns for responsive, polished interfaces. Use when implementing hover effects, tooltips, button feedback, transitions, or fixing animation issues like flicker and shakiness.
+description: レスポンシブで洗練された UI の CSS / UI アニメーションパターン。hover 効果、tooltip、ボタンフィードバック、transition の実装、ちらつきやガタつきなどのアニメーション問題修正時に使います。
 version: 1.0.0
 ---
 
-# Practical Animation Tips
+# 実践的アニメーションのコツ
 
-Detailed reference guide for common animation scenarios. Use this as a checklist when implementing animations.
+よくあるアニメーション場面の詳細リファレンス。アニメーション実装時のチェックリストとして使う。
 
-## Recording & Debugging
+## 記録とデバッグ
 
-### Record Your Animations
+### アニメーションを記録する
 
-When something feels off but you can't identify why, record the animation and play it back frame by frame. This reveals details invisible at normal speed.
+違和感があるのに原因が分からないときは、アニメーションを記録してコマ送り再生する。通常速度では見えない詳細が分かる。
 
-### Fix Shaky Animations
+### ガタつくアニメーションを直す
 
-Elements may shift by 1px at the start/end of CSS transform animations due to GPU/CPU rendering handoff.
+CSS transform アニメーションの開始/終了で、GPU/CPU レンダリング切り替えにより要素が 1px ずれることがある。
 
-**Fix:**
+**修正:**
 
 ```css
 .element {
@@ -26,17 +26,17 @@ Elements may shift by 1px at the start/end of CSS transform animations due to GP
 }
 ```
 
-This tells the browser to keep the element on the GPU throughout the animation.
+ブラウザにアニメーション全体を GPU 上に置くよう指示する。
 
-### Take Breaks
+### 休憩を取る
 
-Don't code and ship animations in one sitting. Step away, return with fresh eyes. The best animations are reviewed and refined over days, not hours.
+アニメーションを一気に実装して ship しない。離れて、新鮮な目で戻る。良いアニメーションは数時間ではなく数日かけて見直す。
 
-## Button & Click Feedback
+## ボタンとクリックフィードバック
 
-### Scale Buttons on Press
+### 押下時にボタンを scale する
 
-Make interfaces feel responsive by adding subtle scale feedback:
+軽い scale で即座に反応している感を出す:
 
 ```css
 button:active {
@@ -44,13 +44,13 @@ button:active {
 }
 ```
 
-This gives instant visual feedback that the interface is listening.
+UI が入力を受け取っていることが視覚的に伝わる。
 
-### Don't Animate from scale(0)
+### scale(0) からアニメーションしない
 
-Starting from `scale(0)` makes elements appear from nowhere—it feels unnatural.
+`scale(0)` から始めると、どこからともなく現れるように見え不自然。
 
-**Bad:**
+**悪い例:**
 
 ```css
 .element {
@@ -61,7 +61,7 @@ Starting from `scale(0)` makes elements appear from nowhere—it feels unnatural
 }
 ```
 
-**Good:**
+**良い例:**
 
 ```css
 .element {
@@ -74,13 +74,13 @@ Starting from `scale(0)` makes elements appear from nowhere—it feels unnatural
 }
 ```
 
-Elements should always have some visible shape, like a deflated balloon.
+要素は常に何らかの形を持つ。しぼんだ風船のように。
 
-## Tooltips & Popovers
+## Tooltip と Popover
 
-### Skip Animation on Subsequent Tooltips
+### 2 回目以降の tooltip はアニメーションを省略
 
-First tooltip: delay + animation. Subsequent tooltips (while one is open): instant, no delay.
+最初の tooltip: delay + animation。続く tooltip（1 つ開いている間）: 即時、delay なし。
 
 ```css
 .tooltip {
@@ -102,11 +102,11 @@ First tooltip: delay + animation. Subsequent tooltips (while one is open): insta
 }
 ```
 
-Radix UI and Base UI support this pattern with `data-instant` attribute.
+Radix UI と Base UI は `data-instant` 属性でこのパターンをサポート。
 
-### Make Animations Origin-Aware
+### origin を意識したアニメーション
 
-Popovers should scale from their trigger, not from center.
+Popover は中心ではなく trigger から scale する。
 
 ```css
 /* Default (wrong for most cases) */
@@ -136,37 +136,37 @@ Popovers should scale from their trigger, not from center.
 }
 ```
 
-## Speed & Timing
+## 速度とタイミング
 
-### Keep Animations Fast
+### アニメーションは速く
 
-A faster-spinning spinner makes apps feel faster even with identical load times. A 180ms select animation feels more responsive than 400ms.
+スピナーを速く回すと、読み込み時間が同じでもアプリが速く感じる。180ms の select アニメーションは 400ms より responsive に感じる。
 
-**Rule:** UI animations should stay under 300ms.
+**ルール:** UI アニメーションは 300ms 未満に保つ。
 
-### Don't Animate Keyboard Interactions
+### キーボード操作はアニメーションしない
 
-Arrow key navigation, keyboard shortcuts—these are repeated hundreds of times daily. Animation makes them feel slow and disconnected.
+矢印キー移動、ショートカットは 1 日何百回も使う。アニメーションは遅く、切断された感じになる。
 
-**Never animate:**
+**アニメーションしないもの:**
 
-- List navigation with arrow keys
-- Keyboard shortcut responses
-- Tab/focus movements
+- 矢印キーでのリスト移動
+- キーボードショートカットの応答
+- Tab / focus 移動
 
-### Be Careful with Frequently-Used Elements
+### 頻繁に使う要素には注意
 
-A hover effect is nice, but if triggered multiple times a day, it may benefit from no animation at all.
+hover 効果は良いが、1 日何度も発火するなら、アニメーションなしの方が良い場合もある。
 
-**Guideline:** Use your own product daily. You'll discover which animations become annoying through repeated use.
+**ガイドライン:** 自分のプロダクトを毎日使う。繰り返しでうるさくなるアニメーションが分かる。
 
-## Hover States
+## Hover 状態
 
-### Fix Hover Flicker
+### hover のちらつきを直す
 
-When hover animation changes element position, the cursor may leave the element, causing flicker.
+hover アニメーションで要素位置が変わると、カーソルが要素外に出てちらつく。
 
-**Problem:**
+**問題:**
 
 ```css
 .box:hover {
@@ -174,7 +174,7 @@ When hover animation changes element position, the cursor may leave the element,
 }
 ```
 
-**Solution:** Animate a child element instead:
+**解決:** 子要素をアニメーションする:
 
 ```html
 <div class="box">
@@ -192,11 +192,11 @@ When hover animation changes element position, the cursor may leave the element,
 }
 ```
 
-The parent's hover area stays stable while the child moves.
+親の hover 領域は安定し、子だけ動く。
 
-### Disable Hover on Touch Devices
+### タッチデバイスでは hover を無効化
 
-Touch devices don't have true hover. Accidental finger movement triggers unwanted hover states.
+タッチデバイスに真の hover はない。指の accidental な動きで不要な hover が発火する。
 
 ```css
 @media (hover: hover) and (pointer: fine) {
@@ -206,15 +206,15 @@ Touch devices don't have true hover. Accidental finger movement triggers unwante
 }
 ```
 
-**Note:** Tailwind v4's `hover:` class automatically applies only when the device supports hover.
+**注:** Tailwind v4 の `hover:` クラスは hover をサポートするデバイスにのみ自動適用される。
 
-## Touch & Accessibility
+## タッチとアクセシビリティ
 
-### Ensure Appropriate Target Areas
+### 適切なターゲット領域を確保
 
-Small buttons are hard to tap. Use a pseudo-element to create larger hit areas without changing layout.
+小さいボタンはタップしにくい。疑似要素で layout を変えず hit area を広げる。
 
-**Minimum target:** 44px (Apple and WCAG recommendation)
+**最小ターゲット:** 44px（Apple と WCAG 推奨）
 
 ```css
 @utility touch-hitbox {
@@ -244,11 +244,11 @@ Usage:
 </button>
 ```
 
-## Easing Selection
+## Easing の選び方
 
-### Use ease-out for Enter/Exit
+### enter/exit には ease-out
 
-Elements entering or exiting should use `ease-out`. The fast start creates responsiveness.
+出入りする要素は `ease-out`。速い開始が responsive 感を作る。
 
 ```css
 .dropdown {
@@ -258,11 +258,11 @@ Elements entering or exiting should use `ease-out`. The fast start creates respo
 }
 ```
 
-`ease-in` starts slow—wrong for UI. Same duration feels slower because the movement is back-loaded.
+`ease-in` は開始が遅い — UI には不向き。同じ duration でも後半に動きが集中し遅く感じる。
 
-### Use ease-in-out for On-Screen Movement
+### 画面上の移動には ease-in-out
 
-Elements already visible that need to move should use `ease-in-out`. Mimics natural acceleration/deceleration like a car.
+すでに見えている要素の移動は `ease-in-out`。車の加速/減速のような自然な動き。
 
 ```css
 .slider-handle {
@@ -270,19 +270,19 @@ Elements already visible that need to move should use `ease-in-out`. Mimics natu
 }
 ```
 
-### Use Custom Easing Curves
+### カスタム easing カーブを使う
 
-Built-in CSS curves are usually too weak. Custom curves create more intentional motion.
+組み込み CSS カーブは弱いことが多い。カスタムカーブで意図的な動きに。
 
-**Resources:**
+**リソース:**
 
 - [easings.co](https://easings.co/)
 
-## Visual Tricks
+## 視覚的トリック
 
-### Use Blur as a Fallback
+### フォールバックに blur を使う
 
-When easing and timing adjustments don't solve the problem, add subtle blur to mask imperfections.
+easing と timing 調整で解決しないとき、軽い blur で欠点を隠す。
 
 ```css
 .button-transition {
@@ -297,13 +297,13 @@ When easing and timing adjustments don't solve the problem, add subtle blur to m
 }
 ```
 
-Blur bridges visual gaps between states, tricking the eye into seeing smoother transitions. The two states blend instead of appearing as distinct objects.
+blur は状態間の視覚的 gap を埋め、目を滑らかな transition にだます。2 状態が別物体ではなく blend して見える。
 
-**Performance note:** Keep blur under 20px, especially on Safari.
+**パフォーマンス注意:** blur は 20px 未満に。Safari では特に。
 
-## Why Details Matter
+## なぜ細部が重要か
 
 > "All those unseen details combine to produce something that's just stunning, like a thousand barely audible voices all singing in tune."
 > — Paul Graham, Hackers and Painters
 
-Details that go unnoticed are good—users complete tasks without friction. Great interfaces enable users to achieve goals with ease, not to admire animations.
+気づかれない細部こそが良い — ユーザーは friction なくタスクを完了する。優れた UI はアニメーションを鑑賞させるのではなく、ユーザーが目標を楽に達成できるようにする。

@@ -1,14 +1,13 @@
 ---
 name: babysit
-description: >-
-  Keep a PR merge-ready by triaging comments, resolving clear conflicts, and
-  fixing CI in a loop.
+description: PR コメントの triage、明確な conflict 解消、CI 修正をループで行い、merge-ready 状態を維持するときに使います。
 ---
-# Babysit PR
-Your job is to get this PR to a merge-ready state.
+# PR babysit
 
-Check PR status, comments, and latest CI and resolve any issues until the PR is ready to merge.
+この PR を merge-ready 状態にすることが目的です。
 
-1. Comments: Review every comment (including Bugbot) before acting. Fix only comments you agree with; explain when you disagree or are unsure.
-2. Merge conflicts: When there are conflicts, sync with base branch. Resolve merge conflicts only when intent is clearly the same, otherwise stop and ask for clarification.
-3. CI: Fix CI issues that come up with small scoped fixes. Push them and re-watch CI until mergeable + green + comments triaged.
+PR の status、コメント、最新 CI を確認し、merge 可能になるまで issue を解消します。
+
+1. **Comments**: 対応前にすべてのコメント（Bugbot を含む）を確認します。同意できるコメントだけ修正し、不同意または不明な場合は理由を説明します。
+2. **Merge conflicts**: conflict がある場合は base branch と同期します。意図が明確に同じ場合のみ merge conflict を解消し、そうでなければ停止して確認を求めます。
+3. **CI**: 発生した CI issue は小さく scope を絞って修正します。push 後、mergeable + green + コメント triage 完了まで CI を再確認します。

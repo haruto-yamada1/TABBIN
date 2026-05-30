@@ -1,16 +1,15 @@
 ---
-title: Wrap Strings in Text Components
+title: 文字列を Text コンポーネントでラップ
 impact: CRITICAL
-impactDescription: prevents runtime crash
+impactDescription: ランタイムクラッシュを防ぐ
 tags: rendering, text, core
 ---
 
-## Wrap Strings in Text Components
+## 文字列を Text コンポーネントでラップ
 
-Strings must be rendered inside `<Text>`. React Native crashes if a string is a
-direct child of `<View>`.
+文字列は `<Text>` 内でレンダリングする必要があります。文字列が `<View>` の直接の子になると React Native はクラッシュします。
 
-**Incorrect (crashes):**
+**不適切（クラッシュ）:**
 
 ```tsx
 import { View } from 'react-native'
@@ -21,7 +20,7 @@ function Greeting({ name }: { name: string }) {
 // Error: Text strings must be rendered within a <Text> component.
 ```
 
-**Correct:**
+**適切:**
 
 ```tsx
 import { View, Text } from 'react-native'

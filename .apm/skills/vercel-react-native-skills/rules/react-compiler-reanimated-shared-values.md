@@ -1,17 +1,15 @@
 ---
-title: Use .get() and .set() for Reanimated Shared Values (not .value)
+title: Reanimated Shared Value には .get() と .set() を使用（.value ではない）
 impact: LOW
-impactDescription: required for React Compiler compatibility
+impactDescription: React Compiler 互換に必須
 tags: reanimated, react-compiler, shared-values
 ---
 
-## Use .get() and .set() for Shared Values with React Compiler
+## React Compiler では Shared Value に .get() と .set() を使用
 
-With React Compiler enabled, use `.get()` and `.set()` instead of reading or
-writing `.value` directly on Reanimated shared values. The compiler can't track
-property access—explicit methods ensure correct behavior.
+React Compiler 有効時は、Reanimated shared value の `.value` の直接読み書きの代わりに `.get()` と `.set()` を使用します。コンパイラはプロパティアクセスを追跡できないため、明示的メソッドで正しい挙動を保証します。
 
-**Incorrect (breaks with React Compiler):**
+**不適切（React Compiler で壊れる）:**
 
 ```tsx
 import { useSharedValue } from 'react-native-reanimated'
@@ -27,7 +25,7 @@ function Counter() {
 }
 ```
 
-**Correct (React Compiler compatible):**
+**適切（React Compiler 互換）:**
 
 ```tsx
 import { useSharedValue } from 'react-native-reanimated'
@@ -43,6 +41,6 @@ function Counter() {
 }
 ```
 
-See the
+詳細は
 [Reanimated docs](https://docs.swmansion.com/react-native-reanimated/docs/core/useSharedValue/#react-compiler-support)
-for more.
+を参照してください。

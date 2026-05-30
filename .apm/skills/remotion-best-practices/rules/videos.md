@@ -1,16 +1,15 @@
 ---
 name: videos
-description: Embedding videos in Remotion - trimming, volume, speed, looping, pitch
+description: Remotion での動画埋め込み — トリム、音量、速度、ループ、ピッチ
 metadata:
   tags: video, media, trim, volume, speed, loop, pitch
 ---
+# Remotion での動画利用
 
-# Using videos in Remotion
+## 前提条件
 
-## Prerequisites
-
-First, the @remotion/media package needs to be installed.  
-If it is not, use the following command:
+まず @remotion/media パッケージをインストールする必要があります。  
+未インストールの場合は次のコマンドを使用:
 
 ```bash
 npx remotion add @remotion/media # If project uses npm
@@ -19,7 +18,7 @@ yarn remotion add @remotion/media # If project uses yarn
 pnpm exec remotion add @remotion/media # If project uses pnpm
 ```
 
-Use `<Video>` from `@remotion/media` to embed videos into your composition.
+composition に動画を埋め込むには `@remotion/media` の `<Video>` を使用します。
 
 ```tsx
 import { Video } from "@remotion/media";
@@ -30,15 +29,15 @@ export const MyComposition = () => {
 };
 ```
 
-Remote URLs are also supported:
+リモート URL もサポートされます:
 
 ```tsx
 <Video src="https://remotion.media/video.mp4" />
 ```
 
-## Trimming
+## トリミング
 
-Use `trimBefore` and `trimAfter` to remove portions of the video. Values are in seconds.
+`trimBefore` と `trimAfter` で動画の一部を削除します。値は秒単位です。
 
 ```tsx
 const { fps } = useVideoConfig();
@@ -52,9 +51,9 @@ return (
 );
 ```
 
-## Delaying
+## 遅延
 
-Wrap the video in a `<Sequence>` to delay when it appears:
+動画の表示タイミングを遅らせるには `<Sequence>` でラップします:
 
 ```tsx
 import { Sequence, staticFile } from "remotion";
@@ -69,11 +68,11 @@ return (
 );
 ```
 
-The video will appear after 1 second.
+video will appear after 1 second。
 
-## Sizing and Position
+## サイズと位置
 
-Use the `style` prop to control size and position:
+サイズと位置は `style` prop で制御します:
 
 ```tsx
 <Video
@@ -89,15 +88,15 @@ Use the `style` prop to control size and position:
 />
 ```
 
-## Volume
+## 音量
 
-Set a static volume (0 to 1):
+設定: static volume (0 to 1):
 
 ```tsx
 <Video src={staticFile("video.mp4")} volume={0.5} />
 ```
 
-Or use a callback for dynamic volume based on the current frame:
+または現在フレームに基づく動的音量にコールバックを使用:
 
 ```tsx
 import { interpolate } from "remotion";
@@ -112,26 +111,26 @@ return (
 );
 ```
 
-Use `muted` to silence the video entirely:
+動画を完全に無音にするには `muted` を使用:
 
 ```tsx
 <Video src={staticFile("video.mp4")} muted />
 ```
 
-## Speed
+## 速度
 
-Use `playbackRate` to change the playback speed:
+再生速度を変えるには `playbackRate` を使用:
 
 ```tsx
 <Video src={staticFile("video.mp4")} playbackRate={2} /> {/* 2x speed */}
 <Video src={staticFile("video.mp4")} playbackRate={0.5} /> {/* Half speed */}
 ```
 
-Reverse playback is not supported.
+逆再生はサポートされていません。
 
-## Looping
+## ループ
 
-Use `loop` to loop the video indefinitely:
+動画を無限ループするには `loop` を使用:
 
 ```tsx
 <Video src={staticFile("video.mp4")} loop />
@@ -151,9 +150,9 @@ Use `loopVolumeCurveBehavior` to control how the frame count behaves when loopin
 />
 ```
 
-## Pitch
+## ピッチ
 
-Use `toneFrequency` to adjust the pitch without affecting speed. Values range from 0.01 to 2:
+速度に影響せずピッチを調整するには `toneFrequency` を使用。値は 0.01 から 2:
 
 ```tsx
 <Video
@@ -166,4 +165,4 @@ Use `toneFrequency` to adjust the pitch without affecting speed. Values range fr
 />
 ```
 
-Pitch shifting only works during server-side rendering, not in the Remotion Studio preview or in the `<Player />`.
+ピッチシフトはサーバー側レンダリング時のみ有効で、Remotion Studio プレビューや `<Player />` では動作しません。

@@ -1,6 +1,6 @@
 ---
 name: tailwind
-description: Using TailwindCSS in Remotion.
+description: Remotion での TailwindCSS 利用
 metadata:
 ---
 

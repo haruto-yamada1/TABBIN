@@ -1,13 +1,13 @@
 ---
 name: compositions
-description: Defining compositions, stills, folders, default props and dynamic metadata
+description: Composition、still、folder、default props、動的メタデータの定義
 metadata:
   tags: composition, still, folder, props, metadata
 ---
 
-A `<Composition>` defines the component, width, height, fps and duration of a renderable video.
+`<Composition>` はレンダリング可能な動画のコンポーネント、幅、高さ、fps、期間を定義します。
 
-It normally is placed in the `src/Root.tsx` file.
+通常は `src/Root.tsx` に配置します。
 
 ```tsx
 import { Composition } from "remotion";
@@ -27,10 +27,10 @@ export const RemotionRoot = () => {
 };
 ```
 
-## Default Props
+## デフォルト props
 
-Pass `defaultProps` to provide initial values for your component.  
-Values must be JSON-serializable (`Date`, `Map`, `Set`, and `staticFile()` are supported).
+コンポーネントの初期値には `defaultProps` を渡します。  
+値は JSON シリアライズ可能である必要があります（`Date`、`Map`、`Set`、`staticFile()` はサポート）。
 
 ```tsx
 import { Composition } from "remotion";
@@ -56,12 +56,12 @@ export const RemotionRoot = () => {
 };
 ```
 
-Use `type` declarations for props rather than `interface` to ensure `defaultProps` type safety.
+`defaultProps` の型安全のため、`interface` より `type` 宣言を使います。
 
-## Folders
+## Folder
 
-Use `<Folder>` to organize compositions in the sidebar.  
-Folder names can only contain letters, numbers, and hyphens.
+`<Folder>` で sidebar の composition を整理します。  
+Folder 名は英字、数字、ハイフンのみ使えます。
 
 ```tsx
 import { Composition, Folder } from "remotion";
@@ -84,9 +84,9 @@ export const RemotionRoot = () => {
 };
 ```
 
-## Stills
+## Still
 
-Use `<Still>` for single-frame images. It does not require `durationInFrames` or `fps`.
+単一フレーム画像には `<Still>` を使います。`durationInFrames` / `fps` は不要です。
 
 ```tsx
 import { Still } from "remotion";
@@ -99,7 +99,7 @@ export const RemotionRoot = () => {
 
 ## Calculate Metadata
 
-Use `calculateMetadata` to make dimensions, duration, or props dynamic based on data.
+`calculateMetadata` で dimensions、duration、props をデータに基づき動的に設定します。
 
 ```tsx
 import { Composition, CalculateMetadataFunction } from "remotion";
@@ -127,7 +127,7 @@ export const RemotionRoot = () => {
     <Composition
       id="MyComposition"
       component={MyComposition}
-      durationInFrames={100} // Placeholder, will be overridden
+      durationInFrames={100} // プレースホルダー、上書きされる
       fps={30}
       width={1080}
       height={1080}
@@ -138,11 +138,11 @@ export const RemotionRoot = () => {
 };
 ```
 
-The function can return `props`, `durationInFrames`, `width`, `height`, `fps`, and codec-related defaults. It runs once before rendering begins.
+この関数は `props`、`durationInFrames`、`width`、`height`、`fps`、codec 関連の既定値を返せます。render 開始前に 1 回実行されます。
 
-## Nesting compositions within another
+## 別 Composition 内へのネスト
 
-To add a composition within another composition, you can use the `<Sequence>` component with a `width` and `height` prop to specify the size of the composition.
+composition 内に別 composition を入れるには、`<Sequence>` に `width` / `height` を指定します。
 
 ```tsx
 <AbsoluteFill>

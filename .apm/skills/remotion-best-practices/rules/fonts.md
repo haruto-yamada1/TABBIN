@@ -1,26 +1,26 @@
 ---
 name: fonts
-description: Loading Google Fonts and local fonts in Remotion
+description: Remotion でのフォント読み込み
 metadata:
   tags: fonts, google-fonts, typography, text
 ---
 
-# Using fonts in Remotion
+# Remotion でのフォント利用
 
-## Google Fonts with @remotion/google-fonts
+## @remotion/google-fonts で Google Fonts
 
-The recommended way to use Google Fonts. It's type-safe and automatically blocks rendering until the font is ready.
+Google Fonts 利用の推奨方法です。型安全で、フォント準備完了まで render を自動ブロックします。
 
-### Prerequisites
+### 前提条件
 
-First, the @remotion/google-fonts package needs to be installed.
-If it is not installed, use the following command:
+`@remotion/google-fonts` パッケージを先にインストールします。
+未インストールの場合は次のコマンドを使用:
 
 ```bash
-npx remotion add @remotion/google-fonts # If project uses npm
-bunx remotion add @remotion/google-fonts # If project uses bun
-yarn remotion add @remotion/google-fonts # If project uses yarn
-pnpm exec remotion add @remotion/google-fonts # If project uses pnpm
+npx remotion add @remotion/google-fonts # npm プロジェクト
+bunx remotion add @remotion/google-fonts # bun プロジェクト
+yarn remotion add @remotion/google-fonts # yarn プロジェクト
+pnpm exec remotion add @remotion/google-fonts # pnpm プロジェクト
 ```
 
 ```tsx
@@ -33,7 +33,7 @@ export const MyComposition = () => {
 };
 ```
 
-Preferrably, specify only needed weights and subsets to reduce file size:
+可能なら必要な weight / subset のみ指定し、ファイルサイズを抑えます:
 
 ```tsx
 import { loadFont } from "@remotion/google-fonts/Roboto";
@@ -44,9 +44,9 @@ const { fontFamily } = loadFont("normal", {
 });
 ```
 
-### Waiting for font to load
+### フォント読み込み完了を待つ
 
-Use `waitUntilDone()` if you need to know when the font is ready:
+準備完了を知る必要がある場合は `waitUntilDone()` を使います:
 
 ```tsx
 import { loadFont } from "@remotion/google-fonts/Lobster";
@@ -56,24 +56,24 @@ const { fontFamily, waitUntilDone } = loadFont();
 await waitUntilDone();
 ```
 
-## Local fonts with @remotion/fonts
+## @remotion/fonts でローカルフォント
 
-For local font files, use the `@remotion/fonts` package.
+ローカルフォントファイルには `@remotion/fonts` を使います。
 
-### Prerequisites
+### 前提条件
 
-First, install @remotion/fonts:
+まず `@remotion/fonts` をインストール:
 
 ```bash
-npx remotion add @remotion/fonts # If project uses npm
-bunx remotion add @remotion/fonts # If project uses bun
-yarn remotion add @remotion/fonts # If project uses yarn
-pnpm exec remotion add @remotion/fonts # If project uses pnpm
+npx remotion add @remotion/fonts # npm プロジェクト
+bunx remotion add @remotion/fonts # bun プロジェクト
+yarn remotion add @remotion/fonts # yarn プロジェクト
+pnpm exec remotion add @remotion/fonts # pnpm プロジェクト
 ```
 
-### Loading a local font
+### ローカルフォントの読み込み
 
-Place your font file in the `public/` folder and use `loadFont()`:
+フォントファイルを `public/` に置き、`loadFont()` を使います:
 
 ```tsx
 import { loadFont } from "@remotion/fonts";
@@ -89,9 +89,9 @@ export const MyComposition = () => {
 };
 ```
 
-### Loading multiple weights
+### 複数 weight の読み込み
 
-Load each weight separately with the same family name:
+同じ family 名で weight ごとに読み込みます:
 
 ```tsx
 import { loadFont } from "@remotion/fonts";
@@ -111,22 +111,22 @@ await Promise.all([
 ]);
 ```
 
-### Available options
+### 利用可能な option
 
 ```tsx
 loadFont({
-  family: "MyFont", // Required: name to use in CSS
-  url: staticFile("font.woff2"), // Required: font file URL
-  format: "woff2", // Optional: auto-detected from extension
-  weight: "400", // Optional: font weight
-  style: "normal", // Optional: normal or italic
-  display: "block", // Optional: font-display behavior
+  family: "MyFont", // 必須: CSS で使う名前
+  url: staticFile("font.woff2"), // 必須: フォントファイル URL
+  format: "woff2", // 任意: 拡張子から自動検出
+  weight: "400", // 任意: font weight
+  style: "normal", // 任意: normal または italic
+  display: "block", // 任意: font-display 挙動
 });
 ```
 
-## Using in components
+## 利用: コンポーネント内
 
-Call `loadFont()` at the top level of your component or in a separate file that's imported early:
+`loadFont()` はコンポーネント先頭、または早い段階で import する別ファイルで呼びます:
 
 ```tsx
 import { loadFont } from "@remotion/google-fonts/Montserrat";

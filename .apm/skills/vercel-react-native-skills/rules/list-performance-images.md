@@ -1,17 +1,15 @@
 ---
-title: Use Compressed Images in Lists
+title: リストで圧縮画像を使用
 impact: HIGH
-impactDescription: faster load times, less memory
+impactDescription: 読み込み高速化、メモリ削減
 tags: lists, images, performance, optimization
 ---
 
-## Use Compressed Images in Lists
+## リストで圧縮画像を使用
 
-Always load compressed, appropriately-sized images in lists. Full-resolution
-images consume excessive memory and cause scroll jank. Request thumbnails from
-your server or use an image CDN with resize parameters.
+リストでは常に圧縮され適切なサイズの画像を読み込みます。フル解像度画像は過剰なメモリを消費し、スクロールのカクつきを引き起こします。サーバーからサムネイルを取得するか、リサイズパラメータ付きの画像 CDN を使用します。
 
-**Incorrect (full-resolution images):**
+**不適切（フル解像度画像）:**
 
 ```tsx
 function ProductItem({ product }: { product: Product }) {
@@ -28,7 +26,7 @@ function ProductItem({ product }: { product: Product }) {
 }
 ```
 
-**Correct (request appropriately-sized image):**
+**適切（適切なサイズの画像をリクエスト）:**
 
 ```tsx
 function ProductItem({ product }: { product: Product }) {
@@ -48,6 +46,4 @@ function ProductItem({ product }: { product: Product }) {
 }
 ```
 
-Use an optimized image component with built-in caching and placeholder support,
-such as `expo-image` or `SolitoImage` (which uses `expo-image` under the hood).
-Request images at 2x the display size for retina screens.
+組み込みキャッシュとプレースホルダー対応の最適化画像コンポーネント（`expo-image` や `SolitoImage`（内部で `expo-image` を使用）など）を使用します。Retina 画面向けに表示サイズの 2 倍の画像をリクエストしてください。

@@ -1,6 +1,6 @@
 ---
 name: transparent-videos
-description: Rendering transparent videos in Remotion
+description: Remotion での透過動画レンダリング
 metadata:
   tags: transparent, alpha, codec, vp9, prores, webm
 ---
@@ -9,7 +9,7 @@ metadata:
 
 Remotion can render transparent videos in two ways: as a ProRes video or as a WebM video.
 
-## Transparent ProRes
+## 透過 ProRes
 
 Ideal for when importing into video editing software.
 
@@ -56,7 +56,7 @@ const calculateMetadata: CalculateMetadataFunction<Props> = async ({ props }) =>
 />;
 ```
 
-## Transparent WebM (VP9)
+## 透過 WebM (VP9)
 
 Ideal for when playing in a browser.
 

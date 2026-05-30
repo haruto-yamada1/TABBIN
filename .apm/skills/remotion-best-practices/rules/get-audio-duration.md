@@ -1,15 +1,15 @@
 ---
 name: get-audio-duration
-description: Getting the duration of an audio file in seconds with Mediabunny
+description: オーディオの長さを取得
 metadata:
   tags: duration, audio, length, time, seconds, mp3, wav
 ---
 
-# Getting audio duration with Mediabunny
+# Mediabunny でオーディオの長さを取得
 
-Mediabunny can extract the duration of an audio file. It works in browser, Node.js, and Bun environments.
+Mediabunny はオーディオファイルの duration を抽出できます。browser、Node.js、Bun で動作します。
 
-## Getting audio duration
+## オーディオの長さを取得
 
 ```tsx title="get-audio-duration.ts"
 import { Input, ALL_FORMATS, UrlSource } from "mediabunny";
@@ -27,16 +27,16 @@ export const getAudioDuration = async (src: string) => {
 };
 ```
 
-## Usage
+## 使い方
 
 ```tsx
 const duration = await getAudioDuration("https://remotion.media/audio.mp3");
-console.log(duration); // e.g. 180.5 (seconds)
+console.log(duration); // 例: 180.5（秒）
 ```
 
-## Using with staticFile in Remotion
+## 利用: Remotion で staticFile と組み合わせる
 
-Make sure to wrap the file path in `staticFile()`:
+ファイルパスは `staticFile()` で包みます:
 
 ```tsx
 import { staticFile } from "remotion";
@@ -44,15 +44,15 @@ import { staticFile } from "remotion";
 const duration = await getAudioDuration(staticFile("audio.mp3"));
 ```
 
-## In Node.js and Bun
+## Node.js と Bun では
 
-Use `FileSource` instead of `UrlSource`:
+`UrlSource` の代わりに `FileSource` を使います:
 
 ```tsx
 import { Input, ALL_FORMATS, FileSource } from "mediabunny";
 
 const input = new Input({
   formats: ALL_FORMATS,
-  source: new FileSource(file), // File object from input or drag-drop
+  source: new FileSource(file), // input や drag-drop からの File オブジェクト
 });
 ```

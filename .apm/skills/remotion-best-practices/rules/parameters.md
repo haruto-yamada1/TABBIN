@@ -1,6 +1,6 @@
 ---
 name: parameters
-description: Make a video parametrizable by adding a Zod schema
+description: Zod スキーマで動画をパラメータ化
 metadata:
   tags: parameters, zod, schema
 ---
@@ -81,11 +81,11 @@ All schemas that are supported by Zod are supported by Remotion.
 
 Remotion requires that the top-level type is a z.object(), because the collection of props of a React component is always an object.
 
-## Color picker
+## カラーピッカー
 
 For adding a color picker, use `zColor()` from `@remotion/zod-types`.
 
-If it is not installed, use the following command:
+未インストールの場合は次のコマンドを使用:
 
 ```bash
 npx remotion add @remotion/zod-types # If project uses npm

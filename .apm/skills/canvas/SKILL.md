@@ -1,101 +1,90 @@
 ---
 name: canvas
-description: >-
-  A Cursor Canvas is a live React app that the user can open beside the chat.
-  You MUST use a canvas when the agent produces a standalone analytical artifact
-  — quantitative analyses, billing investigations, security audits, architecture
-  reviews, data-heavy content, timelines, charts, tables, interactive
-  explorations, repeatable tools, or any response that benefits from visual
-  layout. Especially prefer a canvas when presenting results from MCP tools
-  (Datadog, Databricks, Linear, Sentry, Slack, etc.) where the data is the
-  deliverable — render it in a rich canvas rather than dumping it into a
-  markdown table or code block. If you catch yourself about to write a markdown
-  table, stop and use a canvas instead. You MUST also read this skill whenever
-  you create, edit, or debug any .canvas.tsx file.
+description: Cursor Canvas はチャット横で開ける live React app です。定量分析、billing 調査、security audit、architecture review、データ量の多い内容、timeline、chart、table、interactive 探索、再利用可能 tool、visual layout が有効な standalone analytical artifact を agent が生成するときは **必ず** canvas を使います。MCP tool（Datadog、Databricks、Linear、Sentry、Slack など）の結果で data が deliverable の場合は特に canvas を優先し、markdown table や code block への dump は避けます。markdown table を書きそうになったら止めて canvas を使います。`.canvas.tsx` file の create、edit、debug 時も **必ず** この skill を読みます。
 metadata:
   surfaces:
     - ide
 ---
-A canvas is a single `.canvas.tsx` file the IDE compiles so the user can open it beside the chat. Follow the workflow below in order.
+canvas は IDE が compile し、ユーザーがチャット横で開ける単一 `.canvas.tsx` file です。以下 workflow を順に従います。
 
-## Workflow
+## ワークフロー
 
-### 1. Decide whether to use a canvas
+### 1. canvas を使うか判断
 
-The trigger is **user intent**, not response shape. Ask: would the user benefit from viewing this output as its **own standalone artifact**, separate from the chat? If the output is a means to an end (a drafted message, a code fix, a dashboard in another tool), skip the canvas.
+trigger は **response shape ではなく user intent** です。ユーザーがこの output をチャットから **分離した standalone artifact** として見ると benefit があるかを問います。output が手段（draft message、code fix、別 tool の dashboard）なら canvas は skip します。
 
-**Use a canvas when the agent produces new standalone analytical output:**
-- Quantitative analyses and metrics breakdowns (e.g. "send 500 requests and tell me how many fail")
-- Billing or account investigations that surface structured findings from database queries
-- Security audits or architecture reviews with categorized findings
-- Cross-system data analyses and overlap reports
-- Structured data from MCP tools (Databricks, Datadog, etc.) where the data IS the deliverable
-- Financial analyses, margin decompositions, usage trend reports
-- Tables with more than a handful of rows that the user asked to see
+**agent が新しい standalone analytical output を生成するとき canvas を使う:**
+- 定量分析と metrics breakdown（例: 「500 リクエスト送って失敗数を教えて」）
+- database query から structured finding を出す billing または account 調査
+- カテゴリ分けされた finding 付き security audit または architecture review
+- cross-system data analysis と overlap report
+- data が deliverable である MCP tool（Databricks、Datadog など）からの structured data
+- financial analysis、margin decomposition、usage trend report
+- ユーザーが見たいと依頼した、数行を超える table
 
-**Do NOT use a canvas when:**
-- The user asks for work in a **specific tool** — "create a Datadog dashboard" means give them a Datadog dashboard, not a canvas
-- The user has a **specific deliverable** — "draft a support response", "fix this code", "make this PR"
-- The user is **working within an existing artifact** — improving an HTML dashboard, editing an existing file
-- The user is doing **targeted debugging** or active development, even if structured findings emerge along the way
-- Short factual answers, one-off file edits, or quick clarifying questions
-- MCP tools are queried as an **intermediate step** for a different deliverable (e.g. querying Stripe to draft a support reply)
+**canvas を使わない場合:**
+- ユーザーが **特定 tool** での作業を依頼 — 「Datadog dashboard を作って」は canvas ではなく Datadog dashboard
+- ユーザーに **特定 deliverable** がある — 「support 返信を draft」「code を fix」「PR を作って」
+- ユーザーが **既存 artifact 内で作業** — HTML dashboard 改善、既存 file 編集
+- **targeted debugging** または active development（途中で structured finding が出ても）
+- 短い factual answer、単発 file edit、quick clarifying question
+- MCP tool が **別 deliverable の中間 step**（例: support reply draft のため Stripe を query）
 
-### 2. Write the canvas
+### 2. canvas を書く
 
-**Location.** Canvases live at `/Users/<user>/.cursor/projects/<workspace>/canvases/<name>.canvas.tsx`. The IDE only detects canvases written directly inside that exact directory — subfolders, alternate extensions, and other locations are not picked up. For a new canvas, always use the write file tool to create the `.canvas.tsx` file at that exact path; do not stop after telling the user the path or showing code in chat. Treat that managed `canvases/` directory as pre-provisioned by Cursor itself: write the canvas file directly there and do **not** spend turns creating the directory with `mkdir` or checking whether it exists before writing. Listing its contents for other purposes (e.g. checking for existing canvases) is fine. If you can't determine the workspace directory from absolute paths already in your environment (terminals, transcripts, recently-viewed files), list `~/.cursor/projects/` rather than guessing. Use a descriptive kebab-case filename ending in `.canvas.tsx`; preserve acronym capitalization and lowercase the rest.
+**Location.** canvas は `/Users/<user>/.cursor/projects/<workspace>/canvases/<name>.canvas.tsx` に置きます。IDE が detect するのは **その exact directory 内** に直接書かれた file のみ — subfolder、別 extension、その他 location は拾いません。新規 canvas は write file tool で **その path** に `.canvas.tsx` を作成します。path を伝えるか chat に code を示すだけで止めません。managed `canvases/` directory は Cursor が pre-provision したものとして扱い、`mkdir` や存在確認に turn を使わず直接 file を書きます。他目的（既存 canvas 確認など）での list は可。environment の absolute path（terminal、transcript、recently-viewed files）から workspace directory が分からない場合は `~/.cursor/projects/` を list し、推測しません。descriptive な kebab-case filename（`.canvas.tsx` 終わり）を使い、acronym は capitalization を保ち残りは lowercase。
 
 **File rules:**
-- Exactly one `.canvas.tsx` file per canvas. Never create helper files, style files, or supporting modules.
-- Import **only** from `cursor/canvas`. No relative imports, no npm packages, no Node built-ins.
-- Default-export the top-level component.
-- Embed all data inline. **No `fetch()`, no network calls.**
+- canvas 1 つにつき `.canvas.tsx` file は 1 つ。helper file、style file、supporting module は作らない。
+- import は **`cursor/canvas` のみ**。relative import、npm package、Node built-in は不可。
+- top-level component を default-export。
+- すべて data を inline embed。**`fetch()` 不可、network call 不可。**
 
-**Component discovery:** prefer built-in `cursor/canvas` components over hand-rolled markup. The full public surface (components, hooks, prop types, tokens) is declared in `~/.cursor/skills-cursor/canvas/sdk/index.d.ts` and its sibling `.d.ts` files — read them when you need exact exports, prop shapes, or hook signatures rather than guessing. Referencing an export that does not exist is the most common runtime error.
+**Component discovery:** hand-rolled markup より built-in `cursor/canvas` component を優先。public surface（component、hook、prop type、token）は `~/.cursor/skills-cursor/canvas/sdk/index.d.ts` と sibling `.d.ts` に宣言 — exact export、prop shape、hook signature が必要なら読み、推測しない。存在しない export 参照が最も common な runtime error。
 
-Apply the Canvas generation policy below as you write, and complete its pre-delivery self-check (section 6) before returning the canvas.
+以下 Canvas generation policy を書きながら適用し、返却前に pre-delivery self-check（section 6）を完了します。
 
 ## Design guidance
 
-Be creative. The SDK gives you expressive building blocks — use them in whatever combination best serves the content. But avoid slop: no gradients, no emojis, no box-shadows, no rainbow coloring. Cursor canvases are flat, minimal, and purposeful.
+創造的に。SDK は expressive building block を提供 — content に最適な組み合わせを使う。ただし slop は避ける: gradient、emoji、box-shadow、rainbow coloring なし。Cursor canvas は flat、minimal、purposeful。
 
 ### Visual hierarchy
 
-Not everything deserves equal treatment. Primary content gets more space, larger headings, and accent color. Supporting content stays compact. Squint test: blur your eyes — can you tell what matters?
+すべてを同等に扱わない。primary content はより多く space、大きい heading、accent color。supporting content は compact。squint test: 目を細めて — 何が重要か分かるか？
 
-**Color.** All colors from `useHostTheme()` tokens — read its JSDoc in the SDK declarations for the return shape and usage pattern. No hardcoded hex. Use accent color deliberately, not on everything.
+**Color.** すべて `useHostTheme()` token から — SDK declaration の JSDoc で return shape と usage pattern を読む。hardcoded hex 不可。accent color は意図的に、すべてに使わない。
 
-### Slop patterns — forbidden
+### Slop patterns — 禁止
 
-These specific patterns produce low-quality output. If 2+ are present, redesign.
+これらは low-quality output を生む。2 つ以上ある場合は redesign。
 
-- **Gradients** — no `linear-gradient`, `radial-gradient`, `background-clip: text`.
-- **Emojis** — no emoji as icons, status indicators, bullets, or section markers.
-- **Box shadows** — no `box-shadow`. Flat surfaces only.
-- **Wall of identical cards** — every section wrapped in the same card style with no variation. Mix open sections with cards.
-- **Rainbow coloring** — a different color on every element. Most elements are neutral; color is used sparingly with purpose.
-- **Giant text** — font sizes above H1 (24px), or bold text stuffed in CardHeader.
-- **Decorative borders** — colored borders on every element. Borders are structural (subtle stroke tokens), not decorative.
+- **Gradients** — `linear-gradient`、`radial-gradient`、`background-clip: text` 不可。
+- **Emojis** — icon、status indicator、bullet、section marker として emoji 不可。
+- **Box shadows** — `box-shadow` 不可。flat surface のみ。
+- **Wall of identical cards** — すべての section が同じ card style で variation なし。open section と card を混ぜる。
+- **Rainbow coloring** — 各 element に別 color。大半は neutral、color は sparingly で purpose あり。
+- **Giant text** — H1（24px）超の font size、または CardHeader に bold text を詰め込む。
+- **Decorative borders** — すべての element に colored border。border は structural（subtle stroke token）、decorative ではない。
 
 ### Pre-delivery self-check
 
-Before returning canvas code, verify:
-1. Does the layout have visual hierarchy? One thing should stand out.
-2. Is there variety in the composition? Not just a single column of uniform blocks.
-3. Slop check: scan for the forbidden patterns above.
+canvas code を返す前に verify:
+1. layout に visual hierarchy があるか。1 つが stand out するか。
+2. composition に variety があるか。uniform block の単一 column だけではないか。
+3. slop check: 上記 forbidden pattern を scan。
 
-## Introducing the canvas
+## canvas の紹介
 
-When you create a canvas, add a short note in your chat response telling the user you created a canvas they can open beside the chat:
+canvas を作成したら、chat response に短い note を添え、チャット横で開ける canvas を作ったことを伝えます:
 
-- **First canvas** — if no other `.canvas.tsx` files exist in the workspace's `canvases/` directory, include one sentence explaining what a canvas is.
-- **Unsolicited canvas** — if the user didn't ask for a canvas, include one sentence explaining why you chose it over plain text.
+- **First canvas** — workspace `canvases/` に他 `.canvas.tsx` がなければ、canvas とは何か 1 文。
+- **Unsolicited canvas** — ユーザーが canvas を求めていなければ、plain text より canvas を選んだ理由を 1 文。
 
-Both can apply at once; one or two sentences total is enough. Skip the intro for subsequent canvases.
+両方当てはまることもあり。合計 1〜2 文で十分。以降の canvas では intro を skip。
 
 ## Troubleshooting
 
-If a canvas appears blank or missing, the most common cause is that it was not written under `/Users/<user>/.cursor/projects/<workspace>/canvases/` exactly — re-save it to that path. Do not debug this by trying to create the managed directory manually; focus on correcting the file path instead. Users can click the canvas file path in the response to open it, just like any other file path in Cursor. When present, the canvas server writes a `<name>.canvas.status.json` sidecar after each build with `status`, `diagnostics`, or `error` fields you can read; the file is best-effort and may not exist, so don't block on it.
+canvas が blank または missing の場合、最も common な原因は `/Users/<user>/.cursor/projects/<workspace>/canvases/` **exact** 配下に書かれていないこと — その path へ re-save。managed directory を手動 create しようと debug しない。file path の修正に集中。ユーザーは response の canvas file path をクリックして開ける（他 file path と同様）。canvas server が build 後 `<name>.canvas.status.json` sidecar を書く場合、`status`、`diagnostics`、`error` field を読める。best-effort で存在しないこともあるため block しない。
 
 ## Good example
 
@@ -131,9 +120,9 @@ export default function ServiceOverview() {
 }
 ```
 
-Stats in a Grid, Table directly under H2, text sections without cards.
+Grid 内 Stat、H2 直下 Table、card なし text section。
 
-## Bad example — do not imitate
+## Bad example — 真似しない
 
 ```tsx
 // BAD — every section wrapped in Card, no hierarchy, Table unnecessarily boxed

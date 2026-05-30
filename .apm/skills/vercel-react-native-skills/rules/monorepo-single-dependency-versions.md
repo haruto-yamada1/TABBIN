@@ -1,20 +1,17 @@
 ---
-title: Use Single Dependency Versions Across Monorepo
+title: モノレポ全体で単一依存バージョンを使用
 impact: MEDIUM
-impactDescription: avoids duplicate bundles, version conflicts
+impactDescription: 重複バンドルとバージョン競合を回避
 tags: monorepo, dependencies, installation
 ---
 
-## Use Single Dependency Versions Across Monorepo
+## モノレポ全体で単一依存バージョンを使用
 
-Use a single version of each dependency across all packages in your monorepo.
-Prefer exact versions over ranges. Multiple versions cause duplicate code in
-bundles, runtime conflicts, and inconsistent behavior across packages.
+モノレポ内のすべてのパッケージで各依存関係の単一バージョンを使用します。範囲指定より exact バージョンを優先します。複数バージョンはバンドル内の重複コード、ランタイム競合、パッケージ間の一貫しない挙動を引き起こします。
 
-Use a tool like syncpack to enforce this. As a last resort, use yarn resolutions
-or npm overrides.
+syncpack などのツールで強制します。最終手段として yarn resolutions または npm overrides を使用します。
 
-**Incorrect (version ranges, multiple versions):**
+**不適切（バージョン範囲、複数バージョン）:**
 
 ```json
 // packages/app/package.json
@@ -32,7 +29,7 @@ or npm overrides.
 }
 ```
 
-**Correct (exact versions, single source of truth):**
+**適切（exact バージョン、単一の source of truth）:**
 
 ```json
 // package.json (root)
@@ -59,5 +56,4 @@ or npm overrides.
 }
 ```
 
-Use your package manager's override/resolution feature to enforce versions at
-the root. When adding dependencies, specify exact versions without `^` or `~`.
+ルートでパッケージマネージャーの override/resolution 機能を使いバージョンを強制します。依存関係追加時は `^` や `~` なしの exact バージョンを指定します。

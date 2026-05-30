@@ -1,17 +1,15 @@
 ---
-title: Keep List Items Lightweight
+title: リストアイテムを軽量に保つ
 impact: HIGH
-impactDescription: reduces render time for visible items during scroll
+impactDescription: スクロール中の表示アイテムのレンダー時間を削減
 tags: lists, performance, virtualization, hooks
 ---
 
-## Keep List Items Lightweight
+## リストアイテムを軽量に保つ
 
-List items should be as inexpensive as possible to render. Minimize hooks, avoid
-queries, and limit React Context access. Virtualized lists render many items
-during scroll—expensive items cause jank.
+リストアイテムは可能な限りレンダーコストを低くすべきです。フックを最小化し、クエリを避け、React Context アクセスを制限します。仮想化リストはスクロール中に多くのアイテムをレンダリングするため、高コストなアイテムはカクつきの原因になります。
 
-**Incorrect (heavy list item):**
+**不適切（重いリストアイテム）:**
 
 ```tsx
 function ProductRow({ id }: { id: string }) {
@@ -31,7 +29,7 @@ function ProductRow({ id }: { id: string }) {
 }
 ```
 
-**Correct (lightweight list item):**
+**適切（軽量リストアイテム）:**
 
 ```tsx
 function ProductRow({ name, price, imageUrl }: Props) {
@@ -46,7 +44,7 @@ function ProductRow({ name, price, imageUrl }: Props) {
 }
 ```
 
-**Move data fetching to parent:**
+**データフェッチを親に移動:**
 
 ```tsx
 // Parent fetches all data once
@@ -64,7 +62,7 @@ function ProductList() {
 }
 ```
 
-**For shared values, use Zustand selectors instead of Context:**
+**共有値には Context の代わりに Zustand セレクター:**
 
 ```tsx
 // Incorrect: Context causes re-render when any cart value changes
@@ -82,13 +80,12 @@ function ProductRow({ id, name }: Props) {
 }
 ```
 
-**Guidelines for list items:**
+**リストアイテムのガイドライン:**
 
-- No queries or data fetching
-- No expensive computations (move to parent or memoize at parent level)
-- Prefer Zustand selectors over React Context
-- Minimize useState/useEffect hooks
-- Pass pre-computed values as props
+- クエリやデータフェッチなし
+- 高コストな計算なし（親へ移動または親レベルでメモ化）
+- React Context より Zustand セレクターを優先
+- useState/useEffect フックを最小化
+- 事前計算された値を props として渡す
 
-The goal: list items should be simple rendering functions that take props and
-return JSX.
+目標: リストアイテムは props を受け取り JSX を返す単純なレンダリング関数であること。

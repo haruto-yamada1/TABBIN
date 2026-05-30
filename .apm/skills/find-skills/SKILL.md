@@ -1,61 +1,61 @@
 ---
 name: find-skills
-description: Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill.
+description: 「X のやり方は？」「X 用の skill を探して」「X できる skill はある？」など、install 可能な agent skill を探したいとき、または agent 能力の拡張に興味を示したときに使います。
 ---
 
-# Find Skills
+# skill の検索
 
-This skill helps you discover and install skills from the open agent skills ecosystem.
+open agent skills エコシステムから skill を発見・インストールする手順です。
 
-## When to Use This Skill
+## 使用タイミング
 
-Use this skill when the user:
+次のようなユーザー依頼で使います:
 
-- Asks "how do I do X" where X might be a common task with an existing skill
-- Says "find a skill for X" or "is there a skill for X"
-- Asks "can you do X" where X is a specialized capability
-- Expresses interest in extending agent capabilities
-- Wants to search for tools, templates, or workflows
-- Mentions they wish they had help with a specific domain (design, testing, deployment, etc.)
+- 既存 skill がありそうな一般的タスクについて「X のやり方は？」と聞かれた
+- 「X 用の skill を探して」「X の skill はある？」と言われた
+- 専門的な能力 X について「X できる？」と聞かれた
+- agent 能力の拡張に興味を示した
+- tool、template、workflow を探したい
+- 特定 domain（design、testing、deployment など）の支援を欲しがっている
 
-## What is the Skills CLI?
+## Skills CLI とは
 
-The Skills CLI (`npx skills`) is the package manager for the open agent skills ecosystem. Skills are modular packages that extend agent capabilities with specialized knowledge, workflows, and tools.
+Skills CLI（`npx skills`）は open agent skills エコシステムの package manager です。skill は specialized な知識、workflow、tool で agent 能力を拡張するモジュールパッケージです。
 
-**Key commands:**
+**主要コマンド:**
 
-- `npx skills find [query]` - Search for skills interactively or by keyword
-- `npx skills add <package>` - Install a skill from GitHub or other sources
-- `npx skills check` - Check for skill updates
-- `npx skills update` - Update all installed skills
+- `npx skills find [query]` - skill を対話的または keyword で検索
+- `npx skills add <package>` - GitHub などから skill をインストール
+- `npx skills check` - skill の更新を確認
+- `npx skills update` - インストール済み skill をすべて更新
 
-**Browse skills at:** https://skills.sh/
+**skill 一覧:** https://skills.sh/
 
-## How to Help Users Find Skills
+## ユーザーが skill を見つける手順
 
-### Step 1: Understand What They Need
+### Step 1: 必要なものを把握
 
-When a user asks for help with something, identify:
+ユーザーが何を求めているかを特定します:
 
-1. The domain (e.g., React, testing, design, deployment)
-2. The specific task (e.g., writing tests, creating animations, reviewing PRs)
-3. Whether this is a common enough task that a skill likely exists
+1. domain（例: React、testing、design、deployment）
+2. 具体的な task（例: test 作成、animation 作成、PR review）
+3. skill が存在しそうな一般的タスクかどうか
 
-### Step 2: Search for Skills
+### Step 2: skill を検索
 
-Run the find command with a relevant query:
+関連 query で find コマンドを実行します:
 
 ```bash
 npx skills find [query]
 ```
 
-For example:
+例:
 
-- User asks "how do I make my React app faster?" → `npx skills find react performance`
-- User asks "can you help me with PR reviews?" → `npx skills find pr review`
-- User asks "I need to create a changelog" → `npx skills find changelog`
+- 「React アプリを速くするには？」→ `npx skills find react performance`
+- 「PR review を手伝って」→ `npx skills find pr review`
+- 「changelog を作りたい」→ `npx skills find changelog`
 
-The command will return results like:
+コマンドは次のような結果を返します:
 
 ```
 Install with npx skills add <owner/repo@skill>
@@ -64,15 +64,15 @@ vercel-labs/agent-skills@vercel-react-best-practices
 └ https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices
 ```
 
-### Step 3: Present Options to the User
+### Step 3: 選択肢を提示
 
-When you find relevant skills, present them to the user with:
+関連 skill が見つかったら、次をユーザーに提示します:
 
-1. The skill name and what it does
-2. The install command they can run
-3. A link to learn more at skills.sh
+1. skill 名と役割
+2. 実行できる install コマンド
+3. skills.sh の詳細リンク
 
-Example response:
+応答例:
 
 ```
 I found a skill that might help! The "vercel-react-best-practices" skill provides
@@ -84,19 +84,19 @@ npx skills add vercel-labs/agent-skills@vercel-react-best-practices
 Learn more: https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices
 ```
 
-### Step 4: Offer to Install
+### Step 4: インストールを提案
 
-If the user wants to proceed, you can install the skill for them:
+ユーザーが進めたい場合、skill をインストールできます:
 
 ```bash
 npx skills add <owner/repo@skill> -g -y
 ```
 
-The `-g` flag installs globally (user-level) and `-y` skips confirmation prompts.
+`-g` は global（user-level）インストール、`-y` は確認プロンプトをスキップします。
 
-## Common Skill Categories
+## よくある skill カテゴリ
 
-When searching, consider these common categories:
+検索時は次のカテゴリを参考にします:
 
 | Category        | Example Queries                          |
 | --------------- | ---------------------------------------- |
@@ -108,21 +108,21 @@ When searching, consider these common categories:
 | Design          | ui, ux, design-system, accessibility     |
 | Productivity    | workflow, automation, git                |
 
-## Tips for Effective Searches
+## 効果的な検索のコツ
 
-1. **Use specific keywords**: "react testing" is better than just "testing"
-2. **Try alternative terms**: If "deploy" doesn't work, try "deployment" or "ci-cd"
-3. **Check popular sources**: Many skills come from `vercel-labs/agent-skills` or `ComposioHQ/awesome-claude-skills`
+1. **具体的な keyword を使う**: 「testing」だけより「react testing」の方が良い
+2. **別の用語も試す**: 「deploy」で見つからなければ「deployment」や「ci-cd」を試す
+3. **人気 source を確認**: 多くの skill は `vercel-labs/agent-skills` や `ComposioHQ/awesome-claude-skills` から来る
 
-## When No Skills Are Found
+## skill が見つからない場合
 
-If no relevant skills exist:
+関連 skill がない場合:
 
-1. Acknowledge that no existing skill was found
-2. Offer to help with the task directly using your general capabilities
-3. Suggest the user could create their own skill with `npx skills init`
+1. 既存 skill が見つからなかったことを伝える
+2. 一般能力で task を直接手伝えることを提案する
+3. `npx skills init` で独自 skill を作れることを提案する
 
-Example:
+例:
 
 ```
 I searched for skills related to "xyz" but didn't find any matches.

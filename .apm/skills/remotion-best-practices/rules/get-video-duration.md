@@ -1,15 +1,15 @@
 ---
 name: get-video-duration
-description: Getting the duration of a video file in seconds with Mediabunny
+description: 動画の長さを取得
 metadata:
   tags: duration, video, length, time, seconds
 ---
 
-# Getting video duration with Mediabunny
+# Mediabunny で動画の長さを取得
 
-Mediabunny can extract the duration of a video file. It works in browser, Node.js, and Bun environments.
+Mediabunny は動画ファイルの duration を抽出できます。browser、Node.js、Bun で動作します。
 
-## Getting video duration
+## 動画の長さを取得
 
 ```tsx
 import { Input, ALL_FORMATS, UrlSource } from "mediabunny";
@@ -27,16 +27,16 @@ export const getVideoDuration = async (src: string) => {
 };
 ```
 
-## Usage
+## 使い方
 
 ```tsx
 const duration = await getVideoDuration("https://remotion.media/video.mp4");
-console.log(duration); // e.g. 10.5 (seconds)
+console.log(duration); // 例: 10.5（秒）
 ```
 
-## Video files from the public/ directory
+## public/ ディレクトリの動画ファイル
 
-Make sure to wrap the file path in `staticFile()`:
+ファイルパスは `staticFile()` で包みます:
 
 ```tsx
 import { staticFile } from "remotion";
@@ -44,16 +44,16 @@ import { staticFile } from "remotion";
 const duration = await getVideoDuration(staticFile("video.mp4"));
 ```
 
-## In Node.js and Bun
+## Node.js と Bun では
 
-Use `FileSource` instead of `UrlSource`:
+`UrlSource` の代わりに `FileSource` を使います:
 
 ```tsx
 import { Input, ALL_FORMATS, FileSource } from "mediabunny";
 
 const input = new Input({
   formats: ALL_FORMATS,
-  source: new FileSource(file), // File object from input or drag-drop
+  source: new FileSource(file), // input や drag-drop からの File オブジェクト
 });
 
 const durationInSeconds = await input.computeDuration();
