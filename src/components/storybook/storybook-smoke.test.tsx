@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { composeStories } from '@storybook/react'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as messageStories from '@/components/ai-elements/message.stories'
+import * as inputStories from '@/components/ai-elements/inputs.stories'
 import * as modeToggleStories from '@/components/mode-toggle.stories'
 import * as buttonStories from '@/components/ui/button.stories'
 import * as ollamaStories from '@/features/ai-chat/components/OllamaErrorNotice.stories'
@@ -34,6 +35,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 
 const { Primary } = composeStories(buttonStories, preview)
 const { Conversation } = composeStories(messageStories, preview)
+const { Composer } = composeStories(inputStories, preview)
 const { ToggleMenu: ModeToggleDefault } = composeStories(
   modeToggleStories,
   preview,
@@ -47,11 +49,18 @@ const { CustomMode } = composeStories(viewModeStories, preview)
 const { ForbiddenOnMac } = composeStories(ollamaStories, preview)
 
 describe('storybook smoke stories', () => {
+  beforeEach(() => {
+    if (!HTMLElement.prototype.scrollIntoView) {
+      HTMLElement.prototype.scrollIntoView = vi.fn()
+    }
+  })
+
   it('renders representative stories from each family', () => {
     render(
       <div>
         <Primary />
         <Conversation />
+        <Composer />
         <ModeToggleDefault />
         <ImportExportDefault />
         <WithDescription />
@@ -71,7 +80,8 @@ describe('storybook smoke stories', () => {
         name: /設定とタブデータをエクスポート/i,
       }),
     ).toBeTruthy()
-    expect(screen.getByRole('combobox')).toBeTruthy()
+    expect(screen.getByText(/Weekly review/i)).toBeTruthy()
+    expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0)
     expect(screen.getByText(/接続先 URL:/)).toBeTruthy()
   })
 })
