@@ -6,15 +6,16 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** カテゴリ名のバリデーションスキーマ */
-const categoryNameSchema = z
-  .string()
-  .trim()
-  .min(1, {
-    message: 'カテゴリ名を入力してください',
-  })
-  .max(25, {
-    message: 'カテゴリ名は25文字以下にしてください',
-  })
+const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
+  z
+    .string()
+    .trim()
+    .min(1, {
+      message: t('savedTabs.categoryModal.validation.empty'),
+    })
+    .max(25, {
+      message: t('savedTabs.categoryModal.validation.maxLength'),
+    })
 
 /** UseCategoryKeywordModal フックの引数 */
 interface UseCategoryKeywordModalParams {
@@ -160,17 +161,19 @@ export const useCategoryKeywordModal = ({
       setError: React.Dispatch<React.SetStateAction<string | null>>,
     ): boolean => {
       try {
-        categoryNameSchema.parse(name)
+        createCategoryNameSchema(t).parse(name)
         setError(null)
         return true
       } catch (error) {
         if (error instanceof z.ZodError) {
-          setError(error.issues[0]?.message || 'カテゴリ名が無効です')
+          setError(
+            error.issues[0]?.message || t('savedTabs.categoryModal.invalid'),
+          )
         }
         return false
       }
     },
-    [],
+    [t],
   )
 
   // --- 初期値の設定 ---
