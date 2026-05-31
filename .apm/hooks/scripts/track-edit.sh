@@ -80,6 +80,52 @@ function collectPaths(value, paths = []) {
   return paths
 }
 
+function collectApplyPatchPaths(text, paths = []) {
+  if (typeof text !== 'string' || !text.includes('*** Begin Patch')) {
+    return paths
+  }
+
+  for (const line of text.split(/\r?\n/)) {
+    for (const prefix of [
+      '*** Update File: ',
+      '*** Add File: ',
+      '*** Delete File: ',
+      '*** Move to: ',
+    ]) {
+      if (line.startsWith(prefix)) {
+        paths.push(line.slice(prefix.length).trim())
+      }
+    }
+  }
+
+  return paths
+}
+
+function collectTouchedPaths(value, paths = []) {
+  if (!value || typeof value !== 'object') {
+    return paths
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectTouchedPaths(item, paths)
+    }
+    return paths
+  }
+
+  collectPaths(value, paths)
+
+  for (const item of Object.values(value)) {
+    if (typeof item === 'string') {
+      collectApplyPatchPaths(item, paths)
+    } else {
+      collectTouchedPaths(item, paths)
+    }
+  }
+
+  return paths
+}
+
 function firstString(...values) {
   return values.find((value) => typeof value === 'string' && value.length > 0)
 }
@@ -164,7 +210,7 @@ try {
 
   const touchedFilesPath = path.join(stateDir, `${key}.txt`)
   const lockPath = `${touchedFilesPath}.lock`
-  const nextPaths = collectPaths(payload)
+  const nextPaths = collectTouchedPaths(payload)
     .map(normalizeProjectPath)
     .filter(Boolean)
     .filter(isVerificationRelevant)
