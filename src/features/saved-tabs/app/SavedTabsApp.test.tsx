@@ -1514,10 +1514,9 @@ describe('SavedTabsApp custom search', () => {
 
     expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-1')
     expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-2')
-    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
-      ['url-a'],
-      { throwOnError: true },
-    )
+    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(['url-a'], {
+      throwOnError: true,
+    })
     expect(removeUrlsFromAllCustomProjects).toHaveBeenCalledWith(
       ['https://legacy.example.com/a'],
       { throwOnError: true },

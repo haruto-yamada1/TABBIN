@@ -19,7 +19,7 @@ type ResolvedTabGroupUrl = UrlRecord & {
   subCategory?: string
 }
 
-type DeleteSyncOptions = {
+interface DeleteSyncOptions {
   throwOnSyncError?: boolean
 }
 

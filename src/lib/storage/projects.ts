@@ -757,7 +757,7 @@ const removeUrlsFromCustomProject = async (
   await syncDeleteToDomainMode(targetUrlsSet, urls.length)
 }
 
-type DeleteSyncBehavior = {
+interface DeleteSyncBehavior {
   throwOnError?: boolean
 }
 
