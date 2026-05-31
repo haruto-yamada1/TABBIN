@@ -128,7 +128,9 @@ describe('SpeechInput', () => {
 
     fireEvent.click(screen.getByRole('button'))
 
-    await waitFor(() => expect(latestRecorder).toBeInstanceOf(MockMediaRecorder))
+    await waitFor(() =>
+      expect(latestRecorder).toBeInstanceOf(MockMediaRecorder),
+    )
 
     const recorder = latestRecorder as MockMediaRecorder
     using removeEventListenerSpy = vi.spyOn(recorder, 'removeEventListener')
@@ -181,7 +183,9 @@ describe('SpeechInput', () => {
 
     fireEvent.click(button)
 
-    await waitFor(() => expect(latestRecorder).toBeInstanceOf(MockMediaRecorder))
+    await waitFor(() =>
+      expect(latestRecorder).toBeInstanceOf(MockMediaRecorder),
+    )
 
     ;(latestRecorder as MockMediaRecorder).emitData()
     fireEvent.click(button)
