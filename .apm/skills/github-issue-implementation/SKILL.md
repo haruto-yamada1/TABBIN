@@ -1,11 +1,11 @@
 ---
 name: github-issue-implementation
-description: GitHub issue URL を渡され、issue の内容を起点に repository 確認、専用 worktree 作成、実装、検証、完了報告まで進める依頼で使います。issue 番号だけでなく URL、関連 PR、コメント確認、並行作業用の隔離 worktree が必要なときに発火します。
+description: GitHub issue URL を渡され、issue の内容を起点に repository 確認、専用 worktree 作成、実装、検証、handoff まで進める依頼で使います。issue 番号だけでなく URL、関連 PR、コメント確認、並行作業用の隔離 worktree が必要なときに発火します。
 ---
 
 # GitHub Issue 実装
 
-GitHub issue URL から作業対象を特定し、issue ごとの専用 worktree と branch で実装します。人間や他エージェントの未コミット変更を上書きせず、不明点や権限不足があれば実装前に止めます。
+GitHub issue URL から作業対象を特定し、issue ごとの専用 worktree と branch で実装します。人間や他エージェントの未コミット変更を上書きせず、不明点や権限不足があれば実装前に止めます。この skill の責務は実装と検証、次の git workflow への handoff までです。`commit` / `push` は別の git 系 skill へ委譲します。
 
 ## 使う場面
 
@@ -50,7 +50,7 @@ GitHub issue URL から作業対象を特定し、issue ごとの専用 worktree
    - worktree path は `../TABBIN-issue-<number>-<slug>` を基本にします。
    - 作成コマンド例:
      `git worktree add -b issue-123-fix-tab-restore ../TABBIN-issue-123-fix-tab-restore origin/develop`
-   - 作成後は、その worktree に移動して以後の実装、検証、commit、push を行います。
+   - 作成後は、その worktree に移動して以後の実装と検証を行います。
    - 既存 branch や path と衝突する場合は、一覧を確認してから人間へ確認します。
 
 6. 実装前に止める条件を確認します。
@@ -71,11 +71,13 @@ GitHub issue URL から作業対象を特定し、issue ごとの専用 worktree
    - UI 変更では可能な範囲で browser / screenshot / Storybook / Playwright などの実動確認を行います。
    - 失敗や警告が残る場合は、原因と未解決理由を完了報告に含めます。
 
-9. 完了報告を短くまとめます。
+9. 完了報告と handoff を短くまとめます。
    - worktree path。
    - branch 名。
    - 変更概要。
    - 実行した検証コマンドと結果。
+   - `commit` / `push` は未実施であること。
+   - 次に使う git 系 skill（例: `git-staged-branch-commit-push`）。
    - 未解決事項、確認が必要な点、実行できなかった検証。
 
 ## ブランチ名の作り方
