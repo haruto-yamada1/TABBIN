@@ -1,7 +1,0 @@
-{
-  "database": "dolt",
-  "backend": "dolt",
-  "dolt_mode": "embedded",
-  "dolt_database": "TABBIN",
-  "project_id": "c62256a4-df1e-4a21-9d38-43f193ae45dc"
-}

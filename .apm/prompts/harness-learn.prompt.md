@@ -9,7 +9,7 @@ ACTIVE run の `evaluator.json`、`decision.json`、`governance.jsonl`、`events
 
 ## 方針
 
-- 自動で Beads issue や `.apm/instructions` に追記しないでください。
+- 自動で follow-up issue や `.apm/instructions` に追記しないでください。
 - 繰り返し起きそうな問題だけ候補にしてください。
 - 一時的な失敗、環境依存、既に修正済みの単発ミスは候補から外してください。
 

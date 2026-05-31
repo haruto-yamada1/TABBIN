@@ -70,7 +70,6 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | 再発防止候補を整理する | `$harness-optimizer で学習候補を整理して` |
 | 全体の品質ゲートを走らせる | `$check` または `品質チェックを実行して` |
 | React 変更後の静的チェックをする | `$react-doctor で確認して` |
-| Beads issue を扱う | `$beads で ready issue を確認して` |
 
 ## skill 一覧
 
@@ -119,7 +118,6 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 
 | skill | 使う場面 |
 | --- | --- |
-| `beads` | Beads issue、ready work、claim、blocker、follow-up、shared work memory を扱います。 |
 | `github-issue-implementation` | GitHub issue URL から issue 内容を確認し、`develop` 最新化、issue 用 branch 作成、実装、検証まで進めます。 |
 | `split-to-prs` | 現在の変更や大きな作業を、小さく review しやすい PR に分割します。 |
 | `git-staged-branch-commit-push` | staged changes を確認し、現在の branch から新しい branch を作成して commit と push まで進めます。 |
@@ -164,7 +162,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 - 「原因が分からない失敗」なら `systematic-debugging`。
 - 「新しい挙動を作る」なら `brainstorming` と `test-driven-development`。
 - 「PR 前に不安」なら `requesting-code-review`、React 変更なら追加で `react-doctor`。
-- 「永続タスクや follow-up を残す」なら `beads`。
+- 「永続タスクや follow-up を残す」なら issue tracker に残します。
 - 「AI 向け資産を変える」なら `.apm/` を編集し、最後に `apm install` と `apm compile`。
 
 ## 役割が被って見える skill の整理

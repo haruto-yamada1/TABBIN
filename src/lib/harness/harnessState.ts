@@ -649,7 +649,7 @@ export function buildHarnessAudit(
     '## source-of-truth sync',
     ...listLines(sourceFindings, 'drift / orphan は検出されませんでした。'),
     '',
-    '## Beads または `.apm/instructions` への追記候補',
+    '## follow-up issue または `.apm/instructions` への追記候補',
     ...listLines(learningCandidates, '追記候補なし。'),
     '',
   ]
@@ -821,7 +821,7 @@ export function learnFromHarnessRun(
       candidates.length > 0 ? '学習候補を抽出した。' : '学習候補はありません。',
     updated_at: new Date().toISOString(),
     next_action:
-      '必要な候補だけ Beads issue または `.apm/instructions` に手動反映する。',
+      '必要な候補だけ follow-up issue または `.apm/instructions` に手動反映する。',
     candidates:
       candidates.length > 0
         ? candidates
@@ -830,7 +830,7 @@ export function learnFromHarnessRun(
               source: 'learn',
               summary: '学習候補なし',
               status: 'recorded',
-              target: 'Beads issue または .apm/instructions',
+              target: 'follow-up issue または .apm/instructions',
             },
           ],
     verification: [],
@@ -1276,7 +1276,7 @@ function collectLearningCandidates(snapshot: HarnessSnapshot) {
 
   return (snapshot.evaluator.findings ?? []).map((finding) => {
     const summary = finding.summary ?? 'summary なし'
-    return `${summary} - 再発する場合は Beads issue または \`.apm/instructions\` への追記を検討する。`
+    return `${summary} - 再発する場合は follow-up issue または \`.apm/instructions\` への追記を検討する。`
   })
 }
 
@@ -1569,10 +1569,10 @@ function learningTargetForSummary(summary: string) {
   if (/skill|prompt|Evaluator|Generator|Planner/i.test(summary)) {
     return '.apm/skills または .apm/prompts'
   }
-  if (/Beads|issue|follow-up/i.test(summary)) {
-    return 'Beads issue'
+  if (/issue|follow-up/i.test(summary)) {
+    return 'follow-up issue'
   }
-  return 'Beads issue または .apm/instructions'
+  return 'follow-up issue または .apm/instructions'
 }
 
 function readPackageScriptNames(projectRoot: string) {

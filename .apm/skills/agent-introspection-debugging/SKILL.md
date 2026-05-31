@@ -22,7 +22,7 @@ product code の根本原因分析には `systematic-debugging` を使う。こ�
 1. 現在の目的を具体的な deliverable として言い換える。
 2. ユーザーに履歴を聞く前に、現在と過去のコンテキストを検索。
 3. prompt-to-artifact チェックリストを作り、各要件を証拠に対応付ける:
-   files、commands、generated artifacts、tests、gates、Beads state、PR state。
+   files、commands、generated artifacts、tests、gates、issue tracker state、PR state。
 4. 乖離を特定:
    - 生成ファイルだけへの source-of-truth 編集
    - 要件をカバーしない passing test
