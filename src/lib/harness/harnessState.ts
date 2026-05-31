@@ -657,7 +657,9 @@ export function buildHarnessAudit(
   return `${lines.join('\n')}\n`
 }
 
-function schemaStatusForOptionalRun(validation: HarnessValidationResult): string {
+function schemaStatusForOptionalRun(
+  validation: HarnessValidationResult,
+): string {
   if (!validation.runId) {
     return 'not_applicable'
   }
