@@ -11,13 +11,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SpeechInput } from './speech-input'
 
 class MockMediaRecorder extends EventTarget {
+  static latestInstance: MockMediaRecorder | null = null
+
   state: RecordingState = 'inactive'
   stream: MediaStream
 
   constructor(stream: MediaStream) {
     super()
     this.stream = stream
-    latestRecorder = this
+    MockMediaRecorder.latestInstance = this
   }
 
   start() {
@@ -47,7 +49,6 @@ const originalMediaRecorder = globalThis.MediaRecorder
 const originalMediaDevices = navigator.mediaDevices
 
 let getUserMediaMock: ReturnType<typeof vi.fn>
-let latestRecorder: MockMediaRecorder | null
 
 const setMediaRecorderMode = () => {
   Reflect.deleteProperty(window, 'SpeechRecognition')
@@ -79,7 +80,7 @@ const createMockStream = () => {
 
 describe('SpeechInput', () => {
   beforeEach(() => {
-    latestRecorder = null
+    MockMediaRecorder.latestInstance = null
     getUserMediaMock = vi.fn()
     setMediaRecorderMode()
   })
@@ -129,10 +130,10 @@ describe('SpeechInput', () => {
     fireEvent.click(screen.getByRole('button'))
 
     await waitFor(() =>
-      expect(latestRecorder).toBeInstanceOf(MockMediaRecorder),
+      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder),
     )
 
-    const recorder = latestRecorder as MockMediaRecorder
+    const recorder = MockMediaRecorder.latestInstance as MockMediaRecorder
     using removeEventListenerSpy = vi.spyOn(recorder, 'removeEventListener')
     using stopSpy = vi.spyOn(recorder, 'stop')
 
@@ -184,10 +185,10 @@ describe('SpeechInput', () => {
     fireEvent.click(button)
 
     await waitFor(() =>
-      expect(latestRecorder).toBeInstanceOf(MockMediaRecorder),
+      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder),
     )
 
-    ;(latestRecorder as MockMediaRecorder).emitData()
+    ;(MockMediaRecorder.latestInstance as MockMediaRecorder).emitData()
     fireEvent.click(button)
 
     await waitFor(() => expect(onAudioRecorded).toHaveBeenCalledTimes(1))
