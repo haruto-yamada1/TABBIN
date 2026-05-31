@@ -189,7 +189,7 @@ export const SortableUrlItem = ({
             variant='ghost'
             size='icon'
             onClick={handleDeleteButtonClick}
-            className='pointer-events-none invisible absolute top-0 right-0 bottom-0 my-auto shrink-0 cursor-pointer opacity-0 transition-opacity group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100'
+            className='pointer-events-none invisible absolute top-0 right-0 bottom-0 my-auto shrink-0 cursor-pointer opacity-0 transition-opacity focus-visible:pointer-events-auto focus-visible:visible focus-visible:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100'
             title={t('savedTabs.url.deleteAria')}
             aria-label={t('savedTabs.url.deleteAria')}
           >

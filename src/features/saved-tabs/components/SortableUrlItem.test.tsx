@@ -151,6 +151,8 @@ describe('SortableUrlItem', () => {
     expect(deleteButton).toBeTruthy()
     expect(deleteButton.className).toContain('group-hover:visible')
     expect(deleteButton.className).toContain('group-focus-within:visible')
+    expect(deleteButton.className).toContain('focus-visible:visible')
+    expect(deleteButton.className).toContain('focus-visible:opacity-100')
     expect(deleteButton.className).toContain('pointer-events-none')
 
     const row = getLink().closest('li')
