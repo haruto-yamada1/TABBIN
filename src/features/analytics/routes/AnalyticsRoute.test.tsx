@@ -661,6 +661,9 @@ describe('AnalyticsRoute', () => {
         callback?.({ status: 'removed' })
       },
     )
+    vi.mocked(toast.error).mockClear()
+    vi.mocked(toast.info).mockClear()
+    vi.mocked(toast.success).mockClear()
 
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
@@ -1715,13 +1718,19 @@ describe('AnalyticsRoute', () => {
     expect(toast.error).toHaveBeenCalledWith('Could not restore saved data')
   })
 
-  it('単体削除と一括削除の background エラーを処理する', async () => {
+  it('単体削除失敗時はエラートーストを表示してドリルダウンを維持する', async () => {
     analyticsRouteMocks.sendMessageMock.mockImplementation(
       (
-        _message: unknown,
+        message: unknown,
         callback?: (response: { error?: string; status: string }) => void,
       ) => {
-        callback?.({ error: 'background failed', status: 'error' })
+        const action = (message as { action?: string })?.action
+        if (action === 'removeUrlFromStorage') {
+          callback?.({ error: 'background failed', status: 'error' })
+          return
+        }
+
+        callback?.({ status: 'removed' })
       },
     )
 
@@ -1732,16 +1741,60 @@ describe('AnalyticsRoute', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
     await waitFor(() => {
-      expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledTimes(1)
+      expect(toast.error).toHaveBeenCalledWith('Failed to delete the tab')
     })
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Delete all tabs in this item' }),
+    expect(toast.info).not.toHaveBeenCalled()
+    expect(screen.getByText('Example Docs')).toBeTruthy()
+    expect(
+      screen.getByText('Created Saved count by domain from 2 saved records.'),
+    ).toBeTruthy()
+  })
+
+  it('一括削除失敗時はエラートーストを表示して確認ダイアログを閉じる', async () => {
+    analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
+      ...defaultSettings,
+      confirmDeleteAll: true,
+    })
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValue(bulkDeleteRecords)
+    analyticsRouteMocks.sendMessageMock.mockImplementation(
+      (
+        message: unknown,
+        callback?: (response: { error?: string; status: string }) => void,
+      ) => {
+        const action = (message as { action?: string })?.action
+        if (action === 'removeUrlRecordsFromStorage') {
+          callback?.({ error: 'background failed', status: 'error' })
+          return
+        }
+
+        callback?.({ status: 'removed' })
+      },
     )
 
+    render(<AnalyticsRoute />)
+
+    expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Delete all tabs in this item',
+      }),
+    )
+
+    expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
     await waitFor(() => {
-      expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledTimes(2)
+      expect(toast.error).toHaveBeenCalledWith('Failed to delete the tabs')
     })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Delete all tabs?')).toBeNull()
+    })
+    expect(toast.info).not.toHaveBeenCalled()
+    expect(screen.getByText('Example Docs')).toBeTruthy()
+    expect(screen.getByText('Example Docs B')).toBeTruthy()
   })
 
   it('confirmDeleteEach=true のとき確認ダイアログ経由で削除する', async () => {

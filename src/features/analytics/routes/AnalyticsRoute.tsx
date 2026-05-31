@@ -700,6 +700,7 @@ const useAnalyticsRouteView = () => {
       })
     } catch (error) {
       console.error('Failed to delete analytics drilldown url:', error)
+      toast.error(t('savedTabs.tab.deleteError'))
     } finally {
       setDeletingUrl(null)
       setDeleteTarget(null)
@@ -768,6 +769,7 @@ const useAnalyticsRouteView = () => {
       })
     } catch (error) {
       console.error('Failed to bulk delete analytics drilldown urls:', error)
+      toast.error(t('analytics.deleteTabsError'))
     } finally {
       setIsBulkDeleting(false)
       setIsBulkDeleteConfirmOpen(false)
