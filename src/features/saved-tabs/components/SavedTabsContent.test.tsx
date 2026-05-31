@@ -159,6 +159,34 @@ const createProps = (
   ...overrides,
 })
 
+const getDisplayedCategoryName = (categoryName: string): string => {
+  if (categoryName === '__uncategorized') {
+    return savedTabsContentI18nState.language === 'en'
+      ? 'Uncategorized'
+      : '未分類'
+  }
+
+  return categoryName
+}
+
+const getOpenAllButtonName = (categoryName: string): string => {
+  const displayedName = getDisplayedCategoryName(categoryName)
+  if (savedTabsContentI18nState.language === 'en') {
+    return `Open all tabs for "${displayedName}"`
+  }
+
+  return `「${displayedName}」のすべてのタブを開く`
+}
+
+const getDeleteAllButtonName = (categoryName: string): string => {
+  const displayedName = getDisplayedCategoryName(categoryName)
+  if (savedTabsContentI18nState.language === 'en') {
+    return `Delete all tabs for "${displayedName}"`
+  }
+
+  return `「${displayedName}」のすべてのタブを削除`
+}
+
 describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -208,8 +236,8 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    expect(screen.getByText(/未分類/)).toBeTruthy()
-    expect(screen.getByText('(2)')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /未分類/ })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /2/ })).toBeTruthy()
     expect(screen.getByTestId('category-section').textContent).toContain(
       'section:__uncategorized:2',
     )
@@ -227,9 +255,19 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    expect(screen.getByText(/Uncategorized/)).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Open all/ })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Delete all/ }))
+    expect(
+      screen.getByRole('heading', { name: /Uncategorized/ }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: getOpenAllButtonName('__uncategorized'),
+      }),
+    ).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: getDeleteAllButtonName('__uncategorized'),
+      }),
+    )
     expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
   })
 
@@ -253,11 +291,13 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    expect(screen.getByText('(0)')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /0/ })).toBeTruthy()
     expect(container.innerHTML.includes('shadow-lg')).toBe(true)
     expect(container.innerHTML.includes('cursor-grabbing')).toBe(true)
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて開く/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: getOpenAllButtonName('news') }),
+    )
     expect(handleOpenAllTabs).toHaveBeenCalledWith([])
   })
 
@@ -272,7 +312,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて開く/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: getOpenAllButtonName('news') }),
+    )
     expect(handleOpenAllTabs).toHaveBeenCalledWith([
       { url: 'https://a.com', title: 'A' },
     ])
@@ -289,7 +331,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて開く/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: getOpenAllButtonName('news') }),
+    )
     expect(
       await screen.findByText(
         '10個以上のタブを開こうとしています。続行しますか？',
@@ -307,7 +351,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     const { rerender } = render(
       <SavedTabsContentComponent {...createProps()} />,
     )
-    expect(screen.queryByRole('button', { name: /すべて削除/ })).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: getDeleteAllButtonName('news') }),
+    ).toBeNull()
 
     rerender(
       <SavedTabsContentComponent
@@ -317,7 +363,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて削除/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
+    )
     expect(await screen.findByRole('button', { name: '削除' })).toBeTruthy()
   })
 
@@ -332,7 +380,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて削除/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
+    )
     fireEvent.click(await screen.findByRole('button', { name: '削除' }))
 
     await waitFor(() => {
@@ -357,10 +407,12 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて削除/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
+    )
     fireEvent.click(await screen.findByRole('button', { name: '削除' }))
 
-    await screen.findByRole('button', { name: /すべて削除/ })
+    await screen.findByRole('button', { name: getDeleteAllButtonName('news') })
 
     rerender(
       <SavedTabsContentComponent
@@ -371,7 +423,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて削除/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: getDeleteAllButtonName('error-case') }),
+    )
     fireEvent.click(await screen.findByRole('button', { name: '削除' }))
 
     await waitFor(() => {
@@ -396,13 +450,19 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて削除/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
+    )
     const confirmButton = await screen.findByRole('button', {
       name: '削除',
     })
     fireEvent.click(confirmButton)
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /削除中/ })).toBeTruthy()
+      expect(
+        screen
+          .getByRole('button', { name: getDeleteAllButtonName('news') })
+          .hasAttribute('disabled'),
+      ).toBe(true)
     })
     fireEvent.click(confirmButton)
 
@@ -412,7 +472,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
 
     resolveUpdate?.()
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /すべて削除/ })).toBeTruthy()
+      expect(
+        screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
+      ).toBeTruthy()
     })
   })
 })
