@@ -4,6 +4,7 @@ import { MicIcon, SquareIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
@@ -45,6 +46,36 @@ interface SpeechRecognitionResult {
 interface SpeechRecognitionAlternative {
   transcript: string
   confidence: number
+}
+
+const PERMISSION_DENIED_MESSAGE =
+  'Microphone access was denied. Allow microphone access and try again.'
+const RECORDING_START_FAILED_MESSAGE =
+  'Unable to start recording. Please try again.'
+const RECORDING_PROCESS_FAILED_MESSAGE =
+  'Unable to process the recorded audio. Please try again.'
+const RECORDING_FAILED_MESSAGE = 'Recording failed. Please try again.'
+
+const stopStreamTracks = (stream: MediaStream | null) => {
+  if (!stream) {
+    return
+  }
+
+  for (const track of stream.getTracks()) {
+    track.stop()
+  }
+}
+
+const getRecordingErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof DOMException && error.name === 'NotAllowedError') {
+    return PERMISSION_DENIED_MESSAGE
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return fallback
 }
 
 interface SpeechRecognitionErrorEvent extends Event {
@@ -103,12 +134,15 @@ export const SpeechInput = ({
 }: SpeechInputProps) => {
   const [isListening, setIsListening] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [mode] = useState<SpeechInputMode>(detectSpeechInputMode)
   const [isRecognitionReady, setIsRecognitionReady] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const mediaRecorderCleanupRef = useRef<(() => void) | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const isMountedRef = useRef(true)
   const onTranscriptionChangeRef = useRef<
     SpeechInputProps['onTranscriptionChange']
   >(onTranscriptionChange)
@@ -160,6 +194,22 @@ export const SpeechInput = ({
   handleSpeechRecognitionResultRef.current = handleSpeechRecognitionResult
   handleSpeechRecognitionErrorRef.current = handleSpeechRecognitionError
 
+  const cleanupMediaRecorderSession = useCallback(
+    (mediaRecorder?: MediaRecorder | null, stream?: MediaStream | null) => {
+      mediaRecorderCleanupRef.current?.()
+      mediaRecorderCleanupRef.current = null
+
+      if (!mediaRecorder || mediaRecorderRef.current === mediaRecorder) {
+        mediaRecorderRef.current = null
+      }
+
+      if (!stream || streamRef.current === stream) {
+        streamRef.current = null
+      }
+    },
+    [],
+  )
+
   // Initialize Speech Recognition when mode is speech-recognition
   useEffect(() => {
     if (mode !== 'speech-recognition') {
@@ -202,16 +252,22 @@ export const SpeechInput = ({
   // Cleanup MediaRecorder and stream on unmount
   useEffect(
     () => () => {
-      if (mediaRecorderRef.current?.state === 'recording') {
-        mediaRecorderRef.current.stop()
+      isMountedRef.current = false
+      const mediaRecorder = mediaRecorderRef.current
+      const stream = streamRef.current
+
+      cleanupMediaRecorderSession(mediaRecorder, stream)
+
+      if (mediaRecorder?.state === 'recording') {
+        mediaRecorder.stop()
       }
-      if (streamRef.current) {
-        for (const track of streamRef.current.getTracks()) {
-          track.stop()
-        }
-      }
+
+      mediaRecorderRef.current = null
+      stopStreamTracks(stream)
+      streamRef.current = null
+      audioChunksRef.current = []
     },
-    [],
+    [cleanupMediaRecorderSession],
   )
 
   // Start MediaRecorder recording
@@ -219,6 +275,8 @@ export const SpeechInput = ({
     if (!onAudioRecordedRef.current) {
       return
     }
+
+    setErrorMessage(null)
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -233,49 +291,77 @@ export const SpeechInput = ({
       }
 
       const handleStop = async () => {
-        for (const track of stream.getTracks()) {
-          track.stop()
-        }
-        streamRef.current = null
-
         const audioBlob = new Blob(audioChunksRef.current, {
           type: 'audio/webm',
         })
 
-        if (audioBlob.size > 0 && onAudioRecordedRef.current) {
+        cleanupMediaRecorderSession(mediaRecorder, stream)
+        stopStreamTracks(stream)
+
+        if (
+          audioBlob.size > 0 &&
+          onAudioRecordedRef.current &&
+          isMountedRef.current
+        ) {
           setIsProcessing(true)
           try {
             const transcript = await onAudioRecordedRef.current(audioBlob)
-            if (transcript) {
+            if (transcript && isMountedRef.current) {
               onTranscriptionChangeRef.current?.(transcript)
             }
-          } catch {
-            // Error handling delegated to the onAudioRecorded caller
+          } catch (error) {
+            if (isMountedRef.current) {
+              setErrorMessage(
+                getRecordingErrorMessage(
+                  error,
+                  RECORDING_PROCESS_FAILED_MESSAGE,
+                ),
+              )
+            }
           } finally {
-            setIsProcessing(false)
+            audioChunksRef.current = []
+
+            if (isMountedRef.current) {
+              setIsProcessing(false)
+            }
           }
+        } else {
+          audioChunksRef.current = []
         }
       }
 
       const handleError = () => {
+        cleanupMediaRecorderSession(mediaRecorder, stream)
+        stopStreamTracks(stream)
+        audioChunksRef.current = []
         setIsListening(false)
-        for (const track of stream.getTracks()) {
-          track.stop()
-        }
-        streamRef.current = null
+        setErrorMessage(RECORDING_FAILED_MESSAGE)
       }
 
       mediaRecorder.addEventListener('dataavailable', handleDataAvailable)
       mediaRecorder.addEventListener('stop', handleStop)
       mediaRecorder.addEventListener('error', handleError)
+      mediaRecorderCleanupRef.current = () => {
+        mediaRecorder.removeEventListener('dataavailable', handleDataAvailable)
+        mediaRecorder.removeEventListener('stop', handleStop)
+        mediaRecorder.removeEventListener('error', handleError)
+      }
 
       mediaRecorderRef.current = mediaRecorder
       mediaRecorder.start()
       setIsListening(true)
-    } catch {
+    } catch (error) {
+      const stream = streamRef.current
+
+      cleanupMediaRecorderSession(mediaRecorderRef.current, stream)
+      stopStreamTracks(stream)
+      streamRef.current = null
       setIsListening(false)
+      setErrorMessage(
+        getRecordingErrorMessage(error, RECORDING_START_FAILED_MESSAGE),
+      )
     }
-  }, [])
+  }, [cleanupMediaRecorderSession])
 
   // Stop MediaRecorder recording
   const stopMediaRecorder = useCallback(() => {
@@ -309,37 +395,45 @@ export const SpeechInput = ({
     isProcessing
 
   return (
-    <div className='relative inline-flex items-center justify-center'>
-      {/* Animated pulse rings */}
-      {isListening &&
-        pulseRings.map(({ delay, id }) => (
-          <div
-            className='absolute inset-0 animate-ping rounded-full border-2 border-red-400/30'
-            key={id}
-            style={{
-              animationDelay: delay,
-              animationDuration: '900ms',
-            }}
-          />
-        ))}
+    <div className='inline-flex flex-col items-center gap-2'>
+      <div className='relative inline-flex items-center justify-center'>
+        {/* Animated pulse rings */}
+        {isListening &&
+          pulseRings.map(({ delay, id }) => (
+            <div
+              className='absolute inset-0 animate-ping rounded-full border-2 border-red-400/30'
+              key={id}
+              style={{
+                animationDelay: delay,
+                animationDuration: '900ms',
+              }}
+            />
+          ))}
 
-      {/* Main record button */}
-      <Button
-        className={cn(
-          'relative z-10 rounded-full transition-all duration-300',
-          isListening
-            ? 'bg-destructive text-white hover:bg-destructive/80 hover:text-white'
-            : 'bg-primary text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground',
-          className,
-        )}
-        disabled={isDisabled}
-        onClick={toggleListening}
-        {...props}
-      >
-        {isProcessing && <Spinner />}
-        {!isProcessing && isListening && <SquareIcon className='size-4' />}
-        {!(isProcessing || isListening) && <MicIcon className='size-4' />}
-      </Button>
+        {/* Main record button */}
+        <Button
+          className={cn(
+            'relative z-10 rounded-full transition-all duration-300',
+            isListening
+              ? 'bg-destructive text-white hover:bg-destructive/80 hover:text-white'
+              : 'bg-primary text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground',
+            className,
+          )}
+          disabled={isDisabled}
+          onClick={toggleListening}
+          {...props}
+        >
+          {isProcessing && <Spinner />}
+          {!isProcessing && isListening && <SquareIcon className='size-4' />}
+          {!(isProcessing || isListening) && <MicIcon className='size-4' />}
+        </Button>
+      </div>
+
+      {errorMessage && (
+        <Alert className='max-w-80' variant='destructive'>
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
     </div>
   )
 }
