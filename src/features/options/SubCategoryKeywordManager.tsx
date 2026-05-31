@@ -1,5 +1,6 @@
 import { Check, Plus, X } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -103,7 +104,7 @@ const useSubCategoryKeywordManagerView = ({
             keyword.toLowerCase() === newKeyword.trim().toLowerCase(),
         )
       ) {
-        alert(t('savedTabs.keywords.duplicate'))
+        toast.error(t('savedTabs.keywords.duplicate'))
         return
       }
 
@@ -139,7 +140,7 @@ const useSubCategoryKeywordManagerView = ({
         setKeywords(categoryKeywords?.keywords || [])
 
         // エラーを表示
-        alert(t('savedTabs.subCategory.createError'))
+        toast.error(t('savedTabs.subCategory.createError'))
       }
     }
   }
@@ -151,7 +152,7 @@ const useSubCategoryKeywordManagerView = ({
 
       // 既存の子カテゴリと重複していないか確認
       if (tabGroup.subCategories?.includes(categoryName)) {
-        alert(t('savedTabs.subCategory.duplicateName'))
+        toast.error(t('savedTabs.subCategory.duplicateName'))
         return
       }
 
@@ -239,7 +240,7 @@ const useSubCategoryKeywordManagerView = ({
       await chrome.storage.local.set({ savedTabs: updatedTabs })
       console.log('ストレージに保存完了')
 
-      alert(
+      toast.success(
         t('savedTabs.subCategory.deleted', undefined, {
           name: categoryToRemove,
         }),
@@ -247,12 +248,13 @@ const useSubCategoryKeywordManagerView = ({
       // }
     } catch (error) {
       console.error('子カテゴリ削除エラー:', error)
-      alert(t('savedTabs.subCategory.deleteError'))
+      toast.error(t('savedTabs.subCategory.deleteError'))
     }
   }
 
   // リネームモードを開始する関数
   const startRenameMode = () => {
+    /* v8 ignore next -- the rename action is only rendered when activeCategory exists. */
     if (!activeCategory) {
       return
     }
@@ -284,7 +286,7 @@ const useSubCategoryKeywordManagerView = ({
 
     // 既存のカテゴリ名と重複していないか確認
     if (tabGroup.subCategories?.includes(newCategoryName.trim())) {
-      alert(t('savedTabs.subCategory.duplicateName'))
+      toast.error(t('savedTabs.subCategory.duplicateName'))
       setNewCategoryName(activeCategory) // 元の名前に戻す
       return
     }
@@ -297,12 +299,13 @@ const useSubCategoryKeywordManagerView = ({
       setIsRenamingSubCategory(false)
     } catch (error) {
       console.error('カテゴリ名変更エラー:', error)
-      alert(t('savedTabs.subCategory.renameError'))
+      toast.error(t('savedTabs.subCategory.renameError'))
     }
   }
 
   // カテゴリ名変更の処理関数
   const handleRenameCategory = async (oldName: string, newName: string) => {
+    /* v8 ignore next -- completeRename guards empty/same-name cases before call. */
     if (!(oldName && newName) || oldName === newName) {
       return
     }
