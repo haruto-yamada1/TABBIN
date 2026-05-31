@@ -45,6 +45,38 @@ function collectPaths(value, paths = []) {
   return paths
 }
 
+function collectApplyPatchPaths(text, paths = []) {
+  if (typeof text !== 'string' || !text.includes('*** Begin Patch')) return paths
+  for (const line of text.split(/\r?\n/)) {
+    for (const prefix of [
+      '*** Update File: ',
+      '*** Add File: ',
+      '*** Delete File: ',
+      '*** Move to: ',
+    ]) {
+      if (line.startsWith(prefix)) paths.push(line.slice(prefix.length).trim())
+    }
+  }
+  return paths
+}
+
+function collectTouchedPaths(value, paths = []) {
+  if (!value || typeof value !== 'object') return paths
+  if (Array.isArray(value)) {
+    for (const item of value) collectTouchedPaths(item, paths)
+    return paths
+  }
+  collectPaths(value, paths)
+  for (const item of Object.values(value)) {
+    if (typeof item === 'string') {
+      collectApplyPatchPaths(item, paths)
+    } else {
+      collectTouchedPaths(item, paths)
+    }
+  }
+  return paths
+}
+
 function projectPath(candidate) {
   const absolute = path.isAbsolute(candidate)
     ? path.normalize(candidate)
@@ -64,7 +96,7 @@ try {
   process.exit(0)
 }
 
-const protectedFiles = collectPaths(payload)
+const protectedFiles = collectTouchedPaths(payload)
   .map(projectPath)
   .filter(Boolean)
   .filter((filePath) =>

@@ -354,39 +354,39 @@ local_deployed_file_hashes:
   .claude/commands/harness-security-audit.md: sha256:f4079dc1fd3765e29a08e785a7b0f22ba5ba296a7dabd6eb636c7aa026ca962c
   .claude/commands/harness-status.md: sha256:2928fb7449728ab05c5a3757d9ae818097e7ed73843f02ec0d3a0ebae4a792fc
   .claude/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
-  .claude/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
-  .claude/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .claude/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
+  .claude/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:4803d8c6916a662eb5480519dbe1af0366db191ec3f61e89cabc7f52bf55f24a
   .claude/hooks/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
   .claude/hooks/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
   .claude/hooks/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
   .claude/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .claude/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .claude/hooks/TABBIN/scripts/stop-verify.sh: sha256:6f61595320602ee1bf6c1b42e1cf822e92541086cfa018f14a7aca083c8b61c3
-  .claude/hooks/TABBIN/scripts/track-edit.sh: sha256:f63b7faee5eb5658843ee9c830691126af54d2b3d14777503f4e565f27d1c7f8
+  .claude/hooks/TABBIN/scripts/track-edit.sh: sha256:8f0d19b1319c40af6e51fd14156fbf3de2cc6122367065ae627121304de155c6
   .claude/rules/00-context-mode.md: sha256:d401dc7362629b4ca86a965be6ce2eb5bd4a01df49ff2e7e0d66cef83a5005b3
   .claude/rules/01-rtk.md: sha256:b2bf8798e77e1cdcc0f0d31d5c5277c63dcb6086672e87ba0b7828dcfec7ca9b
   .claude/rules/harness.md: sha256:94af527ca3a4a3061bcee929999e48f5c1c0797d709b14f070334320da0b6fde
   .claude/rules/repository-guidelines.md: sha256:5320608368e234516163b3da71a689a1561131069f87df28d376fb67bde22794
   .codex/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
-  .codex/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
-  .codex/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .codex/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
+  .codex/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:4803d8c6916a662eb5480519dbe1af0366db191ec3f61e89cabc7f52bf55f24a
   .codex/hooks/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
   .codex/hooks/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
   .codex/hooks/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
   .codex/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .codex/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .codex/hooks/TABBIN/scripts/stop-verify.sh: sha256:6f61595320602ee1bf6c1b42e1cf822e92541086cfa018f14a7aca083c8b61c3
-  .codex/hooks/TABBIN/scripts/track-edit.sh: sha256:f63b7faee5eb5658843ee9c830691126af54d2b3d14777503f4e565f27d1c7f8
+  .codex/hooks/TABBIN/scripts/track-edit.sh: sha256:8f0d19b1319c40af6e51fd14156fbf3de2cc6122367065ae627121304de155c6
   .cursor/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
-  .cursor/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
-  .cursor/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .cursor/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
+  .cursor/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:4803d8c6916a662eb5480519dbe1af0366db191ec3f61e89cabc7f52bf55f24a
   .cursor/hooks/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
   .cursor/hooks/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
   .cursor/hooks/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
   .cursor/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .cursor/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .cursor/hooks/TABBIN/scripts/stop-verify.sh: sha256:6f61595320602ee1bf6c1b42e1cf822e92541086cfa018f14a7aca083c8b61c3
-  .cursor/hooks/TABBIN/scripts/track-edit.sh: sha256:f63b7faee5eb5658843ee9c830691126af54d2b3d14777503f4e565f27d1c7f8
+  .cursor/hooks/TABBIN/scripts/track-edit.sh: sha256:8f0d19b1319c40af6e51fd14156fbf3de2cc6122367065ae627121304de155c6
   .cursor/rules/00-context-mode.mdc: sha256:7a7d69afa8c55490fe5e945474c365e66d150a2360aa7449c11761371215f17f
   .cursor/rules/01-rtk.mdc: sha256:7c0b16527fe49e8d7180e1759cff25fd24a1e661371fe9d1faed760de44bc3e5
   .cursor/rules/harness.mdc: sha256:54efcb9414803f71e101991c571a44dc1daa9a1d42ce1ad71ac95a4e0c73a117
@@ -405,26 +405,26 @@ local_deployed_file_hashes:
   .gemini/commands/harness-security-audit.toml: sha256:2919716f5c5623283babb73955293b61c77a92b536dbe4e142615abb8bd9b4af
   .gemini/commands/harness-status.toml: sha256:9e4382bf4a7ad6c60a059a788a2a0b7d7c10f454ea40ca79f2e196c6192a0bed
   .gemini/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
-  .gemini/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
-  .gemini/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .gemini/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
+  .gemini/hooks/TABBIN/scripts/harness-first-edit-gate.sh: sha256:4803d8c6916a662eb5480519dbe1af0366db191ec3f61e89cabc7f52bf55f24a
   .gemini/hooks/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
   .gemini/hooks/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
   .gemini/hooks/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
   .gemini/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .gemini/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .gemini/hooks/TABBIN/scripts/stop-verify.sh: sha256:6f61595320602ee1bf6c1b42e1cf822e92541086cfa018f14a7aca083c8b61c3
-  .gemini/hooks/TABBIN/scripts/track-edit.sh: sha256:f63b7faee5eb5658843ee9c830691126af54d2b3d14777503f4e565f27d1c7f8
-  .github/hooks/TABBIN-claude-quality-hooks.json: sha256:cd22a0cb3e7a616c8e1394bac9444833d92fe5f8195bf8eb625891fc9c9af69d
+  .gemini/hooks/TABBIN/scripts/track-edit.sh: sha256:8f0d19b1319c40af6e51fd14156fbf3de2cc6122367065ae627121304de155c6
+  .github/hooks/TABBIN-claude-quality-hooks.json: sha256:289e7f85f64db8ed4c125f6bdcf5e20798f7ea9d9fbbcb205f9ad21b574fbb58
   .github/hooks/scripts/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
-  .github/hooks/scripts/TABBIN/scripts/harness-config-protection.sh: sha256:c45ea40189797cddd9a17c343ce6eac36cee038328e37511ac7d5c68d3826e35
-  .github/hooks/scripts/TABBIN/scripts/harness-first-edit-gate.sh: sha256:03b5e6f2d357e913217965bf6fc4ef04faf1a739638b8ae7c728874fd1de4b7a
+  .github/hooks/scripts/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
+  .github/hooks/scripts/TABBIN/scripts/harness-first-edit-gate.sh: sha256:4803d8c6916a662eb5480519dbe1af0366db191ec3f61e89cabc7f52bf55f24a
   .github/hooks/scripts/TABBIN/scripts/harness-postflight-capture.sh: sha256:2c418e539ae874a6361bda769213a2362e641096d1041177f0d9719c85caa500
   .github/hooks/scripts/TABBIN/scripts/harness-precompact.sh: sha256:00904f0442193cea21ee9fb13466bb667cb5304c40e196f07d420e2f7ce12330
   .github/hooks/scripts/TABBIN/scripts/harness-profile-gate.sh: sha256:a7490ce92226ac2734bd6c06debf1c0bfdf12252951419474e99a3de1a6a5200
   .github/hooks/scripts/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .github/hooks/scripts/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .github/hooks/scripts/TABBIN/scripts/stop-verify.sh: sha256:6f61595320602ee1bf6c1b42e1cf822e92541086cfa018f14a7aca083c8b61c3
-  .github/hooks/scripts/TABBIN/scripts/track-edit.sh: sha256:f63b7faee5eb5658843ee9c830691126af54d2b3d14777503f4e565f27d1c7f8
+  .github/hooks/scripts/TABBIN/scripts/track-edit.sh: sha256:8f0d19b1319c40af6e51fd14156fbf3de2cc6122367065ae627121304de155c6
   .github/instructions/00-context-mode.instructions.md: sha256:35a864d8df37bda3f7becc6781dff9b5968cd81e0c9dfd06ca46493f12caadff
   .github/instructions/01-rtk.instructions.md: sha256:17c762d7da8731a1415059900be8e37bb7cb17e859e0c2eddda7c4f933d491a3
   .github/instructions/harness.instructions.md: sha256:ec7ce795e22950248cf39e16921e1b334b4dd78c079e21eb34260267711c5879

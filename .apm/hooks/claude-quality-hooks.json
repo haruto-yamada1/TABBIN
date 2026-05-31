@@ -2,7 +2,7 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Bash|Edit|Write|MultiEdit",
+        "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
             "command": "./scripts/harness-activity-track.sh",
@@ -12,7 +12,7 @@
         ]
       },
       {
-        "matcher": "Bash|Edit|Write|MultiEdit",
+        "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
             "command": "./scripts/harness-postflight-capture.sh",
@@ -22,7 +22,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
             "command": "./scripts/track-edit.sh",
@@ -33,7 +33,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Edit|Write|MultiEdit",
+        "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
             "command": "./scripts/harness-safety-warn.sh",
@@ -43,7 +43,7 @@
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
             "command": "./scripts/harness-config-protection.sh",
