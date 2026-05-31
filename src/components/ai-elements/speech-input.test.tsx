@@ -130,7 +130,9 @@ describe('SpeechInput', () => {
     fireEvent.click(screen.getByRole('button'))
 
     await waitFor(() =>
-      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder),
+      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(
+        MockMediaRecorder,
+      ),
     )
 
     const recorder = MockMediaRecorder.latestInstance as MockMediaRecorder
@@ -185,7 +187,9 @@ describe('SpeechInput', () => {
     fireEvent.click(button)
 
     await waitFor(() =>
-      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder),
+      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(
+        MockMediaRecorder,
+      ),
     )
 
     ;(MockMediaRecorder.latestInstance as MockMediaRecorder).emitData()
