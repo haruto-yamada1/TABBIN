@@ -8,7 +8,7 @@ import { useCategoryGroup } from './CategoryGroupContext'
 /** CategoryGroup の折りたたみ切り替えボタン */
 export const CategoryGroupCollapseControl = () => {
   const { t } = useI18n()
-  const { state, isCategoryReorderMode } = useCategoryGroup()
+  const { state, isCategoryReorderMode, category } = useCategoryGroup()
   const { collapse } = state
 
   return (
@@ -18,19 +18,21 @@ export const CategoryGroupCollapseControl = () => {
       setUserCollapsedState={collapse.setUserCollapsedState}
       isDisabled={isCategoryReorderMode}
       disabledMessage={t('savedTabs.reorder.disabled')}
+      targetName={category.name}
     />
   )
 }
 
 /** CategoryGroup のソート順切り替えボタン */
 export const CategoryGroupSortControl = () => {
-  const { state } = useCategoryGroup()
+  const { state, category } = useCategoryGroup()
   const { sort } = state
 
   return (
     <CardSortControl
       sortOrder={sort.sortOrder}
       setSortOrder={sort.setSortOrder}
+      targetName={category.name}
     />
   )
 }

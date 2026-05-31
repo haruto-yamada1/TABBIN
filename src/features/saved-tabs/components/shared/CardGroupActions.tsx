@@ -27,9 +27,18 @@ interface CardGroupActionsProps {
   onConfirmOpenAll?: boolean
   onConfirmDeleteAll?: boolean
   openAllThreshold?: number
+  openAllCount?: number
   itemName?: string
   warningMessage?: string
   manageLabel?: string
+  manageAriaLabel?: string
+  manageTooltip?: string
+  openAllAriaLabel?: string
+  openAllTooltip?: string
+  openAllConfirmDescription?: string
+  deleteAllAriaLabel?: string
+  deleteAllTooltip?: string
+  deleteAllConfirmDescription?: string
 }
 
 /**
@@ -43,9 +52,18 @@ export const CardGroupActions = ({
   onConfirmOpenAll = false,
   onConfirmDeleteAll = false,
   openAllThreshold = 10,
+  openAllCount,
   itemName,
   warningMessage,
   manageLabel,
+  manageAriaLabel,
+  manageTooltip,
+  openAllAriaLabel,
+  openAllTooltip,
+  openAllConfirmDescription,
+  deleteAllAriaLabel,
+  deleteAllTooltip,
+  deleteAllConfirmDescription,
 }: CardGroupActionsProps) => {
   const { t } = useI18n()
   const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
@@ -54,6 +72,21 @@ export const CardGroupActions = ({
   const resolvedItemName = itemName ?? t('savedTabs.openAllTabs')
   const resolvedWarningMessage =
     warningMessage ?? t('savedTabs.deleteAllDefaultWarning')
+  const resolvedManageAriaLabel = manageAriaLabel ?? resolvedManageLabel
+  const resolvedManageTooltip = manageTooltip ?? resolvedManageLabel
+  const resolvedOpenAllAriaLabel =
+    openAllAriaLabel ?? t('savedTabs.openAllTabs')
+  const resolvedOpenAllTooltip = openAllTooltip ?? t('savedTabs.openAllTabs')
+  const resolvedOpenAllConfirmDescription =
+    openAllConfirmDescription ??
+    t('savedTabs.openAllConfirmDescription', undefined, {
+      count: String(openAllCount ?? openAllThreshold),
+    })
+  const resolvedDeleteAllAriaLabel =
+    deleteAllAriaLabel ?? t('savedTabs.deleteAll')
+  const resolvedDeleteAllTooltip = deleteAllTooltip ?? t('savedTabs.deleteAll')
+  const resolvedDeleteAllConfirmDescription =
+    deleteAllConfirmDescription ?? resolvedWarningMessage
 
   return (
     <>
@@ -67,7 +100,7 @@ export const CardGroupActions = ({
                 size='sm'
                 onClick={onManage}
                 className='flex cursor-pointer items-center gap-1'
-                aria-label={resolvedManageLabel}
+                aria-label={resolvedManageAriaLabel}
               >
                 <Settings size={14} />
                 <SavedTabsResponsiveLabel>
@@ -76,7 +109,7 @@ export const CardGroupActions = ({
               </Button>
             </TooltipTrigger>
             <SavedTabsResponsiveTooltipContent side='top'>
-              {resolvedManageLabel}
+              {resolvedManageTooltip}
             </SavedTabsResponsiveTooltipContent>
           </Tooltip>
         )}
@@ -96,7 +129,7 @@ export const CardGroupActions = ({
                   }
                 }}
                 className='flex cursor-pointer items-center gap-1'
-                aria-label={t('savedTabs.openAllTabs')}
+                aria-label={resolvedOpenAllAriaLabel}
               >
                 <ExternalLink size={14} />
                 <SavedTabsResponsiveLabel>
@@ -105,7 +138,7 @@ export const CardGroupActions = ({
               </Button>
             </TooltipTrigger>
             <SavedTabsResponsiveTooltipContent side='top'>
-              {t('savedTabs.openAllTabs')}
+              {resolvedOpenAllTooltip}
             </SavedTabsResponsiveTooltipContent>
           </Tooltip>
         )}
@@ -127,7 +160,7 @@ export const CardGroupActions = ({
                   }
                 }}
                 className='flex cursor-pointer items-center gap-1'
-                aria-label={t('savedTabs.deleteAll')}
+                aria-label={resolvedDeleteAllAriaLabel}
               >
                 <Trash size={14} />
                 <SavedTabsResponsiveLabel>
@@ -136,7 +169,7 @@ export const CardGroupActions = ({
               </Button>
             </TooltipTrigger>
             <SavedTabsResponsiveTooltipContent side='top'>
-              {t('savedTabs.deleteAll')}
+              {resolvedDeleteAllTooltip}
             </SavedTabsResponsiveTooltipContent>
           </Tooltip>
         )}
@@ -154,9 +187,7 @@ export const CardGroupActions = ({
                 {t('savedTabs.openAllConfirmTitle')}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {t('savedTabs.openAllConfirmDescription', undefined, {
-                  count: String(openAllThreshold),
-                })}
+                {resolvedOpenAllConfirmDescription}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -187,7 +218,7 @@ export const CardGroupActions = ({
                 })}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {resolvedWarningMessage}
+                {resolvedDeleteAllConfirmDescription}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

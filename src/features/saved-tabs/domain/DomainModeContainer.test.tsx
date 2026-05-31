@@ -223,9 +223,15 @@ describe('DomainModeContainer', () => {
     expect(domainCount.className).toContain('inline-flex')
     expect(domainCount.className).toContain('bg-secondary')
     expect(
-      screen.getByRole('button', { name: 'すべてのタブを開く' }),
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを開く',
+      }),
     ).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'すべて削除' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを削除',
+      }),
+    ).toBeTruthy()
   })
 
   it('未分類ヘッダーのすべて開くは表示中の未分類タブだけを開く', () => {
@@ -245,7 +251,11 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべてのタブを開く' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを開く',
+      }),
+    )
 
     expect(handleOpenAllTabs).toHaveBeenCalledWith([
       { url: 'https://example.com/a', title: 'A' },
@@ -272,7 +282,11 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを削除',
+      }),
+    )
 
     await waitFor(() => {
       expect(handleDeleteGroup).toHaveBeenNthCalledWith(1, 'group-1')
@@ -313,7 +327,11 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを削除',
+      }),
+    )
 
     await waitFor(() => {
       expect(handleDeleteUrls).toHaveBeenNthCalledWith(1, 'group-1', [
@@ -357,7 +375,11 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを削除',
+      }),
+    )
 
     await waitFor(() => {
       expect(handleDeleteUrls).toHaveBeenCalledOnce()
@@ -386,7 +408,11 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを削除',
+      }),
+    )
 
     await waitFor(() => {
       expect(handleDeleteGroups).toHaveBeenCalledWith(['group-1', 'group-2'])

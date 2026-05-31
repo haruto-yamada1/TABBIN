@@ -19,6 +19,7 @@ import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
+import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibility'
 import { handleSaveKeywords } from '@/features/saved-tabs/lib/category-keywords'
 
 import { useDomainCard } from './DomainCardContext'
@@ -32,10 +33,26 @@ export const DomainCardActions = () => {
   const { state, group, settings, isReorderMode, searchQuery, handlers } =
     useDomainCard()
   const { keywordModal, parentCategories, categoryActions } = state
+  const domainName = group.domain
 
   const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const hasSearchQuery = searchQuery.trim().length > 0
+  const manageSubcategoriesLabel = getScopedNounActionLabel(
+    t,
+    domainName,
+    t('savedTabs.manageSubcategories'),
+  )
+  const openAllTabsLabel = getScopedNounActionLabel(
+    t,
+    domainName,
+    t('savedTabs.openAllTabs'),
+  )
+  const deleteAllTabsLabel = getScopedNounActionLabel(
+    t,
+    domainName,
+    t('savedTabs.deleteAllTabs'),
+  )
 
   const executeDeleteAll = useCallback(() => {
     const visibleUrls = (group.urls || []).map((item) => item.url)
@@ -61,7 +78,7 @@ export const DomainCardActions = () => {
                 keywordModal.setShowKeywordModal(!keywordModal.showKeywordModal)
               }
               className='flex cursor-pointer items-center gap-1'
-              aria-label={t('savedTabs.manageSubcategories')}
+              aria-label={manageSubcategoriesLabel}
             >
               <Settings size={14} />
               <SavedTabsResponsiveLabel>
@@ -70,7 +87,7 @@ export const DomainCardActions = () => {
             </Button>
           </TooltipTrigger>
           <SavedTabsResponsiveTooltipContent side='top'>
-            {t('savedTabs.manageSubcategories')}
+            {manageSubcategoriesLabel}
           </SavedTabsResponsiveTooltipContent>
         </Tooltip>
 
@@ -94,7 +111,7 @@ export const DomainCardActions = () => {
                 }
               }}
               className='flex cursor-pointer items-center gap-1'
-              aria-label={t('savedTabs.openAllTabs')}
+              aria-label={openAllTabsLabel}
             >
               <ExternalLink size={14} />
               <SavedTabsResponsiveLabel>
@@ -103,7 +120,7 @@ export const DomainCardActions = () => {
             </Button>
           </TooltipTrigger>
           <SavedTabsResponsiveTooltipContent side='top'>
-            {t('savedTabs.openAllTabs')}
+            {openAllTabsLabel}
           </SavedTabsResponsiveTooltipContent>
         </Tooltip>
 
@@ -128,7 +145,7 @@ export const DomainCardActions = () => {
                 }
               }}
               className='flex cursor-pointer items-center gap-1'
-              aria-label={t('savedTabs.deleteAllTabs')}
+              aria-label={deleteAllTabsLabel}
             >
               <Trash size={14} />
               <SavedTabsResponsiveLabel>
@@ -137,7 +154,7 @@ export const DomainCardActions = () => {
             </Button>
           </TooltipTrigger>
           <SavedTabsResponsiveTooltipContent side='top'>
-            {t('savedTabs.deleteAllTabs')}
+            {deleteAllTabsLabel}
           </SavedTabsResponsiveTooltipContent>
         </Tooltip>
 
@@ -172,8 +189,9 @@ export const DomainCardActions = () => {
               {t('savedTabs.openAllConfirmTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t('savedTabs.openAllConfirmDescription', undefined, {
-                count: '10',
+              {t('savedTabs.openAllConfirmDescriptionWithName', undefined, {
+                count: String(group.urls?.length || 0),
+                name: domainName,
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -206,7 +224,10 @@ export const DomainCardActions = () => {
               {t('savedTabs.deleteAllConfirmTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t('savedTabs.domain.deleteAllWarning')}
+              {t('savedTabs.deleteAllConfirmDescriptionWithCount', undefined, {
+                categoryName: domainName,
+                count: String(group.urls?.length || 0),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

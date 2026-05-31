@@ -3,6 +3,7 @@ import { ArrowUpDown, ArrowUpNarrowWide, ArrowUpWideNarrow } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { getScopedSortLabel } from '@/features/saved-tabs/lib/accessibility'
 
 import type { SortOrder } from '../../hooks/useSortOrder'
 import { SavedTabsResponsiveTooltipContent } from './SavedTabsResponsive'
@@ -13,6 +14,8 @@ interface CardSortControlProps {
   sortOrder: SortOrder
   /** ソート順を設定する関数 */
   setSortOrder: React.Dispatch<React.SetStateAction<SortOrder>>
+  /** アクセシブルネームに含める対象名 */
+  targetName?: string
   /** ポインターダウン時の追加ハンドラ */
   onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void
 }
@@ -25,15 +28,17 @@ interface CardSortControlProps {
 export const CardSortControl = ({
   sortOrder,
   setSortOrder,
+  targetName,
   onPointerDown,
 }: CardSortControlProps) => {
   const { t } = useI18n()
-  let label = t('savedTabs.sort.desc')
+  let sortLabel = t('savedTabs.sort.desc')
   if (sortOrder === 'default') {
-    label = t('savedTabs.sort.default')
+    sortLabel = t('savedTabs.sort.default')
   } else if (sortOrder === 'asc') {
-    label = t('savedTabs.sort.asc')
+    sortLabel = t('savedTabs.sort.asc')
   }
+  const label = getScopedSortLabel(t, targetName, sortLabel)
 
   let icon = <ArrowUpWideNarrow size={14} />
   if (sortOrder === 'default') {

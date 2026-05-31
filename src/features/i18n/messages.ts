@@ -562,6 +562,10 @@ const messages = {
       'Enter a new parent category name',
     'savedTabs.categoryModal.validation.maxLength':
       'Parent category names must be within 25 characters.',
+    'savedTabs.accessibility.nounAction': '{{action}} for "{{target}}"',
+    'savedTabs.accessibility.objectAction': '{{action}} "{{target}}"',
+    'savedTabs.accessibility.sortState':
+      'Sort order for "{{target}}": {{sort}}',
     'savedTabs.collapse': 'Collapse',
     'savedTabs.customProjects.createAction': 'Create',
     'savedTabs.customProjects.createDialogTitle': 'Create a new project',
@@ -576,6 +580,8 @@ const messages = {
     'savedTabs.deleteAll': 'Delete all',
     'savedTabs.deleteAllConfirmDescription':
       'Delete all tabs in "{{categoryName}}". This action cannot be undone.',
+    'savedTabs.deleteAllConfirmDescriptionWithCount':
+      'Delete all {{count}} tabs in "{{categoryName}}". This action cannot be undone.',
     'savedTabs.deleteAllConfirmTitle': 'Delete all tabs?',
     'savedTabs.deleteAllDefaultWarning':
       'Delete all items. This action cannot be undone.',
@@ -613,6 +619,8 @@ const messages = {
     'savedTabs.openAll': 'Open all',
     'savedTabs.openAllConfirmDescription':
       'You are about to open {{count}} or more tabs. Continue?',
+    'savedTabs.openAllConfirmDescriptionWithName':
+      'Open {{count}} tabs for "{{name}}". Continue?',
     'savedTabs.openAllConfirmTitle': 'Open all tabs?',
     'savedTabs.openAllTabs': 'Open all tabs',
     'savedTabs.project.deleteAllItemName': 'tabs in this project',
@@ -1357,6 +1365,9 @@ const messages = {
       '新規親カテゴリ名を入力してください',
     'savedTabs.categoryModal.validation.maxLength':
       '新規親カテゴリ名は25文字以下にしてください',
+    'savedTabs.accessibility.nounAction': '「{{target}}」の{{action}}',
+    'savedTabs.accessibility.objectAction': '「{{target}}」を{{action}}',
+    'savedTabs.accessibility.sortState': '「{{target}}」の並び順: {{sort}}',
     'savedTabs.collapse': '折りたたむ',
     'savedTabs.customProjects.createAction': '作成',
     'savedTabs.customProjects.createDialogTitle': '新規プロジェクト作成',
@@ -1371,6 +1382,8 @@ const messages = {
     'savedTabs.deleteAll': 'すべて削除',
     'savedTabs.deleteAllConfirmDescription':
       '「{{categoryName}}」のタブをすべて削除します。この操作は元に戻せません。',
+    'savedTabs.deleteAllConfirmDescriptionWithCount':
+      '「{{categoryName}}」のタブ{{count}}件をすべて削除します。この操作は元に戻せません。',
     'savedTabs.deleteAllConfirmTitle': 'タブをすべて削除しますか？',
     'savedTabs.deleteAllDefaultWarning':
       'すべての項目を削除します。この操作は元に戻せません。',
@@ -1408,6 +1421,8 @@ const messages = {
     'savedTabs.openAll': 'すべて開く',
     'savedTabs.openAllConfirmDescription':
       '{{count}}個以上のタブを開こうとしています。続行しますか？',
+    'savedTabs.openAllConfirmDescriptionWithName':
+      '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
     'savedTabs.openAllConfirmTitle': 'タブをすべて開きますか？',
     'savedTabs.openAllTabs': 'すべてのタブを開く',
     'savedTabs.project.deleteAllItemName': 'このプロジェクトのタブ',

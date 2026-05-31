@@ -1,4 +1,5 @@
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibility'
 
 import { CardGroupActions } from '../shared/CardGroupActions'
 import { useCategoryGroup } from './CategoryGroupContext'
@@ -42,6 +43,7 @@ export const CategoryGroupActions = () => {
   const domainsToUse = reorder.isReorderMode ? reorder.tempDomainOrder : domains
   const urlsToOpen = domainsToUse.flatMap((group) => group.urls || [])
   const hasSearchQuery = searchQuery.trim().length > 0
+  const targetName = category.name
 
   /** カテゴリ内の全ドメインを削除する処理（確認済みの場合） */
   const executeDeleteAll = async () => {
@@ -81,13 +83,60 @@ export const CategoryGroupActions = () => {
     <CardGroupActions
       onManage={() => modal.setIsModalOpen(true)}
       manageLabel={t('savedTabs.manageParentCategories')}
+      manageAriaLabel={getScopedNounActionLabel(
+        t,
+        targetName,
+        t('savedTabs.manageParentCategories'),
+      )}
+      manageTooltip={getScopedNounActionLabel(
+        t,
+        targetName,
+        t('savedTabs.manageParentCategories'),
+      )}
       onOpenAll={urlsToOpen.length > 0 ? handleOpenAll : undefined}
+      openAllAriaLabel={getScopedNounActionLabel(
+        t,
+        targetName,
+        t('savedTabs.openAllTabs'),
+      )}
+      openAllTooltip={getScopedNounActionLabel(
+        t,
+        targetName,
+        t('savedTabs.openAllTabs'),
+      )}
       onDeleteAll={domainsToUse.length > 0 ? executeDeleteAll : undefined}
+      deleteAllAriaLabel={getScopedNounActionLabel(
+        t,
+        targetName,
+        t('savedTabs.deleteAllTabs'),
+      )}
+      deleteAllTooltip={getScopedNounActionLabel(
+        t,
+        targetName,
+        t('savedTabs.deleteAllTabs'),
+      )}
       onConfirmOpenAll={urlsToOpen.length >= 10}
       onConfirmDeleteAll={settings.confirmDeleteAll}
       openAllThreshold={10}
+      openAllCount={urlsToOpen.length}
+      openAllConfirmDescription={t(
+        'savedTabs.openAllConfirmDescriptionWithName',
+        undefined,
+        {
+          count: String(urlsToOpen.length),
+          name: targetName,
+        },
+      )}
       itemName={t('savedTabs.category.deleteAllItemName')}
       warningMessage={t('savedTabs.category.deleteAllWarning')}
+      deleteAllConfirmDescription={t(
+        'savedTabs.deleteAllConfirmDescriptionWithCount',
+        undefined,
+        {
+          categoryName: targetName,
+          count: String(urlsToOpen.length),
+        },
+      )}
     />
   )
 }

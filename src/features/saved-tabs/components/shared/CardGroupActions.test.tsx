@@ -148,4 +148,47 @@ describe('CardGroupActions', () => {
     fireEvent.click(confirmDeleteButton)
     expect(onDeleteAll).toHaveBeenCalledTimes(1)
   })
+
+  it('対象名付きの aria-label と確認文言を受け取れる', () => {
+    const onOpenAll = vi.fn()
+    const onDeleteAll = vi.fn()
+
+    render(
+      <CardGroupActions
+        onOpenAll={onOpenAll}
+        onDeleteAll={onDeleteAll}
+        onConfirmOpenAll
+        onConfirmDeleteAll
+        openAllAriaLabel='「未分類のドメイン」のすべてのタブを開く'
+        openAllTooltip='「未分類のドメイン」のすべてのタブを開く'
+        openAllConfirmDescription='「未分類のドメイン」のタブ3件を開きます。続行しますか？'
+        deleteAllAriaLabel='「未分類のドメイン」のすべてのタブを削除'
+        deleteAllTooltip='「未分類のドメイン」のすべてのタブを削除'
+        deleteAllConfirmDescription='「未分類のドメイン」のタブ3件をすべて削除します。この操作は元に戻せません。'
+        itemName='未分類のドメイン'
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを開く',
+      }),
+    )
+    expect(
+      screen.getByText(
+        '「未分類のドメイン」のタブ3件を開きます。続行しますか？',
+      ),
+    ).toBeTruthy()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを削除',
+      }),
+    )
+    expect(
+      screen.getByText(
+        '「未分類のドメイン」のタブ3件をすべて削除します。この操作は元に戻せません。',
+      ),
+    ).toBeTruthy()
+  })
 })

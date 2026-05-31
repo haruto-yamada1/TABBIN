@@ -17,6 +17,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
 import { SortableDomainCard } from '@/features/saved-tabs/components/SortableDomainCard'
+import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibility'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 type DndSensors = ComponentProps<typeof DndKitContext>['sensors']
@@ -137,6 +138,7 @@ export const DomainModeContainer = ({
     [handleMoveDomainToCategory, tabGroups],
   )
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
+  const uncategorizedTargetName = t('savedTabs.uncategorizedDomainsTitle')
   const uncategorizedUrlsToOpen = useMemo(
     /* v8 ignore next -- coverage-only defensive branch. */
     () => uncategorizedForDisplay.flatMap((group) => group.urls || []),
@@ -276,11 +278,48 @@ export const DomainModeContainer = ({
               <CardGroupActions
                 onOpenAll={handleOpenAllUncategorized}
                 onDeleteAll={handleDeleteAllUncategorized}
+                openAllAriaLabel={getScopedNounActionLabel(
+                  t,
+                  uncategorizedTargetName,
+                  t('savedTabs.openAllTabs'),
+                )}
+                openAllTooltip={getScopedNounActionLabel(
+                  t,
+                  uncategorizedTargetName,
+                  t('savedTabs.openAllTabs'),
+                )}
+                deleteAllAriaLabel={getScopedNounActionLabel(
+                  t,
+                  uncategorizedTargetName,
+                  t('savedTabs.deleteAllTabs'),
+                )}
+                deleteAllTooltip={getScopedNounActionLabel(
+                  t,
+                  uncategorizedTargetName,
+                  t('savedTabs.deleteAllTabs'),
+                )}
                 onConfirmOpenAll={displayedUncategorizedTabCount >= 10}
                 onConfirmDeleteAll={settings.confirmDeleteAll}
                 openAllThreshold={10}
+                openAllCount={displayedUncategorizedTabCount}
+                openAllConfirmDescription={t(
+                  'savedTabs.openAllConfirmDescriptionWithName',
+                  undefined,
+                  {
+                    count: String(displayedUncategorizedTabCount),
+                    name: uncategorizedTargetName,
+                  },
+                )}
                 itemName={t('savedTabs.uncategorizedDomainsTitle')}
                 warningMessage={t('savedTabs.domain.deleteAllWarning')}
+                deleteAllConfirmDescription={t(
+                  'savedTabs.deleteAllConfirmDescriptionWithCount',
+                  undefined,
+                  {
+                    categoryName: uncategorizedTargetName,
+                    count: String(displayedUncategorizedTabCount),
+                  },
+                )}
               />
             )}
 
