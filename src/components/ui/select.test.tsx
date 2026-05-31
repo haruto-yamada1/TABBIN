@@ -141,9 +141,7 @@ describe('select ui', () => {
     render(
       <Select>
         <SelectTrigger>
-          <SelectValue>
-            現在開いているドメインのタブをすべて保存
-          </SelectValue>
+          <SelectValue>現在開いているドメインのタブをすべて保存</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value='item-1'>Item 1</SelectItem>
