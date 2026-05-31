@@ -794,10 +794,10 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleDeleteGroup('group-1')
 
     expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-1')
-    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith([
-      'url-a',
-      'url-b',
-    ])
+    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
+      ['url-a', 'url-b'],
+      { throwOnError: true },
+    )
     expect(toast.info).toHaveBeenCalledWith(
       '削除した2件のタブを保存データに戻せます',
       expect.objectContaining({
@@ -896,10 +896,11 @@ describe('SavedTabsApp custom search', () => {
       'https://example.com/b',
     ])
 
-    expect(removeUrlIdsFromTabGroup).toHaveBeenCalledWith('group-1', [
-      'url-a',
-      'url-b',
-    ])
+    expect(removeUrlIdsFromTabGroup).toHaveBeenCalledWith(
+      'group-1',
+      ['url-a', 'url-b'],
+      { throwOnSyncError: true },
+    )
     expect(toast.info).toHaveBeenCalledWith(
       '削除した2件のタブを保存データに戻せます',
       expect.objectContaining({
@@ -974,6 +975,7 @@ describe('SavedTabsApp custom search', () => {
     expect(removeUrlFromTabGroup).toHaveBeenCalledWith(
       'group-1',
       'https://example.com/a',
+      { throwOnSyncError: true },
     )
     expect(toast.info).toHaveBeenCalledWith(
       '削除した1件のタブを保存データに戻せます',
@@ -1001,6 +1003,81 @@ describe('SavedTabsApp custom search', () => {
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
       customProjectsSnapshot,
     )
+  })
+
+  it('ドメイン内の単体タブ削除が失敗した場合は snapshot を復元して通知する', async () => {
+    const group: TabGroup = {
+      id: 'group-1',
+      domain: 'example.com',
+      urls: [{ id: 'url-a', url: 'https://example.com/a', title: 'A' }],
+      urlIds: ['url-a'],
+    }
+    const customProjectsSnapshot: CustomProject[] = [
+      {
+        id: 'project-1',
+        name: 'Project A',
+        urlIds: ['url-a'],
+        categories: [],
+        createdAt: 1,
+        updatedAt: 2,
+      },
+    ]
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.tabDataState.tabGroups = [group]
+    mocked.tabDataState.tabGroupsWithUrls = [group]
+
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => ({
+            customProjectOrder: ['project-1'],
+            customProjects: customProjectsSnapshot,
+            savedTabs: [group],
+          })),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: {
+        create: vi.fn(),
+      },
+      windows: {
+        create: vi.fn(),
+      },
+      runtime: {
+        getURL: vi.fn(),
+      },
+    } as unknown as typeof chrome
+    vi.mocked(removeUrlFromTabGroup).mockRejectedValueOnce(
+      new Error('delete failed'),
+    )
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleDeleteUrl: (groupId: string, url: string) => Promise<void>
+    }
+
+    await domainProps.handleDeleteUrl('group-1', 'https://example.com/a')
+
+    expect(chromeSetMock).toHaveBeenCalledWith({
+      customProjectOrder: ['project-1'],
+      customProjects: customProjectsSnapshot,
+      savedTabs: [group],
+    })
+    expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
+      customProjectsSnapshot,
+    )
+    expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
+    expect(toast.info).not.toHaveBeenCalled()
   })
 
   it('すべて開く後の自動削除は一致グループを一括更新し、グループごとの削除APIを繰り返さない', async () => {
@@ -1437,10 +1514,13 @@ describe('SavedTabsApp custom search', () => {
 
     expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-1')
     expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-2')
-    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(['url-a'])
-    expect(removeUrlsFromAllCustomProjects).toHaveBeenCalledWith([
-      'https://legacy.example.com/a',
-    ])
+    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(['url-a'], {
+      throwOnError: true,
+    })
+    expect(removeUrlsFromAllCustomProjects).toHaveBeenCalledWith(
+      ['https://legacy.example.com/a'],
+      { throwOnError: true },
+    )
     expect(chromeSetMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
@@ -1504,10 +1584,11 @@ describe('SavedTabsApp custom search', () => {
       'https://example.com/no-id',
     ])
 
-    expect(removeUrlsFromTabGroup).toHaveBeenCalledWith('group-1', [
-      'https://example.com/a',
-      'https://example.com/no-id',
-    ])
+    expect(removeUrlsFromTabGroup).toHaveBeenCalledWith(
+      'group-1',
+      ['https://example.com/a', 'https://example.com/no-id'],
+      { throwOnSyncError: true },
+    )
   })
 
   it('未分類ドメインの並び替えを確定/キャンセルできる', async () => {
@@ -2309,6 +2390,7 @@ describe('SavedTabsApp custom search', () => {
     expect(removeUrlFromTabGroup).toHaveBeenCalledWith(
       'group-1',
       'https://example.com/a',
+      { throwOnSyncError: true },
     )
   })
 
@@ -2574,12 +2656,13 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteGroup('group-1')
 
-    expect(removeUrlsFromAllCustomProjects).toHaveBeenCalledWith([
-      'https://legacy.example.com/a',
-    ])
+    expect(removeUrlsFromAllCustomProjects).toHaveBeenCalledWith(
+      ['https://legacy.example.com/a'],
+      { throwOnError: true },
+    )
   })
 
-  it('複数ドメイン削除の同期削除エラーは握りつぶして保存更新を続ける', async () => {
+  it('複数ドメイン削除の同期削除エラーでは snapshot を復元して通知する', async () => {
     const groupWithIds: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
@@ -2650,9 +2733,11 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleDeleteGroups(['group-1', 'group-2'])
 
     expect(chromeSetMock).toHaveBeenCalledWith({
-      savedTabs: [],
+      parentCategories: [],
+      savedTabs: [groupWithIds, legacyGroup],
     })
-    expect(toast.info).toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
+    expect(toast.info).not.toHaveBeenCalled()
   })
 
   it('ドメイン props のカテゴリ削除と未開始の並び替え確定は安全に処理する', async () => {

@@ -158,6 +158,62 @@ const createOpenedUrlsRestorePayload = (
     payload,
   }
 }
+
+const restoreOpenedUrlsSnapshot = async ({
+  refreshTabGroupsWithUrls,
+  setCategories,
+  setCustomProjects,
+  snapshot,
+}: {
+  refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
+  setCategories?: (categories: ParentCategory[]) => void
+  setCustomProjects: (projects: CustomProject[]) => void
+  snapshot: OpenedUrlsStorageSnapshot
+}) => {
+  const { customProjects, parentCategories, payload } =
+    createOpenedUrlsRestorePayload(snapshot)
+
+  await chrome.storage.local.set(payload)
+  /* v8 ignore next -- coverage-only defensive branch. */
+  if (customProjects) {
+    setCustomProjects(customProjects)
+  }
+  /* v8 ignore next -- coverage-only defensive branch. */
+  if (parentCategories && setCategories) {
+    setCategories(parentCategories)
+  }
+  await refreshTabGroupsWithUrls(payload.savedTabs)
+}
+
+const notifyDeleteFailure = async ({
+  refreshTabGroupsWithUrls,
+  setCategories,
+  setCustomProjects,
+  snapshot,
+  t,
+}: {
+  refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
+  setCategories?: (categories: ParentCategory[]) => void
+  setCustomProjects: (projects: CustomProject[]) => void
+  snapshot?: OpenedUrlsStorageSnapshot
+  t: (key: string, fallback?: string, values?: Record<string, string>) => string
+}) => {
+  if (snapshot) {
+    try {
+      await restoreOpenedUrlsSnapshot({
+        refreshTabGroupsWithUrls,
+        setCategories,
+        setCustomProjects,
+        snapshot,
+      })
+    } catch (restoreError) {
+      console.error('削除失敗後の保存データ復元に失敗しました:', restoreError)
+    }
+  }
+
+  toast.error(t('savedTabs.deleteError'))
+}
+
 const showOpenedUrlsUndoToast = ({
   count,
   messageKey = 'savedTabs.undo.removedAfterOpen',
@@ -184,19 +240,12 @@ const showOpenedUrlsUndoToast = ({
         label: t('common.undo'),
         onClick: async () => {
           try {
-            const { customProjects, parentCategories, payload } =
-              createOpenedUrlsRestorePayload(snapshot)
-
-            await chrome.storage.local.set(payload)
-            /* v8 ignore next -- coverage-only defensive branch. */
-            if (customProjects) {
-              setCustomProjects(customProjects)
-            }
-            /* v8 ignore next -- coverage-only defensive branch. */
-            if (parentCategories && setCategories) {
-              setCategories(parentCategories)
-            }
-            await refreshTabGroupsWithUrls(payload.savedTabs)
+            await restoreOpenedUrlsSnapshot({
+              refreshTabGroupsWithUrls,
+              setCategories,
+              setCustomProjects,
+              snapshot,
+            })
             toast.success(t('savedTabs.undo.restored'))
           } catch (error) {
             console.error('開いた後に削除したURLの復元に失敗しました:', error)
@@ -912,30 +961,28 @@ const useSavedTabsAppView = ({
   const removeUrlsFromCustomProjectsForGroup = async (
     groupToDelete: TabGroup,
   ) => {
-    try {
-      if (groupToDelete.urlIds && groupToDelete.urlIds.length > 0) {
-        try {
-          await removeUrlIdsFromAllCustomProjects(groupToDelete.urlIds)
-        } catch (error) {
-          console.error('URL ID一括同期削除エラー:', error)
-        }
-        return
-      }
+    if (groupToDelete.urlIds && groupToDelete.urlIds.length > 0) {
+      await removeUrlIdsFromAllCustomProjects(groupToDelete.urlIds, {
+        throwOnError: true,
+      })
+      return
+    }
 
-      const urlsToDelete = await getTabGroupUrls(groupToDelete)
-      /* v8 ignore next -- coverage-only defensive branch. */
-      if (urlsToDelete && urlsToDelete.length > 0) {
-        try {
-          await removeUrlsFromAllCustomProjects(
-            urlsToDelete.map((item) => item.url),
-          )
-        } catch (error) {
-          /* v8 ignore next -- coverage-only defensive branch. */
-          console.error('URL一括同期削除エラー:', error)
-        }
-      }
+    let urlsToDelete: Awaited<ReturnType<typeof getTabGroupUrls>> = []
+    try {
+      urlsToDelete = await getTabGroupUrls(groupToDelete)
     } catch (error) {
       console.error('URL一覧の取得または削除エラー:', error)
+      return
+    }
+    /* v8 ignore next -- coverage-only defensive branch. */
+    if (urlsToDelete && urlsToDelete.length > 0) {
+      await removeUrlsFromAllCustomProjects(
+        urlsToDelete.map((item) => item.url),
+        {
+          throwOnError: true,
+        },
+      )
     }
   }
 
@@ -945,47 +992,45 @@ const useSavedTabsAppView = ({
   const removeUrlsFromCustomProjectsForGroups = async (
     groupsToDelete: TabGroup[],
   ) => {
-    try {
-      const groupsWithUrlIds = groupsToDelete.filter(
-        (group) => group.urlIds && group.urlIds.length > 0,
-      )
-      const groupsWithoutUrlIds = groupsToDelete.filter(
-        (group) => !(group.urlIds && group.urlIds.length > 0),
-      )
-      const allUrlIdsToDelete = groupsWithUrlIds.flatMap(
-        /* v8 ignore next -- coverage-only defensive branch. */
-        (group) => group.urlIds || [],
-      )
+    const groupsWithUrlIds = groupsToDelete.filter(
+      (group) => group.urlIds && group.urlIds.length > 0,
+    )
+    const groupsWithoutUrlIds = groupsToDelete.filter(
+      (group) => !(group.urlIds && group.urlIds.length > 0),
+    )
+    const allUrlIdsToDelete = groupsWithUrlIds.flatMap(
       /* v8 ignore next -- coverage-only defensive branch. */
-      if (allUrlIdsToDelete.length > 0) {
-        try {
-          await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete)
-        } catch (error) {
-          console.error('URL ID一括同期削除エラー:', error)
-        }
-      }
+      (group) => group.urlIds || [],
+    )
+    /* v8 ignore next -- coverage-only defensive branch. */
+    if (allUrlIdsToDelete.length > 0) {
+      await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
+        throwOnError: true,
+      })
+    }
 
-      const urlsByGroup = await Promise.all(
+    let urlsByGroup: Awaited<ReturnType<typeof getTabGroupUrls>>[] = []
+    try {
+      urlsByGroup = await Promise.all(
         groupsWithoutUrlIds.map((group) => getTabGroupUrls(group)),
       )
-      const allUrlsToDelete = urlsByGroup.flatMap(
-        (urlsToDelete) =>
-          /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
-          (urlsToDelete || []).map((item) => item.url),
-        /* v8 ignore stop */
-      )
-
-      if (allUrlsToDelete.length > 0) {
-        try {
-          await removeUrlsFromAllCustomProjects(allUrlsToDelete)
-        } catch (error) {
-          console.error('URL一括同期削除エラー:', error)
-        }
-      }
     } catch (error) {
       /* v8 ignore next -- coverage-only defensive branch. */
       console.error('複数グループのURL取得エラー:', error)
+      return
+    }
+    const allUrlsToDelete = urlsByGroup.flatMap(
+      (urlsToDelete) =>
+        /* v8 ignore next -- coverage-only defensive branch. */
+        /* v8 ignore start -- coverage-only defensive branch. */
+        (urlsToDelete || []).map((item) => item.url),
+      /* v8 ignore stop */
+    )
+
+    if (allUrlsToDelete.length > 0) {
+      await removeUrlsFromAllCustomProjects(allUrlsToDelete, {
+        throwOnError: true,
+      })
     }
   }
 
@@ -1008,6 +1053,7 @@ const useSavedTabsAppView = ({
   // HandleDeleteGroup関数を修正
   const handleDeleteGroup = useCallback(
     async (id: string) => {
+      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
         // 削除前にカテゴリ設定と親カテゴリ情報を保存
         const storageResult =
@@ -1016,7 +1062,7 @@ const useSavedTabsAppView = ({
             'customProjects',
             'customProjectOrder',
           ])
-        const deleteSnapshot: OpenedUrlsStorageSnapshot = {
+        deleteSnapshot = {
           ...storageResult,
           parentCategories: categories,
         }
@@ -1063,8 +1109,14 @@ const useSavedTabsAppView = ({
         })
 
         console.log('グループ削除処理が完了しました')
-      } catch (error) {
-        console.error('グループ削除エラー:', error)
+      } catch {
+        await notifyDeleteFailure({
+          refreshTabGroupsWithUrls,
+          setCategories,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
       }
     },
     [
@@ -1082,6 +1134,7 @@ const useSavedTabsAppView = ({
       if (ids.length === 0) {
         return
       }
+      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
         const storageResult =
           await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
@@ -1089,7 +1142,7 @@ const useSavedTabsAppView = ({
             'customProjects',
             'customProjectOrder',
           ])
-        const deleteSnapshot: OpenedUrlsStorageSnapshot = {
+        deleteSnapshot = {
           ...storageResult,
           parentCategories: categories,
         }
@@ -1146,9 +1199,14 @@ const useSavedTabsAppView = ({
         })
 
         console.log('一括グループ削除処理が完了しました')
-      } catch (error) {
-        /* v8 ignore next -- coverage-only defensive branch. */
-        console.error('一括グループ削除エラー:', error)
+      } catch {
+        await notifyDeleteFailure({
+          refreshTabGroupsWithUrls,
+          setCategories,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
       }
     },
     [
@@ -1162,26 +1220,34 @@ const useSavedTabsAppView = ({
   )
   const handleDeleteUrl = useCallback(
     async (groupId: string, url: string) => {
+      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
-        const storageResult =
+        deleteSnapshot =
           await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
             'savedTabs',
             'customProjects',
             'customProjectOrder',
           ])
         // 新形式のURL削除関数を呼び出し
-        await removeUrlFromTabGroup(groupId, url)
+        await removeUrlFromTabGroup(groupId, url, {
+          throwOnSyncError: true,
+        })
         showOpenedUrlsUndoToast({
           count: 1,
           messageKey: 'savedTabs.undo.deletedTabs',
           refreshTabGroupsWithUrls,
           setCustomProjects,
-          snapshot: storageResult,
+          snapshot: deleteSnapshot,
           t,
         })
         console.log(`URL ${url} をグループ ${groupId} から削除しました`)
-      } catch (error) {
-        console.error('URL削除エラー:', error)
+      } catch {
+        await notifyDeleteFailure({
+          refreshTabGroupsWithUrls,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
       }
     },
     [refreshTabGroupsWithUrls, setCustomProjects, t],
@@ -1191,8 +1257,9 @@ const useSavedTabsAppView = ({
       if (urls.length === 0) {
         return
       }
+      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
-        const storageResult =
+        deleteSnapshot =
           await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
             'savedTabs',
             'customProjects',
@@ -1216,9 +1283,13 @@ const useSavedTabsAppView = ({
           .map((item) => item.id)
 
         if (resolvedUrlIds.length === urls.length) {
-          await removeUrlIdsFromTabGroup(groupId, resolvedUrlIds)
+          await removeUrlIdsFromTabGroup(groupId, resolvedUrlIds, {
+            throwOnSyncError: true,
+          })
         } else {
-          await removeUrlsFromTabGroup(groupId, urls)
+          await removeUrlsFromTabGroup(groupId, urls, {
+            throwOnSyncError: true,
+          })
         }
         console.log(
           `${urls.length}件のURLをグループ ${groupId} から削除しました`,
@@ -1228,12 +1299,16 @@ const useSavedTabsAppView = ({
           messageKey: 'savedTabs.undo.deletedTabs',
           refreshTabGroupsWithUrls,
           setCustomProjects,
-          snapshot: storageResult,
+          snapshot: deleteSnapshot,
           t,
         })
-      } catch (error) {
-        /* v8 ignore next -- coverage-only defensive branch. */
-        console.error('URL一括削除エラー:', error)
+      } catch {
+        await notifyDeleteFailure({
+          refreshTabGroupsWithUrls,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
       }
     },
     [refreshTabGroupsWithUrls, setCustomProjects, t, tabGroupsWithUrls],

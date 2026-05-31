@@ -757,10 +757,17 @@ const removeUrlsFromCustomProject = async (
   await syncDeleteToDomainMode(targetUrlsSet, urls.length)
 }
 
+interface DeleteSyncBehavior {
+  throwOnError?: boolean
+}
+
 /**
  * URLをすべてのカスタムプロジェクトから削除する関数
  */
-const removeUrlFromAllCustomProjects = async (url: string): Promise<void> => {
+const removeUrlFromAllCustomProjects = async (
+  url: string,
+  options: DeleteSyncBehavior = {},
+): Promise<void> => {
   try {
     await migrateToUrlsStorage()
     const projects = await getCustomProjects()
@@ -797,6 +804,9 @@ const removeUrlFromAllCustomProjects = async (url: string): Promise<void> => {
       'カスタムプロジェクトからのURL削除中にエラーが発生しました:',
       error,
     )
+    if (options.throwOnError) {
+      throw error
+    }
   }
 }
 
@@ -821,6 +831,7 @@ const processProjectsForBulkDelete = (
  */
 const removeUrlsFromAllCustomProjects = async (
   urls: string[],
+  options: DeleteSyncBehavior = {},
 ): Promise<void> => {
   if (urls.length === 0) {
     return
@@ -854,6 +865,9 @@ const removeUrlsFromAllCustomProjects = async (
       'カスタムプロジェクトからの複数URL削除中にエラーが発生しました:',
       error,
     )
+    if (options.throwOnError) {
+      throw error
+    }
   }
 } // カスタムプロジェクトを削除する関数
 
@@ -862,6 +876,7 @@ const removeUrlsFromAllCustomProjects = async (
  */
 const removeUrlIdsFromAllCustomProjects = async (
   urlIds: string[],
+  options: DeleteSyncBehavior = {},
 ): Promise<void> => {
   if (urlIds.length === 0) {
     return
@@ -884,6 +899,9 @@ const removeUrlIdsFromAllCustomProjects = async (
       'カスタムプロジェクトからの複数URL ID削除中にエラーが発生しました:',
       error,
     )
+    if (options.throwOnError) {
+      throw error
+    }
   }
 } // カスタムプロジェクトを削除する関数
 
