@@ -54,8 +54,3 @@ web-ext.config.ts
 
 # APM dependencies
 apm_modules/
-
-# Beads / Dolt files (added by bd init)
-.dolt/
-*.db
-.beads-credential-key

@@ -46,7 +46,7 @@ hook から自動起動しません。
 - `.agents/harness/runs/<run-id>/decision.json`: 必要な場合の最終レビュー判断。
 - `.agents/harness/runs/<run-id>/scorecard.json`: deterministic surface audit の
   カテゴリ別結果。
-- `.agents/harness/runs/<run-id>/learning.json`: follow-up、Beads issue、
+- `.agents/harness/runs/<run-id>/learning.json`: follow-up issue、
   `.apm/instructions` 追記候補。
 
 JSON ファイルは小さく保ち、`status`、`summary`、`updated_at`、`next_action`
@@ -83,7 +83,7 @@ JSON ファイルは小さく保ち、`status`、`summary`、`updated_at`、`nex
 - `bun run harness:repo-status`: ACTIVE run がない状態でも repo readiness、
   surface score、security finding 数、次アクションを表示します。
 - `bun run harness:learn`: Evaluator の指摘や governance event から `learning.json` を
-  更新し、候補ごとに Beads issue、`.apm/hooks`、`.apm/skills`、`.apm/prompts`、
+  更新し、候補ごとに follow-up issue、`.apm/hooks`、`.apm/skills`、`.apm/prompts`、
   `.apm/instructions` などの手動昇格先を明示します。
 - `bun run harness:profile`: agent / hook / command surface の現在の運用 profile を表示します。
 - `bun run harness:governance -- --kind <kind> --severity <level> --message <text>`:
@@ -172,7 +172,7 @@ config protection と first edit gate が `exit 2` でブロックできます�
 本当に必要な場合は `TABBIN_HARNESS_ALLOW_CONFIG_EDIT=1` を明示します。
 
 Evaluator が `changes_requested` または `blocked` を出した場合、
-`bun run harness:audit` で再発防止候補を確認します。自動で Beads issue や
+`bun run harness:audit` で再発防止候補を確認します。自動で follow-up issue や
 `.apm/instructions` へ追記せず、必要なものだけユーザー判断または後続作業で
 source of truth に反映してください。
 

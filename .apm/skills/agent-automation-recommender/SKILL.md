@@ -31,7 +31,7 @@ Codex、Cursor、Claude などで使える自動化を提案します。ファ�
 - 既存のエージェント設定: `AGENTS.md`、`CLAUDE.md`、`.apm/`、`.agents/`、
   `.cursor/`、`.codex/`、`.claude/`、`.github/instructions/`。
 - 自動化の既存資産: skill、prompt、hook、MCP、CI、テスト、品質チェック、
-  Beads や issue tracker。
+  issue tracker。
 - 制約: 日本語運用、source-of-truth 境界、生成 artifact、承認が必要な操作、
   セキュリティや secret への配慮。
 

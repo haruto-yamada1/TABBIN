@@ -42,7 +42,7 @@ Generator の作業を次の観点でレビューしてください。
 
 1. 元依頼を具体的な deliverable / success criteria に分解してください。
 2. prompt-to-artifact checklist を作り、各要件を実ファイル、diff、コマンド結果、
-   generated artifact、Beads / harness 状態へ対応付けてください。
+   generated artifact、issue tracker / harness 状態へ対応付けてください。
 3. passing test、manifest、verifier、green status は proxy signal として扱い、
    それが要件を本当に覆っているか確認してください。
 4. Tool Coverage、Context Efficiency、Quality Gates、Memory Persistence、
@@ -51,7 +51,7 @@ Generator の作業を次の観点でレビューしてください。
 5. capability eval、regression eval、code-based grader、model-based grader、
    human grader のどれが必要だったかを明示し、不足があれば指摘してください。
 6. `changes_requested` または `blocked` にする場合、再発防止が必要な指摘だけを
-   Beads issue または `.apm/instructions` への追記候補として判断できるよう、
+   follow-up issue または `.apm/instructions` への追記候補として判断できるよう、
    `findings[].summary` と `findings[].evidence` を具体化してください。
 7. 不確実な項目は approved にせず、`changes_requested` または `blocked` にしてください。
 

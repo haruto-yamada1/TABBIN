@@ -403,7 +403,7 @@ describe('buildHarnessAudit', () => {
     })
     writeJson(path.join(runDir, 'evaluator.json'), {
       status: 'blocked',
-      summary: 'Beads follow-up が未記録',
+      summary: 'follow-up issue が未記録',
       updated_at: '2026-05-20T00:00:00Z',
       next_action: 'follow-up 候補を確認する',
       findings: [
@@ -425,7 +425,9 @@ describe('buildHarnessAudit', () => {
 
     expect(audit).toContain('# ハーネス監査')
     expect(audit).toContain('src/lib/harness/harnessState.ts')
-    expect(audit).toContain('Beads または `.apm/instructions` への追記候補')
+    expect(audit).toContain(
+      'follow-up issue または `.apm/instructions` への追記候補',
+    )
     expect(audit).toContain('再発防止が必要')
   })
 
@@ -537,7 +539,7 @@ describe('high fidelity harness commands', () => {
     ).toContain('学習候補')
     expect(
       readFileSync(path.join(result.runDirectory, 'learning.json'), 'utf8'),
-    ).toContain('Beads issue または .apm/instructions')
+    ).toContain('follow-up issue または .apm/instructions')
 
     expect(validateHarnessRun({ projectRoot }).ok).toBe(true)
   })

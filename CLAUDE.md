@@ -164,7 +164,7 @@ hook から自動起動しません。
 - `.agents/harness/runs/<run-id>/decision.json`: 必要な場合の最終レビュー判断。
 - `.agents/harness/runs/<run-id>/scorecard.json`: deterministic surface audit の
   カテゴリ別結果。
-- `.agents/harness/runs/<run-id>/learning.json`: follow-up、Beads issue、
+- `.agents/harness/runs/<run-id>/learning.json`: follow-up issue、
   `.apm/instructions` 追記候補。
 
 JSON ファイルは小さく保ち、`status`、`summary`、`updated_at`、`next_action`
@@ -201,7 +201,7 @@ JSON ファイルは小さく保ち、`status`、`summary`、`updated_at`、`nex
 - `bun run harness:repo-status`: ACTIVE run がない状態でも repo readiness、
   surface score、security finding 数、次アクションを表示します。
 - `bun run harness:learn`: Evaluator の指摘や governance event から `learning.json` を
-  更新し、候補ごとに Beads issue、`.apm/hooks`、`.apm/skills`、`.apm/prompts`、
+  更新し、候補ごとに follow-up issue、`.apm/hooks`、`.apm/skills`、`.apm/prompts`、
   `.apm/instructions` などの手動昇格先を明示します。
 - `bun run harness:profile`: agent / hook / command surface の現在の運用 profile を表示します。
 - `bun run harness:governance -- --kind <kind> --severity <level> --message <text>`:
@@ -290,7 +290,7 @@ config protection と first edit gate が `exit 2` でブロックできます�
 本当に必要な場合は `TABBIN_HARNESS_ALLOW_CONFIG_EDIT=1` を明示します。
 
 Evaluator が `changes_requested` または `blocked` を出した場合、
-`bun run harness:audit` で再発防止候補を確認します。自動で Beads issue や
+`bun run harness:audit` で再発防止候補を確認します。自動で follow-up issue や
 `.apm/instructions` へ追記せず、必要なものだけユーザー判断または後続作業で
 source of truth に反映してください。
 
@@ -320,19 +320,15 @@ TypeScript + React を ES modules で使います。format は oxfmt（`.oxfmtrc
 
 React コンポーネントは `PascalCase.tsx`（例: `ImportExportSettings.tsx`）、ユーティリティや定数は `camelCase.ts`（例: `autoDeleteOptions.ts`）を使います。現実的な範囲で、テストは検証対象のコードの近くに置いてください。
 
-実装前に既存の helper、型、wrapper、コンポーネント、テスト fixture を探してください。探索には context-mode の `ctx_batch_execute` / `ctx_search`、`rg`、Serena の symbol search を優先し、既存の source of truth を確認してから新しい抽象を追加します。KISS / DRY / YAGNI は守りますが、TABBIN 固有の WXT、APM、Beads、完了ゲートの規則を汎用ルールで置き換えないでください。
+実装前に既存の helper、型、wrapper、コンポーネント、テスト fixture を探してください。探索には context-mode の `ctx_batch_execute` / `ctx_search`、`rg`、Serena の symbol search を優先し、既存の source of truth を確認してから新しい抽象を追加します。KISS / DRY / YAGNI は守りますが、TABBIN 固有の WXT、APM、完了ゲートの規則を汎用ルールで置き換えないでください。
 
 ## テストガイドライン
 主要なテストランナーは Vitest（`vitest.ci.config.ts`）です。E2E フローは `e2e/` の Playwright が担当します。unit / integration テストには `*.test.ts(x)`、Playwright テストには `*.spec.ts` を使います。Vitest 設定上の明示的な coverage 閾値はありませんが、このリポジトリで AI / Codex が完了を報告するには、`bun run test:coverage` が coverage 100% を報告する必要があります。自明でない変更では、PR を開く前に regression test を追加または調整してください。
 
-## Beads issue 管理
-このプロジェクトでは、永続的な issue tracking に Beads（`bd`）を使います。ワークフローのガイダンスには `.agents/skills/beads/SKILL.md` の `beads` skill を使い、利用可能な場合は issue 操作に `bd` CLI を使ってください。
+## タスク管理
+永続的なタスク管理は GitHub issue などリポジトリ外の issue tracker を使ってください。ローカルの Markdown TODO リストや生成 artifact を source of truth にしないでください。
 
-Beads のコンテキストが存在しない、または古い場合は `bd prime` を実行します。着手可能な作業の確認には `bd ready`、issue の確認には `bd show <id>`、作業の claim には `bd update <id> --claim` を使います。`bd close <id>` は作業が実際に完了してからのみ使ってください。
-
-共有プロジェクトタスク、ブロッカー、依存関係、発見した follow-up 作業、handoff 状態には Beads を使ってください。Markdown の TODO リストを source of truth にしないでください。永続的なプロジェクトメモリは `bd remember` で Beads に残してください。
-
-作業セッションを終えるときは、残った follow-up 作業の issue を作成し、コードが変わった場合は必須 quality gate を実行し、Beads issue の状態を更新し、完了したブランチを push してください。`git push` が成功し、`git status` でブランチが origin と同期済みであることを確認するまで、作業は完了ではありません。push や Beads 操作がローカルツールや認証情報でブロックされた場合は、そのブロッカーを明示的に報告してください。
+作業セッションを終えるときは、残った follow-up 作業を issue として残し、コードが変わった場合は必須 quality gate を実行し、完了したブランチを push してください。`git push` が成功し、`git status` でブランチが origin と同期済みであることを確認するまで、作業は完了ではありません。issue tracker 操作や push がローカルツールや認証情報でブロックされた場合は、そのブロッカーを明示的に報告してください。
 
 ## Commit と Pull Request のガイドライン
 最近の履歴では、簡潔な件名（日本語が多い）と merge commit が使われています。1 つの変更を説明する、短く命令形の commit message を優先してください。PR は `main` を target にし、`変更内容` に変更点をまとめ、チェックリストでローカル検証（`ローカル環境でエラーになっていない`）を確認してください。関連 issue をリンクし、UI 変更では screenshot / GIF を含めてください。

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Beads"
-  short_description: "bd による project task tracking"
-  default_prompt: "$beads を使って ready work を確認し、永続的な project task を管理してください。"

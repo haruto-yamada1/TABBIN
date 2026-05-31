@@ -15,7 +15,7 @@ description: 完了前にハーネス run、変更ファイル、証跡、follow
 - Orchestrator の plan と実際の変更ファイルが対応しているか。
 - Generator の検証証跡が十分か。
 - Evaluator が必要な作業で `evaluator.json` がない、または `approved` でない状態になっていないか。
-- `changes_requested` / `blocked` の再発防止候補が Beads または `.apm/instructions` に残すべきものか。
+- `changes_requested` / `blocked` の再発防止候補が follow-up issue または `.apm/instructions` に残すべきものか。
 - score 付き deterministic scorecard の `overall_score`、failed category、
   Top 3 actions が妥当か。
 - agent surface security finding が残っている場合、完了前に直すべきものか、
