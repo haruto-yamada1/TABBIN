@@ -19,6 +19,10 @@ type ResolvedTabGroupUrl = UrlRecord & {
   subCategory?: string
 }
 
+type DeleteSyncOptions = {
+  throwOnSyncError?: boolean
+}
+
 const resolveTabGroupUrlsFromMap = (
   tabGroup: TabGroup,
   urlRecordMap: ReadonlyMap<string, UrlRecord>,
@@ -499,12 +503,14 @@ const reorderTabGroupUrls = async (
 const removeUrlFromTabGroup = async (
   groupId: string,
   url: string,
+  options: DeleteSyncOptions = {},
 ): Promise<void> => {
   const tabGroupState = await getMigratedTabGroupById(groupId)
   if (!tabGroupState) {
     return
   }
   const { savedTabs, groupIndex, group } = tabGroupState
+  const rollbackSavedTabs = structuredClone(savedTabs)
 
   // 新形式のみサポート: URLIDsからURLを削除
   /* v8 ignore next -- coverage-only defensive branch. */
@@ -538,12 +544,20 @@ const removeUrlFromTabGroup = async (
 
       // 同期してカスタムプロジェクトからも削除
       try {
-        await removeUrlFromAllCustomProjects(url)
+        if (options.throwOnSyncError) {
+          await removeUrlFromAllCustomProjects(url, {
+            throwOnError: true,
+          })
+        } else {
+          await removeUrlFromAllCustomProjects(url)
+        }
       } catch (error) {
-        console.error(
-          'カスタムプロジェクトからのURL同期削除に失敗しました:',
-          error,
-        )
+        if (options.throwOnSyncError) {
+          await chrome.storage.local.set({
+            savedTabs: rollbackSavedTabs,
+          })
+          throw error
+        }
       }
     }
   }
@@ -586,6 +600,8 @@ const persistBulkDeleteForGroup = async ({
   idsToDelete,
   groupId,
   deletedCount,
+  rollbackSavedTabs,
+  throwOnSyncError = false,
 }: {
   savedTabs: TabGroup[]
   groupIndex: number
@@ -593,6 +609,8 @@ const persistBulkDeleteForGroup = async ({
   idsToDelete: Set<string>
   groupId: string
   deletedCount: number
+  rollbackSavedTabs: TabGroup[]
+  throwOnSyncError?: boolean
 }): Promise<void> => {
   const isGroupEmpty = processTabGroupForBulkDelete(group, idsToDelete)
 
@@ -611,12 +629,20 @@ const persistBulkDeleteForGroup = async ({
   console.log(`${deletedCount}件のURLをグループ ${groupId} から削除しました`)
 
   try {
-    await removeUrlIdsFromAllCustomProjects([...idsToDelete])
+    if (throwOnSyncError) {
+      await removeUrlIdsFromAllCustomProjects([...idsToDelete], {
+        throwOnError: true,
+      })
+    } else {
+      await removeUrlIdsFromAllCustomProjects([...idsToDelete])
+    }
   } catch (error) {
-    console.error(
-      'カスタムプロジェクトからの複数URL ID同期削除に失敗しました:',
-      error,
-    )
+    if (throwOnSyncError) {
+      await chrome.storage.local.set({
+        savedTabs: rollbackSavedTabs,
+      })
+      throw error
+    }
   }
 }
 
@@ -626,6 +652,7 @@ const persistBulkDeleteForGroup = async ({
 const removeUrlIdsFromTabGroup = async (
   groupId: string,
   urlIds: string[],
+  options: DeleteSyncOptions = {},
 ): Promise<void> => {
   if (urlIds.length === 0) {
     return
@@ -640,6 +667,7 @@ const removeUrlIdsFromTabGroup = async (
     return
   }
 
+  const rollbackSavedTabs = structuredClone(savedTabs)
   const group = savedTabs[groupIndex]
   if (!(group.urlIds && group.urlIds.length > 0)) {
     return
@@ -652,7 +680,9 @@ const removeUrlIdsFromTabGroup = async (
     groupId,
     groupIndex,
     idsToDelete,
+    rollbackSavedTabs,
     savedTabs,
+    throwOnSyncError: options.throwOnSyncError,
   })
 }
 
@@ -662,6 +692,7 @@ const removeUrlIdsFromTabGroup = async (
 const removeUrlsFromTabGroup = async (
   groupId: string,
   urls: string[],
+  options: DeleteSyncOptions = {},
 ): Promise<void> => {
   if (urls.length === 0) {
     return
@@ -676,6 +707,7 @@ const removeUrlsFromTabGroup = async (
   if (groupIndex === -1) {
     return
   }
+  const rollbackSavedTabs = structuredClone(savedTabs)
   const group = savedTabs[groupIndex]
   const targetUrlsSet = new Set(urls)
 
@@ -695,7 +727,9 @@ const removeUrlsFromTabGroup = async (
         groupId,
         groupIndex,
         idsToDelete,
+        rollbackSavedTabs,
         savedTabs,
+        throwOnSyncError: options.throwOnSyncError,
       })
     }
   }

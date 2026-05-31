@@ -582,6 +582,7 @@ const messages = {
       'Delete all tabs in "{{categoryName}}". This action cannot be undone.',
     'savedTabs.deleteAllConfirmDescriptionWithCount':
       'Delete all {{count}} tabs in "{{categoryName}}". This action cannot be undone.',
+    'savedTabs.deleteError': 'Failed to delete',
     'savedTabs.deleteAllConfirmTitle': 'Delete all tabs?',
     'savedTabs.deleteAllDefaultWarning':
       'Delete all items. This action cannot be undone.',
@@ -1384,6 +1385,7 @@ const messages = {
       '「{{categoryName}}」のタブをすべて削除します。この操作は元に戻せません。',
     'savedTabs.deleteAllConfirmDescriptionWithCount':
       '「{{categoryName}}」のタブ{{count}}件をすべて削除します。この操作は元に戻せません。',
+    'savedTabs.deleteError': '削除に失敗しました',
     'savedTabs.deleteAllConfirmTitle': 'タブをすべて削除しますか？',
     'savedTabs.deleteAllDefaultWarning':
       'すべての項目を削除します。この操作は元に戻せません。',

@@ -575,6 +575,147 @@ describe('tabs storage', () => {
     ])
   })
 
+  it('removeUrlFromTabGroup は rollback モードなら同期失敗時に savedTabs を復元して throw する', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          urlIds: ['url-1', 'url-2'],
+          urlSubCategories: {
+            'url-1': 'docs',
+          },
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getUrlRecordsByIdsMock.mockResolvedValue([
+      {
+        id: 'url-1',
+        savedAt: 1,
+        title: 'One',
+        url: 'https://example.com/one',
+      },
+      {
+        id: 'url-2',
+        savedAt: 2,
+        title: 'Two',
+        url: 'https://example.com/two',
+      },
+    ])
+    mocks.removeUrlFromAllCustomProjectsMock.mockRejectedValueOnce(
+      new Error('sync failed'),
+    )
+
+    const { removeUrlFromTabGroup } = await loadTabsModule()
+
+    await expect(
+      removeUrlFromTabGroup('group-1', 'https://example.com/one', {
+        throwOnSyncError: true,
+      }),
+    ).rejects.toThrow('sync failed')
+
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-1', 'url-2'],
+        urlSubCategories: {
+          'url-1': 'docs',
+        },
+      },
+    ])
+  })
+
+  it('bulk delete APIs は rollback モードなら同期失敗時に savedTabs を復元して throw する', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          urlIds: ['url-1', 'url-2'],
+          urlSubCategories: {
+            'url-1': 'docs',
+          },
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getUrlRecordsByIdsMock.mockResolvedValue([
+      {
+        id: 'url-1',
+        savedAt: 1,
+        title: 'One',
+        url: 'https://example.com/one',
+      },
+      {
+        id: 'url-2',
+        savedAt: 2,
+        title: 'Two',
+        url: 'https://example.com/two',
+      },
+    ])
+
+    const { removeUrlIdsFromTabGroup, removeUrlsFromTabGroup } =
+      await loadTabsModule()
+
+    mocks.removeUrlIdsFromAllCustomProjectsMock.mockRejectedValueOnce(
+      new Error('sync by ids failed'),
+    )
+    await expect(
+      removeUrlIdsFromTabGroup('group-1', ['url-1'], {
+        throwOnSyncError: true,
+      }),
+    ).rejects.toThrow('sync by ids failed')
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-1', 'url-2'],
+        urlSubCategories: {
+          'url-1': 'docs',
+        },
+      },
+    ])
+
+    mocks.removeUrlIdsFromAllCustomProjectsMock.mockRejectedValueOnce(
+      new Error('sync by urls failed'),
+    )
+    await expect(
+      removeUrlsFromTabGroup('group-1', ['https://example.com/two'], {
+        throwOnSyncError: true,
+      }),
+    ).rejects.toThrow('sync by urls failed')
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-1', 'url-2'],
+        urlSubCategories: {
+          'url-1': 'docs',
+        },
+      },
+    ])
+  })
+
   it('reorder/delete APIs は未知グループや最後のURL削除を安全に扱う', async () => {
     const state = {
       savedTabs: [
