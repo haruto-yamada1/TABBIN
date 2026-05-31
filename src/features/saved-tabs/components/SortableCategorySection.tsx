@@ -23,6 +23,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import {
+  getScopedNounActionLabel,
+  getScopedObjectActionLabel,
+  getScopedSortLabel,
+} from '@/features/saved-tabs/lib/accessibility'
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
 
@@ -134,20 +139,37 @@ const useSortableCategorySectionView = ({
   const sectionClassName = isDragging
     ? 'category-section mb-1 rounded-md bg-muted shadow-lg'
     : 'category-section mb-1'
-  const collapseTooltipText = getCollapseTooltipText(
-    isReorderMode,
-    isCollapsed,
-    t,
-  )
   const sortLabelMap: Record<SortOrder, string> = {
     asc: t('savedTabs.sort.asc'),
     default: t('savedTabs.sort.default'),
     desc: t('savedTabs.sort.desc'),
   }
-  const sortLabel = sortLabelMap[sortOrder]
+  const sortLabel = getScopedSortLabel(
+    t,
+    displayedCategoryName,
+    sortLabelMap[sortOrder],
+  )
   const SortIcon = sortIconMap[sortOrder]
   const CollapseIcon = getCollapseIcon(isCollapsed)
   const collapseButtonClassName = getCollapseButtonClassName(isReorderMode)
+  const collapseButtonLabel = getScopedObjectActionLabel(
+    t,
+    displayedCategoryName,
+    isCollapsed ? t('savedTabs.expand') : t('savedTabs.collapse'),
+  )
+  const collapseTooltipText = isReorderMode
+    ? getCollapseTooltipText(isReorderMode, isCollapsed, t)
+    : collapseButtonLabel
+  const openAllTabsLabel = getScopedNounActionLabel(
+    t,
+    displayedCategoryName,
+    t('savedTabs.openAllTabs'),
+  )
+  const deleteAllTabsLabel = getScopedNounActionLabel(
+    t,
+    displayedCategoryName,
+    t('savedTabs.deleteAllTabs'),
+  )
 
   const handleToggleCollapse = (event: React.MouseEvent) => {
     event.stopPropagation()
@@ -246,9 +268,7 @@ const useSortableCategorySectionView = ({
                 size='sm'
                 onClick={handleToggleCollapse}
                 className={collapseButtonClassName}
-                aria-label={
-                  isCollapsed ? t('savedTabs.expand') : t('savedTabs.collapse')
-                }
+                aria-label={collapseButtonLabel}
                 disabled={isReorderMode}
               >
                 <CollapseIcon size={14} />
@@ -303,10 +323,12 @@ const useSortableCategorySectionView = ({
             isDeleting={isDeleting}
             showDeleteAction={Boolean(handleDeleteAllTabs)}
             openLabel={t('savedTabs.openAll')}
-            openTooltip={t('savedTabs.openAllTabs')}
+            openAriaLabel={openAllTabsLabel}
+            openTooltip={openAllTabsLabel}
             deleteLabel={t('savedTabs.deleteAll')}
             deletingLabel={t('savedTabs.deletingAll')}
-            deleteTooltip={t('savedTabs.deleteAllTabs')}
+            deleteAriaLabel={deleteAllTabsLabel}
+            deleteTooltip={deleteAllTabsLabel}
             onOpenAll={handleOpenAllClick}
             onDeleteAll={onDeleteAllTabs}
           />
@@ -365,8 +387,9 @@ const useSortableCategorySectionView = ({
               {t('savedTabs.sortableCategory.bulkOpenTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t('savedTabs.openAllConfirmDescription', undefined, {
-                count: '10',
+              {t('savedTabs.openAllConfirmDescriptionWithName', undefined, {
+                count: String(urlCount),
+                name: displayedCategoryName,
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>

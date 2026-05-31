@@ -31,6 +31,9 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
     language: 'ja',
     t: (key: string, _fallback?: string, values?: Record<string, string>) => {
       const messages = {
+        'savedTabs.accessibility.nounAction': '「{{target}}」の{{action}}',
+        'savedTabs.accessibility.objectAction': '「{{target}}」を{{action}}',
+        'savedTabs.accessibility.sortState': '「{{target}}」の並び順: {{sort}}',
         'common.cancel': 'キャンセル',
         'common.confirm': '確定',
         'common.delete': '削除',
@@ -46,6 +49,8 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'savedTabs.openAllTabs': 'すべてのタブを開く',
         'savedTabs.openAllConfirmDescription':
           '10件以上のタブを開こうとしています。続行しますか？',
+        'savedTabs.openAllConfirmDescriptionWithName':
+          '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
         'savedTabs.deleteAll': 'すべて削除',
         'savedTabs.deleteAllTabs': 'すべてのタブを削除',
         'savedTabs.deletingAll': '削除中...',
@@ -232,32 +237,60 @@ describe('SortableCategorySection', () => {
     )
 
     expect(screen.getByText('未分類')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '折りたたむ' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: '「未分類」を折りたたむ' }),
+    ).toBeTruthy()
     expect(screen.getByTestId('category-section').textContent).toBe(
       'https://b.com,https://a.com,https://c.com',
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'デフォルト' }))
-    expect(screen.getByRole('button', { name: '保存日時の昇順' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
+    )
+    expect(
+      screen.getByRole('button', {
+        name: '「未分類」の並び順: 保存日時の昇順',
+      }),
+    ).toBeTruthy()
     expect(screen.getByTestId('category-section').textContent).toBe(
       'https://c.com,https://a.com,https://b.com',
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '保存日時の昇順' }))
-    expect(screen.getByRole('button', { name: '保存日時の降順' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類」の並び順: 保存日時の昇順',
+      }),
+    )
+    expect(
+      screen.getByRole('button', {
+        name: '「未分類」の並び順: 保存日時の降順',
+      }),
+    ).toBeTruthy()
     expect(screen.getByTestId('category-section').textContent).toBe(
       'https://b.com,https://a.com,https://c.com',
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '保存日時の降順' }))
-    expect(screen.getByRole('button', { name: 'デフォルト' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類」の並び順: 保存日時の降順',
+      }),
+    )
+    expect(
+      screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
+    ).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: '折りたたむ' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: '「未分類」を折りたたむ' }),
+    )
     expect(screen.queryByTestId('category-section')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: '展開' }))
+    fireEvent.click(screen.getByRole('button', { name: '「未分類」を展開' }))
     expect(screen.getByTestId('category-section')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて開く/ }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類」のすべてのタブを開く',
+      }),
+    )
     expect(handleOpenAllTabs).toHaveBeenCalledWith(
       expect.arrayContaining([
         { url: 'https://b.com', title: 'B', savedAt: 2 },
@@ -280,7 +313,11 @@ describe('SortableCategorySection', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて開く/ }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類」のすべてのタブを開く',
+      }),
+    )
     fireEvent.click(await screen.findByRole('button', { name: '開く' }))
 
     expect(handleOpenAllTabs).toHaveBeenCalledWith(
@@ -302,7 +339,11 @@ describe('SortableCategorySection', () => {
     )
 
     expect(screen.getByText('0')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /すべて開く/ }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類」のすべてのタブを開く',
+      }),
+    )
     expect(handleOpenAllTabs).toHaveBeenCalledWith([])
 
     rerender(
@@ -315,8 +356,14 @@ describe('SortableCategorySection', () => {
         })}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'デフォルト' }))
-    expect(screen.getByRole('button', { name: '保存日時の昇順' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
+    )
+    expect(
+      screen.getByRole('button', {
+        name: '「未分類」の並び順: 保存日時の昇順',
+      }),
+    ).toBeTruthy()
   })
 
   it('削除ボタンは handler がある時のみ描画され、confirmDeleteAll=false では即時削除し二重実行を防ぐ', async () => {
@@ -328,7 +375,9 @@ describe('SortableCategorySection', () => {
     )
     const { rerender } = render(<SortableCategorySection {...createProps()} />)
 
-    expect(screen.queryByRole('button', { name: /すべて削除/ })).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: '「未分類」のすべてのタブを削除' }),
+    ).toBeNull()
 
     rerender(
       <SortableCategorySection
@@ -338,16 +387,33 @@ describe('SortableCategorySection', () => {
       />,
     )
 
-    const deleteButton = screen.getByRole('button', { name: /すべて削除/ })
+    const deleteButton = screen.getByRole('button', {
+      name: '「未分類」のすべてのタブを削除',
+    })
     fireEvent.click(deleteButton)
     expect(handleDeleteAllTabs).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('button', { name: /削除中/ })).toBeTruthy()
+    expect(screen.getByText('削除中...')).toBeTruthy()
+    expect(
+      screen
+        .getByRole('button', {
+          name: '「未分類」のすべてのタブを削除',
+        })
+        .hasAttribute('disabled'),
+    ).toBe(true)
 
-    fireEvent.click(screen.getByRole('button', { name: /削除中/ }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「未分類」のすべてのタブを削除',
+      }),
+    )
     expect(handleDeleteAllTabs).toHaveBeenCalledTimes(1)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /すべて削除/ })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: '「未分類」のすべてのタブを削除',
+        }),
+      ).toBeTruthy()
     })
   })
 
@@ -366,7 +432,11 @@ describe('SortableCategorySection', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /すべて削除/ }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「news」のすべてのタブを削除',
+      }),
+    )
     expect(screen.getByText('タブを削除')).toBeTruthy()
     fireEvent.click(await screen.findByRole('button', { name: '削除' }))
 
@@ -385,7 +455,9 @@ describe('SortableCategorySection', () => {
 
     expect(screen.getByTestId('category-section')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: '折りたたむ' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: '「未分類」を折りたたむ' }),
+    )
     expect(screen.queryByTestId('category-section')).toBeNull()
 
     await act(async () => {
@@ -426,14 +498,22 @@ describe('SortableCategorySection', () => {
       />,
     )
 
-    const collapseButton = screen.getByRole('button', { name: '展開' })
+    const collapseButton = screen.getByRole('button', {
+      name: '「未分類」を展開',
+    })
     expect(collapseButton.hasAttribute('disabled')).toBe(true)
     expect(screen.queryByTestId('category-section')).toBeNull()
     expect(container.querySelector('.top-20')).toBeTruthy()
     expect(container.innerHTML.includes('shadow-lg')).toBe(true)
 
-    fireEvent.click(screen.getByRole('button', { name: 'デフォルト' }))
-    expect(screen.getByRole('button', { name: '保存日時の昇順' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
+    )
+    expect(
+      screen.getByRole('button', {
+        name: '「未分類」の並び順: 保存日時の昇順',
+      }),
+    ).toBeTruthy()
 
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()

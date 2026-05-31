@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibility'
 import { removeUrlsFromTabGroup } from '@/lib/storage/tabs'
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
@@ -119,10 +120,28 @@ export const SortableCategorySection = ({
             isDeleting={isDeleting}
             showDeleteAction={Boolean(handleDeleteAllTabs)}
             openLabel={t('savedTabs.openAll')}
-            openTooltip={t('savedTabs.openAllTabs')}
+            openAriaLabel={getScopedNounActionLabel(
+              t,
+              categoryDisplayName,
+              t('savedTabs.openAllTabs'),
+            )}
+            openTooltip={getScopedNounActionLabel(
+              t,
+              categoryDisplayName,
+              t('savedTabs.openAllTabs'),
+            )}
             deleteLabel={t('savedTabs.deleteAll')}
             deletingLabel={t('savedTabs.deletingAll')}
-            deleteTooltip={t('savedTabs.deleteAllTabs')}
+            deleteAriaLabel={getScopedNounActionLabel(
+              t,
+              categoryDisplayName,
+              t('savedTabs.deleteAllTabs'),
+            )}
+            deleteTooltip={getScopedNounActionLabel(
+              t,
+              categoryDisplayName,
+              t('savedTabs.deleteAllTabs'),
+            )}
             onOpenAll={(e) => {
               if (urlCount >= 10) {
                 e.stopPropagation()

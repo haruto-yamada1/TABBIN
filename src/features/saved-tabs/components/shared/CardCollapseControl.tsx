@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { getScopedObjectActionLabel } from '@/features/saved-tabs/lib/accessibility'
 
 import { SavedTabsResponsiveTooltipContent } from './SavedTabsResponsive'
 
@@ -18,6 +19,8 @@ interface CardCollapseControlProps {
   isDisabled?: boolean
   /** 無効化時のツールチップメッセージ */
   disabledMessage?: string
+  /** アクセシブルネームに含める対象名 */
+  targetName?: string
   /** ポインターダウン時の追加ハンドラ */
   onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void
 }
@@ -32,14 +35,25 @@ export const CardCollapseControl = ({
   setUserCollapsedState,
   isDisabled = false,
   disabledMessage,
+  targetName,
   onPointerDown,
 }: CardCollapseControlProps) => {
   const { t } = useI18n()
   const resolvedDisabledMessage =
     disabledMessage ?? t('savedTabs.reorder.disabled')
+  const collapseLabel = getScopedObjectActionLabel(
+    t,
+    targetName,
+    t('savedTabs.collapse'),
+  )
+  const expandLabel = getScopedObjectActionLabel(
+    t,
+    targetName,
+    t('savedTabs.expand'),
+  )
   let tooltipLabel = resolvedDisabledMessage
   if (!isDisabled) {
-    tooltipLabel = isCollapsed ? t('savedTabs.expand') : t('savedTabs.collapse')
+    tooltipLabel = isCollapsed ? expandLabel : collapseLabel
   }
 
   return (
@@ -58,9 +72,7 @@ export const CardCollapseControl = ({
           className={`flex items-center gap-1 ${
             isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
           }`}
-          aria-label={
-            isCollapsed ? t('savedTabs.expand') : t('savedTabs.collapse')
-          }
+          aria-label={isCollapsed ? expandLabel : collapseLabel}
           disabled={isDisabled}
         >
           {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}

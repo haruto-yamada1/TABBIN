@@ -8,7 +8,7 @@ import { useDomainCard } from './DomainCardContext'
 /** DomainCard の折りたたみ切り替えボタン */
 export const DomainCardCollapseControl = () => {
   const { t } = useI18n()
-  const { state, isReorderMode } = useDomainCard()
+  const { state, isReorderMode, group } = useDomainCard()
   const { collapse } = state
 
   return (
@@ -18,19 +18,21 @@ export const DomainCardCollapseControl = () => {
       setUserCollapsedState={collapse.setUserCollapsedState}
       isDisabled={isReorderMode}
       disabledMessage={t('savedTabs.reorder.disabled')}
+      targetName={group.domain}
     />
   )
 }
 
 /** DomainCard のソート順切り替えボタン */
 export const DomainCardSortControl = () => {
-  const { state } = useDomainCard()
+  const { state, group } = useDomainCard()
   const { sort } = state
 
   return (
     <CardSortControl
       sortOrder={sort.sortOrder}
       setSortOrder={sort.setSortOrder}
+      targetName={group.domain}
     />
   )
 }

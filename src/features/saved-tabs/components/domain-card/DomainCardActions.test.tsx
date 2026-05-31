@@ -13,15 +13,18 @@ const { useDomainCardMock } = vi.hoisted(() => ({
 }))
 
 const domainCardMessages: Record<string, string> = {
+  'savedTabs.accessibility.nounAction': '「{{target}}」の{{action}}',
   'savedTabs.manageSubcategories': '子カテゴリ管理',
   'savedTabs.openAll': 'すべて開く',
   'savedTabs.openAllTabs': 'すべてのタブを開く',
   'savedTabs.deleteAll': 'すべて削除',
   'savedTabs.deleteAllTabs': 'すべてのタブを削除',
   'savedTabs.openAllConfirmTitle': '開く確認',
-  'savedTabs.openAllConfirmDescription': '開く確認本文',
+  'savedTabs.openAllConfirmDescriptionWithName':
+    '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
   'savedTabs.deleteAllConfirmTitle': '削除確認',
-  'savedTabs.domain.deleteAllWarning': 'ドメイン配下を削除します',
+  'savedTabs.deleteAllConfirmDescriptionWithCount':
+    '「{{categoryName}}」のタブ{{count}}件をすべて削除します。この操作は元に戻せません。',
   'common.cancel': 'キャンセル',
   'common.open': '開く',
   'common.delete': '削除',
@@ -78,7 +81,13 @@ vi.mock('@/components/ui/alert-dialog', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
-    t: (key: string) => domainCardMessages[key] ?? key,
+    t: (key: string, _fallback?: string, values?: Record<string, string>) => {
+      const template = domainCardMessages[key] ?? key
+      return template.replaceAll(
+        /\{\{(\w+)\}\}/g,
+        (_, token) => values?.[token] ?? '',
+      )
+    },
   }),
 }))
 
@@ -140,7 +149,11 @@ describe('DomainCardActions', () => {
 
     render(<DomainCardActions />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべてのタブを削除' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを削除',
+      }),
+    )
 
     await waitFor(() => {
       expect(handleDeleteUrls).toHaveBeenCalledWith('group-1', [
@@ -189,9 +202,65 @@ describe('DomainCardActions', () => {
 
     render(<DomainCardActions />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべてのタブを削除' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを削除',
+      }),
+    )
 
     expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
     expect(handleDeleteUrls).not.toHaveBeenCalled()
+  })
+
+  it('対象名付きの aria-label を各操作ボタンへ付与する', () => {
+    useDomainCardMock.mockReturnValue({
+      state: {
+        keywordModal: {
+          showKeywordModal: false,
+          setShowKeywordModal: vi.fn(),
+          handleCloseKeywordModal: vi.fn(),
+        },
+        parentCategories: {
+          categories: [],
+          handleCreateParentCategory: vi.fn(),
+          handleAssignToParentCategory: vi.fn(),
+          handleUpdateParentCategories: vi.fn(),
+        },
+        categoryActions: {
+          handleCategoryDelete: vi.fn(),
+        },
+      },
+      group: {
+        id: 'group-1',
+        domain: 'example.com',
+        urls: [{ url: 'https://example.com/docs', title: 'Docs' }],
+      },
+      settings: { confirmDeleteAll: false },
+      isReorderMode: false,
+      searchQuery: '',
+      handlers: {
+        handleOpenAllTabs: vi.fn(),
+        handleDeleteGroup: vi.fn(),
+        handleDeleteUrls: vi.fn(),
+      },
+    })
+
+    render(<DomainCardActions />)
+
+    expect(
+      screen.getByRole('button', {
+        name: '「example.com」の子カテゴリ管理',
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを開く',
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを削除',
+      }),
+    ).toBeTruthy()
   })
 })

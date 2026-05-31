@@ -12,9 +12,11 @@ interface CategoryBulkActionButtonsProps {
   isDeleting: boolean
   showDeleteAction: boolean
   openLabel: string
+  openAriaLabel: string
   openTooltip: string
   deleteLabel: string
   deletingLabel: string
+  deleteAriaLabel: string
   deleteTooltip: string
   onOpenAll: (event: React.MouseEvent) => void
   onDeleteAll: (event: React.MouseEvent) => void
@@ -24,9 +26,11 @@ export const CategoryBulkActionButtons = ({
   isDeleting,
   showDeleteAction,
   openLabel,
+  openAriaLabel,
   openTooltip,
   deleteLabel,
   deletingLabel,
+  deleteAriaLabel,
   deleteTooltip,
   onOpenAll,
   onDeleteAll,
@@ -40,6 +44,7 @@ export const CategoryBulkActionButtons = ({
           onClick={onOpenAll}
           className='pointer-events-auto z-20 flex cursor-pointer items-center gap-1'
           style={{ position: 'relative' }}
+          aria-label={openAriaLabel}
         >
           <ExternalLink size={14} />
           <SavedTabsResponsiveLabel>{openLabel}</SavedTabsResponsiveLabel>
@@ -59,6 +64,7 @@ export const CategoryBulkActionButtons = ({
             onClick={onDeleteAll}
             className='pointer-events-auto z-20 flex cursor-pointer items-center gap-1'
             style={{ position: 'relative' }}
+            aria-label={deleteAriaLabel}
             disabled={isDeleting}
           >
             <Trash size={14} />
