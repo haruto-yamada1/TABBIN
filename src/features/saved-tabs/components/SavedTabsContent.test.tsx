@@ -255,9 +255,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    expect(
-      screen.getByRole('heading', { name: /Uncategorized/ }),
-    ).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /Uncategorized/ })).toBeTruthy()
     expect(
       screen.getByRole('button', {
         name: getOpenAllButtonName('__uncategorized'),
@@ -424,7 +422,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     )
 
     fireEvent.click(
-      screen.getByRole('button', { name: getDeleteAllButtonName('error-case') }),
+      screen.getByRole('button', {
+        name: getDeleteAllButtonName('error-case'),
+      }),
     )
     fireEvent.click(await screen.findByRole('button', { name: '削除' }))
 
