@@ -136,4 +136,24 @@ describe('select ui', () => {
     expect(trigger.className).toContain('aria-invalid:ring-destructive/20')
     expect(trigger.className).toContain('dark:aria-invalid:ring-destructive/40')
   })
+
+  it('SelectTrigger は長い現在値を省略表示できるクラスを持つ', () => {
+    render(
+      <Select>
+        <SelectTrigger>
+          <SelectValue>現在開いているドメインのタブをすべて保存</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value='item-1'>Item 1</SelectItem>
+        </SelectContent>
+      </Select>,
+    )
+
+    const trigger = screen.getByRole('button', {
+      name: '現在開いているドメインのタブをすべて保存',
+    })
+    expect(trigger.className).toContain('min-w-0')
+    expect(trigger.className).toContain('[&>span]:min-w-0')
+    expect(trigger.className).toContain('[&>span]:truncate')
+  })
 })
