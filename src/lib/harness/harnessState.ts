@@ -657,6 +657,14 @@ export function buildHarnessAudit(
   return `${lines.join('\n')}\n`
 }
 
+function schemaStatusForOptionalRun(validation: HarnessValidationResult): string {
+  if (!validation.runId) {
+    return 'not_applicable'
+  }
+
+  return validation.ok ? 'valid' : 'invalid'
+}
+
 export function buildHarnessRepoStatus(options: HarnessRunOptions): string {
   const snapshot = loadHarnessSnapshot(options)
   const validation = validateHarnessRun(options)
@@ -667,10 +675,9 @@ export function buildHarnessRepoStatus(options: HarnessRunOptions): string {
     score.overallScore === score.maxScore && securityFindings.length === 0
       ? 'ready'
       : 'needs_attention'
-  let schemaStatus = 'not_applicable'
-  if (snapshot) {
-    schemaStatus = validation.ok ? 'valid' : 'invalid'
-  }
+  const schemaStatus = snapshot
+    ? schemaStatusForOptionalRun(validation)
+    : 'not_applicable'
   const lines = [
     '# ハーネス Repo Status',
     '',
@@ -882,7 +889,7 @@ export function buildHarnessSurfaceAudit(options: HarnessRunOptions): string {
     '# ハーネス Surface Audit',
     '',
     `- run: \`${validation.runId ?? 'なし'}\``,
-    `- schema: ${validation.ok ? 'valid' : 'invalid'}`,
+    `- schema: ${schemaStatusForOptionalRun(validation)}`,
     '',
     `- overall_score: ${score.overallScore}/${score.maxScore}`,
     '',

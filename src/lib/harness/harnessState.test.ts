@@ -592,6 +592,16 @@ describe('high fidelity harness commands', () => {
     expect(audit).toContain('Security Guardrails')
   })
 
+  test('surface audit は ACTIVE run がない場合 schema を not_applicable と表示する', () => {
+    const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
+
+    const audit = buildHarnessSurfaceAudit({ projectRoot })
+
+    expect(audit).toContain('# ハーネス Surface Audit')
+    expect(audit).toContain('- run: `なし`')
+    expect(audit).toContain('- schema: not_applicable')
+  })
+
   test('security audit は agent surface の危険な設定を検出する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     mkdirSync(path.join(projectRoot, '.apm/hooks/scripts'), { recursive: true })
