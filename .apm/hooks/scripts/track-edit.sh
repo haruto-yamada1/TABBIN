@@ -9,7 +9,7 @@ trap 'rm -f "$hook_input"' EXIT HUP INT TERM
 
 cat >"$hook_input" || true
 
-state_dir=".git/apm-hooks/sessions"
+state_dir="$(git rev-parse --git-path apm-hooks/sessions)"
 mkdir -p "$state_dir"
 
 node - "$hook_input" "$project_dir" "$state_dir" <<'NODE'
@@ -26,6 +26,7 @@ const relevantExtensions = new Set([
   '.json',
   '.jsonc',
   '.jsx',
+  '.sh',
   '.mjs',
   '.mts',
   '.ts',

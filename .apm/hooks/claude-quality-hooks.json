@@ -36,6 +36,11 @@
         "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
+            "command": "./scripts/publish-verify.sh",
+            "timeout": 300,
+            "type": "command"
+          },
+          {
             "command": "./scripts/harness-safety-warn.sh",
             "timeout": 10,
             "type": "command"
