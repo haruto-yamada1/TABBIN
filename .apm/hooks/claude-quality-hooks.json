@@ -33,6 +33,16 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "command": "./scripts/rtk-usage-warn.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
         "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
