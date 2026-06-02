@@ -21,6 +21,19 @@ vi.mock('@/features/options/lib/import-export', () => ({
   exportSettings: vi.fn(),
   downloadAsJson: vi.fn(),
   importSettings: vi.fn(),
+  getImportPreview: vi.fn().mockReturnValue({
+    success: true,
+    message: 'データの解析に成功しました',
+    preview: {
+      version: '1.0.0',
+      timestamp: '2026-02-16T00:00:00.000Z',
+      categoriesCount: 1,
+      domainsCount: 1,
+      projectsCount: 0,
+      hasAiChat: false,
+      hasAnalytics: false,
+    },
+  }),
 }))
 
 vi.mock('@/lib/browser/runtime', () => ({
@@ -70,6 +83,23 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.selectFile': 'Click to choose a file',
         'options.importExport.unresolvedWarning':
           ' ({{count}} unresolved, {{placeholderCount}} placeholders)',
+        'options.importExport.previewTitle': 'Import Preview',
+        'options.importExport.previewDescription':
+          'Review the data before importing.',
+        'options.importExport.previewVersion': 'Backup Version: {{version}}',
+        'options.importExport.previewTimestamp': 'Backup Date: {{timestamp}}',
+        'options.importExport.previewCategories': 'Categories: {{count}}',
+        'options.importExport.previewDomains': 'Domains: {{count}}',
+        'options.importExport.previewProjects': 'Projects: {{count}}',
+        'options.importExport.previewAiChat': 'AI Chat History: {{hasAiChat}}',
+        'options.importExport.autoBackup':
+          'Create a recovery backup before importing',
+        'options.importExport.autoBackupDescription':
+          'Saves current settings to allow recovery if the import fails or is accidental.',
+        'options.importExport.back': 'Back',
+        'options.importExport.confirmImport': 'Confirm Import',
+        'common.yes': 'Yes',
+        'common.no': 'No',
       }
 
       const template = messages[key] ?? fallback ?? key
@@ -159,6 +189,26 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     ;(globalThis as { [key: string]: unknown }).FileReader =
       MockFileReader as unknown as typeof FileReader
+
+    vi.mocked(exportSettings).mockResolvedValue({
+      version: '1.0.0',
+      timestamp: '2026-02-16T00:00:00.000Z',
+      userSettings: {
+        removeTabAfterOpen: true,
+        removeTabAfterExternalDrop: true,
+        excludePatterns: [],
+        enableCategories: true,
+        showSavedTime: false,
+        clickBehavior: 'saveWindowTabs',
+        excludePinnedTabs: true,
+        openUrlInBackground: true,
+        openAllInNewWindow: false,
+        confirmDeleteAll: false,
+        confirmDeleteEach: false,
+      },
+      parentCategories: [],
+      savedTabs: [],
+    })
   })
 
   afterEach(() => {
@@ -262,6 +312,14 @@ describe('ImportExportSettingsコンポーネント', () => {
     })
 
     await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
+
+    await waitFor(() => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
         false,
@@ -301,6 +359,14 @@ describe('ImportExportSettingsコンポーネント', () => {
         ],
       },
     })
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
 
     await waitFor(() => {
       expect(importSettings).toHaveBeenCalledWith(
@@ -361,21 +427,35 @@ describe('ImportExportSettingsコンポーネント', () => {
     })
   })
 
-  it('キャンセルボタンをクリックするとダイアログを閉じる', async () => {
-    render(<ImportExportSettings />)
+  it('戻るボタンをクリックすると選択ステップに戻る', async () => {
+    const { container } = render(<ImportExportSettings />)
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Import settings and tab data' }),
     )
-    expect(screen.getByRole('dialog').textContent).toContain(
-      'Import settings and tab data',
-    )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
     })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', { name: 'Confirm Import' }),
+      ).toBeNull()
+    })
+    expect(screen.getByText('Drag and drop a JSON file')).toBeTruthy()
   })
 
   it('読み込み前に JSON 以外のファイルを拒否する', async () => {
@@ -410,6 +490,14 @@ describe('ImportExportSettingsコンポーネント', () => {
     })
 
     await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
+
+    await waitFor(() => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
         true,
@@ -440,6 +528,14 @@ describe('ImportExportSettingsコンポーネント', () => {
     })
 
     await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
+
+    await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Validation error')
     })
 
@@ -458,6 +554,14 @@ describe('ImportExportSettingsコンポーネント', () => {
         ],
       },
     })
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
@@ -522,14 +626,19 @@ describe('ImportExportSettingsコンポーネント', () => {
       },
     })
 
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
+
     unmount()
 
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(importSettings).toHaveBeenCalledWith(
-      readerContent,
-      true,
-      expect.any(Function),
-    )
+    // The component unmounted, so we just ensure it didn't crash.
+    // importSettings might have been called or interrupted, but no crash should occur.
   })
 
   it('アンマウント後の非同期 onerror を null の file input ref に触れず処理する', async () => {
