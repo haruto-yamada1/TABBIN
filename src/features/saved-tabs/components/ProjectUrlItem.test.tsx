@@ -154,6 +154,10 @@ describe('ProjectUrlItem', () => {
     expect(actionBar?.className).toContain('group-focus-within:opacity-100')
 
     const link = screen.getByRole('button', { name: item.url })
+    expect(link.className).toContain('min-w-0')
+    const titleLabel = link.querySelector('span')
+    expect(titleLabel?.className).toContain('min-w-0')
+    expect(titleLabel?.className).toContain('truncate')
     fireEvent.click(link)
     expect(handleOpenUrl).toHaveBeenCalledWith(item.url)
 

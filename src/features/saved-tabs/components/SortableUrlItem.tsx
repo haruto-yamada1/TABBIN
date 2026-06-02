@@ -144,7 +144,7 @@ export const SortableUrlItem = ({
       <li
         ref={setNodeRef}
         style={style}
-        className='group relative flex items-center overflow-hidden pb-1 last:border-0 last:pb-0'
+        className='group relative flex min-w-0 items-center overflow-hidden pb-1 last:border-0 last:pb-0'
         data-category-context={categoryContext} // カテゴリコンテキストをdata属性に追加
       >
         <div
@@ -154,7 +154,7 @@ export const SortableUrlItem = ({
         >
           <GripVertical size={16} aria-hidden='true' />
         </div>
-        <div className='relative min-w-0 flex-1'>
+        <div className='relative min-w-0 flex-1 overflow-hidden'>
           <Button
             type='button'
             variant='ghost'
@@ -163,15 +163,15 @@ export const SortableUrlItem = ({
             onDragStart={(e) => handleDragStart(e, url)}
             onDragEnd={handleDragEnd}
             onClick={() => handleOpenTab(url)}
-            className='ml-2 flex h-full cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
+            className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
           >
-            <div className='flex w-full flex-col truncate'>
-              <span className='truncate'>{title}</span>
+            <div className='flex min-w-0 w-full flex-col overflow-hidden'>
+              <span className='block truncate'>{title}</span>
               {/* 保存日時と残り時間を表示 - settings.showSavedTime に基づき条件分岐 */}
               {savedAt && (
-                <div className='flex items-center gap-2 text-xs'>
+                <div className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
                   {settings.showSavedTime && (
-                    <span className='text-muted-foreground'>
+                    <span className='truncate text-muted-foreground'>
                       {formatDatetime(savedAt)}
                     </span>
                   )}

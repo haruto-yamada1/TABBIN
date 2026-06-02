@@ -214,7 +214,7 @@ const ProjectUrlItemComponent = ({
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={() => handleOpenUrl(item.url)}
-            className='flex flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+            className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
           >
             {/* サブカテゴリ付きのURLの場合はChevronRightを表示 */}
             {item.category?.includes('/') && (
@@ -223,7 +223,9 @@ const ProjectUrlItemComponent = ({
                 className='mr-1 inline-block text-primary'
               />
             )}
-            <span className='flex-1 truncate'>{item.title || item.url}</span>
+            <span className='min-w-0 flex-1 truncate'>
+              {item.title || item.url}
+            </span>
             {/* カテゴリ階層の視覚的な表示をシンプル化 */}
             {item.category?.includes('/') && (
               <Badge variant='outline' className='ml-2 shrink-0 text-xs'>
