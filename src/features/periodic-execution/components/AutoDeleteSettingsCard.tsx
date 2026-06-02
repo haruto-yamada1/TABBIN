@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
+import { useId } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -37,6 +38,8 @@ export const AutoDeleteSettingsCard = ({
   onPrepareAutoDeletePeriod,
 }: AutoDeleteSettingsCardProps) => {
   const { t } = useI18n()
+  const dialogTitleId = useId()
+  const dialogDescriptionId = useId()
 
   return (
     <section className='rounded-2xl border border-border bg-card p-6 shadow-sm'>
@@ -98,19 +101,33 @@ export const AutoDeleteSettingsCard = ({
         </div>
 
         {confirmationState.isVisible && (
-          <div className='mt-3 rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/30'>
+          <dialog
+            aria-describedby={dialogDescriptionId}
+            aria-labelledby={dialogTitleId}
+            aria-modal='true'
+            className='mt-3 rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/30'
+            open
+            role='alertdialog'
+          >
             <div className='flex flex-col gap-3'>
+              <h3 className='sr-only' id={dialogTitleId}>
+                {t('options.autoDelete.title')}
+              </h3>
               <div className='flex items-start'>
                 <div className='shrink-0 text-yellow-500'>
                   <AlertTriangle size={24} />
                 </div>
-                <p className='ml-3 whitespace-pre-line text-foreground text-sm'>
+                <p
+                  className='ml-3 whitespace-pre-line text-foreground text-sm'
+                  id={dialogDescriptionId}
+                >
                   {confirmationState.message}
                 </p>
               </div>
 
               <div className='flex justify-end gap-2'>
                 <Button
+                  autoFocus
                   type='button'
                   variant='ghost'
                   onClick={hideConfirmation}
@@ -126,7 +143,7 @@ export const AutoDeleteSettingsCard = ({
                 </Button>
               </div>
             </div>
-          </div>
+          </dialog>
         )}
 
         <p className='mt-2 text-muted-foreground text-sm'>
