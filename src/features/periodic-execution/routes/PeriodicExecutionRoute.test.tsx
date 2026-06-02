@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
+import type { ComponentPropsWithoutRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserSettings } from '@/types/storage'
@@ -38,15 +39,13 @@ vi.mock('@/components/ui/sonner', () => ({
 vi.mock('@/components/ui/button', () => ({
   Button: ({
     children,
-    onClick,
+    ref,
     type = 'button',
     ...props
-  }: {
-    children: React.ReactNode
-    onClick?: () => void
-    type?: 'button' | 'submit'
-  } & Record<string, unknown>) => (
-    <button onClick={onClick} type={type} {...props}>
+  }: ComponentPropsWithoutRef<'button'> & {
+    ref?: React.Ref<HTMLButtonElement>
+  }) => (
+    <button ref={ref} type={type} {...props}>
       {children}
     </button>
   ),
@@ -226,8 +225,12 @@ describe('PeriodicExecutionRoute', () => {
   it('定期実行ページと自動削除設定を表示する', () => {
     render(createElement(PeriodicExecutionRoute))
 
-    expect(screen.getByText('Scheduled tasks')).toBeTruthy()
-    expect(screen.getByText('Auto delete')).toBeTruthy()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Scheduled tasks' }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Auto delete' }),
+    ).toBeTruthy()
     expect(screen.getByText('Auto-delete period for tabs')).toBeTruthy()
     expect(
       screen.getByText(
@@ -260,5 +263,24 @@ describe('PeriodicExecutionRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(mocked.hideConfirmation).toHaveBeenCalledTimes(1)
     expect(mocked.confirmationConfirm).toHaveBeenCalledTimes(1)
+  })
+
+  it('確認 UI を alertdialog として表示し、キャンセルボタンへ初期フォーカスを移す', () => {
+    render(createElement(PeriodicExecutionRoute))
+
+    const dialog = screen.getByRole('alertdialog')
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+    const labelledBy = dialog.getAttribute('aria-labelledby')
+    const describedBy = dialog.getAttribute('aria-describedby')
+
+    expect(labelledBy).toBeTruthy()
+    expect(describedBy).toBeTruthy()
+    expect(document.getElementById(labelledBy ?? '')?.textContent).toBe(
+      'Auto delete',
+    )
+    expect(document.getElementById(describedBy ?? '')?.textContent).toBe(
+      '確認メッセージ',
+    )
+    expect(document.activeElement).toBe(cancelButton)
   })
 })
