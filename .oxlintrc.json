@@ -206,6 +206,8 @@
     "vitest/require-awaited-expect-poll": "off",
     "vitest/require-local-test-context-for-concurrent-snapshots": "off",
     "vitest/require-to-throw-message": "off",
-    "vitest/warn-todo": "off"
+    "vitest/warn-todo": "off",
+    "eslint/prefer-named-capture-group": "off",
+    "typescript/method-signature-style": "off"
   }
 }
