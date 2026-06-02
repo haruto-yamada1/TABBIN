@@ -5,6 +5,11 @@ mode="${1:-stop}"
 project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 cd "$project_dir"
 
+state_key="$(
+  node -e "const crypto=require('crypto');process.stdout.write(crypto.createHash('sha256').update(process.argv[1]).digest('hex').slice(0,16))" \
+    "$project_dir"
+)"
+
 # Hook stdout is reserved for JSON responses. Keep verifier logs on stderr.
 exec 1>&2
 
@@ -16,22 +21,26 @@ related_tests="$(mktemp "${TMPDIR:-/tmp}/apm-related-tests.XXXXXX")"
 coverage_includes="$(mktemp "${TMPDIR:-/tmp}/apm-coverage-includes.XXXXXX")"
 coverage_excluded="$(mktemp "${TMPDIR:-/tmp}/apm-coverage-excluded.XXXXXX")"
 session_key_path="$(mktemp "${TMPDIR:-/tmp}/apm-session-key.XXXXXX")"
+fallback_touched_files="$(mktemp "${TMPDIR:-/tmp}/apm-fallback-touched.XXXXXX")"
+publish_command_path="$(mktemp "${TMPDIR:-/tmp}/apm-publish-command.XXXXXX")"
 coverage_args=''
-trap 'rm -f "$hook_input" "$touched_files_path" "$relevant_touched_files" "$lintable_touched_files" "$related_tests" "$coverage_includes" "$coverage_excluded" "$session_key_path" ${coverage_args:+"$coverage_args"}' EXIT HUP INT TERM
+trap 'rm -f "$hook_input" "$touched_files_path" "$relevant_touched_files" "$lintable_touched_files" "$related_tests" "$coverage_includes" "$coverage_excluded" "$session_key_path" "$fallback_touched_files" "$publish_command_path" ${coverage_args:+"$coverage_args"}' EXIT HUP INT TERM
 
 cat >"$hook_input" || true
 
-state_dir="$(git rev-parse --git-path apm-hooks/sessions)"
-coverage_root="$(git rev-parse --git-path apm-hooks/coverage)"
+state_root="${TMPDIR:-/tmp}/apm-hooks-$state_key"
+state_dir="$state_root/sessions"
+coverage_root="$state_root/coverage"
+mkdir -p "$state_root"
 mkdir -p "$state_dir"
 mkdir -p "$coverage_root"
 
 if [ "$mode" = 'publish' ]; then
   should_verify="$(
-    node - "$hook_input" <<'NODE'
+    node - "$hook_input" "$publish_command_path" <<'NODE'
 const fs = require('fs')
 
-const [, , inputPath] = process.argv
+const [, , inputPath, commandPath] = process.argv
 
 try {
   const input = fs.readFileSync(inputPath, 'utf8').trim()
@@ -42,6 +51,7 @@ try {
     payload.command ||
     ''
 
+  fs.writeFileSync(commandPath, command)
   process.stdout.write(/^\s*git\s+(commit|push)\b/.test(command) ? '1' : '')
 } catch {
   process.exit(0)
@@ -99,19 +109,17 @@ NODE
 
 touched_files="$(cat "$touched_files_path")"
 session_key="$(cat "$session_key_path")"
+publish_command="$(cat "$publish_command_path" 2>/dev/null || true)"
 
-if [ -z "$touched_files" ] || [ -z "$session_key" ]; then
-  echo "APM hook: missing session id; skipping ${mode} verification to avoid shared hook state."
-  exit 0
+if [ -n "$touched_files" ] && [ -n "$session_key" ]; then
+  lock_waits=0
+  while [ -d "$touched_files.lock" ] && [ "$lock_waits" -lt 100 ]; do
+    sleep 0.05
+    lock_waits=$((lock_waits + 1))
+  done
 fi
 
-lock_waits=0
-while [ -d "$touched_files.lock" ] && [ "$lock_waits" -lt 100 ]; do
-  sleep 0.05
-  lock_waits=$((lock_waits + 1))
-done
-
-if [ -f "$touched_files" ]; then
+if [ -n "$touched_files" ] && [ -f "$touched_files" ]; then
   node - "$touched_files" "$relevant_touched_files" "$lintable_touched_files" <<'NODE'
 const fs = require('fs')
 const path = require('path')
@@ -190,6 +198,138 @@ if (lintableTouchedFiles.length > 0) {
   fs.writeFileSync(lintableOutputPath, `${lintableTouchedFiles.join('\n')}\n`)
 }
 NODE
+fi
+
+if [ ! -s "$relevant_touched_files" ]; then
+  node - "$mode" "$publish_command" "$fallback_touched_files" <<'NODE'
+const { execFileSync } = require('child_process')
+const fs = require('fs')
+
+const [, , mode, publishCommand, outputPath] = process.argv
+
+function collect(command, args) {
+  try {
+    const output = execFileSync(command, args, { encoding: 'utf8' }).trim()
+    return output ? output.split(/\r?\n/).filter(Boolean) : []
+  } catch {
+    return []
+  }
+}
+
+const files = new Set()
+const addFiles = (entries) => {
+  for (const entry of entries) {
+    files.add(entry)
+  }
+}
+
+if (mode === 'publish' && /^\s*git\s+commit\b/.test(publishCommand)) {
+  addFiles(collect('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR']))
+} else if (mode === 'publish' && /^\s*git\s+push\b/.test(publishCommand)) {
+  const upstream = collect('git', ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'])[0]
+  if (upstream) {
+    addFiles(collect('git', ['diff', '--name-only', '--diff-filter=ACMR', `${upstream}..HEAD`]))
+  } else {
+    const base =
+      collect('git', ['merge-base', '--fork-point', 'origin/develop', 'HEAD'])[0] ||
+      collect('git', ['merge-base', 'origin/develop', 'HEAD'])[0] ||
+      collect('git', ['rev-parse', 'HEAD~1'])[0]
+    if (base) {
+      addFiles(collect('git', ['diff', '--name-only', '--diff-filter=ACMR', `${base}..HEAD`]))
+    }
+  }
+} else {
+  addFiles(collect('git', ['diff', '--name-only', '--diff-filter=ACMR']))
+  addFiles(collect('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR']))
+  addFiles(collect('git', ['ls-files', '--others', '--exclude-standard']))
+}
+
+if (files.size > 0) {
+  fs.writeFileSync(outputPath, `${[...files].sort().join('\n')}\n`)
+}
+NODE
+
+  if [ -s "$fallback_touched_files" ]; then
+    echo "APM hook: using git-based fallback file detection for ${mode} verification."
+    node - "$fallback_touched_files" "$relevant_touched_files" "$lintable_touched_files" <<'NODE'
+const fs = require('fs')
+const path = require('path')
+
+const [, , touchedFilesPath, relevantOutputPath, lintableOutputPath] = process.argv
+const relevantExtensions = new Set([
+  '.cjs',
+  '.cts',
+  '.js',
+  '.json',
+  '.jsonc',
+  '.jsx',
+  '.md',
+  '.sh',
+  '.mjs',
+  '.mts',
+  '.ts',
+  '.tsx',
+  '.yaml',
+  '.yml',
+])
+const lintableExtensions = new Set([
+  '.cjs',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.mts',
+  '.ts',
+  '.tsx',
+])
+const relevantBasenames = new Set([
+  '.jscpd.json',
+  '.oxfmtrc.json',
+  '.oxlintrc.json',
+  'bun.lock',
+  'package.json',
+  'postcss.config.cjs',
+  'tailwind.config.ts',
+  'tsconfig.json',
+])
+const relevantPatterns = [
+  /^tsconfig\..+\.json$/,
+  /^vitest\..+\.config\.[cm]?[jt]s$/,
+  /^vite\..+\.config\.[cm]?[jt]s$/,
+  /^wxt\.config\.[cm]?[jt]s$/,
+  /^knip\.(json|[cm]?[jt]s)$/,
+  /^playwright\.config\.[cm]?[jt]s$/,
+]
+
+function isVerificationRelevant(filePath) {
+  const basename = path.basename(filePath)
+  return (
+    relevantBasenames.has(basename) ||
+    relevantPatterns.some((pattern) => pattern.test(basename)) ||
+    relevantExtensions.has(path.extname(filePath))
+  )
+}
+
+function isLintable(filePath) {
+  return lintableExtensions.has(path.extname(filePath))
+}
+
+const touchedFiles = fs
+  .readFileSync(touchedFilesPath, 'utf8')
+  .split(/\r?\n/)
+  .filter(Boolean)
+  .filter(isVerificationRelevant)
+const uniqueTouchedFiles = [...new Set(touchedFiles)].sort()
+const lintableTouchedFiles = uniqueTouchedFiles.filter(isLintable)
+
+if (uniqueTouchedFiles.length > 0) {
+  fs.writeFileSync(relevantOutputPath, `${uniqueTouchedFiles.join('\n')}\n`)
+}
+if (lintableTouchedFiles.length > 0) {
+  fs.writeFileSync(lintableOutputPath, `${lintableTouchedFiles.join('\n')}\n`)
+}
+NODE
+  fi
 fi
 
 if [ ! -s "$relevant_touched_files" ]; then
