@@ -776,18 +776,23 @@ describe('AnalyticsRoute', () => {
     await screen.findByText('Analysis conditions')
 
     const layout = screen.getByTestId('analytics-page-layout')
+    const layoutGrid = screen.getByTestId('analytics-layout-grid')
     const sidebarPane = screen.getByTestId('analytics-sidebar-pane')
     const canvasPane = screen.getByTestId('analytics-canvas-pane')
     const stickyChartPanel = screen.getByTestId('analytics-sticky-chart-panel')
 
     expect(layout.className.includes('h-screen')).toBe(true)
     expect(layout.className.includes('overflow-hidden')).toBe(true)
+    expect(
+      layoutGrid.className.includes('lg:grid-cols-[240px_minmax(0,1fr)]'),
+    ).toBe(true)
     expect(sidebarPane.className.includes('overflow-y-auto')).toBe(true)
     expect(sidebarPane.className.includes('overscroll-contain')).toBe(true)
+    expect(canvasPane.className.includes('overflow-x-hidden')).toBe(true)
     expect(canvasPane.className.includes('overflow-y-auto')).toBe(true)
     expect(canvasPane.className.includes('overscroll-contain')).toBe(true)
-    expect(stickyChartPanel.className.includes('-top-5')).toBe(true)
-    expect(stickyChartPanel.className.includes('-mx-5')).toBe(true)
+    expect(stickyChartPanel.className.includes('sticky')).toBe(true)
+    expect(stickyChartPanel.className.includes('top-0')).toBe(true)
   })
 
   it('分析条件の操作ボタンを1:1幅の2カラムで表示する', async () => {
