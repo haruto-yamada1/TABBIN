@@ -96,10 +96,7 @@ const ChartContainer = ({
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0]
 
-      updateHasMeasuredSize(
-        entry?.contentRect.width,
-        entry?.contentRect.height,
-      )
+      updateHasMeasuredSize(entry?.contentRect.width, entry?.contentRect.height)
     })
 
     observer.observe(node)

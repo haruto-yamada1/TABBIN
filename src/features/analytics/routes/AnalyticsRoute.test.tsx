@@ -783,9 +783,9 @@ describe('AnalyticsRoute', () => {
 
     expect(layout.className.includes('h-screen')).toBe(true)
     expect(layout.className.includes('overflow-hidden')).toBe(true)
-    expect(layoutGrid.className.includes('lg:grid-cols-[240px_minmax(0,1fr)]')).toBe(
-      true,
-    )
+    expect(
+      layoutGrid.className.includes('lg:grid-cols-[240px_minmax(0,1fr)]'),
+    ).toBe(true)
     expect(sidebarPane.className.includes('overflow-y-auto')).toBe(true)
     expect(sidebarPane.className.includes('overscroll-contain')).toBe(true)
     expect(canvasPane.className.includes('overflow-x-hidden')).toBe(true)
