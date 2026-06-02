@@ -4,12 +4,19 @@ set -eu
 project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 cd "$project_dir"
 
+state_key="$(
+  node -e "const crypto=require('crypto');process.stdout.write(crypto.createHash('sha256').update(process.argv[1]).digest('hex').slice(0,16))" \
+    "$project_dir"
+)"
+
 hook_input="$(mktemp "${TMPDIR:-/tmp}/apm-track-edit-hook.XXXXXX")"
 trap 'rm -f "$hook_input"' EXIT HUP INT TERM
 
 cat >"$hook_input" || true
 
-state_dir="$(git rev-parse --git-path apm-hooks/sessions)"
+state_root="${TMPDIR:-/tmp}/apm-hooks-$state_key"
+state_dir="$state_root/sessions"
+mkdir -p "$state_root"
 mkdir -p "$state_dir"
 
 node - "$hook_input" "$project_dir" "$state_dir" <<'NODE'
