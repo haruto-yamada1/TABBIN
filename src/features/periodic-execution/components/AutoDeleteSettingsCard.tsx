@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useId } from 'react'
 
 import { AlertTriangle } from 'lucide-react'
 
@@ -41,15 +41,6 @@ export const AutoDeleteSettingsCard = ({
   const { t } = useI18n()
   const dialogTitleId = useId()
   const dialogDescriptionId = useId()
-  const cancelButtonRef = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    if (!confirmationState.isVisible) {
-      return
-    }
-
-    cancelButtonRef.current?.focus()
-  }, [confirmationState.isVisible])
 
   return (
     <section className='rounded-2xl border border-border bg-card p-6 shadow-sm'>
@@ -137,10 +128,10 @@ export const AutoDeleteSettingsCard = ({
 
               <div className='flex justify-end gap-2'>
                 <Button
+                  autoFocus
                   type='button'
                   variant='ghost'
                   onClick={hideConfirmation}
-                  ref={cancelButtonRef}
                 >
                   {t('common.cancel')}
                 </Button>
