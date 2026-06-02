@@ -805,10 +805,13 @@ const useAnalyticsRouteView = () => {
       data-testid='analytics-page-layout'
     >
       <main className='min-h-0 min-w-0 flex-1 overflow-hidden bg-muted/10'>
-        <div className='mx-auto flex h-full min-h-0 max-w-7xl flex-col gap-4'>
-          <section className='grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] gap-4'>
+        <div className='mx-auto flex h-full min-h-0 min-w-0 max-w-7xl flex-col gap-4'>
+          <section
+            className='grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[240px_minmax(0,1fr)]'
+            data-testid='analytics-layout-grid'
+          >
             <aside
-              className='min-h-0'
+              className='min-h-0 min-w-0'
               data-testid='analytics-sidebar-pane-container'
             >
               <ScrollArea
@@ -1034,10 +1037,10 @@ const useAnalyticsRouteView = () => {
             </aside>
 
             <ScrollArea
-              className='min-h-0 min-w-0 overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card shadow-none'
+              className='min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card shadow-none'
               data-testid='analytics-canvas-pane'
             >
-              <div className='p-5'>
+              <div className='min-w-0 p-5'>
                 <div className='flex flex-wrap items-start justify-between gap-3'>
                   <div>
                     <h2 className='font-semibold text-lg'>
@@ -1049,10 +1052,10 @@ const useAnalyticsRouteView = () => {
                   </div>
                 </div>
                 <div
-                  className='-top-5 z-10 -mx-5 bg-card/95 px-5 pt-5 pb-4 backdrop-blur supports-backdrop-filter:bg-card/80'
+                  className='sticky top-0 z-10 min-w-0 bg-card/95 pb-4 backdrop-blur supports-backdrop-filter:bg-card/80'
                   data-testid='analytics-sticky-chart-panel'
                 >
-                  <Card className='rounded-3xl border-dashed bg-background/70 p-4 shadow-none'>
+                  <Card className='min-w-0 rounded-3xl border-dashed bg-background/70 p-4 shadow-none'>
                     <AiChartRenderer
                       charts={
                         isUsingAiCharts && aiChartSpecs.length > 0

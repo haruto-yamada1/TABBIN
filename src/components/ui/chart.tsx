@@ -62,12 +62,69 @@ const ChartContainer = ({
 }) => {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
+  const [hasMeasuredSize, setHasMeasuredSize] = React.useState(false)
+
+  React.useLayoutEffect(() => {
+    const node = containerRef.current
+
+    if (!node) {
+      return
+    }
+
+    const updateHasMeasuredSize = (
+      width = node.getBoundingClientRect().width,
+      height = node.getBoundingClientRect().height,
+    ) => {
+      setHasMeasuredSize(width > 0 && height > 0)
+    }
+
+    updateHasMeasuredSize()
+
+    if (typeof ResizeObserver === 'undefined') {
+      const handleWindowResize = () => {
+        updateHasMeasuredSize()
+      }
+
+      window.addEventListener('resize', handleWindowResize)
+
+      return () => {
+        window.removeEventListener('resize', handleWindowResize)
+      }
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+
+      updateHasMeasuredSize(
+        entry?.contentRect.width,
+        entry?.contentRect.height,
+      )
+    })
+
+    observer.observe(node)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   return (
     <ChartContext.Provider value={{ config }}>
       <div
         data-chart={chartId}
-        ref={ref}
+        ref={(node) => {
+          containerRef.current = node
+
+          if (typeof ref === 'function') {
+            ref(node)
+            return
+          }
+
+          if (ref) {
+            ref.current = node
+          }
+        }}
         className={cn(
           "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className,
@@ -75,11 +132,17 @@ const ChartContainer = ({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        <React.Suspense fallback={null}>
-          <RechartsResponsiveContainer height='100%' minWidth={0} width='100%'>
-            {children}
-          </RechartsResponsiveContainer>
-        </React.Suspense>
+        {hasMeasuredSize ? (
+          <React.Suspense fallback={null}>
+            <RechartsResponsiveContainer
+              height='100%'
+              minWidth={0}
+              width='100%'
+            >
+              {children}
+            </RechartsResponsiveContainer>
+          </React.Suspense>
+        ) : null}
       </div>
     </ChartContext.Provider>
   )
