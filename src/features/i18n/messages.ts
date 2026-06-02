@@ -250,6 +250,8 @@ const messages = {
     'changelog.heading': 'Release Notes',
     'common.cache': 'Cache',
     'common.cancel': 'Cancel',
+    'common.no': 'No',
+    'common.yes': 'Yes',
     'common.close': 'Close',
     'common.confirm': 'Confirm',
     'common.console': 'Console',
@@ -426,7 +428,9 @@ const messages = {
     'options.fontSize.description': 'Adjust the font size used.',
     'options.fontSize.inputLabel': 'Font size percentage',
     'options.fontSize.rangeLabel': 'Font size slider',
+    'options.importExport.back': 'Back',
     'options.importExport.cancel': 'Cancel',
+    'options.importExport.confirmImport': 'Confirm Import',
     'options.importExport.dialogDescription':
       'Restore settings and tab data from a previously exported backup file.',
     'options.importExport.dialogTitle': 'Import settings and tab data',
@@ -438,6 +442,8 @@ const messages = {
     'options.importExport.exportSuccess':
       'Exported settings and tab data successfully',
     'options.importExport.exporting': 'Exporting...',
+    'options.importExport.fileTooLarge':
+      'The file is too large. Maximum size is {{maxSize}}.',
     'options.importExport.import': 'Import settings and tab data',
     'options.importExport.importError':
       'Failed to import settings and tab data',
@@ -455,6 +461,18 @@ const messages = {
       'When merging, data with the same ID is updated.',
     'options.importExport.placeholderUrlTitle':
       'Recovered data (missing original URL)',
+    'options.importExport.previewAiChat': 'AI Chat History: {{hasAiChat}}',
+    'options.importExport.previewAnalytics':
+      'Analytics Views: {{hasAnalytics}}',
+    'options.importExport.previewCategoriesLabel': 'Categories',
+    'options.importExport.previewDescription':
+      'Review the data before importing.',
+    'options.importExport.previewDomainsLabel': 'Domains',
+    'options.importExport.previewProjectsLabel': 'Projects',
+    'options.importExport.previewAiChatLabel': 'AI Chat History',
+    'options.importExport.previewTimestampLabel': 'Backup Date',
+    'options.importExport.previewTitle': 'Import Preview',
+    'options.importExport.previewVersionLabel': 'Backup Version',
     'options.importExport.readError': 'Failed to read the file',
     'options.importExport.replaceDescription':
       'Importing will overwrite all current settings and tab data. This cannot be undone.',
@@ -1059,6 +1077,8 @@ const messages = {
     'changelog.heading': 'リリースノート',
     'common.cache': 'キャッシュ',
     'common.cancel': 'キャンセル',
+    'common.no': 'なし',
+    'common.yes': 'あり',
     'common.close': '閉じる',
     'common.confirm': '確定',
     'common.console': 'コンソール',
@@ -1237,7 +1257,9 @@ const messages = {
     'options.fontSize.description': 'フォントサイズを調整できます。',
     'options.fontSize.inputLabel': 'フォントサイズ (%)',
     'options.fontSize.rangeLabel': 'フォントサイズスライダー',
+    'options.importExport.back': '戻る',
     'options.importExport.cancel': 'キャンセル',
+    'options.importExport.confirmImport': 'インポートを実行',
     'options.importExport.dialogDescription':
       '以前にエクスポートしたバックアップファイルから設定とタブデータを復元します。',
     'options.importExport.dialogTitle': '設定とタブデータのインポート',
@@ -1248,6 +1270,8 @@ const messages = {
     'options.importExport.exportSuccess':
       '設定とタブデータをエクスポートしました',
     'options.importExport.exporting': 'エクスポート中...',
+    'options.importExport.fileTooLarge':
+      'ファイルが大きすぎます。最大サイズは{{maxSize}}です。',
     'options.importExport.import': '設定とタブデータをインポート',
     'options.importExport.importError': 'インポートに失敗しました',
     'options.importExport.importFormatError':
@@ -1263,6 +1287,16 @@ const messages = {
     'options.importExport.mergeWarning':
       'マージの際、同じIDのデータは更新されます。',
     'options.importExport.placeholderUrlTitle': '復元データ（元URL欠損）',
+    'options.importExport.previewAiChatLabel': 'AIチャット履歴',
+    'options.importExport.previewAnalytics': '分析ビュー: {{hasAnalytics}}',
+    'options.importExport.previewCategoriesLabel': 'カテゴリ数',
+    'options.importExport.previewDescription':
+      'インポート前にデータの内容を確認してください。',
+    'options.importExport.previewDomainsLabel': 'ドメイン数',
+    'options.importExport.previewProjectsLabel': 'プロジェクト数',
+    'options.importExport.previewTimestampLabel': 'バックアップ日時',
+    'options.importExport.previewTitle': 'インポートプレビュー',
+    'options.importExport.previewVersionLabel': 'バックアップバージョン',
     'options.importExport.readError': 'ファイルの読み込みに失敗しました',
     'options.importExport.replaceDescription':
       'インポートすると現在の設定とタブデータがすべて上書きされます。この操作は元に戻せません。',

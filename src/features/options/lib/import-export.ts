@@ -2438,5 +2438,50 @@ const importSettings = async (
   }
 }
 
+const getImportPreview = (
+  jsonData: string,
+): {
+  success: boolean
+  message: string
+  preview?: {
+    version: string
+    timestamp: string
+    categoriesCount: number
+    domainsCount: number
+    projectsCount: number
+    hasAiChat: boolean
+    hasAnalytics: boolean
+  }
+} => {
+  try {
+    const importedData = parseBackupData(jsonData)
+    if (!importedData) {
+      return {
+        success: false,
+        message: 'インポートされたデータの形式が正しくありません',
+      }
+    }
+    return {
+      success: true,
+      message: 'データの解析に成功しました',
+      preview: {
+        version: importedData.version,
+        timestamp: importedData.timestamp,
+        categoriesCount: importedData.parentCategories.length,
+        domainsCount: importedData.savedTabs.length,
+        projectsCount: importedData.customProjects?.length || 0,
+        hasAiChat: (importedData.aiChatConversations?.length || 0) > 0,
+        hasAnalytics: (importedData.savedAnalyticsViews?.length || 0) > 0,
+      },
+    }
+  } catch (error) {
+    console.error('プレビュー解析エラー:', error)
+    return {
+      success: false,
+      message: 'データの解析中にエラーが発生しました',
+    }
+  }
+}
+
 export type { BackupData }
-export { downloadAsJson, exportSettings, importSettings }
+export { downloadAsJson, exportSettings, getImportPreview, importSettings }
