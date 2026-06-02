@@ -166,7 +166,7 @@ export const SortableUrlItem = ({
             className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
           >
             <div className='flex min-w-0 w-full flex-col overflow-hidden'>
-              <span className='block truncate'>{title}</span>
+              <span className='block truncate text-left'>{title}</span>
               {/* 保存日時と残り時間を表示 - settings.showSavedTime に基づき条件分岐 */}
               {savedAt && (
                 <div className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
