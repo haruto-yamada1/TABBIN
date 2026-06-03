@@ -27,7 +27,7 @@ export const CategoryCreateSection = () => {
         className={create.nameError ? 'border-red-500' : ''}
       />
       {create.nameError && (
-        <p className='mt-1 text-red-500 text-xs'>{create.nameError}</p>
+        <p className='mt-1 text-xs text-red-500'>{create.nameError}</p>
       )}
     </div>
   )

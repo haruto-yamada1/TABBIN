@@ -226,7 +226,10 @@ export const ProjectCardRoot = ({
     ],
   )
 
-  const titleBadges = <Badge variant='secondary'>{projectUrlCount}</Badge>
+  const titleBadges = useMemo(
+    () => <Badge variant='secondary'>{projectUrlCount}</Badge>,
+    [projectUrlCount],
+  )
 
   return (
     <ProjectCardContext value={contextValue}>

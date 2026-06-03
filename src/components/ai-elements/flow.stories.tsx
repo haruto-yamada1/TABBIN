@@ -66,10 +66,10 @@ const FlowCard = ({
         <WandSparkles className='size-4 text-muted-foreground' />
       </NodeAction>
     </NodeHeader>
-    <NodeContent className='text-muted-foreground text-sm'>
+    <NodeContent className='text-sm text-muted-foreground'>
       Prioritize pinned tabs, then suggest a cleanup batch.
     </NodeContent>
-    <NodeFooter className='text-muted-foreground text-xs'>
+    <NodeFooter className='text-xs text-muted-foreground'>
       Updated 2 minutes ago
     </NodeFooter>
   </Node>

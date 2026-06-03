@@ -108,7 +108,7 @@ export const ToolHeader = ({
     >
       <div className='flex items-center gap-2'>
         <WrenchIcon className='size-4 text-muted-foreground' />
-        <span className='font-medium text-sm'>{title ?? derivedName}</span>
+        <span className='text-sm font-medium'>{title ?? derivedName}</span>
         {getStatusBadge(state, t)}
       </div>
       <ChevronDownIcon className='size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180' />
@@ -121,7 +121,7 @@ export type ToolContentProps = ComponentProps<typeof CollapsibleContent>
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
-      'data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in',
+      'space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:animate-in data-[state=open]:slide-in-from-top-2',
       className,
     )}
     {...props}
@@ -137,7 +137,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
 
   return (
     <div className={cn('space-y-2 overflow-hidden', className)} {...props}>
-      <h4 className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
+      <h4 className='text-xs font-medium tracking-wide text-muted-foreground uppercase'>
         {t('common.parameters')}
       </h4>
       <div className='rounded-md bg-muted/50'>
@@ -169,7 +169,7 @@ export const ToolOutput = ({
   }
 
   let Output = (
-    <div className='wrap-anywhere whitespace-pre-wrap break-words'>
+    <div className='break-words wrap-anywhere whitespace-pre-wrap'>
       {output as ReactNode}
     </div>
   )
@@ -188,7 +188,7 @@ export const ToolOutput = ({
 
   return (
     <div className={cn('space-y-2', className)} {...props}>
-      <h4 className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
+      <h4 className='text-xs font-medium tracking-wide text-muted-foreground uppercase'>
         {errorText ? t('tool.status.outputError') : t('common.result')}
       </h4>
       <div
@@ -200,7 +200,7 @@ export const ToolOutput = ({
         )}
       >
         {errorText && (
-          <div className='wrap-anywhere whitespace-pre-wrap break-words'>
+          <div className='break-words wrap-anywhere whitespace-pre-wrap'>
             {errorText}
           </div>
         )}

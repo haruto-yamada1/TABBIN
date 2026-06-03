@@ -10,7 +10,7 @@ const useSavedTabsCore = (
   setSettings: Dispatch<SetStateAction<UserSettings>>,
   initialViewMode?: ViewMode,
 ) => {
-  const categoryState = useCategoryManagement([], settings)
+  const categoryState = useCategoryManagement()
   const tabDataState = useTabData(categoryState.setCategories, setSettings)
   const projectState = useProjectManagement(
     tabDataState.tabGroups,

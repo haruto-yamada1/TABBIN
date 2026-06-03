@@ -47,7 +47,8 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
   }
 })
 
-import { ProjectUrlItem, getCategoryDisplayName } from './ProjectUrlItem'
+import { ProjectUrlItem } from './ProjectUrlItem'
+import { getCategoryDisplayName } from './projectUrlItemHelpers'
 
 const sendMessageMock = vi.fn()
 

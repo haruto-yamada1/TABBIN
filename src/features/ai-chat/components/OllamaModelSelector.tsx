@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import {
   PromptInputSelect,
@@ -153,7 +153,7 @@ const SelectorMessage = ({
   if (ollamaError) {
     return (
       <OllamaErrorNotice
-        className='text-destructive text-sm'
+        className='text-sm text-destructive'
         error={ollamaError}
         platform={platform}
       />
@@ -162,7 +162,7 @@ const SelectorMessage = ({
 
   if (errorMessage) {
     return (
-      <p className='wrap-break-word whitespace-pre-line text-destructive text-sm'>
+      <p className='text-sm wrap-break-word whitespace-pre-line text-destructive'>
         {errorMessage}
       </p>
     )
@@ -173,7 +173,7 @@ const SelectorMessage = ({
   }
 
   return (
-    <p className='wrap-break-word whitespace-pre-line text-muted-foreground text-sm'>
+    <p className='text-sm wrap-break-word whitespace-pre-line text-muted-foreground'>
       {helperText}
     </p>
   )
@@ -203,6 +203,8 @@ const OllamaModelSelector = ({
     [models, selectedModel],
   )
   const [isOpen, setIsOpen] = useState(false)
+  const hasError = Boolean(errorMessage || ollamaError)
+  const previousHasErrorRef = useRef(hasError)
   const isTriggerDisabled = getTriggerDisabled({
     fetchOnOpen,
     isLoading,
@@ -210,11 +212,12 @@ const OllamaModelSelector = ({
     selectableModels,
   })
 
-  useEffect(() => {
-    if (errorMessage || ollamaError) {
+  if (hasError !== previousHasErrorRef.current) {
+    previousHasErrorRef.current = hasError
+    if (hasError && isOpen) {
       setIsOpen(false)
     }
-  }, [errorMessage, ollamaError])
+  }
 
   const handleOpenChange = (nextOpen: boolean) => {
     setIsOpen(nextOpen)

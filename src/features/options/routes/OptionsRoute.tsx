@@ -45,6 +45,13 @@ const createThemeColorChangeHandler =
     handleColorChange(key, event.target.value)
   }
 
+const applyFontSizePreview = (value: number) => {
+  document.documentElement.style.setProperty(
+    '--app-font-scale',
+    String(normalizeFontSizePercent(value) / 100),
+  )
+}
+
 const useOptionsRouteView = () => {
   const { t } = useI18n()
   const {
@@ -76,13 +83,6 @@ const useOptionsRouteView = () => {
       fontSizeSliderValue: nextFontSizeValue,
     })
   }, [fontSizePercent])
-
-  const applyFontSizePreview = (value: number) => {
-    document.documentElement.style.setProperty(
-      '--app-font-scale',
-      String(normalizeFontSizePercent(value) / 100),
-    )
-  }
 
   const updateFontSizePercent = async (value: number) => {
     const normalizedValue = normalizeFontSizePercent(value)
@@ -205,7 +205,7 @@ const useOptionsRouteView = () => {
         <Toaster position='top-right' />
 
         <header className='mb-8 flex items-center justify-between gap-4'>
-          <h1 className='font-semibold text-3xl text-foreground'>
+          <h1 className='text-3xl font-semibold text-foreground'>
             {t('options.title')}
           </h1>
           <div className='flex items-end gap-3'>
@@ -215,14 +215,14 @@ const useOptionsRouteView = () => {
         </header>
 
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
-          <h2 className='mb-4 font-semibold text-foreground text-xl'>
+          <h2 className='mb-4 text-xl font-semibold text-foreground'>
             {t('options.backupRestore')}
           </h2>
           <ImportExportSettings />
         </div>
 
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
-          <h2 className='mb-4 font-semibold text-foreground text-xl'>
+          <h2 className='mb-4 text-xl font-semibold text-foreground'>
             {t('options.behaviorSettings')}
           </h2>
 
@@ -272,7 +272,7 @@ const useOptionsRouteView = () => {
               {t('options.autoDelete.openAfter')}
             </Label>
           </div>
-          <p className='mt-1 ml-7 text-muted-foreground text-sm'>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.openAfterDescription')}
           </p>
 
@@ -290,7 +290,7 @@ const useOptionsRouteView = () => {
               {t('options.autoDelete.externalDrop')}
             </Label>
           </div>
-          <p className='mt-1 ml-7 text-muted-foreground text-sm'>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.externalDropDescription')}
           </p>
 
@@ -308,7 +308,7 @@ const useOptionsRouteView = () => {
               {t('options.autoDelete.excludePinned')}
             </Label>
           </div>
-          <p className='mt-1 ml-7 text-muted-foreground text-sm'>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.excludePinnedDescription')}
           </p>
 
@@ -326,7 +326,7 @@ const useOptionsRouteView = () => {
               {t('options.autoDelete.background')}
             </Label>
           </div>
-          <p className='mt-1 ml-7 text-muted-foreground text-sm'>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.saveInBackgroundDescription')}
           </p>
 
@@ -344,7 +344,7 @@ const useOptionsRouteView = () => {
               {t('options.autoDelete.allWindows')}
             </Label>
           </div>
-          <p className='mt-1 ml-7 text-muted-foreground text-sm'>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.allWindowsDescription')}
           </p>
 
@@ -362,7 +362,7 @@ const useOptionsRouteView = () => {
               {t('options.autoDelete.savedTime')}
             </Label>
           </div>
-          <p className='mt-1 ml-7 text-muted-foreground text-sm'>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.savedTimeDescription')}
           </p>
 
@@ -380,7 +380,7 @@ const useOptionsRouteView = () => {
               {t('options.autoDelete.confirmDeleteEach')}
             </Label>
           </div>
-          <p className='mt-1 ml-7 text-muted-foreground text-sm'>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.confirmDeleteEachDescription')}
           </p>
 
@@ -398,13 +398,13 @@ const useOptionsRouteView = () => {
               {t('options.autoDelete.confirmDeleteAll')}
             </Label>
           </div>
-          <p className='mt-1 ml-7 text-muted-foreground text-sm'>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.confirmDeleteAllDescription')}
           </p>
         </div>
 
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
-          <h2 className='mb-4 font-semibold text-foreground text-xl'>
+          <h2 className='mb-4 text-xl font-semibold text-foreground'>
             {t('options.excludePatterns.title')}
           </h2>
           <div className='mb-4'>
@@ -442,7 +442,7 @@ const useOptionsRouteView = () => {
               {activeExcludePatterns.length === 0 ? (
                 /* v8 ignore next -- coverage-only defensive branch. */
                 /* v8 ignore start -- coverage-only defensive branch. */
-                <p className='text-muted-foreground text-sm'>
+                <p className='text-sm text-muted-foreground'>
                   {t('options.excludePatterns.empty')}
                 </p>
               ) : (
@@ -478,7 +478,7 @@ const useOptionsRouteView = () => {
                 ))
               )}
             </div>
-            <p className='mt-1 text-muted-foreground text-sm'>
+            <p className='mt-1 text-sm text-muted-foreground'>
               {t('options.excludePatterns.help')}
             </p>
           </div>
@@ -487,10 +487,10 @@ const useOptionsRouteView = () => {
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
           <div className='mb-4 flex items-center justify-between gap-4'>
             <div>
-              <h2 className='font-semibold text-foreground text-xl'>
+              <h2 className='text-xl font-semibold text-foreground'>
                 {t('options.previewFontSizeCustomization')}
               </h2>
-              <p className='mt-1 text-muted-foreground text-sm'>
+              <p className='mt-1 text-sm text-muted-foreground'>
                 {t('options.fontSize.description')}
               </p>
             </div>
@@ -587,7 +587,7 @@ const useOptionsRouteView = () => {
                   }}
                   className='bg-background text-foreground'
                 />
-                <span className='text-muted-foreground text-sm'>%</span>
+                <span className='text-sm text-muted-foreground'>%</span>
               </div>
             </div>
           </div>
@@ -595,7 +595,7 @@ const useOptionsRouteView = () => {
 
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
           <div className='mb-4 flex items-center justify-between'>
-            <h2 className='font-semibold text-foreground text-xl'>
+            <h2 className='text-xl font-semibold text-foreground'>
               {t('options.previewColorCustomization')}
             </h2>
             <Button
@@ -619,12 +619,13 @@ const useOptionsRouteView = () => {
                 <div key={key} className='flex flex-col'>
                   <Label
                     htmlFor={`${key}-picker`}
-                    className='mb-2 block whitespace-normal break-all text-foreground'
+                    className='mb-2 block break-all whitespace-normal text-foreground'
                   >
                     {t(labelKey)}
                   </Label>
                   <div className='flex items-center gap-x-4'>
                     <input
+                      aria-label={t(labelKey)}
                       id={`${key}-picker`}
                       type='color'
                       value={settings.colors?.[key] || getDefaultColor(key)}
@@ -663,7 +664,7 @@ const useOptionsRouteView = () => {
             {t('options.contact')}
           </Button>
         </div>
-        <p className='mt-2 text-muted-foreground text-sm'>
+        <p className='mt-2 text-sm text-muted-foreground'>
           {t('options.contactDescription')}
         </p>
 

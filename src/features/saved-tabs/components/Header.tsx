@@ -195,7 +195,7 @@ export const Header = ({
           </Tooltip>
         )}
         <ViewModeToggle currentMode={currentMode} onChange={onModeChange} />
-        <div className='space-x-4 text-muted-foreground text-sm'>
+        <div className='space-x-4 text-sm text-muted-foreground'>
           <p>
             {t('savedTabs.tabCount', undefined, { count: String(tabCount) })}
           </p>

@@ -72,7 +72,7 @@ const Workspace = () => (
   <div className='grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]'>
     <section className='space-y-4 rounded-xl border bg-card p-4'>
       <div className='flex items-center justify-between gap-3'>
-        <h3 className='font-semibold text-base'>Conversation</h3>
+        <h3 className='text-base font-semibold'>Conversation</h3>
         <Suggestions>
           <Suggestion suggestion='Summarize pinned tabs' />
           <Suggestion suggestion='Find duplicate docs' />
@@ -141,7 +141,7 @@ const Workspace = () => (
     </section>
 
     <section className='space-y-4 rounded-xl border bg-card p-4'>
-      <h3 className='font-semibold text-base'>Side Surfaces</h3>
+      <h3 className='text-base font-semibold'>Side Surfaces</h3>
 
       <Task defaultOpen>
         <TaskTrigger title='Search and review saved tabs' />

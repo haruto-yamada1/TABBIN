@@ -37,7 +37,7 @@ export const LanguageSelect = ({
   return (
     <div className={cn('space-y-2', className)}>
       <Label
-        className='font-medium text-muted-foreground text-xs uppercase tracking-[0.12em]'
+        className='text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase'
         htmlFor='language-select'
       >
         {t('language.label')}

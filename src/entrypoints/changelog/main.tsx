@@ -27,7 +27,7 @@ const ChangelogContent: React.FC = () => {
   return (
     <div className='mx-auto max-w-4xl'>
       <div className='mb-16 text-center'>
-        <h1 className='font-semibold text-5xl text-primary sm:text-6xl sm:tracking-tight'>
+        <h1 className='text-5xl font-semibold text-primary sm:text-6xl sm:tracking-tight'>
           <span className='block'>
             {t('changelog.heading', 'Release Notes')}
           </span>
@@ -37,14 +37,14 @@ const ChangelogContent: React.FC = () => {
         {changelog.map((item) => (
           <Card
             key={item.version}
-            className='overflow-hidden rounded-xl border-primary border-t-4 shadow-xl transition-shadow duration-300 hover:shadow-2xl'
+            className='overflow-hidden rounded-xl border-t-4 border-primary shadow-xl transition-shadow duration-300 hover:shadow-2xl'
           >
             <div className='px-8 py-10 sm:p-12'>
               <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
-                <h2 className='font-semibold text-3xl text-primary'>
+                <h2 className='text-3xl font-semibold text-primary'>
                   v{item.version}
                 </h2>
-                <div className='mt-2 inline-flex rounded-full bg-secondary px-5 py-2 font-semibold text-secondary-foreground text-sm sm:mt-0'>
+                <div className='mt-2 inline-flex rounded-full bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground sm:mt-0'>
                   {formatLocalizedDate(language, item.date)}
                 </div>
               </div>

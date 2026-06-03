@@ -64,18 +64,18 @@ export const AiChatRoute = () => {
   return (
     <div className='flex h-full min-h-0 min-w-0 overflow-hidden bg-background'>
       {isHistoryVisible ? (
-        <aside className='h-full min-h-0 w-[296px] shrink-0 border-border border-r bg-muted/20'>
+        <aside className='h-full min-h-0 w-[296px] shrink-0 border-r border-border bg-muted/20'>
           <div className='flex h-full flex-col'>
             <div className='flex items-center justify-between px-4 pt-4 pb-3'>
               <div>
-                <p className='font-medium text-foreground text-sm'>
+                <p className='text-sm font-medium text-foreground'>
                   {t('aiChat.historyTitle')}
                 </p>
-                <p className='text-muted-foreground text-xs'>
+                <p className='text-xs text-muted-foreground'>
                   {t('aiChat.historyHint')}
                 </p>
               </div>
-              <div className='rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground text-xs'>
+              <div className='rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground'>
                 {historyItems.length}
               </div>
             </div>
@@ -93,15 +93,15 @@ export const AiChatRoute = () => {
                   >
                     <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
                       <Button
-                        className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden whitespace-normal px-0 text-left hover:bg-transparent'
+                        className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
                         onClick={() => selectConversation(historyItem.id)}
                         type='button'
                         variant='ghost'
                       >
-                        <p className='w-full min-w-0 truncate font-medium text-foreground text-sm'>
+                        <p className='w-full min-w-0 truncate text-sm font-medium text-foreground'>
                           {historyItem.title}
                         </p>
-                        <p className='wrap-anywhere mt-1 line-clamp-2 w-full min-w-0 overflow-hidden text-muted-foreground text-xs leading-5'>
+                        <p className='mt-1 line-clamp-2 w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'>
                           {historyItem.preview}
                         </p>
                       </Button>

@@ -28,8 +28,11 @@ vi.mock('@dnd-kit/utilities', () => ({
 }))
 
 vi.mock('@/utils/datetime', () => ({
-  formatDatetime: vi.fn(),
   TimeRemaining: () => null,
+}))
+
+vi.mock('@/utils/localDateTime', () => ({
+  formatFixedDatetime: vi.fn(),
 }))
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {

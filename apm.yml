@@ -12,7 +12,10 @@ target:
   - copilot
 dependencies:
   apm: []
-  mcp: []
+  mcp:
+    - io.github.upstash/context7
+    - io.github.github/github-mcp-server
+    - oraios/serena
 includes: auto
 scripts:
   validate: apm compile --validate

@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -13,25 +15,28 @@ export const CategoryGroupTitle = () => {
   const { category, allUrls, visibleDomainsCount, sortable } =
     useCategoryGroup()
 
-  const badges = (
-    <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant='secondary'>{allUrls?.length ?? 0}</Badge>
-        </TooltipTrigger>
-        <SavedTabsResponsiveTooltipContent side='top'>
-          タブ数
-        </SavedTabsResponsiveTooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant='secondary'>{visibleDomainsCount}</Badge>
-        </TooltipTrigger>
-        <SavedTabsResponsiveTooltipContent side='top'>
-          ドメイン数
-        </SavedTabsResponsiveTooltipContent>
-      </Tooltip>
-    </>
+  const badges = useMemo(
+    () => (
+      <>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant='secondary'>{allUrls?.length ?? 0}</Badge>
+          </TooltipTrigger>
+          <SavedTabsResponsiveTooltipContent side='top'>
+            タブ数
+          </SavedTabsResponsiveTooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant='secondary'>{visibleDomainsCount}</Badge>
+          </TooltipTrigger>
+          <SavedTabsResponsiveTooltipContent side='top'>
+            ドメイン数
+          </SavedTabsResponsiveTooltipContent>
+        </Tooltip>
+      </>
+    ),
+    [allUrls?.length, visibleDomainsCount],
   )
 
   return (

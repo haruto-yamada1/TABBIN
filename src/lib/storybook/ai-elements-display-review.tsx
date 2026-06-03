@@ -99,7 +99,7 @@ const Section = ({
   title: string
 }) => (
   <section className='gap-y-3 rounded-xl border bg-card p-4'>
-    <h3 className='font-semibold text-base'>{title}</h3>
+    <h3 className='text-base font-semibold'>{title}</h3>
     {children}
   </section>
 )
@@ -140,7 +140,7 @@ const ReviewArtifacts = () => (
           <p>2. Keep pinned research, archive stale implementation tabs.</p>
           <p>3. Prepare one cleanup action per project.</p>
         </PlanContent>
-        <PlanFooter className='text-muted-foreground text-xs'>
+        <PlanFooter className='text-xs text-muted-foreground'>
           Streaming reasoning enabled
         </PlanFooter>
       </Plan>

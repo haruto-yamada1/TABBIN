@@ -1,7 +1,6 @@
 import { Edit, Plus, Trash2, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { z } from 'zod'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -27,6 +26,10 @@ import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
+import {
+  categoryNameSchema,
+  createCategoryNameSchema,
+} from '@/features/saved-tabs/components/categoryNameSchema'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 // 型定義
@@ -55,28 +58,6 @@ interface CategoryManagementFormState {
   newCategoryName: string
 }
 
-const createCategoryNameSchema = (
-  validationMessages: { empty: string; maxLength: string } = {
-    empty: 'カテゴリ名を入力してください',
-    maxLength: '新規親カテゴリ名は25文字以下にしてください',
-  },
-) =>
-  z
-    .string()
-    .trim()
-    .min(1, {
-      message: validationMessages.empty,
-    })
-    .max(25, {
-      message: validationMessages.maxLength,
-    })
-
-const categoryNameSchema = {
-  safeParse(value: string) {
-    return this.schema.safeParse(value)
-  },
-  schema: createCategoryNameSchema(),
-}
 const createCategoryManagementFormState = (
   categoryName: string,
 ): CategoryManagementFormState => ({
@@ -107,7 +88,7 @@ const updateCategoryWithDomain = async (
   categoryId: string,
   selectedDomain: string,
   selectedDomainInfo: AvailableDomain,
-): Promise<void> => {
+): Promise<ParentCategory[]> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
@@ -136,6 +117,31 @@ const updateCategoryWithDomain = async (
   await chrome.storage.local.set({
     parentCategories: updatedCategories,
   })
+  return updatedCategories
+}
+const buildAvailableDomains = ({
+  categoryId,
+  parentCategories,
+  savedTabs,
+}: {
+  categoryId: string
+  parentCategories: ParentCategory[]
+  savedTabs: TabGroup[]
+}): AvailableDomain[] => {
+  const targetCategory = parentCategories.find(
+    (parentCategory) => parentCategory.id === categoryId,
+  )
+  const currentDomainIdSet = new Set(targetCategory?.domains || [])
+
+  return savedTabs.reduce<AvailableDomain[]>((domains, tab) => {
+    if (!currentDomainIdSet.has(tab.id)) {
+      domains.push({
+        domain: tab.domain,
+        id: tab.id,
+      })
+    }
+    return domains
+  }, [])
 }
 const useCategoryManagementModalView = ({
   isOpen,
@@ -181,13 +187,26 @@ const useCategoryManagementModalView = ({
     setFormState((prev) => ({ ...prev, newCategoryName }))
   }
   const [isSaving, setIsSaving] = useState(false) // 保存処理中の状態
-  const [availableDomains, setAvailableDomains] = useState<AvailableDomain[]>(
-    [],
-  )
+  const [savedTabGroups, setSavedTabGroups] = useState<TabGroup[]>([])
+  const [parentCategories, setParentCategories] = useState<ParentCategory[]>([])
   const [selectedDomain, setSelectedDomain] = useState('')
   const modalContentRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const availableDomains = useMemo(
+    () =>
+      buildAvailableDomains({
+        categoryId: category.id,
+        parentCategories,
+        savedTabs: savedTabGroups,
+      }),
+    [category.id, parentCategories, savedTabGroups],
+  )
+  const activeSelectedDomain = availableDomains.some(
+    (domain) => domain.id === selectedDomain,
+  )
+    ? selectedDomain
+    : (availableDomains[0]?.id ?? '')
 
   // 入力値バリデーション関数
   const validateCategoryName = (name: string) => {
@@ -208,51 +227,38 @@ const useCategoryManagementModalView = ({
     return true
   }
 
-  // 追加可能なドメイン一覧を取得
-  const loadAvailableDomains = useCallback(async () => {
-    try {
-      const { savedTabs = [] } = await chrome.storage.local.get<{
-        savedTabs?: import('@/types/storage').TabGroup[]
-      }>('savedTabs')
-      const { parentCategories = [] } = await chrome.storage.local.get<{
-        parentCategories?: import('@/types/storage').ParentCategory[]
-      }>('parentCategories')
-
-      // 現在のカテゴリのドメインを取得
-      const targetCategory = parentCategories.find(
-        (cat: ParentCategory) => cat.id === category.id,
-      )
-      const currentDomainIds = targetCategory?.domains || []
-      const currentDomainIdSet = new Set(currentDomainIds)
-
-      // 他のすべてのドメインを取得
-      const otherDomains = savedTabs.reduce<AvailableDomain[]>(
-        (domains, tab) => {
-          if (!currentDomainIdSet.has(tab.id)) {
-            domains.push({
-              domain: tab.domain,
-              id: tab.id,
-            })
-          }
-          return domains
-        },
-        [],
-      )
-      setAvailableDomains(otherDomains)
-      if (otherDomains.length > 0) {
-        setSelectedDomain(otherDomains[0].id)
-      } else {
-        setSelectedDomain('')
-      }
-    } catch (error) {
-      console.error('利用可能なドメインの取得に失敗しました:', error)
-    }
-  }, [category.id])
-
-  // モーダル表示時の候補ドメイン取得
   useEffect(() => {
-    loadAvailableDomains()
-  }, [loadAvailableDomains])
+    let isMounted = true
+
+    const loadDomainSources = async () => {
+      try {
+        const [{ savedTabs = [] }, { parentCategories = [] }] =
+          await Promise.all([
+            chrome.storage.local.get<{
+              savedTabs?: import('@/types/storage').TabGroup[]
+            }>('savedTabs'),
+            chrome.storage.local.get<{
+              parentCategories?: import('@/types/storage').ParentCategory[]
+            }>('parentCategories'),
+          ])
+
+        if (!isMounted) {
+          return
+        }
+
+        setSavedTabGroups(savedTabs)
+        setParentCategories(parentCategories)
+      } catch (error) {
+        console.error('利用可能なドメインの取得に失敗しました:', error)
+      }
+    }
+
+    void loadDomainSources()
+
+    return () => {
+      isMounted = false
+    }
+  }, [category.id, isOpen])
 
   // カテゴリのリネーム処理を開始
   const handleStartRenaming = () => {
@@ -414,41 +420,30 @@ const useCategoryManagementModalView = ({
 
   // ドメインをカテゴリに追加
   const handleAddDomain = async () => {
-    if (!selectedDomain || isProcessing) {
+    if (!activeSelectedDomain || isProcessing) {
       return
     }
     setIsProcessing(true)
     try {
       const selectedDomainInfo = availableDomains.find(
-        (d) => d.id === selectedDomain,
+        (d) => d.id === activeSelectedDomain,
       )
       if (!selectedDomainInfo) {
         throw new Error('ドメインが見つかりません')
       }
-      await updateCategoryWithDomain(
+      const updatedCategories = await updateCategoryWithDomain(
         category.id,
-        selectedDomain,
+        activeSelectedDomain,
         selectedDomainInfo,
       )
+      setParentCategories(updatedCategories)
+      setSelectedDomain('')
       toast.success(
         t('savedTabs.categoryModal.domainAssigned', undefined, {
           categoryName: category.name,
           domain: selectedDomainInfo.domain,
         }),
       )
-
-      // 追加したドメインをリストから削除
-      const updatedAvailableDomains = availableDomains.filter(
-        (d) => d.id !== selectedDomain,
-      )
-      setAvailableDomains(updatedAvailableDomains)
-
-      // セレクトボックスをリセット
-      if (updatedAvailableDomains.length > 0) {
-        setSelectedDomain(updatedAvailableDomains[0].id)
-      } else {
-        setSelectedDomain('')
-      }
     } catch (error) {
       console.error('ドメインの追加に失敗しました:', error)
       toast.error(t('savedTabs.categoryModal.toggleError'))
@@ -501,24 +496,13 @@ const useCategoryManagementModalView = ({
       await chrome.storage.local.set({
         parentCategories: updatedCategories,
       })
-
-      // 削除したドメインをセレクトボックスに追加
-      setAvailableDomains((prev) => [
-        ...prev,
-        {
-          domain: domainInfo.domain,
-          id: domainInfo.id,
-        },
-      ])
+      setParentCategories(updatedCategories)
       toast.success(
         t('savedTabs.categoryModal.domainRemoved', undefined, {
           categoryName: category.name,
           domain: domainInfo.domain,
         }),
       )
-
-      // ドメイン一覧を更新
-      await loadAvailableDomains()
     } catch (error) {
       console.error('ドメインの削除に失敗しました:', error)
       toast.error(t('savedTabs.categoryModal.deleteError'))
@@ -656,7 +640,7 @@ const useCategoryManagementModalView = ({
                   }}
                 />
                 {categoryNameError && (
-                  <p className='mt-1 text-red-500 text-xs'>
+                  <p className='mt-1 text-xs text-red-500'>
                     {categoryNameError}
                   </p>
                 )}
@@ -756,7 +740,7 @@ const useCategoryManagementModalView = ({
             {availableDomains.length > 0 ? (
               <div className='flex gap-2'>
                 <Select
-                  value={selectedDomain}
+                  value={activeSelectedDomain}
                   onValueChange={setSelectedDomain}
                   disabled={isProcessing}
                 >
@@ -790,7 +774,7 @@ const useCategoryManagementModalView = ({
                         handleAddDomain()
                       }}
                       className='cursor-pointer'
-                      disabled={!selectedDomain || isProcessing}
+                      disabled={!activeSelectedDomain || isProcessing}
                     >
                       <Plus size={18} />
                     </Button>
@@ -828,4 +812,4 @@ const CategoryManagementModal = (props: CategoryManagementModalProps) => {
   )
 }
 
-export { CategoryManagementModal, categoryNameSchema }
+export { CategoryManagementModal }

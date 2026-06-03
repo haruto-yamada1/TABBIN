@@ -47,7 +47,10 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 vi.mock('@/utils/datetime', () => ({
   TimeRemaining: () => <span data-testid='time-remaining'>残り時間</span>,
-  formatDatetime: () => '2026/06/02 12:34',
+}))
+
+vi.mock('@/utils/localDateTime', () => ({
+  formatFixedDatetime: () => '2026/06/02 12:34',
 }))
 
 import { SortableUrlItem } from './SortableUrlItem'

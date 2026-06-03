@@ -29,7 +29,7 @@ export const ProjectCardUncategorizedArea = () => {
         className={`uncategorized-area uncategorized-drop-zone overflow-x-hidden px-4 ${
           isUncategorizedOver
             ? 'rounded border-2 border-primary bg-primary/10 shadow-sm'
-            : 'rounded border border-muted border-dashed'
+            : 'rounded border border-dashed border-muted'
         }`}
         ref={setUncategorizedDropRef}
         id={`uncategorized-${project.id}`}
@@ -42,7 +42,7 @@ export const ProjectCardUncategorizedArea = () => {
       >
         {project.categories.length > 0 && (
           <h3
-            className='uncategorized-heading mb-2 px-2 font-semibold text-md'
+            className='uncategorized-heading text-md mb-2 px-2 font-semibold'
             data-type='uncategorized'
             data-uncategorized-area='true'
           >

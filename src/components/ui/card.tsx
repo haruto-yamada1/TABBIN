@@ -30,7 +30,7 @@ const CardTitle = ({
 }: React.ComponentProps<'div'>) => (
   <div
     ref={ref}
-    className={cn('font-semibold leading-none tracking-tight', className)}
+    className={cn('leading-none font-semibold tracking-tight', className)}
     {...props}
   />
 )

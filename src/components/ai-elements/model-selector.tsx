@@ -44,7 +44,7 @@ export const ModelSelectorContent = ({
   <DialogContent
     aria-describedby={undefined}
     className={cn(
-      'outline! border-none! p-0 outline-border! outline-solid!',
+      'border-none! p-0 outline! outline-border! outline-solid!',
       className,
     )}
     {...props}

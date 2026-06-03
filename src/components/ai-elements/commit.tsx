@@ -71,7 +71,7 @@ export const CommitMessage = ({
   children,
   ...props
 }: CommitMessageProps) => (
-  <span className={cn('font-medium text-sm', className)} {...props}>
+  <span className={cn('text-sm font-medium', className)} {...props}>
     {children}
   </span>
 )
@@ -85,7 +85,7 @@ export const CommitMetadata = ({
 }: CommitMetadataProps) => (
   <div
     className={cn(
-      'flex items-center gap-2 text-muted-foreground text-xs',
+      'flex items-center gap-2 text-xs text-muted-foreground',
       className,
     )}
     {...props}
@@ -310,7 +310,7 @@ export const CommitFileStatus = ({
 }: CommitFileStatusProps) => (
   <span
     className={cn(
-      'font-medium font-mono text-xs',
+      'font-mono text-xs font-medium',
       fileStatusStyles[status],
       className,
     )}

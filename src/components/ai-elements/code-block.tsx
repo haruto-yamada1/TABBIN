@@ -359,7 +359,7 @@ const CodeBlockBody = memo(
       <pre
         className={cn(
           'm-0 p-4 text-sm dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)!',
-          wrapLongLines && 'wrap-anywhere whitespace-pre-wrap break-words',
+          wrapLongLines && 'break-words wrap-anywhere whitespace-pre-wrap',
           className,
         )}
         style={preStyle}
@@ -418,7 +418,7 @@ export const CodeBlockHeader = ({
 }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex items-center justify-between border-b bg-muted/80 px-3 py-2 text-muted-foreground text-xs',
+      'flex items-center justify-between border-b bg-muted/80 px-3 py-2 text-xs text-muted-foreground',
       className,
     )}
     {...props}

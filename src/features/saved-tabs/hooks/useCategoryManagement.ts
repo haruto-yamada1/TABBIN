@@ -4,13 +4,13 @@
  */
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { saveParentCategories } from '@/lib/storage/categories'
-import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseCategoryManagement フックの戻り値型 */
 interface UseCategoryManagementReturn {
@@ -123,33 +123,42 @@ const buildReorderedCategoryOrder = (params: {
   }
   return arrayMove(currentOrder, oldIndex, newIndex)
 }
+const resolveStateValue = <T,>(
+  nextValue: SetStateAction<T>,
+  previousValue: T,
+): T =>
+  typeof nextValue === 'function'
+    ? (nextValue as (value: T) => T)(previousValue)
+    : nextValue
 /**
  * 親カテゴリ管理フック。
  * カテゴリの読み込み・並び替えモード・ドメイン間移動を担う。
  *
- * @param _tabGroups - 現在のタブグループ一覧（将来の拡張用）
- * @param _settings - ユーザー設定（将来の拡張用）
  * @returns UseCategoryManagementReturn
  */
-const useCategoryManagement = (
-  _tabGroups: TabGroup[],
-  _settings: UserSettings,
-): UseCategoryManagementReturn => {
+const useCategoryManagement = (): UseCategoryManagementReturn => {
   const { t } = useI18n()
-  const [categories, setCategories] = useState<ParentCategory[]>([])
+  const [categories, setCategoriesState] = useState<ParentCategory[]>([])
   const [categoryOrder, setCategoryOrder] = useState<string[]>([])
   const [isCategoryReorderMode, setIsCategoryReorderMode] = useState(false)
   const [originalCategoryOrder, setOriginalCategoryOrder] = useState<string[]>(
     [],
   )
   const [tempCategoryOrder, setTempCategoryOrder] = useState<string[]>([])
+  const setCategories: Dispatch<SetStateAction<ParentCategory[]>> = useCallback(
+    (nextCategories) => {
+      setCategoriesState((previousCategories) => {
+        const resolvedCategories = resolveStateValue(
+          nextCategories,
+          previousCategories,
+        )
 
-  // Categories が変更されたときに categoryOrder を同期する
-  useEffect(() => {
-    if (categories.length > 0) {
-      setCategoryOrder(categories.map((cat) => cat.id))
-    }
-  }, [categories])
+        setCategoryOrder(resolvedCategories.map((category) => category.id))
+        return resolvedCategories
+      })
+    },
+    [],
+  )
 
   /**
    * 子カテゴリ（サブカテゴリ）を削除する。

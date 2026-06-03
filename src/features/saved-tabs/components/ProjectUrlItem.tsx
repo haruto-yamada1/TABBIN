@@ -9,6 +9,10 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, UserSettings } from '@/types/storage'
 
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
+import {
+  getCategoryDisplayName,
+  getCategoryLevel,
+} from './projectUrlItemHelpers'
 
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
 let isGlobalInternalDrop = false
@@ -34,23 +38,6 @@ interface ProjectUrlItemProps {
   // 追加: 親要素のタイプ情報
   parentType?: string
   settings: UserSettings
-}
-
-// カテゴリ名から表示名を取得する関数を追加
-const getCategoryDisplayName = (category?: string) => {
-  if (!category) {
-    return ''
-  }
-  const parts = category.split('/')
-  return parts.at(-1)
-}
-
-// カテゴリの階層レベルを取得
-const getCategoryLevel = (category?: string) => {
-  if (!category) {
-    return 0
-  }
-  return category.split('/').length - 1
 }
 
 const ProjectUrlItemComponent = ({
@@ -185,10 +172,7 @@ const ProjectUrlItemComponent = ({
       <li
         ref={setNodeRef}
         style={style}
-        className={`group relative flex min-w-0 items-center overflow-hidden border-border border-b pb-1 last:border-0 ${isDragging ? 'bg-secondary/50 opacity-50' : ''}
-        ${isInSubcategory ? 'pl-2' : ''}
-        ${item.category ? 'border-l-2 border-l-primary/30' : ''}
-      `}
+        className={`group relative flex min-w-0 items-center overflow-hidden border-b border-border pb-1 last:border-0 ${isDragging ? 'bg-secondary/50 opacity-50' : ''} ${isInSubcategory ? 'pl-2' : ''} ${item.category ? 'border-l-2 border-l-primary/30' : ''} `}
         data-url={originalUrl}
         data-project-id={projectId}
         data-category={item.category}
@@ -270,4 +254,4 @@ const ProjectUrlItem = memo(ProjectUrlItemComponent)
 ProjectUrlItem.displayName = 'ProjectUrlItem'
 
 export type { ProjectUrlItemProps }
-export { ProjectUrlItem, getCategoryDisplayName, getCategoryLevel }
+export { ProjectUrlItem }

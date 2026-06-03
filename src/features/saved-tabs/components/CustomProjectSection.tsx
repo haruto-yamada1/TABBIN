@@ -65,28 +65,33 @@ interface DragDebugPayload {
 
 let lastKnownActiveDragData: ActiveDragData | null = null
 
-const ProjectDragPreview = ({ project }: { project: CustomProject }) => (
-  <Card className='mb-4 w-full max-w-[600px] overflow-x-hidden shadow-md'>
-    <CardHeader className='sticky top-0 z-50 my-2 flex-row items-baseline justify-between bg-card pl-1 text-foreground'>
-      <div className='flex grow items-center gap-2'>
-        <CardCollapseControl
-          isCollapsed={false}
-          setIsCollapsed={() => {}}
-          setUserCollapsedState={() => {}}
-          isDisabled
-        />
-        <CardSortControl sortOrder='default' setSortOrder={() => {}} />
-        <CardGroupTitle
-          title={project.name}
-          badges={
-            <Badge variant='secondary'>{project.urls?.length ?? 0}</Badge>
-          }
-          className='py-2'
-        />
-      </div>
-    </CardHeader>
-  </Card>
-)
+const ProjectDragPreview = ({ project }: { project: CustomProject }) => {
+  const badges = useMemo(
+    () => <Badge variant='secondary'>{project.urls?.length ?? 0}</Badge>,
+    [project.urls?.length],
+  )
+
+  return (
+    <Card className='mb-4 w-full max-w-[600px] overflow-x-hidden shadow-md'>
+      <CardHeader className='sticky top-0 z-50 my-2 flex-row items-baseline justify-between bg-card pl-1 text-foreground'>
+        <div className='flex grow items-center gap-2'>
+          <CardCollapseControl
+            isCollapsed={false}
+            setIsCollapsed={() => {}}
+            setUserCollapsedState={() => {}}
+            isDisabled
+          />
+          <CardSortControl sortOrder='default' setSortOrder={() => {}} />
+          <CardGroupTitle
+            title={project.name}
+            badges={badges}
+            className='py-2'
+          />
+        </div>
+      </CardHeader>
+    </Card>
+  )
+}
 
 const resolveTargetProjectId = (over: DragEndEvent['over']): string | null => {
   const overProjectId = over?.data?.current?.projectId
@@ -735,7 +740,7 @@ const useCustomProjectSectionView = ({
                   className={`w-full ${nameError ? 'border-red-500' : ''}`}
                 />
                 {nameError && (
-                  <p className='mt-1 text-red-500 text-xs'>{nameError}</p>
+                  <p className='mt-1 text-xs text-red-500'>{nameError}</p>
                 )}
               </div>
             </div>

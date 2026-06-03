@@ -58,15 +58,6 @@ const applyTimeRemainingResponse = (
   setTimeLeft(formatTimeRemainingText(remainingMs))
 }
 /**
- * タイムスタンプを日時形式にフォーマットする関数
- * 「YYYY/MM/DD HH:MM:SS」形式で返します
- *
- * @param timestamp ミリ秒タイムスタンプ
- * @returns フォーマットされた日時文字列
- */
-export const formatDatetime = (timestamp?: number): string =>
-  formatFixedDatetime(timestamp)
-/**
  * 残り時間を表示するコンポーネント
  *
  * @param props.savedAt タブが保存された時間（ミリ秒タイムスタンプ）
@@ -79,12 +70,15 @@ export const TimeRemaining = ({
   savedAt?: number
   autoDeletePeriod?: string
 }) => {
+  const isAutoDeleteEnabled =
+    Boolean(savedAt) &&
+    Boolean(autoDeletePeriod) &&
+    autoDeletePeriod !== 'never'
   const [timeLeft, setTimeLeft] = useState<string>('')
   const [colorClass, setColorClass] = useState<string>('')
+
   useEffect(() => {
-    // 自動削除が無効な場合や保存時刻がない場合は何も表示しない
-    if (!autoDeletePeriod || autoDeletePeriod === 'never' || !savedAt) {
-      setTimeLeft('')
+    if (!isAutoDeleteEnabled) {
       return
     }
 
@@ -108,8 +102,9 @@ export const TimeRemaining = ({
     // 1分ごとに更新
     const timer = setInterval(calculateTimeLeft, 60_000)
     return () => clearInterval(timer)
-  }, [savedAt, autoDeletePeriod])
-  if (!timeLeft) {
+  }, [savedAt, autoDeletePeriod, isAutoDeleteEnabled])
+
+  if (!isAutoDeleteEnabled || !timeLeft) {
     return null
   }
   return (

@@ -56,6 +56,7 @@ import {
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
+import { AnalyticsRecordActionButtons } from '@/features/analytics/routes/AnalyticsRecordActionButtons'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   createSavedAnalyticsView,
@@ -431,10 +432,6 @@ const useAnalyticsRouteView = () => {
   const [viewName, setViewName] = useState('')
   const [viewNameError, setViewNameError] =
     useState<ViewNameValidationError | null>(null)
-  const [summary, setSummary] = useState('')
-  const [generatedChartSpecs, setGeneratedChartSpecs] = useState<AiChartSpec[]>(
-    [],
-  )
   const [aiChartSpecs, setAiChartSpecs] = useState<AiChartSpec[]>([])
   const [drilldownSelection, setDrilldownSelection] =
     useState<AnalyticsDrilldownSelection | null>(null)
@@ -471,8 +468,7 @@ const useAnalyticsRouteView = () => {
       chartWeeklySavedTrend: t('analytics.chart.weeklySavedTrend'),
       uncategorizedLabel: t('analytics.uncategorized'),
     }),
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- chart labels intentionally recompute when the active language changes.
-    [language],
+    [t],
   )
   const analyticsGroupByOptions = [
     { label: t('analytics.groupBy.domain'), value: 'domain' },
@@ -520,13 +516,17 @@ const useAnalyticsRouteView = () => {
     }
   }, [])
 
-  useEffect(() => {
-    const result = generateAnalyticsResult(records, query, {
-      messages: chartMessages,
-    })
-    setGeneratedChartSpecs(result.chartSpecs)
-    setSummary(result.summary)
-  }, [chartMessages, query, records])
+  const generatedAnalyticsResult = useMemo(
+    () =>
+      generateAnalyticsResult(records, query, {
+        messages: chartMessages,
+      }),
+    [chartMessages, query, records],
+  )
+  const generatedChartSpecs = generatedAnalyticsResult.chartSpecs
+  const summary = isUsingAiCharts
+    ? t('analytics.aiSummary')
+    : generatedAnalyticsResult.summary
 
   const filteredRecords = useMemo(
     () =>
@@ -586,7 +586,6 @@ const useAnalyticsRouteView = () => {
     setIsUsingAiCharts(true)
     setAiChartSpecs(latestAssistantCharts.charts)
     setDrilldownSelection(null)
-    setSummary(t('analytics.aiSummary'))
   }
 
   const handleChartPointClick = ({
@@ -805,7 +804,7 @@ const useAnalyticsRouteView = () => {
       data-testid='analytics-page-layout'
     >
       <main className='min-h-0 min-w-0 flex-1 overflow-hidden bg-muted/10'>
-        <div className='mx-auto flex h-full min-h-0 min-w-0 max-w-7xl flex-col gap-4'>
+        <div className='mx-auto flex h-full min-h-0 max-w-7xl min-w-0 flex-col gap-4'>
           <section
             className='grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[240px_minmax(0,1fr)]'
             data-testid='analytics-layout-grid'
@@ -988,7 +987,7 @@ const useAnalyticsRouteView = () => {
                     </CardHeader>
                     <CardContent className='mt-4 p-0'>
                       {savedViews.length === 0 ? (
-                        <p className='text-muted-foreground text-sm'>
+                        <p className='text-sm text-muted-foreground'>
                           {t('analytics.savedViewsEmpty')}
                         </p>
                       ) : (
@@ -1007,7 +1006,7 @@ const useAnalyticsRouteView = () => {
                                   type='button'
                                   variant='ghost'
                                 >
-                                  <span className='truncate font-medium text-sm'>
+                                  <span className='truncate text-sm font-medium'>
                                     {view.name}
                                   </span>
                                 </Button>
@@ -1043,10 +1042,10 @@ const useAnalyticsRouteView = () => {
               <div className='min-w-0 p-5'>
                 <div className='flex flex-wrap items-start justify-between gap-3'>
                   <div>
-                    <h2 className='font-semibold text-lg'>
+                    <h2 className='text-lg font-semibold'>
                       {t('analytics.canvasTitle')}
                     </h2>
-                    <p className='mt-1 text-muted-foreground text-sm'>
+                    <p className='mt-1 text-sm text-muted-foreground'>
                       {summary}
                     </p>
                   </div>
@@ -1070,10 +1069,10 @@ const useAnalyticsRouteView = () => {
                   <Card className='mt-4 rounded-3xl bg-background p-4 shadow-none'>
                     <div className='flex flex-wrap items-start justify-between gap-3'>
                       <div>
-                        <h3 className='font-semibold text-base'>
+                        <h3 className='text-base font-semibold'>
                           {t('analytics.drilldownTitle')}
                         </h3>
-                        <p className='mt-1 text-muted-foreground text-sm'>
+                        <p className='mt-1 text-sm text-muted-foreground'>
                           {drilldownSelection.specTitle} /{' '}
                           {drilldownSelection.label} /{' '}
                           {t('analytics.drilldownCount', undefined, {
@@ -1125,7 +1124,7 @@ const useAnalyticsRouteView = () => {
                     </div>
                     <div className='mt-4 space-y-3'>
                       {drilldownSelection.matchingRecords.length === 0 ? (
-                        <p className='text-muted-foreground text-sm'>
+                        <p className='text-sm text-muted-foreground'>
                           {t('analytics.drilldownEmpty')}
                         </p>
                       ) : (
@@ -1137,7 +1136,7 @@ const useAnalyticsRouteView = () => {
                           >
                             <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'>
                               <div className='min-w-0 flex-1'>
-                                <p className='truncate font-medium text-sm'>
+                                <p className='truncate text-sm font-medium'>
                                   {record.title}
                                 </p>
                                 <div className='mt-2 flex flex-wrap gap-2 text-xs'>
@@ -1168,66 +1167,21 @@ const useAnalyticsRouteView = () => {
                                 </div>
                               </div>
                               <div className='flex shrink-0 flex-col gap-2 sm:items-end'>
-                                <time className='text-muted-foreground text-xs'>
+                                <time className='text-xs text-muted-foreground'>
                                   {formatLocaleDateTime(
                                     record.savedAt,
                                     /* v8 ignore next -- coverage-only defensive branch. */
                                     language === 'ja' ? 'ja-JP' : 'en-US',
                                   )}
                                 </time>
-                                <TooltipProvider delayDuration={0}>
-                                  <div className='flex items-center justify-end gap-1'>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          asChild
-                                          size='icon-sm'
-                                          variant='ghost'
-                                        >
-                                          <a
-                                            aria-label={t(
-                                              'analytics.openAria',
-                                              undefined,
-                                              { title: record.title },
-                                            )}
-                                            href={record.url}
-                                            rel='noreferrer'
-                                            target='_blank'
-                                          >
-                                            <ExternalLink className='size-4' />
-                                          </a>
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side='top'>
-                                        {t('analytics.open')}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          aria-label={t(
-                                            'savedTabs.url.deleteAria',
-                                          )}
-                                          disabled={
-                                            isDeleteActionDisabled ||
-                                            deletingUrl === record.url
-                                          }
-                                          onClick={() =>
-                                            handleDeleteClick(record)
-                                          }
-                                          size='icon-sm'
-                                          type='button'
-                                          variant='ghost'
-                                        >
-                                          <Trash2 className='size-4' />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side='top'>
-                                        {t('common.delete')}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </TooltipProvider>
+                                <AnalyticsRecordActionButtons
+                                  deletingUrl={deletingUrl}
+                                  handleDeleteClick={handleDeleteClick}
+                                  isDeleteActionDisabled={
+                                    isDeleteActionDisabled
+                                  }
+                                  record={record}
+                                />
                               </div>
                             </div>
                           </Card>
