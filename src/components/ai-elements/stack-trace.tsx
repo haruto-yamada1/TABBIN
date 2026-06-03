@@ -421,7 +421,7 @@ export const StackTraceContent = memo(
         <CollapsibleContent
           className={cn(
             'overflow-auto border-t bg-muted/30',
-            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=open]:animate-in',
+            'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
             className,
           )}
           style={{ maxHeight }}
@@ -526,7 +526,7 @@ export const StackTraceFrames = memo(
           </div>
         ))}
         {framesToShow.length === 0 && (
-          <div className='text-muted-foreground text-xs'>
+          <div className='text-xs text-muted-foreground'>
             {t('common.noStackFrames')}
           </div>
         )}

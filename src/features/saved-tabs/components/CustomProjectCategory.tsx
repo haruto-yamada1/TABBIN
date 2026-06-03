@@ -5,51 +5,25 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ExternalLink, GripVertical, Settings, Trash2 } from 'lucide-react'
+import { GripVertical } from 'lucide-react'
 import { memo, useMemo, useReducer, useState } from 'react'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import type { SortOrder } from '../hooks/useSortOrder'
 import type { CustomProjectCategoryProps } from '../types/CustomProjectCategory.types'
+import { CustomProjectCategoryBulkConfirmDialogs } from './CustomProjectCategoryBulkConfirmDialogs'
+import { CustomProjectCategoryHeaderActions } from './CustomProjectCategoryHeaderActions'
+import { CustomProjectCategoryManageDialog } from './CustomProjectCategoryManageDialog'
 import { ProjectUrlItem } from './ProjectUrlItem'
 import { CardCollapseControl } from './shared/CardCollapseControl'
 import { CardSortControl } from './shared/CardSortControl'
-import { OpenAllTabsConfirmDialog } from './shared/OpenAllTabsConfirmDialog'
-import {
-  SavedTabsResponsiveLabel,
-  SavedTabsResponsiveTooltipContent,
-} from './shared/SavedTabsResponsive'
 
 type CategoryUrl = NonNullable<CustomProjectCategoryProps['urls']>[number]
 
 const shouldConfirmBulkOpen = (urlCount: number): boolean => urlCount >= 10
-
-const shouldStopDialogPropagation = (key: string): boolean =>
-  key === 'Enter' || key === ' '
 
 const sortCategoryUrls = (
   categoryUrls: CategoryUrl[],
@@ -124,100 +98,12 @@ const CategoryHeaderMain = ({
     <div className='shrink-0 text-muted-foreground'>
       <GripVertical size={16} aria-hidden='true' />
     </div>
-    <h3 className='m-0 border-none bg-transparent p-0 font-medium text-lg'>
+    <h3 className='m-0 border-none bg-transparent p-0 text-lg font-medium'>
       {category}
     </h3>
     <Badge variant='secondary'>{urlCount}</Badge>
   </div>
 )
-
-interface CategoryHeaderActionsProps {
-  showManageActions: boolean
-  showBulkActions: boolean
-  onOpenManageDialog: () => void
-  onOpenAllClick: () => void
-  onDeleteAllClick: () => void
-}
-
-const CategoryHeaderActions = ({
-  showManageActions,
-  showBulkActions,
-  onOpenManageDialog,
-  onOpenAllClick,
-  onDeleteAllClick,
-}: CategoryHeaderActionsProps) => {
-  const { t } = useI18n()
-
-  return (
-    <div className='flex items-center gap-1'>
-      {showManageActions && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant='secondary'
-              size='sm'
-              className='flex cursor-pointer items-center gap-1'
-              onClick={onOpenManageDialog}
-              aria-label={t('savedTabs.projectCategory.manage')}
-            >
-              <Settings size={14} />
-              <SavedTabsResponsiveLabel>
-                {t('savedTabs.projectCategory.manage')}
-              </SavedTabsResponsiveLabel>
-            </Button>
-          </TooltipTrigger>
-          <SavedTabsResponsiveTooltipContent side='top'>
-            {t('savedTabs.projectCategory.manage')}
-          </SavedTabsResponsiveTooltipContent>
-        </Tooltip>
-      )}
-
-      {showBulkActions && (
-        <>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='secondary'
-                size='sm'
-                className='flex cursor-pointer items-center gap-1'
-                onClick={onOpenAllClick}
-                aria-label={t('savedTabs.openAll')}
-              >
-                <ExternalLink size={14} />
-                <SavedTabsResponsiveLabel>
-                  {t('savedTabs.openAll')}
-                </SavedTabsResponsiveLabel>
-              </Button>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              {t('savedTabs.openAll')}
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='secondary'
-                size='sm'
-                className='flex cursor-pointer items-center gap-1'
-                onClick={onDeleteAllClick}
-                aria-label={t('savedTabs.deleteAll')}
-              >
-                <Trash2 size={14} />
-                <SavedTabsResponsiveLabel>
-                  {t('savedTabs.deleteAll')}
-                </SavedTabsResponsiveLabel>
-              </Button>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              {t('savedTabs.deleteAll')}
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
-        </>
-      )}
-    </div>
-  )
-}
 
 interface CategoryContentProps {
   urls: CategoryUrl[]
@@ -236,7 +122,7 @@ interface CategoryContentProps {
   settings: CustomProjectCategoryProps['settings']
 }
 
-const CategoryContent = ({
+const renderCategoryContent = ({
   urls,
   isOver,
   category,
@@ -287,184 +173,6 @@ const CategoryContent = ({
     )}
   </CardContent>
 )
-
-interface CategoryManageDialogProps {
-  category: string
-  showManageDialog: boolean
-  setShowManageDialog: (open: boolean) => void
-  newCategoryName: string
-  setNewCategoryName: (name: string) => void
-  renameError: string | null
-  showDeleteConfirm: boolean
-  setShowDeleteConfirm: (show: boolean) => void
-  onRename: () => void
-  onConfirmDelete: () => void
-}
-
-const CategoryManageDialog = ({
-  category,
-  showManageDialog,
-  setShowManageDialog,
-  newCategoryName,
-  setNewCategoryName,
-  renameError,
-  showDeleteConfirm,
-  setShowDeleteConfirm,
-  onRename,
-  onConfirmDelete,
-}: CategoryManageDialogProps) => {
-  const { t } = useI18n()
-  const handleDialogKeyDown = (event: React.KeyboardEvent) => {
-    if (shouldStopDialogPropagation(event.key)) {
-      event.stopPropagation()
-    }
-  }
-
-  const handleRenameInputKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key !== 'Enter') {
-      return
-    }
-    event.preventDefault()
-    onRename()
-  }
-
-  return (
-    <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
-      <DialogContent
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        onKeyDown={handleDialogKeyDown}
-      >
-        <DialogHeader>
-          <DialogTitle>{t('savedTabs.projectCategory.title')}</DialogTitle>
-          <DialogDescription>
-            {t('savedTabs.projectCategory.renameDescription', undefined, {
-              name: category,
-            })}
-          </DialogDescription>
-        </DialogHeader>
-        <div className='gap-y-4'>
-          <div>
-            <Label htmlFor='rename-input'>
-              {t('savedTabs.projectCategory.renameLabel')}
-            </Label>
-            <Input
-              id='rename-input'
-              value={newCategoryName}
-              onChange={(event) => setNewCategoryName(event.target.value)}
-              onBlur={onRename}
-              placeholder={t('savedTabs.projectCategory.renamePlaceholder')}
-              className={`w-full rounded border p-2 ${renameError ? 'border-red-500' : ''}`}
-              onKeyDown={handleRenameInputKeyDown}
-            />
-            {renameError && (
-              <p className='mt-1 text-red-500 text-xs'>{renameError}</p>
-            )}
-          </div>
-
-          <div className='border-t pt-4'>
-            <p className='text-sm text-zinc-600'>
-              {t('savedTabs.projectCategory.deleteWarning')}
-            </p>
-            {showDeleteConfirm ? (
-              <div className='mt-2 flex justify-end gap-2'>
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  onClick={() => setShowDeleteConfirm(false)}
-                >
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  variant='destructive'
-                  size='sm'
-                  onClick={onConfirmDelete}
-                >
-                  {t('common.delete')}
-                </Button>
-              </div>
-            ) : (
-              <div className='mt-2 flex justify-end'>
-                <Button
-                  variant='secondary'
-                  size='sm'
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  {t('savedTabs.projectCategory.deleteAction')}
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-interface CategoryBulkConfirmDialogsProps {
-  isOpenAllConfirmOpen: boolean
-  setIsOpenAllConfirmOpen: (open: boolean) => void
-  isDeleteAllConfirmOpen: boolean
-  setIsDeleteAllConfirmOpen: (open: boolean) => void
-  categoryDisplayName: string
-  onConfirmOpenAll: () => void
-  onConfirmDeleteAll: () => Promise<void>
-}
-
-const CategoryBulkConfirmDialogs = ({
-  isOpenAllConfirmOpen,
-  setIsOpenAllConfirmOpen,
-  isDeleteAllConfirmOpen,
-  setIsDeleteAllConfirmOpen,
-  categoryDisplayName,
-  onConfirmOpenAll,
-  onConfirmDeleteAll,
-}: CategoryBulkConfirmDialogsProps) => {
-  const { t } = useI18n()
-
-  return (
-    <>
-      <OpenAllTabsConfirmDialog
-        open={isOpenAllConfirmOpen}
-        onOpenChange={setIsOpenAllConfirmOpen}
-        title={t('savedTabs.openAllConfirmTitle')}
-        description={t('savedTabs.openAllConfirmDescription', undefined, {
-          count: '10',
-        })}
-        cancelLabel={t('common.cancel')}
-        openLabel={t('common.open')}
-        onConfirm={onConfirmOpenAll}
-      />
-
-      <AlertDialog
-        open={isDeleteAllConfirmOpen}
-        onOpenChange={setIsDeleteAllConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.deleteAllConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.projectCategory.deleteAllWarning', undefined, {
-                categoryName: categoryDisplayName,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={() => void onConfirmDeleteAll()}
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  )
-}
 
 const useCustomProjectCategoryView = ({
   projectId,
@@ -655,7 +363,7 @@ const useCustomProjectCategoryView = ({
             setUserCollapsedState={setUserCollapsedState}
             setSortOrder={setSortOrder}
           />
-          <CategoryHeaderActions
+          <CustomProjectCategoryHeaderActions
             showManageActions={showManageActions}
             showBulkActions={showBulkActions}
             onOpenManageDialog={handleOpenManageDialog}
@@ -664,22 +372,21 @@ const useCustomProjectCategoryView = ({
           />
         </CardHeader>
 
-        {!isCollapsed && (
-          <CategoryContent
-            urls={sortedCategoryUrls}
-            isOver={isOver}
-            category={category}
-            projectId={projectId}
-            categoryDropId={categoryDropId}
-            setDroppableRef={setDroppableRef}
-            handleOpenUrl={handleOpenUrl}
-            handleDeleteUrl={handleDeleteUrl}
-            handleSetUrlCategory={handleSetUrlCategory}
-            settings={settings}
-          />
-        )}
+        {!isCollapsed &&
+          renderCategoryContent({
+            urls: sortedCategoryUrls,
+            isOver,
+            category,
+            projectId,
+            categoryDropId,
+            setDroppableRef,
+            handleOpenUrl,
+            handleDeleteUrl,
+            handleSetUrlCategory,
+            settings,
+          })}
 
-        <CategoryManageDialog
+        <CustomProjectCategoryManageDialog
           category={category}
           showManageDialog={showManageDialog}
           setShowManageDialog={setShowManageDialog}
@@ -693,7 +400,7 @@ const useCustomProjectCategoryView = ({
         />
       </Card>
 
-      <CategoryBulkConfirmDialogs
+      <CustomProjectCategoryBulkConfirmDialogs
         isOpenAllConfirmOpen={isOpenAllConfirmOpen}
         setIsOpenAllConfirmOpen={setIsOpenAllConfirmOpen}
         isDeleteAllConfirmOpen={isDeleteAllConfirmOpen}

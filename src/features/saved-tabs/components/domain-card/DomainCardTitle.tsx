@@ -23,10 +23,10 @@ export const DomainCardTitle = () => {
       <div className='shrink-0 text-muted-foreground'>
         <GripVertical size={16} aria-hidden='true' />
       </div>
-      <h2 className='truncate font-semibold text-foreground text-lg'>
+      <h2 className='truncate text-lg font-semibold text-foreground'>
         {group.domain}
       </h2>
-      <span className='text-muted-foreground text-sm'>
+      <span className='text-sm text-muted-foreground'>
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge variant='secondary'>{group.urls?.length || 0}</Badge>
@@ -37,7 +37,7 @@ export const DomainCardTitle = () => {
         </Tooltip>
       </span>
       {categoryId ? (
-        <span className='text-muted-foreground text-sm'>
+        <span className='text-sm text-muted-foreground'>
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge variant='secondary'>{visibleSubCategoryCount}</Badge>

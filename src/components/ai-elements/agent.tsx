@@ -42,7 +42,7 @@ export const AgentHeader = memo(
     >
       <div className='flex items-center gap-2'>
         <BotIcon className='size-4 text-muted-foreground' />
-        <span className='font-medium text-sm'>{name}</span>
+        <span className='text-sm font-medium'>{name}</span>
         {model && (
           <Badge className='font-mono text-xs' variant='secondary'>
             {model}
@@ -71,10 +71,10 @@ export const AgentInstructions = memo(
 
     return (
       <div className={cn('space-y-2', className)} {...props}>
-        <span className='font-medium text-muted-foreground text-sm'>
+        <span className='text-sm font-medium text-muted-foreground'>
           {t('common.instructions')}
         </span>
-        <div className='rounded-md bg-muted/50 p-3 text-muted-foreground text-sm'>
+        <div className='rounded-md bg-muted/50 p-3 text-sm text-muted-foreground'>
           <p>{children}</p>
         </div>
       </div>
@@ -89,7 +89,7 @@ export const AgentTools = memo(({ className, ...props }: AgentToolsProps) => {
 
   return (
     <div className={cn('space-y-2', className)}>
-      <span className='font-medium text-muted-foreground text-sm'>
+      <span className='text-sm font-medium text-muted-foreground'>
         {t('common.tools')}
       </span>
       <Accordion className='rounded-md border' {...props} />
@@ -135,7 +135,7 @@ export type AgentOutputProps = ComponentProps<'div'> & {
 export const AgentOutput = memo(
   ({ className, schema, ...props }: AgentOutputProps) => (
     <div className={cn('space-y-2', className)} {...props}>
-      <span className='font-medium text-muted-foreground text-sm'>
+      <span className='text-sm font-medium text-muted-foreground'>
         Output Schema
       </span>
       <div className='rounded-md bg-muted/50'>

@@ -499,9 +499,9 @@ const AiChart = ({
   return (
     <section className='space-y-3 rounded-lg border border-border/70 bg-background/70 p-3'>
       <div className='space-y-1'>
-        <h3 className='font-medium text-sm'>{spec.title}</h3>
+        <h3 className='text-sm font-medium'>{spec.title}</h3>
         {spec.description ? (
-          <p className='text-muted-foreground text-xs'>{spec.description}</p>
+          <p className='text-xs text-muted-foreground'>{spec.description}</p>
         ) : null}
       </div>
 

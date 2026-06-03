@@ -56,7 +56,7 @@ export const SubCategoryRenameForm = () => {
         }}
       />
       {rename.categoryRenameError && (
-        <p className='mt-1 text-red-500 text-xs'>
+        <p className='mt-1 text-xs text-red-500'>
           {rename.categoryRenameError}
         </p>
       )}

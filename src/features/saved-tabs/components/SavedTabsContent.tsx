@@ -98,7 +98,7 @@ export const SortableCategorySection = ({
             : 'category-section mb-1'
         }
       >
-        <div className='category-header mb-0.5 flex items-center justify-between border-border border-b pb-0.5'>
+        <div className='category-header mb-0.5 flex items-center justify-between border-b border-border pb-0.5'>
           {/* ドラッグハンドル部分 */}
           <div
             className={`flex grow items-center ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
@@ -110,7 +110,7 @@ export const SortableCategorySection = ({
             </div>
             <h3 className='font-medium text-foreground'>
               {categoryDisplayName}{' '}
-              <span className='text-muted-foreground text-sm'>
+              <span className='text-sm text-muted-foreground'>
                 ({urlCount})
               </span>
             </h3>

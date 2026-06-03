@@ -187,9 +187,9 @@ const OllamaErrorNotice = ({
     <TooltipProvider delayDuration={0}>
       <div
         className={cn(
-          'wrap-break-word max-h-40 space-y-2 overflow-y-auto overflow-x-hidden pr-1',
+          'max-h-40 space-y-2 overflow-x-hidden overflow-y-auto pr-1 wrap-break-word',
           '[&_a]:break-all',
-          '[&_code]:whitespace-pre-wrap [&_code]:break-all',
+          '[&_code]:break-all [&_code]:whitespace-pre-wrap',
           '[&_p]:wrap-break-word [&_p]:whitespace-pre-wrap',
           className,
         )}

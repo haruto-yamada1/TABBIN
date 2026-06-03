@@ -27,7 +27,7 @@ const NewSubCategoryField = ({
   <div className='mb-4'>
     <Label
       htmlFor='new-subcategory'
-      className='mb-1 block font-medium text-foreground text-sm'
+      className='mb-1 block text-sm font-medium text-foreground'
     >
       {label}
     </Label>
@@ -49,6 +49,23 @@ const NewSubCategoryField = ({
   </div>
 )
 
+// タブグループを更新するヘルパー関数
+const updateTabGroup = async (updatedTabGroup: TabGroup) => {
+  try {
+    const { savedTabs = [] } = await chrome.storage.local.get<{
+      savedTabs?: import('@/types/storage').TabGroup[]
+    }>('savedTabs')
+    const updatedTabs = savedTabs.map((tab: TabGroup) =>
+      tab.id === updatedTabGroup.id ? updatedTabGroup : tab,
+    )
+    await chrome.storage.local.set({ savedTabs: updatedTabs })
+    return true
+  } catch (error) {
+    console.error('タブグループ更新エラー:', error)
+    return false
+  }
+}
+
 const useSubCategoryKeywordManagerView = ({
   tabGroup,
 }: {
@@ -64,23 +81,6 @@ const useSubCategoryKeywordManagerView = ({
   const [isRenamingSubCategory, setIsRenamingSubCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
-
-  // タブグループを更新するヘルパー関数
-  const updateTabGroup = async (updatedTabGroup: TabGroup) => {
-    try {
-      const { savedTabs = [] } = await chrome.storage.local.get<{
-        savedTabs?: import('@/types/storage').TabGroup[]
-      }>('savedTabs')
-      const updatedTabs = savedTabs.map((tab: TabGroup) =>
-        tab.id === updatedTabGroup.id ? updatedTabGroup : tab,
-      )
-      await chrome.storage.local.set({ savedTabs: updatedTabs })
-      return true
-    } catch (error) {
-      console.error('タブグループ更新エラー:', error)
-      return false
-    }
-  }
 
   const handleCategorySelect = (categoryName: string) => {
     // リネームモード中なら終了
@@ -378,7 +378,7 @@ const useSubCategoryKeywordManagerView = ({
 
   if (!tabGroup.subCategories || tabGroup.subCategories.length === 0) {
     return (
-      <div className='mt-4 border-border border-t pt-4'>
+      <div className='mt-4 border-t border-border pt-4'>
         <p className='mb-3 text-muted-foreground'>
           {t('savedTabs.subCategory.empty')}
         </p>
@@ -394,8 +394,8 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   return (
-    <div className='mt-4 border-border border-t pt-4'>
-      <h4 className='mb-2 font-medium text-foreground text-md'>
+    <div className='mt-4 border-t border-border pt-4'>
+      <h4 className='text-md mb-2 font-medium text-foreground'>
         {t('savedTabs.subCategory.keywordManagerTitle')}
       </h4>
 
@@ -448,7 +448,7 @@ const useSubCategoryKeywordManagerView = ({
             <div className='relative mb-4'>
               <Label
                 htmlFor='rename-category'
-                className='mb-1 block text-foreground text-sm'
+                className='mb-1 block text-sm text-foreground'
               >
                 {t('savedTabs.subCategory.rename')}
               </Label>
@@ -491,7 +491,7 @@ const useSubCategoryKeywordManagerView = ({
                   </Button>
                 </div>
               </div>
-              <div className='mt-1 text-muted-foreground text-xs'>
+              <div className='mt-1 text-xs text-muted-foreground'>
                 {t('savedTabs.subCategory.renameHint')}
               </div>
             </div>
@@ -511,7 +511,7 @@ const useSubCategoryKeywordManagerView = ({
                   onClick={startRenameMode}
                   variant='outline'
                   size='sm'
-                  className='shrink-0 bg-muted text-foreground text-xs hover:bg-muted/70'
+                  className='shrink-0 bg-muted text-xs text-foreground hover:bg-muted/70'
                 >
                   {t('savedTabs.projectManagement.renameAction')}
                 </Button>
@@ -522,12 +522,12 @@ const useSubCategoryKeywordManagerView = ({
           <div className='mb-2'>
             <Label
               htmlFor={`keyword-input-${activeCategory}`}
-              className='mb-1 block text-foreground text-sm'
+              className='mb-1 block text-sm text-foreground'
             >
               {t('savedTabs.keywords.activeCategoryLabel', undefined, {
                 name: activeCategory,
               })}
-              <span className='ml-2 text-muted-foreground text-xs'>
+              <span className='ml-2 text-xs text-muted-foreground'>
                 ({t('savedTabs.keywords.autoAssignHint')})
               </span>
             </Label>
@@ -567,14 +567,14 @@ const useSubCategoryKeywordManagerView = ({
           {/* キーワード表示を改善 */}
           <div className='mt-2 flex flex-wrap gap-2'>
             {keywords.length === 0 ? (
-              <p className='text-muted-foreground text-sm'>
+              <p className='text-sm text-muted-foreground'>
                 {t('savedTabs.keywords.empty')}
               </p>
             ) : (
               keywords.map((keyword) => (
                 <div
                   key={keyword}
-                  className='flex max-w-full items-center rounded bg-muted px-2 py-1 text-foreground text-sm'
+                  className='flex max-w-full items-center rounded bg-muted px-2 py-1 text-sm text-foreground'
                   title={keyword}
                 >
                   <span className='max-w-[150px] truncate'>{keyword}</span>

@@ -125,7 +125,7 @@ const Section = ({
   title: string
 }) => (
   <section className='space-y-3 rounded-xl border bg-card p-4'>
-    <h3 className='font-semibold text-base'>{title}</h3>
+    <h3 className='text-base font-semibold'>{title}</h3>
     {children}
   </section>
 )
@@ -393,7 +393,7 @@ const ComposerPlayground = () => {
           </PromptInputTabsList>
         </Section>
 
-        <p className='text-muted-foreground text-sm'>Last event: {result}</p>
+        <p className='text-sm text-muted-foreground'>Last event: {result}</p>
       </div>
     </PromptInputProvider>
   )

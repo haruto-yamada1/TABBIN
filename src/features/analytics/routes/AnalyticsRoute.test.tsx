@@ -1232,12 +1232,22 @@ describe('AnalyticsRoute', () => {
         encoding: 'utf8',
       },
     )
+    const actionButtonsSource = readFileSync(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        './AnalyticsRecordActionButtons.tsx',
+      ),
+      {
+        encoding: 'utf8',
+      },
+    )
     expect(openLink).toBeTruthy()
     expect(openLink.className.includes('size-8')).toBe(true)
     expect(deleteButton.className.includes('size-8')).toBe(true)
-    expect(source).toContain("from '@/components/ui/tooltip'")
-    expect(source).toContain("t('analytics.open')")
-    expect(source).toContain("t('common.delete')")
+    expect(actionButtonsSource).toContain("from '@/components/ui/tooltip'")
+    expect(actionButtonsSource).toContain("t('analytics.open')")
+    expect(actionButtonsSource).toContain("t('common.delete')")
+    expect(source).toContain('<AnalyticsRecordActionButtons')
     expect(
       openLink.closest('div')?.parentElement?.className.includes('shrink-0'),
     ).toBe(true)

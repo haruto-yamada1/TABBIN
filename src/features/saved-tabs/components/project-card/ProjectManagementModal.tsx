@@ -133,7 +133,7 @@ const ProjectKeywordSection = ({
   return (
     <div className='gap-y-2'>
       <Label htmlFor={inputId}>{label}</Label>
-      <p className='text-muted-foreground text-xs'>{description}</p>
+      <p className='text-xs text-muted-foreground'>{description}</p>
       <Input
         id={inputId}
         aria-label={label}
@@ -156,7 +156,7 @@ const ProjectKeywordSection = ({
 
       <div className='flex min-h-12 flex-wrap gap-2 rounded border p-2'>
         {keywords.length === 0 ? (
-          <p className='text-muted-foreground text-sm'>
+          <p className='text-sm text-muted-foreground'>
             {t('savedTabs.keywords.empty')}
           </p>
         ) : (
@@ -525,7 +525,7 @@ const useProjectManagementModalView = ({
                   }}
                 />
                 {projectNameError && (
-                  <p className='mt-1 text-red-500 text-xs'>
+                  <p className='mt-1 text-xs text-red-500'>
                     {projectNameError}
                   </p>
                 )}
@@ -551,7 +551,7 @@ const useProjectManagementModalView = ({
           <div className='rounded border p-3'>
             <div className='mb-3 gap-y-1'>
               <Label>{t('savedTabs.projectManagement.autoAssignLabel')}</Label>
-              <p className='text-muted-foreground text-xs'>
+              <p className='text-xs text-muted-foreground'>
                 {t('savedTabs.projectManagement.autoAssignDescription')}
               </p>
             </div>
@@ -742,5 +742,3 @@ export const ProjectManagementModal = (props: ProjectManagementModalProps) => {
     />
   )
 }
-
-export { projectNameSchema }

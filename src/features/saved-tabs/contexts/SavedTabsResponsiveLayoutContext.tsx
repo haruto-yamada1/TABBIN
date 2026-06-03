@@ -1,4 +1,4 @@
-import { createContext, use } from 'react'
+import { createContext, use, useMemo } from 'react'
 import type { PropsWithChildren } from 'react'
 
 interface SavedTabsResponsiveLayoutContextValue {
@@ -17,11 +17,15 @@ interface SavedTabsResponsiveLayoutProviderProps extends PropsWithChildren {
 export const SavedTabsResponsiveLayoutProvider = ({
   isCompactLayout,
   children,
-}: SavedTabsResponsiveLayoutProviderProps) => (
-  <SavedTabsResponsiveLayoutContext.Provider value={{ isCompactLayout }}>
-    {children}
-  </SavedTabsResponsiveLayoutContext.Provider>
-)
+}: SavedTabsResponsiveLayoutProviderProps) => {
+  const value = useMemo(() => ({ isCompactLayout }), [isCompactLayout])
+
+  return (
+    <SavedTabsResponsiveLayoutContext.Provider value={value}>
+      {children}
+    </SavedTabsResponsiveLayoutContext.Provider>
+  )
+}
 
 export const useSavedTabsResponsiveLayout = () =>
   use(SavedTabsResponsiveLayoutContext)

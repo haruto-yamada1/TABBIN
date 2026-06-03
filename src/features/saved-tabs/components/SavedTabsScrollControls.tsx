@@ -383,7 +383,7 @@ const useSavedTabsScrollControlsView = ({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className='flex h-full w-12 shrink-0 items-center justify-center border-border border-l bg-background/80'>
+      <div className='flex h-full w-12 shrink-0 items-center justify-center border-l border-border bg-background/80'>
         <div className='flex flex-col gap-2 opacity-100'>
           <SavedTabsScrollControlButton
             ariaLabel={scrollToTopLabel}
@@ -475,9 +475,9 @@ const useSavedTabsScrollControlsView = ({
             <ArrowDownToLine size={16} />
           </SavedTabsScrollControlButton>
         </div>
-        <div aria-live='polite' className='sr-only' role='status'>
+        <output aria-live='polite' className='sr-only'>
           {announcement}
-        </div>
+        </output>
       </div>
     </TooltipProvider>
   )

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -188,6 +189,19 @@ describe('SavedTabsRoute', () => {
     vi.useFakeTimers()
     resizeObserverState.reset()
     window.history.replaceState({}, '', '/saved-tabs.html')
+    const chromeGlobal = globalThis as unknown as {
+      chrome: typeof chrome & {
+        i18n?: {
+          getUILanguage: () => string
+        }
+      }
+    }
+    chromeGlobal.chrome = {
+      ...chromeGlobal.chrome,
+      i18n: {
+        getUILanguage: () => 'ja',
+      },
+    } as typeof chrome
     historyMock.useSharedAiChatHistory.mockReturnValue({
       activeConversation: {
         createdAt: 1,
@@ -296,13 +310,13 @@ describe('SavedTabsRoute', () => {
     })
     fireEvent.scroll(leftPane)
 
-    fireEvent.click(screen.getByLabelText('Scroll to top'))
+    fireEvent.click(screen.getByLabelText('最上部へ移動'))
     expect(scrollTo).toHaveBeenCalledWith({
       behavior: 'smooth',
       top: 0,
     })
 
-    fireEvent.click(screen.getByLabelText('Scroll to bottom'))
+    fireEvent.click(screen.getByLabelText('最下部へ移動'))
     expect(scrollTo).toHaveBeenCalledWith({
       behavior: 'smooth',
       top: 2400,
@@ -361,37 +375,37 @@ describe('SavedTabsRoute', () => {
     } as DOMRect)
     fireEvent.scroll(leftPane)
 
-    fireEvent.click(screen.getByLabelText('Scroll to previous parent category'))
+    fireEvent.click(screen.getByLabelText('上の親カテゴリへ移動'))
     expect(scrollTo).toHaveBeenLastCalledWith({
       behavior: 'smooth',
       top: 324,
     })
 
-    fireEvent.click(screen.getByLabelText('Scroll to previous child category'))
+    fireEvent.click(screen.getByLabelText('上の子カテゴリへ移動'))
     expect(scrollTo).toHaveBeenLastCalledWith({
       behavior: 'smooth',
       top: 344,
     })
 
-    fireEvent.click(screen.getByLabelText('Scroll to previous domain'))
+    fireEvent.click(screen.getByLabelText('上のドメインへ移動'))
     expect(scrollTo).toHaveBeenLastCalledWith({
       behavior: 'smooth',
       top: 334,
     })
 
-    fireEvent.click(screen.getByLabelText('Scroll to next parent category'))
+    fireEvent.click(screen.getByLabelText('下の親カテゴリへ移動'))
     expect(scrollTo).toHaveBeenLastCalledWith({
       behavior: 'smooth',
       top: 524,
     })
 
-    fireEvent.click(screen.getByLabelText('Scroll to next child category'))
+    fireEvent.click(screen.getByLabelText('下の子カテゴリへ移動'))
     expect(scrollTo).toHaveBeenLastCalledWith({
       behavior: 'smooth',
       top: 564,
     })
 
-    fireEvent.click(screen.getByLabelText('Scroll to next domain'))
+    fireEvent.click(screen.getByLabelText('下のドメインへ移動'))
     expect(scrollTo).toHaveBeenLastCalledWith({
       behavior: 'smooth',
       top: 544,
@@ -429,24 +443,18 @@ describe('SavedTabsRoute', () => {
     fireEvent.scroll(leftPane)
 
     expect(
-      (screen.getByLabelText('Scroll to top') as HTMLButtonElement).disabled,
+      (screen.getByLabelText('最上部へ移動') as HTMLButtonElement).disabled,
     ).toBe(true)
     expect(
-      (
-        screen.getByLabelText(
-          'Scroll to previous parent category',
-        ) as HTMLButtonElement
-      ).disabled,
+      (screen.getByLabelText('上の親カテゴリへ移動') as HTMLButtonElement)
+        .disabled,
     ).toBe(true)
     expect(
-      (
-        screen.getByLabelText(
-          'Scroll to next parent category',
-        ) as HTMLButtonElement
-      ).disabled,
+      (screen.getByLabelText('下の親カテゴリへ移動') as HTMLButtonElement)
+        .disabled,
     ).toBe(false)
     expect(
-      (screen.getByLabelText('Scroll to bottom') as HTMLButtonElement).disabled,
+      (screen.getByLabelText('最下部へ移動') as HTMLButtonElement).disabled,
     ).toBe(false)
   })
 
@@ -467,14 +475,12 @@ describe('SavedTabsRoute', () => {
     } as DOMRect)
     fireEvent.scroll(leftPane)
 
-    fireEvent.click(screen.getByLabelText('Scroll to next parent category'))
+    fireEvent.click(screen.getByLabelText('下の親カテゴリへ移動'))
 
     expect(parentNext.classList.contains('saved-tabs-scroll-highlight')).toBe(
       true,
     )
-    expect(screen.getByRole('status').textContent).toBe(
-      'Scroll to next parent category',
-    )
+    expect(screen.getByRole('status').textContent).toBe('下の親カテゴリへ移動')
 
     act(() => {
       vi.runAllTimers()
@@ -548,21 +554,21 @@ describe('SavedTabsRoute', () => {
       .getAllByRole('button')
       .reduce<string[]>((items, button) => {
         const label = button.getAttribute('aria-label')
-        if (label?.startsWith('Scroll to')) {
+        if (label) {
           items.push(label)
         }
         return items
       }, [])
 
     expect(labels).toEqual([
-      'Scroll to top',
-      'Scroll to previous parent category',
-      'Scroll to previous domain',
-      'Scroll to previous child category',
-      'Scroll to next child category',
-      'Scroll to next domain',
-      'Scroll to next parent category',
-      'Scroll to bottom',
+      '最上部へ移動',
+      '上の親カテゴリへ移動',
+      '上のドメインへ移動',
+      '上の子カテゴリへ移動',
+      '下の子カテゴリへ移動',
+      '下のドメインへ移動',
+      '下の親カテゴリへ移動',
+      '最下部へ移動',
     ])
   })
 
@@ -575,17 +581,17 @@ describe('SavedTabsRoute', () => {
       .getAllByRole('button')
       .reduce<string[]>((items, button) => {
         const label = button.getAttribute('aria-label')
-        if (label?.startsWith('Scroll to')) {
+        if (label) {
           items.push(label)
         }
         return items
       }, [])
 
     expect(labels).toEqual([
-      'Scroll to top',
-      'Scroll to previous project',
-      'Scroll to next project',
-      'Scroll to bottom',
+      '最上部へ移動',
+      '上のプロジェクトへ移動',
+      '下のプロジェクトへ移動',
+      '最下部へ移動',
     ])
   })
 
@@ -626,13 +632,13 @@ describe('SavedTabsRoute', () => {
     } as DOMRect)
     fireEvent.scroll(leftPane)
 
-    fireEvent.click(screen.getByLabelText('Scroll to previous project'))
+    fireEvent.click(screen.getByLabelText('上のプロジェクトへ移動'))
     expect(scrollTo).toHaveBeenLastCalledWith({
       behavior: 'smooth',
       top: 334,
     })
 
-    fireEvent.click(screen.getByLabelText('Scroll to next project'))
+    fireEvent.click(screen.getByLabelText('下のプロジェクトへ移動'))
     expect(scrollTo).toHaveBeenLastCalledWith({
       behavior: 'smooth',
       top: 544,
@@ -643,7 +649,7 @@ describe('SavedTabsRoute', () => {
     render(createElement(SavedTabsRoute))
 
     const scrollButtonGroup =
-      screen.getByLabelText('Scroll to top').parentElement
+      screen.getByLabelText('最上部へ移動').parentElement
 
     expect(scrollButtonGroup?.className.includes('opacity-35')).toBe(false)
     expect(scrollButtonGroup?.className.includes('opacity-70')).toBe(false)

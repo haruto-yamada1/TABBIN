@@ -44,10 +44,10 @@ export const AutoDeleteSettingsCard = ({
   return (
     <section className='rounded-2xl border border-border bg-card p-6 shadow-sm'>
       <div className='mb-5'>
-        <h2 className='font-semibold text-xl'>
+        <h2 className='text-xl font-semibold'>
           {t('options.autoDelete.title')}
         </h2>
-        <p className='mt-2 text-muted-foreground text-sm leading-6'>
+        <p className='mt-2 text-sm leading-6 text-muted-foreground'>
           {t('options.autoDelete.description')}
         </p>
       </div>
@@ -118,7 +118,7 @@ export const AutoDeleteSettingsCard = ({
                   <AlertTriangle size={24} />
                 </div>
                 <p
-                  className='ml-3 whitespace-pre-line text-foreground text-sm'
+                  className='ml-3 text-sm whitespace-pre-line text-foreground'
                   id={dialogDescriptionId}
                 >
                   {confirmationState.message}
@@ -146,7 +146,7 @@ export const AutoDeleteSettingsCard = ({
           </dialog>
         )}
 
-        <p className='mt-2 text-muted-foreground text-sm'>
+        <p className='mt-2 text-sm text-muted-foreground'>
           {t('options.autoDelete.periodDescription')}
         </p>
       </div>

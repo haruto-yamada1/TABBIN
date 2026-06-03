@@ -34,7 +34,7 @@ export type MessageProps = HTMLAttributes<HTMLDivElement> & {
 export const Message = ({ className, from, ...props }: MessageProps) => (
   <div
     className={cn(
-      'group flex w-full min-w-0 max-w-[95%] flex-col gap-2',
+      'group flex w-full max-w-[95%] min-w-0 flex-col gap-2',
       from === 'user' ? 'is-user ml-auto justify-end' : 'is-assistant',
       className,
     )}
@@ -51,7 +51,7 @@ export const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      'is-user:dark wrap-anywhere flex min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm',
+      'is-user:dark flex max-w-full min-w-0 flex-col gap-2 overflow-hidden text-sm wrap-anywhere',
       'group-[.is-user]:ml-auto group-[.is-user]:w-fit group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground',
       'group-[.is-assistant]:w-full group-[.is-assistant]:text-foreground',
       className,
@@ -327,10 +327,10 @@ export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <StreamdownMarkdown
       className={cn(
-        'wrap-anywhere size-full min-w-0 max-w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+        'size-full max-w-full min-w-0 wrap-anywhere [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
         '[&_li]:wrap-anywhere [&_p]:wrap-anywhere',
-        '[&_pre]:wrap-anywhere [&_pre]:max-w-full [&_pre]:overflow-x-hidden [&_pre]:whitespace-pre-wrap',
-        '[&_code]:wrap-break-word **:data-[streamdown=code-block]:max-w-full',
+        '[&_pre]:max-w-full [&_pre]:overflow-x-hidden [&_pre]:wrap-anywhere [&_pre]:whitespace-pre-wrap',
+        '**:data-[streamdown=code-block]:max-w-full [&_code]:wrap-break-word',
         '**:data-[streamdown=code-block-body]:max-w-full **:data-[streamdown=code-block-body]:overflow-x-hidden',
         className,
       )}

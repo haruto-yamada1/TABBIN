@@ -7,7 +7,7 @@ import {
   ChevronUp,
   GripVertical,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import {
   AlertDialog,
@@ -130,12 +130,13 @@ const useSortableCategorySectionView = ({
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const userCollapsedStateRef = useRef(false)
+  const [isDragCollapsed, setIsDragCollapsed] = useState(false)
+  const [userCollapsedState, setUserCollapsedState] = useState(false)
   const displayedCategoryName =
     props.categoryName === '__uncategorized'
       ? t('savedTabs.uncategorized')
       : props.categoryName
+  const isCollapsed = isReorderMode || isDragCollapsed || userCollapsedState
   const sectionClassName = isDragging
     ? 'category-section mb-1 rounded-md bg-muted shadow-lg'
     : 'category-section mb-1'
@@ -173,9 +174,7 @@ const useSortableCategorySectionView = ({
 
   const handleToggleCollapse = (event: React.MouseEvent) => {
     event.stopPropagation()
-    const newState = !isCollapsed
-    setIsCollapsed(newState)
-    userCollapsedStateRef.current = newState
+    setUserCollapsedState((current) => !current)
   }
 
   const handleToggleSort = (event: React.MouseEvent) => {
@@ -220,10 +219,8 @@ const useSortableCategorySectionView = ({
   )
 
   const handleDragEndOrCancel = useCallback(() => {
-    if (!isReorderMode) {
-      setIsCollapsed(userCollapsedStateRef.current)
-    }
-  }, [isReorderMode])
+    setIsDragCollapsed(false)
+  }, [])
 
   const handleConfirmOpenAll = () => {
     setIsOpenAllConfirmOpen(false)
@@ -234,20 +231,9 @@ const useSortableCategorySectionView = ({
     onDragCancel: handleDragEndOrCancel,
     onDragEnd: handleDragEndOrCancel,
     onDragStart: () => {
-      setIsCollapsed(true)
+      setIsDragCollapsed(true)
     },
   })
-
-  useEffect(() => {
-    // 並び替えモード中は折りたたむ
-    if (isReorderMode) {
-      setIsCollapsed(true)
-      return
-    }
-
-    // モードが終了したらユーザーが設定した状態に戻す
-    setIsCollapsed(userCollapsedStateRef.current)
-  }, [isReorderMode])
 
   return (
     <div>
@@ -307,7 +293,7 @@ const useSortableCategorySectionView = ({
             <h3 className='font-medium text-foreground'>
               {displayedCategoryName}
             </h3>
-            <span className='text-muted-foreground text-sm'>
+            <span className='text-sm text-muted-foreground'>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant='secondary'>{urlCount}</Badge>

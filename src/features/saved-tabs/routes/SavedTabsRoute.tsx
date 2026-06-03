@@ -1,17 +1,100 @@
-import { Profiler, useEffect, useRef, useState } from 'react'
+import {
+  Profiler,
+  useCallback,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 
 import { LazySavedTabsChatWidget } from '@/features/ai-chat/components/LazySavedTabsChatWidget'
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
+import { SavedTabsApp } from '@/features/saved-tabs/app/SavedTabsApp'
 import {
-  SavedTabsApp,
   handleSavedTabsRender,
   isDevProfileEnabled,
-} from '@/features/saved-tabs/app/SavedTabsApp'
+} from '@/features/saved-tabs/app/savedTabsProfiler'
 import { SavedTabsScrollControls } from '@/features/saved-tabs/components/SavedTabsScrollControls'
 import { SavedTabsResponsiveLayoutProvider } from '@/features/saved-tabs/contexts/SavedTabsResponsiveLayoutContext'
 import type { ViewMode } from '@/types/storage'
 
 const LEFT_PANE_COMPACT_BREAKPOINT = 1024
+
+const getViewportWidthSnapshot = () => window.innerWidth
+
+const getElementWidthSnapshot = (element: HTMLDivElement | null) => {
+  if (!element) {
+    return getViewportWidthSnapshot()
+  }
+
+  const width = Math.round(element.getBoundingClientRect().width)
+  if (!Number.isFinite(width) || width <= 0) {
+    return getViewportWidthSnapshot()
+  }
+
+  return width
+}
+
+const subscribeToElementWidth = (
+  element: HTMLDivElement | null,
+  widthRef: { current: number | null },
+  onStoreChange: () => void,
+) => {
+  if (!element) {
+    return () => {}
+  }
+
+  if (typeof ResizeObserver === 'undefined') {
+    const handleResize = () => {
+      widthRef.current = getElementWidthSnapshot(element)
+      onStoreChange()
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }
+
+  const observer = new ResizeObserver((entries) => {
+    const nextWidth = entries[0]?.contentRect.width
+    const width = Math.round(nextWidth ?? Number.NaN)
+    if (Number.isFinite(width) && width > 0) {
+      widthRef.current = width
+    }
+    onStoreChange()
+  })
+  observer.observe(element)
+
+  return () => {
+    observer.disconnect()
+  }
+}
+
+const useLeftPaneWidth = () => {
+  const leftPaneRef = useRef<HTMLDivElement>(null)
+  const widthRef = useRef<number | null>(null)
+  if (widthRef.current === null) {
+    widthRef.current = getViewportWidthSnapshot()
+  }
+  const [element, setElement] = useState<HTMLDivElement | null>(null)
+  const attachLeftPaneRef = useCallback((node: HTMLDivElement | null) => {
+    leftPaneRef.current = node
+    widthRef.current = getElementWidthSnapshot(node)
+    setElement(node)
+  }, [])
+  const leftPaneWidth = useSyncExternalStore(
+    (onStoreChange) =>
+      subscribeToElementWidth(element, widthRef, onStoreChange),
+    () => widthRef.current ?? getViewportWidthSnapshot(),
+    getViewportWidthSnapshot,
+  )
+
+  return {
+    attachLeftPaneRef,
+    leftPaneRef,
+    leftPaneWidth,
+  }
+}
 
 interface SavedTabsRouteProps {
   onViewModeNavigate?: (mode: ViewMode) => void
@@ -23,47 +106,7 @@ export const SavedTabsRoute = ({
   search,
 }: SavedTabsRouteProps) => {
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false)
-  const [leftPaneWidth, setLeftPaneWidth] = useState(() => window.innerWidth)
-  const leftPaneRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const element = leftPaneRef.current as HTMLDivElement
-
-    const updateLeftPaneWidth = (width: number) => {
-      const roundedWidth = Math.round(width)
-      if (!Number.isFinite(roundedWidth) || roundedWidth <= 0) {
-        return
-      }
-
-      setLeftPaneWidth((currentWidth) =>
-        currentWidth === roundedWidth ? currentWidth : roundedWidth,
-      )
-    }
-
-    updateLeftPaneWidth(element.getBoundingClientRect().width)
-
-    if (typeof ResizeObserver === 'undefined') {
-      const handleResize = () => {
-        updateLeftPaneWidth(element.getBoundingClientRect().width)
-      }
-
-      window.addEventListener('resize', handleResize)
-
-      return () => {
-        window.removeEventListener('resize', handleResize)
-      }
-    }
-
-    const observer = new ResizeObserver((entries) => {
-      updateLeftPaneWidth(entries[0]?.contentRect.width ?? Number.NaN)
-    })
-
-    observer.observe(element)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
+  const { attachLeftPaneRef, leftPaneRef, leftPaneWidth } = useLeftPaneWidth()
 
   const isCompactLeftPaneLayout = leftPaneWidth < LEFT_PANE_COMPACT_BREAKPOINT
   const initialViewMode: ViewMode = getSavedTabsModeFromLocation(
@@ -77,7 +120,7 @@ export const SavedTabsRoute = ({
     >
       <div className='flex min-w-0 flex-1'>
         <div
-          ref={leftPaneRef}
+          ref={attachLeftPaneRef}
           className='h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain'
           data-saved-tabs-layout={isCompactLeftPaneLayout ? 'compact' : 'full'}
           data-testid='saved-tabs-left-pane'

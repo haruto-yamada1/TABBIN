@@ -151,7 +151,7 @@ export const TestResultsDuration = ({
   }
 
   return (
-    <span className={cn('text-muted-foreground text-sm', className)} {...props}>
+    <span className={cn('text-sm text-muted-foreground', className)} {...props}>
       {children ?? formatDuration(summary.duration)}
     </span>
   )
@@ -187,7 +187,7 @@ export const TestResultsProgress = ({
               style={{ width: `${failedPercent}%` }}
             />
           </div>
-          <div className='flex justify-between text-muted-foreground text-xs'>
+          <div className='flex justify-between text-xs text-muted-foreground'>
             <span>
               {summary.passed}/{summary.total} tests passed
             </span>
@@ -263,7 +263,7 @@ export const TestSuiteName = ({
     >
       <ChevronRightIcon className='size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90' />
       <TestStatusIcon status={status} />
-      <span className='font-medium text-sm'>{children ?? name}</span>
+      <span className='text-sm font-medium'>{children ?? name}</span>
     </CollapsibleTrigger>
   )
 }
@@ -434,7 +434,7 @@ export const TestDuration = ({
 
   return (
     <span
-      className={cn('ml-auto text-muted-foreground text-xs', className)}
+      className={cn('ml-auto text-xs text-muted-foreground', className)}
       {...props}
     >
       {children ?? `${duration}ms`}
@@ -469,7 +469,7 @@ export const TestErrorMessage = ({
 }: TestErrorMessageProps) => (
   <p
     className={cn(
-      'font-medium text-red-700 text-sm dark:text-red-400',
+      'text-sm font-medium text-red-700 dark:text-red-400',
       className,
     )}
     {...props}
@@ -487,7 +487,7 @@ export const TestErrorStack = ({
 }: TestErrorStackProps) => (
   <pre
     className={cn(
-      'mt-2 overflow-auto font-mono text-red-600 text-xs dark:text-red-400',
+      'mt-2 overflow-auto font-mono text-xs text-red-600 dark:text-red-400',
       className,
     )}
     {...props}

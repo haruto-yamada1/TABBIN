@@ -81,7 +81,7 @@ const DomainCategoryStatus = ({
     return (
       <Button
         type='button'
-        className='mt-1 h-auto w-full justify-start p-0 text-left text-muted-foreground text-xs hover:text-foreground'
+        className='mt-1 h-auto w-full justify-start p-0 text-left text-xs text-muted-foreground hover:text-foreground'
         onClick={onToggle}
         disabled={disabled}
         aria-label={t('savedTabs.categoryModal.uncategorizedAria')}
@@ -97,7 +97,7 @@ const DomainCategoryStatus = ({
   return (
     <Button
       type='button'
-      className='mt-1 h-auto w-full justify-start p-0 text-left text-muted-foreground text-xs hover:text-foreground'
+      className='mt-1 h-auto w-full justify-start p-0 text-left text-xs text-muted-foreground hover:text-foreground'
       onClick={onToggle}
       disabled={disabled}
       aria-label={t(

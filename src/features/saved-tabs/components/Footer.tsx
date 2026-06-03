@@ -22,7 +22,7 @@ export const CategoryReorderFooter = ({
   const { t } = useI18n()
 
   return (
-    <div className='fixed right-0 bottom-0 left-0 z-50 border-border border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
+    <div className='fixed right-0 bottom-0 left-0 z-50 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
       <div className='container mx-auto flex items-center justify-center gap-4 px-4 py-3'>
         <div className='flex items-center gap-2'>
           <Tooltip>

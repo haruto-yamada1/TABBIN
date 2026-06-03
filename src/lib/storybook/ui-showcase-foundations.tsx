@@ -103,7 +103,7 @@ const Section = ({
   children: React.ReactNode
 }) => (
   <section className='space-y-3 rounded-xl border p-4'>
-    <h3 className='font-semibold text-base'>{title}</h3>
+    <h3 className='text-base font-semibold'>{title}</h3>
     {children}
   </section>
 )

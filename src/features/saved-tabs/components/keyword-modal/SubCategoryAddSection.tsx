@@ -13,7 +13,7 @@ export const SubCategoryAddSection = () => {
 
   return (
     <div className='mb-4'>
-      <h4 className='mb-2 font-medium text-md text-zinc-300'>
+      <h4 className='text-md mb-2 font-medium text-zinc-300'>
         {t('savedTabs.subCategory.addTitle')}
       </h4>
       <div className='flex flex-col'>
@@ -35,7 +35,7 @@ export const SubCategoryAddSection = () => {
           }}
         />
         {subcategory.subCategoryNameError && (
-          <p className='mt-1 text-red-500 text-xs'>
+          <p className='mt-1 text-xs text-red-500'>
             {subcategory.subCategoryNameError}
           </p>
         )}

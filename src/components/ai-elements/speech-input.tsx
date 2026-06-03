@@ -2,7 +2,7 @@
 
 import { MicIcon, SquareIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -125,6 +125,92 @@ const detectSpeechInputMode = (): SpeechInputMode => {
   return 'none'
 }
 
+interface RecordingState {
+  isListening: boolean
+  isProcessing: boolean
+  errorMessage: string | null
+}
+
+type RecordingAction =
+  | { type: 'START_LISTENING' }
+  | { type: 'STOP_LISTENING' }
+  | { type: 'START_PROCESSING' }
+  | { type: 'STOP_PROCESSING' }
+  | { type: 'SET_ERROR'; message: string | null }
+
+const recordingReducer = (
+  state: RecordingState,
+  action: RecordingAction,
+): RecordingState => {
+  switch (action.type) {
+    case 'START_LISTENING': {
+      return { ...state, isListening: true }
+    }
+    case 'STOP_LISTENING': {
+      return { ...state, isListening: false }
+    }
+    case 'START_PROCESSING': {
+      return { ...state, isProcessing: true }
+    }
+    case 'STOP_PROCESSING': {
+      return { ...state, isProcessing: false }
+    }
+    case 'SET_ERROR': {
+      return { ...state, errorMessage: action.message, isListening: false }
+    }
+    default: {
+      return state
+    }
+  }
+}
+
+interface RecordingButtonProps extends ComponentProps<typeof Button> {
+  isListening: boolean
+  isProcessing: boolean
+}
+
+const RecordingButton = ({
+  isListening,
+  isProcessing,
+  className,
+  ...props
+}: RecordingButtonProps) => (
+  <div className='relative inline-flex items-center justify-center'>
+    {isListening &&
+      pulseRings.map(({ delay, id }) => (
+        <div
+          className='absolute inset-0 animate-ping rounded-full border-2 border-red-400/30'
+          key={id}
+          style={{
+            animationDelay: delay,
+            animationDuration: '900ms',
+          }}
+        />
+      ))}
+
+    <Button
+      className={cn(
+        'relative z-10 rounded-full transition-all duration-300',
+        isListening
+          ? 'bg-destructive text-white hover:bg-destructive/80 hover:text-white'
+          : 'bg-primary text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground',
+        className,
+      )}
+      {...props}
+    >
+      {isProcessing && <Spinner />}
+      {!isProcessing && isListening && <SquareIcon className='size-4' />}
+      {!(isProcessing || isListening) && <MicIcon className='size-4' />}
+    </Button>
+  </div>
+)
+
+const RecordingErrorAlert = ({ message }: { message: string }) => (
+  <Alert className='max-w-80' variant='destructive'>
+    <AlertDescription>{message}</AlertDescription>
+  </Alert>
+)
+
 export const SpeechInput = ({
   className,
   onTranscriptionChange,
@@ -132,9 +218,12 @@ export const SpeechInput = ({
   lang = 'en-US',
   ...props
 }: SpeechInputProps) => {
-  const [isListening, setIsListening] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [{ isListening, isProcessing, errorMessage }, dispatchRecording] =
+    useReducer(recordingReducer, {
+      isListening: false,
+      isProcessing: false,
+      errorMessage: null,
+    })
   const [mode] = useState<SpeechInputMode>(detectSpeechInputMode)
   const [isRecognitionReady, setIsRecognitionReady] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
@@ -154,11 +243,11 @@ export const SpeechInput = ({
   onAudioRecordedRef.current = onAudioRecorded
 
   const handleSpeechRecognitionStart = useCallback(() => {
-    setIsListening(true)
+    dispatchRecording({ type: 'START_LISTENING' })
   }, [])
 
   const handleSpeechRecognitionEnd = useCallback(() => {
-    setIsListening(false)
+    dispatchRecording({ type: 'STOP_LISTENING' })
   }, [])
 
   const handleSpeechRecognitionResult = useCallback((event: Event) => {
@@ -182,7 +271,7 @@ export const SpeechInput = ({
   }, [])
 
   const handleSpeechRecognitionError = useCallback(() => {
-    setIsListening(false)
+    dispatchRecording({ type: 'STOP_LISTENING' })
   }, [])
   const handleSpeechRecognitionStartRef = useRef(handleSpeechRecognitionStart)
   const handleSpeechRecognitionEndRef = useRef(handleSpeechRecognitionEnd)
@@ -276,7 +365,7 @@ export const SpeechInput = ({
       return
     }
 
-    setErrorMessage(null)
+    dispatchRecording({ type: 'SET_ERROR', message: null })
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -303,7 +392,7 @@ export const SpeechInput = ({
           onAudioRecordedRef.current &&
           isMountedRef.current
         ) {
-          setIsProcessing(true)
+          dispatchRecording({ type: 'START_PROCESSING' })
           try {
             const transcript = await onAudioRecordedRef.current(audioBlob)
             if (transcript && isMountedRef.current) {
@@ -311,18 +400,19 @@ export const SpeechInput = ({
             }
           } catch (error) {
             if (isMountedRef.current) {
-              setErrorMessage(
-                getRecordingErrorMessage(
+              dispatchRecording({
+                type: 'SET_ERROR',
+                message: getRecordingErrorMessage(
                   error,
                   RECORDING_PROCESS_FAILED_MESSAGE,
                 ),
-              )
+              })
             }
           } finally {
             audioChunksRef.current = []
 
             if (isMountedRef.current) {
-              setIsProcessing(false)
+              dispatchRecording({ type: 'STOP_PROCESSING' })
             }
           }
         } else {
@@ -334,8 +424,11 @@ export const SpeechInput = ({
         cleanupMediaRecorderSession(mediaRecorder, stream)
         stopStreamTracks(stream)
         audioChunksRef.current = []
-        setIsListening(false)
-        setErrorMessage(RECORDING_FAILED_MESSAGE)
+        dispatchRecording({ type: 'STOP_LISTENING' })
+        dispatchRecording({
+          type: 'SET_ERROR',
+          message: RECORDING_FAILED_MESSAGE,
+        })
       }
 
       mediaRecorder.addEventListener('dataavailable', handleDataAvailable)
@@ -349,17 +442,21 @@ export const SpeechInput = ({
 
       mediaRecorderRef.current = mediaRecorder
       mediaRecorder.start()
-      setIsListening(true)
+      dispatchRecording({ type: 'START_LISTENING' })
     } catch (error) {
       const stream = streamRef.current
 
       cleanupMediaRecorderSession(mediaRecorderRef.current, stream)
       stopStreamTracks(stream)
       streamRef.current = null
-      setIsListening(false)
-      setErrorMessage(
-        getRecordingErrorMessage(error, RECORDING_START_FAILED_MESSAGE),
-      )
+      dispatchRecording({ type: 'STOP_LISTENING' })
+      dispatchRecording({
+        type: 'SET_ERROR',
+        message: getRecordingErrorMessage(
+          error,
+          RECORDING_START_FAILED_MESSAGE,
+        ),
+      })
     }
   }, [cleanupMediaRecorderSession])
 
@@ -368,7 +465,7 @@ export const SpeechInput = ({
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop()
     }
-    setIsListening(false)
+    dispatchRecording({ type: 'STOP_LISTENING' })
   }, [])
 
   const toggleListening = useCallback(() => {
@@ -396,44 +493,16 @@ export const SpeechInput = ({
 
   return (
     <div className='inline-flex flex-col items-center gap-2'>
-      <div className='relative inline-flex items-center justify-center'>
-        {/* Animated pulse rings */}
-        {isListening &&
-          pulseRings.map(({ delay, id }) => (
-            <div
-              className='absolute inset-0 animate-ping rounded-full border-2 border-red-400/30'
-              key={id}
-              style={{
-                animationDelay: delay,
-                animationDuration: '900ms',
-              }}
-            />
-          ))}
+      <RecordingButton
+        isListening={isListening}
+        isProcessing={isProcessing}
+        disabled={isDisabled}
+        className={className}
+        onClick={toggleListening}
+        {...props}
+      />
 
-        {/* Main record button */}
-        <Button
-          className={cn(
-            'relative z-10 rounded-full transition-all duration-300',
-            isListening
-              ? 'bg-destructive text-white hover:bg-destructive/80 hover:text-white'
-              : 'bg-primary text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground',
-            className,
-          )}
-          disabled={isDisabled}
-          onClick={toggleListening}
-          {...props}
-        >
-          {isProcessing && <Spinner />}
-          {!isProcessing && isListening && <SquareIcon className='size-4' />}
-          {!(isProcessing || isListening) && <MicIcon className='size-4' />}
-        </Button>
-      </div>
-
-      {errorMessage && (
-        <Alert className='max-w-80' variant='destructive'>
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      )}
+      {errorMessage && <RecordingErrorAlert message={errorMessage} />}
     </div>
   )
 }

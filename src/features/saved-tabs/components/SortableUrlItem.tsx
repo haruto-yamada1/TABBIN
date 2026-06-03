@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { SortableUrlItemProps } from '@/types/saved-tabs'
-import { TimeRemaining, formatDatetime } from '@/utils/datetime'
+import { TimeRemaining } from '@/utils/datetime'
+import { formatFixedDatetime as formatDatetime } from '@/utils/localDateTime'
 
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 
@@ -165,7 +166,7 @@ export const SortableUrlItem = ({
             onClick={() => handleOpenTab(url)}
             className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
           >
-            <div className='flex min-w-0 w-full flex-col overflow-hidden'>
+            <div className='flex w-full min-w-0 flex-col overflow-hidden'>
               <span className='block truncate text-left'>{title}</span>
               {/* 保存日時と残り時間を表示 - settings.showSavedTime に基づき条件分岐 */}
               {savedAt && (
@@ -189,7 +190,7 @@ export const SortableUrlItem = ({
             variant='ghost'
             size='icon'
             onClick={handleDeleteButtonClick}
-            className='pointer-events-none invisible absolute top-0 right-0 bottom-0 my-auto shrink-0 cursor-pointer opacity-0 transition-opacity focus-visible:pointer-events-auto focus-visible:visible focus-visible:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100'
+            className='pointer-events-none invisible absolute top-0 right-0 bottom-0 my-auto shrink-0 cursor-pointer opacity-0 transition-opacity group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:visible focus-visible:opacity-100'
             title={t('savedTabs.url.deleteAria')}
             aria-label={t('savedTabs.url.deleteAria')}
           >

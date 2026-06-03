@@ -205,7 +205,7 @@ export const SchemaDisplayDescription = ({
   return (
     <p
       className={cn(
-        'border-b px-4 py-3 text-muted-foreground text-sm',
+        'border-b px-4 py-3 text-sm text-muted-foreground',
         className,
       )}
       {...props}
@@ -241,7 +241,7 @@ export const SchemaDisplayParameters = ({
     <Collapsible className={cn(className)} defaultOpen {...props}>
       <CollapsibleTrigger className='group flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/50'>
         <ChevronRightIcon className='size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90' />
-        <span className='font-medium text-sm'>{t('common.parameters')}</span>
+        <span className='text-sm font-medium'>{t('common.parameters')}</span>
         <Badge className='ml-auto text-xs' variant='secondary'>
           {parameters?.length}
         </Badge>
@@ -286,7 +286,7 @@ export const SchemaDisplayParameter = ({
         )}
         {required && (
           <Badge
-            className='bg-red-100 text-red-700 text-xs dark:bg-red-900/30 dark:text-red-400'
+            className='bg-red-100 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-400'
             variant='secondary'
           >
             {t('common.required')}
@@ -294,7 +294,7 @@ export const SchemaDisplayParameter = ({
         )}
       </div>
       {description && (
-        <p className='mt-1 text-muted-foreground text-sm'>{description}</p>
+        <p className='mt-1 text-sm text-muted-foreground'>{description}</p>
       )}
     </div>
   )
@@ -314,7 +314,7 @@ export const SchemaDisplayRequest = ({
     <Collapsible className={cn(className)} defaultOpen {...props}>
       <CollapsibleTrigger className='group flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/50'>
         <ChevronRightIcon className='size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90' />
-        <span className='font-medium text-sm'>{t('common.requestBody')}</span>
+        <span className='text-sm font-medium'>{t('common.requestBody')}</span>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className='border-t'>
@@ -342,7 +342,7 @@ export const SchemaDisplayResponse = ({
     <Collapsible className={cn(className)} defaultOpen {...props}>
       <CollapsibleTrigger className='group flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/50'>
         <ChevronRightIcon className='size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90' />
-        <span className='font-medium text-sm'>{t('common.response')}</span>
+        <span className='text-sm font-medium'>{t('common.response')}</span>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className='border-t'>
@@ -405,7 +405,7 @@ export const SchemaDisplayProperty = ({
           </Badge>
           {required && (
             <Badge
-              className='bg-red-100 text-red-700 text-xs dark:bg-red-900/30 dark:text-red-400'
+              className='bg-red-100 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-400'
               variant='secondary'
             >
               {t('common.required')}
@@ -414,7 +414,7 @@ export const SchemaDisplayProperty = ({
         </CollapsibleTrigger>
         {description && (
           <p
-            className='pb-2 text-muted-foreground text-sm'
+            className='pb-2 text-sm text-muted-foreground'
             style={{ paddingLeft: paddingLeft + 24 }}
           >
             {description}
@@ -457,7 +457,7 @@ export const SchemaDisplayProperty = ({
         </Badge>
         {required && (
           <Badge
-            className='bg-red-100 text-red-700 text-xs dark:bg-red-900/30 dark:text-red-400'
+            className='bg-red-100 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-400'
             variant='secondary'
           >
             {t('common.required')}
@@ -465,7 +465,7 @@ export const SchemaDisplayProperty = ({
         )}
       </div>
       {description && (
-        <p className='mt-1 pl-6 text-muted-foreground text-sm'>{description}</p>
+        <p className='mt-1 pl-6 text-sm text-muted-foreground'>{description}</p>
       )}
     </div>
   )

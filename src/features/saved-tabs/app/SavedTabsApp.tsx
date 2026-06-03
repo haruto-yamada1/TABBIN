@@ -9,7 +9,6 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 // Lucide-reactからのアイコンインポート
 import { Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ProfilerOnRenderCallback } from 'react'
 import { toast } from 'sonner'
 
 // UIコンポーネントのインポート
@@ -34,11 +33,13 @@ import {
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
 import { CustomModeContainer } from '@/features/saved-tabs/custom/CustomModeContainer'
 import { DomainModeContainer } from '@/features/saved-tabs/domain/DomainModeContainer'
+import { useCategoryManagement } from '@/features/saved-tabs/hooks/useCategoryManagement'
+import { useProjectManagement } from '@/features/saved-tabs/hooks/useProjectManagement'
+import { useTabData } from '@/features/saved-tabs/hooks/useTabData'
 import { moveCustomProjectUrlAndSyncState } from '@/features/saved-tabs/lib/custom-project-move'
 import { filterCustomProjectsByQuery } from '@/features/saved-tabs/lib/custom-project-search'
 import { handleTabGroupRemoval } from '@/features/saved-tabs/lib/tab-operations'
 import { shouldShowUncategorizedHeader as computeShouldShowUncategorizedHeader } from '@/features/saved-tabs/lib/uncategorized-display'
-import { useSavedTabsCore } from '@/features/saved-tabs/shared/hooks/useSavedTabsCore'
 import { syncStorageChanges } from '@/features/saved-tabs/shared/services/modeSyncService'
 import { saveParentCategories } from '@/lib/storage/categories'
 import {
@@ -75,11 +76,6 @@ if (!import.meta.env.DEV) {
   console.debug = () => {}
 }
 
-interface SavedTabsProfilerStats {
-  commits: number
-  phase: string
-  actualDuration: number
-}
 interface OpenedUrlsStorageSnapshot {
   customProjectOrder?: string[]
   customProjects?: CustomProject[]
@@ -100,10 +96,6 @@ interface CategoryLookup {
 type RefreshTabGroupsWithUrls = (
   groups: TabGroup[],
 ) => Promise<TabGroup[]> | TabGroup[] | Promise<void> | void
-type SavedTabsProfilerGlobal = typeof globalThis & {
-  savedTabsProfiler?: SavedTabsProfilerStats
-  enableSavedTabsProfiler?: boolean
-}
 const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
   Array.isArray(value) ? value : undefined
 const getSnapshotSavedTabs = (
@@ -256,32 +248,6 @@ const showOpenedUrlsUndoToast = ({
     },
   )
 }
-const isDevProfileEnabled =
-  import.meta.env.DEV &&
-  Boolean((globalThis as SavedTabsProfilerGlobal).enableSavedTabsProfiler)
-/* v8 ignore start -- profiler reporting is disabled in the test environment. */
-let savedTabsCommitCount = 0
-const handleSavedTabsRender: ProfilerOnRenderCallback = (
-  id,
-  phase,
-  actualDuration,
-) => {
-  /* v8 ignore next -- this guard depends on a dev-only global set before module evaluation. */
-  if (!isDevProfileEnabled || id !== 'SavedTabs') {
-    return
-  }
-  savedTabsCommitCount += 1
-  const stats: SavedTabsProfilerStats = {
-    actualDuration,
-    commits: savedTabsCommitCount,
-    phase,
-  }
-  ;(globalThis as SavedTabsProfilerGlobal).savedTabsProfiler = stats
-  console.log(
-    `[Profiler] SavedTabs commit #${savedTabsCommitCount} phase=${phase} actual=${actualDuration.toFixed(2)}ms`,
-  )
-}
-/* v8 ignore stop */
 const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
   const byId = new Map<string, ParentCategory>()
   const byGroupId = new Map<string, ParentCategory>()
@@ -747,6 +713,101 @@ const syncSavedTabsViewModeLocation = ({
   window.history.replaceState({}, '', `${nextUrl.pathname}${nextUrl.search}`)
 }
 
+/**
+ * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
+ */
+const removeUrlsFromCustomProjectsForGroup = async (
+  groupToDelete: TabGroup,
+) => {
+  if (groupToDelete.urlIds && groupToDelete.urlIds.length > 0) {
+    await removeUrlIdsFromAllCustomProjects(groupToDelete.urlIds, {
+      throwOnError: true,
+    })
+    return
+  }
+
+  let urlsToDelete: Awaited<ReturnType<typeof getTabGroupUrls>> = []
+  try {
+    urlsToDelete = await getTabGroupUrls(groupToDelete)
+  } catch (error) {
+    console.error('URL一覧の取得または削除エラー:', error)
+    return
+  }
+  /* v8 ignore next -- coverage-only defensive branch. */
+  if (urlsToDelete && urlsToDelete.length > 0) {
+    await removeUrlsFromAllCustomProjects(
+      urlsToDelete.map((item) => item.url),
+      {
+        throwOnError: true,
+      },
+    )
+  }
+}
+
+/**
+ * 複数のドメイングループに属するURLをすべてカスタムプロジェクトから一括削除します。
+ */
+const removeUrlsFromCustomProjectsForGroups = async (
+  groupsToDelete: TabGroup[],
+) => {
+  const groupsWithUrlIds = groupsToDelete.filter(
+    (group) => group.urlIds && group.urlIds.length > 0,
+  )
+  const groupsWithoutUrlIds = groupsToDelete.filter(
+    (group) => !(group.urlIds && group.urlIds.length > 0),
+  )
+  const allUrlIdsToDelete = groupsWithUrlIds.flatMap(
+    /* v8 ignore next -- coverage-only defensive branch. */
+    (group) => group.urlIds || [],
+  )
+  /* v8 ignore next -- coverage-only defensive branch. */
+  if (allUrlIdsToDelete.length > 0) {
+    await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
+      throwOnError: true,
+    })
+  }
+
+  let urlsByGroup: Awaited<ReturnType<typeof getTabGroupUrls>>[] = []
+  try {
+    urlsByGroup = await Promise.all(
+      groupsWithoutUrlIds.map((group) => getTabGroupUrls(group)),
+    )
+  } catch (error) {
+    /* v8 ignore next -- coverage-only defensive branch. */
+    console.error('複数グループのURL取得エラー:', error)
+    return
+  }
+  const allUrlsToDelete = urlsByGroup.flatMap(
+    (urlsToDelete) =>
+      /* v8 ignore next -- coverage-only defensive branch. */
+      /* v8 ignore start -- coverage-only defensive branch. */
+      (urlsToDelete || []).map((item) => item.url),
+    /* v8 ignore stop */
+  )
+
+  if (allUrlsToDelete.length > 0) {
+    await removeUrlsFromAllCustomProjects(allUrlsToDelete, {
+      throwOnError: true,
+    })
+  }
+}
+
+/**
+ * 親カテゴリから指定されたドメインIDを削除して保存します。
+ */
+const removeDomainFromParentCategories = async (
+  id: string,
+  categories: ParentCategory[],
+  setCategories: (cats: ParentCategory[]) => void,
+) => {
+  const updatedCategories = categories.map((category) => ({
+    ...category,
+    domains: category.domains.filter((domainId) => domainId !== id),
+  }))
+  await saveParentCategories(updatedCategories)
+  setCategories(updatedCategories)
+}
+
 interface SavedTabsAppProps {
   initialViewMode?: ViewMode
   isAiSidebarOpen?: boolean
@@ -765,10 +826,12 @@ const useSavedTabsAppView = ({
   const inputRef = useRef<HTMLInputElement>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const hasResolvedInitialViewModeRef = useRef(!initialViewMode)
+  const previousInitialViewModeRef = useRef(initialViewMode)
 
-  useEffect(() => {
+  if (previousInitialViewModeRef.current !== initialViewMode) {
+    previousInitialViewModeRef.current = initialViewMode
     hasResolvedInitialViewModeRef.current = !initialViewMode
-  }, [initialViewMode])
+  }
 
   // 未分類ドメインの並び替えモード状態管理
   const [isUncategorizedReorderMode, setIsUncategorizedReorderMode] =
@@ -777,9 +840,11 @@ const useSavedTabsAppView = ({
     TabGroup[]
   >([])
 
-  const { categoryState, tabDataState, projectState } = useSavedTabsCore(
+  const categoryState = useCategoryManagement()
+  const tabDataState = useTabData(categoryState.setCategories, setSettings)
+  const projectState = useProjectManagement(
+    tabDataState.tabGroups,
     settings,
-    setSettings,
     initialViewMode,
   )
   const {
@@ -954,101 +1019,6 @@ const useSavedTabsAppView = ({
       removeOpenedUrlsFromStorage,
     ],
   )
-
-  /**
-   * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
-   */
-  const removeUrlsFromCustomProjectsForGroup = async (
-    groupToDelete: TabGroup,
-  ) => {
-    if (groupToDelete.urlIds && groupToDelete.urlIds.length > 0) {
-      await removeUrlIdsFromAllCustomProjects(groupToDelete.urlIds, {
-        throwOnError: true,
-      })
-      return
-    }
-
-    let urlsToDelete: Awaited<ReturnType<typeof getTabGroupUrls>> = []
-    try {
-      urlsToDelete = await getTabGroupUrls(groupToDelete)
-    } catch (error) {
-      console.error('URL一覧の取得または削除エラー:', error)
-      return
-    }
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (urlsToDelete && urlsToDelete.length > 0) {
-      await removeUrlsFromAllCustomProjects(
-        urlsToDelete.map((item) => item.url),
-        {
-          throwOnError: true,
-        },
-      )
-    }
-  }
-
-  /**
-   * 複数のドメイングループに属するURLをすべてカスタムプロジェクトから一括削除します。
-   */
-  const removeUrlsFromCustomProjectsForGroups = async (
-    groupsToDelete: TabGroup[],
-  ) => {
-    const groupsWithUrlIds = groupsToDelete.filter(
-      (group) => group.urlIds && group.urlIds.length > 0,
-    )
-    const groupsWithoutUrlIds = groupsToDelete.filter(
-      (group) => !(group.urlIds && group.urlIds.length > 0),
-    )
-    const allUrlIdsToDelete = groupsWithUrlIds.flatMap(
-      /* v8 ignore next -- coverage-only defensive branch. */
-      (group) => group.urlIds || [],
-    )
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (allUrlIdsToDelete.length > 0) {
-      await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
-        throwOnError: true,
-      })
-    }
-
-    let urlsByGroup: Awaited<ReturnType<typeof getTabGroupUrls>>[] = []
-    try {
-      urlsByGroup = await Promise.all(
-        groupsWithoutUrlIds.map((group) => getTabGroupUrls(group)),
-      )
-    } catch (error) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      console.error('複数グループのURL取得エラー:', error)
-      return
-    }
-    const allUrlsToDelete = urlsByGroup.flatMap(
-      (urlsToDelete) =>
-        /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        (urlsToDelete || []).map((item) => item.url),
-      /* v8 ignore stop */
-    )
-
-    if (allUrlsToDelete.length > 0) {
-      await removeUrlsFromAllCustomProjects(allUrlsToDelete, {
-        throwOnError: true,
-      })
-    }
-  }
-
-  /**
-   * 親カテゴリから指定されたドメインIDを削除して保存します。
-   */
-  const removeDomainFromParentCategories = async (
-    id: string,
-    categories: ParentCategory[],
-    setCategories: (cats: ParentCategory[]) => void,
-  ) => {
-    const updatedCategories = categories.map((category) => ({
-      ...category,
-      domains: category.domains.filter((domainId) => domainId !== id),
-    }))
-    await saveParentCategories(updatedCategories)
-    setCategories(updatedCategories)
-  }
 
   // HandleDeleteGroup関数を修正
   const handleDeleteGroup = useCallback(
@@ -1842,4 +1812,4 @@ const useSavedTabsAppView = ({
 
 const SavedTabsApp = (props: SavedTabsAppProps) => useSavedTabsAppView(props)
 
-export { SavedTabsApp, handleSavedTabsRender, isDevProfileEnabled }
+export { SavedTabsApp }

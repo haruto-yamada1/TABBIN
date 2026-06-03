@@ -299,7 +299,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
                 </TooltipContent>
               </Tooltip>
               <div className='min-w-0 group-data-[collapsible=icon]:hidden'>
-                <p className='font-semibold text-3xl leading-none'>TABBIN</p>
+                <p className='text-3xl leading-none font-semibold'>TABBIN</p>
               </div>
             </div>
           )}
@@ -404,7 +404,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
 
       <SidebarFooter
         className={cn(
-          'border-sidebar-border border-t p-3',
+          'border-t border-sidebar-border p-3',
           isIconCollapsed && 'items-center px-0 py-3',
         )}
       >

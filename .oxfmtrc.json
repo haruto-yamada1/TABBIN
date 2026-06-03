@@ -1,11 +1,13 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 80,
-  "tabWidth": 2,
   "semi": false,
   "singleQuote": true,
   "jsxSingleQuote": true,
-  "trailingComma": "all",
+  "sortTailwindcss": {
+    "stylesheet": "./src/assets/global.css",
+    "functions": ["cn", "clsx", "cva"]
+  },
   "sortImports": {
     "internalPattern": ["@/"],
     "groups": [
@@ -16,8 +18,7 @@
       "style",
       "side_effect",
       "unknown"
-    ],
-    "newlinesBetween": true
+    ]
   },
   "ignorePatterns": [
     ".output/**",

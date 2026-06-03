@@ -270,12 +270,16 @@ vi.mock('@/features/saved-tabs/lib/uncategorized-display', () => ({
   shouldShowUncategorizedHeader: vi.fn(() => false),
 }))
 
-vi.mock('@/features/saved-tabs/shared/hooks/useSavedTabsCore', () => ({
-  useSavedTabsCore: () => ({
-    categoryState: mocked.categoryState,
-    tabDataState: mocked.tabDataState,
-    projectState: mocked.projectState,
-  }),
+vi.mock('@/features/saved-tabs/hooks/useCategoryManagement', () => ({
+  useCategoryManagement: () => mocked.categoryState,
+}))
+
+vi.mock('@/features/saved-tabs/hooks/useTabData', () => ({
+  useTabData: () => mocked.tabDataState,
+}))
+
+vi.mock('@/features/saved-tabs/hooks/useProjectManagement', () => ({
+  useProjectManagement: () => mocked.projectState,
 }))
 
 vi.mock('@/features/saved-tabs/shared/services/modeSyncService', () => ({
@@ -346,6 +350,7 @@ describe('SavedTabsApp custom search', () => {
       storage: {
         local: {
           get: vi.fn(async () => ({ savedTabs: [] })),
+          set: vi.fn(),
         },
         onChanged: {
           addListener: vi.fn(),

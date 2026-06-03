@@ -14,6 +14,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
+import { categoryNameSchema } from '@/features/saved-tabs/components/categoryNameSchema'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const categoryManagementModalI18nState = vi.hoisted(() => ({
@@ -151,10 +152,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
   }
 })
 
-import {
-  CategoryManagementModal,
-  categoryNameSchema,
-} from './CategoryManagementModal'
+import { CategoryManagementModal } from './CategoryManagementModal'
 
 interface StorageState {
   savedTabs: TabGroup[]

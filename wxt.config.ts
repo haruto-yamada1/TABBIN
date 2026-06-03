@@ -1,6 +1,7 @@
-import '@wxt-dev/module-react'
 import tailwindcss from '@tailwindcss/vite'
 import { type WxtViteConfig, defineConfig } from 'wxt'
+
+import '@wxt-dev/module-react'
 
 const vitePlugins = tailwindcss() as unknown as NonNullable<
   WxtViteConfig['plugins']
@@ -14,10 +15,7 @@ export default defineConfig({
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
     version: '2.0.6',
-    host_permissions: [
-      'http://localhost:11434/*',
-      'http://127.0.0.1:11434/*',
-    ],
+    host_permissions: ['http://localhost:11434/*', 'http://127.0.0.1:11434/*'],
     permissions: ['alarms', 'tabs', 'storage', 'contextMenus', 'notifications'],
     action: {
       default_title: '__MSG_extensionName__',
