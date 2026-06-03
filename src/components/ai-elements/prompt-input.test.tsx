@@ -426,8 +426,6 @@ describe('context hooks', () => {
       return null
     }
 
-    expect(() => render(<Consumer />)).toThrow(
-      /LocalReferencedSourcesContext/,
-    )
+    expect(() => render(<Consumer />)).toThrow(/LocalReferencedSourcesContext/)
   })
 })

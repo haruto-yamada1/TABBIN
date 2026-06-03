@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -50,9 +56,7 @@ describe('StackTrace', () => {
 
     expect(screen.getByText('TypeError')).toBeTruthy()
     expect(
-      screen.getByText(
-        "Cannot read properties of undefined (reading 'map')",
-      ),
+      screen.getByText("Cannot read properties of undefined (reading 'map')"),
     ).toBeTruthy()
   })
 
@@ -138,9 +142,10 @@ describe('StackTraceCopyButton', () => {
     renderFullStackTrace()
 
     const copyButtons = screen.getAllByRole('button')
-    const copyButton = copyButtons.find(
-      (b) => b.querySelector('svg') && b.getAttribute('type') !== 'button',
-    ) ?? copyButtons[0]
+    const copyButton =
+      copyButtons.find(
+        (b) => b.querySelector('svg') && b.getAttribute('type') !== 'button',
+      ) ?? copyButtons[0]
 
     fireEvent.click(copyButton)
 
@@ -212,7 +217,7 @@ describe('StackTraceActions', () => {
     const parentClick = vi.fn()
 
     render(
-      <div role="presentation" onClick={parentClick} onKeyDown={() => {}}>
+      <div role='presentation' onClick={parentClick} onKeyDown={() => {}}>
         <StackTraceActions>
           <button type='button'>action</button>
         </StackTraceActions>

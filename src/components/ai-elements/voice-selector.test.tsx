@@ -60,10 +60,13 @@ describe('VoiceSelectorAccent', () => {
     ['japanese', '🇯🇵'],
     ['french', '🇫🇷'],
     ['german', '🇩🇪'],
-  ] as const)('value="%s" のとき対応する国旗絵文字を表示する', (value, emoji) => {
-    render(<VoiceSelectorAccent value={value} />)
-    expect(screen.getByText(emoji)).toBeTruthy()
-  })
+  ] as const)(
+    'value="%s" のとき対応する国旗絵文字を表示する',
+    (value, emoji) => {
+      render(<VoiceSelectorAccent value={value} />)
+      expect(screen.getByText(emoji)).toBeTruthy()
+    },
+  )
 
   it('未知の value のとき絵文字を表示しない', () => {
     const { container } = render(<VoiceSelectorAccent value='unknown' />)
@@ -101,7 +104,9 @@ describe('VoiceSelectorName', () => {
   })
 
   it('truncate と font-medium のクラスを持つ', () => {
-    const { container } = render(<VoiceSelectorName>Test Voice</VoiceSelectorName>)
+    const { container } = render(
+      <VoiceSelectorName>Test Voice</VoiceSelectorName>,
+    )
     const span = container.querySelector('span')
     expect(span?.className).toContain('truncate')
     expect(span?.className).toContain('font-medium')
