@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { Message, MessageContent, MessageResponse } from './message'
 
@@ -27,7 +27,7 @@ describe('Message', () => {
     expect(responseRoot?.className).toContain('[&_p]:wrap-anywhere')
   })
 
-  it('markdown code blockにも折り返し用の幅制約を付ける', () => {
+  it('markdown code blockにも折り返し用の幅制約を付ける', async () => {
     const content = [
       '```json',
       '{"projectName":"VeryLongProjectNameWithoutNaturalBreakpoints","domain":"www.youtube.com"}',
@@ -47,6 +47,8 @@ describe('Message', () => {
       messageRoot?.firstElementChild as HTMLDivElement | null
     const responseRoot =
       messageBubble?.firstElementChild as HTMLDivElement | null
+
+    await vi.dynamicImportSettled()
 
     expect(
       container.querySelector('[data-streamdown="code-block-body"]'),

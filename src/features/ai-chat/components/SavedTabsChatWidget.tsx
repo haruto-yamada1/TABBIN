@@ -9,7 +9,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { toast } from 'sonner'
 
