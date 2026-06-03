@@ -2,9 +2,19 @@
  * Background script用の型定義
  */
 
-import type { DynamicToolUIPart } from 'ai'
+import type {
+  AiChatAttachment,
+  AiChartSpec,
+  AiChatToolTrace,
+  OllamaErrorDetails,
+} from '@/types/ai-chat-protocol'
 
-import type { AiChartSpec, AiChatAttachment } from '@/features/ai-chat/types'
+export type {
+  AiChatAttachment,
+  AiChartSpec,
+  AiChatToolTrace,
+  OllamaErrorDetails,
+} from '@/types/ai-chat-protocol'
 
 /**
  * ドラッグされたURL情報
@@ -153,15 +163,6 @@ export interface AlarmStatusResponse {
   scheduledTime?: number
 }
 
-export interface OllamaErrorDetails {
-  kind: 'forbidden' | 'notInstalledOrNotRunning'
-  faqUrl: string
-  downloadUrl: string
-  baseUrl: string
-  tagsUrl: string
-  allowedOrigins?: string
-}
-
 export interface OllamaModelListResponse {
   status: 'ok' | 'error'
   models?: {
@@ -171,17 +172,6 @@ export interface OllamaModelListResponse {
   }[]
   error?: string
   ollamaError?: OllamaErrorDetails
-}
-
-export interface AiChatToolTrace {
-  toolCallId: string
-  toolName: string
-  title: string
-  type: DynamicToolUIPart['type']
-  state: DynamicToolUIPart['state']
-  input: DynamicToolUIPart['input']
-  output?: DynamicToolUIPart['output']
-  errorText?: DynamicToolUIPart['errorText']
 }
 
 export interface AiChatResponse {
