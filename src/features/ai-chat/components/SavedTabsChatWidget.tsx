@@ -1837,7 +1837,7 @@ const useSavedTabsChatPanelView = ({
             <>
               <ConversationContent
                 className={cn(isCompactLayout && 'gap-5 p-3')}
-                scrollClassName='overscroll-contain'
+                scrollClassName='overscroll-contain overflow-y-auto'
               >
                 {renderedMessages.map((message) => (
                   <div key={message.id}>{message.view}</div>
