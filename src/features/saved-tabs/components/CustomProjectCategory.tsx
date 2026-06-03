@@ -9,7 +9,6 @@ import { GripVertical } from 'lucide-react'
 import { memo, useMemo, useReducer, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -373,7 +372,7 @@ const useCustomProjectCategoryView = ({
           />
         </CardHeader>
 
-        {!isCollapsed && (
+        {!isCollapsed &&
           renderCategoryContent({
             urls: sortedCategoryUrls,
             isOver,
@@ -385,8 +384,7 @@ const useCustomProjectCategoryView = ({
             handleDeleteUrl,
             handleSetUrlCategory,
             settings,
-          })
-        )}
+          })}
 
         <CustomProjectCategoryManageDialog
           category={category}

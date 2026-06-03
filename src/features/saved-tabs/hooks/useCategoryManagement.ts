@@ -123,7 +123,7 @@ const buildReorderedCategoryOrder = (params: {
   }
   return arrayMove(currentOrder, oldIndex, newIndex)
 }
-const resolveStateValue = <T,>(
+const resolveStateValue = <T>(
   nextValue: SetStateAction<T>,
   previousValue: T,
 ): T =>
@@ -262,7 +262,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
       console.error('親カテゴリ順序の更新に失敗しました:', error)
       toast.error(t('savedTabs.categoryManagement.reorderUpdateError'))
     }
-  }, [isCategoryReorderMode, tempCategoryOrder, categories, t])
+  }, [categories, isCategoryReorderMode, setCategories, t, tempCategoryOrder])
 
   /** 並び替えをキャンセルして元の順序に戻す */
   const handleCancelCategoryReorder = useCallback((): void => {
@@ -318,7 +318,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
         console.error('カテゴリ内ドメイン順序更新エラー:', error)
       }
     },
-    [categories],
+    [categories, setCategories],
   )
 
   /**
@@ -373,7 +373,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
         console.error('カテゴリ間ドメイン移動エラー:', error)
       }
     },
-    [categories],
+    [categories, setCategories],
   )
   return {
     categories,

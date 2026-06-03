@@ -181,17 +181,13 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
             <p className='font-medium'>
               {t('options.importExport.previewDomainsLabel')}
             </p>
-            <p className='text-muted-foreground'>
-              {previewData.domainsCount}
-            </p>
+            <p className='text-muted-foreground'>{previewData.domainsCount}</p>
           </div>
           <div>
             <p className='font-medium'>
               {t('options.importExport.previewProjectsLabel')}
             </p>
-            <p className='text-muted-foreground'>
-              {previewData.projectsCount}
-            </p>
+            <p className='text-muted-foreground'>{previewData.projectsCount}</p>
           </div>
           <div>
             <p className='font-medium'>

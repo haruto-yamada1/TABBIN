@@ -2,6 +2,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { CardCollapseControl } from '../shared/CardCollapseControl'
 import { useDomainCard } from './DomainCardContext'
+
 export { DomainCardReorderControl } from './DomainCardReorderControl'
 export { DomainCardSortControl } from './DomainCardSortControl'
 

@@ -7,8 +7,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
+import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 interface AnalyticsRecordActionButtonsProps {
   deletingUrl: string | null

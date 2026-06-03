@@ -1,17 +1,6 @@
 lockfile_version: '1'
 generated_at: '2026-05-03T00:00:00+09:00'
 dependencies: []
-mcp_servers:
-  - io.github.github/github-mcp-server
-  - io.github.upstash/context7
-  - oraios/serena
-mcp_configs:
-  io.github.github/github-mcp-server:
-    name: io.github.github/github-mcp-server
-  io.github.upstash/context7:
-    name: io.github.upstash/context7
-  oraios/serena:
-    name: oraios/serena
 local_deployed_files:
   - .agents/skills/agent-automation-recommender
   - .agents/skills/agent-introspection-debugging

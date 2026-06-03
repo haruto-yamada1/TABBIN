@@ -83,7 +83,8 @@ const useLeftPaneWidth = () => {
     setElement(node)
   }, [])
   const leftPaneWidth = useSyncExternalStore(
-    (onStoreChange) => subscribeToElementWidth(element, widthRef, onStoreChange),
+    (onStoreChange) =>
+      subscribeToElementWidth(element, widthRef, onStoreChange),
     () => widthRef.current ?? getViewportWidthSnapshot(),
     getViewportWidthSnapshot,
   )

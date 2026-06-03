@@ -21,15 +21,15 @@ import {
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import {
+  categoryNameSchema,
+  createCategoryNameSchema,
+} from '@/features/saved-tabs/components/categoryNameSchema'
 import { DeleteEntityConfirmPanel } from '@/features/saved-tabs/components/shared/DeleteEntityConfirmPanel'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
-import {
-  categoryNameSchema,
-  createCategoryNameSchema,
-} from '@/features/saved-tabs/components/categoryNameSchema'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 // 型定義

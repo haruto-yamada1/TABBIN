@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, UserSettings } from '@/types/storage'
 
-import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import {
   getCategoryDisplayName,
   getCategoryLevel,
 } from './projectUrlItemHelpers'
+import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
 let isGlobalInternalDrop = false

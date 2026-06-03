@@ -446,14 +446,12 @@ describe('SavedTabsRoute', () => {
       (screen.getByLabelText('最上部へ移動') as HTMLButtonElement).disabled,
     ).toBe(true)
     expect(
-      (
-        screen.getByLabelText('上の親カテゴリへ移動') as HTMLButtonElement
-      ).disabled,
+      (screen.getByLabelText('上の親カテゴリへ移動') as HTMLButtonElement)
+        .disabled,
     ).toBe(true)
     expect(
-      (
-        screen.getByLabelText('下の親カテゴリへ移動') as HTMLButtonElement
-      ).disabled,
+      (screen.getByLabelText('下の親カテゴリへ移動') as HTMLButtonElement)
+        .disabled,
     ).toBe(false)
     expect(
       (screen.getByLabelText('最下部へ移動') as HTMLButtonElement).disabled,
@@ -482,9 +480,7 @@ describe('SavedTabsRoute', () => {
     expect(parentNext.classList.contains('saved-tabs-scroll-highlight')).toBe(
       true,
     )
-    expect(screen.getByRole('status').textContent).toBe(
-      '下の親カテゴリへ移動',
-    )
+    expect(screen.getByRole('status').textContent).toBe('下の親カテゴリへ移動')
 
     act(() => {
       vi.runAllTimers()

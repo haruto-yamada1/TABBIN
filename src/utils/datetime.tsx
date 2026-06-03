@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 
-import { formatFixedDatetime } from './localDateTime'
-
 interface TimeRemainingResponse {
   error?: string
   timeRemaining?: number

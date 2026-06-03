@@ -25,9 +25,6 @@ import { Toaster } from '@/components/ui/sonner'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { getPageHref } from '@/features/navigation/lib/pageNavigation'
-import { useCategoryManagement } from '@/features/saved-tabs/hooks/useCategoryManagement'
-import { useProjectManagement } from '@/features/saved-tabs/hooks/useProjectManagement'
-import { useTabData } from '@/features/saved-tabs/hooks/useTabData'
 import { CategoryReorderFooter } from '@/features/saved-tabs/components/Footer'
 import { Header } from '@/features/saved-tabs/components/Header' // ヘッダーコンポーネントをインポート
 import {
@@ -36,6 +33,9 @@ import {
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
 import { CustomModeContainer } from '@/features/saved-tabs/custom/CustomModeContainer'
 import { DomainModeContainer } from '@/features/saved-tabs/domain/DomainModeContainer'
+import { useCategoryManagement } from '@/features/saved-tabs/hooks/useCategoryManagement'
+import { useProjectManagement } from '@/features/saved-tabs/hooks/useProjectManagement'
+import { useTabData } from '@/features/saved-tabs/hooks/useTabData'
 import { moveCustomProjectUrlAndSyncState } from '@/features/saved-tabs/lib/custom-project-move'
 import { filterCustomProjectsByQuery } from '@/features/saved-tabs/lib/custom-project-search'
 import { handleTabGroupRemoval } from '@/features/saved-tabs/lib/tab-operations'
@@ -841,10 +841,7 @@ const useSavedTabsAppView = ({
   >([])
 
   const categoryState = useCategoryManagement()
-  const tabDataState = useTabData(
-    categoryState.setCategories,
-    setSettings,
-  )
+  const tabDataState = useTabData(categoryState.setCategories, setSettings)
   const projectState = useProjectManagement(
     tabDataState.tabGroups,
     settings,

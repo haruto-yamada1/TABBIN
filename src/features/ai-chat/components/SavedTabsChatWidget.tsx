@@ -4,7 +4,6 @@ import {
   Copy,
   History,
   MessageCircleMore,
-  Paperclip,
   Plus,
   Settings2,
   Trash2,
@@ -18,7 +17,6 @@ import {
   Attachment,
   AttachmentInfo,
   AttachmentPreview,
-  AttachmentRemove,
   Attachments,
 } from '@/components/ai-elements/attachments'
 import {
@@ -42,7 +40,6 @@ import {
   PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
-  usePromptInputAttachments,
 } from '@/components/ai-elements/prompt-input'
 import type {
   PromptInputMessage,
@@ -1731,7 +1728,10 @@ const useSavedTabsChatPanelView = ({
     onSelectHistoryItem,
     onSelectSystemPrompt,
     onToggleHistory,
-    presentation: { isCompactLayout: layout.isCompactLayout, showCloseButton: layout.showCloseButton },
+    presentation: {
+      isCompactLayout: layout.isCompactLayout,
+      showCloseButton: layout.showCloseButton,
+    },
     status: {
       isConversationCopied: status.isConversationCopied,
       isCopyDisabled: status.isCopyDisabled,
@@ -1759,17 +1759,8 @@ const useSavedTabsChatPanelView = ({
     },
     t,
   })
-  const { isCompactLayout, isResizing, mode, showCloseButton, sidebarWidth } =
-    layout
-  const {
-    isConfigured,
-    isConversationCopied,
-    isCopyDisabled,
-    isLoadingModels,
-    isOpen,
-    isSavingModel,
-    isSubmitting,
-  } = status
+  const { isCompactLayout, isResizing, mode, sidebarWidth } = layout
+  const { isConfigured, isOpen } = status
   const renderedMessages = messages.map((message) => ({
     id: message.id,
     view: renderChatConversationMessage({
