@@ -71,7 +71,7 @@ local_deployed_files:
   - .claude/hooks/TABBIN/scripts/harness-safety-warn.sh
   - .claude/hooks/TABBIN/scripts/harness-session-context.sh
   - .claude/hooks/TABBIN/scripts/publish-verify.sh
-  - .claude/hooks/TABBIN/scripts/rtk-usage-warn.sh
+  - .claude/hooks/TABBIN/scripts/rtk-usage-replace.sh
   - .claude/hooks/TABBIN/scripts/stop-verify.sh
   - .claude/hooks/TABBIN/scripts/track-edit.sh
   - .claude/rules/00-context-mode.md
@@ -134,7 +134,7 @@ local_deployed_files:
   - .codex/hooks/TABBIN/scripts/harness-safety-warn.sh
   - .codex/hooks/TABBIN/scripts/harness-session-context.sh
   - .codex/hooks/TABBIN/scripts/publish-verify.sh
-  - .codex/hooks/TABBIN/scripts/rtk-usage-warn.sh
+  - .codex/hooks/TABBIN/scripts/rtk-usage-replace.sh
   - .codex/hooks/TABBIN/scripts/stop-verify.sh
   - .codex/hooks/TABBIN/scripts/track-edit.sh
   - .cursor/hooks/TABBIN/scripts/harness-activity-track.sh
@@ -146,7 +146,7 @@ local_deployed_files:
   - .cursor/hooks/TABBIN/scripts/harness-safety-warn.sh
   - .cursor/hooks/TABBIN/scripts/harness-session-context.sh
   - .cursor/hooks/TABBIN/scripts/publish-verify.sh
-  - .cursor/hooks/TABBIN/scripts/rtk-usage-warn.sh
+  - .cursor/hooks/TABBIN/scripts/rtk-usage-replace.sh
   - .cursor/hooks/TABBIN/scripts/stop-verify.sh
   - .cursor/hooks/TABBIN/scripts/track-edit.sh
   - .cursor/rules/00-context-mode.mdc
@@ -222,7 +222,7 @@ local_deployed_files:
   - .gemini/hooks/TABBIN/scripts/harness-safety-warn.sh
   - .gemini/hooks/TABBIN/scripts/harness-session-context.sh
   - .gemini/hooks/TABBIN/scripts/publish-verify.sh
-  - .gemini/hooks/TABBIN/scripts/rtk-usage-warn.sh
+  - .gemini/hooks/TABBIN/scripts/rtk-usage-replace.sh
   - .gemini/hooks/TABBIN/scripts/stop-verify.sh
   - .gemini/hooks/TABBIN/scripts/track-edit.sh
   - .gemini/skills/agent-automation-recommender
@@ -282,7 +282,7 @@ local_deployed_files:
   - .github/hooks/scripts/TABBIN/scripts/harness-safety-warn.sh
   - .github/hooks/scripts/TABBIN/scripts/harness-session-context.sh
   - .github/hooks/scripts/TABBIN/scripts/publish-verify.sh
-  - .github/hooks/scripts/TABBIN/scripts/rtk-usage-warn.sh
+  - .github/hooks/scripts/TABBIN/scripts/rtk-usage-replace.sh
   - .github/hooks/scripts/TABBIN/scripts/stop-verify.sh
   - .github/hooks/scripts/TABBIN/scripts/track-edit.sh
   - .github/instructions/00-context-mode.instructions.md
@@ -372,7 +372,7 @@ local_deployed_file_hashes:
   .claude/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .claude/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .claude/hooks/TABBIN/scripts/publish-verify.sh: sha256:bfd06035431c12bd76a85a44756fbb535380f791c90d1813a33a19466ce59f8d
-  .claude/hooks/TABBIN/scripts/rtk-usage-warn.sh: sha256:dced85a97f4c6b79617e74bb8e784fd5d5902d0cfad6051984fbab6bef7405f1
+  .claude/hooks/TABBIN/scripts/rtk-usage-replace.sh: sha256:34bdb524f350984291ad01d76562a1366e85dd52353a86f61c94b29fc1df30fd
   .claude/hooks/TABBIN/scripts/stop-verify.sh: sha256:efab965b5b1ee76eeedab8b647cf65721909903db4607db2f4b3f56cd2901522
   .claude/hooks/TABBIN/scripts/track-edit.sh: sha256:28434ed9f80d0ab53032cac5d98644dd5c624db4420a8d8d71454665ed4008b0
   .claude/rules/00-context-mode.md: sha256:d401dc7362629b4ca86a965be6ce2eb5bd4a01df49ff2e7e0d66cef83a5005b3
@@ -388,7 +388,7 @@ local_deployed_file_hashes:
   .codex/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .codex/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .codex/hooks/TABBIN/scripts/publish-verify.sh: sha256:bfd06035431c12bd76a85a44756fbb535380f791c90d1813a33a19466ce59f8d
-  .codex/hooks/TABBIN/scripts/rtk-usage-warn.sh: sha256:dced85a97f4c6b79617e74bb8e784fd5d5902d0cfad6051984fbab6bef7405f1
+  .codex/hooks/TABBIN/scripts/rtk-usage-replace.sh: sha256:34bdb524f350984291ad01d76562a1366e85dd52353a86f61c94b29fc1df30fd
   .codex/hooks/TABBIN/scripts/stop-verify.sh: sha256:efab965b5b1ee76eeedab8b647cf65721909903db4607db2f4b3f56cd2901522
   .codex/hooks/TABBIN/scripts/track-edit.sh: sha256:28434ed9f80d0ab53032cac5d98644dd5c624db4420a8d8d71454665ed4008b0
   .cursor/hooks/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
@@ -400,7 +400,7 @@ local_deployed_file_hashes:
   .cursor/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .cursor/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .cursor/hooks/TABBIN/scripts/publish-verify.sh: sha256:bfd06035431c12bd76a85a44756fbb535380f791c90d1813a33a19466ce59f8d
-  .cursor/hooks/TABBIN/scripts/rtk-usage-warn.sh: sha256:dced85a97f4c6b79617e74bb8e784fd5d5902d0cfad6051984fbab6bef7405f1
+  .cursor/hooks/TABBIN/scripts/rtk-usage-replace.sh: sha256:34bdb524f350984291ad01d76562a1366e85dd52353a86f61c94b29fc1df30fd
   .cursor/hooks/TABBIN/scripts/stop-verify.sh: sha256:efab965b5b1ee76eeedab8b647cf65721909903db4607db2f4b3f56cd2901522
   .cursor/hooks/TABBIN/scripts/track-edit.sh: sha256:28434ed9f80d0ab53032cac5d98644dd5c624db4420a8d8d71454665ed4008b0
   .cursor/rules/00-context-mode.mdc: sha256:7a7d69afa8c55490fe5e945474c365e66d150a2360aa7449c11761371215f17f
@@ -429,10 +429,10 @@ local_deployed_file_hashes:
   .gemini/hooks/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .gemini/hooks/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .gemini/hooks/TABBIN/scripts/publish-verify.sh: sha256:bfd06035431c12bd76a85a44756fbb535380f791c90d1813a33a19466ce59f8d
-  .gemini/hooks/TABBIN/scripts/rtk-usage-warn.sh: sha256:dced85a97f4c6b79617e74bb8e784fd5d5902d0cfad6051984fbab6bef7405f1
+  .gemini/hooks/TABBIN/scripts/rtk-usage-replace.sh: sha256:34bdb524f350984291ad01d76562a1366e85dd52353a86f61c94b29fc1df30fd
   .gemini/hooks/TABBIN/scripts/stop-verify.sh: sha256:efab965b5b1ee76eeedab8b647cf65721909903db4607db2f4b3f56cd2901522
   .gemini/hooks/TABBIN/scripts/track-edit.sh: sha256:28434ed9f80d0ab53032cac5d98644dd5c624db4420a8d8d71454665ed4008b0
-  .github/hooks/TABBIN-claude-quality-hooks.json: sha256:9cc5d350208d274befe1bae459353be63aaa60ecf6f21629f1ea8346f477d4e7
+  .github/hooks/TABBIN-claude-quality-hooks.json: sha256:98c195f98b7b6851331ba716418b5653a838def2e6ad0d1152693b98c91829c2
   .github/hooks/scripts/TABBIN/scripts/harness-activity-track.sh: sha256:d66f02121fc0dce7a87f028512b2a09a5196f7a3049fa1c5d93d10c3c0b7609c
   .github/hooks/scripts/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
   .github/hooks/scripts/TABBIN/scripts/harness-first-edit-gate.sh: sha256:4803d8c6916a662eb5480519dbe1af0366db191ec3f61e89cabc7f52bf55f24a
@@ -442,7 +442,7 @@ local_deployed_file_hashes:
   .github/hooks/scripts/TABBIN/scripts/harness-safety-warn.sh: sha256:44e384a9b11debe65afe8f022b0f401f32f7bd4d3049d867128a74409ac43b99
   .github/hooks/scripts/TABBIN/scripts/harness-session-context.sh: sha256:a8b299e882c1bf64bb7a7247eec73a42d0f21f7f23871bb7443be937fc0971db
   .github/hooks/scripts/TABBIN/scripts/publish-verify.sh: sha256:bfd06035431c12bd76a85a44756fbb535380f791c90d1813a33a19466ce59f8d
-  .github/hooks/scripts/TABBIN/scripts/rtk-usage-warn.sh: sha256:dced85a97f4c6b79617e74bb8e784fd5d5902d0cfad6051984fbab6bef7405f1
+  .github/hooks/scripts/TABBIN/scripts/rtk-usage-replace.sh: sha256:34bdb524f350984291ad01d76562a1366e85dd52353a86f61c94b29fc1df30fd
   .github/hooks/scripts/TABBIN/scripts/stop-verify.sh: sha256:efab965b5b1ee76eeedab8b647cf65721909903db4607db2f4b3f56cd2901522
   .github/hooks/scripts/TABBIN/scripts/track-edit.sh: sha256:28434ed9f80d0ab53032cac5d98644dd5c624db4420a8d8d71454665ed4008b0
   .github/instructions/00-context-mode.instructions.md: sha256:35a864d8df37bda3f7becc6781dff9b5968cd81e0c9dfd06ca46493f12caadff

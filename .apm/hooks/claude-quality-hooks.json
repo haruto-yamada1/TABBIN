@@ -36,7 +36,7 @@
         "matcher": "Bash",
         "hooks": [
           {
-            "command": "./scripts/rtk-usage-warn.sh",
+            "command": "./scripts/rtk-usage-replace.sh",
             "timeout": 10,
             "type": "command"
           }

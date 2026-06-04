@@ -16,43 +16,15 @@ const path = require('path')
 
 const [, , inputPath] = process.argv
 
-const rtkCommands = new Map([
-  ['aws', 'rtk aws ...'],
-  ['bun', 'rtk bun ...'],
-  ['cargo', 'rtk cargo ...'],
-  ['cat', 'rtk read <file>'],
-  ['docker', 'rtk docker ...'],
-  ['find', 'rtk find ...'],
-  ['gh', 'rtk gh ...'],
-  ['git', 'rtk git ...'],
-  ['glab', 'rtk glab ...'],
-  ['go', 'rtk go test ...'],
-  ['grep', 'rtk grep ...'],
-  ['head', 'rtk read <file>'],
-  ['jest', 'rtk jest ...'],
-  ['kubectl', 'rtk kubectl ...'],
-  ['ls', 'rtk ls ...'],
-  ['npm', 'rtk npm ...'],
-  ['npx', 'rtk npx ...'],
-  ['playwright', 'rtk playwright ...'],
-  ['pnpm', 'rtk pnpm ...'],
-  ['psql', 'rtk psql ...'],
-  ['pytest', 'rtk pytest ...'],
-  ['rg', 'rtk grep ...'],
-  ['sed', 'rtk read <file>'],
-  ['tail', 'rtk read <file>'],
-  ['tree', 'rtk tree ...'],
-  ['tsc', 'rtk tsc ...'],
-  ['vitest', 'rtk vitest ...'],
-  ['wc', 'rtk wc ...'],
+const rtkCommands = new Set([
+  'aws', 'bun', 'cargo', 'cat', 'docker', 'find', 'gh', 'git', 'glab',
+  'go', 'grep', 'head', 'jest', 'kubectl', 'ls', 'npm', 'npx',
+  'playwright', 'pnpm', 'psql', 'pytest', 'rg', 'sed', 'tail',
+  'tree', 'tsc', 'vitest', 'wc',
 ])
 
 const shellTools = new Set(['Bash', 'Shell'])
 const leadingWrappers = new Set(['command', 'env', 'noglob', 'sudo', 'time'])
-
-function warn(message) {
-  console.error(`RTK usage warning: ${message}`)
-}
 
 function getPath(value, pathSegments) {
   let current = value
@@ -115,15 +87,26 @@ function splitShellSegments(command) {
       continue
     }
 
-    if (char === '\n' || char === ';' || char === '|') {
-      segments.push(current)
+    if (char === '\n' || char === ';') {
+      segments.push({ text: current, sep: char })
       current = ''
-      if ((char === '|' && next === '|') || (char === '&' && next === '&')) index += 1
+      continue
+    }
+
+    if (char === '|') {
+      if (next === '|') {
+        segments.push({ text: current, sep: '||' })
+        current = ''
+        index += 1
+      } else {
+        segments.push({ text: current, sep: '|' })
+        current = ''
+      }
       continue
     }
 
     if (char === '&' && next === '&') {
-      segments.push(current)
+      segments.push({ text: current, sep: '&&' })
       current = ''
       index += 1
       continue
@@ -132,8 +115,10 @@ function splitShellSegments(command) {
     current += char
   }
 
-  segments.push(current)
-  return segments.map((segment) => segment.trim()).filter(Boolean)
+  segments.push({ text: current, sep: '' })
+  return segments
+    .map((s) => ({ text: s.text.trim(), sep: s.sep }))
+    .filter((s) => s.text)
 }
 
 function tokenize(segment) {
@@ -192,6 +177,29 @@ function firstExecutable(segment) {
   return ''
 }
 
+function replaceSegmentExecutable(segment) {
+  const tokens = tokenize(segment)
+  let skipped = 0
+
+  while (skipped < tokens.length) {
+    const token = tokens[skipped]
+    if (!token) { skipped += 1; continue }
+    if (/^[A-Za-z_][A-Za-z0-9_]*=.*/.test(token)) { skipped += 1; continue }
+
+    const command = normalizeCommandToken(token)
+    if (leadingWrappers.has(command)) { skipped += 1; continue }
+
+    if (command === 'rtk') return null
+
+    if (!rtkCommands.has(command)) return null
+
+    const before = segment.slice(0, segment.indexOf(token))
+    const after = segment.slice(segment.indexOf(token) + token.length)
+    return `${before}rtk ${token}${after}`
+  }
+  return null
+}
+
 let payload = {}
 try {
   const input = fs.readFileSync(inputPath, 'utf8').trim()
@@ -205,14 +213,29 @@ if (!isShellPayload(payload)) process.exit(0)
 const command = commandFromPayload(payload)
 if (!command.trim()) process.exit(0)
 
-for (const segment of splitShellSegments(command)) {
-  const executable = firstExecutable(segment)
-  if (!executable || executable === 'rtk') continue
+const segments = splitShellSegments(command)
+const replaced = []
+let hasReplacement = false
 
-  const replacement = rtkCommands.get(executable)
-  if (!replacement) continue
-
-  warn(`\`${executable}\` は \`${replacement}\` で実行できる可能性があります。RTK が詳細を隠す場合だけ \`rtk proxy <cmd>\` や targeted な context-mode を使ってください。`)
-  process.exit(0)
+for (const { text, sep } of segments) {
+  const result = replaceSegmentExecutable(text)
+  if (result) {
+    replaced.push(result + (sep ? ` ${sep}` : ''))
+    hasReplacement = true
+  } else {
+    replaced.push(text + (sep ? ` ${sep}` : ''))
+  }
 }
+
+if (!hasReplacement) process.exit(0)
+
+const newCommand = replaced.join(' ').replace(/\s+$/, '')
+
+const result = {
+  continue: false,
+  stopReason: `コマンドを \`${newCommand}\` に置換してください。rtk を使って実行してください。`,
+  systemMessage: `このコマンドは rtk を使って実行してください。\n元のコマンド: \`${command}\`\n置換後: \`${newCommand}\`\n\`${newCommand}\` を実行してください。`,
+}
+
+console.log(JSON.stringify(result))
 NODE
