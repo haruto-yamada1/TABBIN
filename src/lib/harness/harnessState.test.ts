@@ -233,6 +233,8 @@ describe('harness pure helpers', () => {
       event: {
         kind: 'manual',
         message: 'governance fallback',
+        severity: 'info',
+        source: 'test',
       },
       projectRoot,
     })

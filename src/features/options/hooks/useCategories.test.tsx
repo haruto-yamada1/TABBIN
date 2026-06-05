@@ -18,6 +18,7 @@ import {
   getParentCategories,
 } from '@/lib/storage/categories'
 import { getUserSettings } from '@/lib/storage/settings'
+import type { UserSettings } from '@/types/storage'
 
 type StorageListener = (
   changes: { [key: string]: chrome.storage.StorageChange },
@@ -25,6 +26,23 @@ type StorageListener = (
 ) => void
 
 const listeners: StorageListener[] = []
+
+const userSettings: UserSettings = {
+  removeTabAfterOpen: true,
+  removeTabAfterExternalDrop: true,
+  excludePatterns: [],
+  enableCategories: true,
+  autoDeletePeriod: 'never',
+  showSavedTime: false,
+  clickBehavior: 'saveSameDomainTabs',
+  excludePinnedTabs: true,
+  openUrlInBackground: true,
+  openAllInNewWindow: false,
+  confirmDeleteAll: false,
+  confirmDeleteEach: false,
+  colors: {},
+  ollamaModel: '',
+}
 
 const createChromeMock = () =>
   ({
@@ -51,7 +69,7 @@ describe('useCategoriesフック', () => {
     listeners.length = 0
     vi.useRealTimers()
     vi.clearAllMocks()
-    vi.mocked(getUserSettings).mockResolvedValue({})
+    vi.mocked(getUserSettings).mockResolvedValue(userSettings)
     ;(globalThis as unknown as { chrome: typeof chrome }).chrome =
       createChromeMock()
   })

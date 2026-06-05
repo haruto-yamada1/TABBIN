@@ -40,8 +40,11 @@ export const getFallbackText = (
 ) => getMessage(resolveUiLanguage(getUiLocale()), key, fallback, values)
 
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
-  const [{ languageSetting, uiLocale }, setI18nState] = useState(() => ({
-    languageSetting: defaultSettings.language,
+  const [{ languageSetting, uiLocale }, setI18nState] = useState<{
+    languageSetting: LanguageSetting
+    uiLocale: string | undefined
+  }>(() => ({
+    languageSetting: defaultSettings.language ?? 'system',
     uiLocale: getUiLocale(),
   }))
 

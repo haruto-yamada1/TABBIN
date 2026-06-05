@@ -151,7 +151,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 
     // 更新後のURL数を計算
     const updatedUrlCount: number = updatedTabs.reduce(
-      (acc: number, g) => acc + g.urls.length,
+      (acc: number, g) => acc + (g.urls?.length ?? 0),
       0,
     )
 

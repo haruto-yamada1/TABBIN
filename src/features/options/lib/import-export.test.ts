@@ -543,8 +543,8 @@ describe('import-export ユーティリティ', () => {
     const exportSourceProject = buildCustomProject({
       id: 'project-with-missing-url-record',
       urlIds: ['missing-export-url', 'titleless-export-url'],
-    })
-    delete exportSourceProject.updatedAt
+      updatedAt: undefined,
+    } as Partial<CustomProject>)
 
     const exportedUrls = convertCustomProjectToExportUrls(
       exportSourceProject,
@@ -554,7 +554,7 @@ describe('import-export ユーティリティ', () => {
           {
             id: 'titleless-export-url',
             savedAt: 5,
-            title: undefined,
+            title: '',
             url: 'https://titleless-export.example.com/a',
           },
         ],
@@ -3834,6 +3834,7 @@ describe('import-export ユーティリティ', () => {
             },
             {
               url: 'https://restored.example.com/titleless',
+              title: '',
             },
           ],
           categories: ['Docs'],

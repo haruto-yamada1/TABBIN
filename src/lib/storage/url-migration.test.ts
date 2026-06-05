@@ -243,6 +243,7 @@ describe('url-migration', () => {
           urls: [
             {
               url: 'https://project-no-meta.example.com',
+              title: '',
             },
           ],
         },
@@ -258,6 +259,7 @@ describe('url-migration', () => {
           urls: [
             {
               url: 'https://tab-no-sub.example.com/page',
+              title: '',
             },
           ],
         },

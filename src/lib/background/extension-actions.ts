@@ -400,12 +400,13 @@ export const handleSaveWindowTabs = async (): Promise<
   // 閉じるタブを収集
   const tabIdsToClose: number[] = []
   for (const tab of filteredTabs) {
+    const tabUrl = tab.url
     if (
       tab.id &&
       tab.id !== savedTabsTabId &&
-      tab.url &&
+      tabUrl &&
       !settings.excludePatterns.some(
-        (pattern) => tab.url.split(pattern).length > 1,
+        (pattern) => tabUrl.split(pattern).length > 1,
       )
     ) {
       tabIdsToClose.push(tab.id)

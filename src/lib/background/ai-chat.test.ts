@@ -69,11 +69,7 @@ describe('listLocalOllamaModels', () => {
   })
 
   it('background locale helper は chrome がない環境では日本語に fallback する', () => {
-    delete (
-      globalThis as typeof globalThis & {
-        chrome?: typeof chrome
-      }
-    ).chrome
+    Reflect.deleteProperty(globalThis, 'chrome')
 
     expect(getAiChatUiLocale()).toBe('ja')
     expect(getToolListSeparator('en')).toBe(', ')
