@@ -194,7 +194,6 @@ const handleRemoveUrlRecordsMessage = (
   urlIds: string[],
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  /* v8 ignore next -- coverage-only defensive branch. */
   removeUrlRecordsFromStorage(Array.isArray(urlIds) ? urlIds : [])
     .then((removedCount) =>
       sendResponse({
@@ -205,7 +204,6 @@ const handleRemoveUrlRecordsMessage = (
     .catch((error) =>
       sendResponse({
         status: 'error',
-        /* v8 ignore next -- coverage-only defensive branch. */
         error: error instanceof Error ? error.message : String(error),
       }),
     )

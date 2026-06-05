@@ -37,7 +37,12 @@ vi.mock('@/lib/storage/categories', () => ({
   getParentCategories: mocked.getParentCategories,
 }))
 
-import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
+import {
+  getAiChatUiLocale,
+  getToolListSeparator,
+  listLocalOllamaModels,
+  runAiChatRequest,
+} from './ai-chat'
 
 type OllamaErrorLike = Error & {
   ollamaError?: {
@@ -61,6 +66,14 @@ describe('listLocalOllamaModels', () => {
         id: 'test-extension-id',
       },
     } as unknown as typeof chrome
+  })
+
+  it('background locale helper は chrome がない環境では日本語に fallback する', () => {
+    Reflect.deleteProperty(globalThis, 'chrome')
+
+    expect(getAiChatUiLocale()).toBe('ja')
+    expect(getToolListSeparator('en')).toBe(', ')
+    expect(getToolListSeparator('ja')).toBe('、')
   })
 
   it('localhost の /api/tags を読んでモデル名を正規化する', async () => {

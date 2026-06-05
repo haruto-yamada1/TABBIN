@@ -162,6 +162,10 @@ describe('saved-tabs-page', () => {
       tab({
         url: 'chrome-extension://tabbin/saved-tabs.html',
       }),
+      tab({
+        id: 53,
+        url: 'not a url app.html#/options',
+      }),
     ])
 
     await expect(openSavedTabsPage()).resolves.toBe(900)

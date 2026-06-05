@@ -82,7 +82,7 @@ describe('changelog bootstrap', () => {
 
   it('英語のリリースノート見出しと本文を描画できる', async () => {
     mocked.currentLanguage = 'en'
-    const { App } = await importModule()
+    const { App, getChangelogFeatureClassName } = await importModule()
 
     render(createElement(App))
 
@@ -96,6 +96,8 @@ describe('changelog bootstrap', () => {
     expect(screen.getByText('March 14, 2026')).toBeTruthy()
     expect(document.title).toBe('Release Notes - TABBIN')
     expect(document.documentElement.lang).toBe('en')
+    expect(getChangelogFeatureClassName(true)).toContain('font-medium')
+    expect(getChangelogFeatureClassName(false)).toContain('text-foreground')
   })
 
   it('言語に応じてリリースノートの日付を整形できる', async () => {

@@ -1,5 +1,6 @@
 import { Plus, RotateCcw, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 
 import { ModeToggle } from '@/components/mode-toggle'
 import { Badge } from '@/components/ui/badge'
@@ -50,6 +51,40 @@ const applyFontSizePreview = (value: number) => {
     '--app-font-scale',
     String(normalizeFontSizePercent(value) / 100),
   )
+}
+
+const resetFontSizeInputValue = <
+  T extends {
+    fontSizeInputValue: string
+  },
+>(
+  values: T,
+  fontSizePercent: number,
+): T => ({
+  ...values,
+  fontSizeInputValue: String(fontSizePercent),
+})
+
+const createResetFontSizeInputValueUpdater =
+  <
+    T extends {
+      fontSizeInputValue: string
+    },
+  >(
+    fontSizePercent: number,
+  ) =>
+  (values: T): T =>
+    resetFontSizeInputValue(values, fontSizePercent)
+
+const resetFontSizeInputState = <
+  T extends {
+    fontSizeInputValue: string
+  },
+>(
+  setValues: Dispatch<SetStateAction<T>>,
+  fontSizePercent: number,
+): void => {
+  setValues(createResetFontSizeInputValueUpdater(fontSizePercent))
 }
 
 const useOptionsRouteView = () => {
@@ -119,25 +154,11 @@ const useOptionsRouteView = () => {
   const commitFontSizeInputValue = async () => {
     const trimmedValue = fontSizeInputValue.trim()
     if (!trimmedValue) {
-      setFontSizeValues((prev) => ({
-        ...prev,
-        fontSizeInputValue: String(fontSizePercent),
-      }))
+      resetFontSizeInputState(setFontSizeValues, fontSizePercent)
       return
     }
 
     const nextValue = Number(trimmedValue)
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (Number.isNaN(nextValue)) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      setFontSizeValues((prev) => ({
-        ...prev,
-        fontSizeInputValue: String(fontSizePercent),
-      }))
-      /* v8 ignore next -- coverage-only defensive branch. */
-      return
-    }
-
     await updateFontSizePercent(nextValue)
   }
 
@@ -235,7 +256,6 @@ const useOptionsRouteView = () => {
             </Label>
             <div className='gap-y-2'>
               <Select
-                /* v8 ignore next -- coverage-only defensive branch. */
                 value={settings.clickBehavior || 'saveWindowTabs'}
                 onValueChange={handleClickBehaviorChange}
               >
@@ -440,14 +460,11 @@ const useOptionsRouteView = () => {
             </div>
             <div className='mt-3 flex flex-wrap gap-2 rounded-md border border-border bg-background/40 p-3'>
               {activeExcludePatterns.length === 0 ? (
-                /* v8 ignore next -- coverage-only defensive branch. */
-                /* v8 ignore start -- coverage-only defensive branch. */
                 <p className='text-sm text-muted-foreground'>
                   {t('options.excludePatterns.empty')}
                 </p>
               ) : (
                 activeExcludePatterns.map((pattern) => (
-                  /* v8 ignore stop */
                   <Badge
                     key={pattern}
                     variant='outline'
@@ -690,4 +707,10 @@ const useOptionsRouteView = () => {
 
 const OptionsRoute = () => useOptionsRouteView()
 
-export { OptionsRoute, OptionsRoute as OptionsPage }
+export {
+  createResetFontSizeInputValueUpdater,
+  OptionsRoute,
+  OptionsRoute as OptionsPage,
+  resetFontSizeInputState,
+  resetFontSizeInputValue,
+}

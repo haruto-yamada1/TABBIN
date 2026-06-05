@@ -20,6 +20,9 @@ const App: React.FC = () => (
   </I18nProvider>
 )
 
+const getChangelogFeatureClassName = (highlight?: boolean): string =>
+  `ml-4 text-base ${highlight ? 'font-medium text-primary' : 'text-foreground'}`
+
 const ChangelogContent: React.FC = () => {
   const { language, t } = useI18n()
   const changelog = getChangelogItems(language)
@@ -63,8 +66,9 @@ const ChangelogContent: React.FC = () => {
                         />
                       </div>
                       <p
-                        /* v8 ignore next -- coverage-only defensive branch. */
-                        className={`ml-4 text-base ${feature.highlight ? 'font-medium text-primary' : 'text-foreground'}`}
+                        className={getChangelogFeatureClassName(
+                          feature.highlight,
+                        )}
                       >
                         {feature.text}
                       </p>
@@ -90,4 +94,4 @@ document.addEventListener('DOMContentLoaded', () => {
   )
 })
 
-export { App }
+export { App, getChangelogFeatureClassName }

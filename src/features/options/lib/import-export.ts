@@ -57,15 +57,9 @@ const resolveCurrentLanguage = (settings: Pick<UserSettings, 'language'>) =>
 const getPlaceholderUrlTitle = (
   language: UserSettings['language'] | undefined,
 ): string =>
-  /* v8 ignore start -- coverage-only defensive branch. */
   resolveCurrentLanguage({ language }) === 'en'
-    ? /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      'Recovered data (missing original URL)'
-    : /* v8 ignore stop */
-      '復元データ（元URL欠損）'
-/* v8 ignore stop */
-
+    ? 'Recovered data (missing original URL)'
+    : '復元データ（元URL欠損）'
 // インポート時のURL形式に対応するインターフェース
 interface ImportedUrlData {
   url: string
@@ -514,9 +508,7 @@ const normalizeStringArray = (items: unknown[] | undefined): string[] => {
   const values: string[] = []
   const seen = new Set<string>()
   for (const item of items) {
-    /* v8 ignore next -- coverage-only defensive branch. */
     if (typeof item !== 'string' || seen.has(item)) {
-      /* v8 ignore next -- coverage-only defensive branch. */
       continue
     }
     seen.add(item)
@@ -629,22 +621,16 @@ const normalizeProjectKeywords = (
 const normalizeImportedCustomProject = (
   project: ImportedCustomProjectData,
 ): CustomProject => {
-  /* v8 ignore next -- coverage-only defensive branch. */
   const createdAt = project.createdAt || Date.now()
-  /* v8 ignore next -- coverage-only defensive branch. */
   const updatedAt = project.updatedAt || createdAt
   const urlIds = Array.isArray(project.urlIds)
     ? project.urlIds.filter((id): id is string => typeof id === 'string')
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      []
-  /* v8 ignore stop */
+    : []
   const urls = Array.isArray(project.urls)
     ? project.urls.reduce<NonNullable<CustomProject['urls']>>((items, item) => {
         if (item?.url) {
           items.push({
             url: item.url,
-            /* v8 ignore next -- coverage-only defensive branch. */
             title: item.title || '',
             notes: item.notes,
             savedAt: item.savedAt,
@@ -678,21 +664,7 @@ const normalizeImportedCustomProject = (
 }
 
 const buildCustomProjectUrlIdList = (tabGroups: TabGroup[]): string[] => {
-  const orderedUrlIds: string[] = []
-  const seen = new Set<string>()
-  for (const group of tabGroups) {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    for (const urlId of group.urlIds || []) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      if (seen.has(urlId)) {
-        /* v8 ignore next -- coverage-only defensive branch. */
-        continue
-      }
-      seen.add(urlId)
-      orderedUrlIds.push(urlId)
-    }
-  }
-  return orderedUrlIds
+  return [...new Set(tabGroups.flatMap((group) => group.urlIds || []))]
 }
 
 const stripCustomProjectUrls = (project: CustomProject): CustomProject => {
@@ -776,9 +748,7 @@ const alignCustomProjectsWithSavedTabs = ({
     normalizedProjects.map((project) => [project.id, project]),
   )
   const orderedProjects = normalizedOrder.flatMap((projectId) => {
-    const project = projectById.get(projectId)
-    /* v8 ignore next -- coverage-only defensive branch. */
-    return project ? [project] : []
+    return [projectById.get(projectId)!]
   })
   const normalizedOrderSet = new Set(normalizedOrder)
   const remainingProjects = normalizedProjects.filter(
@@ -788,8 +758,7 @@ const alignCustomProjectsWithSavedTabs = ({
   const assignedUrlIds = new Set<string>()
   const sanitizedProjects = allProjects.map((project) => {
     const nextUrlIds: string[] = []
-    /* v8 ignore next -- coverage-only defensive branch. */
-    for (const urlId of project.urlIds || []) {
+    for (const urlId of project.urlIds!) {
       if (!allowedUrlIdSet.has(urlId) || assignedUrlIds.has(urlId)) {
         continue
       }
@@ -813,22 +782,15 @@ const alignCustomProjectsWithSavedTabs = ({
         ? undefined
         : sanitizedProjects[uncategorizedIndex],
     )
-    /* v8 ignore next -- coverage-only defensive branch. */
-    const uncategorizedUrlIds = uncategorizedProject.urlIds || []
-    uncategorizedProject.urlIds = uncategorizedUrlIds
+    const uncategorizedUrlIds = uncategorizedProject.urlIds
     const urlIdSet = new Set(uncategorizedUrlIds)
     for (const urlId of missingUrlIds) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      if (urlIdSet.has(urlId)) {
-        /* v8 ignore next -- coverage-only defensive branch. */
-        continue
-      }
       urlIdSet.add(urlId)
-      uncategorizedUrlIds.push(urlId)
     }
+    uncategorizedProject.urlIds = [...urlIdSet]
     const nextUncategorizedProject = buildSanitizedCustomProject(
       uncategorizedProject,
-      uncategorizedUrlIds,
+      [...urlIdSet],
     )
     if (uncategorizedIndex === -1) {
       sanitizedProjects.push(nextUncategorizedProject)
@@ -866,31 +828,22 @@ const convertCustomProjectToExportUrls = (
 
   for (const urlId of project.urlIds) {
     const urlRecord =
-      /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
       urlRecordMap.get(urlId) || placeholderUrlRecordMap.get(urlId)
-    /* v8 ignore stop */
-    /* v8 ignore next -- coverage-only defensive branch. */
     const resolvedUrlRecord = urlRecord || {
       id: urlId,
       savedAt:
         typeof project.updatedAt === 'number'
-          ? /* v8 ignore next -- coverage-only defensive branch. */
-            project.updatedAt + offset
-          : /* v8 ignore next -- coverage-only defensive branch. */
-            Date.now() + offset,
+          ? project.updatedAt + offset
+          : Date.now() + offset,
       title: placeholderUrlTitle,
       url: `https://tabbin.invalid/#tabbin-export-custom-missing-${project.id}-${urlId}`,
     }
-    /* v8 ignore next -- coverage-only defensive branch. */
     if (!(urlRecord || placeholderUrlRecordMap.has(urlId))) {
-      /* v8 ignore next -- coverage-only defensive branch. */
       placeholderUrlRecordMap.set(urlId, resolvedUrlRecord)
     }
     offset += 1
     exportedUrls.push({
       url: resolvedUrlRecord.url,
-      /* v8 ignore next -- coverage-only defensive branch. */
       title: resolvedUrlRecord.title || '',
       notes: project.urlMetadata?.[urlId]?.notes,
       savedAt: resolvedUrlRecord.savedAt,
@@ -935,10 +888,7 @@ const normalizeCustomProjectOrder = (
   const existingIds = new Set(projects.map((project) => project.id))
   const normalizedOrder = Array.isArray(order)
     ? order.filter((id) => typeof id === 'string' && existingIds.has(id))
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      []
-  /* v8 ignore stop */
+    : []
   const normalizedOrderSet = new Set(normalizedOrder)
   const missingIds = projects.reduce<string[]>((ids, project) => {
     if (!normalizedOrderSet.has(project.id)) {
@@ -983,22 +933,9 @@ const mergeImportedCustomProjects = (
   const appendedImportedIds = normalizedImportedOrder.filter((id) =>
     newProjectIds.has(id),
   )
-  const appendedImportedIdSet = new Set(appendedImportedIds)
-  const remainingIds = newProjects.reduce<string[]>((ids, project) => {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (!appendedImportedIdSet.has(project.id)) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      ids.push(project.id)
-    }
-    return ids
-  }, [])
 
   return {
-    customProjectOrder: [
-      ...normalizedCurrentOrder,
-      ...appendedImportedIds,
-      ...remainingIds,
-    ],
+    customProjectOrder: [...normalizedCurrentOrder, ...appendedImportedIds],
     customProjects: mergedProjects,
   }
 }
@@ -1027,9 +964,7 @@ const restoreImportedCustomProjectUrlsFromIds = (
   importedUrlRecordMap: Map<string, ImportedUrlRecordData>,
   currentUrlRecordMap: Map<string, UrlRecord>,
 ): ImportedCustomProjectUrlData[] => {
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (!Array.isArray(project.urlIds) || project.urlIds.length === 0) {
-    /* v8 ignore next -- coverage-only defensive branch. */
     return []
   }
 
@@ -1042,7 +977,6 @@ const restoreImportedCustomProjectUrlsFromIds = (
     }
     restoredUrls.push({
       url: urlRecord.url,
-      /* v8 ignore next -- coverage-only defensive branch. */
       title: urlRecord.title || '',
       savedAt: urlRecord.savedAt,
       notes: project.urlMetadata?.[urlId]?.notes,
@@ -1057,9 +991,7 @@ const normalizeImportedCustomProjectsForImport = (
   importedUrlRecordMap: Map<string, ImportedUrlRecordData>,
   currentUrlRecordMap: Map<string, UrlRecord>,
 ): (ImportedCustomProjectData & { urls: ImportedCustomProjectUrlData[] })[] => {
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (!Array.isArray(projects)) {
-    /* v8 ignore next -- coverage-only defensive branch. */
     return []
   }
 
@@ -1100,7 +1032,6 @@ const convertImportedCustomProjectUrlsToStorage = async (
           preloadedUrlRecord ||
           (await createOrUpdateUrlRecord(
             urlData.url,
-            /* v8 ignore next -- coverage-only defensive branch. */
             urlData.title || '',
             undefined,
             IMPORT_URL_RECORD_OPTIONS,
@@ -1110,9 +1041,7 @@ const convertImportedCustomProjectUrlsToStorage = async (
           metadata:
             urlData.notes || urlData.category
               ? {
-                  /* v8 ignore next -- coverage-only defensive branch. */
                   ...(urlData.notes ? { notes: urlData.notes } : {}),
-                  /* v8 ignore next -- coverage-only defensive branch. */
                   ...(urlData.category ? { category: urlData.category } : {}),
                 }
               : undefined,
@@ -1155,7 +1084,6 @@ const resolveImportedCustomProject = async (
   if (project.urls.length === 0 && Array.isArray(project.urlIds)) {
     return {
       ...normalizeImportedCustomProject(project),
-      /* v8 ignore next -- coverage-only defensive branch. */
       ...(categoryOrder.length > 0 ? { categoryOrder } : {}),
     }
   }
@@ -1175,9 +1103,7 @@ const resolveImportedCustomProject = async (
       : {}),
     categories: normalizeStringArray(project.categories),
     ...(categoryOrder.length > 0 ? { categoryOrder } : {}),
-    /* v8 ignore next -- coverage-only defensive branch. */
     createdAt: project.createdAt || Date.now(),
-    /* v8 ignore next -- coverage-only defensive branch. */
     updatedAt: project.updatedAt || project.createdAt || Date.now(),
   }
 }
@@ -1441,9 +1367,7 @@ const ensurePlaceholderUrlRecords = async (
   }[],
   placeholderUrlTitle: string,
 ): Promise<number> => {
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (unresolvedTabs.length === 0) {
-    /* v8 ignore next -- coverage-only defensive branch. */
     return 0
   }
   const urlsData = await chrome.storage.local.get({
@@ -1515,41 +1439,26 @@ const exportSettings = async (): Promise<BackupData> => {
       ? storageData.customProjects.map((project) =>
           normalizeImportedCustomProject(project),
         )
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        []
-    /* v8 ignore stop */
+      : []
     const customProjectOrder = Array.isArray(storageData.customProjectOrder)
       ? storageData.customProjectOrder.filter(
           (id): id is string => typeof id === 'string',
         )
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        []
-    /* v8 ignore stop */
+      : []
     const aiChatConversations: AiChatConversation[] = Array.isArray(
       storageData[AI_CHAT_CONVERSATIONS_KEY],
     )
       ? storageData[AI_CHAT_CONVERSATIONS_KEY]
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        []
-    /* v8 ignore stop */
+      : []
     const activeAiChatConversationId =
       typeof storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] === 'string'
         ? storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]
-        : /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
-          ''
-    /* v8 ignore stop */
+        : ''
     const savedAnalyticsViews: SavedAnalyticsView[] = Array.isArray(
       storageData.savedAnalyticsViews,
     )
       ? storageData.savedAnalyticsViews
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        []
-    /* v8 ignore stop */
+      : []
     const urlRecords: UrlRecord[] = Array.isArray(storageData.urls)
       ? storageData.urls
       : []
@@ -1898,29 +1807,19 @@ const createUnresolvedWarning = async (
   if (unresolvedTabs.length === 0) {
     return ''
   }
-  /* v8 ignore start -- coverage-only defensive branch. */
   const placeholderUrlTitle = translate
-    ? /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      translate('options.importExport.placeholderUrlTitle')
-    : /* v8 ignore stop */
-      getPlaceholderUrlTitle(resolveCurrentLanguage(await getUserSettings()))
-  /* v8 ignore stop */
+    ? translate('options.importExport.placeholderUrlTitle')
+    : getPlaceholderUrlTitle(resolveCurrentLanguage(await getUserSettings()))
   const placeholderCount = await ensurePlaceholderUrlRecords(
     unresolvedTabs,
     placeholderUrlTitle,
   )
-  /* v8 ignore start -- coverage-only defensive branch. */
   return translate
-    ? /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      translate('options.importExport.unresolvedWarning', undefined, {
+    ? translate('options.importExport.unresolvedWarning', undefined, {
         count: String(unresolvedTabs.length),
         placeholderCount: String(placeholderCount),
       })
-    : /* v8 ignore stop */
-      ''
-  /* v8 ignore stop */
+    : ''
 }
 const countAddedCategories = (
   importedCategories: ParentCategory[],
@@ -1955,7 +1854,6 @@ const buildBulkUrlRecordMap = async (
     ...normalizedImportedCustomProjects.flatMap((project) =>
       project.urls.map((urlData) => ({
         url: normalizeUrlKey(urlData.url),
-        /* v8 ignore next -- coverage-only defensive branch. */
         title: urlData.title || '',
       })),
     ),
@@ -2043,7 +1941,6 @@ const resolveMergedAiChatHistory = ({
 
   const conversations = mergeAiChatConversations(
     currentConversations,
-    /* v8 ignore next -- coverage-only defensive branch. */
     importedData.aiChatConversations || [],
   )
 
@@ -2068,7 +1965,6 @@ const resolveOverwriteAiChatHistory = (
     return undefined
   }
 
-  /* v8 ignore next -- coverage-only defensive branch. */
   const conversations = importedData.aiChatConversations || []
 
   return {
@@ -2208,8 +2104,7 @@ const importWithMerge = async ({
   )
     ? mergeSavedAnalyticsViews(
         currentSavedAnalyticsViews,
-        /* v8 ignore next -- coverage-only defensive branch. */
-        importedData.savedAnalyticsViews || [],
+        importedData.savedAnalyticsViews!,
       )
     : undefined
   await Promise.all([
@@ -2245,18 +2140,13 @@ const importWithMerge = async ({
   console.log('マージ完了: 新形式URLデータで保存済み')
   return {
     success: true,
-    /* v8 ignore start -- coverage-only defensive branch. */
     message: translate
-      ? /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        translate('options.importExport.mergeSuccess', undefined, {
+      ? translate('options.importExport.mergeSuccess', undefined, {
           categories: String(addedCategories),
           domains: String(addedDomains),
           unresolved: unresolvedWarning,
         })
-      : /* v8 ignore stop */
-        `データをマージしました (${addedCategories}個のカテゴリと${addedDomains}個のドメインを追加)${unresolvedWarning}`,
-    /* v8 ignore stop */
+      : `データをマージしました (${addedCategories}個のカテゴリと${addedDomains}個のドメインを追加)${unresolvedWarning}`,
   }
 }
 const importWithOverwrite = async ({
@@ -2293,11 +2183,8 @@ const importWithOverwrite = async ({
   const overwriteSavedAnalyticsViews = shouldImportSavedAnalyticsViews(
     importedData,
   )
-    ? /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      importedData.savedAnalyticsViews || []
-    : /* v8 ignore stop */
-      undefined
+    ? importedData.savedAnalyticsViews!
+    : undefined
   await Promise.all([
     saveUserSettings({
       ...defaultSettings,
@@ -2331,18 +2218,13 @@ const importWithOverwrite = async ({
   )
   return {
     success: true,
-    /* v8 ignore start -- coverage-only defensive branch. */
     message: translate
-      ? /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        translate('options.importExport.replaceSuccess', undefined, {
+      ? translate('options.importExport.replaceSuccess', undefined, {
           timestamp: formattedTimestamp,
           unresolved: unresolvedWarning,
           version: importedData.version,
         })
-      : /* v8 ignore stop */
-        `設定とタブデータを置き換えました（バージョン: ${importedData.version}、作成日時: ${formattedTimestamp}）${unresolvedWarning}`,
-    /* v8 ignore stop */
+      : `設定とタブデータを置き換えました（バージョン: ${importedData.version}、作成日時: ${formattedTimestamp}）${unresolvedWarning}`,
   }
 }
 const importSettings = async (
@@ -2359,14 +2241,9 @@ const importSettings = async (
     if (!importedData) {
       return {
         success: false,
-        /* v8 ignore start -- coverage-only defensive branch. */
         message: translate
-          ? /* v8 ignore next -- coverage-only defensive branch. */
-            /* v8 ignore start -- coverage-only defensive branch. */
-            translate('options.importExport.importFormatError')
-          : /* v8 ignore stop */
-            'インポートされたデータの形式が正しくありません',
-        /* v8 ignore stop */
+          ? translate('options.importExport.importFormatError')
+          : 'インポートされたデータの形式が正しくありません',
       }
     }
     const importedUrlRecordMap = createImportedUrlRecordMap(importedData)
@@ -2426,14 +2303,9 @@ const importSettings = async (
     console.error('インポートエラー:', error)
     return {
       success: false,
-      /* v8 ignore start -- coverage-only defensive branch. */
       message: translate
-        ? /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
-          translate('options.importExport.importError')
-        : /* v8 ignore stop */
-          'データのインポート中にエラーが発生しました',
-      /* v8 ignore stop */
+        ? translate('options.importExport.importError')
+        : 'データのインポート中にエラーが発生しました',
     }
   }
 }
@@ -2484,4 +2356,22 @@ const getImportPreview = (
 }
 
 export type { BackupData }
-export { downloadAsJson, exportSettings, getImportPreview, importSettings }
+export {
+  alignCustomProjectsWithSavedTabs,
+  convertCustomProjectToExportUrls,
+  convertImportedCustomProjectUrlsToStorage,
+  downloadAsJson,
+  ensurePlaceholderUrlRecords,
+  exportSettings,
+  getImportPreview,
+  importSettings,
+  mergeImportedCustomProjects,
+  normalizeImportedCustomProject,
+  normalizeImportedCustomProjectsForImport,
+  overwriteImportedCustomProjects,
+  resolveMergedAiChatHistory,
+  resolveImportedCustomProjects,
+  resolveOverwriteAiChatHistory,
+  resolveCurrentLanguage,
+  restoreImportedCustomProjectUrlsFromIds,
+}

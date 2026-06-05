@@ -1,4 +1,3 @@
-/* v8 ignore start -- coverage-only lazy import wrappers. */
 import { lazy } from 'react'
 
 export const Area = lazy(() =>

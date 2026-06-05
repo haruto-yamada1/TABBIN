@@ -58,6 +58,20 @@ describe('systemPromptPresets', () => {
       aiSystemPrompts: [
         null as never,
         {
+          createdAt: 0,
+          id: 'empty-after-trim',
+          name: '   ',
+          template: '   ',
+          updatedAt: 0,
+        },
+        {
+          createdAt: 0,
+          id: 'empty-template-after-trim',
+          name: 'Name only',
+          template: '   ',
+          updatedAt: 0,
+        },
+        {
           createdAt: 1,
           id: 'prompt-1',
           name: '  Prompt 1  ',

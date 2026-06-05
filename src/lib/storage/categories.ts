@@ -117,7 +117,6 @@ export const updateDomainCategoryMapping = async (
   const existingIndex = mappings.findIndex((m) => m.domain === domain)
   if (categoryId === null) {
     // カテゴリIDがnullの場合は、マッピングを削除
-    /* v8 ignore next -- coverage-only defensive branch. */
     if (existingIndex !== -1) {
       mappings.splice(existingIndex, 1)
       await saveDomainCategoryMappings(mappings)
@@ -150,7 +149,6 @@ export const deleteParentCategory = async (
     }
 
     // このカテゴリに属しているドメイン名のリスト
-    /* v8 ignore next -- coverage-only defensive branch. */
     const affectedDomainNames = categoryToDelete.domainNames || []
 
     // カテゴリを除外したリストを作成

@@ -230,6 +230,22 @@ describe('extension-actions モジュール', () => {
 
       expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
     })
+
+    it('excludePatterns 未設定でも正規化できないURLはカスタム未分類へ同期しない', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      const activeTab = tab({
+        id: 14,
+        url: '   ',
+        title: 'Blank URL',
+      })
+      chromeTabs.query.mockResolvedValueOnce([activeTab])
+      mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
+      mocked.getUserSettings.mockResolvedValueOnce({} as UserSettings)
+
+      await expect(handleSaveCurrentTab()).resolves.toEqual([])
+
+      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
+    })
   })
   describe('handleSaveSameDomainTabs関数', () => {
     it('アクティブタブがない、または url がない場合は空を返す', async () => {

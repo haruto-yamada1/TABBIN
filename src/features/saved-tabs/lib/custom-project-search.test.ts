@@ -112,4 +112,43 @@ describe('filterCustomProjectsByQuery', () => {
       },
     ])
   })
+
+  it('検索結果に同じ URL が複数回出ても一件にまとめる', async () => {
+    const project: CustomProject = {
+      id: 'project-duplicate-url',
+      name: 'Duplicate URL',
+      categories: [],
+      createdAt: 1,
+      updatedAt: 1,
+    }
+
+    const result = await filterCustomProjectsByQuery({
+      customProjects: [project],
+      searchQuery: 'react',
+      loadProjectUrls: vi.fn(async () => [
+        {
+          id: 'url-1',
+          url: 'https://example.com/react',
+          title: 'React Guide',
+          savedAt: 1,
+        },
+        {
+          id: 'url-2',
+          url: 'https://example.com/react',
+          title: 'React Guide Copy',
+          savedAt: 2,
+        },
+      ]),
+    })
+
+    expect(result[0]?.urls).toEqual([
+      {
+        category: undefined,
+        notes: undefined,
+        savedAt: 1,
+        title: 'React Guide',
+        url: 'https://example.com/react',
+      },
+    ])
+  })
 })

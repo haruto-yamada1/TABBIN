@@ -1,4 +1,3 @@
-/* v8 ignore file -- harness CLI state helpers are covered by harness script tests. */
 import { execFileSync } from 'node:child_process'
 import {
   existsSync,
@@ -1101,9 +1100,13 @@ function readJsonFile(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : String(error),
+      message: getErrorMessage(error),
     }
   }
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
 }
 
 function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
@@ -1307,14 +1310,15 @@ function readGovernanceLearningCandidates(
         return null
       }
     })
-    .filter((event): event is { kind?: string; message?: string } =>
-      Boolean(event?.message),
+    .filter(
+      (event): event is { kind?: string; message: string } =>
+        typeof event?.message === 'string' && event.message.length > 0,
     )
     .map((event) => ({
       source: `governance:${event.kind ?? 'manual'}`,
-      summary: event.message ?? 'governance message なし',
+      summary: event.message,
       status: 'candidate',
-      target: learningTargetForSummary(event.message ?? ''),
+      target: learningTargetForSummary(event.message),
     }))
 }
 
@@ -1413,13 +1417,13 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
   }
 
   return surfaceAuditCategoryNames().map((name) => {
-    const check = checks[name]
+    const check = checks[name]!
     const findings = findingsForCategory(name, sourceFindings, securityFindings)
-    const ok = Boolean(check?.ok)
+    const ok = check.ok
     return {
       name,
       status: ok ? 'covered' : 'review',
-      evidence: check?.evidence ?? '未定義',
+      evidence: check.evidence,
       notes: ok ? 'deterministic check passed' : '確認または同期が必要です。',
       score: ok ? 10 : 4,
       max_score: 10,
@@ -1714,4 +1718,17 @@ function oneLine(text: string | null) {
 function toProjectRelativePath(projectRoot: string, filePath: string) {
   const relative = path.relative(projectRoot, filePath)
   return relative.length > 0 ? relative : '.'
+}
+
+export {
+  collectLearningCandidates,
+  getErrorMessage,
+  listLines,
+  oneLine,
+  readGovernanceLearningCandidates,
+  summarizeScore,
+  toProjectRelativePath,
+  topActionLines,
+  validateJsonSchema,
+  validationIssueLines,
 }

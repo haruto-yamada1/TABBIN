@@ -60,7 +60,25 @@ import {
   createOrUpdateUrlRecordsBatch,
 } from '@/lib/storage/urls'
 
-import { downloadAsJson, exportSettings, importSettings } from './import-export'
+import {
+  alignCustomProjectsWithSavedTabs,
+  convertCustomProjectToExportUrls,
+  convertImportedCustomProjectUrlsToStorage,
+  downloadAsJson,
+  ensurePlaceholderUrlRecords,
+  exportSettings,
+  getImportPreview,
+  importSettings,
+  mergeImportedCustomProjects,
+  normalizeImportedCustomProject,
+  normalizeImportedCustomProjectsForImport,
+  overwriteImportedCustomProjects,
+  resolveMergedAiChatHistory,
+  resolveImportedCustomProjects,
+  resolveOverwriteAiChatHistory,
+  resolveCurrentLanguage,
+  restoreImportedCustomProjectUrlsFromIds,
+} from './import-export'
 
 type StorageStore = Record<string, unknown>
 
@@ -125,6 +143,9 @@ const createChromeMock = (
   ;(globalThis as unknown as { chrome: typeof chrome }).chrome = {
     storage: {
       local: { get, set },
+    },
+    i18n: {
+      getUILanguage: () => 'ja',
     },
     runtime: {
       getManifest: () => ({ version: options.manifestVersion ?? '9.9.9' }),
@@ -296,6 +317,378 @@ describe('import-export ユーティリティ', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.restoreAllMocks()
+  })
+
+  it('内部 helper は custom project の欠損値と legacy urlIds 復元を正規化する', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-16T00:01:00.000Z'))
+
+    expect(
+      normalizeImportedCustomProject({
+        categories: ['Docs', 1] as unknown as string[],
+        id: 'project-legacy',
+        name: 'Project Legacy',
+        urlIds: 'invalid' as unknown as string[],
+        urlMetadata: [] as unknown as CustomProject['urlMetadata'],
+        urls: [
+          {
+            notes: 'memo',
+            savedAt: 1,
+            url: 'https://legacy.example.com/a',
+          },
+          { title: 'missing url' } as unknown as NonNullable<
+            CustomProject['urls']
+          >[number],
+        ],
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        categories: ['Docs'],
+        createdAt: new Date('2026-02-16T00:01:00.000Z').getTime(),
+        id: 'project-legacy',
+        updatedAt: new Date('2026-02-16T00:01:00.000Z').getTime(),
+        urlIds: [],
+        urls: [
+          {
+            notes: 'memo',
+            savedAt: 1,
+            title: '',
+            url: 'https://legacy.example.com/a',
+          },
+        ],
+      }),
+    )
+
+    const importedUrlMap = new Map([
+      [
+        'imported-url-id',
+        {
+          id: 'imported-url-id',
+          savedAt: 1,
+          title: undefined,
+          url: 'https://imported.example.com/a',
+        },
+      ],
+    ])
+    const currentUrlMap = new Map([
+      [
+        'current-url-id',
+        {
+          id: 'current-url-id',
+          savedAt: 2,
+          title: 'Current',
+          url: 'https://current.example.com/a',
+        },
+      ],
+    ])
+
+    expect(
+      restoreImportedCustomProjectUrlsFromIds(
+        {
+          id: 'project-ids',
+          name: 'Project IDs',
+          urlIds: ['imported-url-id', 'current-url-id', 'missing-url-id'],
+          urlMetadata: {
+            'current-url-id': { category: 'Docs', notes: 'note' },
+          },
+        },
+        importedUrlMap,
+        currentUrlMap,
+      ),
+    ).toEqual([
+      {
+        category: undefined,
+        notes: undefined,
+        savedAt: 1,
+        title: '',
+        url: 'https://imported.example.com/a',
+      },
+      {
+        category: 'Docs',
+        notes: 'note',
+        savedAt: 2,
+        title: 'Current',
+        url: 'https://current.example.com/a',
+      },
+    ])
+    expect(
+      restoreImportedCustomProjectUrlsFromIds(
+        { id: 'project-empty', name: 'Project Empty' },
+        importedUrlMap,
+        currentUrlMap,
+      ),
+    ).toEqual([])
+    expect(
+      normalizeImportedCustomProjectsForImport(
+        undefined,
+        importedUrlMap,
+        currentUrlMap,
+      ),
+    ).toEqual([])
+  })
+
+  it('内部 helper は custom project の整列、追加、上書きを正規化する', () => {
+    createChromeMock()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-16T00:02:00.000Z'))
+
+    const aligned = alignCustomProjectsWithSavedTabs({
+      customProjectOrder: undefined,
+      customProjects: [
+        buildCustomProject({
+          id: 'project-existing',
+          urlIds: ['url-a', 'url-missing', 'url-a'],
+          urlMetadata: {
+            'url-a': { notes: 'keep' },
+            'url-missing': { notes: 'drop' },
+          },
+        }),
+      ],
+      language: 'en',
+      tabGroups: [
+        {
+          domain: 'https://empty.example.com',
+          id: 'group-empty',
+        },
+        {
+          domain: 'https://aligned.example.com',
+          id: 'group-1',
+          urlIds: ['url-a', 'url-b'],
+        },
+      ],
+    })
+
+    expect(aligned.customProjectOrder).toEqual([
+      'project-existing',
+      'custom-uncategorized',
+    ])
+    expect(aligned.customProjects).toEqual([
+      expect.objectContaining({
+        id: 'project-existing',
+        urlIds: ['url-a'],
+        urlMetadata: { 'url-a': { notes: 'keep' } },
+      }),
+      expect.objectContaining({
+        id: 'custom-uncategorized',
+        name: 'Uncategorized',
+        urlIds: ['url-b'],
+      }),
+    ])
+
+    const uncategorizedWithoutUrlIds = buildCustomProject({
+      id: 'custom-uncategorized',
+      name: 'Uncategorized',
+    })
+    delete uncategorizedWithoutUrlIds.urlIds
+    const alignedWithLegacyUncategorized = alignCustomProjectsWithSavedTabs({
+      customProjectOrder: ['custom-uncategorized'],
+      customProjects: [uncategorizedWithoutUrlIds],
+      language: 'en',
+      tabGroups: [
+        {
+          domain: 'https://legacy-uncategorized.example.com',
+          id: 'legacy-group',
+          urlIds: ['legacy-url'],
+        },
+      ],
+    })
+    expect(alignedWithLegacyUncategorized.customProjects).toEqual([
+      expect.objectContaining({
+        id: 'custom-uncategorized',
+        urlIds: ['legacy-url'],
+      }),
+    ])
+
+    const appended = mergeImportedCustomProjects(
+      [buildCustomProject({ id: 'current-project', name: 'Current' })],
+      ['current-project'],
+      [
+        buildCustomProject({ id: 'current-project', name: 'Imported Current' }),
+        buildCustomProject({ id: 'imported-project', name: 'Imported' }),
+        buildCustomProject({ id: 'unordered-project', name: 'Unordered' }),
+      ],
+      ['imported-project'],
+    )
+    expect(appended.customProjectOrder).toEqual([
+      'current-project',
+      'imported-project',
+      'unordered-project',
+    ])
+    expect(appended.customProjects).toHaveLength(3)
+
+    expect(
+      mergeImportedCustomProjects(
+        [],
+        [],
+        [buildCustomProject({ id: 'new-project', name: 'New' })],
+        [],
+      ).customProjectOrder,
+    ).toEqual(['new-project'])
+
+    expect(
+      overwriteImportedCustomProjects(
+        [
+          buildCustomProject({ id: 'overwrite-project' }),
+          buildCustomProject({ id: 'unordered-project' }),
+        ],
+        ['overwrite-project'],
+      ).customProjectOrder,
+    ).toEqual(['overwrite-project', 'unordered-project'])
+  })
+
+  it('内部 helper は custom project URL 変換と AI 履歴 fallback を扱う', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-16T00:03:00.000Z'))
+
+    const exportSourceProject = buildCustomProject({
+      id: 'project-with-missing-url-record',
+      urlIds: ['missing-export-url', 'titleless-export-url'],
+      updatedAt: undefined,
+    } as Partial<CustomProject>)
+
+    const exportedUrls = convertCustomProjectToExportUrls(
+      exportSourceProject,
+      new Map([
+        [
+          'titleless-export-url',
+          {
+            id: 'titleless-export-url',
+            savedAt: 5,
+            title: '',
+            url: 'https://titleless-export.example.com/a',
+          },
+        ],
+      ]),
+      new Map(),
+      'Missing custom project URL',
+    )
+    expect(exportedUrls).toEqual([
+      expect.objectContaining({
+        savedAt: new Date('2026-02-16T00:03:00.000Z').getTime(),
+        title: 'Missing custom project URL',
+        url: 'https://tabbin.invalid/#tabbin-export-custom-missing-project-with-missing-url-record-missing-export-url',
+      }),
+      expect.objectContaining({
+        savedAt: 5,
+        title: '',
+        url: 'https://titleless-export.example.com/a',
+      }),
+    ])
+
+    await expect(
+      ensurePlaceholderUrlRecords([], 'No missing URLs'),
+    ).resolves.toBe(0)
+
+    vi.useRealTimers()
+
+    vi.mocked(createOrUpdateUrlRecord).mockResolvedValue({
+      id: 'created-url-id',
+      savedAt: 3,
+      title: '',
+      url: 'https://created.example.com/a',
+    })
+
+    const converted = await convertImportedCustomProjectUrlsToStorage(
+      [
+        {
+          category: '',
+          notes: '',
+          title: '',
+          url: 'https://created.example.com/a',
+        },
+        {
+          category: 'Docs',
+          title: 'Category only',
+          url: 'https://category.example.com/a',
+        },
+        {
+          notes: 'note only',
+          title: 'Notes only',
+          url: 'https://notes.example.com/a',
+        },
+      ],
+      undefined,
+    )
+
+    expect(converted.urlIds).toEqual([
+      'created-url-id',
+      'created-url-id',
+      'created-url-id',
+    ])
+    expect(converted.urlMetadata).toEqual({
+      'created-url-id': {
+        notes: 'note only',
+      },
+    })
+    expect(createOrUpdateUrlRecord).toHaveBeenCalledWith(
+      'https://created.example.com/a',
+      '',
+      undefined,
+      {
+        preserveExistingOnDuplicate: true,
+      },
+    )
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-16T00:04:00.000Z'))
+    const resolvedProjects = await resolveImportedCustomProjects([
+      {
+        id: 'project-with-new-url',
+        name: 'Project with new URL',
+        projectKeywords: {
+          domainKeywords: [],
+          titleKeywords: [],
+          urlKeywords: [],
+        },
+        urls: [
+          {
+            url: 'https://created.example.com/b',
+          },
+        ],
+      },
+    ])
+    expect(resolvedProjects).toEqual([
+      expect.objectContaining({
+        createdAt: new Date('2026-02-16T00:04:00.000Z').getTime(),
+        updatedAt: new Date('2026-02-16T00:04:00.000Z').getTime(),
+        urlIds: ['created-url-id'],
+      }),
+    ])
+    vi.useRealTimers()
+
+    const currentConversation = buildAiChatConversation({
+      id: 'conversation-current',
+    })
+    expect(
+      resolveMergedAiChatHistory({
+        currentActiveConversationId: 'conversation-current',
+        currentConversations: [currentConversation],
+        importedData: {
+          activeAiChatConversationId: 'conversation-missing',
+          version: '9.9.9',
+          timestamp: '2026-03-14T00:00:00.000Z',
+          userSettings: buildFullUserSettings(),
+          parentCategories: [],
+          savedTabs: [],
+        },
+      }),
+    ).toEqual({
+      activeConversationId: 'conversation-current',
+      conversations: [currentConversation],
+    })
+    expect(
+      resolveOverwriteAiChatHistory({
+        activeAiChatConversationId: 'conversation-missing',
+        version: '9.9.9',
+        timestamp: '2026-03-14T00:00:00.000Z',
+        userSettings: buildFullUserSettings(),
+        parentCategories: [],
+        savedTabs: [],
+      }),
+    ).toEqual({
+      activeConversationId: '',
+      conversations: [],
+    })
   })
 
   it('exportSettings はストレージと設定からバックアップ payload を返す', async () => {
@@ -496,6 +889,141 @@ describe('import-export ユーティリティ', () => {
       },
     ])
     expect(result.customProjectOrder).toEqual(['project-2', 'project-1'])
+  })
+
+  it('exportSettings は customProjects の重複値と欠損 URL を正規化する', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-16T00:00:20.000Z'))
+
+    createChromeMock({
+      customProjectOrder: ['missing-project', 'edge-project'],
+      customProjects: [
+        buildCustomProject({
+          id: 'edge-project',
+          name: 'Edge Project',
+          urlIds: ['url-known', 'missing-custom-id', 'url-titleless'],
+          projectKeywords: {
+            titleKeywords: ['release', 'release', 123] as unknown as string[],
+            urlKeywords: ['docs', null] as unknown as string[],
+            domainKeywords: [
+              'example.com',
+              'example.com',
+            ] as unknown as string[],
+          },
+          categories: ['Docs', 'Docs', 123] as unknown as string[],
+          categoryOrder: ['Docs', 'Docs', {}] as unknown as string[],
+          urlMetadata: {
+            'missing-custom-id': {
+              category: 'Docs',
+              notes: 'missing memo',
+            },
+          },
+          updatedAt: undefined,
+        }),
+      ],
+      parentCategories: [],
+      savedTabs: [
+        {
+          id: 'dedupe-group',
+          domain: 'https://dedupe.example.com',
+          urlIds: ['url-known', 'url-known', 'missing-tab-id'],
+        },
+      ],
+      urls: [
+        {
+          id: 'url-known',
+          url: 'https://example.com/docs',
+          title: 'Docs',
+          savedAt: 100,
+        },
+        {
+          id: 'url-titleless',
+          url: 'https://example.com/titleless',
+          savedAt: 101,
+        },
+      ],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
+
+    const result = await exportSettings()
+
+    expect(result.customProjectOrder).toEqual(['edge-project'])
+    expect(result.customProjects?.[0]).toEqual(
+      expect.objectContaining({
+        id: 'edge-project',
+        projectKeywords: {
+          titleKeywords: ['release'],
+          urlKeywords: ['docs'],
+          domainKeywords: ['example.com'],
+        },
+        categories: ['Docs'],
+        categoryOrder: ['Docs'],
+        urls: [
+          {
+            url: 'https://example.com/docs',
+            title: 'Docs',
+            notes: undefined,
+            savedAt: 100,
+            category: undefined,
+          },
+          {
+            url: 'https://tabbin.invalid/#tabbin-export-custom-missing-edge-project-missing-custom-id',
+            title: '復元データ（元URL欠損）',
+            notes: 'missing memo',
+            savedAt: 2,
+            category: 'Docs',
+          },
+          {
+            url: 'https://example.com/titleless',
+            title: '',
+            notes: undefined,
+            savedAt: 101,
+            category: undefined,
+          },
+        ],
+      }),
+    )
+    expect(result.savedTabs[0]?.urls).toHaveLength(3)
+    expect(result.urls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'missing-custom-id',
+          url: 'https://tabbin.invalid/#tabbin-export-custom-missing-edge-project-missing-custom-id',
+        }),
+      ]),
+    )
+  })
+
+  it('resolveCurrentLanguage は chrome.i18n 欠損時に日本語 fallback を返す', () => {
+    createChromeMock({
+      customProjectOrder: ['other-project'],
+      customProjects: [
+        buildCustomProject({
+          id: 'other-project',
+          name: 'Other',
+          urlIds: [],
+        }),
+      ],
+      parentCategories: [],
+      savedTabs: [
+        {
+          domain: 'https://fallback-language.example.com',
+          id: 'fallback-language-group',
+          urlIds: ['fallback-url'],
+        },
+      ],
+      urls: [
+        {
+          id: 'fallback-url',
+          savedAt: 1,
+          title: 'Fallback',
+          url: 'https://fallback-language.example.com/page',
+        },
+      ],
+    })
+    delete (globalThis.chrome as unknown as { i18n?: typeof chrome.i18n }).i18n
+
+    expect(resolveCurrentLanguage({ language: 'system' })).toBe('ja')
   })
 
   it('exportSettings は legacy customProjects.urls を不正項目を除いてそのまま出力する', async () => {
@@ -1189,6 +1717,29 @@ describe('import-export ユーティリティ', () => {
     )
   })
 
+  it('英語 UI では欠損 URL のプレースホルダー title を英語で出力する', async () => {
+    createChromeMock({
+      parentCategories: [],
+      savedTabs: [
+        {
+          id: 'missing-en-group',
+          domain: 'https://missing-en.example.com',
+          urlIds: ['missing-en-id'],
+        },
+      ],
+      urls: [],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(
+      buildFullUserSettings({ language: 'en' }),
+    )
+
+    const result = await exportSettings()
+
+    expect(result.savedTabs[0]?.urls?.[0]?.title).toBe(
+      'Recovered data (missing original URL)',
+    )
+  })
+
   it('tab.urls が既にある場合は不正な legacy url 項目を除外する', async () => {
     const userSettings = buildFullUserSettings()
     createChromeMock({
@@ -1328,7 +1879,12 @@ describe('import-export ユーティリティ', () => {
 
   it('配列でないストレージ payload でも処理できる', async () => {
     createChromeMock({
+      activeAiChatConversationId: { invalid: true },
+      aiChatConversations: { invalid: true },
+      customProjectOrder: { invalid: true },
+      customProjects: { invalid: true },
       parentCategories: { invalid: true },
+      savedAnalyticsViews: { invalid: true },
       savedTabs: { invalid: true },
       urls: { invalid: true },
     })
@@ -1339,6 +1895,11 @@ describe('import-export ユーティリティ', () => {
     expect(result.parentCategories).toEqual([])
     expect(result.savedTabs).toEqual([])
     expect(result.urls).toEqual([])
+    expect(result.activeAiChatConversationId).toBe('')
+    expect(result.aiChatConversations).toEqual([])
+    expect(result.customProjectOrder).toEqual([])
+    expect(result.customProjects).toEqual([])
+    expect(result.savedAnalyticsViews).toEqual([])
   })
 
   it('downloadAsJson は一時的なアンカーを作成してクリーンアップする', () => {
@@ -1418,6 +1979,268 @@ describe('import-export ユーティリティ', () => {
       success: false,
       message: 'データのインポート中にエラーが発生しました',
     })
+  })
+
+  it('importSettings は translate 指定時に形式エラーと例外メッセージを翻訳する', async () => {
+    createChromeMock()
+    const translate = vi.fn((key: string) => `translated:${key}`)
+
+    await expect(
+      importSettings(JSON.stringify({ foo: 'bar' }), true, translate),
+    ).resolves.toEqual({
+      success: false,
+      message: 'translated:options.importExport.importFormatError',
+    })
+    await expect(
+      importSettings('{malformed-json', true, translate),
+    ).resolves.toEqual({
+      success: false,
+      message: 'translated:options.importExport.importError',
+    })
+  })
+
+  it('merge モードは translate 指定時に未解決 URL 数を含む成功メッセージを返す', async () => {
+    const { set } = createChromeMock({
+      parentCategories: [],
+      savedTabs: [],
+      urls: [],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(
+      buildFullUserSettings({ language: 'en' }),
+    )
+    const translate = vi.fn(
+      (key: string, _defaultValue?: string, values?: Record<string, string>) =>
+        `${key}:${JSON.stringify(values ?? {})}`,
+    )
+
+    const result = await importSettings(
+      JSON.stringify({
+        version: '8.0.0',
+        timestamp: '2026-03-16T00:00:00.000Z',
+        userSettings: buildFullUserSettings({ language: 'en' }),
+        parentCategories: [],
+        savedTabs: [
+          {
+            id: 'translated-missing-group',
+            domain: 'https://translated-missing.example.com',
+            urlIds: ['translated-missing-id'],
+          },
+        ],
+      }),
+      true,
+      translate,
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('options.importExport.mergeSuccess')
+    expect(result.message).toContain('"domains":"1"')
+    expect(result.message).toContain('options.importExport.unresolvedWarning')
+    expect(translate).toHaveBeenCalledWith(
+      'options.importExport.placeholderUrlTitle',
+    )
+    expect(set).toHaveBeenCalledWith({
+      urls: [
+        expect.objectContaining({
+          id: 'translated-missing-id',
+          title: 'options.importExport.placeholderUrlTitle:{}',
+        }),
+      ],
+    })
+  })
+
+  it('overwrite モードは translate 指定時に置換成功メッセージを返す', async () => {
+    createChromeMock({
+      parentCategories: [],
+      savedTabs: [],
+      urls: [],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
+    const translate = vi.fn(
+      (key: string, _defaultValue?: string, values?: Record<string, string>) =>
+        `${key}:${JSON.stringify(values ?? {})}`,
+    )
+
+    const result = await importSettings(
+      JSON.stringify({
+        version: '8.0.1',
+        timestamp: '2026-03-17T00:00:00.000Z',
+        userSettings: buildFullUserSettings(),
+        parentCategories: [],
+        savedTabs: [],
+      }),
+      false,
+      translate,
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('options.importExport.replaceSuccess')
+    expect(result.message).toContain('"version":"8.0.1"')
+  })
+
+  it('getImportPreview は valid/invalid/malformed JSON を分類する', () => {
+    const valid = getImportPreview(
+      JSON.stringify({
+        aiChatConversations: [buildAiChatConversation()],
+        customProjects: [buildCustomProject()],
+        savedAnalyticsViews: [buildAnalyticsView()],
+        version: '7.0.0',
+        timestamp: '2026-03-15T00:00:00.000Z',
+        userSettings: buildFullUserSettings(),
+        parentCategories: [
+          { id: 'preview-cat', name: 'Preview', domains: [], domainNames: [] },
+        ],
+        savedTabs: [
+          {
+            id: 'preview-group',
+            domain: 'https://preview.example.com',
+            urls: [],
+          },
+        ],
+      }),
+    )
+
+    expect(valid).toEqual({
+      success: true,
+      message: 'データの解析に成功しました',
+      preview: {
+        categoriesCount: 1,
+        domainsCount: 1,
+        hasAiChat: true,
+        hasAnalytics: true,
+        projectsCount: 1,
+        timestamp: '2026-03-15T00:00:00.000Z',
+        version: '7.0.0',
+      },
+    })
+    expect(getImportPreview(JSON.stringify({ foo: 'bar' }))).toEqual({
+      success: false,
+      message: 'インポートされたデータの形式が正しくありません',
+    })
+    expect(getImportPreview('{malformed-json')).toEqual({
+      success: false,
+      message: 'データの解析中にエラーが発生しました',
+    })
+  })
+
+  it('getImportPreview は任意項目が空の backup を preview できる', () => {
+    const result = getImportPreview(
+      JSON.stringify({
+        version: '7.0.1',
+        timestamp: '2026-03-16T00:00:00.000Z',
+        userSettings: buildFullUserSettings(),
+        parentCategories: [],
+        savedTabs: [],
+      }),
+    )
+
+    expect(result.preview).toEqual(
+      expect.objectContaining({
+        hasAiChat: false,
+        hasAnalytics: false,
+        projectsCount: 0,
+      }),
+    )
+  })
+
+  it('importSettings は customProjects の legacy urlIds と任意項目 fallback を復元する', async () => {
+    const { set } = createChromeMock({
+      parentCategories: [],
+      savedTabs: [],
+      urls: [],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-16T00:00:30.000Z'))
+
+    const result = await importSettings(
+      JSON.stringify({
+        version: '6.3.0',
+        timestamp: '2026-02-16T00:00:00.000Z',
+        userSettings: buildFullUserSettings(),
+        parentCategories: [],
+        savedTabs: [],
+        customProjectOrder: ['missing-project', 'legacy-urlids-project'],
+        customProjects: [
+          {
+            id: 'legacy-urlids-project',
+            name: 'Legacy UrlIds Project',
+            urlIds: ['legacy-url-id'],
+            categories: ['Docs', 'Docs', 123],
+            categoryOrder: ['Docs', 'Docs', null],
+            projectKeywords: {
+              titleKeywords: ['release', 'release', false],
+              urlKeywords: ['docs', 1],
+              domainKeywords: ['example.com', 'example.com'],
+            },
+          },
+          {
+            id: 'empty-urlids-project',
+            name: 'Empty UrlIds Project',
+            urlIds: [],
+          },
+        ],
+      }),
+      false,
+    )
+
+    expect(result.success).toBe(true)
+    const payload = set.mock.calls[0]?.[0] as {
+      customProjectOrder?: string[]
+      customProjects?: CustomProject[]
+    }
+    expect(payload.customProjectOrder).toEqual([
+      'legacy-urlids-project',
+      'empty-urlids-project',
+    ])
+    expect(payload.customProjects).toEqual([
+      expect.objectContaining({
+        id: 'legacy-urlids-project',
+        urlIds: [],
+        categories: ['Docs'],
+        categoryOrder: ['Docs'],
+        projectKeywords: {
+          titleKeywords: ['release'],
+          urlKeywords: ['docs'],
+          domainKeywords: ['example.com'],
+        },
+        createdAt: new Date('2026-02-16T00:00:30.000Z').getTime(),
+        updatedAt: new Date('2026-02-16T00:00:30.000Z').getTime(),
+      }),
+      expect.objectContaining({
+        id: 'empty-urlids-project',
+        urlIds: [],
+      }),
+    ])
+  })
+
+  it('importSettings は省略 optional data を既存値として扱う', async () => {
+    const { store } = createChromeMock({
+      activeAiChatConversationId: 'conversation-current',
+      aiChatConversations: [buildAiChatConversation()],
+      parentCategories: [],
+      savedAnalyticsViews: [buildAnalyticsView()],
+      savedTabs: [],
+      urls: [],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
+
+    const result = await importSettings(
+      JSON.stringify({
+        version: '6.4.0',
+        timestamp: '2026-02-16T00:00:00.000Z',
+        userSettings: buildFullUserSettings(),
+        parentCategories: [],
+        savedTabs: [],
+      }),
+      true,
+    )
+
+    expect(result.success).toBe(true)
+    expect(store.customProjects).toEqual([])
+    expect(store.activeAiChatConversationId).toBe('conversation-current')
+    expect(store.aiChatConversations).toHaveLength(1)
+    expect(store.savedAnalyticsViews).toHaveLength(1)
   })
 
   it('バックアップに URL レコードがある場合 urlIds のみのタブを復元する', async () => {
@@ -2975,6 +3798,15 @@ describe('import-export ユーティリティ', () => {
             savedAt: 20,
           },
         ],
+        [
+          'https://restored.example.com/titleless',
+          {
+            id: 'url-restored-project-titleless',
+            url: 'https://restored.example.com/titleless',
+            title: '',
+            savedAt: 21,
+          },
+        ],
       ]),
     )
 
@@ -2999,6 +3831,10 @@ describe('import-export ユーティリティ', () => {
               title: 'Restored 1',
               notes: 'note',
               category: 'Docs',
+            },
+            {
+              url: 'https://restored.example.com/titleless',
+              title: '',
             },
           ],
           categories: ['Docs'],

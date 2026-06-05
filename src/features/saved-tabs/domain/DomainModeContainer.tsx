@@ -68,11 +68,7 @@ interface DomainModeContainerProps {
 }
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
-  /* v8 ignore next -- coverage-only defensive branch. */
-  /* v8 ignore start -- coverage-only defensive branch. */
   (group.urls || []).map((item) => item.url)
-/* v8 ignore stop */
-
 const deleteVisibleUrlsForGroups = async (
   groups: TabGroup[],
   handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>,
@@ -387,7 +383,6 @@ export const DomainModeContainer = ({
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
   const uncategorizedTargetName = t('savedTabs.uncategorizedDomainsTitle')
   const uncategorizedUrlsToOpen = useMemo(
-    /* v8 ignore next -- coverage-only defensive branch. */
     () => uncategorizedForDisplay.flatMap((group) => group.urls || []),
     [uncategorizedForDisplay],
   )
@@ -405,10 +400,6 @@ export const DomainModeContainer = ({
     }
 
     const uncategorizedIds = uncategorizedForDisplay.map((group) => group.id)
-    /* v8 ignore next -- the bulk delete action is only rendered when at least one uncategorized group is visible. */
-    if (uncategorizedIds.length === 0) {
-      return
-    }
     if (handleDeleteGroups) {
       await handleDeleteGroups(uncategorizedIds)
       return
@@ -447,7 +438,6 @@ export const DomainModeContainer = ({
                 if (!category) {
                   return null
                 }
-                /* v8 ignore next -- coverage-only defensive branch. */
                 const domainGroups = categorized[categoryId] || []
                 if (domainGroups.length === 0) {
                   return null

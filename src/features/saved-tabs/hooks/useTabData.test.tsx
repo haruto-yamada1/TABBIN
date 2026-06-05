@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { TabGroup, UserSettings } from '@/types/storage'
+import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 import { useTabData } from './useTabData'
 
@@ -116,6 +116,10 @@ describe('useTabData', () => {
         domains: [],
         domainNames: ['name.example.com'],
       },
+      {
+        id: 'legacy-category',
+        name: 'Legacy',
+      } as ParentCategory,
     ]
     getUserSettingsMock.mockResolvedValue(settings)
     getParentCategoriesMock
@@ -222,6 +226,32 @@ describe('useTabData', () => {
       '保存されたタブの読み込みエラー:',
       expect.any(Error),
     )
+  })
+
+  it('初期ロードで savedTabs と urls が配列でない場合は空配列として扱う', async () => {
+    const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
+      mockImplementation: (
+        implementation: (key?: string) => Promise<unknown>,
+      ) => void
+    }
+    storageGet.mockImplementation(async (key?: string) => {
+      if (key === 'savedTabs') {
+        return { savedTabs: 'invalid' }
+      }
+      if (key === 'urls') {
+        return { urls: 'invalid' }
+      }
+      return {}
+    })
+
+    const { result } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.tabGroups).toEqual([])
+    expect(console.log).toHaveBeenCalledWith('URLレコード数:', 0)
   })
 
   it('親カテゴリが有効な場合は再マイグレーションせずそのまま読み込む', async () => {
@@ -334,6 +364,30 @@ describe('useTabData', () => {
     expect(resolveTabGroupsWithUrlsMock).toHaveBeenCalledWith(groups)
   })
 
+  it('URL 解決中に unmount されたら tabGroupsWithUrls を更新しない', async () => {
+    let resolveGroups: ((groups: TabGroup[]) => void) | undefined
+    resolveTabGroupsWithUrlsMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveGroups = resolve
+      }),
+    )
+
+    const { result, unmount } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+
+    unmount()
+
+    await act(async () => {
+      resolveGroups?.([
+        {
+          id: 'resolved',
+          domain: 'resolved.example.com',
+        },
+      ])
+    })
+
+    expect(result.current.tabGroupsWithUrls).toEqual([])
+  })
+
   it('setTabGroups と storage からの refresh は state を更新する', async () => {
     const storedGroups: TabGroup[] = [
       {
@@ -373,11 +427,25 @@ describe('useTabData', () => {
 
     expect(result.current.tabGroups).toEqual([...storedGroups, appendedGroup])
 
+    act(() => {
+      result.current.setTabGroups([appendedGroup])
+    })
+
+    expect(result.current.tabGroups).toEqual([appendedGroup])
+
     await act(async () => {
       await result.current.refreshTabGroupsWithUrls()
     })
 
     expect(result.current.tabGroups).toEqual(storedGroups)
+
+    storageGet.mockResolvedValueOnce({})
+
+    await act(async () => {
+      await result.current.refreshTabGroupsWithUrls()
+    })
+
+    expect(result.current.tabGroups).toEqual([])
 
     storageGet.mockResolvedValueOnce({
       savedTabs: 'invalid',

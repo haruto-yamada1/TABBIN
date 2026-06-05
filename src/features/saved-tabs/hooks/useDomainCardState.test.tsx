@@ -4,7 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { TabGroup } from '@/types/storage'
 
-import { useDomainCardState } from './useDomainCardState'
+import {
+  arraysEqual,
+  buildCategorizedUrls,
+  buildCategoryOrderFromSaved,
+  sortUrlsByOrder,
+  useDomainCardState,
+} from './useDomainCardState'
 
 const useDomainCardStateI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -96,6 +102,75 @@ describe('useDomainCardState', () => {
         },
       },
     } as unknown as typeof chrome
+  })
+
+  it('helper は legacy URL とカテゴリ順序を安全に処理する', () => {
+    expect(arraysEqual(['a'], ['a'])).toBe(true)
+    expect(arraysEqual(['a'], ['b'])).toBe(false)
+    expect(arraysEqual(['a'], ['a', 'b'])).toBe(false)
+    expect(sortUrlsByOrder(undefined, 'default')).toEqual([])
+    expect(
+      sortUrlsByOrder(
+        [
+          {
+            title: 'No savedAt B',
+            url: 'https://example.com/no-date-b',
+          },
+          {
+            title: 'No savedAt',
+            url: 'https://example.com/no-date',
+          },
+          {
+            savedAt: 10,
+            title: 'Saved',
+            url: 'https://example.com/saved',
+          },
+        ],
+        'asc',
+      )?.map((url) => url.title),
+    ).toEqual(['No savedAt B', 'No savedAt', 'Saved'])
+    expect(buildCategorizedUrls(undefined, undefined)).toEqual({
+      __uncategorized: [],
+    })
+    expect(
+      buildCategorizedUrls(
+        [
+          {
+            subCategory: 'known',
+            title: 'Known',
+            url: 'https://example.com/known',
+          },
+          {
+            subCategory: 'unknown',
+            title: 'Unknown',
+            url: 'https://example.com/unknown',
+          },
+        ],
+        ['known'],
+      ),
+    ).toEqual({
+      __uncategorized: [
+        {
+          subCategory: 'unknown',
+          title: 'Unknown',
+          url: 'https://example.com/unknown',
+        },
+      ],
+      known: [
+        {
+          subCategory: 'known',
+          title: 'Known',
+          url: 'https://example.com/known',
+        },
+      ],
+    })
+    expect(
+      buildCategoryOrderFromSaved(
+        ['missing', '__uncategorized', 'known'],
+        ['known', 'new'],
+        true,
+      ),
+    ).toEqual(['__uncategorized', 'known', 'new'])
   })
 
   it('bulk delete handler があるときは子カテゴリ一括削除でそれを 1 回だけ使う', async () => {
@@ -362,6 +437,31 @@ describe('useDomainCardState', () => {
     })
   })
 
+  it('URL と subCategories が未定義でも空のカテゴリ順として扱う', async () => {
+    const group: TabGroup = {
+      domain: 'empty.example.com',
+      id: 'empty-group',
+      subCategoryOrderWithUncategorized: [],
+    }
+
+    const { result } = renderHook(() =>
+      useDomainCardState({
+        group,
+        handleDeleteCategory: vi.fn(),
+        isReorderMode: false,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(getParentCategories).toHaveBeenCalledTimes(1)
+    })
+
+    expect(result.current.computed.categorizedUrls).toEqual({
+      __uncategorized: [],
+    })
+    expect(result.current.categoryReorder.allCategoryIds).toEqual([])
+  })
+
   it('保存済みカテゴリ順から不要な未分類を除き不足カテゴリを末尾に補う', async () => {
     const group: TabGroup = {
       ...createGroup(),
@@ -414,6 +514,20 @@ describe('useDomainCardState', () => {
       result.current.categoryReorder.handleCategoryDragEnd({
         active: { id: 'news' },
         over: { id: 'tech' },
+      })
+    })
+    act(() => {
+      result.current.categoryReorder.handleCategoryDragEnd({
+        active: { id: 'news' },
+        over: null,
+      })
+      result.current.categoryReorder.handleCategoryDragEnd({
+        active: { id: 'news' },
+        over: { id: 'news' },
+      })
+      result.current.categoryReorder.handleCategoryDragEnd({
+        active: { id: 'missing' },
+        over: { id: 'news' },
       })
     })
     act(() => {
@@ -502,6 +616,32 @@ describe('useDomainCardState', () => {
       ])
     })
 
+    rerender({
+      group: {
+        ...createGroup(),
+        subCategories: ['news', 'later'],
+        urls: [
+          {
+            url: 'https://example.com/news',
+            title: 'News',
+            subCategory: 'news',
+          },
+          {
+            subCategory: 'later',
+            title: 'Later',
+            url: 'https://example.com/later',
+          },
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+        'news',
+        'later',
+      ])
+    })
+
     await act(async () => {
       result.current.keywordModal.handleCloseKeywordModal()
       await Promise.resolve()
@@ -545,6 +685,34 @@ describe('useDomainCardState', () => {
 
     await waitFor(() => {
       expect(result.current.categoryReorder.allCategoryIds).toEqual(['tech'])
+    })
+  })
+
+  it('保存済み順序に不足しているカテゴリと未分類を末尾へ補完する', async () => {
+    const { result } = renderHook(() =>
+      useDomainCardState({
+        group: {
+          ...createGroup(),
+          subCategoryOrderWithUncategorized: ['news'],
+          urls: [
+            ...(createGroup().urls ?? []),
+            {
+              title: 'No category',
+              url: 'https://example.com/uncategorized',
+            },
+          ],
+        },
+        handleDeleteCategory: vi.fn(),
+        isReorderMode: false,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+        'news',
+        'tech',
+        '__uncategorized',
+      ])
     })
   })
 
@@ -729,6 +897,11 @@ describe('useDomainCardState', () => {
 
     rerender({
       isReorderMode: true,
+    })
+    expect(result.current.collapse.isCollapsed).toBe(true)
+
+    act(() => {
+      result.current.dndMonitorHandlers.onDragEnd()
     })
     expect(result.current.collapse.isCollapsed).toBe(true)
 

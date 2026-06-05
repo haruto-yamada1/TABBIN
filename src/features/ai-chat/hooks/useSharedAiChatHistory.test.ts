@@ -47,7 +47,11 @@ vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
   saveConversationHistory: mocked.saveConversationHistory,
 }))
 
-import { useSharedAiChatHistory } from './useSharedAiChatHistory'
+import {
+  resolveCurrentConversationId,
+  resolveNextActiveConversationId,
+  useSharedAiChatHistory,
+} from './useSharedAiChatHistory'
 
 describe('useSharedAiChatHistory', () => {
   beforeEach(() => {
@@ -84,6 +88,35 @@ describe('useSharedAiChatHistory', () => {
       ],
     })
     mocked.saveConversationHistory.mockResolvedValue(undefined)
+  })
+
+  it('resolveNextActiveConversationId は削除対象外なら現在の会話を維持する', () => {
+    expect(
+      resolveNextActiveConversationId({
+        activeConversationId: 'conversation-1',
+        currentActiveConversationId: 'conversation-1',
+        deletedConversationId: 'conversation-2',
+        nextConversations: [
+          {
+            createdAt: 1,
+            id: 'conversation-3',
+            messages: [],
+            title: 'Third',
+            updatedAt: 1,
+          },
+        ],
+        pendingConversationId: 'pending-conversation',
+      }),
+    ).toBe('conversation-1')
+  })
+
+  it('resolveCurrentConversationId は選択状態が未初期化なら履歴側の active id を使う', () => {
+    expect(
+      resolveCurrentConversationId(null, 'conversation-from-history'),
+    ).toBe('conversation-from-history')
+    expect(
+      resolveCurrentConversationId('conversation-selected', 'conversation-old'),
+    ).toBe('conversation-selected')
   })
 
   it('新しい会話クリックだけでは保存せず、最初のメッセージで履歴化する', async () => {
@@ -376,6 +409,40 @@ describe('useSharedAiChatHistory', () => {
       'conversation-c',
       'conversation-b',
       'conversation-a',
+    ])
+  })
+
+  it('保存済み active id が履歴に存在しない場合は最新の会話を表示する', async () => {
+    mocked.loadConversationHistory.mockResolvedValue({
+      activeConversationId: 'missing-conversation',
+      conversations: [
+        {
+          createdAt: 1,
+          id: 'conversation-old',
+          messages: [],
+          title: '古い会話',
+          updatedAt: 1,
+        },
+        {
+          createdAt: 2,
+          id: 'conversation-new',
+          messages: [],
+          title: '新しい会話',
+          updatedAt: 2,
+        },
+      ],
+    })
+
+    const { result } = renderHook(() => useSharedAiChatHistory())
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.activeConversation?.id).toBe('conversation-new')
+    expect(result.current.historyItems.map((item) => item.isActive)).toEqual([
+      false,
+      false,
     ])
   })
 

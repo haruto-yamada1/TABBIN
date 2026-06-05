@@ -10,7 +10,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { TabGroup } from '@/types/storage'
 
-import { SubCategoryKeywordManager } from './SubCategoryKeywordManager'
+import {
+  getCategoryKeywordsForName,
+  getRenameDraftName,
+  replaceTabGroup,
+  shouldSkipRename,
+  SubCategoryKeywordManager,
+  updateTabGroup,
+} from './SubCategoryKeywordManager'
 
 vi.mock('sonner', () => ({
   toast: {
@@ -126,6 +133,41 @@ describe('SubCategoryKeywordManager', () => {
     vi.unstubAllGlobals()
   })
 
+  it('helper は tab 差し替え、keyword fallback、rename no-op を扱う', async () => {
+    const tabGroup = createTabGroup()
+    const otherGroup = createTabGroup({
+      id: 'other-group',
+      subCategories: ['Other'],
+    })
+    storageLocalGet.mockResolvedValue({
+      savedTabs: [otherGroup, tabGroup],
+    })
+
+    expect(replaceTabGroup([otherGroup, tabGroup], tabGroup)).toEqual([
+      otherGroup,
+      tabGroup,
+    ])
+    expect(getCategoryKeywordsForName(tabGroup, 'Docs')).toEqual(['Guide'])
+    expect(
+      getCategoryKeywordsForName(
+        createTabGroup({ categoryKeywords: undefined }),
+        'Docs',
+      ),
+    ).toEqual([])
+    expect(getRenameDraftName(null)).toBe('')
+    expect(getRenameDraftName('Docs')).toBe('Docs')
+    expect(shouldSkipRename('', 'Docs')).toBe(true)
+    expect(shouldSkipRename('Docs', '')).toBe(true)
+    expect(shouldSkipRename('Docs', 'Docs')).toBe(true)
+    expect(shouldSkipRename('Docs', 'Guides')).toBe(false)
+    await expect(updateTabGroup(tabGroup)).resolves.toBe(true)
+    expect(storageLocalSet).toHaveBeenCalledWith({
+      savedTabs: [otherGroup, tabGroup],
+    })
+    storageLocalGet.mockRejectedValueOnce(new Error('read failed'))
+    await expect(updateTabGroup(tabGroup)).resolves.toBe(false)
+  })
+
   it('重複したキーワード追加では toast.error を表示する', () => {
     renderManager(
       createTabGroup({
@@ -160,6 +202,19 @@ describe('SubCategoryKeywordManager', () => {
 
     expect(screen.getByText('No subcategories')).not.toBeNull()
     expect(screen.queryByText('Keyword manager')).toBeNull()
+  })
+
+  it('カテゴリにキーワード設定がない場合は空のキーワード一覧を表示する', () => {
+    renderManager(
+      createTabGroup({
+        categoryKeywords: undefined,
+        subCategories: ['Docs'],
+      }),
+    )
+
+    selectCategory('Docs')
+
+    expect(screen.getByText('No keywords')).not.toBeNull()
   })
 
   it('キーワード追加で setCategoryKeywords に保存する', async () => {
@@ -310,6 +365,55 @@ describe('SubCategoryKeywordManager', () => {
     })
   })
 
+  it('対象外キーと空入力では追加・rename を実行しない', () => {
+    renderManager(createTabGroup())
+
+    fireEvent.keyDown(screen.getByLabelText('Subcategory name'), {
+      key: 'Tab',
+    })
+    fireEvent.blur(screen.getByLabelText('Subcategory name'))
+    expect(storageLocalSet).not.toHaveBeenCalled()
+
+    selectCategory('Docs')
+    fireEvent.keyDown(screen.getByPlaceholderText('Enter keyword'), {
+      key: 'Tab',
+    })
+    fireEvent.keyDown(screen.getByPlaceholderText('Enter keyword'), {
+      key: 'Enter',
+    })
+    expect(setCategoryKeywords).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
+    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
+      key: 'Tab',
+    })
+    expect(screen.getByLabelText('Rename subcategory')).not.toBeNull()
+  })
+
+  it('空状態の blur でもサブカテゴリを作成し不足配列を補完する', async () => {
+    const tabGroup = createTabGroup({
+      categoryKeywords: undefined,
+      subCategories: undefined,
+      subCategoryOrder: undefined,
+      subCategoryOrderWithUncategorized: undefined,
+      urls: [],
+    })
+
+    renderManager(tabGroup, [structuredClone(tabGroup)])
+
+    fireEvent.change(screen.getByLabelText('Subcategory name'), {
+      target: { value: 'News' },
+    })
+    fireEvent.blur(screen.getByLabelText('Subcategory name'))
+
+    await waitFor(() => {
+      expect(getLastSavedTab()?.subCategories).toEqual(['News'])
+      expect(getLastSavedTab()?.categoryKeywords).toEqual([
+        { categoryName: 'News', keywords: [] },
+      ])
+    })
+  })
+
   it('サブカテゴリ作成の保存失敗ではエラーを記録して保存しない', async () => {
     renderManager(
       createTabGroup({
@@ -400,6 +504,31 @@ describe('SubCategoryKeywordManager', () => {
     expect(toast.success).not.toHaveBeenCalled()
   })
 
+  it('サブカテゴリ削除は保存データの不足配列を空配列として扱う', async () => {
+    const tabGroup = createTabGroup({
+      categoryKeywords: undefined,
+      subCategories: ['Docs'],
+    })
+    const savedTab = createTabGroup({
+      categoryKeywords: undefined,
+      subCategories: undefined,
+      urls: undefined,
+    })
+
+    renderManager(tabGroup, [savedTab])
+
+    fireEvent.click(screen.getByLabelText('Delete Docs'))
+
+    await waitFor(() => {
+      expect(getLastSavedTab()).toEqual(
+        expect.objectContaining({
+          categoryKeywords: [],
+          subCategories: [],
+        }),
+      )
+    })
+  })
+
   it('サブカテゴリ削除の保存失敗では toast.error を表示する', async () => {
     renderManager(createTabGroup())
     storageLocalGet.mockRejectedValueOnce(new Error('storage failed'))
@@ -487,6 +616,43 @@ describe('SubCategoryKeywordManager', () => {
       ])
       expect(storageLocalSet.mock.calls.at(-1)?.[0]?.savedTabs?.[1]).toEqual(
         untouchedTab,
+      )
+    })
+  })
+
+  it('サブカテゴリ名変更は保存データの不足配列を空配列として扱う', async () => {
+    const tabGroup = createTabGroup({
+      categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
+      subCategories: ['Docs'],
+    })
+    const savedTab = createTabGroup({
+      categoryKeywords: undefined,
+      subCategories: undefined,
+      subCategoryOrder: undefined,
+      subCategoryOrderWithUncategorized: undefined,
+      urls: undefined,
+    })
+
+    renderManager(tabGroup, [savedTab])
+
+    selectCategory('Docs')
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
+    fireEvent.change(screen.getByLabelText('Rename subcategory'), {
+      target: { value: 'Reference' },
+    })
+    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
+      key: 'Enter',
+    })
+
+    await waitFor(() => {
+      expect(getLastSavedTab()).toEqual(
+        expect.objectContaining({
+          categoryKeywords: [],
+          subCategories: [],
+          subCategoryOrder: [],
+          subCategoryOrderWithUncategorized: [],
+          urls: [],
+        }),
       )
     })
   })

@@ -131,6 +131,53 @@ describe('buildAiSavedUrlRecords', () => {
 
     expect(records[0]?.parentCategories).toEqual(['Domain Match'])
   })
+
+  it('project metadata と parent category が一致しない場合はカテゴリ配列を空にする', () => {
+    const records = buildAiSavedUrlRecords({
+      urlRecords: [
+        {
+          id: 'url-1',
+          url: 'not-a-url',
+          title: 'Invalid URL',
+          savedAt: 1,
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'group-1',
+          domain: 'plain-domain',
+          urlIds: ['url-1'],
+        },
+      ],
+      customProjects: [
+        {
+          categories: [],
+          createdAt: 1,
+          id: 'project-1',
+          name: 'Project without metadata',
+          updatedAt: 1,
+          urlIds: ['url-1'],
+        },
+      ],
+      parentCategories: [
+        {
+          domainNames: ['other-domain'],
+          domains: ['other-group'],
+          id: 'cat-1',
+          name: 'Other',
+        },
+      ],
+    })
+
+    expect(records[0]).toEqual(
+      expect.objectContaining({
+        domain: 'not-a-url',
+        parentCategories: [],
+        projectCategories: [],
+        savedInProjects: ['Project without metadata'],
+      }),
+    )
+  })
 })
 
 describe('findUrlsAddedInMonth', () => {

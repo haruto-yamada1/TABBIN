@@ -67,9 +67,32 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
   ),
 }))
 
-import { AiChatRoute } from './AiChatRoute'
+import {
+  AiChatRoute,
+  createPendingDeleteHistoryOpenChangeHandler,
+  getNextPendingDeleteHistoryItem,
+} from './AiChatRoute'
 
 describe('AiChatRoute', () => {
+  it('delete dialog helper は close 時だけ pending item を消す', () => {
+    const item = {
+      id: 'history-1',
+      title: 'History',
+      updatedAt: 1,
+    }
+
+    expect(getNextPendingDeleteHistoryItem(item, true)).toBe(item)
+    expect(getNextPendingDeleteHistoryItem(item, false)).toBeNull()
+    expect(getNextPendingDeleteHistoryItem(null, true)).toBeNull()
+
+    const setPendingItem = vi.fn()
+    createPendingDeleteHistoryOpenChangeHandler(setPendingItem)(false)
+    const updater = setPendingItem.mock.calls[0]?.[0] as (
+      current: typeof item,
+    ) => typeof item | null
+    expect(updater(item)).toBeNull()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     mocked.useSharedAiChatHistory.mockReturnValue({
@@ -136,6 +159,10 @@ describe('AiChatRoute', () => {
 
   it('履歴項目クリックで会話を選択し、breakpoint 跨ぎの resize で履歴表示を切り替える', () => {
     render(createElement(AiChatRoute))
+
+    window.innerWidth = 1100
+    fireEvent(window, new Event('resize'))
+    expect(screen.getByText('Recent conversations')).toBeTruthy()
 
     fireEvent.click(
       screen

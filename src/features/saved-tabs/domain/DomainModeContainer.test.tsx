@@ -363,7 +363,6 @@ describe('DomainModeContainer', () => {
           {
             id: 'empty-group',
             domain: 'empty.example.com',
-            urls: [],
           },
           {
             id: 'group-1',
@@ -387,6 +386,40 @@ describe('DomainModeContainer', () => {
     expect(handleDeleteUrls).toHaveBeenCalledWith('group-1', [
       'https://example.com/docs',
     ])
+  })
+
+  it('未分類が空の一括削除は削除ハンドラを呼ばない', async () => {
+    const handleDeleteGroup = vi.fn()
+    const handleDeleteGroups = vi.fn()
+
+    render(
+      <DomainModeContainer
+        {...createProps()}
+        handleDeleteGroup={handleDeleteGroup}
+        handleDeleteGroups={handleDeleteGroups}
+        state={{
+          ...createProps().state,
+          hasVisibleCategoryGroups: true,
+          shouldShowUncategorizedList: false,
+          shouldShowUncategorizedSectionHeader: true,
+        }}
+        uncategorizedForDisplay={[]}
+        hasContentTabGroupsCount={1}
+      />,
+    )
+
+    const header = screen
+      .getByText('未分類のドメイン')
+      .closest('[data-saved-tabs-scroll-target="parent"]')
+    expect(header?.className).toContain('mt-6')
+
+    expect(
+      screen.queryByRole('button', {
+        name: '「未分類のドメイン」のすべてのタブを削除',
+      }),
+    ).toBeNull()
+    expect(handleDeleteGroup).not.toHaveBeenCalled()
+    expect(handleDeleteGroups).not.toHaveBeenCalled()
   })
 
   it('未分類ヘッダーのすべて削除は一括削除ハンドラを優先する', async () => {
@@ -445,6 +478,12 @@ describe('DomainModeContainer', () => {
             domains: [],
             domainNames: [],
           },
+          {
+            id: 'missing-groups-category',
+            name: 'Missing Groups',
+            domains: [],
+            domainNames: [],
+          },
         ]}
         categorized={{
           'category-1': domainGroups,
@@ -454,6 +493,7 @@ describe('DomainModeContainer', () => {
           '',
           'missing-category',
           'empty-category',
+          'missing-groups-category',
           'category-1',
         ]}
         handleMoveDomainToCategory={handleMoveDomainToCategory}

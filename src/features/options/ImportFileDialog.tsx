@@ -1,5 +1,6 @@
 import { AlertCircle, Upload } from 'lucide-react'
 import { useCallback, useReducer, useRef, useState } from 'react'
+import type { Dispatch } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { toast } from 'sonner'
 
@@ -21,6 +22,31 @@ import {
   getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
+
+const shouldCloseImportDialog = (open: boolean): boolean => !open
+const createImportDialogOpenChangeHandler =
+  ({
+    close,
+    resetFileInput,
+  }: {
+    close: () => void
+    resetFileInput: () => void
+  }) =>
+  (open: boolean): void => {
+    if (shouldCloseImportDialog(open)) {
+      close()
+      resetFileInput()
+    }
+  }
+const createCloseImportDialogAction =
+  (dispatchImportDialog: Dispatch<ImportDialogAction>) => (): void => {
+    dispatchImportDialog({ type: 'CLOSE' })
+  }
+const resetImportFileInput = (fileInput: HTMLInputElement | null): void => {
+  if (fileInput) {
+    fileInput.value = ''
+  }
+}
 
 interface PreviewData {
   version: string
@@ -319,15 +345,10 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
 
   const resetFileInput = () => {
     selectedFileRef.current = null
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+    resetImportFileInput(fileInputRef.current)
   }
 
   const handleConfirmImport = async () => {
-    if (!selectedFileRef.current) {
-      return
-    }
     setIsImporting(true)
     try {
       const reader = new FileReader()
@@ -366,7 +387,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         toast.error(t('options.importExport.readError'))
         setIsImporting(false)
       }
-      reader.readAsText(selectedFileRef.current)
+      reader.readAsText(selectedFileRef.current!)
     } catch (error) {
       console.error('インポートエラー:', error)
       toast.error(t('options.importExport.importError'))
@@ -399,12 +420,10 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
 
       <Dialog
         open={importDialog.isOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            dispatchImportDialog({ type: 'CLOSE' })
-            resetFileInput()
-          }
-        }}
+        onOpenChange={createImportDialogOpenChangeHandler({
+          close: createCloseImportDialogAction(dispatchImportDialog),
+          resetFileInput,
+        })}
       >
         <DialogContent className='flex max-h-[90vh] flex-col gap-3 p-4 sm:max-w-md'>
           <DialogHeader className='shrink-0'>
@@ -473,4 +492,13 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       </Dialog>
     </>
   )
+}
+
+export {
+  createCloseImportDialogAction,
+  createImportDialogOpenChangeHandler,
+  importDialogReducer,
+  initialImportDialogState,
+  resetImportFileInput,
+  shouldCloseImportDialog,
 }

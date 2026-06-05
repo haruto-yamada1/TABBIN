@@ -49,15 +49,34 @@ const NewSubCategoryField = ({
   </div>
 )
 
+const replaceTabGroup = (
+  savedTabs: TabGroup[],
+  updatedTabGroup: TabGroup,
+): TabGroup[] =>
+  savedTabs.map((tab: TabGroup) =>
+    tab.id === updatedTabGroup.id ? updatedTabGroup : tab,
+  )
+
+const getCategoryKeywordsForName = (
+  tabGroup: TabGroup,
+  categoryName: string | null,
+): string[] =>
+  tabGroup.categoryKeywords?.find((ck) => ck.categoryName === categoryName)
+    ?.keywords || []
+
+const getRenameDraftName = (activeCategory: string | null): string =>
+  activeCategory || ''
+
+const shouldSkipRename = (oldName: string, newName: string): boolean =>
+  !(oldName && newName) || oldName === newName
+
 // タブグループを更新するヘルパー関数
 const updateTabGroup = async (updatedTabGroup: TabGroup) => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
-    const updatedTabs = savedTabs.map((tab: TabGroup) =>
-      tab.id === updatedTabGroup.id ? updatedTabGroup : tab,
-    )
+    const updatedTabs = replaceTabGroup(savedTabs, updatedTabGroup)
     await chrome.storage.local.set({ savedTabs: updatedTabs })
     return true
   } catch (error) {
@@ -88,10 +107,7 @@ const useSubCategoryKeywordManagerView = ({
       setIsRenamingSubCategory(false)
     }
     setActiveCategory(categoryName)
-    const categoryKeywords = tabGroup.categoryKeywords?.find(
-      (ck) => ck.categoryName === categoryName,
-    )
-    setKeywords(categoryKeywords?.keywords || [])
+    setKeywords(getCategoryKeywordsForName(tabGroup, categoryName))
   }
 
   // キーワード追加関数に重複チェックを追加
@@ -118,30 +134,25 @@ const useSubCategoryKeywordManagerView = ({
 
   // キーワードを削除した時に自動保存する処理を修正
   const handleRemoveKeyword = async (keywordToRemove: string) => {
-    if (activeCategory) {
-      try {
-        // キーワードをフィルタリング
-        const updatedKeywords = keywords.filter((k) => k !== keywordToRemove)
+    try {
+      // キーワードをフィルタリング
+      const updatedKeywords = keywords.filter((k) => k !== keywordToRemove)
 
-        // UI状態を先に更新
-        setKeywords(updatedKeywords)
+      // UI状態を先に更新
+      setKeywords(updatedKeywords)
 
-        // ストレージに保存
-        await setCategoryKeywords(tabGroup.id, activeCategory, updatedKeywords)
+      // ストレージに保存
+      await setCategoryKeywords(tabGroup.id, activeCategory!, updatedKeywords)
 
-        console.log(`キーワード "${keywordToRemove}" を削除しました`)
-      } catch (error) {
-        console.error('キーワード削除エラー:', error)
+      console.log(`キーワード "${keywordToRemove}" を削除しました`)
+    } catch (error) {
+      console.error('キーワード削除エラー:', error)
 
-        // エラー時はキーワードリストを再取得して状態を元に戻す
-        const categoryKeywords = tabGroup.categoryKeywords?.find(
-          (ck) => ck.categoryName === activeCategory,
-        )
-        setKeywords(categoryKeywords?.keywords || [])
+      // エラー時はキーワードリストを再取得して状態を元に戻す
+      setKeywords(getCategoryKeywordsForName(tabGroup, activeCategory))
 
-        // エラーを表示
-        toast.error(t('savedTabs.subCategory.createError'))
-      }
+      // エラーを表示
+      toast.error(t('savedTabs.subCategory.createError'))
     }
   }
 
@@ -232,10 +243,7 @@ const useSubCategoryKeywordManagerView = ({
       }
 
       // 保存
-      const updatedTabs = savedTabs.map((g: TabGroup) =>
-        g.id === tabGroup.id ? updatedGroup : g,
-      )
-
+      const updatedTabs = replaceTabGroup(savedTabs, updatedGroup)
       // ストレージに保存
       await chrome.storage.local.set({ savedTabs: updatedTabs })
       console.log('ストレージに保存完了')
@@ -254,13 +262,8 @@ const useSubCategoryKeywordManagerView = ({
 
   // リネームモードを開始する関数
   const startRenameMode = () => {
-    /* v8 ignore next -- the rename action is only rendered when activeCategory exists. */
-    if (!activeCategory) {
-      return
-    }
-
     setIsRenamingSubCategory(true)
-    setNewCategoryName(activeCategory)
+    setNewCategoryName(getRenameDraftName(activeCategory))
 
     // 入力フィールドにフォーカスを当てる
     requestAnimationFrame(() => {
@@ -305,11 +308,6 @@ const useSubCategoryKeywordManagerView = ({
 
   // カテゴリ名変更の処理関数
   const handleRenameCategory = async (oldName: string, newName: string) => {
-    /* v8 ignore next -- completeRename guards empty/same-name cases before call. */
-    if (!(oldName && newName) || oldName === newName) {
-      return
-    }
-
     console.log(`カテゴリ名を変更: ${oldName} → ${newName}`)
 
     // ストレージからタブグループを取得
@@ -373,7 +371,7 @@ const useSubCategoryKeywordManagerView = ({
   // キャンセル時の処理
   const cancelRename = () => {
     setIsRenamingSubCategory(false)
-    setNewCategoryName(activeCategory || '')
+    setNewCategoryName(getRenameDraftName(activeCategory))
   }
 
   if (!tabGroup.subCategories || tabGroup.subCategories.length === 0) {
@@ -603,3 +601,11 @@ const useSubCategoryKeywordManagerView = ({
 }
 export const SubCategoryKeywordManager = (props: { tabGroup: TabGroup }) =>
   useSubCategoryKeywordManagerView(props)
+
+export {
+  getCategoryKeywordsForName,
+  getRenameDraftName,
+  replaceTabGroup,
+  shouldSkipRename,
+  updateTabGroup,
+}

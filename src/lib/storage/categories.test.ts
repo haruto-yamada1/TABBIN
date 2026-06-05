@@ -170,6 +170,7 @@ describe('categories storage', () => {
     await updateDomainCategoryMapping('https://existing.test', 'cat-2')
     await updateDomainCategoryMapping('https://new.test', 'cat-3')
     await updateDomainCategoryMapping('https://new.test', null)
+    await updateDomainCategoryMapping('https://missing.test', null)
 
     await expect(getDomainCategoryMappings()).resolves.toEqual([
       {
@@ -235,5 +236,35 @@ describe('categories storage', () => {
       'カテゴリID missing が見つかりません',
     )
     expect(errorSpy).toHaveBeenCalled()
+  })
+
+  it('親カテゴリ削除時に domainNames が欠損していても削除できる', async () => {
+    const state: StorageState = {
+      domainCategoryMappings: [
+        {
+          categoryId: 'cat-1',
+          domain: 'https://missing-domain-names.test',
+        },
+      ],
+      parentCategories: [
+        {
+          domains: ['group-1'],
+          id: 'cat-1',
+          name: 'Missing Domain Names',
+        } as unknown as ParentCategory,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { deleteParentCategory } = await loadModule()
+
+    await deleteParentCategory('cat-1')
+
+    expect(state.parentCategories).toEqual([])
+    expect(state.domainCategoryMappings).toEqual([])
   })
 })

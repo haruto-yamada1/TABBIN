@@ -21,4 +21,20 @@ describe('useI18nText fallback helpers', () => {
     expect(getFallbackText('savedTabs.emptyTitle')).toBe('No saved tabs')
     expect(chrome.i18n.getUILanguage).toHaveBeenCalledOnce()
   })
+
+  it('chrome i18n がない場合は navigator の言語へフォールバックする', () => {
+    vi.stubGlobal('chrome', undefined)
+    vi.stubGlobal('navigator', { language: 'ja-JP' })
+
+    expect(getFallbackText('savedTabs.emptyTitle')).toBe(
+      '保存されたタブはありません',
+    )
+  })
+
+  it('navigator もない場合は既定言語へフォールバックする', () => {
+    vi.stubGlobal('chrome', undefined)
+    vi.stubGlobal('navigator', undefined)
+
+    expect(getFallbackText('savedTabs.emptyTitle')).toBe('No saved tabs')
+  })
 })

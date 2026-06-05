@@ -216,6 +216,22 @@ describe('PeriodicExecutionRoute', () => {
     vi.clearAllMocks()
     mocked.selectContentProps = []
     mocked.isLoading = false
+    mocked.settings = {
+      autoDeletePeriod: 'never',
+      clickBehavior: 'saveSameDomainTabs',
+      colors: {},
+      confirmDeleteAll: false,
+      confirmDeleteEach: false,
+      enableCategories: true,
+      excludePatterns: [],
+      excludePinnedTabs: true,
+      ollamaModel: 'llama3.2',
+      openAllInNewWindow: false,
+      openUrlInBackground: true,
+      removeTabAfterExternalDrop: true,
+      removeTabAfterOpen: true,
+      showSavedTime: false,
+    }
   })
 
   afterEach(() => {
@@ -237,6 +253,20 @@ describe('PeriodicExecutionRoute', () => {
         'Saved tabs are deleted automatically after the selected period.',
       ),
     ).toBeTruthy()
+  })
+
+  it('自動削除期間が未設定なら never を選択値として扱う', () => {
+    mocked.settings = {
+      ...mocked.settings,
+      autoDeletePeriod: undefined,
+    } as UserSettings
+
+    render(createElement(PeriodicExecutionRoute))
+
+    fireEvent.click(
+      screen.getAllByTestId('mock-select-change')[0] as HTMLElement,
+    )
+    expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
   })
 
   it('loading 中は spinner のみを表示する', () => {

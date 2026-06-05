@@ -29,19 +29,14 @@ const createContextMenus = (): void => {
         console.log('既存のコンテキストメニューを削除しました')
 
         // メニュー項目を作成
-        try {
-          void createMenuItems()
-            .then(() => {
-              setupMenuClickHandler()
-              console.log('コンテキストメニューを作成しました')
-            })
-            .catch((error) => {
-              console.error('メニュー作成エラー:', error)
-            })
-        } catch (error) {
-          /* v8 ignore next -- coverage-only defensive branch. */
-          console.error('メニュー作成エラー:', error)
-        }
+        void createMenuItems()
+          .then(() => {
+            setupMenuClickHandler()
+            console.log('コンテキストメニューを作成しました')
+          })
+          .catch((error) => {
+            console.error('メニュー作成エラー:', error)
+          })
       })
     } catch (error) {
       console.error('メニュー削除中のエラー:', error)

@@ -11,7 +11,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserSettings } from '@/types/storage'
 
-import { OptionsRoute } from './OptionsRoute'
+import {
+  createResetFontSizeInputValueUpdater,
+  OptionsRoute,
+  resetFontSizeInputState,
+  resetFontSizeInputValue,
+} from './OptionsRoute'
 
 const optionsRouteMocks = vi.hoisted(() => ({
   handleColorChange: vi.fn(),
@@ -134,6 +139,38 @@ const createSettings = (
 })
 
 describe('OptionsRoute', () => {
+  it('font size helper は input value だけを既定値へ戻す', () => {
+    expect(
+      resetFontSizeInputValue(
+        {
+          fontSizeInputValue: '',
+          other: 'keep',
+        },
+        120,
+      ),
+    ).toEqual({
+      fontSizeInputValue: '120',
+      other: 'keep',
+    })
+    expect(
+      createResetFontSizeInputValueUpdater(110)({
+        fontSizeInputValue: '90',
+      }),
+    ).toEqual({
+      fontSizeInputValue: '110',
+    })
+    const setValues = vi.fn()
+    resetFontSizeInputState(setValues, 100)
+    const updater = setValues.mock.calls[0]?.[0] as (values: {
+      fontSizeInputValue: string
+    }) => {
+      fontSizeInputValue: string
+    }
+    expect(updater({ fontSizeInputValue: '90' })).toEqual({
+      fontSizeInputValue: '100',
+    })
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     optionsRouteMocks.settings = createSettings()
@@ -247,5 +284,19 @@ describe('OptionsRoute', () => {
       '_blank',
       'noopener,noreferrer',
     )
+  })
+
+  it('clickBehavior 欠損時は既定値を使い、除外パターンが空なら空状態を表示する', () => {
+    optionsRouteMocks.settings = createSettings({
+      clickBehavior: undefined,
+      excludePatterns: ['  '],
+    })
+
+    render(<OptionsRoute />)
+
+    expect(
+      (screen.getByLabelText('click-behavior') as HTMLSelectElement).value,
+    ).toBe('saveWindowTabs')
+    expect(screen.getByText('options.excludePatterns.empty')).toBeTruthy()
   })
 })

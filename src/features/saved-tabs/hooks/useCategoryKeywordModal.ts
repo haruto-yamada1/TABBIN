@@ -165,11 +165,8 @@ export const useCategoryKeywordModal = ({
         setError(null)
         return true
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          setError(
-            error.issues[0]?.message || t('savedTabs.categoryModal.invalid'),
-          )
-        }
+        const validationError = error as z.ZodError
+        setError(validationError.issues[0]!.message)
         return false
       }
     },
@@ -185,9 +182,6 @@ export const useCategoryKeywordModal = ({
 
   // --- 親カテゴリ読み込み ---
   const loadParentCategories = useCallback(async () => {
-    if (!isOpen) {
-      return
-    }
     try {
       const { parentCategories: stored = [] } = await chrome.storage.local.get<{
         parentCategories?: import('@/types/storage').ParentCategory[]
@@ -208,7 +202,7 @@ export const useCategoryKeywordModal = ({
       console.error('親カテゴリの読み込みに失敗:', error)
       toast.error(t('savedTabs.categoryModal.loadError'))
     }
-  }, [isOpen, group, onUpdateParentCategories, selectedParentCategory, t])
+  }, [group, onUpdateParentCategories, selectedParentCategory, t])
 
   // --- モーダル開閉時の初期化 ---
   useEffect(() => {
@@ -571,3 +565,5 @@ export const useCategoryKeywordModal = ({
     },
   }
 }
+
+export { renameCategoryInTab, resolveSelectedParentCategoryId }

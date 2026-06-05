@@ -88,7 +88,6 @@ const buildChartSpecs = ({
     })
   }
 
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (topDomains.length > 0) {
     chartSpecs.push({
       data: toChartData(topDomains),
@@ -162,10 +161,7 @@ export const inferUserInterests = (
       ? getMessage(language, 'aiChat.interests.categoryBias', undefined, {
           categories: topCategories
             .map((entry) => entry.value)
-            /* v8 ignore next -- coverage-only defensive branch. */
-            /* v8 ignore start -- coverage-only defensive branch. */
             .join(language === 'ja' ? '、' : ', '),
-          /* v8 ignore stop */
         })
       : getMessage(language, 'aiChat.interests.categoryWeak')
 

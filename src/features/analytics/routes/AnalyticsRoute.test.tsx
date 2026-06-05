@@ -15,11 +15,43 @@ import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
+import type { AiChartSpec, AiSavedUrlRecord } from '@/features/ai-chat/types'
+import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
+import { getDefaultAnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings } from '@/lib/storage/settings'
 
-import { AnalyticsRoute } from './AnalyticsRoute'
+import {
+  AnalyticsRoute,
+  createAnalyticsDeleteUndoPayload,
+  getAnalyticsChartDatumLabels,
+  getDeleteAllAction,
+  getDeleteClickAction,
+  getAnalyticsDateLocale,
+  getDrilldownLabelsForRecord,
+  getDrilldownMatchingRecords,
+  getLatestAnalyticsQuery,
+  getLatestAssistantCharts,
+  getNextBulkDeleteDialogOpen,
+  getNextDeleteTargetAfterDialogOpenChange,
+  getOpenAllAction,
+  getViewNameValidationError,
+  matchesDrilldownLabel,
+  noop,
+  normalizeAnalyticsRouteQuery,
+  rebuildAnalyticsDrilldownSelection,
+  removeUrlFromStorage,
+  removeUrlRecordsFromStorage,
+  runBulkDeleteWhenAllowed,
+  runConfirmedDelete,
+  runSingleDeleteWhenAllowed,
+  shouldConfirmBulkOpen,
+  shouldIgnoreBulkDeleteDialogClose,
+  shouldIgnoreSingleDeleteDialogClose,
+  shouldSkipBulkDelete,
+  shouldSkipOpenAll,
+  shouldSkipSingleDelete,
+} from './AnalyticsRoute'
 
 const analyticsRouteMocks = vi.hoisted(() => ({
   deleteViewMock: vi.fn(),
@@ -604,6 +636,38 @@ const bulkDeleteRecords: AiSavedUrlRecord[] = [
   records[1],
 ]
 
+const analyticsChartMessages: Parameters<
+  typeof getDrilldownLabelsForRecord
+>[3] = {
+  chartDailySavedTrend: 'Daily saved trend',
+  chartDescriptionAggregated: '{{count}} saved records aggregated',
+  chartDescriptionCompareMode: '{{count}} saved records compared by mode',
+  chartMonthlySavedTrend: 'Monthly saved trend',
+  chartSavedCountByDomain: 'Saved count by domain',
+  chartSavedCountByParentCategory: 'Saved count by parent category',
+  chartSavedCountByProject: 'Saved count by project',
+  chartSavedCountByProjectCategory: 'Saved count by project category',
+  chartSavedCountBySubCategory: 'Saved count by sub category',
+  chartSeriesCustomMode: 'Custom mode',
+  chartSeriesDomainMode: 'Domain mode',
+  chartSeriesSavedCount: 'Saved count',
+  chartSeriesShare: 'Share',
+  chartSummary: 'Created {{title}} from {{count}} saved records.',
+  chartWeeklySavedTrend: 'Weekly saved trend',
+  uncategorizedLabel: 'Uncategorized',
+}
+
+const createAnalyticsQuery = (
+  overrides: Partial<AnalyticsQuery> = {},
+): AnalyticsQuery => ({
+  ...getDefaultAnalyticsQuery(),
+  ...overrides,
+  filters: {
+    ...getDefaultAnalyticsQuery().filters,
+    ...overrides.filters,
+  },
+})
+
 describe('AnalyticsRoute', () => {
   beforeEach(() => {
     vi.useFakeTimers({
@@ -682,6 +746,432 @@ describe('AnalyticsRoute', () => {
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
+  })
+
+  it('analytics helper が trace と fallback label を正規化する', () => {
+    const projectQuery = createAnalyticsQuery({ groupBy: 'project' })
+    const projectCategoryQuery = createAnalyticsQuery({
+      groupBy: 'projectCategory',
+    })
+    const timeQuery = createAnalyticsQuery({ groupBy: 'timeRecent' })
+    const invalidTraceQuery = { groupBy: 'domain' }
+    const latestQuery = createAnalyticsQuery({
+      groupBy: 'subCategory',
+      mode: 'custom',
+    })
+    const chart = {
+      data: [{ count: 1, label: 'AI chart' }],
+      series: [],
+      title: 'AI chart',
+      type: 'bar',
+      xKey: 'label',
+    } as AiChartSpec
+    const uncategorizedRecord: AiSavedUrlRecord = {
+      ...records[0],
+      parentCategories: [],
+      projectCategories: [],
+      savedInProjects: [],
+      subCategories: [],
+    }
+
+    expect(getAnalyticsChartDatumLabels(undefined)).toEqual([])
+    expect(
+      getAnalyticsChartDatumLabels([
+        { label: 'Docs' },
+        { label: '' },
+        {},
+        { label: 12 },
+      ]),
+    ).toEqual(['Docs', '12'])
+    expect(
+      getDrilldownLabelsForRecord(
+        uncategorizedRecord,
+        projectQuery,
+        'Uncategorized',
+        analyticsChartMessages,
+      ),
+    ).toEqual(['Uncategorized'])
+    expect(
+      getDrilldownLabelsForRecord(
+        uncategorizedRecord,
+        projectCategoryQuery,
+        'Uncategorized',
+        analyticsChartMessages,
+      ),
+    ).toEqual(['Uncategorized'])
+    expect(
+      getDrilldownLabelsForRecord(
+        records[0],
+        timeQuery,
+        'Uncategorized',
+        analyticsChartMessages,
+      ).length,
+    ).toBeGreaterThan(0)
+    expect(
+      getLatestAnalyticsQuery([
+        {
+          input: {},
+          output: null,
+          state: 'output-available',
+          title: 'empty',
+          toolCallId: 'empty',
+          toolName: 'generateSavedTabsAnalytics',
+          type: 'dynamic-tool',
+        },
+        {
+          input: {},
+          output: { query: invalidTraceQuery },
+          state: 'output-available',
+          title: 'invalid',
+          toolCallId: 'invalid',
+          toolName: 'generateSavedTabsAnalytics',
+          type: 'dynamic-tool',
+        },
+        {
+          input: {},
+          output: { query: latestQuery },
+          state: 'output-available',
+          title: 'valid',
+          toolCallId: 'valid',
+          toolName: 'generateSavedTabsAnalytics',
+          type: 'dynamic-tool',
+        },
+      ]),
+    ).toBe(latestQuery)
+    expect(getLatestAnalyticsQuery(undefined)).toBeNull()
+    expect(
+      getLatestAssistantCharts([
+        {
+          charts: [],
+          content: 'user',
+          id: 'user',
+          role: 'user',
+        },
+        {
+          charts: [chart],
+          content: 'assistant',
+          id: 'assistant',
+          role: 'assistant',
+        },
+      ]),
+    ).toEqual({
+      charts: [chart],
+      query: null,
+    })
+    expect(getLatestAssistantCharts([])).toBeNull()
+  })
+
+  it('analytics helper がドリルダウン判定と削除 guard を処理する', async () => {
+    const modeQuery = createAnalyticsQuery({
+      compareBy: 'mode',
+      groupBy: 'domain',
+    })
+    const domainQuery = createAnalyticsQuery({ groupBy: 'domain' })
+    const deleteRecord = vi.fn<() => Promise<void>>().mockResolvedValue()
+
+    expect(
+      matchesDrilldownLabel({
+        chartMessages: analyticsChartMessages,
+        label: '',
+        query: domainQuery,
+        record: records[0],
+        uncategorizedLabel: 'Uncategorized',
+      }),
+    ).toBe(false)
+    expect(
+      matchesDrilldownLabel({
+        chartMessages: analyticsChartMessages,
+        label: 'news.example.net',
+        query: modeQuery,
+        record: records[1],
+        seriesKey: 'domain',
+        uncategorizedLabel: 'Uncategorized',
+      }),
+    ).toBe(false)
+    expect(
+      matchesDrilldownLabel({
+        chartMessages: analyticsChartMessages,
+        label: 'news.example.net',
+        query: modeQuery,
+        record: records[1],
+        seriesKey: 'custom',
+        uncategorizedLabel: 'Uncategorized',
+      }),
+    ).toBe(true)
+    expect(
+      rebuildAnalyticsDrilldownSelection({
+        chartMessages: analyticsChartMessages,
+        currentSelection: null,
+        nextRecords: records,
+        query: domainQuery,
+        uncategorizedLabel: 'Uncategorized',
+      }),
+    ).toBeNull()
+    expect(
+      rebuildAnalyticsDrilldownSelection({
+        chartMessages: analyticsChartMessages,
+        currentSelection: {
+          label: 'docs.example.com',
+          matchingRecords: [],
+          specTitle: 'Saved count by domain',
+        },
+        nextRecords: records,
+        query: domainQuery,
+        uncategorizedLabel: 'Uncategorized',
+      })?.matchingRecords,
+    ).toEqual([records[0]])
+    expect(getDrilldownMatchingRecords(null)).toEqual([])
+    expect(
+      getDrilldownMatchingRecords({
+        label: 'docs.example.com',
+        matchingRecords: [records[0]],
+        specTitle: 'Saved count by domain',
+      }),
+    ).toEqual([records[0]])
+    expect(shouldConfirmBulkOpen(9)).toBe(false)
+    expect(shouldConfirmBulkOpen(10)).toBe(true)
+    expect(shouldSkipOpenAll(0)).toBe(true)
+    expect(shouldSkipOpenAll(1)).toBe(false)
+    expect(getOpenAllAction(0)).toBe('skip')
+    expect(getOpenAllAction(9)).toBe('open')
+    expect(getOpenAllAction(10)).toBe('confirm')
+    expect(
+      shouldSkipSingleDelete({
+        deletingUrl: 'https://docs.example.com/a',
+        isBulkDeleting: false,
+      }),
+    ).toBe(true)
+    expect(
+      shouldSkipSingleDelete({ deletingUrl: null, isBulkDeleting: false }),
+    ).toBe(false)
+    expect(
+      getDeleteClickAction({
+        confirmDeleteEach: true,
+        deletingUrl: null,
+        isBulkDeleting: false,
+      }),
+    ).toBe('confirm')
+    expect(
+      getDeleteClickAction({
+        confirmDeleteEach: false,
+        deletingUrl: null,
+        isBulkDeleting: false,
+      }),
+    ).toBe('delete')
+    expect(
+      getDeleteClickAction({
+        confirmDeleteEach: false,
+        deletingUrl: 'https://docs.example.com/a',
+        isBulkDeleting: false,
+      }),
+    ).toBe('skip')
+    expect(
+      shouldSkipBulkDelete({
+        deletingUrl: null,
+        isBulkDeleting: false,
+        matchingRecordCount: 0,
+      }),
+    ).toBe(true)
+    expect(
+      shouldSkipBulkDelete({
+        deletingUrl: null,
+        isBulkDeleting: false,
+        matchingRecordCount: 1,
+      }),
+    ).toBe(false)
+    expect(
+      getDeleteAllAction({
+        confirmDeleteAll: true,
+        deletingUrl: null,
+        isBulkDeleting: false,
+        matchingRecordCount: 1,
+      }),
+    ).toBe('confirm')
+    expect(
+      getDeleteAllAction({
+        confirmDeleteAll: false,
+        deletingUrl: null,
+        isBulkDeleting: false,
+        matchingRecordCount: 1,
+      }),
+    ).toBe('delete')
+    expect(
+      getDeleteAllAction({
+        confirmDeleteAll: false,
+        deletingUrl: null,
+        isBulkDeleting: false,
+        matchingRecordCount: 0,
+      }),
+    ).toBe('skip')
+    expect(
+      shouldIgnoreBulkDeleteDialogClose({
+        isBulkDeleting: true,
+        isOpen: false,
+      }),
+    ).toBe(true)
+    expect(
+      shouldIgnoreBulkDeleteDialogClose({
+        isBulkDeleting: false,
+        isOpen: false,
+      }),
+    ).toBe(false)
+    expect(
+      getNextBulkDeleteDialogOpen({
+        currentOpen: true,
+        isBulkDeleting: true,
+        isOpen: false,
+      }),
+    ).toBe(true)
+    expect(
+      getNextBulkDeleteDialogOpen({
+        currentOpen: true,
+        isBulkDeleting: false,
+        isOpen: false,
+      }),
+    ).toBe(false)
+    expect(
+      shouldIgnoreSingleDeleteDialogClose({
+        deletingUrl: 'https://docs.example.com/a',
+        isOpen: false,
+      }),
+    ).toBe(true)
+    expect(
+      shouldIgnoreSingleDeleteDialogClose({
+        deletingUrl: null,
+        isOpen: false,
+      }),
+    ).toBe(false)
+    expect(
+      getNextDeleteTargetAfterDialogOpenChange({
+        currentTarget: records[0],
+        deletingUrl: 'https://docs.example.com/a',
+        isOpen: false,
+      }),
+    ).toBe(records[0])
+    expect(
+      getNextDeleteTargetAfterDialogOpenChange({
+        currentTarget: records[0],
+        deletingUrl: null,
+        isOpen: true,
+      }),
+    ).toBe(records[0])
+    expect(
+      getNextDeleteTargetAfterDialogOpenChange({
+        currentTarget: records[0],
+        deletingUrl: null,
+        isOpen: false,
+      }),
+    ).toBeNull()
+    expect(getAnalyticsDateLocale('ja')).toBe('ja-JP')
+    expect(getAnalyticsDateLocale('en')).toBe('en-US')
+    expect(noop()).toBeUndefined()
+    expect(runConfirmedDelete(null, deleteRecord)).toBe(false)
+    expect(runConfirmedDelete(records[0], deleteRecord)).toBe(true)
+    await waitFor(() => {
+      expect(deleteRecord).toHaveBeenCalledWith(records[0])
+    })
+    await expect(
+      runSingleDeleteWhenAllowed({
+        deletingUrl: 'https://docs.example.com/a',
+        isBulkDeleting: false,
+        onRun: deleteRecord,
+      }),
+    ).resolves.toBe(false)
+    await expect(
+      runSingleDeleteWhenAllowed({
+        deletingUrl: null,
+        isBulkDeleting: false,
+        onRun: deleteRecord,
+      }),
+    ).resolves.toBe(true)
+    await expect(
+      runBulkDeleteWhenAllowed({
+        deletingUrl: null,
+        isBulkDeleting: false,
+        matchingRecordCount: 0,
+        onRun: deleteRecord,
+      }),
+    ).resolves.toBe(false)
+    await expect(
+      runBulkDeleteWhenAllowed({
+        deletingUrl: null,
+        isBulkDeleting: false,
+        matchingRecordCount: 1,
+        onRun: deleteRecord,
+      }),
+    ).resolves.toBe(true)
+  })
+
+  it('analytics helper が view name と削除メッセージ fallback を扱う', async () => {
+    expect(
+      getViewNameValidationError({
+        savedViews: [],
+        viewName: '   ',
+      }),
+    ).toBe('required')
+    expect(
+      getViewNameValidationError({
+        savedViews: [
+          {
+            createdAt: 1,
+            id: 'view-1',
+            name: 'Saved View',
+            query: createAnalyticsQuery(),
+            updatedAt: 1,
+          },
+        ],
+        viewName: 'Saved View',
+      }),
+    ).toBe('duplicate')
+    expect(
+      getViewNameValidationError({
+        savedViews: [],
+        viewName: 'New View',
+      }),
+    ).toBeNull()
+    expect(
+      normalizeAnalyticsRouteQuery(createAnalyticsQuery({ mode: 'custom' })),
+    ).toEqual(expect.objectContaining({ mode: 'both' }))
+    expect(createAnalyticsDeleteUndoPayload({})).toEqual({})
+    expect(
+      createAnalyticsDeleteUndoPayload({
+        customProjectOrder: ['project-1'],
+        customProjects: [],
+        parentCategories: [],
+        savedTabs: [],
+        urls: [],
+      }),
+    ).toEqual({
+      customProjectOrder: ['project-1'],
+      customProjects: [],
+      parentCategories: [],
+      savedTabs: [],
+      urls: [],
+    })
+
+    analyticsRouteMocks.sendMessageMock.mockImplementationOnce(
+      (
+        _message: unknown,
+        callback?: (response: { status: string }) => void,
+      ) => {
+        callback?.({ status: 'error' })
+      },
+    )
+    await expect(
+      removeUrlFromStorage('https://docs.example.com/a'),
+    ).rejects.toThrow('removeUrlFromStorage failed')
+
+    analyticsRouteMocks.sendMessageMock.mockImplementationOnce(
+      (
+        _message: unknown,
+        callback?: (response: { status: string }) => void,
+      ) => {
+        callback?.({ status: 'error' })
+      },
+    )
+    await expect(removeUrlRecordsFromStorage(['1'])).rejects.toThrow(
+      'removeUrlRecordsFromStorage failed',
+    )
   })
 
   it('shared ui コンポーネントを利用する実装になっている', () => {
@@ -1766,6 +2256,30 @@ describe('AnalyticsRoute', () => {
     ).toBeTruthy()
   })
 
+  it('単体削除失敗時は background error が空でも fallback エラーを扱う', async () => {
+    analyticsRouteMocks.sendMessageMock.mockImplementation(
+      (message: unknown, callback?: (response: { status: string }) => void) => {
+        const action = (message as { action?: string })?.action
+        if (action === 'removeUrlFromStorage') {
+          callback?.({ status: 'error' })
+          return
+        }
+
+        callback?.({ status: 'removed' })
+      },
+    )
+
+    render(<AnalyticsRoute />)
+
+    expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to delete the tab')
+    })
+  })
+
   it('一括削除失敗時はエラートーストを表示して確認ダイアログを閉じる', async () => {
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
       ...defaultSettings,
@@ -1810,6 +2324,74 @@ describe('AnalyticsRoute', () => {
     expect(toast.info).not.toHaveBeenCalled()
     expect(screen.getByText('Example Docs')).toBeTruthy()
     expect(screen.getByText('Example Docs B')).toBeTruthy()
+  })
+
+  it('一括削除失敗時は background error が空でも fallback エラーを扱う', async () => {
+    analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
+      ...defaultSettings,
+      confirmDeleteAll: true,
+    })
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValue(bulkDeleteRecords)
+    analyticsRouteMocks.sendMessageMock.mockImplementation(
+      (message: unknown, callback?: (response: { status: string }) => void) => {
+        const action = (message as { action?: string })?.action
+        if (action === 'removeUrlRecordsFromStorage') {
+          callback?.({ status: 'error' })
+          return
+        }
+
+        callback?.({ status: 'removed' })
+      },
+    )
+
+    render(<AnalyticsRoute />)
+
+    expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Delete all tabs in this item',
+      }),
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to delete the tabs')
+    })
+  })
+
+  it('削除 Undo snapshot が非配列なら空 payload を復元する', async () => {
+    analyticsRouteMocks.storageGetMock.mockResolvedValue({
+      customProjectOrder: { invalid: true },
+      customProjects: { invalid: true },
+      parentCategories: { invalid: true },
+      savedTabs: { invalid: true },
+      urls: { invalid: true },
+    })
+    analyticsRouteMocks.loadRecordsMock
+      .mockResolvedValueOnce(records)
+      .mockResolvedValueOnce([records[1]])
+
+    render(<AnalyticsRoute />)
+
+    expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+
+    await waitFor(() => {
+      expect(toast.info).toHaveBeenCalled()
+    })
+
+    const undoOptions = vi.mocked(toast.info).mock.calls.at(-1)?.[1] as
+      | {
+          action?: {
+            onClick?: () => Promise<void>
+          }
+        }
+      | undefined
+    await undoOptions?.action?.onClick?.()
+
+    expect(analyticsRouteMocks.storageSetMock).toHaveBeenCalledWith({})
   })
 
   it('confirmDeleteEach=true のとき確認ダイアログ経由で削除する', async () => {

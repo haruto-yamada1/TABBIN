@@ -213,6 +213,25 @@ describe('conversation-history', () => {
     expect(mocked.storageLocal.set).not.toHaveBeenCalled()
   })
 
+  it('active id が存在しない場合は先頭会話を active にする', async () => {
+    mocked.storageLocal.get.mockResolvedValue({
+      activeAiChatConversationId: 'missing-conversation',
+      aiChatConversations: [
+        {
+          createdAt: 1,
+          id: 'conversation-1',
+          messages: [],
+          title: '会話',
+          updatedAt: 1,
+        },
+      ],
+    })
+
+    const history = await loadConversationHistory()
+
+    expect(history.activeConversationId).toBe('conversation-1')
+  })
+
   it('履歴を storage に保存する', async () => {
     const conversation = createConversationRecord({
       id: 'conversation-1',

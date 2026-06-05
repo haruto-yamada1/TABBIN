@@ -52,6 +52,11 @@ const resizeObserverState = vi.hoisted(() => {
   }
 })
 
+const profilerMock = vi.hoisted(() => ({
+  handleSavedTabsRender: vi.fn(),
+  isDevProfileEnabled: false,
+}))
+
 vi.mock('@/features/saved-tabs/app/SavedTabsApp', () => ({
   SavedTabsApp: ({
     initialViewMode,
@@ -111,8 +116,13 @@ vi.mock('@/features/saved-tabs/app/SavedTabsApp', () => ({
       ...scrollTargets,
     )
   },
-  handleSavedTabsRender: vi.fn(),
-  isDevProfileEnabled: false,
+}))
+
+vi.mock('@/features/saved-tabs/app/savedTabsProfiler', () => ({
+  handleSavedTabsRender: profilerMock.handleSavedTabsRender,
+  get isDevProfileEnabled() {
+    return profilerMock.isDevProfileEnabled
+  },
 }))
 
 const historyMock = vi.hoisted(() => ({
@@ -182,7 +192,7 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
   },
 }))
 
-import { SavedTabsRoute } from './SavedTabsRoute'
+import { SavedTabsRoute, getLeftPaneWidthStoreSnapshot } from './SavedTabsRoute'
 
 describe('SavedTabsRoute', () => {
   beforeEach(() => {
@@ -236,6 +246,7 @@ describe('SavedTabsRoute', () => {
       selectConversation: historyMock.selectConversation,
       updateMessages: historyMock.updateMessages,
     })
+    profilerMock.isDevProfileEnabled = false
     vi.stubGlobal(
       'ResizeObserver',
       resizeObserverState.MockResizeObserver as unknown as typeof ResizeObserver,
@@ -256,6 +267,16 @@ describe('SavedTabsRoute', () => {
     expect(screen.getByText('open-sidebar')).toBeTruthy()
     expect(screen.getByText('history-variant:dropdown')).toBeTruthy()
     expect(screen.getByText('active-title:最初の会話')).toBeTruthy()
+    expect(getLeftPaneWidthStoreSnapshot(640)).toBe(640)
+    expect(getLeftPaneWidthStoreSnapshot(null)).toBe(window.innerWidth)
+  })
+
+  it('dev profile が有効なら SavedTabsApp を Profiler 内で描画する', () => {
+    profilerMock.isDevProfileEnabled = true
+
+    render(createElement(SavedTabsRoute))
+
+    expect(screen.getByText('SavedTabsApp:false:domain')).toBeTruthy()
   })
 
   it('URL の mode クエリを SavedTabsApp の初期モードへ渡す', () => {

@@ -134,6 +134,53 @@ describe('settings storage', () => {
     })
   })
 
+  it('保存済み設定に excludePatterns が無い場合は既定値を補完して保存する', async () => {
+    const storageLocal = {
+      get: vi.fn(async () => ({
+        userSettings: {
+          language: 'system',
+        },
+      })),
+      set: vi.fn(async () => undefined),
+    }
+    mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
+
+    const { getUserSettings } = await loadModule()
+
+    await expect(getUserSettings()).resolves.toMatchObject({
+      excludePatterns: ['about:', 'chrome-extension://', 'chrome://'],
+      language: 'system',
+      normalized: true,
+    })
+    expect(storageLocal.set).toHaveBeenCalledWith({
+      userSettings: expect.objectContaining({
+        excludePatterns: ['about:', 'chrome-extension://', 'chrome://'],
+      }),
+    })
+  })
+
+  it('保存済み設定が既に正規化済みなら再保存しない', async () => {
+    const storageLocal = {
+      get: vi.fn(async () => ({
+        userSettings: {
+          excludePatterns: ['about:', 'chrome-extension://', 'chrome://'],
+          language: 'system',
+        },
+      })),
+      set: vi.fn(async () => undefined),
+    }
+    mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
+
+    const { getUserSettings } = await loadModule()
+
+    await expect(getUserSettings()).resolves.toMatchObject({
+      excludePatterns: ['about:', 'chrome-extension://', 'chrome://'],
+      language: 'system',
+      normalized: true,
+    })
+    expect(storageLocal.set).not.toHaveBeenCalled()
+  })
+
   it('保存時も excludePatterns に既定の内部ページ除外を補完する', async () => {
     const storageLocal = {
       set: vi.fn(async () => undefined),
