@@ -263,6 +263,17 @@ describe('useProjectManagement', () => {
     expect(result.current.customProjects).toEqual([projectWithCategories])
   })
 
+  it('initialViewMode 未指定なら domain モードで初期化する', async () => {
+    const { result } = renderHook(() =>
+      useProjectManagement([], defaultSettings),
+    )
+
+    await waitForLoadedProjects(result)
+
+    expect(result.current.viewMode).toBe('domain')
+    expect(result.current.viewModeRef.current).toBe('domain')
+  })
+
   it('プロジェクトを作成し、空名と重複実行は無視する', async () => {
     const createdProject: CustomProject = {
       id: 'project-new',
@@ -339,11 +350,23 @@ describe('useProjectManagement', () => {
       domainKeywords: ['example.com'],
     }
 
+    const untouchedProject: CustomProject = {
+      id: 'project-untouched',
+      name: 'Untouched',
+      categories: [],
+      createdAt: 4,
+      updatedAt: 5,
+    }
+    projectManagementMocks.getCustomProjects.mockResolvedValue([
+      projectSnapshot[0],
+      untouchedProject,
+    ])
+
     const { result } = renderHook(() =>
       useProjectManagement([], defaultSettings, 'custom'),
     )
 
-    await waitForLoadedProjects(result)
+    await waitForLoadedProjects(result, [projectSnapshot[0], untouchedProject])
 
     await act(async () => {
       await result.current.handleRenameProject('project-1', 'Renamed')
@@ -369,6 +392,7 @@ describe('useProjectManagement', () => {
       name: 'Renamed',
       projectKeywords,
     })
+    expect(result.current.customProjects[1]).toEqual(untouchedProject)
 
     await act(async () => {
       await result.current.handleDeleteProject('missing-project')
@@ -383,7 +407,7 @@ describe('useProjectManagement', () => {
     expect(projectManagementMocks.deleteCustomProject).toHaveBeenCalledWith(
       'project-1',
     )
-    expect(result.current.customProjects).toEqual([])
+    expect(result.current.customProjects).toEqual([untouchedProject])
   })
 
   it('URL追加、カテゴリ削除、URL分類は最新プロジェクトを再取得する', async () => {
@@ -440,9 +464,33 @@ describe('useProjectManagement', () => {
   })
 
   it('カテゴリ追加、カテゴリ順序、URL順序、プロジェクト順序、カテゴリ名変更を state に反映する', async () => {
+    const orderedProject: CustomProject = {
+      id: 'project-3',
+      name: 'Project C',
+      categories: [],
+      categoryOrder: ['Review'],
+      createdAt: 30,
+      updatedAt: 40,
+    }
+    const unorderedProject: CustomProject = {
+      id: 'project-4',
+      name: 'Project D',
+      categories: ['Old'],
+      urls: [
+        {
+          url: 'https://example.com/old',
+          title: 'Old',
+          category: 'Old',
+        },
+      ],
+      createdAt: 50,
+      updatedAt: 60,
+    }
     projectManagementMocks.getCustomProjects.mockResolvedValue([
       projectWithCategories,
       projectSnapshot[0],
+      orderedProject,
+      unorderedProject,
     ])
     const reorderedUrls = [
       {
@@ -459,10 +507,14 @@ describe('useProjectManagement', () => {
     await waitForLoadedProjects(result, [
       projectWithCategories,
       projectSnapshot[0],
+      orderedProject,
+      unorderedProject,
     ])
 
     await act(async () => {
       await result.current.handleAddCategory('project-2', 'Review')
+      await result.current.handleAddCategory('project-1', 'Review')
+      await result.current.handleAddCategory('project-3', 'Review')
       await result.current.handleAddCategory('project-2', 'Inbox')
       await result.current.handleUpdateCategoryOrder('project-2', [
         'Review',
@@ -471,6 +523,7 @@ describe('useProjectManagement', () => {
       await result.current.handleReorderUrls('project-2', reorderedUrls)
       await result.current.handleReorderProjects(['project-1', 'project-2'])
       await result.current.handleRenameCategory('project-2', 'Inbox', 'Later')
+      await result.current.handleRenameCategory('project-4', 'Old', 'New')
     })
 
     expect(projectManagementMocks.addCategoryToProject).toHaveBeenCalledWith(
@@ -497,11 +550,28 @@ describe('useProjectManagement', () => {
     expect(result.current.customProjects.map((project) => project.id)).toEqual([
       'project-1',
       'project-2',
+      'project-3',
+      'project-4',
     ])
     expect(result.current.customProjects[1]).toMatchObject({
       categories: ['Later', 'Done', 'Review'],
       categoryOrder: ['Review', 'Later'],
       urls: reorderedUrls,
+    })
+    expect(result.current.customProjects[0]).toMatchObject({
+      categories: ['Review'],
+      categoryOrder: ['Review'],
+    })
+    expect(result.current.customProjects[3]).toMatchObject({
+      categories: ['New'],
+      categoryOrder: undefined,
+      urls: [
+        {
+          url: 'https://example.com/old',
+          title: 'Old',
+          category: 'New',
+        },
+      ],
     })
   })
 

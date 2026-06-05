@@ -2,8 +2,6 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { LanguageSetting } from '@/features/i18n/messages'
-
 import {
   I18nProvider,
   getFallbackText,
@@ -83,9 +81,7 @@ describe('I18nProvider', () => {
         getUILanguage: vi.fn(() => 'ja-JP'),
       },
     } as unknown as typeof chrome
-    mocks.getUserSettings.mockResolvedValue({
-      language: 'system' satisfies LanguageSetting,
-    })
+    mocks.getUserSettings.mockResolvedValue({})
     mocks.saveUserSettings.mockResolvedValue(undefined)
     mocks.getChromeStorageOnChanged.mockReturnValue({
       addListener: vi.fn(),
@@ -146,6 +142,7 @@ describe('I18nProvider', () => {
 
     act(() => {
       listener({}, 'sync')
+      listener({}, 'local')
       listener(
         {
           userSettings: {
@@ -158,6 +155,18 @@ describe('I18nProvider', () => {
       )
     })
     expect(screen.getByTestId('language').textContent).toBe('en')
+
+    act(() => {
+      listener(
+        {
+          userSettings: {
+            newValue: {},
+          },
+        },
+        'local',
+      )
+    })
+    expect(screen.getByTestId('setting').textContent).toBe('system')
 
     unmount()
     expect(removeListener).toHaveBeenCalledWith(listener)
@@ -185,6 +194,37 @@ describe('I18nProvider', () => {
       }),
     ).toBe('Fallback Text')
     unmount()
+  })
+
+  it('設定読み込み完了前に unmount されたら状態を更新しない', async () => {
+    let resolveSettings:
+      | ((settings: Awaited<ReturnType<typeof mocks.getUserSettings>>) => void)
+      | undefined
+    mocks.getUserSettings.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSettings = resolve
+      }),
+    )
+
+    const { unmount } = render(
+      <I18nProvider>
+        <Consumer />
+      </I18nProvider>,
+    )
+
+    unmount()
+
+    await act(async () => {
+      resolveSettings?.({ language: 'en' })
+    })
+
+    expect(mocks.saveUserSettings).not.toHaveBeenCalled()
+  })
+
+  it('chrome.i18n がない場合は navigator 言語で fallback text を解決する', () => {
+    globalThis.chrome = {} as typeof chrome
+
+    expect(getFallbackText('common.cancel')).toBe('Cancel')
   })
 
   it('Provider 外の optional/text hooks は fallback を返し useI18n は例外にする', () => {

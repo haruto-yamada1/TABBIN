@@ -200,6 +200,124 @@ describe('url-migration', () => {
     expect(mocks.invalidateUrlCache).not.toHaveBeenCalled()
   })
 
+  it('不正なストレージ値と URL なし legacy データを安全に移行する', async () => {
+    const invalidState = {
+      customProjects: 'invalid',
+      savedTabs: 'invalid',
+      urls: 'invalid',
+    } as unknown as StorageState
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(invalidState),
+      },
+    } as unknown as typeof chrome
+
+    const { migrateToUrlsStorage } = await loadModule()
+
+    await migrateToUrlsStorage()
+
+    expect(invalidState).toEqual(
+      expect.objectContaining({
+        customProjects: [],
+        savedTabs: [],
+        urls: [],
+        urlsMigrationCompleted: true,
+      }),
+    )
+
+    const state: StorageState = {
+      customProjects: [
+        {
+          categories: [],
+          createdAt: 1,
+          id: 'project-empty',
+          name: 'Project Empty',
+          updatedAt: 1,
+        },
+        {
+          categories: [],
+          createdAt: 1,
+          id: 'project-with-url',
+          name: 'Project With URL',
+          updatedAt: 1,
+          urls: [
+            {
+              url: 'https://project-no-meta.example.com',
+            },
+          ],
+        },
+      ],
+      savedTabs: [
+        {
+          domain: 'https://empty.example.com',
+          id: 'group-empty',
+        },
+        {
+          domain: 'https://tab-no-sub.example.com',
+          id: 'group-with-url',
+          urls: [
+            {
+              url: 'https://tab-no-sub.example.com/page',
+            },
+          ],
+        },
+      ],
+      urls: [],
+    }
+    vi.resetModules()
+    mocks.reset()
+    vi.spyOn(Date, 'now').mockReturnValue(1234)
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { migrateToUrlsStorage: migrateAgain } = await loadModule()
+
+    await migrateAgain()
+
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'https://empty.example.com',
+        id: 'group-empty',
+      },
+      {
+        domain: 'https://tab-no-sub.example.com',
+        id: 'group-with-url',
+        urlIds: ['uuid-1'],
+        urls: undefined,
+      },
+    ])
+    expect(state.customProjects).toEqual([
+      expect.objectContaining({
+        id: 'project-empty',
+      }),
+      expect.objectContaining({
+        id: 'project-with-url',
+        urlIds: ['uuid-2'],
+        urls: undefined,
+      }),
+    ])
+    expect(state.customProjects?.[1]).not.toHaveProperty('urlMetadata')
+    expect(state.urls).toEqual([
+      {
+        favIconUrl: undefined,
+        id: 'uuid-1',
+        savedAt: 1234,
+        title: '',
+        url: 'https://tab-no-sub.example.com/page',
+      },
+      {
+        favIconUrl: undefined,
+        id: 'uuid-2',
+        savedAt: 1234,
+        title: '',
+        url: 'https://project-no-meta.example.com',
+      },
+    ])
+  })
+
   it('二度目の呼び出しで完了フラグが外れていれば再実行する', async () => {
     const state: StorageState = {
       customProjects: [],

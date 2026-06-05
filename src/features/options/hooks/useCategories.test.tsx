@@ -9,10 +9,15 @@ vi.mock('@/lib/storage/categories', () => ({
   getParentCategories: vi.fn(),
 }))
 
+vi.mock('@/lib/storage/settings', () => ({
+  getUserSettings: vi.fn(),
+}))
+
 import {
   createParentCategory,
   getParentCategories,
 } from '@/lib/storage/categories'
+import { getUserSettings } from '@/lib/storage/settings'
 
 type StorageListener = (
   changes: { [key: string]: chrome.storage.StorageChange },
@@ -23,6 +28,9 @@ const listeners: StorageListener[] = []
 
 const createChromeMock = () =>
   ({
+    i18n: {
+      getUILanguage: () => 'ja',
+    },
     storage: {
       onChanged: {
         addListener: vi.fn((listener: StorageListener) => {
@@ -43,6 +51,7 @@ describe('useCategoriesフック', () => {
     listeners.length = 0
     vi.useRealTimers()
     vi.clearAllMocks()
+    vi.mocked(getUserSettings).mockResolvedValue({})
     ;(globalThis as unknown as { chrome: typeof chrome }).chrome =
       createChromeMock()
   })
@@ -333,6 +342,44 @@ describe('useCategoriesフック', () => {
     })
 
     expect(result.current.parentCategories).toEqual([])
+  })
+
+  it('userSettings の language が欠損した storage change では UI locale にフォールバックする', async () => {
+    vi.mocked(getParentCategories).mockResolvedValue([
+      { id: '1', name: 'Work', domains: [], domainNames: [] },
+    ])
+
+    const { result } = renderHook(() => useCategories())
+
+    await waitFor(() => {
+      expect(result.current.parentCategories).toHaveLength(1)
+    })
+
+    act(() => {
+      listeners[0](
+        {
+          userSettings: {
+            oldValue: { language: 'en' },
+            newValue: {},
+          },
+        },
+        'local',
+      )
+    })
+
+    act(() => {
+      result.current.setNewCategoryName('work')
+    })
+
+    let success = true
+    await act(async () => {
+      success = await result.current.handleAddCategory()
+    })
+
+    expect(success).toBe(false)
+    expect(result.current.categoryError).toBe(
+      '同じ名前のカテゴリがすでに存在します。',
+    )
   })
 
   it('エラーがない場合 Enter キーでカテゴリを追加する', async () => {

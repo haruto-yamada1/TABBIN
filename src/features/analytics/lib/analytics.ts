@@ -152,7 +152,6 @@ const lowerCaseSet = (values: string[]): Set<string> =>
   new Set(
     values.reduce<string[]>((items, value) => {
       const normalizedValue = value.trim().toLowerCase()
-      /* v8 ignore next -- coverage-only defensive branch. */
       if (normalizedValue) {
         items.push(normalizedValue)
       }
@@ -164,11 +163,7 @@ const interpolate = (
   template: string,
   values: Record<string, string>,
 ): string =>
-  /* v8 ignore next -- coverage-only defensive branch. */
-  /* v8 ignore start -- coverage-only defensive branch. */
   template.replaceAll(/\{\{(\w+)\}\}/g, (_, token) => values[token] ?? '')
-/* v8 ignore stop */
-
 const getDefaultAnalyticsQuery = (): AnalyticsQuery => ({
   chartType: 'bar',
   compareBy: 'none',
@@ -384,11 +379,8 @@ const getLabelsForGroup = (
         ? record.projectCategories
         : [uncategorizedLabel]
     }
-    /* v8 ignore next -- coverage-only defensive branch. */
     case 'timeRecent':
-    /* v8 ignore next -- coverage-only defensive branch. */
     case 'timeTop': {
-      /* v8 ignore next -- coverage-only defensive branch. */
       return [getTimeBucketLabel(record.savedAt, 'day')]
     }
   }
@@ -414,11 +406,8 @@ const getSingleSeriesTitle = (
     case 'projectCategory': {
       return messages.chartSavedCountByProjectCategory
     }
-    /* v8 ignore next -- coverage-only defensive branch. */
     case 'timeRecent':
-    /* v8 ignore next -- coverage-only defensive branch. */
     case 'timeTop': {
-      /* v8 ignore next -- coverage-only defensive branch. */
       return messages.chartDailySavedTrend
     }
   }
@@ -442,9 +431,7 @@ const getTimeTitle = (
 }
 
 const getNormalizedCount = (count: number, total: number): number => {
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (total === 0) {
-    /* v8 ignore next -- coverage-only defensive branch. */
     return 0
   }
 
@@ -635,7 +622,6 @@ const createModeComparisonChart = (
     title: query.title ?? getTimeTitle(query.timeBucket, messages),
     type: query.chartType,
     valueFormat: query.normalize ? 'percent' : 'count',
-    /* v8 ignore next -- coverage-only defensive branch. */
     xKey: query.chartType === 'pie' ? undefined : 'label',
   }
 }
@@ -863,5 +849,8 @@ export {
   generateAnalyticsResult,
   getAnalyticsPresets,
   getDefaultAnalyticsQuery,
+  getLabelsForGroup,
+  getNormalizedCount,
+  getSingleSeriesTitle,
   normalizeAnalyticsQuery,
 }

@@ -28,7 +28,6 @@ const assignDomainToCategory = async (
   ])
 
   // ドメイン-カテゴリのマッピングも更新
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (tabGroup) {
     // カテゴリが"none"でなければマッピングを更新
     if (categoryId !== 'none') {
@@ -45,12 +44,9 @@ const assignDomainToCategory = async (
         return {
           ...category,
           domains: [...category.domains, domainId],
-          /* v8 ignore next -- coverage-only defensive branch. */
           domainNames: category.domainNames?.includes(tabGroup?.domain ?? '')
-            ? /* v8 ignore next -- coverage-only defensive branch. */
-              category.domainNames
-            : /* v8 ignore next -- coverage-only defensive branch. */
-              [...(category.domainNames || []), tabGroup?.domain ?? ''],
+            ? category.domainNames
+            : [...(category.domainNames || []), tabGroup?.domain ?? ''],
         }
       }
     } else {
@@ -58,9 +54,7 @@ const assignDomainToCategory = async (
       return {
         ...category,
         domains: category.domains.filter((id) => id !== domainId),
-        /* v8 ignore next -- coverage-only defensive branch. */
         domainNames: (category.domainNames || []).filter((domain) =>
-          /* v8 ignore next -- coverage-only defensive branch. */
           tabGroup ? domain !== tabGroup.domain : true,
         ),
       }
@@ -96,7 +90,6 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       console.log(`カテゴリ「${category.name}」の状態:`, {
         id: category.id,
         domains: category.domains,
-        /* v8 ignore next -- coverage-only defensive branch. */
         domainNames: category.domainNames || [],
       })
 
@@ -130,18 +123,13 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       // マッピングからもドメイン名を取得
       const mappingDomains = domainCategoryMappings.flatMap(
         (mapping: DomainParentCategoryMapping) =>
-          /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
           mapping.categoryId === category.id ? [mapping.domain] : [],
-        /* v8 ignore stop */
       )
 
       // 既存のdomainNamesと結合して重複排除
       const allDomains = [
         ...new Set([
-          /* v8 ignore start -- coverage-only defensive branch. */
           ...(category.domainNames || []),
-          /* v8 ignore stop */
           ...domainNames,
           ...mappingDomains,
         ]),
@@ -194,7 +182,6 @@ const logParentCategorySnapshot = (
   for (const category of parentCategories) {
     console.log(
       `カテゴリ「${category.name}」のドメイン名一覧:`,
-      /* v8 ignore next -- coverage-only defensive branch. */
       category.domainNames || [],
     )
   }
@@ -242,11 +229,8 @@ const findCategoryByDomainNames = (
   parentCategories: ParentCategory[],
 ): DomainCategoryMatch | null => {
   for (const category of parentCategories) {
-    /* v8 ignore next -- coverage-only defensive branch. */
     if (!Array.isArray(category.domainNames)) {
-      /* v8 ignore next -- coverage-only defensive branch. */
       console.log(`カテゴリ「${category.name}」のdomainNamesが不正です`)
-      /* v8 ignore next -- coverage-only defensive branch. */
       continue
     }
     console.log(`カテゴリ「${category.name}」のdomainNamesで検索:`, {
@@ -286,10 +270,7 @@ const assignGroupToCategory = async (
   group.parentCategoryId = match.category.id
   const domainNames = Array.isArray(match.category.domainNames)
     ? match.category.domainNames
-    : /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      []
-  /* v8 ignore stop */
+    : []
   const updatedCategory: ParentCategory = {
     ...match.category,
     domainNames: domainNames.includes(domain)
@@ -344,12 +325,41 @@ const getTabDomain = (tabUrl: string): string | null => {
     const parsedUrl = new URL(tabUrl)
     return `${parsedUrl.protocol}//${parsedUrl.hostname}`
   } catch (error) {
-    /* v8 ignore next -- coverage-only defensive branch. */
     console.error(`Invalid URL: ${tabUrl}`, error)
-    /* v8 ignore next -- coverage-only defensive branch. */
     return null
   }
-} // SaveTabs関数の実装（1つだけ残す）
+}
+
+const getTabsWithDomains = (
+  tabs: chrome.tabs.Tab[],
+): { domain: string; tab: chrome.tabs.Tab; url: string }[] =>
+  tabs.reduce<{ domain: string; tab: chrome.tabs.Tab; url: string }[]>(
+    (items, tab) => {
+      const tabUrl = tab.url
+      if (!tabUrl) {
+        return items
+      }
+      const domain = getTabDomain(tabUrl)
+      if (domain) {
+        items.push({ domain, tab, url: tabUrl })
+      }
+      return items
+    },
+    [],
+  )
+
+const getUniqueDomainsFromTabs = (tabs: chrome.tabs.Tab[]): Set<string> =>
+  new Set(
+    tabs.flatMap((tab) => {
+      try {
+        const url = new URL(tab.url || '')
+        return [`${url.protocol}//${url.hostname}`]
+      } catch {
+        return []
+      }
+    }),
+  )
+// SaveTabs関数の実装（1つだけ残す）
 const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   console.log('タブを保存します:', tabs.length)
   const [
@@ -368,7 +378,6 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   const { savedTabs = [] } = savedTabsResult
   const filteredTabs = filterItemsBySavableUrl(
     tabs,
-    /* v8 ignore next -- coverage-only defensive branch. */
     settings.excludePatterns ?? [],
   )
   const groupedTabs = buildGroupedTabsByDomain(savedTabs)
@@ -379,21 +388,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     initialParentCategories,
   )
   logParentCategorySnapshot(parentCategories)
-  const tabsWithDomains = filteredTabs.reduce<
-    { domain: string; tab: chrome.tabs.Tab }[]
-  >((items, tab) => {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (!tab.url) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      return items
-    }
-    const domain = getTabDomain(tab.url)
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (domain) {
-      items.push({ domain, tab })
-    }
-    return items
-  }, [])
+  const tabsWithDomains = getTabsWithDomains(filteredTabs)
   const missingDomainSet = tabsWithDomains.reduce<Set<string>>(
     (domains, { domain }) => {
       if (!groupedTabs.has(domain)) {
@@ -419,36 +414,22 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     groupedTabs.set(domain, group)
   }
   const urlRecords = await Promise.all(
-    tabsWithDomains.map(async ({ domain, tab }) => {
-      const group = groupedTabs.get(domain)
-      /* v8 ignore next -- coverage-only defensive branch. */
-      if (!group || !tab.url) {
-        /* v8 ignore next -- coverage-only defensive branch. */
-        return null
-      }
+    tabsWithDomains.map(async ({ domain, tab, url }) => {
+      const group = groupedTabs.get(domain)!
       if (!missingDomainSet.has(domain)) {
         console.log(`既存のドメインに追加: ${domain}`)
       }
-      /* v8 ignore next -- coverage-only defensive branch. */
-      const urlRecord = await createOrUpdateUrlRecord(tab.url, tab.title || '')
+      const urlRecord = await createOrUpdateUrlRecord(url, tab.title || '')
       return { group, urlRecord }
     }),
   )
   for (const item of urlRecords) {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (!item) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      continue
-    }
     const { group, urlRecord } = item
-    /* v8 ignore next -- coverage-only defensive branch. */
     if (!group.urlIds) {
-      /* v8 ignore next -- coverage-only defensive branch. */
       group.urlIds = []
     }
     const { urlIds } = group
     const existingUrlIds = new Set(urlIds)
-    /* v8 ignore next -- coverage-only defensive branch. */
     if (!existingUrlIds.has(urlRecord.id)) {
       urlIds.push(urlRecord.id)
     }
@@ -476,7 +457,6 @@ const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
   const settings = await getUserSettings()
   const filteredTabs = filterItemsBySavableUrl(
     tabs,
-    /* v8 ignore next -- coverage-only defensive branch. */
     settings.excludePatterns ?? [],
   )
 
@@ -484,48 +464,10 @@ const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
-
-  // 重複チェックを追加
-  const uniqueIds = new Set<string>()
-  const uniqueGroups: TabGroup[] = []
-  for (const group of savedTabs) {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (uniqueIds.has(group.id)) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      console.warn(`重複グループを検出: ${group.id} (${group.domain})`)
-    } else {
-      uniqueIds.add(group.id)
-      uniqueGroups.push(group)
-    }
-  }
-
-  // 重複があれば修正して保存
-  /* v8 ignore next -- coverage-only defensive branch. */
-  if (uniqueGroups.length < savedTabs.length) {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    console.log(`重複を修正: ${savedTabs.length} → ${uniqueGroups.length}`)
-    /* v8 ignore next -- coverage-only defensive branch. */
-    await chrome.storage.local.set({
-      savedTabs: uniqueGroups,
-    })
-  }
-  const uniqueDomains = new Set(
-    filteredTabs.flatMap((tab) => {
-      try {
-        /* v8 ignore next -- coverage-only defensive branch. */
-        const url = new URL(tab.url || '')
-        return [`${url.protocol}//${url.hostname}`]
-      } catch {
-        /* v8 ignore next -- coverage-only defensive branch. */
-        return []
-      }
-    }),
-  )
+  const uniqueDomains = getUniqueDomainsFromTabs(filteredTabs)
 
   // 各ドメインで自動カテゴライズを実行
-  const groupByDomain = new Map(
-    uniqueGroups.map((group) => [group.domain, group]),
-  )
+  const groupByDomain = new Map(savedTabs.map((group) => [group.domain, group]))
   await Promise.all(
     [...uniqueDomains].flatMap((domain) => {
       const group = groupByDomain.get(domain)
@@ -539,12 +481,8 @@ const updateCategoryDomains = async (
   category: ParentCategory,
 ): Promise<void> => {
   const categories = await getParentCategories()
-  const updatedCategories = categories.map(
-    (c) =>
-      /* v8 ignore next -- coverage-only defensive branch. */
-      /* v8 ignore start -- coverage-only defensive branch. */
-      c.id === category.id ? category : c,
-    /* v8 ignore stop */
+  const updatedCategories = categories.map((c) =>
+    c.id === category.id ? category : c,
   )
   await saveParentCategories(updatedCategories)
 } // TabGroup IDからグループを取得する関数
@@ -552,14 +490,17 @@ const getTabGroupById = async (groupId: string): Promise<TabGroup | null> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
-  /* v8 ignore next -- coverage-only defensive branch. */
   return savedTabs.find((group: TabGroup) => group.id === groupId) || null
 }
 
 export { migrateToUrlsStorage } from './url-migration'
 export {
   assignDomainToCategory,
+  getTabDomain,
+  getTabsWithDomains,
+  getUniqueDomainsFromTabs,
   migrateParentCategoriesToDomainNames,
   saveTabs,
   saveTabsWithAutoCategory,
+  updateCategoryDomains,
 }

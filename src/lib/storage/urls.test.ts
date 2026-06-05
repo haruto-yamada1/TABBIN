@@ -442,6 +442,44 @@ describe('urls storage', () => {
     ])
   })
 
+  it('未参照URLクリーンアップは urlIds 欠損グループ/プロジェクトを無視する', async () => {
+    const state: StorageState = {
+      customProjects: [
+        {
+          categories: [],
+          createdAt: 1,
+          id: 'project-without-urlids',
+          name: 'Project',
+          updatedAt: 1,
+        },
+      ],
+      savedTabs: [
+        {
+          domain: 'https://without-urlids.example.com',
+          id: 'group-without-urlids',
+        },
+      ],
+      urls: [
+        {
+          id: 'orphan-id',
+          savedAt: 1,
+          title: 'Orphan',
+          url: 'https://example.com/orphan',
+        },
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { cleanupUnreferencedUrls } = await loadUrlsModule()
+
+    await expect(cleanupUnreferencedUrls()).resolves.toBe(1)
+    expect(state.urls).toEqual([])
+  })
+
   it('重複URLを新しいレコードへ統合し参照先を更新する', async () => {
     const state: StorageState = {
       customProjects: [
@@ -495,6 +533,30 @@ describe('urls storage', () => {
     ])
     expect(state.savedTabs?.[0].urlIds).toEqual(['new-id'])
     expect(state.customProjects?.[0].urlIds).toEqual(['new-id'])
+  })
+
+  it('重複URLがなければ統合保存しない', async () => {
+    const state: StorageState = {
+      urls: [
+        {
+          id: 'url-1',
+          savedAt: 1,
+          title: 'One',
+          url: 'https://example.com/one',
+        },
+      ],
+    }
+    const storage = createChromeStorageLocal(state)
+    globalThis.chrome = {
+      storage: {
+        local: storage,
+      },
+    } as unknown as typeof chrome
+
+    const { deduplicateUrlRecords } = await loadUrlsModule()
+
+    await expect(deduplicateUrlRecords()).resolves.toBe(0)
+    expect(storage.set).not.toHaveBeenCalled()
   })
 
   it('重複URLは古いレコードを削除対象にし、参照更新エラー後も統合を続ける', async () => {
@@ -580,6 +642,126 @@ describe('urls storage', () => {
 
     await expect(saveUrlRecords([])).rejects.toThrow('save failed')
     await expect(deduplicateUrlRecords()).resolves.toBe(0)
+  })
+
+  it('検索 miss と既存 URL 更新時の非対象レコードを扱う', async () => {
+    const state: StorageState = {
+      urls: [
+        {
+          id: 'url-1',
+          savedAt: 1,
+          title: 'One',
+          url: 'https://docs.example.com/one',
+        },
+        {
+          id: 'url-2',
+          savedAt: 2,
+          title: 'Two',
+          url: 'https://docs.example.com/two',
+        },
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { createOrUpdateUrlRecord, findUrlRecordByUrl, getUrlRecordById } =
+      await loadUrlsModule()
+
+    await expect(getUrlRecordById('missing')).resolves.toBeNull()
+    await expect(
+      findUrlRecordByUrl('https://docs.example.com/missing'),
+    ).resolves.toBeNull()
+    await expect(
+      createOrUpdateUrlRecord('https://docs.example.com/one', 'Updated'),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: 'url-1',
+        title: 'Updated',
+      }),
+    )
+    expect(state.urls).toEqual([
+      expect.objectContaining({
+        id: 'url-1',
+        title: 'Updated',
+      }),
+      expect.objectContaining({
+        id: 'url-2',
+        title: 'Two',
+      }),
+    ])
+  })
+
+  it('参照チェックと参照更新は urlIds 欠損と replacement fallback を扱う', async () => {
+    const state: StorageState = {
+      customProjects: [
+        {
+          categories: [],
+          createdAt: 1,
+          id: 'project-1',
+          name: 'Project',
+          updatedAt: 1,
+        },
+        {
+          categories: [],
+          createdAt: 1,
+          id: 'project-2',
+          name: 'Project 2',
+          updatedAt: 1,
+          urlIds: ['duplicate-id', 'unmapped-duplicate-id', 'keep-id'],
+        },
+      ],
+      savedTabs: [
+        {
+          domain: 'docs.example.com',
+          id: 'group-1',
+        },
+        {
+          domain: 'news.example.com',
+          id: 'group-2',
+          urlIds: ['duplicate-id', 'unmapped-duplicate-id', 'keep-id'],
+        },
+      ],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { isUrlRecordReferenced, updateUrlReferences } =
+      await loadUrlsModule()
+
+    await expect(isUrlRecordReferenced('missing')).resolves.toBe(false)
+    await updateUrlReferences(
+      ['duplicate-id', 'unmapped-duplicate-id'],
+      new Map([['duplicate-id', 'replacement-id']]),
+    )
+    await updateUrlReferences(['missing-duplicate-id'], new Map())
+
+    expect(state.savedTabs?.[0]).toEqual(
+      expect.objectContaining({
+        id: 'group-1',
+      }),
+    )
+    expect(state.savedTabs?.[1]?.urlIds).toEqual([
+      'replacement-id',
+      'unmapped-duplicate-id',
+      'keep-id',
+    ])
+    expect(state.customProjects?.[0]).toEqual(
+      expect.objectContaining({
+        id: 'project-1',
+      }),
+    )
+    expect(state.customProjects?.[1]?.urlIds).toEqual([
+      'replacement-id',
+      'unmapped-duplicate-id',
+      'keep-id',
+    ])
   })
 
   it('ストレージエラー時は安全側に倒す', async () => {

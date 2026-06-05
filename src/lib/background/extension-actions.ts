@@ -61,18 +61,13 @@ const toSavedTabItems = async (
 > => {
   const { excludePatterns } = await getUserSettings()
 
-  /* v8 ignore next -- coverage-only defensive branch. */
   return filterItemsBySavableUrl(tabs, excludePatterns ?? []).reduce<
     { title: string; url: string }[]
   >((items, tab) => {
-    const normalizedUrl = normalizeUrlCandidate(tab.url)
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (normalizedUrl) {
-      items.push({
-        title: tab.title || '',
-        url: normalizedUrl,
-      })
-    }
+    items.push({
+      title: tab.title || '',
+      url: normalizeUrlCandidate(tab.url)!,
+    })
     return items
   }, [])
 }
@@ -410,8 +405,7 @@ export const handleSaveWindowTabs = async (): Promise<
       tab.id !== savedTabsTabId &&
       tab.url &&
       !settings.excludePatterns.some(
-        /* v8 ignore next -- coverage-only defensive branch. */
-        (pattern) => (tab.url?.split(pattern).length ?? 0) > 1,
+        (pattern) => tab.url.split(pattern).length > 1,
       )
     ) {
       tabIdsToClose.push(tab.id)

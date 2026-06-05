@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +19,19 @@ import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 const AI_CHAT_HISTORY_BREAKPOINT = 1024
+
+const getNextPendingDeleteHistoryItem = <T,>(
+  currentItem: T | null,
+  open: boolean,
+): T | null => (open ? currentItem : null)
+
+const createPendingDeleteHistoryOpenChangeHandler =
+  <T,>(setPendingItem: Dispatch<SetStateAction<T | null>>) =>
+  (open: boolean): void => {
+    setPendingItem((currentItem) =>
+      getNextPendingDeleteHistoryItem(currentItem, open),
+    )
+  }
 
 export const AiChatRoute = () => {
   const { t } = useI18n()
@@ -43,7 +57,6 @@ export const AiChatRoute = () => {
     const handleResize = () => {
       const isCompactViewport = window.innerWidth < AI_CHAT_HISTORY_BREAKPOINT
 
-      /* v8 ignore next -- coverage-only defensive branch. */
       if (isCompactViewportRef.current !== isCompactViewport) {
         isCompactViewportRef.current = isCompactViewport
         setIsHistoryVisible(!isCompactViewport)
@@ -155,14 +168,9 @@ export const AiChatRoute = () => {
 
       <Dialog
         open={pendingDeleteHistoryItem !== null}
-        /* v8 ignore next -- coverage-only defensive branch. */
-        onOpenChange={(open) => {
-          /* v8 ignore next -- coverage-only defensive branch. */
-          if (!open) {
-            /* v8 ignore next -- coverage-only defensive branch. */
-            setPendingDeleteHistoryItem(null)
-          }
-        }}
+        onOpenChange={createPendingDeleteHistoryOpenChangeHandler(
+          setPendingDeleteHistoryItem,
+        )}
       >
         <DialogContent>
           <DialogHeader>
@@ -185,13 +193,7 @@ export const AiChatRoute = () => {
               type='button'
               variant='destructive'
               onClick={() => {
-                /* v8 ignore next -- coverage-only defensive branch. */
-                if (!pendingDeleteHistoryItem) {
-                  /* v8 ignore next -- coverage-only defensive branch. */
-                  return
-                }
-
-                deleteConversation(pendingDeleteHistoryItem.id)
+                deleteConversation(pendingDeleteHistoryItem!.id)
                 setPendingDeleteHistoryItem(null)
               }}
             >
@@ -202,4 +204,9 @@ export const AiChatRoute = () => {
       </Dialog>
     </div>
   )
+}
+
+export {
+  createPendingDeleteHistoryOpenChangeHandler,
+  getNextPendingDeleteHistoryItem,
 }

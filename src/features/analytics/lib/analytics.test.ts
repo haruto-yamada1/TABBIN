@@ -7,6 +7,9 @@ import {
   generateAnalyticsResult,
   getAnalyticsPresets,
   getDefaultAnalyticsQuery,
+  getLabelsForGroup,
+  getNormalizedCount,
+  getSingleSeriesTitle,
 } from './analytics'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -503,6 +506,42 @@ describe('analytics', () => {
       { custom: 50, domain: 50, label: 'app.example.org' },
       { custom: 33, domain: 67, label: 'docs.example.com' },
     ])
+
+    const missingTokenResult = generateAnalyticsResult(
+      records,
+      {
+        ...getDefaultAnalyticsQuery(),
+        groupBy: 'domain',
+        mode: 'both',
+        timeRange: '30d',
+      },
+      {
+        messages: {
+          chartSummary: '{{missing}}/{{count}}',
+        },
+        now: NOW,
+      },
+    )
+    expect(missingTokenResult.summary).toBe('/4')
+  })
+
+  it('mode comparison pie chart omits xKey', () => {
+    const result = generateAnalyticsResult(
+      records,
+      {
+        ...getDefaultAnalyticsQuery(),
+        chartType: 'pie',
+        compareBy: 'mode',
+        groupBy: 'domain',
+        mode: 'both',
+        timeRange: '30d',
+      },
+      {
+        now: NOW,
+      },
+    )
+
+    expect(result.chartSpecs[0]?.xKey).toBeUndefined()
   })
 
   it('空データの normalize は0件として扱い日次タイトルを返す', () => {
@@ -609,6 +648,23 @@ describe('analytics', () => {
         id: '2',
       }),
     ])
+
+    const blankFilterResult = filterAnalyticsRecords(
+      records,
+      {
+        ...getDefaultAnalyticsQuery(),
+        filters: {
+          ...getDefaultAnalyticsQuery().filters,
+          includedDomains: ['  ', 'docs.example.com'],
+        },
+        mode: 'both',
+        timeRange: '30d',
+      },
+      {
+        now: NOW,
+      },
+    )
+    expect(blankFilterResult.map((record) => record.id)).toEqual(['1', '2'])
   })
 
   it('interprets custom date ranges using the local date', () => {
@@ -654,5 +710,21 @@ describe('analytics', () => {
     expect(presets.length).toBeGreaterThanOrEqual(6)
     expect(presets.map((preset) => preset.id)).toContain('top-domains-30d')
     expect(presets.map((preset) => preset.id)).toContain('mode-comparison-30d')
+  })
+
+  it('internal analytics helpers は time group と 0 件正規化を扱う', () => {
+    expect(getLabelsForGroup(records[0], 'timeRecent')).toEqual(['2026-03-13'])
+    expect(getLabelsForGroup(records[0], 'timeTop')).toEqual(['2026-03-13'])
+    expect(
+      getSingleSeriesTitle('timeRecent', {
+        chartDailySavedTrend: 'daily',
+      } as never),
+    ).toBe('daily')
+    expect(
+      getSingleSeriesTitle('timeTop', {
+        chartDailySavedTrend: 'daily',
+      } as never),
+    ).toBe('daily')
+    expect(getNormalizedCount(1, 0)).toBe(0)
   })
 })

@@ -45,4 +45,15 @@ describe('legacyRedirect', () => {
     expect(document.title).toBe('TABBIN')
     expect(replace).toHaveBeenCalledWith('app.html#/saved-tabs')
   })
+
+  it('replace 未指定でも DOMContentLoaded listener を登録する', () => {
+    using addEventListenerSpy = vi.spyOn(document, 'addEventListener')
+
+    initializeLegacyRedirect()
+
+    expect(addEventListenerSpy).toHaveBeenCalledWith(
+      'DOMContentLoaded',
+      expect.any(Function),
+    )
+  })
 })

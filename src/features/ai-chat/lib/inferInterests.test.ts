@@ -234,4 +234,77 @@ describe('inferUserInterests', () => {
       },
     ])
   })
+
+  it('英語ではカテゴリ一覧をカンマ区切りで要約する', () => {
+    const result = inferUserInterests(
+      [
+        {
+          id: '1',
+          url: 'https://react.dev',
+          title: 'React',
+          domain: 'react.dev',
+          savedAt: 1,
+          savedInTabGroups: [],
+          savedInProjects: [],
+          subCategories: ['Frontend'],
+          projectCategories: ['Docs'],
+          parentCategories: [],
+        },
+        {
+          id: '2',
+          url: 'https://react.dev/reference',
+          title: 'Reference',
+          domain: 'react.dev',
+          savedAt: 2,
+          savedInTabGroups: [],
+          savedInProjects: [],
+          subCategories: ['Frontend'],
+          projectCategories: ['Docs'],
+          parentCategories: [],
+        },
+        {
+          id: '3',
+          url: 'https://vercel.com',
+          title: 'Vercel',
+          domain: 'vercel.com',
+          savedAt: 3,
+          savedInTabGroups: [],
+          savedInProjects: [],
+          subCategories: ['AI'],
+          projectCategories: [],
+          parentCategories: [],
+        },
+      ],
+      'en',
+    )
+
+    expect(result.summary).toContain('Docs, Frontend, AI')
+  })
+
+  it('ドメインが無くカテゴリだけある場合はカテゴリ chart だけを返す', () => {
+    const result = inferUserInterests([
+      {
+        id: '1',
+        url: 'https://example.com',
+        title: 'One',
+        domain: '',
+        savedAt: 1,
+        savedInTabGroups: [],
+        savedInProjects: [],
+        subCategories: ['Research'],
+        projectCategories: [],
+        parentCategories: [],
+      },
+    ])
+
+    expect(result.evidence.topDomains).toEqual([])
+    expect(result.evidence.topCategories).toEqual([
+      { count: 1, value: 'Research' },
+    ])
+    expect(
+      result.chartSpecs.every(
+        (chart) => chart.title !== 'よく保存しているドメイン',
+      ),
+    ).toBe(true)
+  })
 })

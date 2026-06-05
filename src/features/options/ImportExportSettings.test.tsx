@@ -117,6 +117,7 @@ import { toast } from 'sonner'
 import {
   downloadAsJson,
   exportSettings,
+  getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
@@ -473,6 +474,103 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(importSettings).not.toHaveBeenCalled()
   })
 
+  it('10MB を超える JSON ファイルは読み込み前に拒否する', async () => {
+    const { container } = render(<ImportExportSettings />)
+
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'large.json', {
+            type: 'application/json',
+          }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'options.importExport.fileTooLarge',
+      )
+    })
+    expect(importSettings).not.toHaveBeenCalled()
+  })
+
+  it('プレビュー解析が失敗した場合はプレビューの失敗メッセージを表示する', async () => {
+    vi.mocked(getImportPreview).mockReturnValueOnce({
+      success: false,
+      message: 'Preview failed',
+    })
+
+    const { container } = render(<ImportExportSettings />)
+
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Preview failed')
+    })
+    expect(screen.queryByRole('button', { name: 'Confirm Import' })).toBeNull()
+  })
+
+  it('プレビュー解析が例外を投げた場合は読み込みエラーを表示する', async () => {
+    vi.mocked(getImportPreview).mockImplementationOnce(() => {
+      throw new Error('preview crashed')
+    })
+
+    const { container } = render(<ImportExportSettings />)
+
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
+    })
+    expect(console.error).toHaveBeenCalledWith(
+      'プレビューエラー:',
+      expect.any(Error),
+    )
+  })
+
+  it('プレビューで AI chat を含むバックアップは Yes と表示する', async () => {
+    vi.mocked(getImportPreview).mockReturnValueOnce({
+      success: true,
+      message: 'ok',
+      preview: {
+        categoriesCount: 1,
+        domainsCount: 1,
+        hasAiChat: true,
+        hasAnalytics: true,
+        projectsCount: 1,
+        timestamp: '2026-02-16T00:00:00.000Z',
+        version: '1.0.0',
+      },
+    })
+
+    const { container } = render(<ImportExportSettings />)
+
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Yes')).toBeTruthy()
+    })
+  })
+
   it('JSON ファイルを正常にインポートして background に通知する', async () => {
     vi.mocked(importSettings).mockResolvedValue({
       success: true,
@@ -560,6 +658,90 @@ describe('ImportExportSettingsコンポーネント', () => {
         screen.getByRole('button', { name: 'Confirm Import' }),
       ).toBeTruthy()
     })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Failed to import settings and tab data',
+      )
+    })
+  })
+
+  it('確定時にファイル内容が空なら読み込みエラーを表示する', async () => {
+    const { container } = render(<ImportExportSettings />)
+
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    readerMode = 'empty'
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
+    })
+  })
+
+  it('確定時の FileReader.onerror で読み込みエラーを表示する', async () => {
+    const { container } = render(<ImportExportSettings />)
+
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    readerMode = 'error'
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
+    })
+  })
+
+  it('確定時に FileReader 作成が失敗したら汎用エラーを表示する', async () => {
+    const { container } = render(<ImportExportSettings />)
+
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Confirm Import' }),
+      ).toBeTruthy()
+    })
+
+    class ThrowingFileReader {
+      constructor() {
+        throw new Error('reader constructor failed')
+      }
+    }
+    ;(globalThis as { [key: string]: unknown }).FileReader =
+      ThrowingFileReader as unknown as typeof FileReader
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))
 

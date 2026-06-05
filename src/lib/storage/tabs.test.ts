@@ -132,6 +132,94 @@ describe('tabs storage', () => {
     expect(mocks.getUrlRecordsMock).toHaveBeenCalledTimes(1)
   })
 
+  it('internal helpers は欠損 categoryKeywords/urlIds と新規 domain 設定を扱う', async () => {
+    const {
+      applySubCategoryMapping,
+      buildDomainCategorySetting,
+      categorizeUrlIdsByKeywords,
+      processTabGroupForBulkDelete,
+    } = await loadTabsModule()
+    const groupWithoutSubCategories = {
+      domain: 'legacy.example.com',
+      id: 'legacy-group',
+    } as TabGroup
+    const groupWithoutUrlIds = {
+      domain: 'legacy.example.com',
+      id: 'legacy-group',
+    } as TabGroup
+
+    expect(
+      buildDomainCategorySetting(groupWithoutSubCategories, 'docs', ['guide']),
+    ).toEqual({
+      categoryKeywords: [
+        {
+          categoryName: 'docs',
+          keywords: ['guide'],
+        },
+      ],
+      domain: 'legacy.example.com',
+      subCategories: [],
+    })
+    expect(
+      categorizeUrlIdsByKeywords(
+        [
+          {
+            id: 'url-1',
+            savedAt: 1,
+            title: 'Guide',
+            url: 'https://example.com/guide',
+          },
+        ],
+        undefined,
+        {
+          existing: 'keep',
+        },
+      ),
+    ).toEqual({
+      existing: 'keep',
+    })
+    expect(
+      categorizeUrlIdsByKeywords(
+        [
+          {
+            id: 'url-1',
+            savedAt: 1,
+            title: 'Guide',
+            url: 'https://example.com/guide',
+          },
+        ],
+        [
+          {
+            categoryName: 'docs',
+            keywords: ['guide'],
+          },
+        ],
+      ),
+    ).toEqual({
+      'url-1': 'docs',
+    })
+    expect(
+      processTabGroupForBulkDelete(groupWithoutUrlIds, new Set(['url-1'])),
+    ).toBe(false)
+    const groupWithoutUrlSubCategories = {
+      domain: 'legacy.example.com',
+      id: 'legacy-with-url',
+      urlIds: ['url-1'],
+    } as TabGroup
+    expect(
+      processTabGroupForBulkDelete(
+        groupWithoutUrlSubCategories,
+        new Set(['url-1']),
+      ),
+    ).toBe(true)
+    expect(groupWithoutUrlSubCategories.urlIds).toEqual([])
+    const mappingGroups = [groupWithoutUrlIds]
+    applySubCategoryMapping(mappingGroups, 'missing-group', { 'url-1': 'docs' })
+    expect(mappingGroups[0].urlSubCategories).toBeUndefined()
+    applySubCategoryMapping(mappingGroups, 'legacy-group', { 'url-1': 'docs' })
+    expect(mappingGroups[0].urlSubCategories).toEqual({ 'url-1': 'docs' })
+  })
+
   it('resolveTabGroupsWithUrls は空配列ならマイグレーションもURL取得もしない', async () => {
     const { resolveTabGroupsWithUrls } = await loadTabsModule()
 
@@ -246,6 +334,45 @@ describe('tabs storage', () => {
     ])
   })
 
+  it('addUrlToTabGroup は subCategory なしなら urlSubCategories を作らない', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.createOrUpdateUrlRecordMock.mockResolvedValue({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'Doc',
+      url: 'https://example.com/doc',
+    })
+
+    const { addUrlToTabGroup } = await loadTabsModule()
+
+    await addUrlToTabGroup('group-1', 'https://example.com/doc', 'Doc')
+
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      },
+    ])
+  })
+
   it('subCategory APIs はグループと永続ドメイン設定を更新する', async () => {
     const state = {
       savedTabs: [
@@ -295,6 +422,7 @@ describe('tabs storage', () => {
     await setUrlSubCategory('group-1', 'https://example.com/reference', 'docs')
     await setCategoryKeywords('group-1', 'docs', ['ref'])
     await addSubCategoryWithKeywords('group-1', 'tech', ['Reference'])
+    await addSubCategoryWithKeywords('group-1', 'plain')
 
     expect(state.savedTabs[0]).toEqual(
       expect.objectContaining({
@@ -308,7 +436,7 @@ describe('tabs storage', () => {
             keywords: ['Reference'],
           },
         ],
-        subCategories: ['docs', 'news', 'tech'],
+        subCategories: ['docs', 'news', 'tech', 'plain'],
         urlSubCategories: {
           'url-1': 'docs',
         },
@@ -394,6 +522,82 @@ describe('tabs storage', () => {
         keywords: ['new'],
       },
     ])
+  })
+
+  it('setUrlSubCategory は既存 urlSubCategories に上書き保存する', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          urlIds: ['url-1'],
+          urlSubCategories: {
+            'url-1': 'docs',
+          },
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getUrlRecordsByIdsMock.mockResolvedValue([
+      {
+        id: 'url-1',
+        savedAt: 1,
+        title: 'Reference',
+        url: 'https://example.com/reference',
+      },
+    ])
+
+    const { setUrlSubCategory } = await loadTabsModule()
+
+    await setUrlSubCategory('group-1', 'https://example.com/reference', 'news')
+
+    expect(state.savedTabs[0]?.urlSubCategories).toEqual({
+      'url-1': 'news',
+    })
+  })
+
+  it('既存設定に subCategory がある場合はドメイン設定を重複保存しない', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          subCategories: ['docs'],
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getDomainCategorySettingsMock.mockResolvedValue([
+      {
+        categoryKeywords: [],
+        domain: 'example.com',
+        subCategories: ['docs'],
+      },
+    ])
+
+    const { addSubCategoryToGroup } = await loadTabsModule()
+
+    await addSubCategoryToGroup('group-1', 'docs')
+
+    expect(mocks.saveDomainCategorySettingsMock).not.toHaveBeenCalled()
   })
 
   it('autoCategorizeTabs は重複グループを除外しキーワード一致URLを分類する', async () => {
@@ -755,12 +959,16 @@ describe('tabs storage', () => {
     const {
       removeUrlFromTabGroup,
       removeUrlIdsFromTabGroup,
+      removeUrlsFromTabGroup,
       reorderTabGroupUrls,
     } = await loadTabsModule()
 
     await reorderTabGroupUrls('missing', ['https://example.com/only'])
+    await reorderTabGroupUrls('group-2', ['https://example.com/only'])
     await removeUrlFromTabGroup('missing', 'https://example.com/only')
+    await removeUrlFromTabGroup('group-2', 'https://example.com/only')
     await removeUrlIdsFromTabGroup('group-2', ['url-1'])
+    await removeUrlsFromTabGroup('group-2', ['https://example.com/only'])
     await removeUrlFromTabGroup('group-1', 'https://example.com/only')
 
     expect(state.savedTabs).toEqual([
@@ -794,6 +1002,87 @@ describe('tabs storage', () => {
     const { removeUrlIdsFromTabGroup } = await loadTabsModule()
 
     await removeUrlIdsFromTabGroup('group-1', ['url-1'])
+
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'empty.example.com',
+        id: 'group-1',
+      },
+    ])
+  })
+
+  it('removeUrlFromTabGroup は urlSubCategories 未設定でも URL を削除する', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          urlIds: ['url-1', 'url-2'],
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getUrlRecordsByIdsMock.mockResolvedValue([
+      {
+        id: 'url-1',
+        savedAt: 1,
+        title: 'One',
+        url: 'https://example.com/one',
+      },
+      {
+        id: 'url-2',
+        savedAt: 2,
+        title: 'Two',
+        url: 'https://example.com/two',
+      },
+    ])
+
+    const { removeUrlFromTabGroup } = await loadTabsModule()
+
+    await removeUrlFromTabGroup('group-1', 'https://example.com/one')
+
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-2'],
+      },
+    ])
+  })
+
+  it('removeUrlsFromTabGroup は URL IDs のないグループを変更なしで残す', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'empty.example.com',
+          id: 'group-1',
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getUrlRecordsByIdsMock.mockResolvedValue([])
+
+    const { removeUrlsFromTabGroup } = await loadTabsModule()
+
+    await removeUrlsFromTabGroup('group-1', ['https://empty.example.com/a'])
 
     expect(state.savedTabs).toEqual([
       {
@@ -897,6 +1186,49 @@ describe('tabs storage', () => {
     ])
   })
 
+  it('URL ID はあるが対象 URL record がない場合は no-op する', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          urlIds: ['url-1'],
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getUrlRecordsByIdsMock.mockResolvedValue([])
+
+    const {
+      removeUrlFromTabGroup,
+      removeUrlsFromTabGroup,
+      reorderTabGroupUrls,
+      setUrlSubCategory,
+    } = await loadTabsModule()
+
+    await setUrlSubCategory('group-1', 'https://example.com/missing', 'docs')
+    await reorderTabGroupUrls('group-1', ['https://example.com/missing'])
+    await removeUrlFromTabGroup('group-1', 'https://example.com/missing')
+    await removeUrlsFromTabGroup('group-1', ['https://example.com/missing'])
+
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      },
+    ])
+  })
+
   it('カテゴリ設定が未作成のドメインでは subCategory/keywords 設定を新規保存する', async () => {
     const state = {
       savedTabs: [
@@ -946,6 +1278,107 @@ describe('tabs storage', () => {
         subCategories: ['docs'],
       },
     ])
+  })
+
+  it('setCategoryKeywords は domain 設定がない場合に新規作成する', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'new.example.com',
+          id: 'group-1',
+          subCategories: ['docs'],
+          urlIds: ['url-1'],
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getDomainCategorySettingsMock.mockResolvedValueOnce([])
+    mocks.getUrlRecordsByIdsMock.mockResolvedValue([])
+
+    const { setCategoryKeywords } = await loadTabsModule()
+
+    await setCategoryKeywords('group-1', 'docs', ['guide'])
+
+    expect(mocks.saveDomainCategorySettingsMock).toHaveBeenCalledWith([
+      {
+        categoryKeywords: [
+          {
+            categoryName: 'docs',
+            keywords: ['guide'],
+          },
+        ],
+        domain: 'new.example.com',
+        subCategories: ['docs'],
+      },
+    ])
+  })
+
+  it('legacy group は subCategories と categoryKeywords が未定義でも安全に扱う', async () => {
+    const state = {
+      savedTabs: [
+        {
+          domain: 'legacy.example.com',
+          id: 'legacy-group',
+          urlIds: ['url-1'],
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getDomainCategorySettingsMock.mockResolvedValue([])
+    mocks.getUrlRecordsByIdsMock.mockResolvedValue([
+      {
+        id: 'url-1',
+        savedAt: 1,
+        title: 'Guide',
+        url: 'https://legacy.example.com/guide',
+      },
+    ])
+
+    const { addSubCategoryToGroup, autoCategorizeTabs, setCategoryKeywords } =
+      await loadTabsModule()
+
+    await addSubCategoryToGroup('legacy-group', 'docs')
+    state.savedTabs[0].subCategories = undefined
+    await setCategoryKeywords('legacy-group', 'docs', ['guide'])
+    state.savedTabs[0].categoryKeywords = undefined
+    state.savedTabs[0].urlSubCategories = {
+      'url-1': 'existing',
+    }
+    await autoCategorizeTabs('legacy-group')
+
+    expect(mocks.saveDomainCategorySettingsMock).toHaveBeenCalledWith([
+      {
+        categoryKeywords: [
+          {
+            categoryName: 'docs',
+            keywords: ['guide'],
+          },
+        ],
+        domain: 'legacy.example.com',
+        subCategories: ['docs'],
+      },
+    ])
+    expect(state.savedTabs[0].urlSubCategories).toEqual({
+      'url-1': 'existing',
+    })
   })
 
   it('削除同期に失敗してもタブグループ更新自体は完了する', async () => {

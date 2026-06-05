@@ -200,14 +200,9 @@ const removeUrlIdsFromSavedTabs = (
       urlIds: updatedUrlIds,
       ...(hasSubCategoryChanges && updatedUrlSubCategories
         ? { urlSubCategories: updatedUrlSubCategories }
-        : /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
-          {}),
-      /* v8 ignore stop */
-      /* v8 ignore next -- coverage-only defensive branch. */
+        : {}),
       ...(!hasSubCategoryChanges && group.urlSubCategories
-        ? /* v8 ignore next -- coverage-only defensive branch. */
-          { urlSubCategories: group.urlSubCategories }
+        ? { urlSubCategories: group.urlSubCategories }
         : {}),
     })
   }
@@ -227,7 +222,6 @@ const removeUrlIdsFromCustomProjects = (
   let hasChanges = false
 
   const updatedProjects = customProjects.map((project) => {
-    /* v8 ignore next -- coverage-only defensive branch. */
     const currentUrlIds = Array.isArray(project.urlIds) ? project.urlIds : []
     const updatedUrlIds = currentUrlIds.filter((id) => !urlIds.has(id))
     const { hasChanges: hasMetadataChanges, record: updatedUrlMetadata } =
@@ -368,25 +362,14 @@ const removeUrlRecordsFromStorage = async (
     )
     const savedTabs = Array.isArray(storageResult.savedTabs)
       ? storageResult.savedTabs
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        []
-    /* v8 ignore stop */
-    /* v8 ignore next -- coverage-only defensive branch. */
+      : []
     const urls = Array.isArray(storageResult.urls) ? storageResult.urls : []
     const customProjects = Array.isArray(storageResult.customProjects)
       ? storageResult.customProjects
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        []
-    /* v8 ignore stop */
+      : []
     const parentCategories = Array.isArray(storageResult.parentCategories)
       ? storageResult.parentCategories
-      : /* v8 ignore next -- coverage-only defensive branch. */
-        /* v8 ignore start -- coverage-only defensive branch. */
-        []
-    /* v8 ignore stop */
-
+      : []
     const savedTabsResult = removeUrlIdsFromSavedTabs(savedTabs, targetUrlIds)
     const customProjectsResult = removeUrlIdsFromCustomProjects(
       customProjects,
@@ -414,7 +397,6 @@ const removeUrlRecordsFromStorage = async (
 
     if (Object.keys(payload).length > 0) {
       await chrome.storage.local.set(payload)
-      /* v8 ignore next -- coverage-only defensive branch. */
       if (urlsResult.hasChanges) {
         invalidateUrlCache()
       }

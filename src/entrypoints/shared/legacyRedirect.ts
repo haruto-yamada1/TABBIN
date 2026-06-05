@@ -13,23 +13,25 @@ const syncDocumentTitle = (
   return document.title
 }
 
-/* v8 ignore start -- exercising the default jsdom navigation path emits a warning. */
 const redirectToApp = (
-  pathname = window.location.pathname,
-  search = window.location.search,
-  replace: (href: string) => void = (href) => window.location.replace(href),
+  pathname: string,
+  search: string,
+  replace: (href: string) => void,
 ) => {
-  /* v8 ignore stop */
   const nextHref = getLegacyRedirectHref(pathname, search)
   replace(nextHref)
   return nextHref
 }
 
 interface LegacyRedirectOptions {
-  replace?: (href: string) => void
+  replace: (href: string) => void
 }
 
-const initializeLegacyRedirect = (options: LegacyRedirectOptions = {}) => {
+const initializeLegacyRedirect = (
+  options: LegacyRedirectOptions = {
+    replace: window.location.replace.bind(window.location),
+  },
+) => {
   document.addEventListener('DOMContentLoaded', () => {
     syncDocumentTitle()
     redirectToApp(

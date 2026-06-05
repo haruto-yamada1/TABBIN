@@ -148,6 +148,169 @@ const awaitableEmptyRecords: Awaited<ReturnType<typeof loadAnalyticsRecords>> =
 
 const shouldConfirmBulkOpen = (recordCount: number): boolean =>
   recordCount >= 10
+const noop = (): void => {}
+
+const shouldSkipSingleDelete = ({
+  deletingUrl,
+  isBulkDeleting,
+}: {
+  deletingUrl: string | null
+  isBulkDeleting: boolean
+}): boolean => Boolean(deletingUrl || isBulkDeleting)
+
+const shouldSkipOpenAll = (recordCount: number): boolean => recordCount === 0
+
+const shouldSkipBulkDelete = ({
+  deletingUrl,
+  isBulkDeleting,
+  matchingRecordCount,
+}: {
+  deletingUrl: string | null
+  isBulkDeleting: boolean
+  matchingRecordCount: number
+}): boolean =>
+  matchingRecordCount === 0 || Boolean(deletingUrl || isBulkDeleting)
+
+const shouldIgnoreBulkDeleteDialogClose = ({
+  isBulkDeleting,
+  isOpen,
+}: {
+  isBulkDeleting: boolean
+  isOpen: boolean
+}): boolean => !isOpen && isBulkDeleting
+
+const shouldIgnoreSingleDeleteDialogClose = ({
+  deletingUrl,
+  isOpen,
+}: {
+  deletingUrl: string | null
+  isOpen: boolean
+}): boolean => !isOpen && Boolean(deletingUrl)
+
+const getDrilldownMatchingRecords = (
+  selection: AnalyticsDrilldownSelection | null,
+): AiSavedUrlRecord[] => selection?.matchingRecords ?? []
+
+const runSingleDeleteWhenAllowed = async ({
+  deletingUrl,
+  isBulkDeleting,
+  onRun,
+}: {
+  deletingUrl: string | null
+  isBulkDeleting: boolean
+  onRun: () => Promise<void>
+}): Promise<boolean> => {
+  if (shouldSkipSingleDelete({ deletingUrl, isBulkDeleting })) {
+    return false
+  }
+
+  await onRun()
+  return true
+}
+
+const runBulkDeleteWhenAllowed = async ({
+  deletingUrl,
+  isBulkDeleting,
+  matchingRecordCount,
+  onRun,
+}: {
+  deletingUrl: string | null
+  isBulkDeleting: boolean
+  matchingRecordCount: number
+  onRun: () => Promise<void>
+}): Promise<boolean> => {
+  if (
+    shouldSkipBulkDelete({
+      deletingUrl,
+      isBulkDeleting,
+      matchingRecordCount,
+    })
+  ) {
+    return false
+  }
+
+  await onRun()
+  return true
+}
+
+type DeleteClickAction = 'confirm' | 'delete' | 'skip'
+const getDeleteClickAction = ({
+  confirmDeleteEach,
+  deletingUrl,
+  isBulkDeleting,
+}: {
+  confirmDeleteEach: boolean
+  deletingUrl: string | null
+  isBulkDeleting: boolean
+}): DeleteClickAction => {
+  if (shouldSkipSingleDelete({ deletingUrl, isBulkDeleting })) {
+    return 'skip'
+  }
+
+  return confirmDeleteEach ? 'confirm' : 'delete'
+}
+
+type OpenAllAction = 'confirm' | 'open' | 'skip'
+const getOpenAllAction = (recordCount: number): OpenAllAction => {
+  if (shouldSkipOpenAll(recordCount)) {
+    return 'skip'
+  }
+
+  return shouldConfirmBulkOpen(recordCount) ? 'confirm' : 'open'
+}
+
+type DeleteAllAction = 'confirm' | 'delete' | 'skip'
+const getDeleteAllAction = ({
+  confirmDeleteAll,
+  deletingUrl,
+  isBulkDeleting,
+  matchingRecordCount,
+}: {
+  confirmDeleteAll: boolean
+  deletingUrl: string | null
+  isBulkDeleting: boolean
+  matchingRecordCount: number
+}): DeleteAllAction => {
+  if (
+    shouldSkipBulkDelete({
+      deletingUrl,
+      isBulkDeleting,
+      matchingRecordCount,
+    })
+  ) {
+    return 'skip'
+  }
+
+  return confirmDeleteAll ? 'confirm' : 'delete'
+}
+
+const getNextBulkDeleteDialogOpen = ({
+  currentOpen,
+  isBulkDeleting,
+  isOpen,
+}: {
+  currentOpen: boolean
+  isBulkDeleting: boolean
+  isOpen: boolean
+}): boolean =>
+  shouldIgnoreBulkDeleteDialogClose({ isBulkDeleting, isOpen })
+    ? currentOpen
+    : isOpen
+
+const getNextDeleteTargetAfterDialogOpenChange = ({
+  currentTarget,
+  deletingUrl,
+  isOpen,
+}: {
+  currentTarget: AiSavedUrlRecord | null
+  deletingUrl: string | null
+  isOpen: boolean
+}): AiSavedUrlRecord | null =>
+  shouldIgnoreSingleDeleteDialogClose({ deletingUrl, isOpen })
+    ? currentTarget
+    : isOpen
+      ? currentTarget
+      : null
 
 const removeUrlFromStorage = async (url: string): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -162,11 +325,13 @@ const removeUrlFromStorage = async (url: string): Promise<void> =>
           return
         }
 
-        /* v8 ignore next -- coverage-only defensive branch. */
         reject(new Error(response?.error || 'removeUrlFromStorage failed'))
       },
     )
   })
+
+const getAnalyticsDateLocale = (language: string): 'en-US' | 'ja-JP' =>
+  language === 'ja' ? 'ja-JP' : 'en-US'
 
 const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -182,7 +347,6 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
         }
 
         reject(
-          /* v8 ignore next -- coverage-only defensive branch. */
           new Error(response?.error || 'removeUrlRecordsFromStorage failed'),
         )
       },
@@ -216,11 +380,7 @@ const getAnalyticsDeleteUndoSnapshot =
     ])
 
 const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
-  /* v8 ignore next -- coverage-only defensive branch. */
-  /* v8 ignore start -- coverage-only defensive branch. */
   Array.isArray(value) ? value : undefined
-/* v8 ignore stop */
-
 const createAnalyticsDeleteUndoPayload = (
   snapshot: AnalyticsDeleteUndoSnapshot,
 ): AnalyticsDeleteUndoPayload => {
@@ -231,23 +391,18 @@ const createAnalyticsDeleteUndoPayload = (
   const parentCategories = getSnapshotArray(snapshot.parentCategories)
   const urls = getSnapshotArray(snapshot.urls)
 
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (savedTabs) {
     payload.savedTabs = savedTabs
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (customProjects) {
     payload.customProjects = customProjects
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (customProjectOrder) {
     payload.customProjectOrder = customProjectOrder
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (parentCategories) {
     payload.parentCategories = parentCategories
   }
-  /* v8 ignore next -- coverage-only defensive branch. */
   if (urls) {
     payload.urls = urls
   }
@@ -275,6 +430,17 @@ type AnalyticsChartMessages = NonNullable<
   Parameters<typeof generateAnalyticsResult>[2]
 >['messages']
 
+const getAnalyticsChartDatumLabels = (
+  data: Array<{ label?: unknown }> | undefined,
+): string[] =>
+  data?.reduce<string[]>((items, datum) => {
+    const label = String(datum.label ?? '')
+    if (label) {
+      items.push(label)
+    }
+    return items
+  }, []) ?? []
+
 const getDrilldownLabelsForRecord = (
   record: AiSavedUrlRecord,
   query: AnalyticsQuery,
@@ -284,7 +450,7 @@ const getDrilldownLabelsForRecord = (
   switch (query.groupBy) {
     case 'timeRecent':
     case 'timeTop': {
-      return (
+      return getAnalyticsChartDatumLabels(
         generateAnalyticsResult(
           [record],
           {
@@ -292,18 +458,7 @@ const getDrilldownLabelsForRecord = (
             compareBy: 'none',
           },
           { messages: chartMessages },
-        ).chartSpecs[0]?.data.reduce<string[]>((items, datum) => {
-          /* v8 ignore next -- coverage-only defensive branch. */
-          const label = String(datum.label ?? '')
-          /* v8 ignore next -- coverage-only defensive branch. */
-          if (label) {
-            items.push(label)
-          }
-          return items
-          /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
-        }, []) ?? []
-        /* v8 ignore stop */
+        ).chartSpecs[0]?.data,
       )
     }
     case 'parentCategory': {
@@ -319,19 +474,13 @@ const getDrilldownLabelsForRecord = (
     case 'project': {
       return record.savedInProjects.length > 0
         ? record.savedInProjects
-        : /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
-          [uncategorizedLabel]
+        : [uncategorizedLabel]
     }
-    /* v8 ignore stop */
     case 'projectCategory': {
       return record.projectCategories.length > 0
         ? record.projectCategories
-        : /* v8 ignore next -- coverage-only defensive branch. */
-          /* v8 ignore start -- coverage-only defensive branch. */
-          [uncategorizedLabel]
+        : [uncategorizedLabel]
     }
-    /* v8 ignore stop */
     default: {
       return [record.domain]
     }
@@ -392,6 +541,52 @@ const matchesDrilldownLabel = ({
     uncategorizedLabel,
     chartMessages,
   ).some((value) => value.toLowerCase() === normalizedLabel)
+}
+
+const rebuildAnalyticsDrilldownSelection = ({
+  chartMessages,
+  currentSelection,
+  nextRecords,
+  query,
+  uncategorizedLabel,
+}: {
+  chartMessages: AnalyticsChartMessages
+  currentSelection: AnalyticsDrilldownSelection | null
+  nextRecords: AiSavedUrlRecord[]
+  query: AnalyticsQuery
+  uncategorizedLabel: string
+}): AnalyticsDrilldownSelection | null => {
+  if (!currentSelection) {
+    return null
+  }
+
+  return {
+    ...currentSelection,
+    matchingRecords: filterAnalyticsRecords(nextRecords, query, {
+      messages: chartMessages,
+    }).filter((record) =>
+      matchesDrilldownLabel({
+        chartMessages,
+        label: currentSelection.label,
+        query,
+        record,
+        seriesKey: currentSelection.seriesKey,
+        uncategorizedLabel,
+      }),
+    ),
+  }
+}
+
+const runConfirmedDelete = (
+  deleteTarget: AiSavedUrlRecord | null,
+  performDelete: (record: AiSavedUrlRecord) => Promise<void>,
+): boolean => {
+  if (!deleteTarget) {
+    return false
+  }
+
+  void performDelete(deleteTarget)
+  return true
 }
 
 const getViewNameValidationError = ({
@@ -619,29 +814,15 @@ const useAnalyticsRouteView = () => {
   }
 
   const rebuildDrilldownSelection = (nextRecords: AiSavedUrlRecord[]) => {
-    setDrilldownSelection((currentSelection) => {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      if (!currentSelection) {
-        /* v8 ignore next -- coverage-only defensive branch. */
-        return null
-      }
-
-      return {
-        ...currentSelection,
-        matchingRecords: filterAnalyticsRecords(nextRecords, query, {
-          messages: chartMessages,
-        }).filter((record) =>
-          matchesDrilldownLabel({
-            chartMessages,
-            label: currentSelection.label,
-            query,
-            record,
-            seriesKey: currentSelection.seriesKey,
-            uncategorizedLabel: t('analytics.uncategorized'),
-          }),
-        ),
-      }
-    })
+    setDrilldownSelection((currentSelection) =>
+      rebuildAnalyticsDrilldownSelection({
+        chartMessages,
+        currentSelection,
+        nextRecords,
+        query,
+        uncategorizedLabel: t('analytics.uncategorized'),
+      }),
+    )
   }
 
   const showDeleteUndoToast = ({
@@ -680,120 +861,115 @@ const useAnalyticsRouteView = () => {
   }
 
   const performDelete = async (record: AiSavedUrlRecord) => {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (deletingUrl || isBulkDeleting) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      return
-    }
-
-    try {
-      setDeletingUrl(record.url)
-      const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
-      const nextRecords = await removeUrlFromStorage(record.url).then(() =>
-        refreshRecords(),
-      )
-      rebuildDrilldownSelection(nextRecords)
-      showDeleteUndoToast({
-        count: 1,
-        snapshot: undoSnapshot,
-      })
-    } catch (error) {
-      console.error('Failed to delete analytics drilldown url:', error)
-      toast.error(t('savedTabs.tab.deleteError'))
-    } finally {
-      setDeletingUrl(null)
-      setDeleteTarget(null)
-    }
+    await runSingleDeleteWhenAllowed({
+      deletingUrl,
+      isBulkDeleting,
+      onRun: async () => {
+        try {
+          setDeletingUrl(record.url)
+          const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
+          const nextRecords = await removeUrlFromStorage(record.url).then(() =>
+            refreshRecords(),
+          )
+          rebuildDrilldownSelection(nextRecords)
+          showDeleteUndoToast({
+            count: 1,
+            snapshot: undoSnapshot,
+          })
+        } catch (error) {
+          console.error('Failed to delete analytics drilldown url:', error)
+          toast.error(t('savedTabs.tab.deleteError'))
+        } finally {
+          setDeletingUrl(null)
+          setDeleteTarget(null)
+        }
+      },
+    })
   }
 
   const handleDeleteClick = (record: AiSavedUrlRecord) => {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (deletingUrl || isBulkDeleting) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      return
+    const action = getDeleteClickAction({
+      confirmDeleteEach: settings.confirmDeleteEach,
+      deletingUrl,
+      isBulkDeleting,
+    })
+    const actions: Record<DeleteClickAction, () => void> = {
+      confirm: () => setDeleteTarget(record),
+      delete: () => {
+        void performDelete(record)
+      },
+      skip: noop,
     }
-
-    if (settings.confirmDeleteEach) {
-      setDeleteTarget(record)
-      return
-    }
-
-    void performDelete(record)
+    actions[action]()
   }
 
   const handleOpenAllDrilldownRecords = () => {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    const matchingRecords = drilldownSelection?.matchingRecords ?? []
+    const matchingRecords = getDrilldownMatchingRecords(drilldownSelection)
     for (const record of matchingRecords) {
       window.open(record.url, '_blank', 'noopener,noreferrer')
     }
   }
 
   const handleOpenAllClick = () => {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    const recordCount = drilldownSelection?.matchingRecords.length ?? 0
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (recordCount === 0) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      return
+    const action = getOpenAllAction(
+      getDrilldownMatchingRecords(drilldownSelection).length,
+    )
+    const actions: Record<OpenAllAction, () => void> = {
+      confirm: () => setIsOpenAllConfirmOpen(true),
+      open: handleOpenAllDrilldownRecords,
+      skip: noop,
     }
-
-    if (shouldConfirmBulkOpen(recordCount)) {
-      setIsOpenAllConfirmOpen(true)
-      return
-    }
-
-    handleOpenAllDrilldownRecords()
+    actions[action]()
   }
 
   const performBulkDelete = async () => {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    const matchingRecords = drilldownSelection?.matchingRecords ?? []
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (matchingRecords.length === 0 || deletingUrl || isBulkDeleting) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      return
-    }
-
-    try {
-      setIsBulkDeleting(true)
-      const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
-      const nextRecords = await removeUrlRecordsFromStorage(
-        matchingRecords.map((record) => record.id),
-      ).then(() => refreshRecords())
-      rebuildDrilldownSelection(nextRecords)
-      showDeleteUndoToast({
-        count: matchingRecords.length,
-        snapshot: undoSnapshot,
-      })
-    } catch (error) {
-      console.error('Failed to bulk delete analytics drilldown urls:', error)
-      toast.error(t('analytics.deleteTabsError'))
-    } finally {
-      setIsBulkDeleting(false)
-      setIsBulkDeleteConfirmOpen(false)
-    }
+    const matchingRecords = getDrilldownMatchingRecords(drilldownSelection)
+    await runBulkDeleteWhenAllowed({
+      deletingUrl,
+      isBulkDeleting,
+      matchingRecordCount: matchingRecords.length,
+      onRun: async () => {
+        try {
+          setIsBulkDeleting(true)
+          const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
+          const nextRecords = await removeUrlRecordsFromStorage(
+            matchingRecords.map((record) => record.id),
+          ).then(() => refreshRecords())
+          rebuildDrilldownSelection(nextRecords)
+          showDeleteUndoToast({
+            count: matchingRecords.length,
+            snapshot: undoSnapshot,
+          })
+        } catch (error) {
+          console.error(
+            'Failed to bulk delete analytics drilldown urls:',
+            error,
+          )
+          toast.error(t('analytics.deleteTabsError'))
+        } finally {
+          setIsBulkDeleting(false)
+          setIsBulkDeleteConfirmOpen(false)
+        }
+      },
+    })
   }
 
   const handleDeleteAllClick = () => {
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (deletingUrl || isBulkDeleting) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      return
+    const action = getDeleteAllAction({
+      confirmDeleteAll: settings.confirmDeleteAll,
+      deletingUrl,
+      isBulkDeleting,
+      matchingRecordCount:
+        getDrilldownMatchingRecords(drilldownSelection).length,
+    })
+    const actions: Record<DeleteAllAction, () => void> = {
+      confirm: () => setIsBulkDeleteConfirmOpen(true),
+      delete: () => {
+        void performBulkDelete()
+      },
+      skip: noop,
     }
-
-    /* v8 ignore next -- coverage-only defensive branch. */
-    if (!drilldownSelection?.matchingRecords.length) {
-      /* v8 ignore next -- coverage-only defensive branch. */
-      return
-    }
-
-    if (settings.confirmDeleteAll) {
-      setIsBulkDeleteConfirmOpen(true)
-      return
-    }
-
-    void performBulkDelete()
+    actions[action]()
   }
 
   const isDeleteActionDisabled = deletingUrl !== null || isBulkDeleting
@@ -1170,8 +1346,7 @@ const useAnalyticsRouteView = () => {
                                 <time className='text-xs text-muted-foreground'>
                                   {formatLocaleDateTime(
                                     record.savedAt,
-                                    /* v8 ignore next -- coverage-only defensive branch. */
-                                    language === 'ja' ? 'ja-JP' : 'en-US',
+                                    getAnalyticsDateLocale(language),
                                   )}
                                 </time>
                                 <AnalyticsRecordActionButtons
@@ -1205,12 +1380,13 @@ const useAnalyticsRouteView = () => {
 
       <AlertDialog
         onOpenChange={(isOpen) => {
-          /* v8 ignore next -- coverage-only defensive branch. */
-          if (!isOpen && isBulkDeleting) {
-            /* v8 ignore next -- coverage-only defensive branch. */
-            return
-          }
-          setIsBulkDeleteConfirmOpen(isOpen)
+          setIsBulkDeleteConfirmOpen((currentOpen) =>
+            getNextBulkDeleteDialogOpen({
+              currentOpen,
+              isBulkDeleting,
+              isOpen,
+            }),
+          )
         }}
         open={isBulkDeleteConfirmOpen}
       >
@@ -1268,15 +1444,13 @@ const useAnalyticsRouteView = () => {
 
       <AlertDialog
         onOpenChange={(isOpen) => {
-          /* v8 ignore next -- coverage-only defensive branch. */
-          if (!isOpen && deletingUrl) {
-            /* v8 ignore next -- coverage-only defensive branch. */
-            return
-          }
-          /* v8 ignore next -- coverage-only defensive branch. */
-          if (!isOpen) {
-            setDeleteTarget(null)
-          }
+          setDeleteTarget((currentTarget) =>
+            getNextDeleteTargetAfterDialogOpenChange({
+              currentTarget,
+              deletingUrl,
+              isOpen,
+            }),
+          )
         }}
         open={Boolean(deleteTarget)}
       >
@@ -1295,13 +1469,7 @@ const useAnalyticsRouteView = () => {
               variant='destructive'
               onClick={(event) => {
                 event.preventDefault()
-                /* v8 ignore next -- coverage-only defensive branch. */
-                if (!deleteTarget) {
-                  /* v8 ignore next -- coverage-only defensive branch. */
-                  return
-                }
-
-                void performDelete(deleteTarget)
+                runConfirmedDelete(deleteTarget, performDelete)
               }}
             >
               {t('common.delete')}
@@ -1315,4 +1483,34 @@ const useAnalyticsRouteView = () => {
 
 const AnalyticsRoute = () => useAnalyticsRouteView()
 
-export { AnalyticsRoute }
+export {
+  AnalyticsRoute,
+  createAnalyticsDeleteUndoPayload,
+  getAnalyticsChartDatumLabels,
+  getDeleteAllAction,
+  getDeleteClickAction,
+  getDrilldownLabelsForRecord,
+  getDrilldownMatchingRecords,
+  getAnalyticsDateLocale,
+  getLatestAnalyticsQuery,
+  getLatestAssistantCharts,
+  getNextBulkDeleteDialogOpen,
+  getNextDeleteTargetAfterDialogOpenChange,
+  getOpenAllAction,
+  getViewNameValidationError,
+  matchesDrilldownLabel,
+  normalizeAnalyticsRouteQuery,
+  noop,
+  rebuildAnalyticsDrilldownSelection,
+  removeUrlFromStorage,
+  removeUrlRecordsFromStorage,
+  runBulkDeleteWhenAllowed,
+  runConfirmedDelete,
+  runSingleDeleteWhenAllowed,
+  shouldConfirmBulkOpen,
+  shouldIgnoreBulkDeleteDialogClose,
+  shouldIgnoreSingleDeleteDialogClose,
+  shouldSkipBulkDelete,
+  shouldSkipOpenAll,
+  shouldSkipSingleDelete,
+}

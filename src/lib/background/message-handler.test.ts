@@ -350,10 +350,16 @@ describe('setupMessageListener', () => {
     const { listener } = setupListener()
     const bulkRemoveResponse = vi.fn()
     const emptyBulkRemoveResponse = vi.fn()
+    const invalidBulkRemoveResponse = vi.fn()
     const bulkRemoveErrorResponse = vi.fn()
+    const errorObjectResponse = vi.fn()
     mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(2)
     mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(0)
+    mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(0)
     mocked.removeUrlRecordsFromStorage.mockRejectedValueOnce('bulk failed')
+    mocked.removeUrlRecordsFromStorage.mockRejectedValueOnce(
+      new Error('bulk object failed'),
+    )
 
     listener(
       {
@@ -392,6 +398,22 @@ describe('setupMessageListener', () => {
     listener(
       {
         action: 'removeUrlRecordsFromStorage',
+        urlIds: 'invalid',
+      },
+      {} as chrome.runtime.MessageSender,
+      invalidBulkRemoveResponse,
+    )
+    await vi.waitFor(() => {
+      expect(invalidBulkRemoveResponse).toHaveBeenCalledWith({
+        removedCount: 0,
+        status: 'removed',
+      })
+    })
+    expect(mocked.removeUrlRecordsFromStorage).toHaveBeenCalledWith([])
+
+    listener(
+      {
+        action: 'removeUrlRecordsFromStorage',
         urlIds: ['url-1'],
       },
       {} as chrome.runtime.MessageSender,
@@ -400,6 +422,21 @@ describe('setupMessageListener', () => {
     await vi.waitFor(() => {
       expect(bulkRemoveErrorResponse).toHaveBeenCalledWith({
         error: 'bulk failed',
+        status: 'error',
+      })
+    })
+
+    listener(
+      {
+        action: 'removeUrlRecordsFromStorage',
+        urlIds: ['url-2'],
+      },
+      {} as chrome.runtime.MessageSender,
+      errorObjectResponse,
+    )
+    await vi.waitFor(() => {
+      expect(errorObjectResponse).toHaveBeenCalledWith({
+        error: 'bulk object failed',
         status: 'error',
       })
     })

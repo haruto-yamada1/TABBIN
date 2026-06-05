@@ -328,7 +328,24 @@ import {
 } from '@/lib/storage/tabs'
 import { getUrlRecords } from '@/lib/storage/urls'
 
-import { SavedTabsApp } from './SavedTabsApp'
+import {
+  buildCategoryLookup,
+  buildDisplayTabGroup,
+  buildUpdatedGroupAfterUrlIdRemoval,
+  buildUrlIdsToRemove,
+  countTabGroupUrls,
+  createFilterGroupsByExcludedIdsUpdater,
+  filterGroupByQuery,
+  filterGroupsByExcludedIds,
+  getDisplayUrlCount,
+  notifyDeleteFailure,
+  removeUrlsFromCustomProjectsForGroup,
+  removeUrlsFromCustomProjectsForGroups,
+  restoreOpenedUrlsSnapshot,
+  SavedTabsApp,
+  sortCategorizedGroups,
+  syncGroupCategoryAssignment,
+} from './SavedTabsApp'
 
 describe('SavedTabsApp custom search', () => {
   beforeEach(() => {
@@ -339,6 +356,7 @@ describe('SavedTabsApp custom search', () => {
     mocked.settings.openAllInNewWindow = false
     mocked.categoryState.categories = []
     mocked.categoryState.categoryOrder = []
+    mocked.categoryState.isCategoryReorderMode = false
     mocked.categoryState.tempCategoryOrder = []
     mocked.projectState.viewMode = 'custom'
     mocked.projectState.viewModeRef = { current: 'custom' }
@@ -373,6 +391,391 @@ describe('SavedTabsApp custom search', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('helper は URL ID 抽出、カテゴリ並び替え、削除失敗復元エラーを扱う', async () => {
+    expect(
+      buildUrlIdsToRemove(
+        ['https://example.com/a', 'https://example.com/a'],
+        [
+          { id: 'url-a', url: 'https://example.com/a' },
+          { id: 'url-b', url: 'https://example.com/b' },
+        ],
+      ),
+    ).toEqual(new Set(['url-a']))
+
+    const categoryLookup = buildCategoryLookup([
+      {
+        domainNames: ['extra.example.com'],
+        domains: ['group-ordered'],
+        id: 'category-1',
+        name: 'Ordered',
+      },
+    ])
+    const categorized = {
+      'category-1': [
+        { domain: 'extra.example.com', id: 'group-extra', urlIds: ['url-b'] },
+        {
+          domain: 'ordered.example.com',
+          id: 'group-ordered',
+          urlIds: ['url-a'],
+        },
+      ],
+    }
+
+    sortCategorizedGroups(categorized, categoryLookup)
+
+    expect(categorized['category-1']).toEqual([
+      expect.objectContaining({ id: 'group-ordered' }),
+      expect.objectContaining({ id: 'group-extra' }),
+    ])
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const refreshTabGroupsWithUrls = vi.fn(async () => {
+      throw new Error('restore failed')
+    })
+
+    await notifyDeleteFailure({
+      refreshTabGroupsWithUrls,
+      setCustomProjects: vi.fn(),
+      snapshot: {
+        customProjects: [],
+        savedTabs: [],
+      },
+      t: (key) => key,
+    })
+
+    expect(consoleError).toHaveBeenCalledWith(
+      '削除失敗後の保存データ復元に失敗しました:',
+      expect.any(Error),
+    )
+    expect(toast.error).toHaveBeenCalledWith('savedTabs.deleteError')
+
+    await notifyDeleteFailure({
+      refreshTabGroupsWithUrls,
+      setCustomProjects: vi.fn(),
+      t: (key) => key,
+    })
+
+    expect(toast.error).toHaveBeenCalledWith('savedTabs.deleteError')
+
+    consoleError.mockRestore()
+  })
+
+  it('helper は snapshot 復元とカテゴリ検索のフォールバックを扱う', async () => {
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome.storage.local.set = chromeSetMock
+    const setCustomProjects = vi.fn()
+    const refreshTabGroupsWithUrls = vi.fn()
+
+    await restoreOpenedUrlsSnapshot({
+      refreshTabGroupsWithUrls,
+      setCustomProjects,
+      snapshot: {},
+    })
+
+    expect(chromeSetMock).toHaveBeenCalledWith({
+      savedTabs: [],
+    })
+    expect(setCustomProjects).not.toHaveBeenCalled()
+    expect(refreshTabGroupsWithUrls).toHaveBeenCalledWith([])
+
+    const groupWithoutUrls: TabGroup = {
+      domain: 'empty.example.com',
+      id: 'group-empty',
+    }
+    expect(
+      filterGroupByQuery(groupWithoutUrls, 'reading', buildCategoryLookup([])),
+    ).toBe(groupWithoutUrls)
+
+    const duplicateLookup = buildCategoryLookup([
+      {
+        domainNames: ['duplicate.example.com'],
+        domains: ['duplicate-group'],
+        id: 'category-a',
+        name: 'Category A',
+      },
+      {
+        domainNames: ['duplicate.example.com'],
+        domains: ['duplicate-group'],
+        id: 'category-b',
+        name: 'Category B',
+      },
+    ])
+    expect(duplicateLookup.byGroupId.get('duplicate-group')?.id).toBe(
+      'category-a',
+    )
+    expect(duplicateLookup.byDomainName.get('duplicate.example.com')?.id).toBe(
+      'category-a',
+    )
+    expect(
+      filterGroupByQuery(
+        {
+          domain: 'other.example.com',
+          id: 'duplicate-group',
+          parentCategoryId: 'category-a',
+          urls: [{ title: 'Other', url: 'https://other.example.com' }],
+        },
+        'nomatch',
+        duplicateLookup,
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        urls: [],
+      }),
+    )
+
+    expect(
+      countTabGroupUrls({ domain: 'ids.example.com', id: 'ids', urlIds: [] }),
+    ).toBe(0)
+    expect(
+      countTabGroupUrls({
+        domain: 'legacy.example.com',
+        id: 'legacy',
+        urls: [{ title: 'Legacy', url: 'https://legacy.example.com/a' }],
+      }),
+    ).toBe(1)
+    expect(
+      countTabGroupUrls({ domain: 'empty.example.com', id: 'empty' }),
+    ).toBe(0)
+  })
+
+  it('helper は URL ID 削除後の子カテゴリと表示用グループの空値を正規化する', () => {
+    expect(
+      buildUpdatedGroupAfterUrlIdRemoval(
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          urlIds: ['url-b'],
+          urlSubCategories: {
+            'url-a': 'news',
+          },
+        },
+        ['url-b'],
+        new Set(['url-a']),
+      ),
+    ).toEqual({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-b'],
+      urlSubCategories: undefined,
+    })
+    expect(
+      buildUpdatedGroupAfterUrlIdRemoval(
+        {
+          domain: 'example.com',
+          id: 'group-2',
+          urlIds: ['url-b'],
+          urlSubCategories: {
+            'url-a': 'news',
+            'url-b': 'docs',
+          },
+        },
+        ['url-b'],
+        new Set(['url-a']),
+      ),
+    ).toEqual({
+      domain: 'example.com',
+      id: 'group-2',
+      urlIds: ['url-b'],
+      urlSubCategories: {
+        'url-b': 'docs',
+      },
+    })
+
+    expect(
+      getDisplayUrlCount({
+        domain: 'legacy.example.com',
+        id: 'legacy',
+        urlIds: ['url-id'],
+      }),
+    ).toBe(1)
+    expect(
+      getDisplayUrlCount({ domain: 'empty.example.com', id: 'empty' }),
+    ).toBe(0)
+    expect(
+      buildDisplayTabGroup({
+        categories: [],
+        createdAt: 1,
+        id: 'project-without-url-ids',
+        name: 'No URL IDs',
+        updatedAt: 1,
+        urls: [{ savedAt: 1, title: 'A', url: 'https://a.test' }],
+      }),
+    ).toEqual({
+      domain: 'No URL IDs',
+      id: 'project-without-url-ids',
+      urlIds: [],
+      urls: [
+        {
+          savedAt: 1,
+          title: 'A',
+          url: 'https://a.test',
+        },
+      ],
+    })
+  })
+
+  it('helper はカテゴリ同期で対象カテゴリ以外を維持する', () => {
+    const state = {
+      categoriesChanged: false,
+      savedTabsChanged: false,
+      updatedCategories: [
+        {
+          domainNames: ['example.com'],
+          domains: [],
+          id: 'category-1',
+          name: 'Reading',
+        },
+        {
+          domainNames: [],
+          domains: ['other-group'],
+          id: 'category-2',
+          name: 'Other',
+        },
+      ],
+      updatedSavedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+        },
+      ],
+    }
+
+    const nextState = syncGroupCategoryAssignment(
+      {
+        domain: 'example.com',
+        id: 'group-1',
+      },
+      buildCategoryLookup(state.updatedCategories),
+      state,
+    )
+
+    expect(nextState.updatedCategories).toEqual([
+      expect.objectContaining({
+        domains: ['group-1'],
+        id: 'category-1',
+      }),
+      expect.objectContaining({
+        domains: ['other-group'],
+        id: 'category-2',
+      }),
+    ])
+    expect(nextState.updatedSavedTabs).toEqual([
+      expect.objectContaining({
+        id: 'group-1',
+        parentCategoryId: 'category-1',
+      }),
+    ])
+    expect(nextState.categoriesChanged).toBe(true)
+    expect(nextState.savedTabsChanged).toBe(true)
+  })
+
+  it('helper は複数グループ削除で ID と legacy URL の同期削除を扱う', async () => {
+    vi.mocked(getTabGroupUrls).mockResolvedValueOnce([
+      {
+        id: 'legacy-url',
+        savedAt: 1,
+        title: 'Legacy',
+        url: 'https://legacy.example.com/a',
+      },
+    ])
+
+    await removeUrlsFromCustomProjectsForGroups([
+      {
+        domain: 'ids.example.com',
+        id: 'group-with-ids',
+        urlIds: ['url-a'],
+      },
+      {
+        domain: 'legacy.example.com',
+        id: 'legacy-group',
+      },
+    ])
+
+    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(['url-a'], {
+      throwOnError: true,
+    })
+    expect(removeUrlsFromAllCustomProjects).toHaveBeenCalledWith(
+      ['https://legacy.example.com/a'],
+      { throwOnError: true },
+    )
+  })
+
+  it('helper は legacy URL 取得が undefined を返しても同期削除をスキップする', async () => {
+    vi.mocked(getTabGroupUrls).mockResolvedValueOnce(
+      undefined as unknown as Awaited<ReturnType<typeof getTabGroupUrls>>,
+    )
+
+    await removeUrlsFromCustomProjectsForGroups([
+      {
+        domain: 'legacy.example.com',
+        id: 'legacy-group',
+      },
+    ])
+
+    expect(removeUrlsFromAllCustomProjects).not.toHaveBeenCalled()
+  })
+
+  it('helper は legacy URL 取得が空配列なら同期削除をスキップする', async () => {
+    vi.mocked(getTabGroupUrls).mockResolvedValueOnce([])
+
+    await removeUrlsFromCustomProjectsForGroup({
+      domain: 'empty.example.com',
+      id: 'empty-group',
+    })
+
+    expect(removeUrlsFromAllCustomProjects).not.toHaveBeenCalled()
+  })
+
+  it('helper はカテゴリ順序にない先頭グループを末尾へ送る', () => {
+    const categoryLookup = buildCategoryLookup([
+      {
+        domainNames: [],
+        domains: ['group-a', 'group-b'],
+        id: 'category-1',
+        name: 'Ordered',
+      },
+    ])
+    const categorized = {
+      'category-1': [
+        { domain: 'unknown.example.com', id: 'group-unknown', urlIds: ['u'] },
+        { domain: 'b.example.com', id: 'group-b', urlIds: ['b'] },
+        { domain: 'a.example.com', id: 'group-a', urlIds: ['a'] },
+      ],
+    }
+
+    sortCategorizedGroups(categorized, categoryLookup)
+
+    expect(categorized['category-1'].map((group) => group.id)).toEqual([
+      'group-a',
+      'group-b',
+      'group-unknown',
+    ])
+
+    const categorizedWithUnknownLast = {
+      'category-1': [
+        { domain: 'a.example.com', id: 'group-a', urlIds: ['a'] },
+        { domain: 'unknown.example.com', id: 'group-unknown', urlIds: ['u'] },
+      ],
+    }
+    sortCategorizedGroups(categorizedWithUnknownLast, categoryLookup)
+    expect(
+      categorizedWithUnknownLast['category-1'].map((group) => group.id),
+    ).toEqual(['group-a', 'group-unknown'])
+
+    expect(
+      filterGroupsByExcludedIds(
+        categorized['category-1'],
+        new Set(['group-b']),
+      ).map((group) => group.id),
+    ).toEqual(['group-a', 'group-unknown'])
+    expect(
+      createFilterGroupsByExcludedIdsUpdater(new Set(['group-a']))(
+        categorized['category-1'],
+      ).map((group) => group.id),
+    ).toEqual(['group-b', 'group-unknown'])
   })
 
   it('プロジェクト名一致で対象プロジェクトだけを表示する', async () => {
@@ -447,6 +850,30 @@ describe('SavedTabsApp custom search', () => {
 
     await waitFor(() => {
       expect(onViewModeNavigate).toHaveBeenCalledWith('custom')
+    })
+  })
+
+  it('AI サイドバーが開いている場合は全幅レイアウトを使う', () => {
+    render(<SavedTabsApp isAiSidebarOpen />)
+
+    expect(document.querySelector('.min-h-screen.w-full.py-2')).toBeTruthy()
+  })
+
+  it('カテゴリ並び替えモードでは一時順序とフッター表示条件を使う', async () => {
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.categoryState.isCategoryReorderMode = true
+    mocked.categoryState.categoryOrder = ['category-a']
+    mocked.categoryState.tempCategoryOrder = ['category-b']
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    await waitFor(() => {
+      expect(mocked.domainModeContainerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          categoryOrderForDisplay: ['category-b'],
+        }),
+      )
     })
   })
 
@@ -915,6 +1342,124 @@ describe('SavedTabsApp custom search', () => {
       }),
     )
     expect(mocked.tabDataState.refreshTabGroupsWithUrls).not.toHaveBeenCalled()
+  })
+
+  it('ドメイン子カテゴリ一括削除は対象グループなしなら URL 文字列削除にフォールバックし失敗時に通知する', async () => {
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.tabDataState.tabGroups = []
+    mocked.tabDataState.tabGroupsWithUrls = []
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>
+    }
+
+    await domainProps.handleDeleteUrls('missing-group', [
+      'https://example.com/missing',
+    ])
+
+    expect(removeUrlsFromTabGroup).toHaveBeenCalledWith(
+      'missing-group',
+      ['https://example.com/missing'],
+      { throwOnSyncError: true },
+    )
+
+    vi.mocked(removeUrlsFromTabGroup).mockRejectedValueOnce(
+      new Error('delete failed'),
+    )
+    await domainProps.handleDeleteUrls('missing-group', [
+      'https://example.com/missing-2',
+    ])
+
+    expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
+  })
+
+  it('未分類ドラッグは既に並び替え中なら一時順序だけを更新する', async () => {
+    const firstGroup: TabGroup = {
+      domain: 'first.example.com',
+      id: 'first',
+      urlIds: ['url-1'],
+    }
+    const secondGroup: TabGroup = {
+      domain: 'second.example.com',
+      id: 'second',
+      urlIds: ['url-2'],
+    }
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.tabDataState.tabGroups = [firstGroup, secondGroup]
+    mocked.tabDataState.tabGroupsWithUrls = [firstGroup, secondGroup]
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    let domainProps = mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+      handleUncategorizedDragEnd: (event: {
+        active: { id: string }
+        over: { id: string }
+      }) => void
+      uncategorizedForDisplay: TabGroup[]
+    }
+
+    act(() => {
+      domainProps.handleUncategorizedDragEnd({
+        active: { id: 'first' },
+        over: { id: 'second' },
+      })
+    })
+
+    await waitFor(() => {
+      expect(
+        (
+          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+            uncategorizedForDisplay: TabGroup[]
+          }
+        ).uncategorizedForDisplay.map((group) => group.id),
+      ).toEqual(['second', 'first'])
+    })
+
+    domainProps = mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+      handleUncategorizedDragEnd: (event: {
+        active: { id: string }
+        over: { id: string }
+      }) => void
+      uncategorizedForDisplay: TabGroup[]
+    }
+
+    act(() => {
+      domainProps.handleUncategorizedDragEnd({
+        active: { id: 'first' },
+        over: { id: 'second' },
+      })
+    })
+
+    await waitFor(() => {
+      expect(
+        (
+          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+            uncategorizedForDisplay: TabGroup[]
+          }
+        ).uncategorizedForDisplay.map((group) => group.id),
+      ).toEqual(['first', 'second'])
+    })
+
+    act(() => {
+      domainProps.handleUncategorizedDragEnd({
+        active: { id: 'missing' },
+        over: { id: 'second' },
+      })
+    })
+
+    expect(
+      (
+        mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          uncategorizedForDisplay: TabGroup[]
+        }
+      ).uncategorizedForDisplay.map((group) => group.id),
+    ).toEqual(['first', 'second'])
   })
 
   it('ドメイン内の単体タブ削除でも Undo で削除前の保存データを復元できる', async () => {
@@ -1596,6 +2141,67 @@ describe('SavedTabsApp custom search', () => {
     )
   })
 
+  it('複数ドメイン削除で legacy URL 取得に失敗しても削除処理は継続する', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const legacyGroup: TabGroup = {
+      domain: 'legacy.example.com',
+      id: 'legacy-group',
+      urls: [
+        {
+          title: 'Legacy',
+          url: 'https://legacy.example.com/a',
+        },
+      ],
+    }
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.tabDataState.tabGroups = [legacyGroup]
+    mocked.tabDataState.tabGroupsWithUrls = [legacyGroup]
+    vi.mocked(getTabGroupUrls).mockRejectedValueOnce(new Error('read failed'))
+
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => ({ savedTabs: [legacyGroup] })),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: {
+        create: vi.fn(),
+      },
+      windows: {
+        create: vi.fn(),
+      },
+      runtime: {
+        getURL: vi.fn(),
+      },
+    } as unknown as typeof chrome
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleDeleteGroups: (ids: string[]) => Promise<void>
+    }
+
+    await domainProps.handleDeleteGroups(['legacy-group'])
+
+    expect(consoleError).toHaveBeenCalledWith(
+      '複数グループのURL取得エラー:',
+      expect.any(Error),
+    )
+    expect(chromeSetMock).toHaveBeenCalledWith({ savedTabs: [] })
+
+    consoleError.mockRestore()
+  })
+
   it('未分類ドメインの並び替えを確定/キャンセルできる', async () => {
     const group1: TabGroup = {
       domain: 'a.example.com',
@@ -1991,6 +2597,58 @@ describe('SavedTabsApp custom search', () => {
         }),
       )
     })
+  })
+
+  it('親カテゴリ順序にないドメインはカテゴリ内の末尾へ回す', async () => {
+    const orderedGroup: TabGroup = {
+      domain: 'ordered.example.com',
+      id: 'group-ordered',
+      urlIds: ['url-a'],
+    }
+    const extraGroup: TabGroup = {
+      domain: 'extra.example.com',
+      id: 'group-extra',
+      urlIds: ['url-b'],
+    }
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.categoryState.categories = [
+      {
+        domainNames: ['extra.example.com'],
+        domains: ['group-ordered'],
+        id: 'category-1',
+        name: 'Ordered',
+      },
+    ]
+    mocked.categoryState.categoryOrder = ['category-1']
+    mocked.tabDataState.tabGroups = [extraGroup, orderedGroup]
+    mocked.tabDataState.tabGroupsWithUrls = [extraGroup, orderedGroup]
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    await waitFor(() => {
+      expect(mocked.domainModeContainerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          categorized: {
+            'category-1': [
+              expect.objectContaining({ id: 'group-ordered' }),
+              expect.objectContaining({ id: 'group-extra' }),
+            ],
+          },
+        }),
+      )
+    })
+  })
+
+  it('initialViewMode prop の変更で viewMode 解決状態を更新する', async () => {
+    mocked.projectState.viewMode = 'custom'
+    mocked.projectState.viewModeRef = { current: 'custom' }
+
+    const { rerender } = render(<SavedTabsApp initialViewMode='custom' />)
+
+    rerender(<SavedTabsApp initialViewMode='domain' />)
+
+    expect(mocked.customModeContainerSpy).toHaveBeenCalled()
   })
 
   it('すべて開くは設定更新後に新規ウィンドウへまとめて開く', async () => {
@@ -2479,6 +3137,74 @@ describe('SavedTabsApp custom search', () => {
         }),
       ],
     })
+  })
+
+  it('単体タブを開いた後の自動削除が無効なら保存データを更新しない', async () => {
+    mocked.settings.removeTabAfterOpen = false
+    mocked.settings.openUrlInBackground = false
+    mocked.projectState.viewMode = 'custom'
+    mocked.projectState.viewModeRef = { current: 'custom' }
+    const chromeTabsCreateMock = vi.fn()
+    const chromeSetMock = vi.fn()
+    const addListener = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => ({ savedTabs: [] })),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener,
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: {
+        create: chromeTabsCreateMock,
+      },
+      windows: {
+        create: vi.fn(),
+      },
+      runtime: {
+        getURL: vi.fn(),
+      },
+    } as unknown as typeof chrome
+    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
+      options.setSettings({
+        ...(mocked.settings as UserSettings),
+        removeTabAfterOpen: false,
+        openUrlInBackground: false,
+      })
+      return []
+    })
+
+    render(<SavedTabsApp />)
+
+    const listener = addListener.mock.calls[0]?.[0] as (changes: {
+      [key: string]: chrome.storage.StorageChange
+    }) => Promise<void>
+    await act(async () => {
+      await listener({
+        settings: {
+          newValue: {
+            removeTabAfterOpen: false,
+          },
+        },
+      })
+    })
+    const customProps = mocked.customModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleOpenUrl: (url: string) => Promise<void>
+    }
+
+    await customProps.handleOpenUrl('https://example.com/keep')
+
+    expect(chromeTabsCreateMock).toHaveBeenCalledWith({
+      active: true,
+      url: 'https://example.com/keep',
+    })
+    expect(chromeSetMock).not.toHaveBeenCalled()
   })
 
   it('開いた後の自動削除でカスタム同期に失敗しても保存更新を続ける', async () => {

@@ -77,11 +77,6 @@ const SavedTabsRoutePage = () => {
       return
     }
     const nextRoute = getSavedTabsHrefForMode('domain')
-    const currentRoute = `${routerLocation.pathname}${routerLocation.search}`
-    /* v8 ignore next -- /saved-tabs without a mode query cannot equal the domain route. */
-    if (currentRoute === nextRoute) {
-      return
-    }
     navigate(nextRoute, { replace: true })
   }, [hasModeQuery, routerLocation.pathname, routerLocation.search, navigate])
 

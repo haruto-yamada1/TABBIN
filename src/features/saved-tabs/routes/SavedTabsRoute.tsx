@@ -34,6 +34,9 @@ const getElementWidthSnapshot = (element: HTMLDivElement | null) => {
   return width
 }
 
+const getLeftPaneWidthStoreSnapshot = (width: number | null) =>
+  width ?? getViewportWidthSnapshot()
+
 const subscribeToElementWidth = (
   element: HTMLDivElement | null,
   widthRef: { current: number | null },
@@ -85,7 +88,7 @@ const useLeftPaneWidth = () => {
   const leftPaneWidth = useSyncExternalStore(
     (onStoreChange) =>
       subscribeToElementWidth(element, widthRef, onStoreChange),
-    () => widthRef.current ?? getViewportWidthSnapshot(),
+    () => getLeftPaneWidthStoreSnapshot(widthRef.current),
     getViewportWidthSnapshot,
   )
 
@@ -95,6 +98,8 @@ const useLeftPaneWidth = () => {
     leftPaneWidth,
   }
 }
+
+export { getLeftPaneWidthStoreSnapshot }
 
 interface SavedTabsRouteProps {
   onViewModeNavigate?: (mode: ViewMode) => void
@@ -129,8 +134,6 @@ export const SavedTabsRoute = ({
             isCompactLayout={isCompactLeftPaneLayout}
           >
             {isDevProfileEnabled ? (
-              /* v8 ignore next -- coverage-only defensive branch. */
-              /* v8 ignore start -- coverage-only defensive branch. */
               <Profiler id='SavedTabs' onRender={handleSavedTabsRender}>
                 <SavedTabsApp
                   initialViewMode={initialViewMode}
@@ -140,7 +143,6 @@ export const SavedTabsRoute = ({
               </Profiler>
             ) : (
               <SavedTabsApp
-                /* v8 ignore stop */
                 initialViewMode={initialViewMode}
                 isAiSidebarOpen={isAiSidebarOpen}
                 onViewModeNavigate={onViewModeNavigate}
