@@ -16,10 +16,8 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AiChartSpec, AiSavedUrlRecord } from '@/features/ai-chat/types'
-import {
-  getDefaultAnalyticsQuery,
-  type AnalyticsQuery,
-} from '@/features/analytics/lib/analytics'
+import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
+import { getDefaultAnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings } from '@/lib/storage/settings'
 

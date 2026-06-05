@@ -20,20 +20,24 @@ const componentNames = [
   'YAxis',
 ] as const
 
-type LazyPayload = {
+interface LazyPayload {
   _result: () => Promise<{ default: unknown }>
 }
 
 describe('lazy recharts exports', () => {
   it('すべての lazy export が recharts の対応コンポーネントを解決する', async () => {
-    for (const name of componentNames) {
+    const lazyResults = componentNames.map((name) => {
       const component = lazyRecharts[name] as unknown as {
         _payload: LazyPayload
       }
 
-      await expect(component._payload._result()).resolves.toEqual({
+      return component._payload._result()
+    })
+
+    await expect(Promise.all(lazyResults)).resolves.toEqual(
+      componentNames.map(() => ({
         default: expect.anything(),
-      })
-    }
+      })),
+    )
   })
 })

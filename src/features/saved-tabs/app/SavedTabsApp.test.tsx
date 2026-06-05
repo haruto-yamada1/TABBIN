@@ -1414,7 +1414,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             uncategorizedForDisplay: TabGroup[]
           }
         ).uncategorizedForDisplay.map((group) => group.id),
@@ -1439,7 +1439,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             uncategorizedForDisplay: TabGroup[]
           }
         ).uncategorizedForDisplay.map((group) => group.id),
@@ -1455,7 +1455,7 @@ describe('SavedTabsApp custom search', () => {
 
     expect(
       (
-        mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
+        mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
           uncategorizedForDisplay: TabGroup[]
         }
       ).uncategorizedForDisplay.map((group) => group.id),

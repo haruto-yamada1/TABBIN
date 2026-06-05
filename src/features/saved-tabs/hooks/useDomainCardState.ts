@@ -235,7 +235,7 @@ export const useDomainCardState = ({
         console.error('カテゴリ順序の更新に失敗しました:', error)
       }
     },
-    [group.id, allCategoryIds],
+    [group.id],
   )
 
   // --- 新規カテゴリ順序の自動保存 ---

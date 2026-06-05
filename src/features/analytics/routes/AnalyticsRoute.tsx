@@ -305,12 +305,17 @@ const getNextDeleteTargetAfterDialogOpenChange = ({
   currentTarget: AiSavedUrlRecord | null
   deletingUrl: string | null
   isOpen: boolean
-}): AiSavedUrlRecord | null =>
-  shouldIgnoreSingleDeleteDialogClose({ deletingUrl, isOpen })
-    ? currentTarget
-    : isOpen
-      ? currentTarget
-      : null
+}): AiSavedUrlRecord | null => {
+  if (shouldIgnoreSingleDeleteDialogClose({ deletingUrl, isOpen })) {
+    return currentTarget
+  }
+
+  if (isOpen) {
+    return currentTarget
+  }
+
+  return null
+}
 
 const removeUrlFromStorage = async (url: string): Promise<void> =>
   new Promise((resolve, reject) => {
