@@ -26,7 +26,7 @@ import {
 import { ThemeProvider, useTheme } from './theme-provider'
 
 type StorageListener = (
-  changes: { [key: string]: chrome.storage.StorageChange },
+  changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void
 
@@ -74,10 +74,20 @@ const HookConsumer = () => {
   return (
     <div>
       <span data-testid='theme'>{theme}</span>
-      <button onClick={() => setTheme('user')} type='button'>
+      <button
+        onClick={() => {
+          setTheme('user')
+        }}
+        type='button'
+      >
         set-user
       </button>
-      <button onClick={() => setTheme('dark')} type='button'>
+      <button
+        onClick={() => {
+          setTheme('dark')
+        }}
+        type='button'
+      >
         set-dark
       </button>
     </div>
@@ -131,7 +141,7 @@ describe('ThemeProvider', () => {
       expect(document.documentElement.classList.contains('dark')).toBe(true)
     })
 
-    expect(vi.mocked(warnMissingChromeStorage).mock.calls).toEqual(
+    expect(vi.mocked(warnMissingChromeStorage).mock.calls).toStrictEqual(
       expect.arrayContaining([
         ['テーマ読み込み'],
         ['テーマ変更監視'],
@@ -169,7 +179,7 @@ describe('ThemeProvider', () => {
     expect(storageOnChangedMock.addListener).toHaveBeenCalledTimes(3)
 
     const themeChangeListener = storageListeners[0]
-    expect(themeChangeListener).toEqual(expect.any(Function))
+    expect(themeChangeListener).toStrictEqual(expect.any(Function))
 
     act(() => {
       themeChangeListener(
@@ -226,7 +236,7 @@ describe('ThemeProvider', () => {
       storageOnChangedMock.removeListener.mock.calls
         .slice(removeCallsBeforeUnmount)
         .map((call) => call[0]),
-    ).toEqual(expect.arrayContaining(subscribedListeners))
+    ).toStrictEqual(expect.arrayContaining(subscribedListeners))
   })
 
   it('system テーマで prefers-color-scheme が dark のとき dark を適用する', () => {
@@ -403,7 +413,9 @@ describe('useTheme', () => {
     const { result } = renderHook(() => useTheme())
 
     expect(result.current.theme).toBe('system')
-    expect(() => result.current.setTheme('dark')).not.toThrow()
+    expect(() => {
+      result.current.setTheme('dark')
+    }).not.toThrow()
   })
 
   it('React.use が undefined を返した場合はエラーを投げる', async () => {

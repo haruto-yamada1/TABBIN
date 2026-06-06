@@ -121,7 +121,7 @@ describe('CategorySection', () => {
       screen
         .getAllByTestId('sortable-url-item')
         .map((node) => node.textContent),
-    ).toEqual(['https://a.com', 'https://b.com', 'https://c.com'])
+    ).toStrictEqual(['https://a.com', 'https://b.com', 'https://c.com'])
 
     act(() => {
       void dndContextHandlersRef.current.onDragEnd?.({
@@ -134,7 +134,7 @@ describe('CategorySection', () => {
       screen
         .getAllByTestId('sortable-url-item')
         .map((node) => node.textContent),
-    ).toEqual(['https://b.com', 'https://a.com', 'https://c.com'])
+    ).toStrictEqual(['https://b.com', 'https://a.com', 'https://c.com'])
     expect(props.handleUpdateUrls).not.toHaveBeenCalled()
 
     act(() => {
@@ -168,7 +168,7 @@ describe('CategorySection', () => {
         screen
           .getAllByTestId('sortable-url-item')
           .map((node) => node.textContent),
-      ).toEqual(['https://a.com', 'https://b.com', 'https://c.com'])
+      ).toStrictEqual(['https://a.com', 'https://b.com', 'https://c.com'])
     })
     expect(props.handleUpdateUrls).not.toHaveBeenCalled()
   })
@@ -196,6 +196,6 @@ describe('CategorySection', () => {
       screen
         .getAllByTestId('sortable-url-item')
         .map((node) => node.textContent),
-    ).toEqual(['https://a.com', 'https://b.com', 'https://c.com'])
+    ).toStrictEqual(['https://a.com', 'https://b.com', 'https://c.com'])
   })
 })

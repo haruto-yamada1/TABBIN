@@ -107,7 +107,9 @@ export const useCategories = () => {
       if (!validationResult.success) {
         const { message } = validationResult.error.issues[0]
         setCategoryError(message)
-        setTimeout(() => setCategoryError(null), 3000)
+        setTimeout(() => {
+          setCategoryError(null)
+        }, 3000)
         return false
       }
 
@@ -119,7 +121,9 @@ export const useCategories = () => {
 
       if (isDuplicate) {
         setCategoryError(t('options.categories.duplicate'))
-        setTimeout(() => setCategoryError(null), 3000) // 3秒後にエラーメッセージを消す
+        setTimeout(() => {
+          setCategoryError(null)
+        }, 3000) // 3秒後にエラーメッセージを消す
         return false
       }
 
@@ -131,7 +135,9 @@ export const useCategories = () => {
       } catch (error) {
         console.error('カテゴリ追加エラー:', error)
         setCategoryError(t('options.categories.addError'))
-        setTimeout(() => setCategoryError(null), 3000)
+        setTimeout(() => {
+          setCategoryError(null)
+        }, 3000)
         return false
       }
     }

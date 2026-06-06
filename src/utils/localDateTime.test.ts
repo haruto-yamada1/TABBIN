@@ -19,7 +19,7 @@ describe('localDateTime', () => {
   })
 
   it('指定したタイムゾーンで日付パーツとキーを返す', () => {
-    expect(getDatePartsInTimeZone(timestamp, 'Asia/Tokyo')).toEqual({
+    expect(getDatePartsInTimeZone(timestamp, 'Asia/Tokyo')).toStrictEqual({
       day: 1,
       month: 3,
       year: 2026,
@@ -133,7 +133,7 @@ describe('localDateTime', () => {
     )
     formatToPartsSpy.mockReturnValue([])
 
-    expect(getDatePartsInTimeZone(timestamp, 'UTC')).toEqual({
+    expect(getDatePartsInTimeZone(timestamp, 'UTC')).toStrictEqual({
       day: 0,
       month: 0,
       year: 0,

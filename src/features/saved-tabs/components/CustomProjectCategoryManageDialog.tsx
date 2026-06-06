@@ -57,8 +57,12 @@ export const CustomProjectCategoryManageDialog = ({
   return (
     <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
       <DialogContent
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation()
+        }}
+        onPointerDown={(event) => {
+          event.stopPropagation()
+        }}
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader>
@@ -77,7 +81,9 @@ export const CustomProjectCategoryManageDialog = ({
             <Input
               id='rename-input'
               value={newCategoryName}
-              onChange={(event) => setNewCategoryName(event.target.value)}
+              onChange={(event) => {
+                setNewCategoryName(event.target.value)
+              }}
               onBlur={onRename}
               placeholder={t('savedTabs.projectCategory.renamePlaceholder')}
               className={`w-full rounded border p-2 ${renameError ? 'border-red-500' : ''}`}
@@ -97,7 +103,9 @@ export const CustomProjectCategoryManageDialog = ({
                 <Button
                   variant='ghost'
                   size='sm'
-                  onClick={() => setShowDeleteConfirm(false)}
+                  onClick={() => {
+                    setShowDeleteConfirm(false)
+                  }}
                 >
                   {t('common.cancel')}
                 </Button>
@@ -114,7 +122,9 @@ export const CustomProjectCategoryManageDialog = ({
                 <Button
                   variant='secondary'
                   size='sm'
-                  onClick={() => setShowDeleteConfirm(true)}
+                  onClick={() => {
+                    setShowDeleteConfirm(true)
+                  }}
                 >
                   {t('savedTabs.projectCategory.deleteAction')}
                 </Button>

@@ -136,10 +136,9 @@ const SidebarProvider = ({
   )
 
   // Helper to toggle the sidebar.
-  const toggleSidebar = React.useCallback(
-    () => setOpen((open) => !open),
-    [setOpen],
-  )
+  const toggleSidebar = React.useCallback(() => {
+    setOpen((open) => !open)
+  }, [setOpen])
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -154,7 +153,9 @@ const SidebarProvider = ({
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [toggleSidebar])
 
   React.useEffect(() => {

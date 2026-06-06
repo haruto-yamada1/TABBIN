@@ -177,17 +177,17 @@ const handleRemoveUrlMessage = (
   sendResponse: (response: StatusResponse) => void,
 ): void => {
   removeUrlFromStorage(url)
-    .then(() =>
+    .then(() => {
       sendResponse({
         status: 'removed',
-      }),
-    )
-    .catch((error) =>
+      })
+    })
+    .catch((error) => {
       sendResponse({
         error,
         status: 'error',
-      }),
-    )
+      })
+    })
 }
 
 const handleRemoveUrlRecordsMessage = (
@@ -195,18 +195,18 @@ const handleRemoveUrlRecordsMessage = (
   sendResponse: (response: StatusResponse) => void,
 ): void => {
   removeUrlRecordsFromStorage(Array.isArray(urlIds) ? urlIds : [])
-    .then((removedCount) =>
+    .then((removedCount) => {
       sendResponse({
         removedCount,
         status: 'removed',
-      }),
-    )
-    .catch((error) =>
+      })
+    })
+    .catch((error) => {
       sendResponse({
         status: 'error',
         error: error instanceof Error ? error.message : String(error),
-      }),
-    )
+      })
+    })
 }
 /**
  * 残り時間計算メッセージの処理
@@ -314,12 +314,12 @@ const handleCheckExpiredTabsMessage = (
           status: 'completed',
         })
       })
-      .catch((error) =>
+      .catch((error) => {
         sendResponse({
           error: String(error),
           status: 'error',
-        }),
-      )
+        })
+      })
   }
 }
 /**

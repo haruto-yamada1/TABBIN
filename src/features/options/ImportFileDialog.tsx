@@ -128,7 +128,9 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
         <Checkbox
           id='merge-data'
           checked={mergeData}
-          onCheckedChange={(checked) => onMergeChange(checked === true)}
+          onCheckedChange={(checked) => {
+            onMergeChange(checked === true)
+          }}
         />
         <Label htmlFor='merge-data' className='cursor-pointer'>
           {t('options.importExport.merge')}
@@ -273,7 +275,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   }
 
   const processFile = useCallback(
-    async (file: File) => {
+    (file: File) => {
       if (!file.name.endsWith('.json')) {
         toast.error(t('options.importExport.invalidJson'))
         return
@@ -293,7 +295,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       selectedFileRef.current = file
 
       const reader = new FileReader()
-      reader.onload = async (event) => {
+      reader.onload = (event) => {
         try {
           const content = event.target?.result as string
           if (!content) {
@@ -444,9 +446,9 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
               {importDialog.step === 'select' && (
                 <ImportSelectStep
                   mergeData={importDialog.mergeData}
-                  onMergeChange={(mergeData) =>
+                  onMergeChange={(mergeData) => {
                     dispatchImportDialog({ type: 'SET_MERGE', mergeData })
-                  }
+                  }}
                   isDragActive={isDragActive}
                   getRootProps={getRootProps}
                   getInputProps={getInputProps}

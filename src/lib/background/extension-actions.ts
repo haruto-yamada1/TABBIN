@@ -81,7 +81,7 @@ const toResultItems = (
   url: string
   title: string
 }[] =>
-  tabs.reduce<Array<{ title: string; url: string }>>((items, tab) => {
+  tabs.reduce<{ title: string; url: string }[]>((items, tab) => {
     const normalizedUrl = normalizeUrlCandidate(tab.url)
     if (normalizedUrl) {
       items.push({

@@ -226,7 +226,9 @@ describe('useCategoryKeywordModal', () => {
     expect(renameCategoryInTab(otherGroup, 'group-1', 'Old', 'New')).toBe(
       otherGroup,
     )
-    expect(renameCategoryInTab(legacyGroup, 'group-1', 'Old', 'New')).toEqual(
+    expect(
+      renameCategoryInTab(legacyGroup, 'group-1', 'Old', 'New'),
+    ).toStrictEqual(
       expect.objectContaining({
         categoryKeywords: [],
         subCategories: [],
@@ -259,7 +261,7 @@ describe('useCategoryKeywordModal', () => {
         'Old',
         'New',
       ),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         categoryKeywords: [
           {
@@ -404,7 +406,7 @@ describe('useCategoryKeywordModal', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.keywords.keywords).toEqual(['Alpha'])
+      expect(result.current.keywords.keywords).toStrictEqual(['Alpha'])
     })
 
     act(() => {
@@ -536,7 +538,7 @@ describe('useCategoryKeywordModal', () => {
     const { result } = renderModalHook({ group })
 
     await waitFor(() => {
-      expect(result.current.keywords.keywords).toEqual(['Alpha', 'Beta'])
+      expect(result.current.keywords.keywords).toStrictEqual(['Alpha', 'Beta'])
     })
 
     await act(async () => {
@@ -599,14 +601,14 @@ describe('useCategoryKeywordModal', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.keywords.keywords).toEqual(['Alpha'])
+      expect(result.current.keywords.keywords).toStrictEqual(['Alpha'])
     })
 
     await act(async () => {
       await result.current.keywords.handleRemoveKeyword('Alpha')
     })
 
-    expect(result.current.keywords.keywords).toEqual([])
+    expect(result.current.keywords.keywords).toStrictEqual([])
     expect(consoleError).toHaveBeenCalledWith(
       'キーワード削除に伴う保存処理に失敗しました:',
       expect.any(Error),
@@ -637,7 +639,7 @@ describe('useCategoryKeywordModal', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.keywords.keywords).toEqual(['Alpha'])
+      expect(result.current.keywords.keywords).toStrictEqual(['Alpha'])
     })
 
     await act(async () => {

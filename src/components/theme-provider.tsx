@@ -75,11 +75,14 @@ export const ThemeProvider = ({
   useEffect(() => {
     const storageLocal = getChromeStorageLocal()
     if (storageLocal) {
-      storageLocal.get(storageKey).then((result) => {
-        if (result[storageKey]) {
-          setThemeState(result[storageKey] as Theme)
-        }
-      })
+      storageLocal
+        .get(storageKey)
+        .then((result) => {
+          if (result[storageKey]) {
+            setThemeState(result[storageKey] as Theme)
+          }
+        })
+        .catch(() => {})
     } else {
       warnMissingChromeStorage('テーマ読み込み')
     }
@@ -127,6 +130,7 @@ export const ThemeProvider = ({
         .then((result: { userSettings?: UserSettings }) => {
           applyUserSettingsToRoot(root, result.userSettings, true)
         })
+        .catch(() => {})
       return
     } else {
       // Dark または light モードの直接適用
@@ -142,6 +146,7 @@ export const ThemeProvider = ({
       .then((result: { userSettings?: UserSettings }) => {
         applyUserSettingsToRoot(root, result.userSettings)
       })
+      .catch(() => {})
   }, [theme])
 
   // ユーザー設定のカラー変更を監視し、即座にCSS変数を更新

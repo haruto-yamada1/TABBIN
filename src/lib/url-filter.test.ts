@@ -52,7 +52,7 @@ describe('url-filter', () => {
         ],
         ['private'],
       ),
-    ).toEqual([
+    ).toStrictEqual([
       { id: 'valid', url: 'https://example.com/a' },
       { id: 'file', url: 'file:///tmp/example.txt' },
       { id: 'about', url: 'about:blank' },

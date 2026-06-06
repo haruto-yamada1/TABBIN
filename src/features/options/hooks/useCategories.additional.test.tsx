@@ -16,7 +16,7 @@ import {
 } from '@/lib/storage/categories'
 
 type StorageListener = (
-  changes: { [key: string]: chrome.storage.StorageChange },
+  changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void
 
@@ -64,7 +64,7 @@ describe('useCategories の追加分岐', () => {
       expect(getParentCategories).toHaveBeenCalledTimes(1)
     })
 
-    expect(result.current.parentCategories).toEqual([])
+    expect(result.current.parentCategories).toStrictEqual([])
     expect(consoleErrorSpy).toHaveBeenCalled()
   })
 
@@ -74,7 +74,7 @@ describe('useCategories の追加分岐', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     let success = true
@@ -98,7 +98,7 @@ describe('useCategories の追加分岐', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -120,7 +120,7 @@ describe('useCategories の追加分岐', () => {
       vi.advanceTimersByTime(3000)
     })
 
-    expect(result.current.categoryError).toBe(null)
+    expect(result.current.categoryError).toBeNull()
   })
 
   it('handleCategoryKeyDown はエラーがない場合 Enter でカテゴリを追加する', async () => {
@@ -136,7 +136,7 @@ describe('useCategories の追加分岐', () => {
     const preventDefault = vi.fn()
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -163,7 +163,7 @@ describe('useCategories の追加分岐', () => {
     const preventDefault = vi.fn()
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -185,7 +185,7 @@ describe('useCategories の追加分岐', () => {
     const preventDefault = vi.fn()
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -211,7 +211,7 @@ describe('useCategories の追加分岐', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([
+      expect(result.current.parentCategories).toStrictEqual([
         { id: 'cat-1', name: 'Initial', domains: [], domainNames: [] },
       ])
     })
@@ -228,7 +228,7 @@ describe('useCategories の追加分岐', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual([
+    expect(result.current.parentCategories).toStrictEqual([
       { id: 'cat-1', name: 'Initial', domains: [], domainNames: [] },
     ])
   })
@@ -241,7 +241,7 @@ describe('useCategories の追加分岐', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([
+      expect(result.current.parentCategories).toStrictEqual([
         { id: 'cat-1', name: 'Initial', domains: [], domainNames: [] },
       ])
     })
@@ -262,7 +262,7 @@ describe('useCategories の追加分岐', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual([
+    expect(result.current.parentCategories).toStrictEqual([
       { id: 'cat-1', name: 'Initial', domains: [], domainNames: [] },
     ])
   })
@@ -292,7 +292,7 @@ describe('useCategories の追加分岐', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual([])
+    expect(result.current.parentCategories).toStrictEqual([])
   })
 
   it('userSettings のストレージ変更で表示言語を更新する', async () => {
@@ -307,7 +307,7 @@ describe('useCategories の追加分岐', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -345,7 +345,7 @@ describe('useCategories の追加分岐', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
   })
 })

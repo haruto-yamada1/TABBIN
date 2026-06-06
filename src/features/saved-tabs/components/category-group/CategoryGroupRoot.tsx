@@ -123,9 +123,9 @@ export const CategoryGroupRoot = ({
         })}
         onDragOver={state.nativeDnD.handleDragOver}
         onDragLeave={state.nativeDnD.handleDragLeave}
-        onDrop={(e) =>
+        onDrop={(e) => {
           state.nativeDnD.handleDrop(e, handlers.handleMoveDomainToCategory)
-        }
+        }}
       >
         {children}
       </fieldset>

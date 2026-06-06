@@ -313,11 +313,18 @@ export const SpeechInput = ({
     speechRecognition.interimResults = true
     speechRecognition.lang = lang
 
-    const handleStart = () => handleSpeechRecognitionStartRef.current()
-    const handleEnd = () => handleSpeechRecognitionEndRef.current()
-    const handleResult = (event: Event) =>
+    const handleStart = () => {
+      handleSpeechRecognitionStartRef.current()
+    }
+    const handleEnd = () => {
+      handleSpeechRecognitionEndRef.current()
+    }
+    const handleResult = (event: Event) => {
       handleSpeechRecognitionResultRef.current(event)
-    const handleError = () => handleSpeechRecognitionErrorRef.current()
+    }
+    const handleError = () => {
+      handleSpeechRecognitionErrorRef.current()
+    }
 
     speechRecognition.addEventListener('start', handleStart)
     speechRecognition.addEventListener('end', handleEnd)

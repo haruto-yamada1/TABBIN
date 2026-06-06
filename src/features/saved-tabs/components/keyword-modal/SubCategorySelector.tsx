@@ -68,7 +68,9 @@ export const SubCategorySelector = () => {
               <Button
                 variant='secondary'
                 size='sm'
-                onClick={() => deletion.setShowDeleteConfirm(true)}
+                onClick={() => {
+                  deletion.setShowDeleteConfirm(true)
+                }}
                 className='flex cursor-pointer items-center gap-1 rounded px-2 py-1'
                 disabled={!subcategory.activeCategory}
               >

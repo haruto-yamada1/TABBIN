@@ -108,7 +108,7 @@ describe('useDomainCardState', () => {
     expect(arraysEqual(['a'], ['a'])).toBe(true)
     expect(arraysEqual(['a'], ['b'])).toBe(false)
     expect(arraysEqual(['a'], ['a', 'b'])).toBe(false)
-    expect(sortUrlsByOrder(undefined, 'default')).toEqual([])
+    expect(sortUrlsByOrder(undefined, 'default')).toStrictEqual([])
     expect(
       sortUrlsByOrder(
         [
@@ -128,8 +128,8 @@ describe('useDomainCardState', () => {
         ],
         'asc',
       )?.map((url) => url.title),
-    ).toEqual(['No savedAt B', 'No savedAt', 'Saved'])
-    expect(buildCategorizedUrls(undefined, undefined)).toEqual({
+    ).toStrictEqual(['No savedAt B', 'No savedAt', 'Saved'])
+    expect(buildCategorizedUrls(undefined, undefined)).toStrictEqual({
       __uncategorized: [],
     })
     expect(
@@ -148,7 +148,7 @@ describe('useDomainCardState', () => {
         ],
         ['known'],
       ),
-    ).toEqual({
+    ).toStrictEqual({
       __uncategorized: [
         {
           subCategory: 'unknown',
@@ -170,7 +170,7 @@ describe('useDomainCardState', () => {
         ['known', 'new'],
         true,
       ),
-    ).toEqual(['__uncategorized', 'known', 'new'])
+    ).toStrictEqual(['__uncategorized', 'known', 'new'])
   })
 
   it('bulk delete handler があるときは子カテゴリ一括削除でそれを 1 回だけ使う', async () => {
@@ -312,15 +312,17 @@ describe('useDomainCardState', () => {
     })
     expect(
       result.current.computed.categorizedUrls.news.map((item) => item.title),
-    ).toEqual(['Older', 'Newer'])
+    ).toStrictEqual(['Older', 'Newer'])
 
     act(() => {
       result.current.sort.setSortOrder('desc')
     })
     expect(
       result.current.computed.categorizedUrls.news.map((item) => item.title),
-    ).toEqual(['Newer', 'Older'])
-    expect(result.current.computed.categorizedUrls.__uncategorized).toEqual([
+    ).toStrictEqual(['Newer', 'Older'])
+    expect(
+      result.current.computed.categorizedUrls.__uncategorized,
+    ).toStrictEqual([
       expect.objectContaining({
         title: 'Uncategorized',
       }),
@@ -358,7 +360,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'tech',
         'news',
       ])
@@ -370,7 +372,7 @@ describe('useDomainCardState', () => {
         over: { id: 'news' },
       })
     })
-    expect(result.current.categoryReorder.tempCategoryOrder).toEqual([
+    expect(result.current.categoryReorder.tempCategoryOrder).toStrictEqual([
       'news',
       'tech',
     ])
@@ -430,7 +432,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         '__uncategorized',
       ])
@@ -456,10 +458,10 @@ describe('useDomainCardState', () => {
       expect(getParentCategories).toHaveBeenCalledTimes(1)
     })
 
-    expect(result.current.computed.categorizedUrls).toEqual({
+    expect(result.current.computed.categorizedUrls).toStrictEqual({
       __uncategorized: [],
     })
-    expect(result.current.categoryReorder.allCategoryIds).toEqual([])
+    expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([])
   })
 
   it('保存済みカテゴリ順から不要な未分類を除き不足カテゴリを末尾に補う', async () => {
@@ -485,7 +487,9 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual(['news'])
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
+        'news',
+      ])
     })
   })
 
@@ -504,7 +508,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
       ])
@@ -537,7 +541,7 @@ describe('useDomainCardState', () => {
       })
     })
 
-    expect(result.current.categoryReorder.tempCategoryOrder).toEqual([
+    expect(result.current.categoryReorder.tempCategoryOrder).toStrictEqual([
       'news',
       'tech',
     ])
@@ -561,7 +565,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
       ])
@@ -610,7 +614,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
       ])
@@ -636,7 +640,7 @@ describe('useDomainCardState', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'later',
       ])
@@ -663,7 +667,7 @@ describe('useDomainCardState', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
         'later',
@@ -684,7 +688,9 @@ describe('useDomainCardState', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual(['tech'])
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
+        'tech',
+      ])
     })
   })
 
@@ -708,7 +714,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
         '__uncategorized',
@@ -757,13 +763,13 @@ describe('useDomainCardState', () => {
     await act(async () => {
       await expect(
         result.current.parentCategories.handleCreateParentCategory('Parent'),
-      ).resolves.toEqual(
+      ).resolves.toStrictEqual(
         expect.objectContaining({
           id: 'parent-1',
         }),
       )
     })
-    expect(result.current.parentCategories.categories).toEqual([
+    expect(result.current.parentCategories.categories).toStrictEqual([
       expect.objectContaining({
         id: 'parent-1',
       }),
@@ -787,7 +793,7 @@ describe('useDomainCardState', () => {
         },
       ])
     })
-    expect(result.current.parentCategories.categories).toEqual([
+    expect(result.current.parentCategories.categories).toStrictEqual([
       expect.objectContaining({
         id: 'parent-2',
       }),

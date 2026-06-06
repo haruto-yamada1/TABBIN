@@ -277,7 +277,9 @@ export const FileTreeName = ({
 
 export type FileTreeActionsProps = ComponentProps<'fieldset'>
 
-const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation()
+const stopPropagation = (e: React.SyntheticEvent) => {
+  e.stopPropagation()
+}
 
 export const FileTreeActions = ({
   className,

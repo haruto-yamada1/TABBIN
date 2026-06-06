@@ -21,7 +21,7 @@ describe('storybook browser mocks', () => {
 
     await expect(
       chromeMock.storage.local.get(['tab-manager-theme', 'userSettings']),
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       'tab-manager-theme': 'dark',
       userSettings: {
         colors: {
@@ -33,6 +33,6 @@ describe('storybook browser mocks', () => {
     resetStorybookBrowserMocks()
     await expect(
       chromeMock.storage.local.get('tab-manager-theme'),
-    ).resolves.toEqual({})
+    ).resolves.toStrictEqual({})
   })
 })

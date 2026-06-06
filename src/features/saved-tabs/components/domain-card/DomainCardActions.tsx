@@ -74,9 +74,9 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-              onClick={() =>
+              onClick={() => {
                 keywordModal.setShowKeywordModal(!keywordModal.showKeywordModal)
-              }
+              }}
               className='flex cursor-pointer items-center gap-1'
               aria-label={manageSubcategoriesLabel}
             >

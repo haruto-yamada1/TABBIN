@@ -184,7 +184,7 @@ describe('useTabData', () => {
         savedTabs[2],
       ],
     })
-    expect(result.current.tabGroups).toEqual([
+    expect(result.current.tabGroups).toStrictEqual([
       {
         ...savedTabs[0],
         parentCategoryId: 'category-by-id',
@@ -250,7 +250,7 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.tabGroups).toEqual([])
+    expect(result.current.tabGroups).toStrictEqual([])
     expect(console.log).toHaveBeenCalledWith('URLレコード数:', 0)
   })
 
@@ -308,7 +308,7 @@ describe('useTabData', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.tabGroupsWithUrls).toEqual([
+      expect(result.current.tabGroupsWithUrls).toStrictEqual([
         {
           ...group,
           urls: [
@@ -356,10 +356,12 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    await expect(result.current.loadTabGroupsWithUrls([])).resolves.toEqual([])
-    await expect(result.current.loadTabGroupsWithUrls(groups)).resolves.toEqual(
-      groups,
-    )
+    await expect(
+      result.current.loadTabGroupsWithUrls([]),
+    ).resolves.toStrictEqual([])
+    await expect(
+      result.current.loadTabGroupsWithUrls(groups),
+    ).resolves.toStrictEqual(groups)
 
     expect(resolveTabGroupsWithUrlsMock).toHaveBeenCalledWith(groups)
   })
@@ -385,7 +387,7 @@ describe('useTabData', () => {
       ])
     })
 
-    expect(result.current.tabGroupsWithUrls).toEqual([])
+    expect(result.current.tabGroupsWithUrls).toStrictEqual([])
   })
 
   it('setTabGroups と storage からの refresh は state を更新する', async () => {
@@ -425,19 +427,22 @@ describe('useTabData', () => {
       result.current.setTabGroups((previous) => [...previous, appendedGroup])
     })
 
-    expect(result.current.tabGroups).toEqual([...storedGroups, appendedGroup])
+    expect(result.current.tabGroups).toStrictEqual([
+      ...storedGroups,
+      appendedGroup,
+    ])
 
     act(() => {
       result.current.setTabGroups([appendedGroup])
     })
 
-    expect(result.current.tabGroups).toEqual([appendedGroup])
+    expect(result.current.tabGroups).toStrictEqual([appendedGroup])
 
     await act(async () => {
       await result.current.refreshTabGroupsWithUrls()
     })
 
-    expect(result.current.tabGroups).toEqual(storedGroups)
+    expect(result.current.tabGroups).toStrictEqual(storedGroups)
 
     storageGet.mockResolvedValueOnce({})
 
@@ -445,7 +450,7 @@ describe('useTabData', () => {
       await result.current.refreshTabGroupsWithUrls()
     })
 
-    expect(result.current.tabGroups).toEqual([])
+    expect(result.current.tabGroups).toStrictEqual([])
 
     storageGet.mockResolvedValueOnce({
       savedTabs: 'invalid',
@@ -455,6 +460,6 @@ describe('useTabData', () => {
       await result.current.refreshTabGroupsWithUrls()
     })
 
-    expect(result.current.tabGroups).toEqual([])
+    expect(result.current.tabGroups).toStrictEqual([])
   })
 })

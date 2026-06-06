@@ -61,7 +61,7 @@ const reuseStoredSavedTabsPageId = async (): Promise<number | null> => {
       return null
     }
     console.log(`保存されていたタブID ${savedTabsPageId} を再利用します`)
-    await activateAndPinTabIfNeeded(savedTabsPageId, Boolean(tab.pinned))
+    await activateAndPinTabIfNeeded(savedTabsPageId, tab.pinned)
     return savedTabsPageId
   } catch {
     console.log('保存されていたタブIDは存在しませんでした。新規作成します。')
@@ -85,7 +85,7 @@ const reuseExistingSavedTabsPage = async (
   if (!savedTabsPageId) {
     return null
   }
-  await activateAndPinTabIfNeeded(savedTabsPageId, Boolean(mainTab.pinned))
+  await activateAndPinTabIfNeeded(savedTabsPageId, mainTab.pinned)
   await closeDuplicateTabs(savedTabsPages, savedTabsPageId)
   return savedTabsPageId
 }

@@ -21,7 +21,7 @@ import { getUserSettings } from '@/lib/storage/settings'
 import type { UserSettings } from '@/types/storage'
 
 type StorageListener = (
-  changes: { [key: string]: chrome.storage.StorageChange },
+  changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void
 
@@ -84,7 +84,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual(categories)
+      expect(result.current.parentCategories).toStrictEqual(categories)
     })
   })
 
@@ -135,7 +135,7 @@ describe('useCategoriesフック', () => {
         vi.advanceTimersByTime(3000)
       })
 
-      expect(result.current.categoryError).toBe(null)
+      expect(result.current.categoryError).toBeNull()
     } finally {
       vi.useRealTimers()
     }
@@ -147,7 +147,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     vi.useFakeTimers()
@@ -171,7 +171,7 @@ describe('useCategoriesフック', () => {
         vi.advanceTimersByTime(3000)
       })
 
-      expect(result.current.categoryError).toBe(null)
+      expect(result.current.categoryError).toBeNull()
     } finally {
       vi.useRealTimers()
     }
@@ -183,7 +183,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -211,7 +211,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -226,7 +226,7 @@ describe('useCategoriesフック', () => {
     expect(success).toBe(true)
     expect(createParentCategory).toHaveBeenCalledWith('New Category')
     expect(result.current.newCategoryName).toBe('')
-    expect(result.current.categoryError).toBe(null)
+    expect(result.current.categoryError).toBeNull()
   })
 
   it('カテゴリ作成エラーを処理する', async () => {
@@ -238,7 +238,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     vi.useFakeTimers()
@@ -262,7 +262,7 @@ describe('useCategoriesフック', () => {
         vi.advanceTimersByTime(3000)
       })
 
-      expect(result.current.categoryError).toBe(null)
+      expect(result.current.categoryError).toBeNull()
     } finally {
       vi.useRealTimers()
     }
@@ -274,7 +274,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     const updatedCategories = [
@@ -293,7 +293,7 @@ describe('useCategoriesフック', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual(updatedCategories)
+    expect(result.current.parentCategories).toStrictEqual(updatedCategories)
   })
 
   it('無関係なストレージ変更を無視し不正な parentCategories payload をリセットする', async () => {
@@ -302,7 +302,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     const syncCategories = [
@@ -321,7 +321,7 @@ describe('useCategoriesフック', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual([])
+    expect(result.current.parentCategories).toStrictEqual([])
 
     const localCategories = [
       { id: '21', name: 'Local', domains: [], domainNames: [] },
@@ -339,13 +339,13 @@ describe('useCategoriesフック', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual(localCategories)
+    expect(result.current.parentCategories).toStrictEqual(localCategories)
 
     act(() => {
       listeners[0]({}, 'local')
     })
 
-    expect(result.current.parentCategories).toEqual(localCategories)
+    expect(result.current.parentCategories).toStrictEqual(localCategories)
 
     act(() => {
       listeners[0](
@@ -359,7 +359,7 @@ describe('useCategoriesフック', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual([])
+    expect(result.current.parentCategories).toStrictEqual([])
   })
 
   it('userSettings の language が欠損した storage change では UI locale にフォールバックする', async () => {
@@ -412,7 +412,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -440,7 +440,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -467,7 +467,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     const event = {

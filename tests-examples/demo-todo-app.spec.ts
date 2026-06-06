@@ -442,7 +442,7 @@ const checkNumberOfTodosInLocalStorage = async (
   page: Page,
   expected: number,
 ) => {
-  return await page.waitForFunction(
+  return page.waitForFunction(
     (e) => JSON.parse(localStorage['react-todos']).length === e,
     expected,
   )
@@ -452,7 +452,7 @@ const checkNumberOfCompletedTodosInLocalStorage = async (
   page: Page,
   expected: number,
 ) => {
-  return await page.waitForFunction(
+  return page.waitForFunction(
     (e) =>
       JSON.parse(localStorage['react-todos']).filter(
         (todo: { completed: boolean }) => todo.completed,
@@ -462,7 +462,7 @@ const checkNumberOfCompletedTodosInLocalStorage = async (
 }
 
 const checkTodosInLocalStorage = async (page: Page, title: string) => {
-  return await page.waitForFunction(
+  return page.waitForFunction(
     (t) =>
       JSON.parse(localStorage['react-todos'])
         .map((todo: { title: string }) => todo.title)

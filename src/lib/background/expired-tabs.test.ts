@@ -312,14 +312,14 @@ describe('expired-tabs ユーティリティ', () => {
       createChromeStorageMock({
         savedTabs: [],
       })
-      await expect(updateTabTimestamps('1day')).resolves.toEqual({
+      await expect(updateTabTimestamps('1day')).resolves.toStrictEqual({
         success: false,
         timestamp: 0,
       })
     })
     it('savedTabs キーがない場合は失敗を返す', async () => {
       createChromeStorageMock({})
-      await expect(updateTabTimestamps('1day')).resolves.toEqual({
+      await expect(updateTabTimestamps('1day')).resolves.toStrictEqual({
         success: false,
         timestamp: 0,
       })
@@ -388,7 +388,7 @@ describe('expired-tabs ユーティリティ', () => {
         ],
       })
       const result = await updateTabTimestamps('1min')
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         success: true,
         timestamp: now - 70000,
       })
@@ -412,7 +412,7 @@ describe('expired-tabs ユーティリティ', () => {
         ],
       })
       const result = await updateTabTimestamps()
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         success: true,
         timestamp: now,
       })

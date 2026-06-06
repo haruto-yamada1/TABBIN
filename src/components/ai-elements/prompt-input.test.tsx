@@ -354,7 +354,7 @@ describe('PromptInputProvider', () => {
 
     expect(attachments).toBeDefined()
     expect(controller).toBeDefined()
-    expect(attachments?.files).toEqual([])
+    expect(attachments?.files).toStrictEqual([])
     expect(controller?.textInput.value).toBe('')
   })
 

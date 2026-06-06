@@ -15,8 +15,7 @@ const isUncategorizedDrop = (
 ): boolean =>
   Boolean(
     over?.id === `uncategorized-${projectId}` ||
-    (typeof over?.id === 'string' &&
-      String(over.id).includes('uncategorized')) ||
+    (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
     over?.data?.current?.type === 'uncategorized',
   )
 const resolveOverCategoryName = (
@@ -41,8 +40,7 @@ const resolveOverCategoryName = (
     overData.isCategory === true ||
     overData.isDropArea === true ||
     (typeof over.id === 'string' &&
-      (String(over.id).startsWith('category-drop-') ||
-        String(over.id).includes('category')))
+      (over.id.startsWith('category-drop-') || over.id.includes('category')))
   if (!isCategory) {
     return null
   }
@@ -50,7 +48,7 @@ const resolveOverCategoryName = (
     return overData.categoryName
   }
   if (typeof over.id === 'string') {
-    return parseCategoryNameFromOverId(String(over.id)) || null
+    return parseCategoryNameFromOverId(over.id) || null
   }
   return null
 }

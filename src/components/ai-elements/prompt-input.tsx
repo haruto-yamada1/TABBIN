@@ -89,9 +89,13 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     return new Promise((resolve) => {
       const reader = new FileReader()
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      reader.onloadend = () => resolve(reader.result as string)
+      reader.onloadend = () => {
+        resolve(reader.result as string)
+      }
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      reader.onerror = () => resolve(null)
+      reader.onerror = () => {
+        resolve(null)
+      }
       reader.readAsDataURL(blob)
     })
   } catch {
@@ -177,7 +181,9 @@ export const PromptInputProvider = ({
     (_state: string, nextTextInput: string) => nextTextInput,
     initialTextInput,
   )
-  const clearInput = useCallback(() => setTextInput(''), [])
+  const clearInput = useCallback(() => {
+    setTextInput('')
+  }, [])
 
   // ----- attachments state (global when wrapped)
   const [attachmentFiles, setAttachmentFiles] = useState<
@@ -510,17 +516,15 @@ const usePromptInputView = ({
     [matchesAccept, maxFiles, maxFileSize, onError],
   )
 
-  const removeLocal = useCallback(
-    (id: string) =>
-      setItems((prev) => {
-        const found = prev.find((file) => file.id === id)
-        if (found?.url) {
-          URL.revokeObjectURL(found.url)
-        }
-        return prev.filter((file) => file.id !== id)
-      }),
-    [],
-  )
+  const removeLocal = useCallback((id: string) => {
+    setItems((prev) => {
+      const found = prev.find((file) => file.id === id)
+      if (found?.url) {
+        URL.revokeObjectURL(found.url)
+      }
+      return prev.filter((file) => file.id !== id)
+    })
+  }, [])
 
   // Wrapper that validates files before calling provider's add
   const addWithProviderValidation = useCallback(
@@ -566,22 +570,22 @@ const usePromptInputView = ({
     [matchesAccept, maxFileSize, maxFiles, onError, files.length, controller],
   )
 
-  const clearAttachments = useCallback(
-    () =>
-      usingProvider
-        ? controller?.attachments.clear()
-        : setItems((prev) => {
-            for (const file of prev) {
-              if (file.url) {
-                URL.revokeObjectURL(file.url)
-              }
+  const clearAttachments = useCallback(() => {
+    usingProvider
+      ? controller?.attachments.clear()
+      : setItems((prev) => {
+          for (const file of prev) {
+            if (file.url) {
+              URL.revokeObjectURL(file.url)
             }
-            return []
-          }),
-    [usingProvider, controller],
-  )
+          }
+          return []
+        })
+  }, [usingProvider, controller])
 
-  const clearReferencedSources = useCallback(() => setReferencedSources([]), [])
+  const clearReferencedSources = useCallback(() => {
+    setReferencedSources([])
+  }, [])
 
   const add = usingProvider ? addWithProviderValidation : addLocal
   const remove = controller?.attachments.remove ?? removeLocal

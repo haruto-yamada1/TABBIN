@@ -36,7 +36,9 @@ export const KeywordEditor = () => {
         <Input
           id='keyword-input'
           value={keywordsState.newKeyword}
-          onChange={(e) => keywordsState.setNewKeyword(e.target.value)}
+          onChange={(e) => {
+            keywordsState.setNewKeyword(e.target.value)
+          }}
           placeholder={t('savedTabs.keywords.placeholder')}
           className='grow rounded border p-2'
           onKeyDown={(e) => {

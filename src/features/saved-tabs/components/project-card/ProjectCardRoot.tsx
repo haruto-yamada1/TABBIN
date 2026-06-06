@@ -181,7 +181,9 @@ export const ProjectCardRoot = ({
       handleDragStart: dnd.handleDragStart,
       handleUrlDragEnd: dnd.handleUrlDragEnd,
     })
-    return () => unregisterHandlers(project.id)
+    return () => {
+      unregisterHandlers(project.id)
+    }
   }, [project.id, registerHandlers, unregisterHandlers, dnd])
 
   // 別プロジェクトからドラッグされているかを判定
@@ -283,7 +285,7 @@ export const ProjectCardRoot = ({
               projectUrlCount > 0
                 ? async () => {
                     if (handlers.handleDeleteUrlsFromProject) {
-                      await handlers.handleDeleteUrlsFromProject(
+                      handlers.handleDeleteUrlsFromProject(
                         project.id,
                         sortedProjectUrls.map((u) => u.url),
                       )
@@ -296,7 +298,9 @@ export const ProjectCardRoot = ({
                   }
                 : undefined
             }
-            onManage={() => setIsManagementModalOpen(true)}
+            onManage={() => {
+              setIsManagementModalOpen(true)
+            }}
             onConfirmOpenAll={projectUrlCount >= 10}
             onConfirmDeleteAll={settings.confirmDeleteAll}
             openAllThreshold={10}
@@ -334,7 +338,9 @@ export const ProjectCardRoot = ({
       </Card>
       <ProjectManagementModal
         isOpen={isManagementModalOpen}
-        onClose={() => setIsManagementModalOpen(false)}
+        onClose={() => {
+          setIsManagementModalOpen(false)
+        }}
         project={project}
         onRenameProject={handlers.handleRenameProject}
         onUpdateProjectKeywords={handlers.handleUpdateProjectKeywords}

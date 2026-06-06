@@ -41,7 +41,12 @@ export const CategoryModalRoot = ({
 
   return (
     <CategoryModalContext value={contextValue}>
-      <Dialog open onOpenChange={() => onClose()}>
+      <Dialog
+        open
+        onOpenChange={() => {
+          onClose()
+        }}
+      >
         <DialogContent className='flex max-h-[90vh] flex-col overflow-hidden sm:max-w-[500px]'>
           <DialogHeader>
             <DialogTitle>{t('savedTabs.categoryModal.title')}</DialogTitle>

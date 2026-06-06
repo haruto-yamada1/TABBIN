@@ -129,11 +129,9 @@ describe('SpeechInput', () => {
 
     fireEvent.click(screen.getByRole('button'))
 
-    await waitFor(() =>
-      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(
-        MockMediaRecorder,
-      ),
-    )
+    await waitFor(() => {
+      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder)
+    })
 
     const recorder = MockMediaRecorder.latestInstance as MockMediaRecorder
     using removeEventListenerSpy = vi.spyOn(recorder, 'removeEventListener')
@@ -186,16 +184,16 @@ describe('SpeechInput', () => {
 
     fireEvent.click(button)
 
-    await waitFor(() =>
-      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(
-        MockMediaRecorder,
-      ),
-    )
+    await waitFor(() => {
+      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder)
+    })
 
     ;(MockMediaRecorder.latestInstance as MockMediaRecorder).emitData()
     fireEvent.click(button)
 
-    await waitFor(() => expect(onAudioRecorded).toHaveBeenCalledTimes(1))
+    await waitFor(() => {
+      expect(onAudioRecorded).toHaveBeenCalledTimes(1)
+    })
     expect((await screen.findByRole('alert')).textContent).toContain(
       'transcription failed',
     )

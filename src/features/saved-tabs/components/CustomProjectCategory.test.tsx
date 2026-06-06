@@ -329,10 +329,7 @@ describe('CustomProjectCategory', () => {
     )
 
     expect(screen.queryByTestId('card-content')).toBeNull()
-    expect(
-      (screen.getByRole('button', { name: '展開' }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true)
+    expect(screen.getByRole('button', { name: '展開' }).disabled).toBe(true)
 
     rerender(
       <CustomProjectCategory
@@ -345,10 +342,9 @@ describe('CustomProjectCategory', () => {
     )
 
     expect(screen.getByTestId('card-content')).toBeTruthy()
-    expect(
-      (screen.getByRole('button', { name: '折りたたむ' }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(false)
+    expect(screen.getByRole('button', { name: '折りたたむ' }).disabled).toBe(
+      false,
+    )
   })
 
   it('10件以上の一括開く確認ダイアログで handleOpenAllUrls 未指定時は window.open にフォールバックする', async () => {
@@ -512,10 +508,7 @@ describe('CustomProjectCategory', () => {
     const card = screen.getByTestId('card')
     expect(card.className.includes('opacity-50')).toBe(true)
     expect(screen.queryByTestId('card-content')).toBeNull()
-    expect(
-      (screen.getByRole('button', { name: '展開' }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true)
+    expect(screen.getByRole('button', { name: '展開' }).disabled).toBe(true)
 
     useDroppableMock.mockReturnValueOnce({
       setNodeRef: vi.fn(),

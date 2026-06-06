@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-const storageDir = dirname(fileURLToPath(import.meta.url))
+const storageDir = import.meta.dirname
 const sourceExtensions = new Set(['.ts', '.tsx'])
 const importPattern =
   /(?:import|export)\s+(?:type\s+)?(?:[^'"]*?from\s+)?['"]([^'"]+)['"]/g
@@ -153,6 +153,6 @@ describe('lib/storage import graph', () => {
       [...files].map((file) => [file, collectStaticImports(file, files)]),
     )
 
-    expect(findCycles(graph)).toEqual([])
+    expect(findCycles(graph)).toStrictEqual([])
   })
 })

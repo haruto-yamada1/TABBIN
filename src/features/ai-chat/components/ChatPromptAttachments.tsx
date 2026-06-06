@@ -22,7 +22,9 @@ const ChatPromptAttachments = () => {
         <Attachment
           data={file}
           key={file.id}
-          onRemove={() => attachments.remove(file.id)}
+          onRemove={() => {
+            attachments.remove(file.id)
+          }}
         >
           <AttachmentPreview />
           <AttachmentInfo />

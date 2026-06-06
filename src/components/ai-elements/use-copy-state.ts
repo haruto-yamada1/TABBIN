@@ -31,10 +31,9 @@ export const useCopyState = ({
         await navigator.clipboard.writeText(text)
         setIsCopied(true)
         onCopy?.()
-        timeoutRef.current = window.setTimeout(
-          () => setIsCopied(false),
-          timeout,
-        )
+        timeoutRef.current = window.setTimeout(() => {
+          setIsCopied(false)
+        }, timeout)
       } catch (error) {
         onError?.(error as Error)
       }

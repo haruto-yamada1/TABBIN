@@ -71,7 +71,7 @@ const setCategoryModalContext = ({
 }: {
   tabGroups: TabGroup[]
   selectedCategoryId: string | null
-  categories?: Array<{ id: string; name: string }>
+  categories?: { id: string; name: string }[]
   domainCategories: Record<string, { id: string; name: string } | null>
   toggleDomainSelection?: (domainId: string) => void
 }) => {
@@ -99,10 +99,7 @@ const setCategoryModalContext = ({
 describe('DomainSelectionList', () => {
   it('shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './DomainSelectionList.tsx',
-      ),
+      resolve(import.meta.dirname, './DomainSelectionList.tsx'),
       'utf8',
     )
 

@@ -52,7 +52,7 @@ describe('moveUrlBetweenProjectsState', () => {
       movedAt: 99,
     })
 
-    expect(next[0]?.urls).toEqual([
+    expect(next[0]?.urls).toStrictEqual([
       {
         url: 'https://example.com/b',
         title: 'B',
@@ -61,7 +61,7 @@ describe('moveUrlBetweenProjectsState', () => {
       },
     ])
     expect(next[0]?.updatedAt).toBe(99)
-    expect(next[1]?.urls).toEqual([
+    expect(next[1]?.urls).toStrictEqual([
       {
         url: 'https://example.com/a',
         title: 'A',
@@ -109,7 +109,7 @@ describe('moveUrlBetweenProjectsState', () => {
       movedAt: 456,
     })
 
-    expect(next[1]?.urls).toEqual([
+    expect(next[1]?.urls).toStrictEqual([
       {
         url: 'https://example.com/a',
         title: 'A',
@@ -134,9 +134,9 @@ describe('moveUrlBetweenProjectsState', () => {
       movedAt: 789,
     })
 
-    expect(next[0]?.urls).toEqual([])
+    expect(next[0]?.urls).toStrictEqual([])
     expect(next[0]?.updatedAt).toBe(789)
-    expect(next[1]?.urls).toEqual([
+    expect(next[1]?.urls).toStrictEqual([
       {
         url: 'https://example.com/a',
         title: 'A',
@@ -177,6 +177,6 @@ describe('moveUrlBetweenProjectsState', () => {
       movedAt: 999,
     })
 
-    expect(next[2]).toEqual(projects[2])
+    expect(next[2]).toStrictEqual(projects[2])
   })
 })

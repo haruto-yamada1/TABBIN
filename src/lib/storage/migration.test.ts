@@ -141,7 +141,7 @@ describe('migration storage facade', () => {
           url: 'https://docs.example.com/path',
         },
       ] as chrome.tabs.Tab[]),
-    ).toEqual([
+    ).toStrictEqual([
       {
         domain: 'https://docs.example.com',
         tab: {
@@ -165,7 +165,7 @@ describe('migration storage facade', () => {
           url: 'https://docs.example.com/path',
         },
       ] as chrome.tabs.Tab[]),
-    ]).toEqual(['https://docs.example.com'])
+    ]).toStrictEqual(['https://docs.example.com'])
     expect(errorSpy).toHaveBeenCalledTimes(2)
   })
 
@@ -266,7 +266,7 @@ describe('migration storage facade', () => {
 
     await migrateParentCategoriesToDomainNames()
 
-    expect(state.parentCategories).toEqual([
+    expect(state.parentCategories).toStrictEqual([
       expect.objectContaining({
         domainNames: [
           'https://existing.example.com',
@@ -311,7 +311,7 @@ describe('migration storage facade', () => {
 
     await migrateParentCategoriesToDomainNames()
 
-    expect(state.parentCategories).toEqual([
+    expect(state.parentCategories).toStrictEqual([
       expect.objectContaining({
         domainNames: ['https://tab.example.com'],
         id: 'category-1',
@@ -385,7 +385,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         domain: 'https://existing.example.com',
         id: 'existing-group',
@@ -449,7 +449,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'existing-group',
         urlIds: ['id:https://existing.example.com/a'],
@@ -499,12 +499,12 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.parentCategories).toEqual([
+    expect(state.parentCategories).toStrictEqual([
       expect.objectContaining({
         domainNames: ['https://legacy.example.com'],
       }),
     ])
-    expect(state.savedTabs).toEqual(
+    expect(state.savedTabs).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           domain: 'https://new.example.com',
@@ -779,7 +779,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs?.map((group) => group.id)).toEqual([
+    expect(state.savedTabs?.map((group) => group.id)).toStrictEqual([
       'duplicate-id',
       'uuid-1',
     ])
@@ -822,7 +822,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual(
+    expect(state.savedTabs).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           domain: 'https://existing-no-ids.example.com',
@@ -861,7 +861,7 @@ describe('migration storage facade', () => {
       'https://untitled.example.com/path',
       '',
     )
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         domain: 'https://untitled.example.com',
         urlIds: ['id:https://untitled.example.com/path'],
@@ -895,7 +895,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'plain-group',
       }),
@@ -1007,7 +1007,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         domain: 'https://mapped-invalid.example.com',
         parentCategoryId: 'category-invalid',
@@ -1054,7 +1054,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'docs-group',
         urlIds: ['id:https://docs.example.com/guide'],

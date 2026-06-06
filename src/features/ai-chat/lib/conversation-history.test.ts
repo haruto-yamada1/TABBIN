@@ -88,7 +88,7 @@ describe('conversation-history', () => {
 
     const history = await loadConversationHistory()
 
-    expect(history).toEqual({
+    expect(history).toStrictEqual({
       activeConversationId: 'conversation-1',
       conversations: [
         {
@@ -144,7 +144,7 @@ describe('conversation-history', () => {
 
     const history = await loadConversationHistory()
 
-    expect(history.conversations[0]?.messages[0]).toEqual({
+    expect(history.conversations[0]?.messages[0]).toStrictEqual({
       content:
         '途中までの回答\n\nThe previous response was interrupted. Send your message again if needed.',
       id: 'message-2',
@@ -178,7 +178,7 @@ describe('conversation-history', () => {
 
     const history = await loadConversationHistory()
 
-    expect(history.conversations[0]?.messages[0]).toEqual({
+    expect(history.conversations[0]?.messages[0]).toStrictEqual({
       content:
         '途中までの回答\n\nThe previous response was interrupted. Send your message again if needed.',
       id: 'message-2',

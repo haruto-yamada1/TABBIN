@@ -145,7 +145,9 @@ const DomainRow = ({
     belongsToCategory?.id === selection.selectedCategoryId
   const disabled = isLoading || !selection.selectedCategoryId
   const checkboxId = `domain-${group.id}`
-  const onToggle = () => domains.toggleDomainSelection(group.id)
+  const onToggle = () => {
+    domains.toggleDomainSelection(group.id)
+  }
 
   return (
     <div

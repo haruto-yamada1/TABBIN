@@ -129,7 +129,7 @@ const useOptionsRouteView = () => {
     await updateSetting('fontSizePercent', normalizedValue)
   }
 
-  const handleFontSizeSliderChange = async (
+  const handleFontSizeSliderChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setFontSizeValues({
@@ -142,7 +142,7 @@ const useOptionsRouteView = () => {
     await updateFontSizePercent(Number(fontSizeSliderValue))
   }
 
-  const handleFontSizeInputChange = async (
+  const handleFontSizeInputChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setFontSizeValues((prev) => ({
@@ -539,7 +539,7 @@ const useOptionsRouteView = () => {
                 step={FONT_SIZE_PERCENT_STEP}
                 value={fontSizeSliderValue}
                 onChange={(event) => {
-                  void handleFontSizeSliderChange(event)
+                  handleFontSizeSliderChange(event)
                 }}
                 onMouseUp={() => {
                   void commitFontSizeSliderValue()
@@ -589,7 +589,7 @@ const useOptionsRouteView = () => {
                   step={FONT_SIZE_PERCENT_STEP}
                   value={fontSizeInputValue}
                   onChange={(event) => {
-                    void handleFontSizeInputChange(event)
+                    handleFontSizeInputChange(event)
                   }}
                   onBlur={() => {
                     void commitFontSizeInputValue()

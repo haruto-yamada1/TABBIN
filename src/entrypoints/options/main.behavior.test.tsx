@@ -400,9 +400,7 @@ describe('options route behavior', () => {
 
     expect(screen.queryByText('Current value')).toBeNull()
 
-    fireEvent.click(
-      screen.getAllByTestId('mock-select-change')[0] as HTMLElement,
-    )
+    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.updateSetting).toHaveBeenCalledWith(
       'clickBehavior',
       'saveWindowTabs',
@@ -467,7 +465,7 @@ describe('options route behavior', () => {
 
     const resetButtons = screen.getAllByRole('button', { name: 'Reset' })
 
-    fireEvent.click(resetButtons[0] as HTMLElement)
+    fireEvent.click(resetButtons[0])
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 100)
 
     const fontSizeSlider = screen.getByLabelText('Font size slider')
@@ -477,9 +475,7 @@ describe('options route behavior', () => {
       target: { value: '125' },
     })
     expect(mocked.updateSetting).toHaveBeenCalledTimes(updateSettingCallCount)
-    expect(
-      (screen.getByLabelText('Font size percentage') as HTMLInputElement).value,
-    ).toBe('125')
+    expect(screen.getByLabelText('Font size percentage').value).toBe('125')
 
     fireEvent.mouseUp(fontSizeSlider)
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 125)
@@ -490,7 +486,7 @@ describe('options route behavior', () => {
     fireEvent.blur(screen.getByLabelText('Font size percentage'))
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 500)
 
-    fireEvent.click(resetButtons[1] as HTMLElement)
+    fireEvent.click(resetButtons[1])
     expect(mocked.handleResetColors).toHaveBeenCalledTimes(1)
 
     const colorInput = document.querySelector('input[type="color"]')
@@ -500,7 +496,7 @@ describe('options route behavior', () => {
     }
     fireEvent.input(colorInput, { target: { value: '#ffffff' } })
     fireEvent.change(colorInput, { target: { value: '#ffffff' } })
-    fireEvent.change(hexInput as HTMLElement, { target: { value: '#000000' } })
+    fireEvent.change(hexInput, { target: { value: '#000000' } })
 
     expect(mocked.handleColorChange).toHaveBeenCalled()
 
@@ -523,9 +519,7 @@ describe('options route behavior', () => {
     render(createElement(OptionsPage))
 
     fireEvent.keyDown(
-      screen.getAllByPlaceholderText(
-        'e.g. chrome-extension://',
-      )[0] as HTMLElement,
+      screen.getAllByPlaceholderText('e.g. chrome-extension://')[0],
       {
         key: 'Escape',
       },

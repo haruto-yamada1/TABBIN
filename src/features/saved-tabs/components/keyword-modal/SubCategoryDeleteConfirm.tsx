@@ -34,7 +34,9 @@ export const SubCategoryDeleteConfirm = () => {
         <Button
           variant='ghost'
           size='sm'
-          onClick={() => deletion.setShowDeleteConfirm(false)}
+          onClick={() => {
+            deletion.setShowDeleteConfirm(false)
+          }}
           className='cursor-pointer rounded px-2 py-1'
         >
           {t('common.cancel')}

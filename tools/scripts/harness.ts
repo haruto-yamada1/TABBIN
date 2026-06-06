@@ -130,13 +130,13 @@ if (command === 'checkpoint') {
   }
 
   const result = checkpointHarnessRun({
+    command: commandText,
+    nextAction: readOption('--next-action'),
+    notes,
     projectRoot,
     runId,
-    command: commandText,
     status,
-    notes,
     summary: readOption('--summary'),
-    nextAction: readOption('--next-action'),
   })
   console.log(`harness: checkpoint recorded (${result.path})`)
   process.exit(0)

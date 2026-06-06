@@ -102,6 +102,9 @@ const getAppRoute = (item: SidebarItemId): string => {
     case 'saved-tabs-domain': {
       return '/saved-tabs?mode=domain'
     }
+    default: {
+      return '/saved-tabs?mode=domain'
+    }
   }
 }
 
@@ -125,6 +128,9 @@ const getPageHref = (item: SidebarItemId): string => {
       return 'saved-tabs.html?mode=custom'
     }
     case 'saved-tabs-domain': {
+      return 'saved-tabs.html?mode=domain'
+    }
+    default: {
       return 'saved-tabs.html?mode=domain'
     }
   }

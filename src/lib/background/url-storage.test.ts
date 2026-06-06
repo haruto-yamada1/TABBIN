@@ -48,7 +48,7 @@ const createSettings = (overrides: Record<string, unknown> = {}) =>
   }) as Awaited<ReturnType<typeof getUserSettings>>
 
 interface StorageState {
-  customProjects?: Array<{
+  customProjects?: {
     id: string
     name: string
     urlIds?: string[]
@@ -56,22 +56,22 @@ interface StorageState {
     categories: string[]
     createdAt: number
     updatedAt: number
-  }>
-  savedTabs?: Array<{
+  }[]
+  savedTabs?: {
     id: string
     domain: string
     parentCategoryId?: string
-    urls?: Array<{ url: string; title: string }>
+    urls?: { url: string; title: string }[]
     urlIds?: string[]
     urlSubCategories?: Record<string, string>
-  }>
+  }[]
   parentCategories: unknown[]
-  urls?: Array<{
+  urls?: {
     id: string
     url: string
     title: string
     savedAt: number
-  }>
+  }[]
 }
 
 interface ChromeMockOptions {
@@ -293,7 +293,7 @@ describe('url-storage', () => {
     }
     setDraggedUrlInfo(info)
 
-    expect(getDraggedUrlInfo()).toEqual(info)
+    expect(getDraggedUrlInfo()).toStrictEqual(info)
 
     clearDraggedUrlInfo()
     expect(getDraggedUrlInfo()).toBeNull()
@@ -930,7 +930,7 @@ describe('url-storage', () => {
           name: 'Category 1',
           domains: ['group-domainnames-non-array'],
           domainNames: 'not-array',
-        } as unknown as (typeof storageState.parentCategories)[number],
+        } as unknown,
       ],
       urls: [],
     }

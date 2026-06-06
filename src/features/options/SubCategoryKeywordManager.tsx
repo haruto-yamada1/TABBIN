@@ -35,7 +35,9 @@ const NewSubCategoryField = ({
       id='new-subcategory'
       type='text'
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => {
+        onChange(e.target.value)
+      }}
       onBlur={onAdd}
       placeholder={placeholder}
       className='w-full rounded border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
@@ -127,8 +129,12 @@ const useSubCategoryKeywordManagerView = ({
       const updatedKeywords = [...keywords, newKeyword.trim()]
       setKeywords(updatedKeywords)
       setCategoryKeywords(tabGroup.id, activeCategory, updatedKeywords)
-        .then(() => setNewKeyword(''))
-        .catch((error) => console.error('キーワード保存エラー:', error))
+        .then(() => {
+          setNewKeyword('')
+        })
+        .catch((error) => {
+          console.error('キーワード保存エラー:', error)
+        })
     }
   }
 
@@ -412,7 +418,9 @@ const useSubCategoryKeywordManagerView = ({
           <div key={category} className='flex max-w-full items-center'>
             <Button
               type='button'
-              onClick={() => handleCategorySelect(category)}
+              onClick={() => {
+                handleCategorySelect(category)
+              }}
               variant={activeCategory === category ? 'secondary' : 'outline'}
               size='sm'
               className={`max-w-[180px] cursor-pointer truncate rounded-r-none ${
@@ -456,7 +464,9 @@ const useSubCategoryKeywordManagerView = ({
                   ref={renameInputRef}
                   type='text'
                   value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onChange={(e) => {
+                    setNewCategoryName(e.target.value)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -535,7 +545,9 @@ const useSubCategoryKeywordManagerView = ({
                 id={`keyword-input-${activeCategory}`}
                 type='text'
                 value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
+                onChange={(e) => {
+                  setNewKeyword(e.target.value)
+                }}
                 placeholder={t('savedTabs.keywords.placeholder')}
                 className='grow rounded-l border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
                 onKeyDown={(e) => {

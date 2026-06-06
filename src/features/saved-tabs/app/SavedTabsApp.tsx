@@ -1209,7 +1209,7 @@ const useSavedTabsAppView = ({
     [refreshTabGroupsWithUrls, setCustomProjects, t, tabGroupsWithUrls],
   )
   const handleUpdateUrls = useCallback(
-    async (groupId: string, _updatedUrls: TabGroup['urls']) => {
+    (groupId: string, _updatedUrls: TabGroup['urls']) => {
       console.log(`グループ ${groupId} のURL更新はストレージ同期に委譲しました`)
     },
     [],

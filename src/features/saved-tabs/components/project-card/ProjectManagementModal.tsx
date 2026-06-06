@@ -138,7 +138,9 @@ const ProjectKeywordSection = ({
         id={inputId}
         aria-label={label}
         value={newKeyword}
-        onChange={(e) => onKeywordChange(e.target.value)}
+        onChange={(e) => {
+          onKeywordChange(e.target.value)
+        }}
         placeholder={placeholder}
         disabled={disabled}
         onKeyDown={(e) => {
@@ -171,7 +173,9 @@ const ProjectKeywordSection = ({
                 type='button'
                 variant='ghost'
                 size='sm'
-                onClick={() => onRemoveKeyword(keyword)}
+                onClick={() => {
+                  onRemoveKeyword(keyword)
+                }}
                 className='h-5 px-1'
                 aria-label={t('savedTabs.keywords.deleteAria')}
                 disabled={disabled}
@@ -456,9 +460,9 @@ const useProjectManagementModalView = ({
                       <Button
                         variant='secondary'
                         size='sm'
-                        onClick={() =>
+                        onClick={() => {
                           updateModalState({ showDeleteConfirm: true })
-                        }
+                        }}
                         className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
                         disabled={isProcessing}
                       >
@@ -569,37 +573,45 @@ const useProjectManagementModalView = ({
                 keywords={titleKeywords}
                 newKeyword={newTitleKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) =>
+                onKeywordChange={(value) => {
                   updateModalState({ newTitleKeyword: value })
-                }
-                onAddKeyword={() =>
+                }}
+                onAddKeyword={() => {
                   addKeyword({
-                    clearInput: () => updateModalState({ newTitleKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newTitleKeyword: '' })
+                    },
                     keyword: newTitleKeyword,
                     keywords: titleKeywords,
                     section: 'titleKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ titleKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ titleKeywords: keywords })
+                    },
                   })
-                }
-                onBlurKeyword={() =>
+                }}
+                onBlurKeyword={() => {
                   addKeyword({
-                    clearInput: () => updateModalState({ newTitleKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newTitleKeyword: '' })
+                    },
                     keyword: newTitleKeyword,
                     keywords: titleKeywords,
                     section: 'titleKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ titleKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ titleKeywords: keywords })
+                    },
                   })
-                }
-                onRemoveKeyword={(keyword) =>
+                }}
+                onRemoveKeyword={(keyword) => {
                   removeKeyword(
                     keyword,
                     'titleKeywords',
-                    (keywords) => updateModalState({ titleKeywords: keywords }),
+                    (keywords) => {
+                      updateModalState({ titleKeywords: keywords })
+                    },
                     titleKeywords,
                   )
-                }
+                }}
               />
 
               <ProjectKeywordSection
@@ -614,37 +626,45 @@ const useProjectManagementModalView = ({
                 keywords={urlKeywords}
                 newKeyword={newUrlKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) =>
+                onKeywordChange={(value) => {
                   updateModalState({ newUrlKeyword: value })
-                }
-                onAddKeyword={() =>
+                }}
+                onAddKeyword={() => {
                   addKeyword({
-                    clearInput: () => updateModalState({ newUrlKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newUrlKeyword: '' })
+                    },
                     keyword: newUrlKeyword,
                     keywords: urlKeywords,
                     section: 'urlKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ urlKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ urlKeywords: keywords })
+                    },
                   })
-                }
-                onBlurKeyword={() =>
+                }}
+                onBlurKeyword={() => {
                   addKeyword({
-                    clearInput: () => updateModalState({ newUrlKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newUrlKeyword: '' })
+                    },
                     keyword: newUrlKeyword,
                     keywords: urlKeywords,
                     section: 'urlKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ urlKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ urlKeywords: keywords })
+                    },
                   })
-                }
-                onRemoveKeyword={(keyword) =>
+                }}
+                onRemoveKeyword={(keyword) => {
                   removeKeyword(
                     keyword,
                     'urlKeywords',
-                    (keywords) => updateModalState({ urlKeywords: keywords }),
+                    (keywords) => {
+                      updateModalState({ urlKeywords: keywords })
+                    },
                     urlKeywords,
                   )
-                }
+                }}
               />
 
               <ProjectKeywordSection
@@ -659,40 +679,45 @@ const useProjectManagementModalView = ({
                 keywords={domainKeywords}
                 newKeyword={newDomainKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) =>
+                onKeywordChange={(value) => {
                   updateModalState({ newDomainKeyword: value })
-                }
-                onAddKeyword={() =>
+                }}
+                onAddKeyword={() => {
                   addKeyword({
-                    clearInput: () =>
-                      updateModalState({ newDomainKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newDomainKeyword: '' })
+                    },
                     keyword: newDomainKeyword,
                     keywords: domainKeywords,
                     section: 'domainKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ domainKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ domainKeywords: keywords })
+                    },
                   })
-                }
-                onBlurKeyword={() =>
+                }}
+                onBlurKeyword={() => {
                   addKeyword({
-                    clearInput: () =>
-                      updateModalState({ newDomainKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newDomainKeyword: '' })
+                    },
                     keyword: newDomainKeyword,
                     keywords: domainKeywords,
                     section: 'domainKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ domainKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ domainKeywords: keywords })
+                    },
                   })
-                }
-                onRemoveKeyword={(keyword) =>
+                }}
+                onRemoveKeyword={(keyword) => {
                   removeKeyword(
                     keyword,
                     'domainKeywords',
-                    (keywords) =>
-                      updateModalState({ domainKeywords: keywords }),
+                    (keywords) => {
+                      updateModalState({ domainKeywords: keywords })
+                    },
                     domainKeywords,
                   )
-                }
+                }}
               />
             </div>
           </div>
@@ -717,7 +742,9 @@ const useProjectManagementModalView = ({
               deleteLabel={t('common.delete')}
               deleteTooltip={t('savedTabs.projectManagement.deleteAction')}
               isProcessing={isProcessing}
-              onCancel={() => updateModalState({ showDeleteConfirm: false })}
+              onCancel={() => {
+                updateModalState({ showDeleteConfirm: false })
+              }}
               onDelete={handleDeleteProject}
             />
           )}

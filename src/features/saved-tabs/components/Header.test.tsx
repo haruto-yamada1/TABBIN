@@ -73,7 +73,12 @@ vi.mock('./ViewModeToggle', () => ({
   }) => {
     viewModeToggleSpy({ currentMode, onChange })
     return (
-      <button onClick={() => onChange('custom')} type='button'>
+      <button
+        onClick={() => {
+          onChange('custom')
+        }}
+        type='button'
+      >
         view-mode-toggle
       </button>
     )

@@ -53,7 +53,7 @@ const loadWebExtensionBrowserApi = async (): Promise<BrowserApi | null> => {
       (mod: BrowserModule) => mod.default as BrowserApi | null,
     )
   }
-  return await browserApiPromise
+  return browserApiPromise
 }
 
 const sendWithChromeRuntime = async (
@@ -75,7 +75,7 @@ export const sendRuntimeMessage = async (
 ): Promise<unknown> => {
   const browserApi = getGlobalBrowserApi()
   if (browserApi?.runtime?.sendMessage) {
-    return await browserApi.runtime.sendMessage(message)
+    return browserApi.runtime.sendMessage(message)
   }
 
   let polyfillBrowserApi: BrowserApi | null = null
@@ -96,7 +96,7 @@ export const sendRuntimeMessage = async (
   if (!chromeRuntime?.sendMessage) {
     return undefined
   }
-  return await sendWithChromeRuntime(chromeRuntime, message)
+  return sendWithChromeRuntime(chromeRuntime, message)
 }
 
 export const connectRuntimePort = async (

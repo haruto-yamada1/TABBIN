@@ -140,7 +140,7 @@ test.describe('saved-tabs stories', () => {
     await expect
       .poll(async () => {
         const data = await readStorage<{
-          savedTabs: Array<{ id: string; urlIds?: string[] }>
+          savedTabs: { id: string; urlIds?: string[] }[]
         }>(serviceWorker, ['savedTabs'])
         return (
           data.savedTabs.find((group) => group.id === 'group-example')?.urlIds
@@ -181,7 +181,7 @@ test.describe('saved-tabs stories', () => {
     await expect
       .poll(async () => {
         const data = await readStorage<{
-          parentCategories: Array<{ domainNames: string[]; name: string }>
+          parentCategories: { domainNames: string[]; name: string }[]
         }>(serviceWorker, ['parentCategories'])
         return data.parentCategories[0]
       })
@@ -223,7 +223,7 @@ test.describe('saved-tabs stories', () => {
     await expect
       .poll(async () => {
         const data = await readStorage<{
-          customProjects: Array<{ name: string }>
+          customProjects: { name: string }[]
         }>(serviceWorker, ['customProjects'])
         return data.customProjects.map((project) => project.name)
       })

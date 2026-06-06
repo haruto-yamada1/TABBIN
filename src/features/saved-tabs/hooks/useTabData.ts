@@ -81,7 +81,7 @@ const ensureValidParentCategories = async (
   }
   console.log('無効なカテゴリを検出、再マイグレーションを実行')
   await migrateParentCategoriesToDomainNames()
-  return await getParentCategories()
+  return getParentCategories()
 }
 const repairSavedTabParentCategoryIds = (
   savedTabs: TabGroup[],

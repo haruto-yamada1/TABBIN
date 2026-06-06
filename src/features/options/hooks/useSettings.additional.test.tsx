@@ -43,7 +43,7 @@ import {
 } from '@/lib/storage/settings'
 
 type StorageListener = (
-  changes: { [key: string]: chrome.storage.StorageChange },
+  changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void
 
@@ -103,7 +103,9 @@ describe('useSettings の追加分岐', () => {
 
     expect(removeListener).toHaveBeenCalledTimes(1)
     expect(removeListener.mock.calls[0]?.[0]).toBe(listener)
-    expect(removeListener.mock.calls[0]?.[0]).toEqual(expect.any(Function))
+    expect(removeListener.mock.calls[0]?.[0]).toStrictEqual(
+      expect.any(Function),
+    )
   })
 
   it('updateSetting の永続化に失敗したとき false を返す', async () => {
@@ -206,7 +208,7 @@ describe('useSettings の追加分岐', () => {
     })
 
     expect(saveUserSettings).toHaveBeenCalled()
-    expect(result.current.settings.excludePatterns).toEqual(
+    expect(result.current.settings.excludePatterns).toStrictEqual(
       defaultSettings.excludePatterns,
     )
     expect(toast.error).toHaveBeenCalledWith(
@@ -266,7 +268,7 @@ describe('useSettings の追加分岐', () => {
 
     expect(success).toBe(false)
     expect(result.current.excludePatternInput).toBe(' chrome:// ')
-    expect(result.current.settings.excludePatterns).toEqual(
+    expect(result.current.settings.excludePatterns).toStrictEqual(
       defaultSettings.excludePatterns,
     )
     expect(saveUserSettings).not.toHaveBeenCalled()
@@ -310,7 +312,7 @@ describe('useSettings の追加分岐', () => {
     })
 
     expect(success).toBe(false)
-    expect(result.current.settings.excludePatterns).toEqual(
+    expect(result.current.settings.excludePatterns).toStrictEqual(
       defaultSettings.excludePatterns,
     )
     expect(toast.error).toHaveBeenCalledWith(
@@ -339,7 +341,7 @@ describe('useSettings の追加分岐', () => {
       await result.current.removeExcludePattern('chrome://')
     })
 
-    expect(result.current.settings.excludePatterns).toEqual([
+    expect(result.current.settings.excludePatterns).toStrictEqual([
       'chrome-extension://',
     ])
     expect(saveUserSettings).toHaveBeenCalledWith(
@@ -366,7 +368,7 @@ describe('useSettings の追加分岐', () => {
       await result.current.removeExcludePattern('chrome://')
     })
 
-    expect(result.current.settings.excludePatterns).toEqual(
+    expect(result.current.settings.excludePatterns).toStrictEqual(
       defaultSettings.excludePatterns,
     )
     expect(toast.error).toHaveBeenCalledWith(
@@ -404,7 +406,7 @@ describe('useSettings の追加分岐', () => {
       )
     })
 
-    expect(result.current.settings).toEqual(before)
+    expect(result.current.settings).toStrictEqual(before)
   })
 
   it('userSettings キーがない local storage 変更を無視する', async () => {
@@ -430,7 +432,7 @@ describe('useSettings の追加分岐', () => {
       )
     })
 
-    expect(result.current.settings).toEqual(before)
+    expect(result.current.settings).toStrictEqual(before)
   })
 
   it('chrome.storage が利用できない環境でもクラッシュせず初期化できる', async () => {
@@ -444,6 +446,6 @@ describe('useSettings の追加分岐', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.settings).toEqual(defaultSettings)
+    expect(result.current.settings).toStrictEqual(defaultSettings)
   })
 })

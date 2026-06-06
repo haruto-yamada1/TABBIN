@@ -136,7 +136,7 @@ describe('I18nProvider', () => {
       expect(addListener).toHaveBeenCalled()
     })
     const listener = addListener.mock.calls[0][0] as (
-      changes: { [key: string]: chrome.storage.StorageChange },
+      changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => void
 

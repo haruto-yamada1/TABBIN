@@ -7,11 +7,11 @@ const mocked = vi.hoisted(() => ({
 }))
 
 const resizeObserverState = vi.hoisted(() => {
-  const instances: Array<{
+  const instances: {
     callback: ResizeObserverCallback
     disconnect: ReturnType<typeof vi.fn>
     observe: ReturnType<typeof vi.fn>
-  }> = []
+  }[] = []
 
   class MockResizeObserver {
     callback: ResizeObserverCallback
@@ -93,7 +93,9 @@ describe('ChartContainer', () => {
       resizeObserverState.emit({ height: 256, width: 320 })
     })
 
-    expect(await screen.findByTestId('responsive-container')).toBeTruthy()
+    await expect(
+      screen.findByTestId('responsive-container'),
+    ).resolves.toBeTruthy()
     expect(mocked.responsiveContainerProps).toMatchObject({
       height: '100%',
       minWidth: 0,

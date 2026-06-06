@@ -27,7 +27,7 @@ const mountToElement = (
   node: ReactNode,
   notFoundMessage: string,
 ) => {
-  const container = document.getElementById(containerId)
+  const container = document.querySelector(`#${containerId}`)
   if (!container) {
     throw new Error(notFoundMessage)
   }

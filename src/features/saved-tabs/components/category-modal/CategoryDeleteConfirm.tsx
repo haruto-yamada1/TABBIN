@@ -37,7 +37,9 @@ export const CategoryDeleteConfirm = () => {
         <Button
           variant='ghost'
           size='sm'
-          onClick={() => deletion.setShowDeleteConfirm(false)}
+          onClick={() => {
+            deletion.setShowDeleteConfirm(false)
+          }}
           disabled={isLoading}
         >
           {t('common.cancel')}

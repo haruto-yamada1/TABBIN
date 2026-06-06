@@ -172,13 +172,13 @@ const getLatestButtonProps = (
     .find(predicate)
 
 const createDeferred = <T,>() => {
-  let resolve!: (value: T | PromiseLike<T>) => void
-  let reject!: (reason?: unknown) => void
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res
-    reject = rej
+  let resolveRef!: (value: T | PromiseLike<T>) => void
+  let rejectRef!: (reason?: unknown) => void
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveRef = resolve
+    rejectRef = reject
   })
-  return { promise, resolve, reject }
+  return { promise, resolve: resolveRef, reject: rejectRef }
 }
 
 const setupChrome = () => {
@@ -252,10 +252,7 @@ describe('CategoryManagementModal', () => {
 
   it('shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './CategoryManagementModal.tsx',
-      ),
+      resolve(import.meta.dirname, './CategoryManagementModal.tsx'),
       'utf8',
     )
 
@@ -286,7 +283,9 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    expect(await screen.findByText('「仕事」の親カテゴリ管理')).toBeTruthy()
+    await expect(
+      screen.findByText('「仕事」の親カテゴリ管理'),
+    ).resolves.toBeTruthy()
     expect(screen.getByText('a.com')).toBeTruthy()
     expect(screen.getByTestId('select-item-g2')).toBeTruthy()
     expect(getMock).toHaveBeenCalledWith('savedTabs')
@@ -309,9 +308,9 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    expect(
-      await screen.findByText('追加できるドメインがありません。'),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('追加できるドメインがありません。'),
+    ).resolves.toBeTruthy()
     expect(screen.queryByTestId('select-root')).toBeNull()
   })
 
@@ -334,9 +333,9 @@ describe('CategoryManagementModal', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
-    const input = (await screen.findByPlaceholderText(
+    const input = await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
-    )) as HTMLInputElement
+    )
 
     using focusSpy = vi.spyOn(input, 'focus')
     using selectSpy = vi.spyOn(input, 'select')
@@ -372,9 +371,9 @@ describe('CategoryManagementModal', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
-    let input = (await screen.findByPlaceholderText(
+    let input = await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
-    )) as HTMLInputElement
+    )
 
     // 変更なし Enter -> 早期 return
     fireEvent.keyDown(input, { key: 'Enter' })
@@ -388,9 +387,7 @@ describe('CategoryManagementModal', () => {
       screen.queryByPlaceholderText('例: ビジネスツール、技術情報'),
     ).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
-    input = (await screen.findByPlaceholderText(
-      '例: ビジネスツール、技術情報',
-    )) as HTMLInputElement
+    input = await screen.findByPlaceholderText('例: ビジネスツール、技術情報')
     fireEvent.change(input, { target: { value: '12345678901234567890123456' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(
@@ -426,9 +423,7 @@ describe('CategoryManagementModal', () => {
 
     // 再度開いて同名 blur -> キャンセル
     fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
-    input = (await screen.findByPlaceholderText(
-      '例: ビジネスツール、技術情報',
-    )) as HTMLInputElement
+    input = await screen.findByPlaceholderText('例: ビジネスツール、技術情報')
     fireEvent.change(input, { target: { value: 'BlurSave' } })
     fireEvent.blur(input)
     expect(
@@ -862,7 +857,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-        domains={[domains3[0] as TabGroup]}
+        domains={[domains3[0]]}
       />,
     )
 
@@ -915,7 +910,7 @@ describe('CategoryManagementModal', () => {
     const firstSetArg = setMock.mock.calls[0]?.[0] as
       | Partial<StorageState>
       | undefined
-    expect(firstSetArg?.parentCategories).toEqual(
+    expect(firstSetArg?.parentCategories).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'cat-2',
@@ -927,7 +922,7 @@ describe('CategoryManagementModal', () => {
     )
     expect(
       firstSetArg?.parentCategories?.find((cat) => cat.id === 'cat-1'),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         domains: ['g1', 'g2'],
         domainNames: ['b.com'],
@@ -1144,7 +1139,7 @@ describe('CategoryManagementModal', () => {
     const removeSetArg = setMock.mock.calls[0]?.[0] as
       | Partial<StorageState>
       | undefined
-    expect(removeSetArg?.parentCategories).toEqual(
+    expect(removeSetArg?.parentCategories).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'cat-2',

@@ -142,7 +142,7 @@ describe('AiChatRoute', () => {
 
   it('履歴一覧の操作に shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(
-      resolve(dirname(fileURLToPath(import.meta.url)), './AiChatRoute.tsx'),
+      resolve(import.meta.dirname, './AiChatRoute.tsx'),
       'utf8',
     )
 
@@ -303,7 +303,7 @@ describe('AiChatRoute', () => {
     expect(mocked.deleteConversation).not.toHaveBeenCalled()
   })
 
-  it('履歴削除確認はキャンセルできる', () => {
+  it('履歴削除確認はキャンセルで削除されない', () => {
     render(createElement(AiChatRoute))
 
     fireEvent.click(

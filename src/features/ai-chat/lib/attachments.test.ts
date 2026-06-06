@@ -23,7 +23,7 @@ describe('convertPromptInputFilesToAiChatAttachments', () => {
 
     await expect(
       convertPromptInputFilesToAiChatAttachments(files),
-    ).resolves.toEqual([
+    ).resolves.toStrictEqual([
       {
         content: 'こんにちは',
         filename: 'memo.txt',
@@ -45,7 +45,7 @@ describe('convertPromptInputFilesToAiChatAttachments', () => {
 
     await expect(
       convertPromptInputFilesToAiChatAttachments(files),
-    ).resolves.toEqual([
+    ).resolves.toStrictEqual([
       {
         content: 'data:image/png;base64,AAAA',
         filename: 'image.png',
@@ -82,7 +82,7 @@ describe('convertPromptInputFilesToAiChatAttachments', () => {
 
     await expect(
       convertPromptInputFilesToAiChatAttachments(files),
-    ).resolves.toEqual([
+    ).resolves.toStrictEqual([
       {
         content: 'hello world',
         filename: 'query.txt',
@@ -104,7 +104,7 @@ describe('convertPromptInputFilesToAiChatAttachments', () => {
 
     await expect(
       convertPromptInputFilesToAiChatAttachments(files),
-    ).resolves.toEqual([
+    ).resolves.toStrictEqual([
       {
         content: 'こんにちは',
         filename: 'memo.txt',
@@ -143,7 +143,7 @@ describe('convertPromptInputFilesToAiChatAttachments', () => {
 
     await expect(
       convertPromptInputFilesToAiChatAttachments(files),
-    ).resolves.toEqual([
+    ).resolves.toStrictEqual([
       {
         content: 'Hello',
         filename: 'memo.txt',
@@ -165,7 +165,7 @@ describe('convertPromptInputFilesToAiChatAttachments', () => {
 
     await expect(
       convertPromptInputFilesToAiChatAttachments(files),
-    ).resolves.toEqual([
+    ).resolves.toStrictEqual([
       {
         content: 'plain text',
         filename: 'memo.txt',

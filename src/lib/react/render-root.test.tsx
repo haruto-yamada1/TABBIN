@@ -33,11 +33,11 @@ describe('render-root', () => {
     container.id = 'app'
     document.body.append(container)
 
-    expect(() =>
-      mountToElement('app', <span>mounted</span>, 'missing'),
-    ).not.toThrow()
-    expect(() =>
-      mountToElement('missing-app', <span>missing</span>, 'root missing'),
-    ).toThrow('root missing')
+    expect(() => {
+      mountToElement('app', <span>mounted</span>, 'missing')
+    }).not.toThrow()
+    expect(() => {
+      mountToElement('missing-app', <span>missing</span>, 'root missing')
+    }).toThrow('root missing')
   })
 })

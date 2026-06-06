@@ -135,7 +135,9 @@ export const Reasoning = memo(
           hasAutoClosedRef.current = true
         }, AUTO_CLOSE_DELAY)
 
-        return () => clearTimeout(timer)
+        return () => {
+          clearTimeout(timer)
+        }
       }
     }, [isStreaming, isOpen, setIsOpen])
 

@@ -354,7 +354,9 @@ export const useCustomProjectCard = ({
       const actualUrl = active.data.current?.url || String(active.id)
       const dragSourceCategory = active.data.current?.category
       setActiveId(null)
-      const clearDragState = () => setDraggedOverCategory(null)
+      const clearDragState = () => {
+        setDraggedOverCategory(null)
+      }
       if (!over) {
         clearDragState()
         return
@@ -447,8 +449,9 @@ export const useCustomProjectCard = ({
       }
     }
     document.addEventListener('click', handleManualCategoryReset)
-    return () =>
+    return () => {
       document.removeEventListener('click', handleManualCategoryReset)
+    }
   }, [project.id, t])
 
   // --- 計算済みデータ ---

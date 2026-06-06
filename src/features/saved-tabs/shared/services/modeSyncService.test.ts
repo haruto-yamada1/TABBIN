@@ -120,7 +120,7 @@ describe('syncStorageChanges', () => {
       },
     })
 
-    expect(ctx.state.getProjects().map((project) => project.id)).toEqual([
+    expect(ctx.state.getProjects().map((project) => project.id)).toStrictEqual([
       'project-3',
       'project-1',
       'project-2',
@@ -206,7 +206,7 @@ describe('syncStorageChanges', () => {
     )
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledTimes(1)
     expect(ctx.spies.syncDomainDataToCustomProjects).toHaveBeenCalledTimes(1)
-    expect(events.map((event) => event.type)).toEqual([
+    expect(events.map((event) => event.type)).toStrictEqual([
       'savedTabsUpdated',
       'urlsUpdated',
     ])
@@ -256,8 +256,8 @@ describe('syncStorageChanges', () => {
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith()
     expect(ctx.spies.syncDomainDataToCustomProjects).not.toHaveBeenCalled()
     expect(ctx.state.getSettings().removeTabAfterOpen).toBe(true)
-    expect(ctx.state.getCategories()).toEqual(nextCategories)
-    expect(events.map((event) => event.type)).toEqual([
+    expect(ctx.state.getCategories()).toStrictEqual(nextCategories)
+    expect(events.map((event) => event.type)).toStrictEqual([
       'urlsUpdated',
       'settingsUpdated',
       'categoriesUpdated',
@@ -317,7 +317,7 @@ describe('syncStorageChanges', () => {
       },
     })
 
-    expect(ctx.state.getProjects()).toEqual([])
+    expect(ctx.state.getProjects()).toStrictEqual([])
   })
 
   it('urlMetadata のキー数が異なる場合は参照を維持しない', async () => {
@@ -492,7 +492,7 @@ describe('syncStorageChanges', () => {
       },
     })
 
-    expect(ctx.state.getSettings()).toEqual(initialSettings)
+    expect(ctx.state.getSettings()).toStrictEqual(initialSettings)
   })
 
   it('parentCategories が配列以外の場合は空配列を設定する', async () => {
@@ -516,7 +516,7 @@ describe('syncStorageChanges', () => {
       },
     })
 
-    expect(ctx.state.getCategories()).toEqual([])
+    expect(ctx.state.getCategories()).toStrictEqual([])
   })
 
   it('urlMetadata と urls が未定義でも等価なら参照を維持する', async () => {
@@ -550,7 +550,7 @@ describe('syncStorageChanges', () => {
       changes: {},
     })
 
-    expect(events).toEqual([])
+    expect(events).toStrictEqual([])
     expect(ctx.spies.refreshTabGroupsWithUrls).not.toHaveBeenCalled()
     expect(ctx.spies.syncDomainDataToCustomProjects).not.toHaveBeenCalled()
     expect(ctx.spies.setSettings).not.toHaveBeenCalled()

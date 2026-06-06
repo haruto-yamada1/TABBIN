@@ -1176,7 +1176,7 @@ describe('AnalyticsRoute', () => {
 
   it('shared ui コンポーネントを利用する実装になっている', () => {
     const source = readFileSync(
-      resolve(dirname(fileURLToPath(import.meta.url)), './AnalyticsRoute.tsx'),
+      resolve(import.meta.dirname, './AnalyticsRoute.tsx'),
       {
         encoding: 'utf8',
       },
@@ -1717,16 +1717,13 @@ describe('AnalyticsRoute', () => {
     const openLink = screen.getByRole('link', { name: 'Open Example Docs' })
     const deleteButton = screen.getByRole('button', { name: 'Delete tab' })
     const source = readFileSync(
-      resolve(dirname(fileURLToPath(import.meta.url)), './AnalyticsRoute.tsx'),
+      resolve(import.meta.dirname, './AnalyticsRoute.tsx'),
       {
         encoding: 'utf8',
       },
     )
     const actionButtonsSource = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './AnalyticsRecordActionButtons.tsx',
-      ),
+      resolve(import.meta.dirname, './AnalyticsRecordActionButtons.tsx'),
       {
         encoding: 'utf8',
       },

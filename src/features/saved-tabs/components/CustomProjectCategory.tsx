@@ -87,12 +87,16 @@ const CategoryHeaderMain = ({
       setIsCollapsed={setIsCollapsed}
       setUserCollapsedState={setUserCollapsedState}
       isDisabled={isCollapseDisabled}
-      onPointerDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => {
+        event.stopPropagation()
+      }}
     />
     <CardSortControl
       sortOrder={sortOrder}
       setSortOrder={setSortOrder}
-      onPointerDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => {
+        event.stopPropagation()
+      }}
     />
 
     <div className='shrink-0 text-muted-foreground'>
@@ -278,13 +282,15 @@ const useCustomProjectCategoryView = ({
 
   const handleDeleteAllUrlsConfirmed = async () => {
     if (handleDeleteUrlsFromProject) {
-      await handleDeleteUrlsFromProject(
+      handleDeleteUrlsFromProject(
         projectId,
         sortedCategoryUrls.map((item) => item.url),
       )
     } else {
       await Promise.all(
-        sortedCategoryUrls.map((item) => handleDeleteUrl(projectId, item.url)),
+        sortedCategoryUrls.map((item) => {
+          handleDeleteUrl(projectId, item.url)
+        }),
       )
     }
   }

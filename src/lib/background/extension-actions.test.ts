@@ -110,7 +110,7 @@ describe('extension-actions モジュール', () => {
         }),
       ])
       mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      await expect(handleSaveCurrentTab()).resolves.toEqual([])
+      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([])
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
       expect(mocked.showNotification).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
@@ -141,7 +141,7 @@ describe('extension-actions モジュール', () => {
         '現在のタブを保存しました',
       )
       expect(chromeTabs.remove).toHaveBeenCalledWith(10)
-      expect(result).toEqual([
+      expect(result).toStrictEqual([
         {
           url: 'https://current.example/path',
           title: 'Current',
@@ -159,7 +159,7 @@ describe('extension-actions モジュール', () => {
       chromeTabs.query.mockResolvedValueOnce([activeTab])
       chromeTabs.remove.mockRejectedValueOnce(error)
       mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-      await expect(handleSaveCurrentTab()).resolves.toEqual([
+      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([
         {
           url: 'https://current.example/fail-close',
           title: 'Current',
@@ -183,7 +183,7 @@ describe('extension-actions モジュール', () => {
         new Error('custom sync failed'),
       )
 
-      await expect(handleSaveCurrentTab()).resolves.toEqual([
+      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([
         {
           url: 'https://current.example/custom-sync-error',
           title: 'Current',
@@ -207,7 +207,7 @@ describe('extension-actions モジュール', () => {
       })
       chromeTabs.query.mockResolvedValueOnce([activeTab])
       mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-      await expect(handleSaveCurrentTab()).resolves.toEqual([
+      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([
         {
           url: 'https://current.example/no-id',
           title: '',
@@ -242,7 +242,7 @@ describe('extension-actions モジュール', () => {
       mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
       mocked.getUserSettings.mockResolvedValueOnce({} as UserSettings)
 
-      await expect(handleSaveCurrentTab()).resolves.toEqual([])
+      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([])
 
       expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
     })
@@ -256,7 +256,7 @@ describe('extension-actions モジュール', () => {
           url: undefined,
         }),
       ])
-      await expect(handleSaveSameDomainTabs()).resolves.toEqual([])
+      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([])
       expect(mocked.filterTabsByUserSettings).not.toHaveBeenCalled()
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
     })
@@ -368,7 +368,7 @@ describe('extension-actions モジュール', () => {
         'same.exampleの4個のタブを保存しました',
       )
       expect(chromeTabs.remove).toHaveBeenCalledWith([20, 21])
-      expect(result).toEqual([
+      expect(result).toStrictEqual([
         {
           url: 'https://same.example/page-1',
           title: 'Active',
@@ -409,7 +409,7 @@ describe('extension-actions モジュール', () => {
             excludePatterns: ['same.example'],
           }),
         )
-      await expect(handleSaveSameDomainTabs()).resolves.toEqual([
+      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([
         {
           url: 'https://same.example/page',
           title: '',
@@ -428,7 +428,7 @@ describe('extension-actions モジュール', () => {
         .mockResolvedValueOnce([active])
         .mockResolvedValueOnce([active])
       mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      await expect(handleSaveSameDomainTabs()).resolves.toEqual([])
+      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([])
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
       expect(mocked.showNotification).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
@@ -442,7 +442,7 @@ describe('extension-actions モジュール', () => {
           title: 'Broken Active',
         }),
       ])
-      await expect(handleSaveSameDomainTabs()).resolves.toEqual([])
+      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([])
       expect(console.error).toHaveBeenCalledWith(
         'ドメインタブ保存エラー:',
         expect.any(Error),
@@ -474,7 +474,7 @@ describe('extension-actions モジュール', () => {
           excludePatterns: [],
         }),
       )
-      await expect(handleSaveSameDomainTabs()).resolves.toEqual([
+      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([
         {
           url: 'https://same.example/page',
           title: 'Active',
@@ -506,7 +506,7 @@ describe('extension-actions モジュール', () => {
         },
       ])
       mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([])
+      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([])
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
       expect(mocked.showNotification).not.toHaveBeenCalled()
       expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
@@ -567,7 +567,7 @@ describe('extension-actions モジュール', () => {
         'すべてのウィンドウから3個のタブを保存しました',
       )
       expect(chromeTabs.remove).toHaveBeenCalledWith([41, 42])
-      expect(result).toEqual([
+      expect(result).toStrictEqual([
         {
           url: 'https://a.example',
           title: 'A',
@@ -599,7 +599,7 @@ describe('extension-actions モジュール', () => {
       ])
       mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
       mocked.openSavedTabsPage.mockResolvedValueOnce(46)
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([
+      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
         {
           url: 'https://saved-tabs.example',
           title: '',
@@ -612,7 +612,7 @@ describe('extension-actions モジュール', () => {
       const error = new Error('query failed')
       chromeTabs.getAllWindows.mockRejectedValueOnce(error)
       chromeTabs.query.mockRejectedValueOnce(error)
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([])
+      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([])
       expect(console.error).toHaveBeenCalledWith(
         'すべてのタブ保存エラー:',
         error,
@@ -642,7 +642,7 @@ describe('extension-actions モジュール', () => {
       chromeTabs.remove.mockRejectedValueOnce(error)
       mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
       mocked.openSavedTabsPage.mockResolvedValueOnce(999)
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([
+      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
         {
           url: 'https://a.example',
           title: 'A',
@@ -681,7 +681,7 @@ describe('extension-actions モジュール', () => {
       mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
       mocked.openSavedTabsPage.mockResolvedValueOnce(999)
 
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([
+      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
         {
           url: 'https://fallback.example/a',
           title: 'A',
@@ -709,7 +709,7 @@ describe('extension-actions モジュール', () => {
       mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
       mocked.openSavedTabsPage.mockResolvedValueOnce(999)
 
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([
+      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
         {
           url: 'https://fallback-error.example',
           title: 'Fallback Error',
@@ -747,7 +747,7 @@ describe('extension-actions モジュール', () => {
       mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
       mocked.openSavedTabsPage.mockResolvedValueOnce(999)
 
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([
+      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
         {
           url: 'https://no-windows-api.example/a',
           title: 'A',
@@ -779,7 +779,7 @@ describe('extension-actions モジュール', () => {
       mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
       mocked.openSavedTabsPage.mockResolvedValueOnce(999)
 
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([
+      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
         {
           url: 'https://window-tabs-undefined.example',
           title: 'Only Tab',
@@ -799,7 +799,7 @@ describe('extension-actions モジュール', () => {
         }),
       ])
       mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      await expect(handleSaveWindowTabs()).resolves.toEqual([])
+      await expect(handleSaveWindowTabs()).resolves.toStrictEqual([])
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
@@ -852,7 +852,7 @@ describe('extension-actions モジュール', () => {
         '3個のタブが保存されました。タブを閉じます。',
       )
       expect(chromeTabs.remove).toHaveBeenCalledWith([1])
-      expect(result).toEqual([
+      expect(result).toStrictEqual([
         {
           url: 'https://keep.example/1',
           title: 'One',
@@ -927,7 +927,7 @@ describe('extension-actions モジュール', () => {
           excludePatterns: ['ignore.example'],
         }),
       )
-      await expect(handleSaveWindowTabs()).resolves.toEqual([
+      await expect(handleSaveWindowTabs()).resolves.toStrictEqual([
         {
           url: 'https://ignore.example/only',
           title: 'Ignored',
@@ -954,7 +954,7 @@ describe('extension-actions モジュール', () => {
           excludePatterns: [],
         }),
       )
-      await expect(handleSaveWindowTabs()).resolves.toEqual([
+      await expect(handleSaveWindowTabs()).resolves.toStrictEqual([
         {
           url: 'https://keep.example/1',
           title: '',
@@ -985,7 +985,7 @@ describe('extension-actions モジュール', () => {
           excludePatterns: [],
         }),
       )
-      await expect(handleSaveWindowTabs()).resolves.toEqual([
+      await expect(handleSaveWindowTabs()).resolves.toStrictEqual([
         {
           url: 'https://keep.example/1',
           title: 'One',

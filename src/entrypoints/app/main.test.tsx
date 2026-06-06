@@ -91,7 +91,7 @@ describe('app bootstrap', () => {
     domReadyHandler?.(new Event('DOMContentLoaded'))
 
     expect(mocked.createRoot).toHaveBeenCalledWith(
-      document.getElementById('app'),
+      document.querySelector('#app'),
     )
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
   })

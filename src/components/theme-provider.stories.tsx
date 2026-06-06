@@ -11,13 +11,28 @@ const ThemeConsumer = () => {
   return (
     <div className='flex items-center gap-3'>
       <span className='rounded-md border px-3 py-2 text-sm'>{theme}</span>
-      <Button onClick={() => setTheme('light')} variant='outline'>
+      <Button
+        onClick={() => {
+          setTheme('light')
+        }}
+        variant='outline'
+      >
         Light
       </Button>
-      <Button onClick={() => setTheme('dark')} variant='outline'>
+      <Button
+        onClick={() => {
+          setTheme('dark')
+        }}
+        variant='outline'
+      >
         Dark
       </Button>
-      <Button onClick={() => setTheme('user')} variant='outline'>
+      <Button
+        onClick={() => {
+          setTheme('user')
+        }}
+        variant='outline'
+      >
         User
       </Button>
     </div>

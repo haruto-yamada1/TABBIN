@@ -46,18 +46,22 @@ const storyFiles = walk(componentsRoot).reduce<string[]>((files, filePath) => {
   return files
 }, [])
 
-const coveredComponentFiles = storyFiles.flatMap((filePath) => {
-  const contents = readFileSync(path.join(repoRoot, filePath), 'utf8')
+const coveredComponentFiles = new Set(
+  storyFiles.flatMap((filePath) => {
+    const contents = readFileSync(path.join(repoRoot, filePath), 'utf8')
 
-  return [...contents.matchAll(/@covers\s+([^\s]+)/g)].map((match) => match[1])
-})
+    return [...contents.matchAll(/@covers\s+([^\s]+)/g)].map(
+      (match) => match[1],
+    )
+  }),
+)
 
 describe('storybook component coverage', () => {
   it('covers every component in components/ with at least one story file', () => {
     const uncovered = componentFiles.filter(
-      (filePath) => !coveredComponentFiles.includes(filePath),
+      (filePath) => !coveredComponentFiles.has(filePath),
     )
 
-    expect(uncovered).toEqual([])
+    expect(uncovered).toStrictEqual([])
   })
 })

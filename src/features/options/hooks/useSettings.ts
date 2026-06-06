@@ -187,7 +187,7 @@ export const useSettings = () => {
     } catch (error) {
       handleSaveFailure(
         error,
-        `設定の保存エラー (${String(key)}):`,
+        `設定の保存エラー (${key}):`,
         newSettings,
         rollbackSettings,
       )

@@ -78,10 +78,7 @@ describe('OllamaErrorNotice', () => {
 
   it('uses the shared ui input in the copy row and does not leave a raw input element', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './OllamaErrorNotice.tsx',
-      ),
+      resolve(import.meta.dirname, './OllamaErrorNotice.tsx'),
       'utf8',
     )
 

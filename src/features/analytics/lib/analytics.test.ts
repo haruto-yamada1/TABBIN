@@ -92,7 +92,7 @@ describe('analytics', () => {
         { colorToken: 'chart-1', dataKey: 'count', label: 'Saved count' },
       ],
     })
-    expect(result.chartSpecs[0]?.data).toEqual([
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
       { count: 2, label: 'docs.example.com' },
       { count: 1, label: 'app.example.org' },
     ])
@@ -152,7 +152,7 @@ describe('analytics', () => {
       },
     )
 
-    expect(result.chartSpecs[0]?.data).toEqual([
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
       { count: 1, label: '2026-03-12' },
       { count: 1, label: '2026-03-13' },
     ])
@@ -191,7 +191,7 @@ describe('analytics', () => {
       options,
     )
 
-    expect(result.chartSpecs[0]?.data).toEqual([
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
       { count: 1, label: '2026-03-01' },
     ])
   })
@@ -238,7 +238,7 @@ describe('analytics', () => {
       },
     )
 
-    expect(result.chartSpecs[0]?.data).toEqual([
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
       { count: 2, label: '2026-03-06' },
       { count: 2, label: '2026-03-13' },
     ])
@@ -260,7 +260,7 @@ describe('analytics', () => {
       },
     )
 
-    expect(result.chartSpecs[0]?.data).toEqual([
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
       { count: 1, label: '2026-03-13' },
     ])
   })
@@ -339,7 +339,7 @@ describe('analytics', () => {
     })
     expect(weeklyResult.chartSpecs[0]?.title).toBe('Weekly saved trend')
     expect(monthlyResult.chartSpecs[0]?.title).toBe('Monthly saved trend')
-    expect(normalizedEmptyResult.chartSpecs[0]?.data).toEqual([])
+    expect(normalizedEmptyResult.chartSpecs[0]?.data).toStrictEqual([])
   })
 
   it('applies include/exclude filters and percent normalization', () => {
@@ -369,7 +369,9 @@ describe('analytics', () => {
       type: 'pie',
       valueFormat: 'percent',
     })
-    expect(result.chartSpecs[0]?.data).toEqual([{ count: 100, label: 'Work' }])
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
+      { count: 100, label: 'Work' },
+    ])
   })
 
   it('custom mode, label/value sorts, and uncategorized category labels are supported', () => {
@@ -391,7 +393,7 @@ describe('analytics', () => {
     expect(customResult.chartSpecs[0]).toMatchObject({
       title: 'Saved count by project category',
     })
-    expect(customResult.chartSpecs[0]?.data).toEqual([
+    expect(customResult.chartSpecs[0]?.data).toStrictEqual([
       { count: 1, label: 'Review' },
       { count: 1, label: 'Reading' },
       { count: 1, label: 'Catchup' },
@@ -417,7 +419,7 @@ describe('analytics', () => {
     expect(subCategoryResult.chartSpecs[0]).toMatchObject({
       title: 'Saved count by sub category',
     })
-    expect(subCategoryResult.chartSpecs[0]?.data).toEqual([
+    expect(subCategoryResult.chartSpecs[0]?.data).toStrictEqual([
       { count: 1, label: 'Docs' },
       { count: 1, label: 'No category' },
       { count: 1, label: 'Ops' },
@@ -443,7 +445,7 @@ describe('analytics', () => {
     expect(weeklyResult.chartSpecs[0]).toMatchObject({
       title: 'Weekly saved trend',
     })
-    expect(weeklyResult.chartSpecs[0]?.data).toEqual([
+    expect(weeklyResult.chartSpecs[0]?.data).toStrictEqual([
       { count: 1, label: '2026-03-02' },
       { count: 3, label: '2026-03-09' },
     ])
@@ -466,7 +468,7 @@ describe('analytics', () => {
     expect(monthlyResult.chartSpecs[0]).toMatchObject({
       title: 'Monthly saved trend',
     })
-    expect(monthlyResult.chartSpecs[0]?.data).toEqual([
+    expect(monthlyResult.chartSpecs[0]?.data).toStrictEqual([
       { count: 3, label: '2026-03' },
     ])
   })
@@ -501,7 +503,7 @@ describe('analytics', () => {
       title: 'Mode share by domain',
       valueFormat: 'percent',
     })
-    expect(result.chartSpecs[0]?.data).toEqual([
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
       { custom: 100, domain: 0, label: 'news.example.net' },
       { custom: 50, domain: 50, label: 'app.example.org' },
       { custom: 33, domain: 67, label: 'docs.example.com' },
@@ -565,7 +567,7 @@ describe('analytics', () => {
       title: 'Daily saved trend',
       valueFormat: 'percent',
     })
-    expect(result.chartSpecs[0]?.data).toEqual([])
+    expect(result.chartSpecs[0]?.data).toStrictEqual([])
   })
 
   it('defaults to the all-time range', () => {
@@ -591,7 +593,7 @@ describe('analytics', () => {
     )
 
     expect(result.filteredRecordCount).toBe(3)
-    expect(result.chartSpecs[0]?.data).toEqual([
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
       { count: 2, label: 'docs.example.com' },
       { count: 1, label: 'news.example.net' },
     ])
@@ -640,7 +642,7 @@ describe('analytics', () => {
       },
     )
 
-    expect(filtered).toEqual([
+    expect(filtered).toStrictEqual([
       expect.objectContaining({
         id: '1',
       }),
@@ -664,7 +666,10 @@ describe('analytics', () => {
         now: NOW,
       },
     )
-    expect(blankFilterResult.map((record) => record.id)).toEqual(['1', '2'])
+    expect(blankFilterResult.map((record) => record.id)).toStrictEqual([
+      '1',
+      '2',
+    ])
   })
 
   it('interprets custom date ranges using the local date', () => {
@@ -699,7 +704,7 @@ describe('analytics', () => {
     )
 
     expect(result.filteredRecordCount).toBe(1)
-    expect(result.chartSpecs[0]?.data).toEqual([
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
       { count: 1, label: 'calendar.example.com' },
     ])
   })
@@ -713,8 +718,12 @@ describe('analytics', () => {
   })
 
   it('internal analytics helpers は time group と 0 件正規化を扱う', () => {
-    expect(getLabelsForGroup(records[0], 'timeRecent')).toEqual(['2026-03-13'])
-    expect(getLabelsForGroup(records[0], 'timeTop')).toEqual(['2026-03-13'])
+    expect(getLabelsForGroup(records[0], 'timeRecent')).toStrictEqual([
+      '2026-03-13',
+    ])
+    expect(getLabelsForGroup(records[0], 'timeTop')).toStrictEqual([
+      '2026-03-13',
+    ])
     expect(
       getSingleSeriesTitle('timeRecent', {
         chartDailySavedTrend: 'daily',

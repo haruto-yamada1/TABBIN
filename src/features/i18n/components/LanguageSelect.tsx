@@ -22,6 +22,9 @@ const getLanguageOptionKey = (option: LanguageSetting) => {
     case 'en': {
       return 'language.english'
     }
+    default: {
+      return 'language.system'
+    }
   }
 }
 

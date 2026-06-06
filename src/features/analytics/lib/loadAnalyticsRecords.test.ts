@@ -58,7 +58,9 @@ describe('loadAnalyticsRecords', () => {
   })
 
   it('保存ストレージから分析レコードを組み立てる', async () => {
-    await expect(loadAnalyticsRecords()).resolves.toEqual([{ id: 'record-1' }])
+    await expect(loadAnalyticsRecords()).resolves.toStrictEqual([
+      { id: 'record-1' },
+    ])
 
     expect(mocks.buildAiSavedUrlRecords).toHaveBeenCalledWith({
       customProjects: [{ id: 'project-1' }],

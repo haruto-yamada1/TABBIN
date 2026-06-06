@@ -197,7 +197,9 @@ const ProjectUrlItemComponent = ({
             draggable
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            onClick={() => handleOpenUrl(item.url)}
+            onClick={() => {
+              handleOpenUrl(item.url)
+            }}
             className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
           >
             {/* サブカテゴリ付きのURLの場合はChevronRightを表示 */}
@@ -244,7 +246,9 @@ const ProjectUrlItemComponent = ({
       <DeleteUrlConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => handleDeleteUrl(projectId, item.url)}
+        onConfirm={() => {
+          handleDeleteUrl(projectId, item.url)
+        }}
       />
     </>
   )

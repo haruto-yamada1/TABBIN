@@ -224,7 +224,9 @@ vi.mock('@/features/saved-tabs/components/Header', () => ({
         search
         <input
           aria-label='search'
-          onChange={(event) => onSearchChange(event.target.value)}
+          onChange={(event) => {
+            onSearchChange(event.target.value)
+          }}
           value={searchQuery}
         />
       </label>
@@ -402,7 +404,7 @@ describe('SavedTabsApp custom search', () => {
           { id: 'url-b', url: 'https://example.com/b' },
         ],
       ),
-    ).toEqual(new Set(['url-a']))
+    ).toStrictEqual(new Set(['url-a']))
 
     const categoryLookup = buildCategoryLookup([
       {
@@ -425,7 +427,7 @@ describe('SavedTabsApp custom search', () => {
 
     sortCategorizedGroups(categorized, categoryLookup)
 
-    expect(categorized['category-1']).toEqual([
+    expect(categorized['category-1']).toStrictEqual([
       expect.objectContaining({ id: 'group-ordered' }),
       expect.objectContaining({ id: 'group-extra' }),
     ])
@@ -520,7 +522,7 @@ describe('SavedTabsApp custom search', () => {
         'nomatch',
         duplicateLookup,
       ),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         urls: [],
       }),
@@ -555,7 +557,7 @@ describe('SavedTabsApp custom search', () => {
         ['url-b'],
         new Set(['url-a']),
       ),
-    ).toEqual({
+    ).toStrictEqual({
       domain: 'example.com',
       id: 'group-1',
       urlIds: ['url-b'],
@@ -575,7 +577,7 @@ describe('SavedTabsApp custom search', () => {
         ['url-b'],
         new Set(['url-a']),
       ),
-    ).toEqual({
+    ).toStrictEqual({
       domain: 'example.com',
       id: 'group-2',
       urlIds: ['url-b'],
@@ -603,7 +605,7 @@ describe('SavedTabsApp custom search', () => {
         updatedAt: 1,
         urls: [{ savedAt: 1, title: 'A', url: 'https://a.test' }],
       }),
-    ).toEqual({
+    ).toStrictEqual({
       domain: 'No URL IDs',
       id: 'project-without-url-ids',
       urlIds: [],
@@ -652,7 +654,7 @@ describe('SavedTabsApp custom search', () => {
       state,
     )
 
-    expect(nextState.updatedCategories).toEqual([
+    expect(nextState.updatedCategories).toStrictEqual([
       expect.objectContaining({
         domains: ['group-1'],
         id: 'category-1',
@@ -662,7 +664,7 @@ describe('SavedTabsApp custom search', () => {
         id: 'category-2',
       }),
     ])
-    expect(nextState.updatedSavedTabs).toEqual([
+    expect(nextState.updatedSavedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'group-1',
         parentCategoryId: 'category-1',
@@ -748,7 +750,7 @@ describe('SavedTabsApp custom search', () => {
 
     sortCategorizedGroups(categorized, categoryLookup)
 
-    expect(categorized['category-1'].map((group) => group.id)).toEqual([
+    expect(categorized['category-1'].map((group) => group.id)).toStrictEqual([
       'group-a',
       'group-b',
       'group-unknown',
@@ -763,19 +765,19 @@ describe('SavedTabsApp custom search', () => {
     sortCategorizedGroups(categorizedWithUnknownLast, categoryLookup)
     expect(
       categorizedWithUnknownLast['category-1'].map((group) => group.id),
-    ).toEqual(['group-a', 'group-unknown'])
+    ).toStrictEqual(['group-a', 'group-unknown'])
 
     expect(
       filterGroupsByExcludedIds(
         categorized['category-1'],
         new Set(['group-b']),
       ).map((group) => group.id),
-    ).toEqual(['group-a', 'group-unknown'])
+    ).toStrictEqual(['group-a', 'group-unknown'])
     expect(
       createFilterGroupsByExcludedIdsUpdater(new Set(['group-a']))(
         categorized['category-1'],
       ).map((group) => group.id),
-    ).toEqual(['group-b', 'group-unknown'])
+    ).toStrictEqual(['group-b', 'group-unknown'])
   })
 
   it('プロジェクト名一致で対象プロジェクトだけを表示する', async () => {
@@ -1052,7 +1054,7 @@ describe('SavedTabsApp custom search', () => {
     } as unknown as typeof chrome
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       options.setSettings({
-        ...(mocked.settings as UserSettings),
+        ...mocked.settings,
         enableCategories: false,
       })
       return []
@@ -1060,9 +1062,9 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
-    const listener = addListener.mock.calls[0]?.[0] as (changes: {
-      [key: string]: chrome.storage.StorageChange
-    }) => Promise<void>
+    const listener = addListener.mock.calls[0]?.[0] as (
+      changes: Record<string, chrome.storage.StorageChange>,
+    ) => Promise<void>
     await act(async () => {
       await listener({
         settings: {
@@ -1418,7 +1420,7 @@ describe('SavedTabsApp custom search', () => {
             uncategorizedForDisplay: TabGroup[]
           }
         ).uncategorizedForDisplay.map((group) => group.id),
-      ).toEqual(['second', 'first'])
+      ).toStrictEqual(['second', 'first'])
     })
 
     domainProps = mocked.domainModeContainerSpy.mock.calls.at(-1)?.[0] as {
@@ -1443,7 +1445,7 @@ describe('SavedTabsApp custom search', () => {
             uncategorizedForDisplay: TabGroup[]
           }
         ).uncategorizedForDisplay.map((group) => group.id),
-      ).toEqual(['first', 'second'])
+      ).toStrictEqual(['first', 'second'])
     })
 
     act(() => {
@@ -1459,7 +1461,7 @@ describe('SavedTabsApp custom search', () => {
           uncategorizedForDisplay: TabGroup[]
         }
       ).uncategorizedForDisplay.map((group) => group.id),
-    ).toEqual(['first', 'second'])
+    ).toStrictEqual(['first', 'second'])
   })
 
   it('ドメイン内の単体タブ削除でも Undo で削除前の保存データを復元できる', async () => {
@@ -1711,7 +1713,7 @@ describe('SavedTabsApp custom search', () => {
       -1,
     )?.[0] as {
       handleOpenAllTabs: (
-        urls: Array<{ url: string; title: string }>,
+        urls: { url: string; title: string }[],
       ) => Promise<void>
     }
 
@@ -1847,7 +1849,7 @@ describe('SavedTabsApp custom search', () => {
       -1,
     )?.[0] as {
       handleOpenAllTabs: (
-        urls: Array<{ url: string; title: string }>,
+        urls: { url: string; title: string }[],
       ) => Promise<void>
     }
 
@@ -1921,7 +1923,7 @@ describe('SavedTabsApp custom search', () => {
         url: string,
       ) => Promise<null>
       handleOpenAllUrls: (
-        urls: Array<{ url: string; title: string }>,
+        urls: { url: string; title: string }[],
       ) => Promise<void>
       handleOpenUrl: (url: string) => Promise<void>
     }
@@ -2340,9 +2342,9 @@ describe('SavedTabsApp custom search', () => {
     } as unknown as typeof chrome
 
     const { unmount } = render(<SavedTabsApp />)
-    const listener = addListener.mock.calls[0]?.[0] as (changes: {
-      [key: string]: chrome.storage.StorageChange
-    }) => Promise<void>
+    const listener = addListener.mock.calls[0]?.[0] as (
+      changes: Record<string, chrome.storage.StorageChange>,
+    ) => Promise<void>
 
     await listener({
       savedTabs: {
@@ -2694,7 +2696,7 @@ describe('SavedTabsApp custom search', () => {
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       options.setSettings({
-        ...(mocked.settings as UserSettings),
+        ...mocked.settings,
         openAllInNewWindow: true,
         removeTabAfterOpen: false,
       })
@@ -2703,9 +2705,9 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
-    const listener = addListener.mock.calls[0]?.[0] as (changes: {
-      [key: string]: chrome.storage.StorageChange
-    }) => Promise<void>
+    const listener = addListener.mock.calls[0]?.[0] as (
+      changes: Record<string, chrome.storage.StorageChange>,
+    ) => Promise<void>
     await act(async () => {
       await listener({
         settings: {
@@ -2730,7 +2732,7 @@ describe('SavedTabsApp custom search', () => {
       -1,
     )?.[0] as {
       handleOpenAllTabs: (
-        urls: Array<{ url: string; title: string }>,
+        urls: { url: string; title: string }[],
       ) => Promise<void>
     }
 
@@ -2972,7 +2974,7 @@ describe('SavedTabsApp custom search', () => {
       -1,
     )?.[0] as {
       handleOpenAllUrls: (
-        urls: Array<{ url: string; title: string }>,
+        urls: { url: string; title: string }[],
       ) => Promise<void>
       handleOpenUrl: (url: string) => Promise<void>
     }
@@ -3171,7 +3173,7 @@ describe('SavedTabsApp custom search', () => {
     } as unknown as typeof chrome
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       options.setSettings({
-        ...(mocked.settings as UserSettings),
+        ...mocked.settings,
         removeTabAfterOpen: false,
         openUrlInBackground: false,
       })
@@ -3180,9 +3182,9 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp />)
 
-    const listener = addListener.mock.calls[0]?.[0] as (changes: {
-      [key: string]: chrome.storage.StorageChange
-    }) => Promise<void>
+    const listener = addListener.mock.calls[0]?.[0] as (
+      changes: Record<string, chrome.storage.StorageChange>,
+    ) => Promise<void>
     await act(async () => {
       await listener({
         settings: {

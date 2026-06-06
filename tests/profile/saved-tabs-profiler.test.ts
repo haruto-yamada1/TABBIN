@@ -1,12 +1,10 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
-interface MockStore {
-  [key: string]: unknown
-}
+type MockStore = Record<string, unknown>
 
 type StorageListener = (
-  changes: { [key: string]: chrome.storage.StorageChange },
+  changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void
 
@@ -53,7 +51,7 @@ const createChromeMock = () => {
     if (value === undefined) {
       return value
     }
-    return JSON.parse(JSON.stringify(value)) as T
+    return structuredClone(value) as T
   }
 
   const get = async (keys?: string | string[] | Record<string, unknown>) => {
@@ -82,7 +80,7 @@ const createChromeMock = () => {
   }
 
   const set = async (next: Record<string, unknown>) => {
-    const changes: { [key: string]: chrome.storage.StorageChange } = {}
+    const changes: Record<string, chrome.storage.StorageChange> = {}
 
     for (const [key, value] of Object.entries(next)) {
       changes[key] = {
@@ -171,7 +169,7 @@ describe('SavedTabs プロファイラのベースライン', () => {
     ).enableSavedTabsProfiler = false
   })
 
-  test('検索操作中のコミット回数を記録する', async () => {
+  it('検索操作中のコミット回数を記録する', async () => {
     await import('@/entrypoints/saved-tabs/main.tsx')
 
     document.dispatchEvent(new Event('DOMContentLoaded'))

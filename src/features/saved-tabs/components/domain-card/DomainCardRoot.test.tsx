@@ -151,7 +151,7 @@ describe('DomainCardRoot', () => {
 
     const root = document.querySelector(
       '[data-saved-tabs-scroll-target="domain"]',
-    ) as HTMLElement | null
+    )
     expect(root?.style.contentVisibility).toBe('auto')
     expect(root?.style.containIntrinsicSize).toBe('360px')
     expect(screen.getByText('2')).toBeTruthy()

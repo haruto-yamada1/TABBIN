@@ -129,7 +129,7 @@ describe('url-migration', () => {
 
     expect(state.urlsMigrationCompleted).toBe(true)
     expect(mocks.invalidateUrlCache).toHaveBeenCalledTimes(1)
-    expect(state.urls).toEqual([
+    expect(state.urls).toStrictEqual([
       {
         id: 'existing-1',
         savedAt: 10,
@@ -151,7 +151,7 @@ describe('url-migration', () => {
         url: 'https://project.test',
       },
     ])
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'https://shared.test',
         id: 'group-1',
@@ -162,7 +162,7 @@ describe('url-migration', () => {
         urls: undefined,
       },
     ])
-    expect(state.customProjects).toEqual([
+    expect(state.customProjects).toStrictEqual([
       {
         categories: [],
         createdAt: 1,
@@ -216,7 +216,7 @@ describe('url-migration', () => {
 
     await migrateToUrlsStorage()
 
-    expect(invalidState).toEqual(
+    expect(invalidState).toStrictEqual(
       expect.objectContaining({
         customProjects: [],
         savedTabs: [],
@@ -279,7 +279,7 @@ describe('url-migration', () => {
 
     await migrateAgain()
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'https://empty.example.com',
         id: 'group-empty',
@@ -291,7 +291,7 @@ describe('url-migration', () => {
         urls: undefined,
       },
     ])
-    expect(state.customProjects).toEqual([
+    expect(state.customProjects).toStrictEqual([
       expect.objectContaining({
         id: 'project-empty',
       }),
@@ -302,7 +302,7 @@ describe('url-migration', () => {
       }),
     ])
     expect(state.customProjects?.[1]).not.toHaveProperty('urlMetadata')
-    expect(state.urls).toEqual([
+    expect(state.urls).toStrictEqual([
       {
         favIconUrl: undefined,
         id: 'uuid-1',

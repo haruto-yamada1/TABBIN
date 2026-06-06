@@ -71,7 +71,7 @@ describe('sendRuntimeMessage', () => {
     expect(browserSendMessage).toHaveBeenCalledWith({
       action: 'settingsImported',
     })
-    expect(response).toEqual({ status: 'ok-from-browser' })
+    expect(response).toStrictEqual({ status: 'ok-from-browser' })
   })
 
   it('browser.runtime がない場合は chrome.runtime.sendMessage にフォールバックする', async () => {
@@ -95,7 +95,7 @@ describe('sendRuntimeMessage', () => {
       { action: 'settingsImported' },
       expect.any(Function),
     )
-    expect(response).toEqual({ status: 'ok-from-chrome' })
+    expect(response).toStrictEqual({ status: 'ok-from-chrome' })
   })
 
   it('polyfill API を読み込んだ後はキャッシュを再利用する', async () => {
@@ -110,8 +110,8 @@ describe('sendRuntimeMessage', () => {
       }),
     ])
 
-    expect(first).toEqual({ status: 'ok-from-polyfill' })
-    expect(second).toEqual({ status: 'ok-from-polyfill' })
+    expect(first).toStrictEqual({ status: 'ok-from-polyfill' })
+    expect(second).toStrictEqual({ status: 'ok-from-polyfill' })
     expect(polyfillSendMessageMock).toHaveBeenNthCalledWith(1, {
       action: 'first',
     })

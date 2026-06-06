@@ -148,7 +148,7 @@ describe('OptionsRoute', () => {
         },
         120,
       ),
-    ).toEqual({
+    ).toStrictEqual({
       fontSizeInputValue: '120',
       other: 'keep',
     })
@@ -156,7 +156,7 @@ describe('OptionsRoute', () => {
       createResetFontSizeInputValueUpdater(110)({
         fontSizeInputValue: '90',
       }),
-    ).toEqual({
+    ).toStrictEqual({
       fontSizeInputValue: '110',
     })
     const setValues = vi.fn()
@@ -166,7 +166,7 @@ describe('OptionsRoute', () => {
     }) => {
       fontSizeInputValue: string
     }
-    expect(updater({ fontSizeInputValue: '90' })).toEqual({
+    expect(updater({ fontSizeInputValue: '90' })).toStrictEqual({
       fontSizeInputValue: '100',
     })
   })
@@ -294,9 +294,7 @@ describe('OptionsRoute', () => {
 
     render(<OptionsRoute />)
 
-    expect(
-      (screen.getByLabelText('click-behavior') as HTMLSelectElement).value,
-    ).toBe('saveWindowTabs')
+    expect(screen.getByLabelText('click-behavior').value).toBe('saveWindowTabs')
     expect(screen.getByText('options.excludePatterns.empty')).toBeTruthy()
   })
 })

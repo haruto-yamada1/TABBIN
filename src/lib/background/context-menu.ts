@@ -141,6 +141,9 @@ const setupMenuClickHandler = (): void => {
           await openSavedTabsPage()
           break
         }
+        default: {
+          break
+        }
       }
     } catch (error) {
       console.error('コンテキストメニュー処理エラー:', error)

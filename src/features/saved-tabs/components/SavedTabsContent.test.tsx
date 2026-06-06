@@ -53,7 +53,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 vi.mock('./TimeRemaining', () => ({
   CategorySection: (props: {
     categoryName: string
-    urls?: Array<{ url: string }>
+    urls?: { url: string }[]
   }) => (
     <div data-testid='category-section'>
       section:{props.categoryName}:{props.urls?.length ?? 0}
@@ -140,7 +140,7 @@ const createProps = (
   overrides: Partial<
     SortableCategorySectionProps & {
       settings: UserSettings
-      handleDeleteAllTabs?: (urls: Array<{ url: string }>) => void
+      handleDeleteAllTabs?: (urls: { url: string }[]) => void
     }
   > = {},
 ) => ({
@@ -266,7 +266,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
         name: getDeleteAllButtonName('__uncategorized'),
       }),
     )
-    expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
+    await expect(screen.findByText('Delete all tabs?')).resolves.toBeTruthy()
   })
 
   it('isDragging スタイルと urls 未指定時のフォールバックを処理する', () => {
@@ -282,7 +282,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     const { container } = render(
       <SavedTabsContentComponent
         {...createProps({
-          urls: undefined as unknown as Array<{ url: string; title: string }>,
+          urls: undefined as unknown as { url: string; title: string }[],
           handleOpenAllTabs,
           handleDeleteAllTabs: vi.fn(),
         })}
@@ -332,11 +332,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     fireEvent.click(
       screen.getByRole('button', { name: getOpenAllButtonName('news') }),
     )
-    expect(
-      await screen.findByText(
-        '10個以上のタブを開こうとしています。続行しますか？',
-      ),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('10個以上のタブを開こうとしています。続行しますか？'),
+    ).resolves.toBeTruthy()
     const openButton = await screen.findByRole('button', { name: '開く' })
     fireEvent.click(openButton)
 
@@ -364,7 +362,9 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     fireEvent.click(
       screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
     )
-    expect(await screen.findByRole('button', { name: '削除' })).toBeTruthy()
+    await expect(
+      screen.findByRole('button', { name: '削除' }),
+    ).resolves.toBeTruthy()
   })
 
   it('カテゴリ全削除確認で handleDeleteAllTabs を 1 回だけ呼ぶ', async () => {

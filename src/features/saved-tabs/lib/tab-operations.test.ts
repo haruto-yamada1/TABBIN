@@ -338,7 +338,7 @@ describe('tab-operations ユーティリティ', () => {
       const callback = vi.fn()
       await expect(
         safelyUpdateGroupUrls('group-1', [], callback),
-      ).resolves.toBe(undefined)
+      ).resolves.toBeUndefined()
       await flushMicrotasks()
       expect(set).toHaveBeenCalledTimes(1)
       expect(set).toHaveBeenCalledWith({
@@ -360,7 +360,7 @@ describe('tab-operations ユーティリティ', () => {
           },
         ],
       })
-      expect(store.savedTabs?.[0]?.urls).toEqual([])
+      expect(store.savedTabs?.[0]?.urls).toStrictEqual([])
       expect(sendMessage).toHaveBeenCalledWith({
         action: 'groupEmptied',
         groupId: 'group-1',

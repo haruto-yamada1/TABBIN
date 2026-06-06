@@ -161,9 +161,13 @@ export const SortableUrlItem = ({
             variant='ghost'
             size='sm'
             draggable
-            onDragStart={(e) => handleDragStart(e, url)}
+            onDragStart={(e) => {
+              handleDragStart(e, url)
+            }}
             onDragEnd={handleDragEnd}
-            onClick={() => handleOpenTab(url)}
+            onClick={() => {
+              handleOpenTab(url)
+            }}
             className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
           >
             <div className='flex w-full min-w-0 flex-col overflow-hidden'>
@@ -202,7 +206,9 @@ export const SortableUrlItem = ({
       <DeleteUrlConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => handleDeleteUrl(groupId, url)}
+        onConfirm={() => {
+          handleDeleteUrl(groupId, url)
+        }}
       />
     </>
   )

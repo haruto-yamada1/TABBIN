@@ -89,8 +89,9 @@ export const TimeRemaining = ({
           autoDeletePeriod,
           savedAt,
         },
-        (response) =>
-          applyTimeRemainingResponse(response, setTimeLeft, setColorClass),
+        (response) => {
+          applyTimeRemainingResponse(response, setTimeLeft, setColorClass)
+        },
       )
     }
 
@@ -99,7 +100,9 @@ export const TimeRemaining = ({
 
     // 1分ごとに更新
     const timer = setInterval(calculateTimeLeft, 60_000)
-    return () => clearInterval(timer)
+    return () => {
+      clearInterval(timer)
+    }
   }, [savedAt, autoDeletePeriod, isAutoDeleteEnabled])
 
   if (!isAutoDeleteEnabled || !timeLeft) {

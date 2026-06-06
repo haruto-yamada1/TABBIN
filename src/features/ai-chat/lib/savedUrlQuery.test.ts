@@ -39,7 +39,7 @@ describe('listSavedUrlPage', () => {
         pageSize: 2,
         sortDirection: 'desc',
       }),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         hasNextPage: true,
         hasPreviousPage: false,
@@ -66,7 +66,7 @@ describe('listSavedUrlPage', () => {
         pageSize: 2,
         sortDirection: 'asc',
       }),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         hasNextPage: false,
         hasPreviousPage: true,
@@ -89,7 +89,7 @@ describe('listSavedUrlPage', () => {
       listSavedUrlPage(records, {
         pageSize: 2,
       }),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         items: [createRecord('url-2', 300), createRecord('url-3', 200)],
         page: 1,
@@ -99,7 +99,7 @@ describe('listSavedUrlPage', () => {
   })
 
   it('options 未指定かつ空配列でも default page 情報を返す', () => {
-    expect(listSavedUrlPage([])).toEqual({
+    expect(listSavedUrlPage([])).toStrictEqual({
       hasNextPage: false,
       hasPreviousPage: false,
       items: [],
@@ -128,7 +128,7 @@ describe('findSavedUrlsAddedInMonthPage', () => {
         sortDirection: 'desc',
         year: 2026,
       }),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         items: [
           createRecord('url-2', Date.UTC(2026, 2, 5, 0, 0, 0), 'March B'),
@@ -155,7 +155,7 @@ describe('searchSavedUrlsPage', () => {
         query: 'react',
         sortDirection: 'asc',
       }),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         items: [createRecord('url-1', 100, 'React docs')],
         totalItems: 2,

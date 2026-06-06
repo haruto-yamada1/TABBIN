@@ -119,7 +119,7 @@ const waitForLoadedProjects = async (
   expectedProjects: CustomProject[] = projectSnapshot,
 ) => {
   await waitFor(() => {
-    expect(result.current.customProjects).toEqual(expectedProjects)
+    expect(result.current.customProjects).toStrictEqual(expectedProjects)
   })
 }
 
@@ -169,9 +169,9 @@ describe('useProjectManagement', () => {
 
     await expect(
       act(async () => result.current.syncDomainDataToCustomProjects()),
-    ).resolves.toEqual(latestProjects)
+    ).resolves.toStrictEqual(latestProjects)
 
-    expect(result.current.customProjects).toEqual(latestProjects)
+    expect(result.current.customProjects).toStrictEqual(latestProjects)
     expect(console.error).toHaveBeenCalledWith(
       'データ同期エラー:',
       expect.any(Error),
@@ -193,7 +193,7 @@ describe('useProjectManagement', () => {
         expect.any(Error),
       )
     })
-    expect(result.current.customProjects).toEqual([])
+    expect(result.current.customProjects).toStrictEqual([])
 
     let resolveProjects: (projects: CustomProject[]) => void = () => undefined
     projectManagementMocks.getCustomProjects.mockImplementationOnce(
@@ -212,7 +212,7 @@ describe('useProjectManagement', () => {
       resolveProjects(projectSnapshot)
     })
 
-    expect(pendingResult.current.customProjects).toEqual([])
+    expect(pendingResult.current.customProjects).toStrictEqual([])
   })
 
   it('同期の再取得も失敗した場合は空配列を返す', async () => {
@@ -229,7 +229,7 @@ describe('useProjectManagement', () => {
 
     await expect(
       act(async () => result.current.syncDomainDataToCustomProjects()),
-    ).resolves.toEqual([])
+    ).resolves.toStrictEqual([])
 
     expect(console.error).toHaveBeenCalledWith(
       'プロジェクト再取得エラー:',
@@ -260,7 +260,7 @@ describe('useProjectManagement', () => {
     })
 
     expect(result.current.viewMode).toBe('custom')
-    expect(result.current.customProjects).toEqual([projectWithCategories])
+    expect(result.current.customProjects).toStrictEqual([projectWithCategories])
   })
 
   it('initialViewMode 未指定なら domain モードで初期化する', async () => {
@@ -313,7 +313,7 @@ describe('useProjectManagement', () => {
     expect(projectManagementMocks.createCustomProject).toHaveBeenCalledWith(
       'New Project',
     )
-    expect(result.current.customProjects[0]).toEqual(createdProject)
+    expect(result.current.customProjects[0]).toStrictEqual(createdProject)
     expect(toast.success).toHaveBeenCalledWith(
       'プロジェクト「New Project」を追加しました',
     )
@@ -392,7 +392,7 @@ describe('useProjectManagement', () => {
       name: 'Renamed',
       projectKeywords,
     })
-    expect(result.current.customProjects[1]).toEqual(untouchedProject)
+    expect(result.current.customProjects[1]).toStrictEqual(untouchedProject)
 
     await act(async () => {
       await result.current.handleDeleteProject('missing-project')
@@ -407,7 +407,7 @@ describe('useProjectManagement', () => {
     expect(projectManagementMocks.deleteCustomProject).toHaveBeenCalledWith(
       'project-1',
     )
-    expect(result.current.customProjects).toEqual([untouchedProject])
+    expect(result.current.customProjects).toStrictEqual([untouchedProject])
   })
 
   it('URL追加、カテゴリ削除、URL分類は最新プロジェクトを再取得する', async () => {
@@ -436,7 +436,7 @@ describe('useProjectManagement', () => {
       'https://example.com/c',
       'Example C',
     )
-    expect(result.current.customProjects).toEqual([projectWithCategories])
+    expect(result.current.customProjects).toStrictEqual([projectWithCategories])
 
     await act(async () => {
       await result.current.handleDeleteProjectCategory('project-1', 'Inbox')
@@ -445,7 +445,7 @@ describe('useProjectManagement', () => {
     expect(
       projectManagementMocks.removeCategoryFromProject,
     ).toHaveBeenCalledWith('project-1', 'Inbox')
-    expect(result.current.customProjects).toEqual([])
+    expect(result.current.customProjects).toStrictEqual([])
 
     await act(async () => {
       await result.current.handleSetUrlCategory(
@@ -460,7 +460,7 @@ describe('useProjectManagement', () => {
       'https://example.com/a',
       'Done',
     )
-    expect(result.current.customProjects).toEqual(updatedProjects)
+    expect(result.current.customProjects).toStrictEqual(updatedProjects)
   })
 
   it('カテゴリ追加、カテゴリ順序、URL順序、プロジェクト順序、カテゴリ名変更を state に反映する', async () => {
@@ -547,12 +547,9 @@ describe('useProjectManagement', () => {
       'Inbox',
       'Later',
     )
-    expect(result.current.customProjects.map((project) => project.id)).toEqual([
-      'project-1',
-      'project-2',
-      'project-3',
-      'project-4',
-    ])
+    expect(
+      result.current.customProjects.map((project) => project.id),
+    ).toStrictEqual(['project-1', 'project-2', 'project-3', 'project-4'])
     expect(result.current.customProjects[1]).toMatchObject({
       categories: ['Later', 'Done', 'Review'],
       categoryOrder: ['Review', 'Later'],
@@ -603,11 +600,9 @@ describe('useProjectManagement', () => {
       await result.current.handleReorderProjects(['project-2'])
     })
 
-    expect(result.current.customProjects.map((project) => project.id)).toEqual([
-      'project-2',
-      'project-1',
-      'project-3',
-    ])
+    expect(
+      result.current.customProjects.map((project) => project.id),
+    ).toStrictEqual(['project-2', 'project-1', 'project-3'])
   })
 
   it('各操作の失敗をエラートーストで通知する', async () => {
@@ -761,7 +756,7 @@ describe('useProjectManagement', () => {
       customProjectOrder: ['project-1'],
       customProjects: projectSnapshot,
     })
-    expect(result.current.customProjects).toEqual(projectSnapshot)
+    expect(result.current.customProjects).toStrictEqual(projectSnapshot)
   })
 
   it('カスタムモードの一括タブ削除を Undo で復元できる', async () => {

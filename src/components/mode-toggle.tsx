@@ -30,16 +30,32 @@ export const ModeToggle = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
-        <DropdownMenuItem onClick={() => setTheme('light')}>
+        <DropdownMenuItem
+          onClick={() => {
+            setTheme('light')
+          }}
+        >
           {getThemeMessage('theme.light')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
+        <DropdownMenuItem
+          onClick={() => {
+            setTheme('dark')
+          }}
+        >
           {getThemeMessage('theme.dark')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
+        <DropdownMenuItem
+          onClick={() => {
+            setTheme('system')
+          }}
+        >
           {getThemeMessage('theme.system')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('user')}>
+        <DropdownMenuItem
+          onClick={() => {
+            setTheme('user')
+          }}
+        >
           {getThemeMessage('theme.user')}
         </DropdownMenuItem>
       </DropdownMenuContent>

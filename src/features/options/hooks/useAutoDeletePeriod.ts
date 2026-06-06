@@ -155,7 +155,9 @@ export const useAutoDeletePeriod = (
             period: periodToApply,
             updateTimestamps: needsTimestampUpdate,
           },
-          (response) => console.log('応答:', response),
+          (response) => {
+            console.log('応答:', response)
+          },
         )
       })
 

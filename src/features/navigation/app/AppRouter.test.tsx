@@ -102,18 +102,18 @@ describe('AppRouter', () => {
 
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
-    expect(
-      await screen.findByText('saved-tabs-route:?mode=domain'),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=domain'),
+    ).resolves.toBeTruthy()
     expect(routeModuleLoads.aiChat).toBe(0)
   })
 
   it('ルートパスは domain mode の saved-tabs に redirect する', async () => {
     render(<AppRouter initialEntries={['/']} />)
 
-    expect(
-      await screen.findByText('saved-tabs-route:?mode=domain'),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=domain'),
+    ).resolves.toBeTruthy()
   })
 
   it('サイドバークリックで SPA 遷移する', async () => {
@@ -128,7 +128,7 @@ describe('AppRouter', () => {
 
     fireEvent.click(analyticsLink)
 
-    expect(await screen.findByText('analytics-route')).toBeTruthy()
+    await expect(screen.findByText('analytics-route')).resolves.toBeTruthy()
   })
 
   it('router context では内部リンクが app.html ではなく route を指す', () => {
@@ -154,25 +154,27 @@ describe('AppRouter', () => {
   it('analytics route を開ける', async () => {
     render(<AppRouter initialEntries={['/analytics']} />)
 
-    expect(await screen.findByText('analytics-route')).toBeTruthy()
+    await expect(screen.findByText('analytics-route')).resolves.toBeTruthy()
   })
 
   it('options route を開ける', async () => {
     render(<AppRouter initialEntries={['/options']} />)
 
-    expect(await screen.findByText('options-route')).toBeTruthy()
+    await expect(screen.findByText('options-route')).resolves.toBeTruthy()
   })
 
   it('ai-chat route を開ける', async () => {
     render(<AppRouter initialEntries={['/ai-chat']} />)
 
-    expect(await screen.findByText('ai-chat-route')).toBeTruthy()
+    await expect(screen.findByText('ai-chat-route')).resolves.toBeTruthy()
   })
 
   it('periodic-execution route を開ける', async () => {
     render(<AppRouter initialEntries={['/periodic-execution']} />)
 
-    expect(await screen.findByText('periodic-execution-route')).toBeTruthy()
+    await expect(
+      screen.findByText('periodic-execution-route'),
+    ).resolves.toBeTruthy()
   })
 
   it('SavedTabsRoute から別 mode を選ぶと replace navigate する', async () => {
@@ -181,9 +183,9 @@ describe('AppRouter', () => {
     await screen.findByText('saved-tabs-route:?mode=domain')
     fireEvent.click(screen.getByRole('button', { name: 'navigate-custom' }))
 
-    expect(
-      await screen.findByText('saved-tabs-route:?mode=custom'),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=custom'),
+    ).resolves.toBeTruthy()
   })
 
   it('SavedTabsRoute から同じ mode を選んだ場合は再 navigate しない', async () => {
@@ -192,9 +194,9 @@ describe('AppRouter', () => {
     await screen.findByText('saved-tabs-route:?mode=domain')
     fireEvent.click(screen.getByRole('button', { name: 'navigate-domain' }))
 
-    expect(
-      await screen.findByText('saved-tabs-route:?mode=domain'),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=domain'),
+    ).resolves.toBeTruthy()
   })
 
   it('mode 指定が無い saved-tabs route は domain で開く', async () => {
@@ -209,18 +211,18 @@ describe('AppRouter', () => {
 
     render(<AppRouter initialEntries={['/saved-tabs']} />)
 
-    expect(
-      await screen.findByText('saved-tabs-route:?mode=domain'),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=domain'),
+    ).resolves.toBeTruthy()
     expect(remove).toHaveBeenCalledWith('viewMode')
   })
 
   it('不明なルートは domain で開く', async () => {
     render(<AppRouter initialEntries={['/unknown']} />)
 
-    expect(
-      await screen.findByText('saved-tabs-route:?mode=domain'),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=domain'),
+    ).resolves.toBeTruthy()
   })
 
   it('initialEntries が無い場合は HashRouter を使う', async () => {
@@ -228,8 +230,8 @@ describe('AppRouter', () => {
 
     render(<AppRouter />)
 
-    expect(
-      await screen.findByText('saved-tabs-route:?mode=custom'),
-    ).toBeTruthy()
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=custom'),
+    ).resolves.toBeTruthy()
   })
 })

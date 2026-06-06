@@ -4,11 +4,11 @@ import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const resizeObserverState = vi.hoisted(() => {
-  const instances: Array<{
+  const instances: {
     callback: ResizeObserverCallback
     disconnect: ReturnType<typeof vi.fn>
     observe: ReturnType<typeof vi.fn>
-  }> = []
+  }[] = []
 
   class MockResizeObserver {
     callback: ResizeObserverCallback
@@ -463,20 +463,10 @@ describe('SavedTabsRoute', () => {
     })
     fireEvent.scroll(leftPane)
 
-    expect(
-      (screen.getByLabelText('最上部へ移動') as HTMLButtonElement).disabled,
-    ).toBe(true)
-    expect(
-      (screen.getByLabelText('上の親カテゴリへ移動') as HTMLButtonElement)
-        .disabled,
-    ).toBe(true)
-    expect(
-      (screen.getByLabelText('下の親カテゴリへ移動') as HTMLButtonElement)
-        .disabled,
-    ).toBe(false)
-    expect(
-      (screen.getByLabelText('最下部へ移動') as HTMLButtonElement).disabled,
-    ).toBe(false)
+    expect(screen.getByLabelText('最上部へ移動').disabled).toBe(true)
+    expect(screen.getByLabelText('上の親カテゴリへ移動').disabled).toBe(true)
+    expect(screen.getByLabelText('下の親カテゴリへ移動').disabled).toBe(false)
+    expect(screen.getByLabelText('最下部へ移動').disabled).toBe(false)
   })
 
   it('カテゴリ移動後に対象をハイライトして通知する', () => {
@@ -581,7 +571,7 @@ describe('SavedTabsRoute', () => {
         return items
       }, [])
 
-    expect(labels).toEqual([
+    expect(labels).toStrictEqual([
       '最上部へ移動',
       '上の親カテゴリへ移動',
       '上のドメインへ移動',
@@ -608,7 +598,7 @@ describe('SavedTabsRoute', () => {
         return items
       }, [])
 
-    expect(labels).toEqual([
+    expect(labels).toStrictEqual([
       '最上部へ移動',
       '上のプロジェクトへ移動',
       '下のプロジェクトへ移動',

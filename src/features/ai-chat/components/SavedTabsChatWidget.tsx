@@ -912,7 +912,9 @@ const useSystemPromptManagerDialogView = ({
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-border/80 hover:bg-muted/30',
                     )}
-                    onClick={() => onSelectPrompt(prompt.id)}
+                    onClick={() => {
+                      onSelectPrompt(prompt.id)
+                    }}
                     key={prompt.id}
                     type='button'
                     variant='ghost'
@@ -951,9 +953,9 @@ const useSystemPromptManagerDialogView = ({
                         className='flex-1'
                         maxLength={MAX_AI_SYSTEM_PROMPT_NAME_LENGTH}
                         value={selectedPrompt.name}
-                        onChange={(event) =>
+                        onChange={(event) => {
                           onChangePromptName(event.target.value)
-                        }
+                        }}
                       />
                       <Button
                         type='button'
@@ -987,9 +989,9 @@ const useSystemPromptManagerDialogView = ({
                       aria-label={t('aiChat.systemPrompt.bodyLabel')}
                       className='min-h-[420px] resize-y'
                       value={selectedPrompt.template}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         onChangePromptTemplate(event.target.value)
-                      }
+                      }}
                     />
                   </div>
 
@@ -1624,7 +1626,9 @@ const useChatPromptComposerView = ({
         aria-label={t('aiChat.inputLabel')}
         className={cn('min-h-16', isCompactLayout && 'min-h-24 text-sm')}
         value={input}
-        onChange={(event) => onInputChange(event.target.value)}
+        onChange={(event) => {
+          onInputChange(event.target.value)
+        }}
         onKeyDown={handleTextareaKeyDown}
         disabled={!isConfigured || isSavingModel}
         placeholder={

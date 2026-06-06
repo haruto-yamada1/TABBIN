@@ -176,8 +176,12 @@ export const CommitTimestamp = ({
 
 export type CommitActionsProps = ComponentProps<'fieldset'>
 
-const handleActionsClick = (e: React.MouseEvent) => e.stopPropagation()
-const handleActionsKeyDown = (e: React.KeyboardEvent) => e.stopPropagation()
+const handleActionsClick = (e: React.MouseEvent) => {
+  e.stopPropagation()
+}
+const handleActionsKeyDown = (e: React.KeyboardEvent) => {
+  e.stopPropagation()
+}
 
 export const CommitActions = ({
   className,

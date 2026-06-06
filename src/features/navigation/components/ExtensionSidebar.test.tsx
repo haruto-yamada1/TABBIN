@@ -116,10 +116,7 @@ describe('ExtensionSidebar', () => {
 
   it('shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './ExtensionSidebar.tsx',
-      ),
+      resolve(import.meta.dirname, './ExtensionSidebar.tsx'),
       'utf8',
     )
 

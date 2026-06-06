@@ -93,7 +93,7 @@ describe('listLocalOllamaModels', () => {
         method: 'GET',
       }),
     )
-    expect(models).toEqual([
+    expect(models).toStrictEqual([
       {
         label: 'llama3.2 (8B)',
         modifiedAt: '2026-03-01T00:00:00.000Z',
@@ -119,7 +119,7 @@ describe('listLocalOllamaModels', () => {
 
     const models = await listLocalOllamaModels(fetchMock)
 
-    expect(models).toEqual([
+    expect(models).toStrictEqual([
       {
         label: 'mistral',
         modifiedAt: undefined,
@@ -177,7 +177,7 @@ describe('listLocalOllamaModels', () => {
     )) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
-    expect(error.ollamaError).toEqual({
+    expect(error.ollamaError).toStrictEqual({
       allowedOrigins: 'chrome-extension://test-extension-id',
       baseUrl: 'http://localhost:11434',
       downloadUrl: 'https://ollama.com/download',
@@ -208,7 +208,7 @@ describe('listLocalOllamaModels', () => {
       (caughtError) => caughtError,
     )) as OllamaErrorLike
 
-    expect(error.ollamaError).toEqual(
+    expect(error.ollamaError).toStrictEqual(
       expect.objectContaining({
         allowedOrigins: 'chrome-extension://strict-extension-id',
       }),
@@ -236,7 +236,7 @@ describe('listLocalOllamaModels', () => {
       (caughtError) => caughtError,
     )) as OllamaErrorLike
 
-    expect(error.ollamaError).toEqual(
+    expect(error.ollamaError).toStrictEqual(
       expect.objectContaining({
         allowedOrigins: 'chrome-extension://fallback-extension-id',
       }),
@@ -270,7 +270,7 @@ describe('listLocalOllamaModels', () => {
       }),
     })
 
-    await expect(listLocalOllamaModels(fetchMock)).resolves.toEqual([])
+    await expect(listLocalOllamaModels(fetchMock)).resolves.toStrictEqual([])
   })
 
   it('Failed to fetch なら接続先 URL と起動コマンド付きの案内を返す', async () => {
@@ -302,7 +302,7 @@ describe('listLocalOllamaModels', () => {
     )) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
-    expect(error.ollamaError).toEqual({
+    expect(error.ollamaError).toStrictEqual({
       allowedOrigins: 'chrome-extension://test-extension-id',
       baseUrl: 'http://localhost:11434',
       downloadUrl: 'https://ollama.com/download',
@@ -469,7 +469,7 @@ describe('runAiChatRequest', () => {
     )
     expect(result.recordCount).toBe(1)
     expect(result.reasoning).toContain('使用ツール: 保存済みタブ一覧')
-    expect(result.toolTraces).toEqual([
+    expect(result.toolTraces).toStrictEqual([
       expect.objectContaining({
         input: {
           page: 1,
@@ -584,7 +584,7 @@ describe('runAiChatRequest', () => {
 
       await expect(
         generateArgs.tools.getCurrentDateTime.execute(),
-      ).resolves.toEqual(
+      ).resolves.toStrictEqual(
         expect.objectContaining({
           iso8601: '2026-03-07T12:34:56.000Z',
           localDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
@@ -665,22 +665,22 @@ describe('runAiChatRequest', () => {
     )
 
     const messages = mocked.generateText.mock.calls.at(-1)?.[0]?.messages as
-      | Array<{
-          content: Array<
+      | {
+          content: (
             | { type: 'text'; text: string }
             | { type: 'file'; data: string; mediaType: string }
-          >
+          )[]
           role: string
-        }>
+        }[]
       | undefined
 
-    expect(messages?.[0]?.content[0]).toEqual(
+    expect(messages?.[0]?.content[0]).toStrictEqual(
       expect.objectContaining({
         text: expect.stringContaining('before.md'),
         type: 'text',
       }),
     )
-    expect(messages?.[1]?.content[0]).toEqual(
+    expect(messages?.[1]?.content[0]).toStrictEqual(
       expect.objectContaining({
         text: expect.stringContaining('memo.txt'),
         type: 'text',
@@ -693,7 +693,7 @@ describe('runAiChatRequest', () => {
     mocked.generateText.mockImplementationOnce(
       async (options: {
         onStepFinish?: (result: {
-          toolCalls?: Array<{
+          toolCalls?: {
             input: {
               page: number
               pageSize: number
@@ -701,19 +701,19 @@ describe('runAiChatRequest', () => {
             }
             toolCallId: string
             toolName: string
-          }>
-          toolResults?: Array<{
+          }[]
+          toolResults?: {
             input: {
               page: number
               pageSize: number
               sortDirection: 'asc' | 'desc'
             }
-            output: Array<{
+            output: {
               url: string
-            }>
+            }[]
             toolCallId: string
             toolName: string
-          }>
+          }[]
         }) => void
       }) => {
         options.onStepFinish?.({
@@ -858,7 +858,7 @@ describe('runAiChatRequest', () => {
         history: [],
         prompt: 'test',
       }),
-    ).resolves.toEqual(
+    ).resolves.toStrictEqual(
       expect.objectContaining({
         answer: '今月追加した URL は https://react.dev/learn です。',
       }),
@@ -882,7 +882,7 @@ describe('runAiChatRequest', () => {
       '回答方針: 保存済みタブの要約コンテキストを直接参照して回答しました。',
     )
     expect(result.reasoning).toContain('使用ツール: なし')
-    expect(result.toolTraces).toEqual([])
+    expect(result.toolTraces).toStrictEqual([])
   })
 
   it('チャート要求の質問では tool call がなくても interest chart を補助生成する', async () => {
@@ -905,8 +905,8 @@ describe('runAiChatRequest', () => {
       prompt: '最近よく保存しているジャンルを円グラフで教えて',
     })
 
-    expect(result.toolTraces).toEqual([])
-    expect(result.charts).toEqual(
+    expect(result.toolTraces).toStrictEqual([])
+    expect(result.charts).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           title: 'よく保存しているジャンル',
@@ -950,7 +950,7 @@ describe('runAiChatRequest', () => {
     expect(result.reasoning).toContain('質問の解釈: 保存済みタブの検索と要約')
     expect(result.reasoning).toContain('customLookup')
     expect(result.reasoning).toContain('customLookup: 結果を取得しました。')
-    expect(result.toolTraces).toEqual([
+    expect(result.toolTraces).toStrictEqual([
       expect.objectContaining({
         output: {
           summary: 'React docs matched',
@@ -1009,7 +1009,7 @@ describe('runAiChatRequest', () => {
 
     expect(result.reasoning).toContain('保存済みタブ一覧: 1 件を取得しました。')
     expect(result.reasoning).toContain('総件数は 3 件です。')
-    expect(result.toolTraces).toEqual([
+    expect(result.toolTraces).toStrictEqual([
       expect.objectContaining({
         output: {
           hasNextPage: true,
@@ -1070,7 +1070,7 @@ describe('runAiChatRequest', () => {
       prompt: '保存タブをグラフにして',
     })
 
-    expect(result.charts).toEqual([
+    expect(result.charts).toStrictEqual([
       {
         data: [{ count: 1, label: 'React' }],
         series: [{ dataKey: 'count', label: 'Count' }],
@@ -1102,7 +1102,7 @@ describe('runAiChatRequest', () => {
       prompt: '保存タブをグラフにして',
     })
 
-    expect(result.charts).toEqual(
+    expect(result.charts).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           title: 'よく保存しているドメイン',
@@ -1137,7 +1137,7 @@ describe('runAiChatRequest', () => {
     expect(result.reasoning).toContain(
       '保存済みタブ一覧: 呼び出し内容を確認しました。',
     )
-    expect(result.toolTraces).toEqual([
+    expect(result.toolTraces).toStrictEqual([
       expect.objectContaining({
         output: undefined,
         state: 'input-available',
@@ -1190,7 +1190,7 @@ describe('runAiChatRequest', () => {
     })
 
     expect(result.reasoning).toContain('使用ツール: 保存済みタブ一覧')
-    expect(result.toolTraces).toEqual([
+    expect(result.toolTraces).toStrictEqual([
       expect.objectContaining({
         output: [
           {
@@ -1274,7 +1274,7 @@ describe('runAiChatRequest', () => {
     })
 
     expect(result.toolTraces).toHaveLength(1)
-    expect(result.toolTraces[0]).toEqual(
+    expect(result.toolTraces[0]).toStrictEqual(
       expect.objectContaining({
         toolCallId: 'call-duplicate',
       }),
@@ -1293,7 +1293,7 @@ describe('runAiChatRequest', () => {
 
     expect(result.reasoning).toContain('質問の解釈: 保存済みタブの一覧確認')
     expect(result.reasoning).toContain('使用ツール: なし')
-    expect(result.toolTraces).toEqual([])
+    expect(result.toolTraces).toStrictEqual([])
   })
 
   it('savedTabs が配列でなくても空配列として扱い、tools execute を利用できる', async () => {
@@ -1331,15 +1331,15 @@ describe('runAiChatRequest', () => {
 
     expect(generateArgs.system).toContain('https://react.dev/learn')
 
-    expect(
-      await generateArgs.tools.findUrlsByMonth.execute({
+    await expect(
+      generateArgs.tools.findUrlsByMonth.execute({
         year: 2026,
         month: 3,
         page: 1,
         pageSize: 1,
         sortDirection: 'desc',
       }),
-    ).toEqual({
+    ).resolves.toStrictEqual({
       hasNextPage: false,
       hasPreviousPage: false,
       items: [
@@ -1359,14 +1359,14 @@ describe('runAiChatRequest', () => {
       totalPages: 1,
     })
 
-    expect(
-      await generateArgs.tools.searchSavedUrls.execute({
+    await expect(
+      generateArgs.tools.searchSavedUrls.execute({
         query: 'react',
         page: 1,
         pageSize: 1,
         sortDirection: 'desc',
       }),
-    ).toEqual({
+    ).resolves.toStrictEqual({
       hasNextPage: false,
       hasPreviousPage: false,
       items: [
@@ -1386,13 +1386,13 @@ describe('runAiChatRequest', () => {
       totalPages: 1,
     })
 
-    expect(
-      await generateArgs.tools.listSavedUrls.execute({
+    await expect(
+      generateArgs.tools.listSavedUrls.execute({
         page: 1,
         pageSize: 1,
         sortDirection: 'desc',
       }),
-    ).toEqual({
+    ).resolves.toStrictEqual({
       hasNextPage: false,
       hasPreviousPage: false,
       items: [
@@ -1414,7 +1414,7 @@ describe('runAiChatRequest', () => {
 
     await expect(
       generateArgs.tools.inferUserInterests.execute(),
-    ).resolves.toEqual(
+    ).resolves.toStrictEqual(
       expect.objectContaining({
         evidence: expect.objectContaining({
           topDomains: expect.any(Array),
@@ -1449,7 +1449,7 @@ describe('runAiChatRequest', () => {
     }).catch((caughtError) => caughtError)) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
-    expect(error.ollamaError).toEqual({
+    expect(error.ollamaError).toStrictEqual({
       allowedOrigins: 'chrome-extension://test-extension-id',
       baseUrl: 'http://localhost:11434',
       downloadUrl: 'https://ollama.com/download',
@@ -1526,7 +1526,7 @@ describe('runAiChatRequest', () => {
     }).catch((caughtError) => caughtError)) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
-    expect(error.ollamaError).toEqual({
+    expect(error.ollamaError).toStrictEqual({
       allowedOrigins: 'chrome-extension://test-extension-id',
       baseUrl: 'http://localhost:11434',
       downloadUrl: 'https://ollama.com/download',

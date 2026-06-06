@@ -50,7 +50,9 @@ export const AnalyticsRecordActionButtons = ({
             <Button
               aria-label={t('savedTabs.url.deleteAria')}
               disabled={isDeleteActionDisabled || deletingUrl === record.url}
-              onClick={() => handleDeleteClick(record)}
+              onClick={() => {
+                handleDeleteClick(record)
+              }}
               size='icon-sm'
               type='button'
               variant='ghost'

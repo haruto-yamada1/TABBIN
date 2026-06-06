@@ -295,7 +295,9 @@ export const StackTraceErrorMessage = memo(
 
 export type StackTraceActionsProps = ComponentProps<'fieldset'>
 
-const handleActionsClick = (e: React.MouseEvent) => e.stopPropagation()
+const handleActionsClick = (e: React.MouseEvent) => {
+  e.stopPropagation()
+}
 const handleActionsKeyDown = (e: React.KeyboardEvent) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.stopPropagation()
@@ -347,10 +349,9 @@ export const StackTraceCopyButton = memo(
         await navigator.clipboard.writeText(raw)
         setIsCopied(true)
         onCopy?.()
-        timeoutRef.current = window.setTimeout(
-          () => setIsCopied(false),
-          timeout,
-        )
+        timeoutRef.current = window.setTimeout(() => {
+          setIsCopied(false)
+        }, timeout)
       } catch (error) {
         onError?.(error as Error)
       }

@@ -86,11 +86,15 @@ export const readStorage = async <T>(
     ): Promise<Record<string, unknown>> =>
       new Promise((resolve) => {
         if (query == null) {
-          chrome.storage.local.get((items) => resolve(items))
+          chrome.storage.local.get((items) => {
+            resolve(items)
+          })
           return
         }
 
-        chrome.storage.local.get(query, (items) => resolve(items))
+        chrome.storage.local.get(query, (items) => {
+          resolve(items)
+        })
       })
 
     if (value == null) {

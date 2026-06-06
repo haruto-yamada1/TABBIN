@@ -380,9 +380,7 @@ describe('CustomProjectSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
 
     await waitFor(() => {
-      expect(
-        (screen.getByLabelText('プロジェクト名 *') as HTMLInputElement).value,
-      ).toBe('')
+      expect(screen.getByLabelText('プロジェクト名 *').value).toBe('')
     })
   })
 

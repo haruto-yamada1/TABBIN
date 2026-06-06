@@ -25,6 +25,6 @@ describe('DeferredStoryLoader', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Load heavy story' }))
 
-    expect(await screen.findByText('heavy story content')).toBeTruthy()
+    await expect(screen.findByText('heavy story content')).resolves.toBeTruthy()
   })
 })

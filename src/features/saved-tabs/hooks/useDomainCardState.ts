@@ -372,10 +372,12 @@ export const useDomainCardState = ({
   const handleCloseKeywordModal = useCallback(() => {
     setShowKeywordModal(false)
     setCategoryUpdateTrigger((prev) => prev + 1)
-    Promise.resolve().then(async () => {
-      await new Promise((resolve) => requestAnimationFrame(resolve))
-      setCategoryUpdateTrigger((prev) => prev + 1)
-    })
+    Promise.resolve()
+      .then(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve))
+        setCategoryUpdateTrigger((prev) => prev + 1)
+      })
+      .catch(() => {})
   }, [])
 
   // --- カテゴリ削除後の処理 ---

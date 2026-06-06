@@ -34,7 +34,7 @@ describe('lazy recharts exports', () => {
       return component._payload._result()
     })
 
-    await expect(Promise.all(lazyResults)).resolves.toEqual(
+    await expect(Promise.all(lazyResults)).resolves.toStrictEqual(
       componentNames.map(() => ({
         default: expect.anything(),
       })),

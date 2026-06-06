@@ -16,7 +16,7 @@ describe('createCompoundContext', () => {
 
     expect(
       renderHook(() => useCompoundContext(), { wrapper }).result.current,
-    ).toEqual({
+    ).toStrictEqual({
       value: 'provided',
     })
     expect(() => renderHook(() => useCompoundContext())).toThrow(

@@ -81,10 +81,12 @@ const setupExpiredTabsCheckAlarm = (): void => {
  * 初回チェックをスケジュール
  */
 const scheduleInitialCheck = (): void => {
-  Promise.resolve().then(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 100))
-    checkAndRemoveExpiredTabs()
-  })
+  Promise.resolve()
+    .then(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      checkAndRemoveExpiredTabs()
+    })
+    .catch(() => {})
 }
 /**
  * 通知を表示する関数

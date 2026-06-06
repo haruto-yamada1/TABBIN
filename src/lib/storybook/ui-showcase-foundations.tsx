@@ -169,7 +169,9 @@ const UiShowcase = () => {
           <div className='flex items-center gap-2'>
             <Checkbox
               checked={checked}
-              onCheckedChange={(value) => setChecked(value === true)}
+              onCheckedChange={(value) => {
+                setChecked(value === true)
+              }}
             />
             <span className='text-sm'>Sync across windows</span>
           </div>

@@ -436,7 +436,7 @@ type AnalyticsChartMessages = NonNullable<
 >['messages']
 
 const getAnalyticsChartDatumLabels = (
-  data: Array<{ label?: unknown }> | undefined,
+  data: { label?: unknown }[] | undefined,
 ): string[] =>
   data?.reduce<string[]>((items, datum) => {
     const label = String(datum.label ?? '')
@@ -899,7 +899,9 @@ const useAnalyticsRouteView = () => {
       isBulkDeleting,
     })
     const actions: Record<DeleteClickAction, () => void> = {
-      confirm: () => setDeleteTarget(record),
+      confirm: () => {
+        setDeleteTarget(record)
+      },
       delete: () => {
         void performDelete(record)
       },
@@ -920,7 +922,9 @@ const useAnalyticsRouteView = () => {
       getDrilldownMatchingRecords(drilldownSelection).length,
     )
     const actions: Record<OpenAllAction, () => void> = {
-      confirm: () => setIsOpenAllConfirmOpen(true),
+      confirm: () => {
+        setIsOpenAllConfirmOpen(true)
+      },
       open: handleOpenAllDrilldownRecords,
       skip: noop,
     }
@@ -968,7 +972,9 @@ const useAnalyticsRouteView = () => {
         getDrilldownMatchingRecords(drilldownSelection).length,
     })
     const actions: Record<DeleteAllAction, () => void> = {
-      confirm: () => setIsBulkDeleteConfirmOpen(true),
+      confirm: () => {
+        setIsBulkDeleteConfirmOpen(true)
+      },
       delete: () => {
         void performBulkDelete()
       },
@@ -1053,12 +1059,12 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.groupByLabel')}
                         </Label>
                         <Select
-                          onValueChange={(value) =>
+                          onValueChange={(value) => {
                             applyQuery({
                               ...query,
                               groupBy: value as AnalyticsQuery['groupBy'],
                             })
-                          }
+                          }}
                           value={query.groupBy}
                         >
                           <SelectTrigger
@@ -1088,12 +1094,12 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.chartTypeLabel')}
                         </Label>
                         <Select
-                          onValueChange={(value) =>
+                          onValueChange={(value) => {
                             applyQuery({
                               ...query,
                               chartType: value as AnalyticsQuery['chartType'],
                             })
-                          }
+                          }}
                           value={query.chartType}
                         >
                           <SelectTrigger
@@ -1124,7 +1130,7 @@ const useAnalyticsRouteView = () => {
                           className='rounded-xl bg-background'
                           id='analytics-limit'
                           min={1}
-                          onChange={(event) =>
+                          onChange={(event) => {
                             applyQuery({
                               ...query,
                               limit: Math.max(
@@ -1132,7 +1138,7 @@ const useAnalyticsRouteView = () => {
                                 Number(event.target.value) || 1,
                               ),
                             })
-                          }
+                          }}
                           type='number'
                           value={query.limit}
                         />
@@ -1148,7 +1154,9 @@ const useAnalyticsRouteView = () => {
                       </Button>
                       <Button
                         className='w-full cursor-pointer rounded-xl'
-                        onClick={() => applyQuery(defaultAnalyticsQuery)}
+                        onClick={() => {
+                          applyQuery(defaultAnalyticsQuery)
+                        }}
                         type='button'
                         variant='outline'
                       >
@@ -1181,9 +1189,9 @@ const useAnalyticsRouteView = () => {
                               <div className='flex items-center justify-between gap-2'>
                                 <Button
                                   className='min-w-0 flex-1 justify-start px-0 text-left hover:bg-transparent'
-                                  onClick={() =>
+                                  onClick={() => {
                                     applyQuery(view.query, view.name)
-                                  }
+                                  }}
                                   type='button'
                                   variant='ghost'
                                 >

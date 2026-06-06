@@ -81,20 +81,20 @@ describe('urls storage', () => {
       'icon-1',
     )
 
-    expect(created).toEqual({
+    expect(created).toStrictEqual({
       favIconUrl: 'icon-1',
       id: 'uuid-1',
       savedAt: 100,
       title: 'Example',
       url: 'https://example.com',
     })
-    await expect(getUrlRecordById('uuid-1')).resolves.toEqual(created)
-    await expect(findUrlRecordByUrl('https://example.com')).resolves.toEqual(
-      created,
-    )
-    await expect(getUrlRecordsByIds(['uuid-1', 'missing'])).resolves.toEqual([
-      created,
-    ])
+    await expect(getUrlRecordById('uuid-1')).resolves.toStrictEqual(created)
+    await expect(
+      findUrlRecordByUrl('https://example.com'),
+    ).resolves.toStrictEqual(created)
+    await expect(
+      getUrlRecordsByIds(['uuid-1', 'missing']),
+    ).resolves.toStrictEqual([created])
 
     const updated = await createOrUpdateUrlRecord(
       'https://example.com',
@@ -102,14 +102,14 @@ describe('urls storage', () => {
       'icon-2',
     )
 
-    expect(updated).toEqual({
+    expect(updated).toStrictEqual({
       favIconUrl: 'icon-2',
       id: 'uuid-1',
       savedAt: 200,
       title: 'Updated',
       url: 'https://example.com',
     })
-    await expect(getUrlRecords()).resolves.toEqual([updated])
+    await expect(getUrlRecords()).resolves.toStrictEqual([updated])
   })
 
   it('一括 upsert で空URLを除外しながら新規作成と更新を行う', async () => {
@@ -150,7 +150,7 @@ describe('urls storage', () => {
       },
     ])
 
-    expect([...records.entries()]).toEqual([
+    expect([...records.entries()]).toStrictEqual([
       [
         'https://example.com',
         {
@@ -172,7 +172,7 @@ describe('urls storage', () => {
         },
       ],
     ])
-    await expect(getUrlRecords()).resolves.toEqual([
+    await expect(getUrlRecords()).resolves.toStrictEqual([
       {
         id: 'existing-1',
         savedAt: 500,
@@ -217,7 +217,7 @@ describe('urls storage', () => {
       },
     ])
 
-    expect([...records.entries()]).toEqual([])
+    expect([...records.entries()]).toStrictEqual([])
     expect(storage.set).not.toHaveBeenCalled()
   })
 
@@ -256,7 +256,7 @@ describe('urls storage', () => {
       },
     )
 
-    expect(preserved).toEqual({
+    expect(preserved).toStrictEqual({
       id: 'existing-1',
       savedAt: 1,
       title: 'Existing',
@@ -282,7 +282,7 @@ describe('urls storage', () => {
       },
     )
 
-    expect([...records.entries()]).toEqual([
+    expect([...records.entries()]).toStrictEqual([
       [
         'https://example.com',
         {
@@ -305,7 +305,7 @@ describe('urls storage', () => {
       ],
     ])
 
-    await expect(getUrlRecords()).resolves.toEqual([
+    await expect(getUrlRecords()).resolves.toStrictEqual([
       {
         id: 'existing-1',
         savedAt: 1,
@@ -380,7 +380,7 @@ describe('urls storage', () => {
     await expect(deleteUrlRecord('url-1')).resolves.toBe(false)
     await expect(deleteUrlRecord('url-3')).resolves.toBe(true)
     await expect(cleanupUnreferencedUrls()).resolves.toBe(0)
-    await expect(getUrlRecords()).resolves.toEqual([
+    await expect(getUrlRecords()).resolves.toStrictEqual([
       {
         id: 'url-1',
         savedAt: 1,
@@ -432,7 +432,7 @@ describe('urls storage', () => {
 
     await expect(deleteUrlRecord('missing')).resolves.toBe(false)
     await expect(cleanupUnreferencedUrls()).resolves.toBe(1)
-    await expect(getUrlRecords()).resolves.toEqual([
+    await expect(getUrlRecords()).resolves.toStrictEqual([
       {
         id: 'url-1',
         savedAt: 1,
@@ -477,7 +477,7 @@ describe('urls storage', () => {
     const { cleanupUnreferencedUrls } = await loadUrlsModule()
 
     await expect(cleanupUnreferencedUrls()).resolves.toBe(1)
-    expect(state.urls).toEqual([])
+    expect(state.urls).toStrictEqual([])
   })
 
   it('重複URLを新しいレコードへ統合し参照先を更新する', async () => {
@@ -523,7 +523,7 @@ describe('urls storage', () => {
     const { deduplicateUrlRecords } = await loadUrlsModule()
 
     await expect(deduplicateUrlRecords()).resolves.toBe(1)
-    expect(state.urls).toEqual([
+    expect(state.urls).toStrictEqual([
       {
         id: 'new-id',
         savedAt: 20,
@@ -531,8 +531,8 @@ describe('urls storage', () => {
         url: 'https://example.com',
       },
     ])
-    expect(state.savedTabs?.[0].urlIds).toEqual(['new-id'])
-    expect(state.customProjects?.[0].urlIds).toEqual(['new-id'])
+    expect(state.savedTabs?.[0].urlIds).toStrictEqual(['new-id'])
+    expect(state.customProjects?.[0].urlIds).toStrictEqual(['new-id'])
   })
 
   it('重複URLがなければ統合保存しない', async () => {
@@ -604,7 +604,7 @@ describe('urls storage', () => {
     const { deduplicateUrlRecords } = await loadUrlsModule()
 
     await expect(deduplicateUrlRecords()).resolves.toBe(1)
-    expect(state.urls).toEqual([
+    expect(state.urls).toStrictEqual([
       {
         id: 'keeper-id',
         savedAt: 20,
@@ -676,13 +676,13 @@ describe('urls storage', () => {
     ).resolves.toBeNull()
     await expect(
       createOrUpdateUrlRecord('https://docs.example.com/one', 'Updated'),
-    ).resolves.toEqual(
+    ).resolves.toStrictEqual(
       expect.objectContaining({
         id: 'url-1',
         title: 'Updated',
       }),
     )
-    expect(state.urls).toEqual([
+    expect(state.urls).toStrictEqual([
       expect.objectContaining({
         id: 'url-1',
         title: 'Updated',
@@ -742,22 +742,22 @@ describe('urls storage', () => {
     )
     await updateUrlReferences(['missing-duplicate-id'], new Map())
 
-    expect(state.savedTabs?.[0]).toEqual(
+    expect(state.savedTabs?.[0]).toStrictEqual(
       expect.objectContaining({
         id: 'group-1',
       }),
     )
-    expect(state.savedTabs?.[1]?.urlIds).toEqual([
+    expect(state.savedTabs?.[1]?.urlIds).toStrictEqual([
       'replacement-id',
       'unmapped-duplicate-id',
       'keep-id',
     ])
-    expect(state.customProjects?.[0]).toEqual(
+    expect(state.customProjects?.[0]).toStrictEqual(
       expect.objectContaining({
         id: 'project-1',
       }),
     )
-    expect(state.customProjects?.[1]?.urlIds).toEqual([
+    expect(state.customProjects?.[1]?.urlIds).toStrictEqual([
       'replacement-id',
       'unmapped-duplicate-id',
       'keep-id',
@@ -778,7 +778,7 @@ describe('urls storage', () => {
     const { cleanupUnreferencedUrls, getUrlRecords, isUrlRecordReferenced } =
       await loadUrlsModule()
 
-    await expect(getUrlRecords()).resolves.toEqual([])
+    await expect(getUrlRecords()).resolves.toStrictEqual([])
     await expect(isUrlRecordReferenced('any')).resolves.toBe(true)
     await expect(cleanupUnreferencedUrls()).resolves.toBe(0)
   })

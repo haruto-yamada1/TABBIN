@@ -1417,7 +1417,7 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
   }
 
   return surfaceAuditCategoryNames().map((name) => {
-    const check = checks[name]!
+    const check = checks[name]
     const findings = findingsForCategory(name, sourceFindings, securityFindings)
     const ok = check.ok
     return {
@@ -1495,7 +1495,7 @@ function collectSecurityFindings(projectRoot: string): SecurityFinding[] {
     }
     const scannedContent = securityRelevantContent(file, content)
     const isExecutableSurface = /\.(sh|ts|js|json|yaml|yml)$/.test(file)
-    const checks: Array<[RegExp, string, string, boolean]> = [
+    const checks: [RegExp, string, string, boolean][] = [
       [
         /\bcurl\b|\bwget\b/,
         'high',

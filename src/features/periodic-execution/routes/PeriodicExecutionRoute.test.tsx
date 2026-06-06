@@ -263,9 +263,7 @@ describe('PeriodicExecutionRoute', () => {
 
     render(createElement(PeriodicExecutionRoute))
 
-    fireEvent.click(
-      screen.getAllByTestId('mock-select-change')[0] as HTMLElement,
-    )
+    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
   })
 
@@ -281,9 +279,7 @@ describe('PeriodicExecutionRoute', () => {
   it('自動削除期間の変更と確認操作を処理する', () => {
     render(createElement(PeriodicExecutionRoute))
 
-    fireEvent.click(
-      screen.getAllByTestId('mock-select-change')[0] as HTMLElement,
-    )
+    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))

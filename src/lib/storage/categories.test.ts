@@ -85,19 +85,21 @@ describe('categories storage', () => {
       saveParentCategories,
     } = await loadModule()
 
-    await expect(getParentCategories()).resolves.toEqual(state.parentCategories)
+    await expect(getParentCategories()).resolves.toStrictEqual(
+      state.parentCategories,
+    )
     await expect(
       findCategoryByDomainName('https://existing.test'),
-    ).resolves.toEqual(state.parentCategories?.[0])
+    ).resolves.toStrictEqual(state.parentCategories?.[0])
     await expect(
       findCategoryByDomainName('https://missing.test'),
     ).resolves.toBeNull()
 
     await saveParentCategories([])
-    expect(state.parentCategories).toEqual([])
+    expect(state.parentCategories).toStrictEqual([])
 
     const created = await createParentCategory('New Category')
-    expect(created).toEqual({
+    expect(created).toStrictEqual({
       domainNames: [],
       domains: [],
       id: 'uuid-1',
@@ -149,7 +151,7 @@ describe('categories storage', () => {
     )
     await updateDomainCategorySettings('https://new.test', ['tips'], [])
 
-    await expect(getDomainCategorySettings()).resolves.toEqual([
+    await expect(getDomainCategorySettings()).resolves.toStrictEqual([
       {
         categoryKeywords: [
           {
@@ -172,7 +174,7 @@ describe('categories storage', () => {
     await updateDomainCategoryMapping('https://new.test', null)
     await updateDomainCategoryMapping('https://missing.test', null)
 
-    await expect(getDomainCategoryMappings()).resolves.toEqual([
+    await expect(getDomainCategoryMappings()).resolves.toStrictEqual([
       {
         categoryId: 'cat-2',
         domain: 'https://existing.test',
@@ -217,7 +219,7 @@ describe('categories storage', () => {
     const { deleteParentCategory } = await loadModule()
 
     await deleteParentCategory('cat-1')
-    expect(state.parentCategories).toEqual([
+    expect(state.parentCategories).toStrictEqual([
       {
         domainNames: ['https://other.test'],
         domains: ['group-2'],
@@ -225,7 +227,7 @@ describe('categories storage', () => {
         name: 'Keep',
       },
     ])
-    expect(state.domainCategoryMappings).toEqual([
+    expect(state.domainCategoryMappings).toStrictEqual([
       {
         categoryId: 'cat-2',
         domain: 'https://other.test',
@@ -264,7 +266,7 @@ describe('categories storage', () => {
 
     await deleteParentCategory('cat-1')
 
-    expect(state.parentCategories).toEqual([])
-    expect(state.domainCategoryMappings).toEqual([])
+    expect(state.parentCategories).toStrictEqual([])
+    expect(state.domainCategoryMappings).toStrictEqual([])
   })
 })

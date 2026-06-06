@@ -94,7 +94,7 @@ vi.mock('@dnd-kit/utilities', () => ({
 vi.mock('./TimeRemaining', () => ({
   CategorySection: (props: {
     categoryName: string
-    urls?: Array<{ url: string; savedAt?: number }>
+    urls?: { url: string; savedAt?: number }[]
   }) => {
     categorySectionSpy(props)
     return (
@@ -184,9 +184,7 @@ const createProps = (
   overrides: Partial<
     SortableCategorySectionProps & {
       settings: UserSettings
-      handleDeleteAllTabs?: (
-        urls: Array<{ url: string }>,
-      ) => Promise<void> | void
+      handleDeleteAllTabs?: (urls: { url: string }[]) => Promise<void> | void
     }
   > = {},
 ) => ({
@@ -332,7 +330,7 @@ describe('SortableCategorySection', () => {
     const { rerender } = render(
       <SortableCategorySection
         {...createProps({
-          urls: undefined as unknown as Array<{ url: string; title: string }>,
+          urls: undefined as unknown as { url: string; title: string }[],
           handleOpenAllTabs,
         })}
       />,

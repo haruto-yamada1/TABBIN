@@ -110,9 +110,9 @@ describe('AiChartRenderer', () => {
   it('pie chart を描画する', async () => {
     render(<AiChartRenderer charts={[PIE_SPEC]} />)
 
-    expect(await screen.findByTestId('pie')).toBeTruthy()
-    expect(await screen.findByTestId('chart-tooltip')).toBeTruthy()
-    expect(mocked.pieProps[0]?.data).toEqual([
+    await expect(screen.findByTestId('pie')).resolves.toBeTruthy()
+    await expect(screen.findByTestId('chart-tooltip')).resolves.toBeTruthy()
+    expect(mocked.pieProps[0]?.data).toStrictEqual([
       {
         count: 3,
         fill: 'var(--chart-1)',
@@ -150,9 +150,9 @@ describe('AiChartRenderer', () => {
 
     render(<AiChartRenderer charts={[barSpec]} />)
 
-    expect(await screen.findByTestId('bar-chart')).toBeTruthy()
-    expect(await screen.findByTestId('chart-tooltip')).toBeTruthy()
-    expect(mocked.barChartProps[0]?.data).toEqual(barSpec.data)
+    await expect(screen.findByTestId('bar-chart')).resolves.toBeTruthy()
+    await expect(screen.findByTestId('chart-tooltip')).resolves.toBeTruthy()
+    expect(mocked.barChartProps[0]?.data).toStrictEqual(barSpec.data)
     expect(screen.getByText('ジャンル別の保存数')).toBeTruthy()
   })
 

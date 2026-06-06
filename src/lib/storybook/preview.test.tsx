@@ -15,7 +15,7 @@ describe('Storybook preview helpers', () => {
   it('sorts lightweight stories ahead of heavy AI element showcases', () => {
     const preview = createPreview()
 
-    expect(preview.parameters?.options?.storySort).toEqual({
+    expect(preview.parameters?.options?.storySort).toStrictEqual({
       order: ['UI', 'Components', 'Features', 'AI Elements'],
     })
   })

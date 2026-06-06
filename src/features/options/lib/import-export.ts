@@ -1539,7 +1539,7 @@ const downloadAsJson = (data: BackupData, filename: string): void => {
   const a = document.createElement('a')
   a.href = url
   a.download = filename
-  document.body.appendChild(a)
+  document.body.append(a)
   a.click()
 
   // クリーンアップ

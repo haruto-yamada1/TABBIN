@@ -107,7 +107,9 @@ export const AiChatRoute = () => {
                     <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
                       <Button
                         className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
-                        onClick={() => selectConversation(historyItem.id)}
+                        onClick={() => {
+                          selectConversation(historyItem.id)
+                        }}
                         type='button'
                         variant='ghost'
                       >

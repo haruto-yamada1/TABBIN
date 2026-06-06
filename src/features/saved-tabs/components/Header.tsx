@@ -136,7 +136,9 @@ export const Header = ({
             aria-label={t('savedTabs.searchPlaceholder')}
             placeholder={t('savedTabs.searchPlaceholder')}
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => {
+              onSearchChange(e.target.value)
+            }}
             className='h-9 w-full pr-9'
           />
           {searchQuery && (
@@ -145,7 +147,9 @@ export const Header = ({
               variant='ghost'
               aria-label={t('savedTabs.searchClear')}
               title={t('savedTabs.searchClear')}
-              onClick={() => onSearchChange('')}
+              onClick={() => {
+                onSearchChange('')
+              }}
               className='absolute top-1/2 right-0 mr-0.5 flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center'
             >
               <X size={16} />
@@ -160,7 +164,9 @@ export const Header = ({
               <Button
                 variant='outline'
                 size='sm'
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => {
+                  setIsModalOpen(true)
+                }}
                 className='flex h-9 cursor-pointer items-center gap-2'
               >
                 <Plus size={16} />
@@ -180,7 +186,9 @@ export const Header = ({
               <Button
                 variant='outline'
                 size='sm'
-                onClick={() => setIsCustomProjectModalOpen(true)}
+                onClick={() => {
+                  setIsCustomProjectModalOpen(true)
+                }}
                 className='flex h-9 cursor-pointer items-center gap-2'
               >
                 <Plus size={16} />
@@ -217,7 +225,9 @@ export const Header = ({
 
       {currentMode === 'domain' && isModalOpen && (
         <CategoryModal
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false)
+          }}
           tabGroups={tabGroups}
         />
       )}
@@ -233,7 +243,9 @@ export const Header = ({
             <Input
               ref={handleNewProjectNameInputRef}
               value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
+              onChange={(e) => {
+                setNewProjectName(e.target.value)
+              }}
               onKeyDown={handleCustomProjectEnter}
               placeholder={t('savedTabs.newProjectPlaceholder')}
               className='mb-2 w-full'

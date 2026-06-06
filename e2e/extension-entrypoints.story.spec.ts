@@ -109,7 +109,7 @@ const installOllamaListFailureMock = async (page: InitScriptPage) => {
           }
         }
 
-        return await originalSendMessage(message)
+        return originalSendMessage(message)
       }
 
       try {

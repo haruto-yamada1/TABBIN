@@ -23,7 +23,7 @@ type StorageSubset<K extends keyof LocalStorageSchema> = {
 
 type KnownStorageKey = keyof LocalStorageSchema
 
-declare var chrome: Window['chrome']
+declare let chrome: Window['chrome']
 
 declare namespace chrome {
   namespace storage {

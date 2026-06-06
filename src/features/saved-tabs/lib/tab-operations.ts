@@ -104,9 +104,11 @@ export const safelyUpdateGroupUrls = async (
     if (!targetGroup) {
       console.log(`グループID ${groupId} が見つかりません`)
       if (callback) {
-        Promise.resolve().then(callback)
+        Promise.resolve()
+          .then(callback)
+          .catch(() => {})
       }
-      return Promise.resolve()
+      return
     }
 
     // グループ内のURLが空になる場合でも、グループ自体は維持（表示はしない）
@@ -151,9 +153,11 @@ export const safelyUpdateGroupUrls = async (
 
     // 成功時にコールバックを実行 - 非同期で実行
     if (callback) {
-      Promise.resolve().then(callback)
+      Promise.resolve()
+        .then(callback)
+        .catch(() => {})
     }
-    return Promise.resolve()
+    return
   } catch (error) {
     console.error('タブ更新エラー:', error)
     return Promise.reject(error)

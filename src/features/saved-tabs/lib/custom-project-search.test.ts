@@ -50,7 +50,7 @@ describe('filterCustomProjectsByQuery', () => {
       loadProjectUrls,
     })
 
-    expect(result).toEqual([projects[0]])
+    expect(result).toStrictEqual([projects[0]])
     expect(loadProjectUrls).toHaveBeenCalledTimes(1)
     expect(loadProjectUrls).toHaveBeenCalledWith(projects[1])
   })
@@ -93,7 +93,7 @@ describe('filterCustomProjectsByQuery', () => {
       loadProjectUrls,
     })
 
-    expect(result).toEqual([
+    expect(result).toStrictEqual([
       {
         ...projects[0],
         urlIds: ['url-1'],
@@ -141,7 +141,7 @@ describe('filterCustomProjectsByQuery', () => {
       ]),
     })
 
-    expect(result[0]?.urls).toEqual([
+    expect(result[0]?.urls).toStrictEqual([
       {
         category: undefined,
         notes: undefined,

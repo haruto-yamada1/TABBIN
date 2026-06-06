@@ -383,6 +383,9 @@ const getLabelsForGroup = (
     case 'timeTop': {
       return [getTimeBucketLabel(record.savedAt, 'day')]
     }
+    default: {
+      return [record.domain]
+    }
   }
 }
 
@@ -409,6 +412,9 @@ const getSingleSeriesTitle = (
     case 'timeRecent':
     case 'timeTop': {
       return messages.chartDailySavedTrend
+    }
+    default: {
+      return messages.chartSavedCountByDomain
     }
   }
 }

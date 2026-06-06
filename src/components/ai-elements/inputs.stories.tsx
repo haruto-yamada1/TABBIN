@@ -343,15 +343,17 @@ const ComposerPlayground = () => {
               </PromptInputActionMenu>
               <SpeechInput
                 onAudioRecorded={async () => 'Recorded from fallback audio'}
-                onTranscriptionChange={(text) =>
+                onTranscriptionChange={(text) => {
                   setResult(`Transcribed: ${text}`)
-                }
+                }}
                 variant='outline'
               />
             </PromptInputTools>
 
             <PromptInputSubmit
-              onStop={() => setStatus('ready')}
+              onStop={() => {
+                setStatus('ready')
+              }}
               status={status === 'submitted' ? 'streaming' : 'ready'}
             />
           </PromptInputFooter>

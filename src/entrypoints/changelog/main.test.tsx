@@ -75,7 +75,7 @@ describe('changelog bootstrap', () => {
     domReadyHandler?.(new Event('DOMContentLoaded'))
 
     expect(mocked.createRoot).toHaveBeenCalledWith(
-      document.getElementById('app'),
+      document.querySelector('#app'),
     )
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
   })
@@ -115,10 +115,10 @@ describe('changelog bootstrap', () => {
     const englishItems = getChangelogItems('en')
 
     expect(englishItems).toHaveLength(japaneseItems.length)
-    expect(englishItems.map((item) => item.version)).toEqual(
+    expect(englishItems.map((item) => item.version)).toStrictEqual(
       japaneseItems.map((item) => item.version),
     )
-    expect(englishItems.map((item) => item.features.length)).toEqual(
+    expect(englishItems.map((item) => item.features.length)).toStrictEqual(
       japaneseItems.map((item) => item.features.length),
     )
   })

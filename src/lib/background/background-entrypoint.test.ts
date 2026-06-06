@@ -367,8 +367,12 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       })
       expect(console.log).not.toBe(originalLog)
       expect(console.debug).not.toBe(originalDebug)
-      expect(() => console.log('suppressed')).not.toThrow()
-      expect(() => console.debug('suppressed')).not.toThrow()
+      expect(() => {
+        console.log('suppressed')
+      }).not.toThrow()
+      expect(() => {
+        console.debug('suppressed')
+      }).not.toThrow()
     } finally {
       vi.unstubAllEnvs()
       console.log = originalLog

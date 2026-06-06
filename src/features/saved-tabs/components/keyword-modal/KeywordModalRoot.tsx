@@ -74,8 +74,12 @@ export const KeywordModalRoot = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           className='max-h-[90vh] overflow-y-auto'
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.stopPropagation()

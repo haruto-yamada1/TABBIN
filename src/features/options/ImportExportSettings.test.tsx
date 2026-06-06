@@ -188,7 +188,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     readerContent = '{"import":"payload"}'
     readerAsync = false
 
-    ;(globalThis as { [key: string]: unknown }).FileReader =
+    ;(globalThis as Record<string, unknown>).FileReader =
       MockFileReader as unknown as typeof FileReader
 
     vi.mocked(exportSettings).mockResolvedValue({
@@ -740,7 +740,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         throw new Error('reader constructor failed')
       }
     }
-    ;(globalThis as { [key: string]: unknown }).FileReader =
+    ;(globalThis as Record<string, unknown>).FileReader =
       ThrowingFileReader as unknown as typeof FileReader
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))

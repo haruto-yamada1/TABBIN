@@ -432,11 +432,12 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   const toggleDomainSelection = useCallback(
     (domainId: string) => {
       const previousChecked = selectedDomains[domainId]
-      const rollbackSelection = () =>
+      const rollbackSelection = () => {
         setSelectedDomains((prev) => ({
           ...prev,
           [domainId]: previousChecked,
         }))
+      }
       const newChecked = !previousChecked
       setSelectedDomains((prev) => ({
         ...prev,

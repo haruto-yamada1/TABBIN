@@ -35,7 +35,7 @@ describe('settings storage', () => {
 
     const { defaultSettings, getUserSettings } = await loadModule()
 
-    await expect(getUserSettings()).resolves.toEqual(defaultSettings)
+    await expect(getUserSettings()).resolves.toStrictEqual(defaultSettings)
     expect(defaultSettings.fontSizePercent).toBe(100)
     expect(defaultSettings.language).toBe('system')
     expect(mocks.warnMissingChromeStorage).toHaveBeenCalledWith('設定読み込み')
@@ -231,7 +231,7 @@ describe('settings storage', () => {
 
     const { defaultSettings, getUserSettings } = await loadModule()
 
-    await expect(getUserSettings()).resolves.toEqual({
+    await expect(getUserSettings()).resolves.toStrictEqual({
       ...defaultSettings,
       normalized: true,
     })
@@ -249,7 +249,7 @@ describe('settings storage', () => {
 
     const { defaultSettings, getUserSettings } = await loadModule()
 
-    await expect(getUserSettings()).resolves.toEqual({
+    await expect(getUserSettings()).resolves.toStrictEqual({
       ...defaultSettings,
       normalized: true,
     })
