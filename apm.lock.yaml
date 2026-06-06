@@ -21,6 +21,7 @@ local_deployed_files:
   - .agents/skills/finishing-a-development-branch
   - .agents/skills/git-staged-branch-commit-push
   - .agents/skills/github-issue-implementation
+  - .agents/skills/grill-with-docs
   - .agents/skills/harness-evaluator
   - .agents/skills/harness-generator
   - .agents/skills/harness-optimizer
@@ -97,6 +98,7 @@ local_deployed_files:
   - .claude/skills/finishing-a-development-branch
   - .claude/skills/git-staged-branch-commit-push
   - .claude/skills/github-issue-implementation
+  - .claude/skills/grill-with-docs
   - .claude/skills/harness-evaluator
   - .claude/skills/harness-generator
   - .claude/skills/harness-optimizer
@@ -172,6 +174,7 @@ local_deployed_files:
   - .cursor/skills/finishing-a-development-branch
   - .cursor/skills/git-staged-branch-commit-push
   - .cursor/skills/github-issue-implementation
+  - .cursor/skills/grill-with-docs
   - .cursor/skills/harness-evaluator
   - .cursor/skills/harness-generator
   - .cursor/skills/harness-optimizer
@@ -244,6 +247,7 @@ local_deployed_files:
   - .gemini/skills/finishing-a-development-branch
   - .gemini/skills/git-staged-branch-commit-push
   - .gemini/skills/github-issue-implementation
+  - .gemini/skills/grill-with-docs
   - .gemini/skills/harness-evaluator
   - .gemini/skills/harness-generator
   - .gemini/skills/harness-optimizer
@@ -321,6 +325,7 @@ local_deployed_files:
   - .github/skills/finishing-a-development-branch
   - .github/skills/git-staged-branch-commit-push
   - .github/skills/github-issue-implementation
+  - .github/skills/grill-with-docs
   - .github/skills/harness-evaluator
   - .github/skills/harness-generator
   - .github/skills/harness-optimizer
