@@ -103,7 +103,8 @@ const renameCategoryInTab = (
  * @param params フックの引数
  * @returns サブカテゴリ・キーワード・リネーム・削除・親カテゴリ関連の状態と操作
  */
-export const useCategoryKeywordModal = ({ // eslint-disable-line eslint/max-lines-per-function
+export const useCategoryKeywordModal = ({
+  // eslint-disable-line eslint/max-lines-per-function
   group,
   isOpen,
   onSave,

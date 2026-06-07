@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-constructed-context-values */
 'use client'
 
 import { AlertCircle } from 'lucide-react'
@@ -157,7 +158,9 @@ export const JSXPreview = memo(
     return (
       <JSXPreviewContext.Provider
         // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-        value={{ // eslint-disable-line react/jsx-no-constructed-context-values
+        value={{
+          // eslint-disable-line react/jsx-no-constructed-context-values
+          // eslint-disable-line react/jsx-no-constructed-context-values
           bindings,
           components,
           error,

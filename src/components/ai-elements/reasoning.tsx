@@ -1,3 +1,4 @@
+/* eslint-disable typescript/prefer-nullish-coalescing */
 'use client'
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
@@ -65,7 +66,9 @@ const updateReasoningStreamTiming = ({
 }) => {
   if (isStreaming) {
     hasEverStreamedRef.current = true
-    if (startTimeRef.current === null) { // eslint-disable-line typescript/prefer-nullish-coalescing
+    if (startTimeRef.current === null) {
+      // eslint-disable-line typescript/prefer-nullish-coalescing
+      // eslint-disable-line typescript/prefer-nullish-coalescing
       startTimeRef.current = Date.now()
     }
     return

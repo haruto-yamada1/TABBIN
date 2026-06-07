@@ -49,7 +49,7 @@ export const Suggestion = ({
       variant={variant}
       {...props}
     >
-{/* eslint-disable-next-line typescript/prefer-nullish-coalescing */}
+      {/* eslint-disable-next-line typescript/prefer-nullish-coalescing */}
       {children || suggestion}
     </Button>
   )

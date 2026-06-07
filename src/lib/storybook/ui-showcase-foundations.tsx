@@ -108,7 +108,8 @@ const Section = ({
   </section>
 )
 
-const UiShowcase = () => { // eslint-disable-line eslint/max-lines-per-function
+const UiShowcase = () => {
+  // eslint-disable-line eslint/max-lines-per-function
   const [checked, setChecked] = useState(true)
   const [enabled, setEnabled] = useState(false)
 

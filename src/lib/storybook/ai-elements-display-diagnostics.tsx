@@ -113,7 +113,8 @@ const Section = ({
   </section>
 )
 
-const RuntimeDiagnostics = () => ( // eslint-disable-line eslint/max-lines-per-function
+const RuntimeDiagnostics = () => (
+  // eslint-disable-line eslint/max-lines-per-function
   <div className='grid gap-6 xl:grid-cols-2'>
     <Section title='Code + Tooling'>
       <div className='space-y-4'>

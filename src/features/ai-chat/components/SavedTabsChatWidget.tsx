@@ -848,7 +848,8 @@ const renderSystemPromptSelector = ({
   )
 }
 
-const useSystemPromptManagerDialogView = ({ // eslint-disable-line eslint/max-lines-per-function
+const useSystemPromptManagerDialogView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   activePromptId,
   errorMessage,
   isOpen,
@@ -1459,7 +1460,8 @@ const renderConversationMessageBody = ({
   return <MessageResponse>{message.content}</MessageResponse>
 }
 
-const renderChatConversationMessage = ({ // eslint-disable-line eslint/complexity
+const renderChatConversationMessage = ({
+  // eslint-disable-line eslint/complexity
   message,
   platform,
   t,
@@ -1540,7 +1542,8 @@ const renderChatConversationMessage = ({ // eslint-disable-line eslint/complexit
   )
 }
 
-const useChatPromptComposerView = ({ // eslint-disable-line eslint/complexity
+const useChatPromptComposerView = ({
+  // eslint-disable-line eslint/complexity
   input,
   presentation,
   modelName,
@@ -1691,7 +1694,8 @@ const useChatPromptComposerView = ({ // eslint-disable-line eslint/complexity
   )
 }
 
-const useSavedTabsChatPanelView = ({ // eslint-disable-line eslint/complexity
+const useSavedTabsChatPanelView = ({
+  // eslint-disable-line eslint/complexity
   activeSystemPromptId,
   chatErrorMessage,
   chatOllamaError,
@@ -1899,7 +1903,8 @@ const useSavedTabsChatPanelView = ({ // eslint-disable-line eslint/complexity
   )
 }
 
-const useSavedTabsChatWidgetView = ({ // eslint-disable-line eslint/max-lines-per-function
+const useSavedTabsChatWidgetView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   conversationId,
   defaultOpen = false,
   historyItems = EMPTY_HISTORY_ITEMS,

@@ -112,7 +112,8 @@ const buildCategoryOrderFromSaved = (
  * @param params フックの引数
  * @returns 折りたたみ・ソート・カテゴリ並び替え・キーワードモーダル・親カテゴリ関連の状態と操作
  */
-export const useDomainCardState = ({ // eslint-disable-line eslint/max-lines-per-function
+export const useDomainCardState = ({
+  // eslint-disable-line eslint/max-lines-per-function
   group,
   handleDeleteUrls,
   handleDeleteCategory,

@@ -252,7 +252,8 @@ interface UseProjectManagementReturn {
  * @param _settings - ユーザー設定（将来の拡張用）
  * @returns UseProjectManagementReturn
  */
-const useProjectManagement = ( // eslint-disable-line eslint/max-lines-per-function
+const useProjectManagement = (
+  // eslint-disable-line eslint/max-lines-per-function
   _tabGroups: TabGroup[],
   _settings: UserSettings,
   initialViewMode?: ViewMode,

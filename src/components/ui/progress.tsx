@@ -8,22 +8,28 @@ const Progress = ({
   ref,
   value,
   ...props
-}: React.ComponentProps<typeof ProgressPrimitive.Root>) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    className={cn(
-      'relative h-2 w-full overflow-hidden rounded-full bg-primary/20',
-      className,
-    )}
-    {...props}
-  >
-    <ProgressPrimitive.Indicator
-      className='h-full w-full flex-1 bg-primary transition-all'
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }} // eslint-disable-line eslint/no-magic-numbers
-    />
-  </ProgressPrimitive.Root>
-)
+}: React.ComponentProps<typeof ProgressPrimitive.Root>) => {
+  const indicatorStyle = React.useMemo(
+    () => ({ transform: `translateX(-${100 - (value ?? 0)}%)` }), // eslint-disable-line eslint/no-magic-numbers
+    [value],
+  )
+
+  return (
+    <ProgressPrimitive.Root
+      ref={ref}
+      className={cn(
+        'relative h-2 w-full overflow-hidden rounded-full bg-primary/20',
+        className,
+      )}
+      {...props}
+    >
+      <ProgressPrimitive.Indicator
+        className='h-full w-full flex-1 bg-primary transition-all'
+        style={indicatorStyle}
+      />
+    </ProgressPrimitive.Root>
+  )
+}
 Progress.displayName = ProgressPrimitive.Root.displayName
 
 export { Progress }

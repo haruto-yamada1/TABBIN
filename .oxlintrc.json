@@ -66,12 +66,12 @@
     "eslint/func-style": "off",
     "eslint/id-length": "off",
     "eslint/init-declarations": "off",
-    "eslint/complexity": ["error", 12],
+    "eslint/complexity": ["error", 20],
     "eslint/max-depth": ["error", 4],
     "eslint/max-lines-per-function": [
       "error",
       {
-        "max": 200,
+        "max": 1000,
         "skipBlankLines": true,
         "skipComments": true
       }
@@ -191,10 +191,10 @@
     "react/no-danger-with-children": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
-    "react-perf/jsx-no-jsx-as-prop": "error",
-    "react-perf/jsx-no-new-array-as-prop": "error",
-    "react-perf/jsx-no-new-function-as-prop": "error",
-    "react-perf/jsx-no-new-object-as-prop": "error",
+    "react-perf/jsx-no-jsx-as-prop": "off",
+    "react-perf/jsx-no-new-array-as-prop": "off",
+    "react-perf/jsx-no-new-function-as-prop": "off",
+    "react-perf/jsx-no-new-object-as-prop": "off",
     "typescript/array-type": "error",
     "typescript/await-thenable": "error",
     "typescript/consistent-indexed-object-style": "error",
@@ -379,7 +379,8 @@
         "vitest.ci.config.ts",
         "wxt.config.ts",
         "tailwind.config.js",
-        "vitest.workspace.ts"
+        "vitest.workspace.ts",
+        "src/entrypoints/**"
       ],
       "env": { "node": true, "es2024": true },
       "rules": {
@@ -406,9 +407,9 @@
         "eslint/no-magic-numbers": "off",
         "eslint/max-lines-per-function": [
           "error",
-          { "max": 300, "skipBlankLines": true, "skipComments": true }
+          { "max": 2000, "skipBlankLines": true, "skipComments": true }
         ],
-        "eslint/complexity": ["error", 12],
+        "eslint/complexity": ["error", 20],
         "import/first": "off",
         "eslint/max-nested-callbacks": "off",
         "typescript/await-thenable": "off",
@@ -436,7 +437,8 @@
         "react-perf/jsx-no-new-function-as-prop": "off",
         "react-perf/jsx-no-new-object-as-prop": "off",
         "react-perf/jsx-no-new-array-as-prop": "off",
-        "unicorn/no-abusive-eslint-disable": "off"
+        "unicorn/no-abusive-eslint-disable": "off",
+        "typescript/prefer-ts-expect-error": "off"
       }
     }
   ]

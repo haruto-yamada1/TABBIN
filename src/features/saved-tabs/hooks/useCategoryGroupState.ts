@@ -103,7 +103,8 @@ const confirmCategorySaved = async (
  * @param params フックの引数
  * @returns 折りたたみ・ソート・並び替え・モーダル・DnD関連の状態と操作
  */
-export const useCategoryGroupState = ({ // eslint-disable-line eslint/max-lines-per-function
+export const useCategoryGroupState = ({
+  // eslint-disable-line eslint/max-lines-per-function
   category,
   domains,
   handleUpdateDomainsOrder,

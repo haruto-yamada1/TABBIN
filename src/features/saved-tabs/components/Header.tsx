@@ -38,7 +38,8 @@ interface HeaderProps {
 }
 
 // eslint-disable-next-line eslint/complexity
-export const Header = ({ // eslint-disable-line eslint/max-lines-per-function
+export const Header = ({
+  // eslint-disable-line eslint/max-lines-per-function
   tabGroups,
   filteredTabGroups,
   currentMode,

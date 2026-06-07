@@ -24,7 +24,8 @@ import { handleTabCreated } from '@/lib/background/url-storage'
 import { getParentCategories } from '@/lib/storage/categories'
 import { migrateParentCategoriesToDomainNames } from '@/lib/storage/migration'
 
-export default defineBackground(() => { // eslint-disable-line import/no-default-export
+export default defineBackground(() => {
+  // eslint-disable-line import/no-default-export
   // 拡張機能インストール・更新時の処理
   // eslint-disable-next-line typescript/no-misused-promises
   chrome.runtime.onInstalled.addListener(async (details) => {

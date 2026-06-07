@@ -216,7 +216,8 @@ const RecordingErrorAlert = ({ message }: { message: string }) => (
   </Alert>
 )
 
-export const SpeechInput = ({ // eslint-disable-line eslint/max-lines-per-function
+export const SpeechInput = ({
+  // eslint-disable-line eslint/max-lines-per-function
   className,
   onTranscriptionChange,
   onAudioRecorded,

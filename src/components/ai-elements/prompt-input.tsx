@@ -402,7 +402,8 @@ export type PromptInputProps = Omit<
   ) => void | Promise<void>
 }
 
-const usePromptInputView = ({ // eslint-disable-line eslint/max-lines-per-function
+const usePromptInputView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   className,
   accept,
   multiple,

@@ -1,3 +1,4 @@
+/* eslint-disable eslint/no-magic-numbers */
 import { useDndMonitor } from '@dnd-kit/core'
 import {
   ArrowUpDown,
@@ -84,7 +85,9 @@ const openTabsWithConfirm = ({
   handleOpenAllTabs: SortableCategorySectionProps['handleOpenAllTabs']
   urls: Parameters<SortableCategorySectionProps['handleOpenAllTabs']>[0]
 }) => {
-  if (urlCount >= 10) { // eslint-disable-line eslint/no-magic-numbers
+  if (urlCount >= 10) {
+    // eslint-disable-line eslint/no-magic-numbers
+    // eslint-disable-line eslint/no-magic-numbers
     setIsOpenAllConfirmOpen(true)
     return
   }
@@ -97,7 +100,8 @@ type SortableCategorySectionViewProps = SortableCategorySectionProps & {
   handleDeleteAllTabs?: (urls: { url: string }[]) => void
 }
 
-const useSortableCategorySectionView = ({ // eslint-disable-line eslint/max-lines-per-function
+const useSortableCategorySectionView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   id,
   handleOpenAllTabs,
   handleDeleteAllTabs, // 削除ハンドラを追加

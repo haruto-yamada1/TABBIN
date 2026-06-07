@@ -7,7 +7,8 @@ import {
   previewParameters,
 } from '../src/lib/storybook/preview'
 
-import '../src/assets/global.css' // eslint-disable-line
+// @ts-ignore - global.css import without types
+import '../src/assets/global.css'
 
 export default {
   decorators: previewDecorators,

@@ -120,7 +120,8 @@ interface UncategorizedDomainSectionProps {
   hasContentCount: number
 }
 
-const UncategorizedDomainSection = ({ // eslint-disable-line eslint/max-lines-per-function
+const UncategorizedDomainSection = ({
+  // eslint-disable-line eslint/max-lines-per-function
   state: {
     shouldShowSectionHeader,
     hasVisibleCategoryGroups,

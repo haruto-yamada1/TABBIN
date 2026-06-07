@@ -105,7 +105,8 @@ const Section = ({
   </section>
 )
 
-const DataSurfaces = () => ( // eslint-disable-line eslint/max-lines-per-function
+const DataSurfaces = () => (
+  // eslint-disable-line eslint/max-lines-per-function
   <div className='grid gap-6 xl:grid-cols-2'>
     <Section title='Context + Chain of Thought'>
       <div className='gap-y-4'>

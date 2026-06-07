@@ -342,7 +342,8 @@ const handleDragEndByType = ({
   }
 }
 
-const useCustomProjectSectionView = ({ // eslint-disable-line eslint/max-lines-per-function
+const useCustomProjectSectionView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   projects,
   handleOpenUrl,
   handleDeleteUrl,

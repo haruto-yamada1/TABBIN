@@ -110,9 +110,10 @@ const ChartContainer = ({
     }
   }, [])
 
+  const chartContextValue = React.useMemo(() => ({ config }), [config])
+
   return (
-    // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-    <ChartContext.Provider value={{ config }}> // eslint-disable-line react/jsx-no-constructed-context-values
+    <ChartContext.Provider value={chartContextValue}>
       <div
         data-chart={chartId}
         // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop

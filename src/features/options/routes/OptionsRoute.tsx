@@ -88,7 +88,8 @@ const resetFontSizeInputState = <
   setValues(createResetFontSizeInputValueUpdater(fontSizePercent))
 }
 
-const useOptionsRouteView = () => { // eslint-disable-line eslint/max-lines-per-function
+const useOptionsRouteView = () => {
+  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const {
     addExcludePattern,

@@ -91,7 +91,8 @@ const resolveNextActiveConversationId = ({
   return currentActiveConversationId
 }
 
-const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => { // eslint-disable-line eslint/max-lines-per-function
+const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
+  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const newConversationTitle = t('aiChat.newConversation')
   const historyStartPrompt = t('aiChat.history.startPrompt')

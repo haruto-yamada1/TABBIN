@@ -92,7 +92,8 @@ const updateTabGroup = async (updatedTabGroup: TabGroup) => {
   }
 }
 
-const useSubCategoryKeywordManagerView = ({ // eslint-disable-line eslint/max-lines-per-function
+const useSubCategoryKeywordManagerView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   tabGroup,
 }: {
   tabGroup: TabGroup

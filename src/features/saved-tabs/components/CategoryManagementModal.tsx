@@ -148,7 +148,8 @@ const buildAvailableDomains = ({
   }, [])
 }
 // eslint-disable-next-line eslint/complexity
-const useCategoryManagementModalView = ({ // eslint-disable-line eslint/max-lines-per-function
+const useCategoryManagementModalView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   isOpen,
   onClose,
   category,
