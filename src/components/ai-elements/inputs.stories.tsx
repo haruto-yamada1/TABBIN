@@ -290,7 +290,7 @@ const ComposerPlayground = () => {
       <div className='space-y-6'>
         <PromptInput
           className='rounded-xl border bg-card p-2'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onSubmit={({ text, files }) => {
             setStatus('submitted')
             setResult(`${text} (${files.length} files)`)
@@ -343,9 +343,9 @@ const ComposerPlayground = () => {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
               <SpeechInput
-// eslint-disable-next-line typescript/require-await
+                // eslint-disable-next-line typescript/require-await
                 onAudioRecorded={async () => 'Recorded from fallback audio'}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onTranscriptionChange={(text) => {
                   setResult(`Transcribed: ${text}`)
                 }}
@@ -354,7 +354,7 @@ const ComposerPlayground = () => {
             </PromptInputTools>
 
             <PromptInputSubmit
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onStop={() => {
                 setStatus('ready')
               }}

@@ -225,8 +225,8 @@ export const EnvironmentVariableValue = ({
 
   const displayValue = showValues
     ? value
-// eslint-disable-next-line eslint/no-magic-numbers
-    : '•'.repeat(Math.min(value.length, 20))
+    : // eslint-disable-next-line eslint/no-magic-numbers
+      '•'.repeat(Math.min(value.length, 20))
 
   return (
     <span
@@ -275,7 +275,7 @@ export const EnvironmentVariableCopyButton = ({
   return (
     <Button
       className={cn('size-6 shrink-0', className)}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(getTextToCopy())}
       size='icon'
       variant='ghost'

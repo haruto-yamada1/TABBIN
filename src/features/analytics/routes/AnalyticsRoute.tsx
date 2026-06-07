@@ -108,8 +108,8 @@ const getLatestAnalyticsQuery = (
 
     const output =
       toolTrace.output && typeof toolTrace.output === 'object'
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-        ? (toolTrace.output as Record<string, unknown>)
+        ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
+          (toolTrace.output as Record<string, unknown>)
         : null
     if (!output) {
       continue
@@ -148,7 +148,7 @@ const awaitableEmptyRecords: Awaited<ReturnType<typeof loadAnalyticsRecords>> =
   []
 
 const shouldConfirmBulkOpen = (recordCount: number): boolean =>
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   recordCount >= 10
 const noop = (): void => {}
 
@@ -158,7 +158,7 @@ const shouldSkipSingleDelete = ({
 }: {
   deletingUrl: string | null
   isBulkDeleting: boolean
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
 }): boolean => Boolean(deletingUrl || isBulkDeleting)
 
 const shouldSkipOpenAll = (recordCount: number): boolean => recordCount === 0
@@ -172,7 +172,7 @@ const shouldSkipBulkDelete = ({
   isBulkDeleting: boolean
   matchingRecordCount: number
 }): boolean =>
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   matchingRecordCount === 0 || Boolean(deletingUrl || isBulkDeleting)
 
 const shouldIgnoreBulkDeleteDialogClose = ({
@@ -334,7 +334,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> =>
           return
         }
 
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         reject(new Error(response?.error || 'removeUrlFromStorage failed'))
       },
     )
@@ -357,7 +357,7 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
         }
 
         reject(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
           new Error(response?.error || 'removeUrlRecordsFromStorage failed'),
         )
       },
@@ -445,7 +445,7 @@ const getAnalyticsChartDatumLabels = (
   data: { label?: unknown }[] | undefined,
 ): string[] =>
   data?.reduce<string[]>((items, datum) => {
-// eslint-disable-next-line typescript/no-base-to-string
+    // eslint-disable-next-line typescript/no-base-to-string
     const label = String(datum.label ?? '')
     if (label) {
       items.push(label)
@@ -459,7 +459,7 @@ const getDrilldownLabelsForRecord = (
   uncategorizedLabel: string,
   chartMessages: AnalyticsChartMessages,
 ): string[] => {
-// eslint-disable-next-line typescript/switch-exhaustiveness-check
+  // eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (query.groupBy) {
     case 'timeRecent':
     case 'timeTop': {
@@ -754,7 +754,7 @@ const useAnalyticsRouteView = () => {
     }
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleSaveView = async () => {
     const trimmedName = viewName.trim()
     const nextError = getViewNameValidationError({
@@ -783,7 +783,7 @@ const useAnalyticsRouteView = () => {
     await deleteSavedAnalyticsView(viewId)
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleMessagesChange = (messages: AiChatConversationMessage[]) => {
     const latestAssistantCharts = getLatestAssistantCharts(messages)
     if (!latestAssistantCharts) {
@@ -798,7 +798,7 @@ const useAnalyticsRouteView = () => {
     setDrilldownSelection(null)
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleChartPointClick = ({
     label,
     seriesKey,
@@ -855,7 +855,7 @@ const useAnalyticsRouteView = () => {
       {
         action: {
           label: t('common.undo'),
-// eslint-disable-next-line typescript/no-misused-promises
+          // eslint-disable-next-line typescript/no-misused-promises
           onClick: async () => {
             try {
               await chrome.storage.local.set(
@@ -904,7 +904,7 @@ const useAnalyticsRouteView = () => {
     })
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteClick = (record: AiSavedUrlRecord) => {
     const action = getDeleteClickAction({
       confirmDeleteEach: settings.confirmDeleteEach,
@@ -930,7 +930,7 @@ const useAnalyticsRouteView = () => {
     }
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenAllClick = () => {
     const action = getOpenAllAction(
       getDrilldownMatchingRecords(drilldownSelection).length,
@@ -977,7 +977,7 @@ const useAnalyticsRouteView = () => {
     })
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteAllClick = () => {
     const action = getDeleteAllAction({
       confirmDeleteAll: settings.confirmDeleteAll,
@@ -1047,7 +1047,7 @@ const useAnalyticsRouteView = () => {
                           aria-invalid={viewNameError !== null}
                           className='rounded-xl bg-background'
                           id='analytics-view-name'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                           onChange={(event) => {
                             const nextValue = event.target.value
                             setViewName(nextValue)
@@ -1075,11 +1075,11 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.groupByLabel')}
                         </Label>
                         <Select
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                           onValueChange={(value) => {
                             applyQuery({
                               ...query,
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+                              // eslint-disable-next-line typescript/no-unsafe-type-assertion
                               groupBy: value as AnalyticsQuery['groupBy'],
                             })
                           }}
@@ -1112,11 +1112,11 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.chartTypeLabel')}
                         </Label>
                         <Select
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                           onValueChange={(value) => {
                             applyQuery({
                               ...query,
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+                              // eslint-disable-next-line typescript/no-unsafe-type-assertion
                               chartType: value as AnalyticsQuery['chartType'],
                             })
                           }}
@@ -1150,7 +1150,7 @@ const useAnalyticsRouteView = () => {
                           className='rounded-xl bg-background'
                           id='analytics-limit'
                           min={1}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                           onChange={(event) => {
                             applyQuery({
                               ...query,
@@ -1168,7 +1168,7 @@ const useAnalyticsRouteView = () => {
                     <div className='mt-4 grid grid-cols-2 gap-2'>
                       <Button
                         className='w-full cursor-pointer rounded-xl'
-// eslint-disable-next-line typescript/no-misused-promises
+                        // eslint-disable-next-line typescript/no-misused-promises
                         onClick={handleSaveView}
                         type='button'
                       >
@@ -1176,7 +1176,7 @@ const useAnalyticsRouteView = () => {
                       </Button>
                       <Button
                         className='w-full cursor-pointer rounded-xl'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                         onClick={() => {
                           applyQuery(defaultAnalyticsQuery)
                         }}
@@ -1212,7 +1212,7 @@ const useAnalyticsRouteView = () => {
                               <div className='flex items-center justify-between gap-2'>
                                 <Button
                                   className='min-w-0 flex-1 justify-start px-0 text-left hover:bg-transparent'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                                   onClick={() => {
                                     applyQuery(view.query, view.name)
                                   }}
@@ -1229,7 +1229,7 @@ const useAnalyticsRouteView = () => {
                                     undefined,
                                     { name: view.name },
                                   )}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                                   onClick={() => void handleDeleteView(view.id)}
                                   size='sm'
                                   type='button'
@@ -1417,7 +1417,7 @@ const useAnalyticsRouteView = () => {
       <Toaster />
 
       <AlertDialog
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onOpenChange={(isOpen) => {
           setIsBulkDeleteConfirmOpen((currentOpen) =>
             getNextBulkDeleteDialogOpen({
@@ -1442,7 +1442,7 @@ const useAnalyticsRouteView = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(event) => {
                 event.preventDefault()
                 void performBulkDelete()
@@ -1472,7 +1472,7 @@ const useAnalyticsRouteView = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 handleOpenAllDrilldownRecords()
               }}
@@ -1484,7 +1484,7 @@ const useAnalyticsRouteView = () => {
       </AlertDialog>
 
       <AlertDialog
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onOpenChange={(isOpen) => {
           setDeleteTarget((currentTarget) =>
             getNextDeleteTargetAfterDialogOpenChange({
@@ -1509,7 +1509,7 @@ const useAnalyticsRouteView = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(event) => {
                 event.preventDefault()
                 runConfirmedDelete(deleteTarget, performDelete)

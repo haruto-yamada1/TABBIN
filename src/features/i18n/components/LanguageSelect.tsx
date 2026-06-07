@@ -47,9 +47,9 @@ export const LanguageSelect = ({
       </Label>
       <Select
         value={languageSetting}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onValueChange={(value) =>
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
           void setLanguageSetting(value as LanguageSetting)
         }
       >

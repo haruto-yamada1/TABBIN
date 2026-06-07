@@ -37,7 +37,7 @@ export const CategoryDeleteConfirm = () => {
         <Button
           variant='ghost'
           size='sm'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             deletion.setShowDeleteConfirm(false)
           }}
@@ -48,7 +48,7 @@ export const CategoryDeleteConfirm = () => {
         <Button
           variant='destructive'
           size='sm'
-// eslint-disable-next-line typescript/no-misused-promises
+          // eslint-disable-next-line typescript/no-misused-promises
           onClick={deletion.handleDeleteCategory}
           disabled={isLoading}
           className='flex items-center gap-1'

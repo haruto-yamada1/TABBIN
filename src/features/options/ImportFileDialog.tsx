@@ -128,7 +128,7 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
         <Checkbox
           id='merge-data'
           checked={mergeData}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onCheckedChange={(checked) => {
             onMergeChange(checked === true)
           }}
@@ -262,12 +262,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   )
   const selectedFileRef = useRef<File | null>(null)
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenImportDialog = () => {
     dispatchImportDialog({ type: 'OPEN' })
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) {
@@ -284,7 +284,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         return
       }
 
-// eslint-disable-next-line eslint/no-magic-numbers
+      // eslint-disable-next-line eslint/no-magic-numbers
       const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
       if (file.size > MAX_FILE_SIZE) {
         toast.error(
@@ -299,10 +299,10 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       selectedFileRef.current = file
 
       const reader = new FileReader()
-// eslint-disable-next-line unicorn/prefer-add-event-listener
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onload = (event) => {
         try {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
           const content = event.target?.result as string
           if (!content) {
             toast.error(t('options.importExport.readError'))
@@ -324,12 +324,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         }
       }
 
-// eslint-disable-next-line unicorn/prefer-add-event-listener
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         toast.error(t('options.importExport.readError'))
       }
 
-// eslint-disable-next-line unicorn/prefer-blob-reading-methods
+      // eslint-disable-next-line unicorn/prefer-blob-reading-methods
       reader.readAsText(file)
     },
     [t],
@@ -358,15 +358,15 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     resetImportFileInput(fileInputRef.current)
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleConfirmImport = () => {
     setIsImporting(true)
     try {
       const reader = new FileReader()
-// eslint-disable-next-line unicorn/prefer-add-event-listener
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onload = async (event) => {
         try {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
           const content = event.target?.result as string
           if (!content) {
             toast.error(t('options.importExport.readError'))
@@ -396,12 +396,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
           }
         }
       }
-// eslint-disable-next-line unicorn/prefer-add-event-listener
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         toast.error(t('options.importExport.readError'))
         setIsImporting(false)
       }
-// eslint-disable-next-line typescript/no-non-null-assertion
+      // eslint-disable-next-line typescript/no-non-null-assertion
       reader.readAsText(selectedFileRef.current!) // eslint-disable-line unicorn/prefer-blob-reading-methods
     } catch (error) {
       console.error('インポートエラー:', error)
@@ -459,7 +459,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
               {importDialog.step === 'select' && (
                 <ImportSelectStep
                   mergeData={importDialog.mergeData}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onMergeChange={(mergeData) => {
                     dispatchImportDialog({ type: 'SET_MERGE', mergeData })
                   }}
@@ -482,7 +482,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             {importDialog.step === 'preview' && (
               <Button
                 variant='outline'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   dispatchImportDialog({ type: 'RESET' })
                   resetFileInput()

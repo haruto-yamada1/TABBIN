@@ -16,7 +16,7 @@ const viewModeI18nState = vi.hoisted(() => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -47,7 +47,7 @@ vi.mock('@/components/ui/select', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='select-root' data-value={value}>
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onValueChange?.('custom')} type='button'>
         emit-custom
       </button>

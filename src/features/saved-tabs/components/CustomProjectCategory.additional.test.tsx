@@ -51,10 +51,10 @@ vi.mock('./ProjectUrlItem', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-// eslint-disable-next-line react/jsx-no-useless-fragment
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -64,7 +64,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -114,7 +114,7 @@ const createProps = (
     { url: 'https://b.com', title: 'B', category: 'Work', savedAt: 2 },
   ],
   handleOpenUrl: vi.fn(),
-// eslint-disable-next-line typescript/no-misused-promises
+  // eslint-disable-next-line typescript/no-misused-promises
   handleDeleteUrl: vi.fn(async () => {}),
   handleDeleteCategory: vi.fn(),
   handleSetUrlCategory: vi.fn(),

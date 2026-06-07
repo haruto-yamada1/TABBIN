@@ -25,7 +25,7 @@ interface DateParts {
 const pad2 = (value: number): string => String(value).padStart(2, '0')
 
 const resolveTimeZone = (timeZone?: string): string =>
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   timeZone?.trim() ||
   Intl.DateTimeFormat().resolvedOptions().timeZone ||
   FALLBACK_TIME_ZONE
@@ -127,7 +127,7 @@ const getLocalWeekStartKey = (timestamp: number, timeZone?: string): string => {
     Date.UTC(dateParts.year, dateParts.month - 1, dateParts.day),
   )
   const day = getWeekdayIndexInTimeZone(timestamp, timeZone)
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const diff = day === 0 ? -6 : 1 - day
   date.setUTCDate(date.getUTCDate() + diff)
 

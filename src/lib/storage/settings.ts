@@ -113,7 +113,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     if (data.userSettings) {
       console.log('保存された設定を使用:', data.userSettings)
       const sanitizedStoredSettings = stripLegacyUserSettings(
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         data.userSettings as LegacyUserSettings,
       )
       const mergedStoredSettings = mergeStoredUserSettings(

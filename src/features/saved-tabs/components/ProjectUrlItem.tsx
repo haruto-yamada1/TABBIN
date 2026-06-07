@@ -71,7 +71,7 @@ const ProjectUrlItemComponent = ({
       type: 'url',
       url: originalUrl,
       projectId,
-// eslint-disable-next-line eslint/no-magic-numbers
+      // eslint-disable-next-line eslint/no-magic-numbers
       title: item.title || originalUrl.substring(0, 30), // タイトルがない場合はURLの一部を使用
       isUncategorized: !item.category,
       category: item.category,
@@ -90,7 +90,7 @@ const ProjectUrlItemComponent = ({
     id: originalUrl,
   })
 
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -116,7 +116,7 @@ const ProjectUrlItemComponent = ({
     }
   }, [])
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDragStart = (e: React.DragEvent<HTMLElement>) => {
     isDraggingRef.current = true
     windowBlurredDuringDragRef.current = false
@@ -182,7 +182,7 @@ const ProjectUrlItemComponent = ({
         data-category={item.category}
         data-has-category={Boolean(item.category)}
         data-category-level={categoryLevel}
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         data-parent-type={parentType || ''}
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
@@ -202,7 +202,7 @@ const ProjectUrlItemComponent = ({
             draggable
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={() => {
               handleOpenUrl(item.url)
             }}
@@ -231,7 +231,7 @@ const ProjectUrlItemComponent = ({
           <Button
             variant='ghost'
             size='sm'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -253,7 +253,7 @@ const ProjectUrlItemComponent = ({
       <DeleteUrlConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onConfirm={() => {
           handleDeleteUrl(projectId, item.url)
         }}

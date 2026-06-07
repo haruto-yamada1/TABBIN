@@ -62,7 +62,7 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
     <div data-testid='saved-tabs-chat-widget'>
       <div>{`history-variant:${historyVariant ?? 'none'}`}</div>
       <div>{`active-title:${title ?? ''}`}</div>
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onToggleHistory?.()} type='button'>
         toggle-history
       </button>
@@ -168,7 +168,7 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('Recent conversations')).toBeTruthy()
 
     fireEvent.click(
-// eslint-disable-next-line typescript/non-nullable-type-assertion-style
+      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       screen
         .getAllByRole('button', { name: /別の会話/ })
         .find((button) => button.className.includes('flex-col')) as HTMLElement,
@@ -184,7 +184,7 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('Recent conversations')).toBeTruthy()
   })
 
-// eslint-disable-next-line eslint/complexity
+  // eslint-disable-next-line eslint/complexity
   it('履歴項目の本文ボタンは縦積みレイアウトで削除ボタンを押し出さない', () => {
     render(createElement(AiChatRoute))
 

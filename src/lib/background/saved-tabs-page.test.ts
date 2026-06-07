@@ -12,7 +12,7 @@ interface TabsHarness {
 
 const createChromeHarness = (): TabsHarness => {
   const create = vi.fn(
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     async (createProperties: chrome.tabs.CreateProperties) =>
       ({
         id: 900,
@@ -21,12 +21,12 @@ const createChromeHarness = (): TabsHarness => {
       }) as chrome.tabs.Tab,
   )
   const get = vi.fn()
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   const query = vi.fn(async () => [])
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   const remove = vi.fn(async () => undefined)
   const update = vi.fn(
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     async (tabId: number, updateProperties: chrome.tabs.UpdateProperties) =>
       ({
         id: tabId,
@@ -283,7 +283,7 @@ describe('saved-tabs-page', () => {
     let resolveGet: (tab: chrome.tabs.Tab) => void = () => undefined
     chromeTabs.get.mockRejectedValue(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       () =>
         new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve
@@ -298,7 +298,7 @@ describe('saved-tabs-page', () => {
     await expect(firstOpen).resolves.toBe(900)
 
     chromeTabs.get.mockImplementationOnce(
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       () =>
         new Promise<chrome.tabs.Tab>((resolve) => {
           resolveGet = resolve
@@ -319,7 +319,7 @@ describe('saved-tabs-page', () => {
     resetSavedTabsPageId()
     chromeTabs.get.mockRejectedValueOnce(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       () =>
         new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve

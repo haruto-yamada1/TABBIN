@@ -108,9 +108,9 @@ const DataShowcase = () => (
           <BarChart accessibilityLayer data={chartData}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey='label' />
-// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
             <ChartTooltip content={<ChartTooltipContent />} />
-// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
             <ChartLegend content={<ChartLegendContent />} />
             <Bar dataKey='active' fill='var(--color-active)' radius={4} />
             <Bar dataKey='archived' fill='var(--color-archived)' radius={4} />
@@ -119,7 +119,7 @@ const DataShowcase = () => (
 
         <ChartContainer className='h-64' config={chartConfig}>
           <PieChart>
-// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <Pie data={pieData} dataKey='value' nameKey='name' />
           </PieChart>
@@ -166,7 +166,7 @@ const DataShowcase = () => (
       <NextThemeProvider attribute='class' defaultTheme='light'>
         <div className='flex items-center gap-3'>
           <Button
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={() => toast.success('Saved to Storybook showcase')}
             variant='outline'
           >

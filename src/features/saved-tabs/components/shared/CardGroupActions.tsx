@@ -122,7 +122,7 @@ export const CardGroupActions = ({
               <Button
                 variant='secondary'
                 size='sm'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   if (onConfirmOpenAll) {
                     setIsOpenAllConfirmOpen(true)
@@ -152,7 +152,7 @@ export const CardGroupActions = ({
               <Button
                 variant='secondary'
                 size='sm'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={(e) => {
                   e.stopPropagation()
                   e.preventDefault()
@@ -196,7 +196,7 @@ export const CardGroupActions = ({
             <AlertDialogFooter>
               <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   onOpenAll()
                 }}

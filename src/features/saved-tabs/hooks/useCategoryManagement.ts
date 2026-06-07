@@ -79,7 +79,7 @@ const removeSubCategoryFromGroup = (
   }
   console.log('削除前のサブカテゴリ:', group.subCategories)
   const updatedSubCategories =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     group.subCategories?.filter((cat) => cat !== categoryName) || []
   console.log('削除後のサブカテゴリ:', updatedSubCategories)
   const updatedUrlSubCategories = {
@@ -88,7 +88,7 @@ const removeSubCategoryFromGroup = (
   if (updatedUrlSubCategories) {
     for (const urlId in updatedUrlSubCategories) {
       if (updatedUrlSubCategories[urlId] === categoryName) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+        // eslint-disable-next-line typescript/no-dynamic-delete
         delete updatedUrlSubCategories[urlId]
       }
     }
@@ -98,7 +98,7 @@ const removeSubCategoryFromGroup = (
     categoryKeywords:
       group.categoryKeywords?.filter(
         (ck) => ck.categoryName !== categoryName,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
       ) || [],
     subCategories: updatedSubCategories,
     urlSubCategories: updatedUrlSubCategories,
@@ -131,8 +131,8 @@ const resolveStateValue = <T>(
   previousValue: T,
 ): T =>
   typeof nextValue === 'function'
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-    ? (nextValue as (value: T) => T)(previousValue)
+    ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      (nextValue as (value: T) => T)(previousValue)
     : nextValue
 /**
  * 親カテゴリ管理フック。
@@ -179,7 +179,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
       try {
         console.log(`カテゴリ ${categoryName} の削除を開始します...`)
         const storageResult = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+          // eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
         const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
@@ -372,7 +372,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
         await saveParentCategories(updatedCategories)
         setCategories(updatedCategories)
         console.log(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
           `ドメイン ${domainGroup.domain} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`,
         )
       } catch (error) {

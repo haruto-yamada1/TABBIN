@@ -55,7 +55,7 @@ export const DomainCardActions = () => {
   )
 
   const executeDeleteAll = useCallback(() => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     const visibleUrls = (group.urls || []).map((item) => item.url)
 
     if (hasSearchQuery && handlers.handleDeleteUrls && visibleUrls.length > 0) {
@@ -75,7 +75,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 keywordModal.setShowKeywordModal(!keywordModal.showKeywordModal)
               }}
@@ -99,15 +99,15 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+                // eslint-disable-next-line typescript/prefer-nullish-coalescing
                 if ((group.urls?.length || 0) >= 10) {
                   setIsOpenAllConfirmOpen(true)
                   return
                 }
                 e.stopPropagation()
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+                // eslint-disable-next-line typescript/prefer-nullish-coalescing
                 handlers.handleOpenAllTabs(group.urls || [])
                 if (isReorderMode) {
                   console.log(
@@ -135,7 +135,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
                 e.stopPropagation()
                 e.preventDefault()
@@ -170,7 +170,7 @@ export const DomainCardActions = () => {
             group={group}
             isOpen={keywordModal.showKeywordModal}
             onClose={keywordModal.handleCloseKeywordModal}
-// eslint-disable-next-line typescript/no-misused-promises
+            // eslint-disable-next-line typescript/no-misused-promises
             onSave={handleSaveKeywords}
             onDeleteCategory={categoryActions.handleCategoryDelete}
             parentCategories={parentCategories.categories}
@@ -197,7 +197,7 @@ export const DomainCardActions = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t('savedTabs.openAllConfirmDescriptionWithName', undefined, {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+                // eslint-disable-next-line typescript/prefer-nullish-coalescing
                 count: String(group.urls?.length || 0),
                 name: domainName,
               })}
@@ -206,9 +206,9 @@ export const DomainCardActions = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+                // eslint-disable-next-line typescript/prefer-nullish-coalescing
                 handlers.handleOpenAllTabs(group.urls || [])
                 if (isReorderMode) {
                   console.log(
@@ -236,7 +236,7 @@ export const DomainCardActions = () => {
             <AlertDialogDescription>
               {t('savedTabs.deleteAllConfirmDescriptionWithCount', undefined, {
                 categoryName: domainName,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+                // eslint-disable-next-line typescript/prefer-nullish-coalescing
                 count: String(group.urls?.length || 0),
               })}
             </AlertDialogDescription>
@@ -245,7 +245,7 @@ export const DomainCardActions = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 executeDeleteAll()
                 if (isReorderMode) {

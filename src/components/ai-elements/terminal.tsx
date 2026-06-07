@@ -166,7 +166,7 @@ export const TerminalCopyButton = ({
         'size-7 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/40',
         className,
       )}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(output)}
       size='icon'
       variant='ghost'

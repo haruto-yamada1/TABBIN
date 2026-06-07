@@ -44,7 +44,7 @@ export const DomainCardContent = () => {
     return null
   }
 
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const hasUrls = (group.urls?.length || 0) > 0
   const categoryIds = categoryReorder.isCategoryReorderMode
     ? categoryReorder.tempCategoryOrder
@@ -54,7 +54,7 @@ export const DomainCardContent = () => {
     return (
       <CardContent className='gap-y-1'>
         <div className='py-4 text-center text-zinc-400'>
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
           {(group.urls?.length || 0) === 0
             ? t('savedTabs.domain.emptyNoTabs')
             : t('savedTabs.domain.emptyManageCategoriesHint')}
@@ -72,13 +72,13 @@ export const DomainCardContent = () => {
           categoryName={singleCategoryName}
           urls={computed.categorizedUrls[singleCategoryName]}
           groupId={group.id}
-// eslint-disable-next-line react/jsx-handler-names
+          // eslint-disable-next-line react/jsx-handler-names
           handleDeleteUrl={handlers.handleDeleteUrl}
-// eslint-disable-next-line react/jsx-handler-names
+          // eslint-disable-next-line react/jsx-handler-names
           handleOpenTab={handlers.handleOpenTab}
-// eslint-disable-next-line react/jsx-handler-names
+          // eslint-disable-next-line react/jsx-handler-names
           handleUpdateUrls={handlers.handleUpdateUrls}
-// eslint-disable-next-line react/jsx-handler-names
+          // eslint-disable-next-line react/jsx-handler-names
           handleOpenAllTabs={handlers.handleOpenAllTabs}
           settings={settings}
         />
@@ -98,7 +98,7 @@ export const DomainCardContent = () => {
           strategy={verticalListSortingStrategy}
         >
           {categoryIds.map((categoryName) => {
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
             const urls = computed.categorizedUrls[categoryName] || []
             if (urls.length === 0) {
               return null
@@ -110,15 +110,15 @@ export const DomainCardContent = () => {
                 categoryName={categoryName}
                 urls={urls}
                 groupId={group.id}
-// eslint-disable-next-line react/jsx-handler-names
+                // eslint-disable-next-line react/jsx-handler-names
                 handleDeleteUrl={handlers.handleDeleteUrl}
-// eslint-disable-next-line react/jsx-handler-names
+                // eslint-disable-next-line react/jsx-handler-names
                 handleOpenTab={handlers.handleOpenTab}
-// eslint-disable-next-line react/jsx-handler-names
+                // eslint-disable-next-line react/jsx-handler-names
                 handleUpdateUrls={handlers.handleUpdateUrls}
-// eslint-disable-next-line react/jsx-handler-names
+                // eslint-disable-next-line react/jsx-handler-names
                 handleOpenAllTabs={handlers.handleOpenAllTabs}
-// eslint-disable-next-line typescript/no-misused-promises
+                // eslint-disable-next-line typescript/no-misused-promises
                 handleDeleteAllTabs={(urls) =>
                   categoryActions.handleDeleteAllTabsInCategory(
                     categoryName,

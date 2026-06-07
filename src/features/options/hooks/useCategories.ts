@@ -49,7 +49,7 @@ export const useCategories = () => {
       }
     }
 
-// eslint-disable-next-line typescript/no-floating-promises
+    // eslint-disable-next-line typescript/no-floating-promises
     loadCategories()
   }, [])
 
@@ -62,8 +62,8 @@ export const useCategories = () => {
         const nextParentCategories = Array.isArray(
           changes.parentCategories.newValue,
         )
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-          ? (changes.parentCategories.newValue as ParentCategory[])
+          ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
+            (changes.parentCategories.newValue as ParentCategory[])
           : []
         setCategoryState((prev) => ({
           ...prev,
@@ -93,7 +93,7 @@ export const useCategories = () => {
 
     storageOnChanged.addListener(storageChangeListener)
 
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }
@@ -105,7 +105,7 @@ export const useCategories = () => {
       // バリデーションチェック
       const validationResult = z
         .string()
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         .max(25, t('options.categories.validation.maxLength'))
         .safeParse(newCategoryName.trim())
       if (!validationResult.success) {
@@ -113,7 +113,7 @@ export const useCategories = () => {
         setCategoryError(message)
         setTimeout(() => {
           setCategoryError(null)
-// eslint-disable-next-line eslint/no-magic-numbers
+          // eslint-disable-next-line eslint/no-magic-numbers
         }, 3000)
         return false
       }
@@ -128,7 +128,7 @@ export const useCategories = () => {
         setCategoryError(t('options.categories.duplicate'))
         setTimeout(() => {
           setCategoryError(null)
-// eslint-disable-next-line eslint/no-magic-numbers
+          // eslint-disable-next-line eslint/no-magic-numbers
         }, 3000) // 3秒後にエラーメッセージを消す
         return false
       }
@@ -143,7 +143,7 @@ export const useCategories = () => {
         setCategoryError(t('options.categories.addError'))
         setTimeout(() => {
           setCategoryError(null)
-// eslint-disable-next-line eslint/no-magic-numbers
+          // eslint-disable-next-line eslint/no-magic-numbers
         }, 3000)
         return false
       }
@@ -159,7 +159,7 @@ export const useCategories = () => {
       e.preventDefault()
       // エラーがなければ追加を実行
       if (!categoryError) {
-// eslint-disable-next-line typescript/no-floating-promises
+        // eslint-disable-next-line typescript/no-floating-promises
         handleAddCategory()
       }
     }

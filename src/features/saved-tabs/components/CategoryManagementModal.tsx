@@ -72,7 +72,7 @@ const confirmCategoryNameUpdated = async (
   trimmedName: string,
 ): Promise<boolean> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   const categoriesById = new Map(
@@ -91,7 +91,7 @@ const updateCategoryWithDomain = async (
   selectedDomainInfo: AvailableDomain,
 ): Promise<ParentCategory[]> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   const targetCategory = parentCategories.find(
@@ -107,7 +107,7 @@ const updateCategoryWithDomain = async (
   ) {
     throw new Error('このドメインは既にカテゴリに追加されています')
   }
-// eslint-disable-next-line oxc/no-map-spread
+  // eslint-disable-next-line oxc/no-map-spread
   const updatedCategories = parentCategories.map((cat: ParentCategory) =>
     cat.id === categoryId
       ? {
@@ -134,7 +134,7 @@ const buildAvailableDomains = ({
   const targetCategory = parentCategories.find(
     (parentCategory) => parentCategory.id === categoryId,
   )
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const currentDomainIdSet = new Set(targetCategory?.domains || [])
 
   return savedTabs.reduce<AvailableDomain[]>((domains, tab) => {
@@ -240,11 +240,11 @@ const useCategoryManagementModalView = ({
         const [{ savedTabs = [] }, { parentCategories = [] }] =
           await Promise.all([
             chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+              // eslint-disable-next-line typescript/consistent-type-imports
               savedTabs?: import('@/types/storage').TabGroup[]
             }>('savedTabs'),
             chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+              // eslint-disable-next-line typescript/consistent-type-imports
               parentCategories?: import('@/types/storage').ParentCategory[]
             }>('parentCategories'),
           ])
@@ -268,7 +268,7 @@ const useCategoryManagementModalView = ({
   }, [category.id, isOpen])
 
   // カテゴリのリネーム処理を開始
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleStartRenaming = () => {
     setNewCategoryName(localCategoryName)
     setIsRenaming(true)
@@ -291,7 +291,7 @@ const useCategoryManagementModalView = ({
   }
 
   // 入力変更時の処理
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleCategoryNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target
     setNewCategoryName(value)
@@ -336,7 +336,7 @@ const useCategoryManagementModalView = ({
       })
       setIsSaving(true)
       try {
-// eslint-disable-next-line typescript/no-confusing-void-expression
+        // eslint-disable-next-line typescript/no-confusing-void-expression
         await onCategoryUpdate(category.id, trimmedName) // eslint-disable-line typescript/await-thenable
         console.log('Modal - onCategoryUpdate呼び出し完了')
       } finally {
@@ -354,7 +354,7 @@ const useCategoryManagementModalView = ({
       // すべての更新が完了したことを確認してからリロード
       console.log('Modal - 最終確認開始')
       const finalCheck = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+        // eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories')
       const finalCategory = finalCheck.parentCategories?.find(
@@ -399,7 +399,7 @@ const useCategoryManagementModalView = ({
   }
 
   // 親カテゴリ削除処理
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteCategory = async () => {
     if (isProcessing) {
       return
@@ -407,7 +407,7 @@ const useCategoryManagementModalView = ({
     setIsProcessing(true)
     try {
       const data = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+        // eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories')
       const parentCategories: ParentCategory[] = data.parentCategories ?? []
@@ -474,7 +474,7 @@ const useCategoryManagementModalView = ({
     try {
       // 現在のカテゴリデータを取得
       const { parentCategories = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+        // eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories')
 
@@ -493,7 +493,7 @@ const useCategoryManagementModalView = ({
       }
 
       // カテゴリを更新
-// eslint-disable-next-line oxc/no-map-spread
+      // eslint-disable-next-line oxc/no-map-spread
       const updatedCategories = parentCategories.map((cat: ParentCategory) => {
         if (cat.id === category.id) {
           return {
@@ -531,7 +531,7 @@ const useCategoryManagementModalView = ({
   return (
     <Dialog
       open={isOpen}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onOpenChange={() => {
         // 処理中またはリネームモード中は閉じない
         if (isProcessing || isRenaming || isSaving) {
@@ -586,7 +586,7 @@ const useCategoryManagementModalView = ({
                       <Button
                         variant='secondary'
                         size='sm'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                         onClick={() => setShowDeleteConfirm(true)}
                         className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
                         disabled={isProcessing}
@@ -620,7 +620,7 @@ const useCategoryManagementModalView = ({
                     'savedTabs.categoryManagement.renamePlaceholder',
                   )}
                   className={`w-full flex-1 rounded border p-2 ${categoryNameError ? 'border-red-500' : ''}`}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onBlur={() => {
                     if (isProcessing) {
                       return // 処理中は何もしない
@@ -631,7 +631,7 @@ const useCategoryManagementModalView = ({
                       trimmedName !== localCategoryName &&
                       !categoryNameError
                     ) {
-// eslint-disable-next-line typescript/no-floating-promises
+                      // eslint-disable-next-line typescript/no-floating-promises
                       handleSaveRenaming()
                     } else if (categoryNameError) {
                       // エラーがある場合はフォーカスを維持
@@ -640,7 +640,7 @@ const useCategoryManagementModalView = ({
                       handleCancelRenaming()
                     }
                   }}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -651,7 +651,7 @@ const useCategoryManagementModalView = ({
                         !categoryNameError &&
                         !isProcessing
                       ) {
-// eslint-disable-next-line typescript/no-floating-promises
+                        // eslint-disable-next-line typescript/no-floating-promises
                         handleSaveRenaming()
                       }
                     } else if (e.key === 'Escape') {
@@ -705,9 +705,9 @@ const useCategoryManagementModalView = ({
               deleteLabel={t('common.delete')}
               deleteTooltip={t('savedTabs.categoryManagement.deleteAction')}
               isProcessing={isProcessing}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onCancel={() => setShowDeleteConfirm(false)}
-// eslint-disable-next-line typescript/no-misused-promises
+              // eslint-disable-next-line typescript/no-misused-promises
               onDelete={handleDeleteCategory}
             />
           )}
@@ -735,7 +735,7 @@ const useCategoryManagementModalView = ({
                         <Button
                           variant='ghost'
                           size='sm'
-// eslint-disable-next-line typescript/no-misused-promises
+                          // eslint-disable-next-line typescript/no-misused-promises
                           onClick={() => handleRemoveDomain(domain.id)}
                           className='ml-1 cursor-pointer text-zinc-400 hover:text-zinc-200'
                           aria-label={t(
@@ -792,11 +792,11 @@ const useCategoryManagementModalView = ({
                     <Button
                       variant='default'
                       size='icon'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-// eslint-disable-next-line typescript/no-floating-promises
+                        // eslint-disable-next-line typescript/no-floating-promises
                         handleAddDomain()
                       }}
                       className='cursor-pointer'

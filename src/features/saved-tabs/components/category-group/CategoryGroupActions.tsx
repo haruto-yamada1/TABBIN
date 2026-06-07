@@ -8,13 +8,13 @@ const getVisibleUrls = (group: {
   urls?: {
     url: string
   }[]
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
 }): string[] => (group.urls || []).map((item) => item.url)
 
 const deleteVisibleUrlsByGroup = async (
   groups: {
     id: string
-// eslint-disable-next-line typescript/array-type
+    // eslint-disable-next-line typescript/array-type
     urls?: Array<{
       url: string
     }>
@@ -43,7 +43,7 @@ export const CategoryGroupActions = () => {
   const { modal, reorder } = state
 
   const domainsToUse = reorder.isReorderMode ? reorder.tempDomainOrder : domains
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const urlsToOpen = domainsToUse.flatMap((group) => group.urls || [])
   const hasSearchQuery = searchQuery.trim().length > 0
   const targetName = category.name
@@ -60,10 +60,10 @@ export const CategoryGroupActions = () => {
       : domains
 
     if (handlers.handleDeleteGroups) {
-// eslint-disable-next-line typescript/no-confusing-void-expression
+      // eslint-disable-next-line typescript/no-confusing-void-expression
       handlers.handleDeleteGroups(domainsToDelete.map((d) => d.id))
     } else {
-// eslint-disable-next-line typescript/no-confusing-void-expression
+      // eslint-disable-next-line typescript/no-confusing-void-expression
       domainsToDelete.forEach(({ id }) => handlers.handleDeleteGroup(id))
     }
     if (reorder.isReorderMode) {
@@ -84,7 +84,7 @@ export const CategoryGroupActions = () => {
 
   return (
     <CardGroupActions
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onManage={() => modal.setIsModalOpen(true)}
       manageLabel={t('savedTabs.manageParentCategories')}
       manageAriaLabel={getScopedNounActionLabel(
@@ -108,7 +108,7 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.openAllTabs'),
       )}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       onDeleteAll={domainsToUse.length > 0 ? executeDeleteAll : undefined}
       deleteAllAriaLabel={getScopedNounActionLabel(
         t,
@@ -120,9 +120,9 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.deleteAllTabs'),
       )}
-// eslint-disable-next-line eslint/no-magic-numbers
+      // eslint-disable-next-line eslint/no-magic-numbers
       onConfirmOpenAll={urlsToOpen.length >= 10}
-// eslint-disable-next-line react/jsx-handler-names
+      // eslint-disable-next-line react/jsx-handler-names
       onConfirmDeleteAll={settings.confirmDeleteAll}
       openAllThreshold={10}
       openAllCount={urlsToOpen.length}

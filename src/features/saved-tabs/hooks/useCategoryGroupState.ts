@@ -1,3 +1,4 @@
+/* eslint-disable typescript/require-await */
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -64,7 +65,7 @@ const confirmCategorySaved = async (
   updatedGroups: ParentCategory[],
 ): Promise<void> => {
   const checkResult = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   const categoryById = new Map(
@@ -83,7 +84,7 @@ const confirmCategorySaved = async (
     })
   }
   const finalCheck = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   const finalCategory = new Map(
@@ -162,7 +163,7 @@ export const useCategoryGroupState = ({
         const result = await chrome.storage.local.get<{
           parentCategories?: ParentCategory[]
         }>(['parentCategories'])
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         const baseGroups: ParentCategory[] = result.parentCategories || []
         const categoryGroups = ensureCategoryPresence(
           baseGroups,
@@ -294,7 +295,7 @@ export const useCategoryGroupState = ({
               }),
             )
             setTempDomainOrder(
-// eslint-disable-next-line oxc/no-map-spread
+              // eslint-disable-next-line oxc/no-map-spread
               updatedDomains.map((domain) => {
                 const { urls, ...rest } = domain
                 return {
@@ -315,13 +316,14 @@ export const useCategoryGroupState = ({
   }, [])
 
   // --- 並び替え確定 ---
-  const handleConfirmReorder = useCallback(async () => { // eslint-disable-line typescript/require-await
+  const handleConfirmReorder = useCallback(async () => {
+    // eslint-disable-line typescript/require-await
     if (!isReorderMode) {
       return
     }
     try {
       if (handleUpdateDomainsOrder) {
-// eslint-disable-next-line typescript/no-confusing-void-expression
+        // eslint-disable-next-line typescript/no-confusing-void-expression
         handleUpdateDomainsOrder(category.id, tempDomainOrder)
       }
       setIsReorderMode(false)
@@ -347,8 +349,9 @@ export const useCategoryGroupState = ({
 
   // --- 個別ドメイン削除のラッパー ---
   const handleDeleteSingleDomain = useCallback(
-    async (domainId: string) => { // eslint-disable-line typescript/require-await
-// eslint-disable-next-line typescript/no-confusing-void-expression
+    async (domainId: string) => {
+      // eslint-disable-line typescript/require-await
+      // eslint-disable-next-line typescript/no-confusing-void-expression
       handleDeleteGroup(domainId)
       if (isReorderMode) {
         const filteredTempOrder = tempDomainOrder.filter(

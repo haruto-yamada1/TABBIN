@@ -28,7 +28,7 @@ import { useCopyState } from './use-copy-state'
 const isItalic = (fontStyle: number | undefined) => fontStyle && fontStyle & 1
 const isBold = (fontStyle: number | undefined) => fontStyle && fontStyle & 2
 const isUnderline = (fontStyle: number | undefined) =>
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   fontStyle && fontStyle & 4
 
 // Transform tokens to include pre-computed keys to avoid noArrayIndexKey lint
@@ -55,7 +55,7 @@ const TokenSpan = ({ token }: { token: ThemedToken }) => (
   <span
     className='dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)!'
     style={
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       {
         backgroundColor: token.bgColor,
         color: token.color,
@@ -202,9 +202,9 @@ const loadThemes = () => {
 }
 
 const getTokensCacheKey = (code: string, language: SupportedCodeLanguage) => {
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const start = code.slice(0, 100)
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const end = code.length > 100 ? code.slice(-100) : ''
   return `${language}:${code.length}:${start}:${end}`
 }
@@ -240,7 +240,7 @@ const createRawTokens = (code: string): TokenizedCode => ({
     line === ''
       ? []
       : [
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
           {
             color: 'inherit',
             content: line,
@@ -407,7 +407,7 @@ export const CodeBlockContainer = ({
       className,
     )}
     data-language={language}
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+    // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
     style={{
       containIntrinsicSize: 'auto 200px',
       contentVisibility: 'auto',
@@ -567,7 +567,7 @@ export const CodeBlockCopyButton = ({
   return (
     <Button
       className={cn('shrink-0', className)}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(code, { skipIfCopied: true })}
       size='icon'
       variant='ghost'

@@ -59,12 +59,12 @@ const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
   for (const group of savedTabs) {
     console.log(`グループ ${group.domain}:`, {
       id: group.id,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       urlIds: group.urlIds?.length || 0,
       urlSubCategories: group.urlSubCategories
         ? Object.keys(group.urlSubCategories).length
         : 0,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       urls: group.urls?.length || 0,
     })
   }
@@ -192,7 +192,7 @@ const useTabData = (
       for (const group of groupsWithUrls) {
         if (group.urlIds && group.urlIds.length > 0) {
           console.log(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+            // eslint-disable-next-line typescript/prefer-nullish-coalescing
             `グループ ${group.domain}: ${group.urls?.length || 0}個のURLを取得`,
           )
           continue
@@ -219,7 +219,7 @@ const useTabData = (
         nextGroups ??
         (
           await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+            // eslint-disable-next-line typescript/consistent-type-imports
             savedTabs?: import('@/types/storage').TabGroup[]
           }>('savedTabs')
         ).savedTabs ??
@@ -245,7 +245,7 @@ const useTabData = (
 
         // データ読み込み
         const storageResult = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+          // eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
         const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
@@ -302,7 +302,7 @@ const useTabData = (
         }))
       }
     }
-// eslint-disable-next-line typescript/no-floating-promises
+    // eslint-disable-next-line typescript/no-floating-promises
     loadSavedTabs()
   }, [])
 
@@ -323,7 +323,7 @@ const useTabData = (
         }))
       }
     }
-// eslint-disable-next-line typescript/no-floating-promises
+    // eslint-disable-next-line typescript/no-floating-promises
     loadUrlsForTabGroups()
     return () => {
       cancelled = true

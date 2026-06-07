@@ -385,9 +385,9 @@ export const SchemaDisplayProperty = ({
   ...props
 }: SchemaDisplayPropertyProps) => {
   const t = useI18nText()
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const hasChildren = properties || items
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const paddingLeft = 40 + depth * 16
 
   if (hasChildren) {
@@ -398,7 +398,7 @@ export const SchemaDisplayProperty = ({
             'group flex w-full items-center gap-2 py-3 text-left transition-colors hover:bg-muted/50',
             className,
           )}
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           style={{ paddingLeft }}
         >
           <ChevronRightIcon className='size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90' />
@@ -418,7 +418,7 @@ export const SchemaDisplayProperty = ({
         {description && (
           <p
             className='pb-2 text-sm text-muted-foreground'
-// eslint-disable-next-line eslint/no-magic-numbers
+            // eslint-disable-next-line eslint/no-magic-numbers
             style={{ paddingLeft: paddingLeft + 24 }}
           >
             {description}
@@ -449,7 +449,7 @@ export const SchemaDisplayProperty = ({
   return (
     <div
       className={cn('py-3 pr-4', className)}
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{ paddingLeft }}
       {...props}
     >

@@ -116,7 +116,7 @@ const useTheme = (enabled: boolean) => {
       mql.addEventListener('change', handleMediaChange)
     }
 
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       observer.disconnect()
       if (mql) {
@@ -152,7 +152,7 @@ const PersonaWithModel = memo(
         return
       }
 
-// eslint-disable-next-line eslint/no-magic-numbers
+      // eslint-disable-next-line eslint/no-magic-numbers
       const [r, g, b] = theme === 'dark' ? [255, 255, 255] : [0, 0, 0]
       viewModelInstanceColor.setRgb(r, g, b)
     }, [viewModelInstanceColor, theme, source.dynamicColor])
@@ -176,7 +176,7 @@ PersonaWithoutModel.displayName = 'PersonaWithoutModel'
 export const Persona: FC<PersonaProps> = memo(
   ({
     variant = 'obsidian',
-// eslint-disable-next-line typescript/no-useless-default-assignment
+    // eslint-disable-next-line typescript/no-useless-default-assignment
     state = 'idle',
     onLoad,
     onLoadError,

@@ -428,7 +428,7 @@ describe('useCategoriesフック', () => {
       result.current.handleCategoryKeyDown(event)
     })
 
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     expect(event.preventDefault).toHaveBeenCalledTimes(1)
     await waitFor(() => {
       expect(createParentCategory).toHaveBeenCalledWith('Enter Add')
@@ -458,7 +458,7 @@ describe('useCategoriesフック', () => {
       result.current.handleCategoryKeyDown(event)
     })
 
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     expect(event.preventDefault).toHaveBeenCalledTimes(1)
     expect(createParentCategory).not.toHaveBeenCalled()
   })
@@ -481,7 +481,7 @@ describe('useCategoriesフック', () => {
       result.current.handleCategoryKeyDown(event)
     })
 
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     expect(event.preventDefault).not.toHaveBeenCalled()
     expect(createParentCategory).not.toHaveBeenCalled()
   })
@@ -490,9 +490,9 @@ describe('useCategoriesフック', () => {
     vi.mocked(getParentCategories).mockResolvedValue([])
 
     const { unmount } = renderHook(() => useCategories())
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     const addListener = vi.mocked(chrome.storage.onChanged.addListener)
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     const removeListener = vi.mocked(chrome.storage.onChanged.removeListener)
 
     await waitFor(() => {

@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-useless-default-assignment */
 import { v4 as uuidv4 } from 'uuid'
 
 import type {
@@ -43,7 +44,7 @@ const getProjectUrls = async (
     // マイグレーションを実行（未実行の場合）
     await migrateToUrlsStorage()
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
-// eslint-disable-next-line oxc/no-map-spread
+    // eslint-disable-next-line oxc/no-map-spread
     return urlRecords.map((record) => ({
       ...record,
       category: project.urlMetadata?.[record.id]?.category,
@@ -62,9 +63,9 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
       customProjects?: CustomProject[]
       customProjectOrder?: string[]
     }>(['customProjects', 'customProjectOrder'])
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     const customProjects = data.customProjects || []
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     const projectOrder = data.customProjectOrder || []
     console.log(
       `ストレージから取得したカスタムプロジェクト: ${customProjects.length}個`,
@@ -84,7 +85,7 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
         return []
       }
 
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
       const validProject = project as CustomProject
       // 新形式のURLIDsが存在しない場合は初期化
       if (!(validProject.urlIds && Array.isArray(validProject.urlIds))) {
@@ -175,8 +176,9 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
   await saveCustomProjects([...projects, newProject])
 
   // 新規プロジェクトを常に先頭に配置し、既存順序は維持する
-  const { customProjectOrder = [] } = // eslint-disable-line typescript/no-useless-default-assignment
-    await chrome.storage.local.get('customProjectOrder')
+  const {
+    customProjectOrder = [],
+  } = await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
   const currentIdsInDisplayOrder = projects.map((project) => project.id)
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
@@ -196,8 +198,9 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
 }
 
 const appendUncategorizedProjectToOrder = async (): Promise<void> => {
-  const { customProjectOrder = [] } = // eslint-disable-line typescript/no-useless-default-assignment
-    await chrome.storage.local.get('customProjectOrder')
+  const {
+    customProjectOrder = [],
+  } = await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
     : []
@@ -205,7 +208,7 @@ const appendUncategorizedProjectToOrder = async (): Promise<void> => {
     return
   }
   await chrome.storage.local.set({
-// eslint-disable-next-line typescript/no-unsafe-assignment
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     customProjectOrder: [...normalizedOrder, CUSTOM_UNCATEGORIZED_PROJECT_ID],
   })
 }
@@ -274,7 +277,7 @@ const addUrlsToUncategorizedProject = async (
   }
 
   const targetProject = projects[targetIndex]
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
   const targetUrlIds = targetProject.urlIds as string[]
   const urlIdSet = new Set(targetUrlIds)
   const now = Date.now()
@@ -331,8 +334,9 @@ const addUrlsToUncategorizedProject = async (
 }
 
 const getCustomProjectOrder = async (): Promise<string[]> => {
-  const { customProjectOrder = [] } = // eslint-disable-line typescript/no-useless-default-assignment
-    await chrome.storage.local.get('customProjectOrder')
+  const {
+    customProjectOrder = [],
+  } = await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
   return Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
         (projectId): projectId is string => typeof projectId === 'string',
@@ -340,7 +344,7 @@ const getCustomProjectOrder = async (): Promise<string[]> => {
     : []
 }
 const addUrlIdToProject = (project: CustomProject, urlId: string): boolean => {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
   const urlIds = project.urlIds as string[]
   if (urlIds.includes(urlId)) {
     return false
@@ -360,7 +364,7 @@ const removeUrlIdFromProject = (
 
   project.urlIds = project.urlIds.filter((id) => id !== urlId)
   if (project.urlMetadata?.[urlId]) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete project.urlMetadata[urlId]
   }
   project.updatedAt = updatedAt
@@ -396,7 +400,7 @@ const setProjectUrlMetadata = (
   if (!(notes || category)) {
     return
   }
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (!project.urlMetadata) {
     project.urlMetadata = {}
   }
@@ -410,7 +414,7 @@ const getDomainFromUrl = (url: string): string => {
   return `${urlObj.protocol}//${urlObj.hostname}`
 }
 const ensureUrlIdInGroup = (group: TabGroup, urlId: string): TabGroup => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (!group.urlIds) {
     group.urlIds = []
   }
@@ -424,7 +428,7 @@ const addUrlIdToDomainMode = async (
   urlId: string,
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const domain = getDomainFromUrl(url)
@@ -555,7 +559,7 @@ const removeUrlFromCustomProject = async (
 
       // メタデータも削除
       if (project.urlMetadata?.[urlRecord.id]) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+        // eslint-disable-next-line typescript/no-dynamic-delete
         delete project.urlMetadata[urlRecord.id]
       }
     }
@@ -567,13 +571,13 @@ const removeUrlFromCustomProject = async (
   // ドメインモードからも同じURLを削除
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
 
     // URLレコードを取得
     const urlRecords = await getUrlRecordsByIds(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       savedTabs.flatMap((group: TabGroup) => group.urlIds || []),
     )
     const urlRecord = urlRecords.find((record) => record.url === url)
@@ -613,12 +617,12 @@ const syncDeleteToDomainMode = async (
 ): Promise<void> => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
 
     const urlRecords = await getUrlRecordsByIds(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       savedTabs.flatMap((g: TabGroup) => g.urlIds || []),
     )
     const recordsToDelete = urlRecords.filter((record) =>
@@ -672,7 +676,7 @@ const updateProjectUrlIdsAndMetadata = (
     if (project.urlMetadata) {
       for (const id of idsToDelete) {
         if (project.urlMetadata[id]) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+          // eslint-disable-next-line typescript/no-dynamic-delete
           delete project.urlMetadata[id]
         }
       }
@@ -866,7 +870,7 @@ const ensureProjectMetadataEntry = (
   project: CustomProject,
   urlId: string,
 ): void => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (!project.urlMetadata) {
     project.urlMetadata = {}
   }
@@ -882,7 +886,7 @@ const mergeUrlsIntoUncategorized = (
   if (!(projectToDelete.urlIds && projectToDelete.urlIds.length > 0)) {
     return
   }
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
   const uncategorizedUrlIds = uncategorizedProject.urlIds as string[]
   const targetUrlSet = new Set(uncategorizedUrlIds)
   for (const urlId of projectToDelete.urlIds) {
@@ -896,7 +900,7 @@ const mergeUrlsIntoUncategorized = (
       continue
     }
     ensureProjectMetadataEntry(uncategorizedProject, urlId)
-// eslint-disable-next-line typescript/no-non-null-assertion
+    // eslint-disable-next-line typescript/no-non-null-assertion
     uncategorizedProject.urlMetadata![urlId].notes = metadata.notes
   }
   uncategorizedProject.updatedAt = Date.now()
@@ -918,8 +922,9 @@ const findOrCreateUncategorizedProject = async (
 }
 
 const removeProjectIdFromOrder = async (projectId: string): Promise<void> => {
-  const { customProjectOrder = [] } = // eslint-disable-line typescript/no-useless-default-assignment
-    await chrome.storage.local.get('customProjectOrder')
+  const {
+    customProjectOrder = [],
+  } = await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
     : []
@@ -1057,7 +1062,7 @@ const setUrlCategory = async (
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       if (!project.urlMetadata) {
         project.urlMetadata = {}
       }
@@ -1165,7 +1170,7 @@ const moveUrlBetweenCustomProjects = async (
   }
 
   const urlId = urlRecord.id
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
   const targetUrlIds = targetProject.urlIds as string[]
   if (targetUrlIds.includes(urlId)) {
     throw new Error('URL already exists in target project')
@@ -1176,11 +1181,11 @@ const moveUrlBetweenCustomProjects = async (
 
   const sourceMetadata = sourceProject.urlMetadata?.[urlId]
   if (sourceProject.urlMetadata?.[urlId]) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete sourceProject.urlMetadata[urlId]
   }
   if (sourceMetadata?.notes) {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (!targetProject.urlMetadata) {
       targetProject.urlMetadata = {}
     }

@@ -309,9 +309,9 @@ const removeUrlRecordsById = (
 const removeUrlFromStorage = async (url: string): Promise<void> => {
   try {
     const storageResult = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       urls?: import('@/types/storage').UrlRecord[]
     }>(['savedTabs', 'urls'])
     const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
@@ -427,18 +427,18 @@ const removeFromParentCategories = async (groupId: string): Promise<void> => {
   try {
     const [categoriesStorage, tabsStorage] = await Promise.all([
       chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+        // eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories'),
       chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+        // eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs'),
     ])
     const parentCategories: ParentCategory[] =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       categoriesStorage.parentCategories || []
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     const savedTabs: TabGroup[] = tabsStorage.savedTabs || []
     const groupToRemove = savedTabs.find(
       (group: TabGroup) => group.id === groupId,
@@ -455,7 +455,7 @@ const removeFromParentCategories = async (groupId: string): Promise<void> => {
     )
 
     // ドメイン名を保持したままドメインIDのみを削除
-// eslint-disable-next-line oxc/no-map-spread
+    // eslint-disable-next-line oxc/no-map-spread
     const updatedCategories = parentCategories.map(
       (category: ParentCategory) => {
         // DomainNamesは変更せず、domainsからIDのみを削除
@@ -516,7 +516,7 @@ const handleUrlDragStarted = (url: string): void => {
       console.log('ドラッグ情報のタイムアウト:', draggedUrlInfo.url)
       draggedUrlInfo = null
     }
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
   }, 10_000)
 
   // タイムアウトIDを保存しておくことで、必要に応じてキャンセル可能
@@ -565,7 +565,7 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
 
     // URLを正規化して比較
     const normalizedDraggedUrl = normalizeUrl(draggedUrlInfo.url)
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     const normalizedTabUrl = normalizeUrl(tab.url || '')
     console.log('正規化されたドラッグURL:', normalizedDraggedUrl)
     console.log('正規化された新タブURL:', normalizedTabUrl)

@@ -17,7 +17,7 @@ export const useCopyState = ({
   const timeoutRef = useRef<number>(0)
 
   const copyText = useCallback(
-// eslint-disable-next-line eslint/complexity
+    // eslint-disable-next-line eslint/complexity
     async (text: string, { skipIfCopied = false } = {}) => {
       if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
         onError?.(new Error('Clipboard API not available'))
@@ -36,7 +36,7 @@ export const useCopyState = ({
           setIsCopied(false)
         }, timeout)
       } catch (error) {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         onError?.(error as Error)
       }
     },

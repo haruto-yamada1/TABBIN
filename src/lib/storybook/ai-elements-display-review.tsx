@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-unsafe-type-assertion */
 import type { Tool as AiTool } from 'ai'
 import { Copy, ExternalLink } from 'lucide-react'
 
@@ -185,7 +186,7 @@ const ReviewArtifacts = () => (
     <Section title='Attachments + Snippet'>
       <div className='gap-y-4'>
         <Attachments variant='grid'>
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           <Attachment data={sampleAttachment} onRemove={() => undefined}>
             <AttachmentHoverCard>
               <AttachmentHoverCardTrigger asChild>
@@ -206,7 +207,9 @@ const ReviewArtifacts = () => (
         </Attachments>
 
         <Attachments variant='list'>
-          <Attachment data={sampleSource as never}> {/* eslint-disable-line typescript/no-unsafe-type-assertion */}
+          <Attachment data={sampleSource as never}>
+            {' '}
+            {/* eslint-disable-line typescript/no-unsafe-type-assertion */}
             <AttachmentPreview />
             <AttachmentInfo showMediaType />
           </Attachment>
@@ -229,10 +232,10 @@ const ReviewArtifacts = () => (
         <Transcription
           className='rounded-lg border p-3'
           currentTime={4}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onSeek={() => undefined}
           segments={
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+            // eslint-disable-next-line typescript/no-unsafe-type-assertion
             [
               { endSecond: 2, startSecond: 0, text: 'Pinned tabs grouped.' },
               { endSecond: 5, startSecond: 2, text: 'Cleanup draft prepared.' },

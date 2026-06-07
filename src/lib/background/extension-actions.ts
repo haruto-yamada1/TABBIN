@@ -65,9 +65,9 @@ const toSavedTabItems = async (
     { title: string; url: string }[]
   >((items, tab) => {
     items.push({
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       title: tab.title || '',
-// eslint-disable-next-line typescript/no-non-null-assertion
+      // eslint-disable-next-line typescript/no-non-null-assertion
       url: normalizeUrlCandidate(tab.url)!,
     })
     return items
@@ -88,7 +88,7 @@ const toResultItems = (
     if (normalizedUrl) {
       items.push({
         url: normalizedUrl,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         title: tab.title || '',
       })
     }
@@ -146,7 +146,7 @@ export const handleExtensionActionClick = async (): Promise<void> => {
     console.log(`選択されたクリック挙動: ${clickBehavior}`)
 
     // 選択された挙動に基づいて処理を実行
-// eslint-disable-next-line typescript/switch-exhaustiveness-check
+    // eslint-disable-next-line typescript/switch-exhaustiveness-check
     switch (clickBehavior) {
       case 'saveCurrentTab': {
         await handleSaveCurrentTab()

@@ -14,7 +14,10 @@ const Consumer = () => {
   )
 }
 
-const mockContextValue = { registerHandlers: vi.fn(), unregisterHandlers: vi.fn() }
+const mockContextValue = {
+  registerHandlers: vi.fn(),
+  unregisterHandlers: vi.fn(),
+}
 
 describe('DragHandlersContext', () => {
   it('provider 配下では登録ハンドラを取得できる', () => {

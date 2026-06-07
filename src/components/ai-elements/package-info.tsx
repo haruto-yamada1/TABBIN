@@ -37,7 +37,7 @@ export const PackageInfo = ({
   ...props
 }: PackageInfoProps) => (
   <PackageInfoContext.Provider
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+    // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
     value={{ changeType, currentVersion, name, newVersion }}
   >
     <div
@@ -50,7 +50,7 @@ export const PackageInfo = ({
             <PackageInfoName />
             {changeType && <PackageInfoChangeType />}
           </PackageInfoHeader>
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
           {(currentVersion || newVersion) && <PackageInfoVersion />}
         </>
       )}

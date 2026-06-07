@@ -26,7 +26,8 @@ describe('VoiceSelectorGender', () => {
     ['androgyne', 'svg'],
     ['non-binary', 'svg'],
     ['intersex', 'svg'],
-  ] as const)('value="%s" のときアイコンを表示する', (value, _tag) => { // eslint-disable-line
+  ] as const)('value="%s" のときアイコンを表示する', (value, _tag) => {
+    // eslint-disable-line
     const { container } = render(<VoiceSelectorGender value={value} />)
     expect(container.querySelector('svg')).toBeTruthy()
   })
@@ -62,7 +63,8 @@ describe('VoiceSelectorAccent', () => {
     ['german', '🇩🇪'],
   ] as const)(
     'value="%s" のとき対応する国旗絵文字を表示する',
-    (value, emoji) => { // eslint-disable-line
+    (value, emoji) => {
+      // eslint-disable-line
       render(<VoiceSelectorAccent value={value} />)
       expect(screen.getByText(emoji)).toBeTruthy()
     },

@@ -57,7 +57,7 @@ const isValidPromptPreset = (value: unknown): value is AiSystemPromptPreset => {
     return false
   }
 
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
   const preset = value as Record<string, unknown>
 
   return (
@@ -126,8 +126,8 @@ const normalizePromptPresets = (
     : []
 
   return normalizedPresets.length > 0
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-    ? (normalizedPresets as NonEmptyAiSystemPromptPresets)
+    ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      (normalizedPresets as NonEmptyAiSystemPromptPresets)
     : [createDefaultAiSystemPromptPreset(language)]
 }
 
@@ -159,7 +159,7 @@ const getActiveAiSystemPrompt = (
   settings: Pick<UserSettings, 'activeAiSystemPromptId' | 'aiSystemPrompts'>,
 ): AiSystemPromptPreset => {
   const normalizedSettings = normalizeAiSystemPromptSettings(
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
     settings as UserSettings,
   )
   return normalizedSettings.activeAiSystemPrompt

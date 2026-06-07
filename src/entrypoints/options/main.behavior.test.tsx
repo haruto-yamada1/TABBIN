@@ -83,7 +83,7 @@ vi.mock('@/components/ui/button', () => ({
     onClick?: () => void
     type?: 'button' | 'submit'
   } & Record<string, unknown>) => (
-// eslint-disable-next-line react/button-has-type
+    // eslint-disable-next-line react/button-has-type
     <button onClick={onClick} type={type} {...props}>
       {children}
     </button>
@@ -100,12 +100,12 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
-// eslint-disable-next-line jsx-a11y/control-has-associated-label
+    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       id={id}
       type='checkbox'
       checked={checked}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onCheckedChange?.(event.target.checked)}
     />
   ),
@@ -146,7 +146,7 @@ vi.mock('@/components/ui/select', () => ({
     <div>
       <button
         data-testid='mock-select-change'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           onValueChange?.(value === 'never' ? '30days' : 'saveWindowTabs')
         }
@@ -479,8 +479,10 @@ describe('options route behavior', () => {
       target: { value: '125' },
     })
     expect(mocked.updateSetting).toHaveBeenCalledTimes(updateSettingCallCount)
-// eslint-disable-next-line typescript/TS2339
-    expect((screen.getByLabelText('Font size percentage') as HTMLInputElement).value).toBe('125')
+    // eslint-disable-next-line typescript/TS2339
+    expect(
+      (screen.getByLabelText('Font size percentage') as HTMLInputElement).value,
+    ).toBe('125')
 
     fireEvent.mouseUp(fontSizeSlider)
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 125)

@@ -35,11 +35,11 @@ interface TestResultsContextType {
 const TestResultsContext = createContext<TestResultsContextType>({})
 
 const formatDuration = (ms: number) => {
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   if (ms < 1000) {
     return `${ms}ms`
   }
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   return `${(ms / 1000).toFixed(2)}s`
 }
 
@@ -172,9 +172,9 @@ export const TestResultsProgress = ({
     return null
   }
 
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const passedPercent = (summary.passed / summary.total) * 100
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const failedPercent = (summary.failed / summary.total) * 100
 
   return (
@@ -184,12 +184,12 @@ export const TestResultsProgress = ({
           <div className='flex h-2 overflow-hidden rounded-full bg-muted'>
             <div
               className='bg-green-500 transition-all'
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               style={{ width: `${passedPercent}%` }}
             />
             <div
               className='bg-red-500 transition-all'
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               style={{ width: `${failedPercent}%` }}
             />
           </div>

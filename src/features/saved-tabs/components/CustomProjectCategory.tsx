@@ -1,3 +1,4 @@
+/* eslint-disable typescript/require-await */
 import { useDroppable } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -35,7 +36,7 @@ const sortCategoryUrls = (
   }
 
   const sorted = [...categoryUrls]
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   sorted.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
   if (sortOrder === 'desc') {
     sorted.reverse()
@@ -89,7 +90,7 @@ const CategoryHeaderMain = ({
       setIsCollapsed={setIsCollapsed}
       setUserCollapsedState={setUserCollapsedState}
       isDisabled={isCollapseDisabled}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onPointerDown={(event) => {
         event.stopPropagation()
       }}
@@ -97,7 +98,7 @@ const CategoryHeaderMain = ({
     <CardSortControl
       sortOrder={sortOrder}
       setSortOrder={setSortOrder}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onPointerDown={(event) => {
         event.stopPropagation()
       }}
@@ -154,7 +155,7 @@ const renderCategoryContent = ({
   >
     {urls.length > 0 ? (
       <SortableContext
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         items={urls.map((item) => item.url)}
         strategy={verticalListSortingStrategy}
       >
@@ -167,7 +168,7 @@ const renderCategoryContent = ({
               handleOpenUrl={handleOpenUrl}
               handleDeleteUrl={handleDeleteUrl}
               handleSetCategory={handleSetUrlCategory}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
               availableCategories={['undefined']}
               settings={settings}
             />
@@ -229,7 +230,7 @@ const useCustomProjectCategoryView = ({
 
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
   const sortedCategoryUrls = useMemo(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     () => sortCategoryUrls(urls || [], sortOrder),
     [urls, sortOrder],
   )
@@ -258,7 +259,7 @@ const useCustomProjectCategoryView = ({
     transform: CSS.Transform.toString(transform),
     transition,
   }
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const cardStyle = {
     ...style,
     ...(isOver
@@ -274,13 +275,13 @@ const useCustomProjectCategoryView = ({
   const categoryDisplayName =
     category === '__uncategorized' ? t('savedTabs.uncategorized') : category
   const showManageActions = Boolean(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     handleRenameCategory || handleDeleteCategory,
   )
   const showBulkActions = sortedCategoryUrls.length > 0
   const isCollapseDisabled = isDraggingCategory || isCategoryReorder
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenAllUrlsConfirmed = () => {
     if (handleOpenAllUrls) {
       handleOpenAllUrls(sortedCategoryUrls)
@@ -291,8 +292,9 @@ const useCustomProjectCategoryView = ({
     }
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleDeleteAllUrlsConfirmed = async () => { // eslint-disable-line typescript/require-await
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  const handleDeleteAllUrlsConfirmed = async () => {
+    // eslint-disable-line typescript/require-await
     if (handleDeleteUrlsFromProject) {
       handleDeleteUrlsFromProject(
         projectId,
@@ -305,7 +307,7 @@ const useCustomProjectCategoryView = ({
     }
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenAllClick = () => {
     if (shouldConfirmBulkOpen(sortedCategoryUrls.length)) {
       setIsOpenAllConfirmOpen(true)
@@ -314,7 +316,7 @@ const useCustomProjectCategoryView = ({
     handleOpenAllUrlsConfirmed()
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteAllClick = () => {
     if (settings.confirmDeleteAll) {
       setIsDeleteAllConfirmOpen(true)
@@ -323,7 +325,7 @@ const useCustomProjectCategoryView = ({
     void handleDeleteAllUrlsConfirmed()
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleRename = () => {
     if (!newCategoryName.trim()) {
       setRenameError(t('savedTabs.projectCategory.required'))
@@ -337,7 +339,7 @@ const useCustomProjectCategoryView = ({
     }
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleConfirmDelete = () => {
     if (handleDeleteCategory) {
       handleDeleteCategory(projectId, category)
@@ -345,7 +347,7 @@ const useCustomProjectCategoryView = ({
     setShowManageDialog(false)
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenManageDialog = () => {
     setNewCategoryName(category)
     setRenameError(null)

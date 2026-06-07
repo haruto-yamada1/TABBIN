@@ -154,7 +154,7 @@ describe('localDateTime', () => {
       Object.defineProperty(
         Intl.DateTimeFormat.prototype,
         'format',
-// eslint-disable-next-line typescript/no-non-null-assertion
+        // eslint-disable-next-line typescript/no-non-null-assertion
         originalFormatDescriptor!,
       )
     }

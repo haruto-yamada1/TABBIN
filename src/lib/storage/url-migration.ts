@@ -49,19 +49,19 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
     await Promise.all([
       chrome.storage.local.get('urls'),
       chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+        // eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs'),
       chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+        // eslint-disable-next-line typescript/consistent-type-imports
         customProjects?: import('@/types/storage').CustomProject[]
       }>('customProjects'),
     ])
 
   return {
     existingUrls: Array.isArray(existingUrlsResult.urls)
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-      ? (existingUrlsResult.urls as UrlRecord[]) // eslint-disable-line typescript/no-unnecessary-type-assertion
+      ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        (existingUrlsResult.urls as UrlRecord[]) // eslint-disable-line typescript/no-unnecessary-type-assertion
       : [],
     savedTabs: Array.isArray(savedTabsResult.savedTabs)
       ? savedTabsResult.savedTabs
@@ -109,9 +109,9 @@ const upsertUrlEntry = (
   const newRecord: UrlRecord = {
     id: uuidv4(),
     url: legacyUrl.url,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     title: legacyUrl.title || '',
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     savedAt: legacyUrl.savedAt || Date.now(),
     favIconUrl: undefined,
   }

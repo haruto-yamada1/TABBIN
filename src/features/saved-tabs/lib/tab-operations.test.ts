@@ -23,7 +23,7 @@ interface LocalStore {
 }
 const createChromeMock = (initialStore: LocalStore = {}) => {
   const store: LocalStore = structuredClone(initialStore)
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   const get = vi.fn(async (key?: string) => {
     if (key == null) {
       return structuredClone(store)
@@ -32,11 +32,11 @@ const createChromeMock = (initialStore: LocalStore = {}) => {
       [key]: structuredClone(store[key as keyof LocalStore]),
     }
   })
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   const set = vi.fn(async (next: Partial<LocalStore>) => {
     Object.assign(store, structuredClone(next))
   })
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   const sendMessage = vi.fn(async () => undefined)
   ;(
     globalThis as {

@@ -94,7 +94,7 @@ describe('moveUrlBetweenProjectsState', () => {
   })
 
   it('移動先 urls が未初期化でも配列を生成して追加できる', () => {
-// eslint-disable-next-line oxc/no-map-spread
+    // eslint-disable-next-line oxc/no-map-spread
     const projects = createProjects().map((project) =>
       project.id === 'project-b' ? { ...project, urls: undefined } : project,
     )
@@ -120,7 +120,7 @@ describe('moveUrlBetweenProjectsState', () => {
   })
 
   it('移動元 urls が未初期化でも安全に処理できる', () => {
-// eslint-disable-next-line oxc/no-map-spread
+    // eslint-disable-next-line oxc/no-map-spread
     const projects = createProjects().map((project) =>
       project.id === 'project-a' ? { ...project, urls: undefined } : project,
     )

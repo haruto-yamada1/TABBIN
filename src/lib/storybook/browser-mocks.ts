@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-unsafe-call */
 type StorageChangeListener = Parameters<
   typeof chrome.storage.onChanged.addListener
 >[0]
@@ -149,7 +150,8 @@ const chromeMock = {
       const [message, maybeCallback] = args
       runtimeMessages.push(message)
       if (typeof maybeCallback === 'function') {
-        maybeCallback({ // eslint-disable-line typescript/no-unsafe-call
+        maybeCallback({
+          // eslint-disable-line typescript/no-unsafe-call
           ok: true,
         })
       }
@@ -159,7 +161,7 @@ const chromeMock = {
     local: {
       clear: () => {
         for (const key of Object.keys(storageState)) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+          // eslint-disable-next-line typescript/no-dynamic-delete
           delete storageState[key]
         }
         return Promise.resolve()
@@ -182,13 +184,11 @@ const chromeMock = {
           ),
         )
       },
-      remove: (
-        keys: null | string | string[] | Record<string, unknown>,
-      ) => {
+      remove: (keys: null | string | string[] | Record<string, unknown>) => {
         const requestedKeys = resolveRequestedKeys(keys) ?? []
 
         for (const key of requestedKeys) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+          // eslint-disable-next-line typescript/no-dynamic-delete
           delete storageState[key]
         }
         return Promise.resolve()
@@ -256,7 +256,7 @@ const ensureNavigatorMocks = () => {
       value: {
         addEventListener: () => undefined,
         enumerateDevices: () =>
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
           Promise.resolve([
             {
               deviceId: 'mic-primary',
@@ -267,8 +267,10 @@ const ensureNavigatorMocks = () => {
             },
           ]) as unknown as Promise<MediaDeviceInfo[]>,
         getUserMedia: () =>
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-          Promise.resolve(new StorybookMediaStream()) as unknown as Promise<MediaStream>,
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
+          Promise.resolve(
+            new StorybookMediaStream(),
+          ) as unknown as Promise<MediaStream>,
         removeEventListener: () => undefined,
       } satisfies Partial<MediaDevices>,
     })
@@ -292,7 +294,7 @@ const ensureNavigatorMocks = () => {
 
   if (!globalThis.MediaRecorder) {
     globalThis.MediaRecorder =
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
       StorybookMediaRecorder as unknown as typeof MediaRecorder
   }
 
@@ -335,7 +337,7 @@ export const primeStorybookBrowserMocks = (
   createStorybookChromeMock()
 
   for (const key of Object.keys(storageState)) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete storageState[key]
   }
 
@@ -352,7 +354,7 @@ export const setStorybookStorage = (nextState: StorybookStorageState) => {
 
 export const resetStorybookBrowserMocks = () => {
   for (const key of Object.keys(storageState)) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete storageState[key]
   }
   runtimeMessages.length = 0

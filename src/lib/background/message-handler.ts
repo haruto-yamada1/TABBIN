@@ -49,13 +49,13 @@ const getOllamaErrorDetails = (
  * メッセージリスナーを設定
  */
 const setupMessageListener = (): void => {
-// eslint-disable-next-line eslint/complexity
+  // eslint-disable-next-line eslint/complexity
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     console.log('バックグラウンドがメッセージを受信:', message)
     if (
       typeof message !== 'object' ||
       message === null ||
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
       typeof (message as Record<string, unknown>).action !== 'string'
     ) {
       sendResponse({
@@ -63,7 +63,7 @@ const setupMessageListener = (): void => {
       })
       return false
     }
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
     const typedMessage = message as BackgroundMessage
     switch (typedMessage.action) {
       case 'urlDragStarted': {
@@ -107,7 +107,7 @@ const setupMessageListener = (): void => {
         return true
       }
       default: {
-// eslint-disable-next-line typescript/no-unsafe-member-access
+        // eslint-disable-next-line typescript/no-unsafe-member-access
         console.warn('未知のメッセージアクション:', message.action)
         sendResponse({
           status: 'unknown_action',
@@ -162,7 +162,7 @@ const handleUrlDroppedMessage = (
       .catch((error) => {
         console.error('URL削除エラー:', error)
         sendResponse({
-// eslint-disable-next-line typescript/no-unsafe-assignment
+          // eslint-disable-next-line typescript/no-unsafe-assignment
           error: error.toString(), // eslint-disable-line typescript/no-unsafe-call, typescript/no-unsafe-member-access
           status: 'error',
         })
@@ -189,7 +189,7 @@ const handleRemoveUrlMessage = (
     })
     .catch((error) => {
       sendResponse({
-// eslint-disable-next-line typescript/no-unsafe-assignment
+        // eslint-disable-next-line typescript/no-unsafe-assignment
         error,
         status: 'error',
       })
@@ -274,7 +274,7 @@ const handleCheckExpiredTabsMessage = (
 
   // 設定情報も出力
   chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     userSettings?: import('@/types/storage').UserSettings
   }>(['userSettings'], (data) => {
     console.log('現在のストレージ内の設定:', data)
@@ -282,7 +282,7 @@ const handleCheckExpiredTabsMessage = (
 
   // UpdateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
   if (message.updateTimestamps) {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     console.log(`タブの保存時刻を更新します (${message.period || '不明'})`)
     // 処理の簡略化 - まずタイムスタンプを更新し、待機せずにチェック実行
     updateTabTimestamps(message.period)
@@ -396,13 +396,13 @@ const handleListOllamaModelsMessage = (
 
 const handleRunAiChatMessage = (
   message: {
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     attachments?: import('@/features/ai-chat/types').AiChatAttachment[]
     prompt: string
     history: {
       role: 'user' | 'assistant'
       content: string
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       attachments?: import('@/features/ai-chat/types').AiChatAttachment[]
     }[]
   },

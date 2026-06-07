@@ -35,14 +35,14 @@ const NewSubCategoryField = ({
       id='new-subcategory'
       type='text'
       value={value}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(e) => {
         onChange(e.target.value)
       }}
       onBlur={onAdd}
       placeholder={placeholder}
       className='w-full rounded border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
           e.preventDefault()
@@ -66,11 +66,11 @@ const getCategoryKeywordsForName = (
   categoryName: string | null,
 ): string[] =>
   tabGroup.categoryKeywords?.find((ck) => ck.categoryName === categoryName)
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     ?.keywords || []
 
 const getRenameDraftName = (activeCategory: string | null): string =>
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   activeCategory || ''
 
 const shouldSkipRename = (oldName: string, newName: string): boolean =>
@@ -80,7 +80,7 @@ const shouldSkipRename = (oldName: string, newName: string): boolean =>
 const updateTabGroup = async (updatedTabGroup: TabGroup) => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
     const updatedTabs = replaceTabGroup(savedTabs, updatedTabGroup)
@@ -118,7 +118,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // キーワード追加関数に重複チェックを追加
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleAddKeyword = () => {
     if (newKeyword.trim() && activeCategory) {
       // 重複チェックを追加
@@ -154,7 +154,7 @@ const useSubCategoryKeywordManagerView = ({
       setKeywords(updatedKeywords)
 
       // ストレージに保存
-// eslint-disable-next-line typescript/no-non-null-assertion
+      // eslint-disable-next-line typescript/no-non-null-assertion
       await setCategoryKeywords(tabGroup.id, activeCategory!, updatedKeywords)
 
       console.log(`キーワード "${keywordToRemove}" を削除しました`)
@@ -170,7 +170,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // 新しい子カテゴリを追加
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleAddSubCategory = async () => {
     if (newSubCategory.trim()) {
       const categoryName = newSubCategory.trim()
@@ -185,11 +185,11 @@ const useSubCategoryKeywordManagerView = ({
       const updatedTabGroup = {
         ...tabGroup,
         categoryKeywords: [
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
           ...(tabGroup.categoryKeywords || []),
           { categoryName, keywords: [] },
         ],
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         subCategories: [...(tabGroup.subCategories || []), categoryName],
       }
 
@@ -222,7 +222,7 @@ const useSubCategoryKeywordManagerView = ({
 
       // タブの情報を取得
       const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+        // eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs')
       console.log('取得したsavedTabs:', savedTabs)
@@ -239,17 +239,17 @@ const useSubCategoryKeywordManagerView = ({
       }
 
       // 子カテゴリリストと関連キーワードからカテゴリを削除
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       const updatedSubCategories = (groupToUpdate.subCategories || []).filter(
         (cat: string) => cat !== categoryToRemove,
       )
 
-      const updatedCategoryKeywords = (
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
-        groupToUpdate.categoryKeywords || []
-      ).filter(
-        (ck: { categoryName: string }) => ck.categoryName !== categoryToRemove,
-      )
+      const updatedCategoryKeywords =
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
+        (groupToUpdate.categoryKeywords || []).filter(
+          (ck: { categoryName: string }) =>
+            ck.categoryName !== categoryToRemove,
+        )
 
       console.log('更新後のサブカテゴリ:', updatedSubCategories)
       console.log('更新後のキーワード設定:', updatedCategoryKeywords)
@@ -280,7 +280,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // リネームモードを開始する関数
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const startRenameMode = () => {
     setIsRenamingSubCategory(true)
     setNewCategoryName(getRenameDraftName(activeCategory))
@@ -295,7 +295,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // リネームを完了する関数
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const completeRename = async () => {
     if (!(isRenamingSubCategory && activeCategory && newCategoryName.trim())) {
       setIsRenamingSubCategory(false)
@@ -333,16 +333,16 @@ const useSubCategoryKeywordManagerView = ({
 
     // ストレージからタブグループを取得
     const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
 
-// eslint-disable-next-line oxc/no-map-spread
+    // eslint-disable-next-line oxc/no-map-spread
     const updatedTabs = savedTabs.map((tab: TabGroup) => {
       if (tab.id === tabGroup.id) {
         // 1. subCategories配列を更新
         const updatedSubCategories =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
           tab.subCategories?.map((cat) => (cat === oldName ? newName : cat)) ||
           []
 
@@ -353,11 +353,11 @@ const useSubCategoryKeywordManagerView = ({
               return { ...ck, categoryName: newName }
             }
             return ck
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+            // eslint-disable-next-line typescript/prefer-nullish-coalescing
           }) || []
 
         // 3. 各URLのサブカテゴリ参照を更新
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         const updatedUrls = (tab.urls || []).map((url) => {
           if (url.subCategory === oldName) {
             return { ...url, subCategory: newName }
@@ -367,15 +367,15 @@ const useSubCategoryKeywordManagerView = ({
 
         // 4. カテゴリ順序配列があれば更新
         const updatedSubCategoryOrder =
-          tab.subCategoryOrder?.map((cat) =>
-            cat === oldName ? newName : cat,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          tab.subCategoryOrder?.map(
+            (cat) => (cat === oldName ? newName : cat),
+            // eslint-disable-next-line typescript/prefer-nullish-coalescing
           ) || []
 
         const updatedSubCategoryOrderWithUncategorized =
-          tab.subCategoryOrderWithUncategorized?.map((cat) =>
-            cat === oldName ? newName : cat,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          tab.subCategoryOrderWithUncategorized?.map(
+            (cat) => (cat === oldName ? newName : cat),
+            // eslint-disable-next-line typescript/prefer-nullish-coalescing
           ) || []
 
         return {
@@ -397,7 +397,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // キャンセル時の処理
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const cancelRename = () => {
     setIsRenamingSubCategory(false)
     setNewCategoryName(getRenameDraftName(activeCategory))
@@ -414,7 +414,7 @@ const useSubCategoryKeywordManagerView = ({
           label={t('savedTabs.subCategory.addTitle')}
           placeholder={t('savedTabs.subCategory.addPlaceholder')}
           onChange={setNewSubCategory}
-// eslint-disable-next-line typescript/no-misused-promises
+          // eslint-disable-next-line typescript/no-misused-promises
           onAdd={handleAddSubCategory}
         />
       </div>
@@ -433,7 +433,7 @@ const useSubCategoryKeywordManagerView = ({
         label={t('savedTabs.subCategory.addTitle')}
         placeholder={t('savedTabs.subCategory.addPlaceholder')}
         onChange={setNewSubCategory}
-// eslint-disable-next-line typescript/no-misused-promises
+        // eslint-disable-next-line typescript/no-misused-promises
         onAdd={handleAddSubCategory}
       />
 
@@ -443,7 +443,7 @@ const useSubCategoryKeywordManagerView = ({
           <div key={category} className='flex max-w-full items-center'>
             <Button
               type='button'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 handleCategorySelect(category)
               }}
@@ -459,7 +459,7 @@ const useSubCategoryKeywordManagerView = ({
             </Button>
             <Button
               type='button'
-// eslint-disable-next-line typescript/no-misused-promises
+              // eslint-disable-next-line typescript/no-misused-promises
               onClick={() => handleRemoveSubCategory(category)}
               variant='outline'
               size='sm'
@@ -491,15 +491,15 @@ const useSubCategoryKeywordManagerView = ({
                   ref={renameInputRef}
                   type='text'
                   value={newCategoryName}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onChange={(e) => {
                     setNewCategoryName(e.target.value)
                   }}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
-// eslint-disable-next-line typescript/no-floating-promises
+                      // eslint-disable-next-line typescript/no-floating-promises
                       completeRename()
                     } else if (e.key === 'Escape') {
                       e.preventDefault()
@@ -511,7 +511,7 @@ const useSubCategoryKeywordManagerView = ({
                 <div className='flex shrink-0'>
                   <Button
                     type='button'
-// eslint-disable-next-line typescript/no-misused-promises
+                    // eslint-disable-next-line typescript/no-misused-promises
                     onClick={completeRename}
                     variant='secondary'
                     size='icon'
@@ -576,13 +576,13 @@ const useSubCategoryKeywordManagerView = ({
                 id={`keyword-input-${activeCategory}`}
                 type='text'
                 value={newKeyword}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onChange={(e) => {
                   setNewKeyword(e.target.value)
                 }}
                 placeholder={t('savedTabs.keywords.placeholder')}
                 className='grow rounded-l border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
@@ -623,7 +623,7 @@ const useSubCategoryKeywordManagerView = ({
                   <span className='max-w-[150px] truncate'>{keyword}</span>
                   <Button
                     type='button'
-// eslint-disable-next-line typescript/no-misused-promises
+                    // eslint-disable-next-line typescript/no-misused-promises
                     onClick={() => handleRemoveKeyword(keyword)}
                     variant='ghost'
                     size='sm'

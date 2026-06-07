@@ -26,7 +26,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -79,7 +79,7 @@ const setupChromeStorage = (state: StorageState = {}) => {
     (changes: Record<string, chrome.storage.StorageChange>) => void
   >()
   const local = {
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     get: vi.fn(async (keys?: string | string[]) => {
       if (!keys) {
         return state
@@ -95,7 +95,7 @@ const setupChromeStorage = (state: StorageState = {}) => {
         [keys]: state[keys as keyof StorageState],
       }
     }),
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     set: vi.fn(async (value: Partial<StorageState>) => {
       Object.assign(state, value)
     }),
@@ -363,7 +363,7 @@ describe('useCategoryKeywordModal', () => {
       },
     ]
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       storage.emitUnrelatedChanged()
       storage.emitParentCategoriesChanged()
@@ -668,7 +668,7 @@ describe('useCategoryKeywordModal', () => {
     })
     const { result } = renderModalHook()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.subcategory.handleSubCategoryNameChange(
         createChangeEvent(' New subcategory '),
@@ -697,7 +697,7 @@ describe('useCategoryKeywordModal', () => {
       '新しいカテゴリ「New subcategory」を追加しました',
     )
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.subcategory.handleSubCategoryNameChange(
         createChangeEvent('Existing subcategory'),
@@ -718,7 +718,7 @@ describe('useCategoryKeywordModal', () => {
       'このカテゴリ名は既に存在しています',
     )
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.subcategory.handleSubCategoryNameChange(
         createChangeEvent('a'.repeat(26)),
@@ -740,7 +740,7 @@ describe('useCategoryKeywordModal', () => {
     storage.local.set.mockRejectedValueOnce(new Error('save failed'))
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.subcategory.handleSubCategoryNameChange(
         createChangeEvent('Error subcategory'),
@@ -785,7 +785,7 @@ describe('useCategoryKeywordModal', () => {
 
     expect(storage.local.set).not.toHaveBeenCalled()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.subcategory.handleSubCategoryNameChange(
         createChangeEvent('Fresh subcategory'),
@@ -825,7 +825,7 @@ describe('useCategoryKeywordModal', () => {
       }),
     })
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.subcategory.handleSubCategoryNameChange(
         createChangeEvent('Fresh subcategory'),
@@ -884,12 +884,12 @@ describe('useCategoryKeywordModal', () => {
 
     expect(consoleError).toHaveBeenCalledWith('削除関数が定義されていません')
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     const failingDelete = vi.fn(async () => {
       throw new Error('delete failed')
     })
     const { result: failingDeleteResult } = renderModalHook({
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       onDeleteCategory: failingDelete,
     })
 
@@ -976,7 +976,7 @@ describe('useCategoryKeywordModal', () => {
 
     expect(result.current.rename.isRenaming).toBe(true)
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.rename.handleRenameCategoryNameChange(
         createChangeEvent('a'.repeat(26)),
@@ -1023,7 +1023,7 @@ describe('useCategoryKeywordModal', () => {
     })
     const { result } = renderModalHook({ group })
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.rename.handleRenameCategoryNameChange(
         createChangeEvent('Renamed subcategory'),
@@ -1087,7 +1087,7 @@ describe('useCategoryKeywordModal', () => {
       }),
     })
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.rename.handleRenameCategoryNameChange(
         createChangeEvent('a'.repeat(26)),
@@ -1106,7 +1106,7 @@ describe('useCategoryKeywordModal', () => {
       '新規親カテゴリ名は25文字以下にしてください',
     )
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.rename.handleRenameCategoryNameChange(
         createChangeEvent('Other subcategory'),
@@ -1128,7 +1128,7 @@ describe('useCategoryKeywordModal', () => {
     storage.local.set.mockRejectedValueOnce(new Error('rename failed'))
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.rename.handleRenameCategoryNameChange(
         createChangeEvent('Renamed after error'),
@@ -1159,7 +1159,7 @@ describe('useCategoryKeywordModal', () => {
       }),
     })
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.rename.handleRenameCategoryNameChange(
         createChangeEvent('Other subcategory'),
@@ -1193,7 +1193,7 @@ describe('useCategoryKeywordModal', () => {
     )
     const { result } = renderModalHook()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.rename.handleRenameCategoryNameChange(
         createChangeEvent('Processing rename'),
@@ -1201,7 +1201,7 @@ describe('useCategoryKeywordModal', () => {
     })
 
     let firstSave: Promise<void>
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       firstSave = result.current.rename.handleSaveRenaming()
     })
@@ -1217,7 +1217,7 @@ describe('useCategoryKeywordModal', () => {
 
     await act(async () => {
       resolveSet?.()
-// eslint-disable-next-line typescript/no-non-null-assertion
+      // eslint-disable-next-line typescript/no-non-null-assertion
       await firstSave!
     })
   })

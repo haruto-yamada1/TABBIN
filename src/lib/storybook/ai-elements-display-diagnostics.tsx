@@ -153,7 +153,7 @@ const RuntimeDiagnostics = () => (
           />
           <ToolContent>
             <ToolInput
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               input={{
                 projectId: 'workspace-weekly-review',
                 summarize: true,
@@ -161,7 +161,7 @@ const RuntimeDiagnostics = () => (
             />
             <ToolOutput
               errorText={undefined}
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               output={{ archived: 2, saved: 12, status: 'ok' }}
             />
           </ToolContent>
@@ -211,7 +211,7 @@ const RuntimeDiagnostics = () => (
         </Commit>
 
         <div className='space-y-3'>
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           <Confirmation approval={{ id: '1' }} state='approval-requested'>
             <ConfirmationTitle>
               Allow the agent to export saved tabs?
@@ -223,9 +223,8 @@ const RuntimeDiagnostics = () => (
               </ConfirmationActions>
             </ConfirmationRequest>
           </Confirmation>
-
           <Confirmation
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             approval={{ approved: true, id: '2' }}
             state='output-available'
           >
@@ -235,9 +234,8 @@ const RuntimeDiagnostics = () => (
               </ConfirmationTitle>
             </ConfirmationAccepted>
           </Confirmation>
-
           <Confirmation
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             approval={{ approved: false, id: '3', reason: 'Not needed' }}
             state='output-denied'
           >
@@ -255,7 +253,7 @@ const RuntimeDiagnostics = () => (
       <div className='space-y-4'>
         <Terminal
           isStreaming
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClear={() => undefined}
           output={`$ bun run build-storybook\nDone in 4.21s\n`}
         >
@@ -292,7 +290,7 @@ const RuntimeDiagnostics = () => (
 
     <Section title='Test Results'>
       <TestResults
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         summary={{
           duration: 4210,
           failed: 1,

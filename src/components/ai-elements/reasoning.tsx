@@ -82,7 +82,7 @@ export const Reasoning = memo(
     isStreaming = false,
     open,
     defaultOpen,
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     onOpenChange,
     duration: durationProp,
     children,
@@ -124,7 +124,7 @@ export const Reasoning = memo(
     }, [isStreaming, isOpen, setIsOpen, isExplicitlyClosed])
 
     // Auto-close when streaming ends (once only, and only if it ever streamed)
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     useEffect(() => {
       if (
         hasEverStreamedRef.current &&

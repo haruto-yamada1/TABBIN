@@ -44,9 +44,9 @@ export const SubCategoryRenameForm = () => {
         placeholder={t('savedTabs.subCategory.addPlaceholder')}
         className={`w-full rounded border p-2 ${rename.categoryRenameError ? 'border-red-500' : ''}`}
         data-rename-input='true'
-// eslint-disable-next-line typescript/no-misused-promises
+        // eslint-disable-next-line typescript/no-misused-promises
         onBlur={rename.handleSaveRenaming}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()

@@ -51,7 +51,7 @@ export const ProjectCardUncategorizedArea = () => {
         )}
 
         <SortableContext
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           items={urls.uncategorizedUrls.map((item) => item.url)}
           strategy={verticalListSortingStrategy}
         >
@@ -61,7 +61,7 @@ export const ProjectCardUncategorizedArea = () => {
             data-parent-id={`uncategorized-${project.id}`}
             data-uncategorized-area='true'
             data-uncategorized-list='true'
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             style={{ overflow: 'hidden' }}
           >
             {urls.uncategorizedUrls.map((item) => (
@@ -69,11 +69,11 @@ export const ProjectCardUncategorizedArea = () => {
                 key={item.url}
                 item={item}
                 projectId={project.id}
-// eslint-disable-next-line react/jsx-handler-names
+                // eslint-disable-next-line react/jsx-handler-names
                 handleOpenUrl={handlers.handleOpenUrl}
-// eslint-disable-next-line react/jsx-handler-names
+                // eslint-disable-next-line react/jsx-handler-names
                 handleDeleteUrl={handlers.handleDeleteUrl}
-// eslint-disable-next-line react/jsx-handler-names
+                // eslint-disable-next-line react/jsx-handler-names
                 handleSetCategory={handlers.handleSetUrlCategory}
                 isInUncategorizedArea
                 parentType='uncategorized'
@@ -108,7 +108,7 @@ export const ProjectCardUncategorizedArea = () => {
         data-uncategorized-container='true'
         data-empty-container='true'
         aria-label={t('savedTabs.projectCard.dropToUncategorized')}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           const selectedUrl = window.getSelection()?.toString()
           if (

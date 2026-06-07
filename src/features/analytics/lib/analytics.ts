@@ -163,7 +163,7 @@ const interpolate = (
   template: string,
   values: Record<string, string>,
 ): string =>
-// eslint-disable-next-line typescript/no-unsafe-member-access
+  // eslint-disable-next-line typescript/no-unsafe-member-access
   template.replaceAll(/\{\{(\w+)\}\}/g, (_, token) => values[token] ?? '')
 const getDefaultAnalyticsQuery = (): AnalyticsQuery => ({
   chartType: 'bar',
@@ -241,7 +241,7 @@ const isWithinTimeRange = (
 
   return (
     savedAt >=
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
     options.now - RANGE_IN_DAYS[options.timeRange] * 24 * 60 * 60 * 1000
   )
 }
@@ -313,7 +313,7 @@ const sortEntries = (
   sort: AnalyticsSort,
 ) => {
   entries.sort((left, right) => {
-// eslint-disable-next-line typescript/switch-exhaustiveness-check
+    // eslint-disable-next-line typescript/switch-exhaustiveness-check
     switch (sort) {
       case 'label-asc': {
         return left.label.localeCompare(right.label, 'en')
@@ -427,7 +427,7 @@ const getTimeTitle = (
   bucket: AnalyticsTimeBucket,
   messages: AnalyticsMessages,
 ): string => {
-// eslint-disable-next-line typescript/switch-exhaustiveness-check
+  // eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (bucket) {
     case 'week': {
       return messages.chartWeeklySavedTrend
@@ -446,7 +446,7 @@ const getNormalizedCount = (count: number, total: number): number => {
     return 0
   }
 
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   return Math.round((count / total) * 100)
 }
 
@@ -598,7 +598,7 @@ const createModeComparisonChart = (
         sortEntries(entries, query.sort)
         return entries.slice(0, query.limit)
       })()
-// eslint-disable-next-line oxc/no-map-spread
+  // eslint-disable-next-line oxc/no-map-spread
   const rawData = limitedEntries.map(({ counts, label }) => ({
     ...counts,
     label,

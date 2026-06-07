@@ -10,7 +10,6 @@ const dirname =
 
 // More info at: https://storybook.js.org/docs/writing-tests/test-addon
 const workspaces = [
-
   'vitest.config.ts',
   defineProject({
     plugins: [

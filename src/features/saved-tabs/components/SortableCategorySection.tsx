@@ -197,7 +197,7 @@ const useSortableCategorySectionView = ({
     setIsDeleting(true)
     try {
       const urlsToDelete = [...urls]
-// eslint-disable-next-line typescript/await-thenable
+      // eslint-disable-next-line typescript/await-thenable
       await handleDeleteAllTabs?.(urlsToDelete)
     } catch (error) {
       console.error('削除処理中にエラーが発生しました:', error)

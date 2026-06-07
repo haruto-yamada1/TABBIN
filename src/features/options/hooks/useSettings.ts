@@ -66,7 +66,7 @@ export const useSettings = () => {
     toast.error(SETTINGS_SAVE_ERROR_MESSAGE, {
       action: {
         label: '再試行',
-// eslint-disable-next-line typescript/no-misused-promises
+        // eslint-disable-next-line typescript/no-misused-promises
         onClick: () => retrySaveSettings(failedSettings, rollbackSettings),
       },
     })
@@ -103,7 +103,7 @@ export const useSettings = () => {
       }
     }
 
-// eslint-disable-next-line typescript/no-floating-promises
+    // eslint-disable-next-line typescript/no-floating-promises
     loadSettings()
   }, [])
 
@@ -115,7 +115,7 @@ export const useSettings = () => {
       if (areaName === 'local' && changes.userSettings) {
         if (changes.userSettings.newValue) {
           // NewValue は完全な UserSettings オブジェクトであると期待
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
           const nextSettings = changes.userSettings.newValue as UserSettings
           persistedSettingsRef.current = nextSettings
           setSettings(nextSettings)
@@ -137,7 +137,7 @@ export const useSettings = () => {
     storageOnChanged.addListener(storageChangeListener)
 
     // クリーンアップ関数
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }
@@ -211,7 +211,7 @@ export const useSettings = () => {
   }
 
   const handleExcludePatternsBlur = () => {
-// eslint-disable-next-line typescript/no-floating-promises
+    // eslint-disable-next-line typescript/no-floating-promises
     handleSaveSettings()
   }
 

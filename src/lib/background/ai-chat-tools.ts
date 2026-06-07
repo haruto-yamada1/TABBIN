@@ -152,10 +152,10 @@ const createAiChatTools = (
     description: AI_CHAT_TOOL_DESCRIPTIONS.findUrlsByMonth,
     inputSchema: paginationSchema.extend({
       year: z.number().int(),
-// eslint-disable-next-line eslint/no-magic-numbers
+      // eslint-disable-next-line eslint/no-magic-numbers
       month: z.number().int().min(1).max(12),
     }),
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
       mapPageForToolOutput(findSavedUrlsAddedInMonthPage(records, input)),
   }),
@@ -196,7 +196,7 @@ const createAiChatTools = (
           'timeTop',
         ])
         .default('domain'),
-// eslint-disable-next-line eslint/no-magic-numbers
+      // eslint-disable-next-line eslint/no-magic-numbers
       limit: z.number().int().min(1).max(20).default(8),
       mode: z.enum(['both', 'custom', 'domain']).default('both'),
       normalize: z.boolean().default(false),
@@ -209,43 +209,43 @@ const createAiChatTools = (
         .enum(['30d', '365d', '7d', '90d', 'all', 'custom'])
         .default('all'),
       title: z.string().trim().optional(),
-// eslint-disable-next-line typescript/require-await
+      // eslint-disable-next-line typescript/require-await
     }),
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
       generateAnalyticsResult(records, normalizeAnalyticsQuery(input), {
         messages: createAnalyticsMessages(language),
       }),
   }),
   getCurrentDateTime: tool({
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     description: AI_CHAT_TOOL_DESCRIPTIONS.getCurrentDateTime,
     inputSchema: z.object({}),
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     execute: async () => createCurrentDateTimeOutput(),
   }),
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   inferUserInterests: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.inferUserInterests,
     inputSchema: z.object({}),
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     execute: async () => inferUserInterests(records, language),
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
   }),
   listSavedUrls: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.listSavedUrls,
     inputSchema: paginationSchema,
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
       mapPageForToolOutput(listSavedUrlPage(records, input)),
   }),
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   searchSavedUrls: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.searchSavedUrls,
     inputSchema: paginationSchema.extend({
       query: z.string().min(1),
     }),
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
       mapPageForToolOutput(searchSavedUrlsPage(records, input)),
   }),

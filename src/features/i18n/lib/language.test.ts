@@ -42,7 +42,8 @@ describe('language helpers', () => {
   })
 
   it('日本語に未翻訳のキーがあれば英語へフォールバックする', () => {
-    vi.spyOn(messagesModule, 'getMessages').mockImplementation((language) => { // eslint-disable-line
+    vi.spyOn(messagesModule, 'getMessages').mockImplementation((language) => {
+      // eslint-disable-line
       if (language === 'ja') {
         return {} as ReturnType<typeof messagesModule.getMessages>
       }

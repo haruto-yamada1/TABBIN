@@ -59,12 +59,14 @@ describe('setupMessageListener', () => {
       },
       runtime: {
         onConnect: {
-          addListener: vi.fn((callback) => { // eslint-disable-line
+          addListener: vi.fn((callback) => {
+            // eslint-disable-line
             portListener = callback
           }),
         },
         onMessage: {
-          addListener: vi.fn((callback) => { // eslint-disable-line
+          addListener: vi.fn((callback) => {
+            // eslint-disable-line
             listener = callback
           }),
         },
@@ -682,7 +684,8 @@ describe('setupMessageListener', () => {
       }
     ).chrome = {
       alarms: {
-        get: vi.fn((name, callback) => // eslint-disable-line
+        get: vi.fn((name, callback) =>
+          // eslint-disable-line
           callback?.({
             name,
             scheduledTime: 123,
@@ -691,7 +694,8 @@ describe('setupMessageListener', () => {
       },
       runtime: {
         onMessage: {
-          addListener: vi.fn((callback) => { // eslint-disable-line
+          addListener: vi.fn((callback) => {
+            // eslint-disable-line
             listener = callback
           }),
         },
@@ -879,7 +883,8 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -895,7 +900,7 @@ describe('setupMessageListener', () => {
             toolTraces: unknown[]
           }) => void
         },
-// eslint-disable-next-line typescript/require-await
+        // eslint-disable-next-line typescript/require-await
       ) => {
         options?.onStepUpdate?.({
           reasoning: '- 使用ツール: 保存済み URL 一覧',
@@ -1016,7 +1021,7 @@ describe('setupMessageListener', () => {
     } as unknown as chrome.runtime.Port
 
     portListener(ignoredPort)
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     expect(ignoredPort.onMessage.addListener).not.toHaveBeenCalled()
 
     let onPortMessage: ((message: unknown) => void) | undefined
@@ -1027,7 +1032,8 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1066,7 +1072,8 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1100,7 +1107,8 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           onPortMessage = listener
         }),
       },

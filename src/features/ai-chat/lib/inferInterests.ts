@@ -112,7 +112,7 @@ export const inferUserInterests = (
 ): InterestInferenceResult => {
   const topDomains = countValues(records.map((record) => record.domain)).slice(
     0,
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
     3,
   )
   const topCategories = countValues(
@@ -123,9 +123,9 @@ export const inferUserInterests = (
         ...record.projectCategories,
       ]),
     ]),
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
   ).slice(0, 3)
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const isTentative = records.length < 3
 
   if (records.length === 0) {

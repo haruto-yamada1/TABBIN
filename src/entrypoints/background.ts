@@ -26,7 +26,7 @@ import { migrateParentCategoriesToDomainNames } from '@/lib/storage/migration'
 
 export default defineBackground(() => {
   // 拡張機能インストール・更新時の処理
-// eslint-disable-next-line typescript/no-misused-promises
+  // eslint-disable-next-line typescript/no-misused-promises
   chrome.runtime.onInstalled.addListener(async (details) => {
     const manifestVersion = chrome.runtime.getManifest().version
 
@@ -76,7 +76,7 @@ export default defineBackground(() => {
   })
 
   // ブラウザ起動時にも保存タブページを自動で開く
-// eslint-disable-next-line typescript/no-misused-promises
+  // eslint-disable-next-line typescript/no-misused-promises
   chrome.runtime.onStartup.addListener(async () => {
     try {
       console.log('ブラウザ起動時にsaved-tabsページを開きます')
@@ -98,7 +98,7 @@ export default defineBackground(() => {
     console.error('コンテキストメニュー初期化エラー:', error)
   }
   // バックグラウンド初期化時に一度だけマイグレーションを実行
-// eslint-disable-next-line typescript/no-floating-promises
+  // eslint-disable-next-line typescript/no-floating-promises
   ;(async () => {
     try {
       console.log('バックグラウンド起動時のデータ構造チェックを開始...')
@@ -123,13 +123,13 @@ export default defineBackground(() => {
   })()
 
   // ブラウザアクション（拡張機能アイコン）クリック時の処理
-// eslint-disable-next-line typescript/no-misused-promises
+  // eslint-disable-next-line typescript/no-misused-promises
   chrome.action.onClicked.addListener(handleExtensionActionClick)
 
   // メッセージリスナーを設定
   setupMessageListener()
 
   // 新しいタブが作成されたときの処理
-// eslint-disable-next-line typescript/no-misused-promises
+  // eslint-disable-next-line typescript/no-misused-promises
   chrome.tabs.onCreated.addListener(handleTabCreated)
 })

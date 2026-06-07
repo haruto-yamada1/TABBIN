@@ -79,7 +79,7 @@ const StorybookTestHarness = ({
 
 const withAppShell: Decorator = (Story, context) => {
   const parameters = context.parameters as StorybookParameters
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
   const theme = (context.globals.theme as StoryTheme | undefined) ?? 'light'
 
   return (

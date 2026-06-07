@@ -40,7 +40,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -97,7 +97,7 @@ describe('useDomainCardState', () => {
     globalThis.chrome = {
       storage: {
         local: {
-// eslint-disable-next-line typescript/require-await
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [createGroup()],
           })),
@@ -346,7 +346,7 @@ describe('useDomainCardState', () => {
     globalThis.chrome = {
       storage: {
         local: {
-// eslint-disable-next-line typescript/require-await
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [group, otherGroup],
           })),
@@ -556,7 +556,7 @@ describe('useDomainCardState', () => {
       ...createGroup(),
       subCategoryOrderWithUncategorized: ['news', 'tech'],
     }
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(
       new Error('write failed'),
     )

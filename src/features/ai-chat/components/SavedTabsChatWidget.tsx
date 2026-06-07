@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-unsafe-type-assertion */
 import {
   Check,
   ChevronDown,
@@ -534,7 +535,8 @@ const requestAssistantAnswer = async (
   prompt: string,
   attachments: AiChatAttachment[] = [],
 ): Promise<AiChatResponse | undefined> =>
-  (await sendRuntimeMessage({ // eslint-disable-line typescript/no-unsafe-type-assertion
+  (await sendRuntimeMessage({
+    // eslint-disable-line typescript/no-unsafe-type-assertion
     action: 'runAiChat',
     history,
     prompt,
@@ -544,7 +546,8 @@ const requestAssistantAnswer = async (
 const requestOllamaModels = async (): Promise<
   OllamaModelListResponse | undefined
 > =>
-  (await sendRuntimeMessage({ // eslint-disable-line typescript/no-unsafe-type-assertion
+  (await sendRuntimeMessage({
+    // eslint-disable-line typescript/no-unsafe-type-assertion
     action: 'listOllamaModels',
   })) as OllamaModelListResponse | undefined
 
@@ -647,7 +650,8 @@ const getMessageSources = (
 
 const requestPromptSubmit = (textarea: HTMLTextAreaElement) => {
   const { form } = textarea
-  const submitButton = form?.querySelector( // eslint-disable-line typescript/no-unsafe-type-assertion
+  const submitButton = form?.querySelector(
+    // eslint-disable-line typescript/no-unsafe-type-assertion
     'button[type="submit"]',
   ) as HTMLButtonElement | null
 
@@ -2063,7 +2067,7 @@ const useSavedTabsChatWidgetView = ({
 
     storageOnChanged.addListener(storageChangeListener)
 
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }
@@ -2684,7 +2688,7 @@ const useSavedTabsChatWidgetView = ({
         prompt: nextPrompt,
         type: 'run',
         ...(attachments.length > 0 ? { attachments } : {}),
-// eslint-disable-next-line unicorn/require-post-message-target-origin
+        // eslint-disable-next-line unicorn/require-post-message-target-origin
       })
       return true
     } catch {
@@ -2831,7 +2835,7 @@ const useSavedTabsChatWidgetView = ({
       void handleCopyConversation()
     },
     onDeleteHistoryItem,
-// eslint-disable-next-line typescript/no-misused-promises
+    // eslint-disable-next-line typescript/no-misused-promises
     onFetchModels: handleFetchModels,
     onInputChange: setInput,
     onOpenSystemPromptManager: handleOpenSystemPromptManager,

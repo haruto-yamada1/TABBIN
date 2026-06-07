@@ -22,7 +22,7 @@ const ChatPromptAttachments = () => {
         <Attachment
           data={file}
           key={file.id}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onRemove={() => {
             attachments.remove(file.id)
           }}

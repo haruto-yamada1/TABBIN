@@ -75,7 +75,7 @@ const HookConsumer = () => {
     <div>
       <span data-testid='theme'>{theme}</span>
       <button
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('user')
         }}
@@ -84,7 +84,7 @@ const HookConsumer = () => {
         set-user
       </button>
       <button
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('dark')
         }}
@@ -105,7 +105,7 @@ describe('ThemeProvider', () => {
     prefersDark = false
     setMatchMediaMock()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     storageLocalMock.get.mockImplementation(async (key: string) => ({
       [key]: storageValues[key],
     }))
@@ -424,7 +424,7 @@ describe('useTheme', () => {
   it('React.use が undefined を返した場合はエラーを投げる', async () => {
     vi.resetModules()
     vi.doMock('react', async () => {
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       const actual = await vi.importActual<typeof import('react')>('react')
 
       return {

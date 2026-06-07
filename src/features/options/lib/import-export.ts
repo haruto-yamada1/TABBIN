@@ -418,7 +418,7 @@ const convertImportedUrlsToNewFormat = async (
         // URLレコードを作成または更新
         const urlRecord = await createOrUpdateUrlRecord(
           urlData.url,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
           urlData.title || '',
           urlData.favIconUrl,
           IMPORT_URL_RECORD_OPTIONS,
@@ -461,14 +461,14 @@ const normalizeCategoryKeywords = (
     ) {
       return items
     }
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
     const keywordData = k as {
       categoryName: string
       keywords?: unknown
     }
     items.push({
       categoryName: k.categoryName,
-// eslint-disable-next-line typescript/no-unsafe-assignment
+      // eslint-disable-next-line typescript/no-unsafe-assignment
       keywords: Array.isArray(keywordData.keywords) ? keywordData.keywords : [],
     })
     return items
@@ -553,10 +553,10 @@ const mergeOrderedSubCategories = ({
   validCategories: string[]
 }): string[] | undefined => {
   const normalizedExisting =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     normalizeSubCategoryOrder(existingOrder, validCategories) || []
   const normalizedImported =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     normalizeSubCategoryOrder(importedOrder, validCategories) || []
   const mergedOrder = [...normalizedExisting]
   const seen = new Set(normalizedExisting)
@@ -590,13 +590,13 @@ const mergeOrderedSubCategoriesWithUncategorized = ({
     normalizeSubCategoryOrderWithUncategorized(
       existingOrder,
       validCategories,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
     ) || []
   const normalizedImported =
     normalizeSubCategoryOrderWithUncategorized(
       importedOrder,
       validCategories,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
     ) || []
   const mergedOrder = [...normalizedExisting]
   const seen = new Set(normalizedExisting)
@@ -628,9 +628,9 @@ const normalizeProjectKeywords = (
 const normalizeImportedCustomProject = (
   project: ImportedCustomProjectData,
 ): CustomProject => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const createdAt = project.createdAt || Date.now()
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const updatedAt = project.updatedAt || createdAt
   const urlIds = Array.isArray(project.urlIds)
     ? project.urlIds.filter((id): id is string => typeof id === 'string')
@@ -640,7 +640,7 @@ const normalizeImportedCustomProject = (
         if (item?.url) {
           items.push({
             url: item.url,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+            // eslint-disable-next-line typescript/prefer-nullish-coalescing
             title: item.title || '',
             notes: item.notes,
             savedAt: item.savedAt,
@@ -674,7 +674,7 @@ const normalizeImportedCustomProject = (
 }
 
 const buildCustomProjectUrlIdList = (tabGroups: TabGroup[]): string[] => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   return [...new Set(tabGroups.flatMap((group) => group.urlIds || []))]
 }
 
@@ -759,7 +759,7 @@ const alignCustomProjectsWithSavedTabs = ({
     normalizedProjects.map((project) => [project.id, project]),
   )
   const orderedProjects = normalizedOrder.flatMap((projectId) => {
-// eslint-disable-next-line typescript/no-non-null-assertion
+    // eslint-disable-next-line typescript/no-non-null-assertion
     return [projectById.get(projectId)!]
   })
   const normalizedOrderSet = new Set(normalizedOrder)
@@ -770,7 +770,7 @@ const alignCustomProjectsWithSavedTabs = ({
   const assignedUrlIds = new Set<string>()
   const sanitizedProjects = allProjects.map((project) => {
     const nextUrlIds: string[] = []
-// eslint-disable-next-line typescript/no-non-null-assertion
+    // eslint-disable-next-line typescript/no-non-null-assertion
     for (const urlId of project.urlIds!) {
       if (!allowedUrlIdSet.has(urlId) || assignedUrlIds.has(urlId)) {
         continue
@@ -842,9 +842,9 @@ const convertCustomProjectToExportUrls = (
 
   for (const urlId of project.urlIds) {
     const urlRecord =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       urlRecordMap.get(urlId) || placeholderUrlRecordMap.get(urlId)
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     const resolvedUrlRecord = urlRecord || {
       id: urlId,
       savedAt:
@@ -987,14 +987,14 @@ const restoreImportedCustomProjectUrlsFromIds = (
   const restoredUrls: ImportedCustomProjectUrlData[] = []
   for (const urlId of project.urlIds) {
     const urlRecord =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       importedUrlRecordMap.get(urlId) || currentUrlRecordMap.get(urlId)
     if (!urlRecord) {
       continue
     }
     restoredUrls.push({
       url: urlRecord.url,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       title: urlRecord.title || '',
       savedAt: urlRecord.savedAt,
       notes: project.urlMetadata?.[urlId]?.notes,
@@ -1047,11 +1047,11 @@ const convertImportedCustomProjectUrlsToStorage = async (
         const normalizedUrl = normalizeUrlKey(urlData.url)
         const preloadedUrlRecord = urlRecordMapByUrl?.get(normalizedUrl)
         const urlRecord =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
           preloadedUrlRecord ||
           (await createOrUpdateUrlRecord(
             urlData.url,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+            // eslint-disable-next-line typescript/prefer-nullish-coalescing
             urlData.title || '',
             undefined,
             IMPORT_URL_RECORD_OPTIONS,
@@ -1123,9 +1123,9 @@ const resolveImportedCustomProject = async (
       : {}),
     categories: normalizeStringArray(project.categories),
     ...(categoryOrder.length > 0 ? { categoryOrder } : {}),
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     createdAt: project.createdAt || Date.now(),
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     updatedAt: project.updatedAt || project.createdAt || Date.now(),
   }
 }
@@ -1149,7 +1149,7 @@ const mergeCategoryKeywords = (
   imported: unknown[] | undefined,
 ): SubCategoryKeyword[] => {
   const keywordMap = new Map<string, SubCategoryKeyword>()
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   for (const keyword of existing || []) {
     keywordMap.set(keyword.categoryName, keyword)
   }
@@ -1194,7 +1194,7 @@ const mergeUrlData = (
   existingTab: TabGroup,
   importedUrlData: ConvertedUrlData,
 ): ConvertedUrlData => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const urlIdSet = new Set(existingTab.urlIds || [])
   for (const urlId of importedUrlData.urlIds) {
     urlIdSet.add(urlId)
@@ -1235,9 +1235,9 @@ const convertTabGroupToExportUrls = (
   let offset = 0
   for (const urlId of tab.urlIds) {
     const urlRecord =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       urlRecordMap.get(urlId) || placeholderUrlRecordMap.get(urlId)
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     const resolvedUrlRecord = urlRecord || {
       id: urlId,
       savedAt:
@@ -1274,7 +1274,7 @@ const restoreImportedUrlsFromIds = (
   const restoredUrls: ImportedUrlData[] = []
   for (const urlId of tab.urlIds) {
     const urlRecord =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       importedUrlRecordMap.get(urlId) || currentUrlRecordMap.get(urlId)
     if (!urlRecord) {
       continue
@@ -1283,7 +1283,7 @@ const restoreImportedUrlsFromIds = (
       favIconUrl: urlRecord.favIconUrl,
       savedAt: urlRecord.savedAt,
       subCategory: tab.urlSubCategories?.[urlId],
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       title: urlRecord.title || '',
       url: urlRecord.url,
     })
@@ -1402,7 +1402,7 @@ const ensurePlaceholderUrlRecords = async (
   const urlsData = await chrome.storage.local.get({
     urls: [],
   })
-// eslint-disable-next-line typescript/no-unsafe-assignment
+  // eslint-disable-next-line typescript/no-unsafe-assignment
   const currentUrlRecords: UrlRecord[] = Array.isArray(urlsData.urls)
     ? urlsData.urls
     : []
@@ -1421,7 +1421,7 @@ const ensurePlaceholderUrlRecords = async (
         // 元URLが欠損しているため、ドメインに一意アンカーを付けて代替URLを生成
         url: `${baseDomain}/#tabbin-restored-${urlId}`,
         title: placeholderUrlTitle,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         savedAt: tab.savedAt || Date.now() + offset,
       })
       offset += 1
@@ -1457,13 +1457,13 @@ const exportSettings = async (): Promise<BackupData> => {
         urls: [],
       }),
     ])
-// eslint-disable-next-line typescript/no-unsafe-assignment
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     const parentCategories: ParentCategory[] = Array.isArray(
       storageData.parentCategories,
     )
       ? storageData.parentCategories
       : []
-// eslint-disable-next-line typescript/no-unsafe-assignment
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     const savedTabs: TabGroup[] = Array.isArray(storageData.savedTabs)
       ? storageData.savedTabs
       : []
@@ -1471,7 +1471,7 @@ const exportSettings = async (): Promise<BackupData> => {
       storageData.customProjects,
     )
       ? storageData.customProjects.map((project) =>
-// eslint-disable-next-line typescript/no-unsafe-argument
+          // eslint-disable-next-line typescript/no-unsafe-argument
           normalizeImportedCustomProject(project),
         )
       : []
@@ -1480,7 +1480,7 @@ const exportSettings = async (): Promise<BackupData> => {
           (id): id is string => typeof id === 'string',
         )
       : []
-// eslint-disable-next-line typescript/no-unsafe-assignment
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     const aiChatConversations: AiChatConversation[] = Array.isArray(
       storageData[AI_CHAT_CONVERSATIONS_KEY],
     )
@@ -1490,13 +1490,13 @@ const exportSettings = async (): Promise<BackupData> => {
       typeof storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] === 'string'
         ? storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]
         : ''
-// eslint-disable-next-line typescript/no-unsafe-assignment
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     const savedAnalyticsViews: SavedAnalyticsView[] = Array.isArray(
       storageData.savedAnalyticsViews,
     )
       ? storageData.savedAnalyticsViews
       : []
-// eslint-disable-next-line typescript/no-unsafe-assignment
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     const urlRecords: UrlRecord[] = Array.isArray(storageData.urls)
       ? storageData.urls
       : []
@@ -1507,7 +1507,7 @@ const exportSettings = async (): Promise<BackupData> => {
     const placeholderUrlTitle = getPlaceholderUrlTitle(
       resolveCurrentLanguage(userSettings),
     )
-// eslint-disable-next-line oxc/no-map-spread
+    // eslint-disable-next-line oxc/no-map-spread
     const normalizedSavedTabs: TabGroup[] = savedTabs.map((tab) => ({
       ...tab,
       urls: convertTabGroupToExportUrls(
@@ -1583,7 +1583,7 @@ const downloadAsJson = (data: BackupData, filename: string): void => {
 
   // クリーンアップ
   requestAnimationFrame(() => {
-// eslint-disable-next-line unicorn/prefer-dom-node-remove
+    // eslint-disable-next-line unicorn/prefer-dom-node-remove
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   })
@@ -1609,28 +1609,28 @@ type NormalizedImportedTab =
   NormalizedImportResult['normalizedImportedTabs'][number]
 type UnresolvedImportTab = NormalizedImportResult['unresolvedTabs'][number]
 const parseBackupData = (jsonData: string): BackupData | null => {
-// eslint-disable-next-line typescript/no-unsafe-assignment
+  // eslint-disable-next-line typescript/no-unsafe-assignment
   const parsedData = JSON.parse(jsonData)
   const validationResult = backupDataSchema.safeParse(parsedData)
   if (!validationResult.success) {
     console.error('バリデーションエラー:', validationResult.error)
     return null
   }
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
   return validationResult.data as BackupData
 }
 const createImportedUrlRecordMap = (
   importedData: BackupData,
 ): Map<string, ImportedUrlRecordData> =>
   new Map(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     (importedData.urls || []).map((urlRecord) => [urlRecord.id, urlRecord]),
   )
 const createCurrentUrlRecordMap = async (): Promise<Map<string, UrlRecord>> => {
   const currentUrlsData = await chrome.storage.local.get({
     urls: [],
   })
-// eslint-disable-next-line typescript/no-unsafe-assignment
+  // eslint-disable-next-line typescript/no-unsafe-assignment
   const currentUrlRecords: UrlRecord[] = Array.isArray(currentUrlsData.urls)
     ? currentUrlsData.urls
     : []
@@ -1704,7 +1704,7 @@ const resolveMergedSavedAt = (
   if (existingSavedAt && importedSavedAt) {
     return Math.min(existingSavedAt, importedSavedAt)
   }
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   return existingSavedAt || importedSavedAt
 }
 const buildMergedExistingDomainTab = async (
@@ -1742,7 +1742,7 @@ const buildMergedExistingDomainTab = async (
     urlIds: mergedUrlData.urlIds,
     urlSubCategories: mergedUrlData.urlSubCategories,
     parentCategoryId:
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       importedTab.parentCategoryId || existingTab.parentCategoryId,
     categoryKeywords: mergedKeywords,
     subCategories: mergedSubCategories,
@@ -1893,7 +1893,7 @@ const buildBulkUrlRecordMap = async (
     ...normalizedImportedTabs.flatMap((tab) =>
       tab.urls.map((urlData) => ({
         favIconUrl: urlData.favIconUrl,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         title: urlData.title || '',
         url: normalizeUrlKey(urlData.url),
       })),
@@ -1901,7 +1901,7 @@ const buildBulkUrlRecordMap = async (
     ...normalizedImportedCustomProjects.flatMap((project) =>
       project.urls.map((urlData) => ({
         url: normalizeUrlKey(urlData.url),
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         title: urlData.title || '',
       })),
     ),
@@ -1989,7 +1989,7 @@ const resolveMergedAiChatHistory = ({
 
   const conversations = mergeAiChatConversations(
     currentConversations,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     importedData.aiChatConversations || [],
   )
 
@@ -2014,7 +2014,7 @@ const resolveOverwriteAiChatHistory = (
     return undefined
   }
 
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const conversations = importedData.aiChatConversations || []
 
   return {
@@ -2059,12 +2059,12 @@ const importWithMerge = async ({
     getUserSettings(),
     chrome.storage.local.get<{
       activeAiChatConversationId?: string
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       aiChatConversations?: import('@/features/ai-chat/types').AiChatConversation[]
       customProjectOrder?: string[]
       customProjects?: CustomProject[]
       parentCategories?: ParentCategory[]
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       savedAnalyticsViews?: import('@/lib/storage/analytics').SavedAnalyticsView[]
       savedTabs?: TabGroup[]
     }>([
@@ -2157,7 +2157,7 @@ const importWithMerge = async ({
   )
     ? mergeSavedAnalyticsViews(
         currentSavedAnalyticsViews,
-// eslint-disable-next-line typescript/no-non-null-assertion
+        // eslint-disable-next-line typescript/no-non-null-assertion
         importedData.savedAnalyticsViews!,
       )
     : undefined
@@ -2237,8 +2237,8 @@ const importWithOverwrite = async ({
   const overwriteSavedAnalyticsViews = shouldImportSavedAnalyticsViews(
     importedData,
   )
-// eslint-disable-next-line typescript/no-non-null-assertion
-    ? importedData.savedAnalyticsViews!
+    ? // eslint-disable-next-line typescript/no-non-null-assertion
+      importedData.savedAnalyticsViews!
     : undefined
   await Promise.all([
     saveUserSettings({
@@ -2337,7 +2337,7 @@ const importSettings = async (
       )
     }
     if (mergeData) {
-// eslint-disable-next-line typescript/return-await
+      // eslint-disable-next-line typescript/return-await
       return importWithMerge({
         bulkUrlRecordMap,
         importedData,
@@ -2347,7 +2347,7 @@ const importSettings = async (
         unresolvedTabs,
       })
     }
-// eslint-disable-next-line typescript/return-await
+    // eslint-disable-next-line typescript/return-await
     return importWithOverwrite({
       bulkUrlRecordMap,
       importedData,
@@ -2398,11 +2398,11 @@ const getImportPreview = (
         timestamp: importedData.timestamp,
         categoriesCount: importedData.parentCategories.length,
         domainsCount: importedData.savedTabs.length,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         projectsCount: importedData.customProjects?.length || 0,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         hasAiChat: (importedData.aiChatConversations?.length || 0) > 0,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         hasAnalytics: (importedData.savedAnalyticsViews?.length || 0) > 0,
       },
     }

@@ -106,7 +106,7 @@ const Carousel = ({
     api.on('reInit', handleSelect)
     api.on('select', handleSelect)
 
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       api.off('reInit', handleSelect)
       api.off('select', handleSelect)
@@ -115,7 +115,7 @@ const Carousel = ({
 
   return (
     <CarouselContext.Provider
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       value={{
         api,
         canScrollNext,
@@ -132,7 +132,7 @@ const Carousel = ({
         ref={ref}
         onKeyDownCapture={handleKeyDown}
         className={cn('relative', className)}
-// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role='region'
         aria-roledescription='carousel'
         {...props}
@@ -177,7 +177,7 @@ const CarouselItem = ({
   return (
     <div
       ref={ref}
-// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='group'
       aria-roledescription='slide'
       className={cn(

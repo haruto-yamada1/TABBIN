@@ -30,7 +30,7 @@ interface StorageState {
 }
 
 const createChromeStorageLocal = (state: StorageState) => ({
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   get: vi.fn(async (keys?: string | string[]) => {
     if (!keys) {
       return state
@@ -46,7 +46,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
       [keys]: state[keys as keyof StorageState],
     }
   }),
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   set: vi.fn(async (value: Record<string, unknown>) => {
     Object.assign(state, value)
   }),

@@ -38,10 +38,10 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-// eslint-disable-next-line react/jsx-no-useless-fragment
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -60,7 +60,7 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='dialog-root'>
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onOpenChange?.()} type='button'>
         dialog-close
       </button>
@@ -130,7 +130,7 @@ vi.mock('@/components/ui/button', () => ({
   } & Record<string, unknown>) => {
     buttonPropsSpy({ children, variant, size, asChild, type, ...props })
     return (
-// eslint-disable-next-line react/button-has-type
+      // eslint-disable-next-line react/button-has-type
       <button type={type ?? 'button'} {...props}>
         {children}
       </button>
@@ -140,7 +140,7 @@ vi.mock('@/components/ui/button', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -190,7 +190,7 @@ const createDeferred = <T,>() => {
 }
 
 const setupChrome = () => {
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   getMock = vi.fn(async (key: string) => {
     if (key === 'savedTabs') {
       return { savedTabs: storageState.savedTabs }
@@ -200,7 +200,7 @@ const setupChrome = () => {
     }
     return {}
   })
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   setMock = vi.fn(async (value: Partial<StorageState>) => {
     storageState = {
       ...storageState,
@@ -314,7 +314,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
       />,
     )
@@ -361,7 +361,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム時の Enter/Blur 分岐（変更なし・バリデーション失敗・処理中・キャンセル）を処理する', async () => {
-// eslint-disable-next-line typescript/no-invalid-void-type
+    // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredUpdate = createDeferred<void>()
     const onCategoryUpdate = vi.fn(
       async (categoryId: string, newName: string) => {
@@ -378,7 +378,7 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
-// eslint-disable-next-line typescript/no-misused-promises
+        // eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={onCategoryUpdate}
       />,
     )
@@ -426,7 +426,7 @@ describe('CategoryManagementModal', () => {
     fireEvent.keyDown(input, { key: 'Enter' })
     fireEvent.blur(input)
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       deferredUpdate.resolve()
     })
@@ -448,7 +448,7 @@ describe('CategoryManagementModal', () => {
   it('リネーム開始/バリデーション/成功保存/closeガード（isRenaming）を処理する', async () => {
     const onClose = vi.fn()
     const onCategoryUpdate = vi.fn(
-// eslint-disable-next-line typescript/require-await
+      // eslint-disable-next-line typescript/require-await
       async (categoryId: string, newName: string) => {
         storageState.parentCategories = storageState.parentCategories.map(
           (cat) => (cat.id === categoryId ? { ...cat, name: newName } : cat),
@@ -462,7 +462,7 @@ describe('CategoryManagementModal', () => {
         onClose={onClose}
         category={createCategory()}
         domains={createDomains()}
-// eslint-disable-next-line typescript/no-misused-promises
+        // eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={onCategoryUpdate}
       />,
     )
@@ -534,7 +534,7 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
-// eslint-disable-next-line typescript/no-misused-promises
+        // eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={vi.fn(async () => {})}
       />,
     )
@@ -552,7 +552,7 @@ describe('CategoryManagementModal', () => {
 
   it('リネーム保存後の最終確認不一致をエラーとして処理する', async () => {
     let parentCategoryGetCount = 0
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     getMock.mockImplementation(async (key: string) => {
       if (key === 'savedTabs') {
         return { savedTabs: storageState.savedTabs }
@@ -577,7 +577,7 @@ describe('CategoryManagementModal', () => {
     })
 
     const onCategoryUpdate = vi.fn(
-// eslint-disable-next-line typescript/require-await
+      // eslint-disable-next-line typescript/require-await
       async (categoryId: string, newName: string) => {
         storageState.parentCategories = storageState.parentCategories.map(
           (cat) => (cat.id === categoryId ? { ...cat, name: newName } : cat),
@@ -591,7 +591,7 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
-// eslint-disable-next-line typescript/no-misused-promises
+        // eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={onCategoryUpdate}
       />,
     )
@@ -617,9 +617,9 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
-// eslint-disable-next-line typescript/require-await
+        // eslint-disable-next-line typescript/require-await
         onCategoryUpdate={vi.fn(async () => {
-// eslint-disable-next-line eslint/no-throw-literal
+          // eslint-disable-next-line eslint/no-throw-literal
           throw 'string-error'
         })}
       />,
@@ -635,7 +635,8 @@ describe('CategoryManagementModal', () => {
     await waitFor(() => {
       expect(
         (console.error as unknown as ReturnType<typeof vi.fn>).mock.calls.some(
-          ([message, payload]) => // eslint-disable-line
+          ([message, payload]) =>
+            // eslint-disable-line
             message === 'Modal - カテゴリ名の更新に失敗:' &&
             payload &&
             typeof payload === 'object' &&
@@ -728,9 +729,9 @@ describe('CategoryManagementModal', () => {
   })
 
   it('親カテゴリ削除確認のキャンセル・関連ドメインなし表示・処理中の再入防止を処理する', async () => {
-// eslint-disable-next-line typescript/no-invalid-void-type
+    // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredSet = createDeferred<void>()
-// eslint-disable-next-line typescript/no-misused-promises
+    // eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
       storageState = { ...storageState, ...value }
       await deferredSet.promise
@@ -741,7 +742,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
       />,
     )
@@ -751,7 +752,7 @@ describe('CategoryManagementModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
     expect(screen.queryByRole('button', { name: /^削除$/ })).toBeNull()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     getMock.mockImplementationOnce(async (key: string) => {
       if (key === 'parentCategories') {
         return {}
@@ -778,7 +779,7 @@ describe('CategoryManagementModal', () => {
     await deleteConfirmButtonProps?.onClick?.()
     expect(setMock).toHaveBeenCalledTimes(1)
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       deferredSet.resolve()
     })
@@ -796,7 +797,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[currentDomain]}
       />,
     )
@@ -833,7 +834,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
       />,
     )
@@ -875,9 +876,9 @@ describe('CategoryManagementModal', () => {
       },
     ]
 
-// eslint-disable-next-line typescript/no-invalid-void-type
+    // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredSet = createDeferred<void>()
-// eslint-disable-next-line typescript/no-misused-promises
+    // eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
       storageState = { ...storageState, ...value }
       await deferredSet.promise
@@ -888,7 +889,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[domains3[0]]}
       />,
     )
@@ -926,7 +927,7 @@ describe('CategoryManagementModal', () => {
     })
     expect(setMock).toHaveBeenCalledTimes(1)
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       deferredSet.resolve()
     })
@@ -976,7 +977,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[currentDomain]}
       />,
     )
@@ -1012,7 +1013,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[currentDomain]}
       />,
     )
@@ -1026,7 +1027,8 @@ describe('CategoryManagementModal', () => {
 
     const originalFind = Array.prototype.find
     using findSpy = vi.spyOn(Array.prototype, 'find')
-    findSpy.mockImplementation((predicate, thisArg) => { // eslint-disable-line
+    findSpy.mockImplementation((predicate, thisArg) => {
+      // eslint-disable-line
       const context = findSpy.mock.contexts[
         findSpy.mock.calls.length - 1
       ] as unknown[]
@@ -1042,7 +1044,7 @@ describe('CategoryManagementModal', () => {
       ) {
         return
       }
-// eslint-disable-next-line typescript/consistent-return
+      // eslint-disable-next-line typescript/consistent-return
       return originalFind.call(context, predicate, thisArg)
     })
 
@@ -1078,7 +1080,7 @@ describe('CategoryManagementModal', () => {
       )
     })
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     getMock.mockImplementationOnce(async (key: string) => {
       if (key === 'parentCategories') {
         throw new Error('boom')
@@ -1126,9 +1128,9 @@ describe('CategoryManagementModal', () => {
       },
     ]
 
-// eslint-disable-next-line typescript/no-invalid-void-type
+    // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredSet = createDeferred<void>()
-// eslint-disable-next-line typescript/no-misused-promises
+    // eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
       storageState = { ...storageState, ...value }
       await deferredSet.promise
@@ -1165,7 +1167,7 @@ describe('CategoryManagementModal', () => {
     removeButtonProps?.onClick?.()
     expect(setMock).toHaveBeenCalledTimes(1)
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       deferredSet.resolve()
     })

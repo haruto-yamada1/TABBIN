@@ -44,7 +44,7 @@ describe('CategoryModal', () => {
 
   it('CategoryModalRoot に props を渡し、子セクションを描画する', () => {
     const onClose = vi.fn()
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     const tabGroups: TabGroup[] = [
       { id: 'group-1', domain: 'example.com', urls: [] },
       { id: 'group-2', domain: 'example.org', urls: [] },

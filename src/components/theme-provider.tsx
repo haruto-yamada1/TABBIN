@@ -79,7 +79,7 @@ export const ThemeProvider = ({
         .get(storageKey)
         .then((result) => {
           if (result[storageKey]) {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+            // eslint-disable-next-line typescript/no-unsafe-type-assertion
             setThemeState(result[storageKey] as Theme)
           }
         })
@@ -94,7 +94,7 @@ export const ThemeProvider = ({
       areaName: string,
     ) => {
       if (areaName === 'local' && changes[storageKey]) {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         setThemeState(changes[storageKey].newValue as Theme)
       }
     }
@@ -106,7 +106,7 @@ export const ThemeProvider = ({
     storageOnChanged.addListener(handleStorageChange)
 
     // クリーンアップ関数
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(handleStorageChange)
     }
@@ -159,7 +159,7 @@ export const ThemeProvider = ({
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.userSettings) {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         const updated = changes.userSettings.newValue as
           | UserSettings
           | undefined
@@ -173,7 +173,7 @@ export const ThemeProvider = ({
       return
     }
     storageOnChanged.addListener(listener)
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(listener)
     }
@@ -183,7 +183,7 @@ export const ThemeProvider = ({
       // Chrome Storageに保存
       const storageLocal = getChromeStorageLocal()
       if (storageLocal) {
-// eslint-disable-next-line typescript/no-floating-promises
+        // eslint-disable-next-line typescript/no-floating-promises
         storageLocal.set({
           [storageKey]: nextTheme,
         })

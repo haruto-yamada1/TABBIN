@@ -48,7 +48,7 @@ export const useColorSettings = (
       await saveUserSettings(newSettings)
 
       // テーマをシステムに戻す
-// eslint-disable-next-line typescript/no-floating-promises
+      // eslint-disable-next-line typescript/no-floating-promises
       chrome.storage.local.set({ 'tab-manager-theme': 'system' })
 
       // 成功メッセージを表示

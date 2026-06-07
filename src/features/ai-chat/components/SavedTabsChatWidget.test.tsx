@@ -79,7 +79,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -101,7 +101,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 vi.mock('@/components/ai-elements/conversation', async () => {
   const actual = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/components/ai-elements/conversation')
   >('@/components/ai-elements/conversation')
 
@@ -119,7 +119,7 @@ vi.mock('@/components/ai-elements/conversation', async () => {
           aria-label={ariaLabel}
           className={className}
           data-testid='conversation-scroll-button'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             mocked.conversationScrollButtonClick()
           }}
@@ -585,7 +585,7 @@ describe('SavedTabsChatWidget', () => {
     render(
       <SavedTabsChatWidget
         defaultOpen
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         historyItems={[
           {
             id: 'conversation-1',
@@ -653,7 +653,7 @@ describe('SavedTabsChatWidget', () => {
     render(
       <SavedTabsChatWidget
         defaultOpen
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         historyItems={[
           {
             id: 'conversation-1',
@@ -747,7 +747,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-1'
         defaultOpen
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content: 'First conversation',
@@ -768,7 +768,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-2'
         defaultOpen
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content: 'Another conversation',
@@ -797,7 +797,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-1'
         defaultOpen
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content:
@@ -831,7 +831,8 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1105,7 +1106,7 @@ describe('SavedTabsChatWidget', () => {
 
     expect(saveButton.hasAttribute('disabled')).toBe(false)
 
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const nameInput = screen.getByLabelText('Prompt name') as HTMLInputElement
 
     expect(nameInput.maxLength).toBe(25)
@@ -1149,7 +1150,7 @@ describe('SavedTabsChatWidget', () => {
     mocked.getUserSettings.mockResolvedValue({
       ...buildConfiguredSettings(),
       aiSystemPrompts: [
-// eslint-disable-next-line typescript/non-nullable-type-assertion-style
+        // eslint-disable-next-line typescript/non-nullable-type-assertion-style
         buildConfiguredSettings().aiSystemPrompts?.[0] as NonNullable<
           UserSettings['aiSystemPrompts']
         >[number],
@@ -1217,7 +1218,8 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1313,7 +1315,7 @@ describe('SavedTabsChatWidget', () => {
 
     expect(screen.queryByText('First response')).toBeNull()
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
-// eslint-disable-next-line typescript/TS2339
+    // eslint-disable-next-line typescript/TS2339
     expect((screen.getByLabelText('Ask AI') as HTMLInputElement).value).toBe('')
   })
 
@@ -1369,7 +1371,8 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1525,7 +1528,8 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1612,7 +1616,8 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1704,7 +1709,7 @@ describe('SavedTabsChatWidget', () => {
     fireEvent.click(sourcesTrigger)
 
     const sourcesGroup =
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+      // eslint-disable-next-line typescript/no-unnecessary-type-assertion
       (sourcesTrigger.closest('[data-slot="sources"]') as HTMLElement | null) ??
       document.body
 
@@ -1757,7 +1762,7 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
     const submitButton = screen.getByRole('button', { name: 'Submit' })
 
@@ -1843,7 +1848,7 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
-// eslint-disable-next-line typescript/TS2339
+    // eslint-disable-next-line typescript/TS2339
     expect((screen.getByLabelText('Ask AI') as HTMLInputElement).value).toBe('')
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
@@ -1907,7 +1912,8 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => { // eslint-disable-line
+        addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -2058,7 +2064,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
     fireEvent.change(textarea, {
@@ -2095,7 +2101,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
     fireEvent.change(textarea, {
@@ -2197,8 +2203,10 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-// eslint-disable-next-line typescript/TS2339
-    expect((screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled).toBe(true)
+    // eslint-disable-next-line typescript/TS2339
+    expect(
+      (screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled,
+    ).toBe(true)
 
     expect(screen.queryByRole('button', { name: 'Load models' })).toBeNull()
 
@@ -2223,8 +2231,10 @@ describe('SavedTabsChatWidget', () => {
     })
 
     await waitFor(() => {
-// eslint-disable-next-line typescript/TS2339
-      expect((screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled).toBe(false)
+      // eslint-disable-next-line typescript/TS2339
+      expect(
+        (screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled,
+      ).toBe(false)
     })
     expect(screen.queryByText('Ollama: llama3.2')).toBeNull()
   })

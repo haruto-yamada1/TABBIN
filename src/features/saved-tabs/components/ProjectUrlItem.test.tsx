@@ -28,7 +28,7 @@ vi.mock('@dnd-kit/utilities', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -117,7 +117,7 @@ describe('ProjectUrlItem', () => {
     cleanup()
   })
 
-// eslint-disable-next-line eslint/complexity
+  // eslint-disable-next-line eslint/complexity
   it('未分類URLを描画しリンククリックと即時削除を処理する', () => {
     const handleOpenUrl = vi.fn()
     const handleDeleteUrl = vi.fn()

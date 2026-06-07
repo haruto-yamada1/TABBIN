@@ -6,17 +6,17 @@ import { loadAnalyticsRecords } from './loadAnalyticsRecords'
 
 const mocks = vi.hoisted(() => ({
   buildAiSavedUrlRecords: vi.fn(() => [{ id: 'record-1' }]),
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   getCustomProjects: vi.fn(async () => [{ id: 'project-1' }]),
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   getParentCategories: vi.fn(async () => [{ id: 'category-1' }]),
   getUserSettings: vi.fn<() => Promise<Pick<UserSettings, 'excludePatterns'>>>(
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     async () => ({
       excludePatterns: [],
     }),
   ),
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   getUrlRecords: vi.fn(async () => [
     {
       id: 'url-1',
@@ -53,7 +53,7 @@ describe('loadAnalyticsRecords', () => {
     globalThis.chrome = {
       storage: {
         local: {
-// eslint-disable-next-line typescript/require-await
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [{ id: 'group-1' }],
           })),
@@ -125,7 +125,7 @@ describe('loadAnalyticsRecords', () => {
   })
 
   it('savedTabs が配列でなく excludePatterns が未定義でも空配列に正規化する', async () => {
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockResolvedValueOnce: (value: unknown) => void
     }

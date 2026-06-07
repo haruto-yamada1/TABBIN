@@ -34,7 +34,7 @@ export const Snippet = ({
   children,
   ...props
 }: SnippetProps) => (
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   <SnippetContext.Provider value={{ code }}>
     <InputGroup className={cn('font-mono', className)} {...props}>
       {children}
@@ -99,7 +99,7 @@ export const SnippetCopyButton = ({
     <InputGroupButton
       aria-label={t('common.copy')}
       className={className}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(code, { skipIfCopied: true })}
       size='icon-sm'
       title={t('common.copy')}

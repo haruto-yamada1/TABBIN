@@ -85,9 +85,9 @@ const ContextIcon = () => {
     <svg
       aria-label={t('common.modelContextUsage')}
       height='20'
-// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='img'
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{ color: 'currentcolor' }}
       viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
       width='20'
@@ -112,7 +112,7 @@ const ContextIcon = () => {
         strokeDashoffset={dashOffset}
         strokeLinecap='round'
         strokeWidth={ICON_STROKE_WIDTH}
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
       />
     </svg>
@@ -319,7 +319,7 @@ export const ContextReasoningUsage = ({
 }: ContextReasoningUsageProps) => {
   const { usage, modelId } = useContextValue()
   const t = useI18nText()
-// eslint-disable-next-line typescript/no-deprecated
+  // eslint-disable-next-line typescript/no-deprecated
   const reasoningTokens = usage?.reasoningTokens ?? 0
 
   if (children) {
@@ -358,7 +358,7 @@ export const ContextCacheUsage = ({
 }: ContextCacheUsageProps) => {
   const { usage, modelId } = useContextValue()
   const t = useI18nText()
-// eslint-disable-next-line typescript/no-deprecated
+  // eslint-disable-next-line typescript/no-deprecated
   const cacheTokens = usage?.cachedInputTokens ?? 0
 
   if (children) {

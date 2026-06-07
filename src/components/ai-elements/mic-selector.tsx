@@ -78,13 +78,13 @@ export const MicSelector = ({
     onChange: controlledOnOpenChange,
     prop: controlledOpen,
   })
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const [width, setWidth] = useState(200)
   const { devices, loading, hasPermission, loadDevices } = useAudioDevices()
 
   useEffect(() => {
     if (open && !hasPermission && !loading) {
-// eslint-disable-next-line typescript/no-floating-promises
+      // eslint-disable-next-line typescript/no-floating-promises
       loadDevices()
     }
   }, [open, hasPermission, loading, loadDevices])
@@ -122,7 +122,7 @@ export const MicSelectorTrigger = ({
     // Create a ResizeObserver to detect width changes
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         const newWidth = (entry.target as HTMLElement).offsetWidth
         if (newWidth) {
           setWidth?.(newWidth)
@@ -167,7 +167,7 @@ export const MicSelectorContent = ({
   return (
     <PopoverContent
       className={cn('p-0', className)}
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{ width }}
       {...popoverOptions}
     >
@@ -347,17 +347,17 @@ export const useAudioDevices = () => {
   }, [loading])
 
   useEffect(() => {
-// eslint-disable-next-line typescript/no-floating-promises
+    // eslint-disable-next-line typescript/no-floating-promises
     loadDevicesWithoutPermission()
   }, [loadDevicesWithoutPermission])
 
   useEffect(() => {
     const handleDeviceChange = () => {
       if (hasPermission) {
-// eslint-disable-next-line typescript/no-floating-promises
+        // eslint-disable-next-line typescript/no-floating-promises
         loadDevicesWithPermission()
       } else {
-// eslint-disable-next-line typescript/no-floating-promises
+        // eslint-disable-next-line typescript/no-floating-promises
         loadDevicesWithoutPermission()
       }
     }

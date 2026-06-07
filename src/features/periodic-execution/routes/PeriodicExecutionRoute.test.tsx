@@ -45,7 +45,7 @@ vi.mock('@/components/ui/button', () => ({
   }: ComponentPropsWithoutRef<'button'> & {
     ref?: React.Ref<HTMLButtonElement>
   }) => (
-// eslint-disable-next-line react/button-has-type
+    // eslint-disable-next-line react/button-has-type
     <button ref={ref} type={type} {...props}>
       {children}
     </button>
@@ -74,7 +74,7 @@ vi.mock('@/components/ui/select', () => ({
     <div>
       <button
         data-testid='mock-select-change'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => onValueChange?.(value === 'never' ? '30days' : 'never')}
         type='button'
       >
@@ -111,18 +111,18 @@ vi.mock('@/components/ui/select', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-// eslint-disable-next-line react/jsx-no-useless-fragment
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -307,11 +307,11 @@ describe('PeriodicExecutionRoute', () => {
 
     expect(labelledBy).toBeTruthy()
     expect(describedBy).toBeTruthy()
-// eslint-disable-next-line unicorn/prefer-query-selector
+    // eslint-disable-next-line unicorn/prefer-query-selector
     expect(document.getElementById(labelledBy ?? '')?.textContent).toBe(
       'Auto delete',
     )
-// eslint-disable-next-line unicorn/prefer-query-selector
+    // eslint-disable-next-line unicorn/prefer-query-selector
     expect(document.getElementById(describedBy ?? '')?.textContent).toBe(
       '確認メッセージ',
     )

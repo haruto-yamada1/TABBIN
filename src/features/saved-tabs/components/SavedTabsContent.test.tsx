@@ -38,7 +38,7 @@ vi.mock('@/lib/storage/tabs', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessage } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/lib/language')
   >('@/features/i18n/lib/language')
 
@@ -63,10 +63,10 @@ vi.mock('./TimeRemaining', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-// eslint-disable-next-line react/jsx-no-useless-fragment
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -208,7 +208,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-// eslint-disable-next-line typescript/require-await
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [
               {

@@ -87,7 +87,7 @@ const clone = <T>(value: T): T => {
   if (value === undefined) {
     return value
   }
-// eslint-disable-next-line unicorn/prefer-structured-clone
+  // eslint-disable-next-line unicorn/prefer-structured-clone
   return JSON.parse(JSON.stringify(value)) as T
 }
 
@@ -128,7 +128,7 @@ const createChromeMock = (
   const store = clone(initialStore)
 
   const get = vi.fn(
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     async (keys?: string | string[] | Record<string, unknown>) => {
       if (options.failGet) {
         throw new Error('storage get failed')
@@ -137,7 +137,7 @@ const createChromeMock = (
     },
   )
 
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   const set = vi.fn(async (next: Record<string, unknown>) => {
     for (const [key, value] of Object.entries(next)) {
       store[key] = clone(value)
@@ -323,7 +323,7 @@ describe('import-export ユーティリティ', () => {
     vi.restoreAllMocks()
   })
 
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   it('内部 helper は custom project の欠損値と legacy urlIds 復元を正規化する', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-02-16T00:01:00.000Z'))
@@ -346,7 +346,7 @@ describe('import-export ユーティリティ', () => {
           >[number],
         ],
       }),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(
       expect.objectContaining({
         categories: ['Docs'],
@@ -401,7 +401,7 @@ describe('import-export ユーティリティ', () => {
         importedUrlMap,
         currentUrlMap,
       ),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([
       {
         category: undefined,
@@ -424,7 +424,7 @@ describe('import-export ユーティリティ', () => {
         importedUrlMap,
         currentUrlMap,
       ),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
     expect(
       normalizeImportedCustomProjectsForImport(
@@ -432,7 +432,7 @@ describe('import-export ユーティリティ', () => {
         importedUrlMap,
         currentUrlMap,
       ),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
   })
 
@@ -467,12 +467,12 @@ describe('import-export ユーティリティ', () => {
       ],
     })
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(aligned.customProjectOrder).toEqual([
       'project-existing',
       'custom-uncategorized',
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(aligned.customProjects).toEqual([
       expect.objectContaining({
         id: 'project-existing',
@@ -503,7 +503,7 @@ describe('import-export ユーティリティ', () => {
         },
       ],
     })
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(alignedWithLegacyUncategorized.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -521,7 +521,7 @@ describe('import-export ユーティリティ', () => {
       ],
       ['imported-project'],
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(appended.customProjectOrder).toEqual([
       'current-project',
       'imported-project',
@@ -536,7 +536,7 @@ describe('import-export ユーティリティ', () => {
         [buildCustomProject({ id: 'new-project', name: 'New' })],
         [],
       ).customProjectOrder,
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['new-project'])
 
     expect(
@@ -547,7 +547,7 @@ describe('import-export ユーティリティ', () => {
         ],
         ['overwrite-project'],
       ).customProjectOrder,
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['overwrite-project', 'unordered-project'])
   })
 
@@ -577,7 +577,7 @@ describe('import-export ユーティリティ', () => {
       new Map(),
       'Missing custom project URL',
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(exportedUrls).toEqual([
       expect.objectContaining({
         savedAt: new Date('2026-02-16T00:03:00.000Z').getTime(),
@@ -626,13 +626,13 @@ describe('import-export ユーティリティ', () => {
       undefined,
     )
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(converted.urlIds).toEqual([
       'created-url-id',
       'created-url-id',
       'created-url-id',
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(converted.urlMetadata).toEqual({
       'created-url-id': {
         notes: 'note only',
@@ -665,7 +665,7 @@ describe('import-export ユーティリティ', () => {
         ],
       },
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(resolvedProjects).toEqual([
       expect.objectContaining({
         createdAt: new Date('2026-02-16T00:04:00.000Z').getTime(),
@@ -691,7 +691,7 @@ describe('import-export ユーティリティ', () => {
           savedTabs: [],
         },
       }),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual({
       activeConversationId: 'conversation-current',
       conversations: [currentConversation],
@@ -705,7 +705,7 @@ describe('import-export ユーティリティ', () => {
         parentCategories: [],
         savedTabs: [],
       }),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual({
       activeConversationId: '',
       conversations: [],
@@ -732,7 +732,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result).toEqual({
       activeAiChatConversationId: '',
       aiChatConversations: [],
@@ -785,7 +785,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.aiChatConversations).toEqual(aiChatConversations)
     expect(result.activeAiChatConversationId).toBe('conversation-2')
   })
@@ -866,7 +866,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjects).toEqual([
       {
         id: 'project-1',
@@ -912,7 +912,7 @@ describe('import-export ユーティリティ', () => {
         updatedAt: 13,
       },
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjectOrder).toEqual(['project-2', 'project-1'])
   })
 
@@ -972,9 +972,9 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjectOrder).toEqual(['edge-project'])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjects?.[0]).toEqual(
       expect.objectContaining({
         id: 'edge-project',
@@ -1011,7 +1011,7 @@ describe('import-export ユーティリティ', () => {
       }),
     )
     expect(result.savedTabs[0]?.urls).toHaveLength(3)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.urls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1090,7 +1090,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjects).toEqual([
       expect.objectContaining({
         id: 'legacy-project',
@@ -1138,7 +1138,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedAnalyticsViews).toEqual(savedAnalyticsViews)
   })
 
@@ -1266,13 +1266,13 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(backup), false)
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(importedStore.customProjectOrder).toEqual([
       'project-2',
       'custom-uncategorized',
       'project-1',
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(importedStore.customProjects).toEqual([
       buildCustomProject({
         id: 'project-2',
@@ -1420,7 +1420,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.savedAnalyticsViews).toEqual([
       importedAnalyticsView,
       addedAnalyticsView,
@@ -1458,7 +1458,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.savedAnalyticsViews).toEqual([importedAnalyticsView])
   })
 
@@ -1522,7 +1522,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.aiChatConversations).toEqual([
       importedConversation,
       addedConversation,
@@ -1604,7 +1604,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.aiChatConversations).toEqual([importedConversation])
     expect(store.activeAiChatConversationId).toBe('conversation-imported')
   })
@@ -1677,7 +1677,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedTabs[0]).toEqual(
       expect.objectContaining({
         id: 'group-1',
@@ -1720,7 +1720,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedTabs[0]).toEqual(
       expect.objectContaining({
         id: 'missing-group',
@@ -1741,7 +1741,7 @@ describe('import-export ユーティリティ', () => {
         ],
       }),
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.urls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1800,7 +1800,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedTabs[0]).toEqual(
       expect.objectContaining({
         urls: [{ url: 'https://legacy.example.com/ok', title: 'ok' }],
@@ -1841,7 +1841,7 @@ describe('import-export ユーティリティ', () => {
     const placeholderGroup = result.savedTabs.find(
       (tab) => tab.id === 'placeholder-no-savedat',
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(placeholderGroup?.urls?.[0]).toEqual(
       expect.objectContaining({
         url: 'https://placeholder-branch.example.com/#tabbin-export-missing-missing-no-savedat',
@@ -1852,7 +1852,7 @@ describe('import-export ユーティリティ', () => {
     const titlelessGroup = result.savedTabs.find(
       (tab) => tab.id === 'titleless-record-group',
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(titlelessGroup?.urls?.[0]).toEqual(
       expect.objectContaining({
         url: 'https://titleless-record.example.com/path',
@@ -1862,7 +1862,7 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('マージ済みプレースホルダーマップの has() が予期せず true を返しても処理できる', async () => {
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     const originalHas = Map.prototype.has
     let hasCallCount = 0
     using hasSpy = vi.spyOn(Map.prototype, 'has')
@@ -1935,27 +1935,27 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.parentCategories).toEqual([])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedTabs).toEqual([])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.urls).toEqual([])
     expect(result.activeAiChatConversationId).toBe('')
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.aiChatConversations).toEqual([])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjectOrder).toEqual([])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjects).toEqual([])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedAnalyticsViews).toEqual([])
   })
 
   it('downloadAsJson は一時的なアンカーを作成してクリーンアップする', () => {
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     const originalCreateObjectUrl = URL.createObjectURL
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     const originalRevokeObjectUrl = URL.revokeObjectURL
     const createObjectUrl = vi.fn(() => 'blob:mock-url')
     const revokeObjectUrl = vi.fn()
@@ -2014,7 +2014,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await importSettings(JSON.stringify({ foo: 'bar' }))
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result).toEqual({
       success: false,
       message: 'インポートされたデータの形式が正しくありません',
@@ -2028,7 +2028,7 @@ describe('import-export ユーティリティ', () => {
 
     const result = await importSettings('{malformed-json')
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result).toEqual({
       success: false,
       message: 'データのインポート中にエラーが発生しました',
@@ -2041,14 +2041,14 @@ describe('import-export ユーティリティ', () => {
 
     await expect(
       importSettings(JSON.stringify({ foo: 'bar' }), true, translate),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).resolves.toEqual({
       success: false,
       message: 'translated:options.importExport.importFormatError',
     })
     await expect(
       importSettings('{malformed-json', true, translate),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).resolves.toEqual({
       success: false,
       message: 'translated:options.importExport.importError',
@@ -2155,7 +2155,7 @@ describe('import-export ユーティリティ', () => {
       }),
     )
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(valid).toEqual({
       success: true,
       message: 'データの解析に成功しました',
@@ -2169,12 +2169,12 @@ describe('import-export ユーティリティ', () => {
         version: '7.0.0',
       },
     })
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(getImportPreview(JSON.stringify({ foo: 'bar' }))).toEqual({
       success: false,
       message: 'インポートされたデータの形式が正しくありません',
     })
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(getImportPreview('{malformed-json')).toEqual({
       success: false,
       message: 'データの解析中にエラーが発生しました',
@@ -2192,7 +2192,7 @@ describe('import-export ユーティリティ', () => {
       }),
     )
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.preview).toEqual(
       expect.objectContaining({
         hasAiChat: false,
@@ -2249,12 +2249,12 @@ describe('import-export ユーティリティ', () => {
       customProjectOrder?: string[]
       customProjects?: CustomProject[]
     }
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(payload.customProjectOrder).toEqual([
       'legacy-urlids-project',
       'empty-urlids-project',
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(payload.customProjects).toEqual([
       expect.objectContaining({
         id: 'legacy-urlids-project',
@@ -2299,7 +2299,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([])
     expect(store.activeAiChatConversationId).toBe('conversation-current')
     expect(store.aiChatConversations).toHaveLength(1)
@@ -2366,7 +2366,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'restored-group',
@@ -2440,7 +2440,7 @@ describe('import-export ユーティリティ', () => {
     })
     vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
     vi.mocked(createOrUpdateUrlRecord).mockImplementation(
-// eslint-disable-next-line typescript/require-await
+      // eslint-disable-next-line typescript/require-await
       async (url: string, title: string) => ({
         id: url.includes('imported-project')
           ? 'imported-project-url'
@@ -2635,7 +2635,7 @@ describe('import-export ユーティリティ', () => {
 
     let urlsGetCount = 0
     get.mockImplementation(
-// eslint-disable-next-line typescript/require-await
+      // eslint-disable-next-line typescript/require-await
       async (keys?: string | string[] | Record<string, unknown>) => {
         if (isUrlsDefaultRequest(keys)) {
           urlsGetCount += 1
@@ -2685,7 +2685,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'raw-fallback-group',
@@ -2696,16 +2696,17 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(
-      set.mock.calls.some(([payload]) => // eslint-disable-line
+      set.mock.calls.some(([payload]) =>
+        // eslint-disable-line
         Boolean(
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+          // eslint-disable-next-line typescript/no-unnecessary-type-assertion
           (payload as Record<string, unknown>)?.urls &&
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+          // eslint-disable-next-line typescript/no-unnecessary-type-assertion
           Array.isArray((payload as Record<string, unknown>).urls) &&
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+          // eslint-disable-next-line typescript/no-unnecessary-type-assertion
           ((payload as Record<string, unknown>).urls as unknown[]).some(
             (record) =>
-// eslint-disable-next-line typescript/prefer-optional-chain
+              // eslint-disable-next-line typescript/prefer-optional-chain
               typeof record === 'object' &&
               record !== null &&
               (record as { id?: string }).id === 'raw-fallback-id',
@@ -2752,7 +2753,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'empty-group',
@@ -2939,7 +2940,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'existing-group',
@@ -3017,7 +3018,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         urlIds: ['dup-id'],
@@ -3073,7 +3074,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         categoryKeywords: [{ categoryName: 'edge', keywords: [] }],
@@ -3144,7 +3145,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         subCategories: ['ExistingA', 'ExistingB', 'ImportedB', 'ImportedA'],
@@ -3161,7 +3162,7 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('merge モードでは has() 後の keyword map 参照が undefined を返しても処理できる', async () => {
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     const originalGet = Map.prototype.get
     using getSpy = vi.spyOn(Map.prototype, 'get')
     getSpy.mockImplementation((key: unknown) => {
@@ -3172,7 +3173,7 @@ describe('import-export ユーティリティ', () => {
         unknown,
         unknown
       >
-// eslint-disable-next-line typescript/consistent-return
+      // eslint-disable-next-line typescript/consistent-return
       return originalGet.call(context, key)
     })
 
@@ -3370,7 +3371,7 @@ describe('import-export ユーティリティ', () => {
 
     const savedCategoryArg = vi.mocked(saveParentCategories).mock.calls[0]?.[0]
     expect(savedCategoryArg).toHaveLength(2)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedCategoryArg).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -3398,7 +3399,7 @@ describe('import-export ユーティリティ', () => {
     const mergedExisting = savedTabsArg.find(
       (tab) => tab.domain === 'https://existing.example.com',
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(mergedExisting).toEqual(
       expect.objectContaining({
         id: 'group-1',
@@ -3407,24 +3408,24 @@ describe('import-export ユーティリティ', () => {
         savedAt: 50,
       }),
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(mergedExisting?.urlIds).toEqual([
       'url-existing',
       'url-imported-existing',
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(mergedExisting?.urlSubCategories).toEqual({
       'url-existing': 'OldSub',
       'url-imported-existing': 'ImportedSub',
     })
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(mergedExisting?.subCategories).toEqual([
       'ExistingObjSub',
       'ExistingStrSub',
       'ImportedObjSub',
       'ImportedStringSub',
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(mergedExisting?.categoryKeywords).toEqual([
       { categoryName: 'news', keywords: ['old', 'new'] },
       { categoryName: 'tech', keywords: ['ai'] },
@@ -3433,7 +3434,7 @@ describe('import-export ユーティリティ', () => {
     const mergedNewDomain = savedTabsArg.find(
       (tab) => tab.domain === 'https://new.example.com',
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(mergedNewDomain).toEqual(
       expect.objectContaining({
         id: 'imported-new-group',
@@ -3565,7 +3566,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'current-project',
@@ -3599,7 +3600,7 @@ describe('import-export ユーティリティ', () => {
         updatedAt: expect.any(Number),
       }),
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjectOrder).toEqual([
       'current-project',
       'imported-project',
@@ -3716,7 +3717,7 @@ describe('import-export ユーティリティ', () => {
       },
     )
     expect(createOrUpdateUrlRecord).not.toHaveBeenCalled()
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'project-a',
@@ -3834,7 +3835,7 @@ describe('import-export ユーティリティ', () => {
       unknown
     >[]
     expect(savedTabsArg).toHaveLength(1)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'replace-group',
@@ -3846,7 +3847,7 @@ describe('import-export ユーティリティ', () => {
         savedAt: 999,
       }),
     )
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(set.mock.calls[0]?.[0]?.customProjects).toEqual([
       buildCustomProject({
         id: 'custom-uncategorized',
@@ -3953,7 +3954,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'restored-project',
@@ -3971,7 +3972,7 @@ describe('import-export ユーティリティ', () => {
         updatedAt: 21,
       }),
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjectOrder).toEqual(['restored-project'])
   })
 
@@ -4045,7 +4046,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'project-from-urlids',
@@ -4112,7 +4113,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'project-with-failed-url',
@@ -4228,7 +4229,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'project-main',
@@ -4254,7 +4255,7 @@ describe('import-export ユーティリティ', () => {
         updatedAt: 13,
       }),
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjectOrder).toEqual([
       'project-main',
       'custom-uncategorized',
@@ -4392,7 +4393,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'current-project',
@@ -4435,7 +4436,7 @@ describe('import-export ユーティリティ', () => {
         updatedAt: expect.any(Number),
       }),
     ])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjectOrder).toEqual([
       'current-project',
       'project-main',
@@ -4488,9 +4489,9 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjectOrder).toEqual(['custom-uncategorized'])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'custom-uncategorized',
@@ -4625,7 +4626,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         subCategories: ['ObjSub', 'StrSub'],
@@ -4685,7 +4686,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         subCategories: ['Alpha', 'Beta'],
@@ -4733,7 +4734,7 @@ describe('import-export ユーティリティ', () => {
       string,
       unknown
     >[]
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'minimal-group',

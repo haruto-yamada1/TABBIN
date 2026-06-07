@@ -11,7 +11,7 @@ const mocked = vi.hoisted(() => ({
 }))
 
 vi.mock('recharts', () => {
-// eslint-disable-next-line react/display-name
+  // eslint-disable-next-line react/display-name
   const passthrough =
     (testId: string) =>
     ({ children }: { children?: React.ReactNode }) => (
@@ -34,7 +34,7 @@ vi.mock('recharts', () => {
       )
     },
     CartesianGrid: passthrough('cartesian-grid'),
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     Cell: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     Line: passthrough('line'),
     LineChart: passthrough('line-chart'),
@@ -110,7 +110,7 @@ describe('AiChartRenderer', () => {
   })
 
   it('pie chart を描画する', async () => {
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AiChartRenderer charts={[PIE_SPEC]} />)
 
     await expect(screen.findByTestId('pie')).resolves.toBeTruthy()
@@ -151,7 +151,7 @@ describe('AiChartRenderer', () => {
       xKey: 'label',
     }
 
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AiChartRenderer charts={[barSpec]} />)
 
     await expect(screen.findByTestId('bar-chart')).resolves.toBeTruthy()
@@ -182,7 +182,7 @@ describe('AiChartRenderer', () => {
 
     render(
       <AiChartRenderer
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         charts={[barSpec]}
         onChartPointClick={handleChartPointClick}
       />,
@@ -230,7 +230,7 @@ describe('AiChartRenderer', () => {
 
     render(
       <AiChartRenderer
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         charts={[barSpec]}
         onChartPointClick={handleChartPointClick}
       />,

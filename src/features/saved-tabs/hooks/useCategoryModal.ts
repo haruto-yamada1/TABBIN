@@ -205,7 +205,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       z
         .string()
         .min(1, t('savedTabs.categoryModal.validation.empty'))
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         .max(25, t('savedTabs.categoryModal.validation.maxLength'))
         .safeParse(value),
     [t],
@@ -218,8 +218,8 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       const categoryDomainNames =
         category === 'uncategorized'
           ? null
-// eslint-disable-next-line unicorn/no-useless-collection-argument
-          : new Set(category.domainNames ?? [])
+          : // eslint-disable-next-line unicorn/no-useless-collection-argument
+            new Set(category.domainNames ?? [])
       for (const group of tabGroups) {
         if (category === 'uncategorized') {
           newSelectedDomains[group.id] = !domainCategories[group.id]
@@ -253,7 +253,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
         toast.error(t('savedTabs.categoryModal.loadError'))
       }
     }
-// eslint-disable-next-line typescript/no-floating-promises
+    // eslint-disable-next-line typescript/no-floating-promises
     loadCategories()
   }, [t, tabGroups])
 
@@ -354,7 +354,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       if (e.key === 'Enter') {
         e.preventDefault()
         if (newCategoryName.trim() && !nameError && !isLoading) {
-// eslint-disable-next-line typescript/no-floating-promises
+          // eslint-disable-next-line typescript/no-floating-promises
           handleCreateCategory()
         }
       }
@@ -365,7 +365,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   // --- フォーカスアウトハンドラ ---
   const handleBlur = useCallback(() => {
     if (newCategoryName.trim() && !nameError && !isLoading) {
-// eslint-disable-next-line typescript/no-floating-promises
+      // eslint-disable-next-line typescript/no-floating-promises
       handleCreateCategory()
     }
   }, [newCategoryName, nameError, isLoading, handleCreateCategory])

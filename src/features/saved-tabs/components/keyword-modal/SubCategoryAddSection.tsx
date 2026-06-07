@@ -22,18 +22,18 @@ export const SubCategoryAddSection = () => {
           onChange={subcategory.handleSubCategoryNameChange}
           placeholder={t('savedTabs.subCategory.addPlaceholder')}
           className={`grow rounded border p-2 ${subcategory.subCategoryNameError ? 'border-red-500' : ''}`}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
-// eslint-disable-next-line typescript/no-floating-promises
+              // eslint-disable-next-line typescript/no-floating-promises
               subcategory.handleAddSubCategory()
             }
           }}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onBlur={() => {
             if (subcategory.newSubCategory.trim()) {
-// eslint-disable-next-line typescript/no-floating-promises
+              // eslint-disable-next-line typescript/no-floating-promises
               subcategory.handleAddSubCategory()
             }
           }}

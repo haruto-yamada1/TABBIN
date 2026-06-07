@@ -111,7 +111,7 @@ function makeSurfaceReadyProject() {
 }
 
 describe('harness pure helpers', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('fallback 表示と score/path 正規化を扱う', () => {
     const { projectRoot, runDir } = makeProject()
     writeFileSync(
@@ -124,9 +124,9 @@ describe('harness pure helpers', () => {
       ].join('\n'),
     )
 
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(listLines([], '空です')).toEqual(['- 空です'])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(listLines(['a'], '空です')).toEqual(['- a'])
     expect(oneLine(null)).toBeNull()
     expect(oneLine('a\n  b')).toBe('a b')
@@ -139,7 +139,7 @@ describe('harness pure helpers', () => {
         issues: [],
         ok: true,
       } as never),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['- schema 検証は通過しました。'])
     expect(
       collectLearningCandidates({
@@ -153,7 +153,7 @@ describe('harness pure helpers', () => {
           status: 'changes_requested',
         },
       } as never),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([
       'summary なし - 再発する場合は follow-up issue または `.apm/instructions` への追記を検討する。',
       '明示 finding - 再発する場合は follow-up issue または `.apm/instructions` への追記を検討する。',
@@ -164,7 +164,7 @@ describe('harness pure helpers', () => {
           status: 'changes_requested',
         },
       } as never),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
     expect(
       collectLearningCandidates({
@@ -177,9 +177,9 @@ describe('harness pure helpers', () => {
           status: 'approved',
         },
       } as never),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(readGovernanceLearningCandidates(runDir)).toEqual([
       {
         source: 'governance:manual',
@@ -201,7 +201,7 @@ describe('harness pure helpers', () => {
           status: 'covered',
         },
       ] as never),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual({
       maxScore: 30,
       overallScore: 5,
@@ -229,7 +229,7 @@ describe('harness pure helpers', () => {
           },
         ] as never,
       ),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([
       '[No evidence] undefined を確認し、source-of-truth から不足を補う。',
       '[A] 証跡 を確認し、source-of-truth から不足を補う。',
@@ -237,7 +237,7 @@ describe('harness pure helpers', () => {
     ])
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('ACTIVE がない governance 記録は harness root へ書き込む', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
@@ -259,13 +259,13 @@ describe('harness pure helpers', () => {
 })
 
 describe('harnessState utility helpers', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('getErrorMessage は Error 以外の throw 値も文字列化する', () => {
     expect(getErrorMessage(new Error('read failed'))).toBe('read failed')
     expect(getErrorMessage('plain failure')).toBe('plain failure')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('validateJsonSchema は required 未指定と追加プロパティ許可を扱う', () => {
     expect(
       validateJsonSchema(
@@ -282,20 +282,20 @@ describe('harnessState utility helpers', () => {
           },
         },
       ),
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
   })
 })
 
 describe('validateHarnessRun', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('ACTIVE がない場合は検証エラーを返す', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
     const result = validateHarnessRun({ projectRoot })
 
     expect(result.ok).toBe(false)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual([
       expect.objectContaining({
         file: 'ACTIVE',
@@ -304,7 +304,7 @@ describe('validateHarnessRun', () => {
     ])
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('run directory がない場合は検証エラーを返す', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     mkdirSync(path.join(projectRoot, '.agents/harness'), { recursive: true })
@@ -314,7 +314,7 @@ describe('validateHarnessRun', () => {
 
     expect(result.ok).toBe(false)
     expect(result.runId).toBe('missing')
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual([
       expect.objectContaining({
         file: 'run',
@@ -323,14 +323,14 @@ describe('validateHarnessRun', () => {
     ])
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('状態ファイルがない run を検出する', () => {
     const { projectRoot } = makeProject()
 
     const result = validateHarnessRun({ projectRoot })
 
     expect(result.ok).toBe(false)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual([
       expect.objectContaining({
         file: 'run',
@@ -339,7 +339,7 @@ describe('validateHarnessRun', () => {
     ])
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('壊れた JSON と未定義フィールドを検出する', () => {
     const { projectRoot, runDir } = makeProject()
     writeFileSync(path.join(runDir, 'generator.json'), '{')
@@ -354,7 +354,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot })
 
     expect(result.ok).toBe(false)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -369,7 +369,7 @@ describe('validateHarnessRun', () => {
     )
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('ネストした verification / finding / checklist の不正を検出する', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'evaluator.json'), {
@@ -402,7 +402,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot })
 
     expect(result.ok).toBe(false)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -421,7 +421,7 @@ describe('validateHarnessRun', () => {
     )
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('有効な generator / evaluator / decision 状態を検証できる', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'generator.json'), {
@@ -462,12 +462,12 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot, runId: 'run-1' })
 
     expect(result.ok).toBe(true)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual([])
     expect(result.runId).toBe('run-1')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('orchestrator 状態を schema 検証できる', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'orchestrator.json'), {
@@ -500,7 +500,7 @@ describe('validateHarnessRun', () => {
     expect(result.ok).toBe(true)
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('必須フィールド不足と未許可 status を検出する', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'generator.json'), {
@@ -512,7 +512,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot, runId: 'run-1' })
 
     expect(result.ok).toBe(false)
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -529,7 +529,7 @@ describe('validateHarnessRun', () => {
 })
 
 describe('buildHarnessStatusMarkdown', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('ACTIVE run がない場合の状態を出力する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
@@ -538,7 +538,7 @@ describe('buildHarnessStatusMarkdown', () => {
     expect(markdown).toContain('ACTIVE run はありません')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('task と JSON object がない状態を未記録として扱う', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     const runDir = path.join(projectRoot, '.agents/harness/runs/run-empty')
@@ -555,7 +555,7 @@ describe('buildHarnessStatusMarkdown', () => {
     expect(markdown).toContain('Generator: 未記録')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('状態と指摘が未記録の run を Markdown で出力する', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'generator.json'), {
@@ -581,7 +581,7 @@ describe('buildHarnessStatusMarkdown', () => {
     expect(markdown).toContain('指摘なし')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('ACTIVE run の portable handoff を Markdown で出力する', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'generator.json'), {
@@ -623,7 +623,7 @@ describe('buildHarnessStatusMarkdown', () => {
     expect(markdown).toContain('bun run harness:validate')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('欠損した summary / next_action / verification / finding を fallback 表示する', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'orchestrator.json'), {
@@ -689,7 +689,7 @@ describe('buildHarnessStatusMarkdown', () => {
 })
 
 describe('buildHarnessAudit', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('ACTIVE がない場合の schema エラーを監査に含める', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
@@ -699,7 +699,7 @@ describe('buildHarnessAudit', () => {
     expect(audit).toContain('変更ファイルなし')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('git status から未追跡ファイルを監査に含める', () => {
     const { projectRoot, runDir } = makeProject()
     execFileSync('git', ['init'], { cwd: projectRoot, stdio: 'ignore' })
@@ -717,7 +717,7 @@ describe('buildHarnessAudit', () => {
     expect(audit).toContain('src/new-file.ts')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('変更ファイル、検証証跡、学習候補を一覧化する', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'generator.json'), {
@@ -757,7 +757,7 @@ describe('buildHarnessAudit', () => {
     expect(audit).toContain('再発防止が必要')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('approved Evaluator では学習候補なしとして扱う', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'generator.json'), {
@@ -787,7 +787,7 @@ describe('buildHarnessAudit', () => {
 })
 
 describe('initializeHarnessRun', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('run ディレクトリと Orchestrator / Planner / Generator 初期状態を作る', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
@@ -828,7 +828,7 @@ describe('initializeHarnessRun', () => {
 })
 
 describe('high fidelity harness commands', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('plan / evaluate / checkpoint / learn が状態ファイルを更新する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     const result = initializeHarnessRun({
@@ -873,7 +873,7 @@ describe('high fidelity harness commands', () => {
     expect(validateHarnessRun({ projectRoot }).ok).toBe(true)
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('plan は orchestrator がなくてもデフォルトの planner 状態を作る', () => {
     const { projectRoot, runDir } = makeProject()
 
@@ -886,7 +886,7 @@ describe('high fidelity harness commands', () => {
     expect(existsSync(path.join(runDir, 'orchestrator.json'))).toBe(false)
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('plan は既存 orchestrator の fallback 値を保持して更新する', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'orchestrator.json'), {
@@ -905,17 +905,17 @@ describe('high fidelity harness commands', () => {
       readFileSync(path.join(runDir, 'orchestrator.json'), 'utf8'),
     ) as {
       agents: unknown[]
-// eslint-disable-next-line typescript/array-type
+      // eslint-disable-next-line typescript/array-type
       plan: Array<{ owner: string; title: string }>
       summary: string
       verification: unknown[]
     }
     expect(orchestrator.summary).toBe('Planner を更新した。')
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(orchestrator.agents).toEqual([])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(orchestrator.verification).toEqual([])
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(orchestrator.plan).toEqual([
       expect.objectContaining({
         owner: 'harness-generator',
@@ -928,7 +928,7 @@ describe('high fidelity harness commands', () => {
     ])
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('checkpoint は既存 generator がない場合も既定値で証跡を作る', () => {
     const { projectRoot, runDir } = makeProject()
 
@@ -947,7 +947,7 @@ describe('high fidelity harness commands', () => {
     expect(generator.next_action).toContain('次の実装')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('checkpoint は既存 generator の summary と next_action を引き継ぐ', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'generator.json'), {
@@ -985,7 +985,7 @@ describe('high fidelity harness commands', () => {
     expect(generator.verification).toHaveLength(2)
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('evaluate は既定の fresh-context 指示を evaluator に書く', () => {
     const { projectRoot, runDir } = makeProject()
 
@@ -996,7 +996,7 @@ describe('high fidelity harness commands', () => {
     )
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('learn は evaluator findings と governance から target を分類する', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'evaluator.json'), {
@@ -1053,7 +1053,7 @@ describe('high fidelity harness commands', () => {
     expect(learning).toContain('governance:manual')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('learn は evaluator がない run でも governance 候補を書ける', () => {
     const { projectRoot, runDir } = makeProject()
     writeFileSync(
@@ -1067,7 +1067,7 @@ describe('high fidelity harness commands', () => {
     expect(learning).toContain('manual follow-up issue')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('ACTIVE が空または run directory がない command は実行前に失敗する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     mkdirSync(path.join(projectRoot, '.agents/harness'), { recursive: true })
@@ -1090,7 +1090,7 @@ describe('high fidelity harness commands', () => {
     ).toThrow('.agents/harness/ACTIVE')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('surface audit は deterministic scorecard と APM 同期観点を出力する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     mkdirSync(path.join(projectRoot, '.apm/instructions'), { recursive: true })
@@ -1118,7 +1118,7 @@ describe('high fidelity harness commands', () => {
     expect(audit).toContain('.agents/skills/manual-only/SKILL.md')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('surface audit は score と top actions を出力する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     mkdirSync(path.join(projectRoot, '.apm/skills/harness-evaluator'), {
@@ -1140,7 +1140,7 @@ describe('high fidelity harness commands', () => {
     expect(audit).toContain('Security Guardrails')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('surface audit は ACTIVE run がない場合 schema を not_applicable と表示する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
@@ -1151,7 +1151,7 @@ describe('high fidelity harness commands', () => {
     expect(audit).toContain('- schema: not_applicable')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('surface audit は package scripts がない package.json を扱う', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     writeFileSync(path.join(projectRoot, 'package.json'), '{}\n')
@@ -1161,7 +1161,7 @@ describe('high fidelity harness commands', () => {
     expect(audit).toContain('Quality Gates')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('surface audit は完全な surface を ready scorecard として run に保存する', () => {
     const projectRoot = makeSurfaceReadyProject()
     const { runDirectory } = initializeHarnessRun({
@@ -1176,7 +1176,7 @@ describe('high fidelity harness commands', () => {
     ) as {
       next_action: string
       status: string
-// eslint-disable-next-line typescript/array-type
+      // eslint-disable-next-line typescript/array-type
       verification: Array<{ status: string }>
     }
 
@@ -1186,7 +1186,7 @@ describe('high fidelity harness commands', () => {
     expect(scorecard.verification[0]?.status).toBe('passed')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('surface audit は source と security の指摘を scorecard に保存する', () => {
     const projectRoot = makeSurfaceReadyProject()
     const { runDirectory } = initializeHarnessRun({
@@ -1211,17 +1211,17 @@ describe('high fidelity harness commands', () => {
     const scorecard = JSON.parse(
       readFileSync(path.join(runDirectory, 'scorecard.json'), 'utf8'),
     ) as {
-// eslint-disable-next-line typescript/array-type
+      // eslint-disable-next-line typescript/array-type
       categories: Array<{ findings?: string[]; name: string }>
       status: string
       top_actions: string[]
-// eslint-disable-next-line typescript/array-type
+      // eslint-disable-next-line typescript/array-type
       verification: Array<{ status: string }>
     }
 
     expect(audit).toContain('generated artifact に手編集')
     expect(scorecard.status).toBe('changes_requested')
-// eslint-disable-next-line vitest/prefer-strict-equal
+    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(scorecard.top_actions).toEqual(
       expect.arrayContaining([expect.stringContaining('Source-of-truth Sync')]),
     )
@@ -1230,11 +1230,11 @@ describe('high fidelity harness commands', () => {
       scorecard.categories.find(
         (category) => category.name === 'Security Guardrails',
       )?.findings,
-// eslint-disable-next-line vitest/prefer-strict-equal
+      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([expect.stringContaining('inline eval')])
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('security audit は agent surface の危険な設定を検出する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     mkdirSync(path.join(projectRoot, '.apm/hooks/scripts'), { recursive: true })
@@ -1258,7 +1258,7 @@ describe('high fidelity harness commands', () => {
     expect(audit).toContain('risky-skill')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('security audit は heredoc 内の curl を除外し、実行面の secret を検出する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     mkdirSync(path.join(projectRoot, '.apm/hooks/scripts'), { recursive: true })
@@ -1290,7 +1290,7 @@ describe('high fidelity harness commands', () => {
     expect(audit).not.toContain('in-docs')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('security audit は finding なしなら passed として出力する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
@@ -1300,7 +1300,7 @@ describe('high fidelity harness commands', () => {
     expect(audit).toContain('危険な agent surface は検出されませんでした。')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('repo status は ACTIVE run がなくても readiness を出力する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
@@ -1311,7 +1311,7 @@ describe('high fidelity harness commands', () => {
     expect(status).toContain('readiness')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('repo status は完全な surface と有効な ACTIVE run を ready として出力する', () => {
     const projectRoot = makeSurfaceReadyProject()
     initializeHarnessRun({
@@ -1328,7 +1328,7 @@ describe('high fidelity harness commands', () => {
     expect(status).toContain('追加アクションなし')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('repo status は壊れた ACTIVE run を schema invalid として出力する', () => {
     const projectRoot = makeSurfaceReadyProject()
     const runDir = path.join(projectRoot, '.agents/harness/runs/run-invalid')
@@ -1345,7 +1345,7 @@ describe('high fidelity harness commands', () => {
     expect(status).toContain('schema: invalid')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('surface audit は package.json 破損、APM source 欠落、壊れた skill symlink を扱う', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     mkdirSync(path.join(projectRoot, '.agents/skills'), { recursive: true })
@@ -1365,7 +1365,7 @@ describe('high fidelity harness commands', () => {
     expect(audit).toContain('Quality Gates')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('profile は hook / agent / command の運用面を出力する', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 
@@ -1376,7 +1376,7 @@ describe('high fidelity harness commands', () => {
     expect(profile).toContain('hook から Evaluator は起動しません')
   })
 
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('CLI は追加 command surface を実行できる', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
     const cli = harnessCliPath()
@@ -1449,7 +1449,7 @@ describe('high fidelity harness commands', () => {
 })
 
 describe('writeHarnessStatusSnapshot', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('status snapshot を Markdown ファイルへ書き出す', () => {
     const { projectRoot, runDir } = makeProject()
     writeJson(path.join(runDir, 'orchestrator.json'), {
@@ -1470,7 +1470,7 @@ describe('writeHarnessStatusSnapshot', () => {
 })
 
 describe('recordHarnessGovernanceEvent', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('governance event を active run に追記する', () => {
     const { projectRoot } = makeProject()
 
@@ -1490,7 +1490,7 @@ describe('recordHarnessGovernanceEvent', () => {
 })
 
 describe('writeHarnessSchemaFiles', () => {
-// eslint-disable-next-line vitest/consistent-test-it
+  // eslint-disable-next-line vitest/consistent-test-it
   test('schema ファイルを .apm/harness/schemas に書き出す', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
 

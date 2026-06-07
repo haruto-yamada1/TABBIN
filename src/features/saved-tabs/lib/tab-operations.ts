@@ -59,7 +59,7 @@ const updateDomainCategoryMappingIfNeeded = async (
 export const handleTabGroupRemoval = async (groupId: string): Promise<void> => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
     const groupToRemove = savedTabs.find(
@@ -72,9 +72,9 @@ export const handleTabGroupRemoval = async (groupId: string): Promise<void> => {
     await Promise.all([
       updateDomainCategorySettings(
         groupToRemove.domain,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         groupToRemove.subCategories || [],
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         groupToRemove.categoryKeywords || [],
       ),
       ensureDomainNameInParentCategory(groupToRemove),
@@ -99,7 +99,7 @@ export const safelyUpdateGroupUrls = async (
   try {
     // ローカルストレージからタブを取得
     const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+      // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
 
@@ -116,7 +116,7 @@ export const safelyUpdateGroupUrls = async (
     }
 
     // グループ内のURLが空になる場合でも、グループ自体は維持（表示はしない）
-// eslint-disable-next-line oxc/no-map-spread
+    // eslint-disable-next-line oxc/no-map-spread
     const updatedTabs = savedTabs.map((tab: TabGroup) => {
       if (tab.id === groupId) {
         return {
@@ -162,7 +162,7 @@ export const safelyUpdateGroupUrls = async (
         .then(callback)
         .catch(() => {})
     }
-// eslint-disable-next-line eslint/no-useless-return
+    // eslint-disable-next-line eslint/no-useless-return
     return
   } catch (error) {
     console.error('タブ更新エラー:', error)

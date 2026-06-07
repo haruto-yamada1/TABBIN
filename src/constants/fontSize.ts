@@ -10,11 +10,11 @@ export const normalizeFontSizePercent = (value?: number): number => {
 
   return Math.min(
     MAX_FONT_SIZE_PERCENT,
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
     Math.max(MIN_FONT_SIZE_PERCENT, Math.round(value as number)),
   )
 }
 
 export const toFontScaleValue = (value?: number): string =>
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   String(normalizeFontSizePercent(value) / 100)

@@ -112,7 +112,7 @@ const DataSurfaces = () => (
         <Context
           maxTokens={128_000}
           modelId='openai/gpt-4.1-mini'
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
           usage={{ inputTokens: 8200, outputTokens: 1200 } as never}
           usedTokens={18_400}
         >
@@ -186,7 +186,7 @@ const DataSurfaces = () => (
         <SchemaDisplay
           description='Creates or updates a saved-tab review batch.'
           method='POST'
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           parameters={[
             {
               description: 'Workspace id',
@@ -197,7 +197,7 @@ const DataSurfaces = () => (
             },
           ]}
           path='/api/workspaces/{workspaceId}/review-batches'
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           requestBody={[
             {
               description: 'Model to use',
@@ -212,7 +212,7 @@ const DataSurfaces = () => (
               type: 'array',
             },
           ]}
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           responseBody={[
             {
               description: 'Review batch id',
@@ -326,7 +326,7 @@ const DataSurfaces = () => (
           </InlineCitationText>
           <InlineCitationCard>
             <InlineCitationCardTrigger
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+              // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
               sources={[
                 'https://tabbin.app/blog/storybook-workflow',
                 'https://docs.storybook.js.org',
@@ -357,7 +357,7 @@ const DataSurfaces = () => (
         </InlineCitation>
 
         <JSXPreview
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           bindings={{ count: 12 }}
           className='gap-y-3 rounded-lg border p-3'
           jsx='<div><strong>{count}</strong> saved tabs ready for review.</div>'

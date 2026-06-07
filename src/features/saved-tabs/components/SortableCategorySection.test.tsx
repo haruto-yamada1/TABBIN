@@ -415,7 +415,7 @@ describe('SortableCategorySection', () => {
   })
 
   it('confirmDeleteAll=true の削除確認ダイアログとエラーハンドリングを処理する', async () => {
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     const handleDeleteAllTabs = vi.fn(async () => {
       throw new Error('boom')
     })
@@ -458,23 +458,23 @@ describe('SortableCategorySection', () => {
     )
     expect(screen.queryByTestId('category-section')).toBeNull()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()
     })
     expect(screen.queryByTestId('category-section')).toBeNull()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragEnd?.()
     })
     expect(screen.queryByTestId('category-section')).toBeNull()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()
     })
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragCancel?.()
     })
@@ -517,19 +517,19 @@ describe('SortableCategorySection', () => {
       }),
     ).toBeTruthy()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()
     })
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragEnd?.()
     })
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()
     })
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragCancel?.()
     })

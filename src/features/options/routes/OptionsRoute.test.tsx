@@ -59,14 +59,14 @@ vi.mock('@/components/ui/select', () => ({
   }) => (
     <select
       aria-label='click-behavior'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onValueChange?.(event.target.value)}
       value={value}
     >
       {children}
     </select>
   ),
-// eslint-disable-next-line react/jsx-no-useless-fragment
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   SelectContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
   SelectItem: ({
     children,
@@ -75,10 +75,10 @@ vi.mock('@/components/ui/select', () => ({
     children?: ReactNode
     value: string
   }) => <option value={value}>{children}</option>,
-// eslint-disable-next-line react/jsx-no-useless-fragment
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   SelectTrigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
   SelectValue: ({ placeholder }: { placeholder?: string }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{placeholder}</>
   ),
 }))
@@ -93,11 +93,11 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
-// eslint-disable-next-line jsx-a11y/control-has-associated-label
+    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       checked={Boolean(checked)}
       id={id}
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onCheckedChange?.(event.target.checked)}
       type='checkbox'
     />
@@ -113,7 +113,7 @@ vi.mock('@/features/options/hooks/useColorSettings', () => ({
 
 vi.mock('@/features/options/hooks/useSettings', () => ({
   useSettings: () => ({
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     addExcludePattern: vi.fn(async () => false),
     excludePatternInput: '',
     handleExcludePatternInputChange: vi.fn(),
@@ -247,7 +247,7 @@ describe('OptionsRoute', () => {
     expect((input as HTMLInputElement).value).toBe('100')
   })
 
-// eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await
   it('updates behavior, color, reset, exclude removal, and external links', async () => {
     render(<OptionsRoute />)
 
@@ -302,8 +302,10 @@ describe('OptionsRoute', () => {
 
     render(<OptionsRoute />)
 
-// eslint-disable-next-line typescript/TS2339
-    expect((screen.getByLabelText('click-behavior') as HTMLInputElement).value).toBe('saveWindowTabs')
+    // eslint-disable-next-line typescript/TS2339
+    expect(
+      (screen.getByLabelText('click-behavior') as HTMLInputElement).value,
+    ).toBe('saveWindowTabs')
     expect(screen.getByText('options.excludePatterns.empty')).toBeTruthy()
   })
 })

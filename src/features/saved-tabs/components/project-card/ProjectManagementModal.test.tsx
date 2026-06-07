@@ -21,10 +21,10 @@ const projectManagementModalI18nState = vi.hoisted(() => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-// eslint-disable-next-line react/jsx-no-useless-fragment
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -43,7 +43,7 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='dialog-root'>
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onOpenChange?.(false)} type='button'>
         dialog-close
       </button>
@@ -63,7 +63,7 @@ vi.mock('@/components/ui/dialog', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -197,11 +197,11 @@ describe('ProjectManagementModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '名前を変更' }))
     flushAnimationFrames()
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     const initialFocusCalls = vi.mocked(HTMLInputElement.prototype.focus).mock
       .calls.length
     expect(initialFocusCalls).toBeGreaterThan(0)
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     expect(HTMLInputElement.prototype.select).toHaveBeenCalledTimes(1)
 
     const input = screen.getByPlaceholderText('例: ウェブサイトリニューアル')
@@ -209,7 +209,7 @@ describe('ProjectManagementModal', () => {
     expect(screen.getByText('プロジェクト名を入力してください')).toBeTruthy()
 
     fireEvent.blur(input)
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     expect(vi.mocked(HTMLInputElement.prototype.focus).mock.calls.length).toBe(
       initialFocusCalls + 1,
     )

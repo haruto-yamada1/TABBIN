@@ -69,7 +69,7 @@ interface CategoryLookup {
 }
 type RefreshTabGroupsWithUrls = (
   groups: TabGroup[],
-// eslint-disable-next-line typescript/no-invalid-void-type
+  // eslint-disable-next-line typescript/no-invalid-void-type
 ) => Promise<TabGroup[]> | TabGroup[] | Promise<void> | void
 const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
   Array.isArray(value) ? value : undefined
@@ -197,7 +197,7 @@ const showOpenedUrlsUndoToast = ({
     {
       action: {
         label: t('common.undo'),
-// eslint-disable-next-line typescript/no-misused-promises
+        // eslint-disable-next-line typescript/no-misused-promises
         onClick: async () => {
           try {
             await restoreOpenedUrlsSnapshot({
@@ -244,15 +244,15 @@ const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
 const countTabGroupUrls = (group: TabGroup): number =>
   group.urlIds?.length ?? group.urls?.length ?? 0
 const getDisplayUrlCount = (group: TabGroup): number =>
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   (group.urls || group.urlIds || []).length
 const buildDisplayTabGroup = (project: CustomProject): TabGroup =>
   ({
     id: project.id,
     domain: project.name,
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     urls: project.urls || [],
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     urlIds: project.urlIds || [],
   }) as TabGroup
 const matchesParentCategoryQuery = (
@@ -277,7 +277,7 @@ const matchesParentCategoryQuery = (
     }
   }
   const fallbackCategory =
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     categoryLookup.byGroupId.get(group.id) ||
     categoryLookup.byDomainName.get(group.domain)
   if (fallbackCategory) {
@@ -301,7 +301,7 @@ const filterGroupByQuery = (
   normalizedQuery: string,
   categoryLookup: CategoryLookup,
 ): TabGroup => {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const currentUrls = group.urls || []
   if (currentUrls.length === 0) {
     return group
@@ -319,7 +319,7 @@ const filterGroupByQuery = (
     const matchesSubCategory = item.subCategory
       ?.toLowerCase()
       .includes(normalizedQuery)
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     return matchesBasicFields || matchesSubCategory || parentCategoryMatched
   })
   if (filteredUrls.length === currentUrls.length) {
@@ -334,7 +334,7 @@ const hasDisplayableUrls = (group: TabGroup): boolean => {
   const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
   const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
   console.log(
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     `フィルタチェック ${group.domain}: urlIds=${group.urlIds?.length || 0}, urls=${group.urls?.length || 0}, 表示=${hasNewUrls || hasOldUrls}`,
   )
   return hasNewUrls || hasOldUrls
@@ -483,7 +483,7 @@ const buildUpdatedGroupAfterUrlIdRemoval = (
 
   const nextUrlSubCategories = { ...group.urlSubCategories }
   for (const id of idsToRemove) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete nextUrlSubCategories[id]
   }
   updatedGroup.urlSubCategories =
@@ -689,7 +689,7 @@ const removeUrlsFromCustomProjectsForGroup = async (
     return
   }
 
-// eslint-disable-next-line eslint/no-useless-assignment
+  // eslint-disable-next-line eslint/no-useless-assignment
   let urlsToDelete: Awaited<ReturnType<typeof getTabGroupUrls>> = []
   try {
     urlsToDelete = await getTabGroupUrls(groupToDelete)
@@ -719,7 +719,7 @@ const removeUrlsFromCustomProjectsForGroups = async (
   const groupsWithoutUrlIds = groupsToDelete.filter(
     (group) => !(group.urlIds && group.urlIds.length > 0),
   )
-// eslint-disable-next-line typescript/no-non-null-assertion
+  // eslint-disable-next-line typescript/no-non-null-assertion
   const allUrlIdsToDelete = groupsWithUrlIds.flatMap((group) => group.urlIds!)
   if (allUrlIdsToDelete.length > 0) {
     await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
@@ -727,7 +727,7 @@ const removeUrlsFromCustomProjectsForGroups = async (
     })
   }
 
-// eslint-disable-next-line eslint/no-useless-assignment
+  // eslint-disable-next-line eslint/no-useless-assignment
   let urlsByGroup: Awaited<ReturnType<typeof getTabGroupUrls>>[] = []
   try {
     urlsByGroup = await Promise.all(
@@ -1179,7 +1179,7 @@ const useSavedTabsAppView = ({
         const targetGroup = tabGroupsWithUrls.find(
           (group) => group.id === groupId,
         )
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         const resolvedUrlIds = (targetGroup?.urls || [])
           .reduce<{ id: string; url: string }[]>((items, item) => {
             if (item.id && targetUrls.has(item.url)) {
@@ -1297,7 +1297,7 @@ const useSavedTabsAppView = ({
     const syncCategoryAssignments = async () => {
       try {
         const { savedTabs = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+          // eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
         const currentSavedTabs = savedTabs
@@ -1305,7 +1305,7 @@ const useSavedTabsAppView = ({
         const syncState: CategorySyncState = {
           categoriesChanged: false,
           savedTabsChanged: false,
-// eslint-disable-next-line oxc/no-map-spread
+          // eslint-disable-next-line oxc/no-map-spread
           updatedCategories: currentCategories.map((c) => ({
             ...c,
           })),
@@ -1327,7 +1327,7 @@ const useSavedTabsAppView = ({
         console.error('[カテゴリ同期] ストレージ同期エラー:', error)
       }
     }
-// eslint-disable-next-line typescript/no-floating-promises
+    // eslint-disable-next-line typescript/no-floating-promises
     syncCategoryAssignments()
   }, [tabGroupsWithUrls, categories, categoryLookup, settings.enableCategories])
 
@@ -1464,10 +1464,10 @@ const useSavedTabsAppView = ({
         viewModeRef,
       })
     }
-// eslint-disable-next-line typescript/no-misused-promises
+    // eslint-disable-next-line typescript/no-misused-promises
     chrome.storage.onChanged.addListener(handleStorageChanged)
     return () => {
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       chrome.storage.onChanged.removeListener(handleStorageChanged)
     }
   }, [
@@ -1553,14 +1553,14 @@ const useSavedTabsAppView = ({
   const categoryOrderForDisplay = isCategoryReorderMode
     ? tempCategoryOrder
     : categoryOrder
-// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
   const uncategorizedForDisplay = (
     isUncategorizedReorderMode ? tempUncategorizedOrder : uncategorized
   ).filter((group) => getDisplayUrlCount(group) > 0)
   const mainContent =
     viewMode === 'domain' ? (
       <DomainModeContainer
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           hasVisibleCategoryGroups,
           isCategoryReorderMode,
@@ -1633,10 +1633,10 @@ const useSavedTabsAppView = ({
           filteredTabGroups={headerFilteredTabGroups}
           customProjects={customProjectsForHeader}
           filteredCustomProjects={filteredCustomProjects}
-// eslint-disable-next-line typescript/no-misused-promises
+          // eslint-disable-next-line typescript/no-misused-promises
           onCreateProject={handleCreateProject}
           currentMode={viewMode}
-// eslint-disable-next-line typescript/no-misused-promises
+          // eslint-disable-next-line typescript/no-misused-promises
           onModeChange={handleViewModeChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -1644,7 +1644,7 @@ const useSavedTabsAppView = ({
         {mainContent}
         {shouldShowCategoryReorderFooter && (
           <CategoryReorderFooter
-// eslint-disable-next-line typescript/no-misused-promises
+            // eslint-disable-next-line typescript/no-misused-promises
             onConfirmCategoryReorder={handleConfirmCategoryReorder}
             onCancelCategoryReorder={handleCancelCategoryReorder}
           />

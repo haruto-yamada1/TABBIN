@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-deprecated */
 'use client'
 
 import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from 'ai'
@@ -86,16 +87,16 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     const blob = await response.blob()
     // FileReader uses callback-based API, wrapping in Promise is necessary
     // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
-// eslint-disable-next-line typescript/return-await
+    // eslint-disable-next-line typescript/return-await
     return new Promise((resolve) => {
       const reader = new FileReader()
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
       reader.onloadend = () => {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         resolve(reader.result as string)
       }
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-// eslint-disable-next-line unicorn/prefer-add-event-listener
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         resolve(null)
       }
@@ -396,7 +397,7 @@ export type PromptInputProps = Omit<
   }) => void
   onSubmit: (
     message: PromptInputMessage,
-// eslint-disable-next-line typescript/no-deprecated
+    // eslint-disable-next-line typescript/no-deprecated
     event: FormEvent<HTMLFormElement>,
   ) => void | Promise<void>
 }
@@ -532,7 +533,7 @@ const usePromptInputView = ({
 
   // Wrapper that validates files before calling provider's add
   const addWithProviderValidation = useCallback(
-// eslint-disable-next-line eslint/complexity
+    // eslint-disable-next-line eslint/complexity
     (fileList: File[] | FileList) => {
       const incoming = [...fileList]
       const accepted = incoming.filter((f) => matchesAccept(f))
@@ -576,7 +577,7 @@ const usePromptInputView = ({
   )
 
   const clearAttachments = useCallback(() => {
-// eslint-disable-next-line eslint/no-unused-expressions
+    // eslint-disable-next-line eslint/no-unused-expressions
     usingProvider
       ? controller?.attachments.clear()
       : setItems((prev) => {
@@ -645,7 +646,7 @@ const usePromptInputView = ({
     }
     form.addEventListener('dragover', onDragOver)
     form.addEventListener('drop', onDrop)
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       form.removeEventListener('dragover', onDragOver)
       form.removeEventListener('drop', onDrop)
@@ -672,7 +673,7 @@ const usePromptInputView = ({
     }
     document.addEventListener('dragover', onDragOver)
     document.addEventListener('drop', onDrop)
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       document.removeEventListener('dragover', onDragOver)
       document.removeEventListener('drop', onDrop)
@@ -722,7 +723,7 @@ const usePromptInputView = ({
         const array = Array.isArray(incoming) ? incoming : [incoming]
         setReferencedSources((prev) => [
           ...prev,
-// eslint-disable-next-line oxc/no-map-spread
+          // eslint-disable-next-line oxc/no-map-spread
           ...array.map((s) => ({ ...s, id: nanoid() })),
         ])
       },
@@ -735,8 +736,9 @@ const usePromptInputView = ({
     [referencedSources, clearReferencedSources],
   )
 
-// eslint-disable-next-line typescript/no-misused-promises
-  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback( // eslint-disable-line typescript/no-deprecated
+  // eslint-disable-next-line typescript/no-misused-promises
+  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
+    // eslint-disable-line typescript/no-deprecated
     async (event) => {
       event.preventDefault()
 
@@ -745,7 +747,7 @@ const usePromptInputView = ({
         ? controller.textInput.value
         : (() => {
             const formData = new FormData(form)
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+            // eslint-disable-next-line typescript/no-unsafe-type-assertion
             return (formData.get('message') as string) || ''
           })()
 
@@ -862,7 +864,7 @@ export const PromptInputTextarea = ({
   const isComposingRef = useRef(false)
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
-// eslint-disable-next-line eslint/complexity
+    // eslint-disable-next-line eslint/complexity
     (e) => {
       // Call the external onKeyDown handler first
       onKeyDown?.(e)
@@ -883,7 +885,7 @@ export const PromptInputTextarea = ({
 
         // Check if the submit button is disabled before submitting
         const { form } = e.currentTarget
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         const submitButton = form?.querySelector(
           'button[type="submit"]',
         ) as HTMLButtonElement | null

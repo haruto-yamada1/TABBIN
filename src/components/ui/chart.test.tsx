@@ -81,7 +81,7 @@ describe('ChartContainer', () => {
     render(
       <ChartContainer
         className='h-64'
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         config={{ active: { color: 'var(--color-primary)', label: 'Active' } }}
       >
         <div>chart</div>

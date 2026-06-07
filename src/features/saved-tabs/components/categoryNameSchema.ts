@@ -12,7 +12,7 @@ const createCategoryNameSchema = (
     .min(1, {
       message: validationMessages.empty,
     })
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
     .max(25, {
       message: validationMessages.maxLength,
     })

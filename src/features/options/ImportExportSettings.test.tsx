@@ -159,7 +159,7 @@ class MockFileReader {
 }
 
 const getHiddenFileInput = (container: HTMLElement): HTMLInputElement => {
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+  // eslint-disable-next-line typescript/no-unnecessary-type-assertion
   const fileInput = container.querySelector(
     'input[type="file"].hidden',
   ) as HTMLInputElement | null
@@ -170,7 +170,7 @@ const getHiddenFileInput = (container: HTMLElement): HTMLInputElement => {
 }
 
 const getDropzoneFileInput = (container: HTMLElement): HTMLInputElement => {
-// eslint-disable-next-line typescript/no-unnecessary-type-assertion
+  // eslint-disable-next-line typescript/no-unnecessary-type-assertion
   const fileInputs = Array.from(
     document.querySelectorAll('input[type="file"]'),
   ) as HTMLInputElement[]

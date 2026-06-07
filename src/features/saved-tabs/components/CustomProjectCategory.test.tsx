@@ -58,10 +58,10 @@ vi.mock('./ProjectUrlItem', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-// eslint-disable-next-line react/jsx-no-useless-fragment
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-// eslint-disable-next-line react/jsx-no-useless-fragment
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -127,7 +127,7 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='dialog-root'>
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onOpenChange?.(false)} type='button'>
         dialog-close
       </button>
@@ -177,7 +177,7 @@ vi.mock('@/components/ui/card', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -228,7 +228,7 @@ const createProps = (
   category: 'Work',
   urls: baseUrls,
   handleOpenUrl: vi.fn(),
-// eslint-disable-next-line typescript/no-misused-promises
+  // eslint-disable-next-line typescript/no-misused-promises
   handleDeleteUrl: vi.fn(async () => {}),
   handleDeleteCategory: vi.fn(),
   handleSetUrlCategory: vi.fn(),
@@ -269,7 +269,7 @@ describe('CustomProjectCategory', () => {
       <CustomProjectCategory
         {...createProps({
           handleOpenAllUrls,
-// eslint-disable-next-line typescript/no-misused-promises
+          // eslint-disable-next-line typescript/no-misused-promises
           handleDeleteUrl,
         })}
       />,
@@ -335,8 +335,11 @@ describe('CustomProjectCategory', () => {
     )
 
     expect(screen.queryByTestId('card-content')).toBeNull()
-// eslint-disable-next-line typescript/TS2339
-    expect((screen.getByRole('button', { name: '展開' }) as HTMLButtonElement).disabled).toBe(true)
+    // eslint-disable-next-line typescript/TS2339
+    expect(
+      (screen.getByRole('button', { name: '展開' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
 
     rerender(
       <CustomProjectCategory
@@ -349,10 +352,11 @@ describe('CustomProjectCategory', () => {
     )
 
     expect(screen.getByTestId('card-content')).toBeTruthy()
-// eslint-disable-next-line typescript/TS2339
-    expect((screen.getByRole('button', { name: '折りたたむ' }) as HTMLButtonElement).disabled).toBe(
-      false,
-    )
+    // eslint-disable-next-line typescript/TS2339
+    expect(
+      (screen.getByRole('button', { name: '折りたたむ' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false)
   })
 
   it('10件以上の一括開く確認ダイアログで handleOpenAllUrls 未指定時は window.open にフォールバックする', async () => {
@@ -392,7 +396,7 @@ describe('CustomProjectCategory', () => {
             { url: 'https://u.com', title: 'U', category: '__uncategorized' },
           ],
           settings: { ...defaultSettings, confirmDeleteAll: true },
-// eslint-disable-next-line typescript/no-misused-promises
+          // eslint-disable-next-line typescript/no-misused-promises
           handleDeleteUrl,
         })}
       />,
@@ -517,8 +521,11 @@ describe('CustomProjectCategory', () => {
     const card = screen.getByTestId('card')
     expect(card.className.includes('opacity-50')).toBe(true)
     expect(screen.queryByTestId('card-content')).toBeNull()
-// eslint-disable-next-line typescript/TS2339
-    expect((screen.getByRole('button', { name: '展開' }) as HTMLButtonElement).disabled).toBe(true)
+    // eslint-disable-next-line typescript/TS2339
+    expect(
+      (screen.getByRole('button', { name: '展開' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
 
     useDroppableMock.mockReturnValueOnce({
       setNodeRef: vi.fn(),
@@ -540,11 +547,11 @@ describe('CustomProjectCategory', () => {
     const emptyState = screen.getByTestId('card-content').querySelector('div')
     expect(emptyState).toBeTruthy()
     expect(
-// eslint-disable-next-line typescript/non-nullable-type-assertion-style
+      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       (emptyState as HTMLDivElement).className.includes('border-primary'),
     ).toBe(true)
     expect(
-// eslint-disable-next-line typescript/non-nullable-type-assertion-style
+      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       (emptyState as HTMLDivElement).className.includes('bg-primary/10'),
     ).toBe(true)
   })

@@ -399,7 +399,15 @@
       }
     },
     {
-      "files": ["**/*.config.ts", "**/*.config.js", "**/*.stories.tsx", "**/*.stories.ts", "src/lib/storybook/**", "src/entrypoints/**", ".storybook/**"],
+      "files": [
+        "**/*.config.ts",
+        "**/*.config.js",
+        "**/*.stories.tsx",
+        "**/*.stories.ts",
+        "src/lib/storybook/**",
+        "src/entrypoints/**",
+        ".storybook/**"
+      ],
       "rules": {
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",

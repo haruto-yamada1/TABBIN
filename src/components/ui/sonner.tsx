@@ -7,10 +7,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
   return (
     <Sonner
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
       theme={theme as ToasterProps['theme']}
       className='toaster group'
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       toastOptions={{
         classNames: {
           actionButton:

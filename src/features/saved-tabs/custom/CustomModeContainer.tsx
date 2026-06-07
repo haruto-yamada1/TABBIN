@@ -91,41 +91,41 @@ export const CustomModeContainer = ({
   return (
     <CustomProjectSection
       projects={projects}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleOpenUrl={handleOpenUrl}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleDeleteUrl={handleDeleteUrl}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleDeleteUrlsFromProject={handleDeleteUrlsFromProject}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleAddUrl={handleAddUrl}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleCreateProject={handleCreateProject}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleDeleteProject={handleDeleteProject}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleRenameProject={handleRenameProject}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleUpdateProjectKeywords={handleUpdateProjectKeywords}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleAddCategory={handleAddCategory}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleDeleteCategory={handleDeleteCategory}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleSetUrlCategory={handleSetUrlCategory}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleUpdateCategoryOrder={handleUpdateCategoryOrder}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleReorderUrls={handleReorderUrls}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleOpenAllUrls={handleOpenAllUrls}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleMoveUrlBetweenProjects={handleMoveUrlBetweenProjects}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleMoveUrlsBetweenCategories={handleMoveUrlsBetweenCategories}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleReorderProjects={handleReorderProjects}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       handleRenameCategory={handleRenameCategory}
       settings={settings}
     />

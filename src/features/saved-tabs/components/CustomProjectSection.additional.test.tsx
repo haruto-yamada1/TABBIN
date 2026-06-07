@@ -80,11 +80,11 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div>
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onOpenChange?.(true)} type='button'>
         dialog-open
       </button>
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onOpenChange?.(false)} type='button'>
         dialog-close
       </button>
@@ -122,7 +122,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -146,9 +146,9 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 vi.mock('./CustomProjectCard', async () => {
   const [React, contextModule] = await Promise.all([
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     vi.importActual<typeof import('react')>('react'),
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     vi.importActual<typeof import('../contexts/DragHandlersContext')>(
       '../contexts/DragHandlersContext',
     ),
@@ -272,7 +272,7 @@ describe('CustomProjectSection additional', () => {
     vi.clearAllMocks()
     dndContextPropsRef.current = {}
     for (const key of Object.keys(projectHandlerSpies)) {
-// eslint-disable-next-line typescript/no-dynamic-delete
+      // eslint-disable-next-line typescript/no-dynamic-delete
       delete projectHandlerSpies[key]
     }
   })
@@ -319,7 +319,7 @@ describe('CustomProjectSection additional', () => {
     })
     expect(projectHandlerSpies['project-1']?.handleDragStart).toHaveBeenCalled()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: {
@@ -429,7 +429,7 @@ describe('CustomProjectSection additional', () => {
     )
     expect(projectHandlerSpies['project-1']?.clearDragState).toHaveBeenCalled()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragStart?.({
         active: {

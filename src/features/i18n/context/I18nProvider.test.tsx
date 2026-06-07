@@ -23,7 +23,7 @@ vi.mock('@/lib/browser/chrome-storage', () => ({
 }))
 
 vi.mock('@/lib/storage/settings', async () => {
-// eslint-disable-next-line typescript/consistent-type-imports
+  // eslint-disable-next-line typescript/consistent-type-imports
   const actual = await vi.importActual<typeof import('@/lib/storage/settings')>(
     '@/lib/storage/settings',
   )
@@ -50,7 +50,7 @@ const Consumer = () => {
       </span>
       <button
         type='button'
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           void setLanguageSetting('en')
         }}
@@ -109,7 +109,7 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('message').textContent).toContain('キャンセル')
     expect(screen.getByTestId('message').textContent).toContain('Hello Taro')
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       screen.getByText('set-en').click()
     })
@@ -217,7 +217,7 @@ describe('I18nProvider', () => {
 
     unmount()
 
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveSettings?.({ language: 'en' })
     })

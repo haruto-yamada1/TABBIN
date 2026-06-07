@@ -462,7 +462,7 @@ describe('useSharedAiChatHistory', () => {
 
     expect(result.current.isLoading).toBe(true)
     unmount()
-// eslint-disable-next-line typescript/require-await
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveHistory?.({
         activeConversationId: 'conversation-1',

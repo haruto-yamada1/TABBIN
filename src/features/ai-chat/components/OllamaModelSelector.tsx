@@ -220,7 +220,7 @@ const OllamaModelSelector = ({
     }
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenChange = (nextOpen: boolean) => {
     setIsOpen(nextOpen)
 
@@ -229,7 +229,7 @@ const OllamaModelSelector = ({
     }
   }
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleValueChange = (nextValue: string) => {
     if (nextValue === EMPTY_MODEL_VALUE) {
       return
@@ -247,11 +247,11 @@ const OllamaModelSelector = ({
         )}
       >
         <FetchModelsButton
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           behavior={{ hideFetchButton }}
           layout={layout}
           onFetchModels={onFetchModels}
-// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           status={{ isLoading, isSaving }}
           t={t}
         />

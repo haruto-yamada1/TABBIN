@@ -17,39 +17,39 @@ export const isPeriodShortening = (
   const getPeriodSeconds = (period: string): number => {
     switch (period) {
       case '30sec': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 30
       }
       case '1min': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 60
       }
       case '1hour': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 3600
       }
       case '1day': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 86400
       }
       case '7days': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 604800
       }
       case '14days': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 1209600
       }
       case '30days': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 2592000
       }
       case '180days': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 15552000
       }
       case '365days': {
-// eslint-disable-next-line eslint/no-magic-numbers
+        // eslint-disable-next-line eslint/no-magic-numbers
         return 31536000
       }
       default: {

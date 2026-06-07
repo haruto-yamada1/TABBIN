@@ -25,7 +25,7 @@ describe('render-root', () => {
 
     renderToRoot(container, <span>content</span>)
 
-// eslint-disable-next-line typescript/unbound-method
+    // eslint-disable-next-line typescript/unbound-method
     expect(firstRoot.render).toHaveBeenCalledWith(<span>content</span>)
   })
 

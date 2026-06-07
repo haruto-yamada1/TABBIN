@@ -901,7 +901,7 @@ export function buildHarnessSurfaceAudit(options: HarnessRunOptions): string {
     ),
     '',
     '## Top 3 actions',
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
     ...listLines(topActions.slice(0, 3), '追加アクションなし。'),
     '',
     '## APM source-of-truth sync',
@@ -1097,7 +1097,7 @@ function readJsonFile(
   filePath: string,
 ): { ok: true; value: JsonValue } | { message: string; ok: false } {
   try {
-// eslint-disable-next-line typescript/no-unsafe-assignment
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     return { ok: true, value: JSON.parse(readFileSync(filePath, 'utf8')) }
   } catch (error) {
     return {
@@ -1126,7 +1126,7 @@ function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
   if (schema.enum && !schema.enum.some((item) => deepEqual(item, value))) {
     issues.push({
       path: at,
-// eslint-disable-next-line typescript/no-base-to-string
+      // eslint-disable-next-line typescript/no-base-to-string
       message: `許可されていない値です。許可値: ${schema.enum.join(', ')}`,
     })
   }
@@ -1164,7 +1164,7 @@ function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
       issues.push(
         ...validateJsonSchema(
           item,
-// eslint-disable-next-line typescript/no-non-null-assertion
+          // eslint-disable-next-line typescript/no-non-null-assertion
           schema.items!,
           joinPointer(at, String(index)),
         ),
@@ -1281,7 +1281,7 @@ function defaultRunId() {
     .replaceAll('-', '')
     .replaceAll(':', '')
     .replace(/\.\d{3}Z$/, 'Z')
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   const suffix = Math.random().toString(36).slice(2, 8)
   return `run-${compactTimestamp}-${suffix}`
 }
@@ -1313,7 +1313,7 @@ function readGovernanceLearningCandidates(
     .filter(Boolean)
     .map((line) => {
       try {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         return JSON.parse(line) as { kind?: string; message?: string }
       } catch {
         return null
@@ -1434,7 +1434,7 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
       status: ok ? 'covered' : 'review',
       evidence: check.evidence,
       notes: ok ? 'deterministic check passed' : '確認または同期が必要です。',
-// eslint-disable-next-line eslint/no-magic-numbers
+      // eslint-disable-next-line eslint/no-magic-numbers
       score: ok ? 10 : 4,
       max_score: 10,
       findings,
@@ -1448,7 +1448,7 @@ function summarizeScore(categories: ScorecardRecord[]) {
     0,
   )
   const maxScore = categories.reduce(
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
     (total, category) => total + (category.max_score ?? 10),
     0,
   )
@@ -1460,7 +1460,7 @@ function topActionLines(
   extraFindings: (SecurityFinding | string)[] = [],
 ) {
   const categoryActions = categories
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
     .filter((category) => (category.score ?? 0) < (category.max_score ?? 10))
     .map(
       (category) =>
@@ -1472,7 +1472,7 @@ function topActionLines(
     }
     return `[Security Guardrails] ${finding.file}: ${finding.summary}`
   })
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   return [...categoryActions, ...extraActions].slice(0, 3)
 }
 
@@ -1608,7 +1608,7 @@ function readPackageScriptNames(projectRoot: string) {
   }
 
   try {
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
       scripts?: Record<string, string>
     }
@@ -1692,13 +1692,15 @@ function collectChangedFiles(projectRoot: string) {
       },
     )
 
-    return output
-      .split(/\r?\n/)
-// eslint-disable-next-line eslint/no-magic-numbers
-      .map((line) => line.slice(3).trim())
-      .filter(Boolean)
-      .map((line) => line.replace(/^"|"$/g, ''))
-      .toSorted()
+    return (
+      output
+        .split(/\r?\n/)
+        // eslint-disable-next-line eslint/no-magic-numbers
+        .map((line) => line.slice(3).trim())
+        .filter(Boolean)
+        .map((line) => line.replace(/^"|"$/g, ''))
+        .toSorted()
+    )
   } catch {
     return []
   }

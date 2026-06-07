@@ -116,7 +116,7 @@ const SavedTabsScrollControlButton = ({
 
   useEffect(() => stopRepeating, [stopRepeating])
 
-// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const startRepeating = () => {
     if (disabled) {
       return
@@ -350,7 +350,7 @@ const useSavedTabsScrollControlsView = ({
         : new ResizeObserver(updateAvailability)
     resizeObserver?.observe(container)
 
-// eslint-disable-next-line typescript/consistent-return
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       container.removeEventListener('scroll', handleScroll)
       resizeObserver?.disconnect()

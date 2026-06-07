@@ -23,7 +23,7 @@ const DEFAULT_INTERRUPTED_RESPONSE_MESSAGE = getMessage(
 )
 
 const createConversationId = (): string =>
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   `conversation-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
 const buildConversationTitle = (
@@ -38,7 +38,7 @@ const buildConversationTitle = (
     return defaultTitle
   }
 
-// eslint-disable-next-line eslint/no-magic-numbers
+  // eslint-disable-next-line eslint/no-magic-numbers
   return firstUserMessage.content.trim().slice(0, 40)
 }
 
@@ -153,8 +153,8 @@ const loadConversationHistory = async (
   ])
 
   const conversations = Array.isArray(stored[AI_CHAT_CONVERSATIONS_KEY])
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-    ? (stored[AI_CHAT_CONVERSATIONS_KEY] as AiChatConversation[])
+    ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      (stored[AI_CHAT_CONVERSATIONS_KEY] as AiChatConversation[])
     : []
 
   if (conversations.length === 0) {

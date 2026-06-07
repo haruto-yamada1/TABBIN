@@ -10,7 +10,7 @@ import type {
 // 親カテゴリを取得する関数
 export const getParentCategories = async (): Promise<ParentCategory[]> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
-// eslint-disable-next-line typescript/consistent-type-imports
+    // eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   return parentCategories
@@ -48,7 +48,7 @@ export const findCategoryByDomainName = async (
 ): Promise<ParentCategory | null> => {
   const categories = await getParentCategories()
   return (
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     categories.find((category) => category.domainNames.includes(domainName)) ||
     null
   )
@@ -170,7 +170,7 @@ export const deleteParentCategory = async (
     console.log(
       `親カテゴリ「${categoryToDelete.name}」を削除しました。影響を受けたドメイン: ${affectedDomainNames.join(', ')}`,
     )
-// eslint-disable-next-line eslint/no-useless-return
+    // eslint-disable-next-line eslint/no-useless-return
     return
   } catch (error) {
     console.error('親カテゴリの削除に失敗しました:', error)

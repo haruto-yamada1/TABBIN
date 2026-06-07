@@ -159,7 +159,7 @@ export const CommitTimestamp = ({
   ...props
 }: CommitTimestampProps) => {
   const formatted = relativeTimeFormat.format(
-// eslint-disable-next-line eslint/no-magic-numbers
+    // eslint-disable-next-line eslint/no-magic-numbers
     Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
     'day',
   )
@@ -189,7 +189,7 @@ export const CommitActions = ({
   children,
   ...props
 }: CommitActionsProps) => (
-// eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
   <fieldset
     className={cn(
       'm-0 flex min-w-0 items-center gap-1 border-0 p-0',
@@ -226,7 +226,7 @@ export const CommitCopyButton = ({
   return (
     <Button
       className={cn('size-7 shrink-0', className)}
-// eslint-disable-next-line typescript/no-misused-promises
+      // eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(hash, { skipIfCopied: true })}
       size='icon'
       variant='ghost'
