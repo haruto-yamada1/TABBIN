@@ -87,7 +87,7 @@ export const readStorage = async <T>(
     ): Promise<Record<string, unknown>> =>
       new Promise((resolve) => {
         if (query == null) {
-          chrome.storage.local.get((items) => {
+          chrome.storage.local.get((items: Record<string, unknown>) => { // eslint-disable-line typescript/TS7006
             resolve(items)
           })
           return
