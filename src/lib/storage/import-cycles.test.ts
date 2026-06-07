@@ -3,7 +3,7 @@ import { dirname, extname, join, relative, resolve } from 'node:path'
 // eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 const storageDir = import.meta.dirname
 const sourceExtensions = new Set(['.ts', '.tsx'])

@@ -1,4 +1,4 @@
-/* eslint-disable import/no-anonymous-default-export, import/no-default-export, typescript/no-require-imports, unicorn/no-anonymous-default-export */
+/* eslint-disable import/no-anonymous-default-export, import/no-default-export, typescript/no-require-imports, unicorn/no-anonymous-default-export, typescript/no-var-requires, eslint/no-unused-vars */
 // @ts-check
 const { chromium } = require('playwright');
 

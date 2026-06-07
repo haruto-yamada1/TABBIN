@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   AiChatConversation,
@@ -2696,7 +2696,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(
-      set.mock.calls.some(([payload]) =>
+      set.mock.calls.some(([payload]) => // eslint-disable-line
         Boolean(
 // eslint-disable-next-line typescript/no-unnecessary-type-assertion
           (payload as Record<string, unknown>)?.urls &&

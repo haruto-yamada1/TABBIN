@@ -9,7 +9,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   CustomProject,
@@ -194,7 +194,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -1064,7 +1064,7 @@ describe('SavedTabsApp custom search', () => {
       },
     } as unknown as typeof chrome
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
+    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => { // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         enableCategories: false,
@@ -2729,7 +2729,7 @@ describe('SavedTabsApp custom search', () => {
     } as unknown as typeof chrome
 
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
+    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => { // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         openAllInNewWindow: true,
@@ -3215,7 +3215,7 @@ describe('SavedTabsApp custom search', () => {
       },
     } as unknown as typeof chrome
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
+    vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => { // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         removeTabAfterOpen: false,

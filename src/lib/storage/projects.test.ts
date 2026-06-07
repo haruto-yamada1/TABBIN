@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
@@ -1389,7 +1389,7 @@ describe('projects storage', () => {
 // eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.get)
 // eslint-disable-next-line typescript/require-await
-      .mockImplementationOnce(async (keys) => {
+      .mockImplementationOnce(async (keys) => { // eslint-disable-line
         if (Array.isArray(keys)) {
           return Object.fromEntries(
             keys.map((key) => [key, state[key as keyof StorageState]]),
@@ -1539,7 +1539,7 @@ describe('projects storage', () => {
 // eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.get)
 // eslint-disable-next-line typescript/require-await
-      .mockImplementationOnce(async (keys) => {
+      .mockImplementationOnce(async (keys) => { // eslint-disable-line
         if (Array.isArray(keys)) {
           return Object.fromEntries(
             keys.map((key) => [key, state[key as keyof StorageState]]),
@@ -2266,7 +2266,7 @@ describe('projects storage', () => {
     await expect(updateCustomProjectName('target', 'Other')).rejects.toThrow(
       'DUPLICATE_PROJECT_NAME:Other',
     )
-    await expect(updateCustomProjectName('target', 'Project 1')).resolves.toBe(
+    await expect(updateCustomProjectName('target', 'Project 1')).resolves.toBe( // eslint-disable-line
       undefined,
     )
   })

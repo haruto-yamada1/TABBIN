@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup, UrlRecord } from '@/types/storage'
 
@@ -48,7 +48,7 @@ describe('tabs storage', () => {
     mocks.getDomainCategorySettingsMock.mockResolvedValue([])
     mocks.createOrUpdateUrlRecordMock.mockImplementation(
 // eslint-disable-next-line typescript/require-await
-      async (url, title) => ({
+      async (url, title) => ({ // eslint-disable-line
         id: `id:${url}`,
         savedAt: 1,
         title,

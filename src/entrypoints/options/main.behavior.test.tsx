@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { OptionsPage } from '@/features/options/routes/OptionsRoute'
 import type { UserSettings } from '@/types/storage'

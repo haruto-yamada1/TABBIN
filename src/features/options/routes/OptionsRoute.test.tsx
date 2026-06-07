@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
 

@@ -14,7 +14,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { z } from 'zod'
 
 import { categoryNameSchema } from '@/features/saved-tabs/components/categoryNameSchema'
@@ -153,7 +153,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -635,7 +635,7 @@ describe('CategoryManagementModal', () => {
     await waitFor(() => {
       expect(
         (console.error as unknown as ReturnType<typeof vi.fn>).mock.calls.some(
-          ([message, payload]) =>
+          ([message, payload]) => // eslint-disable-line
             message === 'Modal - カテゴリ名の更新に失敗:' &&
             payload &&
             typeof payload === 'object' &&
@@ -1026,7 +1026,7 @@ describe('CategoryManagementModal', () => {
 
     const originalFind = Array.prototype.find
     using findSpy = vi.spyOn(Array.prototype, 'find')
-    findSpy.mockImplementation((predicate, thisArg) => {
+    findSpy.mockImplementation((predicate, thisArg) => { // eslint-disable-line
       const context = findSpy.mock.contexts[
         findSpy.mock.calls.length - 1
       ] as unknown[]

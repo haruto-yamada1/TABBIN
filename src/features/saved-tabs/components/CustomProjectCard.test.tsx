@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CustomProjectCardProps } from '@/features/saved-tabs/types/CustomProjectCard.types'
 import type { UserSettings } from '@/types/storage'

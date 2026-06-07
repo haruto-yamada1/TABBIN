@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
   checkAndRemoveExpiredTabs: vi.fn(),
@@ -55,23 +55,23 @@ describe('setupMessageListener', () => {
       }
     ).chrome = {
       alarms: {
-        get: vi.fn((_name, callback) => callback?.(null)),
+        get: vi.fn((_name, callback) => callback?.(null)), // eslint-disable-line
       },
       runtime: {
         onConnect: {
-          addListener: vi.fn((callback) => {
+          addListener: vi.fn((callback) => { // eslint-disable-line
             portListener = callback
           }),
         },
         onMessage: {
-          addListener: vi.fn((callback) => {
+          addListener: vi.fn((callback) => { // eslint-disable-line
             listener = callback
           }),
         },
       },
       storage: {
         local: {
-          get: vi.fn((_keys, callback) => callback?.({ userSettings: {} })),
+          get: vi.fn((_keys, callback) => callback?.({ userSettings: {} })), // eslint-disable-line
         },
       },
     } as unknown as typeof chrome
@@ -682,7 +682,7 @@ describe('setupMessageListener', () => {
       }
     ).chrome = {
       alarms: {
-        get: vi.fn((name, callback) =>
+        get: vi.fn((name, callback) => // eslint-disable-line
           callback?.({
             name,
             scheduledTime: 123,
@@ -691,7 +691,7 @@ describe('setupMessageListener', () => {
       },
       runtime: {
         onMessage: {
-          addListener: vi.fn((callback) => {
+          addListener: vi.fn((callback) => { // eslint-disable-line
             listener = callback
           }),
         },
@@ -879,7 +879,7 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1027,7 +1027,7 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1066,7 +1066,7 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1100,7 +1100,7 @@ describe('setupMessageListener', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           onPortMessage = listener
         }),
       },

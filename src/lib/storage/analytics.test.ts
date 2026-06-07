@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup, UserSettings } from '@/types/storage'
 

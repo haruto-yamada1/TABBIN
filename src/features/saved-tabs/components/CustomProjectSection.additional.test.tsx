@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { ProjectDragHandlers } from '@/features/saved-tabs/contexts/DragHandlersContext'
 import type { CustomProjectSectionProps } from '@/features/saved-tabs/types/CustomProjectSection.types'
@@ -137,7 +137,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),

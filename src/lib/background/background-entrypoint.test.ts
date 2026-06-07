@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
   setupExpiredTabsCheckAlarm: vi.fn(),

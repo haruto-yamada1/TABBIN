@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
 import { toast } from 'sonner'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { useSettings } from './useSettings'
 

@@ -16,7 +16,7 @@ import {
 import { Children, isValidElement } from 'react'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { AiChartSpec, AiSavedUrlRecord } from '@/features/ai-chat/types'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'

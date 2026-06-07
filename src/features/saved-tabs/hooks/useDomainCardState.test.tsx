@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup } from '@/types/storage'
 
@@ -53,7 +53,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),

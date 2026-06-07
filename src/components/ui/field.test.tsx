@@ -15,7 +15,7 @@ describe('Fieldコンポーネント', () => {
       <Field data-invalid>
         <FieldLabel htmlFor='field-input'>Invalid Input</FieldLabel>
 // eslint-disable-next-line jsx-a11y/control-has-associated-label
-        <input aria-describedby='field-error' id='field-input' />
+        <input aria-describedby='field-error' id='field-input' /> // eslint-disable-line
         <FieldDescription>Helper text</FieldDescription>
         <FieldError id='field-error'>
           This field contains validation errors.
@@ -39,7 +39,7 @@ describe('Fieldコンポーネント', () => {
       <Field orientation='horizontal'>
         <FieldLabel htmlFor='horizontal-input'>Label</FieldLabel>
 // eslint-disable-next-line jsx-a11y/control-has-associated-label
-        <input id='horizontal-input' />
+        <input id='horizontal-input' /> // eslint-disable-line
       </Field>,
     )
 

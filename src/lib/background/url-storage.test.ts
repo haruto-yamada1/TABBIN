@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/lib/storage/settings', () => ({
   getUserSettings: vi.fn(),
@@ -402,7 +402,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => { // eslint-disable-line
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,
@@ -548,7 +548,7 @@ describe('url-storage', () => {
 
     let callCount = 0
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => { // eslint-disable-line
       callCount += 1
       if (callCount === 1 && key === 'savedTabs') {
         return { savedTabs: storageState.savedTabs }
@@ -575,7 +575,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => { // eslint-disable-line
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,
@@ -587,7 +587,7 @@ describe('url-storage', () => {
       }
       if (key === 'parentCategories') {
 // eslint-disable-next-line eslint/no-throw-literal
-        throw 'non-error-thrown'
+        throw 'non-error-thrown' // eslint-disable-line
       }
       return {}
     })
@@ -918,7 +918,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => { // eslint-disable-line
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,

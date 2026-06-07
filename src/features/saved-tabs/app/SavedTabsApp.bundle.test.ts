@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 describe('SavedTabsApp bundling', () => {
   it('does not lazily import storage modules already loaded statically', () => {

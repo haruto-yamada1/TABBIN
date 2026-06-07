@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
 

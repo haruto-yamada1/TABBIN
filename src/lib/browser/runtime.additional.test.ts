@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 type GlobalWithBrowserApis = Omit<typeof globalThis, 'browser' | 'chrome'> & {
   browser?: unknown

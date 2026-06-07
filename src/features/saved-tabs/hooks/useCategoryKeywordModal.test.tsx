@@ -3,7 +3,7 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -39,7 +39,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),

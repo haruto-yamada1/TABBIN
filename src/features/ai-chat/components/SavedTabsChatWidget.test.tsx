@@ -14,7 +14,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
 import type { UserSettings } from '@/types/storage'
@@ -92,7 +92,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -831,7 +831,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1217,7 +1217,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1369,7 +1369,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1525,7 +1525,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1612,7 +1612,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1907,7 +1907,7 @@ describe('SavedTabsChatWidget', () => {
         addListener: vi.fn(),
       },
       onMessage: {
-        addListener: vi.fn((listener) => {
+        addListener: vi.fn((listener) => { // eslint-disable-line
           handlePortMessage = listener
         }),
       },

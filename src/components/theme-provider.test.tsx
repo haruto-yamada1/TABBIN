@@ -9,7 +9,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import type * as React from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/lib/browser/chrome-storage', () => ({
   getChromeStorageLocal: vi.fn(),
@@ -238,7 +238,7 @@ describe('ThemeProvider', () => {
     expect(
       storageOnChangedMock.removeListener.mock.calls
         .slice(removeCallsBeforeUnmount)
-        .map((call) => call[0]),
+        .map((call) => call[0]), // eslint-disable-line
     ).toStrictEqual(expect.arrayContaining(subscribedListeners))
   })
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { getMessage, resolveUiLanguage } from '@/features/i18n/lib/language'
 

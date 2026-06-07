@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   DomainParentCategoryMapping,
@@ -349,7 +349,7 @@ describe('migration storage facade', () => {
       }),
     ])
 // eslint-disable-next-line typescript/require-await
-    mocks.restoreCategorySettings.mockImplementation(async (group) => ({
+    mocks.restoreCategorySettings.mockImplementation(async (group) => ({ // eslint-disable-line
       ...group,
       categoryKeywords:
         group.domain === 'https://mapped.example.com'

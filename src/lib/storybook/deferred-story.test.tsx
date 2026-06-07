@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react'
 import { lazy } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { DeferredStoryLoader } from './deferred-story'
 

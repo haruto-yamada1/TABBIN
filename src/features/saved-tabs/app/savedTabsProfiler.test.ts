@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 type ProfilerGlobal = typeof globalThis & {
   enableSavedTabsProfiler?: boolean

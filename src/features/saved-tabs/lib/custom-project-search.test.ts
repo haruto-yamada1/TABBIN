@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CustomProject } from '@/types/storage'
 

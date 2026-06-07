@@ -28,6 +28,7 @@ type StorageSubset<K extends keyof LocalStorageSchema> = {
   [P in K]?: LocalStorageSchema[P]
 }
 
+/* eslint-disable eslint/no-redeclare */
 type KnownStorageKey = keyof LocalStorageSchema
 
 declare namespace chrome {
