@@ -70,9 +70,11 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       await Promise.all([
         getParentCategories(),
         chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs'),
         chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
           domainCategoryMappings?: import('@/types/storage').DomainParentCategoryMapping[]
         }>('domainCategoryMappings'),
       ])
@@ -369,6 +371,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     settings,
   ] = await Promise.all([
     chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs'),
     getDomainCategoryMappings(),
@@ -462,6 +465,7 @@ const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
 
   // 保存したタブグループのIDを取得
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const uniqueDomains = getUniqueDomainsFromTabs(filteredTabs)
@@ -488,6 +492,7 @@ const updateCategoryDomains = async (
 } // TabGroup IDからグループを取得する関数
 const getTabGroupById = async (groupId: string): Promise<TabGroup | null> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   return savedTabs.find((group: TabGroup) => group.id === groupId) || null

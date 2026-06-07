@@ -13,6 +13,7 @@ const mockedSettings = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/storage/settings', async () => {
+// eslint-disable-next-line typescript/consistent-type-imports
   const actual = await vi.importActual<typeof import('@/lib/storage/settings')>(
     '@/lib/storage/settings',
   )

@@ -80,6 +80,7 @@ vi.mock('@/components/ui/sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessage } = await vi.importActual<
+// eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/lib/language')
   >('@/features/i18n/lib/language')
 
@@ -97,6 +98,7 @@ vi.mock('@/features/analytics/lib/loadAnalyticsRecords', () => ({
 }))
 
 vi.mock('@/lib/storage/settings', async () => {
+// eslint-disable-next-line typescript/consistent-type-imports
   const actual = await vi.importActual<typeof import('@/lib/storage/settings')>(
     '@/lib/storage/settings',
   )

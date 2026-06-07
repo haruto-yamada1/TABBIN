@@ -185,6 +185,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 }
 
 type ChartTooltipContentProps = React.ComponentProps<'div'> &
+// eslint-disable-next-line typescript/consistent-type-imports
   Partial<import('recharts').TooltipContentProps> & {
     hideLabel?: boolean
     hideIndicator?: boolean
@@ -242,6 +243,7 @@ const renderTooltipRow = ({
   formatter?: ChartTooltipContentProps['formatter']
   hideIndicator: boolean
   indicator: 'line' | 'dot' | 'dashed'
+// eslint-disable-next-line typescript/consistent-type-imports
   item: import('recharts').TooltipPayloadEntry
   index: number
   nameKey?: string
@@ -389,6 +391,7 @@ const ChartLegendContent = ({
   ref,
   verticalAlign = 'bottom',
 }: React.ComponentProps<'div'> &
+// eslint-disable-next-line typescript/consistent-type-imports
   Partial<import('recharts').DefaultLegendContentProps> & {
     hideIcon?: boolean
     nameKey?: string

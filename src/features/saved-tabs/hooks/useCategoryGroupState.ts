@@ -64,6 +64,7 @@ const confirmCategorySaved = async (
   updatedGroups: ParentCategory[],
 ): Promise<void> => {
   const checkResult = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   const categoryById = new Map(
@@ -82,6 +83,7 @@ const confirmCategorySaved = async (
     })
   }
   const finalCheck = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   const finalCategory = new Map(

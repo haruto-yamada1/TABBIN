@@ -2008,10 +2008,12 @@ const importWithMerge = async ({
     getUserSettings(),
     chrome.storage.local.get<{
       activeAiChatConversationId?: string
+// eslint-disable-next-line typescript/consistent-type-imports
       aiChatConversations?: import('@/features/ai-chat/types').AiChatConversation[]
       customProjectOrder?: string[]
       customProjects?: CustomProject[]
       parentCategories?: ParentCategory[]
+// eslint-disable-next-line typescript/consistent-type-imports
       savedAnalyticsViews?: import('@/lib/storage/analytics').SavedAnalyticsView[]
       savedTabs?: TabGroup[]
     }>([

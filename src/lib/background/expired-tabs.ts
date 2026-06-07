@@ -79,6 +79,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 
     // ストレージから直接取得する - より単純化した取得方法
     const data = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       userSettings?: import('@/types/storage').UserSettings
     }>(['userSettings'])
     const autoDeletePeriod = data.userSettings?.autoDeletePeriod ?? 'never'
@@ -107,6 +108,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 
     // 保存されたタブを取得
     const storageResult = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
     const savedTabs: TabGroup[] = storageResult.savedTabs || []
@@ -192,6 +194,7 @@ export const updateTabTimestamps = async (
   try {
     console.log(`タブの保存時刻を更新します: ${period || '不明な期間'}`)
     const storageResult = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
     const savedTabs: TabGroup[] = storageResult.savedTabs || []

@@ -120,6 +120,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+// eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -143,7 +144,9 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 vi.mock('./CustomProjectCard', async () => {
   const [React, contextModule] = await Promise.all([
+// eslint-disable-next-line typescript/consistent-type-imports
     vi.importActual<typeof import('react')>('react'),
+// eslint-disable-next-line typescript/consistent-type-imports
     vi.importActual<typeof import('../contexts/DragHandlersContext')>(
       '../contexts/DragHandlersContext',
     ),

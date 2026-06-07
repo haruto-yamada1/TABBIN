@@ -309,7 +309,9 @@ const removeUrlRecordsById = (
 const removeUrlFromStorage = async (url: string): Promise<void> => {
   try {
     const storageResult = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
+// eslint-disable-next-line typescript/consistent-type-imports
       urls?: import('@/types/storage').UrlRecord[]
     }>(['savedTabs', 'urls'])
     const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
@@ -424,9 +426,11 @@ const removeFromParentCategories = async (groupId: string): Promise<void> => {
   try {
     const [categoriesStorage, tabsStorage] = await Promise.all([
       chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories'),
       chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs'),
     ])

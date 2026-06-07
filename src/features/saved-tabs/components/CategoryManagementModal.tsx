@@ -72,6 +72,7 @@ const confirmCategoryNameUpdated = async (
   trimmedName: string,
 ): Promise<boolean> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   const categoriesById = new Map(
@@ -90,6 +91,7 @@ const updateCategoryWithDomain = async (
   selectedDomainInfo: AvailableDomain,
 ): Promise<ParentCategory[]> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   const targetCategory = parentCategories.find(
@@ -235,9 +237,11 @@ const useCategoryManagementModalView = ({
         const [{ savedTabs = [] }, { parentCategories = [] }] =
           await Promise.all([
             chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
               savedTabs?: import('@/types/storage').TabGroup[]
             }>('savedTabs'),
             chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
               parentCategories?: import('@/types/storage').ParentCategory[]
             }>('parentCategories'),
           ])
@@ -344,6 +348,7 @@ const useCategoryManagementModalView = ({
       // すべての更新が完了したことを確認してからリロード
       console.log('Modal - 最終確認開始')
       const finalCheck = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories')
       const finalCategory = finalCheck.parentCategories?.find(
@@ -395,6 +400,7 @@ const useCategoryManagementModalView = ({
     setIsProcessing(true)
     try {
       const data = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories')
       const parentCategories: ParentCategory[] = data.parentCategories ?? []
@@ -461,6 +467,7 @@ const useCategoryManagementModalView = ({
     try {
       // 現在のカテゴリデータを取得
       const { parentCategories = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories')
 

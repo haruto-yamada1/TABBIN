@@ -3,13 +3,20 @@
 type ThemePreference = 'dark' | 'light' | 'system' | 'user'
 
 interface LocalStorageSchema {
+// eslint-disable-next-line typescript/consistent-type-imports
   savedTabs: import('./storage').TabGroup[]
+// eslint-disable-next-line typescript/consistent-type-imports
   parentCategories: import('./storage').ParentCategory[]
+// eslint-disable-next-line typescript/consistent-type-imports
   customProjects: import('./storage').CustomProject[]
   customProjectOrder: string[]
+// eslint-disable-next-line typescript/consistent-type-imports
   urls: import('./storage').UrlRecord[]
+// eslint-disable-next-line typescript/consistent-type-imports
   userSettings: import('./storage').UserSettings
+// eslint-disable-next-line typescript/consistent-type-imports
   domainCategorySettings: import('./storage').DomainCategorySettings[]
+// eslint-disable-next-line typescript/consistent-type-imports
   domainCategoryMappings: import('./storage').DomainParentCategoryMapping[]
   urlsMigrationCompleted: boolean
   'tab-manager-theme': ThemePreference

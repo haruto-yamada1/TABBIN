@@ -1282,6 +1282,7 @@ const useSavedTabsAppView = ({
     const syncCategoryAssignments = async () => {
       try {
         const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
         const currentSavedTabs = savedTabs

@@ -216,9 +216,11 @@ const isUrlRecordReferenced = async (urlId: string): Promise<boolean> => {
     // SavedTabsとCustomProjectsは独立しているため並列取得
     const [savedTabsResult, customProjectsResult] = await Promise.all([
       chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs'),
       chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         customProjects?: import('@/types/storage').CustomProject[]
       }>('customProjects'),
     ])
@@ -244,9 +246,11 @@ const cleanupUnreferencedUrls = async (): Promise<number> => {
       await Promise.all([
         getUrlRecords(),
         chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs'),
         chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
           customProjects?: import('@/types/storage').CustomProject[]
         }>('customProjects'),
       ])
@@ -341,6 +345,7 @@ const updateUrlReferences = async (
   try {
     // SavedTabsの参照を更新
     const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
     let tabsUpdated = false
@@ -367,6 +372,7 @@ const updateUrlReferences = async (
 
     // CustomProjectsの参照を更新
     const { customProjects = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       customProjects?: import('@/types/storage').CustomProject[]
     }>('customProjects')
     let projectsUpdated = false

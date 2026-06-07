@@ -49,9 +49,11 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
     await Promise.all([
       chrome.storage.local.get('urls'),
       chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs'),
       chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         customProjects?: import('@/types/storage').CustomProject[]
       }>('customProjects'),
     ])

@@ -76,6 +76,7 @@ const shouldSkipRename = (oldName: string, newName: string): boolean =>
 const updateTabGroup = async (updatedTabGroup: TabGroup) => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
     const updatedTabs = replaceTabGroup(savedTabs, updatedTabGroup)
@@ -212,6 +213,7 @@ const useSubCategoryKeywordManagerView = ({
 
       // タブの情報を取得
       const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs')
       console.log('取得したsavedTabs:', savedTabs)
@@ -318,6 +320,7 @@ const useSubCategoryKeywordManagerView = ({
 
     // ストレージからタブグループを取得
     const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
 

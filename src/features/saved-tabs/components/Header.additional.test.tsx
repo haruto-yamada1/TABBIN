@@ -17,6 +17,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+// eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 

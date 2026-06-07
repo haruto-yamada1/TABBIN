@@ -184,6 +184,7 @@ export const useCategoryKeywordModal = ({
   const loadParentCategories = useCallback(async () => {
     try {
       const { parentCategories: stored = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         parentCategories?: import('@/types/storage').ParentCategory[]
       }>('parentCategories')
       const storedCategories = stored
@@ -277,6 +278,7 @@ export const useCategoryKeywordModal = ({
       updateCategoryEditState({ keywords: updatedKeywords })
       try {
         const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
         const updatedGroups = savedTabs.map((g) =>
@@ -350,6 +352,7 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newSubCategory.trim()
       const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs')
       const updatedTabs = savedTabs.map((tab: TabGroup) => {
@@ -484,6 +487,7 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newCategoryName.trim()
       const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs')
       const updatedTabs = savedTabs.map((tab: TabGroup) =>

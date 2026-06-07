@@ -118,6 +118,7 @@ const addUrlToTabGroup = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
@@ -156,6 +157,7 @@ const addSubCategoryToGroup = async (
   subCategoryName: string,
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const group = savedTabs.find((g: TabGroup) => g.id === groupId)
@@ -247,6 +249,7 @@ const setCategoryKeywords = async (
   keywords: string[],
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const group = savedTabs.find((g: TabGroup) => g.id === groupId)
@@ -380,6 +383,7 @@ const autoCategorizeTabs = async (groupId: string): Promise<void> => {
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const uniqueGroups = dedupeTabGroups(savedTabs)
@@ -640,6 +644,7 @@ const removeUrlIdsFromTabGroup = async (
 
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
@@ -681,6 +686,7 @@ const removeUrlsFromTabGroup = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)

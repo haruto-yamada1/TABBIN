@@ -216,6 +216,7 @@ const useTabData = (
         nextGroups ??
         (
           await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
             savedTabs?: import('@/types/storage').TabGroup[]
           }>('savedTabs')
         ).savedTabs ??
@@ -241,6 +242,7 @@ const useTabData = (
 
         // データ読み込み
         const storageResult = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
         const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)

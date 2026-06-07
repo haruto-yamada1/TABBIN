@@ -10,6 +10,7 @@ import type {
 // 親カテゴリを取得する関数
 export const getParentCategories = async (): Promise<ParentCategory[]> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     parentCategories?: import('@/types/storage').ParentCategory[]
   }>('parentCategories')
   return parentCategories

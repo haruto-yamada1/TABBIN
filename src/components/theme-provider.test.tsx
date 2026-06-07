@@ -422,6 +422,7 @@ describe('useTheme', () => {
   it('React.use が undefined を返した場合はエラーを投げる', async () => {
     vi.resetModules()
     vi.doMock('react', async () => {
+// eslint-disable-next-line typescript/consistent-type-imports
       const actual = await vi.importActual<typeof import('react')>('react')
 
       return {

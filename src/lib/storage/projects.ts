@@ -414,6 +414,7 @@ const addUrlIdToDomainMode = async (
   urlId: string,
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
   const domain = getDomainFromUrl(url)
@@ -555,6 +556,7 @@ const removeUrlFromCustomProject = async (
   // ドメインモードからも同じURLを削除
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
 
@@ -599,6 +601,7 @@ const syncDeleteToDomainMode = async (
 ): Promise<void> => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
 

@@ -18,6 +18,7 @@ const loadAnalyticsRecords = async (): Promise<AiSavedUrlRecord[]> => {
     getCustomProjects(),
     getParentCategories(),
     chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs'),
     getUserSettings(),

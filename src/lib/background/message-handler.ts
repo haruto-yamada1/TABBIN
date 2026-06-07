@@ -268,6 +268,7 @@ const handleCheckExpiredTabsMessage = (
 
   // 設定情報も出力
   chrome.storage.local.get<{
+// eslint-disable-next-line typescript/consistent-type-imports
     userSettings?: import('@/types/storage').UserSettings
   }>(['userSettings'], (data) => {
     console.log('現在のストレージ内の設定:', data)
@@ -388,11 +389,13 @@ const handleListOllamaModelsMessage = (
 
 const handleRunAiChatMessage = (
   message: {
+// eslint-disable-next-line typescript/consistent-type-imports
     attachments?: import('@/features/ai-chat/types').AiChatAttachment[]
     prompt: string
     history: {
       role: 'user' | 'assistant'
       content: string
+// eslint-disable-next-line typescript/consistent-type-imports
       attachments?: import('@/features/ai-chat/types').AiChatAttachment[]
     }[]
   },
