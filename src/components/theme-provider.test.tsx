@@ -75,6 +75,7 @@ const HookConsumer = () => {
     <div>
       <span data-testid='theme'>{theme}</span>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('user')
         }}
@@ -83,6 +84,7 @@ const HookConsumer = () => {
         set-user
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('dark')
         }}

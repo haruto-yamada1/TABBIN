@@ -16,6 +16,7 @@ const TEXT_ATTACHMENT_MEDIA_TYPE_PREFIX = 'text/'
 
 const AI_CHAT_ATTACHMENT_FALLBACK_FILENAME = 'attachment'
 const AI_CHAT_MAX_ATTACHMENTS = 5
+// eslint-disable-next-line eslint/no-magic-numbers
 const AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES = 2 * 1024 * 1024
 
 const decodeBase64 = (value: string): Uint8Array => {

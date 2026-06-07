@@ -226,6 +226,7 @@ vi.mock('@/features/saved-tabs/components/Header', () => ({
         search
         <input
           aria-label='search'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onChange={(event) => {
             onSearchChange(event.target.value)
           }}

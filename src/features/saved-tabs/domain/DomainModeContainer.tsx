@@ -214,6 +214,7 @@ const UncategorizedDomainSection = ({
                   targetName,
                   t('savedTabs.deleteAllTabs'),
                 )}
+// eslint-disable-next-line eslint/no-magic-numbers
                 onConfirmOpenAll={displayedTabCount >= 10}
                 onConfirmDeleteAll={confirmDeleteAll}
                 openAllThreshold={10}
@@ -294,6 +295,7 @@ const UncategorizedDomainSection = ({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
             items={uncategorizedForDisplay.map((group) => group.id)}
             strategy={verticalListSortingStrategy}
           >
@@ -317,6 +319,7 @@ const UncategorizedDomainSection = ({
                   handleUpdateUrls={handleUpdateUrls}
 // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteCategory={handleDeleteCategory}
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
                   settings={{ confirmDeleteAll } as UserSettings}
                   isReorderMode={isReorderMode}
                   searchQuery={searchQuery}
@@ -449,6 +452,7 @@ export const DomainModeContainer = ({
                 if (!category) {
                   return null
                 }
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
                 const domainGroups = categorized[categoryId] || []
                 if (domainGroups.length === 0) {
                   return null
@@ -491,6 +495,7 @@ export const DomainModeContainer = ({
       )}
 
       <UncategorizedDomainSection
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           shouldShowSectionHeader: shouldShowUncategorizedSectionHeader,
           hasVisibleCategoryGroups,

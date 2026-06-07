@@ -46,6 +46,7 @@ export const CustomProjectCategoryManageDialog = ({
 }: CategoryManageDialogProps) => {
   const { t } = useI18n()
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleRenameInputKeyDown = (event: React.KeyboardEvent) => {
     if (event.key !== 'Enter') {
       return
@@ -57,9 +58,11 @@ export const CustomProjectCategoryManageDialog = ({
   return (
     <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
       <DialogContent
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={(event) => {
           event.stopPropagation()
         }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onPointerDown={(event) => {
           event.stopPropagation()
         }}
@@ -81,6 +84,7 @@ export const CustomProjectCategoryManageDialog = ({
             <Input
               id='rename-input'
               value={newCategoryName}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onChange={(event) => {
                 setNewCategoryName(event.target.value)
               }}
@@ -103,6 +107,7 @@ export const CustomProjectCategoryManageDialog = ({
                 <Button
                   variant='ghost'
                   size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onClick={() => {
                     setShowDeleteConfirm(false)
                   }}
@@ -122,6 +127,7 @@ export const CustomProjectCategoryManageDialog = ({
                 <Button
                   variant='secondary'
                   size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onClick={() => {
                     setShowDeleteConfirm(true)
                   }}

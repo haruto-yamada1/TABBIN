@@ -1385,6 +1385,7 @@ describe('projects storage', () => {
       },
     ])
 
+// eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.get)
 // eslint-disable-next-line typescript/require-await
       .mockImplementationOnce(async (keys) => {
@@ -1534,6 +1535,7 @@ describe('projects storage', () => {
 // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
+// eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.get)
 // eslint-disable-next-line typescript/require-await
       .mockImplementationOnce(async (keys) => {
@@ -1774,6 +1776,7 @@ describe('projects storage', () => {
       }),
     )
 
+// eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.get).mockRejectedValueOnce(
       new Error('storage failed'),
     )
@@ -2573,6 +2576,7 @@ describe('projects storage', () => {
       }),
     ).rejects.toThrow('Project with ID missing not found')
 
+// eslint-disable-next-line typescript/unbound-method
     const setMock = vi.mocked(chrome.storage.local.set)
     setMock.mockRejectedValueOnce(new Error('write failed'))
     await expect(updateProjectOrder(['source'])).rejects.toThrow('write failed')

@@ -95,6 +95,7 @@ export const SortableUrlItem = ({
     )
   }, [url, groupId])
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDragEnd = (e: React.DragEvent<HTMLElement>) => {
     // リスナーをクリーンアップ
     window.removeEventListener('blur', handleWindowBlur)
@@ -125,6 +126,7 @@ export const SortableUrlItem = ({
     [handleWindowBlur],
   )
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteButtonClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
@@ -135,6 +137,7 @@ export const SortableUrlItem = ({
     }
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -161,10 +164,12 @@ export const SortableUrlItem = ({
             variant='ghost'
             size='sm'
             draggable
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onDragStart={(e) => {
               handleDragStart(e, url)
             }}
             onDragEnd={handleDragEnd}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={() => {
               handleOpenTab(url)
             }}
@@ -206,6 +211,7 @@ export const SortableUrlItem = ({
       <DeleteUrlConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onConfirm={() => {
           handleDeleteUrl(groupId, url)
         }}

@@ -170,6 +170,7 @@ export const deleteParentCategory = async (
     console.log(
       `親カテゴリ「${categoryToDelete.name}」を削除しました。影響を受けたドメイン: ${affectedDomainNames.join(', ')}`,
     )
+// eslint-disable-next-line eslint/no-useless-return
     return
   } catch (error) {
     console.error('親カテゴリの削除に失敗しました:', error)

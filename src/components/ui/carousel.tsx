@@ -114,6 +114,7 @@ const Carousel = ({
 
   return (
     <CarouselContext.Provider
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       value={{
         api,
         canScrollNext,

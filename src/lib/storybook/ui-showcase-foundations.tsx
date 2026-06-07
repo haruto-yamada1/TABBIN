@@ -169,6 +169,7 @@ const UiShowcase = () => {
           <div className='flex items-center gap-2'>
             <Checkbox
               checked={checked}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onCheckedChange={(value) => {
                 setChecked(value === true)
               }}

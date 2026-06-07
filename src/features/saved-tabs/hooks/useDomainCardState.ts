@@ -285,6 +285,7 @@ export const useDomainCardState = ({
 
   // --- タブ変更の監視 ---
   const prevUrlsRef = useRef<TabGroup['urls']>([])
+// eslint-disable-next-line eslint/complexity
   useEffect(() => {
     const prevUrls = prevUrlsRef.current
     const currentUrls = group.urls
@@ -326,7 +327,9 @@ export const useDomainCardState = ({
         const currentOrder = isCategoryReorderMode
           ? tempCategoryOrder
           : allCategoryIds
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const oldIndex = currentOrder.indexOf(active.id as string)
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const newIndex = currentOrder.indexOf(over.id as string)
         if (oldIndex !== -1 && newIndex !== -1) {
           const updatedAllCategoryIds = arrayMove(

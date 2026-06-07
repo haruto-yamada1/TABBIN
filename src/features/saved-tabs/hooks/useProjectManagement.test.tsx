@@ -755,6 +755,7 @@ describe('useProjectManagement', () => {
       await undoOptions?.action?.onClick?.()
     })
 
+// eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
       customProjects: projectSnapshot,
@@ -802,6 +803,7 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(updatedProjects)
       .mockResolvedValueOnce(updatedProjects)
 
+// eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockResolvedValueOnce: (value: unknown) => void
     }
@@ -809,6 +811,7 @@ describe('useProjectManagement', () => {
     storageGet.mockResolvedValueOnce({
       customProjects: projectSnapshot,
     })
+// eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(
       new Error('restore failed'),
     )
@@ -838,6 +841,7 @@ describe('useProjectManagement', () => {
       await missingUndoOptions?.action?.onClick?.()
     })
 
+// eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -859,6 +863,7 @@ describe('useProjectManagement', () => {
       await failingUndoOptions?.action?.onClick?.()
     })
 
+// eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       customProjects: projectSnapshot,
     })

@@ -208,6 +208,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
   const { t } = useI18n()
   const { open, setOpen, setSidebarWidth, sidebarWidth } = useSidebar()
   const isIconCollapsed = open && sidebarWidth <= ICON_RAIL_WIDTH_PX
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleCollapseSidebar = () => {
     setOpen(true)
     setSidebarWidth(ICON_RAIL_WIDTH_PX)
@@ -221,6 +222,7 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
       // LocalStorage が使えない環境では保持をスキップする
     }
   }
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleExpandSidebar = () => {
     setOpen(true)
     setSidebarWidth(EXPANDED_SIDEBAR_WIDTH_PX)

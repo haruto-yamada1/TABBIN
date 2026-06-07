@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -111,6 +113,7 @@ vi.mock('@/lib/storage/settings', async () => {
 
 vi.mock('@/components/ui/select', () => {
   const SelectTrigger = ({ children }: { children?: ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   )
   const SelectValue = ({
@@ -119,10 +122,13 @@ vi.mock('@/components/ui/select', () => {
   }: {
     children?: ReactNode
     placeholder?: string
+// eslint-disable-next-line react/jsx-no-useless-fragment
   }) => <>{children ?? placeholder}</>
   const SelectContent = ({ children }: { children?: ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   )
+// eslint-disable-next-line react/jsx-no-useless-fragment
   const SelectItem = ({ children }: { children?: ReactNode }) => <>{children}</>
 
   const Select = ({
@@ -169,6 +175,7 @@ vi.mock('@/components/ui/select', () => {
         aria-label={triggerProps['aria-label'] as string | undefined}
         className={triggerProps.className as string | undefined}
         id={triggerProps.id as string | undefined}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onChange={(event) => onValueChange?.(event.target.value)}
         value={value}
       >
@@ -211,6 +218,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         </div>
       ))}
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: 'docs.example.com',
@@ -224,6 +232,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         emit-chart-click
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: '',
@@ -237,6 +246,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         emit-empty-chart-click
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: 'Uncategorized',
@@ -250,6 +260,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         emit-uncategorized-click
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: 'Inbox',
@@ -263,6 +274,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         emit-inbox-click
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: 'Catchup',
@@ -276,6 +288,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         emit-catchup-click
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: '2026-03-13',
@@ -289,6 +302,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         emit-time-click
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: 'news.example.net',
@@ -302,6 +316,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         emit-domain-series-news-click
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: 'news.example.net',
@@ -315,6 +330,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
         emit-custom-series-news-click
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           onChartPointClick?.({
             label: 'news.example.net',
@@ -352,13 +368,16 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
     <div>
       <div>{`history-variant:${historyVariant ?? 'none'}`}</div>
       <div>active-title:Analytics Chat</div>
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onOpenChange?.(true)} type='button'>
         open-sidebar
       </button>
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onOpenChange?.(false)} type='button'>
         close-sidebar
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           emitAnalyticsMessages(onMessagesChange, [
             {
@@ -424,6 +443,7 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
         emit-ai-chart
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           emitAnalyticsMessages(onMessagesChange, [
             {
@@ -453,12 +473,14 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
         emit-chart-only
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => emitAnalyticsMessages(onMessagesChange, [])}
         type='button'
       >
         emit-empty-messages
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           emitAnalyticsMessages(onMessagesChange, [
             {
@@ -474,6 +496,7 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
         emit-user-only
       </button>
       <button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           emitAnalyticsMessages(onMessagesChange, [
             {
@@ -588,9 +611,13 @@ vi.mock('@/lib/storage/analytics', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+// eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+// eslint-disable-next-line react/jsx-no-useless-fragment
   TooltipContent: ({ children }: { children: ReactNode }) => <>{children}</>,
+// eslint-disable-next-line react/jsx-no-useless-fragment
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+// eslint-disable-next-line react/jsx-no-useless-fragment
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
 

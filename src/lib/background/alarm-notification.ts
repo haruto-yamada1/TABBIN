@@ -86,6 +86,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
 const scheduleInitialCheck = (): void => {
   Promise.resolve()
     .then(async () => {
+// eslint-disable-next-line eslint/no-magic-numbers
       await new Promise((resolve) => setTimeout(resolve, 100))
 // eslint-disable-next-line typescript/no-floating-promises
       checkAndRemoveExpiredTabs()

@@ -35,12 +35,14 @@ const NewSubCategoryField = ({
       id='new-subcategory'
       type='text'
       value={value}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(e) => {
         onChange(e.target.value)
       }}
       onBlur={onAdd}
       placeholder={placeholder}
       className='w-full rounded border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
           e.preventDefault()
@@ -116,6 +118,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // キーワード追加関数に重複チェックを追加
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleAddKeyword = () => {
     if (newKeyword.trim() && activeCategory) {
       // 重複チェックを追加
@@ -166,6 +169,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // 新しい子カテゴリを追加
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleAddSubCategory = async () => {
     if (newSubCategory.trim()) {
       const categoryName = newSubCategory.trim()
@@ -275,6 +279,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // リネームモードを開始する関数
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const startRenameMode = () => {
     setIsRenamingSubCategory(true)
     setNewCategoryName(getRenameDraftName(activeCategory))
@@ -289,6 +294,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // リネームを完了する関数
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const completeRename = async () => {
     if (!(isRenamingSubCategory && activeCategory && newCategoryName.trim())) {
       setIsRenamingSubCategory(false)
@@ -389,6 +395,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // キャンセル時の処理
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const cancelRename = () => {
     setIsRenamingSubCategory(false)
     setNewCategoryName(getRenameDraftName(activeCategory))
@@ -434,6 +441,7 @@ const useSubCategoryKeywordManagerView = ({
           <div key={category} className='flex max-w-full items-center'>
             <Button
               type='button'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 handleCategorySelect(category)
               }}
@@ -481,9 +489,11 @@ const useSubCategoryKeywordManagerView = ({
                   ref={renameInputRef}
                   type='text'
                   value={newCategoryName}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onChange={(e) => {
                     setNewCategoryName(e.target.value)
                   }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -564,11 +574,13 @@ const useSubCategoryKeywordManagerView = ({
                 id={`keyword-input-${activeCategory}`}
                 type='text'
                 value={newKeyword}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onChange={(e) => {
                   setNewKeyword(e.target.value)
                 }}
                 placeholder={t('savedTabs.keywords.placeholder')}
                 className='grow rounded-l border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()

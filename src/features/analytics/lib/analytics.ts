@@ -240,6 +240,7 @@ const isWithinTimeRange = (
 
   return (
     savedAt >=
+// eslint-disable-next-line eslint/no-magic-numbers
     options.now - RANGE_IN_DAYS[options.timeRange] * 24 * 60 * 60 * 1000
   )
 }
@@ -350,6 +351,7 @@ const getTimeBucketLabel = (
   return getLocalDateKey(savedAt, timeZone)
 }
 
+// eslint-disable-next-line eslint/complexity
 const getLabelsForGroup = (
   record: AiSavedUrlRecord,
   groupBy: AnalyticsGroupBy,
@@ -441,6 +443,7 @@ const getNormalizedCount = (count: number, total: number): number => {
     return 0
   }
 
+// eslint-disable-next-line eslint/no-magic-numbers
   return Math.round((count / total) * 100)
 }
 

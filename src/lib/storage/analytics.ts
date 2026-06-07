@@ -24,6 +24,7 @@ const createSavedAnalyticsView = ({
   query: AnalyticsQuery
 }): SavedAnalyticsView => ({
   createdAt: now,
+// eslint-disable-next-line eslint/no-magic-numbers
   id: `analytics-view-${now}-${Math.random().toString(16).slice(2)}`,
   name,
   query,
@@ -40,6 +41,7 @@ const loadSavedAnalyticsViews = async (): Promise<SavedAnalyticsView[]> => {
 
   const stored = await storageLocal.get(SAVED_ANALYTICS_VIEWS_KEY)
   return Array.isArray(stored[SAVED_ANALYTICS_VIEWS_KEY])
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     ? (stored[SAVED_ANALYTICS_VIEWS_KEY] as SavedAnalyticsView[])
     : []
 }

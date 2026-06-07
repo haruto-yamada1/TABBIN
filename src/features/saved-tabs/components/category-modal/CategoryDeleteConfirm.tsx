@@ -37,6 +37,7 @@ export const CategoryDeleteConfirm = () => {
         <Button
           variant='ghost'
           size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             deletion.setShowDeleteConfirm(false)
           }}

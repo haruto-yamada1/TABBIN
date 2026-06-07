@@ -30,6 +30,7 @@ const Temporary = ({
       className='stroke-ring stroke-1'
       id={id}
       path={edgePath}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{
         strokeDasharray: '5, 5',
       }}

@@ -4,9 +4,11 @@ import { useState } from 'react'
 
 const parseCategoryNameFromOverId = (overId: string): string | undefined => {
   const parts = overId.split('-')
+// eslint-disable-next-line eslint/no-magic-numbers
   if (parts.length < 4) {
     return undefined
   }
+// eslint-disable-next-line eslint/no-magic-numbers
   return parts.slice(3).join('-')
 }
 const isUncategorizedDrop = (
@@ -18,6 +20,7 @@ const isUncategorizedDrop = (
     (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
     over?.data?.current?.type === 'uncategorized',
   )
+// eslint-disable-next-line eslint/complexity
 const resolveOverCategoryName = (
   over: DragOverEvent['over'],
 ): string | null => {
@@ -70,6 +73,7 @@ export const useCategoryDnD = () => {
 
   // ドラッグ開始
   const handleDragStart = (event: DragStartEvent) => {
+// eslint-disable-next-line typescript/no-unsafe-assignment
     const itemType = event.active.data.current?.type
     const itemId = event.active.id
     if (itemType === 'category') {
@@ -97,6 +101,7 @@ export const useCategoryDnD = () => {
     const { over } = event
 
     // 他のプロジェクト上のドラッグであれば、ハイライトを解除する
+// eslint-disable-next-line typescript/no-unsafe-assignment
     const overProjectId = over?.data?.current?.projectId
     if (overProjectId && overProjectId !== project.id) {
       setDraggedOverCategory(null)

@@ -62,6 +62,7 @@ import {
 const samplePng =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP7m8kG6QAAAABJRU5ErkJggg=='
 
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
 const sampleTool = {
   description: 'Cluster tabs by project and urgency',
   inputSchema: {
@@ -184,6 +185,7 @@ const ReviewArtifacts = () => (
     <Section title='Attachments + Snippet'>
       <div className='gap-y-4'>
         <Attachments variant='grid'>
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           <Attachment data={sampleAttachment} onRemove={() => undefined}>
             <AttachmentHoverCard>
               <AttachmentHoverCardTrigger asChild>
@@ -204,6 +206,7 @@ const ReviewArtifacts = () => (
         </Attachments>
 
         <Attachments variant='list'>
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           <Attachment data={sampleSource as never}>
             <AttachmentPreview />
             <AttachmentInfo showMediaType />
@@ -227,8 +230,10 @@ const ReviewArtifacts = () => (
         <Transcription
           className='rounded-lg border p-3'
           currentTime={4}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onSeek={() => undefined}
           segments={
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
             [
               { endSecond: 2, startSecond: 0, text: 'Pinned tabs grouped.' },
               { endSecond: 5, startSecond: 2, text: 'Cleanup draft prepared.' },

@@ -109,9 +109,11 @@ const ChartContainer = ({
   }, [])
 
   return (
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
     <ChartContext.Provider value={{ config }}>
       <div
         data-chart={chartId}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         ref={(node) => {
           containerRef.current = node
 
@@ -221,6 +223,7 @@ const renderTooltipIndicator = ({
         },
       )}
       style={
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         {
           '--color-bg': indicatorColor,
           '--color-border': indicatorColor,
@@ -229,6 +232,7 @@ const renderTooltipIndicator = ({
     />
   )
 
+// eslint-disable-next-line eslint/complexity
 const renderTooltipRow = ({
   color,
   config,
@@ -277,6 +281,7 @@ const renderTooltipRow = ({
             renderTooltipIndicator({
               hideIndicator,
               indicator,
+// eslint-disable-next-line typescript/no-unsafe-assignment
               indicatorColor,
               nestLabel,
             })
@@ -306,6 +311,7 @@ const renderTooltipRow = ({
   )
 }
 
+// eslint-disable-next-line eslint/complexity
 const ChartTooltipContent = ({
   active,
   className,
@@ -440,6 +446,7 @@ const ChartLegendContent = ({
             ) : (
               <div
                 className='size-2 shrink-0 rounded-[2px]'
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
                 style={{
                   backgroundColor: item.color,
                 }}
@@ -476,15 +483,19 @@ function getPayloadConfigFromPayload(
 
   if (
     key in payload &&
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     typeof payload[key as keyof typeof payload] === 'string'
   ) {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     configLabelKey = payload[key as keyof typeof payload] as string
   } else if (
     payloadPayload &&
     key in payloadPayload &&
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     typeof payloadPayload[key as keyof typeof payloadPayload] === 'string'
   ) {
     configLabelKey = payloadPayload[
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       key as keyof typeof payloadPayload
     ] as string
   }

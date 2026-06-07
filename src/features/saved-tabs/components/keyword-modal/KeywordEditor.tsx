@@ -36,17 +36,20 @@ export const KeywordEditor = () => {
         <Input
           id='keyword-input'
           value={keywordsState.newKeyword}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onChange={(e) => {
             keywordsState.setNewKeyword(e.target.value)
           }}
           placeholder={t('savedTabs.keywords.placeholder')}
           className='grow rounded border p-2'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
               keywordsState.handleAddKeyword()
             }
           }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onBlur={() => {
             if (keywordsState.newKeyword.trim()) {
               keywordsState.handleAddKeyword()

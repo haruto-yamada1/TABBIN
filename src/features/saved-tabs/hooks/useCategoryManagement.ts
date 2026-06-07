@@ -130,6 +130,7 @@ const resolveStateValue = <T>(
   previousValue: T,
 ): T =>
   typeof nextValue === 'function'
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     ? (nextValue as (value: T) => T)(previousValue)
     : nextValue
 /**

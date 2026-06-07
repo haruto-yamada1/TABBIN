@@ -117,6 +117,7 @@ describe('ProjectUrlItem', () => {
     cleanup()
   })
 
+// eslint-disable-next-line eslint/complexity
   it('未分類URLを描画しリンククリックと即時削除を処理する', () => {
     const handleOpenUrl = vi.fn()
     const handleDeleteUrl = vi.fn()

@@ -49,11 +49,13 @@ const getOllamaErrorDetails = (
  * メッセージリスナーを設定
  */
 const setupMessageListener = (): void => {
+// eslint-disable-next-line eslint/complexity
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     console.log('バックグラウンドがメッセージを受信:', message)
     if (
       typeof message !== 'object' ||
       message === null ||
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       typeof (message as Record<string, unknown>).action !== 'string'
     ) {
       sendResponse({
@@ -61,6 +63,7 @@ const setupMessageListener = (): void => {
       })
       return false
     }
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     const typedMessage = message as BackgroundMessage
     switch (typedMessage.action) {
       case 'urlDragStarted': {
@@ -158,6 +161,7 @@ const handleUrlDroppedMessage = (
       .catch((error) => {
         console.error('URL削除エラー:', error)
         sendResponse({
+// eslint-disable-next-line typescript/no-unsafe-assignment
           error: error.toString(),
           status: 'error',
         })
@@ -184,6 +188,7 @@ const handleRemoveUrlMessage = (
     })
     .catch((error) => {
       sendResponse({
+// eslint-disable-next-line typescript/no-unsafe-assignment
         error,
         status: 'error',
       })

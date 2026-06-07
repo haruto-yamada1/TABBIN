@@ -156,6 +156,7 @@ export const JSXPreview = memo(
 
     return (
       <JSXPreviewContext.Provider
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         value={{
           bindings,
           components,

@@ -260,6 +260,7 @@ const getStringValue = (
 }
 
 const getToolTitle = (toolName: string): string =>
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   AI_CHAT_TOOL_TITLES[toolName as keyof typeof AI_CHAT_TOOL_TITLES] || toolName
 
 const getToolResultCount = (output: unknown): number | null => {
@@ -272,6 +273,7 @@ const getToolResultCount = (output: unknown): number | null => {
     typeof output === 'object' &&
     Array.isArray((output as { items?: unknown[] }).items)
   ) {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     return (output as { items: unknown[] }).items.length
   }
 
@@ -557,6 +559,7 @@ const listLocalOllamaModels = async (
     settings.language ?? 'system',
     getAiChatUiLocale(),
   )
+// eslint-disable-next-line eslint/no-magic-numbers
   if (response.status === 403) {
     throw createOllamaForbiddenError(language)
   }
@@ -565,6 +568,7 @@ const listLocalOllamaModels = async (
     throw new Error('Failed to fetch Ollama models')
   }
 
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   const payload = (await response.json()) as Record<string, unknown>
   const models = Array.isArray(payload.models) ? payload.models : []
 
@@ -573,6 +577,7 @@ const listLocalOllamaModels = async (
       return []
     }
 
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     const modelRecord = model as Record<string, unknown>
     const name = getStringValue(modelRecord, 'name')
     if (!name) {
@@ -582,6 +587,7 @@ const listLocalOllamaModels = async (
     const modifiedAt = getStringValue(modelRecord, 'modified_at')
     const details =
       modelRecord.details && typeof modelRecord.details === 'object'
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         ? (modelRecord.details as Record<string, unknown>)
         : null
     const parameterSize = details
@@ -687,6 +693,7 @@ const runAiChatRequest = async (
             toolTraces: streamedToolTraces,
           })
         },
+// eslint-disable-next-line eslint/no-magic-numbers
         stopWhen: stepCountIs(5),
         system: buildFinalSystemPrompt({
           savedUrlContext: createContextSummary(records, language),

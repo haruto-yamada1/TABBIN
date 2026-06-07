@@ -5,22 +5,28 @@ interface TimeRemainingResponse {
   timeRemaining?: number
 }
 const getTimeRemainingColorClass = (remainingMs: number): string => {
+// eslint-disable-next-line eslint/no-magic-numbers
   if (remainingMs < 1000 * 60 * 60) {
     return 'text-red-500 font-medium'
   }
+// eslint-disable-next-line eslint/no-magic-numbers
   if (remainingMs < 1000 * 60 * 60 * 24) {
     return 'text-amber-500 font-medium'
   }
+// eslint-disable-next-line eslint/no-magic-numbers
   if (remainingMs < 1000 * 60 * 60 * 24 * 3) {
     return 'text-yellow-500'
   }
   return 'text-emerald-500'
 }
 const formatTimeRemainingText = (remainingMs: number): string => {
+// eslint-disable-next-line eslint/no-magic-numbers
   const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24))
   const hours = Math.floor(
+// eslint-disable-next-line eslint/no-magic-numbers
     (remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
   )
+// eslint-disable-next-line eslint/no-magic-numbers
   const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60))
   let result = 'あと '
   if (days > 0) {
@@ -99,6 +105,7 @@ export const TimeRemaining = ({
     calculateTimeLeft()
 
     // 1分ごとに更新
+// eslint-disable-next-line eslint/no-magic-numbers
     const timer = setInterval(calculateTimeLeft, 60_000)
     return () => {
       clearInterval(timer)

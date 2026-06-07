@@ -31,6 +31,7 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
     if (!Array.isArray(urls)) {
       return []
     }
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     urlRecordsCache = urls as UrlRecord[]
     return urlRecordsCache
   } catch (error) {

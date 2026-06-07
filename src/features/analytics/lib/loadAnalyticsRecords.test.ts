@@ -125,6 +125,7 @@ describe('loadAnalyticsRecords', () => {
   })
 
   it('savedTabs が配列でなく excludePatterns が未定義でも空配列に正規化する', async () => {
+// eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockResolvedValueOnce: (value: unknown) => void
     }

@@ -73,6 +73,7 @@ export const AutoDeleteSettingsCard = ({
               />
             </SelectTrigger>
             <SelectContent
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onPointerDownOutside={(event) => {
                 event.preventDefault()
               }}
@@ -137,6 +138,7 @@ export const AutoDeleteSettingsCard = ({
                 <Button
                   type='button'
                   variant='destructive'
+// eslint-disable-next-line react/jsx-handler-names
                   onClick={confirmationState.onConfirm}
                 >
                   {t('common.confirm')}

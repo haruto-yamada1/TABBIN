@@ -20,9 +20,12 @@ import { AppLayout } from './AppLayout'
 describe('AppLayout', () => {
   it('route が高さ制約を受け取れるラッパーで Outlet を包む', () => {
     render(
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
       <MemoryRouter initialEntries={['/ai-chat']}>
         <Routes>
+// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           <Route element={<AppLayout />}>
+// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
             <Route path='/ai-chat' element={<div>route-content</div>} />
           </Route>
         </Routes>

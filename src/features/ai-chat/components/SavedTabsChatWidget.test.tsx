@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -116,6 +118,7 @@ vi.mock('@/components/ai-elements/conversation', async () => {
           aria-label={ariaLabel}
           className={className}
           data-testid='conversation-scroll-button'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             mocked.conversationScrollButtonClick()
           }}
@@ -581,6 +584,7 @@ describe('SavedTabsChatWidget', () => {
     render(
       <SavedTabsChatWidget
         defaultOpen
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         historyItems={[
           {
             id: 'conversation-1',
@@ -648,6 +652,7 @@ describe('SavedTabsChatWidget', () => {
     render(
       <SavedTabsChatWidget
         defaultOpen
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         historyItems={[
           {
             id: 'conversation-1',
@@ -741,6 +746,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-1'
         defaultOpen
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content: 'First conversation',
@@ -761,6 +767,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-2'
         defaultOpen
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content: 'Another conversation',
@@ -789,6 +796,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-1'
         defaultOpen
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content:

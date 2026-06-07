@@ -50,6 +50,7 @@ const getGlobalChromeRuntime = (): ChromeRuntime | null => {
 const loadWebExtensionBrowserApi = async (): Promise<BrowserApi | null> => {
   if (!browserApiPromise) {
     browserApiPromise = import('webextension-polyfill').then(
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       (mod: BrowserModule) => mod.default as BrowserApi | null,
     )
   }
@@ -78,6 +79,7 @@ export const sendRuntimeMessage = async (
     return browserApi.runtime.sendMessage(message)
   }
 
+// eslint-disable-next-line eslint/no-useless-assignment
   let polyfillBrowserApi: BrowserApi | null = null
   try {
     polyfillBrowserApi = await loadWebExtensionBrowserApi()
@@ -99,6 +101,7 @@ export const sendRuntimeMessage = async (
   return sendWithChromeRuntime(chromeRuntime, message)
 }
 
+// eslint-disable-next-line eslint/complexity
 export const connectRuntimePort = async (
   name: string,
 ): Promise<RuntimePort | null> => {
@@ -109,6 +112,7 @@ export const connectRuntimePort = async (
     })
   }
 
+// eslint-disable-next-line eslint/no-useless-assignment
   let polyfillBrowserApi: BrowserApi | null = null
   try {
     polyfillBrowserApi = await loadWebExtensionBrowserApi()

@@ -50,6 +50,7 @@ const Consumer = () => {
       </span>
       <button
         type='button'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           void setLanguageSetting('en')
         }}

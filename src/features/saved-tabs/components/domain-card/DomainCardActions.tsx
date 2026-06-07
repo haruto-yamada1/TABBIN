@@ -75,6 +75,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 keywordModal.setShowKeywordModal(!keywordModal.showKeywordModal)
               }}
@@ -98,6 +99,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
                 if ((group.urls?.length || 0) >= 10) {
@@ -133,6 +135,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
                 e.stopPropagation()
                 e.preventDefault()
@@ -203,6 +206,7 @@ export const DomainCardActions = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
                 handlers.handleOpenAllTabs(group.urls || [])
@@ -241,6 +245,7 @@ export const DomainCardActions = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 executeDeleteAll()
                 if (isReorderMode) {

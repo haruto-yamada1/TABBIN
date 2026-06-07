@@ -37,6 +37,7 @@ vi.mock('@/components/ui/select', () => ({
   }) => (
     <select
       aria-label='language-select'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onValueChange?.(event.target.value)}
       value={value}
     >
@@ -44,6 +45,7 @@ vi.mock('@/components/ui/select', () => ({
     </select>
   ),
   SelectContent: ({ children }: { children: React.ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   SelectItem: ({
@@ -54,6 +56,7 @@ vi.mock('@/components/ui/select', () => ({
     value: string
   }) => <option value={value}>{children}</option>,
   SelectTrigger: ({ children }: { children: React.ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   SelectValue: () => null,

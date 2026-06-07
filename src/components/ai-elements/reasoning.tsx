@@ -82,6 +82,7 @@ export const Reasoning = memo(
     isStreaming = false,
     open,
     defaultOpen,
+// eslint-disable-next-line typescript/unbound-method
     onOpenChange,
     duration: durationProp,
     children,

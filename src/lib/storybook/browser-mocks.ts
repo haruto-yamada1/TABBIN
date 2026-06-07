@@ -141,6 +141,7 @@ const createRuntimePort = () => ({
   },
 })
 
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
 const chromeMock = {
   runtime: {
     connect: () => createRuntimePort(),
@@ -253,6 +254,7 @@ const ensureNavigatorMocks = () => {
       value: {
         addEventListener: () => undefined,
         enumerateDevices: () =>
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           Promise.resolve([
             {
               deviceId: 'mic-primary',
@@ -263,6 +265,7 @@ const ensureNavigatorMocks = () => {
             },
           ]) as unknown as Promise<MediaDeviceInfo[]>,
         getUserMedia: () =>
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           Promise.resolve(new StorybookMediaStream()) as unknown as Promise<MediaStream>,
         removeEventListener: () => undefined,
       } satisfies Partial<MediaDevices>,
@@ -287,6 +290,7 @@ const ensureNavigatorMocks = () => {
 
   if (!globalThis.MediaRecorder) {
     globalThis.MediaRecorder =
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       StorybookMediaRecorder as unknown as typeof MediaRecorder
   }
 

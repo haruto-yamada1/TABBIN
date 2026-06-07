@@ -25,6 +25,7 @@ export const DeferredStoryLoader = ({
   const [isLoaded, setIsLoaded] = useState(false)
 
   return isLoaded ? (
+// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
     <Suspense fallback={<StoryFallback />}>
       <StoryComponent />
     </Suspense>
@@ -35,6 +36,7 @@ export const DeferredStoryLoader = ({
         <p className='max-w-2xl text-sm text-muted-foreground'>{description}</p>
       </div>
       <Button
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           startTransition(() => {
             setIsLoaded(true)

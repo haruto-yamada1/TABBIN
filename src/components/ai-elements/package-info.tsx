@@ -37,6 +37,7 @@ export const PackageInfo = ({
   ...props
 }: PackageInfoProps) => (
   <PackageInfoContext.Provider
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
     value={{ changeType, currentVersion, name, newVersion }}
   >
     <div

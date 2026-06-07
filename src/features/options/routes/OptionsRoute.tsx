@@ -49,6 +49,7 @@ const createThemeColorChangeHandler =
 const applyFontSizePreview = (value: number) => {
   document.documentElement.style.setProperty(
     '--app-font-scale',
+// eslint-disable-next-line eslint/no-magic-numbers
     String(normalizeFontSizePercent(value) / 100),
   )
 }
@@ -162,46 +163,58 @@ const useOptionsRouteView = () => {
     await updateFontSizePercent(nextValue)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleResetFontSize = async () => {
     await updateFontSizePercent(DEFAULT_FONT_SIZE_PERCENT)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleClickBehaviorChange = async (value: string) => {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     await updateSetting('clickBehavior', value as UserSettings['clickBehavior'])
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleRemoveAfterOpen = async (checked: boolean) => {
     await updateSetting('removeTabAfterOpen', checked)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleRemoveAfterExternalDrop = async (checked: boolean) => {
     await updateSetting('removeTabAfterExternalDrop', checked)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleExcludePinnedTabs = async (checked: boolean) => {
     await updateSetting('excludePinnedTabs', checked)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleShowSavedTime = async (checked: boolean) => {
     await updateSetting('showSavedTime', checked)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleOpenUrlInBackground = async (checked: boolean) => {
     await updateSetting('openUrlInBackground', checked)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleOpenAllInNewWindow = async (checked: boolean) => {
     await updateSetting('openAllInNewWindow', checked)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleConfirmDeleteEach = async (checked: boolean) => {
     await updateSetting('confirmDeleteEach', checked)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleConfirmDeleteAll = async (checked: boolean) => {
     await updateSetting('confirmDeleteAll', checked)
   }
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleExcludePatternKeyDown = async (
     event: React.KeyboardEvent<HTMLInputElement>,
   ) => {
@@ -448,6 +461,7 @@ const useOptionsRouteView = () => {
                 id='excludePatterns'
                 value={excludePatternInput}
                 onChange={handleExcludePatternInputChange}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onBlur={() => {
                   void addExcludePattern()
                 }}
@@ -458,6 +472,7 @@ const useOptionsRouteView = () => {
               />
               <Button
                 type='button'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   void addExcludePattern()
                 }}
@@ -488,6 +503,7 @@ const useOptionsRouteView = () => {
                       variant='ghost'
                       size='icon-sm'
                       className='size-5 rounded-full'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                       onClick={() => {
                         void removeExcludePattern(pattern)
                       }}
@@ -549,18 +565,23 @@ const useOptionsRouteView = () => {
                 max={MAX_FONT_SIZE_PERCENT}
                 step={FONT_SIZE_PERCENT_STEP}
                 value={fontSizeSliderValue}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onChange={(event) => {
                   handleFontSizeSliderChange(event)
                 }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onMouseUp={() => {
                   void commitFontSizeSliderValue()
                 }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onTouchEnd={() => {
                   void commitFontSizeSliderValue()
                 }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onBlur={() => {
                   void commitFontSizeSliderValue()
                 }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onKeyUp={(event) => {
                   if (
                     ![
@@ -599,12 +620,15 @@ const useOptionsRouteView = () => {
                   max={MAX_FONT_SIZE_PERCENT}
                   step={FONT_SIZE_PERCENT_STEP}
                   value={fontSizeInputValue}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onChange={(event) => {
                     handleFontSizeInputChange(event)
                   }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onBlur={() => {
                     void commitFontSizeInputValue()
                   }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onKeyDown={(event) => {
                     if (event.key !== 'Enter') {
                       return
@@ -684,6 +708,7 @@ const useOptionsRouteView = () => {
         <div className='mt-4'>
           <Button
             type='button'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={() =>
               window.open(
                 'https://forms.gle/c9gBiF2TmgXaeU7J6',
@@ -704,6 +729,7 @@ const useOptionsRouteView = () => {
           <Button
             type='button'
             className='w-full cursor-pointer'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={() =>
               window.open(
                 chrome.runtime.getURL('changelog.html'),

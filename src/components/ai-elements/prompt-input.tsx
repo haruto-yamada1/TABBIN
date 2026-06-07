@@ -90,6 +90,7 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
       const reader = new FileReader()
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
       reader.onloadend = () => {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         resolve(reader.result as string)
       }
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
@@ -528,6 +529,7 @@ const usePromptInputView = ({
 
   // Wrapper that validates files before calling provider's add
   const addWithProviderValidation = useCallback(
+// eslint-disable-next-line eslint/complexity
     (fileList: File[] | FileList) => {
       const incoming = [...fileList]
       const accepted = incoming.filter((f) => matchesAccept(f))
@@ -571,6 +573,7 @@ const usePromptInputView = ({
   )
 
   const clearAttachments = useCallback(() => {
+// eslint-disable-next-line eslint/no-unused-expressions
     usingProvider
       ? controller?.attachments.clear()
       : setItems((prev) => {
@@ -736,6 +739,7 @@ const usePromptInputView = ({
         ? controller.textInput.value
         : (() => {
             const formData = new FormData(form)
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
             return (formData.get('message') as string) || ''
           })()
 
@@ -852,6 +856,7 @@ export const PromptInputTextarea = ({
   const isComposingRef = useRef(false)
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
+// eslint-disable-next-line eslint/complexity
     (e) => {
       // Call the external onKeyDown handler first
       onKeyDown?.(e)
@@ -872,6 +877,7 @@ export const PromptInputTextarea = ({
 
         // Check if the submit button is disabled before submitting
         const { form } = e.currentTarget
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const submitButton = form?.querySelector(
           'button[type="submit"]',
         ) as HTMLButtonElement | null

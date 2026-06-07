@@ -95,6 +95,7 @@ const CopyableValueRow = ({
             aria-label={buttonLabel}
             className='size-8 shrink-0'
             data-state={isCopied ? 'copied' : 'idle'}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={() => {
               void copyToClipboard()
             }}

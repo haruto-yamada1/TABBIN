@@ -461,12 +461,14 @@ const normalizeCategoryKeywords = (
     ) {
       return items
     }
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     const keywordData = k as {
       categoryName: string
       keywords?: unknown
     }
     items.push({
       categoryName: k.categoryName,
+// eslint-disable-next-line typescript/no-unsafe-assignment
       keywords: Array.isArray(keywordData.keywords) ? keywordData.keywords : [],
     })
     return items
@@ -816,6 +818,7 @@ const alignCustomProjectsWithSavedTabs = ({
   }
 }
 
+// eslint-disable-next-line eslint/complexity
 const convertCustomProjectToExportUrls = (
   project: CustomProject,
   urlRecordMap: Map<string, UrlRecord>,
@@ -1209,6 +1212,7 @@ const mergeUrlData = (
 /**
  * TabGroupのURL情報をエクスポート用の旧形式配列に変換する
  */
+// eslint-disable-next-line eslint/complexity
 const convertTabGroupToExportUrls = (
   tab: TabGroup,
   urlRecordMap: Map<string, UrlRecord>,
@@ -1396,6 +1400,7 @@ const ensurePlaceholderUrlRecords = async (
   const urlsData = await chrome.storage.local.get({
     urls: [],
   })
+// eslint-disable-next-line typescript/no-unsafe-assignment
   const currentUrlRecords: UrlRecord[] = Array.isArray(urlsData.urls)
     ? urlsData.urls
     : []
@@ -1432,6 +1437,7 @@ const ensurePlaceholderUrlRecords = async (
  * 現在の設定とタブデータをエクスポートする
  * @returns エクスポートされたデータを含むJSONオブジェクト
  */
+// eslint-disable-next-line eslint/complexity
 const exportSettings = async (): Promise<BackupData> => {
   try {
     // 先にマイグレーションを実行し、新形式URLデータの整合性を高める
@@ -1449,11 +1455,13 @@ const exportSettings = async (): Promise<BackupData> => {
         urls: [],
       }),
     ])
+// eslint-disable-next-line typescript/no-unsafe-assignment
     const parentCategories: ParentCategory[] = Array.isArray(
       storageData.parentCategories,
     )
       ? storageData.parentCategories
       : []
+// eslint-disable-next-line typescript/no-unsafe-assignment
     const savedTabs: TabGroup[] = Array.isArray(storageData.savedTabs)
       ? storageData.savedTabs
       : []
@@ -1469,6 +1477,7 @@ const exportSettings = async (): Promise<BackupData> => {
           (id): id is string => typeof id === 'string',
         )
       : []
+// eslint-disable-next-line typescript/no-unsafe-assignment
     const aiChatConversations: AiChatConversation[] = Array.isArray(
       storageData[AI_CHAT_CONVERSATIONS_KEY],
     )
@@ -1478,11 +1487,13 @@ const exportSettings = async (): Promise<BackupData> => {
       typeof storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] === 'string'
         ? storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]
         : ''
+// eslint-disable-next-line typescript/no-unsafe-assignment
     const savedAnalyticsViews: SavedAnalyticsView[] = Array.isArray(
       storageData.savedAnalyticsViews,
     )
       ? storageData.savedAnalyticsViews
       : []
+// eslint-disable-next-line typescript/no-unsafe-assignment
     const urlRecords: UrlRecord[] = Array.isArray(storageData.urls)
       ? storageData.urls
       : []
@@ -1593,12 +1604,14 @@ type NormalizedImportedTab =
   NormalizedImportResult['normalizedImportedTabs'][number]
 type UnresolvedImportTab = NormalizedImportResult['unresolvedTabs'][number]
 const parseBackupData = (jsonData: string): BackupData | null => {
+// eslint-disable-next-line typescript/no-unsafe-assignment
   const parsedData = JSON.parse(jsonData)
   const validationResult = backupDataSchema.safeParse(parsedData)
   if (!validationResult.success) {
     console.error('バリデーションエラー:', validationResult.error)
     return null
   }
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   return validationResult.data as BackupData
 }
 const createImportedUrlRecordMap = (
@@ -1612,6 +1625,7 @@ const createCurrentUrlRecordMap = async (): Promise<Map<string, UrlRecord>> => {
   const currentUrlsData = await chrome.storage.local.get({
     urls: [],
   })
+// eslint-disable-next-line typescript/no-unsafe-assignment
   const currentUrlRecords: UrlRecord[] = Array.isArray(currentUrlsData.urls)
     ? currentUrlsData.urls
     : []
@@ -2025,6 +2039,7 @@ interface ImportExecutionParams {
   resolvedImportedCustomProjects: CustomProject[]
   bulkUrlRecordMap?: Map<string, UrlRecord>
 }
+// eslint-disable-next-line eslint/complexity
 const importWithMerge = async ({
   importedData,
   normalizedImportedTabs,

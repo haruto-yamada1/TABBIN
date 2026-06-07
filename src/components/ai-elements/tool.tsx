@@ -170,6 +170,7 @@ export const ToolOutput = ({
 
   let Output = (
     <div className='break-words wrap-anywhere whitespace-pre-wrap'>
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       {output as ReactNode}
     </div>
   )

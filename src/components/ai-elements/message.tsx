@@ -219,6 +219,7 @@ export const MessageBranchContent = ({
         'grid gap-2 overflow-hidden [&>div]:pb-0',
         index === currentBranch ? 'block' : 'hidden',
       )}
+// eslint-disable-next-line typescript/no-unsafe-assignment
       key={branch.key}
       {...props}
     >

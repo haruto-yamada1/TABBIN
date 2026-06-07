@@ -13,6 +13,7 @@ const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
     .min(1, {
       message: t('savedTabs.categoryModal.validation.empty'),
     })
+// eslint-disable-next-line eslint/no-magic-numbers
     .max(25, {
       message: t('savedTabs.categoryModal.validation.maxLength'),
     })
@@ -170,6 +171,7 @@ export const useCategoryKeywordModal = ({
         setError(null)
         return true
       } catch (error) {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const validationError = error as z.ZodError
         setError(validationError.issues[0]!.message)
         return false
@@ -436,6 +438,7 @@ export const useCategoryKeywordModal = ({
       newCategoryName: activeCategory,
     })
     requestAnimationFrame(() => {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       const inputElement = document.querySelector(
         'input[data-rename-input]',
       ) as HTMLInputElement
@@ -469,6 +472,7 @@ export const useCategoryKeywordModal = ({
     }
     if (!validateCategoryName(newCategoryName.trim(), setCategoryRenameError)) {
       requestAnimationFrame(() => {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const inputElement = document.querySelector(
           'input[data-rename-input]',
         ) as HTMLInputElement
@@ -483,6 +487,7 @@ export const useCategoryKeywordModal = ({
       setCategoryRenameError(duplicateMessage)
       toast.error(duplicateMessage)
       requestAnimationFrame(() => {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const inputElement = document.querySelector(
           'input[data-rename-input]',
         ) as HTMLInputElement

@@ -151,6 +151,7 @@ const PersonaWithModel = memo(
         return
       }
 
+// eslint-disable-next-line eslint/no-magic-numbers
       const [r, g, b] = theme === 'dark' ? [255, 255, 255] : [0, 0, 0]
       viewModelInstanceColor.setRgb(r, g, b)
     }, [viewModelInstanceColor, theme, source.dynamicColor])

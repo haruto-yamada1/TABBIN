@@ -18,6 +18,7 @@ describe('DragHandlersContext', () => {
   it('provider 配下では登録ハンドラを取得できる', () => {
     render(
       <DragHandlersContext.Provider
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         value={{
           registerHandlers: vi.fn(),
           unregisterHandlers: vi.fn(),

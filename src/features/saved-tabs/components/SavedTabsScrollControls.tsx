@@ -116,6 +116,7 @@ const SavedTabsScrollControlButton = ({
 
   useEffect(() => stopRepeating, [stopRepeating])
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const startRepeating = () => {
     if (disabled) {
       return

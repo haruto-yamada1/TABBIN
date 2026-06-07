@@ -152,6 +152,7 @@ const createAiChatTools = (
     description: AI_CHAT_TOOL_DESCRIPTIONS.findUrlsByMonth,
     inputSchema: paginationSchema.extend({
       year: z.number().int(),
+// eslint-disable-next-line eslint/no-magic-numbers
       month: z.number().int().min(1).max(12),
     }),
 // eslint-disable-next-line typescript/require-await
@@ -195,6 +196,7 @@ const createAiChatTools = (
           'timeTop',
         ])
         .default('domain'),
+// eslint-disable-next-line eslint/no-magic-numbers
       limit: z.number().int().min(1).max(20).default(8),
       mode: z.enum(['both', 'custom', 'domain']).default('both'),
       normalize: z.boolean().default(false),

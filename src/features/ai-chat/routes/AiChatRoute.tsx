@@ -107,6 +107,7 @@ export const AiChatRoute = () => {
                     <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
                       <Button
                         className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                         onClick={() => {
                           selectConversation(historyItem.id)
                         }}
@@ -130,6 +131,7 @@ export const AiChatRoute = () => {
                           { title: historyItem.title },
                         )}
                         className='shrink-0 justify-self-end text-muted-foreground hover:text-destructive'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                         onClick={(event) => {
                           event.stopPropagation()
                           setPendingDeleteHistoryItem(historyItem)
@@ -159,6 +161,7 @@ export const AiChatRoute = () => {
                 title={activeConversation.title}
                 mode='page'
                 onMessagesChange={updateMessages}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onToggleHistory={() => {
                   setIsHistoryVisible((current) => !current)
                 }}
@@ -185,6 +188,7 @@ export const AiChatRoute = () => {
             <Button
               type='button'
               variant='outline'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 setPendingDeleteHistoryItem(null)
               }}
@@ -194,6 +198,7 @@ export const AiChatRoute = () => {
             <Button
               type='button'
               variant='destructive'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 deleteConversation(pendingDeleteHistoryItem!.id)
                 setPendingDeleteHistoryItem(null)

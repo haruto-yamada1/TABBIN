@@ -133,6 +133,7 @@ describe('useTabData', () => {
         },
       ])
       .mockResolvedValueOnce(repairedCategories)
+// eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockImplementation: (
         implementation: (key?: string) => Promise<unknown>,
@@ -174,6 +175,7 @@ describe('useTabData', () => {
 
     expect(onSettingsLoaded).toHaveBeenCalledWith(settings)
     expect(onCategoriesLoaded).toHaveBeenCalledWith(repairedCategories)
+// eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -207,6 +209,7 @@ describe('useTabData', () => {
     migrateToUrlsStorageMock.mockRejectedValueOnce(
       new Error('url migration failed'),
     )
+// eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.get).mockRejectedValueOnce(
       new Error('storage failed'),
     )
@@ -232,6 +235,7 @@ describe('useTabData', () => {
   })
 
   it('初期ロードで savedTabs と urls が配列でない場合は空配列として扱う', async () => {
+// eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockImplementation: (
         implementation: (key?: string) => Promise<unknown>,
@@ -406,6 +410,7 @@ describe('useTabData', () => {
       id: 'appended',
       domain: 'appended.example.com',
     }
+// eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockImplementation: (
         implementation: (key?: string) => Promise<unknown>,

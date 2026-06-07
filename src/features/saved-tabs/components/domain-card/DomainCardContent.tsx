@@ -72,9 +72,13 @@ export const DomainCardContent = () => {
           categoryName={singleCategoryName}
           urls={computed.categorizedUrls[singleCategoryName]}
           groupId={group.id}
+// eslint-disable-next-line react/jsx-handler-names
           handleDeleteUrl={handlers.handleDeleteUrl}
+// eslint-disable-next-line react/jsx-handler-names
           handleOpenTab={handlers.handleOpenTab}
+// eslint-disable-next-line react/jsx-handler-names
           handleUpdateUrls={handlers.handleUpdateUrls}
+// eslint-disable-next-line react/jsx-handler-names
           handleOpenAllTabs={handlers.handleOpenAllTabs}
           settings={settings}
         />
@@ -94,6 +98,7 @@ export const DomainCardContent = () => {
           strategy={verticalListSortingStrategy}
         >
           {categoryIds.map((categoryName) => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
             const urls = computed.categorizedUrls[categoryName] || []
             if (urls.length === 0) {
               return null
@@ -105,9 +110,13 @@ export const DomainCardContent = () => {
                 categoryName={categoryName}
                 urls={urls}
                 groupId={group.id}
+// eslint-disable-next-line react/jsx-handler-names
                 handleDeleteUrl={handlers.handleDeleteUrl}
+// eslint-disable-next-line react/jsx-handler-names
                 handleOpenTab={handlers.handleOpenTab}
+// eslint-disable-next-line react/jsx-handler-names
                 handleUpdateUrls={handlers.handleUpdateUrls}
+// eslint-disable-next-line react/jsx-handler-names
                 handleOpenAllTabs={handlers.handleOpenAllTabs}
 // eslint-disable-next-line typescript/no-misused-promises
                 handleDeleteAllTabs={(urls) =>

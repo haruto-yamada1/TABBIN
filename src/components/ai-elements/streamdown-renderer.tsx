@@ -52,6 +52,7 @@ export const hasMermaidBlock = (markdown: string) =>
 
 const MermaidStreamdown = lazy(async () => {
   const { mermaid } = await import('@streamdown/mermaid')
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const plugins = { ...baseStreamdownPlugins, mermaid }
   const MermaidStreamdownRenderer = (props: StreamdownMarkdownProps) => (
     <Streamdown plugins={plugins} {...props} />
@@ -75,6 +76,7 @@ export const StreamdownMarkdown = memo(
     return (
       <Suspense
         fallback={
+// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           <Streamdown plugins={baseStreamdownPlugins} {...props}>
             {children}
           </Streamdown>

@@ -75,6 +75,7 @@ interface ProjectCardRootProps {
  * Card + useSortable + useDroppable + useCustomProjectCard + DndContext を提供する
  * @param props ProjectCardRootProps
  */
+// eslint-disable-next-line eslint/complexity
 export const ProjectCardRoot = ({
   project,
   settings,
@@ -125,9 +126,11 @@ export const ProjectCardRoot = ({
     id: project.id,
   })
 
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style: CSSProperties = {
     containIntrinsicSize: '360px',
     contentVisibility: 'auto',
+// eslint-disable-next-line eslint/no-magic-numbers
     opacity: isDragging ? 0.5 : 1,
     transform: CSS.Transform.toString(transform),
     transition,
@@ -166,6 +169,7 @@ export const ProjectCardRoot = ({
     })
 
   // 両方のrefを組み合わせる
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const setCombinedRefs = (node: HTMLElement | null) => {
     setNodeRef(node)
     setProjectDroppableRef(node)
@@ -272,6 +276,7 @@ export const ProjectCardRoot = ({
           <CardGroupActions
             onOpenAll={
               projectUrlCount > 0
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 ? () => {
                     handlers.handleOpenAllUrls?.(
                       sortedProjectUrls.map((u) => ({
@@ -284,6 +289,7 @@ export const ProjectCardRoot = ({
             }
             onDeleteAll={
               projectUrlCount > 0
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 ? () => {
                     if (handlers.handleDeleteUrlsFromProject) {
                       handlers.handleDeleteUrlsFromProject(
@@ -299,10 +305,13 @@ export const ProjectCardRoot = ({
                   }
                 : undefined
             }
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onManage={() => {
               setIsManagementModalOpen(true)
             }}
+// eslint-disable-next-line eslint/no-magic-numbers
             onConfirmOpenAll={projectUrlCount >= 10}
+// eslint-disable-next-line react/jsx-handler-names
             onConfirmDeleteAll={settings.confirmDeleteAll}
             openAllThreshold={10}
             itemName={t('savedTabs.project.deleteAllItemName')}
@@ -339,6 +348,7 @@ export const ProjectCardRoot = ({
       </Card>
       <ProjectManagementModal
         isOpen={isManagementModalOpen}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClose={() => {
           setIsManagementModalOpen(false)
         }}

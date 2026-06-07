@@ -11,6 +11,7 @@ describe('createCompoundContext', () => {
       value: string
     }>('Sample')
     const wrapper = ({ children }: { children: ReactNode }) => (
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       <Context value={{ value: 'provided' }}>{children}</Context>
     )
 

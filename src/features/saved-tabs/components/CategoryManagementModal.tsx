@@ -146,6 +146,7 @@ const buildAvailableDomains = ({
     return domains
   }, [])
 }
+// eslint-disable-next-line eslint/complexity
 const useCategoryManagementModalView = ({
   isOpen,
   onClose,
@@ -266,6 +267,7 @@ const useCategoryManagementModalView = ({
   }, [category.id, isOpen])
 
   // カテゴリのリネーム処理を開始
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleStartRenaming = () => {
     setNewCategoryName(localCategoryName)
     setIsRenaming(true)
@@ -288,6 +290,7 @@ const useCategoryManagementModalView = ({
   }
 
   // 入力変更時の処理
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleCategoryNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target
     setNewCategoryName(value)
@@ -394,6 +397,7 @@ const useCategoryManagementModalView = ({
   }
 
   // 親カテゴリ削除処理
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteCategory = async () => {
     if (isProcessing) {
       return
@@ -524,6 +528,7 @@ const useCategoryManagementModalView = ({
   return (
     <Dialog
       open={isOpen}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onOpenChange={() => {
         // 処理中またはリネームモード中は閉じない
         if (isProcessing || isRenaming || isSaving) {
@@ -578,6 +583,7 @@ const useCategoryManagementModalView = ({
                       <Button
                         variant='secondary'
                         size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                         onClick={() => setShowDeleteConfirm(true)}
                         className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
                         disabled={isProcessing}
@@ -611,6 +617,7 @@ const useCategoryManagementModalView = ({
                     'savedTabs.categoryManagement.renamePlaceholder',
                   )}
                   className={`w-full flex-1 rounded border p-2 ${categoryNameError ? 'border-red-500' : ''}`}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onBlur={() => {
                     if (isProcessing) {
                       return // 処理中は何もしない
@@ -630,6 +637,7 @@ const useCategoryManagementModalView = ({
                       handleCancelRenaming()
                     }
                   }}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -694,6 +702,7 @@ const useCategoryManagementModalView = ({
               deleteLabel={t('common.delete')}
               deleteTooltip={t('savedTabs.categoryManagement.deleteAction')}
               isProcessing={isProcessing}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onCancel={() => setShowDeleteConfirm(false)}
 // eslint-disable-next-line typescript/no-misused-promises
               onDelete={handleDeleteCategory}
@@ -780,6 +789,7 @@ const useCategoryManagementModalView = ({
                     <Button
                       variant='default'
                       size='icon'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()

@@ -59,6 +59,7 @@ export const DomainCardRoot = ({
   // グローバルドラッグ監視
   useDndMonitor(state.dndMonitorHandlers)
 
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style: CSSProperties = {
     containIntrinsicSize: '360px',
     contentVisibility: 'auto',

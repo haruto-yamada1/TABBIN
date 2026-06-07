@@ -170,6 +170,7 @@ export const WebPreviewUrl = ({
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key === 'Enter') {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const target = event.target as HTMLInputElement
         setUrl(target.value)
       }

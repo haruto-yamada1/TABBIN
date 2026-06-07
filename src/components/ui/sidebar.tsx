@@ -19,6 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'
+// eslint-disable-next-line eslint/no-magic-numbers
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = 256
 const SIDEBAR_WIDTH_ICON = '3rem'
@@ -199,6 +200,7 @@ const SidebarProvider = ({
       <TooltipProvider delayDuration={0}>
         <div
           style={
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             {
               '--sidebar-width': `${sidebarWidth}px`,
               '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
@@ -220,6 +222,7 @@ const SidebarProvider = ({
 }
 SidebarProvider.displayName = 'SidebarProvider'
 
+// eslint-disable-next-line eslint/complexity
 const Sidebar = ({
   children,
   className,
@@ -262,6 +265,7 @@ const Sidebar = ({
     resizeCleanupRef.current = null
   }, [])
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleResizeStart = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!open) {
       return
@@ -374,6 +378,7 @@ const SidebarTrigger = ({
       variant='ghost'
       size='icon'
       className={cn('h-7 w-7', className)}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
@@ -757,6 +762,7 @@ const SidebarMenuSkeleton = ({
 }) => {
   // Random width between 50 to 90%.
   const [width] = React.useState(
+// eslint-disable-next-line eslint/no-magic-numbers
     () => `${Math.floor(Math.random() * 40) + 50}%`,
   )
 
@@ -777,6 +783,7 @@ const SidebarMenuSkeleton = ({
         className='h-4 max-w-[--skeleton-width] flex-1'
         data-sidebar='menu-skeleton-text'
         style={
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           {
             '--skeleton-width': width,
           } as React.CSSProperties

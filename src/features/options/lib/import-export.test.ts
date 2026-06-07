@@ -1860,6 +1860,7 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('マージ済みプレースホルダーマップの has() が予期せず true を返しても処理できる', async () => {
+// eslint-disable-next-line typescript/unbound-method
     const originalHas = Map.prototype.has
     let hasCallCount = 0
     using hasSpy = vi.spyOn(Map.prototype, 'has')
@@ -1950,7 +1951,9 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('downloadAsJson は一時的なアンカーを作成してクリーンアップする', () => {
+// eslint-disable-next-line typescript/unbound-method
     const originalCreateObjectUrl = URL.createObjectURL
+// eslint-disable-next-line typescript/unbound-method
     const originalRevokeObjectUrl = URL.revokeObjectURL
     const createObjectUrl = vi.fn(() => 'blob:mock-url')
     const revokeObjectUrl = vi.fn()
@@ -3152,6 +3155,7 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('merge モードでは has() 後の keyword map 参照が undefined を返しても処理できる', async () => {
+// eslint-disable-next-line typescript/unbound-method
     const originalGet = Map.prototype.get
     using getSpy = vi.spyOn(Map.prototype, 'get')
     getSpy.mockImplementation((key: unknown) => {

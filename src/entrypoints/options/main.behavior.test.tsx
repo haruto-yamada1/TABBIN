@@ -103,6 +103,7 @@ vi.mock('@/components/ui/checkbox', () => ({
       id={id}
       type='checkbox'
       checked={checked}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onCheckedChange?.(event.target.checked)}
     />
   ),
@@ -143,6 +144,7 @@ vi.mock('@/components/ui/select', () => ({
     <div>
       <button
         data-testid='mock-select-change'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           onValueChange?.(value === 'never' ? '30days' : 'saveWindowTabs')
         }

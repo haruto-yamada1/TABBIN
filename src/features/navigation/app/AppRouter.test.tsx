@@ -11,14 +11,18 @@ vi.mock('@/hooks/use-mobile', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+// eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -57,9 +61,11 @@ vi.mock('@/features/saved-tabs/routes/SavedTabsRoute', () => ({
   }) => (
     <div>
       <div>{`saved-tabs-route:${search ?? ''}`}</div>
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onViewModeNavigate?.('custom')} type='button'>
         navigate-custom
       </button>
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onViewModeNavigate?.('domain')} type='button'>
         navigate-domain
       </button>
@@ -100,6 +106,7 @@ describe('AppRouter', () => {
   it('saved-tabs 初期表示では ai-chat route module を読み込まない', async () => {
     expect(routeModuleLoads.aiChat).toBe(0)
 
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     await expect(
@@ -109,6 +116,7 @@ describe('AppRouter', () => {
   })
 
   it('ルートパスは domain mode の saved-tabs に redirect する', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/']} />)
 
     await expect(
@@ -117,6 +125,7 @@ describe('AppRouter', () => {
   })
 
   it('サイドバークリックで SPA 遷移する', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     const analyticsLink = screen.getAllByRole('link', {
@@ -132,6 +141,7 @@ describe('AppRouter', () => {
   })
 
   it('router context では内部リンクが app.html ではなく route を指す', () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/saved-tabs?mode=custom']} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
@@ -152,24 +162,28 @@ describe('AppRouter', () => {
   })
 
   it('analytics route を開ける', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/analytics']} />)
 
     await expect(screen.findByText('analytics-route')).resolves.toBeTruthy()
   })
 
   it('options route を開ける', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/options']} />)
 
     await expect(screen.findByText('options-route')).resolves.toBeTruthy()
   })
 
   it('ai-chat route を開ける', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/ai-chat']} />)
 
     await expect(screen.findByText('ai-chat-route')).resolves.toBeTruthy()
   })
 
   it('periodic-execution route を開ける', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/periodic-execution']} />)
 
     await expect(
@@ -178,6 +192,7 @@ describe('AppRouter', () => {
   })
 
   it('SavedTabsRoute から別 mode を選ぶと replace navigate する', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     await screen.findByText('saved-tabs-route:?mode=domain')
@@ -189,6 +204,7 @@ describe('AppRouter', () => {
   })
 
   it('SavedTabsRoute から同じ mode を選んだ場合は再 navigate しない', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     await screen.findByText('saved-tabs-route:?mode=domain')
@@ -210,6 +226,7 @@ describe('AppRouter', () => {
       },
     } as unknown as typeof chrome
 
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/saved-tabs']} />)
 
     await expect(
@@ -219,6 +236,7 @@ describe('AppRouter', () => {
   })
 
   it('不明なルートは domain で開く', async () => {
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/unknown']} />)
 
     await expect(

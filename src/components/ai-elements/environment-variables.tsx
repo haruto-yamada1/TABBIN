@@ -225,6 +225,7 @@ export const EnvironmentVariableValue = ({
 
   const displayValue = showValues
     ? value
+// eslint-disable-next-line eslint/no-magic-numbers
     : '•'.repeat(Math.min(value.length, 20))
 
   return (

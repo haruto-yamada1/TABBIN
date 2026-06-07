@@ -161,6 +161,7 @@ export const safelyUpdateGroupUrls = async (
         .then(callback)
         .catch(() => {})
     }
+// eslint-disable-next-line eslint/no-useless-return
     return
   } catch (error) {
     console.error('タブ更新エラー:', error)

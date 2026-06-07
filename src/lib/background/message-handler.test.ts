@@ -1015,6 +1015,7 @@ describe('setupMessageListener', () => {
     } as unknown as chrome.runtime.Port
 
     portListener(ignoredPort)
+// eslint-disable-next-line typescript/unbound-method
     expect(ignoredPort.onMessage.addListener).not.toHaveBeenCalled()
 
     let onPortMessage: ((message: unknown) => void) | undefined

@@ -31,6 +31,7 @@ export const ModeToggle = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
         <DropdownMenuItem
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             setTheme('light')
           }}
@@ -38,6 +39,7 @@ export const ModeToggle = () => {
           {getThemeMessage('theme.light')}
         </DropdownMenuItem>
         <DropdownMenuItem
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             setTheme('dark')
           }}
@@ -45,6 +47,7 @@ export const ModeToggle = () => {
           {getThemeMessage('theme.dark')}
         </DropdownMenuItem>
         <DropdownMenuItem
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             setTheme('system')
           }}
@@ -52,6 +55,7 @@ export const ModeToggle = () => {
           {getThemeMessage('theme.system')}
         </DropdownMenuItem>
         <DropdownMenuItem
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             setTheme('user')
           }}

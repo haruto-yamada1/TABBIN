@@ -205,6 +205,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       z
         .string()
         .min(1, t('savedTabs.categoryModal.validation.empty'))
+// eslint-disable-next-line eslint/no-magic-numbers
         .max(25, t('savedTabs.categoryModal.validation.maxLength'))
         .safeParse(value),
     [t],

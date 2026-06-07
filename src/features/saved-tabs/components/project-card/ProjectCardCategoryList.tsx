@@ -45,15 +45,24 @@ export const ProjectCardCategoryList = () => {
             category={categoryName}
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
             urls={categoryUrlsByName.get(categoryName) || []}
+// eslint-disable-next-line react/jsx-handler-names
             handleOpenUrl={handlers.handleOpenUrl}
+// eslint-disable-next-line react/jsx-handler-names
             handleDeleteUrl={handlers.handleDeleteUrl}
+// eslint-disable-next-line react/jsx-handler-names
             handleDeleteUrlsFromProject={handlers.handleDeleteUrlsFromProject}
+// eslint-disable-next-line react/jsx-handler-names
             handleDeleteCategory={handlers.handleDeleteCategory}
+// eslint-disable-next-line react/jsx-handler-names
             handleSetUrlCategory={handlers.handleSetUrlCategory}
+// eslint-disable-next-line react/jsx-handler-names
             handleAddCategory={handlers.handleAddCategory}
+// eslint-disable-next-line react/jsx-handler-names
             handleRenameCategory={handlers.handleRenameCategory}
             settings={settings}
+// eslint-disable-next-line react/jsx-handler-names
             handleOpenAllUrls={handlers.handleOpenAllUrls}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             dragData={{ type: 'category' }}
             isHighlighted={dnd.draggedOverCategory === categoryName}
             isDraggingCategory={dnd.isDraggingCategory}

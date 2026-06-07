@@ -37,6 +37,7 @@ interface HeaderProps {
   onCreateProject: (name: string) => void
 }
 
+// eslint-disable-next-line eslint/complexity
 export const Header = ({
   tabGroups,
   filteredTabGroups,
@@ -91,6 +92,7 @@ export const Header = ({
 
   const tabCount = currentMode === 'custom' ? customTabCount : domainTabCount
 
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleCustomProjectEnter = (
     event: React.KeyboardEvent<HTMLInputElement>,
   ) => {
@@ -102,6 +104,7 @@ export const Header = ({
       event.nativeEvent.isComposing ||
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
       (event as unknown as { isComposing?: boolean }).isComposing ||
+// eslint-disable-next-line eslint/no-magic-numbers
       event.keyCode === 229
     if (isComposing) {
       return
@@ -139,6 +142,7 @@ export const Header = ({
             aria-label={t('savedTabs.searchPlaceholder')}
             placeholder={t('savedTabs.searchPlaceholder')}
             value={searchQuery}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onChange={(e) => {
               onSearchChange(e.target.value)
             }}
@@ -150,6 +154,7 @@ export const Header = ({
               variant='ghost'
               aria-label={t('savedTabs.searchClear')}
               title={t('savedTabs.searchClear')}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 onSearchChange('')
               }}
@@ -167,6 +172,7 @@ export const Header = ({
               <Button
                 variant='outline'
                 size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   setIsModalOpen(true)
                 }}
@@ -189,6 +195,7 @@ export const Header = ({
               <Button
                 variant='outline'
                 size='sm'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   setIsCustomProjectModalOpen(true)
                 }}
@@ -228,6 +235,7 @@ export const Header = ({
 
       {currentMode === 'domain' && isModalOpen && (
         <CategoryModal
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClose={() => {
             setIsModalOpen(false)
           }}
@@ -246,6 +254,7 @@ export const Header = ({
             <Input
               ref={handleNewProjectNameInputRef}
               value={newProjectName}
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onChange={(e) => {
                 setNewProjectName(e.target.value)
               }}

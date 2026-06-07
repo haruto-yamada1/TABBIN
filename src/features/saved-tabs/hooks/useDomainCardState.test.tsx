@@ -555,6 +555,7 @@ describe('useDomainCardState', () => {
       ...createGroup(),
       subCategoryOrderWithUncategorized: ['news', 'tech'],
     }
+// eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(
       new Error('write failed'),
     )

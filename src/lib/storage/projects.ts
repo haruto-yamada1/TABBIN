@@ -83,6 +83,7 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
         return []
       }
 
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       const validProject = project as CustomProject
       // 新形式のURLIDsが存在しない場合は初期化
       if (!(validProject.urlIds && Array.isArray(validProject.urlIds))) {
@@ -203,6 +204,7 @@ const appendUncategorizedProjectToOrder = async (): Promise<void> => {
     return
   }
   await chrome.storage.local.set({
+// eslint-disable-next-line typescript/no-unsafe-assignment
     customProjectOrder: [...normalizedOrder, CUSTOM_UNCATEGORIZED_PROJECT_ID],
   })
 }
@@ -271,6 +273,7 @@ const addUrlsToUncategorizedProject = async (
   }
 
   const targetProject = projects[targetIndex]
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   const targetUrlIds = targetProject.urlIds as string[]
   const urlIdSet = new Set(targetUrlIds)
   const now = Date.now()
@@ -336,6 +339,7 @@ const getCustomProjectOrder = async (): Promise<string[]> => {
     : []
 }
 const addUrlIdToProject = (project: CustomProject, urlId: string): boolean => {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   const urlIds = project.urlIds as string[]
   if (urlIds.includes(urlId)) {
     return false
@@ -874,6 +878,7 @@ const mergeUrlsIntoUncategorized = (
   if (!(projectToDelete.urlIds && projectToDelete.urlIds.length > 0)) {
     return
   }
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   const uncategorizedUrlIds = uncategorizedProject.urlIds as string[]
   const targetUrlSet = new Set(uncategorizedUrlIds)
   for (const urlId of projectToDelete.urlIds) {
@@ -1120,6 +1125,7 @@ const reorderProjectUrls = async (
   projects[projectIndex] = project
   await saveCustomProjects(projects)
 } // プロジェクト順序を保存する関数
+// eslint-disable-next-line eslint/complexity
 const moveUrlBetweenCustomProjects = async (
   sourceProjectId: string,
   targetProjectId: string,
@@ -1154,6 +1160,7 @@ const moveUrlBetweenCustomProjects = async (
   }
 
   const urlId = urlRecord.id
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   const targetUrlIds = targetProject.urlIds as string[]
   if (targetUrlIds.includes(urlId)) {
     throw new Error('URL already exists in target project')

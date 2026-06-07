@@ -140,6 +140,7 @@ describe('SpeechInput', () => {
     unmount()
 
     expect(stopSpy).toHaveBeenCalledTimes(1)
+// eslint-disable-next-line typescript/unbound-method
     expect(track.stop).toHaveBeenCalledTimes(1)
     expect(removeEventListenerSpy).toHaveBeenCalledWith(
       'dataavailable',

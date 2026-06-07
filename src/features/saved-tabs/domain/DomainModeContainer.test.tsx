@@ -29,8 +29,10 @@ vi.mock('@dnd-kit/sortable', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+// eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -79,6 +81,7 @@ vi.mock('@/features/saved-tabs/components/CategoryGroup', () => ({
       <span>domain-count:{domains.length}</span>
       <button
         type='button'
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           void handleMoveDomainToCategory('domain-1', category.id, 'target')
         }
@@ -189,6 +192,7 @@ describe('DomainModeContainer', () => {
     render(
       <DomainModeContainer
         {...props}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{ ...props.state, isLoading: true }}
       />,
     )
@@ -201,6 +205,7 @@ describe('DomainModeContainer', () => {
     render(
       <DomainModeContainer
         {...createProps()}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           shouldShowUncategorizedList: true,
@@ -242,6 +247,7 @@ describe('DomainModeContainer', () => {
       <DomainModeContainer
         {...createProps()}
         handleOpenAllTabs={handleOpenAllTabs}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           shouldShowUncategorizedList: true,
@@ -273,6 +279,7 @@ describe('DomainModeContainer', () => {
         {...createProps()}
         handleDeleteGroup={handleDeleteGroup}
         handleDeleteGroups={undefined}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           shouldShowUncategorizedList: true,
@@ -307,11 +314,13 @@ describe('DomainModeContainer', () => {
         handleDeleteUrls={handleDeleteUrls}
         handleDeleteGroup={handleDeleteGroup}
         handleDeleteGroups={handleDeleteGroups}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           shouldShowUncategorizedList: true,
           shouldShowUncategorizedSectionHeader: true,
         }}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         uncategorizedForDisplay={[
           {
             id: 'group-1',
@@ -355,11 +364,13 @@ describe('DomainModeContainer', () => {
         {...createProps()}
         searchQuery='docs'
         handleDeleteUrls={handleDeleteUrls}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           shouldShowUncategorizedList: true,
           shouldShowUncategorizedSectionHeader: true,
         }}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         uncategorizedForDisplay={[
           {
             id: 'empty-group',
@@ -399,12 +410,14 @@ describe('DomainModeContainer', () => {
         {...createProps()}
         handleDeleteGroup={handleDeleteGroup}
         handleDeleteGroups={handleDeleteGroups}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           hasVisibleCategoryGroups: true,
           shouldShowUncategorizedList: false,
           shouldShowUncategorizedSectionHeader: true,
         }}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         uncategorizedForDisplay={[]}
         hasContentTabGroupsCount={1}
       />,
@@ -433,6 +446,7 @@ describe('DomainModeContainer', () => {
         {...createProps()}
         handleDeleteGroup={handleDeleteGroup}
         handleDeleteGroups={handleDeleteGroups}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           shouldShowUncategorizedList: true,
@@ -458,6 +472,7 @@ describe('DomainModeContainer', () => {
 // eslint-disable-next-line typescript/require-await
   it('カテゴリあり表示では空カテゴリを飛ばし、移動ハンドラに tabGroups を渡す', async () => {
     const handleMoveDomainToCategory = vi.fn()
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     const domainGroups: TabGroup[] = [
       {
         id: 'domain-1',
@@ -468,6 +483,7 @@ describe('DomainModeContainer', () => {
     render(
       <DomainModeContainer
         {...createProps()}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         categories={[
           {
             id: 'category-1',
@@ -488,10 +504,12 @@ describe('DomainModeContainer', () => {
             domainNames: [],
           },
         ]}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         categorized={{
           'category-1': domainGroups,
           'empty-category': [],
         }}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         categoryOrderForDisplay={[
           '',
           'missing-category',
@@ -500,6 +518,7 @@ describe('DomainModeContainer', () => {
           'category-1',
         ]}
         handleMoveDomainToCategory={handleMoveDomainToCategory}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           hasVisibleCategoryGroups: true,
@@ -531,6 +550,7 @@ describe('DomainModeContainer', () => {
         {...createProps()}
         handleCancelUncategorizedReorder={handleCancelUncategorizedReorder}
         handleConfirmUncategorizedReorder={handleConfirmUncategorizedReorder}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           ...createProps().state,
           isUncategorizedReorderMode: true,

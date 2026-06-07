@@ -115,6 +115,7 @@ export const useSettings = () => {
       if (areaName === 'local' && changes.userSettings) {
         if (changes.userSettings.newValue) {
           // NewValue は完全な UserSettings オブジェクトであると期待
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           const nextSettings = changes.userSettings.newValue as UserSettings
           persistedSettingsRef.current = nextSettings
           setSettings(nextSettings)

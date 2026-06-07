@@ -350,6 +350,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
   }
 }
 
+// eslint-disable-next-line eslint/complexity
 const removeUrlRecordsFromStorage = async (
   urlIds: string[],
 ): Promise<number> => {
@@ -514,6 +515,7 @@ const handleUrlDragStarted = (url: string): void => {
       console.log('ドラッグ情報のタイムアウト:', draggedUrlInfo.url)
       draggedUrlInfo = null
     }
+// eslint-disable-next-line eslint/no-magic-numbers
   }, 10_000)
 
   // タイムアウトIDを保存しておくことで、必要に応じてキャンセル可能

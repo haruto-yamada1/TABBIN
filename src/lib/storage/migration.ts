@@ -158,6 +158,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     // 確認のため保存後のデータも取得
     const savedCategories = await getParentCategories()
     console.log('保存後の親カテゴリ:', savedCategories)
+// eslint-disable-next-line eslint/no-useless-return
     return
   } catch (error) {
     console.error('親カテゴリ移行エラー:', error)

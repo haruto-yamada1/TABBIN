@@ -181,6 +181,7 @@ const RecordingButton = ({
         <div
           className='absolute inset-0 animate-ping rounded-full border-2 border-red-400/30'
           key={id}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           style={{
             animationDelay: delay,
             animationDuration: '900ms',
@@ -251,6 +252,7 @@ export const SpeechInput = ({
   }, [])
 
   const handleSpeechRecognitionResult = useCallback((event: Event) => {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     const speechEvent = event as SpeechRecognitionEvent
     let finalTranscript = ''
 

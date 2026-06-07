@@ -686,6 +686,7 @@ const removeUrlsFromCustomProjectsForGroup = async (
     return
   }
 
+// eslint-disable-next-line eslint/no-useless-assignment
   let urlsToDelete: Awaited<ReturnType<typeof getTabGroupUrls>> = []
   try {
     urlsToDelete = await getTabGroupUrls(groupToDelete)
@@ -722,6 +723,7 @@ const removeUrlsFromCustomProjectsForGroups = async (
     })
   }
 
+// eslint-disable-next-line eslint/no-useless-assignment
   let urlsByGroup: Awaited<ReturnType<typeof getTabGroupUrls>>[] = []
   try {
     urlsByGroup = await Promise.all(
@@ -1545,12 +1547,14 @@ const useSavedTabsAppView = ({
   const categoryOrderForDisplay = isCategoryReorderMode
     ? tempCategoryOrder
     : categoryOrder
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
   const uncategorizedForDisplay = (
     isUncategorizedReorderMode ? tempUncategorizedOrder : uncategorized
   ).filter((group) => getDisplayUrlCount(group) > 0)
   const mainContent =
     viewMode === 'domain' ? (
       <DomainModeContainer
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           hasVisibleCategoryGroups,
           isCategoryReorderMode,

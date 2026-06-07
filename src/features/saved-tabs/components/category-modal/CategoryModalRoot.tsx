@@ -34,6 +34,7 @@ export const CategoryModalRoot = ({
   const { t } = useI18n()
   const state = useCategoryModal({ tabGroups })
 
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const contextValue: CategoryModalContextType = {
     state,
     tabGroups,
@@ -43,6 +44,7 @@ export const CategoryModalRoot = ({
     <CategoryModalContext value={contextValue}>
       <Dialog
         open
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onOpenChange={() => {
           onClose()
         }}

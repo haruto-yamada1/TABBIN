@@ -70,6 +70,7 @@ export const VoiceSelector = ({
   onValueChange,
   open: openProp,
   defaultOpen = false,
+// eslint-disable-next-line typescript/unbound-method
   onOpenChange,
   children,
   ...props
@@ -200,6 +201,7 @@ export const VoiceSelectorGender = ({
   children,
   ...props
 }: VoiceSelectorGenderProps) => {
+// eslint-disable-next-line eslint/no-useless-assignment
   let icon: ReactNode | null = null
 
   switch (value) {
@@ -274,12 +276,14 @@ export type VoiceSelectorAccentProps = ComponentProps<'span'> & {
     | string
 }
 
+// eslint-disable-next-line eslint/complexity
 export const VoiceSelectorAccent = ({
   className,
   value,
   children,
   ...props
 }: VoiceSelectorAccentProps) => {
+// eslint-disable-next-line eslint/no-useless-assignment
   let emoji: string | null = null
 
   switch (value) {

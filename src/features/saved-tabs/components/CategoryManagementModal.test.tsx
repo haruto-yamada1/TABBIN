@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -35,8 +37,10 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+// eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -55,6 +59,7 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='dialog-root'>
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <button onClick={() => onOpenChange?.()} type='button'>
         dialog-close
       </button>
@@ -307,6 +312,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
       />,
     )
@@ -610,6 +616,7 @@ describe('CategoryManagementModal', () => {
         domains={createDomains()}
 // eslint-disable-next-line typescript/require-await
         onCategoryUpdate={vi.fn(async () => {
+// eslint-disable-next-line eslint/no-throw-literal
           throw 'string-error'
         })}
       />,
@@ -730,6 +737,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
       />,
     )
@@ -784,6 +792,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[currentDomain]}
       />,
     )
@@ -820,6 +829,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
       />,
     )
@@ -873,6 +883,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[domains3[0]]}
       />,
     )
@@ -960,6 +971,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[currentDomain]}
       />,
     )
@@ -995,6 +1007,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[currentDomain]}
       />,
     )

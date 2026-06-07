@@ -83,6 +83,7 @@ export const CategoryGroupActions = () => {
 
   return (
     <CardGroupActions
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onManage={() => modal.setIsModalOpen(true)}
       manageLabel={t('savedTabs.manageParentCategories')}
       manageAriaLabel={getScopedNounActionLabel(
@@ -118,7 +119,9 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.deleteAllTabs'),
       )}
+// eslint-disable-next-line eslint/no-magic-numbers
       onConfirmOpenAll={urlsToOpen.length >= 10}
+// eslint-disable-next-line react/jsx-handler-names
       onConfirmDeleteAll={settings.confirmDeleteAll}
       openAllThreshold={10}
       openAllCount={urlsToOpen.length}

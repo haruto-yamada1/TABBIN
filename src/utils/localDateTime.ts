@@ -127,6 +127,7 @@ const getLocalWeekStartKey = (timestamp: number, timeZone?: string): string => {
     Date.UTC(dateParts.year, dateParts.month - 1, dateParts.day),
   )
   const day = getWeekdayIndexInTimeZone(timestamp, timeZone)
+// eslint-disable-next-line eslint/no-magic-numbers
   const diff = day === 0 ? -6 : 1 - day
   date.setUTCDate(date.getUTCDate() + diff)
 

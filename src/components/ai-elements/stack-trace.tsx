@@ -68,6 +68,7 @@ const useStackTrace = () => {
   return context
 }
 
+// eslint-disable-next-line eslint/complexity
 const parseStackFrame = (line: string): StackFrame => {
   const trimmed = line.trim()
 
@@ -353,6 +354,7 @@ export const StackTraceCopyButton = memo(
           setIsCopied(false)
         }, timeout)
       } catch (error) {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         onError?.(error as Error)
       }
     }, [raw, onCopy, onError, timeout])
@@ -426,6 +428,7 @@ export const StackTraceContent = memo(
             'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
             className,
           )}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           style={{ maxHeight }}
           {...props}
         >

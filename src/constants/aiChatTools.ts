@@ -38,6 +38,7 @@ const AI_CHAT_TOOL_DEFINITIONS = [
 
 type AiChatToolDefinition = (typeof AI_CHAT_TOOL_DEFINITIONS)[number]
 
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
 const AI_CHAT_TOOL_TITLES = Object.fromEntries(
   AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => [
     toolDefinition.name,

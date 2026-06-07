@@ -65,6 +65,7 @@ const applyUserSettingsChange = (
   if (!changes.userSettings) {
     return
   }
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   const nextSettings = changes.userSettings.newValue as
     | Partial<UserSettings>
     | undefined
@@ -82,6 +83,7 @@ const applyCategoryChange = (
     return
   }
   const nextCategories = Array.isArray(changes.parentCategories.newValue)
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     ? (changes.parentCategories.newValue as ParentCategory[])
     : []
   setCategories(nextCategories)
@@ -104,11 +106,13 @@ const applyProjectChange = (
   let nextCustomProjects: CustomProject[] | null = null
   if (hasProjectsChange) {
     nextCustomProjects = Array.isArray(changes.customProjects?.newValue)
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       ? (changes.customProjects.newValue as CustomProject[])
       : []
   }
   const nextProjectOrder =
     hasOrderChange && Array.isArray(changes.customProjectOrder?.newValue)
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       ? (changes.customProjectOrder.newValue as string[])
       : null
 
@@ -141,6 +145,7 @@ const areStringArraysEqual = (a?: string[], b?: string[]): boolean => {
   return true
 }
 
+// eslint-disable-next-line eslint/complexity
 const isPlainObjectEqual = (
   a?: Record<string, unknown>,
   b?: Record<string, unknown>,
@@ -168,7 +173,9 @@ const isPlainObjectEqual = (
     ) {
       if (
         !isPlainObjectEqual(
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           leftValue as Record<string, unknown>,
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           rightValue as Record<string, unknown>,
         )
       ) {
@@ -196,7 +203,9 @@ const areProjectsEqual = (a: CustomProject, b: CustomProject): boolean =>
     b.urlMetadata as Record<string, unknown> | undefined,
   ) &&
   isPlainObjectEqual(
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     a.urls as unknown as Record<string, unknown> | undefined,
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     b.urls as unknown as Record<string, unknown> | undefined,
   )
 
@@ -264,6 +273,7 @@ const applyTabsAndUrlsChanges = async (
 
   if (hasSavedTabsChange) {
     const nextSavedTabs = Array.isArray(changes.savedTabs.newValue)
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
       ? (changes.savedTabs.newValue as TabGroup[])
       : []
     await refreshTabGroupsWithUrls(nextSavedTabs)

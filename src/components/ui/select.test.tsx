@@ -20,7 +20,9 @@ vi.mock('@radix-ui/react-select', () => ({
   Group: createPrimitive('div'),
   Value: createPrimitive('span'),
   Trigger: createPrimitive('button'),
+// eslint-disable-next-line react/jsx-no-useless-fragment
   Icon: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+// eslint-disable-next-line react/jsx-no-useless-fragment
   Portal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Content: createPrimitive('div'),
   Viewport: createPrimitive('div'),

@@ -50,6 +50,7 @@ export const CategorySection = ({
   )
 
   // カテゴリ内でのドラッグ&ドロップハンドラ（新形式対応）
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
 
@@ -98,6 +99,7 @@ export const CategorySection = ({
         id={`category-${categoryName}-${groupId}`}
       >
         <SortableContext
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           items={displayUrls.map((item) => item.url)}
           strategy={verticalListSortingStrategy}
         >

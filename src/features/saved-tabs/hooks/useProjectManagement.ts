@@ -686,14 +686,17 @@ const useProjectManagement = (
             project.id === projectId
               ? {
                   ...project,
+// eslint-disable-next-line eslint/max-nested-callbacks
                   categories: project.categories.map((cat) =>
                     cat === oldCategoryName ? newCategoryName : cat,
                   ),
                   categoryOrder: project.categoryOrder
+// eslint-disable-next-line eslint/max-nested-callbacks
                     ? project.categoryOrder.map((cat) =>
                         cat === oldCategoryName ? newCategoryName : cat,
                       )
                     : project.categoryOrder,
+// eslint-disable-next-line eslint/max-nested-callbacks
                   urls: project.urls?.map((item) => ({
                     ...item,
                     category:

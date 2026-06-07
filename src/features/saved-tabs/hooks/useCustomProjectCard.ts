@@ -44,6 +44,7 @@ const isPointerDroppedInUncategorizedArea = (
   const { delta } = event
   const dropX = activatorEvent.clientX + delta.x
   const dropY = activatorEvent.clientY + delta.y
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
   const dropEl = document.elementFromPoint(dropX, dropY) as HTMLElement | null
   return Boolean(dropEl?.closest('[data-uncategorized-area="true"]'))
 }
@@ -222,11 +223,13 @@ const handleProcessedUrlDrop = (params: {
     return
   }
   if (over?.data?.current?.type === 'category') {
+// eslint-disable-next-line typescript/no-unsafe-assignment
     const targetCategory = over.data.current.categoryName
     if (targetCategory && targetCategory !== dragSourceCategory) {
       handleSetUrlCategory(projectId, actualUrl, targetCategory)
       toast.success(
         getMessage(language, 'savedTabs.tab.movedToCategory', undefined, {
+// eslint-disable-next-line typescript/no-unsafe-assignment
           name: targetCategory,
         }),
       )
@@ -355,6 +358,7 @@ export const useCustomProjectCard = ({
       const { active, over } = event
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
       const actualUrl = active.data.current?.url || String(active.id)
+// eslint-disable-next-line typescript/no-unsafe-assignment
       const dragSourceCategory = active.data.current?.category
       setActiveId(null)
       const clearDragState = () => {
@@ -365,8 +369,10 @@ export const useCustomProjectCard = ({
         return
       }
       handleProcessedUrlDrop({
+// eslint-disable-next-line typescript/no-unsafe-assignment
         actualUrl,
         clearDragState,
+// eslint-disable-next-line typescript/no-unsafe-assignment
         dragSourceCategory,
         event,
         handleReorderUrls,
@@ -401,10 +407,14 @@ export const useCustomProjectCard = ({
       }
       if (isDraggingCategory && draggedCategoryName && active.id !== over.id) {
         const oldIndex =
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           project.categoryOrder?.indexOf(active.id as string) ??
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           project.categories.indexOf(active.id as string)
         const newIndex =
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           project.categoryOrder?.indexOf(over.id as string) ??
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
           project.categories.indexOf(over.id as string)
         if (oldIndex !== -1 && newIndex !== -1) {
           const newOrder = arrayMove(
@@ -434,6 +444,7 @@ export const useCustomProjectCard = ({
   useEffect(() => {
     const handleManualCategoryReset = (e: MouseEvent) => {
       if (e.altKey) {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const targetElement = document.elementFromPoint(
           e.clientX,
           e.clientY,

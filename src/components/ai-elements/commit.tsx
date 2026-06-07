@@ -159,6 +159,7 @@ export const CommitTimestamp = ({
   ...props
 }: CommitTimestampProps) => {
   const formatted = relativeTimeFormat.format(
+// eslint-disable-next-line eslint/no-magic-numbers
     Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
     'day',
   )

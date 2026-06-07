@@ -78,6 +78,7 @@ export const MicSelector = ({
     onChange: controlledOnOpenChange,
     prop: controlledOpen,
   })
+// eslint-disable-next-line eslint/no-magic-numbers
   const [width, setWidth] = useState(200)
   const { devices, loading, hasPermission, loadDevices } = useAudioDevices()
 
@@ -121,6 +122,7 @@ export const MicSelectorTrigger = ({
     // Create a ResizeObserver to detect width changes
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
         const newWidth = (entry.target as HTMLElement).offsetWidth
         if (newWidth) {
           setWidth?.(newWidth)
@@ -165,6 +167,7 @@ export const MicSelectorContent = ({
   return (
     <PopoverContent
       className={cn('p-0', className)}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{ width }}
       {...popoverOptions}
     >

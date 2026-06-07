@@ -106,6 +106,7 @@ const ChartLegendBlock = ({
   shouldShowLegend: boolean
 }) =>
   shouldShowLegend ? (
+// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
     <ChartLegend content={<ChartLegendContent nameKey={nameKey} />} />
   ) : null
 
@@ -129,6 +130,7 @@ const createChartPointClickHandler = ({
     }
 
     const labelKey = spec.categoryKey || spec.xKey || 'label'
+// eslint-disable-next-line typescript/no-unsafe-type-assertion
     const record = datum as Record<string, unknown>
     const labelValue = record[labelKey]
     const value = record[series.dataKey]
@@ -217,7 +219,9 @@ const renderPieChart = ({
   <PieChart>
     <ChartTooltip
       content={
+// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         <ChartTooltipContent
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }
@@ -265,7 +269,9 @@ const CartesianChartContent = ({
     <YAxis axisLine={false} tickLine={false} />
     <ChartTooltip
       content={
+// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         <ChartTooltipContent
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }
@@ -288,6 +294,7 @@ const renderBarChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         series={props.spec.series.map((series) => (
           <Bar
             dataKey={series.dataKey}
@@ -320,6 +327,7 @@ const renderLineChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         series={props.spec.series.map((series) => (
           <Line
             dataKey={series.dataKey}
@@ -348,6 +356,7 @@ const renderAreaChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
+// eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         series={props.spec.series.map((series) => (
           <Area
             dataKey={series.dataKey}
@@ -390,7 +399,9 @@ const renderRadarChart = ({
   >
     <ChartTooltip
       content={
+// eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         <ChartTooltipContent
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }

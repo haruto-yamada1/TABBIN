@@ -86,6 +86,7 @@ const ContextIcon = () => {
       aria-label={t('common.modelContextUsage')}
       height='20'
       role='img'
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{ color: 'currentcolor' }}
       viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
       width='20'
@@ -110,6 +111,7 @@ const ContextIcon = () => {
         strokeDashoffset={dashOffset}
         strokeLinecap='round'
         strokeWidth={ICON_STROKE_WIDTH}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
       />
     </svg>

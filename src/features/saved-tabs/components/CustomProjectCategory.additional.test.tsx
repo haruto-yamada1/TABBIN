@@ -51,8 +51,10 @@ vi.mock('./ProjectUrlItem', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+// eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+// eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (

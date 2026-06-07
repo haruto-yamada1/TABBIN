@@ -145,6 +145,7 @@ const DomainRow = ({
     belongsToCategory?.id === selection.selectedCategoryId
   const disabled = isLoading || !selection.selectedCategoryId
   const checkboxId = `domain-${group.id}`
+// eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const onToggle = () => {
     domains.toggleDomainSelection(group.id)
   }
@@ -203,6 +204,7 @@ export const DomainSelectionList = () => {
 
   const rowVirtualizer = useVirtualizer({
     count: visibleTabGroups.length,
+// eslint-disable-next-line eslint/no-magic-numbers
     estimateSize: () => 56,
     getScrollElement: () => scrollElementRef.current,
     initialRect: {
@@ -239,6 +241,7 @@ export const DomainSelectionList = () => {
   } else {
     listContent = (
       <div
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
           position: 'relative',
@@ -250,6 +253,7 @@ export const DomainSelectionList = () => {
           return (
             <div
               key={group.id}
+// eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               style={{
                 left: 0,
                 position: 'absolute',
