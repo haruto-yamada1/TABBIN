@@ -14,6 +14,9 @@ import {
 import { getUserSettings } from '@/lib/storage/settings'
 import type { ParentCategory } from '@/types/storage'
 
+const MAX_CATEGORY_NAME_LENGTH = 25
+const ERROR_TOAST_DURATION_MS = 3000
+
 const getUiLocale = () => chrome.i18n?.getUILanguage?.() ?? 'ja'
 
 export const useCategories = () => {
@@ -105,16 +108,17 @@ export const useCategories = () => {
       // バリデーションチェック
       const validationResult = z
         .string()
-        // eslint-disable-next-line eslint/no-magic-numbers
-        .max(25, t('options.categories.validation.maxLength'))
+        .max(
+          MAX_CATEGORY_NAME_LENGTH,
+          t('options.categories.validation.maxLength'),
+        )
         .safeParse(newCategoryName.trim())
       if (!validationResult.success) {
         const { message } = validationResult.error.issues[0]
         setCategoryError(message)
         setTimeout(() => {
           setCategoryError(null)
-          // eslint-disable-next-line eslint/no-magic-numbers
-        }, 3000)
+        }, ERROR_TOAST_DURATION_MS)
         return false
       }
 
@@ -128,8 +132,7 @@ export const useCategories = () => {
         setCategoryError(t('options.categories.duplicate'))
         setTimeout(() => {
           setCategoryError(null)
-          // eslint-disable-next-line eslint/no-magic-numbers
-        }, 3000) // 3秒後にエラーメッセージを消す
+        }, ERROR_TOAST_DURATION_MS) // 3秒後にエラーメッセージを消す
         return false
       }
 
@@ -143,8 +146,7 @@ export const useCategories = () => {
         setCategoryError(t('options.categories.addError'))
         setTimeout(() => {
           setCategoryError(null)
-          // eslint-disable-next-line eslint/no-magic-numbers
-        }, 3000)
+        }, ERROR_TOAST_DURATION_MS)
         return false
       }
     }

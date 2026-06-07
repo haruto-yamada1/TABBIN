@@ -6,6 +6,8 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** カテゴリ名のバリデーションスキーマ */
+const MAX_CATEGORY_NAME_LENGTH = 25
+
 const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
   z
     .string()
@@ -13,8 +15,7 @@ const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
     .min(1, {
       message: t('savedTabs.categoryModal.validation.empty'),
     })
-    // eslint-disable-next-line eslint/no-magic-numbers
-    .max(25, {
+    .max(MAX_CATEGORY_NAME_LENGTH, {
       message: t('savedTabs.categoryModal.validation.maxLength'),
     })
 
@@ -57,23 +58,19 @@ const renameCategoryInTab = (
     return tab
   }
   const updatedSubCategories =
-    tab.subCategories?.map(
-      (cat) => (cat === activeCategory ? validName : cat),
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    ) || []
+    tab.subCategories?.map((cat) =>
+      cat === activeCategory ? validName : cat,
+    ) ?? []
   const updatedCategoryKeywords =
-    tab.categoryKeywords?.map(
-      (ck) =>
-        ck.categoryName === activeCategory
-          ? {
-              ...ck,
-              categoryName: validName,
-            }
-          : ck,
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    ) || []
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const updatedUrls = (tab.urls || []).map((url) =>
+    tab.categoryKeywords?.map((ck) =>
+      ck.categoryName === activeCategory
+        ? {
+            ...ck,
+            categoryName: validName,
+          }
+        : ck,
+    ) ?? []
+  const updatedUrls = (tab.urls ?? []).map((url) =>
     url.subCategory === activeCategory
       ? {
           ...url,
@@ -81,12 +78,10 @@ const renameCategoryInTab = (
         }
       : url,
   )
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const updatedSubCategoryOrder = (tab.subCategoryOrder || []).map((cat) =>
+  const updatedSubCategoryOrder = (tab.subCategoryOrder ?? []).map((cat) =>
     cat === activeCategory ? validName : cat,
   )
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const updatedAllOrder = (tab.subCategoryOrderWithUncategorized || []).map(
+  const updatedAllOrder = (tab.subCategoryOrderWithUncategorized ?? []).map(
     (cat) => (cat === activeCategory ? validName : cat),
   )
   return {
@@ -175,8 +170,7 @@ export const useCategoryKeywordModal = ({
       } catch (error) {
         // eslint-disable-next-line typescript/no-unsafe-type-assertion
         const validationError = error as z.ZodError
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        setError(validationError.issues[0]!.message) // eslint-disable-line typescript/no-unnecessary-type-assertion
+        setError(validationError.issues[0]?.message ?? '') // eslint-disable-line typescript/no-unnecessary-type-assertion
         return false
       }
     },
@@ -194,8 +188,7 @@ export const useCategoryKeywordModal = ({
   const loadParentCategories = useCallback(async () => {
     try {
       const { parentCategories: stored = [] } = await chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        parentCategories?: import('@/types/storage').ParentCategory[]
+        parentCategories?: ParentCategory[]
       }>('parentCategories')
       const storedCategories = stored
       setInternalParentCategories(storedCategories)
@@ -246,8 +239,7 @@ export const useCategoryKeywordModal = ({
       const categoryKeywords = group.categoryKeywords?.find(
         (ck) => ck.categoryName === activeCategory,
       )
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      const loadedKeywords = categoryKeywords?.keywords || []
+      const loadedKeywords = categoryKeywords?.keywords ?? []
       setCategoryEditState((current) => ({
         ...current,
         isRenaming: false,
@@ -291,16 +283,13 @@ export const useCategoryKeywordModal = ({
       updateCategoryEditState({ keywords: updatedKeywords })
       try {
         const { savedTabs = [] } = await chrome.storage.local.get<{
-          // eslint-disable-next-line typescript/consistent-type-imports
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs')
-        // eslint-disable-next-line oxc/no-map-spread
         const updatedGroups = savedTabs.map((g) =>
           g.id === group.id
             ? {
                 ...g,
-                // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                categoryKeywords: (g.categoryKeywords || []).map((ck) =>
+                categoryKeywords: (g.categoryKeywords ?? []).map((ck) =>
                   ck.categoryName === activeCategory
                     ? {
                         ...ck,
@@ -308,8 +297,7 @@ export const useCategoryKeywordModal = ({
                       }
                     : ck,
                 ),
-                // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                urls: (g.urls || []).map((item) =>
+                urls: (g.urls ?? []).map((item) =>
                   item.subCategory === activeCategory
                     ? {
                         ...item,
@@ -368,16 +356,13 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newSubCategory.trim()
       const { savedTabs = [] } = await chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs')
-      // eslint-disable-next-line oxc/no-map-spread
       const updatedTabs = savedTabs.map((tab: TabGroup) => {
         if (tab.id === group.id) {
           return {
             ...tab,
-            // eslint-disable-next-line typescript/prefer-nullish-coalescing
-            subCategories: [...(tab.subCategories || []), validName],
+            subCategories: [...(tab.subCategories ?? []), validName],
           }
         }
         return tab
@@ -509,8 +494,7 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newCategoryName.trim()
       const { savedTabs = [] } = await chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs')
       const updatedTabs = savedTabs.map((tab: TabGroup) =>
         renameCategoryInTab(tab, group.id, activeCategory, validName),

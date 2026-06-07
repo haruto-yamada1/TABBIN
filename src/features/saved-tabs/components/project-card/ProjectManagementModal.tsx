@@ -34,6 +34,8 @@ interface ProjectManagementModalProps {
   onDeleteProject?: (projectId: string) => Promise<void> | void
 }
 
+const MAX_PROJECT_NAME_LENGTH = 50
+
 const createProjectNameSchema = (
   validationMessages: { empty: string; maxLength: string } = {
     empty: 'プロジェクト名を入力してください',
@@ -46,8 +48,7 @@ const createProjectNameSchema = (
     .min(1, {
       message: validationMessages.empty,
     })
-    // eslint-disable-next-line eslint/no-magic-numbers
-    .max(50, {
+    .max(MAX_PROJECT_NAME_LENGTH, {
       message: validationMessages.maxLength,
     })
 
@@ -101,8 +102,7 @@ interface ProjectManagementModalState {
 const createProjectManagementModalState = (
   project: CustomProject,
 ): ProjectManagementModalState => ({
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  domainKeywords: project.projectKeywords?.domainKeywords || [],
+  domainKeywords: project.projectKeywords?.domainKeywords ?? [],
   isProcessing: false,
   isRenaming: false,
   isSaving: false,
@@ -113,10 +113,8 @@ const createProjectManagementModalState = (
   newUrlKeyword: '',
   projectNameError: null,
   showDeleteConfirm: false,
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  titleKeywords: project.projectKeywords?.titleKeywords || [],
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  urlKeywords: project.projectKeywords?.urlKeywords || [],
+  titleKeywords: project.projectKeywords?.titleKeywords ?? [],
+  urlKeywords: project.projectKeywords?.urlKeywords ?? [],
 })
 
 const ProjectKeywordSection = ({

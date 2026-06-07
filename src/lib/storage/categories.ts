@@ -10,8 +10,7 @@ import type {
 // 親カテゴリを取得する関数
 export const getParentCategories = async (): Promise<ParentCategory[]> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    parentCategories?: import('@/types/storage').ParentCategory[]
+    parentCategories?: ParentCategory[]
   }>('parentCategories')
   return parentCategories
 } // 親カテゴリを保存する関数
@@ -48,8 +47,7 @@ export const findCategoryByDomainName = async (
 ): Promise<ParentCategory | null> => {
   const categories = await getParentCategories()
   return (
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    categories.find((category) => category.domainNames.includes(domainName)) ||
+    categories.find((category) => category.domainNames.includes(domainName)) ??
     null
   )
 } // ドメインのカテゴリ設定を取得する関数

@@ -89,6 +89,7 @@ export const useAutoDeletePeriod = (
       : periodToApply
 
     // 警告メッセージを作成
+    // `||` needed: empty string period should fall through to 'never'
     // eslint-disable-next-line typescript/prefer-nullish-coalescing
     const currentPeriod = settings.autoDeletePeriod || 'never'
     const isShortening = isPeriodShortening(currentPeriod, periodToApply)

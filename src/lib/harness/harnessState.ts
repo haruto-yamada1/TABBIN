@@ -13,6 +13,12 @@ const harnessRoot = '.agents/harness'
 const runRoot = `${harnessRoot}/runs`
 const schemaRoot = '.apm/harness/schemas'
 
+const TOP_ACTIONS_DISPLAY_LIMIT = 3
+const RUN_ID_SUFFIX_LENGTH = 8
+const SCORE_PASSED = 10
+const SCORE_REVIEW = 4
+const LINE_PREFIX_OFFSET = 3
+
 const stateStatuses = [
   'pending',
   'running',
@@ -901,8 +907,10 @@ export function buildHarnessSurfaceAudit(options: HarnessRunOptions): string {
     ),
     '',
     '## Top 3 actions',
-    // eslint-disable-next-line eslint/no-magic-numbers
-    ...listLines(topActions.slice(0, 3), '追加アクションなし。'),
+    ...listLines(
+      topActions.slice(0, TOP_ACTIONS_DISPLAY_LIMIT),
+      '追加アクションなし。',
+    ),
     '',
     '## APM source-of-truth sync',
     ...listLines(sourceFindings, 'drift / orphan は検出されませんでした。'),
@@ -1159,17 +1167,15 @@ function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
     }
   }
 
-  if (schema.type === 'array' && Array.isArray(value) && schema.items) {
-    value.forEach((item, index) => {
-      issues.push(
-        ...validateJsonSchema(
-          item,
-          // eslint-disable-next-line typescript/no-non-null-assertion
-          schema.items!,
-          joinPointer(at, String(index)),
-        ),
-      )
-    })
+  if (schema.type === 'array' && Array.isArray(value)) {
+    const items = schema.items
+    if (items) {
+      value.forEach((item, index) => {
+        issues.push(
+          ...validateJsonSchema(item, items, joinPointer(at, String(index))),
+        )
+      })
+    }
   }
 
   return issues
@@ -1281,8 +1287,11 @@ function defaultRunId() {
     .replaceAll('-', '')
     .replaceAll(':', '')
     .replace(/\.\d{3}Z$/, 'Z')
-  // eslint-disable-next-line eslint/no-magic-numbers
-  const suffix = Math.random().toString(36).slice(2, 8)
+  const BASE36_RADIX = 36
+
+  const suffix = Math.random()
+    .toString(BASE36_RADIX)
+    .slice(2, RUN_ID_SUFFIX_LENGTH)
   return `run-${compactTimestamp}-${suffix}`
 }
 
@@ -1434,9 +1443,8 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
       status: ok ? 'covered' : 'review',
       evidence: check.evidence,
       notes: ok ? 'deterministic check passed' : '確認または同期が必要です。',
-      // eslint-disable-next-line eslint/no-magic-numbers
-      score: ok ? 10 : 4,
-      max_score: 10,
+      score: ok ? SCORE_PASSED : SCORE_REVIEW,
+      max_score: SCORE_PASSED,
       findings,
     }
   })
@@ -1448,8 +1456,7 @@ function summarizeScore(categories: ScorecardRecord[]) {
     0,
   )
   const maxScore = categories.reduce(
-    // eslint-disable-next-line eslint/no-magic-numbers
-    (total, category) => total + (category.max_score ?? 10),
+    (total, category) => total + (category.max_score ?? SCORE_PASSED),
     0,
   )
   return { maxScore, overallScore }
@@ -1460,8 +1467,10 @@ function topActionLines(
   extraFindings: (SecurityFinding | string)[] = [],
 ) {
   const categoryActions = categories
-    // eslint-disable-next-line eslint/no-magic-numbers
-    .filter((category) => (category.score ?? 0) < (category.max_score ?? 10))
+    .filter(
+      (category) =>
+        (category.score ?? 0) < (category.max_score ?? SCORE_PASSED),
+    )
     .map(
       (category) =>
         `[${category.name}] ${category.evidence} を確認し、source-of-truth から不足を補う。`,
@@ -1472,8 +1481,10 @@ function topActionLines(
     }
     return `[Security Guardrails] ${finding.file}: ${finding.summary}`
   })
-  // eslint-disable-next-line eslint/no-magic-numbers
-  return [...categoryActions, ...extraActions].slice(0, 3)
+  return [...categoryActions, ...extraActions].slice(
+    0,
+    TOP_ACTIONS_DISPLAY_LIMIT,
+  )
 }
 
 function findingsForCategory(
@@ -1692,15 +1703,12 @@ function collectChangedFiles(projectRoot: string) {
       },
     )
 
-    return (
-      output
-        .split(/\r?\n/)
-        // eslint-disable-next-line eslint/no-magic-numbers
-        .map((line) => line.slice(3).trim())
-        .filter(Boolean)
-        .map((line) => line.replace(/^"|"$/g, ''))
-        .toSorted()
-    )
+    return output
+      .split(/\r?\n/)
+      .map((line) => line.slice(LINE_PREFIX_OFFSET).trim())
+      .filter(Boolean)
+      .map((line) => line.replace(/^"|"$/g, ''))
+      .toSorted()
   } catch {
     return []
   }

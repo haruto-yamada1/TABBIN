@@ -2,6 +2,7 @@
  * メッセージハンドラーモジュール
  */
 
+import type { AiChatAttachment } from '@/features/ai-chat/types'
 import type {
   AiChatResponse,
   AiChatStreamClientMessage,
@@ -14,6 +15,7 @@ import type {
   TimeRemainingResponse,
 } from '@/types/background'
 import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
+import type { UserSettings } from '@/types/storage'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
 import {
@@ -274,15 +276,14 @@ const handleCheckExpiredTabsMessage = (
 
   // 設定情報も出力
   chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    userSettings?: import('@/types/storage').UserSettings
+    userSettings?: UserSettings
   }>(['userSettings'], (data) => {
     console.log('現在のストレージ内の設定:', data)
   })
 
   // UpdateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
   if (message.updateTimestamps) {
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty string fallback
     console.log(`タブの保存時刻を更新します (${message.period || '不明'})`)
     // 処理の簡略化 - まずタイムスタンプを更新し、待機せずにチェック実行
     updateTabTimestamps(message.period)
@@ -396,14 +397,12 @@ const handleListOllamaModelsMessage = (
 
 const handleRunAiChatMessage = (
   message: {
-    // eslint-disable-next-line typescript/consistent-type-imports
-    attachments?: import('@/features/ai-chat/types').AiChatAttachment[]
+    attachments?: AiChatAttachment[]
     prompt: string
     history: {
       role: 'user' | 'assistant'
       content: string
-      // eslint-disable-next-line typescript/consistent-type-imports
-      attachments?: import('@/features/ai-chat/types').AiChatAttachment[]
+      attachments?: AiChatAttachment[]
     }[]
   },
   sendResponse: (response: AiChatResponse) => void,

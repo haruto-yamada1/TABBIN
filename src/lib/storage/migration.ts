@@ -37,7 +37,6 @@ const assignDomainToCategory = async (
       await updateDomainCategoryMapping(tabGroup.domain, null)
     }
   }
-  // eslint-disable-next-line oxc/no-map-spread
   const updatedCategories = categories.map((category: ParentCategory) => {
     if (category.id === categoryId) {
       // すでに含まれていなければ追加
@@ -71,12 +70,10 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       await Promise.all([
         getParentCategories(),
         chrome.storage.local.get<{
-          // eslint-disable-next-line typescript/consistent-type-imports
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs'),
         chrome.storage.local.get<{
-          // eslint-disable-next-line typescript/consistent-type-imports
-          domainCategoryMappings?: import('@/types/storage').DomainParentCategoryMapping[]
+          domainCategoryMappings?: DomainParentCategoryMapping[]
         }>('domainCategoryMappings'),
       ])
     const { savedTabs = [] } = savedTabsResult
@@ -116,7 +113,6 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     }
 
     // マイグレーション実行
-    // eslint-disable-next-line oxc/no-map-spread
     const updatedCategories = categories.map((category) => {
       // ドメインIDに対応するドメイン名を取得
       const domainNames = category.domains.flatMap((domainId) => {
@@ -263,8 +259,7 @@ const findParentCategoryForDomain = (
     domain,
     domainCategoryMappings,
     parentCategories,
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  ) || findCategoryByDomainNames(domain, parentCategories)
+  ) ?? findCategoryByDomainNames(domain, parentCategories)
 const assignGroupToCategory = async (
   group: TabGroup,
   domain: string,
@@ -358,8 +353,7 @@ const getUniqueDomainsFromTabs = (tabs: chrome.tabs.Tab[]): Set<string> =>
   new Set(
     tabs.flatMap((tab) => {
       try {
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        const url = new URL(tab.url || '')
+        const url = new URL(tab.url ?? '')
         return [`${url.protocol}//${url.hostname}`]
       } catch {
         return []
@@ -376,8 +370,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     settings,
   ] = await Promise.all([
     chrome.storage.local.get<{
-      // eslint-disable-next-line typescript/consistent-type-imports
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs'),
     getDomainCategoryMappings(),
     getParentCategories(),
@@ -423,13 +416,14 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   }
   const urlRecords = await Promise.all(
     tabsWithDomains.map(async ({ domain, tab, url }) => {
-      // eslint-disable-next-line typescript/no-non-null-assertion
-      const group = groupedTabs.get(domain)!
+      const group = groupedTabs.get(domain)
+      if (!group) {
+        throw new Error(`Domain group not found: ${domain}`)
+      }
       if (!missingDomainSet.has(domain)) {
         console.log(`既存のドメインに追加: ${domain}`)
       }
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      const urlRecord = await createOrUpdateUrlRecord(url, tab.title || '')
+      const urlRecord = await createOrUpdateUrlRecord(url, tab.title ?? '')
       return { group, urlRecord }
     }),
   )
@@ -473,8 +467,7 @@ const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
 
   // 保存したタブグループのIDを取得
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const uniqueDomains = getUniqueDomainsFromTabs(filteredTabs)
 
@@ -500,11 +493,9 @@ const updateCategoryDomains = async (
 } // TabGroup IDからグループを取得する関数
 const getTabGroupById = async (groupId: string): Promise<TabGroup | null> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  return savedTabs.find((group: TabGroup) => group.id === groupId) || null
+  return savedTabs.find((group: TabGroup) => group.id === groupId) ?? null
 }
 
 export { migrateToUrlsStorage } from './url-migration'

@@ -1,27 +1,24 @@
-/* eslint-disable typescript/no-unnecessary-type-conversion */
 import type { Active, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 // Filepath: features/saved-tabs/hooks/useCategoryDnD.ts
 import { useState } from 'react'
 
+const MIN_ID_PARTS = 4
+const CATEGORY_NAME_START_INDEX = 3
+
 const parseCategoryNameFromOverId = (overId: string): string | undefined => {
   const parts = overId.split('-')
-  // eslint-disable-next-line eslint/no-magic-numbers
-  if (parts.length < 4) {
+  if (parts.length < MIN_ID_PARTS) {
     return undefined
   }
-  // eslint-disable-next-line eslint/no-magic-numbers
-  return parts.slice(3).join('-')
+  return parts.slice(CATEGORY_NAME_START_INDEX).join('-')
 }
 const isUncategorizedDrop = (
   over: DragOverEvent['over'],
   projectId: string,
 ): boolean =>
-  Boolean(
-    // eslint-disable-next-line prefer-template, typescript/no-unnecessary-type-conversion
-    over?.id === `uncategorized-${projectId}` ||
-    (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
-    over?.data?.current?.type === 'uncategorized',
-  )
+  over?.id === `uncategorized-${projectId}` ||
+  (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
+  over?.data?.current?.type === 'uncategorized'
 const isCategoryOver = (
   overData: {
     type?: string
@@ -61,7 +58,7 @@ const resolveOverCategoryName = (
     return overData.categoryName // eslint-disable-line typescript/no-unsafe-return
   }
   if (typeof over.id === 'string') {
-    return parseCategoryNameFromOverId(over.id) || null // eslint-disable-line typescript/prefer-nullish-coalescing
+    return parseCategoryNameFromOverId(over.id) ?? null
   }
   return null
 }

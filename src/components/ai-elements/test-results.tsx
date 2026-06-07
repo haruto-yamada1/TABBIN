@@ -34,14 +34,16 @@ interface TestResultsContextType {
 
 const TestResultsContext = createContext<TestResultsContextType>({})
 
+const MS_IN_SECOND_TR = 1000
+
 const formatDuration = (ms: number) => {
-  // eslint-disable-next-line eslint/no-magic-numbers
-  if (ms < 1000) {
+  if (ms < MS_IN_SECOND_TR) {
     return `${ms}ms`
   }
-  // eslint-disable-next-line eslint/no-magic-numbers
-  return `${(ms / 1000).toFixed(2)}s`
+  return `${(ms / MS_IN_SECOND_TR).toFixed(2)}s`
 }
+
+const PERCENTAGE_MULTIPLIER_TR = 100
 
 export type TestResultsProps = HTMLAttributes<HTMLDivElement> & {
   summary?: TestResultsSummary
@@ -172,10 +174,10 @@ export const TestResultsProgress = ({
     return null
   }
 
-  // eslint-disable-next-line eslint/no-magic-numbers
-  const passedPercent = (summary.passed / summary.total) * 100
-  // eslint-disable-next-line eslint/no-magic-numbers
-  const failedPercent = (summary.failed / summary.total) * 100
+  const passedPercent =
+    (summary.passed / summary.total) * PERCENTAGE_MULTIPLIER_TR
+  const failedPercent =
+    (summary.failed / summary.total) * PERCENTAGE_MULTIPLIER_TR
 
   return (
     <div className={cn('space-y-2', className)} {...props}>

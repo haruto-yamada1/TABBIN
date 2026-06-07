@@ -65,10 +65,8 @@ const toSavedTabItems = async (
     { title: string; url: string }[]
   >((items, tab) => {
     items.push({
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      title: tab.title || '',
-      // eslint-disable-next-line typescript/no-non-null-assertion
-      url: normalizeUrlCandidate(tab.url)!,
+      title: tab.title ?? '',
+      url: normalizeUrlCandidate(tab.url) ?? '',
     })
     return items
   }, [])
@@ -88,8 +86,7 @@ const toResultItems = (
     if (normalizedUrl) {
       items.push({
         url: normalizedUrl,
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        title: tab.title || '',
+        title: tab.title ?? '',
       })
     }
     return items

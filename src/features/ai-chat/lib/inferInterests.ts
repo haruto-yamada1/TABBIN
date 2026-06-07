@@ -7,6 +7,9 @@ import type {
 import { getMessage } from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 
+const TOP_INTERESTS_LIMIT = 3
+const TENTATIVE_THRESHOLD = 3
+
 const countValues = (values: string[]): InterestEvidenceEntry[] => {
   const counts = new Map<string, number>()
 
@@ -112,8 +115,7 @@ export const inferUserInterests = (
 ): InterestInferenceResult => {
   const topDomains = countValues(records.map((record) => record.domain)).slice(
     0,
-    // eslint-disable-next-line eslint/no-magic-numbers
-    3,
+    TOP_INTERESTS_LIMIT,
   )
   const topCategories = countValues(
     records.flatMap((record) => [
@@ -123,10 +125,8 @@ export const inferUserInterests = (
         ...record.projectCategories,
       ]),
     ]),
-    // eslint-disable-next-line eslint/no-magic-numbers
-  ).slice(0, 3)
-  // eslint-disable-next-line eslint/no-magic-numbers
-  const isTentative = records.length < 3
+  ).slice(0, TOP_INTERESTS_LIMIT)
+  const isTentative = records.length < TENTATIVE_THRESHOLD
 
   if (records.length === 0) {
     return {

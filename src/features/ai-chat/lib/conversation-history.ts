@@ -22,9 +22,11 @@ const DEFAULT_INTERRUPTED_RESPONSE_MESSAGE = getMessage(
   'aiChat.interruptedResponse',
 )
 
+const HEX_RADIX = 16
+const MAX_TITLE_PREVIEW_LENGTH = 40
+
 const createConversationId = (): string =>
-  // eslint-disable-next-line eslint/no-magic-numbers
-  `conversation-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  `conversation-${Date.now()}-${Math.random().toString(HEX_RADIX).slice(2)}`
 
 const buildConversationTitle = (
   messages: AiChatConversationMessage[],
@@ -38,8 +40,7 @@ const buildConversationTitle = (
     return defaultTitle
   }
 
-  // eslint-disable-next-line eslint/no-magic-numbers
-  return firstUserMessage.content.trim().slice(0, 40)
+  return firstUserMessage.content.trim().slice(0, MAX_TITLE_PREVIEW_LENGTH)
 }
 
 const createConversationRecord = ({

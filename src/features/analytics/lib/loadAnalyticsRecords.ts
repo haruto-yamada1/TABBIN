@@ -5,6 +5,7 @@ import { getCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
 import { getUrlRecords } from '@/lib/storage/urls'
 import { filterItemsBySavableUrl } from '@/lib/url-filter'
+import type { TabGroup } from '@/types/storage'
 
 const loadAnalyticsRecords = async (): Promise<AiSavedUrlRecord[]> => {
   const [
@@ -18,8 +19,7 @@ const loadAnalyticsRecords = async (): Promise<AiSavedUrlRecord[]> => {
     getCustomProjects(),
     getParentCategories(),
     chrome.storage.local.get<{
-      // eslint-disable-next-line typescript/consistent-type-imports
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs'),
     getUserSettings(),
   ])

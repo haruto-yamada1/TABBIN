@@ -4,12 +4,13 @@ import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibilit
 import { CardGroupActions } from '../shared/CardGroupActions'
 import { useCategoryGroup } from './CategoryGroupContext'
 
+const BULK_OPEN_THRESHOLD = 10
+
 const getVisibleUrls = (group: {
   urls?: {
     url: string
   }[]
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-}): string[] => (group.urls || []).map((item) => item.url)
+}): string[] => (group.urls ?? []).map((item) => item.url)
 
 const deleteVisibleUrlsByGroup = async (
   groups: {
@@ -43,8 +44,7 @@ export const CategoryGroupActions = () => {
   const { modal, reorder } = state
 
   const domainsToUse = reorder.isReorderMode ? reorder.tempDomainOrder : domains
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const urlsToOpen = domainsToUse.flatMap((group) => group.urls || [])
+  const urlsToOpen = domainsToUse.flatMap((group) => group.urls ?? [])
   const hasSearchQuery = searchQuery.trim().length > 0
   const targetName = category.name
 
@@ -120,8 +120,7 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.deleteAllTabs'),
       )}
-      // eslint-disable-next-line eslint/no-magic-numbers
-      onConfirmOpenAll={urlsToOpen.length >= 10}
+      onConfirmOpenAll={urlsToOpen.length >= BULK_OPEN_THRESHOLD}
       // eslint-disable-next-line react/jsx-handler-names
       onConfirmDeleteAll={settings.confirmDeleteAll}
       openAllThreshold={10}

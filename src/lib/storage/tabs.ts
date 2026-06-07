@@ -118,8 +118,7 @@ const addUrlToTabGroup = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
   if (groupIndex === -1) {
@@ -159,18 +158,15 @@ const addSubCategoryToGroup = async (
   subCategoryName: string,
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const group = savedTabs.find((g: TabGroup) => g.id === groupId)
   if (!group) {
     return
   }
-  // eslint-disable-next-line oxc/no-map-spread
   const updatedGroups = savedTabs.map((existingGroup: TabGroup) => {
     if (existingGroup.id === groupId) {
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      const subCategories = existingGroup.subCategories || []
+      const subCategories = existingGroup.subCategories ?? []
       if (!subCategories.includes(subCategoryName)) {
         return {
           ...existingGroup,
@@ -245,8 +241,7 @@ const buildDomainCategorySetting = (
     },
   ],
   domain: group.domain,
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  subCategories: group.subCategories || [],
+  subCategories: group.subCategories ?? [],
 })
 // 子カテゴリにキーワードを設定する関数（永続設定にも保存）
 const setCategoryKeywords = async (
@@ -255,8 +250,7 @@ const setCategoryKeywords = async (
   keywords: string[],
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const group = savedTabs.find((g: TabGroup) => g.id === groupId)
   if (!group) {
@@ -264,12 +258,10 @@ const setCategoryKeywords = async (
   }
 
   // 更新するグループを見つける
-  // eslint-disable-next-line oxc/no-map-spread
   const updatedGroups = savedTabs.map((currentGroup: TabGroup) => {
     if (currentGroup.id === groupId) {
       // 既存のカテゴリキーワード設定を取得
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      const categoryKeywords = currentGroup.categoryKeywords || []
+      const categoryKeywords = currentGroup.categoryKeywords ?? []
 
       // 対象カテゴリのインデックスを探す
       const categoryIndex = categoryKeywords.findIndex(
@@ -391,8 +383,7 @@ const autoCategorizeTabs = async (groupId: string): Promise<void> => {
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const uniqueGroups = dedupeTabGroups(savedTabs)
   const targetGroup = uniqueGroups.find(
@@ -654,8 +645,7 @@ const removeUrlIdsFromTabGroup = async (
 
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
   if (groupIndex === -1) {
@@ -696,8 +686,7 @@ const removeUrlsFromTabGroup = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
   if (groupIndex === -1) {

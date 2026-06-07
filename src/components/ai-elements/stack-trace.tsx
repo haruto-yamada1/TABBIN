@@ -526,7 +526,7 @@ export const StackTraceFrames = memo(
                 <span className='text-muted-foreground'>)</span>
               </>
             )}
-            {/* eslint-disable-next-line typescript/prefer-nullish-coalescing */}
+            {/* eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty filePath/functionName should fall through */}
             {!(frame.filePath || frame.functionName) && (
               <span>{frame.raw.replace(AT_PREFIX_REGEX, '')}</span>
             )}

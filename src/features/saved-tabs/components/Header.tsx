@@ -32,9 +32,9 @@ interface HeaderProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   onOpenFilter?: () => void
-  customProjects: CustomProject[]
+  customProjects?: CustomProject[]
   filteredCustomProjects?: CustomProject[]
-  onCreateProject: (name: string) => void
+  onCreateProject?: (name: string) => void
 }
 
 // eslint-disable-next-line eslint/complexity
@@ -46,10 +46,8 @@ export const Header = ({
   onModeChange,
   searchQuery,
   onSearchChange,
-  // eslint-disable-next-line typescript/no-useless-default-assignment
   customProjects = EMPTY_CUSTOM_PROJECTS,
   filteredCustomProjects,
-  // eslint-disable-next-line typescript/no-useless-default-assignment
   onCreateProject = noopCreateProject,
 }: HeaderProps) => {
   const { t } = useI18n()
@@ -58,10 +56,8 @@ export const Header = ({
     useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const normalizedSearchQuery = searchQuery.trim()
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const groupsForDisplay = filteredTabGroups || tabGroups
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const customGroupsForDisplay = filteredCustomProjects || customProjects
+  const groupsForDisplay = filteredTabGroups ?? tabGroups
+  const customGroupsForDisplay = filteredCustomProjects ?? customProjects
   const handleNewProjectNameInputRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (node && isCustomProjectModalOpen) {
@@ -105,7 +101,7 @@ export const Header = ({
 
     const isComposing =
       event.nativeEvent.isComposing ||
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing -- isComposing is boolean; false should not fall through
       (event as unknown as { isComposing?: boolean }).isComposing || // eslint-disable-line typescript/no-unsafe-type-assertion
       false
     if (isComposing) {

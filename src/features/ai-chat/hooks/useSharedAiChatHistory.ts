@@ -49,8 +49,7 @@ const getConversationPreview = (
   conversation: AiChatConversation,
   defaultPreview: string,
 ): AiChatHistoryItem['preview'] =>
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  conversation.messages.at(-1)?.content || defaultPreview
+  conversation.messages.at(-1)?.content || defaultPreview // eslint-disable-line typescript/prefer-nullish-coalescing -- empty content should fall through
 
 const resolveCurrentConversationId = (
   activeConversationId: string | null,

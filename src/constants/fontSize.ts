@@ -15,6 +15,7 @@ export const normalizeFontSizePercent = (value?: number): number => {
   )
 }
 
+const FONT_SCALE_DIVISOR = 100
+
 export const toFontScaleValue = (value?: number): string =>
-  // eslint-disable-next-line eslint/no-magic-numbers
-  String(normalizeFontSizePercent(value) / 100)
+  String(normalizeFontSizePercent(value) / FONT_SCALE_DIVISOR)

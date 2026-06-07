@@ -9,8 +9,10 @@ const Progress = ({
   value,
   ...props
 }: React.ComponentProps<typeof ProgressPrimitive.Root>) => {
+  const FULL_PERCENT = 100
+
   const indicatorStyle = React.useMemo(
-    () => ({ transform: `translateX(-${100 - (value ?? 0)}%)` }), // eslint-disable-line eslint/no-magic-numbers
+    () => ({ transform: `translateX(-${FULL_PERCENT - (value ?? 0)}%)` }),
     [value],
   )
 

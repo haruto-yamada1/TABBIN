@@ -204,7 +204,7 @@ const OllamaModelSelector = ({
     [models, selectedModel],
   )
   const [isOpen, setIsOpen] = useState(false)
-  const hasError = Boolean(errorMessage || ollamaError) // eslint-disable-line typescript/prefer-nullish-coalescing
+  const hasError = Boolean(errorMessage || ollamaError) // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error message should fall through
   const previousHasErrorRef = useRef(hasError)
   const isTriggerDisabled = getTriggerDisabled({
     fetchOnOpen,
@@ -261,10 +261,10 @@ const OllamaModelSelector = ({
           open={isOpen}
           onOpenChange={handleOpenChange}
           onValueChange={handleValueChange}
-          key={selectedModel || 'no-model-selected'} // eslint-disable-line typescript/prefer-nullish-coalescing
+          key={selectedModel || 'no-model-selected'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
         >
           <PromptInputSelectTrigger
-            aria-label={selectedModel || t('aiChat.ollama.selectModel')} // eslint-disable-line typescript/prefer-nullish-coalescing
+            aria-label={selectedModel || t('aiChat.ollama.selectModel')} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
             disabled={isTriggerDisabled}
             className={cn(
               'w-full border border-input bg-background px-3 py-2 text-sm shadow-sm',

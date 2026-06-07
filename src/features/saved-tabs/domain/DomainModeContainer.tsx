@@ -1,4 +1,3 @@
-/* eslint-disable react-perf/jsx-no-new-object-as-prop */
 import { DndContext as DndKitContext, closestCenter } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -20,6 +19,8 @@ import {
 import { SortableDomainCard } from '@/features/saved-tabs/components/SortableDomainCard'
 import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibility'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+
+const BULK_OPEN_THRESHOLD = 10
 
 type DndSensors = ComponentProps<typeof DndKitContext>['sensors']
 
@@ -69,8 +70,7 @@ interface DomainModeContainerProps {
 }
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  (group.urls || []).map((item) => item.url)
+  (group.urls ?? []).map((item) => item.url)
 const deleteVisibleUrlsForGroups = async (
   groups: TabGroup[],
   handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>,
@@ -152,6 +152,12 @@ const UncategorizedDomainSection = ({
   hasContentCount,
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
+  const uncategorizedSettings = useMemo(
+    () =>
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      ({ confirmDeleteAll }) as UserSettings,
+    [confirmDeleteAll],
+  )
 
   return (
     <>
@@ -216,8 +222,7 @@ const UncategorizedDomainSection = ({
                   targetName,
                   t('savedTabs.deleteAllTabs'),
                 )}
-                // eslint-disable-next-line eslint/no-magic-numbers
-                onConfirmOpenAll={displayedTabCount >= 10}
+                onConfirmOpenAll={displayedTabCount >= BULK_OPEN_THRESHOLD}
                 onConfirmDeleteAll={confirmDeleteAll}
                 openAllThreshold={10}
                 openAllCount={displayedTabCount}
@@ -321,8 +326,7 @@ const UncategorizedDomainSection = ({
                   handleUpdateUrls={handleUpdateUrls}
                   // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteCategory={handleDeleteCategory}
-                  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-                  settings={{ confirmDeleteAll } as UserSettings}
+                  settings={uncategorizedSettings}
                   isReorderMode={isReorderMode}
                   searchQuery={searchQuery}
                 />
@@ -398,8 +402,7 @@ export const DomainModeContainer = ({
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
   const uncategorizedTargetName = t('savedTabs.uncategorizedDomainsTitle')
   const uncategorizedUrlsToOpen = useMemo(
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    () => uncategorizedForDisplay.flatMap((group) => group.urls || []),
+    () => uncategorizedForDisplay.flatMap((group) => group.urls ?? []),
     [uncategorizedForDisplay],
   )
   const displayedUncategorizedTabCount = uncategorizedUrlsToOpen.length
@@ -428,6 +431,23 @@ export const DomainModeContainer = ({
     searchQuery,
     uncategorizedForDisplay,
   ])
+
+  const uncategorizedSectionState = useMemo(
+    () => ({
+      shouldShowSectionHeader: shouldShowUncategorizedSectionHeader,
+      hasVisibleCategoryGroups,
+      confirmDeleteAll: settings.confirmDeleteAll,
+      isReorderMode: isUncategorizedReorderMode,
+      shouldShowList: shouldShowUncategorizedList,
+    }),
+    [
+      shouldShowUncategorizedSectionHeader,
+      hasVisibleCategoryGroups,
+      settings.confirmDeleteAll,
+      isUncategorizedReorderMode,
+      shouldShowUncategorizedList,
+    ],
+  )
 
   if (isLoading) {
     return <LoadingState />
@@ -497,14 +517,7 @@ export const DomainModeContainer = ({
       )}
 
       <UncategorizedDomainSection
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-        state={{
-          shouldShowSectionHeader: shouldShowUncategorizedSectionHeader,
-          hasVisibleCategoryGroups,
-          confirmDeleteAll: settings.confirmDeleteAll,
-          isReorderMode: isUncategorizedReorderMode,
-          shouldShowList: shouldShowUncategorizedList,
-        }}
+        state={uncategorizedSectionState}
         displayedDomainCount={displayedUncategorizedDomainCount}
         displayedTabCount={displayedUncategorizedTabCount}
         targetName={uncategorizedTargetName}

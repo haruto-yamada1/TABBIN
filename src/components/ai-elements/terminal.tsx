@@ -1,10 +1,9 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client'
 
 import Ansi from 'ansi-to-react'
 import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
-import { createContext, use, useMemo, useRef } from 'react'
+import { createContext, use, useCallback, useMemo, useRef } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -160,6 +159,9 @@ export const TerminalCopyButton = ({
 }: TerminalCopyButtonProps) => {
   const { output } = use(TerminalContext)
   const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
+  const handleCopy = useCallback(() => {
+    void copyText(output)
+  }, [copyText, output])
 
   return (
     <Button
@@ -167,8 +169,7 @@ export const TerminalCopyButton = ({
         'size-7 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/40',
         className,
       )}
-      // eslint-disable-next-line typescript/no-misused-promises
-      onClick={() => copyText(output)}
+      onClick={handleCopy}
       size='icon'
       variant='ghost'
       {...props}

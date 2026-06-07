@@ -22,6 +22,8 @@ import { OpenAllTabsConfirmDialog } from './shared/OpenAllTabsConfirmDialog'
 import { useSortableCategoryDrag } from './shared/useSortableCategoryDrag'
 import { CategorySection } from './TimeRemaining'
 
+const BULK_OPEN_THRESHOLD = 10
+
 // 並び替え可能なカテゴリセクションコンポーネント
 export const SortableCategorySection = ({
   id,
@@ -145,8 +147,7 @@ export const SortableCategorySection = ({
             )}
             // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onOpenAll={(e) => {
-              // eslint-disable-next-line eslint/no-magic-numbers
-              if (urlCount >= 10) {
+              if (urlCount >= BULK_OPEN_THRESHOLD) {
                 e.stopPropagation()
                 setIsOpenAllConfirmOpen(true)
                 return

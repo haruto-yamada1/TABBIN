@@ -285,9 +285,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         return
       }
 
-      // eslint-disable-next-line eslint/no-magic-numbers
-      const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-      if (file.size > MAX_FILE_SIZE) {
+      const MAX_IMPORT_FILE_SIZE_MB = 10
+      const BYTES_PER_KILOBYTE = 1024
+      const KILOBYTE = BYTES_PER_KILOBYTE
+      const MAX_IMPORT_FILE_SIZE_BYTES =
+        MAX_IMPORT_FILE_SIZE_MB * KILOBYTE * KILOBYTE // 10MB
+      if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
         toast.error(
           t('options.importExport.fileTooLarge', undefined, {
             maxSize: '10MB',
@@ -402,8 +405,11 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         toast.error(t('options.importExport.readError'))
         setIsImporting(false)
       }
-      // eslint-disable-next-line typescript/no-non-null-assertion
-      reader.readAsText(selectedFileRef.current!) // eslint-disable-line unicorn/prefer-blob-reading-methods
+      const file = selectedFileRef.current
+      if (!file) {
+        return
+      }
+      reader.readAsText(file) // eslint-disable-line unicorn/prefer-blob-reading-methods
     } catch (error) {
       console.error('インポートエラー:', error)
       toast.error(t('options.importExport.importError'))

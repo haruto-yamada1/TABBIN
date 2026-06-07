@@ -84,10 +84,13 @@ const setupExpiredTabsCheckAlarm = (): void => {
  * 初回チェックをスケジュール
  */
 const scheduleInitialCheck = (): void => {
+  const INITIAL_CHECK_DELAY_MS = 100
+
   Promise.resolve()
     .then(async () => {
-      // eslint-disable-next-line eslint/no-magic-numbers
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) =>
+        setTimeout(resolve, INITIAL_CHECK_DELAY_MS),
+      )
       // eslint-disable-next-line typescript/no-floating-promises
       checkAndRemoveExpiredTabs()
     })

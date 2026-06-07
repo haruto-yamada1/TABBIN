@@ -29,6 +29,8 @@ import {
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
+const DEFAULT_MIC_SELECTOR_WIDTH = 200
+
 const deviceIdRegex = /\(([\da-fA-F]{4}:[\da-fA-F]{4})\)$/
 
 interface MicSelectorContextType {
@@ -78,8 +80,7 @@ export const MicSelector = ({
     onChange: controlledOnOpenChange,
     prop: controlledOpen,
   })
-  // eslint-disable-next-line eslint/no-magic-numbers
-  const [width, setWidth] = useState(200)
+  const [width, setWidth] = useState(DEFAULT_MIC_SELECTOR_WIDTH)
   const { devices, loading, hasPermission, loadDevices } = useAudioDevices()
 
   useEffect(() => {

@@ -1,6 +1,5 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 import { Edit, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -73,8 +72,7 @@ const confirmCategoryNameUpdated = async (
   trimmedName: string,
 ): Promise<boolean> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    parentCategories?: import('@/types/storage').ParentCategory[]
+    parentCategories?: ParentCategory[]
   }>('parentCategories')
   const categoriesById = new Map(
     parentCategories.map((cat: ParentCategory) => [cat.id, cat]),
@@ -92,8 +90,7 @@ const updateCategoryWithDomain = async (
   selectedDomainInfo: AvailableDomain,
 ): Promise<ParentCategory[]> => {
   const { parentCategories = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    parentCategories?: import('@/types/storage').ParentCategory[]
+    parentCategories?: ParentCategory[]
   }>('parentCategories')
   const targetCategory = parentCategories.find(
     (cat: ParentCategory) => cat.id === categoryId,
@@ -108,7 +105,6 @@ const updateCategoryWithDomain = async (
   ) {
     throw new Error('このドメインは既にカテゴリに追加されています')
   }
-  // eslint-disable-next-line oxc/no-map-spread
   const updatedCategories = parentCategories.map((cat: ParentCategory) =>
     cat.id === categoryId
       ? {
@@ -135,8 +131,7 @@ const buildAvailableDomains = ({
   const targetCategory = parentCategories.find(
     (parentCategory) => parentCategory.id === categoryId,
   )
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const currentDomainIdSet = new Set(targetCategory?.domains || [])
+  const currentDomainIdSet = new Set(targetCategory?.domains)
 
   return savedTabs.reduce<AvailableDomain[]>((domains, tab) => {
     if (!currentDomainIdSet.has(tab.id)) {
@@ -216,23 +211,28 @@ const useCategoryManagementModalView = ({
     : (availableDomains[0]?.id ?? '')
 
   // 入力値バリデーション関数
-  const validateCategoryName = (name: string) => {
-    categoryNameSchema.schema = localizedCategoryNameSchema
-    const result = categoryNameSchema.safeParse(name)
-    if (!result.success) {
-      const issue = result.error.issues[0]
-      if (issue?.code === 'too_small') {
-        setCategoryNameError(t('savedTabs.categoryModal.validation.empty'))
-      } else if (issue?.code === 'too_big') {
-        setCategoryNameError(t('savedTabs.categoryModal.validation.maxLength'))
-      } else {
-        setCategoryNameError(t('savedTabs.categoryModal.invalid'))
+  const validateCategoryName = useCallback(
+    (name: string) => {
+      categoryNameSchema.schema = localizedCategoryNameSchema
+      const result = categoryNameSchema.safeParse(name)
+      if (!result.success) {
+        const issue = result.error.issues[0]
+        if (issue?.code === 'too_small') {
+          setCategoryNameError(t('savedTabs.categoryModal.validation.empty'))
+        } else if (issue?.code === 'too_big') {
+          setCategoryNameError(
+            t('savedTabs.categoryModal.validation.maxLength'),
+          )
+        } else {
+          setCategoryNameError(t('savedTabs.categoryModal.invalid'))
+        }
+        return false
       }
-      return false
-    }
-    setCategoryNameError(null)
-    return true
-  }
+      setCategoryNameError(null)
+      return true
+    },
+    [localizedCategoryNameSchema, t],
+  )
 
   useEffect(() => {
     let isMounted = true
@@ -242,12 +242,10 @@ const useCategoryManagementModalView = ({
         const [{ savedTabs = [] }, { parentCategories = [] }] =
           await Promise.all([
             chrome.storage.local.get<{
-              // eslint-disable-next-line typescript/consistent-type-imports
-              savedTabs?: import('@/types/storage').TabGroup[]
+              savedTabs?: TabGroup[]
             }>('savedTabs'),
             chrome.storage.local.get<{
-              // eslint-disable-next-line typescript/consistent-type-imports
-              parentCategories?: import('@/types/storage').ParentCategory[]
+              parentCategories?: ParentCategory[]
             }>('parentCategories'),
           ])
 
@@ -270,8 +268,7 @@ const useCategoryManagementModalView = ({
   }, [category.id, isOpen])
 
   // カテゴリのリネーム処理を開始
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleStartRenaming = () => {
+  const handleStartRenaming = useCallback(() => {
     setNewCategoryName(localCategoryName)
     setIsRenaming(true)
     setCategoryNameError(null) // エラー状態をリセット
@@ -283,22 +280,24 @@ const useCategoryManagementModalView = ({
         inputRef.current.select()
       }
     })
-  }
+  }, [localCategoryName])
 
   // リネームをキャンセル
-  const handleCancelRenaming = () => {
+  const handleCancelRenaming = useCallback(() => {
     setIsRenaming(false)
     setNewCategoryName(localCategoryName)
     setCategoryNameError(null) // エラー状態をリセット
-  }
+  }, [localCategoryName])
 
   // 入力変更時の処理
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleCategoryNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target
-    setNewCategoryName(value)
-    validateCategoryName(value) // リアルタイムバリデーション
-  }
+  const handleCategoryNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = e.target
+      setNewCategoryName(value)
+      validateCategoryName(value) // リアルタイムバリデーション
+    },
+    [validateCategoryName],
+  )
 
   // カテゴリ名の変更処理
   const handleSaveRenaming = async () => {
@@ -356,8 +355,7 @@ const useCategoryManagementModalView = ({
       // すべての更新が完了したことを確認してからリロード
       console.log('Modal - 最終確認開始')
       const finalCheck = await chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        parentCategories?: import('@/types/storage').ParentCategory[]
+        parentCategories?: ParentCategory[]
       }>('parentCategories')
       const finalCategory = finalCheck.parentCategories?.find(
         (cat: ParentCategory) => cat.id === category.id,
@@ -401,16 +399,14 @@ const useCategoryManagementModalView = ({
   }
 
   // 親カテゴリ削除処理
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleDeleteCategory = async () => {
+  const handleDeleteCategory = useCallback(async () => {
     if (isProcessing) {
       return
     }
     setIsProcessing(true)
     try {
       const data = await chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        parentCategories?: import('@/types/storage').ParentCategory[]
+        parentCategories?: ParentCategory[]
       }>('parentCategories')
       const parentCategories: ParentCategory[] = data.parentCategories ?? []
       const updatedCategories = parentCategories.filter(
@@ -431,10 +427,10 @@ const useCategoryManagementModalView = ({
     } finally {
       setIsProcessing(false)
     }
-  }
+  }, [isProcessing, category.id, category.name, onClose, t])
 
   // ドメインをカテゴリに追加
-  const handleAddDomain = async () => {
+  const handleAddDomain = useCallback(async () => {
     if (!activeSelectedDomain || isProcessing) {
       return
     }
@@ -465,7 +461,32 @@ const useCategoryManagementModalView = ({
     } finally {
       setIsProcessing(false)
     }
-  }
+  }, [
+    activeSelectedDomain,
+    isProcessing,
+    category.id,
+    category.name,
+    availableDomains,
+    setParentCategories,
+    setSelectedDomain,
+    t,
+  ])
+
+  const handleShowDeleteConfirm = useCallback(() => {
+    setShowDeleteConfirm(true)
+  }, [])
+  const handleHideDeleteConfirm = useCallback(() => {
+    setShowDeleteConfirm(false)
+  }, [])
+
+  const handleAddDomainClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      void handleAddDomain()
+    },
+    [handleAddDomain],
+  )
 
   // ドメインをカテゴリから削除
   const handleRemoveDomain = async (domainId: string) => {
@@ -476,8 +497,7 @@ const useCategoryManagementModalView = ({
     try {
       // 現在のカテゴリデータを取得
       const { parentCategories = [] } = await chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        parentCategories?: import('@/types/storage').ParentCategory[]
+        parentCategories?: ParentCategory[]
       }>('parentCategories')
 
       // 対象のカテゴリを検索
@@ -495,7 +515,6 @@ const useCategoryManagementModalView = ({
       }
 
       // カテゴリを更新
-      // eslint-disable-next-line oxc/no-map-spread
       const updatedCategories = parentCategories.map((cat: ParentCategory) => {
         if (cat.id === category.id) {
           return {
@@ -588,8 +607,7 @@ const useCategoryManagementModalView = ({
                       <Button
                         variant='secondary'
                         size='sm'
-                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                        onClick={() => setShowDeleteConfirm(true)} // eslint-disable-line typescript/no-confusing-void-expression
+                        onClick={handleShowDeleteConfirm}
                         className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
                         disabled={isProcessing}
                       >
@@ -707,8 +725,7 @@ const useCategoryManagementModalView = ({
               deleteLabel={t('common.delete')}
               deleteTooltip={t('savedTabs.categoryManagement.deleteAction')}
               isProcessing={isProcessing}
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-              onCancel={() => setShowDeleteConfirm(false)} // eslint-disable-line typescript/no-confusing-void-expression
+              onCancel={handleHideDeleteConfirm}
               // eslint-disable-next-line typescript/no-misused-promises
               onDelete={handleDeleteCategory}
             />
@@ -737,7 +754,7 @@ const useCategoryManagementModalView = ({
                         <Button
                           variant='ghost'
                           size='sm'
-                          // eslint-disable-next-line typescript/no-misused-promises
+                          // eslint-disable-next-line typescript/no-misused-promises, jsx-no-new-function-as-prop
                           onClick={() => handleRemoveDomain(domain.id)}
                           className='ml-1 cursor-pointer text-zinc-400 hover:text-zinc-200'
                           aria-label={t(
@@ -794,13 +811,7 @@ const useCategoryManagementModalView = ({
                     <Button
                       variant='default'
                       size='icon'
-                      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        // eslint-disable-next-line typescript/no-floating-promises
-                        handleAddDomain()
-                      }}
+                      onClick={handleAddDomainClick}
                       className='cursor-pointer'
                       disabled={!activeSelectedDomain || isProcessing}
                     >

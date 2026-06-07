@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-constructed-context-values */
 'use client'
 
 import { AlertCircle } from 'lucide-react'
@@ -155,21 +154,21 @@ export const JSXPreview = memo(
       [processedJsx],
     )
 
+    const contextValue = useMemo(
+      () => ({
+        bindings,
+        components,
+        error,
+        jsx,
+        onErrorProp: onError,
+        processedJsx,
+        setError,
+      }),
+      [bindings, components, error, jsx, onError, processedJsx, setError],
+    )
+
     return (
-      <JSXPreviewContext.Provider
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-        value={{
-          // eslint-disable-line react/jsx-no-constructed-context-values
-          // eslint-disable-line react/jsx-no-constructed-context-values
-          bindings,
-          components,
-          error,
-          jsx,
-          onErrorProp: onError,
-          processedJsx,
-          setError,
-        }}
-      >
+      <JSXPreviewContext.Provider value={contextValue}>
         <div className={cn('relative', className)} {...props}>
           {children}
         </div>

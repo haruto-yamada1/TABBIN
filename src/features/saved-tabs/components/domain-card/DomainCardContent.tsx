@@ -1,4 +1,3 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 import {
   DndContext,
   KeyboardSensor,
@@ -12,13 +11,73 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { useCallback } from 'react'
 
 import { CardContent } from '@/components/ui/card'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { SortableCategorySection } from '@/features/saved-tabs/components/SortableCategorySection'
 import { CategorySection } from '@/features/saved-tabs/components/TimeRemaining'
+import type { TabGroup, UserSettings } from '@/types/storage'
 
 import { useDomainCard } from './DomainCardContext'
+
+/* eslint-disable react/jsx-handler-names -- handlers from context use handle* naming */
+const EMPTY_CATEGORY_URLS: TabGroup['urls'] = []
+
+interface CategorySectionItemProps {
+  categoryName: string
+  urls: TabGroup['urls']
+  groupId: string
+  handleDeleteUrl: (groupId: string, url: string) => void
+  handleOpenTab: (url: string) => void
+  handleUpdateUrls: (groupId: string, updatedUrls: TabGroup['urls']) => void
+  handleOpenAllTabs: (urls: { url: string; title: string }[]) => void
+  handleDeleteAllTabsInCategory: (
+    categoryName: string,
+    urls: { url: string }[],
+  ) => void
+  settings: UserSettings
+  stickyTop: string
+  isCategoryReorderMode: boolean
+}
+
+const CategorySectionItem = ({
+  categoryName,
+  urls,
+  groupId,
+  handleDeleteUrl,
+  handleOpenTab,
+  handleUpdateUrls,
+  handleOpenAllTabs,
+  handleDeleteAllTabsInCategory,
+  settings,
+  stickyTop,
+  isCategoryReorderMode,
+}: CategorySectionItemProps) => {
+  const handleDeleteAllTabs = useCallback(
+    (deleteUrls: { url: string }[]) => {
+      handleDeleteAllTabsInCategory(categoryName, deleteUrls)
+    },
+    [handleDeleteAllTabsInCategory, categoryName],
+  )
+
+  return (
+    <SortableCategorySection
+      id={categoryName}
+      categoryName={categoryName}
+      urls={urls}
+      groupId={groupId}
+      handleDeleteUrl={handleDeleteUrl}
+      handleOpenTab={handleOpenTab}
+      handleUpdateUrls={handleUpdateUrls}
+      handleOpenAllTabs={handleOpenAllTabs}
+      handleDeleteAllTabs={handleDeleteAllTabs}
+      settings={settings}
+      stickyTop={stickyTop}
+      isReorderMode={isCategoryReorderMode}
+    />
+  )
+}
 
 /**
  * DomainCard の展開時コンテンツ
@@ -45,8 +104,7 @@ export const DomainCardContent = () => {
     return null
   }
 
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const hasUrls = (group.urls?.length || 0) > 0
+  const hasUrls = (group.urls?.length ?? 0) > 0
   const categoryIds = categoryReorder.isCategoryReorderMode
     ? categoryReorder.tempCategoryOrder
     : categoryReorder.allCategoryIds
@@ -55,8 +113,7 @@ export const DomainCardContent = () => {
     return (
       <CardContent className='gap-y-1'>
         <div className='py-4 text-center text-zinc-400'>
-          {/* eslint-disable-next-line typescript/prefer-nullish-coalescing */}
-          {(group.urls?.length || 0) === 0
+          {(group.urls?.length ?? 0) === 0
             ? t('savedTabs.domain.emptyNoTabs')
             : t('savedTabs.domain.emptyManageCategoriesHint')}
         </div>
@@ -73,13 +130,9 @@ export const DomainCardContent = () => {
           categoryName={singleCategoryName}
           urls={computed.categorizedUrls[singleCategoryName]}
           groupId={group.id}
-          // eslint-disable-next-line react/jsx-handler-names
           handleDeleteUrl={handlers.handleDeleteUrl}
-          // eslint-disable-next-line react/jsx-handler-names
           handleOpenTab={handlers.handleOpenTab}
-          // eslint-disable-next-line react/jsx-handler-names
           handleUpdateUrls={handlers.handleUpdateUrls}
-          // eslint-disable-next-line react/jsx-handler-names
           handleOpenAllTabs={handlers.handleOpenAllTabs}
           settings={settings}
         />
@@ -99,36 +152,28 @@ export const DomainCardContent = () => {
           strategy={verticalListSortingStrategy}
         >
           {categoryIds.map((categoryName) => {
-            // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
-            const urls = computed.categorizedUrls[categoryName] || []
+            const urls =
+              computed.categorizedUrls[categoryName] ?? EMPTY_CATEGORY_URLS
             if (urls.length === 0) {
               return null
             }
             return (
-              <SortableCategorySection
+              <CategorySectionItem
                 key={categoryName}
-                id={categoryName}
                 categoryName={categoryName}
                 urls={urls}
                 groupId={group.id}
-                // eslint-disable-next-line react/jsx-handler-names
                 handleDeleteUrl={handlers.handleDeleteUrl}
-                // eslint-disable-next-line react/jsx-handler-names
                 handleOpenTab={handlers.handleOpenTab}
-                // eslint-disable-next-line react/jsx-handler-names
                 handleUpdateUrls={handlers.handleUpdateUrls}
-                // eslint-disable-next-line react/jsx-handler-names
                 handleOpenAllTabs={handlers.handleOpenAllTabs}
                 // eslint-disable-next-line typescript/no-misused-promises
-                handleDeleteAllTabs={(urls) =>
-                  categoryActions.handleDeleteAllTabsInCategory(
-                    categoryName,
-                    urls,
-                  )
+                handleDeleteAllTabsInCategory={
+                  categoryActions.handleDeleteAllTabsInCategory
                 }
                 settings={settings}
                 stickyTop={categorySectionStickyTop}
-                isReorderMode={categoryReorder.isCategoryReorderMode}
+                isCategoryReorderMode={categoryReorder.isCategoryReorderMode}
               />
             )
           })}

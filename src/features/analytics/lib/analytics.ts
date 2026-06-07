@@ -138,6 +138,13 @@ const EMPTY_FILTERS: AnalyticsFilters = {
   includedSubCategories: [],
 }
 
+const HOURS_IN_DAY_A = 24
+const MINUTES_IN_HOUR_A = 60
+const SECONDS_IN_MINUTE_A = 60
+const MS_IN_SECOND_A = 1000
+const DAY_MS =
+  HOURS_IN_DAY_A * MINUTES_IN_HOUR_A * SECONDS_IN_MINUTE_A * MS_IN_SECOND_A
+
 const RANGE_IN_DAYS: Record<
   Exclude<AnalyticsTimeRange, 'all' | 'custom'>,
   number
@@ -239,11 +246,7 @@ const isWithinTimeRange = (
     )
   }
 
-  return (
-    savedAt >=
-    // eslint-disable-next-line eslint/no-magic-numbers
-    options.now - RANGE_IN_DAYS[options.timeRange] * 24 * 60 * 60 * 1000
-  )
+  return savedAt >= options.now - RANGE_IN_DAYS[options.timeRange] * DAY_MS
 }
 
 const arrayMatchesFilters = (
@@ -441,13 +444,14 @@ const getTimeTitle = (
   }
 }
 
+const PERCENTAGE_MULTIPLIER = 100
+
 const getNormalizedCount = (count: number, total: number): number => {
   if (total === 0) {
     return 0
   }
 
-  // eslint-disable-next-line eslint/no-magic-numbers
-  return Math.round((count / total) * 100)
+  return Math.round((count / total) * PERCENTAGE_MULTIPLIER)
 }
 
 const sortTimeEntriesByTotalDesc = (
@@ -598,7 +602,6 @@ const createModeComparisonChart = (
         sortEntries(entries, query.sort)
         return entries.slice(0, query.limit)
       })()
-  // eslint-disable-next-line oxc/no-map-spread
   const rawData = limitedEntries.map(({ counts, label }) => ({
     ...counts,
     label,

@@ -4,30 +4,35 @@ interface TimeRemainingResponse {
   error?: string
   timeRemaining?: number
 }
+
+const MS_IN_SECOND = 1000
+const SECONDS_IN_MINUTE = 60
+const MINUTES_IN_HOUR = 60
+const HOURS_IN_DAY = 24
+const MS_IN_HOUR = MS_IN_SECOND * SECONDS_IN_MINUTE * MINUTES_IN_HOUR
+const MS_IN_DAY = MS_IN_HOUR * HOURS_IN_DAY
+
+const WARNING_DAYS_THRESHOLD = 3
+const MS_IN_3_DAYS = MS_IN_DAY * WARNING_DAYS_THRESHOLD
+
 const getTimeRemainingColorClass = (remainingMs: number): string => {
-  // eslint-disable-next-line eslint/no-magic-numbers
-  if (remainingMs < 1000 * 60 * 60) {
+  if (remainingMs < MS_IN_HOUR) {
     return 'text-red-500 font-medium'
   }
-  // eslint-disable-next-line eslint/no-magic-numbers
-  if (remainingMs < 1000 * 60 * 60 * 24) {
+  if (remainingMs < MS_IN_DAY) {
     return 'text-amber-500 font-medium'
   }
-  // eslint-disable-next-line eslint/no-magic-numbers
-  if (remainingMs < 1000 * 60 * 60 * 24 * 3) {
+  if (remainingMs < MS_IN_3_DAYS) {
     return 'text-yellow-500'
   }
   return 'text-emerald-500'
 }
+const MS_IN_MINUTE = MS_IN_SECOND * SECONDS_IN_MINUTE
+
 const formatTimeRemainingText = (remainingMs: number): string => {
-  // eslint-disable-next-line eslint/no-magic-numbers
-  const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24))
-  const hours = Math.floor(
-    // eslint-disable-next-line eslint/no-magic-numbers
-    (remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-  )
-  // eslint-disable-next-line eslint/no-magic-numbers
-  const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60))
+  const days = Math.floor(remainingMs / MS_IN_DAY)
+  const hours = Math.floor((remainingMs % MS_IN_DAY) / MS_IN_HOUR)
+  const minutes = Math.floor((remainingMs % MS_IN_HOUR) / MS_IN_MINUTE)
   let result = 'あと '
   if (days > 0) {
     result += `${days}日 `
@@ -106,8 +111,7 @@ export const TimeRemaining = ({
     calculateTimeLeft()
 
     // 1分ごとに更新
-    // eslint-disable-next-line eslint/no-magic-numbers
-    const timer = setInterval(calculateTimeLeft, 60_000)
+    const timer = setInterval(calculateTimeLeft, MS_IN_MINUTE)
     // eslint-disable-next-line typescript/consistent-return
     return () => {
       clearInterval(timer)

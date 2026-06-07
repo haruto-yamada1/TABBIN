@@ -1,9 +1,8 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client'
 
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
-import { createContext, use } from 'react'
+import { createContext, use, useCallback } from 'react'
 
 import {
   InputGroup,
@@ -35,7 +34,6 @@ export const Snippet = ({
   children,
   ...props
 }: SnippetProps) => (
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   <SnippetContext.Provider value={useMemo(() => ({ code }), [code])}>
     <InputGroup className={cn('font-mono', className)} {...props}>
       {children}
@@ -93,6 +91,9 @@ export const SnippetCopyButton = ({
   const t = useI18nText()
   const { code } = use(SnippetContext)
   const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
+  const handleCopy = useCallback(() => {
+    void copyText(code, { skipIfCopied: true })
+  }, [copyText, code])
 
   const Icon = isCopied ? CheckIcon : CopyIcon
 
@@ -100,8 +101,7 @@ export const SnippetCopyButton = ({
     <InputGroupButton
       aria-label={t('common.copy')}
       className={className}
-      // eslint-disable-next-line typescript/no-misused-promises
-      onClick={() => copyText(code, { skipIfCopied: true })}
+      onClick={handleCopy}
       size='icon-sm'
       title={t('common.copy')}
       {...props}

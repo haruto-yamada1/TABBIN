@@ -2,7 +2,7 @@
 
 import { ArrowRightIcon, MinusIcon, PackageIcon, PlusIcon } from 'lucide-react'
 import type { HTMLAttributes } from 'react'
-import { createContext, use } from 'react'
+import { createContext, use, useMemo } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -35,28 +35,32 @@ export const PackageInfo = ({
   className,
   children,
   ...props
-}: PackageInfoProps) => (
-  <PackageInfoContext.Provider
-    // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-    value={{ changeType, currentVersion, name, newVersion }} // eslint-disable-line react/jsx-no-constructed-context-values
-  >
-    <div
-      className={cn('rounded-lg border bg-background p-4', className)}
-      {...props}
-    >
-      {children ?? (
-        <>
-          <PackageInfoHeader>
-            <PackageInfoName />
-            {changeType && <PackageInfoChangeType />}
-          </PackageInfoHeader>
-          {/* eslint-disable-next-line typescript/prefer-nullish-coalescing */}
-          {(currentVersion || newVersion) && <PackageInfoVersion />}
-        </>
-      )}
-    </div>
-  </PackageInfoContext.Provider>
-)
+}: PackageInfoProps) => {
+  const contextValue = useMemo(
+    () => ({ changeType, currentVersion, name, newVersion }),
+    [changeType, currentVersion, name, newVersion],
+  )
+
+  return (
+    <PackageInfoContext.Provider value={contextValue}>
+      <div
+        className={cn('rounded-lg border bg-background p-4', className)}
+        {...props}
+      >
+        {children ?? (
+          <>
+            <PackageInfoHeader>
+              <PackageInfoName />
+              {changeType && <PackageInfoChangeType />}
+            </PackageInfoHeader>
+            {/* eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty version string should not render */}
+            {(currentVersion || newVersion) && <PackageInfoVersion />}
+          </>
+        )}
+      </div>
+    </PackageInfoContext.Provider>
+  )
+}
 
 export type PackageInfoHeaderProps = HTMLAttributes<HTMLDivElement>
 

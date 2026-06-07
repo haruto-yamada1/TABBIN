@@ -79,11 +79,11 @@ export const getMediaCategory = (
 
 export const getAttachmentLabel = (data: AttachmentData): string => {
   if (data.type === 'source-document') {
-    return data.title || data.filename || 'Source' // eslint-disable-line typescript/prefer-nullish-coalescing
+    return data.title || data.filename || 'Source' // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty title/filename should fall through
   }
 
   const category = getMediaCategory(data)
-  return data.filename || (category === 'image' ? 'Image' : 'Attachment') // eslint-disable-line typescript/prefer-nullish-coalescing
+  return data.filename || (category === 'image' ? 'Image' : 'Attachment') // eslint-disable-line typescript/prefer-nullish-coalescing -- empty filename should fall through
 }
 
 const renderAttachmentImage = (
@@ -93,7 +93,7 @@ const renderAttachmentImage = (
 ) =>
   isGrid ? (
     <img
-      alt={filename || 'Image'} // eslint-disable-line typescript/prefer-nullish-coalescing
+      alt={filename || 'Image'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty filename should use default alt
       className='size-full object-cover'
       height={96}
       src={url}
@@ -101,7 +101,7 @@ const renderAttachmentImage = (
     />
   ) : (
     <img
-      alt={filename || 'Image'} // eslint-disable-line typescript/prefer-nullish-coalescing
+      alt={filename || 'Image'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty filename should use default alt
       className='size-full rounded object-cover'
       height={20}
       src={url}

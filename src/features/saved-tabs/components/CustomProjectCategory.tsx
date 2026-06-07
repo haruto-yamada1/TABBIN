@@ -1,4 +1,3 @@
-/* eslint-disable typescript/require-await */
 import { useDroppable } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -24,8 +23,9 @@ import { CardSortControl } from './shared/CardSortControl'
 
 type CategoryUrl = NonNullable<CustomProjectCategoryProps['urls']>[number]
 
-// eslint-disable-next-line eslint/no-magic-numbers
-const shouldConfirmBulkOpen = (urlCount: number): boolean => urlCount >= 10
+const BULK_OPEN_THRESHOLD = 10
+const shouldConfirmBulkOpen = (urlCount: number): boolean =>
+  urlCount >= BULK_OPEN_THRESHOLD
 
 const sortCategoryUrls = (
   categoryUrls: CategoryUrl[],
@@ -36,8 +36,7 @@ const sortCategoryUrls = (
   }
 
   const sorted = [...categoryUrls]
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  sorted.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
+  sorted.sort((a, b) => (a.savedAt ?? 0) - (b.savedAt ?? 0))
   if (sortOrder === 'desc') {
     sorted.reverse()
   }
@@ -231,8 +230,7 @@ const useCustomProjectCategoryView = ({
 
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
   const sortedCategoryUrls = useMemo(
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    () => sortCategoryUrls(urls || [], sortOrder),
+    () => sortCategoryUrls(urls ?? [], sortOrder),
     [urls, sortOrder],
   )
   const [userCollapsedState, setUserCollapsedState] = useState(false)
@@ -276,6 +274,7 @@ const useCustomProjectCategoryView = ({
   const categoryDisplayName =
     category === '__uncategorized' ? t('savedTabs.uncategorized') : category
   const showManageActions = Boolean(
+    // `||` needed: either callback could be falsey/undefined; both are independent conditions
     // eslint-disable-next-line typescript/prefer-nullish-coalescing
     handleRenameCategory || handleDeleteCategory,
   )
@@ -294,8 +293,7 @@ const useCustomProjectCategoryView = ({
   }
 
   // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleDeleteAllUrlsConfirmed = async () => {
-    // eslint-disable-line typescript/require-await
+  const handleDeleteAllUrlsConfirmed = () => {
     if (handleDeleteUrlsFromProject) {
       handleDeleteUrlsFromProject(
         projectId,
@@ -323,7 +321,7 @@ const useCustomProjectCategoryView = ({
       setIsDeleteAllConfirmOpen(true)
       return
     }
-    void handleDeleteAllUrlsConfirmed()
+    handleDeleteAllUrlsConfirmed()
   }
 
   // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop

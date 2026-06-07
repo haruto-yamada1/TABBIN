@@ -276,11 +276,13 @@ const syncExternalConversationState = ({
   setIsSubmitting(false)
 }
 
+const HEX_RADIX = 16
+
 const createMessageId = (): string =>
-  `${Date.now()}-${Math.random().toString(16).slice(2)}` // eslint-disable-line eslint/no-magic-numbers
+  `${Date.now()}-${Math.random().toString(HEX_RADIX).slice(2)}`
 
 const createSystemPromptId = (): string =>
-  `system-prompt-${Date.now()}-${Math.random().toString(16).slice(2)}` // eslint-disable-line eslint/no-magic-numbers
+  `system-prompt-${Date.now()}-${Math.random().toString(HEX_RADIX).slice(2)}`
 
 const getMaxSidebarWidth = (): number => {
   if (typeof window === 'undefined') {
@@ -477,7 +479,7 @@ const isAiChatConfigured = (settings: UserSettings | null): boolean =>
 const getAiChatErrorMessage = (
   response: AiChatResponse | undefined,
   t: TranslateFn,
-): string => response?.error || t('aiChat.responseError') // eslint-disable-line typescript/prefer-nullish-coalescing
+): string => response?.error || t('aiChat.responseError') // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error should show default message
 
 const getAiChatOllamaError = (
   response: AiChatResponse | undefined,
@@ -1394,13 +1396,15 @@ const useChatSidebarHeaderView = ({
   )
 }
 
+const ATTACHMENT_PREVIEW_LENGTH = 32
+
 const getAttachmentId = (attachment: AiChatAttachment) =>
   [
     attachment.filename,
     attachment.mediaType,
     attachment.kind,
     attachment.content.length,
-    attachment.content.slice(0, 32), // eslint-disable-line eslint/no-magic-numbers
+    attachment.content.slice(0, ATTACHMENT_PREVIEW_LENGTH),
   ].join('-')
 
 const renderChatMessageAttachments = ({
@@ -2094,8 +2098,13 @@ const useSavedTabsChatWidgetView = ({
   const resolvedSettings = getResolvedSettings(settings)
   const activeSystemPrompt = getActiveAiSystemPrompt(resolvedSettings)
   const isConfigured = isAiChatConfigured(resolvedSettings)
+  const TABLET_BREAKPOINT = 768
+  const SIDEBAR_COMPACT_BREAKPOINT = 360
+
   const isCompactLayout =
-    mode === 'page' ? viewportWidth < 768 : sidebarWidth <= 360 // eslint-disable-line eslint/no-magic-numbers
+    mode === 'page'
+      ? viewportWidth < TABLET_BREAKPOINT
+      : sidebarWidth <= SIDEBAR_COMPACT_BREAKPOINT
   const resolvedTitle = title ?? t('aiChat.chatTitle')
 
   const setMessagesState = (nextMessages: ChatMessage[]) => {
@@ -2206,7 +2215,7 @@ const useSavedTabsChatWidgetView = ({
 
     if (response?.status !== 'ok' || !response.models) {
       setModelOptions([])
-      setSetupErrorMessage(response?.error || t('aiChat.modelListLoadError')) // eslint-disable-line typescript/prefer-nullish-coalescing
+      setSetupErrorMessage(response?.error || t('aiChat.modelListLoadError')) // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error should show default message
       setSetupOllamaError(response?.ollamaError)
       setIsLoadingModels(false)
       return

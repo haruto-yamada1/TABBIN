@@ -21,6 +21,8 @@ import { ProjectCardContext } from './ProjectCardContext'
 import type { ProjectCardContextType } from './ProjectCardContext'
 import { ProjectManagementModal } from './ProjectManagementModal'
 
+const BULK_OPEN_THRESHOLD = 10
+
 const sortProjectUrls = <
   T extends {
     savedAt?: number
@@ -34,8 +36,7 @@ const sortProjectUrls = <
   }
 
   const sortedUrls = [...urls]
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  sortedUrls.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
+  sortedUrls.sort((a, b) => (a.savedAt ?? 0) - (b.savedAt ?? 0))
   if (sortOrder === 'desc') {
     sortedUrls.reverse()
   }
@@ -127,12 +128,13 @@ export const ProjectCardRoot = ({
     id: project.id,
   })
 
+  const DRAGGING_OPACITY = 0.5
+
   // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style: CSSProperties = {
     containIntrinsicSize: '360px',
     contentVisibility: 'auto',
-    // eslint-disable-next-line eslint/no-magic-numbers
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? DRAGGING_OPACITY : 1,
     transform: CSS.Transform.toString(transform),
     transition,
   }
@@ -310,8 +312,7 @@ export const ProjectCardRoot = ({
             onManage={() => {
               setIsManagementModalOpen(true)
             }}
-            // eslint-disable-next-line eslint/no-magic-numbers
-            onConfirmOpenAll={projectUrlCount >= 10}
+            onConfirmOpenAll={projectUrlCount >= BULK_OPEN_THRESHOLD}
             // eslint-disable-next-line react/jsx-handler-names
             onConfirmDeleteAll={settings.confirmDeleteAll}
             openAllThreshold={10}

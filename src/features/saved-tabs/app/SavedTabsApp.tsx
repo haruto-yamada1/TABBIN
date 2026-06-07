@@ -244,16 +244,13 @@ const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
 const countTabGroupUrls = (group: TabGroup): number =>
   group.urlIds?.length ?? group.urls?.length ?? 0
 const getDisplayUrlCount = (group: TabGroup): number =>
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  (group.urls || group.urlIds || []).length
+  (group.urls ?? group.urlIds ?? []).length
 const buildDisplayTabGroup = (project: CustomProject): TabGroup =>
   ({
     id: project.id,
     domain: project.name,
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    urls: project.urls || [],
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    urlIds: project.urlIds || [],
+    urls: project.urls ?? [],
+    urlIds: project.urlIds ?? [],
   }) as TabGroup
 const matchesParentCategoryQuery = (
   group: TabGroup,
@@ -277,6 +274,7 @@ const matchesParentCategoryQuery = (
     }
   }
   const fallbackCategory =
+    // `||` needed: Map.get() could return empty string
     // eslint-disable-next-line typescript/prefer-nullish-coalescing
     categoryLookup.byGroupId.get(group.id) ||
     categoryLookup.byDomainName.get(group.domain)
@@ -301,8 +299,7 @@ const filterGroupByQuery = (
   normalizedQuery: string,
   categoryLookup: CategoryLookup,
 ): TabGroup => {
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const currentUrls = group.urls || []
+  const currentUrls = group.urls ?? []
   if (currentUrls.length === 0) {
     return group
   }
@@ -319,7 +316,7 @@ const filterGroupByQuery = (
     const matchesSubCategory = item.subCategory
       ?.toLowerCase()
       .includes(normalizedQuery)
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- boolean values; false should not fall through
     return matchesBasicFields || matchesSubCategory || parentCategoryMatched
   })
   if (filteredUrls.length === currentUrls.length) {
@@ -334,8 +331,7 @@ const hasDisplayableUrls = (group: TabGroup): boolean => {
   const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
   const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
   console.log(
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    `フィルタチェック ${group.domain}: urlIds=${group.urlIds?.length || 0}, urls=${group.urls?.length || 0}, 表示=${hasNewUrls || hasOldUrls}`,
+    `フィルタチェック ${group.domain}: urlIds=${group.urlIds?.length ?? 0}, urls=${group.urls?.length ?? 0}, 表示=${hasNewUrls || hasOldUrls}`, // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: boolean values; false should not be treated as "not set"
   )
   return hasNewUrls || hasOldUrls
 }
@@ -719,8 +715,9 @@ const removeUrlsFromCustomProjectsForGroups = async (
   const groupsWithoutUrlIds = groupsToDelete.filter(
     (group) => !(group.urlIds && group.urlIds.length > 0),
   )
-  // eslint-disable-next-line typescript/no-non-null-assertion
-  const allUrlIdsToDelete = groupsWithUrlIds.flatMap((group) => group.urlIds!)
+  const allUrlIdsToDelete = groupsWithUrlIds.flatMap(
+    (group) => group.urlIds ?? [],
+  )
   if (allUrlIdsToDelete.length > 0) {
     await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
       throwOnError: true,
@@ -1180,8 +1177,7 @@ const useSavedTabsAppView = ({
         const targetGroup = tabGroupsWithUrls.find(
           (group) => group.id === groupId,
         )
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        const resolvedUrlIds = (targetGroup?.urls || [])
+        const resolvedUrlIds = (targetGroup?.urls ?? [])
           .reduce<{ id: string; url: string }[]>((items, item) => {
             if (item.id && targetUrls.has(item.url)) {
               items.push({
@@ -1298,15 +1294,13 @@ const useSavedTabsAppView = ({
     const syncCategoryAssignments = async () => {
       try {
         const { savedTabs = [] } = await chrome.storage.local.get<{
-          // eslint-disable-next-line typescript/consistent-type-imports
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs')
         const currentSavedTabs = savedTabs
         const currentCategories = [...categories]
         const syncState: CategorySyncState = {
           categoriesChanged: false,
           savedTabsChanged: false,
-          // eslint-disable-next-line oxc/no-map-spread
           updatedCategories: currentCategories.map((c) => ({
             ...c,
           })),

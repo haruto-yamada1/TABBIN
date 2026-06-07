@@ -28,7 +28,7 @@ const resolveTimeZone = (timeZone?: string): string =>
   // eslint-disable-next-line typescript/prefer-nullish-coalescing
   timeZone?.trim() ||
   Intl.DateTimeFormat().resolvedOptions().timeZone ||
-  FALLBACK_TIME_ZONE
+  FALLBACK_TIME_ZONE // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty string should fall through
 const getCachedFormatter = (
   cache: Map<string, Intl.DateTimeFormat>,
   key: string,
@@ -126,9 +126,11 @@ const getLocalWeekStartKey = (timestamp: number, timeZone?: string): string => {
   const date = new Date(
     Date.UTC(dateParts.year, dateParts.month - 1, dateParts.day),
   )
+  const SUNDAY_OFFSET = -6
+  const WEEK_START_OFFSET = 1
+
   const day = getWeekdayIndexInTimeZone(timestamp, timeZone)
-  // eslint-disable-next-line eslint/no-magic-numbers
-  const diff = day === 0 ? -6 : 1 - day
+  const diff = day === 0 ? SUNDAY_OFFSET : WEEK_START_OFFSET - day
   date.setUTCDate(date.getUTCDate() + diff)
 
   return formatDateParts({

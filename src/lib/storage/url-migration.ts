@@ -41,7 +41,7 @@ const isUrlsMigrationCompleted = async (): Promise<boolean> => {
     'urlsMigrationCompleted',
   )
 
-  return Boolean(urlsMigrationCompleted) // eslint-disable-line typescript/no-unnecessary-type-conversion
+  return urlsMigrationCompleted
 }
 
 const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
@@ -49,12 +49,10 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
     await Promise.all([
       chrome.storage.local.get('urls'),
       chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs'),
       chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        customProjects?: import('@/types/storage').CustomProject[]
+        customProjects?: CustomProject[]
       }>('customProjects'),
     ])
 
@@ -109,8 +107,8 @@ const upsertUrlEntry = (
   const newRecord: UrlRecord = {
     id: uuidv4(),
     url: legacyUrl.url,
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    title: legacyUrl.title || '',
+    title: legacyUrl.title ?? '',
+    // `legacyUrl.savedAt || Date.now()` uses || intentionally: 0 should trigger current time fallback
     // eslint-disable-next-line typescript/prefer-nullish-coalescing
     savedAt: legacyUrl.savedAt || Date.now(),
     favIconUrl: undefined,

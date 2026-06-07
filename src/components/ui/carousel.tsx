@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-constructed-context-values */
 import useEmblaCarousel from 'embla-carousel-react'
 import type { UseEmblaCarouselType } from 'embla-carousel-react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
@@ -114,23 +113,32 @@ const Carousel = ({
     }
   }, [api])
 
+  const contextValue = React.useMemo(
+    () => ({
+      api,
+      canScrollNext,
+      canScrollPrev,
+      carouselRef,
+      opts,
+      orientation:
+        orientation || (opts?.axis === 'y' ? 'vertical' : 'horizontal'),
+      scrollNext,
+      scrollPrev,
+    }),
+    [
+      api,
+      canScrollNext,
+      canScrollPrev,
+      carouselRef,
+      opts,
+      orientation,
+      scrollNext,
+      scrollPrev,
+    ],
+  )
+
   return (
-    <CarouselContext.Provider
-      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-      value={{
-        // eslint-disable-line react/jsx-no-constructed-context-values
-        // eslint-disable-line react/jsx-no-constructed-context-values
-        api,
-        canScrollNext,
-        canScrollPrev,
-        carouselRef,
-        opts,
-        orientation:
-          orientation || (opts?.axis === 'y' ? 'vertical' : 'horizontal'),
-        scrollNext,
-        scrollPrev,
-      }}
-    >
+    <CarouselContext.Provider value={contextValue}>
       <div
         ref={ref}
         onKeyDownCapture={handleKeyDown}

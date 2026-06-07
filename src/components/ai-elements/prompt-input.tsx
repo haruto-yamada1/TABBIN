@@ -724,7 +724,6 @@ const usePromptInputView = ({
         const array = Array.isArray(incoming) ? incoming : [incoming]
         setReferencedSources((prev) => [
           ...prev,
-          // eslint-disable-next-line oxc/no-map-spread
           ...array.map((s) => ({ ...s, id: nanoid() })),
         ])
       },

@@ -69,8 +69,7 @@ export const DomainCardRoot = ({
 
   // 検索でヒットしない場合は非表示
   const hasSearchQuery = searchQuery.trim().length > 0
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const totalUrls = group.urls?.length || 0
+  const totalUrls = group.urls?.length ?? 0
   const visibleSubCategoryCount = categoryId
     ? Object.entries(state.computed.categorizedUrls).filter(
         ([categoryName, urls]) =>
@@ -116,8 +115,7 @@ export const DomainCardRoot = ({
         className='shadow-md'
         data-category-id={categoryId}
         data-saved-tabs-scroll-target='domain'
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        data-urls-count={group.urls?.length || 0}
+        data-urls-count={group.urls?.length ?? 0}
       >
         {children}
       </div>

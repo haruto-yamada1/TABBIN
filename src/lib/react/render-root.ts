@@ -12,7 +12,7 @@ type RootContainer = HTMLElement & {
 const getOrCreateRoot = (container: HTMLElement) => {
   const rootContainer = container as RootContainer
 
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- intentional initialization pattern
   if (!rootContainer[ROOT_KEY]) {
     rootContainer[ROOT_KEY] = createRoot(container)
   }

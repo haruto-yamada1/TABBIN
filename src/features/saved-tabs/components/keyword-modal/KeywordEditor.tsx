@@ -1,5 +1,5 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 import { X } from 'lucide-react'
+import { useCallback } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,43 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useKeywordModal } from './KeywordModalContext'
 
+interface KeywordBadgeProps {
+  keyword: string
+  onRemove: (keyword: string) => Promise<void>
+  isDisabled: boolean
+  deleteAriaLabel: string
+}
+
+const KeywordBadge = ({
+  keyword,
+  onRemove,
+  isDisabled,
+  deleteAriaLabel,
+}: KeywordBadgeProps) => {
+  const handleRemove = useCallback(() => {
+    void onRemove(keyword)
+  }, [onRemove, keyword])
+
+  return (
+    <Badge
+      variant='outline'
+      className='flex items-center gap-1 rounded px-2 py-1'
+    >
+      {keyword}
+      <Button
+        variant='ghost'
+        size='sm'
+        onClick={handleRemove}
+        className='ml-1 cursor-pointer text-zinc-400 hover:text-zinc-200'
+        aria-label={deleteAriaLabel}
+        disabled={isDisabled}
+      >
+        <X size={14} />
+      </Button>
+    </Badge>
+  )
+}
+
 /**
  * キーワード設定セクション
  * キーワードの追加・削除を行う
@@ -17,6 +54,29 @@ export const KeywordEditor = () => {
   const { t } = useI18n()
   const { state, group } = useKeywordModal()
   const { subcategory, keywords: keywordsState, rename } = state
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      keywordsState.setNewKeyword(e.target.value)
+    },
+    [keywordsState],
+  )
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        keywordsState.handleAddKeyword()
+      }
+    },
+    [keywordsState],
+  )
+
+  const handleBlur = useCallback(() => {
+    if (keywordsState.newKeyword.trim()) {
+      keywordsState.handleAddKeyword()
+    }
+  }, [keywordsState])
 
   if (!group.subCategories || group.subCategories.length === 0) {
     return null
@@ -37,25 +97,11 @@ export const KeywordEditor = () => {
         <Input
           id='keyword-input'
           value={keywordsState.newKeyword}
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-          onChange={(e) => {
-            keywordsState.setNewKeyword(e.target.value)
-          }}
+          onChange={handleChange}
           placeholder={t('savedTabs.keywords.placeholder')}
           className='grow rounded border p-2'
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              keywordsState.handleAddKeyword()
-            }
-          }}
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-          onBlur={() => {
-            if (keywordsState.newKeyword.trim()) {
-              keywordsState.handleAddKeyword()
-            }
-          }}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           disabled={rename.isRenaming}
         />
       </div>
@@ -65,24 +111,13 @@ export const KeywordEditor = () => {
           <p className='text-zinc-500'>{t('savedTabs.keywords.empty')}</p>
         ) : (
           keywordsState.keywords.map((keyword) => (
-            <Badge
+            <KeywordBadge
               key={keyword}
-              variant='outline'
-              className='flex items-center gap-1 rounded px-2 py-1'
-            >
-              {keyword}
-              <Button
-                variant='ghost'
-                size='sm'
-                // eslint-disable-next-line typescript/no-misused-promises
-                onClick={() => keywordsState.handleRemoveKeyword(keyword)}
-                className='ml-1 cursor-pointer text-zinc-400 hover:text-zinc-200'
-                aria-label={t('savedTabs.keywords.deleteAria')}
-                disabled={rename.isRenaming}
-              >
-                <X size={14} />
-              </Button>
-            </Badge>
+              keyword={keyword}
+              onRemove={keywordsState.handleRemoveKeyword}
+              isDisabled={rename.isRenaming}
+              deleteAriaLabel={t('savedTabs.keywords.deleteAria')}
+            />
           ))
         )}
       </div>

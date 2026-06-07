@@ -59,8 +59,7 @@ const updateDomainCategoryMappingIfNeeded = async (
 export const handleTabGroupRemoval = async (groupId: string): Promise<void> => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      // eslint-disable-next-line typescript/consistent-type-imports
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
     const groupToRemove = savedTabs.find(
       (group: TabGroup) => group.id === groupId,
@@ -72,10 +71,8 @@ export const handleTabGroupRemoval = async (groupId: string): Promise<void> => {
     await Promise.all([
       updateDomainCategorySettings(
         groupToRemove.domain,
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        groupToRemove.subCategories || [],
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        groupToRemove.categoryKeywords || [],
+        groupToRemove.subCategories ?? [],
+        groupToRemove.categoryKeywords ?? [],
       ),
       ensureDomainNameInParentCategory(groupToRemove),
       updateDomainCategoryMappingIfNeeded(groupToRemove),
@@ -99,8 +96,7 @@ export const safelyUpdateGroupUrls = async (
   try {
     // ローカルストレージからタブを取得
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      // eslint-disable-next-line typescript/consistent-type-imports
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
 
     // 対象グループを特定
@@ -116,7 +112,6 @@ export const safelyUpdateGroupUrls = async (
     }
 
     // グループ内のURLが空になる場合でも、グループ自体は維持（表示はしない）
-    // eslint-disable-next-line oxc/no-map-spread
     const updatedTabs = savedTabs.map((tab: TabGroup) => {
       if (tab.id === groupId) {
         return {

@@ -202,10 +202,11 @@ export const DomainSelectionList = () => {
     [sortedTabGroups, selection.selectedCategoryId, domains.domainCategories],
   )
 
+  const ESTIMATED_ROW_HEIGHT = 56
+
   const rowVirtualizer = useVirtualizer({
     count: visibleTabGroups.length,
-    // eslint-disable-next-line eslint/no-magic-numbers
-    estimateSize: () => 56,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
     getScrollElement: () => scrollElementRef.current,
     initialRect: {
       height: 560,

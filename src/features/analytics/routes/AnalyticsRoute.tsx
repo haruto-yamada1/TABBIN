@@ -147,9 +147,10 @@ const getLatestAssistantCharts = (
 const awaitableEmptyRecords: Awaited<ReturnType<typeof loadAnalyticsRecords>> =
   []
 
+const BULK_OPEN_THRESHOLD = 10
+
 const shouldConfirmBulkOpen = (recordCount: number): boolean =>
-  // eslint-disable-next-line eslint/no-magic-numbers
-  recordCount >= 10
+  recordCount >= BULK_OPEN_THRESHOLD
 const noop = (): void => {}
 
 const shouldSkipSingleDelete = ({
@@ -158,8 +159,7 @@ const shouldSkipSingleDelete = ({
 }: {
   deletingUrl: string | null
   isBulkDeleting: boolean
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-}): boolean => Boolean(deletingUrl || isBulkDeleting)
+}): boolean => Boolean(deletingUrl || isBulkDeleting) // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: empty string URL should fall through
 
 const shouldSkipOpenAll = (recordCount: number): boolean => recordCount === 0
 
@@ -172,8 +172,7 @@ const shouldSkipBulkDelete = ({
   isBulkDeleting: boolean
   matchingRecordCount: number
 }): boolean =>
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  matchingRecordCount === 0 || Boolean(deletingUrl || isBulkDeleting)
+  matchingRecordCount === 0 || Boolean(deletingUrl || isBulkDeleting) // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: empty string URL should fall through
 
 const shouldIgnoreBulkDeleteDialogClose = ({
   isBulkDeleting,
@@ -334,8 +333,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> =>
           return
         }
 
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        reject(new Error(response?.error || 'removeUrlFromStorage failed'))
+        reject(new Error(response?.error || 'removeUrlFromStorage failed')) // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: empty error string should show default message
       },
     )
   })
@@ -357,8 +355,7 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
         }
 
         reject(
-          // eslint-disable-next-line typescript/prefer-nullish-coalescing
-          new Error(response?.error || 'removeUrlRecordsFromStorage failed'),
+          new Error(response?.error || 'removeUrlRecordsFromStorage failed'), // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: empty error string should show default message
         )
       },
     )

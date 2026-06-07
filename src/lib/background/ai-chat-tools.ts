@@ -144,6 +144,11 @@ const createAnalyticsMessages = (language: AppLanguage) => ({
   uncategorizedLabel: getMessage(language, 'analytics.uncategorized'),
 })
 
+const MIN_MONTH = 1
+const MAX_MONTH = 12
+const MAX_ANALYTICS_LIMIT = 20
+const DEFAULT_ANALYTICS_LIMIT = 8
+
 const createAiChatTools = (
   records: AiSavedUrlRecord[],
   language: AppLanguage = 'ja',
@@ -152,8 +157,7 @@ const createAiChatTools = (
     description: AI_CHAT_TOOL_DESCRIPTIONS.findUrlsByMonth,
     inputSchema: paginationSchema.extend({
       year: z.number().int(),
-      // eslint-disable-next-line eslint/no-magic-numbers
-      month: z.number().int().min(1).max(12),
+      month: z.number().int().min(MIN_MONTH).max(MAX_MONTH),
     }),
     // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
@@ -196,8 +200,12 @@ const createAiChatTools = (
           'timeTop',
         ])
         .default('domain'),
-      // eslint-disable-next-line eslint/no-magic-numbers
-      limit: z.number().int().min(1).max(20).default(8),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_ANALYTICS_LIMIT)
+        .default(DEFAULT_ANALYTICS_LIMIT),
       mode: z.enum(['both', 'custom', 'domain']).default('both'),
       normalize: z.boolean().default(false),
       sort: z

@@ -1,4 +1,3 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 // DnDのインポートを追加
 import {
@@ -17,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -66,6 +65,9 @@ interface DragDebugPayload {
 
 let lastKnownActiveDragData: ActiveDragData | null = null
 
+const noop = () => {}
+const DRAG_OVERLAY_STYLE = { pointerEvents: 'none' as const }
+
 const ProjectDragPreview = ({ project }: { project: CustomProject }) => {
   const badges = useMemo(
     () => <Badge variant='secondary'>{project.urls?.length ?? 0}</Badge>,
@@ -78,14 +80,11 @@ const ProjectDragPreview = ({ project }: { project: CustomProject }) => {
         <div className='flex grow items-center gap-2'>
           <CardCollapseControl
             isCollapsed={false}
-            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-            setIsCollapsed={() => {}}
-            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-            setUserCollapsedState={() => {}}
+            setIsCollapsed={noop}
+            setUserCollapsedState={noop}
             isDisabled
           />
-          {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
-          <CardSortControl sortOrder='default' setSortOrder={() => {}} />
+          <CardSortControl sortOrder='default' setSortOrder={noop} />
           <CardGroupTitle
             title={project.name}
             badges={badges}
@@ -436,143 +435,154 @@ const useCustomProjectSectionView = ({
     [],
   )
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const closeCreateDialog = () => {
+  const closeCreateDialog = useCallback(() => {
     setIsCreateDialogOpen(false)
     reset()
-  }
+  }, [reset])
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleCreateDialogChange = (open: boolean) => {
-    setIsCreateDialogOpen(open)
-    if (!open) {
-      reset()
-    }
-  }
+  const handleCreateDialogChange = useCallback(
+    (open: boolean) => {
+      setIsCreateDialogOpen(open)
+      if (!open) {
+        reset()
+      }
+    },
+    [reset],
+  )
 
-  const handleCreateProjectSubmit = ({ name }: CreateProjectFormValues) => {
-    const trimmedName = name.trim()
+  const handleCreateProjectSubmit = useCallback(
+    ({ name }: CreateProjectFormValues) => {
+      const trimmedName = name.trim()
 
-    if (
-      projects.some((p) => p.name.toLowerCase() === trimmedName.toLowerCase())
-    ) {
-      setError('name', {
-        message: t('savedTabs.projects.duplicateName', undefined, {
-          name: trimmedName,
-        }),
-        type: 'manual',
-      })
-      return
-    }
+      if (
+        projects.some((p) => p.name.toLowerCase() === trimmedName.toLowerCase())
+      ) {
+        setError('name', {
+          message: t('savedTabs.projects.duplicateName', undefined, {
+            name: trimmedName,
+          }),
+          type: 'manual',
+        })
+        return
+      }
 
-    handleCreateProject(trimmedName)
-    closeCreateDialog()
-  }
+      handleCreateProject(trimmedName)
+      closeCreateDialog()
+    },
+    [projects, setError, t, handleCreateProject, closeCreateDialog],
+  )
 
   const nameField = register('name', {
     onChange: () => {
       clearErrors('name')
     },
   })
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleNameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Enter') {
-      return
-    }
-    event.preventDefault()
-    void handleSubmit(handleCreateProjectSubmit)()
-  }
+  const handleNameKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== 'Enter') {
+        return
+      }
+      event.preventDefault()
+      void handleSubmit(handleCreateProjectSubmit)()
+    },
+    [handleSubmit, handleCreateProjectSubmit],
+  )
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleCreateButtonClick = () => {
+  const handleCreateButtonClick = useCallback(() => {
     void handleSubmit(handleCreateProjectSubmit)()
-  }
+  }, [handleSubmit, handleCreateProjectSubmit])
 
   // ドラッグ開始時の処理
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleDragStart = (event: DragStartEvent) => {
-    const activeData = parseActiveDragData(event.active.data.current)
-    if (!activeData?.projectId) {
-      return
-    }
-    const { projectId, type, title, url } = activeData
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const activeData = parseActiveDragData(event.active.data.current)
+      if (!activeData?.projectId) {
+        return
+      }
+      const { projectId, type, title, url } = activeData
 
-    activeDragDataRef.current = {
-      projectId,
-      title,
-      type,
-      url,
-    }
-    lastKnownActiveDragData = {
-      projectId,
-      title,
-      type,
-      url,
-    }
-
-    if (type === 'url') {
-      applyUrlDragStartState({
-        activeId: String(event.active.id),
+      activeDragDataRef.current = {
         projectId,
-        setDraggedItem,
-        setDraggedOverProjectId,
-        setDraggedProject,
-        setIsCrossProjectUrlDragActive,
-        setIsProjectReorderMode,
         title,
+        type,
         url,
-      })
-    } else if (type === 'project') {
-      applyProjectDragStartState({
+      }
+      lastKnownActiveDragData = {
         projectId,
-        projects,
-        setDraggedItem,
-        setDraggedProject,
-        setIsProjectReorderMode,
-      })
-    }
+        title,
+        type,
+        url,
+      }
 
-    // プロジェクトへ伝播
-    const handler = projectDragHandlersRef.current[projectId]
-    if (handler) {
-      handler.handleDragStart(event)
-    }
-  }
+      if (type === 'url') {
+        applyUrlDragStartState({
+          activeId: String(event.active.id),
+          projectId,
+          setDraggedItem,
+          setDraggedOverProjectId,
+          setDraggedProject,
+          setIsCrossProjectUrlDragActive,
+          setIsProjectReorderMode,
+          title,
+          url,
+        })
+      } else if (type === 'project') {
+        applyProjectDragStartState({
+          projectId,
+          projects,
+          setDraggedItem,
+          setDraggedProject,
+          setIsProjectReorderMode,
+        })
+      }
+
+      // プロジェクトへ伝播
+      const handler = projectDragHandlersRef.current[projectId]
+      if (handler) {
+        handler.handleDragStart(event)
+      }
+    },
+    [projects],
+  )
 
   // ドラッグオーバー時の処理
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event
-    const activeData = resolveActiveDragData(
-      active.data.current,
-      activeDragDataRef.current,
-    )
-    const debugPayload = buildDragDebugPayload(
-      String(active.id),
-      activeData,
-      over,
-    )
-    const debugSignature = JSON.stringify(debugPayload)
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { active, over } = event
+      const activeData = resolveActiveDragData(
+        active.data.current,
+        activeDragDataRef.current,
+      )
+      const debugPayload = buildDragDebugPayload(
+        String(active.id),
+        activeData,
+        over,
+      )
+      const debugSignature = JSON.stringify(debugPayload)
 
-    if (lastDragOverDebugRef.current !== debugSignature) {
-      lastDragOverDebugRef.current = debugSignature
-    }
-
-    updateCrossProjectDragState({
-      activeData,
-      over,
-      setDraggedOverProjectId,
-      setIsCrossProjectUrlDragActive,
-    })
-
-    // 全てのプロジェクトへ伝播させる (hoverが外れたことを伝えるため)
-    Object.entries(projectDragHandlersRef.current).forEach(([id, handlers]) => {
-      const project = projects.find((p) => p.id === id)
-      if (project) {
-        handlers.handleDragOver(event, project)
+      if (lastDragOverDebugRef.current !== debugSignature) {
+        lastDragOverDebugRef.current = debugSignature
       }
-    })
-  }
+
+      updateCrossProjectDragState({
+        activeData,
+        over,
+        setDraggedOverProjectId,
+        setIsCrossProjectUrlDragActive,
+      })
+
+      // 全てのプロジェクトへ伝播させる (hoverが外れたことを伝えるため)
+      Object.entries(projectDragHandlersRef.current).forEach(
+        ([id, handlers]) => {
+          const project = projects.find((p) => p.id === id)
+          if (project) {
+            handlers.handleDragOver(event, project)
+          }
+        },
+      )
+    },
+    [projects],
+  )
 
   // ドラッグ終了時の処理
   // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
@@ -660,6 +670,13 @@ const useCustomProjectSectionView = ({
     }
   }
 
+  const handleFormSubmit = useCallback(
+    (e: React.SyntheticEvent<HTMLFormElement>) => {
+      void handleSubmit(handleCreateProjectSubmit)(e)
+    },
+    [handleSubmit, handleCreateProjectSubmit],
+  )
+
   return (
     <div>
       {projects.length > 0 ? (
@@ -711,8 +728,7 @@ const useCustomProjectSectionView = ({
               </div>
             </SortableContext>
             {/* ドラッグ中の要素のオーバーレイ */}
-            {/* eslint-disable-next-line react-perf/jsx-no-new-object-as-prop */}
-            <DragOverlay style={{ pointerEvents: 'none' }}>
+            <DragOverlay style={DRAG_OVERLAY_STYLE}>
               {draggedItem && (
                 <div className='max-w-[300px] truncate rounded-md border bg-background p-2 shadow-md'>
                   {draggedItem.title || draggedItem.url}
@@ -750,11 +766,7 @@ const useCustomProjectSectionView = ({
               {t('savedTabs.customProjects.createDialogTitle')}
             </DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={(e) => {
-              void handleSubmit(handleCreateProjectSubmit)(e)
-            }}
-          >
+          <form onSubmit={handleFormSubmit}>
             <div className='grid gap-4 py-4'>
               <div>
                 <Label htmlFor='name'>

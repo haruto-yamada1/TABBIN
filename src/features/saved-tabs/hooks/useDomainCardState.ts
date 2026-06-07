@@ -47,14 +47,12 @@ const sortUrlsByOrder = (
   urls: TabGroup['urls'],
   sortOrder: 'default' | 'asc' | 'desc',
 ): TabGroup['urls'] => {
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const sourceUrls = urls || []
+  const sourceUrls = urls ?? []
   if (sortOrder === 'default') {
     return sourceUrls
   }
   const sortedUrls = [...sourceUrls]
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  sortedUrls.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
+  sortedUrls.sort((a, b) => (a.savedAt ?? 0) - (b.savedAt ?? 0))
   if (sortOrder === 'desc') {
     sortedUrls.reverse()
   }
@@ -69,12 +67,10 @@ const buildCategorizedUrls = (
   categorizedUrls[uncategorizedCategoryId] = []
   // eslint-disable-next-line unicorn/no-useless-collection-argument
   const subCategorySet = new Set(subCategories ?? [])
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  for (const category of subCategories || []) {
+  for (const category of subCategories ?? []) {
     categorizedUrls[category] = []
   }
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  for (const url of urls || []) {
+  for (const url of urls ?? []) {
     if (url.subCategory && subCategorySet.has(url.subCategory)) {
       categorizedUrls[url.subCategory].push(url)
     } else {
@@ -151,15 +147,13 @@ export const useDomainCardState = ({
   const getActiveCategoryIds = useCallback(() => {
     console.log('getActiveCategoryIds 関数実行...')
     const usedCategories = new Set<string>()
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    for (const url of group.urls || []) {
+    for (const url of group.urls ?? []) {
       if (url.subCategory) {
         usedCategories.add(url.subCategory)
       }
     }
     console.log('使用されているカテゴリ:', [...usedCategories])
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    const regularCategories = (group.subCategories || []).filter(
+    const regularCategories = (group.subCategories ?? []).filter(
       (categoryName) =>
         categorizedUrls[categoryName] &&
         categorizedUrls[categoryName].length > 0,
@@ -217,10 +211,8 @@ export const useDomainCardState = ({
       try {
         setAllCategoryIds(updatedAllOrder)
         const { savedTabs = [] } = await chrome.storage.local.get<{
-          // eslint-disable-next-line typescript/consistent-type-imports
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs')
-        // eslint-disable-next-line oxc/no-map-spread
         const updatedTabs = savedTabs.map((tab: TabGroup) => {
           if (tab.id === group.id) {
             const updatedTab = {
@@ -293,15 +285,11 @@ export const useDomainCardState = ({
     const prevUrls = prevUrlsRef.current
     const currentUrls = group.urls
     const hasSubCategoryChanges =
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      (prevUrls?.length || 0) > 0 &&
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      ((prevUrls?.length || 0) !== (currentUrls?.length || 0) ||
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        (prevUrls || []).some(
+      (prevUrls?.length ?? 0) > 0 &&
+      ((prevUrls?.length ?? 0) !== (currentUrls?.length ?? 0) ||
+        (prevUrls ?? []).some(
           (prevUrl, i) =>
-            // eslint-disable-next-line typescript/prefer-nullish-coalescing
-            i >= (currentUrls?.length || 0) ||
+            i >= (currentUrls?.length ?? 0) ||
             prevUrl.subCategory !== currentUrls?.[i]?.subCategory,
         ))
     if (
@@ -311,8 +299,7 @@ export const useDomainCardState = ({
       console.log('タブのサブカテゴリ変更を検出 - 表示を更新')
       setAllCategoryIds(computedCategoryIds)
     }
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    prevUrlsRef.current = [...(currentUrls || [])]
+    prevUrlsRef.current = [...(currentUrls ?? [])]
   }, [group.urls, computedCategoryIds, allCategoryIds])
 
   // --- カテゴリDnDハンドラ ---

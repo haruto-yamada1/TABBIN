@@ -46,11 +46,12 @@ const createThemeColorChangeHandler =
     handleColorChange(key, event.target.value)
   }
 
+const FONT_SIZE_PERCENT_DIVISOR = 100
+
 const applyFontSizePreview = (value: number) => {
   document.documentElement.style.setProperty(
     '--app-font-scale',
-    // eslint-disable-next-line eslint/no-magic-numbers
-    String(normalizeFontSizePercent(value) / 100),
+    String(normalizeFontSizePercent(value) / FONT_SIZE_PERCENT_DIVISOR),
   )
 }
 
@@ -683,6 +684,7 @@ const useOptionsRouteView = () => {
                       aria-label={t(labelKey)}
                       id={`${key}-picker`}
                       type='color'
+                      // `||` needed: color could be empty string
                       // eslint-disable-next-line typescript/prefer-nullish-coalescing
                       value={settings.colors?.[key] || getDefaultColor(key)}
                       onChange={handleThemeColorChange}
@@ -692,6 +694,7 @@ const useOptionsRouteView = () => {
                       <Input
                         id={`${key}-hex`}
                         type='text'
+                        // `||` needed: color could be empty string
                         // eslint-disable-next-line typescript/prefer-nullish-coalescing
                         value={settings.colors?.[key] || getDefaultColor(key)}
                         onChange={handleThemeColorChange}

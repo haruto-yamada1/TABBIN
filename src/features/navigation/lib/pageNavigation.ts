@@ -17,8 +17,7 @@ const APP_ENTRY_PATH = 'app.html'
 
 const getNormalizedPathname = (pathname: string): string => {
   const parts = pathname.split('/')
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  return parts.at(-1) || 'saved-tabs.html'
+  return parts.at(-1) || 'saved-tabs.html' // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: empty string should fall through
 }
 
 const getSavedTabsModeFromLocation = (search: string): ViewMode => {

@@ -2,6 +2,9 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { CSSProperties } from 'react'
 
+const DRAGGING_OPACITY = 0.8
+const DRAGGING_Z_INDEX = 100
+
 export const useSortableCategoryDrag = (id: string) => {
   const sortable = useSortable({
     data: {
@@ -12,13 +15,11 @@ export const useSortableCategoryDrag = (id: string) => {
   const { transform, transition, isDragging } = sortable
 
   const style: CSSProperties = {
-    // eslint-disable-next-line eslint/no-magic-numbers
-    opacity: isDragging ? 0.8 : 1,
+    opacity: isDragging ? DRAGGING_OPACITY : 1,
     position: isDragging ? 'relative' : 'static',
     transform: CSS.Transform.toString(transform),
     transition,
-    // eslint-disable-next-line eslint/no-magic-numbers
-    zIndex: isDragging ? 100 : 'auto',
+    zIndex: isDragging ? DRAGGING_Z_INDEX : 'auto',
   }
 
   return { ...sortable, style }

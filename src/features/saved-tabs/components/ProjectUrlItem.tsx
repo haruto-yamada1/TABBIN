@@ -14,6 +14,8 @@ import {
 } from './projectUrlItemHelpers'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 
+const MAX_URL_PREVIEW_LENGTH = 30
+
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
 let isGlobalInternalDrop = false
 if (typeof window !== 'undefined') {
@@ -71,8 +73,7 @@ const ProjectUrlItemComponent = ({
       type: 'url',
       url: originalUrl,
       projectId,
-      // eslint-disable-next-line eslint/no-magic-numbers
-      title: item.title || originalUrl.substring(0, 30), // タイトルがない場合はURLの一部を使用
+      title: item.title || originalUrl.substring(0, MAX_URL_PREVIEW_LENGTH), // タイトルがない場合はURLの一部を使用
       isUncategorized: !item.category,
       category: item.category,
       notes: item.notes, // メタデータを保存
@@ -182,8 +183,7 @@ const ProjectUrlItemComponent = ({
         data-category={item.category}
         data-has-category={Boolean(item.category)}
         data-category-level={categoryLevel}
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        data-parent-type={parentType || ''}
+        data-parent-type={parentType ?? ''}
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
         <div

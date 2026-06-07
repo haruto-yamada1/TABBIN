@@ -1,4 +1,3 @@
-/* eslint-disable eslint/no-magic-numbers */
 import { ExternalLink, Settings, Trash } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
@@ -24,6 +23,8 @@ import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibilit
 import { handleSaveKeywords } from '@/features/saved-tabs/lib/category-keywords'
 
 import { useDomainCard } from './DomainCardContext'
+
+const BULK_OPEN_THRESHOLD = 10
 
 /**
  * DomainCard の操作ボタン群
@@ -57,8 +58,7 @@ export const DomainCardActions = () => {
   )
 
   const executeDeleteAll = useCallback(() => {
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    const visibleUrls = (group.urls || []).map((item) => item.url)
+    const visibleUrls = (group.urls ?? []).map((item) => item.url)
 
     if (hasSearchQuery && handlers.handleDeleteUrls && visibleUrls.length > 0) {
       void handlers.handleDeleteUrls(group.id, visibleUrls)
@@ -103,16 +103,12 @@ export const DomainCardActions = () => {
               size='sm'
               // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
-                // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                if ((group.urls?.length || 0) >= 10) {
-                  // eslint-disable-line eslint/no-magic-numbers
-                  // eslint-disable-line eslint/no-magic-numbers
+                if ((group.urls?.length ?? 0) >= BULK_OPEN_THRESHOLD) {
                   setIsOpenAllConfirmOpen(true)
                   return
                 }
                 e.stopPropagation()
-                // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                handlers.handleOpenAllTabs(group.urls || [])
+                handlers.handleOpenAllTabs(group.urls ?? [])
                 if (isReorderMode) {
                   console.log(
                     `並び替えモード中にドメイン ${group.domain} のタブをすべて開きました`,
@@ -201,8 +197,7 @@ export const DomainCardActions = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t('savedTabs.openAllConfirmDescriptionWithName', undefined, {
-                // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                count: String(group.urls?.length || 0),
+                count: String(group.urls?.length ?? 0),
                 name: domainName,
               })}
             </AlertDialogDescription>
@@ -212,8 +207,7 @@ export const DomainCardActions = () => {
             <AlertDialogAction
               // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
-                // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                handlers.handleOpenAllTabs(group.urls || [])
+                handlers.handleOpenAllTabs(group.urls ?? [])
                 if (isReorderMode) {
                   console.log(
                     `並び替えモード中にドメイン ${group.domain} のタブをすべて開きました`,
@@ -240,8 +234,7 @@ export const DomainCardActions = () => {
             <AlertDialogDescription>
               {t('savedTabs.deleteAllConfirmDescriptionWithCount', undefined, {
                 categoryName: domainName,
-                // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                count: String(group.urls?.length || 0),
+                count: String(group.urls?.length ?? 0),
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -201,13 +201,17 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   const [categoryToDelete, setCategoryToDelete] =
     useState<ParentCategory | null>(null)
 
+  const MAX_CATEGORY_NAME_LENGTH = 25
+
   const validateCategoryName = useCallback(
     (value: string) =>
       z
         .string()
         .min(1, t('savedTabs.categoryModal.validation.empty'))
-        // eslint-disable-next-line eslint/no-magic-numbers
-        .max(25, t('savedTabs.categoryModal.validation.maxLength'))
+        .max(
+          MAX_CATEGORY_NAME_LENGTH,
+          t('savedTabs.categoryModal.validation.maxLength'),
+        )
         .safeParse(value),
     [t],
   )

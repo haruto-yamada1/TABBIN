@@ -19,7 +19,7 @@ interface CategoryBulkConfirmDialogsProps {
   setIsDeleteAllConfirmOpen: (open: boolean) => void
   categoryDisplayName: string
   onConfirmOpenAll: () => void
-  onConfirmDeleteAll: () => Promise<void>
+  onConfirmDeleteAll: () => void
 }
 
 export const CustomProjectCategoryBulkConfirmDialogs = ({
@@ -67,7 +67,9 @@ export const CustomProjectCategoryBulkConfirmDialogs = ({
             <AlertDialogAction
               variant='destructive'
               // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-              onClick={() => void onConfirmDeleteAll()}
+              onClick={() => {
+                onConfirmDeleteAll()
+              }}
             >
               {t('common.delete')}
             </AlertDialogAction>

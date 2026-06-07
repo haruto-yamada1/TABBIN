@@ -23,8 +23,12 @@ import { getCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
 import { getUrlRecords } from '@/lib/storage/urls'
 import type { AiChatToolTrace, OllamaErrorDetails } from '@/types/background'
+import type { TabGroup } from '@/types/storage'
 
 import { createAiChatTools } from './ai-chat-tools'
+
+const HTTP_FORBIDDEN = 403
+const MAX_AI_CHAT_STEPS = 5
 
 interface OllamaModelOption {
   name: string
@@ -559,8 +563,7 @@ const listLocalOllamaModels = async (
     settings.language ?? 'system',
     getAiChatUiLocale(),
   )
-  // eslint-disable-next-line eslint/no-magic-numbers
-  if (response.status === 403) {
+  if (response.status === HTTP_FORBIDDEN) {
     throw createOllamaForbiddenError(language)
   }
 
@@ -626,8 +629,7 @@ const runAiChatRequest = async (
       getCustomProjects(),
       getParentCategories(),
       chrome.storage.local.get<{
-        // eslint-disable-next-line typescript/consistent-type-imports
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs'),
     ])
 
@@ -693,8 +695,7 @@ const runAiChatRequest = async (
             toolTraces: streamedToolTraces,
           })
         },
-        // eslint-disable-next-line eslint/no-magic-numbers
-        stopWhen: stepCountIs(5),
+        stopWhen: stepCountIs(MAX_AI_CHAT_STEPS),
         system: buildFinalSystemPrompt({
           savedUrlContext: createContextSummary(records, language),
           template: activeSystemPrompt.template,

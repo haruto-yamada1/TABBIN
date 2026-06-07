@@ -1,5 +1,9 @@
-/* eslint-disable react-perf/jsx-no-new-object-as-prop */
 import * as React from 'react'
+import type {
+  DefaultLegendContentProps,
+  TooltipContentProps,
+  TooltipPayloadEntry,
+} from 'recharts'
 
 import { cn } from '@/lib/utils'
 
@@ -63,7 +67,7 @@ const ChartContainer = ({
   children: React.ReactNode
 }) => {
   const uniqueId = React.useId()
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty id string should fall through to uniqueId
   const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const [hasMeasuredSize, setHasMeasuredSize] = React.useState(false)
@@ -165,7 +169,7 @@ ${Object.entries(config)
       return items
     }
     const color =
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing -- theme color could be empty string
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || // eslint-disable-line typescript/no-unsafe-type-assertion
       itemConfig.color
 
@@ -182,7 +186,7 @@ ${Object.entries(config)
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- theme/color could be empty string
     ([, config]) => config.theme || config.color,
   )
 
@@ -194,8 +198,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 }
 
 type ChartTooltipContentProps = React.ComponentProps<'div'> &
-  // eslint-disable-next-line typescript/consistent-type-imports
-  Partial<import('recharts').TooltipContentProps> & {
+  Partial<TooltipContentProps> & {
     hideLabel?: boolean
     hideIndicator?: boolean
     indicator?: 'line' | 'dot' | 'dashed'
@@ -203,7 +206,7 @@ type ChartTooltipContentProps = React.ComponentProps<'div'> &
     labelKey?: string
   }
 
-const renderTooltipIndicator = ({
+const TooltipIndicator = ({
   hideIndicator,
   indicator,
   indicatorColor,
@@ -213,8 +216,22 @@ const renderTooltipIndicator = ({
   indicator: 'line' | 'dot' | 'dashed'
   indicatorColor?: string
   nestLabel: boolean
-}) =>
-  hideIndicator ? null : (
+}) => {
+  const indicatorStyle = React.useMemo(
+    () =>
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      ({
+        '--color-bg': indicatorColor,
+        '--color-border': indicatorColor,
+      }) as React.CSSProperties,
+    [indicatorColor],
+  )
+
+  if (hideIndicator) {
+    return null
+  }
+
+  return (
     <div
       className={cn(
         'shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]',
@@ -226,15 +243,10 @@ const renderTooltipIndicator = ({
           'w-1': indicator === 'line',
         },
       )}
-      style={
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        {
-          '--color-bg': indicatorColor,
-          '--color-border': indicatorColor,
-        } as React.CSSProperties
-      }
+      style={indicatorStyle}
     />
   )
+}
 
 // eslint-disable-next-line eslint/complexity
 const renderTooltipRow = ({
@@ -254,17 +266,16 @@ const renderTooltipRow = ({
   formatter?: ChartTooltipContentProps['formatter']
   hideIndicator: boolean
   indicator: 'line' | 'dot' | 'dashed'
-  // eslint-disable-next-line typescript/consistent-type-imports
-  item: import('recharts').TooltipPayloadEntry
+  item: TooltipPayloadEntry
   index: number
   nameKey?: string
   nestLabel: boolean
   tooltipLabel: React.ReactNode
 }) => {
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
   const key = `${nameKey || item.name || item.dataKey || 'value'}`
   const itemConfig = getPayloadConfigFromPayload(config, item, key)
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- colors could be empty string; chain fallthrough
   const indicatorColor = color || item.payload.fill || item.color // eslint-disable-line typescript/no-unsafe-member-access, typescript/no-unsafe-assignment
 
   return (
@@ -283,13 +294,13 @@ const renderTooltipRow = ({
           {itemConfig?.icon ? (
             <itemConfig.icon />
           ) : (
-            renderTooltipIndicator({
-              hideIndicator,
-              indicator,
+            <TooltipIndicator
+              hideIndicator={hideIndicator}
+              indicator={indicator}
               // eslint-disable-next-line typescript/no-unsafe-assignment
-              indicatorColor,
-              nestLabel,
-            })
+              indicatorColor={indicatorColor}
+              nestLabel={nestLabel}
+            />
           )}
           <div
             className={cn(
@@ -300,7 +311,7 @@ const renderTooltipRow = ({
             <div className='grid gap-1.5'>
               {nestLabel ? tooltipLabel : null}
               <span className='text-muted-foreground'>
-                {/* eslint-disable-next-line typescript/prefer-nullish-coalescing */}
+                {/* eslint-disable-next-line typescript/prefer-nullish-coalescing -- label could be empty string */}
                 {itemConfig?.label || item.name}
               </span>
             </div>
@@ -342,12 +353,12 @@ const ChartTooltipContent = ({
   let tooltipLabel: React.ReactNode = null
   if (!hideLabel) {
     const [item] = payload
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
     const key = `${labelKey || item?.dataKey || item?.name || 'value'}`
     const itemConfig = getPayloadConfigFromPayload(config, item, key)
     const value =
       !labelKey && typeof label === 'string'
-        ? // eslint-disable-next-line typescript/prefer-nullish-coalescing
+        ? // eslint-disable-next-line typescript/prefer-nullish-coalescing -- label could be empty string
           config[label]?.label || label
         : itemConfig?.label
 
@@ -410,8 +421,7 @@ const ChartLegendContent = ({
   ref,
   verticalAlign = 'bottom',
 }: React.ComponentProps<'div'> &
-  // eslint-disable-next-line typescript/consistent-type-imports
-  Partial<import('recharts').DefaultLegendContentProps> & {
+  Partial<DefaultLegendContentProps> & {
     hideIcon?: boolean
     nameKey?: string
   }) => {
@@ -434,7 +444,7 @@ const ChartLegendContent = ({
         if (item.type === 'none') {
           return items
         }
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
         const key = `${nameKey || item.dataKey || 'value'}`
         const itemConfig = getPayloadConfigFromPayload(config, item, key)
         const itemKey = String(item.dataKey ?? item.value ?? item.color)

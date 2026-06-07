@@ -63,8 +63,7 @@ export const CategorySelector = () => {
           )}
       </div>
       <Select
-        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-        value={selection.selectedCategoryId || ''}
+        value={selection.selectedCategoryId ?? ''}
         onValueChange={selection.handleCategoryChange}
       >
         <SelectTrigger className='w-full' id='categorySelect'>

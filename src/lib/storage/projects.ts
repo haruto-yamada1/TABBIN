@@ -1,4 +1,3 @@
-/* eslint-disable typescript/no-useless-default-assignment */
 import { v4 as uuidv4 } from 'uuid'
 
 import type {
@@ -44,7 +43,6 @@ const getProjectUrls = async (
     // マイグレーションを実行（未実行の場合）
     await migrateToUrlsStorage()
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
-    // eslint-disable-next-line oxc/no-map-spread
     return urlRecords.map((record) => ({
       ...record,
       category: project.urlMetadata?.[record.id]?.category,
@@ -63,10 +61,8 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
       customProjects?: CustomProject[]
       customProjectOrder?: string[]
     }>(['customProjects', 'customProjectOrder'])
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    const customProjects = data.customProjects || []
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    const projectOrder = data.customProjectOrder || []
+    const customProjects = data.customProjects ?? []
+    const projectOrder = data.customProjectOrder ?? []
     console.log(
       `ストレージから取得したカスタムプロジェクト: ${customProjects.length}個`,
     )
@@ -176,8 +172,8 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
   await saveCustomProjects([...projects, newProject])
 
   // 新規プロジェクトを常に先頭に配置し、既存順序は維持する
-  const { customProjectOrder = [] } =
-    await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
+  const { customProjectOrder } =
+    await chrome.storage.local.get('customProjectOrder')
   const currentIdsInDisplayOrder = projects.map((project) => project.id)
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
@@ -197,8 +193,8 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
 }
 
 const appendUncategorizedProjectToOrder = async (): Promise<void> => {
-  const { customProjectOrder = [] } =
-    await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
+  const { customProjectOrder } =
+    await chrome.storage.local.get('customProjectOrder')
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
     : []
@@ -332,8 +328,8 @@ const addUrlsToUncategorizedProject = async (
 }
 
 const getCustomProjectOrder = async (): Promise<string[]> => {
-  const { customProjectOrder = [] } =
-    await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
+  const { customProjectOrder } =
+    await chrome.storage.local.get('customProjectOrder')
   return Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
         (projectId): projectId is string => typeof projectId === 'string',
@@ -425,8 +421,7 @@ const addUrlIdToDomainMode = async (
   urlId: string,
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    // eslint-disable-next-line typescript/consistent-type-imports
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const domain = getDomainFromUrl(url)
   const domainGroup = savedTabs.find(
@@ -568,14 +563,12 @@ const removeUrlFromCustomProject = async (
   // ドメインモードからも同じURLを削除
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      // eslint-disable-next-line typescript/consistent-type-imports
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
 
     // URLレコードを取得
     const urlRecords = await getUrlRecordsByIds(
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      savedTabs.flatMap((group: TabGroup) => group.urlIds || []),
+      savedTabs.flatMap((group: TabGroup) => group.urlIds ?? []),
     )
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
@@ -614,13 +607,11 @@ const syncDeleteToDomainMode = async (
 ): Promise<void> => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      // eslint-disable-next-line typescript/consistent-type-imports
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
 
     const urlRecords = await getUrlRecordsByIds(
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      savedTabs.flatMap((g: TabGroup) => g.urlIds || []),
+      savedTabs.flatMap((g: TabGroup) => g.urlIds ?? []),
     )
     const recordsToDelete = urlRecords.filter((record) =>
       targetUrlsSet.has(record.url),
@@ -897,8 +888,9 @@ const mergeUrlsIntoUncategorized = (
       continue
     }
     ensureProjectMetadataEntry(uncategorizedProject, urlId)
-    // eslint-disable-next-line typescript/no-non-null-assertion
-    uncategorizedProject.urlMetadata![urlId].notes = metadata.notes
+    if (uncategorizedProject.urlMetadata) {
+      uncategorizedProject.urlMetadata[urlId].notes = metadata.notes
+    }
   }
   uncategorizedProject.updatedAt = Date.now()
 }
@@ -919,8 +911,8 @@ const findOrCreateUncategorizedProject = async (
 }
 
 const removeProjectIdFromOrder = async (projectId: string): Promise<void> => {
-  const { customProjectOrder = [] } =
-    await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
+  const { customProjectOrder } =
+    await chrome.storage.local.get('customProjectOrder')
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
     : []
