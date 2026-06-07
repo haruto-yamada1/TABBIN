@@ -28,7 +28,7 @@ import { useDomainCard } from './DomainCardContext'
  * DomainCard の操作ボタン群
  * 子カテゴリ管理、すべて開く、すべて削除、キーワードモーダルを含む
  */
-export const DomainCardActions = () => {
+export const DomainCardActions = () => { // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const { state, group, settings, isReorderMode, searchQuery, handlers } =
     useDomainCard()
@@ -102,7 +102,7 @@ export const DomainCardActions = () => {
               // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
                 // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                if ((group.urls?.length || 0) >= 10) {
+                if ((group.urls?.length || 0) >= 10) { // eslint-disable-line eslint/no-magic-numbers
                   setIsOpenAllConfirmOpen(true)
                   return
                 }

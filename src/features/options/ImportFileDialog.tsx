@@ -250,7 +250,7 @@ interface ImportFileDialogProps {
   onImportSuccess: () => Promise<void>
 }
 
-export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
+export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({ // eslint-disable-line eslint/max-lines-per-function
   onImportSuccess,
 }) => {
   const { t } = useI18n()

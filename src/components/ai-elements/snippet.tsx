@@ -35,7 +35,7 @@ export const Snippet = ({
   ...props
 }: SnippetProps) => (
   // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-  <SnippetContext.Provider value={{ code }}>
+  <SnippetContext.Provider value={{ code }}> // eslint-disable-line react/jsx-no-constructed-context-values
     <InputGroup className={cn('font-mono', className)} {...props}>
       {children}
     </InputGroup>

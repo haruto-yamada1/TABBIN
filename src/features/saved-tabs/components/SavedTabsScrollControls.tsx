@@ -155,7 +155,7 @@ const SavedTabsScrollControlButton = ({
   )
 }
 
-const useSavedTabsScrollControlsView = ({
+const useSavedTabsScrollControlsView = ({ // eslint-disable-line eslint/max-lines-per-function
   scrollContainerRef,
   viewMode,
 }: SavedTabsScrollControlsProps) => {

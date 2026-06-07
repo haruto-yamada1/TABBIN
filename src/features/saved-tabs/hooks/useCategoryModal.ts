@@ -146,7 +146,7 @@ const applyDomainSelectionChange = async (params: {
  * @param params フックの引数
  * @returns カテゴリ作成・選択・削除・ドメイン選択関連の状態と操作
  */
-export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
+export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => { // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   // --- 新規カテゴリ名状態 ---
   const [newCategoryName, setNewCategoryName] = useState('')

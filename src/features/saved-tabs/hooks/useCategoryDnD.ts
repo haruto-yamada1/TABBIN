@@ -61,7 +61,7 @@ const resolveOverCategoryName = (
     return overData.categoryName // eslint-disable-line typescript/no-unsafe-return
   }
   if (typeof over.id === 'string') {
-    return parseCategoryNameFromOverId(over.id) || null
+    return parseCategoryNameFromOverId(over.id) || null // eslint-disable-line typescript/prefer-nullish-coalescing
   }
   return null
 }

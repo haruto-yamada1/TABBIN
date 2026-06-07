@@ -171,7 +171,7 @@ export const SortableCategorySection = ({
         cancelLabel={t('common.cancel')}
         openLabel={t('common.open')}
         // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-        onConfirm={() => handleOpenAllTabs(urls)}
+        onConfirm={() => handleOpenAllTabs(urls)} // eslint-disable-line typescript/no-confusing-void-expression
       />
 
       {/* カテゴリ全削除確認ダイアログ */}

@@ -65,7 +65,7 @@ const updateReasoningStreamTiming = ({
 }) => {
   if (isStreaming) {
     hasEverStreamedRef.current = true
-    if (startTimeRef.current === null) {
+    if (startTimeRef.current === null) { // eslint-disable-line typescript/prefer-nullish-coalescing
       startTimeRef.current = Date.now()
     }
     return

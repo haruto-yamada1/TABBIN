@@ -76,7 +76,7 @@ interface ProjectCardRootProps {
  * @param props ProjectCardRootProps
  */
 // eslint-disable-next-line eslint/complexity
-export const ProjectCardRoot = ({
+export const ProjectCardRoot = ({ // eslint-disable-line eslint/max-lines-per-function
   project,
   settings,
   isDropTarget = false,

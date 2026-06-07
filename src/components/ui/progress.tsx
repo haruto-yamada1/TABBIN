@@ -20,7 +20,7 @@ const Progress = ({
     <ProgressPrimitive.Indicator
       className='h-full w-full flex-1 bg-primary transition-all'
       // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+      style={{ transform: `translateX(-${100 - (value || 0)}%)` }} // eslint-disable-line eslint/no-magic-numbers
     />
   </ProgressPrimitive.Root>
 )

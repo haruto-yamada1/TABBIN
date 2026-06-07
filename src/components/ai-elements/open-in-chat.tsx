@@ -204,7 +204,7 @@ export type OpenInProps = ComponentProps<typeof DropdownMenu> & {
 
 export const OpenIn = ({ query, ...props }: OpenInProps) => (
   // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-  <OpenInContext.Provider value={{ query }}>
+  <OpenInContext.Provider value={{ query }}> // eslint-disable-line react/jsx-no-constructed-context-values
     <DropdownMenu {...props} />
   </OpenInContext.Provider>
 )

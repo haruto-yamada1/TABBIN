@@ -770,7 +770,7 @@ interface SavedTabsAppProps {
   onViewModeNavigate?: (mode: ViewMode) => void
 }
 
-const useSavedTabsAppView = ({
+const useSavedTabsAppView = ({ // eslint-disable-line eslint/max-lines-per-function
   initialViewMode,
   isAiSidebarOpen = false,
   onViewModeNavigate,

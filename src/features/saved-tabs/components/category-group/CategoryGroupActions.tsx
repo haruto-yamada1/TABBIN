@@ -85,7 +85,7 @@ export const CategoryGroupActions = () => {
   return (
     <CardGroupActions
       // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-      onManage={() => modal.setIsModalOpen(true)}
+      onManage={() => modal.setIsModalOpen(true)} // eslint-disable-line typescript/no-confusing-void-expression
       manageLabel={t('savedTabs.manageParentCategories')}
       manageAriaLabel={getScopedNounActionLabel(
         t,

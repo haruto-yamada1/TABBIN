@@ -140,7 +140,7 @@ const resolveStateValue = <T>(
  *
  * @returns UseCategoryManagementReturn
  */
-const useCategoryManagement = (): UseCategoryManagementReturn => {
+const useCategoryManagement = (): UseCategoryManagementReturn => { // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const [categories, setCategoriesState] = useState<ParentCategory[]>([])
   const [categoryOrder, setCategoryOrder] = useState<string[]>([])

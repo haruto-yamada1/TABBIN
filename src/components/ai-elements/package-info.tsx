@@ -38,7 +38,7 @@ export const PackageInfo = ({
 }: PackageInfoProps) => (
   <PackageInfoContext.Provider
     // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-    value={{ changeType, currentVersion, name, newVersion }}
+    value={{ changeType, currentVersion, name, newVersion }} // eslint-disable-line react/jsx-no-constructed-context-values
   >
     <div
       className={cn('rounded-lg border bg-background p-4', className)}

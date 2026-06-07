@@ -148,7 +148,7 @@ const buildAvailableDomains = ({
   }, [])
 }
 // eslint-disable-next-line eslint/complexity
-const useCategoryManagementModalView = ({
+const useCategoryManagementModalView = ({ // eslint-disable-line eslint/max-lines-per-function
   isOpen,
   onClose,
   category,
@@ -587,7 +587,7 @@ const useCategoryManagementModalView = ({
                         variant='secondary'
                         size='sm'
                         // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                        onClick={() => setShowDeleteConfirm(true)}
+                        onClick={() => setShowDeleteConfirm(true)} // eslint-disable-line typescript/no-confusing-void-expression
                         className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
                         disabled={isProcessing}
                       >
@@ -706,7 +706,7 @@ const useCategoryManagementModalView = ({
               deleteTooltip={t('savedTabs.categoryManagement.deleteAction')}
               isProcessing={isProcessing}
               // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-              onCancel={() => setShowDeleteConfirm(false)}
+              onCancel={() => setShowDeleteConfirm(false)} // eslint-disable-line typescript/no-confusing-void-expression
               // eslint-disable-next-line typescript/no-misused-promises
               onDelete={handleDeleteCategory}
             />

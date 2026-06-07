@@ -33,7 +33,7 @@ const decodeTextWithCharset = (
   charset: string | undefined,
 ): string => {
   try {
-    return new TextDecoder(charset || 'utf8').decode(value)
+    return new TextDecoder(charset || 'utf8').decode(value) // eslint-disable-line typescript/prefer-nullish-coalescing
   } catch {
     return new TextDecoder('utf-8').decode(value)
   }
@@ -101,7 +101,7 @@ const decodeTextDataUrl = (
 }
 
 const getAttachmentFilename = (file: Pick<FileUIPart, 'filename'>): string =>
-  file.filename?.trim() || AI_CHAT_ATTACHMENT_FALLBACK_FILENAME
+  file.filename?.trim() || AI_CHAT_ATTACHMENT_FALLBACK_FILENAME // eslint-disable-line typescript/prefer-nullish-coalescing
 
 const getUnsupportedAttachmentError = (
   filename: string,

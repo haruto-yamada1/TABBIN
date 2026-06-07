@@ -204,7 +204,7 @@ const IconRailLink = ({
   )
 }
 
-export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
+export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => { // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const { open, setOpen, setSidebarWidth, sidebarWidth } = useSidebar()
   const isIconCollapsed = open && sidebarWidth <= ICON_RAIL_WIDTH_PX

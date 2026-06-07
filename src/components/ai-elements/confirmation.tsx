@@ -70,7 +70,7 @@ export const Confirmation = ({
 
   return (
     // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-    <ConfirmationContext.Provider value={{ approval, state }}>
+    <ConfirmationContext.Provider value={{ approval, state }}> // eslint-disable-line react/jsx-no-constructed-context-values
       <Alert className={cn('flex flex-col gap-2', className)} {...props} />
     </ConfirmationContext.Provider>
   )

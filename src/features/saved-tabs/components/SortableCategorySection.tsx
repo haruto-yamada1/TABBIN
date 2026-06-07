@@ -84,7 +84,7 @@ const openTabsWithConfirm = ({
   handleOpenAllTabs: SortableCategorySectionProps['handleOpenAllTabs']
   urls: Parameters<SortableCategorySectionProps['handleOpenAllTabs']>[0]
 }) => {
-  if (urlCount >= 10) {
+  if (urlCount >= 10) { // eslint-disable-line eslint/no-magic-numbers
     setIsOpenAllConfirmOpen(true)
     return
   }
@@ -97,7 +97,7 @@ type SortableCategorySectionViewProps = SortableCategorySectionProps & {
   handleDeleteAllTabs?: (urls: { url: string }[]) => void
 }
 
-const useSortableCategorySectionView = ({
+const useSortableCategorySectionView = ({ // eslint-disable-line eslint/max-lines-per-function
   id,
   handleOpenAllTabs,
   handleDeleteAllTabs, // 削除ハンドラを追加
@@ -121,7 +121,7 @@ const useSortableCategorySectionView = ({
       return urls
     }
     const arr = [...urls]
-    arr.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
+    arr.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0)) // eslint-disable-line typescript/prefer-nullish-coalescing
     if (sortOrder === 'desc') {
       arr.reverse()
     }

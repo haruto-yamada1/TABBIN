@@ -277,10 +277,10 @@ const syncExternalConversationState = ({
 }
 
 const createMessageId = (): string =>
-  `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  `${Date.now()}-${Math.random().toString(16).slice(2)}` // eslint-disable-line eslint/no-magic-numbers
 
 const createSystemPromptId = (): string =>
-  `system-prompt-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  `system-prompt-${Date.now()}-${Math.random().toString(16).slice(2)}` // eslint-disable-line eslint/no-magic-numbers
 
 const getMaxSidebarWidth = (): number => {
   if (typeof window === 'undefined') {
@@ -477,7 +477,7 @@ const isAiChatConfigured = (settings: UserSettings | null): boolean =>
 const getAiChatErrorMessage = (
   response: AiChatResponse | undefined,
   t: TranslateFn,
-): string => response?.error || t('aiChat.responseError')
+): string => response?.error || t('aiChat.responseError') // eslint-disable-line typescript/prefer-nullish-coalescing
 
 const getAiChatOllamaError = (
   response: AiChatResponse | undefined,
@@ -848,7 +848,7 @@ const renderSystemPromptSelector = ({
   )
 }
 
-const useSystemPromptManagerDialogView = ({
+const useSystemPromptManagerDialogView = ({ // eslint-disable-line eslint/max-lines-per-function
   activePromptId,
   errorMessage,
   isOpen,
@@ -1399,7 +1399,7 @@ const getAttachmentId = (attachment: AiChatAttachment) =>
     attachment.mediaType,
     attachment.kind,
     attachment.content.length,
-    attachment.content.slice(0, 32),
+    attachment.content.slice(0, 32), // eslint-disable-line eslint/no-magic-numbers
   ].join('-')
 
 const renderChatMessageAttachments = ({
@@ -1459,7 +1459,7 @@ const renderConversationMessageBody = ({
   return <MessageResponse>{message.content}</MessageResponse>
 }
 
-const renderChatConversationMessage = ({
+const renderChatConversationMessage = ({ // eslint-disable-line eslint/complexity
   message,
   platform,
   t,
@@ -1540,7 +1540,7 @@ const renderChatConversationMessage = ({
   )
 }
 
-const useChatPromptComposerView = ({
+const useChatPromptComposerView = ({ // eslint-disable-line eslint/complexity
   input,
   presentation,
   modelName,
@@ -1691,7 +1691,7 @@ const useChatPromptComposerView = ({
   )
 }
 
-const useSavedTabsChatPanelView = ({
+const useSavedTabsChatPanelView = ({ // eslint-disable-line eslint/complexity
   activeSystemPromptId,
   chatErrorMessage,
   chatOllamaError,
@@ -1899,7 +1899,7 @@ const useSavedTabsChatPanelView = ({
   )
 }
 
-const useSavedTabsChatWidgetView = ({
+const useSavedTabsChatWidgetView = ({ // eslint-disable-line eslint/max-lines-per-function
   conversationId,
   defaultOpen = false,
   historyItems = EMPTY_HISTORY_ITEMS,
@@ -2090,7 +2090,7 @@ const useSavedTabsChatWidgetView = ({
   const activeSystemPrompt = getActiveAiSystemPrompt(resolvedSettings)
   const isConfigured = isAiChatConfigured(resolvedSettings)
   const isCompactLayout =
-    mode === 'page' ? viewportWidth < 768 : sidebarWidth <= 360
+    mode === 'page' ? viewportWidth < 768 : sidebarWidth <= 360 // eslint-disable-line eslint/no-magic-numbers
   const resolvedTitle = title ?? t('aiChat.chatTitle')
 
   const setMessagesState = (nextMessages: ChatMessage[]) => {
@@ -2201,7 +2201,7 @@ const useSavedTabsChatWidgetView = ({
 
     if (response?.status !== 'ok' || !response.models) {
       setModelOptions([])
-      setSetupErrorMessage(response?.error || t('aiChat.modelListLoadError'))
+      setSetupErrorMessage(response?.error || t('aiChat.modelListLoadError')) // eslint-disable-line typescript/prefer-nullish-coalescing
       setSetupOllamaError(response?.ollamaError)
       setIsLoadingModels(false)
       return

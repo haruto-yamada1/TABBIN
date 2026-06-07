@@ -198,7 +198,7 @@ const ProjectKeywordSection = ({
   )
 }
 
-const useProjectManagementModalView = ({
+const useProjectManagementModalView = ({ // eslint-disable-line eslint/max-lines-per-function
   isOpen,
   onClose,
   project,

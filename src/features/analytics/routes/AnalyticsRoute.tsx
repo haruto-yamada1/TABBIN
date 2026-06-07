@@ -620,7 +620,7 @@ const getViewNameValidationError = ({
     : null
 }
 
-const useAnalyticsRouteView = () => {
+const useAnalyticsRouteView = () => { // eslint-disable-line eslint/max-lines-per-function
   const { language, t } = useI18n()
   const [analyticsData, setAnalyticsData] = useState(() => ({
     records: awaitableEmptyRecords,

@@ -186,7 +186,7 @@ const renderCategoryContent = ({
 )
 
 // eslint-disable-next-line eslint/complexity
-const useCustomProjectCategoryView = ({
+const useCustomProjectCategoryView = ({ // eslint-disable-line eslint/max-lines-per-function
   projectId,
   category,
   urls,

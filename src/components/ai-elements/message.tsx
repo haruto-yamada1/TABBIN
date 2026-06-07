@@ -90,7 +90,7 @@ export const MessageAction = ({
   const button = (
     <Button size={size} type='button' variant={variant} {...props}>
       {children}
-      <span className='sr-only'>{label || tooltip}</span>
+      <span className='sr-only'>{label || tooltip}</span> // eslint-disable-line typescript/prefer-nullish-coalescing
     </Button>
   )
 

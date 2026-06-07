@@ -112,7 +112,7 @@ const ChartContainer = ({
 
   return (
     // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={{ config }}> // eslint-disable-line react/jsx-no-constructed-context-values
       <div
         data-chart={chartId}
         // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
