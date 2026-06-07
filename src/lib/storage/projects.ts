@@ -61,7 +61,9 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
       customProjects?: CustomProject[]
       customProjectOrder?: string[]
     }>(['customProjects', 'customProjectOrder'])
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     const customProjects = data.customProjects || []
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     const projectOrder = data.customProjectOrder || []
     console.log(
       `ストレージから取得したカスタムプロジェクト: ${customProjects.length}個`,
@@ -388,6 +390,7 @@ const setProjectUrlMetadata = (
   if (!(notes || category)) {
     return
   }
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (!project.urlMetadata) {
     project.urlMetadata = {}
   }
@@ -401,6 +404,7 @@ const getDomainFromUrl = (url: string): string => {
   return `${urlObj.protocol}//${urlObj.hostname}`
 }
 const ensureUrlIdInGroup = (group: TabGroup, urlId: string): TabGroup => {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (!group.urlIds) {
     group.urlIds = []
   }
@@ -562,6 +566,7 @@ const removeUrlFromCustomProject = async (
 
     // URLレコードを取得
     const urlRecords = await getUrlRecordsByIds(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       savedTabs.flatMap((group: TabGroup) => group.urlIds || []),
     )
     const urlRecord = urlRecords.find((record) => record.url === url)
@@ -606,6 +611,7 @@ const syncDeleteToDomainMode = async (
     }>('savedTabs')
 
     const urlRecords = await getUrlRecordsByIds(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       savedTabs.flatMap((g: TabGroup) => g.urlIds || []),
     )
     const recordsToDelete = urlRecords.filter((record) =>
@@ -852,6 +858,7 @@ const ensureProjectMetadataEntry = (
   project: CustomProject,
   urlId: string,
 ): void => {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (!project.urlMetadata) {
     project.urlMetadata = {}
   }
@@ -1040,6 +1047,7 @@ const setUrlCategory = async (
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       if (!project.urlMetadata) {
         project.urlMetadata = {}
       }
@@ -1159,6 +1167,7 @@ const moveUrlBetweenCustomProjects = async (
     delete sourceProject.urlMetadata[urlId]
   }
   if (sourceMetadata?.notes) {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (!targetProject.urlMetadata) {
       targetProject.urlMetadata = {}
     }

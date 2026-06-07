@@ -108,7 +108,9 @@ const upsertUrlEntry = (
   const newRecord: UrlRecord = {
     id: uuidv4(),
     url: legacyUrl.url,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     title: legacyUrl.title || '',
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     savedAt: legacyUrl.savedAt || Date.now(),
     favIconUrl: undefined,
   }

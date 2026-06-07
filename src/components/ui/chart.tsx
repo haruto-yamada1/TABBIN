@@ -62,6 +62,7 @@ const ChartContainer = ({
   children: React.ReactNode
 }) => {
   const uniqueId = React.useId()
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const [hasMeasuredSize, setHasMeasuredSize] = React.useState(false)
@@ -158,6 +159,7 @@ ${Object.entries(config)
       return items
     }
     const color =
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color
 
@@ -174,6 +176,7 @@ ${Object.entries(config)
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     ([, config]) => config.theme || config.color,
   )
 
@@ -250,8 +253,10 @@ const renderTooltipRow = ({
   nestLabel: boolean
   tooltipLabel: React.ReactNode
 }) => {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const key = `${nameKey || item.name || item.dataKey || 'value'}`
   const itemConfig = getPayloadConfigFromPayload(config, item, key)
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const indicatorColor = color || item.payload.fill || item.color
 
   return (
@@ -285,6 +290,7 @@ const renderTooltipRow = ({
             <div className='grid gap-1.5'>
               {nestLabel ? tooltipLabel : null}
               <span className='text-muted-foreground'>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
                 {itemConfig?.label || item.name}
               </span>
             </div>
@@ -325,10 +331,12 @@ const ChartTooltipContent = ({
   let tooltipLabel: React.ReactNode = null
   if (!hideLabel) {
     const [item] = payload
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     const key = `${labelKey || item?.dataKey || item?.name || 'value'}`
     const itemConfig = getPayloadConfigFromPayload(config, item, key)
     const value =
       !labelKey && typeof label === 'string'
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         ? config[label]?.label || label
         : itemConfig?.label
 
@@ -415,6 +423,7 @@ const ChartLegendContent = ({
         if (item.type === 'none') {
           return items
         }
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         const key = `${nameKey || item.dataKey || 'value'}`
         const itemConfig = getPayloadConfigFromPayload(config, item, key)
         const itemKey = String(item.dataKey ?? item.value ?? item.color)

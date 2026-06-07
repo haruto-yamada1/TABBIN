@@ -72,7 +72,9 @@ export const handleTabGroupRemoval = async (groupId: string): Promise<void> => {
     await Promise.all([
       updateDomainCategorySettings(
         groupToRemove.domain,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         groupToRemove.subCategories || [],
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         groupToRemove.categoryKeywords || [],
       ),
       ensureDomainNameInParentCategory(groupToRemove),

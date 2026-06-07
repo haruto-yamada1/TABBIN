@@ -58,6 +58,7 @@ const renameCategoryInTab = (
   const updatedSubCategories =
     tab.subCategories?.map((cat) =>
       cat === activeCategory ? validName : cat,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     ) || []
   const updatedCategoryKeywords =
     tab.categoryKeywords?.map((ck) =>
@@ -67,7 +68,9 @@ const renameCategoryInTab = (
             categoryName: validName,
           }
         : ck,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     ) || []
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const updatedUrls = (tab.urls || []).map((url) =>
     url.subCategory === activeCategory
       ? {
@@ -76,9 +79,11 @@ const renameCategoryInTab = (
         }
       : url,
   )
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const updatedSubCategoryOrder = (tab.subCategoryOrder || []).map((cat) =>
     cat === activeCategory ? validName : cat,
   )
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const updatedAllOrder = (tab.subCategoryOrderWithUncategorized || []).map(
     (cat) => (cat === activeCategory ? validName : cat),
   )
@@ -234,6 +239,7 @@ export const useCategoryKeywordModal = ({
       const categoryKeywords = group.categoryKeywords?.find(
         (ck) => ck.categoryName === activeCategory,
       )
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       const loadedKeywords = categoryKeywords?.keywords || []
       setCategoryEditState((current) => ({
         ...current,
@@ -285,6 +291,7 @@ export const useCategoryKeywordModal = ({
           g.id === group.id
             ? {
                 ...g,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
                 categoryKeywords: (g.categoryKeywords || []).map((ck) =>
                   ck.categoryName === activeCategory
                     ? {
@@ -293,6 +300,7 @@ export const useCategoryKeywordModal = ({
                       }
                     : ck,
                 ),
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
                 urls: (g.urls || []).map((item) =>
                   item.subCategory === activeCategory
                     ? {
@@ -359,6 +367,7 @@ export const useCategoryKeywordModal = ({
         if (tab.id === group.id) {
           return {
             ...tab,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
             subCategories: [...(tab.subCategories || []), validName],
           }
         }

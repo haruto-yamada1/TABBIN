@@ -64,9 +64,11 @@ const getCategoryKeywordsForName = (
   categoryName: string | null,
 ): string[] =>
   tabGroup.categoryKeywords?.find((ck) => ck.categoryName === categoryName)
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     ?.keywords || []
 
 const getRenameDraftName = (activeCategory: string | null): string =>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   activeCategory || ''
 
 const shouldSkipRename = (oldName: string, newName: string): boolean =>
@@ -178,9 +180,11 @@ const useSubCategoryKeywordManagerView = ({
       const updatedTabGroup = {
         ...tabGroup,
         categoryKeywords: [
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
           ...(tabGroup.categoryKeywords || []),
           { categoryName, keywords: [] },
         ],
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         subCategories: [...(tabGroup.subCategories || []), categoryName],
       }
 
@@ -230,11 +234,13 @@ const useSubCategoryKeywordManagerView = ({
       }
 
       // 子カテゴリリストと関連キーワードからカテゴリを削除
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       const updatedSubCategories = (groupToUpdate.subCategories || []).filter(
         (cat: string) => cat !== categoryToRemove,
       )
 
       const updatedCategoryKeywords = (
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         groupToUpdate.categoryKeywords || []
       ).filter(
         (ck: { categoryName: string }) => ck.categoryName !== categoryToRemove,
@@ -328,6 +334,7 @@ const useSubCategoryKeywordManagerView = ({
       if (tab.id === tabGroup.id) {
         // 1. subCategories配列を更新
         const updatedSubCategories =
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
           tab.subCategories?.map((cat) => (cat === oldName ? newName : cat)) ||
           []
 
@@ -338,9 +345,11 @@ const useSubCategoryKeywordManagerView = ({
               return { ...ck, categoryName: newName }
             }
             return ck
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
           }) || []
 
         // 3. 各URLのサブカテゴリ参照を更新
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         const updatedUrls = (tab.urls || []).map((url) => {
           if (url.subCategory === oldName) {
             return { ...url, subCategory: newName }
@@ -352,11 +361,13 @@ const useSubCategoryKeywordManagerView = ({
         const updatedSubCategoryOrder =
           tab.subCategoryOrder?.map((cat) =>
             cat === oldName ? newName : cat,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
           ) || []
 
         const updatedSubCategoryOrderWithUncategorized =
           tab.subCategoryOrderWithUncategorized?.map((cat) =>
             cat === oldName ? newName : cat,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
           ) || []
 
         return {

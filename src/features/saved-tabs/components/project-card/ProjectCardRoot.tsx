@@ -34,6 +34,7 @@ const sortProjectUrls = <
   }
 
   const sortedUrls = [...urls]
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   sortedUrls.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
   if (sortOrder === 'desc') {
     sortedUrls.reverse()

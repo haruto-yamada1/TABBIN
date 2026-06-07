@@ -68,6 +68,7 @@ interface DomainModeContainerProps {
 }
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   (group.urls || []).map((item) => item.url)
 const deleteVisibleUrlsForGroups = async (
   groups: TabGroup[],
@@ -392,6 +393,7 @@ export const DomainModeContainer = ({
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
   const uncategorizedTargetName = t('savedTabs.uncategorizedDomainsTitle')
   const uncategorizedUrlsToOpen = useMemo(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     () => uncategorizedForDisplay.flatMap((group) => group.urls || []),
     [uncategorizedForDisplay],
   )

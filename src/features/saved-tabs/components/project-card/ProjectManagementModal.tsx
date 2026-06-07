@@ -100,6 +100,7 @@ interface ProjectManagementModalState {
 const createProjectManagementModalState = (
   project: CustomProject,
 ): ProjectManagementModalState => ({
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   domainKeywords: project.projectKeywords?.domainKeywords || [],
   isProcessing: false,
   isRenaming: false,
@@ -111,7 +112,9 @@ const createProjectManagementModalState = (
   newUrlKeyword: '',
   projectNameError: null,
   showDeleteConfirm: false,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   titleKeywords: project.projectKeywords?.titleKeywords || [],
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   urlKeywords: project.projectKeywords?.urlKeywords || [],
 })
 

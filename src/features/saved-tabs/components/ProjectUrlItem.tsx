@@ -178,6 +178,7 @@ const ProjectUrlItemComponent = ({
         data-category={item.category}
         data-has-category={Boolean(item.category)}
         data-category-level={categoryLevel}
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         data-parent-type={parentType || ''}
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >

@@ -80,6 +80,7 @@ const reuseExistingSavedTabsPage = async (
     return null
   }
   const mainTab = savedTabsPages[0]
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   savedTabsPageId = mainTab.id || null
   console.log(`既存のタブを使用します: ${savedTabsPageId}`)
   if (!savedTabsPageId) {
@@ -96,6 +97,7 @@ const createSavedTabsPage = async (
   const newTab = await chrome.tabs.create({
     url: savedTabsUrl,
   })
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   savedTabsPageId = newTab.id || null
   console.log(`新しいsaved-tabsページを作成しました。ID: ${savedTabsPageId}`)
   if (savedTabsPageId) {

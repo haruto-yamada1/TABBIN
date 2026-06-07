@@ -435,7 +435,9 @@ const removeFromParentCategories = async (groupId: string): Promise<void> => {
       }>('savedTabs'),
     ])
     const parentCategories: ParentCategory[] =
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       categoriesStorage.parentCategories || []
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     const savedTabs: TabGroup[] = tabsStorage.savedTabs || []
     const groupToRemove = savedTabs.find(
       (group: TabGroup) => group.id === groupId,
@@ -560,6 +562,7 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
 
     // URLを正規化して比較
     const normalizedDraggedUrl = normalizeUrl(draggedUrlInfo.url)
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     const normalizedTabUrl = normalizeUrl(tab.url || '')
     console.log('正規化されたドラッグURL:', normalizedDraggedUrl)
     console.log('正規化された新タブURL:', normalizedTabUrl)

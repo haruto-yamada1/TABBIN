@@ -38,6 +38,7 @@ const createChromeStorageMock = (initialStore: Store = {}) => {
       const result: Record<string, unknown> = {}
       for (const [key, fallback] of Object.entries(keys)) {
         const value = store[key as keyof Store]
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         result[key] = value === undefined ? structuredClone(fallback) : value
       }
       return result

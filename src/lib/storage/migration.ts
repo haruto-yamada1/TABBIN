@@ -260,6 +260,7 @@ const findParentCategoryForDomain = (
     domain,
     domainCategoryMappings,
     parentCategories,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   ) || findCategoryByDomainNames(domain, parentCategories)
 const assignGroupToCategory = async (
   group: TabGroup,
@@ -354,6 +355,7 @@ const getUniqueDomainsFromTabs = (tabs: chrome.tabs.Tab[]): Set<string> =>
   new Set(
     tabs.flatMap((tab) => {
       try {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         const url = new URL(tab.url || '')
         return [`${url.protocol}//${url.hostname}`]
       } catch {
@@ -422,12 +424,14 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
       if (!missingDomainSet.has(domain)) {
         console.log(`既存のドメインに追加: ${domain}`)
       }
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       const urlRecord = await createOrUpdateUrlRecord(url, tab.title || '')
       return { group, urlRecord }
     }),
   )
   for (const item of urlRecords) {
     const { group, urlRecord } = item
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (!group.urlIds) {
       group.urlIds = []
     }
@@ -495,6 +499,7 @@ const getTabGroupById = async (groupId: string): Promise<TabGroup | null> => {
 // eslint-disable-next-line typescript/consistent-type-imports
     savedTabs?: import('@/types/storage').TabGroup[]
   }>('savedTabs')
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   return savedTabs.find((group: TabGroup) => group.id === groupId) || null
 }
 

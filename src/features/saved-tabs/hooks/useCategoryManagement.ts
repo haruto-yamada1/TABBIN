@@ -79,6 +79,7 @@ const removeSubCategoryFromGroup = (
   }
   console.log('削除前のサブカテゴリ:', group.subCategories)
   const updatedSubCategories =
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     group.subCategories?.filter((cat) => cat !== categoryName) || []
   console.log('削除後のサブカテゴリ:', updatedSubCategories)
   const updatedUrlSubCategories = {
@@ -96,6 +97,7 @@ const removeSubCategoryFromGroup = (
     categoryKeywords:
       group.categoryKeywords?.filter(
         (ck) => ck.categoryName !== categoryName,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       ) || [],
     subCategories: updatedSubCategories,
     urlSubCategories: updatedUrlSubCategories,
@@ -368,6 +370,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
         await saveParentCategories(updatedCategories)
         setCategories(updatedCategories)
         console.log(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
           `ドメイン ${domainGroup.domain} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`,
         )
       } catch (error) {

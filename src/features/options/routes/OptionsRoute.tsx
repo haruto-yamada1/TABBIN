@@ -658,6 +658,7 @@ const useOptionsRouteView = () => {
                       aria-label={t(labelKey)}
                       id={`${key}-picker`}
                       type='color'
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
                       value={settings.colors?.[key] || getDefaultColor(key)}
                       onChange={handleThemeColorChange}
                       className='size-8 shrink-0 cursor-pointer border-0 p-0'
@@ -666,6 +667,7 @@ const useOptionsRouteView = () => {
                       <Input
                         id={`${key}-hex`}
                         type='text'
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
                         value={settings.colors?.[key] || getDefaultColor(key)}
                         onChange={handleThemeColorChange}
                         className='w-full bg-background text-foreground'

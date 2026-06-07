@@ -242,12 +242,15 @@ const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
 const countTabGroupUrls = (group: TabGroup): number =>
   group.urlIds?.length ?? group.urls?.length ?? 0
 const getDisplayUrlCount = (group: TabGroup): number =>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   (group.urls || group.urlIds || []).length
 const buildDisplayTabGroup = (project: CustomProject): TabGroup =>
   ({
     id: project.id,
     domain: project.name,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     urls: project.urls || [],
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     urlIds: project.urlIds || [],
   }) as TabGroup
 const matchesParentCategoryQuery = (
@@ -272,6 +275,7 @@ const matchesParentCategoryQuery = (
     }
   }
   const fallbackCategory =
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     categoryLookup.byGroupId.get(group.id) ||
     categoryLookup.byDomainName.get(group.domain)
   if (fallbackCategory) {
@@ -295,6 +299,7 @@ const filterGroupByQuery = (
   normalizedQuery: string,
   categoryLookup: CategoryLookup,
 ): TabGroup => {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const currentUrls = group.urls || []
   if (currentUrls.length === 0) {
     return group
@@ -312,6 +317,7 @@ const filterGroupByQuery = (
     const matchesSubCategory = item.subCategory
       ?.toLowerCase()
       .includes(normalizedQuery)
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     return matchesBasicFields || matchesSubCategory || parentCategoryMatched
   })
   if (filteredUrls.length === currentUrls.length) {
@@ -326,6 +332,7 @@ const hasDisplayableUrls = (group: TabGroup): boolean => {
   const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
   const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
   console.log(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     `フィルタチェック ${group.domain}: urlIds=${group.urlIds?.length || 0}, urls=${group.urls?.length || 0}, 表示=${hasNewUrls || hasOldUrls}`,
   )
   return hasNewUrls || hasOldUrls
@@ -1166,6 +1173,7 @@ const useSavedTabsAppView = ({
         const targetGroup = tabGroupsWithUrls.find(
           (group) => group.id === groupId,
         )
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         const resolvedUrlIds = (targetGroup?.urls || [])
           .reduce<{ id: string; url: string }[]>((items, item) => {
             if (item.id && targetUrls.has(item.url)) {

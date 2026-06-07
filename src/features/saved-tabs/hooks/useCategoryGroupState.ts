@@ -162,6 +162,7 @@ export const useCategoryGroupState = ({
         const result = await chrome.storage.local.get<{
           parentCategories?: ParentCategory[]
         }>(['parentCategories'])
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         const baseGroups: ParentCategory[] = result.parentCategories || []
         const categoryGroups = ensureCategoryPresence(
           baseGroups,

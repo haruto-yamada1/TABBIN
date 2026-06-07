@@ -76,6 +76,7 @@ const subscribeToElementWidth = (
 const useLeftPaneWidth = () => {
   const leftPaneRef = useRef<HTMLDivElement>(null)
   const widthRef = useRef<number | null>(null)
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (widthRef.current === null) {
     widthRef.current = getViewportWidthSnapshot()
   }

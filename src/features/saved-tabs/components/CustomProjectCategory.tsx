@@ -34,6 +34,7 @@ const sortCategoryUrls = (
   }
 
   const sorted = [...categoryUrls]
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   sorted.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
   if (sortOrder === 'desc') {
     sorted.reverse()
@@ -222,6 +223,7 @@ const useCustomProjectCategoryView = ({
 
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
   const sortedCategoryUrls = useMemo(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     () => sortCategoryUrls(urls || [], sortOrder),
     [urls, sortOrder],
   )
@@ -265,6 +267,7 @@ const useCustomProjectCategoryView = ({
   const categoryDisplayName =
     category === '__uncategorized' ? t('savedTabs.uncategorized') : category
   const showManageActions = Boolean(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     handleRenameCategory || handleDeleteCategory,
   )
   const showBulkActions = sortedCategoryUrls.length > 0

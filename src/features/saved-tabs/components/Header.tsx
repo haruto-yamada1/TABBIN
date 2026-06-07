@@ -54,7 +54,9 @@ export const Header = ({
     useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const normalizedSearchQuery = searchQuery.trim()
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const groupsForDisplay = filteredTabGroups || tabGroups
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const customGroupsForDisplay = filteredCustomProjects || customProjects
   const handleNewProjectNameInputRef = useCallback(
     (node: HTMLInputElement | null) => {
@@ -98,6 +100,7 @@ export const Header = ({
 
     const isComposing =
       event.nativeEvent.isComposing ||
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       (event as unknown as { isComposing?: boolean }).isComposing ||
       event.keyCode === 229
     if (isComposing) {

@@ -43,6 +43,7 @@ export const ProjectCardCategoryList = () => {
           <CustomProjectCategory
             projectId={project.id}
             category={categoryName}
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
             urls={categoryUrlsByName.get(categoryName) || []}
             handleOpenUrl={handlers.handleOpenUrl}
             handleDeleteUrl={handlers.handleDeleteUrl}

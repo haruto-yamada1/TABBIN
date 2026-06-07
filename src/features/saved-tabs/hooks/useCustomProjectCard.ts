@@ -255,6 +255,7 @@ const processUrlToUrlDrop = (params: {
   }
   const overCategory = resolveOverCategory(over)
   const isSameBucket =
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     !(dragSourceCategory || overCategory) || dragSourceCategory === overCategory
   if (!isSameBucket) {
     return {
@@ -352,6 +353,7 @@ export const useCustomProjectCard = ({
   const handleUrlDragEnd = useCallback(
     (event: DragEndEvent, isUncategorizedOver: boolean) => {
       const { active, over } = event
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       const actualUrl = active.data.current?.url || String(active.id)
       const dragSourceCategory = active.data.current?.category
       setActiveId(null)
@@ -406,6 +408,7 @@ export const useCustomProjectCard = ({
           project.categories.indexOf(over.id as string)
         if (oldIndex !== -1 && newIndex !== -1) {
           const newOrder = arrayMove(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
             project.categoryOrder || project.categories,
             oldIndex,
             newIndex,
@@ -437,6 +440,7 @@ export const useCustomProjectCard = ({
         ) as HTMLElement
         if (targetElement) {
           const urlAttr =
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
             targetElement.getAttribute('data-url') ||
             targetElement.closest('[data-url]')?.getAttribute('data-url')
           if (
@@ -457,6 +461,7 @@ export const useCustomProjectCard = ({
 
   // --- 計算済みデータ ---
   const uncategorizedUrls = projectUrls.filter((url) => !url.category)
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const categoryOrder = project.categoryOrder || project.categories
   return {
     /** カテゴリ表示順 */

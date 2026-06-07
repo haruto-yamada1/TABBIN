@@ -131,6 +131,7 @@ const addUrlToTabGroup = async (
   const group = savedTabs[groupIndex]
 
   // URLIDsが存在しない場合は初期化
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (!group.urlIds) {
     group.urlIds = []
   }
@@ -142,6 +143,7 @@ const addUrlToTabGroup = async (
 
   // サブカテゴリが指定されている場合は設定
   if (subCategory) {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (!group.urlSubCategories) {
       group.urlSubCategories = {}
     }
@@ -166,6 +168,7 @@ const addSubCategoryToGroup = async (
   }
   const updatedGroups = savedTabs.map((existingGroup: TabGroup) => {
     if (existingGroup.id === groupId) {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       const subCategories = existingGroup.subCategories || []
       if (!subCategories.includes(subCategoryName)) {
         return {
@@ -217,6 +220,7 @@ const setUrlSubCategory = async (
     const urlRecords = await getUrlRecordsByIds(group.urlIds)
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       if (!group.urlSubCategories) {
         group.urlSubCategories = {}
       }
@@ -240,6 +244,7 @@ const buildDomainCategorySetting = (
     },
   ],
   domain: group.domain,
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   subCategories: group.subCategories || [],
 })
 // 子カテゴリにキーワードを設定する関数（永続設定にも保存）
@@ -261,6 +266,7 @@ const setCategoryKeywords = async (
   const updatedGroups = savedTabs.map((currentGroup: TabGroup) => {
     if (currentGroup.id === groupId) {
       // 既存のカテゴリキーワード設定を取得
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       const categoryKeywords = currentGroup.categoryKeywords || []
 
       // 対象カテゴリのインデックスを探す

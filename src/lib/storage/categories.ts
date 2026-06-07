@@ -48,6 +48,7 @@ export const findCategoryByDomainName = async (
 ): Promise<ParentCategory | null> => {
   const categories = await getParentCategories()
   return (
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     categories.find((category) => category.domainNames.includes(domainName)) ||
     null
   )

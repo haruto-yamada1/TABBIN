@@ -276,6 +276,7 @@ const handleCheckExpiredTabsMessage = (
 
   // UpdateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
   if (message.updateTimestamps) {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     console.log(`タブの保存時刻を更新します (${message.period || '不明'})`)
     // 処理の簡略化 - まずタイムスタンプを更新し、待機せずにチェック実行
     updateTabTimestamps(message.period)

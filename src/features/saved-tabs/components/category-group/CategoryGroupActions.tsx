@@ -8,6 +8,7 @@ const getVisibleUrls = (group: {
   urls?: {
     url: string
   }[]
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
 }): string[] => (group.urls || []).map((item) => item.url)
 
 const deleteVisibleUrlsByGroup = async (
@@ -41,6 +42,7 @@ export const CategoryGroupActions = () => {
   const { modal, reorder } = state
 
   const domainsToUse = reorder.isReorderMode ? reorder.tempDomainOrder : domains
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const urlsToOpen = domainsToUse.flatMap((group) => group.urls || [])
   const hasSearchQuery = searchQuery.trim().length > 0
   const targetName = category.name

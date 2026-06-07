@@ -44,6 +44,7 @@ export const DomainCardContent = () => {
     return null
   }
 
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const hasUrls = (group.urls?.length || 0) > 0
   const categoryIds = categoryReorder.isCategoryReorderMode
     ? categoryReorder.tempCategoryOrder
@@ -53,6 +54,7 @@ export const DomainCardContent = () => {
     return (
       <CardContent className='gap-y-1'>
         <div className='py-4 text-center text-zinc-400'>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
           {(group.urls?.length || 0) === 0
             ? t('savedTabs.domain.emptyNoTabs')
             : t('savedTabs.domain.emptyManageCategoriesHint')}

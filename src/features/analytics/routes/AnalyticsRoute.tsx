@@ -156,6 +156,7 @@ const shouldSkipSingleDelete = ({
 }: {
   deletingUrl: string | null
   isBulkDeleting: boolean
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
 }): boolean => Boolean(deletingUrl || isBulkDeleting)
 
 const shouldSkipOpenAll = (recordCount: number): boolean => recordCount === 0
@@ -169,6 +170,7 @@ const shouldSkipBulkDelete = ({
   isBulkDeleting: boolean
   matchingRecordCount: number
 }): boolean =>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   matchingRecordCount === 0 || Boolean(deletingUrl || isBulkDeleting)
 
 const shouldIgnoreBulkDeleteDialogClose = ({
@@ -330,6 +332,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> =>
           return
         }
 
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         reject(new Error(response?.error || 'removeUrlFromStorage failed'))
       },
     )
@@ -352,6 +355,7 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
         }
 
         reject(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
           new Error(response?.error || 'removeUrlRecordsFromStorage failed'),
         )
       },

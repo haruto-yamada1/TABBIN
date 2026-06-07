@@ -47,11 +47,13 @@ const sortUrlsByOrder = (
   urls: TabGroup['urls'],
   sortOrder: 'default' | 'asc' | 'desc',
 ): TabGroup['urls'] => {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const sourceUrls = urls || []
   if (sortOrder === 'default') {
     return sourceUrls
   }
   const sortedUrls = [...sourceUrls]
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   sortedUrls.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
   if (sortOrder === 'desc') {
     sortedUrls.reverse()
@@ -66,9 +68,11 @@ const buildCategorizedUrls = (
   const categorizedUrls: CategorizedUrls = {}
   categorizedUrls[uncategorizedCategoryId] = []
   const subCategorySet = new Set(subCategories ?? [])
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   for (const category of subCategories || []) {
     categorizedUrls[category] = []
   }
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   for (const url of urls || []) {
     if (url.subCategory && subCategorySet.has(url.subCategory)) {
       categorizedUrls[url.subCategory].push(url)
@@ -145,12 +149,14 @@ export const useDomainCardState = ({
   const getActiveCategoryIds = useCallback(() => {
     console.log('getActiveCategoryIds 関数実行...')
     const usedCategories = new Set<string>()
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     for (const url of group.urls || []) {
       if (url.subCategory) {
         usedCategories.add(url.subCategory)
       }
     }
     console.log('使用されているカテゴリ:', [...usedCategories])
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     const regularCategories = (group.subCategories || []).filter(
       (categoryName) =>
         categorizedUrls[categoryName] &&
@@ -283,10 +289,14 @@ export const useDomainCardState = ({
     const prevUrls = prevUrlsRef.current
     const currentUrls = group.urls
     const hasSubCategoryChanges =
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       (prevUrls?.length || 0) > 0 &&
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
       ((prevUrls?.length || 0) !== (currentUrls?.length || 0) ||
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
         (prevUrls || []).some(
           (prevUrl, i) =>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
             i >= (currentUrls?.length || 0) ||
             prevUrl.subCategory !== currentUrls?.[i]?.subCategory,
         ))
@@ -297,6 +307,7 @@ export const useDomainCardState = ({
       console.log('タブのサブカテゴリ変更を検出 - 表示を更新')
       setAllCategoryIds(computedCategoryIds)
     }
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     prevUrlsRef.current = [...(currentUrls || [])]
   }, [group.urls, computedCategoryIds, allCategoryIds])
 

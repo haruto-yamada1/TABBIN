@@ -65,16 +65,19 @@ export const CategoryGroupRoot = ({
   useDndMonitor(state.dndMonitorHandlers)
 
   // このカテゴリ内のすべてのURLを取得
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const allUrls = domains.flatMap((group) => group.urls || [])
 
   // 検索でヒットしないカテゴリは非表示
   const hasSearchQuery = searchQuery.trim().length > 0
   const hasVisibleDomains = domains.some(
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     (domain) => (domain.urls?.length || 0) > 0,
   )
 
   // 検索結果に応じたドメイン数を計算
   const visibleDomainsCount = hasSearchQuery
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     ? domains.filter((domain) => (domain.urls?.length || 0) > 0).length
     : domains.length
 

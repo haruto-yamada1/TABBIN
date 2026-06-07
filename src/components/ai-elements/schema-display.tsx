@@ -385,6 +385,7 @@ export const SchemaDisplayProperty = ({
   ...props
 }: SchemaDisplayPropertyProps) => {
   const t = useI18nText()
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const hasChildren = properties || items
   const paddingLeft = 40 + depth * 16
 

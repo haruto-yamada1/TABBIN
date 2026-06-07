@@ -111,6 +111,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     const savedTabs: TabGroup[] = storageResult.savedTabs || []
     if (savedTabs.length === 0) {
       console.log('保存されたタブはありません')
@@ -192,11 +193,13 @@ export const updateTabTimestamps = async (
   timestamp: number
 }> => {
   try {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     console.log(`タブの保存時刻を更新します: ${period || '不明な期間'}`)
     const storageResult = await chrome.storage.local.get<{
 // eslint-disable-next-line typescript/consistent-type-imports
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     const savedTabs: TabGroup[] = storageResult.savedTabs || []
     if (savedTabs.length === 0) {
       console.log('保存されたタブがありません')

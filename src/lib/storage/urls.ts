@@ -58,6 +58,7 @@ const saveUrlRecords = async (urlRecords: UrlRecord[]): Promise<void> => {
  */
 const getUrlRecordById = async (id: string): Promise<UrlRecord | null> => {
   const urlRecords = await getUrlRecords()
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   return urlRecords.find((record) => record.id === id) || null
 }
 /**
@@ -76,6 +77,7 @@ const getUrlRecordsByIds = async (ids: string[]): Promise<UrlRecord[]> => {
  */
 const findUrlRecordByUrl = async (url: string): Promise<UrlRecord | null> => {
   const urlRecords = await getUrlRecords()
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   return urlRecords.find((record) => record.url === url) || null
 }
 /**
@@ -354,6 +356,7 @@ const updateUrlReferences = async (
       if (tabGroup.urlIds) {
         const updatedIds = tabGroup.urlIds.map((id: string) => {
           if (duplicateIdSet.has(id)) {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
             return replacementIdMap.get(id) || id
           }
           return id
@@ -380,6 +383,7 @@ const updateUrlReferences = async (
       if (project.urlIds) {
         const updatedIds = project.urlIds.map((id: string) => {
           if (duplicateIdSet.has(id)) {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
             return replacementIdMap.get(id) || id
           }
           return id

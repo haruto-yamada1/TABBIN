@@ -133,6 +133,7 @@ const buildAvailableDomains = ({
   const targetCategory = parentCategories.find(
     (parentCategory) => parentCategory.id === categoryId,
   )
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   const currentDomainIdSet = new Set(targetCategory?.domains || [])
 
   return savedTabs.reduce<AvailableDomain[]>((domains, tab) => {

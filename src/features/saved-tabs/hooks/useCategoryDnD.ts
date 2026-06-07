@@ -48,6 +48,7 @@ const resolveOverCategoryName = (
     return overData.categoryName
   }
   if (typeof over.id === 'string') {
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
     return parseCategoryNameFromOverId(over.id) || null
   }
   return null

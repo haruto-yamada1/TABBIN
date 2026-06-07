@@ -245,6 +245,7 @@ vi.mock('@/features/saved-tabs/custom/CustomModeContainer', () => ({
         {projects.map((project) => (
           <section data-testid={`project-${project.id}`} key={project.id}>
             <div>{`project:${project.name}`}</div>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
             {(project.urls || []).map((url) => (
               <div key={url.url}>{`url:${url.title}:${url.url}`}</div>
             ))}

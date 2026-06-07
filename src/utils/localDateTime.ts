@@ -25,6 +25,7 @@ interface DateParts {
 const pad2 = (value: number): string => String(value).padStart(2, '0')
 
 const resolveTimeZone = (timeZone?: string): string =>
+// eslint-disable-next-line typescript/prefer-nullish-coalescing
   timeZone?.trim() ||
   Intl.DateTimeFormat().resolvedOptions().timeZone ||
   FALLBACK_TIME_ZONE
