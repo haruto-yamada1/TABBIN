@@ -125,7 +125,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
       })
       if (
         hasLegacyUserSettingsKeys(
-          data.userSettings as unknown as Record<string, unknown>,
+          data.userSettings as unknown as Record<string, unknown>, // eslint-disable-line typescript/no-unsafe-type-assertion
         ) ||
         JSON.stringify(sanitizedStoredSettings.excludePatterns ?? []) !==
           JSON.stringify(mergedStoredSettings.excludePatterns)

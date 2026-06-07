@@ -25,7 +25,7 @@ const decodeBase64 = (value: string): Uint8Array => {
       ? atob(value)
       : Buffer.from(value, 'base64').toString('binary')
 
-  return Uint8Array.from(binaryValue, (char) => char.charCodeAt(0))
+  return Uint8Array.from(binaryValue, (char) => char.codePointAt(0) ?? 0)
 }
 
 const decodeTextWithCharset = (
