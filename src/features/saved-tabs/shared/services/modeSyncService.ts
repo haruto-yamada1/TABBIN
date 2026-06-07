@@ -1,5 +1,13 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
+import { z } from 'zod'
 
+import {
+  CustomProjectSchema,
+  fromStorageChange,
+  ParentCategorySchema,
+  TabGroupSchema,
+  UserSettingsSchema,
+} from '@/lib/storage/zod-storage'
 import { invalidateUrlCache } from '@/lib/storage/urls'
 import type {
   CustomProject,
@@ -65,13 +73,15 @@ const applyUserSettingsChange = (
   if (!changes.userSettings) {
     return
   }
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  const nextSettings = changes.userSettings.newValue as
-    | Partial<UserSettings>
-    | undefined
+  const result = UserSettingsSchema.partial().safeParse(
+    changes.userSettings.newValue,
+  )
+  if (!result.success) {
+    return
+  }
   setSettings((prev) => ({
     ...prev,
-    ...nextSettings,
+    ...result.data,
   }))
 }
 
@@ -83,11 +93,22 @@ const applyCategoryChange = (
     return
   }
   const nextCategories = Array.isArray(changes.parentCategories.newValue)
-    ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      (changes.parentCategories.newValue as ParentCategory[])
+    ? fromStorageChange(
+        z.array(ParentCategorySchema),
+        changes.parentCategories.newValue,
+      )
     : []
   setCategories(nextCategories)
 }
+
+const toCustomProject = (
+  p: z.output<typeof CustomProjectSchema>,
+): CustomProject => ({
+  ...p,
+  categories: p.categories ?? [],
+  createdAt: p.createdAt ?? 0,
+  updatedAt: p.updatedAt ?? 0,
+})
 
 const applyProjectChange = (
   changes: Record<string, chrome.storage.StorageChange>,
@@ -106,14 +127,18 @@ const applyProjectChange = (
   let nextCustomProjects: CustomProject[] | null = null
   if (hasProjectsChange) {
     nextCustomProjects = Array.isArray(changes.customProjects?.newValue)
-      ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        (changes.customProjects.newValue as CustomProject[])
+      ? fromStorageChange(
+          z.array(CustomProjectSchema),
+          changes.customProjects.newValue,
+        ).map(toCustomProject)
       : []
   }
   const nextProjectOrder =
     hasOrderChange && Array.isArray(changes.customProjectOrder?.newValue)
-      ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        (changes.customProjectOrder.newValue as string[])
+      ? fromStorageChange(
+          z.array(z.string()),
+          changes.customProjectOrder.newValue,
+        )
       : null
 
   setCustomProjects((prevProjects) => {
@@ -145,7 +170,9 @@ const areStringArraysEqual = (a?: string[], b?: string[]): boolean => {
   return true
 }
 
-// eslint-disable-next-line eslint/complexity
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+
 const isPlainObjectEqual = (
   a?: Record<string, unknown>,
   b?: Record<string, unknown>,
@@ -163,22 +190,8 @@ const isPlainObjectEqual = (
     }
     const leftValue = left[key]
     const rightValue = right[key]
-    if (
-      leftValue &&
-      typeof leftValue === 'object' &&
-      !Array.isArray(leftValue) &&
-      rightValue &&
-      typeof rightValue === 'object' &&
-      !Array.isArray(rightValue)
-    ) {
-      if (
-        !isPlainObjectEqual(
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          leftValue as Record<string, unknown>,
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          rightValue as Record<string, unknown>,
-        )
-      ) {
+    if (isRecord(leftValue) && isRecord(rightValue)) {
+      if (!isPlainObjectEqual(leftValue, rightValue)) {
         return false
       }
       continue
@@ -198,16 +211,8 @@ const areProjectsEqual = (a: CustomProject, b: CustomProject): boolean =>
   areStringArraysEqual(a.urlIds, b.urlIds) &&
   areStringArraysEqual(a.categories, b.categories) &&
   areStringArraysEqual(a.categoryOrder, b.categoryOrder) &&
-  isPlainObjectEqual(
-    a.urlMetadata as Record<string, unknown> | undefined,
-    b.urlMetadata as Record<string, unknown> | undefined,
-  ) &&
-  isPlainObjectEqual(
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    a.urls as unknown as Record<string, unknown> | undefined,
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    b.urls as unknown as Record<string, unknown> | undefined,
-  )
+  isPlainObjectEqual(a.urlMetadata, b.urlMetadata) &&
+  JSON.stringify(a.urls) === JSON.stringify(b.urls)
 
 const mergeProjectReferences = (
   prevProjects: CustomProject[],
@@ -273,8 +278,7 @@ const applyTabsAndUrlsChanges = async (
 
   if (hasSavedTabsChange) {
     const nextSavedTabs = Array.isArray(changes.savedTabs.newValue)
-      ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        (changes.savedTabs.newValue as TabGroup[])
+      ? fromStorageChange(z.array(TabGroupSchema), changes.savedTabs.newValue)
       : []
     await refreshTabGroupsWithUrls(nextSavedTabs)
     await syncDomainDataToCustomProjects()

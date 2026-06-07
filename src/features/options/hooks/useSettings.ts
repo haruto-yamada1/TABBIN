@@ -10,6 +10,7 @@ import {
   getUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
+import { fromStorageChange, UserSettingsSchema } from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 const normalizeExcludePattern = (pattern: string) => pattern.trim()
@@ -116,8 +117,7 @@ export const useSettings = () => {
       if (areaName === 'local' && changes.userSettings) {
         if (changes.userSettings.newValue) {
           // NewValue は完全な UserSettings オブジェクトであると期待
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          const nextSettings = changes.userSettings.newValue as UserSettings
+          const nextSettings = fromStorageChange(UserSettingsSchema, changes.userSettings.newValue)
           persistedSettingsRef.current = nextSettings
           setSettings(nextSettings)
         } else {

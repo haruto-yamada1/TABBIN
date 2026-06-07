@@ -131,8 +131,9 @@ const createChartPointClickHandler = ({
     }
 
     const labelKey = spec.categoryKey || spec.xKey || 'label' // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const record = datum as Record<string, unknown>
+    const record: Record<string, unknown> = Object.fromEntries(
+      Object.entries(datum),
+    )
     const labelValue = record[labelKey]
     const value = record[series.dataKey]
 

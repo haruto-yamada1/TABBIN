@@ -10,11 +10,6 @@ import {
 } from '@/lib/browser/chrome-storage'
 import type { UserSettings } from '@/types/storage'
 
-type LegacyUserSettings = UserSettings & {
-  aiChatEnabled?: boolean
-  aiProvider?: 'none' | 'ollama'
-}
-
 const DEFAULT_EXCLUDE_PATTERNS = [
   'about:',
   'chrome-extension://',
@@ -22,19 +17,22 @@ const DEFAULT_EXCLUDE_PATTERNS = [
 ] as const
 
 const stripLegacyUserSettings = (
-  settings: LegacyUserSettings,
-): UserSettings => {
-  const {
-    aiChatEnabled: _aiChatEnabled,
-    aiProvider: _aiProvider,
-    ...rest
-  } = settings
+  settings: unknown,
+): Partial<UserSettings> => {
+  if (typeof settings !== 'object' || settings === null) {
+    return defaultSettings
+  }
+  const { aiChatEnabled: _ae, aiProvider: _ap, ...rest } =
+    // OK: chrome.storage.local.get always returns object; safe after runtime type guard
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
+    settings as Record<string, unknown>
   return rest
 }
 
-const hasLegacyUserSettingsKeys = (
-  settings: Record<string, unknown>,
-): boolean => 'aiChatEnabled' in settings || 'aiProvider' in settings
+const hasLegacyUserSettingsKeys = (settings: unknown): boolean =>
+  typeof settings === 'object' &&
+  settings !== null &&
+  ('aiChatEnabled' in settings || 'aiProvider' in settings)
 const mergeExcludePatterns = (
   excludePatterns: string[] | undefined,
 ): string[] => {
@@ -53,10 +51,15 @@ const mergeExcludePatterns = (
   return [...mergedPatterns]
 }
 
-const mergeStoredUserSettings = (settings: UserSettings): UserSettings => ({
-  ...settings,
-  excludePatterns: mergeExcludePatterns(settings.excludePatterns),
-})
+const mergeStoredUserSettings = (
+  settings: Partial<UserSettings>,
+): UserSettings =>
+  // OK: callers always spread result with defaultSettings which provides all required fields
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
+  ({
+    ...settings,
+    excludePatterns: mergeExcludePatterns(settings.excludePatterns),
+  }) as UserSettings
 
 // デフォルト設定
 export const defaultSettings: UserSettings = {
@@ -113,8 +116,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     if (data.userSettings) {
       console.log('保存された設定を使用:', data.userSettings)
       const sanitizedStoredSettings = stripLegacyUserSettings(
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        data.userSettings as LegacyUserSettings,
+        data.userSettings,
       )
       const mergedStoredSettings = mergeStoredUserSettings(
         sanitizedStoredSettings,
@@ -124,9 +126,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
         ...mergedStoredSettings,
       })
       if (
-        hasLegacyUserSettingsKeys(
-          data.userSettings as unknown as Record<string, unknown>, // eslint-disable-line typescript/no-unsafe-type-assertion
-        ) ||
+        hasLegacyUserSettingsKeys(data.userSettings) ||
         JSON.stringify(sanitizedStoredSettings.excludePatterns ?? []) !==
           JSON.stringify(mergedStoredSettings.excludePatterns)
       ) {

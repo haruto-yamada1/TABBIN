@@ -58,8 +58,10 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
 
   return {
     existingUrls: Array.isArray(existingUrlsResult.urls)
-      ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        (existingUrlsResult.urls as UrlRecord[]) // eslint-disable-line typescript/no-unnecessary-type-assertion
+      ? existingUrlsResult.urls.filter(
+          (item): item is UrlRecord =>
+            typeof item === 'object' && item !== null && 'id' in item && 'url' in item,
+        )
       : [],
     savedTabs: Array.isArray(savedTabsResult.savedTabs)
       ? savedTabsResult.savedTabs

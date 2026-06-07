@@ -38,14 +38,14 @@ export default {
 } satisfies Meta<typeof Canvas>
 
 type Story = StoryObj<typeof Canvas>
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-const PreviewConnection = Connection as unknown as (
-  props: Record<string, unknown>,
-) => ReactElement
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-const TemporaryEdge = Edge.Temporary as unknown as (
-  props: Record<string, unknown>,
-) => ReactElement
+const PreviewConnection = (props: Record<string, unknown>): ReactElement => {
+  // @ts-expect-error - storybook passes arbitrary connection props
+  return <Connection {...props} />
+}
+const TemporaryEdge = (props: Record<string, unknown>): ReactElement => {
+  // @ts-expect-error - storybook passes arbitrary edge props
+  return <Edge.Temporary {...props} />
+}
 
 const FlowCard = ({
   data,

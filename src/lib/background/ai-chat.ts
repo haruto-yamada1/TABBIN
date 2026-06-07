@@ -17,6 +17,7 @@ import type {
   AiSavedUrlRecord,
 } from '@/features/ai-chat/types'
 import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+
 import type { AppLanguage } from '@/features/i18n/messages'
 import { getParentCategories } from '@/lib/storage/categories'
 import { getCustomProjects } from '@/lib/storage/projects'
@@ -29,6 +30,15 @@ import { createAiChatTools } from './ai-chat-tools'
 
 const HTTP_FORBIDDEN = 403
 const MAX_AI_CHAT_STEPS = 5
+
+const parseRecord = (v: unknown): Record<string, unknown> => {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+    return {}
+  }
+  // OK: structuredClone preserves 'object' type; narrow to Record<string, unknown> after runtime type guard
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
+  return structuredClone(v) as Record<string, unknown>
+}
 
 interface OllamaModelOption {
   name: string
@@ -264,8 +274,7 @@ const getStringValue = (
 }
 
 const getToolTitle = (toolName: string): string =>
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  AI_CHAT_TOOL_TITLES[toolName as keyof typeof AI_CHAT_TOOL_TITLES] || toolName
+  AI_CHAT_TOOL_TITLES[toolName] || toolName
 
 const getToolResultCount = (output: unknown): number | null => {
   if (Array.isArray(output)) {
@@ -275,10 +284,10 @@ const getToolResultCount = (output: unknown): number | null => {
   if (
     output &&
     typeof output === 'object' &&
-    Array.isArray((output as { items?: unknown[] }).items)
+    'items' in output &&
+    Array.isArray(output.items)
   ) {
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    return (output as { items: unknown[] }).items.length
+    return output.items.length
   }
 
   return null
@@ -571,8 +580,7 @@ const listLocalOllamaModels = async (
     throw new Error('Failed to fetch Ollama models')
   }
 
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  const payload = (await response.json()) as Record<string, unknown>
+  const payload = parseRecord(await response.json())
   const models = Array.isArray(payload.models) ? payload.models : []
 
   return models.flatMap((model) => {
@@ -580,8 +588,7 @@ const listLocalOllamaModels = async (
       return []
     }
 
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const modelRecord = model as Record<string, unknown>
+    const modelRecord = parseRecord(model)
     const name = getStringValue(modelRecord, 'name')
     if (!name) {
       return []
@@ -590,8 +597,7 @@ const listLocalOllamaModels = async (
     const modifiedAt = getStringValue(modelRecord, 'modified_at')
     const details =
       modelRecord.details && typeof modelRecord.details === 'object'
-        ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          (modelRecord.details as Record<string, unknown>)
+        ? parseRecord(modelRecord.details)
         : null
     const parameterSize = details
       ? getStringValue(details, 'parameter_size')

@@ -153,9 +153,12 @@ const loadConversationHistory = async (
     AI_CHAT_CONVERSATIONS_KEY,
   ])
 
-  const conversations = Array.isArray(stored[AI_CHAT_CONVERSATIONS_KEY])
-    ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      (stored[AI_CHAT_CONVERSATIONS_KEY] as AiChatConversation[])
+  const rawConversations = stored[AI_CHAT_CONVERSATIONS_KEY]
+  const conversations: AiChatConversation[] = Array.isArray(rawConversations)
+    ? rawConversations.filter(
+        (item): item is AiChatConversation =>
+          typeof item === 'object' && item !== null && 'id' in item,
+      )
     : []
 
   if (conversations.length === 0) {

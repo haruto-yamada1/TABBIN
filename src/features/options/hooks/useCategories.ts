@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import { fromStorageChange, ParentCategorySchema } from '@/lib/storage/zod-storage'
 import type { AppLanguage } from '@/features/i18n/messages'
 import {
   getChromeStorageOnChanged,
@@ -62,11 +63,9 @@ export const useCategories = () => {
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.parentCategories) {
-        const nextParentCategories = Array.isArray(
-          changes.parentCategories.newValue,
-        )
-          ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-            (changes.parentCategories.newValue as ParentCategory[])
+        const raw = changes.parentCategories.newValue
+        const nextParentCategories = Array.isArray(raw)
+          ? fromStorageChange(z.array(ParentCategorySchema), raw)
           : []
         setCategoryState((prev) => ({
           ...prev,

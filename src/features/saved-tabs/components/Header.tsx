@@ -101,8 +101,10 @@ export const Header = ({
 
     const isComposing =
       event.nativeEvent.isComposing ||
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing -- isComposing is boolean; false should not fall through
-      (event as unknown as { isComposing?: boolean }).isComposing || // eslint-disable-line typescript/no-unsafe-type-assertion
+      (typeof event === 'object' &&
+        event !== null &&
+        'isComposing' in event &&
+        Boolean((event as { isComposing?: unknown }).isComposing)) ||
       false
     if (isComposing) {
       return

@@ -24,7 +24,7 @@ const THREE_HUNDRED_SIXTY_FIVE_DAYS_VALUE = 365
 const TIMESTAMP_OFFSET_30_SEC = 40
 const TIMESTAMP_OFFSET_1_MIN = 70
 
-const AUTO_DELETE_PERIODS = new Set<AutoDeletePeriod>([
+const AUTO_DELETE_PERIODS = new Set<string>([
   'never',
   '30sec',
   '1min',
@@ -39,8 +39,7 @@ const AUTO_DELETE_PERIODS = new Set<AutoDeletePeriod>([
 export const isAutoDeletePeriod = (
   period: string,
 ): period is AutoDeletePeriod => {
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return AUTO_DELETE_PERIODS.has(period as AutoDeletePeriod)
+  return AUTO_DELETE_PERIODS.has(period)
 }
 /**
  * 期限の文字列を対応するミリ秒に変換
@@ -116,8 +115,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 
     // 期限をミリ秒で計算
     // "never" と無効値は上で除外済みのため、ここでは null にならない想定
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const expirationPeriod = getExpirationPeriodMs(autoDeletePeriod) as number
+    const expirationPeriod = getExpirationPeriodMs(autoDeletePeriod) ?? 0
     const currentTime = Date.now()
     const cutoffTime = currentTime - expirationPeriod
     console.log(`現在時刻: ${new Date(currentTime).toLocaleString()}`)

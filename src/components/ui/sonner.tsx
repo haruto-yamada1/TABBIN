@@ -4,11 +4,14 @@ import { Toaster as Sonner } from 'sonner'
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
+  const sonnerTheme: 'light' | 'dark' | 'system' | undefined =
+    theme === 'light' || theme === 'dark' || theme === 'system'
+      ? theme
+      : 'system'
 
   return (
     <Sonner
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      theme={theme as ToasterProps['theme']}
+      theme={sonnerTheme}
       className='toaster group'
       // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       toastOptions={{

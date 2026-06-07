@@ -72,8 +72,7 @@ function InputGroupAddon({
       className={cn(inputGroupAddonVariants({ align }), className)}
       // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onClick={(e) => {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        if ((e.target as HTMLElement).closest('button')) {
+        if (e.target instanceof HTMLElement && e.target.closest('button')) {
           return
         }
         e.currentTarget.parentElement?.querySelector('input')?.focus()
@@ -83,8 +82,7 @@ function InputGroupAddon({
         if (e.key !== 'Enter' && e.key !== ' ') {
           return
         }
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        if ((e.target as HTMLElement).closest('button')) {
+        if (e.target instanceof HTMLElement && e.target.closest('button')) {
           return
         }
         e.preventDefault()

@@ -113,8 +113,20 @@ const DataSurfaces = () => (
         <Context
           maxTokens={128_000}
           modelId='openai/gpt-4.1-mini'
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          usage={{ inputTokens: 8200, outputTokens: 1200 } as never}
+          usage={{
+            inputTokens: 8200,
+            inputTokenDetails: {
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+              noCacheTokens: undefined,
+            },
+            outputTokens: 1200,
+            outputTokenDetails: {
+              reasoningTokens: undefined,
+              textTokens: undefined,
+            },
+            totalTokens: 9400,
+          }}
           usedTokens={18_400}
         >
           <ContextTrigger />

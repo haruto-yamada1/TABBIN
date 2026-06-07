@@ -4,14 +4,13 @@ export const MAX_FONT_SIZE_PERCENT = 500
 export const FONT_SIZE_PERCENT_STEP = 1
 
 export const normalizeFontSizePercent = (value?: number): number => {
-  if (!Number.isFinite(value)) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
     return DEFAULT_FONT_SIZE_PERCENT
   }
 
   return Math.min(
     MAX_FONT_SIZE_PERCENT,
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    Math.max(MIN_FONT_SIZE_PERCENT, Math.round(value as number)),
+    Math.max(MIN_FONT_SIZE_PERCENT, Math.round(value)),
   )
 }
 

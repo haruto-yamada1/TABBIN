@@ -169,8 +169,7 @@ ${Object.entries(config)
       return items
     }
     const color =
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing -- theme color could be empty string
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || // eslint-disable-line typescript/no-unsafe-type-assertion
+      (itemConfig.theme as Record<string, string> | undefined)?.[theme] ??
       itemConfig.color
 
     if (color) {
@@ -217,13 +216,11 @@ const TooltipIndicator = ({
   indicatorColor?: string
   nestLabel: boolean
 }) => {
-  const indicatorStyle = React.useMemo(
-    () =>
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      ({
-        '--color-bg': indicatorColor,
-        '--color-border': indicatorColor,
-      }) as React.CSSProperties,
+  const indicatorStyle: React.CSSProperties & Record<string, string | undefined> = React.useMemo(
+    () => ({
+      '--color-bg': indicatorColor,
+      '--color-border': indicatorColor,
+    }),
     [indicatorColor],
   )
 
@@ -477,6 +474,15 @@ const ChartLegendContent = ({
 }
 ChartLegendContent.displayName = 'ChartLegend'
 
+const getPayloadStringValue = (obj: object, key: string): string | undefined => {
+  const entry = Object.entries(obj).find(([k]) => k === key)
+  if (entry) {
+    const value: unknown = entry[1]
+    return typeof value === 'string' ? value : undefined
+  }
+  return undefined
+}
+
 // Helper to extract item config from a payload.
 function getPayloadConfigFromPayload(
   config: ChartConfig,
@@ -496,23 +502,14 @@ function getPayloadConfigFromPayload(
 
   let configLabelKey: string = key
 
-  if (
-    key in payload &&
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    typeof payload[key as keyof typeof payload] === 'string'
-  ) {
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    configLabelKey = payload[key as keyof typeof payload] as string
-  } else if (
-    payloadPayload &&
-    key in payloadPayload &&
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    typeof payloadPayload[key as keyof typeof payloadPayload] === 'string'
-  ) {
-    configLabelKey = payloadPayload[
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      key as keyof typeof payloadPayload
-    ] as string
+  const payloadValue = getPayloadStringValue(payload, key)
+  if (payloadValue !== undefined) {
+    configLabelKey = payloadValue
+  } else if (payloadPayload) {
+    const nestedValue = getPayloadStringValue(payloadPayload, key)
+    if (nestedValue !== undefined) {
+      configLabelKey = nestedValue
+    }
   }
 
   return configLabelKey in config ? config[configLabelKey] : config[key]

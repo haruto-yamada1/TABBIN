@@ -451,25 +451,18 @@ const normalizeCategoryKeywords = (
   }
   return keywords.reduce<SubCategoryKeyword[]>((items, k) => {
     if (
-      !(
-        typeof k === 'object' &&
-        k !== null &&
-        'categoryName' in k &&
-        typeof k.categoryName === 'string'
-      )
+      typeof k !== 'object' ||
+      k === null ||
+      !('categoryName' in k) ||
+      typeof k.categoryName !== 'string'
     ) {
       return items
     }
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const keywordData = k as {
-      categoryName: string
-      keywords?: unknown
-    }
-    items.push({
-      categoryName: k.categoryName,
-      // eslint-disable-next-line typescript/no-unsafe-assignment
-      keywords: Array.isArray(keywordData.keywords) ? keywordData.keywords : [],
-    })
+      const kKeywords: unknown = 'keywords' in k ? k.keywords : undefined
+      items.push({
+        categoryName: k.categoryName,
+        keywords: Array.isArray(kKeywords) ? kKeywords.filter((k): k is string => typeof k === 'string') : [],
+      })
     return items
   }, [])
 }
@@ -1608,8 +1601,9 @@ const parseBackupData = (jsonData: string): BackupData | null => {
     console.error('バリデーションエラー:', validationResult.error)
     return null
   }
+  // OK: backupDataSchema validates subset of BackupData; import merge fills remaining fields from current settings
   // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return validationResult.data as BackupData
+  return structuredClone(validationResult.data) as BackupData
 }
 const createImportedUrlRecordMap = (
   importedData: BackupData,

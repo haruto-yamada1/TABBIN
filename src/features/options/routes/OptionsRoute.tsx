@@ -27,6 +27,8 @@ import {
   MIN_FONT_SIZE_PERCENT,
   normalizeFontSizePercent,
 } from '@/constants/fontSize'
+import { z } from 'zod'
+
 import { LanguageSelect } from '@/features/i18n/components/LanguageSelect'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { useColorSettings } from '@/features/options/hooks/useColorSettings'
@@ -172,8 +174,17 @@ const useOptionsRouteView = () => {
 
   // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleClickBehaviorChange = async (value: string) => {
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    await updateSetting('clickBehavior', value as UserSettings['clickBehavior'])
+    await updateSetting(
+      'clickBehavior',
+      z
+        .enum([
+          'saveCurrentTab',
+          'saveWindowTabs',
+          'saveSameDomainTabs',
+          'saveAllWindowsTabs',
+        ])
+        .parse(value),
+    )
   }
 
   // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop

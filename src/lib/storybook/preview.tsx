@@ -77,10 +77,16 @@ const StorybookTestHarness = ({
   )
 }
 
+const isStoryTheme = (value: string): value is StoryTheme =>
+  value === 'dark' || value === 'light' || value === 'system' || value === 'user'
+
 const withAppShell: Decorator = (Story, context) => {
   const parameters = context.parameters as StorybookParameters
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  const theme = (context.globals.theme as StoryTheme | undefined) ?? 'light'
+  const rawTheme: unknown = context.globals.theme
+  const theme =
+    typeof rawTheme === 'string' && isStoryTheme(rawTheme)
+      ? rawTheme
+      : 'light'
 
   return (
     <StorybookTestHarness storage={parameters.storybook?.storage} theme={theme}>

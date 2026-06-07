@@ -18,6 +18,7 @@ import {
   getUrlRecordsByIds,
   saveUrlRecords,
 } from './urls'
+import { CustomProjectSchema } from './zod-storage'
 
 const CUSTOM_UNCATEGORIZED_PROJECT_ID = 'custom-uncategorized'
 const CUSTOM_UNCATEGORIZED_PROJECT_NAME = '未分類'
@@ -81,28 +82,20 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
         return []
       }
 
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      const validProject = project as CustomProject
-      // 新形式のURLIDsが存在しない場合は初期化
-      if (!(validProject.urlIds && Array.isArray(validProject.urlIds))) {
-        validProject.urlIds = []
-      }
-      validProject.projectKeywords = normalizeProjectKeywords(
-        validProject.projectKeywords,
-      )
-
-      // 必須フィールドの確認と修正
-      if (
-        !(validProject.categories && Array.isArray(validProject.categories))
-      ) {
-        validProject.categories = []
-      }
-      if (!validProject.updatedAt) {
-        validProject.updatedAt = Date.now()
-      }
-      if (!validProject.createdAt) {
-        validProject.createdAt = Date.now()
-      }
+      const base = CustomProjectSchema.parse(project)
+      const validProject = {
+        id: base.id,
+        name: base.name,
+        urlIds: base.urlIds ?? [],
+        projectKeywords: normalizeProjectKeywords(base.projectKeywords),
+        categories: base.categories ?? [],
+        createdAt: base.createdAt ?? Date.now(),
+        updatedAt: base.updatedAt ?? Date.now(),
+        urls: base.urls,
+        urlMetadata: base.urlMetadata,
+        categoryOrder: base.categoryOrder,
+      } satisfies CustomProject
+      Object.assign(project, validProject)
       return [validProject]
     })
     if (validProjects.length !== customProjects.length) {
@@ -271,8 +264,7 @@ const addUrlsToUncategorizedProject = async (
   }
 
   const targetProject = projects[targetIndex]
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  const targetUrlIds = targetProject.urlIds as string[]
+  const targetUrlIds = targetProject.urlIds ?? []
   const urlIdSet = new Set(targetUrlIds)
   const now = Date.now()
   const urlRecords = await getUrlRecords()
@@ -337,8 +329,8 @@ const getCustomProjectOrder = async (): Promise<string[]> => {
     : []
 }
 const addUrlIdToProject = (project: CustomProject, urlId: string): boolean => {
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  const urlIds = project.urlIds as string[]
+  project.urlIds ??= []
+  const urlIds = project.urlIds
   if (urlIds.includes(urlId)) {
     return false
   }
@@ -393,10 +385,7 @@ const setProjectUrlMetadata = (
   if (!(notes || category)) {
     return
   }
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  if (!project.urlMetadata) {
-    project.urlMetadata = {}
-  }
+  project.urlMetadata ??= {}
   project.urlMetadata[urlId] = {
     category,
     notes,
@@ -407,10 +396,7 @@ const getDomainFromUrl = (url: string): string => {
   return `${urlObj.protocol}//${urlObj.hostname}`
 }
 const ensureUrlIdInGroup = (group: TabGroup, urlId: string): TabGroup => {
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  if (!group.urlIds) {
-    group.urlIds = []
-  }
+  group.urlIds ??= []
   if (!group.urlIds.includes(urlId)) {
     group.urlIds.push(urlId)
   }
@@ -858,13 +844,8 @@ const ensureProjectMetadataEntry = (
   project: CustomProject,
   urlId: string,
 ): void => {
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  if (!project.urlMetadata) {
-    project.urlMetadata = {}
-  }
-  if (!project.urlMetadata[urlId]) {
-    project.urlMetadata[urlId] = {}
-  }
+  project.urlMetadata ??= {}
+  project.urlMetadata[urlId] ??= {}
 }
 
 const mergeUrlsIntoUncategorized = (
@@ -874,8 +855,8 @@ const mergeUrlsIntoUncategorized = (
   if (!(projectToDelete.urlIds && projectToDelete.urlIds.length > 0)) {
     return
   }
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  const uncategorizedUrlIds = uncategorizedProject.urlIds as string[]
+  uncategorizedProject.urlIds ??= []
+  const uncategorizedUrlIds = uncategorizedProject.urlIds
   const targetUrlSet = new Set(uncategorizedUrlIds)
   for (const urlId of projectToDelete.urlIds) {
     if (targetUrlSet.has(urlId)) {
@@ -1050,10 +1031,7 @@ const setUrlCategory = async (
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      if (!project.urlMetadata) {
-        project.urlMetadata = {}
-      }
+  project.urlMetadata ??= {}
       if (!project.urlMetadata[urlRecord.id]) {
         project.urlMetadata[urlRecord.id] = {}
       }
@@ -1158,8 +1136,8 @@ const moveUrlBetweenCustomProjects = async (
   }
 
   const urlId = urlRecord.id
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  const targetUrlIds = targetProject.urlIds as string[]
+  targetProject.urlIds ??= []
+  const targetUrlIds = targetProject.urlIds
   if (targetUrlIds.includes(urlId)) {
     throw new Error('URL already exists in target project')
   }
@@ -1173,10 +1151,7 @@ const moveUrlBetweenCustomProjects = async (
     delete sourceProject.urlMetadata[urlId]
   }
   if (sourceMetadata?.notes) {
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    if (!targetProject.urlMetadata) {
-      targetProject.urlMetadata = {}
-    }
+    targetProject.urlMetadata ??= {}
     targetProject.urlMetadata[urlId] = {
       notes: sourceMetadata.notes,
     }

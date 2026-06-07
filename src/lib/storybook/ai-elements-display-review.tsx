@@ -1,4 +1,4 @@
-/* eslint-disable typescript/no-unsafe-type-assertion */
+import { jsonSchema } from 'ai'
 import type { Tool as AiTool } from 'ai'
 import { Copy, ExternalLink } from 'lucide-react'
 
@@ -63,18 +63,17 @@ import {
 const samplePng =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP7m8kG6QAAAABJRU5ErkJggg=='
 
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
 const sampleTool = {
   description: 'Cluster tabs by project and urgency',
-  inputSchema: {
+  inputSchema: jsonSchema({
     properties: {
       includeArchived: { type: 'boolean' },
       projectId: { type: 'string' },
     },
     required: ['projectId'],
     type: 'object',
-  },
-} as unknown as AiTool
+  }),
+} satisfies AiTool
 
 const sampleAttachment = {
   filename: 'review.png',
@@ -88,6 +87,7 @@ const sampleSource = {
   filename: 'migration-guide.md',
   id: 'source-1',
   mediaType: 'text/markdown',
+  sourceId: 'source-1',
   title: 'Migration guide',
   type: 'source-document',
   url: 'https://tabbin.app/docs/migration',
@@ -207,9 +207,8 @@ const ReviewArtifacts = () => (
         </Attachments>
 
         <Attachments variant='list'>
-          <Attachment data={sampleSource as never}>
-            {' '}
-            {/* eslint-disable-line typescript/no-unsafe-type-assertion */}
+          <Attachment data={sampleSource}>
+            
             <AttachmentPreview />
             <AttachmentInfo showMediaType />
           </Attachment>
@@ -234,18 +233,15 @@ const ReviewArtifacts = () => (
           currentTime={4}
           // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onSeek={() => undefined}
-          segments={
-            // eslint-disable-next-line typescript/no-unsafe-type-assertion
-            [
-              { endSecond: 2, startSecond: 0, text: 'Pinned tabs grouped.' },
-              { endSecond: 5, startSecond: 2, text: 'Cleanup draft prepared.' },
-              {
-                endSecond: 8,
-                startSecond: 5,
-                text: 'Export ready for review.',
-              },
-            ] as never
-          }
+          segments={[
+            { endSecond: 2, startSecond: 0, text: 'Pinned tabs grouped.' },
+            { endSecond: 5, startSecond: 2, text: 'Cleanup draft prepared.' },
+            {
+              endSecond: 8,
+              startSecond: 5,
+              text: 'Export ready for review.',
+            },
+          ]}
         >
           {(segment, index) => (
             <TranscriptionSegment index={index} segment={segment} />

@@ -123,8 +123,10 @@ export const MicSelectorTrigger = ({
     // Create a ResizeObserver to detect width changes
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const newWidth = (entry.target as HTMLElement).offsetWidth
+        if (!(entry.target instanceof HTMLElement)) {
+          continue
+        }
+        const newWidth = entry.target.offsetWidth
         if (newWidth) {
           setWidth?.(newWidth)
         }

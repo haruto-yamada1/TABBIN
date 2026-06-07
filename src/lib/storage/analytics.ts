@@ -41,9 +41,12 @@ const loadSavedAnalyticsViews = async (): Promise<SavedAnalyticsView[]> => {
   }
 
   const stored = await storageLocal.get(SAVED_ANALYTICS_VIEWS_KEY)
-  return Array.isArray(stored[SAVED_ANALYTICS_VIEWS_KEY])
-    ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      (stored[SAVED_ANALYTICS_VIEWS_KEY] as SavedAnalyticsView[])
+  const rawViews = stored[SAVED_ANALYTICS_VIEWS_KEY]
+  return Array.isArray(rawViews)
+    ? rawViews.filter(
+        (item): item is SavedAnalyticsView =>
+          typeof item === 'object' && item !== null && 'id' in item && 'name' in item,
+      )
     : []
 }
 

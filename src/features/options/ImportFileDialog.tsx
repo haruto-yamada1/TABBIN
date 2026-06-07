@@ -306,8 +306,8 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onload = (event) => {
         try {
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          const content = event.target?.result as string
+          const fileResult = event.target?.result
+          const content = typeof fileResult === 'string' ? fileResult : ''
           if (!content) {
             toast.error(t('options.importExport.readError'))
             return
@@ -370,8 +370,8 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onload = async (event) => {
         try {
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          const content = event.target?.result as string
+          const fileResult = event.target?.result
+          const content = typeof fileResult === 'string' ? fileResult : ''
           if (!content) {
             toast.error(t('options.importExport.readError'))
             return

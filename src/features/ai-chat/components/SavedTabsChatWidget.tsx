@@ -1,4 +1,4 @@
-/* eslint-disable typescript/no-unsafe-type-assertion , react-perf/jsx-no-new-function-as-prop, react-perf/jsx-no-new-object-as-prop */
+/* eslint-disable react-perf/jsx-no-new-function-as-prop, react-perf/jsx-no-new-object-as-prop */
 import {
   Check,
   ChevronDown,
@@ -136,8 +136,21 @@ import type {
 } from '@/types/background'
 import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
+import { UserSettingsSchema, fromStorageChange } from '@/lib/storage/zod-storage'
 
 type ChatMessage = AiChatConversationMessage
+
+function isAiChatResponse(value: unknown): value is AiChatResponse {
+  return typeof value === 'object' && value !== null && 'status' in value
+}
+
+function isOllamaModelListResponse(value: unknown): value is OllamaModelListResponse {
+  return typeof value === 'object' && value !== null && 'status' in value
+}
+
+function isAiChatStreamServerMessage(value: unknown): value is AiChatStreamServerMessage {
+  return typeof value === 'object' && value !== null && 'type' in value
+}
 
 interface ChatMessageSource {
   title: string
@@ -536,22 +549,24 @@ const requestAssistantAnswer = async (
   history: Pick<ChatMessage, 'attachments' | 'content' | 'role'>[],
   prompt: string,
   attachments: AiChatAttachment[] = [],
-): Promise<AiChatResponse | undefined> =>
-  (await sendRuntimeMessage({
-    // eslint-disable-line typescript/no-unsafe-type-assertion
+): Promise<AiChatResponse | undefined> => {
+  const response = await sendRuntimeMessage({
     action: 'runAiChat',
     history,
     prompt,
     ...(attachments.length > 0 ? { attachments } : {}),
-  })) as AiChatResponse | undefined
+  })
+  return isAiChatResponse(response) ? response : undefined
+}
 
 const requestOllamaModels = async (): Promise<
   OllamaModelListResponse | undefined
-> =>
-  (await sendRuntimeMessage({
-    // eslint-disable-line typescript/no-unsafe-type-assertion
+> => {
+  const response = await sendRuntimeMessage({
     action: 'listOllamaModels',
-  })) as OllamaModelListResponse | undefined
+  })
+  return isOllamaModelListResponse(response) ? response : undefined
+}
 
 const createInitialStreamingReasoning = (
   prompt: string,
@@ -596,17 +611,24 @@ const areMessagesEquivalent = (
   right: ChatMessage[],
 ): boolean => JSON.stringify(left) === JSON.stringify(right)
 
+function tryGetItemsArray(value: object): unknown[] | undefined {
+  const desc = Object.getOwnPropertyDescriptor(value, 'items')
+  if (!desc) {
+    return undefined
+  }
+  return Array.isArray(desc.value) ? desc.value : undefined
+}
+
 const getSourceItems = (output: unknown): ChatMessageSource[] => {
   let items: unknown[] = []
 
   if (Array.isArray(output)) {
     items = output
-  } else if (
-    output &&
-    typeof output === 'object' &&
-    Array.isArray((output as { items?: unknown[] }).items)
-  ) {
-    ;({ items } = output as { items: unknown[] }) // eslint-disable-line typescript/no-unsafe-type-assertion
+  } else if (typeof output === 'object' && output !== null) {
+    const extracted = tryGetItemsArray(output)
+    if (extracted) {
+      items = extracted
+    }
   }
 
   return items.flatMap((item) => {
@@ -652,12 +674,9 @@ const getMessageSources = (
 
 const requestPromptSubmit = (textarea: HTMLTextAreaElement) => {
   const { form } = textarea
-  const submitButton = form?.querySelector(
-    // eslint-disable-line typescript/no-unsafe-type-assertion
-    'button[type="submit"]',
-  ) as HTMLButtonElement | null
+  const submitButton = form?.querySelector('button[type="submit"]')
 
-  if (submitButton?.disabled) {
+  if (!(submitButton instanceof HTMLButtonElement) || submitButton.disabled) {
     return
   }
 
@@ -2064,7 +2083,7 @@ const useSavedTabsChatWidgetView = ({
       }
 
       setSettings(
-        (changes.userSettings.newValue as UserSettings) ?? defaultSettings, // eslint-disable-line typescript/no-unsafe-type-assertion
+        fromStorageChange(UserSettingsSchema, changes.userSettings.newValue) ?? defaultSettings,
       )
     }
 
@@ -2614,7 +2633,11 @@ const useSavedTabsChatWidgetView = ({
       return false
     }
 
-    const streamMessage = message as AiChatStreamServerMessage // eslint-disable-line typescript/no-unsafe-type-assertion
+    if (!isAiChatStreamServerMessage(message)) {
+      return false
+    }
+
+    const streamMessage: AiChatStreamServerMessage = message
 
     if (streamMessage.type === 'step') {
       handleStreamStep(assistantMessageId, streamMessage)

@@ -94,6 +94,38 @@ const isAnalyticsQuery = (value: unknown): value is AnalyticsQuery => {
   )
 }
 
+const parseGroupBy = (value: string): AnalyticsQuery['groupBy'] => {
+  switch (value) {
+    case 'domain':
+    case 'parentCategory':
+    case 'project':
+    case 'projectCategory':
+    case 'subCategory':
+    case 'timeRecent':
+    case 'timeTop': {
+      return value
+    }
+    default: {
+      return 'domain'
+    }
+  }
+}
+
+const parseChartType = (value: string): AnalyticsQuery['chartType'] => {
+  switch (value) {
+    case 'area':
+    case 'bar':
+    case 'line':
+    case 'pie':
+    case 'radar': {
+      return value
+    }
+    default: {
+      return 'bar'
+    }
+  }
+}
+
 const getLatestAnalyticsQuery = (
   toolTraces: AiChatToolTrace[] | undefined,
 ): AnalyticsQuery | null => {
@@ -106,16 +138,10 @@ const getLatestAnalyticsQuery = (
       continue
     }
 
-    const output =
-      toolTrace.output && typeof toolTrace.output === 'object'
-        ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          (toolTrace.output as Record<string, unknown>)
-        : null
-    if (!output) {
-      continue
-    }
-
-    const { query } = output
+    const query =
+      toolTrace.output && typeof toolTrace.output === 'object' && 'query' in toolTrace.output
+        ? toolTrace.output.query
+        : undefined
     if (isAnalyticsQuery(query)) {
       return query
     }
@@ -1077,8 +1103,7 @@ const useAnalyticsRouteView = () => {
                           onValueChange={(value) => {
                             applyQuery({
                               ...query,
-                              // eslint-disable-next-line typescript/no-unsafe-type-assertion
-                              groupBy: value as AnalyticsQuery['groupBy'],
+                              groupBy: parseGroupBy(value),
                             })
                           }}
                           value={query.groupBy}
@@ -1114,8 +1139,7 @@ const useAnalyticsRouteView = () => {
                           onValueChange={(value) => {
                             applyQuery({
                               ...query,
-                              // eslint-disable-next-line typescript/no-unsafe-type-assertion
-                              chartType: value as AnalyticsQuery['chartType'],
+                              chartType: parseChartType(value),
                             })
                           }}
                           value={query.chartType}

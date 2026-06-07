@@ -124,14 +124,14 @@ const buildReorderedCategoryOrder = (params: {
   }
   return arrayMove(currentOrder, oldIndex, newIndex)
 }
+const isStateSetter = <T>(
+  value: SetStateAction<T>,
+): value is (prev: T) => T => typeof value === 'function'
+
 const resolveStateValue = <T>(
   nextValue: SetStateAction<T>,
   previousValue: T,
-): T =>
-  typeof nextValue === 'function'
-    ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      (nextValue as (value: T) => T)(previousValue)
-    : nextValue
+): T => (isStateSetter(nextValue) ? nextValue(previousValue) : nextValue)
 /**
  * 親カテゴリ管理フック。
  * カテゴリの読み込み・並び替えモード・ドメイン間移動を担う。

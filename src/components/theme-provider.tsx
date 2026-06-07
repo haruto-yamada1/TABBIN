@@ -16,7 +16,16 @@ import {
 } from '@/lib/browser/chrome-storage'
 import type { UserSettings } from '@/types/storage'
 
+const isPartialUserSettings = (
+  v: unknown,
+): v is Partial<UserSettings> =>
+  typeof v === 'object' && v !== null
+
 type Theme = 'dark' | 'light' | 'system' | 'user'
+
+const isTheme = (v: unknown): v is Theme =>
+  typeof v === 'string' &&
+  (v === 'dark' || v === 'light' || v === 'system' || v === 'user')
 interface ThemeProviderProps {
   children: React.ReactNode
   defaultTheme?: Theme
@@ -40,7 +49,7 @@ const clearUserThemeColors = (root: HTMLElement) => {
 
 const applyUserSettingsToRoot = (
   root: HTMLElement,
-  userSettings?: UserSettings,
+  userSettings?: Partial<UserSettings>,
   shouldApplyColors = false,
 ) => {
   root.style.setProperty(
@@ -78,9 +87,9 @@ export const ThemeProvider = ({
       storageLocal
         .get(storageKey)
         .then((result) => {
-          if (result[storageKey]) {
-            // eslint-disable-next-line typescript/no-unsafe-type-assertion
-            setThemeState(result[storageKey] as Theme)
+          const stored = result[storageKey]
+          if (isTheme(stored)) {
+            setThemeState(stored)
           }
         })
         .catch(() => {})
@@ -93,9 +102,8 @@ export const ThemeProvider = ({
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
-      if (areaName === 'local' && changes[storageKey]) {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        setThemeState(changes[storageKey].newValue as Theme)
+      if (areaName === 'local' && changes[storageKey] && isTheme(changes[storageKey].newValue)) {
+        setThemeState(changes[storageKey].newValue)
       }
     }
     const storageOnChanged = getChromeStorageOnChanged()
@@ -159,10 +167,9 @@ export const ThemeProvider = ({
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.userSettings) {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const updated = changes.userSettings.newValue as
-          | UserSettings
-          | undefined
+        const updated = isPartialUserSettings(changes.userSettings.newValue)
+          ? changes.userSettings.newValue
+          : undefined
         const root = window.document.documentElement
         applyUserSettingsToRoot(root, updated, theme === 'user')
       }

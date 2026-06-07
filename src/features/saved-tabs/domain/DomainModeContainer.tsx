@@ -18,6 +18,7 @@ import {
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
 import { SortableDomainCard } from '@/features/saved-tabs/components/SortableDomainCard'
 import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibility'
+import { defaultSettings } from '@/lib/storage/settings'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 const BULK_OPEN_THRESHOLD = 10
@@ -153,9 +154,10 @@ const UncategorizedDomainSection = ({
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
   const uncategorizedSettings = useMemo(
-    () =>
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      ({ confirmDeleteAll }) as UserSettings,
+    () => ({
+      ...defaultSettings,
+      confirmDeleteAll,
+    }),
     [confirmDeleteAll],
   )
 

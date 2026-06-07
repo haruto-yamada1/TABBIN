@@ -622,8 +622,7 @@ const useCustomProjectSectionView = ({
       active.data.current,
       activeDragDataRef.current,
     )
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const sourceProjectId = activeData?.projectId as string
+    const sourceProjectId = activeData?.projectId ?? ''
     const targetProjectId = resolveTargetProjectId(over)
 
     if (
@@ -662,8 +661,7 @@ const useCustomProjectSectionView = ({
       active.data.current,
       activeDragDataRef.current,
     )
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const draggedUrl = activeData?.url ?? (active.id as string)
+    const draggedUrl = activeData?.url ?? String(active.id)
 
     if (handleMoveUrlBetweenProjects) {
       handleMoveUrlBetweenProjects(sourceProjectId, targetProjectId, draggedUrl)

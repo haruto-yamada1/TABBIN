@@ -60,6 +60,10 @@ const RECORDING_PROCESS_FAILED_MESSAGE =
   'Unable to process the recorded audio. Please try again.'
 const RECORDING_FAILED_MESSAGE = 'Recording failed. Please try again.'
 
+const isSpeechRecognitionEvent = (
+  event: Event,
+): event is SpeechRecognitionEvent => 'results' in event
+
 const stopStreamTracks = (stream: MediaStream | null) => {
   if (!stream) {
     return
@@ -257,8 +261,10 @@ export const SpeechInput = ({
   }, [])
 
   const handleSpeechRecognitionResult = useCallback((event: Event) => {
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const speechEvent = event as SpeechRecognitionEvent
+    if (!isSpeechRecognitionEvent(event)) {
+      return
+    }
+    const speechEvent = event
     let finalTranscript = ''
 
     for (

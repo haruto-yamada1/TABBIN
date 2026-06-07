@@ -163,16 +163,13 @@ export const useCategoryKeywordModal = ({
       name: string,
       setError: React.Dispatch<React.SetStateAction<string | null>>,
     ): boolean => {
-      try {
-        createCategoryNameSchema(t).parse(name)
+      const result = createCategoryNameSchema(t).safeParse(name)
+      if (result.success) {
         setError(null)
         return true
-      } catch (error) {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const validationError = error as z.ZodError
-        setError(validationError.issues[0]?.message ?? '') // eslint-disable-line typescript/no-unnecessary-type-assertion
-        return false
       }
+      setError(result.error.issues[0]?.message ?? '')
+      return false
     },
     [t],
   )
@@ -431,10 +428,9 @@ export const useCategoryKeywordModal = ({
       newCategoryName: activeCategory,
     })
     requestAnimationFrame(() => {
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      const inputElement = document.querySelector(
+      const inputElement = document.querySelector<HTMLInputElement>(
         'input[data-rename-input]',
-      ) as HTMLInputElement
+      )
       if (inputElement) {
         inputElement.focus()
         inputElement.select()
@@ -465,10 +461,9 @@ export const useCategoryKeywordModal = ({
     }
     if (!validateCategoryName(newCategoryName.trim(), setCategoryRenameError)) {
       requestAnimationFrame(() => {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const inputElement = document.querySelector(
+        const inputElement = document.querySelector<HTMLInputElement>(
           'input[data-rename-input]',
-        ) as HTMLInputElement
+        )
         if (inputElement) {
           inputElement.focus()
         }
@@ -480,10 +475,9 @@ export const useCategoryKeywordModal = ({
       setCategoryRenameError(duplicateMessage)
       toast.error(duplicateMessage)
       requestAnimationFrame(() => {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const inputElement = document.querySelector(
+        const inputElement = document.querySelector<HTMLInputElement>(
           'input[data-rename-input]',
-        ) as HTMLInputElement
+        )
         if (inputElement) {
           inputElement.focus()
         }

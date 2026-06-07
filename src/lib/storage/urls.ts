@@ -31,8 +31,10 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
     if (!Array.isArray(urls)) {
       return []
     }
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    urlRecordsCache = urls as UrlRecord[] // eslint-disable-line typescript/no-unnecessary-type-assertion
+    urlRecordsCache = urls.filter(
+      (item): item is UrlRecord =>
+        typeof item === 'object' && item !== null && 'id' in item && 'url' in item,
+    )
     return urlRecordsCache
   } catch (error) {
     console.error('URLレコード取得エラー:', error)

@@ -44,9 +44,9 @@ const isPointerDroppedInUncategorizedArea = (
   const { delta } = event
   const dropX = activatorEvent.clientX + delta.x
   const dropY = activatorEvent.clientY + delta.y
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  const dropEl = document.elementFromPoint(dropX, dropY) as HTMLElement | null
-  return Boolean(dropEl?.closest('[data-uncategorized-area="true"]'))
+  const dropEl = document.elementFromPoint(dropX, dropY)
+  const dropHTMLEl = dropEl instanceof HTMLElement ? dropEl : null
+  return Boolean(dropHTMLEl?.closest('[data-uncategorized-area="true"]'))
 }
 const isUncategorizedDropTarget = (
   over: DragEndEvent['over'],
@@ -411,16 +411,14 @@ export const useCustomProjectCard = ({
         return
       }
       if (isDraggingCategory && draggedCategoryName && active.id !== over.id) {
+        const activeId = String(active.id)
+        const overId = String(over.id)
         const oldIndex =
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          project.categoryOrder?.indexOf(active.id as string) ??
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          project.categories.indexOf(active.id as string)
+          project.categoryOrder?.indexOf(activeId) ??
+          project.categories.indexOf(activeId)
         const newIndex =
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          project.categoryOrder?.indexOf(over.id as string) ??
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          project.categories.indexOf(over.id as string)
+          project.categoryOrder?.indexOf(overId) ??
+          project.categories.indexOf(overId)
         if (oldIndex !== -1 && newIndex !== -1) {
           const newOrder = arrayMove(
             // `||` needed: empty array [] categoryOrder should fall through to project.categories
@@ -450,24 +448,19 @@ export const useCustomProjectCard = ({
   useEffect(() => {
     const handleManualCategoryReset = (e: MouseEvent) => {
       if (e.altKey) {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const targetElement = document.elementFromPoint(
-          e.clientX,
-          e.clientY,
-        ) as HTMLElement
-        if (targetElement) {
-          const urlAttr =
-            // `||` needed: getAttribute could return empty string
-            // eslint-disable-next-line typescript/prefer-nullish-coalescing
-            targetElement.getAttribute('data-url') ||
-            targetElement.closest('[data-url]')?.getAttribute('data-url')
-          if (
-            urlAttr &&
-            projectUrlsRef.current.some((u) => u.url === urlAttr)
-          ) {
-            handleSetUrlCategoryRef.current(project.id, urlAttr, undefined)
-            toast.success(t('savedTabs.tab.categoryClearedAlt'))
-          }
+        const targetElement = document.elementFromPoint(e.clientX, e.clientY)
+        if (!(targetElement instanceof HTMLElement)) {
+          return
+        }
+
+        const urlAttr =
+          // `||` needed: getAttribute could return empty string
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
+          targetElement.getAttribute('data-url') ||
+          targetElement.closest('[data-url]')?.getAttribute('data-url')
+        if (urlAttr && projectUrlsRef.current.some((u) => u.url === urlAttr)) {
+          handleSetUrlCategoryRef.current(project.id, urlAttr, undefined)
+          toast.success(t('savedTabs.tab.categoryClearedAlt'))
         }
       }
     }

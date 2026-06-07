@@ -168,12 +168,7 @@ export const ToolOutput = ({
     return null
   }
 
-  let Output = (
-    <div className='break-words wrap-anywhere whitespace-pre-wrap'>
-      {/* eslint-disable-next-line typescript/no-unsafe-type-assertion */}
-      {output as ReactNode}
-    </div>
-  )
+  let Output: ReactNode
 
   if (typeof output === 'object' && !isValidElement(output)) {
     Output = (
@@ -185,6 +180,18 @@ export const ToolOutput = ({
     )
   } else if (typeof output === 'string') {
     Output = <CodeBlock code={output} language='json' wrapLongLines />
+  } else if (typeof output === 'object' && isValidElement(output)) {
+    Output = (
+      <div className='break-words wrap-anywhere whitespace-pre-wrap'>
+        {output}
+      </div>
+    )
+  } else {
+    Output = (
+      <div className='break-words wrap-anywhere whitespace-pre-wrap'>
+        {JSON.stringify(output)}
+      </div>
+    )
   }
 
   return (

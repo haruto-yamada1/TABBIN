@@ -1317,27 +1317,34 @@ function readGovernanceLearningCandidates(
     return []
   }
 
-  return readFileSync(governancePath, 'utf8')
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map((line) => {
-      try {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        return JSON.parse(line) as { kind?: string; message?: string }
-      } catch {
-        return null
-      }
-    })
-    .filter(
-      (event): event is { kind?: string; message: string } =>
-        typeof event?.message === 'string' && event.message.length > 0,
-    )
-    .map((event) => ({
-      source: `governance:${event.kind ?? 'manual'}`,
-      summary: event.message,
+  const records: LearningRecord[] = []
+  for (const line of readFileSync(governancePath, 'utf8').split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (trimmed.length === 0) {
+      continue
+    }
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(trimmed)
+    } catch {
+      continue
+    }
+    if (typeof parsed !== 'object' || parsed === null) {
+      continue
+    }
+    const message = 'message' in parsed ? String(parsed.message) : ''
+    if (message.length === 0) {
+      continue
+    }
+    const kind = 'kind' in parsed && typeof parsed.kind === 'string' ? parsed.kind : undefined
+    records.push({
+      source: `governance:${kind ?? 'manual'}`,
+      summary: message,
       status: 'candidate',
-      target: learningTargetForSummary(event.message),
-    }))
+      target: learningTargetForSummary(message),
+    })
+  }
+  return records
 }
 
 function surfaceAuditCategoryNames() {
@@ -1619,10 +1626,9 @@ function readPackageScriptNames(projectRoot: string) {
   }
 
   try {
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
-      scripts?: Record<string, string>
-    }
+    const raw: unknown = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
+    const packageJson: { scripts?: Record<string, string> } =
+      raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
     return Object.keys(packageJson.scripts ?? {})
   } catch {
     return []

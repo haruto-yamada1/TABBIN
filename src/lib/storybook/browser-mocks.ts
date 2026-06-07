@@ -142,7 +142,6 @@ const createRuntimePort = () => ({
   },
 })
 
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
 const chromeMock = {
   runtime: {
     connect: () => createRuntimePort(),
@@ -222,7 +221,7 @@ const chromeMock = {
       set: () => undefined,
     },
   },
-} as unknown as typeof chrome
+}
 
 const browserMock = {
   runtime: {
@@ -256,7 +255,6 @@ const ensureNavigatorMocks = () => {
       value: {
         addEventListener: () => undefined,
         enumerateDevices: () =>
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
           Promise.resolve([
             {
               deviceId: 'mic-primary',
@@ -264,15 +262,12 @@ const ensureNavigatorMocks = () => {
               kind: 'audioinput',
               label: 'Built-in Microphone (1234:5678)',
               toJSON: () => ({}),
-            },
-          ]) as unknown as Promise<MediaDeviceInfo[]>,
+            } satisfies MediaDeviceInfo,
+          ]),
         getUserMedia: () =>
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          Promise.resolve(
-            new StorybookMediaStream(),
-          ) as unknown as Promise<MediaStream>,
+          Promise.resolve(new StorybookMediaStream()),
         removeEventListener: () => undefined,
-      } satisfies Partial<MediaDevices>,
+      },
     })
   }
 
@@ -293,9 +288,11 @@ const ensureNavigatorMocks = () => {
   }
 
   if (!globalThis.MediaRecorder) {
-    globalThis.MediaRecorder =
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      StorybookMediaRecorder as unknown as typeof MediaRecorder
+    Object.defineProperty(globalThis, 'MediaRecorder', {
+      configurable: true,
+      value: StorybookMediaRecorder,
+      writable: true,
+    })
   }
 
   if (
@@ -313,19 +310,8 @@ const ensureNavigatorMocks = () => {
   }
 }
 
-export const createStorybookChromeMock = (): typeof chrome => {
-  ;(
-    globalThis as typeof globalThis & {
-      browser?: typeof browserMock
-      chrome?: typeof chrome
-    }
-  ).chrome = chromeMock
-  ;(
-    globalThis as typeof globalThis & {
-      browser?: typeof browserMock
-      chrome?: typeof chrome
-    }
-  ).browser = browserMock
+export const createStorybookChromeMock = () => {
+  Object.assign(globalThis, { chrome: chromeMock, browser: browserMock })
   ensureNavigatorMocks()
 
   return chromeMock

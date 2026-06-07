@@ -781,14 +781,8 @@ const SidebarMenuSkeleton = ({
     () =>
       `${Math.floor(Math.random() * SKELETON_WIDTH_RANGE) + SKELETON_WIDTH_MIN}%`,
   )
-  const skeletonStyle = React.useMemo(
-    () =>
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      ({
-        '--skeleton-width': width,
-      }) as React.CSSProperties,
-    [width],
-  )
+  const skeletonStyle: React.CSSProperties & { '--skeleton-width': string } =
+    React.useMemo(() => ({ '--skeleton-width': width }), [width])
 
   return (
     <div

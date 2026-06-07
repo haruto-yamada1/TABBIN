@@ -355,8 +355,7 @@ export const StackTraceCopyButton = memo(
           setIsCopied(false)
         }, timeout)
       } catch (error) {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        onError?.(error as Error)
+        onError?.(error instanceof Error ? error : new Error(String(error)))
       }
     }, [raw, onCopy, onError, timeout])
 

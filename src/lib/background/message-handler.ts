@@ -54,19 +54,18 @@ const setupMessageListener = (): void => {
   // eslint-disable-next-line eslint/complexity
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     console.log('バックグラウンドがメッセージを受信:', message)
-    if (
-      typeof message !== 'object' ||
-      message === null ||
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      typeof (message as Record<string, unknown>).action !== 'string'
-    ) {
+    const isValidMessage = (msg: unknown): msg is BackgroundMessage =>
+      typeof msg === 'object' &&
+      msg !== null &&
+      'action' in msg &&
+      typeof msg.action === 'string'
+    if (!isValidMessage(message)) {
       sendResponse({
         status: 'invalid_message',
       })
       return false
     }
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const typedMessage = message as BackgroundMessage
+    const typedMessage = message
     switch (typedMessage.action) {
       case 'urlDragStarted': {
         handleUrlDragStartedMessage(typedMessage.url, sendResponse)
