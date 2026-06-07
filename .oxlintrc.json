@@ -24,7 +24,8 @@
   },
   "options": {
     "typeAware": true,
-    "typeCheck": true
+    "typeCheck": true,
+    "maxWarnings": 0
   },
   "env": {
     "browser": true,
@@ -50,8 +51,6 @@
     ".gemini/**",
     ".github/hooks/**",
     ".github/skills/**",
-    ".storybook/**",
-    "wxt.config.ts",
     "node_modules/**",
     "apm_modules/**",
     "coverage/**",
@@ -67,12 +66,12 @@
     "eslint/func-style": "off",
     "eslint/id-length": "off",
     "eslint/init-declarations": "off",
-    "eslint/complexity": ["error", 20],
+    "eslint/complexity": ["error", 12],
     "eslint/max-depth": ["error", 4],
     "eslint/max-lines-per-function": [
       "error",
       {
-        "max": 10000,
+        "max": 200,
         "skipBlankLines": true,
         "skipComments": true
       }
@@ -96,7 +95,16 @@
     "eslint/no-use-before-define": "off",
     "eslint/require-unicode-regexp": "off",
     "eslint/no-inline-comments": "off",
-    "eslint/no-magic-numbers": "warn",
+    "eslint/no-magic-numbers": [
+      "error",
+      {
+        "ignore": [-1, 0, 1, 2],
+        "ignoreArrayIndexes": true,
+        "ignoreDefaultValues": true,
+        "detectObjects": false,
+        "enforceConst": true
+      }
+    ],
     "eslint/require-await": "off",
     "eslint/no-empty-function": "off",
     "eslint/no-negated-condition": "off",
@@ -170,23 +178,23 @@
     "react/hook-use-state": "off",
     "react/jsx-handler-names": "error",
     "react/jsx-max-depth": "off",
-    "react/jsx-no-constructed-context-values": "warn",
+    "react/jsx-no-constructed-context-values": "error",
     "react/jsx-props-no-spreading": "off",
     "react/react-in-jsx-scope": "off",
     "react/button-has-type": "error",
     "react/jsx-no-script-url": "error",
     "react/jsx-no-target-blank": "error",
     "react/jsx-no-useless-fragment": "error",
-    "react/jsx-no-comment-textnodes": "warn",
+    "react/jsx-no-comment-textnodes": "error",
     "react/no-array-index-key": "error",
     "react/no-danger": "error",
     "react/no-danger-with-children": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
-    "react-perf/jsx-no-jsx-as-prop": "warn",
-    "react-perf/jsx-no-new-array-as-prop": "warn",
-    "react-perf/jsx-no-new-function-as-prop": "warn",
-    "react-perf/jsx-no-new-object-as-prop": "warn",
+    "react-perf/jsx-no-jsx-as-prop": "error",
+    "react-perf/jsx-no-new-array-as-prop": "error",
+    "react-perf/jsx-no-new-function-as-prop": "error",
+    "react-perf/jsx-no-new-object-as-prop": "error",
     "typescript/array-type": "error",
     "typescript/await-thenable": "error",
     "typescript/consistent-indexed-object-style": "error",
@@ -211,7 +219,6 @@
     "typescript/no-unsafe-type-assertion": "error",
     "typescript/no-useless-default-assignment": "error",
     "typescript/restrict-template-expressions": "off",
-    "vitest/consistent-test-filename": "off",
     "typescript/unified-signatures": "error",
     "typescript/unbound-method": "error",
     "typescript/no-misused-promises": "error",
@@ -219,10 +226,10 @@
     "typescript/no-non-null-assertion": "error",
     "typescript/no-require-imports": "error",
     "typescript/require-await": "error",
-    "typescript/prefer-nullish-coalescing": "warn",
+    "typescript/prefer-nullish-coalescing": "error",
     "typescript/prefer-optional-chain": "error",
     "typescript/no-inferrable-types": "error",
-    "typescript/no-confusing-void-expression": "warn",
+    "typescript/no-confusing-void-expression": "error",
     "typescript/no-array-delete": "error",
     "typescript/no-confusing-non-null-assertion": "error",
     "typescript/switch-exhaustiveness-check": "error",
@@ -257,7 +264,7 @@
     "unicorn/explicit-length-check": "off",
     "unicorn/prefer-ternary": "off",
     "unicorn/filename-case": "off",
-    "unicorn/no-abusive-eslint-disable": "off",
+    "unicorn/no-abusive-eslint-disable": "error",
     "unicorn/no-useless-spread": "error",
     "unicorn/no-useless-collection-argument": "error",
     "unicorn/prefer-add-event-listener": "error",
@@ -366,10 +373,20 @@
         "tools/**/*.js",
         "*.config.ts",
         "*.config.js",
+        "*.config.mjs",
+        "*.config.cjs",
         "e2e/**/*.ts",
-        "vitest.ci.config.ts"
+        "vitest.ci.config.ts",
+        "wxt.config.ts",
+        "tailwind.config.js",
+        "vitest.workspace.ts"
       ],
-      "env": { "node": true }
+      "env": { "node": true, "es2024": true },
+      "rules": {
+        "import/no-default-export": "off",
+        "import/no-anonymous-default-export": "off",
+        "eslint/no-magic-numbers": "off"
+      }
     },
     {
       "files": [
@@ -386,8 +403,11 @@
         "typescript/no-unsafe-return": "off",
         "typescript/no-unsafe-type-assertion": "off",
         "eslint/no-magic-numbers": "off",
-        "eslint/max-lines-per-function": ["error", { "max": 5000 }],
-        "unicorn/no-abusive-eslint-disable": "off",
+        "eslint/max-lines-per-function": [
+          "error",
+          { "max": 300, "skipBlankLines": true, "skipComments": true }
+        ],
+        "eslint/complexity": ["error", 12],
         "import/first": "off",
         "eslint/max-nested-callbacks": "off",
         "typescript/await-thenable": "off",
@@ -396,23 +416,24 @@
         "typescript/no-unnecessary-type-assertion": "off",
         "typescript/restrict-template-expressions": "off",
         "oxc/no-map-spread": "off",
-        "eslint/complexity": ["warn", 12]
+        "import/no-unassigned-import": "off"
       }
     },
     {
       "files": [
-        "**/*.config.ts",
-        "**/*.config.js",
         "**/*.stories.tsx",
         "**/*.stories.ts",
         "src/lib/storybook/**",
-        "src/entrypoints/**",
         ".storybook/**"
       ],
       "rules": {
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
-        "eslint/no-magic-numbers": "off"
+        "eslint/no-magic-numbers": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off",
+        "react-perf/jsx-no-new-function-as-prop": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "react-perf/jsx-no-new-array-as-prop": "off"
       }
     }
   ]
