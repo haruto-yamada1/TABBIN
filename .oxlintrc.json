@@ -404,7 +404,7 @@
       }
     },
     {
-      "files": ["**/*.config.ts", "**/*.config.js"],
+      "files": ["**/*.config.ts", "**/*.config.js", "**/*.stories.tsx", "**/*.stories.ts"],
       "rules": {
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
