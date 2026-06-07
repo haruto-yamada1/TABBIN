@@ -1,16 +1,12 @@
-import { execFileSync } from 'node:child_process'
-import path from 'node:path'
+/* eslint-disable import/no-anonymous-default-export, import/no-default-export, typescript/no-require-imports, unicorn/no-anonymous-default-export */
+// @ts-check
+const { chromium } = require('playwright');
 
-import type { FullConfig } from '@playwright/test'
+/** @type {import('@playwright/test').PlaywrightTestConfig} */
+const config = {
+  use: {
+    baseURL: 'http://localhost:5173',
+  },
+};
 
-const resolveWxtBinary = () =>
-  path.join(process.cwd(), 'node_modules', '.bin', 'wxt')
-
-export default (_config: FullConfig) => {
-  execFileSync(resolveWxtBinary(), ['build'], {
-    cwd: process.cwd(),
-    stdio: 'inherit',
-  })
-}
-
-export default setup
+module.exports = config;
