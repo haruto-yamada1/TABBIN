@@ -125,7 +125,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
       })
       if (
         hasLegacyUserSettingsKeys(
-          data.userSettings as unknown as Record<string, unknown>,
+          data.userSettings,
         ) ||
         JSON.stringify(sanitizedStoredSettings.excludePatterns ?? []) !==
           JSON.stringify(mergedStoredSettings.excludePatterns)
