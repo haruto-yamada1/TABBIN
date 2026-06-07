@@ -100,7 +100,7 @@ vi.mock('./TimeRemaining', () => ({
     categorySectionSpy(props)
     return (
       <div data-testid='category-section'>
-        {(props.urls || []).map((url) => url.url).join(',')}
+        {(props.urls ?? []).map((url) => url.url).join(',')}
       </div>
     )
   },

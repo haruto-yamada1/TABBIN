@@ -44,7 +44,7 @@ export const ProjectCardCategoryList = () => {
             projectId={project.id}
             category={categoryName}
             // eslint-disable-next-line typescript/prefer-nullish-coalescing
-            urls={categoryUrlsByName.get(categoryName) || []}
+            urls={categoryUrlsByName.get(categoryName) || []} // eslint-disable-line react-perf/jsx-no-new-array-as-prop
             // eslint-disable-next-line react/jsx-handler-names
             handleOpenUrl={handlers.handleOpenUrl}
             // eslint-disable-next-line react/jsx-handler-names
