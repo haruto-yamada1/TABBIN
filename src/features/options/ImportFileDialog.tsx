@@ -402,7 +402,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         setIsImporting(false)
       }
 // eslint-disable-next-line typescript/no-non-null-assertion
-      reader.readAsText(selectedFileRef.current!)
+      reader.readAsText(selectedFileRef.current!) // eslint-disable-line unicorn/prefer-blob-reading-methods
     } catch (error) {
       console.error('インポートエラー:', error)
       toast.error(t('options.importExport.importError'))

@@ -61,7 +61,7 @@ export const SortableCategorySection = ({
       const urlsToRemove = urlsToDelete.map((item) => item.url)
       if (handleDeleteAllTabs) {
 // eslint-disable-next-line typescript/no-confusing-void-expression
-        await handleDeleteAllTabs(urlsToDelete)
+        await handleDeleteAllTabs(urlsToDelete) // eslint-disable-line typescript/await-thenable
       } else {
         await removeUrlsFromTabGroup(props.groupId, urlsToRemove)
       }

@@ -174,7 +174,7 @@ export const useCategoryKeywordModal = ({
 // eslint-disable-next-line typescript/no-unsafe-type-assertion
         const validationError = error as z.ZodError
 // eslint-disable-next-line typescript/no-non-null-assertion
-        setError(validationError.issues[0]!.message)
+        setError(validationError.issues[0]!.message) // eslint-disable-line typescript/no-unnecessary-type-assertion
         return false
       }
     },
@@ -199,7 +199,7 @@ export const useCategoryKeywordModal = ({
       setInternalParentCategories(storedCategories)
       if (onUpdateParentCategories) {
 // eslint-disable-next-line typescript/no-confusing-void-expression
-        await onUpdateParentCategories(storedCategories)
+        await onUpdateParentCategories(storedCategories) // eslint-disable-line typescript/await-thenable
       }
       const newParentId = resolveSelectedParentCategoryId(
         storedCategories,
@@ -418,7 +418,7 @@ export const useCategoryKeywordModal = ({
     try {
       const categoryToDelete = activeCategory
 // eslint-disable-next-line typescript/no-confusing-void-expression
-      await onDeleteCategory(group.id, categoryToDelete)
+      await onDeleteCategory(group.id, categoryToDelete) // eslint-disable-line typescript/await-thenable
       if (group.subCategories && group.subCategories.length > 1) {
         const updatedSubCategories = group.subCategories.filter(
           (cat: string) => cat !== categoryToDelete,

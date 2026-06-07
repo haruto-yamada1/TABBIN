@@ -41,7 +41,7 @@ const isUrlsMigrationCompleted = async (): Promise<boolean> => {
     'urlsMigrationCompleted',
   )
 
-  return Boolean(urlsMigrationCompleted)
+  return Boolean(urlsMigrationCompleted) // eslint-disable-line typescript/no-unnecessary-type-conversion
 }
 
 const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
@@ -61,7 +61,7 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
   return {
     existingUrls: Array.isArray(existingUrlsResult.urls)
 // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      ? (existingUrlsResult.urls as UrlRecord[])
+      ? (existingUrlsResult.urls as UrlRecord[]) // eslint-disable-line typescript/no-unnecessary-type-assertion
       : [],
     savedTabs: Array.isArray(savedTabsResult.savedTabs)
       ? savedTabsResult.savedTabs

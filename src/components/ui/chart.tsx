@@ -263,7 +263,7 @@ const renderTooltipRow = ({
   const key = `${nameKey || item.name || item.dataKey || 'value'}`
   const itemConfig = getPayloadConfigFromPayload(config, item, key)
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const indicatorColor = color || item.payload.fill || item.color // eslint-disable-line typescript/no-unsafe-member-access
+  const indicatorColor = color || item.payload.fill || item.color // eslint-disable-line typescript/no-unsafe-member-access, typescript/no-unsafe-assignment
 
   return (
     <div

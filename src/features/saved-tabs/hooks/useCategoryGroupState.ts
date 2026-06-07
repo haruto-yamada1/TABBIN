@@ -315,7 +315,7 @@ export const useCategoryGroupState = ({
   }, [])
 
   // --- 並び替え確定 ---
-  const handleConfirmReorder = useCallback(async () => {
+  const handleConfirmReorder = useCallback(async () => { // eslint-disable-line typescript/require-await
     if (!isReorderMode) {
       return
     }
@@ -347,7 +347,7 @@ export const useCategoryGroupState = ({
 
   // --- 個別ドメイン削除のラッパー ---
   const handleDeleteSingleDomain = useCallback(
-    async (domainId: string) => {
+    async (domainId: string) => { // eslint-disable-line typescript/require-await
 // eslint-disable-next-line typescript/no-confusing-void-expression
       handleDeleteGroup(domainId)
       if (isReorderMode) {

@@ -17,11 +17,10 @@ const isUncategorizedDrop = (
 ): boolean =>
   Boolean(
 // eslint-disable-next-line typescript/no-unnecessary-type-conversion
-    over?.id === `uncategorized-${projectId}` ||
+    over?.id === `uncategorized-${projectId}` || // eslint-disable-line typescript/no-unnecessary-type-conversion
     (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
-    over?.data?.current?.type === 'uncategorized',
-  )
-// eslint-disable-next-line eslint/complexity
+  over?.data?.current?.type === 'uncategorized',
+)
 const resolveOverCategoryName = (
   over: DragOverEvent['over'],
 ): string | null => {

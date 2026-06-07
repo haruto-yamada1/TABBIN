@@ -292,7 +292,7 @@ const useCustomProjectCategoryView = ({
   }
 
 // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleDeleteAllUrlsConfirmed = async () => {
+  const handleDeleteAllUrlsConfirmed = async () => { // eslint-disable-line typescript/require-await
     if (handleDeleteUrlsFromProject) {
       handleDeleteUrlsFromProject(
         projectId,

@@ -32,7 +32,7 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
       return []
     }
 // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    urlRecordsCache = urls as UrlRecord[]
+    urlRecordsCache = urls as UrlRecord[] // eslint-disable-line typescript/no-unnecessary-type-assertion
     return urlRecordsCache
   } catch (error) {
     console.error('URLレコード取得エラー:', error)

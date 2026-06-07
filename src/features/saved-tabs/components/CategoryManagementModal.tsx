@@ -337,7 +337,7 @@ const useCategoryManagementModalView = ({
       setIsSaving(true)
       try {
 // eslint-disable-next-line typescript/no-confusing-void-expression
-        await onCategoryUpdate(category.id, trimmedName)
+        await onCategoryUpdate(category.id, trimmedName) // eslint-disable-line typescript/await-thenable
         console.log('Modal - onCategoryUpdate呼び出し完了')
       } finally {
         setIsSaving(false)
