@@ -1,4 +1,4 @@
-/* eslint-disable typescript/no-require-imports */
+/* eslint-disable typescript/no-require-imports, typescript/no-unsafe-call */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [

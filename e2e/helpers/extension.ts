@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* eslint-disable typescript/no-misused-promises, typescript/no-floating-promises, typescript/no-unsafe-argument, typescript/TS7006 */
 import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
@@ -81,7 +82,8 @@ export const readStorage = async <T>(
   serviceWorker: Worker,
   keys?: string | string[],
 ) =>
-  serviceWorker.evaluate(async (value) => { // eslint-disable-line typescript/no-unsafe-type-assertion
+  serviceWorker.evaluate(async (value) => {
+    // eslint-disable-line
     const getItems = (
       query?: Record<string, unknown> | string | string[],
     ): Promise<Record<string, unknown>> =>

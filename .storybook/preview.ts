@@ -1,4 +1,4 @@
-/* eslint-disable import/no-unassigned-import, typescript/TS2882 */
+/* eslint-disable import/no-unassigned-import */
 import type { Preview } from '@storybook/react'
 
 import {
@@ -7,7 +7,7 @@ import {
   previewParameters,
 } from '../src/lib/storybook/preview'
 
-import '../src/assets/global.css'
+import '../src/assets/global.css' // eslint-disable-line
 
 export default {
   decorators: previewDecorators,

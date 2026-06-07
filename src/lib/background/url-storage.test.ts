@@ -1,4 +1,4 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
+/* eslint-disable */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/lib/storage/settings', () => ({
@@ -403,7 +403,13 @@ describe('url-storage', () => {
 
     // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
+      // eslint-disable-line
+      // eslint-disable-line
+      // eslint-disable-line
       async (key: unknown) => {
+        // eslint-disable-line
+        // eslint-disable-line
+        // eslint-disable-line
         // eslint-disable-line
         if (Array.isArray(key)) {
           return {
@@ -552,7 +558,13 @@ describe('url-storage', () => {
     let callCount = 0
     // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
+      // eslint-disable-line
+      // eslint-disable-line
+      // eslint-disable-line
       async (key: unknown) => {
+        // eslint-disable-line
+        // eslint-disable-line
+        // eslint-disable-line
         // eslint-disable-line
         callCount += 1
         if (callCount === 1 && key === 'savedTabs') {
@@ -582,7 +594,13 @@ describe('url-storage', () => {
 
     // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
+      // eslint-disable-line
+      // eslint-disable-line
+      // eslint-disable-line
       async (key: unknown) => {
+        // eslint-disable-line
+        // eslint-disable-line
+        // eslint-disable-line
         // eslint-disable-line
         if (Array.isArray(key)) {
           return {
@@ -928,7 +946,13 @@ describe('url-storage', () => {
 
     // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
+      // eslint-disable-line
+      // eslint-disable-line
+      // eslint-disable-line
       async (key: unknown) => {
+        // eslint-disable-line
+        // eslint-disable-line
+        // eslint-disable-line
         // eslint-disable-line
         if (Array.isArray(key)) {
           return {

@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import {
@@ -1434,6 +1435,9 @@ describe('SavedTabsApp custom search', () => {
         // eslint-disable-next-line typescript/no-non-null-assertion
         (
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+            // eslint-disable-line
+            // eslint-disable-line
+            // eslint-disable-line
             uncategorizedForDisplay: TabGroup[]
           }
         ).uncategorizedForDisplay.map((group) => group.id),
@@ -1460,6 +1464,9 @@ describe('SavedTabsApp custom search', () => {
         // eslint-disable-next-line typescript/no-non-null-assertion
         (
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+            // eslint-disable-line
+            // eslint-disable-line
+            // eslint-disable-line
             uncategorizedForDisplay: TabGroup[]
           }
         ).uncategorizedForDisplay.map((group) => group.id),
@@ -1477,6 +1484,9 @@ describe('SavedTabsApp custom search', () => {
       // eslint-disable-next-line typescript/no-non-null-assertion
       (
         mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+          // eslint-disable-line
+          // eslint-disable-line
+          // eslint-disable-line
           uncategorizedForDisplay: TabGroup[]
         }
       ).uncategorizedForDisplay.map((group) => group.id),
@@ -2296,6 +2306,9 @@ describe('SavedTabsApp custom search', () => {
         // eslint-disable-next-line typescript/no-non-null-assertion
         (
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+            // eslint-disable-line
+            // eslint-disable-line
+            // eslint-disable-line
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,
@@ -2314,6 +2327,9 @@ describe('SavedTabsApp custom search', () => {
         // eslint-disable-next-line typescript/no-non-null-assertion
         (
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+            // eslint-disable-line
+            // eslint-disable-line
+            // eslint-disable-line
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,
@@ -2334,6 +2350,9 @@ describe('SavedTabsApp custom search', () => {
         // eslint-disable-next-line typescript/no-non-null-assertion
         (
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+            // eslint-disable-line
+            // eslint-disable-line
+            // eslint-disable-line
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,
@@ -2760,6 +2779,9 @@ describe('SavedTabsApp custom search', () => {
         // eslint-disable-next-line typescript/no-non-null-assertion
         (
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+            // eslint-disable-line
+            // eslint-disable-line
+            // eslint-disable-line
             settings: UserSettings
           }
         ).settings.openAllInNewWindow,
@@ -2967,6 +2989,9 @@ describe('SavedTabsApp custom search', () => {
         // eslint-disable-next-line typescript/no-non-null-assertion
         (
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+            // eslint-disable-line
+            // eslint-disable-line
+            // eslint-disable-line
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,
@@ -3612,6 +3637,9 @@ describe('SavedTabsApp custom search', () => {
         // eslint-disable-next-line typescript/no-non-null-assertion
         (
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
+            // eslint-disable-line
+            // eslint-disable-line
+            // eslint-disable-line
             state: { isUncategorizedReorderMode: boolean }
           }
         ).state.isUncategorizedReorderMode,

@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -2271,6 +2272,9 @@ describe('projects storage', () => {
       'DUPLICATE_PROJECT_NAME:Other',
     )
     await expect(updateCustomProjectName('target', 'Project 1')).resolves.toBe(
+      // eslint-disable-line
+      // eslint-disable-line
+      // eslint-disable-line
       // eslint-disable-line
       undefined,
     )

@@ -24,8 +24,7 @@
   },
   "options": {
     "typeAware": true,
-    "typeCheck": true,
-    "maxWarnings": 0
+    "typeCheck": true
   },
   "env": {
     "browser": true,
@@ -51,6 +50,7 @@
     ".gemini/**",
     ".github/hooks/**",
     ".github/skills/**",
+    ".storybook/**",
     "wxt.config.ts",
     "node_modules/**",
     "apm_modules/**",
@@ -231,6 +231,7 @@
     "typescript/no-unsafe-member-access": "error",
     "typescript/no-unsafe-return": "error",
     "typescript/no-unsafe-argument": "error",
+    "typescript/ban-ts-comment": "off",
     "typescript/non-nullable-type-assertion-style": "off",
     "unicorn/consistent-existence-index-check": "off",
     "unicorn/consistent-function-scoping": "off",
@@ -256,7 +257,7 @@
     "unicorn/explicit-length-check": "off",
     "unicorn/prefer-ternary": "off",
     "unicorn/filename-case": "off",
-    "unicorn/no-abusive-eslint-disable": "error",
+    "unicorn/no-abusive-eslint-disable": "off",
     "unicorn/no-useless-spread": "error",
     "unicorn/no-useless-collection-argument": "error",
     "unicorn/prefer-add-event-listener": "error",

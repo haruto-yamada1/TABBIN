@@ -14,8 +14,11 @@ describe('Fieldコンポーネント', () => {
     render(
       <Field data-invalid>
         <FieldLabel htmlFor='field-input'>Invalid Input</FieldLabel>
-        <input aria-describedby='field-error' id='field-input' />{' '}
-        {/* eslint-disable-line jsx-a11y/control-has-associated-label */}
+        <input
+          aria-describedby='field-error'
+          id='field-input'
+          aria-label='Invalid Input'
+        />
         <FieldDescription>Helper text</FieldDescription>
         <FieldError id='field-error'>
           This field contains validation errors.
@@ -38,8 +41,7 @@ describe('Fieldコンポーネント', () => {
     const { getByRole } = render(
       <Field orientation='horizontal'>
         <FieldLabel htmlFor='horizontal-input'>Label</FieldLabel>
-        <input id='horizontal-input' />{' '}
-        {/* eslint-disable-line jsx-a11y/control-has-associated-label */}
+        <input id='horizontal-input' aria-label='Label' />
       </Field>,
     )
 

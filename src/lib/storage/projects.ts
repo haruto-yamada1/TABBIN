@@ -176,9 +176,8 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
   await saveCustomProjects([...projects, newProject])
 
   // 新規プロジェクトを常に先頭に配置し、既存順序は維持する
-  const {
-    customProjectOrder = [],
-  } = await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
+  const { customProjectOrder = [] } =
+    await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
   const currentIdsInDisplayOrder = projects.map((project) => project.id)
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
@@ -198,9 +197,8 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
 }
 
 const appendUncategorizedProjectToOrder = async (): Promise<void> => {
-  const {
-    customProjectOrder = [],
-  } = await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
+  const { customProjectOrder = [] } =
+    await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
     : []
@@ -334,9 +332,8 @@ const addUrlsToUncategorizedProject = async (
 }
 
 const getCustomProjectOrder = async (): Promise<string[]> => {
-  const {
-    customProjectOrder = [],
-  } = await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
+  const { customProjectOrder = [] } =
+    await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
   return Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
         (projectId): projectId is string => typeof projectId === 'string',
@@ -922,9 +919,8 @@ const findOrCreateUncategorizedProject = async (
 }
 
 const removeProjectIdFromOrder = async (projectId: string): Promise<void> => {
-  const {
-    customProjectOrder = [],
-  } = await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
+  const { customProjectOrder = [] } =
+    await chrome.storage.local.get('customProjectOrder') // eslint-disable-line typescript/no-useless-default-assignment
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
     : []
