@@ -159,6 +159,7 @@ const chromeMock = {
     local: {
       clear: () => {
         for (const key of Object.keys(storageState)) {
+// eslint-disable-next-line typescript/no-dynamic-delete
           delete storageState[key]
         }
         return Promise.resolve()
@@ -187,6 +188,7 @@ const chromeMock = {
         const requestedKeys = resolveRequestedKeys(keys) ?? []
 
         for (const key of requestedKeys) {
+// eslint-disable-next-line typescript/no-dynamic-delete
           delete storageState[key]
         }
         return Promise.resolve()
@@ -333,6 +335,7 @@ export const primeStorybookBrowserMocks = (
   createStorybookChromeMock()
 
   for (const key of Object.keys(storageState)) {
+// eslint-disable-next-line typescript/no-dynamic-delete
     delete storageState[key]
   }
 
@@ -349,6 +352,7 @@ export const setStorybookStorage = (nextState: StorybookStorageState) => {
 
 export const resetStorybookBrowserMocks = () => {
   for (const key of Object.keys(storageState)) {
+// eslint-disable-next-line typescript/no-dynamic-delete
     delete storageState[key]
   }
   runtimeMessages.length = 0

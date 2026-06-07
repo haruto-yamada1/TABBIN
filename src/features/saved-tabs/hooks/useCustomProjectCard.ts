@@ -91,8 +91,10 @@ const resolveOverCategory = (
     return undefined
   }
   if (over.data?.current?.type === 'category') {
+// eslint-disable-next-line typescript/no-unsafe-return
     return over.data.current.categoryName
   }
+// eslint-disable-next-line typescript/no-unsafe-return
   return over.data?.current?.category
 }
 type UrlToUrlDropResult =
@@ -226,6 +228,7 @@ const handleProcessedUrlDrop = (params: {
 // eslint-disable-next-line typescript/no-unsafe-assignment
     const targetCategory = over.data.current.categoryName
     if (targetCategory && targetCategory !== dragSourceCategory) {
+// eslint-disable-next-line typescript/no-unsafe-argument
       handleSetUrlCategory(projectId, actualUrl, targetCategory)
       toast.success(
         getMessage(language, 'savedTabs.tab.movedToCategory', undefined, {

@@ -1104,6 +1104,7 @@ describe('SavedTabsChatWidget', () => {
 
     expect(saveButton.hasAttribute('disabled')).toBe(false)
 
+// eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const nameInput = screen.getByLabelText('Prompt name') as HTMLInputElement
 
     expect(nameInput.maxLength).toBe(25)
@@ -1147,6 +1148,7 @@ describe('SavedTabsChatWidget', () => {
     mocked.getUserSettings.mockResolvedValue({
       ...buildConfiguredSettings(),
       aiSystemPrompts: [
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
         buildConfiguredSettings().aiSystemPrompts?.[0] as NonNullable<
           UserSettings['aiSystemPrompts']
         >[number],
@@ -1310,6 +1312,7 @@ describe('SavedTabsChatWidget', () => {
 
     expect(screen.queryByText('First response')).toBeNull()
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('Ask AI').value).toBe('')
   })
 
@@ -1700,6 +1703,7 @@ describe('SavedTabsChatWidget', () => {
     fireEvent.click(sourcesTrigger)
 
     const sourcesGroup =
+// eslint-disable-next-line typescript/no-unnecessary-type-assertion
       (sourcesTrigger.closest('[data-slot="sources"]') as HTMLElement | null) ??
       document.body
 
@@ -1752,6 +1756,7 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
+// eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
     const submitButton = screen.getByRole('button', { name: 'Submit' })
 
@@ -1837,6 +1842,7 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('Ask AI').value).toBe('')
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
@@ -2051,6 +2057,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
+// eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
     fireEvent.change(textarea, {
@@ -2087,6 +2094,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
+// eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
     fireEvent.change(textarea, {
@@ -2188,6 +2196,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('Ask AI').disabled).toBe(true)
 
     expect(screen.queryByRole('button', { name: 'Load models' })).toBeNull()
@@ -2213,6 +2222,7 @@ describe('SavedTabsChatWidget', () => {
     })
 
     await waitFor(() => {
+// eslint-disable-next-line typescript/TS2339
       expect(screen.getByLabelText('Ask AI').disabled).toBe(false)
     })
     expect(screen.queryByText('Ollama: llama3.2')).toBeNull()

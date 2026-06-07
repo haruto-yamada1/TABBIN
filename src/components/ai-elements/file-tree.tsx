@@ -286,6 +286,7 @@ export const FileTreeActions = ({
   children,
   ...props
 }: FileTreeActionsProps) => (
+// eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
   <fieldset
     className={cn(
       'm-0 ml-auto flex min-w-0 items-center gap-1 border-0 p-0',

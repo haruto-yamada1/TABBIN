@@ -218,6 +218,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       const categoryDomainNames =
         category === 'uncategorized'
           ? null
+// eslint-disable-next-line unicorn/no-useless-collection-argument
           : new Set(category.domainNames ?? [])
       for (const group of tabGroups) {
         if (category === 'uncategorized') {

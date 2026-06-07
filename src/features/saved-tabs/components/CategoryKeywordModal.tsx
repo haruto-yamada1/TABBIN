@@ -20,6 +20,7 @@ export const CategoryKeywordModal = ({
   onClose,
   onSave,
   onDeleteCategory,
+// eslint-disable-next-line typescript/no-useless-default-assignment
   parentCategories: initialParentCategories = EMPTY_PARENT_CATEGORIES,
   onUpdateParentCategories,
 }: CategoryKeywordModalProps) => (

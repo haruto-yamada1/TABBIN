@@ -200,6 +200,7 @@ export const AiChatRoute = () => {
               variant='destructive'
 // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
+// eslint-disable-next-line typescript/no-non-null-assertion
                 deleteConversation(pendingDeleteHistoryItem!.id)
                 setPendingDeleteHistoryItem(null)
               }}

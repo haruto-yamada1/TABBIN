@@ -1126,6 +1126,7 @@ function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
   if (schema.enum && !schema.enum.some((item) => deepEqual(item, value))) {
     issues.push({
       path: at,
+// eslint-disable-next-line typescript/no-base-to-string
       message: `許可されていない値です。許可値: ${schema.enum.join(', ')}`,
     })
   }
@@ -1163,6 +1164,7 @@ function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
       issues.push(
         ...validateJsonSchema(
           item,
+// eslint-disable-next-line typescript/no-non-null-assertion
           schema.items!,
           joinPointer(at, String(index)),
         ),

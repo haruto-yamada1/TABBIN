@@ -93,6 +93,7 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
+// eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       checked={Boolean(checked)}
       id={id}
@@ -301,6 +302,7 @@ describe('OptionsRoute', () => {
 
     render(<OptionsRoute />)
 
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('click-behavior').value).toBe('saveWindowTabs')
     expect(screen.getByText('options.excludePatterns.empty')).toBeTruthy()
   })

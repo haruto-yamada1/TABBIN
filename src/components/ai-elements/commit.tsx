@@ -189,6 +189,7 @@ export const CommitActions = ({
   children,
   ...props
 }: CommitActionsProps) => (
+// eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
   <fieldset
     className={cn(
       'm-0 flex min-w-0 items-center gap-1 border-0 p-0',

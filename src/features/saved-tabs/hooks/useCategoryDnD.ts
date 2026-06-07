@@ -16,6 +16,7 @@ const isUncategorizedDrop = (
   projectId: string,
 ): boolean =>
   Boolean(
+// eslint-disable-next-line typescript/no-unnecessary-type-conversion
     over?.id === `uncategorized-${projectId}` ||
     (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
     over?.data?.current?.type === 'uncategorized',
@@ -48,6 +49,7 @@ const resolveOverCategoryName = (
     return null
   }
   if (overData.categoryName) {
+// eslint-disable-next-line typescript/no-unsafe-return
     return overData.categoryName
   }
   if (typeof over.id === 'string') {

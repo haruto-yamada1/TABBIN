@@ -173,6 +173,7 @@ export const useCategoryKeywordModal = ({
       } catch (error) {
 // eslint-disable-next-line typescript/no-unsafe-type-assertion
         const validationError = error as z.ZodError
+// eslint-disable-next-line typescript/no-non-null-assertion
         setError(validationError.issues[0]!.message)
         return false
       }
@@ -197,6 +198,7 @@ export const useCategoryKeywordModal = ({
       const storedCategories = stored
       setInternalParentCategories(storedCategories)
       if (onUpdateParentCategories) {
+// eslint-disable-next-line typescript/no-confusing-void-expression
         await onUpdateParentCategories(storedCategories)
       }
       const newParentId = resolveSelectedParentCategoryId(
@@ -230,6 +232,7 @@ export const useCategoryKeywordModal = ({
 
     chrome.storage.onChanged.addListener(handleStorageChange)
 
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange)
     }
@@ -289,6 +292,7 @@ export const useCategoryKeywordModal = ({
 // eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
+// eslint-disable-next-line oxc/no-map-spread
         const updatedGroups = savedTabs.map((g) =>
           g.id === group.id
             ? {
@@ -365,6 +369,7 @@ export const useCategoryKeywordModal = ({
 // eslint-disable-next-line typescript/consistent-type-imports
         savedTabs?: import('@/types/storage').TabGroup[]
       }>('savedTabs')
+// eslint-disable-next-line oxc/no-map-spread
       const updatedTabs = savedTabs.map((tab: TabGroup) => {
         if (tab.id === group.id) {
           return {
@@ -412,6 +417,7 @@ export const useCategoryKeywordModal = ({
     }
     try {
       const categoryToDelete = activeCategory
+// eslint-disable-next-line typescript/no-confusing-void-expression
       await onDeleteCategory(group.id, categoryToDelete)
       if (group.subCategories && group.subCategories.length > 1) {
         const updatedSubCategories = group.subCategories.filter(

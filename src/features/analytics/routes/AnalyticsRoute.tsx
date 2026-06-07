@@ -445,6 +445,7 @@ const getAnalyticsChartDatumLabels = (
   data: { label?: unknown }[] | undefined,
 ): string[] =>
   data?.reduce<string[]>((items, datum) => {
+// eslint-disable-next-line typescript/no-base-to-string
     const label = String(datum.label ?? '')
     if (label) {
       items.push(label)
@@ -458,6 +459,7 @@ const getDrilldownLabelsForRecord = (
   uncategorizedLabel: string,
   chartMessages: AnalyticsChartMessages,
 ): string[] => {
+// eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (query.groupBy) {
     case 'timeRecent':
     case 'timeTop': {

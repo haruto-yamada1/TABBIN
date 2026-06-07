@@ -106,6 +106,7 @@ export const ThemeProvider = ({
     storageOnChanged.addListener(handleStorageChange)
 
     // クリーンアップ関数
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(handleStorageChange)
     }
@@ -172,6 +173,7 @@ export const ThemeProvider = ({
       return
     }
     storageOnChanged.addListener(listener)
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(listener)
     }

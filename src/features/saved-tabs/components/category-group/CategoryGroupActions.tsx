@@ -14,6 +14,7 @@ const getVisibleUrls = (group: {
 const deleteVisibleUrlsByGroup = async (
   groups: {
     id: string
+// eslint-disable-next-line typescript/array-type
     urls?: Array<{
       url: string
     }>
@@ -59,9 +60,11 @@ export const CategoryGroupActions = () => {
       : domains
 
     if (handlers.handleDeleteGroups) {
+// eslint-disable-next-line typescript/no-confusing-void-expression
       await handlers.handleDeleteGroups(domainsToDelete.map((d) => d.id))
     } else {
       await Promise.all(
+// eslint-disable-next-line typescript/no-confusing-void-expression
         domainsToDelete.map(({ id }) => handlers.handleDeleteGroup(id)),
       )
     }

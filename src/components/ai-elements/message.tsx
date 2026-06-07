@@ -202,6 +202,7 @@ export const MessageBranchContent = ({
 }: MessageBranchContentProps) => {
   const { currentBranch, setBranches, branches } = useMessageBranch()
   const childrenArray = useMemo(
+// eslint-disable-next-line typescript/no-unsafe-return
     () => (Array.isArray(children) ? children : [children]),
     [children],
   )
@@ -209,6 +210,7 @@ export const MessageBranchContent = ({
   // Use useEffect to update branches when they change
   useEffect(() => {
     if (branches.length !== childrenArray.length) {
+// eslint-disable-next-line typescript/no-unsafe-argument
       setBranches(childrenArray)
     }
   }, [childrenArray, branches, setBranches])

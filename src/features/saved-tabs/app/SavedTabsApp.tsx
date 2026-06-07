@@ -47,6 +47,7 @@ import type {
   ViewMode,
 } from '@/types/storage'
 
+// eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
 interface OpenedUrlsStorageSnapshot {
@@ -68,6 +69,7 @@ interface CategoryLookup {
 }
 type RefreshTabGroupsWithUrls = (
   groups: TabGroup[],
+// eslint-disable-next-line typescript/no-invalid-void-type
 ) => Promise<TabGroup[]> | TabGroup[] | Promise<void> | void
 const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
   Array.isArray(value) ? value : undefined
@@ -481,6 +483,7 @@ const buildUpdatedGroupAfterUrlIdRemoval = (
 
   const nextUrlSubCategories = { ...group.urlSubCategories }
   for (const id of idsToRemove) {
+// eslint-disable-next-line typescript/no-dynamic-delete
     delete nextUrlSubCategories[id]
   }
   updatedGroup.urlSubCategories =
@@ -716,6 +719,7 @@ const removeUrlsFromCustomProjectsForGroups = async (
   const groupsWithoutUrlIds = groupsToDelete.filter(
     (group) => !(group.urlIds && group.urlIds.length > 0),
   )
+// eslint-disable-next-line typescript/no-non-null-assertion
   const allUrlIdsToDelete = groupsWithUrlIds.flatMap((group) => group.urlIds!)
   if (allUrlIdsToDelete.length > 0) {
     await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
@@ -1300,6 +1304,7 @@ const useSavedTabsAppView = ({
         const syncState: CategorySyncState = {
           categoriesChanged: false,
           savedTabsChanged: false,
+// eslint-disable-next-line oxc/no-map-spread
           updatedCategories: currentCategories.map((c) => ({
             ...c,
           })),

@@ -759,6 +759,7 @@ const alignCustomProjectsWithSavedTabs = ({
     normalizedProjects.map((project) => [project.id, project]),
   )
   const orderedProjects = normalizedOrder.flatMap((projectId) => {
+// eslint-disable-next-line typescript/no-non-null-assertion
     return [projectById.get(projectId)!]
   })
   const normalizedOrderSet = new Set(normalizedOrder)
@@ -769,6 +770,7 @@ const alignCustomProjectsWithSavedTabs = ({
   const assignedUrlIds = new Set<string>()
   const sanitizedProjects = allProjects.map((project) => {
     const nextUrlIds: string[] = []
+// eslint-disable-next-line typescript/no-non-null-assertion
     for (const urlId of project.urlIds!) {
       if (!allowedUrlIdSet.has(urlId) || assignedUrlIds.has(urlId)) {
         continue
@@ -1469,6 +1471,7 @@ const exportSettings = async (): Promise<BackupData> => {
       storageData.customProjects,
     )
       ? storageData.customProjects.map((project) =>
+// eslint-disable-next-line typescript/no-unsafe-argument
           normalizeImportedCustomProject(project),
         )
       : []
@@ -1504,6 +1507,7 @@ const exportSettings = async (): Promise<BackupData> => {
     const placeholderUrlTitle = getPlaceholderUrlTitle(
       resolveCurrentLanguage(userSettings),
     )
+// eslint-disable-next-line oxc/no-map-spread
     const normalizedSavedTabs: TabGroup[] = savedTabs.map((tab) => ({
       ...tab,
       urls: convertTabGroupToExportUrls(
@@ -1579,6 +1583,7 @@ const downloadAsJson = (data: BackupData, filename: string): void => {
 
   // クリーンアップ
   requestAnimationFrame(() => {
+// eslint-disable-next-line unicorn/prefer-dom-node-remove
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   })
@@ -2152,6 +2157,7 @@ const importWithMerge = async ({
   )
     ? mergeSavedAnalyticsViews(
         currentSavedAnalyticsViews,
+// eslint-disable-next-line typescript/no-non-null-assertion
         importedData.savedAnalyticsViews!,
       )
     : undefined
@@ -2231,6 +2237,7 @@ const importWithOverwrite = async ({
   const overwriteSavedAnalyticsViews = shouldImportSavedAnalyticsViews(
     importedData,
   )
+// eslint-disable-next-line typescript/no-non-null-assertion
     ? importedData.savedAnalyticsViews!
     : undefined
   await Promise.all([
@@ -2330,6 +2337,7 @@ const importSettings = async (
       )
     }
     if (mergeData) {
+// eslint-disable-next-line typescript/return-await
       return importWithMerge({
         bulkUrlRecordMap,
         importedData,
@@ -2339,6 +2347,7 @@ const importSettings = async (
         unresolvedTabs,
       })
     }
+// eslint-disable-next-line typescript/return-await
     return importWithOverwrite({
       bulkUrlRecordMap,
       importedData,

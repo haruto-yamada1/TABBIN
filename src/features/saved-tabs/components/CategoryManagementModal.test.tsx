@@ -129,6 +129,7 @@ vi.mock('@/components/ui/button', () => ({
   } & Record<string, unknown>) => {
     buttonPropsSpy({ children, variant, size, asChild, type, ...props })
     return (
+// eslint-disable-next-line react/button-has-type
       <button type={type ?? 'button'} {...props}>
         {children}
       </button>
@@ -359,6 +360,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム時の Enter/Blur 分岐（変更なし・バリデーション失敗・処理中・キャンセル）を処理する', async () => {
+// eslint-disable-next-line typescript/no-invalid-void-type
     const deferredUpdate = createDeferred<void>()
     const onCategoryUpdate = vi.fn(
       async (categoryId: string, newName: string) => {
@@ -725,6 +727,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('親カテゴリ削除確認のキャンセル・関連ドメインなし表示・処理中の再入防止を処理する', async () => {
+// eslint-disable-next-line typescript/no-invalid-void-type
     const deferredSet = createDeferred<void>()
 // eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
@@ -871,6 +874,7 @@ describe('CategoryManagementModal', () => {
       },
     ]
 
+// eslint-disable-next-line typescript/no-invalid-void-type
     const deferredSet = createDeferred<void>()
 // eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
@@ -1037,6 +1041,7 @@ describe('CategoryManagementModal', () => {
       ) {
         return
       }
+// eslint-disable-next-line typescript/consistent-return
       return originalFind.call(context, predicate, thisArg)
     })
 
@@ -1120,6 +1125,7 @@ describe('CategoryManagementModal', () => {
       },
     ]
 
+// eslint-disable-next-line typescript/no-invalid-void-type
     const deferredSet = createDeferred<void>()
 // eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {

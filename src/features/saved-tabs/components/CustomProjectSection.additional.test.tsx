@@ -272,6 +272,7 @@ describe('CustomProjectSection additional', () => {
     vi.clearAllMocks()
     dndContextPropsRef.current = {}
     for (const key of Object.keys(projectHandlerSpies)) {
+// eslint-disable-next-line typescript/no-dynamic-delete
       delete projectHandlerSpies[key]
     }
   })

@@ -1216,6 +1216,7 @@ describe('useCategoryKeywordModal', () => {
 
     await act(async () => {
       resolveSet?.()
+// eslint-disable-next-line typescript/no-non-null-assertion
       await firstSave!
     })
   })

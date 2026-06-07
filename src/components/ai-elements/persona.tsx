@@ -116,6 +116,7 @@ const useTheme = (enabled: boolean) => {
       mql.addEventListener('change', handleMediaChange)
     }
 
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       observer.disconnect()
       if (mql) {
@@ -175,6 +176,7 @@ PersonaWithoutModel.displayName = 'PersonaWithoutModel'
 export const Persona: FC<PersonaProps> = memo(
   ({
     variant = 'obsidian',
+// eslint-disable-next-line typescript/no-useless-default-assignment
     state = 'idle',
     onLoad,
     onLoadError,

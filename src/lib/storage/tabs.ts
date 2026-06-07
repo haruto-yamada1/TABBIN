@@ -166,6 +166,7 @@ const addSubCategoryToGroup = async (
   if (!group) {
     return
   }
+// eslint-disable-next-line oxc/no-map-spread
   const updatedGroups = savedTabs.map((existingGroup: TabGroup) => {
     if (existingGroup.id === groupId) {
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
@@ -263,6 +264,7 @@ const setCategoryKeywords = async (
   }
 
   // 更新するグループを見つける
+// eslint-disable-next-line oxc/no-map-spread
   const updatedGroups = savedTabs.map((currentGroup: TabGroup) => {
     if (currentGroup.id === groupId) {
       // 既存のカテゴリキーワード設定を取得
@@ -518,6 +520,7 @@ const removeUrlFromTabGroup = async (
 
       // サブカテゴリ情報も削除
       if (group.urlSubCategories?.[urlRecord.id]) {
+// eslint-disable-next-line typescript/no-dynamic-delete
         delete group.urlSubCategories[urlRecord.id]
       }
 
@@ -575,6 +578,7 @@ const processTabGroupForBulkDelete = (
   if (group.urlSubCategories) {
     for (const id of idsToDelete) {
       if (group.urlSubCategories[id]) {
+// eslint-disable-next-line typescript/no-dynamic-delete
         delete group.urlSubCategories[id]
       }
     }

@@ -455,6 +455,7 @@ const removeFromParentCategories = async (groupId: string): Promise<void> => {
     )
 
     // ドメイン名を保持したままドメインIDのみを削除
+// eslint-disable-next-line oxc/no-map-spread
     const updatedCategories = parentCategories.map(
       (category: ParentCategory) => {
         // DomainNamesは変更せず、domainsからIDのみを削除

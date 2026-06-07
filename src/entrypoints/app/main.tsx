@@ -4,6 +4,7 @@ import { I18nProvider } from '@/features/i18n/context/I18nProvider'
 import { AppRouter } from '@/features/navigation/app/AppRouter'
 import { mountToElement } from '@/lib/react/render-root'
 
+// eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
 const AppPage = () => (

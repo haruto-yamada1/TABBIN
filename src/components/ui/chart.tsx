@@ -90,6 +90,7 @@ const ChartContainer = ({
 
       window.addEventListener('resize', handleWindowResize)
 
+// eslint-disable-next-line typescript/consistent-return
       return () => {
         window.removeEventListener('resize', handleWindowResize)
       }
@@ -103,6 +104,7 @@ const ChartContainer = ({
 
     observer.observe(node)
 
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       observer.disconnect()
     }
@@ -272,6 +274,7 @@ const renderTooltipRow = ({
       )}
     >
       {formatter && item?.value !== undefined && item.name ? (
+// eslint-disable-next-line typescript/no-unsafe-argument
         formatter(item.value, item.name, item, index, item.payload)
       ) : (
         <>

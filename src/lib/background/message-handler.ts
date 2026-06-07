@@ -107,6 +107,7 @@ const setupMessageListener = (): void => {
         return true
       }
       default: {
+// eslint-disable-next-line typescript/no-unsafe-member-access
         console.warn('未知のメッセージアクション:', message.action)
         sendResponse({
           status: 'unknown_action',

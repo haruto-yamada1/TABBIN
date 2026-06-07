@@ -299,6 +299,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       selectedFileRef.current = file
 
       const reader = new FileReader()
+// eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onload = (event) => {
         try {
 // eslint-disable-next-line typescript/no-unsafe-type-assertion
@@ -323,10 +324,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         }
       }
 
+// eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         toast.error(t('options.importExport.readError'))
       }
 
+// eslint-disable-next-line unicorn/prefer-blob-reading-methods
       reader.readAsText(file)
     },
     [t],
@@ -360,6 +363,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     setIsImporting(true)
     try {
       const reader = new FileReader()
+// eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onload = async (event) => {
         try {
 // eslint-disable-next-line typescript/no-unsafe-type-assertion
@@ -392,10 +396,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
           }
         }
       }
+// eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         toast.error(t('options.importExport.readError'))
         setIsImporting(false)
       }
+// eslint-disable-next-line typescript/no-non-null-assertion
       reader.readAsText(selectedFileRef.current!)
     } catch (error) {
       console.error('インポートエラー:', error)

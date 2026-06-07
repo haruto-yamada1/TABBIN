@@ -163,6 +163,7 @@ const interpolate = (
   template: string,
   values: Record<string, string>,
 ): string =>
+// eslint-disable-next-line typescript/no-unsafe-member-access
   template.replaceAll(/\{\{(\w+)\}\}/g, (_, token) => values[token] ?? '')
 const getDefaultAnalyticsQuery = (): AnalyticsQuery => ({
   chartType: 'bar',
@@ -312,6 +313,7 @@ const sortEntries = (
   sort: AnalyticsSort,
 ) => {
   entries.sort((left, right) => {
+// eslint-disable-next-line typescript/switch-exhaustiveness-check
     switch (sort) {
       case 'label-asc': {
         return left.label.localeCompare(right.label, 'en')
@@ -425,6 +427,7 @@ const getTimeTitle = (
   bucket: AnalyticsTimeBucket,
   messages: AnalyticsMessages,
 ): string => {
+// eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (bucket) {
     case 'week': {
       return messages.chartWeeklySavedTrend
@@ -595,6 +598,7 @@ const createModeComparisonChart = (
         sortEntries(entries, query.sort)
         return entries.slice(0, query.limit)
       })()
+// eslint-disable-next-line oxc/no-map-spread
   const rawData = limitedEntries.map(({ counts, label }) => ({
     ...counts,
     label,

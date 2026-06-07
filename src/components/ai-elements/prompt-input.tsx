@@ -86,6 +86,7 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     const blob = await response.blob()
     // FileReader uses callback-based API, wrapping in Promise is necessary
     // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
+// eslint-disable-next-line typescript/return-await
     return new Promise((resolve) => {
       const reader = new FileReader()
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
@@ -94,6 +95,7 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
         resolve(reader.result as string)
       }
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
+// eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         resolve(null)
       }
@@ -394,6 +396,7 @@ export type PromptInputProps = Omit<
   }) => void
   onSubmit: (
     message: PromptInputMessage,
+// eslint-disable-next-line typescript/no-deprecated
     event: FormEvent<HTMLFormElement>,
   ) => void | Promise<void>
 }
@@ -642,6 +645,7 @@ const usePromptInputView = ({
     }
     form.addEventListener('dragover', onDragOver)
     form.addEventListener('drop', onDrop)
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       form.removeEventListener('dragover', onDragOver)
       form.removeEventListener('drop', onDrop)
@@ -668,6 +672,7 @@ const usePromptInputView = ({
     }
     document.addEventListener('dragover', onDragOver)
     document.addEventListener('drop', onDrop)
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       document.removeEventListener('dragover', onDragOver)
       document.removeEventListener('drop', onDrop)
@@ -717,6 +722,7 @@ const usePromptInputView = ({
         const array = Array.isArray(incoming) ? incoming : [incoming]
         setReferencedSources((prev) => [
           ...prev,
+// eslint-disable-next-line oxc/no-map-spread
           ...array.map((s) => ({ ...s, id: nanoid() })),
         ])
       },

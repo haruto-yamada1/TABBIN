@@ -53,6 +53,7 @@ const createAlarmChromeMock = (
       ) => void,
     ) => {
       if (options.getThrows) {
+// eslint-disable-next-line typescript/only-throw-error
         throw options.getThrows
       }
       cb(options.existingAlarm ?? null)
@@ -91,6 +92,7 @@ const createAlarmChromeMock = (
       onAlarm: {
         addListener: vi.fn((listener: AlarmListener) => {
           if (options.onAlarmAddListenerThrows) {
+// eslint-disable-next-line typescript/only-throw-error
             throw options.onAlarmAddListenerThrows
           }
           listeners.push(listener)

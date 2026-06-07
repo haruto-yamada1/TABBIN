@@ -294,6 +294,7 @@ export const useCategoryGroupState = ({
               }),
             )
             setTempDomainOrder(
+// eslint-disable-next-line oxc/no-map-spread
               updatedDomains.map((domain) => {
                 const { urls, ...rest } = domain
                 return {
@@ -320,6 +321,7 @@ export const useCategoryGroupState = ({
     }
     try {
       if (handleUpdateDomainsOrder) {
+// eslint-disable-next-line typescript/no-confusing-void-expression
         await handleUpdateDomainsOrder(category.id, tempDomainOrder)
       }
       setIsReorderMode(false)
@@ -346,6 +348,7 @@ export const useCategoryGroupState = ({
   // --- 個別ドメイン削除のラッパー ---
   const handleDeleteSingleDomain = useCallback(
     async (domainId: string) => {
+// eslint-disable-next-line typescript/no-confusing-void-expression
       await handleDeleteGroup(domainId)
       if (isReorderMode) {
         const filteredTempOrder = tempDomainOrder.filter(

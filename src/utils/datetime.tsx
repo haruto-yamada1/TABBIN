@@ -96,6 +96,7 @@ export const TimeRemaining = ({
           savedAt,
         },
         (response) => {
+// eslint-disable-next-line typescript/no-unsafe-argument
           applyTimeRemainingResponse(response, setTimeLeft, setColorClass)
         },
       )
@@ -107,6 +108,7 @@ export const TimeRemaining = ({
     // 1分ごとに更新
 // eslint-disable-next-line eslint/no-magic-numbers
     const timer = setInterval(calculateTimeLeft, 60_000)
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       clearInterval(timer)
     }

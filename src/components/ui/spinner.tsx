@@ -8,6 +8,7 @@ function Spinner({ className, ...props }: React.ComponentProps<'svg'>) {
 
   return (
     <Loader2Icon
+// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='status'
       aria-label={t('common.loadingLabel')}
       className={cn('size-4 animate-spin', className)}

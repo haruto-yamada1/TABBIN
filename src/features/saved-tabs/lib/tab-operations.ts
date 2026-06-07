@@ -116,6 +116,7 @@ export const safelyUpdateGroupUrls = async (
     }
 
     // グループ内のURLが空になる場合でも、グループ自体は維持（表示はしない）
+// eslint-disable-next-line oxc/no-map-spread
     const updatedTabs = savedTabs.map((tab: TabGroup) => {
       if (tab.id === groupId) {
         return {
@@ -165,6 +166,7 @@ export const safelyUpdateGroupUrls = async (
     return
   } catch (error) {
     console.error('タブ更新エラー:', error)
+// eslint-disable-next-line typescript/prefer-promise-reject-errors
     return Promise.reject(error)
   }
 }

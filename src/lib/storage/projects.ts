@@ -43,6 +43,7 @@ const getProjectUrls = async (
     // マイグレーションを実行（未実行の場合）
     await migrateToUrlsStorage()
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
+// eslint-disable-next-line oxc/no-map-spread
     return urlRecords.map((record) => ({
       ...record,
       category: project.urlMetadata?.[record.id]?.category,
@@ -359,6 +360,7 @@ const removeUrlIdFromProject = (
 
   project.urlIds = project.urlIds.filter((id) => id !== urlId)
   if (project.urlMetadata?.[urlId]) {
+// eslint-disable-next-line typescript/no-dynamic-delete
     delete project.urlMetadata[urlId]
   }
   project.updatedAt = updatedAt
@@ -553,6 +555,7 @@ const removeUrlFromCustomProject = async (
 
       // メタデータも削除
       if (project.urlMetadata?.[urlRecord.id]) {
+// eslint-disable-next-line typescript/no-dynamic-delete
         delete project.urlMetadata[urlRecord.id]
       }
     }
@@ -669,6 +672,7 @@ const updateProjectUrlIdsAndMetadata = (
     if (project.urlMetadata) {
       for (const id of idsToDelete) {
         if (project.urlMetadata[id]) {
+// eslint-disable-next-line typescript/no-dynamic-delete
           delete project.urlMetadata[id]
         }
       }
@@ -892,6 +896,7 @@ const mergeUrlsIntoUncategorized = (
       continue
     }
     ensureProjectMetadataEntry(uncategorizedProject, urlId)
+// eslint-disable-next-line typescript/no-non-null-assertion
     uncategorizedProject.urlMetadata![urlId].notes = metadata.notes
   }
   uncategorizedProject.updatedAt = Date.now()
@@ -1171,6 +1176,7 @@ const moveUrlBetweenCustomProjects = async (
 
   const sourceMetadata = sourceProject.urlMetadata?.[urlId]
   if (sourceProject.urlMetadata?.[urlId]) {
+// eslint-disable-next-line typescript/no-dynamic-delete
     delete sourceProject.urlMetadata[urlId]
   }
   if (sourceMetadata?.notes) {

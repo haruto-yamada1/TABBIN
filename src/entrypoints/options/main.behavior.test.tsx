@@ -83,6 +83,7 @@ vi.mock('@/components/ui/button', () => ({
     onClick?: () => void
     type?: 'button' | 'submit'
   } & Record<string, unknown>) => (
+// eslint-disable-next-line react/button-has-type
     <button onClick={onClick} type={type} {...props}>
       {children}
     </button>
@@ -99,6 +100,7 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
+// eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       id={id}
       type='checkbox'
@@ -477,6 +479,7 @@ describe('options route behavior', () => {
       target: { value: '125' },
     })
     expect(mocked.updateSetting).toHaveBeenCalledTimes(updateSettingCallCount)
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('Font size percentage').value).toBe('125')
 
     fireEvent.mouseUp(fontSizeSlider)

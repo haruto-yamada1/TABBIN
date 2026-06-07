@@ -13,6 +13,7 @@ describe('Fieldコンポーネント', () => {
     render(
       <Field data-invalid>
         <FieldLabel htmlFor='field-input'>Invalid Input</FieldLabel>
+// eslint-disable-next-line jsx-a11y/control-has-associated-label
         <input aria-describedby='field-error' id='field-input' />
         <FieldDescription>Helper text</FieldDescription>
         <FieldError id='field-error'>
@@ -36,6 +37,7 @@ describe('Fieldコンポーネント', () => {
     const { getByRole } = render(
       <Field orientation='horizontal'>
         <FieldLabel htmlFor='horizontal-input'>Label</FieldLabel>
+// eslint-disable-next-line jsx-a11y/control-has-associated-label
         <input id='horizontal-input' />
       </Field>,
     )

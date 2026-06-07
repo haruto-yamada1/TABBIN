@@ -1430,6 +1430,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
+// eslint-disable-next-line typescript/no-non-null-assertion
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             uncategorizedForDisplay: TabGroup[]
           }
@@ -1455,6 +1456,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
+// eslint-disable-next-line typescript/no-non-null-assertion
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             uncategorizedForDisplay: TabGroup[]
           }
@@ -1471,6 +1473,7 @@ describe('SavedTabsApp custom search', () => {
 
     expect(
       (
+// eslint-disable-next-line typescript/no-non-null-assertion
         mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
           uncategorizedForDisplay: TabGroup[]
         }
@@ -2289,6 +2292,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
+// eslint-disable-next-line typescript/no-non-null-assertion
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
@@ -2306,6 +2310,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
+// eslint-disable-next-line typescript/no-non-null-assertion
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
@@ -2325,6 +2330,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
+// eslint-disable-next-line typescript/no-non-null-assertion
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
@@ -2749,6 +2755,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
+// eslint-disable-next-line typescript/no-non-null-assertion
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             settings: UserSettings
           }
@@ -2955,6 +2962,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
+// eslint-disable-next-line typescript/no-non-null-assertion
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }
@@ -3598,6 +3606,7 @@ describe('SavedTabsApp custom search', () => {
     await waitFor(() => {
       expect(
         (
+// eslint-disable-next-line typescript/no-non-null-assertion
           mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
             state: { isUncategorizedReorderMode: boolean }
           }

@@ -48,6 +48,7 @@ vi.mock('@/components/ai-elements/prompt-input', () => ({
     <button
       aria-controls='ollama-model-selector-options'
       aria-expanded={false}
+// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='combobox'
       type='button'
       {...props}
@@ -68,6 +69,7 @@ vi.mock('@/components/ai-elements/prompt-input', () => ({
     children: React.ReactNode
     value: string
   }) => (
+// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
     <div aria-label={value} aria-selected={false} role='option' tabIndex={-1}>
       {children}
     </div>

@@ -168,6 +168,7 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('Recent conversations')).toBeTruthy()
 
     fireEvent.click(
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
       screen
         .getAllByRole('button', { name: /別の会話/ })
         .find((button) => button.className.includes('flex-col')) as HTMLElement,

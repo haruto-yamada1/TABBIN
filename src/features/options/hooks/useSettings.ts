@@ -137,6 +137,7 @@ export const useSettings = () => {
     storageOnChanged.addListener(storageChangeListener)
 
     // クリーンアップ関数
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }

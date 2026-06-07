@@ -2063,6 +2063,7 @@ const useSavedTabsChatWidgetView = ({
 
     storageOnChanged.addListener(storageChangeListener)
 
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }
@@ -2683,6 +2684,7 @@ const useSavedTabsChatWidgetView = ({
         prompt: nextPrompt,
         type: 'run',
         ...(attachments.length > 0 ? { attachments } : {}),
+// eslint-disable-next-line unicorn/require-post-message-target-origin
       })
       return true
     } catch {

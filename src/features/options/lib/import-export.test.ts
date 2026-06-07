@@ -86,6 +86,7 @@ const clone = <T>(value: T): T => {
   if (value === undefined) {
     return value
   }
+// eslint-disable-next-line unicorn/prefer-structured-clone
   return JSON.parse(JSON.stringify(value)) as T
 }
 
@@ -2696,10 +2697,14 @@ describe('import-export ユーティリティ', () => {
     expect(
       set.mock.calls.some(([payload]) =>
         Boolean(
+// eslint-disable-next-line typescript/no-unnecessary-type-assertion
           (payload as Record<string, unknown>)?.urls &&
+// eslint-disable-next-line typescript/no-unnecessary-type-assertion
           Array.isArray((payload as Record<string, unknown>).urls) &&
+// eslint-disable-next-line typescript/no-unnecessary-type-assertion
           ((payload as Record<string, unknown>).urls as unknown[]).some(
             (record) =>
+// eslint-disable-next-line typescript/prefer-optional-chain
               typeof record === 'object' &&
               record !== null &&
               (record as { id?: string }).id === 'raw-fallback-id',
@@ -3166,6 +3171,7 @@ describe('import-export ユーティリティ', () => {
         unknown,
         unknown
       >
+// eslint-disable-next-line typescript/consistent-return
       return originalGet.call(context, key)
     })
 

@@ -37,6 +37,7 @@ const assignDomainToCategory = async (
       await updateDomainCategoryMapping(tabGroup.domain, null)
     }
   }
+// eslint-disable-next-line oxc/no-map-spread
   const updatedCategories = categories.map((category: ParentCategory) => {
     if (category.id === categoryId) {
       // すでに含まれていなければ追加
@@ -115,6 +116,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     }
 
     // マイグレーション実行
+// eslint-disable-next-line oxc/no-map-spread
     const updatedCategories = categories.map((category) => {
       // ドメインIDに対応するドメイン名を取得
       const domainNames = category.domains.flatMap((domainId) => {
@@ -421,6 +423,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   }
   const urlRecords = await Promise.all(
     tabsWithDomains.map(async ({ domain, tab, url }) => {
+// eslint-disable-next-line typescript/no-non-null-assertion
       const group = groupedTabs.get(domain)!
       if (!missingDomainSet.has(domain)) {
         console.log(`既存のドメインに追加: ${domain}`)

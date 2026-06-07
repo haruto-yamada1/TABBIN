@@ -13,7 +13,9 @@ interface SpeechRecognition extends EventTarget {
   continuous: boolean
   interimResults: boolean
   lang: string
+// eslint-disable-next-line typescript/method-signature-style
   start(): void
+// eslint-disable-next-line typescript/method-signature-style
   stop(): void
   onstart: ((this: SpeechRecognition, ev: Event) => void) | null
   onend: ((this: SpeechRecognition, ev: Event) => void) | null
@@ -32,12 +34,14 @@ interface SpeechRecognitionEvent extends Event {
 
 interface SpeechRecognitionResultList {
   readonly length: number
+// eslint-disable-next-line typescript/method-signature-style
   item(index: number): SpeechRecognitionResult
   [index: number]: SpeechRecognitionResult
 }
 
 interface SpeechRecognitionResult {
   readonly length: number
+// eslint-disable-next-line typescript/method-signature-style
   item(index: number): SpeechRecognitionAlternative
   [index: number]: SpeechRecognitionAlternative
   isFinal: boolean
@@ -336,6 +340,7 @@ export const SpeechInput = ({
     recognitionRef.current = speechRecognition
     setIsRecognitionReady(true)
 
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       speechRecognition.removeEventListener('start', handleStart)
       speechRecognition.removeEventListener('end', handleEnd)

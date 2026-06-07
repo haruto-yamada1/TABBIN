@@ -152,6 +152,7 @@ vi.mock('@/components/ui/select', () => {
       : undefined
     const items = contentChildren
       ? Children.toArray(contentChildren).reduce<
+// eslint-disable-next-line typescript/array-type
           Array<{ children?: ReactNode; value: string }>
         >((values, item) => {
           if (!isValidElement(item)) {
@@ -202,6 +203,7 @@ vi.mock('@/features/ai-chat/components/AiChartRenderer', () => ({
     charts,
     onChartPointClick,
   }: {
+// eslint-disable-next-line typescript/array-type
     charts: Array<{ data?: Record<string, unknown>[]; title: string }>
     onChartPointClick?: (point: {
       label: string
@@ -379,6 +381,7 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
       <button
 // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
+// eslint-disable-next-line typescript/no-confusing-void-expression
           emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
@@ -445,6 +448,7 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
       <button
 // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
+// eslint-disable-next-line typescript/no-confusing-void-expression
           emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
@@ -482,6 +486,7 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
       <button
 // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
+// eslint-disable-next-line typescript/no-confusing-void-expression
           emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [],
@@ -498,6 +503,7 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
       <button
 // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
+// eslint-disable-next-line typescript/no-confusing-void-expression
           emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
@@ -1101,6 +1107,7 @@ describe('AnalyticsRoute', () => {
     ).toBeNull()
     expect(getAnalyticsDateLocale('ja')).toBe('ja-JP')
     expect(getAnalyticsDateLocale('en')).toBe('en-US')
+// eslint-disable-next-line typescript/no-confusing-void-expression
     expect(noop()).toBeUndefined()
     expect(runConfirmedDelete(null, deleteRecord)).toBe(false)
     expect(runConfirmedDelete(records[0], deleteRecord)).toBe(true)
@@ -1236,6 +1243,7 @@ describe('AnalyticsRoute', () => {
   it('Undo トーストを表示するための Toaster を配置する', async () => {
     render(<AnalyticsRoute />)
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByTestId('analytics-toaster')).toBeTruthy()
   })
 
@@ -1259,7 +1267,9 @@ describe('AnalyticsRoute', () => {
   it('初期条件でチャートを表示する', async () => {
     render(<AnalyticsRoute />)
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Analysis conditions')).toBeTruthy()
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Saved count by domain')).toBeTruthy()
     expect(
       screen.getByText('Created Saved count by domain from 2 saved records.'),
@@ -1289,6 +1299,7 @@ describe('AnalyticsRoute', () => {
 
     render(<AnalyticsRoute />)
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('分析条件')).toBeTruthy()
     expect(screen.getByText('分析キャンバス')).toBeTruthy()
     expect(
@@ -1349,6 +1360,7 @@ describe('AnalyticsRoute', () => {
       target: { value: 'project' },
     })
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Saved count by project')).toBeTruthy()
   })
 
@@ -1422,6 +1434,7 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByRole('button', { name: 'Legacy Time View' }),
     ).toBeTruthy()
 
@@ -1640,6 +1653,7 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByRole('button', { name: 'Delete Saved View' }),
     ).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Delete Saved View' }))
@@ -1686,6 +1700,7 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByRole('button', { name: 'Delete Domain Only View' }),
     ).toBeTruthy()
 
@@ -1706,6 +1721,7 @@ describe('AnalyticsRoute', () => {
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     fireEvent.click(screen.getByRole('button', { name: 'emit-ai-chart' }))
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('AI-generated chart')).toBeTruthy()
     expect(analyticsRouteMocks.updateMessagesMock).toHaveBeenCalledTimes(1)
   })
@@ -1716,6 +1732,7 @@ describe('AnalyticsRoute', () => {
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     fireEvent.click(screen.getByRole('button', { name: 'emit-chart-only' }))
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('AI chart without query')).toBeTruthy()
   })
 
@@ -1739,6 +1756,7 @@ describe('AnalyticsRoute', () => {
       screen.getByRole('button', { name: 'emit-invalid-query-chart' }),
     )
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Invalid query chart')).toBeTruthy()
   })
 
@@ -1748,6 +1766,7 @@ describe('AnalyticsRoute', () => {
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Saved tabs in this item')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull()
     expect(screen.getByText('Example Docs')).toBeTruthy()
@@ -1803,6 +1822,7 @@ describe('AnalyticsRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'emit-ai-chart' }))
     fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Saved tabs in this item')).toBeTruthy()
     expect(screen.getByText('Example Docs')).toBeTruthy()
     expect(screen.queryByText('Old Docs')).toBeNull()
@@ -1817,6 +1837,7 @@ describe('AnalyticsRoute', () => {
     )
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByText('No matching saved tabs were found.'),
     ).toBeTruthy()
     expect(
@@ -1838,6 +1859,7 @@ describe('AnalyticsRoute', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'emit-uncategorized-click' }),
     )
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('News Entry')).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('Group by'), {
@@ -1846,12 +1868,14 @@ describe('AnalyticsRoute', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'emit-uncategorized-click' }),
     )
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('News Entry')).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('Group by'), {
       target: { value: 'project' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'emit-inbox-click' }))
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('News Entry')).toBeTruthy()
   })
 
@@ -1892,6 +1916,7 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByRole('button', { name: 'Project Category View' }),
     ).toBeTruthy()
 
@@ -1899,12 +1924,14 @@ describe('AnalyticsRoute', () => {
       target: { value: 'timeRecent' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'emit-time-click' }))
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Example Docs')).toBeTruthy()
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Project Category View' }),
     )
     fireEvent.click(screen.getByRole('button', { name: 'emit-catchup-click' }))
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('News Entry')).toBeTruthy()
   })
 
@@ -1952,6 +1979,7 @@ describe('AnalyticsRoute', () => {
     )
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByText('No matching saved tabs were found.'),
     ).toBeTruthy()
 
@@ -1959,12 +1987,14 @@ describe('AnalyticsRoute', () => {
       screen.getByRole('button', { name: 'emit-custom-series-news-click' }),
     )
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('News Entry')).toBeTruthy()
 
     fireEvent.click(
       screen.getByRole('button', { name: 'emit-other-series-news-click' }),
     )
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('News Entry')).toBeTruthy()
   })
 
@@ -2009,6 +2039,7 @@ describe('AnalyticsRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByRole('button', { name: 'Delete tab' }),
     ).toBeTruthy()
   })
@@ -2020,6 +2051,7 @@ describe('AnalyticsRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByRole('button', { name: 'Open all tabs in this item' }),
     ).toBeTruthy()
     expect(
@@ -2064,6 +2096,7 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect(
+// eslint-disable-next-line vitest/prefer-expect-resolves
       await screen.findByText(
         'Created Saved count by domain from 10 saved records.',
       ),
@@ -2074,6 +2107,7 @@ describe('AnalyticsRoute', () => {
       await screen.findByRole('button', { name: 'Open all tabs in this item' }),
     )
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Open all tabs?')).toBeTruthy()
     expect(openSpy).not.toHaveBeenCalled()
 
@@ -2136,6 +2170,7 @@ describe('AnalyticsRoute', () => {
       }),
     )
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
     expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
 
@@ -2170,6 +2205,7 @@ describe('AnalyticsRoute', () => {
       }),
     )
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
@@ -2348,6 +2384,7 @@ describe('AnalyticsRoute', () => {
       }),
     )
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
@@ -2446,6 +2483,7 @@ describe('AnalyticsRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Delete this tab?')).toBeTruthy()
     expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
 
@@ -2468,6 +2506,7 @@ describe('AnalyticsRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
+// eslint-disable-next-line vitest/prefer-expect-resolves
     expect(await screen.findByText('Delete this tab?')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 

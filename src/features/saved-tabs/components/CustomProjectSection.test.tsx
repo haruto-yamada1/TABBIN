@@ -383,6 +383,7 @@ describe('CustomProjectSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
 
     await waitFor(() => {
+// eslint-disable-next-line typescript/TS2339
       expect(screen.getByLabelText('プロジェクト名 *').value).toBe('')
     })
   })

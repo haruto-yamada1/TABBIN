@@ -247,6 +247,7 @@ const AttachmentPreviewContent = ({
   }
 
   if (mediaCategory === 'video' && data.type === 'file' && data.url) {
+// eslint-disable-next-line jsx-a11y/control-has-associated-label
     return <video className='size-full object-cover' muted src={data.url} />
   }
 

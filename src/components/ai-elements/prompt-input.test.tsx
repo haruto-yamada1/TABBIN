@@ -151,6 +151,7 @@ describe('PromptInput', () => {
       </PromptInput>,
     )
 
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement
@@ -186,6 +187,7 @@ describe('PromptInput', () => {
 
     const { unmount } = renderPromptInput(onSubmit)
 
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement
@@ -213,6 +215,7 @@ describe('PromptInput', () => {
       </PromptInput>,
     )
 
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement
@@ -242,6 +245,7 @@ describe('PromptInput', () => {
       </PromptInput>,
     )
 
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement
@@ -271,6 +275,7 @@ describe('PromptInput', () => {
       </PromptInput>,
     )
 
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement

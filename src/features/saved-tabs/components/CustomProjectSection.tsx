@@ -179,6 +179,7 @@ const updateCrossProjectDragState = ({
 // eslint-disable-next-line typescript/no-unsafe-assignment
   const projectId = over.data?.current?.projectId
   if (projectId && sourceProjectId && projectId !== sourceProjectId) {
+// eslint-disable-next-line typescript/no-unsafe-return
     setDraggedOverProjectId((prev) => (prev === projectId ? prev : projectId))
     setIsCrossProjectUrlDragActive(true)
     return
@@ -425,6 +426,7 @@ const useCustomProjectSectionView = ({
       },
       unregisterHandlers: (projectId: string) => {
         const newHandlers = { ...projectDragHandlersRef.current }
+// eslint-disable-next-line typescript/no-dynamic-delete
         delete newHandlers[projectId]
         projectDragHandlersRef.current = newHandlers
       },

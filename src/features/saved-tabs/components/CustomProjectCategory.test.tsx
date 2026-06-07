@@ -335,6 +335,7 @@ describe('CustomProjectCategory', () => {
     )
 
     expect(screen.queryByTestId('card-content')).toBeNull()
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByRole('button', { name: '展開' }).disabled).toBe(true)
 
     rerender(
@@ -348,6 +349,7 @@ describe('CustomProjectCategory', () => {
     )
 
     expect(screen.getByTestId('card-content')).toBeTruthy()
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByRole('button', { name: '折りたたむ' }).disabled).toBe(
       false,
     )
@@ -515,6 +517,7 @@ describe('CustomProjectCategory', () => {
     const card = screen.getByTestId('card')
     expect(card.className.includes('opacity-50')).toBe(true)
     expect(screen.queryByTestId('card-content')).toBeNull()
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByRole('button', { name: '展開' }).disabled).toBe(true)
 
     useDroppableMock.mockReturnValueOnce({
@@ -537,9 +540,11 @@ describe('CustomProjectCategory', () => {
     const emptyState = screen.getByTestId('card-content').querySelector('div')
     expect(emptyState).toBeTruthy()
     expect(
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
       (emptyState as HTMLDivElement).className.includes('border-primary'),
     ).toBe(true)
     expect(
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
       (emptyState as HTMLDivElement).className.includes('bg-primary/10'),
     ).toBe(true)
   })

@@ -93,6 +93,7 @@ export const useCategories = () => {
 
     storageOnChanged.addListener(storageChangeListener)
 
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }

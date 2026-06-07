@@ -154,7 +154,9 @@ describe('DomainCardRoot', () => {
     const root = document.querySelector(
       '[data-saved-tabs-scroll-target="domain"]',
     )
+// eslint-disable-next-line typescript/TS2339
     expect(root?.style.contentVisibility).toBe('auto')
+// eslint-disable-next-line typescript/TS2339
     expect(root?.style.containIntrinsicSize).toBe('360px')
     expect(screen.getByText('2')).toBeTruthy()
   })

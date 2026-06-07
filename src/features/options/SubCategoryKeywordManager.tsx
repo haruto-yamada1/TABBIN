@@ -154,6 +154,7 @@ const useSubCategoryKeywordManagerView = ({
       setKeywords(updatedKeywords)
 
       // ストレージに保存
+// eslint-disable-next-line typescript/no-non-null-assertion
       await setCategoryKeywords(tabGroup.id, activeCategory!, updatedKeywords)
 
       console.log(`キーワード "${keywordToRemove}" を削除しました`)
@@ -336,6 +337,7 @@ const useSubCategoryKeywordManagerView = ({
       savedTabs?: import('@/types/storage').TabGroup[]
     }>('savedTabs')
 
+// eslint-disable-next-line oxc/no-map-spread
     const updatedTabs = savedTabs.map((tab: TabGroup) => {
       if (tab.id === tabGroup.id) {
         // 1. subCategories配列を更新

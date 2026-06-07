@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const { createPrimitive } = vi.hoisted(() => ({
   createPrimitive:
+// eslint-disable-next-line typescript/no-deprecated
     (tag: keyof JSX.IntrinsicElements) =>
     ({
       children,

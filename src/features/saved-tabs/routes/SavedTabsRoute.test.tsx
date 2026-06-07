@@ -463,9 +463,13 @@ describe('SavedTabsRoute', () => {
     })
     fireEvent.scroll(leftPane)
 
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('最上部へ移動').disabled).toBe(true)
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('上の親カテゴリへ移動').disabled).toBe(true)
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('下の親カテゴリへ移動').disabled).toBe(false)
+// eslint-disable-next-line typescript/TS2339
     expect(screen.getByLabelText('最下部へ移動').disabled).toBe(false)
   })
 

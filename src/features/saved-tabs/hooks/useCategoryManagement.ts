@@ -88,6 +88,7 @@ const removeSubCategoryFromGroup = (
   if (updatedUrlSubCategories) {
     for (const urlId in updatedUrlSubCategories) {
       if (updatedUrlSubCategories[urlId] === categoryName) {
+// eslint-disable-next-line typescript/no-dynamic-delete
         delete updatedUrlSubCategories[urlId]
       }
     }

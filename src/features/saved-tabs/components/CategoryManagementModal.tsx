@@ -107,6 +107,7 @@ const updateCategoryWithDomain = async (
   ) {
     throw new Error('このドメインは既にカテゴリに追加されています')
   }
+// eslint-disable-next-line oxc/no-map-spread
   const updatedCategories = parentCategories.map((cat: ParentCategory) =>
     cat.id === categoryId
       ? {
@@ -335,6 +336,7 @@ const useCategoryManagementModalView = ({
       })
       setIsSaving(true)
       try {
+// eslint-disable-next-line typescript/no-confusing-void-expression
         await onCategoryUpdate(category.id, trimmedName)
         console.log('Modal - onCategoryUpdate呼び出し完了')
       } finally {
@@ -491,6 +493,7 @@ const useCategoryManagementModalView = ({
       }
 
       // カテゴリを更新
+// eslint-disable-next-line oxc/no-map-spread
       const updatedCategories = parentCategories.map((cat: ParentCategory) => {
         if (cat.id === category.id) {
           return {

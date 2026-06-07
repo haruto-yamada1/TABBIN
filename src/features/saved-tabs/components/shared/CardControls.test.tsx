@@ -43,6 +43,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   }),
 }))
 
+// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -138,6 +139,7 @@ describe('CardGroupTitle', () => {
     const { container } = render(<CardGroupTitle title='動画' />)
 
     const dragHandle = container.querySelector('svg')
+// eslint-disable-next-line typescript/no-deprecated
     expect(dragHandle?.className.baseVal).toContain('text-muted-foreground')
   })
 })

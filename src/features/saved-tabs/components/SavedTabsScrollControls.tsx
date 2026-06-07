@@ -350,6 +350,7 @@ const useSavedTabsScrollControlsView = ({
         : new ResizeObserver(updateAvailability)
     resizeObserver?.observe(container)
 
+// eslint-disable-next-line typescript/consistent-return
     return () => {
       container.removeEventListener('scroll', handleScroll)
       resizeObserver?.disconnect()

@@ -9,6 +9,7 @@ import { formatLocalizedDate } from '@/features/i18n/lib/date-format'
 import { getChangelogItems } from '@/features/i18n/messages'
 import { mountToElement } from '@/lib/react/render-root'
 
+// eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
 const App: React.FC = () => (

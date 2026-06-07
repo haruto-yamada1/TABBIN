@@ -133,6 +133,7 @@ describe('SpeechInput', () => {
       expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder)
     })
 
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const recorder = MockMediaRecorder.latestInstance as MockMediaRecorder
     using removeEventListenerSpy = vi.spyOn(recorder, 'removeEventListener')
     using stopSpy = vi.spyOn(recorder, 'stop')
@@ -190,6 +191,7 @@ describe('SpeechInput', () => {
       expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder)
     })
 
+// eslint-disable-next-line typescript/non-nullable-type-assertion-style
     ;(MockMediaRecorder.latestInstance as MockMediaRecorder).emitData()
     fireEvent.click(button)
 

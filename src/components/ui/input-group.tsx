@@ -11,6 +11,7 @@ function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot='input-group'
+// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='group'
       className={cn(
         'group/input-group relative flex w-full items-center rounded-md border border-input shadow-xs transition-[color,box-shadow] outline-none dark:bg-input/30',
@@ -62,7 +63,9 @@ function InputGroupAddon({
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof inputGroupAddonVariants>) {
   return (
+// eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
+// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='group'
       data-slot='input-group-addon'
       data-align={align}

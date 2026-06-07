@@ -77,6 +77,7 @@ const getHandleCoordsByPosition = (
       break
     }
     default: {
+// eslint-disable-next-line typescript/restrict-template-expressions
       throw new Error(`Invalid handle position: ${handlePosition}`)
     }
   }

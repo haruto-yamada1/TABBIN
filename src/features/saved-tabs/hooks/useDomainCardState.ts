@@ -67,6 +67,7 @@ const buildCategorizedUrls = (
   const uncategorizedCategoryId = '__uncategorized'
   const categorizedUrls: CategorizedUrls = {}
   categorizedUrls[uncategorizedCategoryId] = []
+// eslint-disable-next-line unicorn/no-useless-collection-argument
   const subCategorySet = new Set(subCategories ?? [])
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
   for (const category of subCategories || []) {
@@ -218,6 +219,7 @@ export const useDomainCardState = ({
 // eslint-disable-next-line typescript/consistent-type-imports
           savedTabs?: import('@/types/storage').TabGroup[]
         }>('savedTabs')
+// eslint-disable-next-line oxc/no-map-spread
         const updatedTabs = savedTabs.map((tab: TabGroup) => {
           if (tab.id === group.id) {
             const updatedTab = {

@@ -17,6 +17,7 @@ const globalWithApis = globalThis as GlobalWithBrowserApis
 const originalBrowser = globalWithApis.browser
 const originalChrome = globalWithApis.chrome
 
+// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   vi.resetModules()
   vi.doUnmock('webextension-polyfill')

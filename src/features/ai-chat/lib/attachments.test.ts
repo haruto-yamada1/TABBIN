@@ -6,6 +6,7 @@ import {
   convertPromptInputFilesToAiChatAttachments,
 } from './attachments'
 
+// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   vi.unstubAllGlobals()
 })

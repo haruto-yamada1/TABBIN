@@ -37,6 +37,7 @@ export const getExpirationPeriodMs = (
   const day = 24 * hour
 
   // テスト用に30秒も追加
+// eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (period) {
     case '30sec': {
 // eslint-disable-next-line eslint/no-magic-numbers
@@ -234,6 +235,7 @@ export const updateTabTimestamps = async (
     }
 
     // タブの保存時刻を更新
+// eslint-disable-next-line oxc/no-map-spread
     const updatedTabs = savedTabs.map((group: TabGroup) => ({
       ...group,
       savedAt: timestamp,

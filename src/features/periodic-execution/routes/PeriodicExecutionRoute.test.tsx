@@ -45,6 +45,7 @@ vi.mock('@/components/ui/button', () => ({
   }: ComponentPropsWithoutRef<'button'> & {
     ref?: React.Ref<HTMLButtonElement>
   }) => (
+// eslint-disable-next-line react/button-has-type
     <button ref={ref} type={type} {...props}>
       {children}
     </button>
@@ -306,9 +307,11 @@ describe('PeriodicExecutionRoute', () => {
 
     expect(labelledBy).toBeTruthy()
     expect(describedBy).toBeTruthy()
+// eslint-disable-next-line unicorn/prefer-query-selector
     expect(document.getElementById(labelledBy ?? '')?.textContent).toBe(
       'Auto delete',
     )
+// eslint-disable-next-line unicorn/prefer-query-selector
     expect(document.getElementById(describedBy ?? '')?.textContent).toBe(
       '確認メッセージ',
     )

@@ -45,8 +45,10 @@ export const Header = ({
   onModeChange,
   searchQuery,
   onSearchChange,
+// eslint-disable-next-line typescript/no-useless-default-assignment
   customProjects = EMPTY_CUSTOM_PROJECTS,
   filteredCustomProjects,
+// eslint-disable-next-line typescript/no-useless-default-assignment
   onCreateProject = noopCreateProject,
 }: HeaderProps) => {
   const { t } = useI18n()

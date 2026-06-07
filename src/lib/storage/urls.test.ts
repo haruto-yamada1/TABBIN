@@ -22,6 +22,7 @@ vi.mock('uuid', () => ({
 interface StorageState {
   customProjects?: CustomProject[]
   savedTabs?: TabGroup[]
+// eslint-disable-next-line typescript/no-redundant-type-constituents
   urls?: UrlRecord[] | unknown
 }
 

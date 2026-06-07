@@ -31,6 +31,7 @@ const storageMocks = vi.hoisted(() => {
     })),
     reset: () => {
       for (const key of Object.keys(state)) {
+// eslint-disable-next-line typescript/no-dynamic-delete
         delete state[key]
       }
     },
@@ -131,6 +132,7 @@ describe('analytics storage', () => {
   })
 
   it('新しい分析ビューを作成する', async () => {
+// eslint-disable-next-line typescript/await-thenable
     const view = await createSavedAnalyticsView({
       name: 'Custom View',
       now: 100,

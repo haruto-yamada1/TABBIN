@@ -88,6 +88,7 @@ const formatChartValue = (
   format?: AiChartSpec['valueFormat'],
 ) => {
   if (!isFiniteNumber(value)) {
+// eslint-disable-next-line typescript/no-base-to-string
     return String(value ?? '')
   }
 

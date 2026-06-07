@@ -85,6 +85,7 @@ const ContextIcon = () => {
     <svg
       aria-label={t('common.modelContextUsage')}
       height='20'
+// eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='img'
 // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{ color: 'currentcolor' }}
@@ -318,6 +319,7 @@ export const ContextReasoningUsage = ({
 }: ContextReasoningUsageProps) => {
   const { usage, modelId } = useContextValue()
   const t = useI18nText()
+// eslint-disable-next-line typescript/no-deprecated
   const reasoningTokens = usage?.reasoningTokens ?? 0
 
   if (children) {
@@ -356,6 +358,7 @@ export const ContextCacheUsage = ({
 }: ContextCacheUsageProps) => {
   const { usage, modelId } = useContextValue()
   const t = useI18nText()
+// eslint-disable-next-line typescript/no-deprecated
   const cacheTokens = usage?.cachedInputTokens ?? 0
 
   if (children) {

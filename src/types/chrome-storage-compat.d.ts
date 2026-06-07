@@ -35,55 +35,73 @@ declare let chrome: Window['chrome']
 declare namespace chrome {
   namespace storage {
     interface StorageArea {
+// eslint-disable-next-line typescript/method-signature-style
       get(): Promise<Partial<LocalStorageSchema> & Record<string, unknown>>
+// eslint-disable-next-line typescript/method-signature-style
       get(
+// eslint-disable-next-line typescript/unified-signatures
         keys?: null,
       ): Promise<Partial<LocalStorageSchema> & Record<string, unknown>>
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends KnownStorageKey>(
         key: K,
       ): Promise<Pick<LocalStorageSchema, K>>
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends KnownStorageKey>(
+// eslint-disable-next-line typescript/unified-signatures
         keys: readonly K[] | K[],
       ): Promise<Pick<LocalStorageSchema, K>>
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends KnownStorageKey>(
         keys: StorageSubset<K>,
       ): Promise<StorageSubset<K>>
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends string>(
         key: Exclude<K, KnownStorageKey>,
       ): Promise<Record<K, unknown>>
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends string>(
         keys:
           | readonly Exclude<K, KnownStorageKey>[]
           | Exclude<K, KnownStorageKey>[],
       ): Promise<Partial<Record<K, unknown>>>
+// eslint-disable-next-line typescript/method-signature-style
       get(keys: Record<string, unknown>): Promise<Record<string, unknown>>
+// eslint-disable-next-line typescript/method-signature-style
       get(
         callback: (
           items: Partial<LocalStorageSchema> & Record<string, unknown>,
         ) => void,
       ): void
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends KnownStorageKey>(
         key: K,
         callback: (items: Pick<LocalStorageSchema, K>) => void,
       ): void
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends KnownStorageKey>(
+// eslint-disable-next-line typescript/unified-signatures
         keys: readonly K[] | K[],
         callback: (items: Pick<LocalStorageSchema, K>) => void,
       ): void
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends KnownStorageKey>(
         keys: StorageSubset<K>,
         callback: (items: StorageSubset<K>) => void,
       ): void
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends string>(
         key: Exclude<K, KnownStorageKey>,
         callback: (items: Record<K, unknown>) => void,
       ): void
+// eslint-disable-next-line typescript/method-signature-style
       get<K extends string>(
         keys:
           | readonly Exclude<K, KnownStorageKey>[]
           | Exclude<K, KnownStorageKey>[],
         callback: (items: Partial<Record<K, unknown>>) => void,
       ): void
+// eslint-disable-next-line typescript/method-signature-style
       get(
         keys: Record<string, unknown>,
         callback: (items: Record<string, unknown>) => void,
