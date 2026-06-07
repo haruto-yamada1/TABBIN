@@ -360,7 +360,7 @@ export const useCustomProjectCard = ({
     (event: DragEndEvent, isUncategorizedOver: boolean) => {
       const { active, over } = event
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      const actualUrl = active.data.current?.url || String(active.id)
+      const actualUrl = active.data.current?.url || String(active.id) // eslint-disable-line typescript/no-unsafe-assignment
 // eslint-disable-next-line typescript/no-unsafe-assignment
       const dragSourceCategory = active.data.current?.category
       setActiveId(null)

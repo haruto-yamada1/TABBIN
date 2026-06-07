@@ -299,12 +299,9 @@ const useCustomProjectCategoryView = ({
         sortedCategoryUrls.map((item) => item.url),
       )
     } else {
-      await Promise.all(
-// eslint-disable-next-line typescript/await-thenable
-        sortedCategoryUrls.map((item) => {
-          handleDeleteUrl(projectId, item.url)
-        }),
-      )
+      sortedCategoryUrls.forEach((item) => {
+        handleDeleteUrl(projectId, item.url)
+      })
     }
   }
 

@@ -149,7 +149,7 @@ const chromeMock = {
       const [message, maybeCallback] = args
       runtimeMessages.push(message)
       if (typeof maybeCallback === 'function') {
-        maybeCallback({
+        maybeCallback({ // eslint-disable-line typescript/no-unsafe-call
           ok: true,
         })
       }

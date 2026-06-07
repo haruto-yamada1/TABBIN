@@ -1270,7 +1270,7 @@ function nextActionLines(snapshot: HarnessSnapshot) {
       `Scorecard: ${snapshot.scorecard.next_action}`,
     snapshot.learning?.next_action &&
       `Learning: ${snapshot.learning.next_action}`,
-  ].filter((line): line is string => Boolean(line))
+  ].filter((line): line is string => Boolean(line)) // eslint-disable-line unicorn/prefer-native-coercion-functions
 
   return listLines(actions, '次アクションなし。')
 }

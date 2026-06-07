@@ -164,7 +164,7 @@ ${Object.entries(config)
     }
     const color =
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || // eslint-disable-line typescript/no-unsafe-type-assertion
       itemConfig.color
 
     if (color) {
@@ -263,7 +263,7 @@ const renderTooltipRow = ({
   const key = `${nameKey || item.name || item.dataKey || 'value'}`
   const itemConfig = getPayloadConfigFromPayload(config, item, key)
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
-  const indicatorColor = color || item.payload.fill || item.color
+  const indicatorColor = color || item.payload.fill || item.color // eslint-disable-line typescript/no-unsafe-member-access
 
   return (
     <div

@@ -163,7 +163,7 @@ const handleUrlDroppedMessage = (
         console.error('URL削除エラー:', error)
         sendResponse({
 // eslint-disable-next-line typescript/no-unsafe-assignment
-          error: error.toString(),
+          error: error.toString(), // eslint-disable-line typescript/no-unsafe-call
           status: 'error',
         })
       })

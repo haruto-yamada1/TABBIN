@@ -62,7 +62,7 @@ export const CategoryGroupContent = () => {
               group={group}
 // eslint-disable-next-line react/jsx-handler-names
               handleOpenAllTabs={handlers.handleOpenAllTabs}
-// eslint-disable-next-line typescript/no-misused-promises
+// eslint-disable-next-line react/jsx-handler-names, typescript/no-misused-promises
               handleDeleteGroup={reorder.handleDeleteSingleDomain}
 // eslint-disable-next-line react/jsx-handler-names
               handleDeleteUrl={handlers.handleDeleteUrl}

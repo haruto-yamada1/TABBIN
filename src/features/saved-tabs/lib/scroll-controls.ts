@@ -42,13 +42,11 @@ const getRelativeScrollTarget = (
     }
 
     return (
-      targets
-        .filter(
-          (element) =>
-            element.getBoundingClientRect().top <
-            targetThreshold - POSITION_TOLERANCE,
-        )
-        .at(-1) ?? null
+      targets.findLast(
+        (element) =>
+          element.getBoundingClientRect().top <
+          targetThreshold - POSITION_TOLERANCE,
+      ) ?? null
     )
   }
 

@@ -105,9 +105,9 @@ export const Header = ({
     const isComposing =
       event.nativeEvent.isComposing ||
 // eslint-disable-next-line typescript/prefer-nullish-coalescing
-      (event as unknown as { isComposing?: boolean }).isComposing ||
+      (event as unknown as { isComposing?: boolean }).isComposing || // eslint-disable-line typescript/no-unsafe-type-assertion
 // eslint-disable-next-line eslint/no-magic-numbers
-      event.keyCode === 229
+      event.key === 229
     if (isComposing) {
       return
     }

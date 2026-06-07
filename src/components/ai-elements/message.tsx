@@ -222,7 +222,7 @@ export const MessageBranchContent = ({
         index === currentBranch ? 'block' : 'hidden',
       )}
 // eslint-disable-next-line typescript/no-unsafe-assignment
-      key={branch.key}
+      key={branch.key} // eslint-disable-line typescript/no-unsafe-member-access
       {...props}
     >
       {branch}

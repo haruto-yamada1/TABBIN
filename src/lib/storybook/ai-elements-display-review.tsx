@@ -206,8 +206,7 @@ const ReviewArtifacts = () => (
         </Attachments>
 
         <Attachments variant='list'>
-// eslint-disable-next-line typescript/no-unsafe-type-assertion
-          <Attachment data={sampleSource as never}>
+          <Attachment data={sampleSource as never}> {/* eslint-disable-line typescript/no-unsafe-type-assertion */}
             <AttachmentPreview />
             <AttachmentInfo showMediaType />
           </Attachment>

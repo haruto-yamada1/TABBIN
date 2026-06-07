@@ -80,7 +80,7 @@ export const readStorage = async <T>(
   serviceWorker: Worker,
   keys?: string | string[],
 ) =>
-  serviceWorker.evaluate(async (value) => {
+  serviceWorker.evaluate(async (value) => { // eslint-disable-line typescript/no-unsafe-type-assertion
     const getItems = (
       query?: Record<string, unknown> | string | string[],
     ): Promise<Record<string, unknown>> =>

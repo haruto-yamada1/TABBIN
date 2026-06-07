@@ -35,7 +35,7 @@ type CommandName =
   | 'validate'
 
 const args = process.argv.slice(2)
-const command = args[0] as CommandName | undefined
+const command = args[0] as CommandName | undefined // eslint-disable-line typescript/no-unsafe-type-assertion
 const projectRoot = process.cwd()
 const runId = readOption('--run')
 

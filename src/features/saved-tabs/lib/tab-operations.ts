@@ -166,7 +166,6 @@ export const safelyUpdateGroupUrls = async (
     return
   } catch (error) {
     console.error('タブ更新エラー:', error)
-// eslint-disable-next-line typescript/prefer-promise-reject-errors
-    return Promise.reject(error)
+    throw error
   }
 }

@@ -30,8 +30,6 @@ type StorageSubset<K extends keyof LocalStorageSchema> = {
 
 type KnownStorageKey = keyof LocalStorageSchema
 
-declare let chrome: Window['chrome']
-
 declare namespace chrome {
   namespace storage {
     interface StorageArea {
