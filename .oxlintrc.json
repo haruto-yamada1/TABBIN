@@ -226,7 +226,7 @@
     "typescript/no-non-null-assertion": "error",
     "typescript/no-require-imports": "error",
     "typescript/require-await": "error",
-    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/prefer-nullish-coalescing": "warn",
     "typescript/prefer-optional-chain": "error",
     "typescript/no-inferrable-types": "error",
     "typescript/no-confusing-void-expression": "error",
