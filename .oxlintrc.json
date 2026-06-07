@@ -191,10 +191,10 @@
     "react/no-danger-with-children": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
-    "react-perf/jsx-no-jsx-as-prop": "off",
-    "react-perf/jsx-no-new-array-as-prop": "off",
-    "react-perf/jsx-no-new-function-as-prop": "off",
-    "react-perf/jsx-no-new-object-as-prop": "off",
+    "react-perf/jsx-no-jsx-as-prop": "error",
+    "react-perf/jsx-no-new-array-as-prop": "error",
+    "react-perf/jsx-no-new-function-as-prop": "error",
+    "react-perf/jsx-no-new-object-as-prop": "error",
     "typescript/array-type": "error",
     "typescript/await-thenable": "error",
     "typescript/consistent-indexed-object-style": "error",
@@ -419,7 +419,11 @@
         "typescript/restrict-template-expressions": "off",
         "oxc/no-map-spread": "off",
         "import/no-unassigned-import": "off",
-        "unicorn/no-abusive-eslint-disable": "off"
+        "unicorn/no-abusive-eslint-disable": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off",
+        "react-perf/jsx-no-new-array-as-prop": "off",
+        "react-perf/jsx-no-new-function-as-prop": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off"
       }
     },
     {

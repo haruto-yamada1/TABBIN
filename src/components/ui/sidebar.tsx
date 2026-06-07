@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-object-as-prop */
 import { Slot } from '@radix-ui/react-slot'
 import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'

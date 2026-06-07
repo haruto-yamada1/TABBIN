@@ -1,4 +1,4 @@
-/* eslint-disable typescript/no-unsafe-type-assertion */
+/* eslint-disable typescript/no-unsafe-type-assertion , react-perf/jsx-no-new-function-as-prop, react-perf/jsx-no-new-object-as-prop */
 import {
   Check,
   ChevronDown,

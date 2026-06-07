@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-object-as-prop */
 'use client'
 
 import { ChevronRightIcon } from 'lucide-react'

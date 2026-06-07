@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 import { Check, Plus, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'

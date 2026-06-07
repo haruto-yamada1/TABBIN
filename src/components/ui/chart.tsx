@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-object-as-prop */
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'

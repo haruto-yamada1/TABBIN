@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 import { X } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'

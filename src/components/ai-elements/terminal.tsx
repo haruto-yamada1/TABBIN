@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client'
 
 import Ansi from 'ansi-to-react'

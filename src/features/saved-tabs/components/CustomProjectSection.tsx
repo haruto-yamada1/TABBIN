@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 // DnDのインポートを追加
 import {

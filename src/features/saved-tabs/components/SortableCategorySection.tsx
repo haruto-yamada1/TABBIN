@@ -1,4 +1,4 @@
-/* eslint-disable eslint/no-magic-numbers */
+/* eslint-disable eslint/no-magic-numbers , react-perf/jsx-no-new-function-as-prop */
 import { useDndMonitor } from '@dnd-kit/core'
 import {
   ArrowUpDown,
