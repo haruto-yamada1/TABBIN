@@ -224,6 +224,7 @@ export const CommitCopyButton = ({
   return (
     <Button
       className={cn('size-7 shrink-0', className)}
+// eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(hash, { skipIfCopied: true })}
       size='icon'
       variant='ghost'

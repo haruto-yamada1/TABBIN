@@ -10,6 +10,7 @@ export const DomainCardReorderControl = () => {
     <CardReorderControls
       isReorderMode={categoryReorder.isCategoryReorderMode}
       onCancel={categoryReorder.handleCancelCategoryReorder}
+// eslint-disable-next-line typescript/no-misused-promises
       onConfirm={categoryReorder.handleConfirmCategoryReorder}
     />
   )

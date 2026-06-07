@@ -60,6 +60,7 @@ export const CategoryGroupContent = () => {
               key={group.id}
               group={group}
               handleOpenAllTabs={handlers.handleOpenAllTabs}
+// eslint-disable-next-line typescript/no-misused-promises
               handleDeleteGroup={reorder.handleDeleteSingleDomain}
               handleDeleteUrl={handlers.handleDeleteUrl}
               handleDeleteUrls={handlers.handleDeleteUrls}

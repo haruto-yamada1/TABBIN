@@ -25,11 +25,13 @@ export const SubCategoryAddSection = () => {
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
+// eslint-disable-next-line typescript/no-floating-promises
               subcategory.handleAddSubCategory()
             }
           }}
           onBlur={() => {
             if (subcategory.newSubCategory.trim()) {
+// eslint-disable-next-line typescript/no-floating-promises
               subcategory.handleAddSubCategory()
             }
           }}

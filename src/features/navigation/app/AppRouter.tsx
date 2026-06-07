@@ -69,6 +69,7 @@ const SavedTabsRoutePage = () => {
       return
     }
 
+// eslint-disable-next-line typescript/no-floating-promises
     navigate(nextRoute, { replace: true })
   }
 
@@ -77,6 +78,7 @@ const SavedTabsRoutePage = () => {
       return
     }
     const nextRoute = getSavedTabsHrefForMode('domain')
+// eslint-disable-next-line typescript/no-floating-promises
     navigate(nextRoute, { replace: true })
   }, [hasModeQuery, routerLocation.pathname, routerLocation.search, navigate])
 

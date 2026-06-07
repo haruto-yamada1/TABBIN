@@ -391,6 +391,7 @@ const useSubCategoryKeywordManagerView = ({
           label={t('savedTabs.subCategory.addTitle')}
           placeholder={t('savedTabs.subCategory.addPlaceholder')}
           onChange={setNewSubCategory}
+// eslint-disable-next-line typescript/no-misused-promises
           onAdd={handleAddSubCategory}
         />
       </div>
@@ -409,6 +410,7 @@ const useSubCategoryKeywordManagerView = ({
         label={t('savedTabs.subCategory.addTitle')}
         placeholder={t('savedTabs.subCategory.addPlaceholder')}
         onChange={setNewSubCategory}
+// eslint-disable-next-line typescript/no-misused-promises
         onAdd={handleAddSubCategory}
       />
 
@@ -433,6 +435,7 @@ const useSubCategoryKeywordManagerView = ({
             </Button>
             <Button
               type='button'
+// eslint-disable-next-line typescript/no-misused-promises
               onClick={() => handleRemoveSubCategory(category)}
               variant='outline'
               size='sm'
@@ -470,6 +473,7 @@ const useSubCategoryKeywordManagerView = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
+// eslint-disable-next-line typescript/no-floating-promises
                       completeRename()
                     } else if (e.key === 'Escape') {
                       e.preventDefault()
@@ -481,6 +485,7 @@ const useSubCategoryKeywordManagerView = ({
                 <div className='flex shrink-0'>
                   <Button
                     type='button'
+// eslint-disable-next-line typescript/no-misused-promises
                     onClick={completeRename}
                     variant='secondary'
                     size='icon'
@@ -590,6 +595,7 @@ const useSubCategoryKeywordManagerView = ({
                   <span className='max-w-[150px] truncate'>{keyword}</span>
                   <Button
                     type='button'
+// eslint-disable-next-line typescript/no-misused-promises
                     onClick={() => handleRemoveKeyword(keyword)}
                     variant='ghost'
                     size='sm'

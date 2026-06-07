@@ -251,6 +251,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
         toast.error(t('savedTabs.categoryModal.loadError'))
       }
     }
+// eslint-disable-next-line typescript/no-floating-promises
     loadCategories()
   }, [t, tabGroups])
 
@@ -351,6 +352,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       if (e.key === 'Enter') {
         e.preventDefault()
         if (newCategoryName.trim() && !nameError && !isLoading) {
+// eslint-disable-next-line typescript/no-floating-promises
           handleCreateCategory()
         }
       }
@@ -361,6 +363,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   // --- フォーカスアウトハンドラ ---
   const handleBlur = useCallback(() => {
     if (newCategoryName.trim() && !nameError && !isLoading) {
+// eslint-disable-next-line typescript/no-floating-promises
       handleCreateCategory()
     }
   }, [newCategoryName, nameError, isLoading, handleCreateCategory])

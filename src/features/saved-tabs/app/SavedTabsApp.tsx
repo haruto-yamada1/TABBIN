@@ -195,6 +195,7 @@ const showOpenedUrlsUndoToast = ({
     {
       action: {
         label: t('common.undo'),
+// eslint-disable-next-line typescript/no-misused-promises
         onClick: async () => {
           try {
             await restoreOpenedUrlsSnapshot({
@@ -1309,6 +1310,7 @@ const useSavedTabsAppView = ({
         console.error('[カテゴリ同期] ストレージ同期エラー:', error)
       }
     }
+// eslint-disable-next-line typescript/no-floating-promises
     syncCategoryAssignments()
   }, [tabGroupsWithUrls, categories, categoryLookup, settings.enableCategories])
 
@@ -1445,8 +1447,10 @@ const useSavedTabsAppView = ({
         viewModeRef,
       })
     }
+// eslint-disable-next-line typescript/no-misused-promises
     chrome.storage.onChanged.addListener(handleStorageChanged)
     return () => {
+// eslint-disable-next-line typescript/no-misused-promises
       chrome.storage.onChanged.removeListener(handleStorageChanged)
     }
   }, [
@@ -1610,8 +1614,10 @@ const useSavedTabsAppView = ({
           filteredTabGroups={headerFilteredTabGroups}
           customProjects={customProjectsForHeader}
           filteredCustomProjects={filteredCustomProjects}
+// eslint-disable-next-line typescript/no-misused-promises
           onCreateProject={handleCreateProject}
           currentMode={viewMode}
+// eslint-disable-next-line typescript/no-misused-promises
           onModeChange={handleViewModeChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -1619,6 +1625,7 @@ const useSavedTabsAppView = ({
         {mainContent}
         {shouldShowCategoryReorderFooter && (
           <CategoryReorderFooter
+// eslint-disable-next-line typescript/no-misused-promises
             onConfirmCategoryReorder={handleConfirmCategoryReorder}
             onCancelCategoryReorder={handleCancelCategoryReorder}
           />

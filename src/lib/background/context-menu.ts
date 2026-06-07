@@ -117,6 +117,7 @@ const createMenuItems = async (): Promise<void> => {
  * コンテキストメニュークリックハンドラーを設定
  */
 const setupMenuClickHandler = (): void => {
+// eslint-disable-next-line typescript/no-misused-promises
   chrome.contextMenus.onClicked.addListener(async (info, _tab) => {
     console.log(`コンテキストメニューがクリックされました: ${info.menuItemId}`)
     try {

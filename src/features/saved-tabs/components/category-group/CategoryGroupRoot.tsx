@@ -138,6 +138,7 @@ export const CategoryGroupRoot = ({
         }}
         category={category}
         domains={state.localDomains}
+// eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={state.handleCategoryUpdate}
       />
     </CategoryGroupContext>

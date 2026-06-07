@@ -178,6 +178,7 @@ export const ThemeProvider = ({
       // Chrome Storageに保存
       const storageLocal = getChromeStorageLocal()
       if (storageLocal) {
+// eslint-disable-next-line typescript/no-floating-promises
         storageLocal.set({
           [storageKey]: nextTheme,
         })

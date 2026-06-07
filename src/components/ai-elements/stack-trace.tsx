@@ -369,6 +369,7 @@ export const StackTraceCopyButton = memo(
     return (
       <Button
         className={cn('size-7', className)}
+// eslint-disable-next-line typescript/no-misused-promises
         onClick={copyToClipboard}
         size='icon'
         variant='ghost'

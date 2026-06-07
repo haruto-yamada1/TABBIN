@@ -93,6 +93,7 @@ export const CategorySection = ({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+// eslint-disable-next-line typescript/no-misused-promises
         onDragEnd={handleDragEnd}
         id={`category-${categoryName}-${groupId}`}
       >

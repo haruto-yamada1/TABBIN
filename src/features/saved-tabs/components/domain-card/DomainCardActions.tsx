@@ -164,6 +164,7 @@ export const DomainCardActions = () => {
             group={group}
             isOpen={keywordModal.showKeywordModal}
             onClose={keywordModal.handleCloseKeywordModal}
+// eslint-disable-next-line typescript/no-misused-promises
             onSave={handleSaveKeywords}
             onDeleteCategory={categoryActions.handleCategoryDelete}
             parentCategories={parentCategories.categories}

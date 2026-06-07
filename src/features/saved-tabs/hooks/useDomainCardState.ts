@@ -248,6 +248,7 @@ export const useDomainCardState = ({
       const regularOrder = allCategoryIds.filter(
         (id) => id !== '__uncategorized',
       )
+// eslint-disable-next-line typescript/no-floating-promises
       handleUpdateCategoryOrder(regularOrder, allCategoryIds)
     }
   }, [
@@ -435,6 +436,7 @@ export const useDomainCardState = ({
         console.error('親カテゴリの読み込みに失敗しました:', error)
       }
     }
+// eslint-disable-next-line typescript/no-floating-promises
     loadParentCategories()
   }, [])
 

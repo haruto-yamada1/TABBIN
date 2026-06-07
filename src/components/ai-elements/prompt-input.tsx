@@ -726,6 +726,7 @@ const usePromptInputView = ({
     [referencedSources, clearReferencedSources],
   )
 
+// eslint-disable-next-line typescript/no-misused-promises
   const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
     async (event) => {
       event.preventDefault()

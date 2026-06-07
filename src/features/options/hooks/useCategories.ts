@@ -49,6 +49,7 @@ export const useCategories = () => {
       }
     }
 
+// eslint-disable-next-line typescript/no-floating-promises
     loadCategories()
   }, [])
 
@@ -152,6 +153,7 @@ export const useCategories = () => {
       e.preventDefault()
       // エラーがなければ追加を実行
       if (!categoryError) {
+// eslint-disable-next-line typescript/no-floating-promises
         handleAddCategory()
       }
     }

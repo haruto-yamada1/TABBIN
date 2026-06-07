@@ -283,6 +283,7 @@ describe('saved-tabs-page', () => {
     let resolveGet: (tab: chrome.tabs.Tab) => void = () => undefined
     chromeTabs.get.mockRejectedValue(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
+// eslint-disable-next-line typescript/no-misused-promises
       () =>
         new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve
@@ -297,6 +298,7 @@ describe('saved-tabs-page', () => {
     await expect(firstOpen).resolves.toBe(900)
 
     chromeTabs.get.mockImplementationOnce(
+// eslint-disable-next-line typescript/no-misused-promises
       () =>
         new Promise<chrome.tabs.Tab>((resolve) => {
           resolveGet = resolve
@@ -317,6 +319,7 @@ describe('saved-tabs-page', () => {
     resetSavedTabsPageId()
     chromeTabs.get.mockRejectedValueOnce(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
+// eslint-disable-next-line typescript/no-misused-promises
       () =>
         new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve

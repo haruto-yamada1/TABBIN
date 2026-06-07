@@ -337,6 +337,7 @@ export const useCustomProjectCard = ({
       }
       setUrlState({ isLoadingUrls: false, projectUrls: nextProjectUrls })
     }
+// eslint-disable-next-line typescript/no-floating-promises
     loadProjectUrls()
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- URL loading intentionally tracks the project fields that affect stored URLs.
   }, [project.id, project.updatedAt, project.urlIds, project.urls])

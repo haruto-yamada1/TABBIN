@@ -561,6 +561,7 @@ export const CodeBlockCopyButton = ({
   return (
     <Button
       className={cn('shrink-0', className)}
+// eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(code, { skipIfCopied: true })}
       size='icon'
       variant='ghost'

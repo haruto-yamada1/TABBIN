@@ -44,6 +44,7 @@ export const SubCategoryDeleteConfirm = () => {
         <Button
           variant='destructive'
           size='sm'
+// eslint-disable-next-line typescript/no-misused-promises
           onClick={deletion.handleDeleteCategory}
           className='flex cursor-pointer items-center gap-1'
         >

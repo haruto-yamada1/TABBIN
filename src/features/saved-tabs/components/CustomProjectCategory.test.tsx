@@ -224,6 +224,7 @@ const createProps = (
   category: 'Work',
   urls: baseUrls,
   handleOpenUrl: vi.fn(),
+// eslint-disable-next-line typescript/no-misused-promises
   handleDeleteUrl: vi.fn(async () => {}),
   handleDeleteCategory: vi.fn(),
   handleSetUrlCategory: vi.fn(),
@@ -264,6 +265,7 @@ describe('CustomProjectCategory', () => {
       <CustomProjectCategory
         {...createProps({
           handleOpenAllUrls,
+// eslint-disable-next-line typescript/no-misused-promises
           handleDeleteUrl,
         })}
       />,
@@ -384,6 +386,7 @@ describe('CustomProjectCategory', () => {
             { url: 'https://u.com', title: 'U', category: '__uncategorized' },
           ],
           settings: { ...defaultSettings, confirmDeleteAll: true },
+// eslint-disable-next-line typescript/no-misused-promises
           handleDeleteUrl,
         })}
       />,

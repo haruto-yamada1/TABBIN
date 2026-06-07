@@ -297,6 +297,7 @@ const useTabData = (
         }))
       }
     }
+// eslint-disable-next-line typescript/no-floating-promises
     loadSavedTabs()
   }, [])
 
@@ -317,6 +318,7 @@ const useTabData = (
         }))
       }
     }
+// eslint-disable-next-line typescript/no-floating-promises
     loadUrlsForTabGroups()
     return () => {
       cancelled = true

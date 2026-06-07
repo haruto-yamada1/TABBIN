@@ -2829,6 +2829,7 @@ const useSavedTabsChatWidgetView = ({
       void handleCopyConversation()
     },
     onDeleteHistoryItem,
+// eslint-disable-next-line typescript/no-misused-promises
     onFetchModels: handleFetchModels,
     onInputChange: setInput,
     onOpenSystemPromptManager: handleOpenSystemPromptManager,

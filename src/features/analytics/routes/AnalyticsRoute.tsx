@@ -844,6 +844,7 @@ const useAnalyticsRouteView = () => {
       {
         action: {
           label: t('common.undo'),
+// eslint-disable-next-line typescript/no-misused-promises
           onClick: async () => {
             try {
               await chrome.storage.local.set(
@@ -1147,6 +1148,7 @@ const useAnalyticsRouteView = () => {
                     <div className='mt-4 grid grid-cols-2 gap-2'>
                       <Button
                         className='w-full cursor-pointer rounded-xl'
+// eslint-disable-next-line typescript/no-misused-promises
                         onClick={handleSaveView}
                         type='button'
                       >

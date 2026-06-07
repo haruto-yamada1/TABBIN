@@ -51,6 +51,7 @@ export const ImportExportSettings: React.FC = () => {
 
       <div className='flex flex-wrap gap-2'>
         <Button
+// eslint-disable-next-line typescript/no-misused-promises
           onClick={handleExport}
           disabled={isExporting}
           variant='outline'

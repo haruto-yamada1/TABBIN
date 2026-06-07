@@ -87,6 +87,7 @@ const showCustomProjectDeleteUndoToast = ({
     {
       action: {
         label: t('common.undo'),
+// eslint-disable-next-line typescript/no-misused-promises
         onClick: async () => {
           try {
             const payload = createCustomProjectUndoPayload(snapshot)

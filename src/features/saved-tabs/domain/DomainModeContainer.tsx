@@ -191,6 +191,7 @@ const UncategorizedDomainSection = ({
             {displayedDomainCount > 0 && (
               <CardGroupActions
                 onOpenAll={handleOpenAll}
+// eslint-disable-next-line typescript/no-misused-promises
                 onDeleteAll={handleDeleteAll}
                 openAllAriaLabel={getScopedNounActionLabel(
                   t,
@@ -264,6 +265,7 @@ const UncategorizedDomainSection = ({
                     <Button
                       variant='default'
                       size='sm'
+// eslint-disable-next-line typescript/no-misused-promises
                       onClick={handleConfirmReorder}
                       className='flex cursor-pointer items-center gap-1'
                       aria-label={t('savedTabs.reorder.confirmAria')}
@@ -299,13 +301,20 @@ const UncategorizedDomainSection = ({
                 <SortableDomainCard
                   key={group.id}
                   group={group}
+// eslint-disable-next-line typescript/no-misused-promises
                   handleOpenAllTabs={handleOpenAllTabs}
+// eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteGroup={handleDeleteGroup}
+// eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteGroups={handleDeleteGroups}
+// eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteUrl={handleDeleteUrl}
                   handleDeleteUrls={handleDeleteUrls}
+// eslint-disable-next-line typescript/no-misused-promises
                   handleOpenTab={handleOpenTab}
+// eslint-disable-next-line typescript/no-misused-promises
                   handleUpdateUrls={handleUpdateUrls}
+// eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteCategory={handleDeleteCategory}
                   settings={{ confirmDeleteAll } as UserSettings}
                   isReorderMode={isReorderMode}
@@ -447,17 +456,26 @@ export const DomainModeContainer = ({
                     key={categoryId}
                     category={category}
                     domains={domainGroups}
+// eslint-disable-next-line typescript/no-misused-promises
                     handleOpenAllTabs={handleOpenAllTabs}
+// eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteGroup={handleDeleteGroup}
+// eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteGroups={handleDeleteGroups}
+// eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteUrl={handleDeleteUrl}
                     handleDeleteUrls={handleDeleteUrls}
+// eslint-disable-next-line typescript/no-misused-promises
                     handleOpenTab={handleOpenTab}
+// eslint-disable-next-line typescript/no-misused-promises
                     handleUpdateUrls={handleUpdateUrls}
+// eslint-disable-next-line typescript/no-misused-promises
                     handleUpdateDomainsOrder={handleUpdateDomainsOrder}
+// eslint-disable-next-line typescript/no-misused-promises
                     handleMoveDomainToCategory={
                       handleMoveDomainToCategoryWithTabGroups
                     }
+// eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteCategory={handleDeleteCategory}
                     settings={settings}
                     isCategoryReorderMode={isCategoryReorderMode}

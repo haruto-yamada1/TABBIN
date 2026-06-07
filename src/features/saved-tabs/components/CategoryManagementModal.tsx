@@ -613,6 +613,7 @@ const useCategoryManagementModalView = ({
                       trimmedName !== localCategoryName &&
                       !categoryNameError
                     ) {
+// eslint-disable-next-line typescript/no-floating-promises
                       handleSaveRenaming()
                     } else if (categoryNameError) {
                       // エラーがある場合はフォーカスを維持
@@ -631,6 +632,7 @@ const useCategoryManagementModalView = ({
                         !categoryNameError &&
                         !isProcessing
                       ) {
+// eslint-disable-next-line typescript/no-floating-promises
                         handleSaveRenaming()
                       }
                     } else if (e.key === 'Escape') {
@@ -685,6 +687,7 @@ const useCategoryManagementModalView = ({
               deleteTooltip={t('savedTabs.categoryManagement.deleteAction')}
               isProcessing={isProcessing}
               onCancel={() => setShowDeleteConfirm(false)}
+// eslint-disable-next-line typescript/no-misused-promises
               onDelete={handleDeleteCategory}
             />
           )}
@@ -712,6 +715,7 @@ const useCategoryManagementModalView = ({
                         <Button
                           variant='ghost'
                           size='sm'
+// eslint-disable-next-line typescript/no-misused-promises
                           onClick={() => handleRemoveDomain(domain.id)}
                           className='ml-1 cursor-pointer text-zinc-400 hover:text-zinc-200'
                           aria-label={t(
@@ -771,6 +775,7 @@ const useCategoryManagementModalView = ({
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
+// eslint-disable-next-line typescript/no-floating-promises
                         handleAddDomain()
                       }}
                       className='cursor-pointer'

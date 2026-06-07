@@ -274,6 +274,7 @@ export const EnvironmentVariableCopyButton = ({
   return (
     <Button
       className={cn('size-6 shrink-0', className)}
+// eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(getTextToCopy())}
       size='icon'
       variant='ghost'

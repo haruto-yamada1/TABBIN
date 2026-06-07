@@ -107,6 +107,7 @@ export const DomainCardContent = () => {
                 handleOpenTab={handlers.handleOpenTab}
                 handleUpdateUrls={handlers.handleUpdateUrls}
                 handleOpenAllTabs={handlers.handleOpenAllTabs}
+// eslint-disable-next-line typescript/no-misused-promises
                 handleDeleteAllTabs={(urls) =>
                   categoryActions.handleDeleteAllTabsInCategory(
                     categoryName,

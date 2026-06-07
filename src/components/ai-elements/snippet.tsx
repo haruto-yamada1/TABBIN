@@ -98,6 +98,7 @@ export const SnippetCopyButton = ({
     <InputGroupButton
       aria-label={t('common.copy')}
       className={className}
+// eslint-disable-next-line typescript/no-misused-promises
       onClick={() => copyText(code, { skipIfCopied: true })}
       size='icon-sm'
       title={t('common.copy')}

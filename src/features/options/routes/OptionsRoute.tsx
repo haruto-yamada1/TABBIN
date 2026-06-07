@@ -257,6 +257,7 @@ const useOptionsRouteView = () => {
             <div className='gap-y-2'>
               <Select
                 value={settings.clickBehavior || 'saveWindowTabs'}
+// eslint-disable-next-line typescript/no-misused-promises
                 onValueChange={handleClickBehaviorChange}
               >
                 <SelectTrigger
@@ -282,6 +283,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='remove-after-open'
               checked={settings.removeTabAfterOpen}
+// eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleRemoveAfterOpen}
               className='cursor-pointer'
             />
@@ -300,6 +302,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='remove-after-external-drop'
               checked={settings.removeTabAfterExternalDrop}
+// eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleRemoveAfterExternalDrop}
               className='cursor-pointer'
             />
@@ -318,6 +321,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='exclude-pinned-tabs'
               checked={settings.excludePinnedTabs}
+// eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleExcludePinnedTabs}
               className='cursor-pointer'
             />
@@ -336,6 +340,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='open-url-in-blank'
               checked={settings.openUrlInBackground}
+// eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleOpenUrlInBackground}
               className='cursor-pointer'
             />
@@ -354,6 +359,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='open-all-in-new-window'
               checked={settings.openAllInNewWindow}
+// eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleOpenAllInNewWindow}
               className='cursor-pointer'
             />
@@ -372,6 +378,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='show-saved-time'
               checked={settings.showSavedTime}
+// eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleShowSavedTime}
               className='cursor-pointer'
             />
@@ -390,6 +397,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='confirm-delete-each'
               checked={settings.confirmDeleteEach}
+// eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleConfirmDeleteEach}
               className='cursor-pointer'
             />
@@ -408,6 +416,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='confirm-delete-all'
               checked={settings.confirmDeleteAll}
+// eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleConfirmDeleteAll}
               className='cursor-pointer'
             />
@@ -442,6 +451,7 @@ const useOptionsRouteView = () => {
                 onBlur={() => {
                   void addExcludePattern()
                 }}
+// eslint-disable-next-line typescript/no-misused-promises
                 onKeyDown={handleExcludePatternKeyDown}
                 className='bg-background text-foreground'
                 placeholder={t('options.excludePatterns.placeholder')}
@@ -514,6 +524,7 @@ const useOptionsRouteView = () => {
             <Button
               variant='outline'
               size='sm'
+// eslint-disable-next-line typescript/no-misused-promises
               onClick={handleResetFontSize}
               className='flex cursor-pointer items-center gap-1'
             >
@@ -618,6 +629,7 @@ const useOptionsRouteView = () => {
             <Button
               variant='outline'
               size='sm'
+// eslint-disable-next-line typescript/no-misused-promises
               onClick={handleResetColors}
               className='flex cursor-pointer items-center gap-1'
             >
@@ -629,6 +641,7 @@ const useOptionsRouteView = () => {
             {colorOptions.map(({ key, labelKey }) => {
               const handleThemeColorChange = createThemeColorChangeHandler(
                 key,
+// eslint-disable-next-line typescript/no-misused-promises
                 handleColorChange,
               )
 

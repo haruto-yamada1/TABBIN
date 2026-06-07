@@ -66,6 +66,7 @@ export const useSettings = () => {
     toast.error(SETTINGS_SAVE_ERROR_MESSAGE, {
       action: {
         label: '再試行',
+// eslint-disable-next-line typescript/no-misused-promises
         onClick: () => retrySaveSettings(failedSettings, rollbackSettings),
       },
     })
@@ -102,6 +103,7 @@ export const useSettings = () => {
       }
     }
 
+// eslint-disable-next-line typescript/no-floating-promises
     loadSettings()
   }, [])
 
@@ -207,6 +209,7 @@ export const useSettings = () => {
   }
 
   const handleExcludePatternsBlur = () => {
+// eslint-disable-next-line typescript/no-floating-promises
     handleSaveSettings()
   }
 

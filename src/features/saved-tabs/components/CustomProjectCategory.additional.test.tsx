@@ -111,6 +111,7 @@ const createProps = (
     { url: 'https://b.com', title: 'B', category: 'Work', savedAt: 2 },
   ],
   handleOpenUrl: vi.fn(),
+// eslint-disable-next-line typescript/no-misused-promises
   handleDeleteUrl: vi.fn(async () => {}),
   handleDeleteCategory: vi.fn(),
   handleSetUrlCategory: vi.fn(),

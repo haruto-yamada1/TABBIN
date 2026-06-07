@@ -322,6 +322,7 @@ const handleDragEndByType = ({
   const newIndex = projects.findIndex((project) => project.id === over.id)
 
   if (oldIndex !== -1 && newIndex !== -1 && handleReorderProjects) {
+// eslint-disable-next-line typescript/no-floating-promises
     handleReorderProjects(
       arrayMove(
         projects.map((project) => project.id),
@@ -726,6 +727,7 @@ const useCustomProjectSectionView = ({
               {t('savedTabs.customProjects.createDialogTitle')}
             </DialogTitle>
           </DialogHeader>
+// eslint-disable-next-line typescript/no-misused-promises
           <form onSubmit={handleSubmit(handleCreateProjectSubmit)}>
             <div className='grid gap-4 py-4'>
               <div>

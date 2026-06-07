@@ -887,6 +887,7 @@ describe('useCategoryKeywordModal', () => {
       throw new Error('delete failed')
     })
     const { result: failingDeleteResult } = renderModalHook({
+// eslint-disable-next-line typescript/no-misused-promises
       onDeleteCategory: failingDelete,
     })
 

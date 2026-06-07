@@ -368,6 +368,7 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+// eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={onCategoryUpdate}
       />,
     )
@@ -451,6 +452,7 @@ describe('CategoryManagementModal', () => {
         onClose={onClose}
         category={createCategory()}
         domains={createDomains()}
+// eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={onCategoryUpdate}
       />,
     )
@@ -522,6 +524,7 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+// eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={vi.fn(async () => {})}
       />,
     )
@@ -578,6 +581,7 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+// eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={onCategoryUpdate}
       />,
     )
@@ -714,6 +718,7 @@ describe('CategoryManagementModal', () => {
 
   it('親カテゴリ削除確認のキャンセル・関連ドメインなし表示・処理中の再入防止を処理する', async () => {
     const deferredSet = createDeferred<void>()
+// eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
       storageState = { ...storageState, ...value }
       await deferredSet.promise
@@ -856,6 +861,7 @@ describe('CategoryManagementModal', () => {
     ]
 
     const deferredSet = createDeferred<void>()
+// eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
       storageState = { ...storageState, ...value }
       await deferredSet.promise
@@ -1101,6 +1107,7 @@ describe('CategoryManagementModal', () => {
     ]
 
     const deferredSet = createDeferred<void>()
+// eslint-disable-next-line typescript/no-misused-promises
     setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
       storageState = { ...storageState, ...value }
       await deferredSet.promise

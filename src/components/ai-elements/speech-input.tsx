@@ -439,10 +439,12 @@ export const SpeechInput = ({
       }
 
       mediaRecorder.addEventListener('dataavailable', handleDataAvailable)
+// eslint-disable-next-line typescript/no-misused-promises
       mediaRecorder.addEventListener('stop', handleStop)
       mediaRecorder.addEventListener('error', handleError)
       mediaRecorderCleanupRef.current = () => {
         mediaRecorder.removeEventListener('dataavailable', handleDataAvailable)
+// eslint-disable-next-line typescript/no-misused-promises
         mediaRecorder.removeEventListener('stop', handleStop)
         mediaRecorder.removeEventListener('error', handleError)
       }
@@ -486,6 +488,7 @@ export const SpeechInput = ({
       if (isListening) {
         stopMediaRecorder()
       } else {
+// eslint-disable-next-line typescript/no-floating-promises
         startMediaRecorder()
       }
     }

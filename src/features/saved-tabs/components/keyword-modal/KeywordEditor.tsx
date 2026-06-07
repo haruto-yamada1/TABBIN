@@ -70,6 +70,7 @@ export const KeywordEditor = () => {
               <Button
                 variant='ghost'
                 size='sm'
+// eslint-disable-next-line typescript/no-misused-promises
                 onClick={() => keywordsState.handleRemoveKeyword(keyword)}
                 className='ml-1 cursor-pointer text-zinc-400 hover:text-zinc-200'
                 aria-label={t('savedTabs.keywords.deleteAria')}

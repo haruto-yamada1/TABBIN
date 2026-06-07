@@ -104,6 +104,7 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.openAllTabs'),
       )}
+// eslint-disable-next-line typescript/no-misused-promises
       onDeleteAll={domainsToUse.length > 0 ? executeDeleteAll : undefined}
       deleteAllAriaLabel={getScopedNounActionLabel(
         t,

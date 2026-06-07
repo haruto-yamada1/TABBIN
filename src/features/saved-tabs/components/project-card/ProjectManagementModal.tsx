@@ -503,6 +503,7 @@ const useProjectManagementModalView = ({
                       trimmedName !== localProjectName &&
                       !projectNameError
                     ) {
+// eslint-disable-next-line typescript/no-floating-promises
                       handleSaveRenaming(trimmedName)
                     } else if (projectNameError) {
                       inputRef.current?.focus()
@@ -520,6 +521,7 @@ const useProjectManagementModalView = ({
                         !projectNameError &&
                         !isProcessing
                       ) {
+// eslint-disable-next-line typescript/no-floating-promises
                         handleSaveRenaming(trimmedName)
                       }
                     } else if (e.key === 'Escape') {
@@ -745,6 +747,7 @@ const useProjectManagementModalView = ({
               onCancel={() => {
                 updateModalState({ showDeleteConfirm: false })
               }}
+// eslint-disable-next-line typescript/no-misused-promises
               onDelete={handleDeleteProject}
             />
           )}
