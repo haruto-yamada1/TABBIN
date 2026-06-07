@@ -344,9 +344,9 @@ describe('CategoryManagementModal', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
-    const input = await screen.findByPlaceholderText(
+    const input = (await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
-    )
+    )) as HTMLInputElement
 
     using focusSpy = vi.spyOn(input, 'focus')
     using selectSpy = vi.spyOn(input, 'select')

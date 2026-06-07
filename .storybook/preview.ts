@@ -1,4 +1,4 @@
-/* eslint-disable import/no-unassigned-import */
+/* eslint-disable import/no-unassigned-import, typescript/TS2882 */
 import type { Preview } from '@storybook/react'
 
 import {

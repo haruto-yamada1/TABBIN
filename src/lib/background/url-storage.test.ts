@@ -90,7 +90,7 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
     }
 
     if (typeof (keys as unknown as string) === 'string') {
-      return { [keys]: storageState[keys as keyof StorageState] }
+      return { [keys as string]: storageState[keys as keyof StorageState] }
     }
 
     if (Array.isArray(keys)) {
@@ -402,7 +402,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => { // eslint-disable-line
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key: unknown) => { // eslint-disable-line
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,
@@ -548,7 +548,7 @@ describe('url-storage', () => {
 
     let callCount = 0
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => { // eslint-disable-line
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key: unknown) => { // eslint-disable-line
       callCount += 1
       if (callCount === 1 && key === 'savedTabs') {
         return { savedTabs: storageState.savedTabs }
@@ -575,7 +575,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => { // eslint-disable-line
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key: unknown) => { // eslint-disable-line
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,
@@ -918,7 +918,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
 // eslint-disable-next-line typescript/require-await
-    vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => { // eslint-disable-line
+    vi.mocked(chrome.storage.local.get).mockImplementation(async (key: unknown) => { // eslint-disable-line
       if (Array.isArray(key)) {
         return {
           savedTabs: storageState.savedTabs,
