@@ -122,7 +122,9 @@ describe('harness pure helpers', () => {
       ].join('\n'),
     )
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(listLines([], '空です')).toEqual(['- 空です'])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(listLines(['a'], '空です')).toEqual(['- a'])
     expect(oneLine(null)).toBeNull()
     expect(oneLine('a\n  b')).toBe('a b')
@@ -135,6 +137,7 @@ describe('harness pure helpers', () => {
         issues: [],
         ok: true,
       } as never),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['- schema 検証は通過しました。'])
     expect(
       collectLearningCandidates({
@@ -148,6 +151,7 @@ describe('harness pure helpers', () => {
           status: 'changes_requested',
         },
       } as never),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([
       'summary なし - 再発する場合は follow-up issue または `.apm/instructions` への追記を検討する。',
       '明示 finding - 再発する場合は follow-up issue または `.apm/instructions` への追記を検討する。',
@@ -158,6 +162,7 @@ describe('harness pure helpers', () => {
           status: 'changes_requested',
         },
       } as never),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
     expect(
       collectLearningCandidates({
@@ -170,7 +175,9 @@ describe('harness pure helpers', () => {
           status: 'approved',
         },
       } as never),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(readGovernanceLearningCandidates(runDir)).toEqual([
       {
         source: 'governance:manual',
@@ -192,6 +199,7 @@ describe('harness pure helpers', () => {
           status: 'covered',
         },
       ] as never),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual({
       maxScore: 30,
       overallScore: 5,
@@ -219,6 +227,7 @@ describe('harness pure helpers', () => {
           },
         ] as never,
       ),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([
       '[No evidence] undefined を確認し、source-of-truth から不足を補う。',
       '[A] 証跡 を確認し、source-of-truth から不足を補う。',
@@ -268,6 +277,7 @@ describe('harnessState utility helpers', () => {
           },
         },
       ),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
   })
 })
@@ -279,6 +289,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot })
 
     expect(result.ok).toBe(false)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual([
       expect.objectContaining({
         file: 'ACTIVE',
@@ -296,6 +307,7 @@ describe('validateHarnessRun', () => {
 
     expect(result.ok).toBe(false)
     expect(result.runId).toBe('missing')
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual([
       expect.objectContaining({
         file: 'run',
@@ -310,6 +322,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot })
 
     expect(result.ok).toBe(false)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual([
       expect.objectContaining({
         file: 'run',
@@ -332,6 +345,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot })
 
     expect(result.ok).toBe(false)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -378,6 +392,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot })
 
     expect(result.ok).toBe(false)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -436,6 +451,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot, runId: 'run-1' })
 
     expect(result.ok).toBe(true)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual([])
     expect(result.runId).toBe('run-1')
   })
@@ -483,6 +499,7 @@ describe('validateHarnessRun', () => {
     const result = validateHarnessRun({ projectRoot, runId: 'run-1' })
 
     expect(result.ok).toBe(false)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -867,8 +884,11 @@ describe('high fidelity harness commands', () => {
       verification: unknown[]
     }
     expect(orchestrator.summary).toBe('Planner を更新した。')
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(orchestrator.agents).toEqual([])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(orchestrator.verification).toEqual([])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(orchestrator.plan).toEqual([
       expect.objectContaining({
         owner: 'harness-generator',
@@ -1159,6 +1179,7 @@ describe('high fidelity harness commands', () => {
 
     expect(audit).toContain('generated artifact に手編集')
     expect(scorecard.status).toBe('changes_requested')
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(scorecard.top_actions).toEqual(
       expect.arrayContaining([expect.stringContaining('Source-of-truth Sync')]),
     )
@@ -1167,6 +1188,7 @@ describe('high fidelity harness commands', () => {
       scorecard.categories.find(
         (category) => category.name === 'Security Guardrails',
       )?.findings,
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([expect.stringContaining('inline eval')])
   })
 

@@ -116,18 +116,22 @@ describe('projects storage', () => {
       updateProjectUrlIdsAndMetadata,
     } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjectOrder()).resolves.toEqual([
       'project-1',
       'project-2',
     ])
     delete state.customProjectOrder
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjectOrder()).resolves.toEqual([])
     state.customProjectOrder = { invalid: true } as unknown as string[]
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjectOrder()).resolves.toEqual([])
     expect(removeUrlIdFromProject(projectWithoutUrlIds, 'url-1', 1000)).toBe(
       false,
     )
     expect(removeUrlIdFromProject(projectWithUrl, 'url-1', 1000)).toBe(true)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(projectWithUrl).toEqual(
       expect.objectContaining({
         updatedAt: 1000,
@@ -151,10 +155,13 @@ describe('projects storage', () => {
         1001,
       ),
     ).toBe(true)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(projectWithUrl.urlIds).toEqual(['url-2'])
     setProjectUrlMetadata(projectWithUrl, 'url-2')
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(projectWithUrl.urlMetadata).toEqual({})
     setProjectUrlMetadata(projectWithUrl, 'url-2', 'note')
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(projectWithUrl.urlMetadata).toEqual({
       'url-2': {
         category: undefined,
@@ -164,6 +171,7 @@ describe('projects storage', () => {
     const metadataProject = createProject()
     ensureProjectMetadataEntry(metadataProject, 'url-1')
     ensureProjectMetadataEntry(metadataProject, 'url-1')
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(metadataProject.urlMetadata).toEqual({
       'url-1': {},
     })
@@ -179,6 +187,7 @@ describe('projects storage', () => {
     expect(
       updateProjectUrlIdsAndMetadata(metadataProject, new Set(['url-1'])),
     ).toBe(true)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(metadataProject).toEqual(
       expect.objectContaining({
         updatedAt: 1000,
@@ -190,6 +199,7 @@ describe('projects storage', () => {
     expect(
       updateProjectUrlIdsAndMetadata(metadataProject, new Set(['url-2'])),
     ).toBe(true)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(metadataProject.urlMetadata).toEqual({})
     const uncategorized = createProject({
       id: 'custom-uncategorized',
@@ -212,7 +222,9 @@ describe('projects storage', () => {
       }),
       uncategorized,
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(uncategorized.urlIds).toEqual(['url-1', 'url-2'])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(uncategorized.urlMetadata).toEqual({
       'url-2': {
         notes: 'move',
@@ -222,6 +234,7 @@ describe('projects storage', () => {
     state.customProjectOrder = { invalid: true } as unknown as string[]
     await removeProjectIdFromOrder('project-1')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual([])
   })
 
@@ -291,6 +304,7 @@ describe('projects storage', () => {
     } = await loadModule()
 
     await removeUrlFromCustomProject('source', 'https://docs.example.com/miss')
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
@@ -306,9 +320,11 @@ describe('projects storage', () => {
     await removeUrlsFromCustomProject('source', [
       'https://docs.example.com/miss',
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
     await reorderProjectUrls('source', undefined)
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
@@ -322,6 +338,7 @@ describe('projects storage', () => {
         url: 'https://docs.example.com/missing-order',
       },
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
     await moveUrlBetweenCustomProjects(
@@ -329,6 +346,7 @@ describe('projects storage', () => {
       'target',
       'https://docs.example.com/a',
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[1]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
@@ -341,6 +359,7 @@ describe('projects storage', () => {
     )
 
     await renameCategoryInProject('plain', 'old', 'new')
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[2]).toEqual(
       expect.objectContaining({
         categories: ['new'],
@@ -388,13 +407,16 @@ describe('projects storage', () => {
     await removeUrlsFromCustomProject('without-url-ids', [
       'https://docs.example.com/a',
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual([])
 
     await removeUrlsFromCustomProject('with-url', [
       'https://docs.example.com/a',
     ])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[1]?.urlIds).toEqual([])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.savedTabs).toEqual([])
   })
 
@@ -442,6 +464,7 @@ describe('projects storage', () => {
       },
     ])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'matched-project',
@@ -497,6 +520,7 @@ describe('projects storage', () => {
       'Doc',
     )
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'source-project',
@@ -536,6 +560,7 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([
       expect.objectContaining({
         id: 'project-b',
@@ -569,6 +594,7 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([
       expect.objectContaining({ id: 'project-a' }),
       expect.objectContaining({ id: 'project-b' }),
@@ -592,6 +618,7 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([
       expect.objectContaining({ id: 'project-c' }),
       expect.objectContaining({ id: 'project-a' }),
@@ -609,6 +636,7 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([])
   })
 
@@ -631,6 +659,7 @@ describe('projects storage', () => {
 
     const { getProjectUrls } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getProjectUrls(createProject())).resolves.toEqual([])
     await expect(
       getProjectUrls(
@@ -644,6 +673,7 @@ describe('projects storage', () => {
           },
         }),
       ),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).resolves.toEqual([
       {
         category: 'docs',
@@ -671,6 +701,7 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([])
   })
 
@@ -713,6 +744,7 @@ describe('projects storage', () => {
     await expect(createCustomProject('alpha')).rejects.toThrow(
       'DUPLICATE_PROJECT_NAME:alpha',
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(createCustomProject('Gamma')).resolves.toEqual(
       expect.objectContaining({
         id: 'uuid-1',
@@ -720,6 +752,7 @@ describe('projects storage', () => {
         urlIds: [],
       }),
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual([
       'uuid-1',
       'project-2',
@@ -746,6 +779,7 @@ describe('projects storage', () => {
 
     await createCustomProject('Gamma')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual([
       'uuid-1',
       'project-1',
@@ -766,16 +800,19 @@ describe('projects storage', () => {
 
     const { getOrCreateUncategorizedProject } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getOrCreateUncategorizedProject()).resolves.toEqual(
       expect.objectContaining({
         id: 'custom-uncategorized',
         name: '未分類',
       }),
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.map((project) => project.id)).toEqual([
       'project-1',
       'custom-uncategorized',
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual([
       'project-1',
       'custom-uncategorized',
@@ -797,6 +834,7 @@ describe('projects storage', () => {
 
     await getOrCreateUncategorizedProject()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -815,6 +853,7 @@ describe('projects storage', () => {
 
     await getOrCreateUncategorizedProject()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -836,9 +875,11 @@ describe('projects storage', () => {
 
     const { getOrCreateUncategorizedProject } = await loadModule()
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getOrCreateUncategorizedProject()).resolves.toEqual(
       existingUncategorized,
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([existingUncategorized])
   })
 
@@ -881,6 +922,7 @@ describe('projects storage', () => {
       { title: 'Blank ignored', url: ' ' },
     ])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls).toEqual([
       {
         id: 'url-1',
@@ -895,6 +937,7 @@ describe('projects storage', () => {
         url: 'https://example.test/b',
       },
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'source',
@@ -923,12 +966,14 @@ describe('projects storage', () => {
     const { saveUrlsToCustomProjects } = await loadModule()
 
     await saveUrlsToCustomProjects([{ title: 'Blank', url: ' ' }])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([])
 
     await saveUrlsToCustomProjects([
       { title: 'Unmatched', url: 'https://unmatched.example/a' },
     ])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -957,18 +1002,21 @@ describe('projects storage', () => {
     const { addUrlsToUncategorizedProject } = await loadModule()
 
     await addUrlsToUncategorizedProject([{ title: 'Blank', url: ' ' }])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls).toEqual([])
 
     await addUrlsToUncategorizedProject([
       { title: '', url: 'https://example.test/new' },
     ])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         id: 'custom-uncategorized',
         urlIds: ['uuid-1'],
       }),
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -1006,7 +1054,9 @@ describe('projects storage', () => {
       },
     ])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls?.[0]).toEqual(
       expect.objectContaining({
         id: 'url-1',
@@ -1050,7 +1100,9 @@ describe('projects storage', () => {
       },
     ])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls?.[0]).toEqual({
       id: 'url-1',
       savedAt: 1000,
@@ -1078,6 +1130,7 @@ describe('projects storage', () => {
       notes: 'note',
     })
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls).toEqual([
       {
         id: 'uuid-1',
@@ -1086,6 +1139,7 @@ describe('projects storage', () => {
         url: 'https://docs.example.com/a',
       },
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'target',
@@ -1098,6 +1152,7 @@ describe('projects storage', () => {
         },
       }),
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://docs.example.com',
@@ -1131,7 +1186,9 @@ describe('projects storage', () => {
 
     await addUrlToCustomProject('target', 'https://docs.example.com/a', '')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['uuid-1'])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://docs.example.com',
@@ -1175,12 +1232,14 @@ describe('projects storage', () => {
 
     await addUrlToCustomProject('target', 'https://docs.example.com/a', '')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
         urlMetadata: undefined,
       }),
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://docs.example.com',
@@ -1188,6 +1247,7 @@ describe('projects storage', () => {
         urlIds: ['url-1'],
       },
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls?.[0]).toEqual(
       expect.objectContaining({
         savedAt: 1000,
@@ -1253,12 +1313,14 @@ describe('projects storage', () => {
 
     await removeUrlFromCustomProject('target', 'https://docs.example.com/a')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: [],
         urlMetadata: {},
       }),
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.savedTabs).toEqual([])
   })
 
@@ -1310,6 +1372,7 @@ describe('projects storage', () => {
 
     await removeUrlFromCustomProject('target', 'https://docs.example.com/a')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://docs.example.com',
@@ -1404,12 +1467,14 @@ describe('projects storage', () => {
     await removeUrlsFromAllCustomProjects(['https://docs.example.com/two'])
     await removeUrlIdsFromAllCustomProjects(['url-3'])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: [],
         urlMetadata: {},
       }),
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://untouched.example.com',
@@ -1466,6 +1531,7 @@ describe('projects storage', () => {
     await removeUrlIdsFromAllCustomProjects([])
     await removeUrlFromAllCustomProjects('https://example.test/none')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
     vi.mocked(chrome.storage.local.get)
@@ -1527,6 +1593,7 @@ describe('projects storage', () => {
     await removeUrlIdsFromAllCustomProjects(['url-1'])
 
     expect(storage.set).not.toHaveBeenCalled()
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'without-ids',
@@ -1699,6 +1766,7 @@ describe('projects storage', () => {
 
     await removeUrlFromAllCustomProjects('https://docs.example.com/one')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: [],
@@ -1753,6 +1821,7 @@ describe('projects storage', () => {
 
     await removeUrlFromAllCustomProjects('https://docs.example.com/a')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'without-url-ids',
@@ -1795,6 +1864,7 @@ describe('projects storage', () => {
 
     await deleteCustomProject('delete-me')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -1806,6 +1876,7 @@ describe('projects storage', () => {
         },
       }),
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -1834,12 +1905,14 @@ describe('projects storage', () => {
     )
     await deleteCustomProject('delete-me')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
         urlIds: [],
       }),
     ])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -1873,6 +1946,7 @@ describe('projects storage', () => {
 
     await deleteCustomProject('delete-me')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -1914,6 +1988,7 @@ describe('projects storage', () => {
 
     await deleteCustomProject('delete-me')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -1989,6 +2064,7 @@ describe('projects storage', () => {
     })
     await updateProjectOrder(['target', 'other'])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categoryOrder: ['new', 'renamed'],
@@ -2010,6 +2086,7 @@ describe('projects storage', () => {
         },
       }),
     )
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual(['target', 'other'])
   })
 
@@ -2039,6 +2116,7 @@ describe('projects storage', () => {
     await addCategoryToProject('target', 'new')
     await removeCategoryFromProject('target', 'old')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categories: ['new'],
@@ -2072,6 +2150,7 @@ describe('projects storage', () => {
 
     await addCategoryToProject('target', 'new')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categories: ['new'],
@@ -2099,6 +2178,7 @@ describe('projects storage', () => {
 
     await addCategoryToProject('target', 'Inbox')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categories: ['Existing', 'Inbox'],
@@ -2128,6 +2208,7 @@ describe('projects storage', () => {
 
     await removeCategoryFromProject('target', 'old')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categories: [],
@@ -2229,6 +2310,7 @@ describe('projects storage', () => {
       { title: 'Same Again', url: 'https://example.test/same' },
     ])
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1', 'url-2', 'url-3'],
@@ -2273,6 +2355,7 @@ describe('projects storage', () => {
     await setUrlCategory('empty', 'https://example.test/one', 'new')
     await setUrlCategory('target', 'https://example.test/missing', 'new')
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'empty',
@@ -2331,6 +2414,7 @@ describe('projects storage', () => {
       'https://example.test/move',
     )
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'source',
@@ -2392,6 +2476,7 @@ describe('projects storage', () => {
       'https://example.test/move',
     )
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'source',

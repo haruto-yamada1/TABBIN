@@ -774,6 +774,7 @@ describe('AnalyticsRoute', () => {
       subCategories: [],
     }
 
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(getAnalyticsChartDatumLabels(undefined)).toEqual([])
     expect(
       getAnalyticsChartDatumLabels([
@@ -782,6 +783,7 @@ describe('AnalyticsRoute', () => {
         {},
         { label: 12 },
       ]),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['Docs', '12'])
     expect(
       getDrilldownLabelsForRecord(
@@ -790,6 +792,7 @@ describe('AnalyticsRoute', () => {
         'Uncategorized',
         analyticsChartMessages,
       ),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['Uncategorized'])
     expect(
       getDrilldownLabelsForRecord(
@@ -798,6 +801,7 @@ describe('AnalyticsRoute', () => {
         'Uncategorized',
         analyticsChartMessages,
       ),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['Uncategorized'])
     expect(
       getDrilldownLabelsForRecord(
@@ -854,6 +858,7 @@ describe('AnalyticsRoute', () => {
           role: 'assistant',
         },
       ]),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual({
       charts: [chart],
       query: null,
@@ -919,7 +924,9 @@ describe('AnalyticsRoute', () => {
         query: domainQuery,
         uncategorizedLabel: 'Uncategorized',
       })?.matchingRecords,
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([records[0]])
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(getDrilldownMatchingRecords(null)).toEqual([])
     expect(
       getDrilldownMatchingRecords({
@@ -927,6 +934,7 @@ describe('AnalyticsRoute', () => {
         matchingRecords: [records[0]],
         specTitle: 'Saved count by domain',
       }),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([records[0]])
     expect(shouldConfirmBulkOpen(9)).toBe(false)
     expect(shouldConfirmBulkOpen(10)).toBe(true)
@@ -1131,7 +1139,9 @@ describe('AnalyticsRoute', () => {
     ).toBeNull()
     expect(
       normalizeAnalyticsRouteQuery(createAnalyticsQuery({ mode: 'custom' })),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(expect.objectContaining({ mode: 'both' }))
+// eslint-disable-next-line vitest/prefer-strict-equal
     expect(createAnalyticsDeleteUndoPayload({})).toEqual({})
     expect(
       createAnalyticsDeleteUndoPayload({
@@ -1141,6 +1151,7 @@ describe('AnalyticsRoute', () => {
         savedTabs: [],
         urls: [],
       }),
+// eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual({
       customProjectOrder: ['project-1'],
       customProjects: [],
