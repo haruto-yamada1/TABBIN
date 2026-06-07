@@ -534,7 +534,7 @@ const requestAssistantAnswer = async (
   prompt: string,
   attachments: AiChatAttachment[] = [],
 ): Promise<AiChatResponse | undefined> =>
-  (await sendRuntimeMessage({
+  (await sendRuntimeMessage({ // eslint-disable-line typescript/no-unsafe-type-assertion
     action: 'runAiChat',
     history,
     prompt,
@@ -544,7 +544,7 @@ const requestAssistantAnswer = async (
 const requestOllamaModels = async (): Promise<
   OllamaModelListResponse | undefined
 > =>
-  (await sendRuntimeMessage({
+  (await sendRuntimeMessage({ // eslint-disable-line typescript/no-unsafe-type-assertion
     action: 'listOllamaModels',
   })) as OllamaModelListResponse | undefined
 
@@ -601,7 +601,7 @@ const getSourceItems = (output: unknown): ChatMessageSource[] => {
     typeof output === 'object' &&
     Array.isArray((output as { items?: unknown[] }).items)
   ) {
-    ;({ items } = output as { items: unknown[] })
+    ;({ items } = output as { items: unknown[] }) // eslint-disable-line typescript/no-unsafe-type-assertion
   }
 
   return items.flatMap((item) => {
@@ -647,7 +647,7 @@ const getMessageSources = (
 
 const requestPromptSubmit = (textarea: HTMLTextAreaElement) => {
   const { form } = textarea
-  const submitButton = form?.querySelector(
+  const submitButton = form?.querySelector( // eslint-disable-line typescript/no-unsafe-type-assertion
     'button[type="submit"]',
   ) as HTMLButtonElement | null
 
@@ -2051,7 +2051,7 @@ const useSavedTabsChatWidgetView = ({
       }
 
       setSettings(
-        (changes.userSettings.newValue as UserSettings) ?? defaultSettings,
+        (changes.userSettings.newValue as UserSettings) ?? defaultSettings, // eslint-disable-line typescript/no-unsafe-type-assertion
       )
     }
 
@@ -2596,7 +2596,7 @@ const useSavedTabsChatWidgetView = ({
       return false
     }
 
-    const streamMessage = message as AiChatStreamServerMessage
+    const streamMessage = message as AiChatStreamServerMessage // eslint-disable-line typescript/no-unsafe-type-assertion
 
     if (streamMessage.type === 'step') {
       handleStreamStep(assistantMessageId, streamMessage)

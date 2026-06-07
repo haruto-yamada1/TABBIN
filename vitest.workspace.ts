@@ -8,7 +8,8 @@ const dirname =
   typeof __dirname !== 'undefined' ? __dirname : import.meta.dirname
 
 // More info at: https://storybook.js.org/docs/writing-tests/test-addon
-export default [
+const workspaces = [
+
   'vitest.config.ts',
   defineProject({
     plugins: [
@@ -28,3 +29,5 @@ export default [
     },
   }),
 ]
+
+export default workspaces

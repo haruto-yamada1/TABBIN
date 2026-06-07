@@ -1546,7 +1546,7 @@ describe('projects storage', () => {
           )
         }
         return {
-          [keys as string]: state[keys as unknown as keyof StorageState],
+          [keys as unknown as string]: state[keys as unknown as keyof StorageState],
         }
       })
       .mockRejectedValueOnce(new Error('storage failed'))

@@ -12,3 +12,5 @@ export default (_config: FullConfig) => {
     stdio: 'inherit',
   })
 }
+
+export default setup

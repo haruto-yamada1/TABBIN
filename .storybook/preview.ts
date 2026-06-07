@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unassigned-import */
 import type { Preview } from '@storybook/react'
 
 import {
