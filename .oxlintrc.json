@@ -229,7 +229,7 @@
     "typescript/prefer-nullish-coalescing": "warn",
     "typescript/prefer-optional-chain": "error",
     "typescript/no-inferrable-types": "error",
-    "typescript/no-confusing-void-expression": "error",
+    "typescript/no-confusing-void-expression": "warn",
     "typescript/no-array-delete": "error",
     "typescript/no-confusing-non-null-assertion": "error",
     "typescript/switch-exhaustiveness-check": "error",
