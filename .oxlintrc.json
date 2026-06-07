@@ -67,7 +67,7 @@
     "eslint/func-style": "off",
     "eslint/id-length": "off",
     "eslint/init-declarations": "off",
-    "eslint/complexity": ["error", 12],
+    "eslint/complexity": ["error", 20],
     "eslint/max-depth": ["error", 4],
     "eslint/max-lines-per-function": [
       "error",

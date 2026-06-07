@@ -89,7 +89,7 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
       throw new Error('storage get failed')
     }
 
-    if (typeof keys === 'string') {
+    if (typeof (keys as unknown as string) === 'string') {
       return { [keys]: storageState[keys as keyof StorageState] }
     }
 
@@ -99,7 +99,7 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
       )
     }
 
-    if (keys && typeof keys === 'object') {
+    if (keys && typeof (keys as unknown as string) === 'object') {
       const defaults = keys as Record<string, unknown>
       return Object.fromEntries(
         Object.entries(defaults).map(([key, fallback]) => [

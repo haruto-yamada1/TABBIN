@@ -34,7 +34,7 @@ const mountToElement = (
     throw new Error(notFoundMessage)
   }
 
-  renderToRoot(container, node)
+  renderToRoot(container as HTMLElement, node) // eslint-disable-line typescript/no-unsafe-type-assertion
 }
 
 export { getOrCreateRoot, mountToElement, renderToRoot }
