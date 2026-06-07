@@ -61,7 +61,7 @@ export const CategoryGroupActions = () => {
 
     if (handlers.handleDeleteGroups) {
 // eslint-disable-next-line typescript/no-confusing-void-expression
-      await handlers.handleDeleteGroups(domainsToDelete.map((d) => d.id))
+      handlers.handleDeleteGroups(domainsToDelete.map((d) => d.id))
     } else {
       await Promise.all(
 // eslint-disable-next-line typescript/no-confusing-void-expression
