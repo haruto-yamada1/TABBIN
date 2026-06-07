@@ -106,14 +106,14 @@ const SavedTabsRoutePage = () => {
 
 const AppRoutes = () => (
   <Routes>
-    // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
+    {/* eslint-disable-next-line react-perf/jsx-no-jsx-as-prop */}
     <Route element={<AppLayout />}>
       <Route
         index
         // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         element={<Navigate to={getSavedTabsEntryRoute()} replace />}
       />
-      // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
+      {/* eslint-disable-next-line react-perf/jsx-no-jsx-as-prop */}
       <Route path='/saved-tabs' element={<SavedTabsRoutePage />} />
       <Route
         path='/ai-chat'

@@ -186,7 +186,7 @@ const ReviewArtifacts = () => (
     <Section title='Attachments + Snippet'>
       <div className='gap-y-4'>
         <Attachments variant='grid'>
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
           <Attachment data={sampleAttachment} onRemove={() => undefined}>
             <AttachmentHoverCard>
               <AttachmentHoverCardTrigger asChild>

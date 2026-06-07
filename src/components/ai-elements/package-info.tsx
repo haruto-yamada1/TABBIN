@@ -50,7 +50,7 @@ export const PackageInfo = ({
             <PackageInfoName />
             {changeType && <PackageInfoChangeType />}
           </PackageInfoHeader>
-          // eslint-disable-next-line typescript/prefer-nullish-coalescing
+          {/* eslint-disable-next-line typescript/prefer-nullish-coalescing */}
           {(currentVersion || newVersion) && <PackageInfoVersion />}
         </>
       )}

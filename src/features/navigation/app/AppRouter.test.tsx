@@ -61,11 +61,11 @@ vi.mock('@/features/saved-tabs/routes/SavedTabsRoute', () => ({
   }) => (
     <div>
       <div>{`saved-tabs-route:${search ?? ''}`}</div>
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onViewModeNavigate?.('custom')} type='button'>
         navigate-custom
       </button>
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onViewModeNavigate?.('domain')} type='button'>
         navigate-domain
       </button>

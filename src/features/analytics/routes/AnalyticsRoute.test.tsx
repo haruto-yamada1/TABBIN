@@ -371,11 +371,11 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
     <div>
       <div>{`history-variant:${historyVariant ?? 'none'}`}</div>
       <div>active-title:Analytics Chat</div>
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(true)} type='button'>
         open-sidebar
       </button>
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(false)} type='button'>
         close-sidebar
       </button>

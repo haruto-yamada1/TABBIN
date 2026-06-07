@@ -124,7 +124,7 @@ export const ArtifactAction = ({
       {...props}
     >
       {Icon ? <Icon className='size-4' /> : children}
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing
+      {/* eslint-disable-next-line typescript/prefer-nullish-coalescing */}
       <span className='sr-only'>{label || tooltip}</span>
     </Button>
   )

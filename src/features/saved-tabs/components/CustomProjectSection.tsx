@@ -83,7 +83,7 @@ const ProjectDragPreview = ({ project }: { project: CustomProject }) => {
             setUserCollapsedState={() => {}}
             isDisabled
           />
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
           <CardSortControl sortOrder='default' setSortOrder={() => {}} />
           <CardGroupTitle
             title={project.name}
@@ -709,7 +709,7 @@ const useCustomProjectSectionView = ({
               </div>
             </SortableContext>
             {/* ドラッグ中の要素のオーバーレイ */}
-            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+            {/* eslint-disable-next-line react-perf/jsx-no-new-object-as-prop */}
             <DragOverlay style={{ pointerEvents: 'none' }}>
               {draggedItem && (
                 <div className='max-w-[300px] truncate rounded-md border bg-background p-2 shadow-md'>

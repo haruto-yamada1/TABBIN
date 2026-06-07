@@ -211,7 +211,7 @@ const RuntimeDiagnostics = () => (
         </Commit>
 
         <div className='space-y-3'>
-          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+          {/* eslint-disable-next-line react-perf/jsx-no-new-object-as-prop */}
           <Confirmation approval={{ id: '1' }} state='approval-requested'>
             <ConfirmationTitle>
               Allow the agent to export saved tabs?

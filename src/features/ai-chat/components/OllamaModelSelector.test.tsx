@@ -28,11 +28,11 @@ vi.mock('@/components/ai-elements/prompt-input', () => ({
     onValueChange?: (value: string) => void
   }) => (
     <div>
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(true)} type='button'>
         open-select
       </button>
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onValueChange?.('llama3.2')} type='button'>
         select-model
       </button>
