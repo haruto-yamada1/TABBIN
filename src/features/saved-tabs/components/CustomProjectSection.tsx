@@ -749,8 +749,7 @@ const useCustomProjectSectionView = ({
               {t('savedTabs.customProjects.createDialogTitle')}
             </DialogTitle>
           </DialogHeader>
-// eslint-disable-next-line typescript/no-misused-promises
-          <form onSubmit={handleSubmit(handleCreateProjectSubmit)}> // eslint-disable-line typescript/no-misused-promises
+          <form onSubmit={(e) => { void handleSubmit(handleCreateProjectSubmit)(e) }}>
             <div className='grid gap-4 py-4'>
               <div>
                 <Label htmlFor='name'>

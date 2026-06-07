@@ -16,11 +16,21 @@ const isUncategorizedDrop = (
   projectId: string,
 ): boolean =>
   Boolean(
-// eslint-disable-next-line typescript/no-unnecessary-type-conversion
-    over?.id === `uncategorized-${projectId}` || // eslint-disable-line typescript/no-unnecessary-type-conversion
+    // eslint-disable-next-line prefer-template, typescript/no-unnecessary-type-conversion
+    over?.id === `uncategorized-${projectId}` ||
     (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
   over?.data?.current?.type === 'uncategorized',
 )
+const isCategoryOver = (
+  overData: { type?: string; isCategory?: boolean; isDropArea?: boolean; categoryName?: string },
+  overId: string | number | null,
+): boolean =>
+  overData.type === 'category' ||
+  overData.isCategory === true ||
+  overData.isDropArea === true ||
+  (typeof overId === 'string' &&
+    (overId.startsWith('category-drop-') || overId.includes('category')))
+
 const resolveOverCategoryName = (
   over: DragOverEvent['over'],
 ): string | null => {
@@ -38,21 +48,13 @@ const resolveOverCategoryName = (
   ) {
     return overData.category
   }
-  const isCategory =
-    overData.type === 'category' ||
-    overData.isCategory === true ||
-    overData.isDropArea === true ||
-    (typeof over.id === 'string' &&
-      (over.id.startsWith('category-drop-') || over.id.includes('category')))
-  if (!isCategory) {
+  if (!isCategoryOver(overData, over.id)) {
     return null
   }
   if (overData.categoryName) {
-// eslint-disable-next-line typescript/no-unsafe-return
-    return overData.categoryName
+    return overData.categoryName // eslint-disable-line typescript/no-unsafe-return
   }
   if (typeof over.id === 'string') {
-// eslint-disable-next-line typescript/prefer-nullish-coalescing
     return parseCategoryNameFromOverId(over.id) || null
   }
   return null
