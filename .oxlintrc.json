@@ -385,7 +385,8 @@
       "rules": {
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
-        "eslint/no-magic-numbers": "off"
+        "eslint/no-magic-numbers": "off",
+        "unicorn/no-abusive-eslint-disable": "off"
       }
     },
     {
@@ -416,7 +417,8 @@
         "typescript/no-unnecessary-type-assertion": "off",
         "typescript/restrict-template-expressions": "off",
         "oxc/no-map-spread": "off",
-        "import/no-unassigned-import": "off"
+        "import/no-unassigned-import": "off",
+        "unicorn/no-abusive-eslint-disable": "off"
       }
     },
     {
@@ -433,7 +435,8 @@
         "react-perf/jsx-no-jsx-as-prop": "off",
         "react-perf/jsx-no-new-function-as-prop": "off",
         "react-perf/jsx-no-new-object-as-prop": "off",
-        "react-perf/jsx-no-new-array-as-prop": "off"
+        "react-perf/jsx-no-new-array-as-prop": "off",
+        "unicorn/no-abusive-eslint-disable": "off"
       }
     }
   ]

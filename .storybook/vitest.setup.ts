@@ -2,7 +2,8 @@
 import { defineConfig } from 'vite'
 import { WxtVitest } from 'wxt/testing'
 
+// @ts-expect-error - Vite/Storybook type incompatibility
 export default defineConfig({
-  // eslint-disable-line
-  plugins: [WxtVitest()], // eslint-disable-line
+  // @ts-expect-error - WxtVitest overload mismatch
+  plugins: [WxtVitest()],
 })
