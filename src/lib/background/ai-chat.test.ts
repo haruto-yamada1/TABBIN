@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'

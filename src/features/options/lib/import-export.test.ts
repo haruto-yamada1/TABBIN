@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

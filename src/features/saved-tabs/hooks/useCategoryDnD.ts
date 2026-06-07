@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-unnecessary-type-conversion */
 import type { Active, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 // Filepath: features/saved-tabs/hooks/useCategoryDnD.ts
 import { useState } from 'react'
