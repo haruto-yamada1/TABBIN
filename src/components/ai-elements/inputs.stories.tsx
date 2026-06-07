@@ -342,6 +342,7 @@ const ComposerPlayground = () => {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
               <SpeechInput
+// eslint-disable-next-line typescript/require-await
                 onAudioRecorded={async () => 'Recorded from fallback audio'}
                 onTranscriptionChange={(text) => {
                   setResult(`Transcribed: ${text}`)

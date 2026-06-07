@@ -95,6 +95,7 @@ describe('useDomainCardState', () => {
     globalThis.chrome = {
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [createGroup()],
           })),
@@ -343,6 +344,7 @@ describe('useDomainCardState', () => {
     globalThis.chrome = {
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [group, otherGroup],
           })),

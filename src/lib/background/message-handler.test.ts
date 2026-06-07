@@ -894,6 +894,7 @@ describe('setupMessageListener', () => {
             toolTraces: unknown[]
           }) => void
         },
+// eslint-disable-next-line typescript/require-await
       ) => {
         options?.onStepUpdate?.({
           reasoning: '- 使用ツール: 保存済み URL 一覧',

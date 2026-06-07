@@ -156,28 +156,31 @@ const chromeMock = {
   },
   storage: {
     local: {
-      clear: async () => {
+      clear: () => {
         for (const key of Object.keys(storageState)) {
           delete storageState[key]
         }
+        return Promise.resolve()
       },
-      get: async (keys: null | string | string[] | Record<string, unknown>) => {
+      get: (keys: null | string | string[] | Record<string, unknown>) => {
         const requestedKeys = resolveRequestedKeys(keys)
 
         if (!requestedKeys) {
-          return cloneValue(storageState)
+          return Promise.resolve(cloneValue(storageState))
         }
 
-        return Object.fromEntries(
-          requestedKeys.reduce<[string, unknown][]>((items, key) => {
-            if (key in storageState) {
-              items.push([key, cloneValue(storageState[key])])
-            }
-            return items
-          }, []),
+        return Promise.resolve(
+          Object.fromEntries(
+            requestedKeys.reduce<[string, unknown][]>((items, key) => {
+              if (key in storageState) {
+                items.push([key, cloneValue(storageState[key])])
+              }
+              return items
+            }, []),
+          ),
         )
       },
-      remove: async (
+      remove: (
         keys: null | string | string[] | Record<string, unknown>,
       ) => {
         const requestedKeys = resolveRequestedKeys(keys) ?? []
@@ -185,8 +188,9 @@ const chromeMock = {
         for (const key of requestedKeys) {
           delete storageState[key]
         }
+        return Promise.resolve()
       },
-      set: async (items: Record<string, unknown>) => {
+      set: (items: Record<string, unknown>) => {
         const changes: StorybookStorageState = {}
 
         for (const [key, value] of Object.entries(items)) {
@@ -195,6 +199,7 @@ const chromeMock = {
         }
 
         emitStorageChanges(changes)
+        return Promise.resolve()
       },
     },
     onChanged: {
@@ -208,10 +213,10 @@ const chromeMock = {
       },
     },
     sync: {
-      clear: async () => undefined,
-      get: async () => ({}),
-      remove: async () => undefined,
-      set: async () => undefined,
+      clear: () => undefined,
+      get: () => ({}),
+      remove: () => undefined,
+      set: () => undefined,
     },
   },
 } as unknown as typeof chrome
@@ -219,7 +224,7 @@ const chromeMock = {
 const browserMock = {
   runtime: {
     connect: () => createRuntimePort(),
-    sendMessage: async (message: unknown) => {
+    sendMessage: (message: unknown) => {
       runtimeMessages.push(message)
       return {
         ok: true,
@@ -237,7 +242,7 @@ const ensureNavigatorMocks = () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: {
-        writeText: async () => undefined,
+        writeText: () => Promise.resolve(undefined),
       },
     })
   }
@@ -247,8 +252,8 @@ const ensureNavigatorMocks = () => {
       configurable: true,
       value: {
         addEventListener: () => undefined,
-        enumerateDevices: async () =>
-          [
+        enumerateDevices: () =>
+          Promise.resolve([
             {
               deviceId: 'mic-primary',
               groupId: 'group-primary',
@@ -256,9 +261,9 @@ const ensureNavigatorMocks = () => {
               label: 'Built-in Microphone (1234:5678)',
               toJSON: () => ({}),
             },
-          ] satisfies MediaDeviceInfo[],
-        getUserMedia: async () =>
-          new StorybookMediaStream() as unknown as MediaStream,
+          ]) as unknown as Promise<MediaDeviceInfo[]>,
+        getUserMedia: () =>
+          Promise.resolve(new StorybookMediaStream()) as unknown as Promise<MediaStream>,
         removeEventListener: () => undefined,
       } satisfies Partial<MediaDevices>,
     })

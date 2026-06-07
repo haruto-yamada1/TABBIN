@@ -313,6 +313,7 @@ describe('CustomProjectSection additional', () => {
     })
     expect(projectHandlerSpies['project-1']?.handleDragStart).toHaveBeenCalled()
 
+// eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: {
@@ -422,6 +423,7 @@ describe('CustomProjectSection additional', () => {
     )
     expect(projectHandlerSpies['project-1']?.clearDragState).toHaveBeenCalled()
 
+// eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragStart?.({
         active: {

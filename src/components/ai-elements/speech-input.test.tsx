@@ -172,6 +172,7 @@ describe('SpeechInput', () => {
 
   it('録音後の文字起こし失敗をユーザーへ表示する', async () => {
     const { stream } = createMockStream()
+// eslint-disable-next-line typescript/require-await
     const onAudioRecorded = vi.fn(async (_audioBlob: Blob) => {
       throw new Error('transcription failed')
     })

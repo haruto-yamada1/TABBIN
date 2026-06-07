@@ -283,7 +283,7 @@ export const ProjectCardRoot = ({
             }
             onDeleteAll={
               projectUrlCount > 0
-                ? async () => {
+                ? () => {
                     if (handlers.handleDeleteUrlsFromProject) {
                       handlers.handleDeleteUrlsFromProject(
                         project.id,

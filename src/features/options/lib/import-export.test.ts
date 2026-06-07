@@ -126,6 +126,7 @@ const createChromeMock = (
   const store = clone(initialStore)
 
   const get = vi.fn(
+// eslint-disable-next-line typescript/require-await
     async (keys?: string | string[] | Record<string, unknown>) => {
       if (options.failGet) {
         throw new Error('storage get failed')
@@ -134,6 +135,7 @@ const createChromeMock = (
     },
   )
 
+// eslint-disable-next-line typescript/require-await
   const set = vi.fn(async (next: Record<string, unknown>) => {
     for (const [key, value] of Object.entries(next)) {
       store[key] = clone(value)
@@ -319,6 +321,7 @@ describe('import-export ユーティリティ', () => {
     vi.restoreAllMocks()
   })
 
+// eslint-disable-next-line typescript/require-await
   it('内部 helper は custom project の欠損値と legacy urlIds 復元を正規化する', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-02-16T00:01:00.000Z'))
@@ -2376,6 +2379,7 @@ describe('import-export ユーティリティ', () => {
     })
     vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
     vi.mocked(createOrUpdateUrlRecord).mockImplementation(
+// eslint-disable-next-line typescript/require-await
       async (url: string, title: string) => ({
         id: url.includes('imported-project')
           ? 'imported-project-url'
@@ -2570,6 +2574,7 @@ describe('import-export ユーティリティ', () => {
 
     let urlsGetCount = 0
     get.mockImplementation(
+// eslint-disable-next-line typescript/require-await
       async (keys?: string | string[] | Record<string, unknown>) => {
         if (isUrlsDefaultRequest(keys)) {
           urlsGetCount += 1

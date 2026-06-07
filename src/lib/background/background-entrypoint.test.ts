@@ -62,6 +62,7 @@ const createChromeHarness = (
   }
   const onInstalledListeners: InstalledListener[] = []
   const onStartupListeners: StartupListener[] = []
+// eslint-disable-next-line typescript/require-await
   const storageGet = vi.fn(async (keys?: unknown) => {
     if (keys == null) {
       return {
@@ -86,10 +87,12 @@ const createChromeHarness = (
     }
     return {}
   })
+// eslint-disable-next-line typescript/require-await
   const storageSet = vi.fn(async (next: Record<string, unknown>) => {
     Object.assign(storage, next)
   })
   const tabsCreate = vi.fn(
+// eslint-disable-next-line typescript/require-await
     async (createProperties: chrome.tabs.CreateProperties) => ({
       id: 100,
       ...createProperties,
@@ -127,6 +130,7 @@ const createChromeHarness = (
     tabs: {
       create: tabsCreate,
       update: vi.fn(),
+// eslint-disable-next-line typescript/require-await
       query: vi.fn(async () => []),
       get: vi.fn(),
       remove: vi.fn(),

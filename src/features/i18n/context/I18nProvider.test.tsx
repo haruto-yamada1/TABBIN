@@ -107,6 +107,7 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('message').textContent).toContain('キャンセル')
     expect(screen.getByTestId('message').textContent).toContain('Hello Taro')
 
+// eslint-disable-next-line typescript/require-await
     await act(async () => {
       screen.getByText('set-en').click()
     })
@@ -214,6 +215,7 @@ describe('I18nProvider', () => {
 
     unmount()
 
+// eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveSettings?.({ language: 'en' })
     })

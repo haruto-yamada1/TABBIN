@@ -42,7 +42,9 @@ interface TabsHarness {
 }
 const createChromeTabsHarness = (): TabsHarness => {
   const query = vi.fn()
+// eslint-disable-next-line typescript/require-await
   const remove = vi.fn(async () => undefined)
+// eslint-disable-next-line typescript/require-await
   const getAllWindows = vi.fn(async () => [])
   ;(
     globalThis as {
@@ -96,6 +98,7 @@ describe('extension-actions モジュール', () => {
     mocked.getUserSettings.mockResolvedValue(buildSettings())
     mocked.openSavedTabsPage.mockResolvedValue(9999)
     mocked.filterTabsByUserSettings.mockImplementation(
+// eslint-disable-next-line typescript/require-await
       async (tabs: unknown) => tabs,
     )
     mocked.showNotification.mockResolvedValue(undefined)
@@ -719,6 +722,7 @@ describe('extension-actions モジュール', () => {
     })
     it('windows API が使えない場合は tabs.query で全タブを取得する', async () => {
       const query = vi.fn()
+// eslint-disable-next-line typescript/require-await
       const remove = vi.fn(async () => undefined)
       ;(
         globalThis as {

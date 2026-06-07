@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => {
   let uuidIndex = 0
 
   return {
+// eslint-disable-next-line typescript/require-await
     migrateToUrlsStorage: vi.fn(async () => undefined),
     reset: () => {
       uuidIndex = 0
@@ -32,6 +33,7 @@ interface StorageState {
 }
 
 const createChromeStorageLocal = (state: StorageState) => ({
+// eslint-disable-next-line typescript/require-await
   get: vi.fn(async (keys?: string | string[]) => {
     if (!keys) {
       return state
@@ -47,6 +49,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
       [keys]: state[keys as keyof StorageState],
     }
   }),
+// eslint-disable-next-line typescript/require-await
   set: vi.fn(async (value: Record<string, unknown>) => {
     Object.assign(state, value)
   }),
@@ -657,6 +660,7 @@ describe('projects storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => {
             throw new Error('storage unavailable')
           }),
@@ -675,6 +679,7 @@ describe('projects storage', () => {
       storage: {
         local: {
           get: vi.fn(),
+// eslint-disable-next-line typescript/require-await
           set: vi.fn(async () => {
             throw new Error('write unavailable')
           }),
@@ -1318,6 +1323,7 @@ describe('projects storage', () => {
     ])
 
     vi.mocked(chrome.storage.local.get)
+// eslint-disable-next-line typescript/require-await
       .mockImplementationOnce(async (keys) => {
         if (Array.isArray(keys)) {
           return Object.fromEntries(
@@ -1463,6 +1469,7 @@ describe('projects storage', () => {
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
     vi.mocked(chrome.storage.local.get)
+// eslint-disable-next-line typescript/require-await
       .mockImplementationOnce(async (keys) => {
         if (Array.isArray(keys)) {
           return Object.fromEntries(
@@ -1536,6 +1543,7 @@ describe('projects storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => {
             throw new Error('storage failed')
           }),
@@ -1581,6 +1589,7 @@ describe('projects storage', () => {
       storage: {
         local: {
           ...createChromeStorageLocal(state),
+// eslint-disable-next-line typescript/require-await
           set: vi.fn(async () => {
             throw new Error('write failed')
           }),

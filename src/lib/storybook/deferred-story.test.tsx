@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { DeferredStoryLoader } from './deferred-story'
 
+// eslint-disable-next-line typescript/require-await
 const HeavyStory = lazy(async () => ({
   default: () => <div>heavy story content</div>,
 }))

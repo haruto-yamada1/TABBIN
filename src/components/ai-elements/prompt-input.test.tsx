@@ -136,6 +136,7 @@ describe('PromptInput', () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
+// eslint-disable-next-line typescript/require-await
   it('空入力で Backspace を押すと最後の添付ファイルを削除する', async () => {
     const onSubmit = vi.fn()
 

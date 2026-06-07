@@ -91,12 +91,11 @@ const scheduleInitialCheck = (): void => {
 /**
  * 通知を表示する関数
  */
-const showNotification = async (
+const showNotification = (
   title: string,
   message: string,
 ): Promise<void> => {
   try {
-    // 正しいアイコンパスを設定
     const iconUrl = chrome.runtime.getURL('icon/128.png')
     console.log('通知アイコンURL:', iconUrl)
     chrome.notifications.create({
@@ -105,9 +104,10 @@ const showNotification = async (
       title,
       type: 'basic',
     })
+    return Promise.resolve()
   } catch (notificationError) {
-    // 通知エラーをキャッチしても処理を続行
     console.error('通知表示エラー:', notificationError)
+    return Promise.resolve()
   }
 }
 

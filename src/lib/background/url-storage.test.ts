@@ -82,6 +82,7 @@ interface ChromeMockOptions {
 let storageState: StorageState
 
 const setupChromeMock = (options: ChromeMockOptions = {}) => {
+// eslint-disable-next-line typescript/require-await
   const getMock = vi.fn(async (keys?: unknown) => {
     if (options.rejectGet) {
       throw new Error('storage get failed')
@@ -112,6 +113,7 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
     return { ...storageState }
   })
 
+// eslint-disable-next-line typescript/require-await
   const setMock = vi.fn(async (next: Record<string, unknown>) => {
     if (options.rejectSet) {
       throw new Error('storage set failed')
@@ -391,6 +393,7 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
+// eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
       if (Array.isArray(key)) {
         return {
@@ -531,6 +534,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
     let callCount = 0
+// eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
       callCount += 1
       if (callCount === 1 && key === 'savedTabs') {
@@ -557,6 +561,7 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
+// eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
       if (Array.isArray(key)) {
         return {
@@ -893,6 +898,7 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
+// eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(async (key) => {
       if (Array.isArray(key)) {
         return {

@@ -200,6 +200,7 @@ describe('AppRouter', () => {
   })
 
   it('mode 指定が無い saved-tabs route は domain で開く', async () => {
+// eslint-disable-next-line typescript/require-await
     const remove = vi.fn(async () => undefined)
     globalThis.chrome = {
       storage: {

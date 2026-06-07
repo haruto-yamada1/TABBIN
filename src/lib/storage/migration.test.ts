@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
     getDomainCategoryMappings: vi.fn(),
     getParentCategories: vi.fn(),
     getUserSettings: vi.fn(),
+// eslint-disable-next-line typescript/require-await
     restoreCategorySettings: vi.fn(async (group: TabGroup) => group),
     saveParentCategories: vi.fn().mockResolvedValue(undefined),
     updateDomainCategoryMapping: vi.fn().mockResolvedValue(undefined),
@@ -66,6 +67,7 @@ interface StorageState {
 }
 
 const createChromeStorageLocal = (state: StorageState) => ({
+// eslint-disable-next-line typescript/require-await
   get: vi.fn(async (keys?: string | string[]) => {
     if (!keys) {
       return state
@@ -79,6 +81,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
       [keys]: state[keys as keyof StorageState],
     }
   }),
+// eslint-disable-next-line typescript/require-await
   set: vi.fn(async (value: Record<string, unknown>) => {
     Object.assign(state, value)
   }),
@@ -109,6 +112,7 @@ describe('migration storage facade', () => {
     mocks.getDomainCategoryMappings.mockResolvedValue([])
     mocks.getParentCategories.mockResolvedValue([])
     mocks.createOrUpdateUrlRecord.mockImplementation(
+// eslint-disable-next-line typescript/require-await
       async (url: string, title: string) => ({
         id: `id:${url}`,
         savedAt: 1000,
@@ -343,6 +347,7 @@ describe('migration storage facade', () => {
         name: 'Mapped',
       }),
     ])
+// eslint-disable-next-line typescript/require-await
     mocks.restoreCategorySettings.mockImplementation(async (group) => ({
       ...group,
       categoryKeywords:
@@ -710,6 +715,7 @@ describe('migration storage facade', () => {
     globalThis.chrome = {
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => {
             throw new Error('migration storage failed')
           }),

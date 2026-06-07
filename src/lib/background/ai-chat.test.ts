@@ -79,6 +79,7 @@ describe('listLocalOllamaModels', () => {
   it('localhost の /api/tags を読んでモデル名を正規化する', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+// eslint-disable-next-line typescript/require-await
       json: async () =>
         JSON.parse(
           '{"models":[{"details":{"parameter_size":"8B"},"modified_at":"2026-03-01T00:00:00.000Z","name":"llama3.2"}]}',
@@ -105,6 +106,7 @@ describe('listLocalOllamaModels', () => {
   it('異常レスポンスは除外し、parameter_size が無ければ name をそのまま使う', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+// eslint-disable-next-line typescript/require-await
       json: async () => ({
         models: [
           null,
@@ -265,6 +267,7 @@ describe('listLocalOllamaModels', () => {
   it('models が配列でなければ空配列を返す', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+// eslint-disable-next-line typescript/require-await
       json: async () => ({
         models: 'invalid',
       }),
@@ -397,6 +400,7 @@ describe('runAiChatRequest', () => {
       },
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key: string) =>
             key === 'savedTabs'
               ? {
@@ -715,6 +719,7 @@ describe('runAiChatRequest', () => {
             toolName: string
           }[]
         }) => void
+// eslint-disable-next-line typescript/require-await
       }) => {
         options.onStepFinish?.({
           toolCalls: [
@@ -807,6 +812,7 @@ describe('runAiChatRequest', () => {
     mocked.generateText.mockImplementationOnce(
       async (options: {
         onStepFinish?: (result: Record<string, unknown>) => void
+// eslint-disable-next-line typescript/require-await
       }) => {
         options.onStepFinish?.({})
 
@@ -1307,6 +1313,7 @@ describe('runAiChatRequest', () => {
       },
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: 'invalid',
           })),

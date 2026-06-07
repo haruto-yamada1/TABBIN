@@ -205,6 +205,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [
               {

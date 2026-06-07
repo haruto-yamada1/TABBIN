@@ -139,6 +139,7 @@ describe('useProjectManagement', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
             customProjects: projectSnapshot,
@@ -208,6 +209,7 @@ describe('useProjectManagement', () => {
     )
     unmount()
 
+// eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveProjects(projectSnapshot)
     })

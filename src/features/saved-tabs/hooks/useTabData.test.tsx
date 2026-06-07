@@ -48,6 +48,7 @@ describe('useTabData', () => {
     getParentCategoriesMock.mockReset()
     getParentCategoriesMock.mockResolvedValue([])
     resolveTabGroupsWithUrlsMock.mockReset()
+// eslint-disable-next-line typescript/require-await
     resolveTabGroupsWithUrlsMock.mockImplementation(async (groups) => groups)
     getUserSettingsMock.mockReset()
     getUserSettingsMock.mockResolvedValue({} as UserSettings)
@@ -59,6 +60,7 @@ describe('useTabData', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
+// eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key?: string) => {
             if (key === 'savedTabs') {
               return { savedTabs: [] }
@@ -137,6 +139,7 @@ describe('useTabData', () => {
       ) => void
       mockResolvedValueOnce: (value: unknown) => void
     }
+// eslint-disable-next-line typescript/require-await
     storageGet.mockImplementation(async (key?: string) => {
       if (key === 'savedTabs') {
         return { savedTabs }
@@ -234,6 +237,7 @@ describe('useTabData', () => {
         implementation: (key?: string) => Promise<unknown>,
       ) => void
     }
+// eslint-disable-next-line typescript/require-await
     storageGet.mockImplementation(async (key?: string) => {
       if (key === 'savedTabs') {
         return { savedTabs: 'invalid' }
@@ -378,6 +382,7 @@ describe('useTabData', () => {
 
     unmount()
 
+// eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveGroups?.([
         {
@@ -407,6 +412,7 @@ describe('useTabData', () => {
       ) => void
       mockResolvedValueOnce: (value: unknown) => void
     }
+// eslint-disable-next-line typescript/require-await
     storageGet.mockImplementation(async (key?: string) => {
       if (key === 'savedTabs') {
         return { savedTabs: storedGroups }
@@ -423,6 +429,7 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
+// eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.setTabGroups((previous) => [...previous, appendedGroup])
     })

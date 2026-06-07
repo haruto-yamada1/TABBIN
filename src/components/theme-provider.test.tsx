@@ -103,6 +103,7 @@ describe('ThemeProvider', () => {
     prefersDark = false
     setMatchMediaMock()
 
+// eslint-disable-next-line typescript/require-await
     storageLocalMock.get.mockImplementation(async (key: string) => ({
       [key]: storageValues[key],
     }))

@@ -112,9 +112,11 @@ const getUnsupportedAttachmentError = (
     mediaType,
   })
 
+// eslint-disable-next-line typescript/require-await
 const convertPromptInputFilesToAiChatAttachments = async (
   files: FileUIPart[],
   language: AppLanguage = 'ja',
+// eslint-disable-next-line typescript/require-await
 ): Promise<AiChatAttachment[]> =>
   files.map((file) => {
     const filename = getAttachmentFilename(file)

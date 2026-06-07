@@ -350,7 +350,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     resetImportFileInput(fileInputRef.current)
   }
 
-  const handleConfirmImport = async () => {
+  const handleConfirmImport = () => {
     setIsImporting(true)
     try {
       const reader = new FileReader()

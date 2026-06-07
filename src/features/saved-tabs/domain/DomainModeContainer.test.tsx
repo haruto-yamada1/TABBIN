@@ -388,6 +388,7 @@ describe('DomainModeContainer', () => {
     ])
   })
 
+// eslint-disable-next-line typescript/require-await
   it('未分類が空の一括削除は削除ハンドラを呼ばない', async () => {
     const handleDeleteGroup = vi.fn()
     const handleDeleteGroups = vi.fn()
@@ -453,6 +454,7 @@ describe('DomainModeContainer', () => {
     expect(handleDeleteGroup).not.toHaveBeenCalled()
   })
 
+// eslint-disable-next-line typescript/require-await
   it('カテゴリあり表示では空カテゴリを飛ばし、移動ハンドラに tabGroups を渡す', async () => {
     const handleMoveDomainToCategory = vi.fn()
     const domainGroups: TabGroup[] = [
@@ -518,6 +520,7 @@ describe('DomainModeContainer', () => {
     )
   })
 
+// eslint-disable-next-line typescript/require-await
   it('未分類リストと並び替え確定/取消ボタンを表示して操作できる', async () => {
     const handleCancelUncategorizedReorder = vi.fn()
     const handleConfirmUncategorizedReorder = vi.fn()

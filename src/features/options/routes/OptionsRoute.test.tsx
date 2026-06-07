@@ -107,6 +107,7 @@ vi.mock('@/features/options/hooks/useColorSettings', () => ({
 
 vi.mock('@/features/options/hooks/useSettings', () => ({
   useSettings: () => ({
+// eslint-disable-next-line typescript/require-await
     addExcludePattern: vi.fn(async () => false),
     excludePatternInput: '',
     handleExcludePatternInputChange: vi.fn(),
@@ -240,6 +241,7 @@ describe('OptionsRoute', () => {
     expect((input as HTMLInputElement).value).toBe('100')
   })
 
+// eslint-disable-next-line typescript/require-await
   it('updates behavior, color, reset, exclude removal, and external links', async () => {
     render(<OptionsRoute />)
 

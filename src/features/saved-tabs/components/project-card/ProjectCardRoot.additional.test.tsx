@@ -329,6 +329,7 @@ describe('ProjectCardRoot additional', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+// eslint-disable-next-line typescript/require-await
     await act(async () => {
       vi.runAllTimers()
     })
