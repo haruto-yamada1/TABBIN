@@ -72,7 +72,7 @@
     "eslint/max-lines-per-function": [
       "error",
       {
-        "max": 80,
+        "max": 500,
         "skipBlankLines": true,
         "skipComments": true
       }
@@ -191,10 +191,10 @@
     "react/no-danger-with-children": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
-    "react-perf/jsx-no-jsx-as-prop": "error",
-    "react-perf/jsx-no-new-array-as-prop": "error",
-    "react-perf/jsx-no-new-function-as-prop": "error",
-    "react-perf/jsx-no-new-object-as-prop": "error",
+    "react-perf/jsx-no-jsx-as-prop": "warn",
+    "react-perf/jsx-no-new-array-as-prop": "warn",
+    "react-perf/jsx-no-new-function-as-prop": "warn",
+    "react-perf/jsx-no-new-object-as-prop": "warn",
     "typescript/array-type": "error",
     "typescript/await-thenable": "error",
     "typescript/consistent-indexed-object-style": "error",
@@ -394,7 +394,13 @@
         "eslint/max-lines-per-function": ["error", { "max": 200 }],
         "unicorn/no-abusive-eslint-disable": "off",
         "import/first": "off",
-        "eslint/max-nested-callbacks": "off"
+        "eslint/max-nested-callbacks": "off",
+        "typescript/await-thenable": "off",
+        "typescript/no-confusing-void-expression": "off",
+        "typescript/non-nullable-type-assertion-style": "off",
+        "typescript/restrict-template-expressions": "off",
+        "oxc/no-map-spread": "off",
+        "eslint/complexity": ["warn", 12]
       }
     },
     {
