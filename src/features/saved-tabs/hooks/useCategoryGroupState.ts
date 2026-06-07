@@ -322,7 +322,7 @@ export const useCategoryGroupState = ({
     try {
       if (handleUpdateDomainsOrder) {
 // eslint-disable-next-line typescript/no-confusing-void-expression
-        await handleUpdateDomainsOrder(category.id, tempDomainOrder)
+        handleUpdateDomainsOrder(category.id, tempDomainOrder)
       }
       setIsReorderMode(false)
       setOriginalDomainOrder([])
@@ -349,7 +349,7 @@ export const useCategoryGroupState = ({
   const handleDeleteSingleDomain = useCallback(
     async (domainId: string) => {
 // eslint-disable-next-line typescript/no-confusing-void-expression
-      await handleDeleteGroup(domainId)
+      handleDeleteGroup(domainId)
       if (isReorderMode) {
         const filteredTempOrder = tempDomainOrder.filter(
           (domain) => domain.id !== domainId,
