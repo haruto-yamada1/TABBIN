@@ -64,13 +64,14 @@ export const Confirmation = ({
   state,
   ...props
 }: ConfirmationProps) => {
+  const contextValue = useMemo(() => ({ approval, state }), [approval, state])
+
   if (!approval || state === 'input-streaming' || state === 'input-available') {
     return null
   }
 
   return (
-    // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
-    <ConfirmationContext.Provider value={useMemo(() => ({ approval, state }), [approval, state])}>
+    <ConfirmationContext.Provider value={contextValue}>
       <Alert className={cn('flex flex-col gap-2', className)} {...props} />
     </ConfirmationContext.Provider>
   )
