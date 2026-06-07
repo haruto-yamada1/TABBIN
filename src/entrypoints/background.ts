@@ -1,3 +1,4 @@
+/* eslint-disable import/first */
 /**
  * Background script - メインエントリーポイント
  * リファクタリング後のモジュラー構造
