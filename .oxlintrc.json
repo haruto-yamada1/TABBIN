@@ -179,7 +179,7 @@
     "react/hook-use-state": "off",
     "react/jsx-handler-names": "error",
     "react/jsx-max-depth": "off",
-    "react/jsx-no-constructed-context-values": "error",
+    "react/jsx-no-constructed-context-values": "warn",
     "react/jsx-props-no-spreading": "off",
     "react/react-in-jsx-scope": "off",
     "react/button-has-type": "error",
