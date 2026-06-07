@@ -1313,7 +1313,7 @@ describe('SavedTabsChatWidget', () => {
     expect(screen.queryByText('First response')).toBeNull()
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
 // eslint-disable-next-line typescript/TS2339
-    expect(screen.getByLabelText('Ask AI').value).toBe('')
+    expect((screen.getByLabelText('Ask AI') as HTMLInputElement).value).toBe('')
   })
 
   it('disconnects the active stream when new conversation is clicked', async () => {
@@ -1843,7 +1843,7 @@ describe('SavedTabsChatWidget', () => {
     })
 
 // eslint-disable-next-line typescript/TS2339
-    expect(screen.getByLabelText('Ask AI').value).toBe('')
+    expect((screen.getByLabelText('Ask AI') as HTMLInputElement).value).toBe('')
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
 
@@ -2197,7 +2197,7 @@ describe('SavedTabsChatWidget', () => {
     )
 
 // eslint-disable-next-line typescript/TS2339
-    expect(screen.getByLabelText('Ask AI').disabled).toBe(true)
+    expect((screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled).toBe(true)
 
     expect(screen.queryByRole('button', { name: 'Load models' })).toBeNull()
 
@@ -2223,7 +2223,7 @@ describe('SavedTabsChatWidget', () => {
 
     await waitFor(() => {
 // eslint-disable-next-line typescript/TS2339
-      expect(screen.getByLabelText('Ask AI').disabled).toBe(false)
+      expect((screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled).toBe(false)
     })
     expect(screen.queryByText('Ollama: llama3.2')).toBeNull()
   })

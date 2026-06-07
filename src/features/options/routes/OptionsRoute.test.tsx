@@ -303,7 +303,7 @@ describe('OptionsRoute', () => {
     render(<OptionsRoute />)
 
 // eslint-disable-next-line typescript/TS2339
-    expect(screen.getByLabelText('click-behavior').value).toBe('saveWindowTabs')
+    expect((screen.getByLabelText('click-behavior') as HTMLInputElement).value).toBe('saveWindowTabs')
     expect(screen.getByText('options.excludePatterns.empty')).toBeTruthy()
   })
 })

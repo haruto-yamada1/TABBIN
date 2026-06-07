@@ -480,7 +480,7 @@ describe('options route behavior', () => {
     })
     expect(mocked.updateSetting).toHaveBeenCalledTimes(updateSettingCallCount)
 // eslint-disable-next-line typescript/TS2339
-    expect(screen.getByLabelText('Font size percentage').value).toBe('125')
+    expect((screen.getByLabelText('Font size percentage') as HTMLInputElement).value).toBe('125')
 
     fireEvent.mouseUp(fontSizeSlider)
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 125)

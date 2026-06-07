@@ -384,7 +384,7 @@ describe('CustomProjectSection', () => {
 
     await waitFor(() => {
 // eslint-disable-next-line typescript/TS2339
-      expect(screen.getByLabelText('プロジェクト名 *').value).toBe('')
+      expect((screen.getByLabelText('プロジェクト名 *') as HTMLInputElement).value).toBe('')
     })
   })
 

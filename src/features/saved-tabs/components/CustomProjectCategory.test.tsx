@@ -336,7 +336,7 @@ describe('CustomProjectCategory', () => {
 
     expect(screen.queryByTestId('card-content')).toBeNull()
 // eslint-disable-next-line typescript/TS2339
-    expect(screen.getByRole('button', { name: '展開' }).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: '展開' }) as HTMLButtonElement).disabled).toBe(true)
 
     rerender(
       <CustomProjectCategory
@@ -350,7 +350,7 @@ describe('CustomProjectCategory', () => {
 
     expect(screen.getByTestId('card-content')).toBeTruthy()
 // eslint-disable-next-line typescript/TS2339
-    expect(screen.getByRole('button', { name: '折りたたむ' }).disabled).toBe(
+    expect((screen.getByRole('button', { name: '折りたたむ' }) as HTMLButtonElement).disabled).toBe(
       false,
     )
   })
@@ -518,7 +518,7 @@ describe('CustomProjectCategory', () => {
     expect(card.className.includes('opacity-50')).toBe(true)
     expect(screen.queryByTestId('card-content')).toBeNull()
 // eslint-disable-next-line typescript/TS2339
-    expect(screen.getByRole('button', { name: '展開' }).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: '展開' }) as HTMLButtonElement).disabled).toBe(true)
 
     useDroppableMock.mockReturnValueOnce({
       setNodeRef: vi.fn(),
