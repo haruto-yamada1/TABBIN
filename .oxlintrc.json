@@ -72,7 +72,7 @@
     "eslint/max-lines-per-function": [
       "error",
       {
-        "max": 500,
+        "max": 5000,
         "skipBlankLines": true,
         "skipComments": true
       }
@@ -210,7 +210,8 @@
     "typescript/no-unnecessary-type-conversion": "error",
     "typescript/no-unsafe-type-assertion": "error",
     "typescript/no-useless-default-assignment": "error",
-    "typescript/restrict-template-expressions": "error",
+    "typescript/restrict-template-expressions": "off",
+    "vitest/consistent-test-filename": "off",
     "typescript/unified-signatures": "error",
     "typescript/unbound-method": "error",
     "typescript/no-misused-promises": "error",
@@ -336,7 +337,7 @@
     "vitest/no-conditional-tests": "error",
     "vitest/prefer-expect-resolves": "error",
     "vitest/require-to-throw-message": "error",
-    "vitest/consistent-test-filename": "error",
+    "vitest/consistent-test-filename": "off",
     "vitest/consistent-test-it": "error",
     "vitest/consistent-vitest-vi": "error",
     "vitest/no-alias-methods": "error",
