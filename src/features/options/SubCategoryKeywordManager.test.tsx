@@ -11,14 +11,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // esli
 
 import type { TabGroup } from '@/types/storage'
 
+import { SubCategoryKeywordManager } from './SubCategoryKeywordManager'
 import {
   getCategoryKeywordsForName,
   getRenameDraftName,
   replaceTabGroup,
   shouldSkipRename,
-  SubCategoryKeywordManager,
   updateTabGroup,
-} from './SubCategoryKeywordManager'
+} from './subCategoryKeywordManager.helpers'
 
 vi.mock('sonner', () => ({
   toast: {

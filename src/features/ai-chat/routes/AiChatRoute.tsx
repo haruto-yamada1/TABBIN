@@ -1,6 +1,5 @@
 import { Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -18,20 +17,9 @@ import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChat
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
+import { createPendingDeleteHistoryOpenChangeHandler } from './aiChatRoute.helpers'
+
 const AI_CHAT_HISTORY_BREAKPOINT = 1024
-
-const getNextPendingDeleteHistoryItem = <T,>(
-  currentItem: T | null,
-  open: boolean,
-): T | null => (open ? currentItem : null)
-
-const createPendingDeleteHistoryOpenChangeHandler =
-  <T,>(setPendingItem: Dispatch<SetStateAction<T | null>>) =>
-  (open: boolean): void => {
-    setPendingItem((currentItem) =>
-      getNextPendingDeleteHistoryItem(currentItem, open),
-    )
-  }
 
 export const AiChatRoute = () => {
   const { t } = useI18n()
@@ -214,9 +202,4 @@ export const AiChatRoute = () => {
       </Dialog>
     </div>
   )
-}
-
-export {
-  createPendingDeleteHistoryOpenChangeHandler,
-  getNextPendingDeleteHistoryItem,
 }

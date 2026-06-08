@@ -45,7 +45,10 @@ const loadSavedAnalyticsViews = async (): Promise<SavedAnalyticsView[]> => {
   return Array.isArray(rawViews)
     ? rawViews.filter(
         (item): item is SavedAnalyticsView =>
-          typeof item === 'object' && item !== null && 'id' in item && 'name' in item,
+          typeof item === 'object' &&
+          item !== null &&
+          'id' in item &&
+          'name' in item,
       )
     : []
 }

@@ -70,11 +70,11 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
   ),
 }))
 
+import { AiChatRoute } from './AiChatRoute'
 import {
-  AiChatRoute,
   createPendingDeleteHistoryOpenChangeHandler,
   getNextPendingDeleteHistoryItem,
-} from './AiChatRoute'
+} from './aiChatRoute.helpers'
 
 describe('AiChatRoute', () => {
   it('delete dialog helper は close 時だけ pending item を消す', () => {

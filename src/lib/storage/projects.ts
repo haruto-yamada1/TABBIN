@@ -1031,7 +1031,7 @@ const setUrlCategory = async (
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
-  project.urlMetadata ??= {}
+      project.urlMetadata ??= {}
       if (!project.urlMetadata[urlRecord.id]) {
         project.urlMetadata[urlRecord.id] = {}
       }

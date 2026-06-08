@@ -216,7 +216,8 @@ const TooltipIndicator = ({
   indicatorColor?: string
   nestLabel: boolean
 }) => {
-  const indicatorStyle: React.CSSProperties & Record<string, string | undefined> = React.useMemo(
+  const indicatorStyle: React.CSSProperties &
+    Record<string, string | undefined> = React.useMemo(
     () => ({
       '--color-bg': indicatorColor,
       '--color-border': indicatorColor,
@@ -474,7 +475,10 @@ const ChartLegendContent = ({
 }
 ChartLegendContent.displayName = 'ChartLegend'
 
-const getPayloadStringValue = (obj: object, key: string): string | undefined => {
+const getPayloadStringValue = (
+  obj: object,
+  key: string,
+): string | undefined => {
   const entry = Object.entries(obj).find(([k]) => k === key)
   if (entry) {
     const value: unknown = entry[1]

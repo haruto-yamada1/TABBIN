@@ -264,8 +264,7 @@ const ensureNavigatorMocks = () => {
               toJSON: () => ({}),
             } satisfies MediaDeviceInfo,
           ]),
-        getUserMedia: () =>
-          Promise.resolve(new StorybookMediaStream()),
+        getUserMedia: () => Promise.resolve(new StorybookMediaStream()),
         removeEventListener: () => undefined,
       },
     })

@@ -458,11 +458,13 @@ const normalizeCategoryKeywords = (
     ) {
       return items
     }
-      const kKeywords: unknown = 'keywords' in k ? k.keywords : undefined
-      items.push({
-        categoryName: k.categoryName,
-        keywords: Array.isArray(kKeywords) ? kKeywords.filter((k): k is string => typeof k === 'string') : [],
-      })
+    const kKeywords: unknown = 'keywords' in k ? k.keywords : undefined
+    items.push({
+      categoryName: k.categoryName,
+      keywords: Array.isArray(kKeywords)
+        ? kKeywords.filter((k): k is string => typeof k === 'string')
+        : [],
+    })
     return items
   }, [])
 }

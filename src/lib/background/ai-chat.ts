@@ -17,7 +17,6 @@ import type {
   AiSavedUrlRecord,
 } from '@/features/ai-chat/types'
 import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
-
 import type { AppLanguage } from '@/features/i18n/messages'
 import { getParentCategories } from '@/lib/storage/categories'
 import { getCustomProjects } from '@/lib/storage/projects'

@@ -1,6 +1,5 @@
 import { AlertCircle, Upload } from 'lucide-react'
 import { useCallback, useReducer, useRef, useState } from 'react'
-import type { Dispatch } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { toast } from 'sonner'
 
@@ -23,87 +22,14 @@ import {
   importSettings,
 } from '@/features/options/lib/import-export'
 
-const shouldCloseImportDialog = (open: boolean): boolean => !open
-const createImportDialogOpenChangeHandler =
-  ({
-    close,
-    resetFileInput,
-  }: {
-    close: () => void
-    resetFileInput: () => void
-  }) =>
-  (open: boolean): void => {
-    if (shouldCloseImportDialog(open)) {
-      close()
-      resetFileInput()
-    }
-  }
-const createCloseImportDialogAction =
-  (dispatchImportDialog: Dispatch<ImportDialogAction>) => (): void => {
-    dispatchImportDialog({ type: 'CLOSE' })
-  }
-const resetImportFileInput = (fileInput: HTMLInputElement | null): void => {
-  if (fileInput) {
-    fileInput.value = ''
-  }
-}
-
-interface PreviewData {
-  version: string
-  timestamp: string
-  categoriesCount: number
-  domainsCount: number
-  projectsCount: number
-  hasAiChat: boolean
-  hasAnalytics: boolean
-}
-
-interface ImportDialogState {
-  isOpen: boolean
-  step: 'select' | 'preview'
-  previewData: PreviewData | null
-  mergeData: boolean
-}
-
-type ImportDialogAction =
-  | { type: 'OPEN' }
-  | { type: 'CLOSE' }
-  | { type: 'RESET' }
-  | { type: 'SET_PREVIEW'; preview: PreviewData }
-  | { type: 'SET_MERGE'; mergeData: boolean }
-
-const initialImportDialogState: ImportDialogState = {
-  isOpen: false,
-  step: 'select',
-  previewData: null,
-  mergeData: true,
-}
-
-const importDialogReducer = (
-  state: ImportDialogState,
-  action: ImportDialogAction,
-): ImportDialogState => {
-  switch (action.type) {
-    case 'OPEN': {
-      return { ...state, isOpen: true, step: 'select', previewData: null }
-    }
-    case 'CLOSE': {
-      return initialImportDialogState
-    }
-    case 'RESET': {
-      return { ...state, step: 'select', previewData: null }
-    }
-    case 'SET_PREVIEW': {
-      return { ...state, previewData: action.preview, step: 'preview' }
-    }
-    case 'SET_MERGE': {
-      return { ...state, mergeData: action.mergeData }
-    }
-    default: {
-      return state
-    }
-  }
-}
+import {
+  createCloseImportDialogAction,
+  createImportDialogOpenChangeHandler,
+  importDialogReducer,
+  initialImportDialogState,
+  resetImportFileInput,
+} from './importFileDialog.helpers'
+import type { PreviewData } from './importFileDialog.helpers'
 
 interface ImportSelectStepProps {
   mergeData: boolean
@@ -516,13 +442,4 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       </Dialog>
     </>
   )
-}
-
-export {
-  createCloseImportDialogAction,
-  createImportDialogOpenChangeHandler,
-  importDialogReducer,
-  initialImportDialogState,
-  resetImportFileInput,
-  shouldCloseImportDialog,
 }

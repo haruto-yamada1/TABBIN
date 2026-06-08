@@ -126,6 +126,10 @@ import {
   getUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
+import {
+  UserSettingsSchema,
+  fromStorageChange,
+} from '@/lib/storage/zod-storage'
 import { cn } from '@/lib/utils'
 import type {
   AiChatResponse,
@@ -136,7 +140,6 @@ import type {
 } from '@/types/background'
 import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
-import { UserSettingsSchema, fromStorageChange } from '@/lib/storage/zod-storage'
 
 type ChatMessage = AiChatConversationMessage
 
@@ -144,11 +147,15 @@ function isAiChatResponse(value: unknown): value is AiChatResponse {
   return typeof value === 'object' && value !== null && 'status' in value
 }
 
-function isOllamaModelListResponse(value: unknown): value is OllamaModelListResponse {
+function isOllamaModelListResponse(
+  value: unknown,
+): value is OllamaModelListResponse {
   return typeof value === 'object' && value !== null && 'status' in value
 }
 
-function isAiChatStreamServerMessage(value: unknown): value is AiChatStreamServerMessage {
+function isAiChatStreamServerMessage(
+  value: unknown,
+): value is AiChatStreamServerMessage {
   return typeof value === 'object' && value !== null && 'type' in value
 }
 
@@ -2083,7 +2090,8 @@ const useSavedTabsChatWidgetView = ({
       }
 
       setSettings(
-        fromStorageChange(UserSettingsSchema, changes.userSettings.newValue) ?? defaultSettings,
+        fromStorageChange(UserSettingsSchema, changes.userSettings.newValue) ??
+          defaultSettings,
       )
     }
 

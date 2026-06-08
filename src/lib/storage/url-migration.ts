@@ -60,7 +60,10 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
     existingUrls: Array.isArray(existingUrlsResult.urls)
       ? existingUrlsResult.urls.filter(
           (item): item is UrlRecord =>
-            typeof item === 'object' && item !== null && 'id' in item && 'url' in item,
+            typeof item === 'object' &&
+            item !== null &&
+            'id' in item &&
+            'url' in item,
         )
       : [],
     savedTabs: Array.isArray(savedTabsResult.savedTabs)

@@ -69,10 +69,9 @@ vi.mock('@/components/ai-elements/prompt-input', () => ({
     children: React.ReactNode
     value: string
   }) => (
-    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-    <div aria-label={value} aria-selected={false} role='option' tabIndex={-1}>
+    <option aria-label={value} value={value}>
       {children}
-    </div>
+    </option>
   ),
 }))
 

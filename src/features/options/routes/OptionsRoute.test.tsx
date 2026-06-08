@@ -11,12 +11,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // esli
 
 import type { UserSettings } from '@/types/storage'
 
+import { OptionsRoute } from './OptionsRoute'
 import {
   createResetFontSizeInputValueUpdater,
-  OptionsRoute,
   resetFontSizeInputState,
   resetFontSizeInputValue,
-} from './OptionsRoute'
+} from './optionsRoute.helpers'
 
 const optionsRouteMocks = vi.hoisted(() => ({
   handleColorChange: vi.fn(),

@@ -60,7 +60,13 @@ const isValidPromptPreset = (value: unknown): value is AiSystemPromptPreset => {
   }
 
   if (
-    !('id' in value && 'name' in value && 'template' in value && 'createdAt' in value && 'updatedAt' in value)
+    !(
+      'id' in value &&
+      'name' in value &&
+      'template' in value &&
+      'createdAt' in value &&
+      'updatedAt' in value
+    )
   ) {
     return false
   }

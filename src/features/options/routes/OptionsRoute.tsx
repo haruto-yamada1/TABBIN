@@ -1,6 +1,6 @@
 import { Plus, RotateCcw, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
+import { z } from 'zod'
 
 import { ModeToggle } from '@/components/mode-toggle'
 import { Badge } from '@/components/ui/badge'
@@ -27,14 +27,14 @@ import {
   MIN_FONT_SIZE_PERCENT,
   normalizeFontSizePercent,
 } from '@/constants/fontSize'
-import { z } from 'zod'
-
 import { LanguageSelect } from '@/features/i18n/components/LanguageSelect'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { useColorSettings } from '@/features/options/hooks/useColorSettings'
 import { useSettings } from '@/features/options/hooks/useSettings'
 import { ImportExportSettings } from '@/features/options/ImportExportSettings'
 import type { UserSettings } from '@/types/storage'
+
+import { resetFontSizeInputState } from './optionsRoute.helpers'
 
 const createThemeColorChangeHandler =
   (
@@ -55,40 +55,6 @@ const applyFontSizePreview = (value: number) => {
     '--app-font-scale',
     String(normalizeFontSizePercent(value) / FONT_SIZE_PERCENT_DIVISOR),
   )
-}
-
-const resetFontSizeInputValue = <
-  T extends {
-    fontSizeInputValue: string
-  },
->(
-  values: T,
-  fontSizePercent: number,
-): T => ({
-  ...values,
-  fontSizeInputValue: String(fontSizePercent),
-})
-
-const createResetFontSizeInputValueUpdater =
-  <
-    T extends {
-      fontSizeInputValue: string
-    },
-  >(
-    fontSizePercent: number,
-  ) =>
-  (values: T): T =>
-    resetFontSizeInputValue(values, fontSizePercent)
-
-const resetFontSizeInputState = <
-  T extends {
-    fontSizeInputValue: string
-  },
->(
-  setValues: Dispatch<SetStateAction<T>>,
-  fontSizePercent: number,
-): void => {
-  setValues(createResetFontSizeInputValueUpdater(fontSizePercent))
 }
 
 const useOptionsRouteView = () => {
@@ -763,10 +729,4 @@ const useOptionsRouteView = () => {
 
 const OptionsRoute = () => useOptionsRouteView()
 
-export {
-  createResetFontSizeInputValueUpdater,
-  OptionsRoute,
-  OptionsRoute as OptionsPage,
-  resetFontSizeInputState,
-  resetFontSizeInputValue,
-}
+export { OptionsRoute, OptionsRoute as OptionsPage }

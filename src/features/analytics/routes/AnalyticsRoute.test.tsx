@@ -24,13 +24,13 @@ import { getDefaultAnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings } from '@/lib/storage/settings'
 
+import { AnalyticsRoute } from './AnalyticsRoute'
 import {
-  AnalyticsRoute,
   createAnalyticsDeleteUndoPayload,
   getAnalyticsChartDatumLabels,
+  getAnalyticsDateLocale,
   getDeleteAllAction,
   getDeleteClickAction,
-  getAnalyticsDateLocale,
   getDrilldownLabelsForRecord,
   getDrilldownMatchingRecords,
   getLatestAnalyticsQuery,
@@ -54,7 +54,7 @@ import {
   shouldSkipBulkDelete,
   shouldSkipOpenAll,
   shouldSkipSingleDelete,
-} from './AnalyticsRoute'
+} from './analyticsRoute.helpers'
 
 const analyticsRouteMocks = vi.hoisted(() => ({
   deleteViewMock: vi.fn(),

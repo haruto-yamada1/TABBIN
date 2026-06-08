@@ -7,7 +7,7 @@ import {
   initialImportDialogState,
   resetImportFileInput,
   shouldCloseImportDialog,
-} from './ImportFileDialog'
+} from './importFileDialog.helpers'
 
 describe('shouldCloseImportDialog', () => {
   it('dialog が閉じる操作だけ close として扱う', () => {

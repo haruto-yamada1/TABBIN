@@ -9,6 +9,13 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { setCategoryKeywords } from '@/lib/storage/tabs'
 import type { TabGroup } from '@/types/storage'
 
+import {
+  getCategoryKeywordsForName,
+  getRenameDraftName,
+  replaceTabGroup,
+  updateTabGroup,
+} from './subCategoryKeywordManager.helpers'
+
 interface NewSubCategoryFieldProps {
   value: string
   label: string
@@ -61,42 +68,6 @@ const NewSubCategoryField = ({
       />
     </div>
   )
-}
-
-const replaceTabGroup = (
-  savedTabs: TabGroup[],
-  updatedTabGroup: TabGroup,
-): TabGroup[] =>
-  savedTabs.map((tab: TabGroup) =>
-    tab.id === updatedTabGroup.id ? updatedTabGroup : tab,
-  )
-
-const getCategoryKeywordsForName = (
-  tabGroup: TabGroup,
-  categoryName: string | null,
-): string[] =>
-  tabGroup.categoryKeywords?.find((ck) => ck.categoryName === categoryName)
-    ?.keywords ?? []
-
-const getRenameDraftName = (activeCategory: string | null): string =>
-  activeCategory ?? ''
-
-const shouldSkipRename = (oldName: string, newName: string): boolean =>
-  !(oldName && newName) || oldName === newName
-
-// タブグループを更新するヘルパー関数
-const updateTabGroup = async (updatedTabGroup: TabGroup) => {
-  try {
-    const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: TabGroup[]
-    }>('savedTabs')
-    const updatedTabs = replaceTabGroup(savedTabs, updatedTabGroup)
-    await chrome.storage.local.set({ savedTabs: updatedTabs })
-    return true
-  } catch (error) {
-    console.error('タブグループ更新エラー:', error)
-    return false
-  }
 }
 
 const useSubCategoryKeywordManagerView = ({
@@ -666,11 +637,3 @@ const useSubCategoryKeywordManagerView = ({
 }
 export const SubCategoryKeywordManager = (props: { tabGroup: TabGroup }) =>
   useSubCategoryKeywordManagerView(props)
-
-export {
-  getCategoryKeywordsForName,
-  getRenameDraftName,
-  replaceTabGroup,
-  shouldSkipRename,
-  updateTabGroup,
-}

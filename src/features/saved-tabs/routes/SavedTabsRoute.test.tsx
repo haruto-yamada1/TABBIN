@@ -193,7 +193,8 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
   },
 }))
 
-import { SavedTabsRoute, getLeftPaneWidthStoreSnapshot } from './SavedTabsRoute'
+import { SavedTabsRoute } from './SavedTabsRoute'
+import { getLeftPaneWidthStoreSnapshot } from './savedTabsRoute.helpers'
 
 describe('SavedTabsRoute', () => {
   beforeEach(() => {

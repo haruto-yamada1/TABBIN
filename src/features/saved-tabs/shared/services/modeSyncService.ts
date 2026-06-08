@@ -1,6 +1,7 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { z } from 'zod'
 
+import { invalidateUrlCache } from '@/lib/storage/urls'
 import {
   CustomProjectSchema,
   fromStorageChange,
@@ -8,7 +9,6 @@ import {
   TabGroupSchema,
   UserSettingsSchema,
 } from '@/lib/storage/zod-storage'
-import { invalidateUrlCache } from '@/lib/storage/urls'
 import type {
   CustomProject,
   ParentCategory,

@@ -339,6 +339,7 @@ import {
 } from '@/lib/storage/tabs'
 import { getUrlRecords } from '@/lib/storage/urls'
 
+import { SavedTabsApp } from './SavedTabsApp'
 import {
   buildCategoryLookup,
   buildDisplayTabGroup,
@@ -353,10 +354,9 @@ import {
   removeUrlsFromCustomProjectsForGroup,
   removeUrlsFromCustomProjectsForGroups,
   restoreOpenedUrlsSnapshot,
-  SavedTabsApp,
   sortCategorizedGroups,
   syncGroupCategoryAssignment,
-} from './SavedTabsApp'
+} from './savedTabsApp.helpers'
 
 describe('SavedTabsApp custom search', () => {
   beforeEach(() => {

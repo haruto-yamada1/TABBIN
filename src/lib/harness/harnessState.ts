@@ -1336,7 +1336,10 @@ function readGovernanceLearningCandidates(
     if (message.length === 0) {
       continue
     }
-    const kind = 'kind' in parsed && typeof parsed.kind === 'string' ? parsed.kind : undefined
+    const kind =
+      'kind' in parsed && typeof parsed.kind === 'string'
+        ? parsed.kind
+        : undefined
     records.push({
       source: `governance:${kind ?? 'manual'}`,
       summary: message,

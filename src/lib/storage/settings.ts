@@ -16,18 +16,19 @@ const DEFAULT_EXCLUDE_PATTERNS = [
   'chrome://',
 ] as const
 
-const stripLegacyUserSettings = (
-  settings: unknown,
-): Partial<UserSettings> => {
-  if (typeof settings !== 'object' || settings === null) {
+const stripLegacyUserSettings = (settings: unknown): Partial<UserSettings> => {
+  if (!isStrippableSettings(settings)) {
     return defaultSettings
   }
-  const { aiChatEnabled: _ae, aiProvider: _ap, ...rest } =
-    // OK: chrome.storage.local.get always returns object; safe after runtime type guard
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    settings as Record<string, unknown>
+  const { aiChatEnabled: _ae, aiProvider: _ap, ...rest } = settings
   return rest
 }
+
+const isStrippableSettings = (
+  settings: unknown,
+): settings is Record<string, unknown> =>
+  // OK: chrome.storage.local.get always returns object; safe after runtime type guard
+  typeof settings === 'object' && settings !== null
 
 const hasLegacyUserSettingsKeys = (settings: unknown): boolean =>
   typeof settings === 'object' &&
@@ -115,9 +116,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     console.log('取得した設定データ:', data)
     if (data.userSettings) {
       console.log('保存された設定を使用:', data.userSettings)
-      const sanitizedStoredSettings = stripLegacyUserSettings(
-        data.userSettings,
-      )
+      const sanitizedStoredSettings = stripLegacyUserSettings(data.userSettings)
       const mergedStoredSettings = mergeStoredUserSettings(
         sanitizedStoredSettings,
       )

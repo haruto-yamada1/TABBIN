@@ -33,7 +33,10 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
     }
     urlRecordsCache = urls.filter(
       (item): item is UrlRecord =>
-        typeof item === 'object' && item !== null && 'id' in item && 'url' in item,
+        typeof item === 'object' &&
+        item !== null &&
+        'id' in item &&
+        'url' in item,
     )
     return urlRecordsCache
   } catch (error) {

@@ -208,7 +208,6 @@ const ReviewArtifacts = () => (
 
         <Attachments variant='list'>
           <Attachment data={sampleSource}>
-            
             <AttachmentPreview />
             <AttachmentInfo showMediaType />
           </Attachment>

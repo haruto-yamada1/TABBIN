@@ -16,9 +16,7 @@ import {
 } from '@/lib/browser/chrome-storage'
 import type { UserSettings } from '@/types/storage'
 
-const isPartialUserSettings = (
-  v: unknown,
-): v is Partial<UserSettings> =>
+const isPartialUserSettings = (v: unknown): v is Partial<UserSettings> =>
   typeof v === 'object' && v !== null
 
 type Theme = 'dark' | 'light' | 'system' | 'user'
@@ -102,7 +100,11 @@ export const ThemeProvider = ({
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
-      if (areaName === 'local' && changes[storageKey] && isTheme(changes[storageKey].newValue)) {
+      if (
+        areaName === 'local' &&
+        changes[storageKey] &&
+        isTheme(changes[storageKey].newValue)
+      ) {
         setThemeState(changes[storageKey].newValue)
       }
     }

@@ -124,9 +124,8 @@ const buildReorderedCategoryOrder = (params: {
   }
   return arrayMove(currentOrder, oldIndex, newIndex)
 }
-const isStateSetter = <T>(
-  value: SetStateAction<T>,
-): value is (prev: T) => T => typeof value === 'function'
+const isStateSetter = <T>(value: SetStateAction<T>): value is (prev: T) => T =>
+  typeof value === 'function'
 
 const resolveStateValue = <T>(
   nextValue: SetStateAction<T>,

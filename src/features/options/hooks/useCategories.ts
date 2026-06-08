@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
-import { fromStorageChange, ParentCategorySchema } from '@/lib/storage/zod-storage'
 import type { AppLanguage } from '@/features/i18n/messages'
 import {
   getChromeStorageOnChanged,
@@ -13,6 +12,10 @@ import {
   getParentCategories,
 } from '@/lib/storage/categories'
 import { getUserSettings } from '@/lib/storage/settings'
+import {
+  fromStorageChange,
+  ParentCategorySchema,
+} from '@/lib/storage/zod-storage'
 import type { ParentCategory } from '@/types/storage'
 
 const MAX_CATEGORY_NAME_LENGTH = 25
