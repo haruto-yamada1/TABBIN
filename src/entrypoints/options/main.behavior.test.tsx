@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { OptionsPage } from '@/features/options/routes/OptionsRoute'
 import type { UserSettings } from '@/types/storage'
@@ -390,6 +390,10 @@ describe('options route behavior', () => {
     vi.spyOn(window, 'open').mockImplementation(vi.fn() as never)
   })
 
+  afterEach(() => {
+    cleanup()
+  })
+
   it('loading 中はローディング表示を返す', () => {
     mocked.useSettingsResult.isLoading = true
 
@@ -399,7 +403,7 @@ describe('options route behavior', () => {
     expect(screen.queryByText('Loading...')).toBeNull()
   })
 
-  it('各種ハンドラを UI から呼び出す', () => {
+  it('clickBehavior の select を変更すると updateSetting が呼ばれる', () => {
     render(createElement(OptionsPage))
 
     expect(screen.queryByText('Current value')).toBeNull()
@@ -409,6 +413,10 @@ describe('options route behavior', () => {
       'clickBehavior',
       'saveWindowTabs',
     )
+  })
+
+  it('auto delete 系の checkbox を変更すると updateSetting が呼ばれる', () => {
+    render(createElement(OptionsPage))
 
     fireEvent.click(
       screen.getByLabelText('Delete automatically after opening a saved tab'),
@@ -445,6 +453,10 @@ describe('options route behavior', () => {
     expect(mocked.updateSetting).toHaveBeenCalledWith('showSavedTime', true)
     expect(mocked.updateSetting).toHaveBeenCalledWith('confirmDeleteEach', true)
     expect(mocked.updateSetting).toHaveBeenCalledWith('confirmDeleteAll', true)
+  })
+
+  it('exclude pattern を blur / Add ボタン / Enter / Remove ボタンで追加・削除できる', () => {
+    render(createElement(OptionsPage))
 
     const excludeInput = screen.getByPlaceholderText('e.g. chrome-extension://')
     fireEvent.change(excludeInput, {
@@ -466,6 +478,10 @@ describe('options route behavior', () => {
       }),
     )
     expect(mocked.removeExcludePattern).toHaveBeenCalledWith('chrome://')
+  })
+
+  it('font size slider / input / Reset ボタンでフォントサイズを変更できる', () => {
+    render(createElement(OptionsPage))
 
     const resetButtons = screen.getAllByRole('button', { name: 'Reset' })
 
@@ -492,6 +508,12 @@ describe('options route behavior', () => {
     })
     fireEvent.blur(screen.getByLabelText('Font size percentage'))
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 500)
+  })
+
+  it('color input / hex input / Reset colors ボタンで色を変更できる', () => {
+    render(createElement(OptionsPage))
+
+    const resetButtons = screen.getAllByRole('button', { name: 'Reset' })
 
     fireEvent.click(resetButtons[1])
     expect(mocked.handleResetColors).toHaveBeenCalledTimes(1)
@@ -506,6 +528,10 @@ describe('options route behavior', () => {
     fireEvent.change(hexInput, { target: { value: '#000000' } })
 
     expect(mocked.handleColorChange).toHaveBeenCalled()
+  })
+
+  it('Contact / Release Notes の外部リンクを noopener,noreferrer 付きで window.open する', () => {
+    render(createElement(OptionsPage))
 
     fireEvent.click(screen.getByRole('button', { name: 'Contact' }))
     fireEvent.click(screen.getByRole('button', { name: 'Release Notes' }))
@@ -520,7 +546,7 @@ describe('options route behavior', () => {
       '_blank',
       'noopener,noreferrer',
     )
-  }, 30000)
+  })
 
   it('Enter 以外のキー入力では除外パターンを追加しない', () => {
     render(createElement(OptionsPage))
