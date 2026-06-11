@@ -41,6 +41,7 @@ export default defineConfig({
       ],
     },
     pool: 'threads',
+    isolate: false,
     projects: [
       {
         resolve: {
