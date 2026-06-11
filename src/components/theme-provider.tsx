@@ -16,7 +16,14 @@ import {
 } from '@/lib/browser/chrome-storage'
 import type { UserSettings } from '@/types/storage'
 
+const isPartialUserSettings = (v: unknown): v is Partial<UserSettings> =>
+  typeof v === 'object' && v !== null
+
 type Theme = 'dark' | 'light' | 'system' | 'user'
+
+const isTheme = (v: unknown): v is Theme =>
+  typeof v === 'string' &&
+  (v === 'dark' || v === 'light' || v === 'system' || v === 'user')
 interface ThemeProviderProps {
   children: React.ReactNode
   defaultTheme?: Theme
@@ -40,7 +47,7 @@ const clearUserThemeColors = (root: HTMLElement) => {
 
 const applyUserSettingsToRoot = (
   root: HTMLElement,
-  userSettings?: UserSettings,
+  userSettings?: Partial<UserSettings>,
   shouldApplyColors = false,
 ) => {
   root.style.setProperty(
@@ -75,11 +82,15 @@ export const ThemeProvider = ({
   useEffect(() => {
     const storageLocal = getChromeStorageLocal()
     if (storageLocal) {
-      storageLocal.get(storageKey).then((result) => {
-        if (result[storageKey]) {
-          setThemeState(result[storageKey] as Theme)
-        }
-      })
+      storageLocal
+        .get(storageKey)
+        .then((result) => {
+          const stored = result[storageKey]
+          if (isTheme(stored)) {
+            setThemeState(stored)
+          }
+        })
+        .catch(() => {})
     } else {
       warnMissingChromeStorage('テーマ読み込み')
     }
@@ -89,8 +100,12 @@ export const ThemeProvider = ({
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
-      if (areaName === 'local' && changes[storageKey]) {
-        setThemeState(changes[storageKey].newValue as Theme)
+      if (
+        areaName === 'local' &&
+        changes[storageKey] &&
+        isTheme(changes[storageKey].newValue)
+      ) {
+        setThemeState(changes[storageKey].newValue)
       }
     }
     const storageOnChanged = getChromeStorageOnChanged()
@@ -101,6 +116,7 @@ export const ThemeProvider = ({
     storageOnChanged.addListener(handleStorageChange)
 
     // クリーンアップ関数
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(handleStorageChange)
     }
@@ -127,6 +143,7 @@ export const ThemeProvider = ({
         .then((result: { userSettings?: UserSettings }) => {
           applyUserSettingsToRoot(root, result.userSettings, true)
         })
+        .catch(() => {})
       return
     } else {
       // Dark または light モードの直接適用
@@ -142,6 +159,7 @@ export const ThemeProvider = ({
       .then((result: { userSettings?: UserSettings }) => {
         applyUserSettingsToRoot(root, result.userSettings)
       })
+      .catch(() => {})
   }, [theme])
 
   // ユーザー設定のカラー変更を監視し、即座にCSS変数を更新
@@ -151,9 +169,9 @@ export const ThemeProvider = ({
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.userSettings) {
-        const updated = changes.userSettings.newValue as
-          | UserSettings
-          | undefined
+        const updated = isPartialUserSettings(changes.userSettings.newValue)
+          ? changes.userSettings.newValue
+          : undefined
         const root = window.document.documentElement
         applyUserSettingsToRoot(root, updated, theme === 'user')
       }
@@ -164,6 +182,7 @@ export const ThemeProvider = ({
       return
     }
     storageOnChanged.addListener(listener)
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(listener)
     }
@@ -173,6 +192,7 @@ export const ThemeProvider = ({
       // Chrome Storageに保存
       const storageLocal = getChromeStorageLocal()
       if (storageLocal) {
+        // eslint-disable-next-line typescript/no-floating-promises
         storageLocal.set({
           [storageKey]: nextTheme,
         })

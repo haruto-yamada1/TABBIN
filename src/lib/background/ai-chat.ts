@@ -23,8 +23,21 @@ import { getCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
 import { getUrlRecords } from '@/lib/storage/urls'
 import type { AiChatToolTrace, OllamaErrorDetails } from '@/types/background'
+import type { TabGroup } from '@/types/storage'
 
 import { createAiChatTools } from './ai-chat-tools'
+
+const HTTP_FORBIDDEN = 403
+const MAX_AI_CHAT_STEPS = 5
+
+const parseRecord = (v: unknown): Record<string, unknown> => {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+    return {}
+  }
+  // OK: structuredClone preserves 'object' type; narrow to Record<string, unknown> after runtime type guard
+  // eslint-disable-next-line typescript/no-unsafe-type-assertion
+  return structuredClone(v) as Record<string, unknown>
+}
 
 interface OllamaModelOption {
   name: string
@@ -260,7 +273,7 @@ const getStringValue = (
 }
 
 const getToolTitle = (toolName: string): string =>
-  AI_CHAT_TOOL_TITLES[toolName as keyof typeof AI_CHAT_TOOL_TITLES] || toolName
+  AI_CHAT_TOOL_TITLES[toolName] || toolName
 
 const getToolResultCount = (output: unknown): number | null => {
   if (Array.isArray(output)) {
@@ -270,9 +283,10 @@ const getToolResultCount = (output: unknown): number | null => {
   if (
     output &&
     typeof output === 'object' &&
-    Array.isArray((output as { items?: unknown[] }).items)
+    'items' in output &&
+    Array.isArray(output.items)
   ) {
-    return (output as { items: unknown[] }).items.length
+    return output.items.length
   }
 
   return null
@@ -557,7 +571,7 @@ const listLocalOllamaModels = async (
     settings.language ?? 'system',
     getAiChatUiLocale(),
   )
-  if (response.status === 403) {
+  if (response.status === HTTP_FORBIDDEN) {
     throw createOllamaForbiddenError(language)
   }
 
@@ -565,7 +579,7 @@ const listLocalOllamaModels = async (
     throw new Error('Failed to fetch Ollama models')
   }
 
-  const payload = (await response.json()) as Record<string, unknown>
+  const payload = parseRecord(await response.json())
   const models = Array.isArray(payload.models) ? payload.models : []
 
   return models.flatMap((model) => {
@@ -573,7 +587,7 @@ const listLocalOllamaModels = async (
       return []
     }
 
-    const modelRecord = model as Record<string, unknown>
+    const modelRecord = parseRecord(model)
     const name = getStringValue(modelRecord, 'name')
     if (!name) {
       return []
@@ -582,7 +596,7 @@ const listLocalOllamaModels = async (
     const modifiedAt = getStringValue(modelRecord, 'modified_at')
     const details =
       modelRecord.details && typeof modelRecord.details === 'object'
-        ? (modelRecord.details as Record<string, unknown>)
+        ? parseRecord(modelRecord.details)
         : null
     const parameterSize = details
       ? getStringValue(details, 'parameter_size')
@@ -620,7 +634,7 @@ const runAiChatRequest = async (
       getCustomProjects(),
       getParentCategories(),
       chrome.storage.local.get<{
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs'),
     ])
 
@@ -686,7 +700,7 @@ const runAiChatRequest = async (
             toolTraces: streamedToolTraces,
           })
         },
-        stopWhen: stepCountIs(5),
+        stopWhen: stepCountIs(MAX_AI_CHAT_STEPS),
         system: buildFinalSystemPrompt({
           savedUrlContext: createContextSummary(records, language),
           template: activeSystemPrompt.template,

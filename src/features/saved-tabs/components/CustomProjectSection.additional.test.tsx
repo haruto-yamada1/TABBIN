@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { ProjectDragHandlers } from '@/features/saved-tabs/contexts/DragHandlersContext'
 import type { CustomProjectSectionProps } from '@/features/saved-tabs/types/CustomProjectSection.types'
@@ -80,9 +80,11 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div>
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(true)} type='button'>
         dialog-open
       </button>
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(false)} type='button'>
         dialog-close
       </button>
@@ -120,6 +122,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -134,7 +137,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -143,7 +146,9 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 vi.mock('./CustomProjectCard', async () => {
   const [React, contextModule] = await Promise.all([
+    // eslint-disable-next-line typescript/consistent-type-imports
     vi.importActual<typeof import('react')>('react'),
+    // eslint-disable-next-line typescript/consistent-type-imports
     vi.importActual<typeof import('../contexts/DragHandlersContext')>(
       '../contexts/DragHandlersContext',
     ),
@@ -267,6 +272,7 @@ describe('CustomProjectSection additional', () => {
     vi.clearAllMocks()
     dndContextPropsRef.current = {}
     for (const key of Object.keys(projectHandlerSpies)) {
+      // eslint-disable-next-line typescript/no-dynamic-delete
       delete projectHandlerSpies[key]
     }
   })
@@ -313,6 +319,7 @@ describe('CustomProjectSection additional', () => {
     })
     expect(projectHandlerSpies['project-1']?.handleDragStart).toHaveBeenCalled()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: {
@@ -422,6 +429,7 @@ describe('CustomProjectSection additional', () => {
     )
     expect(projectHandlerSpies['project-1']?.clearDragState).toHaveBeenCalled()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragStart?.({
         active: {

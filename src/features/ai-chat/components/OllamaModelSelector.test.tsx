@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/components/ui/button', () => ({
   Button: ({
@@ -28,9 +28,11 @@ vi.mock('@/components/ai-elements/prompt-input', () => ({
     onValueChange?: (value: string) => void
   }) => (
     <div>
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(true)} type='button'>
         open-select
       </button>
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onValueChange?.('llama3.2')} type='button'>
         select-model
       </button>
@@ -46,6 +48,7 @@ vi.mock('@/components/ai-elements/prompt-input', () => ({
     <button
       aria-controls='ollama-model-selector-options'
       aria-expanded={false}
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='combobox'
       type='button'
       {...props}
@@ -66,9 +69,9 @@ vi.mock('@/components/ai-elements/prompt-input', () => ({
     children: React.ReactNode
     value: string
   }) => (
-    <div aria-label={value} aria-selected={false} role='option' tabIndex={-1}>
+    <option aria-label={value} value={value}>
       {children}
-    </div>
+    </option>
   ),
 }))
 
@@ -103,9 +106,11 @@ describe('OllamaModelSelector', () => {
   it('renders spinner-only loading UI in the fetch button and empty option row', () => {
     render(
       <OllamaModelSelector
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         models={[]}
         onFetchModels={vi.fn()}
         onSelectModel={vi.fn()}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         status={{ isLoading: true }}
       />,
     )
@@ -120,10 +125,13 @@ describe('OllamaModelSelector', () => {
 
     render(
       <OllamaModelSelector
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         behavior={{ fetchOnOpen: true }}
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         models={[]}
         onFetchModels={onFetchModels}
         onSelectModel={vi.fn()}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         status={{ isLoading: false }}
       />,
     )

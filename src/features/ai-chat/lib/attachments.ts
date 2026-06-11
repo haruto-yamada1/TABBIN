@@ -15,8 +15,12 @@ const IMAGE_ATTACHMENT_MEDIA_TYPE_PREFIX = 'image/'
 const TEXT_ATTACHMENT_MEDIA_TYPE_PREFIX = 'text/'
 
 const AI_CHAT_ATTACHMENT_FALLBACK_FILENAME = 'attachment'
+const KILOBYTE = 1024
+const MEGABYTE = KILOBYTE * KILOBYTE
 const AI_CHAT_MAX_ATTACHMENTS = 5
-const AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES = 2 * 1024 * 1024
+const AI_CHAT_MAX_ATTACHMENT_SIZE_MB = 2
+const AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES =
+  AI_CHAT_MAX_ATTACHMENT_SIZE_MB * MEGABYTE
 
 const decodeBase64 = (value: string): Uint8Array => {
   const binaryValue =
@@ -24,7 +28,7 @@ const decodeBase64 = (value: string): Uint8Array => {
       ? atob(value)
       : Buffer.from(value, 'base64').toString('binary')
 
-  return Uint8Array.from(binaryValue, (char) => char.charCodeAt(0))
+  return Uint8Array.from(binaryValue, (char) => char.codePointAt(0) ?? 0)
 }
 
 const decodeTextWithCharset = (
@@ -32,7 +36,7 @@ const decodeTextWithCharset = (
   charset: string | undefined,
 ): string => {
   try {
-    return new TextDecoder(charset || 'utf8').decode(value)
+    return new TextDecoder(charset || 'utf8').decode(value) // eslint-disable-line typescript/prefer-nullish-coalescing -- empty charset should fall through
   } catch {
     return new TextDecoder('utf-8').decode(value)
   }
@@ -100,7 +104,7 @@ const decodeTextDataUrl = (
 }
 
 const getAttachmentFilename = (file: Pick<FileUIPart, 'filename'>): string =>
-  file.filename?.trim() || AI_CHAT_ATTACHMENT_FALLBACK_FILENAME
+  file.filename?.trim() || AI_CHAT_ATTACHMENT_FALLBACK_FILENAME // eslint-disable-line typescript/prefer-nullish-coalescing -- empty filename should fall through
 
 const getUnsupportedAttachmentError = (
   filename: string,
@@ -112,9 +116,11 @@ const getUnsupportedAttachmentError = (
     mediaType,
   })
 
+// eslint-disable-next-line typescript/require-await
 const convertPromptInputFilesToAiChatAttachments = async (
   files: FileUIPart[],
   language: AppLanguage = 'ja',
+  // eslint-disable-next-line typescript/require-await
 ): Promise<AiChatAttachment[]> =>
   files.map((file) => {
     const filename = getAttachmentFilename(file)

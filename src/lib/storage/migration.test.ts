@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   DomainParentCategoryMapping,
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => {
     getDomainCategoryMappings: vi.fn(),
     getParentCategories: vi.fn(),
     getUserSettings: vi.fn(),
+    // eslint-disable-next-line typescript/require-await
     restoreCategorySettings: vi.fn(async (group: TabGroup) => group),
     saveParentCategories: vi.fn().mockResolvedValue(undefined),
     updateDomainCategoryMapping: vi.fn().mockResolvedValue(undefined),
@@ -66,6 +68,7 @@ interface StorageState {
 }
 
 const createChromeStorageLocal = (state: StorageState) => ({
+  // eslint-disable-next-line typescript/require-await
   get: vi.fn(async (keys?: string | string[]) => {
     if (!keys) {
       return state
@@ -79,6 +82,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
       [keys]: state[keys as keyof StorageState],
     }
   }),
+  // eslint-disable-next-line typescript/require-await
   set: vi.fn(async (value: Record<string, unknown>) => {
     Object.assign(state, value)
   }),
@@ -109,6 +113,7 @@ describe('migration storage facade', () => {
     mocks.getDomainCategoryMappings.mockResolvedValue([])
     mocks.getParentCategories.mockResolvedValue([])
     mocks.createOrUpdateUrlRecord.mockImplementation(
+      // eslint-disable-next-line typescript/require-await
       async (url: string, title: string) => ({
         id: `id:${url}`,
         savedAt: 1000,
@@ -141,7 +146,7 @@ describe('migration storage facade', () => {
           url: 'https://docs.example.com/path',
         },
       ] as chrome.tabs.Tab[]),
-    ).toEqual([
+    ).toStrictEqual([
       {
         domain: 'https://docs.example.com',
         tab: {
@@ -165,7 +170,7 @@ describe('migration storage facade', () => {
           url: 'https://docs.example.com/path',
         },
       ] as chrome.tabs.Tab[]),
-    ]).toEqual(['https://docs.example.com'])
+    ]).toStrictEqual(['https://docs.example.com'])
     expect(errorSpy).toHaveBeenCalledTimes(2)
   })
 
@@ -266,7 +271,7 @@ describe('migration storage facade', () => {
 
     await migrateParentCategoriesToDomainNames()
 
-    expect(state.parentCategories).toEqual([
+    expect(state.parentCategories).toStrictEqual([
       expect.objectContaining({
         domainNames: [
           'https://existing.example.com',
@@ -311,7 +316,7 @@ describe('migration storage facade', () => {
 
     await migrateParentCategoriesToDomainNames()
 
-    expect(state.parentCategories).toEqual([
+    expect(state.parentCategories).toStrictEqual([
       expect.objectContaining({
         domainNames: ['https://tab.example.com'],
         id: 'category-1',
@@ -343,7 +348,9 @@ describe('migration storage facade', () => {
         name: 'Mapped',
       }),
     ])
+    // eslint-disable-next-line typescript/require-await
     mocks.restoreCategorySettings.mockImplementation(async (group) => ({
+      // eslint-disable-line
       ...group,
       categoryKeywords:
         group.domain === 'https://mapped.example.com'
@@ -385,7 +392,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         domain: 'https://existing.example.com',
         id: 'existing-group',
@@ -449,7 +456,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'existing-group',
         urlIds: ['id:https://existing.example.com/a'],
@@ -499,12 +506,12 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.parentCategories).toEqual([
+    expect(state.parentCategories).toStrictEqual([
       expect.objectContaining({
         domainNames: ['https://legacy.example.com'],
       }),
     ])
-    expect(state.savedTabs).toEqual(
+    expect(state.savedTabs).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           domain: 'https://new.example.com',
@@ -710,6 +717,7 @@ describe('migration storage facade', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => {
             throw new Error('migration storage failed')
           }),
@@ -779,7 +787,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs?.map((group) => group.id)).toEqual([
+    expect(state.savedTabs?.map((group) => group.id)).toStrictEqual([
       'duplicate-id',
       'uuid-1',
     ])
@@ -822,7 +830,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual(
+    expect(state.savedTabs).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           domain: 'https://existing-no-ids.example.com',
@@ -861,7 +869,7 @@ describe('migration storage facade', () => {
       'https://untitled.example.com/path',
       '',
     )
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         domain: 'https://untitled.example.com',
         urlIds: ['id:https://untitled.example.com/path'],
@@ -895,7 +903,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'plain-group',
       }),
@@ -1007,7 +1015,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         domain: 'https://mapped-invalid.example.com',
         parentCategoryId: 'category-invalid',
@@ -1054,7 +1062,7 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'docs-group',
         urlIds: ['id:https://docs.example.com/guide'],

@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
   createConversation: vi.fn(),
@@ -60,6 +62,7 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
     <div data-testid='saved-tabs-chat-widget'>
       <div>{`history-variant:${historyVariant ?? 'none'}`}</div>
       <div>{`active-title:${title ?? ''}`}</div>
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onToggleHistory?.()} type='button'>
         toggle-history
       </button>
@@ -67,11 +70,11 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
   ),
 }))
 
+import { AiChatRoute } from './AiChatRoute'
 import {
-  AiChatRoute,
   createPendingDeleteHistoryOpenChangeHandler,
   getNextPendingDeleteHistoryItem,
-} from './AiChatRoute'
+} from './aiChatRoute.helpers'
 
 describe('AiChatRoute', () => {
   it('delete dialog helper は close 時だけ pending item を消す', () => {
@@ -142,7 +145,7 @@ describe('AiChatRoute', () => {
 
   it('履歴一覧の操作に shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(
-      resolve(dirname(fileURLToPath(import.meta.url)), './AiChatRoute.tsx'),
+      resolve(import.meta.dirname, './AiChatRoute.tsx'),
       'utf8',
     )
 
@@ -165,6 +168,7 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('Recent conversations')).toBeTruthy()
 
     fireEvent.click(
+      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       screen
         .getAllByRole('button', { name: /別の会話/ })
         .find((button) => button.className.includes('flex-col')) as HTMLElement,
@@ -180,6 +184,7 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('Recent conversations')).toBeTruthy()
   })
 
+  // eslint-disable-next-line eslint/complexity
   it('履歴項目の本文ボタンは縦積みレイアウトで削除ボタンを押し出さない', () => {
     render(createElement(AiChatRoute))
 
@@ -303,7 +308,7 @@ describe('AiChatRoute', () => {
     expect(mocked.deleteConversation).not.toHaveBeenCalled()
   })
 
-  it('履歴削除確認はキャンセルできる', () => {
+  it('履歴削除確認はキャンセルで削除されない', () => {
     render(createElement(AiChatRoute))
 
     fireEvent.click(

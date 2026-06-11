@@ -10,12 +10,17 @@ import {
   getUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
+import {
+  fromStorageChange,
+  UserSettingsSchema,
+} from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 const normalizeExcludePattern = (pattern: string) => pattern.trim()
 const SETTINGS_SAVE_ERROR_MESSAGE = '設定の保存に失敗しました'
 
 export const useSettings = () => {
+  // eslint-disable-line eslint/max-lines-per-function
   const [{ isLoading, settings }, setSettingsState] = useState({
     isLoading: true,
     settings: defaultSettings,
@@ -66,6 +71,7 @@ export const useSettings = () => {
     toast.error(SETTINGS_SAVE_ERROR_MESSAGE, {
       action: {
         label: '再試行',
+        // eslint-disable-next-line typescript/no-misused-promises
         onClick: () => retrySaveSettings(failedSettings, rollbackSettings),
       },
     })
@@ -102,6 +108,7 @@ export const useSettings = () => {
       }
     }
 
+    // eslint-disable-next-line typescript/no-floating-promises
     loadSettings()
   }, [])
 
@@ -113,7 +120,10 @@ export const useSettings = () => {
       if (areaName === 'local' && changes.userSettings) {
         if (changes.userSettings.newValue) {
           // NewValue は完全な UserSettings オブジェクトであると期待
-          const nextSettings = changes.userSettings.newValue as UserSettings
+          const nextSettings = fromStorageChange(
+            UserSettingsSchema,
+            changes.userSettings.newValue,
+          )
           persistedSettingsRef.current = nextSettings
           setSettings(nextSettings)
         } else {
@@ -134,6 +144,7 @@ export const useSettings = () => {
     storageOnChanged.addListener(storageChangeListener)
 
     // クリーンアップ関数
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }
@@ -187,7 +198,7 @@ export const useSettings = () => {
     } catch (error) {
       handleSaveFailure(
         error,
-        `設定の保存エラー (${String(key)}):`,
+        `設定の保存エラー (${key}):`,
         newSettings,
         rollbackSettings,
       )
@@ -207,6 +218,7 @@ export const useSettings = () => {
   }
 
   const handleExcludePatternsBlur = () => {
+    // eslint-disable-next-line typescript/no-floating-promises
     handleSaveSettings()
   }
 

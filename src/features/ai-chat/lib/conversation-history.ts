@@ -22,8 +22,11 @@ const DEFAULT_INTERRUPTED_RESPONSE_MESSAGE = getMessage(
   'aiChat.interruptedResponse',
 )
 
+const HEX_RADIX = 16
+const MAX_TITLE_PREVIEW_LENGTH = 40
+
 const createConversationId = (): string =>
-  `conversation-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  `conversation-${Date.now()}-${Math.random().toString(HEX_RADIX).slice(2)}`
 
 const buildConversationTitle = (
   messages: AiChatConversationMessage[],
@@ -37,7 +40,7 @@ const buildConversationTitle = (
     return defaultTitle
   }
 
-  return firstUserMessage.content.trim().slice(0, 40)
+  return firstUserMessage.content.trim().slice(0, MAX_TITLE_PREVIEW_LENGTH)
 }
 
 const createConversationRecord = ({
@@ -150,8 +153,12 @@ const loadConversationHistory = async (
     AI_CHAT_CONVERSATIONS_KEY,
   ])
 
-  const conversations = Array.isArray(stored[AI_CHAT_CONVERSATIONS_KEY])
-    ? (stored[AI_CHAT_CONVERSATIONS_KEY] as AiChatConversation[])
+  const rawConversations = stored[AI_CHAT_CONVERSATIONS_KEY]
+  const conversations: AiChatConversation[] = Array.isArray(rawConversations)
+    ? rawConversations.filter(
+        (item): item is AiChatConversation =>
+          typeof item === 'object' && item !== null && 'id' in item,
+      )
     : []
 
   if (conversations.length === 0) {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import {
   I18nProvider,
@@ -23,6 +23,7 @@ vi.mock('@/lib/browser/chrome-storage', () => ({
 }))
 
 vi.mock('@/lib/storage/settings', async () => {
+  // eslint-disable-next-line typescript/consistent-type-imports
   const actual = await vi.importActual<typeof import('@/lib/storage/settings')>(
     '@/lib/storage/settings',
   )
@@ -49,6 +50,7 @@ const Consumer = () => {
       </span>
       <button
         type='button'
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           void setLanguageSetting('en')
         }}
@@ -107,6 +109,7 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('message').textContent).toContain('キャンセル')
     expect(screen.getByTestId('message').textContent).toContain('Hello Taro')
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       screen.getByText('set-en').click()
     })
@@ -136,7 +139,7 @@ describe('I18nProvider', () => {
       expect(addListener).toHaveBeenCalled()
     })
     const listener = addListener.mock.calls[0][0] as (
-      changes: { [key: string]: chrome.storage.StorageChange },
+      changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => void
 
@@ -214,6 +217,7 @@ describe('I18nProvider', () => {
 
     unmount()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveSettings?.({ language: 'en' })
     })

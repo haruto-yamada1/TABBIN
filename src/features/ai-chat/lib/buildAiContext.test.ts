@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import type {
   CustomProject,
@@ -73,7 +73,7 @@ describe('buildAiSavedUrlRecords', () => {
       urlRecords,
     })
 
-    expect(records).toEqual([
+    expect(records).toStrictEqual([
       {
         id: 'url-1',
         url: 'https://react.dev/learn',
@@ -129,7 +129,7 @@ describe('buildAiSavedUrlRecords', () => {
       ],
     })
 
-    expect(records[0]?.parentCategories).toEqual(['Domain Match'])
+    expect(records[0]?.parentCategories).toStrictEqual(['Domain Match'])
   })
 
   it('project metadata と parent category が一致しない場合はカテゴリ配列を空にする', () => {
@@ -169,7 +169,7 @@ describe('buildAiSavedUrlRecords', () => {
       ],
     })
 
-    expect(records[0]).toEqual(
+    expect(records[0]).toStrictEqual(
       expect.objectContaining({
         domain: 'not-a-url',
         parentCategories: [],
@@ -209,7 +209,7 @@ describe('findUrlsAddedInMonth', () => {
       },
     ]
 
-    expect(findUrlsAddedInMonth(records, 2026, 3)).toEqual([records[0]])
+    expect(findUrlsAddedInMonth(records, 2026, 3)).toStrictEqual([records[0]])
   })
 
   it('指定した月をタイムゾーン基準で判定する', () => {
@@ -240,7 +240,7 @@ describe('findUrlsAddedInMonth', () => {
       },
     ]
 
-    expect(findUrlsAddedInMonth(records, 2026, 3, 'Asia/Tokyo')).toEqual([
+    expect(findUrlsAddedInMonth(records, 2026, 3, 'Asia/Tokyo')).toStrictEqual([
       records[0],
     ])
   })
@@ -275,8 +275,8 @@ describe('searchSavedUrls', () => {
       },
     ]
 
-    expect(searchSavedUrls(records, 'frontend')).toEqual([records[0]])
-    expect(searchSavedUrls(records, 'reading')).toEqual([records[1]])
+    expect(searchSavedUrls(records, 'frontend')).toStrictEqual([records[0]])
+    expect(searchSavedUrls(records, 'reading')).toStrictEqual([records[1]])
   })
 
   it('空クエリなら全件を返し、不正URLは domain に元文字列を使う', () => {
@@ -295,6 +295,6 @@ describe('searchSavedUrls', () => {
     })
 
     expect(records[0]?.domain).toBe('not a url')
-    expect(searchSavedUrls(records, '   ')).toEqual(records)
+    expect(searchSavedUrls(records, '   ')).toStrictEqual(records)
   })
 })

@@ -109,6 +109,7 @@ const Section = ({
 )
 
 const UiShowcase = () => {
+  // eslint-disable-line eslint/max-lines-per-function
   const [checked, setChecked] = useState(true)
   const [enabled, setEnabled] = useState(false)
 
@@ -169,7 +170,10 @@ const UiShowcase = () => {
           <div className='flex items-center gap-2'>
             <Checkbox
               checked={checked}
-              onCheckedChange={(value) => setChecked(value === true)}
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              onCheckedChange={(value) => {
+                setChecked(value === true)
+              }}
             />
             <span className='text-sm'>Sync across windows</span>
           </div>

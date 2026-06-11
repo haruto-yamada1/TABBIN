@@ -88,6 +88,7 @@ const formatChartValue = (
   format?: AiChartSpec['valueFormat'],
 ) => {
   if (!isFiniteNumber(value)) {
+    // eslint-disable-next-line typescript/no-base-to-string
     return String(value ?? '')
   }
 
@@ -106,6 +107,7 @@ const ChartLegendBlock = ({
   shouldShowLegend: boolean
 }) =>
   shouldShowLegend ? (
+    // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
     <ChartLegend content={<ChartLegendContent nameKey={nameKey} />} />
   ) : null
 
@@ -128,8 +130,10 @@ const createChartPointClickHandler = ({
       return
     }
 
-    const labelKey = spec.categoryKey || spec.xKey || 'label'
-    const record = datum as Record<string, unknown>
+    const labelKey = spec.categoryKey || spec.xKey || 'label' // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
+    const record: Record<string, unknown> = Object.fromEntries(
+      Object.entries(datum),
+    )
     const labelValue = record[labelKey]
     const value = record[series.dataKey]
 
@@ -168,7 +172,7 @@ const createTooltipChartClickHandler = ({
       return
     }
 
-    const labelKey = spec.categoryKey || spec.xKey || 'label'
+    const labelKey = spec.categoryKey || spec.xKey || 'label' // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
     const { activeLabel } = state
     if (typeof activeLabel !== 'string' && typeof activeLabel !== 'number') {
       return
@@ -217,7 +221,9 @@ const renderPieChart = ({
   <PieChart>
     <ChartTooltip
       content={
+        // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         <ChartTooltipContent
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }
@@ -265,7 +271,9 @@ const CartesianChartContent = ({
     <YAxis axisLine={false} tickLine={false} />
     <ChartTooltip
       content={
+        // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         <ChartTooltipContent
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }
@@ -288,6 +296,7 @@ const renderBarChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         series={props.spec.series.map((series) => (
           <Bar
             dataKey={series.dataKey}
@@ -320,6 +329,7 @@ const renderLineChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         series={props.spec.series.map((series) => (
           <Line
             dataKey={series.dataKey}
@@ -348,6 +358,7 @@ const renderAreaChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         series={props.spec.series.map((series) => (
           <Area
             dataKey={series.dataKey}
@@ -390,7 +401,9 @@ const renderRadarChart = ({
   >
     <ChartTooltip
       content={
+        // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         <ChartTooltipContent
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           formatter={(value) => formatChartValue(value, spec.valueFormat)}
         />
       }
@@ -482,7 +495,7 @@ const AiChart = ({
 }) => {
   const config = createChartConfig(spec.series)
   const primarySeries = spec.series[0]
-  const categoryKey = spec.categoryKey || spec.xKey || 'label'
+  const categoryKey = spec.categoryKey || spec.xKey || 'label' // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
   const shouldShowLegend = spec.showLegend ?? spec.series.length > 1
   const chartContent = renderChartContent({
     categoryKey,

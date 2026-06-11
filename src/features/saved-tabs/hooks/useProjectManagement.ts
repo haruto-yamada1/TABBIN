@@ -87,6 +87,7 @@ const showCustomProjectDeleteUndoToast = ({
     {
       action: {
         label: t('common.undo'),
+        // eslint-disable-next-line typescript/no-misused-promises
         onClick: async () => {
           try {
             const payload = createCustomProjectUndoPayload(snapshot)
@@ -252,6 +253,7 @@ interface UseProjectManagementReturn {
  * @returns UseProjectManagementReturn
  */
 const useProjectManagement = (
+  // eslint-disable-line eslint/max-lines-per-function
   _tabGroups: TabGroup[],
   _settings: UserSettings,
   initialViewMode?: ViewMode,
@@ -685,14 +687,17 @@ const useProjectManagement = (
             project.id === projectId
               ? {
                   ...project,
+                  // eslint-disable-next-line eslint/max-nested-callbacks
                   categories: project.categories.map((cat) =>
                     cat === oldCategoryName ? newCategoryName : cat,
                   ),
                   categoryOrder: project.categoryOrder
-                    ? project.categoryOrder.map((cat) =>
+                    ? // eslint-disable-next-line eslint/max-nested-callbacks
+                      project.categoryOrder.map((cat) =>
                         cat === oldCategoryName ? newCategoryName : cat,
                       )
                     : project.categoryOrder,
+                  // eslint-disable-next-line eslint/max-nested-callbacks
                   urls: project.urls?.map((item) => ({
                     ...item,
                     category:

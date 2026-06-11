@@ -12,7 +12,14 @@ import {
   getParentCategories,
 } from '@/lib/storage/categories'
 import { getUserSettings } from '@/lib/storage/settings'
+import {
+  ParentCategorySchema,
+  safeParseArrayFromStorage,
+} from '@/lib/storage/zod-storage'
 import type { ParentCategory } from '@/types/storage'
+
+const MAX_CATEGORY_NAME_LENGTH = 25
+const ERROR_TOAST_DURATION_MS = 3000
 
 const getUiLocale = () => chrome.i18n?.getUILanguage?.() ?? 'ja'
 
@@ -49,6 +56,7 @@ export const useCategories = () => {
       }
     }
 
+    // eslint-disable-next-line typescript/no-floating-promises
     loadCategories()
   }, [])
 
@@ -58,10 +66,9 @@ export const useCategories = () => {
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.parentCategories) {
-        const nextParentCategories = Array.isArray(
-          changes.parentCategories.newValue,
-        )
-          ? (changes.parentCategories.newValue as ParentCategory[])
+        const raw = changes.parentCategories.newValue
+        const nextParentCategories = Array.isArray(raw)
+          ? safeParseArrayFromStorage(ParentCategorySchema, raw)
           : []
         setCategoryState((prev) => ({
           ...prev,
@@ -91,6 +98,7 @@ export const useCategories = () => {
 
     storageOnChanged.addListener(storageChangeListener)
 
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }
@@ -102,12 +110,17 @@ export const useCategories = () => {
       // バリデーションチェック
       const validationResult = z
         .string()
-        .max(25, t('options.categories.validation.maxLength'))
+        .max(
+          MAX_CATEGORY_NAME_LENGTH,
+          t('options.categories.validation.maxLength'),
+        )
         .safeParse(newCategoryName.trim())
       if (!validationResult.success) {
         const { message } = validationResult.error.issues[0]
         setCategoryError(message)
-        setTimeout(() => setCategoryError(null), 3000)
+        setTimeout(() => {
+          setCategoryError(null)
+        }, ERROR_TOAST_DURATION_MS)
         return false
       }
 
@@ -119,7 +132,9 @@ export const useCategories = () => {
 
       if (isDuplicate) {
         setCategoryError(t('options.categories.duplicate'))
-        setTimeout(() => setCategoryError(null), 3000) // 3秒後にエラーメッセージを消す
+        setTimeout(() => {
+          setCategoryError(null)
+        }, ERROR_TOAST_DURATION_MS) // 3秒後にエラーメッセージを消す
         return false
       }
 
@@ -131,7 +146,9 @@ export const useCategories = () => {
       } catch (error) {
         console.error('カテゴリ追加エラー:', error)
         setCategoryError(t('options.categories.addError'))
-        setTimeout(() => setCategoryError(null), 3000)
+        setTimeout(() => {
+          setCategoryError(null)
+        }, ERROR_TOAST_DURATION_MS)
         return false
       }
     }
@@ -146,6 +163,7 @@ export const useCategories = () => {
       e.preventDefault()
       // エラーがなければ追加を実行
       if (!categoryError) {
+        // eslint-disable-next-line typescript/no-floating-promises
         handleAddCategory()
       }
     }

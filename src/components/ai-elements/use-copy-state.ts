@@ -17,6 +17,7 @@ export const useCopyState = ({
   const timeoutRef = useRef<number>(0)
 
   const copyText = useCallback(
+    // eslint-disable-next-line eslint/complexity
     async (text: string, { skipIfCopied = false } = {}) => {
       if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
         onError?.(new Error('Clipboard API not available'))
@@ -31,12 +32,11 @@ export const useCopyState = ({
         await navigator.clipboard.writeText(text)
         setIsCopied(true)
         onCopy?.()
-        timeoutRef.current = window.setTimeout(
-          () => setIsCopied(false),
-          timeout,
-        )
+        timeoutRef.current = window.setTimeout(() => {
+          setIsCopied(false)
+        }, timeout)
       } catch (error) {
-        onError?.(error as Error)
+        onError?.(error instanceof Error ? error : new Error(String(error)))
       }
     },
     [isCopied, onCopy, onError, timeout],

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 describe('global styles font scaling', () => {
   it('applies app font scale to the html root so rem-based text utilities resize', () => {

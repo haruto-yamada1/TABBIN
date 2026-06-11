@@ -144,6 +144,11 @@ const createAnalyticsMessages = (language: AppLanguage) => ({
   uncategorizedLabel: getMessage(language, 'analytics.uncategorized'),
 })
 
+const MIN_MONTH = 1
+const MAX_MONTH = 12
+const MAX_ANALYTICS_LIMIT = 20
+const DEFAULT_ANALYTICS_LIMIT = 8
+
 const createAiChatTools = (
   records: AiSavedUrlRecord[],
   language: AppLanguage = 'ja',
@@ -152,8 +157,9 @@ const createAiChatTools = (
     description: AI_CHAT_TOOL_DESCRIPTIONS.findUrlsByMonth,
     inputSchema: paginationSchema.extend({
       year: z.number().int(),
-      month: z.number().int().min(1).max(12),
+      month: z.number().int().min(MIN_MONTH).max(MAX_MONTH),
     }),
+    // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
       mapPageForToolOutput(findSavedUrlsAddedInMonthPage(records, input)),
   }),
@@ -194,7 +200,12 @@ const createAiChatTools = (
           'timeTop',
         ])
         .default('domain'),
-      limit: z.number().int().min(1).max(20).default(8),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_ANALYTICS_LIMIT)
+        .default(DEFAULT_ANALYTICS_LIMIT),
       mode: z.enum(['both', 'custom', 'domain']).default('both'),
       normalize: z.boolean().default(false),
       sort: z
@@ -206,33 +217,43 @@ const createAiChatTools = (
         .enum(['30d', '365d', '7d', '90d', 'all', 'custom'])
         .default('all'),
       title: z.string().trim().optional(),
+      // eslint-disable-next-line typescript/require-await
     }),
+    // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
       generateAnalyticsResult(records, normalizeAnalyticsQuery(input), {
         messages: createAnalyticsMessages(language),
       }),
   }),
   getCurrentDateTime: tool({
+    // eslint-disable-next-line typescript/require-await
     description: AI_CHAT_TOOL_DESCRIPTIONS.getCurrentDateTime,
     inputSchema: z.object({}),
+    // eslint-disable-next-line typescript/require-await
     execute: async () => createCurrentDateTimeOutput(),
   }),
+  // eslint-disable-next-line typescript/require-await
   inferUserInterests: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.inferUserInterests,
     inputSchema: z.object({}),
+    // eslint-disable-next-line typescript/require-await
     execute: async () => inferUserInterests(records, language),
+    // eslint-disable-next-line typescript/require-await
   }),
   listSavedUrls: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.listSavedUrls,
     inputSchema: paginationSchema,
+    // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
       mapPageForToolOutput(listSavedUrlPage(records, input)),
   }),
+  // eslint-disable-next-line typescript/require-await
   searchSavedUrls: tool({
     description: AI_CHAT_TOOL_DESCRIPTIONS.searchSavedUrls,
     inputSchema: paginationSchema.extend({
       query: z.string().min(1),
     }),
+    // eslint-disable-next-line typescript/require-await
     execute: async (input) =>
       mapPageForToolOutput(searchSavedUrlsPage(records, input)),
   }),

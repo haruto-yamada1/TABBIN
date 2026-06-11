@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import {
   act,
@@ -7,7 +8,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
@@ -94,22 +95,20 @@ vi.mock('@dnd-kit/utilities', () => ({
 vi.mock('./TimeRemaining', () => ({
   CategorySection: (props: {
     categoryName: string
-    urls?: Array<{ url: string; savedAt?: number }>
+    urls?: { url: string; savedAt?: number }[]
   }) => {
     categorySectionSpy(props)
     return (
       <div data-testid='category-section'>
-        {(props.urls || []).map((url) => url.url).join(',')}
+        {(props.urls ?? []).map((url) => url.url).join(',')}
       </div>
     )
   },
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
+  Tooltip: ({ children }: { children: React.ReactNode }) => children,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => children,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
@@ -184,9 +183,7 @@ const createProps = (
   overrides: Partial<
     SortableCategorySectionProps & {
       settings: UserSettings
-      handleDeleteAllTabs?: (
-        urls: Array<{ url: string }>,
-      ) => Promise<void> | void
+      handleDeleteAllTabs?: (urls: { url: string }[]) => Promise<void> | void
     }
   > = {},
 ) => ({
@@ -332,7 +329,7 @@ describe('SortableCategorySection', () => {
     const { rerender } = render(
       <SortableCategorySection
         {...createProps({
-          urls: undefined as unknown as Array<{ url: string; title: string }>,
+          urls: undefined as unknown as { url: string; title: string }[],
           handleOpenAllTabs,
         })}
       />,
@@ -418,6 +415,7 @@ describe('SortableCategorySection', () => {
   })
 
   it('confirmDeleteAll=true の削除確認ダイアログとエラーハンドリングを処理する', async () => {
+    // eslint-disable-next-line typescript/require-await
     const handleDeleteAllTabs = vi.fn(async () => {
       throw new Error('boom')
     })
@@ -460,19 +458,23 @@ describe('SortableCategorySection', () => {
     )
     expect(screen.queryByTestId('category-section')).toBeNull()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()
     })
     expect(screen.queryByTestId('category-section')).toBeNull()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragEnd?.()
     })
     expect(screen.queryByTestId('category-section')).toBeNull()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()
     })
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragCancel?.()
     })
@@ -515,15 +517,19 @@ describe('SortableCategorySection', () => {
       }),
     ).toBeTruthy()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()
     })
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragEnd?.()
     })
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragStart?.()
     })
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndMonitorHandlers.current.onDragCancel?.()
     })

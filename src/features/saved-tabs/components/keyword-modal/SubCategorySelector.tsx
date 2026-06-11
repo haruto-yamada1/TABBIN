@@ -68,7 +68,10 @@ export const SubCategorySelector = () => {
               <Button
                 variant='secondary'
                 size='sm'
-                onClick={() => deletion.setShowDeleteConfirm(true)}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onClick={() => {
+                  deletion.setShowDeleteConfirm(true)
+                }}
                 className='flex cursor-pointer items-center gap-1 rounded px-2 py-1'
                 disabled={!subcategory.activeCategory}
               >
@@ -90,6 +93,7 @@ export const SubCategorySelector = () => {
 
       <Select
         value={subcategory.activeCategory}
+        // eslint-disable-next-line react/jsx-handler-names
         onValueChange={subcategory.setActiveCategory}
         disabled={rename.isRenaming}
       >

@@ -2,6 +2,8 @@ import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
+const isNonEmptyArray = <T>(arr: T[]): arr is [T, ...T[]] => arr.length > 0
+
 const DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID = 'default-system-prompt'
 const MAX_AI_SYSTEM_PROMPT_PRESETS = 50
 const MAX_AI_SYSTEM_PROMPT_NAME_LENGTH = 25
@@ -53,20 +55,30 @@ type NormalizedAiSystemPromptSettings = Omit<
 }
 
 const isValidPromptPreset = (value: unknown): value is AiSystemPromptPreset => {
-  if (!value || typeof value !== 'object') {
+  if (typeof value !== 'object' || value === null) {
     return false
   }
 
-  const preset = value as Record<string, unknown>
+  if (
+    !(
+      'id' in value &&
+      'name' in value &&
+      'template' in value &&
+      'createdAt' in value &&
+      'updatedAt' in value
+    )
+  ) {
+    return false
+  }
 
   return (
-    typeof preset.id === 'string' &&
-    preset.id.length > 0 &&
-    typeof preset.name === 'string' &&
-    preset.name.trim().length > 0 &&
-    typeof preset.template === 'string' &&
-    typeof preset.createdAt === 'number' &&
-    typeof preset.updatedAt === 'number'
+    typeof value.id === 'string' &&
+    value.id.length > 0 &&
+    typeof value.name === 'string' &&
+    value.name.trim().length > 0 &&
+    typeof value.template === 'string' &&
+    typeof value.createdAt === 'number' &&
+    typeof value.updatedAt === 'number'
   )
 }
 
@@ -124,8 +136,8 @@ const normalizePromptPresets = (
         .slice(0, MAX_AI_SYSTEM_PROMPT_PRESETS)
     : []
 
-  return normalizedPresets.length > 0
-    ? (normalizedPresets as NonEmptyAiSystemPromptPresets)
+  return isNonEmptyArray(normalizedPresets)
+    ? normalizedPresets
     : [createDefaultAiSystemPromptPreset(language)]
 }
 
@@ -156,10 +168,12 @@ const normalizeAiSystemPromptSettings = (
 const getActiveAiSystemPrompt = (
   settings: Pick<UserSettings, 'activeAiSystemPromptId' | 'aiSystemPrompts'>,
 ): AiSystemPromptPreset => {
-  const normalizedSettings = normalizeAiSystemPromptSettings(
-    settings as UserSettings,
+  const aiSystemPrompts = normalizePromptPresets(settings.aiSystemPrompts)
+  return (
+    aiSystemPrompts.find(
+      (prompt) => prompt.id === settings.activeAiSystemPromptId,
+    ) ?? aiSystemPrompts[0]
   )
-  return normalizedSettings.activeAiSystemPrompt
 }
 
 const buildFinalSystemPrompt = ({

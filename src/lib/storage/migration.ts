@@ -70,10 +70,10 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       await Promise.all([
         getParentCategories(),
         chrome.storage.local.get<{
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs'),
         chrome.storage.local.get<{
-          domainCategoryMappings?: import('@/types/storage').DomainParentCategoryMapping[]
+          domainCategoryMappings?: DomainParentCategoryMapping[]
         }>('domainCategoryMappings'),
       ])
     const { savedTabs = [] } = savedTabsResult
@@ -156,6 +156,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     // 確認のため保存後のデータも取得
     const savedCategories = await getParentCategories()
     console.log('保存後の親カテゴリ:', savedCategories)
+    // eslint-disable-next-line eslint/no-useless-return
     return
   } catch (error) {
     console.error('親カテゴリ移行エラー:', error)
@@ -258,7 +259,7 @@ const findParentCategoryForDomain = (
     domain,
     domainCategoryMappings,
     parentCategories,
-  ) || findCategoryByDomainNames(domain, parentCategories)
+  ) ?? findCategoryByDomainNames(domain, parentCategories)
 const assignGroupToCategory = async (
   group: TabGroup,
   domain: string,
@@ -352,7 +353,7 @@ const getUniqueDomainsFromTabs = (tabs: chrome.tabs.Tab[]): Set<string> =>
   new Set(
     tabs.flatMap((tab) => {
       try {
-        const url = new URL(tab.url || '')
+        const url = new URL(tab.url ?? '')
         return [`${url.protocol}//${url.hostname}`]
       } catch {
         return []
@@ -369,7 +370,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     settings,
   ] = await Promise.all([
     chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs'),
     getDomainCategoryMappings(),
     getParentCategories(),
@@ -415,16 +416,20 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   }
   const urlRecords = await Promise.all(
     tabsWithDomains.map(async ({ domain, tab, url }) => {
-      const group = groupedTabs.get(domain)!
+      const group = groupedTabs.get(domain)
+      if (!group) {
+        throw new Error(`Domain group not found: ${domain}`)
+      }
       if (!missingDomainSet.has(domain)) {
         console.log(`既存のドメインに追加: ${domain}`)
       }
-      const urlRecord = await createOrUpdateUrlRecord(url, tab.title || '')
+      const urlRecord = await createOrUpdateUrlRecord(url, tab.title ?? '')
       return { group, urlRecord }
     }),
   )
   for (const item of urlRecords) {
     const { group, urlRecord } = item
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (!group.urlIds) {
       group.urlIds = []
     }
@@ -462,7 +467,7 @@ const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
 
   // 保存したタブグループのIDを取得
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const uniqueDomains = getUniqueDomainsFromTabs(filteredTabs)
 
@@ -488,9 +493,9 @@ const updateCategoryDomains = async (
 } // TabGroup IDからグループを取得する関数
 const getTabGroupById = async (groupId: string): Promise<TabGroup | null> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
-  return savedTabs.find((group: TabGroup) => group.id === groupId) || null
+  return savedTabs.find((group: TabGroup) => group.id === groupId) ?? null
 }
 
 export { migrateToUrlsStorage } from './url-migration'

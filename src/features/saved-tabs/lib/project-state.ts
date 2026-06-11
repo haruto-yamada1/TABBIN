@@ -25,7 +25,7 @@ export const moveUrlBetweenProjectsState = ({
   produce(projects, (draft) => {
     for (const project of draft) {
       if (project.id === sourceProjectId) {
-        project.urls = (project.urls || []).filter(
+        project.urls = (project.urls ?? []).filter(
           (item) => item.url !== url.url,
         )
         project.updatedAt = movedAt
@@ -33,6 +33,7 @@ export const moveUrlBetweenProjectsState = ({
       }
 
       if (project.id === targetProjectId) {
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing -- intentional initialization pattern
         if (!project.urls) {
           project.urls = []
         }

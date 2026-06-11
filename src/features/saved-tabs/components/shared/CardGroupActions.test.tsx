@@ -1,14 +1,16 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const cardGroupActionsI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -59,6 +61,7 @@ vi.mock('@/components/ui/alert-dialog', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -71,7 +74,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),

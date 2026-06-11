@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { inferUserInterests } from './inferInterests'
 
@@ -44,15 +44,15 @@ describe('inferUserInterests', () => {
     ])
 
     expect(result.summary).toContain('Frontend')
-    expect(result.evidence.topDomains[0]).toEqual({
+    expect(result.evidence.topDomains[0]).toStrictEqual({
       count: 2,
       value: 'react.dev',
     })
-    expect(result.evidence.topCategories[0]).toEqual({
+    expect(result.evidence.topCategories[0]).toStrictEqual({
       count: 3,
       value: 'Frontend',
     })
-    expect(result.chartSpecs).toEqual([
+    expect(result.chartSpecs).toStrictEqual([
       {
         categoryKey: 'label',
         data: [
@@ -117,7 +117,7 @@ describe('inferUserInterests', () => {
   it('保存データが無いときは判断不能を返す', () => {
     const result = inferUserInterests([])
 
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       summary: 'まだ保存データがないため、興味の傾向は判断できません。',
       isTentative: true,
       evidence: {
@@ -168,11 +168,11 @@ describe('inferUserInterests', () => {
       },
     ])
 
-    expect(result.evidence.topDomains[0]).toEqual({
+    expect(result.evidence.topDomains[0]).toStrictEqual({
       count: 2,
       value: 'another.example.com',
     })
-    expect(result.evidence.topCategories[0]).toEqual({
+    expect(result.evidence.topCategories[0]).toStrictEqual({
       count: 3,
       value: 'Tech',
     })
@@ -219,7 +219,7 @@ describe('inferUserInterests', () => {
     ])
 
     expect(result.summary).toContain('カテゴリ偏りはまだ弱めです。')
-    expect(result.chartSpecs).toEqual([
+    expect(result.chartSpecs).toStrictEqual([
       {
         data: [
           { count: 2, label: 'react.dev' },
@@ -297,8 +297,8 @@ describe('inferUserInterests', () => {
       },
     ])
 
-    expect(result.evidence.topDomains).toEqual([])
-    expect(result.evidence.topCategories).toEqual([
+    expect(result.evidence.topDomains).toStrictEqual([])
+    expect(result.evidence.topCategories).toStrictEqual([
       { count: 1, value: 'Research' },
     ])
     expect(

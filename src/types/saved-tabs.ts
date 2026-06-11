@@ -108,7 +108,7 @@ export interface CategoryKeywordModalProps {
   onClose: () => void
   onSave: (groupId: string, categoryName: string, keywords: string[]) => void
   onDeleteCategory: (groupId: string, categoryName: string) => void
-  parentCategories: ParentCategory[]
+  parentCategories?: ParentCategory[]
   onCreateParentCategory: (name: string) => Promise<ParentCategory>
   onAssignToParentCategory: (
     groupId: string,

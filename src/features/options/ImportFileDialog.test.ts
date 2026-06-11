@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import {
   createCloseImportDialogAction,
@@ -7,7 +7,7 @@ import {
   initialImportDialogState,
   resetImportFileInput,
   shouldCloseImportDialog,
-} from './ImportFileDialog'
+} from './importFileDialog.helpers'
 
 describe('shouldCloseImportDialog', () => {
   it('dialog が閉じる操作だけ close として扱う', () => {

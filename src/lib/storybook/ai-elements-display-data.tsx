@@ -106,13 +106,27 @@ const Section = ({
 )
 
 const DataSurfaces = () => (
+  // eslint-disable-line eslint/max-lines-per-function
   <div className='grid gap-6 xl:grid-cols-2'>
     <Section title='Context + Chain of Thought'>
       <div className='gap-y-4'>
         <Context
           maxTokens={128_000}
           modelId='openai/gpt-4.1-mini'
-          usage={{ inputTokens: 8200, outputTokens: 1200 } as never}
+          usage={{
+            inputTokens: 8200,
+            inputTokenDetails: {
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+              noCacheTokens: undefined,
+            },
+            outputTokens: 1200,
+            outputTokenDetails: {
+              reasoningTokens: undefined,
+              textTokens: undefined,
+            },
+            totalTokens: 9400,
+          }}
           usedTokens={18_400}
         >
           <ContextTrigger />
@@ -185,6 +199,7 @@ const DataSurfaces = () => (
         <SchemaDisplay
           description='Creates or updates a saved-tab review batch.'
           method='POST'
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           parameters={[
             {
               description: 'Workspace id',
@@ -195,6 +210,7 @@ const DataSurfaces = () => (
             },
           ]}
           path='/api/workspaces/{workspaceId}/review-batches'
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           requestBody={[
             {
               description: 'Model to use',
@@ -209,6 +225,7 @@ const DataSurfaces = () => (
               type: 'array',
             },
           ]}
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           responseBody={[
             {
               description: 'Review batch id',
@@ -322,6 +339,7 @@ const DataSurfaces = () => (
           </InlineCitationText>
           <InlineCitationCard>
             <InlineCitationCardTrigger
+              // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
               sources={[
                 'https://tabbin.app/blog/storybook-workflow',
                 'https://docs.storybook.js.org',
@@ -352,6 +370,7 @@ const DataSurfaces = () => (
         </InlineCitation>
 
         <JSXPreview
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           bindings={{ count: 12 }}
           className='gap-y-3 rounded-lg border p-3'
           jsx='<div><strong>{count}</strong> saved tabs ready for review.</div>'

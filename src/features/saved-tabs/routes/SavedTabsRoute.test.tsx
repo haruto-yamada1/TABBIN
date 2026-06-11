@@ -1,14 +1,15 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const resizeObserverState = vi.hoisted(() => {
-  const instances: Array<{
+  const instances: {
     callback: ResizeObserverCallback
     disconnect: ReturnType<typeof vi.fn>
     observe: ReturnType<typeof vi.fn>
-  }> = []
+  }[] = []
 
   class MockResizeObserver {
     callback: ResizeObserverCallback
@@ -192,7 +193,8 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
   },
 }))
 
-import { SavedTabsRoute, getLeftPaneWidthStoreSnapshot } from './SavedTabsRoute'
+import { SavedTabsRoute } from './SavedTabsRoute'
+import { getLeftPaneWidthStoreSnapshot } from './savedTabsRoute.helpers'
 
 describe('SavedTabsRoute', () => {
   beforeEach(() => {
@@ -463,17 +465,21 @@ describe('SavedTabsRoute', () => {
     })
     fireEvent.scroll(leftPane)
 
+    // eslint-disable-next-line typescript/TS2339
     expect(
       (screen.getByLabelText('最上部へ移動') as HTMLButtonElement).disabled,
     ).toBe(true)
+    // eslint-disable-next-line typescript/TS2339
     expect(
       (screen.getByLabelText('上の親カテゴリへ移動') as HTMLButtonElement)
         .disabled,
     ).toBe(true)
+    // eslint-disable-next-line typescript/TS2339
     expect(
       (screen.getByLabelText('下の親カテゴリへ移動') as HTMLButtonElement)
         .disabled,
     ).toBe(false)
+    // eslint-disable-next-line typescript/TS2339
     expect(
       (screen.getByLabelText('最下部へ移動') as HTMLButtonElement).disabled,
     ).toBe(false)
@@ -581,7 +587,7 @@ describe('SavedTabsRoute', () => {
         return items
       }, [])
 
-    expect(labels).toEqual([
+    expect(labels).toStrictEqual([
       '最上部へ移動',
       '上の親カテゴリへ移動',
       '上のドメインへ移動',
@@ -608,7 +614,7 @@ describe('SavedTabsRoute', () => {
         return items
       }, [])
 
-    expect(labels).toEqual([
+    expect(labels).toStrictEqual([
       '最上部へ移動',
       '上のプロジェクトへ移動',
       '下のプロジェクトへ移動',

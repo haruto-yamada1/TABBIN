@@ -1,13 +1,12 @@
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
+import type { ParentCategory } from '@/types/storage'
 
 import { KeywordEditor } from './keyword-modal/KeywordEditor'
 import { KeywordModalRoot } from './keyword-modal/KeywordModalRoot'
 import { SubCategoryAddSection } from './keyword-modal/SubCategoryAddSection'
 import { SubCategorySelector } from './keyword-modal/SubCategorySelector'
 
-const EMPTY_PARENT_CATEGORIES: NonNullable<
-  CategoryKeywordModalProps['parentCategories']
-> = []
+const EMPTY_PARENT_CATEGORIES: ParentCategory[] = []
 
 /**
  * カテゴリキーワード管理モーダルコンポーネント

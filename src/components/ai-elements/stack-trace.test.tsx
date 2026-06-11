@@ -217,6 +217,7 @@ describe('StackTraceActions', () => {
     const parentClick = vi.fn()
 
     render(
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       <div role='presentation' onClick={parentClick} onKeyDown={() => {}}>
         <StackTraceActions>
           <button type='button'>action</button>

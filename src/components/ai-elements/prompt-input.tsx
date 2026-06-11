@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-deprecated */
 'use client'
 
 import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from 'ai'
@@ -86,12 +87,18 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     const blob = await response.blob()
     // FileReader uses callback-based API, wrapping in Promise is necessary
     // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
+    // eslint-disable-next-line typescript/return-await
     return new Promise((resolve) => {
       const reader = new FileReader()
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      reader.onloadend = () => resolve(reader.result as string)
+      reader.onloadend = () => {
+        resolve(typeof reader.result === 'string' ? reader.result : '')
+      }
       // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      reader.onerror = () => resolve(null)
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
+      reader.onerror = () => {
+        resolve(null)
+      }
       reader.readAsDataURL(blob)
     })
   } catch {
@@ -177,7 +184,9 @@ export const PromptInputProvider = ({
     (_state: string, nextTextInput: string) => nextTextInput,
     initialTextInput,
   )
-  const clearInput = useCallback(() => setTextInput(''), [])
+  const clearInput = useCallback(() => {
+    setTextInput('')
+  }, [])
 
   // ----- attachments state (global when wrapped)
   const [attachmentFiles, setAttachmentFiles] = useState<
@@ -387,11 +396,13 @@ export type PromptInputProps = Omit<
   }) => void
   onSubmit: (
     message: PromptInputMessage,
+    // eslint-disable-next-line typescript/no-deprecated
     event: FormEvent<HTMLFormElement>,
   ) => void | Promise<void>
 }
 
 const usePromptInputView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   className,
   accept,
   multiple,
@@ -510,20 +521,19 @@ const usePromptInputView = ({
     [matchesAccept, maxFiles, maxFileSize, onError],
   )
 
-  const removeLocal = useCallback(
-    (id: string) =>
-      setItems((prev) => {
-        const found = prev.find((file) => file.id === id)
-        if (found?.url) {
-          URL.revokeObjectURL(found.url)
-        }
-        return prev.filter((file) => file.id !== id)
-      }),
-    [],
-  )
+  const removeLocal = useCallback((id: string) => {
+    setItems((prev) => {
+      const found = prev.find((file) => file.id === id)
+      if (found?.url) {
+        URL.revokeObjectURL(found.url)
+      }
+      return prev.filter((file) => file.id !== id)
+    })
+  }, [])
 
   // Wrapper that validates files before calling provider's add
   const addWithProviderValidation = useCallback(
+    // eslint-disable-next-line eslint/complexity
     (fileList: File[] | FileList) => {
       const incoming = [...fileList]
       const accepted = incoming.filter((f) => matchesAccept(f))
@@ -566,22 +576,23 @@ const usePromptInputView = ({
     [matchesAccept, maxFileSize, maxFiles, onError, files.length, controller],
   )
 
-  const clearAttachments = useCallback(
-    () =>
-      usingProvider
-        ? controller?.attachments.clear()
-        : setItems((prev) => {
-            for (const file of prev) {
-              if (file.url) {
-                URL.revokeObjectURL(file.url)
-              }
+  const clearAttachments = useCallback(() => {
+    // eslint-disable-next-line eslint/no-unused-expressions
+    usingProvider
+      ? controller?.attachments.clear()
+      : setItems((prev) => {
+          for (const file of prev) {
+            if (file.url) {
+              URL.revokeObjectURL(file.url)
             }
-            return []
-          }),
-    [usingProvider, controller],
-  )
+          }
+          return []
+        })
+  }, [usingProvider, controller])
 
-  const clearReferencedSources = useCallback(() => setReferencedSources([]), [])
+  const clearReferencedSources = useCallback(() => {
+    setReferencedSources([])
+  }, [])
 
   const add = usingProvider ? addWithProviderValidation : addLocal
   const remove = controller?.attachments.remove ?? removeLocal
@@ -635,6 +646,7 @@ const usePromptInputView = ({
     }
     form.addEventListener('dragover', onDragOver)
     form.addEventListener('drop', onDrop)
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       form.removeEventListener('dragover', onDragOver)
       form.removeEventListener('drop', onDrop)
@@ -661,6 +673,7 @@ const usePromptInputView = ({
     }
     document.addEventListener('dragover', onDragOver)
     document.addEventListener('drop', onDrop)
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       document.removeEventListener('dragover', onDragOver)
       document.removeEventListener('drop', onDrop)
@@ -722,7 +735,9 @@ const usePromptInputView = ({
     [referencedSources, clearReferencedSources],
   )
 
+  // eslint-disable-next-line typescript/no-misused-promises
   const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
+    // eslint-disable-line typescript/no-deprecated
     async (event) => {
       event.preventDefault()
 
@@ -731,7 +746,8 @@ const usePromptInputView = ({
         ? controller.textInput.value
         : (() => {
             const formData = new FormData(form)
-            return (formData.get('message') as string) || ''
+            const message = formData.get('message')
+            return typeof message === 'string' ? message : ''
           })()
 
       // Reset form immediately after capturing text to avoid race condition
@@ -847,6 +863,7 @@ export const PromptInputTextarea = ({
   const isComposingRef = useRef(false)
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
+    // eslint-disable-next-line eslint/complexity
     (e) => {
       // Call the external onKeyDown handler first
       onKeyDown?.(e)
@@ -867,10 +884,10 @@ export const PromptInputTextarea = ({
 
         // Check if the submit button is disabled before submitting
         const { form } = e.currentTarget
-        const submitButton = form?.querySelector(
-          'button[type="submit"]',
-        ) as HTMLButtonElement | null
-        if (submitButton?.disabled) {
+        const submitButton = form?.querySelector('button[type="submit"]')
+        const submitButtonDisabled =
+          submitButton instanceof HTMLButtonElement && submitButton.disabled
+        if (submitButtonDisabled) {
           return
         }
 

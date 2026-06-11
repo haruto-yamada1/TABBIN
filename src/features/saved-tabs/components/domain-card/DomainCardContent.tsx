@@ -11,13 +11,73 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { useCallback } from 'react'
 
 import { CardContent } from '@/components/ui/card'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { SortableCategorySection } from '@/features/saved-tabs/components/SortableCategorySection'
 import { CategorySection } from '@/features/saved-tabs/components/TimeRemaining'
+import type { TabGroup, UserSettings } from '@/types/storage'
 
 import { useDomainCard } from './DomainCardContext'
+
+/* eslint-disable react/jsx-handler-names -- handlers from context use handle* naming */
+const EMPTY_CATEGORY_URLS: TabGroup['urls'] = []
+
+interface CategorySectionItemProps {
+  categoryName: string
+  urls: TabGroup['urls']
+  groupId: string
+  handleDeleteUrl: (groupId: string, url: string) => void
+  handleOpenTab: (url: string) => void
+  handleUpdateUrls: (groupId: string, updatedUrls: TabGroup['urls']) => void
+  handleOpenAllTabs: (urls: { url: string; title: string }[]) => void
+  handleDeleteAllTabsInCategory: (
+    categoryName: string,
+    urls: { url: string }[],
+  ) => void
+  settings: UserSettings
+  stickyTop: string
+  isCategoryReorderMode: boolean
+}
+
+const CategorySectionItem = ({
+  categoryName,
+  urls,
+  groupId,
+  handleDeleteUrl,
+  handleOpenTab,
+  handleUpdateUrls,
+  handleOpenAllTabs,
+  handleDeleteAllTabsInCategory,
+  settings,
+  stickyTop,
+  isCategoryReorderMode,
+}: CategorySectionItemProps) => {
+  const handleDeleteAllTabs = useCallback(
+    (deleteUrls: { url: string }[]) => {
+      handleDeleteAllTabsInCategory(categoryName, deleteUrls)
+    },
+    [handleDeleteAllTabsInCategory, categoryName],
+  )
+
+  return (
+    <SortableCategorySection
+      id={categoryName}
+      categoryName={categoryName}
+      urls={urls}
+      groupId={groupId}
+      handleDeleteUrl={handleDeleteUrl}
+      handleOpenTab={handleOpenTab}
+      handleUpdateUrls={handleUpdateUrls}
+      handleOpenAllTabs={handleOpenAllTabs}
+      handleDeleteAllTabs={handleDeleteAllTabs}
+      settings={settings}
+      stickyTop={stickyTop}
+      isReorderMode={isCategoryReorderMode}
+    />
+  )
+}
 
 /**
  * DomainCard の展開時コンテンツ
@@ -44,7 +104,7 @@ export const DomainCardContent = () => {
     return null
   }
 
-  const hasUrls = (group.urls?.length || 0) > 0
+  const hasUrls = (group.urls?.length ?? 0) > 0
   const categoryIds = categoryReorder.isCategoryReorderMode
     ? categoryReorder.tempCategoryOrder
     : categoryReorder.allCategoryIds
@@ -53,7 +113,7 @@ export const DomainCardContent = () => {
     return (
       <CardContent className='gap-y-1'>
         <div className='py-4 text-center text-zinc-400'>
-          {(group.urls?.length || 0) === 0
+          {(group.urls?.length ?? 0) === 0
             ? t('savedTabs.domain.emptyNoTabs')
             : t('savedTabs.domain.emptyManageCategoriesHint')}
         </div>
@@ -92,14 +152,14 @@ export const DomainCardContent = () => {
           strategy={verticalListSortingStrategy}
         >
           {categoryIds.map((categoryName) => {
-            const urls = computed.categorizedUrls[categoryName] || []
+            const urls =
+              computed.categorizedUrls[categoryName] ?? EMPTY_CATEGORY_URLS
             if (urls.length === 0) {
               return null
             }
             return (
-              <SortableCategorySection
+              <CategorySectionItem
                 key={categoryName}
-                id={categoryName}
                 categoryName={categoryName}
                 urls={urls}
                 groupId={group.id}
@@ -107,15 +167,13 @@ export const DomainCardContent = () => {
                 handleOpenTab={handlers.handleOpenTab}
                 handleUpdateUrls={handlers.handleUpdateUrls}
                 handleOpenAllTabs={handlers.handleOpenAllTabs}
-                handleDeleteAllTabs={(urls) =>
-                  categoryActions.handleDeleteAllTabsInCategory(
-                    categoryName,
-                    urls,
-                  )
+                // eslint-disable-next-line typescript/no-misused-promises
+                handleDeleteAllTabsInCategory={
+                  categoryActions.handleDeleteAllTabsInCategory
                 }
                 settings={settings}
                 stickyTop={categorySectionStickyTop}
-                isReorderMode={categoryReorder.isCategoryReorderMode}
+                isCategoryReorderMode={categoryReorder.isCategoryReorderMode}
               />
             )
           })}

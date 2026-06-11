@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocks = vi.hoisted(() => ({
   getChromeStorageLocal: vi.fn(),
@@ -35,7 +35,7 @@ describe('settings storage', () => {
 
     const { defaultSettings, getUserSettings } = await loadModule()
 
-    await expect(getUserSettings()).resolves.toEqual(defaultSettings)
+    await expect(getUserSettings()).resolves.toStrictEqual(defaultSettings)
     expect(defaultSettings.fontSizePercent).toBe(100)
     expect(defaultSettings.language).toBe('system')
     expect(mocks.warnMissingChromeStorage).toHaveBeenCalledWith('設定読み込み')
@@ -43,6 +43,7 @@ describe('settings storage', () => {
 
   it('保存済み設定があればデフォルトとマージして返す', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async () => ({
         userSettings: {
           aiChatEnabled: true,
@@ -52,6 +53,7 @@ describe('settings storage', () => {
           language: 'en',
         },
       })),
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -74,11 +76,13 @@ describe('settings storage', () => {
 
   it('保存済みの excludePatterns に既定の内部ページ除外を補完し、既存の手動追加は保持する', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async () => ({
         userSettings: {
           excludePatterns: ['custom-pattern', 'chrome://'],
         },
       })),
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -107,11 +111,13 @@ describe('settings storage', () => {
 
   it('保存済みの excludePatterns から空白と非文字列を除外する', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async () => ({
         userSettings: {
           excludePatterns: [' custom-pattern ', '   ', 123, null],
         },
       })),
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -136,11 +142,13 @@ describe('settings storage', () => {
 
   it('保存済み設定に excludePatterns が無い場合は既定値を補完して保存する', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async () => ({
         userSettings: {
           language: 'system',
         },
       })),
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -161,12 +169,14 @@ describe('settings storage', () => {
 
   it('保存済み設定が既に正規化済みなら再保存しない', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async () => ({
         userSettings: {
           excludePatterns: ['about:', 'chrome-extension://', 'chrome://'],
           language: 'system',
         },
       })),
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -183,6 +193,7 @@ describe('settings storage', () => {
 
   it('保存時も excludePatterns に既定の内部ページ除外を補完する', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -224,14 +235,16 @@ describe('settings storage', () => {
 
   it('保存済み設定がない場合は正規化したデフォルト設定を返す', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async () => ({})),
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
 
     const { defaultSettings, getUserSettings } = await loadModule()
 
-    await expect(getUserSettings()).resolves.toEqual({
+    await expect(getUserSettings()).resolves.toStrictEqual({
       ...defaultSettings,
       normalized: true,
     })
@@ -240,6 +253,7 @@ describe('settings storage', () => {
 
   it('設定取得エラー時はデフォルトへフォールバックする', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async () => {
         throw new Error('read failed')
       }),
@@ -249,7 +263,7 @@ describe('settings storage', () => {
 
     const { defaultSettings, getUserSettings } = await loadModule()
 
-    await expect(getUserSettings()).resolves.toEqual({
+    await expect(getUserSettings()).resolves.toStrictEqual({
       ...defaultSettings,
       normalized: true,
     })
@@ -258,6 +272,7 @@ describe('settings storage', () => {
 
   it('設定保存時に正規化した値を書き込む', async () => {
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -283,6 +298,7 @@ describe('settings storage', () => {
     expect(mocks.warnMissingChromeStorage).toHaveBeenCalledWith('設定保存')
 
     const storageLocal = {
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async () => {
         throw new Error('write failed')
       }),

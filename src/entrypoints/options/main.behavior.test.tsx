@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { OptionsPage } from '@/features/options/routes/OptionsRoute'
 import type { UserSettings } from '@/types/storage'
@@ -83,6 +83,7 @@ vi.mock('@/components/ui/button', () => ({
     onClick?: () => void
     type?: 'button' | 'submit'
   } & Record<string, unknown>) => (
+    // eslint-disable-next-line react/button-has-type
     <button onClick={onClick} type={type} {...props}>
       {children}
     </button>
@@ -99,10 +100,12 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
+    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       id={id}
       type='checkbox'
       checked={checked}
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onCheckedChange?.(event.target.checked)}
     />
   ),
@@ -143,6 +146,7 @@ vi.mock('@/components/ui/select', () => ({
     <div>
       <button
         data-testid='mock-select-change'
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           onValueChange?.(value === 'never' ? '30days' : 'saveWindowTabs')
         }
@@ -400,9 +404,7 @@ describe('options route behavior', () => {
 
     expect(screen.queryByText('Current value')).toBeNull()
 
-    fireEvent.click(
-      screen.getAllByTestId('mock-select-change')[0] as HTMLElement,
-    )
+    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.updateSetting).toHaveBeenCalledWith(
       'clickBehavior',
       'saveWindowTabs',
@@ -467,7 +469,7 @@ describe('options route behavior', () => {
 
     const resetButtons = screen.getAllByRole('button', { name: 'Reset' })
 
-    fireEvent.click(resetButtons[0] as HTMLElement)
+    fireEvent.click(resetButtons[0])
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 100)
 
     const fontSizeSlider = screen.getByLabelText('Font size slider')
@@ -477,6 +479,7 @@ describe('options route behavior', () => {
       target: { value: '125' },
     })
     expect(mocked.updateSetting).toHaveBeenCalledTimes(updateSettingCallCount)
+    // eslint-disable-next-line typescript/TS2339
     expect(
       (screen.getByLabelText('Font size percentage') as HTMLInputElement).value,
     ).toBe('125')
@@ -490,7 +493,7 @@ describe('options route behavior', () => {
     fireEvent.blur(screen.getByLabelText('Font size percentage'))
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 500)
 
-    fireEvent.click(resetButtons[1] as HTMLElement)
+    fireEvent.click(resetButtons[1])
     expect(mocked.handleResetColors).toHaveBeenCalledTimes(1)
 
     const colorInput = document.querySelector('input[type="color"]')
@@ -500,7 +503,7 @@ describe('options route behavior', () => {
     }
     fireEvent.input(colorInput, { target: { value: '#ffffff' } })
     fireEvent.change(colorInput, { target: { value: '#ffffff' } })
-    fireEvent.change(hexInput as HTMLElement, { target: { value: '#000000' } })
+    fireEvent.change(hexInput, { target: { value: '#000000' } })
 
     expect(mocked.handleColorChange).toHaveBeenCalled()
 
@@ -523,9 +526,7 @@ describe('options route behavior', () => {
     render(createElement(OptionsPage))
 
     fireEvent.keyDown(
-      screen.getAllByPlaceholderText(
-        'e.g. chrome-extension://',
-      )[0] as HTMLElement,
+      screen.getAllByPlaceholderText('e.g. chrome-extension://')[0],
       {
         key: 'Escape',
       },

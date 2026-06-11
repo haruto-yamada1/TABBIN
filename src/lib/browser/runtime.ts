@@ -48,12 +48,10 @@ const getGlobalChromeRuntime = (): ChromeRuntime | null => {
 }
 
 const loadWebExtensionBrowserApi = async (): Promise<BrowserApi | null> => {
-  if (!browserApiPromise) {
-    browserApiPromise = import('webextension-polyfill').then(
-      (mod: BrowserModule) => mod.default as BrowserApi | null,
-    )
-  }
-  return await browserApiPromise
+  browserApiPromise ??= import('webextension-polyfill').then(
+    (mod: BrowserModule) => mod.default ?? null,
+  )
+  return browserApiPromise
 }
 
 const sendWithChromeRuntime = async (
@@ -75,9 +73,10 @@ export const sendRuntimeMessage = async (
 ): Promise<unknown> => {
   const browserApi = getGlobalBrowserApi()
   if (browserApi?.runtime?.sendMessage) {
-    return await browserApi.runtime.sendMessage(message)
+    return browserApi.runtime.sendMessage(message)
   }
 
+  // eslint-disable-next-line eslint/no-useless-assignment
   let polyfillBrowserApi: BrowserApi | null = null
   try {
     polyfillBrowserApi = await loadWebExtensionBrowserApi()
@@ -96,9 +95,10 @@ export const sendRuntimeMessage = async (
   if (!chromeRuntime?.sendMessage) {
     return undefined
   }
-  return await sendWithChromeRuntime(chromeRuntime, message)
+  return sendWithChromeRuntime(chromeRuntime, message)
 }
 
+// eslint-disable-next-line eslint/complexity
 export const connectRuntimePort = async (
   name: string,
 ): Promise<RuntimePort | null> => {
@@ -109,6 +109,7 @@ export const connectRuntimePort = async (
     })
   }
 
+  // eslint-disable-next-line eslint/no-useless-assignment
   let polyfillBrowserApi: BrowserApi | null = null
   try {
     polyfillBrowserApi = await loadWebExtensionBrowserApi()

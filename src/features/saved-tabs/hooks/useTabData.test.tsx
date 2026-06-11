@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
@@ -48,7 +48,8 @@ describe('useTabData', () => {
     getParentCategoriesMock.mockReset()
     getParentCategoriesMock.mockResolvedValue([])
     resolveTabGroupsWithUrlsMock.mockReset()
-    resolveTabGroupsWithUrlsMock.mockImplementation(async (groups) => groups)
+    // eslint-disable-next-line typescript/require-await
+    resolveTabGroupsWithUrlsMock.mockImplementation(async (groups) => groups) // eslint-disable-line
     getUserSettingsMock.mockReset()
     getUserSettingsMock.mockResolvedValue({} as UserSettings)
     migrateParentCategoriesToDomainNamesMock.mockReset()
@@ -59,6 +60,7 @@ describe('useTabData', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key?: string) => {
             if (key === 'savedTabs') {
               return { savedTabs: [] }
@@ -131,12 +133,14 @@ describe('useTabData', () => {
         },
       ])
       .mockResolvedValueOnce(repairedCategories)
+    // eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockImplementation: (
         implementation: (key?: string) => Promise<unknown>,
       ) => void
       mockResolvedValueOnce: (value: unknown) => void
     }
+    // eslint-disable-next-line typescript/require-await
     storageGet.mockImplementation(async (key?: string) => {
       if (key === 'savedTabs') {
         return { savedTabs }
@@ -171,6 +175,7 @@ describe('useTabData', () => {
 
     expect(onSettingsLoaded).toHaveBeenCalledWith(settings)
     expect(onCategoriesLoaded).toHaveBeenCalledWith(repairedCategories)
+    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -184,7 +189,7 @@ describe('useTabData', () => {
         savedTabs[2],
       ],
     })
-    expect(result.current.tabGroups).toEqual([
+    expect(result.current.tabGroups).toStrictEqual([
       {
         ...savedTabs[0],
         parentCategoryId: 'category-by-id',
@@ -204,6 +209,7 @@ describe('useTabData', () => {
     migrateToUrlsStorageMock.mockRejectedValueOnce(
       new Error('url migration failed'),
     )
+    // eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.get).mockRejectedValueOnce(
       new Error('storage failed'),
     )
@@ -229,11 +235,13 @@ describe('useTabData', () => {
   })
 
   it('初期ロードで savedTabs と urls が配列でない場合は空配列として扱う', async () => {
+    // eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockImplementation: (
         implementation: (key?: string) => Promise<unknown>,
       ) => void
     }
+    // eslint-disable-next-line typescript/require-await
     storageGet.mockImplementation(async (key?: string) => {
       if (key === 'savedTabs') {
         return { savedTabs: 'invalid' }
@@ -250,7 +258,7 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.tabGroups).toEqual([])
+    expect(result.current.tabGroups).toStrictEqual([])
     expect(console.log).toHaveBeenCalledWith('URLレコード数:', 0)
   })
 
@@ -308,7 +316,7 @@ describe('useTabData', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.tabGroupsWithUrls).toEqual([
+      expect(result.current.tabGroupsWithUrls).toStrictEqual([
         {
           ...group,
           urls: [
@@ -356,10 +364,12 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    await expect(result.current.loadTabGroupsWithUrls([])).resolves.toEqual([])
-    await expect(result.current.loadTabGroupsWithUrls(groups)).resolves.toEqual(
-      groups,
-    )
+    await expect(
+      result.current.loadTabGroupsWithUrls([]),
+    ).resolves.toStrictEqual([])
+    await expect(
+      result.current.loadTabGroupsWithUrls(groups),
+    ).resolves.toStrictEqual(groups)
 
     expect(resolveTabGroupsWithUrlsMock).toHaveBeenCalledWith(groups)
   })
@@ -376,6 +386,7 @@ describe('useTabData', () => {
 
     unmount()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveGroups?.([
         {
@@ -385,7 +396,7 @@ describe('useTabData', () => {
       ])
     })
 
-    expect(result.current.tabGroupsWithUrls).toEqual([])
+    expect(result.current.tabGroupsWithUrls).toStrictEqual([])
   })
 
   it('setTabGroups と storage からの refresh は state を更新する', async () => {
@@ -399,12 +410,14 @@ describe('useTabData', () => {
       id: 'appended',
       domain: 'appended.example.com',
     }
+    // eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockImplementation: (
         implementation: (key?: string) => Promise<unknown>,
       ) => void
       mockResolvedValueOnce: (value: unknown) => void
     }
+    // eslint-disable-next-line typescript/require-await
     storageGet.mockImplementation(async (key?: string) => {
       if (key === 'savedTabs') {
         return { savedTabs: storedGroups }
@@ -421,23 +434,27 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.setTabGroups((previous) => [...previous, appendedGroup])
     })
 
-    expect(result.current.tabGroups).toEqual([...storedGroups, appendedGroup])
+    expect(result.current.tabGroups).toStrictEqual([
+      ...storedGroups,
+      appendedGroup,
+    ])
 
     act(() => {
       result.current.setTabGroups([appendedGroup])
     })
 
-    expect(result.current.tabGroups).toEqual([appendedGroup])
+    expect(result.current.tabGroups).toStrictEqual([appendedGroup])
 
     await act(async () => {
       await result.current.refreshTabGroupsWithUrls()
     })
 
-    expect(result.current.tabGroups).toEqual(storedGroups)
+    expect(result.current.tabGroups).toStrictEqual(storedGroups)
 
     storageGet.mockResolvedValueOnce({})
 
@@ -445,7 +462,7 @@ describe('useTabData', () => {
       await result.current.refreshTabGroupsWithUrls()
     })
 
-    expect(result.current.tabGroups).toEqual([])
+    expect(result.current.tabGroups).toStrictEqual([])
 
     storageGet.mockResolvedValueOnce({
       savedTabs: 'invalid',
@@ -455,6 +472,6 @@ describe('useTabData', () => {
       await result.current.refreshTabGroupsWithUrls()
     })
 
-    expect(result.current.tabGroups).toEqual([])
+    expect(result.current.tabGroups).toStrictEqual([])
   })
 })

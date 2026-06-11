@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -13,7 +14,11 @@ describe('Fieldコンポーネント', () => {
     render(
       <Field data-invalid>
         <FieldLabel htmlFor='field-input'>Invalid Input</FieldLabel>
-        <input aria-describedby='field-error' id='field-input' />
+        <input
+          aria-describedby='field-error'
+          id='field-input'
+          aria-label='Invalid Input'
+        />
         <FieldDescription>Helper text</FieldDescription>
         <FieldError id='field-error'>
           This field contains validation errors.
@@ -36,7 +41,7 @@ describe('Fieldコンポーネント', () => {
     const { getByRole } = render(
       <Field orientation='horizontal'>
         <FieldLabel htmlFor='horizontal-input'>Label</FieldLabel>
-        <input id='horizontal-input' />
+        <input id='horizontal-input' aria-label='Label' />
       </Field>,
     )
 

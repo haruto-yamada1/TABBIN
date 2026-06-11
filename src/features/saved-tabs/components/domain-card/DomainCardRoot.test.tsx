@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { DomainCardContextType } from './DomainCardContext'
 
@@ -121,12 +121,14 @@ describe('DomainCardRoot', () => {
 
     render(
       <DomainCardRoot
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         group={{
           id: 'group-1',
           domain: 'example.com',
           urls: [{ url: 'https://example.com', title: 'Example' }],
           subCategories: ['news', 'tech', 'empty'],
         }}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         settings={{
           removeTabAfterOpen: true,
           removeTabAfterExternalDrop: true,
@@ -149,9 +151,9 @@ describe('DomainCardRoot', () => {
       </DomainCardRoot>,
     )
 
-    const root = document.querySelector(
+    const root = document.querySelector<HTMLElement>(
       '[data-saved-tabs-scroll-target="domain"]',
-    ) as HTMLElement | null
+    )
     expect(root?.style.contentVisibility).toBe('auto')
     expect(root?.style.containIntrinsicSize).toBe('360px')
     expect(screen.getByText('2')).toBeTruthy()
@@ -169,12 +171,14 @@ describe('DomainCardRoot', () => {
 
     render(
       <DomainCardRoot
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         group={{
           id: 'group-1',
           domain: 'example.com',
           urls: [{ url: 'https://example.com', title: 'Example' }],
           subCategories: ['news', 'tech', 'empty'],
         }}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         settings={{
           removeTabAfterOpen: true,
           removeTabAfterExternalDrop: true,

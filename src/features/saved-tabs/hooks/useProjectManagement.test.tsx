@@ -1,7 +1,8 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CustomProject, UserSettings } from '@/types/storage'
 
@@ -35,6 +36,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -47,7 +49,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -119,14 +121,14 @@ const waitForLoadedProjects = async (
   expectedProjects: CustomProject[] = projectSnapshot,
 ) => {
   await waitFor(() => {
-    expect(result.current.customProjects).toEqual(expectedProjects)
+    expect(result.current.customProjects).toStrictEqual(expectedProjects)
   })
 }
 
 describe('useProjectManagement', () => {
   beforeEach(() => {
     for (const mock of Object.values(projectManagementMocks)) {
-      mock.mockReset()
+      mock.mockReset() // eslint-disable-line
     }
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -139,6 +141,7 @@ describe('useProjectManagement', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
             customProjects: projectSnapshot,
@@ -169,9 +172,9 @@ describe('useProjectManagement', () => {
 
     await expect(
       act(async () => result.current.syncDomainDataToCustomProjects()),
-    ).resolves.toEqual(latestProjects)
+    ).resolves.toStrictEqual(latestProjects)
 
-    expect(result.current.customProjects).toEqual(latestProjects)
+    expect(result.current.customProjects).toStrictEqual(latestProjects)
     expect(console.error).toHaveBeenCalledWith(
       'データ同期エラー:',
       expect.any(Error),
@@ -193,7 +196,7 @@ describe('useProjectManagement', () => {
         expect.any(Error),
       )
     })
-    expect(result.current.customProjects).toEqual([])
+    expect(result.current.customProjects).toStrictEqual([])
 
     let resolveProjects: (projects: CustomProject[]) => void = () => undefined
     projectManagementMocks.getCustomProjects.mockImplementationOnce(
@@ -208,11 +211,12 @@ describe('useProjectManagement', () => {
     )
     unmount()
 
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveProjects(projectSnapshot)
     })
 
-    expect(pendingResult.current.customProjects).toEqual([])
+    expect(pendingResult.current.customProjects).toStrictEqual([])
   })
 
   it('同期の再取得も失敗した場合は空配列を返す', async () => {
@@ -229,7 +233,7 @@ describe('useProjectManagement', () => {
 
     await expect(
       act(async () => result.current.syncDomainDataToCustomProjects()),
-    ).resolves.toEqual([])
+    ).resolves.toStrictEqual([])
 
     expect(console.error).toHaveBeenCalledWith(
       'プロジェクト再取得エラー:',
@@ -260,7 +264,7 @@ describe('useProjectManagement', () => {
     })
 
     expect(result.current.viewMode).toBe('custom')
-    expect(result.current.customProjects).toEqual([projectWithCategories])
+    expect(result.current.customProjects).toStrictEqual([projectWithCategories])
   })
 
   it('initialViewMode 未指定なら domain モードで初期化する', async () => {
@@ -313,7 +317,7 @@ describe('useProjectManagement', () => {
     expect(projectManagementMocks.createCustomProject).toHaveBeenCalledWith(
       'New Project',
     )
-    expect(result.current.customProjects[0]).toEqual(createdProject)
+    expect(result.current.customProjects[0]).toStrictEqual(createdProject)
     expect(toast.success).toHaveBeenCalledWith(
       'プロジェクト「New Project」を追加しました',
     )
@@ -392,7 +396,7 @@ describe('useProjectManagement', () => {
       name: 'Renamed',
       projectKeywords,
     })
-    expect(result.current.customProjects[1]).toEqual(untouchedProject)
+    expect(result.current.customProjects[1]).toStrictEqual(untouchedProject)
 
     await act(async () => {
       await result.current.handleDeleteProject('missing-project')
@@ -407,7 +411,7 @@ describe('useProjectManagement', () => {
     expect(projectManagementMocks.deleteCustomProject).toHaveBeenCalledWith(
       'project-1',
     )
-    expect(result.current.customProjects).toEqual([untouchedProject])
+    expect(result.current.customProjects).toStrictEqual([untouchedProject])
   })
 
   it('URL追加、カテゴリ削除、URL分類は最新プロジェクトを再取得する', async () => {
@@ -436,7 +440,7 @@ describe('useProjectManagement', () => {
       'https://example.com/c',
       'Example C',
     )
-    expect(result.current.customProjects).toEqual([projectWithCategories])
+    expect(result.current.customProjects).toStrictEqual([projectWithCategories])
 
     await act(async () => {
       await result.current.handleDeleteProjectCategory('project-1', 'Inbox')
@@ -445,7 +449,7 @@ describe('useProjectManagement', () => {
     expect(
       projectManagementMocks.removeCategoryFromProject,
     ).toHaveBeenCalledWith('project-1', 'Inbox')
-    expect(result.current.customProjects).toEqual([])
+    expect(result.current.customProjects).toStrictEqual([])
 
     await act(async () => {
       await result.current.handleSetUrlCategory(
@@ -460,7 +464,7 @@ describe('useProjectManagement', () => {
       'https://example.com/a',
       'Done',
     )
-    expect(result.current.customProjects).toEqual(updatedProjects)
+    expect(result.current.customProjects).toStrictEqual(updatedProjects)
   })
 
   it('カテゴリ追加、カテゴリ順序、URL順序、プロジェクト順序、カテゴリ名変更を state に反映する', async () => {
@@ -547,12 +551,9 @@ describe('useProjectManagement', () => {
       'Inbox',
       'Later',
     )
-    expect(result.current.customProjects.map((project) => project.id)).toEqual([
-      'project-1',
-      'project-2',
-      'project-3',
-      'project-4',
-    ])
+    expect(
+      result.current.customProjects.map((project) => project.id),
+    ).toStrictEqual(['project-1', 'project-2', 'project-3', 'project-4'])
     expect(result.current.customProjects[1]).toMatchObject({
       categories: ['Later', 'Done', 'Review'],
       categoryOrder: ['Review', 'Later'],
@@ -603,11 +604,9 @@ describe('useProjectManagement', () => {
       await result.current.handleReorderProjects(['project-2'])
     })
 
-    expect(result.current.customProjects.map((project) => project.id)).toEqual([
-      'project-2',
-      'project-1',
-      'project-3',
-    ])
+    expect(
+      result.current.customProjects.map((project) => project.id),
+    ).toStrictEqual(['project-2', 'project-1', 'project-3'])
   })
 
   it('各操作の失敗をエラートーストで通知する', async () => {
@@ -757,11 +756,12 @@ describe('useProjectManagement', () => {
       await undoOptions?.action?.onClick?.()
     })
 
+    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
       customProjects: projectSnapshot,
     })
-    expect(result.current.customProjects).toEqual(projectSnapshot)
+    expect(result.current.customProjects).toStrictEqual(projectSnapshot)
   })
 
   it('カスタムモードの一括タブ削除を Undo で復元できる', async () => {
@@ -804,6 +804,7 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(updatedProjects)
       .mockResolvedValueOnce(updatedProjects)
 
+    // eslint-disable-next-line typescript/unbound-method
     const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
       mockResolvedValueOnce: (value: unknown) => void
     }
@@ -811,6 +812,7 @@ describe('useProjectManagement', () => {
     storageGet.mockResolvedValueOnce({
       customProjects: projectSnapshot,
     })
+    // eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(
       new Error('restore failed'),
     )
@@ -840,6 +842,7 @@ describe('useProjectManagement', () => {
       await missingUndoOptions?.action?.onClick?.()
     })
 
+    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -861,6 +864,7 @@ describe('useProjectManagement', () => {
       await failingUndoOptions?.action?.onClick?.()
     })
 
+    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       customProjects: projectSnapshot,
     })

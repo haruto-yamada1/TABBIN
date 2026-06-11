@@ -171,6 +171,7 @@ export type ModelSelectorLogoProps = Omit<
     | 'amazon-bedrock'
     | 'cerebras'
     // oxlint-disable-next-line typescript-eslint(ban-types) -- intentional pattern for autocomplete-friendly string union
+    // eslint-disable-next-line typescript/ban-types
     | (string & {})
 }
 

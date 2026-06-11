@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
 
@@ -21,7 +21,7 @@ describe('systemPromptPresets', () => {
     expect(settings.activeAiSystemPromptId).toBe(
       DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
     )
-    expect(settings.aiSystemPrompts).toEqual([
+    expect(settings.aiSystemPrompts).toStrictEqual([
       expect.objectContaining({
         id: DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
         name: 'デフォルト',
@@ -88,7 +88,7 @@ describe('systemPromptPresets', () => {
       ],
     } as UserSettings)
 
-    expect(settings.aiSystemPrompts).toEqual([
+    expect(settings.aiSystemPrompts).toStrictEqual([
       expect.objectContaining({
         id: 'prompt-1',
         name: 'Prompt 1',
@@ -100,7 +100,7 @@ describe('systemPromptPresets', () => {
         template: 'template 2',
       }),
     ])
-    expect(getActiveAiSystemPrompt(settings)).toEqual(
+    expect(getActiveAiSystemPrompt(settings)).toStrictEqual(
       expect.objectContaining({
         id: 'prompt-2',
         name: 'Prompt 2',
@@ -129,7 +129,7 @@ describe('systemPromptPresets', () => {
           },
         ],
       }),
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         id: 'prompt-1',
         name: 'Prompt 1',
@@ -169,7 +169,7 @@ describe('systemPromptPresets', () => {
       now: 123,
     })
 
-    expect(preset).toEqual(
+    expect(preset).toStrictEqual(
       expect.objectContaining({
         createdAt: 123,
         id: 'prompt-1',

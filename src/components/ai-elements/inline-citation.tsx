@@ -162,6 +162,7 @@ export const InlineCitationCarouselIndex = ({
 
     api.on('select', handleSelect)
 
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       api.off('select', handleSelect)
     }

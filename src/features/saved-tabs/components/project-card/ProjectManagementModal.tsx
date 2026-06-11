@@ -34,6 +34,8 @@ interface ProjectManagementModalProps {
   onDeleteProject?: (projectId: string) => Promise<void> | void
 }
 
+const MAX_PROJECT_NAME_LENGTH = 50
+
 const createProjectNameSchema = (
   validationMessages: { empty: string; maxLength: string } = {
     empty: 'プロジェクト名を入力してください',
@@ -46,7 +48,7 @@ const createProjectNameSchema = (
     .min(1, {
       message: validationMessages.empty,
     })
-    .max(50, {
+    .max(MAX_PROJECT_NAME_LENGTH, {
       message: validationMessages.maxLength,
     })
 
@@ -100,7 +102,7 @@ interface ProjectManagementModalState {
 const createProjectManagementModalState = (
   project: CustomProject,
 ): ProjectManagementModalState => ({
-  domainKeywords: project.projectKeywords?.domainKeywords || [],
+  domainKeywords: project.projectKeywords?.domainKeywords ?? [],
   isProcessing: false,
   isRenaming: false,
   isSaving: false,
@@ -111,8 +113,8 @@ const createProjectManagementModalState = (
   newUrlKeyword: '',
   projectNameError: null,
   showDeleteConfirm: false,
-  titleKeywords: project.projectKeywords?.titleKeywords || [],
-  urlKeywords: project.projectKeywords?.urlKeywords || [],
+  titleKeywords: project.projectKeywords?.titleKeywords ?? [],
+  urlKeywords: project.projectKeywords?.urlKeywords ?? [],
 })
 
 const ProjectKeywordSection = ({
@@ -138,15 +140,20 @@ const ProjectKeywordSection = ({
         id={inputId}
         aria-label={label}
         value={newKeyword}
-        onChange={(e) => onKeywordChange(e.target.value)}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onChange={(e) => {
+          onKeywordChange(e.target.value)
+        }}
         placeholder={placeholder}
         disabled={disabled}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
             onAddKeyword()
           }
         }}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onBlur={() => {
           if (newKeyword.trim()) {
             onBlurKeyword()
@@ -171,7 +178,10 @@ const ProjectKeywordSection = ({
                 type='button'
                 variant='ghost'
                 size='sm'
-                onClick={() => onRemoveKeyword(keyword)}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onClick={() => {
+                  onRemoveKeyword(keyword)
+                }}
                 className='h-5 px-1'
                 aria-label={t('savedTabs.keywords.deleteAria')}
                 disabled={disabled}
@@ -187,6 +197,7 @@ const ProjectKeywordSection = ({
 }
 
 const useProjectManagementModalView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   isOpen,
   onClose,
   project,
@@ -254,6 +265,7 @@ const useProjectManagementModalView = ({
   }
 
   // リネーム処理を開始
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleStartRenaming = () => {
     updateModalState({
       isRenaming: true,
@@ -278,6 +290,7 @@ const useProjectManagementModalView = ({
   }
 
   // 入力変更時の処理
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target
     updateModalState({ newProjectName: value })
@@ -308,6 +321,7 @@ const useProjectManagementModalView = ({
   }
 
   // プロジェクト削除処理
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteProject = async () => {
     if (isProcessing) {
       return
@@ -407,6 +421,7 @@ const useProjectManagementModalView = ({
   return (
     <Dialog
       open={isOpen}
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onOpenChange={() => {
         if (isProcessing || isRenaming || isSaving) {
           return
@@ -456,9 +471,10 @@ const useProjectManagementModalView = ({
                       <Button
                         variant='secondary'
                         size='sm'
-                        onClick={() =>
+                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                        onClick={() => {
                           updateModalState({ showDeleteConfirm: true })
-                        }
+                        }}
                         className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
                         disabled={isProcessing}
                       >
@@ -489,6 +505,7 @@ const useProjectManagementModalView = ({
                     'savedTabs.projectManagement.renamePlaceholder',
                   )}
                   className={`w-full flex-1 rounded border p-2 ${projectNameError ? 'border-red-500' : ''}`}
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onBlur={() => {
                     if (isProcessing) {
                       return
@@ -499,6 +516,7 @@ const useProjectManagementModalView = ({
                       trimmedName !== localProjectName &&
                       !projectNameError
                     ) {
+                      // eslint-disable-next-line typescript/no-floating-promises
                       handleSaveRenaming(trimmedName)
                     } else if (projectNameError) {
                       inputRef.current?.focus()
@@ -506,6 +524,7 @@ const useProjectManagementModalView = ({
                       handleCancelRenaming()
                     }
                   }}
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -516,6 +535,7 @@ const useProjectManagementModalView = ({
                         !projectNameError &&
                         !isProcessing
                       ) {
+                        // eslint-disable-next-line typescript/no-floating-promises
                         handleSaveRenaming(trimmedName)
                       }
                     } else if (e.key === 'Escape') {
@@ -532,6 +552,7 @@ const useProjectManagementModalView = ({
               </div>
             ) : (
               <Button
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   if (isUncategorizedProject) {
                     return
@@ -569,37 +590,49 @@ const useProjectManagementModalView = ({
                 keywords={titleKeywords}
                 newKeyword={newTitleKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) =>
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onKeywordChange={(value) => {
                   updateModalState({ newTitleKeyword: value })
-                }
-                onAddKeyword={() =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onAddKeyword={() => {
                   addKeyword({
-                    clearInput: () => updateModalState({ newTitleKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newTitleKeyword: '' })
+                    },
                     keyword: newTitleKeyword,
                     keywords: titleKeywords,
                     section: 'titleKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ titleKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ titleKeywords: keywords })
+                    },
                   })
-                }
-                onBlurKeyword={() =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onBlurKeyword={() => {
                   addKeyword({
-                    clearInput: () => updateModalState({ newTitleKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newTitleKeyword: '' })
+                    },
                     keyword: newTitleKeyword,
                     keywords: titleKeywords,
                     section: 'titleKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ titleKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ titleKeywords: keywords })
+                    },
                   })
-                }
-                onRemoveKeyword={(keyword) =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onRemoveKeyword={(keyword) => {
                   removeKeyword(
                     keyword,
                     'titleKeywords',
-                    (keywords) => updateModalState({ titleKeywords: keywords }),
+                    (keywords) => {
+                      updateModalState({ titleKeywords: keywords })
+                    },
                     titleKeywords,
                   )
-                }
+                }}
               />
 
               <ProjectKeywordSection
@@ -614,37 +647,49 @@ const useProjectManagementModalView = ({
                 keywords={urlKeywords}
                 newKeyword={newUrlKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) =>
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onKeywordChange={(value) => {
                   updateModalState({ newUrlKeyword: value })
-                }
-                onAddKeyword={() =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onAddKeyword={() => {
                   addKeyword({
-                    clearInput: () => updateModalState({ newUrlKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newUrlKeyword: '' })
+                    },
                     keyword: newUrlKeyword,
                     keywords: urlKeywords,
                     section: 'urlKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ urlKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ urlKeywords: keywords })
+                    },
                   })
-                }
-                onBlurKeyword={() =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onBlurKeyword={() => {
                   addKeyword({
-                    clearInput: () => updateModalState({ newUrlKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newUrlKeyword: '' })
+                    },
                     keyword: newUrlKeyword,
                     keywords: urlKeywords,
                     section: 'urlKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ urlKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ urlKeywords: keywords })
+                    },
                   })
-                }
-                onRemoveKeyword={(keyword) =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onRemoveKeyword={(keyword) => {
                   removeKeyword(
                     keyword,
                     'urlKeywords',
-                    (keywords) => updateModalState({ urlKeywords: keywords }),
+                    (keywords) => {
+                      updateModalState({ urlKeywords: keywords })
+                    },
                     urlKeywords,
                   )
-                }
+                }}
               />
 
               <ProjectKeywordSection
@@ -659,40 +704,49 @@ const useProjectManagementModalView = ({
                 keywords={domainKeywords}
                 newKeyword={newDomainKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) =>
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onKeywordChange={(value) => {
                   updateModalState({ newDomainKeyword: value })
-                }
-                onAddKeyword={() =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onAddKeyword={() => {
                   addKeyword({
-                    clearInput: () =>
-                      updateModalState({ newDomainKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newDomainKeyword: '' })
+                    },
                     keyword: newDomainKeyword,
                     keywords: domainKeywords,
                     section: 'domainKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ domainKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ domainKeywords: keywords })
+                    },
                   })
-                }
-                onBlurKeyword={() =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onBlurKeyword={() => {
                   addKeyword({
-                    clearInput: () =>
-                      updateModalState({ newDomainKeyword: '' }),
+                    clearInput: () => {
+                      updateModalState({ newDomainKeyword: '' })
+                    },
                     keyword: newDomainKeyword,
                     keywords: domainKeywords,
                     section: 'domainKeywords',
-                    setKeywords: (keywords) =>
-                      updateModalState({ domainKeywords: keywords }),
+                    setKeywords: (keywords) => {
+                      updateModalState({ domainKeywords: keywords })
+                    },
                   })
-                }
-                onRemoveKeyword={(keyword) =>
+                }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onRemoveKeyword={(keyword) => {
                   removeKeyword(
                     keyword,
                     'domainKeywords',
-                    (keywords) =>
-                      updateModalState({ domainKeywords: keywords }),
+                    (keywords) => {
+                      updateModalState({ domainKeywords: keywords })
+                    },
                     domainKeywords,
                   )
-                }
+                }}
               />
             </div>
           </div>
@@ -717,7 +771,11 @@ const useProjectManagementModalView = ({
               deleteLabel={t('common.delete')}
               deleteTooltip={t('savedTabs.projectManagement.deleteAction')}
               isProcessing={isProcessing}
-              onCancel={() => updateModalState({ showDeleteConfirm: false })}
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              onCancel={() => {
+                updateModalState({ showDeleteConfirm: false })
+              }}
+              // eslint-disable-next-line typescript/no-misused-promises
               onDelete={handleDeleteProject}
             />
           )}

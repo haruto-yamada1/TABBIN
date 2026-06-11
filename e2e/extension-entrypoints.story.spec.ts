@@ -1,3 +1,4 @@
+/* eslint-disable typescript/method-signature-style */
 import {
   expect,
   getExtensionUrl,
@@ -109,7 +110,7 @@ const installOllamaListFailureMock = async (page: InitScriptPage) => {
           }
         }
 
-        return await originalSendMessage(message)
+        return originalSendMessage(message)
       }
 
       try {

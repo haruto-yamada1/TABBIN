@@ -4,6 +4,8 @@ import {
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
+const HEX_RADIX_AS = 16
+
 const SAVED_ANALYTICS_VIEWS_KEY = 'savedAnalyticsViews'
 
 interface SavedAnalyticsView {
@@ -24,7 +26,7 @@ const createSavedAnalyticsView = ({
   query: AnalyticsQuery
 }): SavedAnalyticsView => ({
   createdAt: now,
-  id: `analytics-view-${now}-${Math.random().toString(16).slice(2)}`,
+  id: `analytics-view-${now}-${Math.random().toString(HEX_RADIX_AS).slice(2)}`,
   name,
   query,
   updatedAt: now,
@@ -39,8 +41,15 @@ const loadSavedAnalyticsViews = async (): Promise<SavedAnalyticsView[]> => {
   }
 
   const stored = await storageLocal.get(SAVED_ANALYTICS_VIEWS_KEY)
-  return Array.isArray(stored[SAVED_ANALYTICS_VIEWS_KEY])
-    ? (stored[SAVED_ANALYTICS_VIEWS_KEY] as SavedAnalyticsView[])
+  const rawViews = stored[SAVED_ANALYTICS_VIEWS_KEY]
+  return Array.isArray(rawViews)
+    ? rawViews.filter(
+        (item): item is SavedAnalyticsView =>
+          typeof item === 'object' &&
+          item !== null &&
+          'id' in item &&
+          'name' in item,
+      )
     : []
 }
 

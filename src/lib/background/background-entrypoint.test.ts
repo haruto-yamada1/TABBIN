@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
   setupExpiredTabsCheckAlarm: vi.fn(),
@@ -62,6 +62,7 @@ const createChromeHarness = (
   }
   const onInstalledListeners: InstalledListener[] = []
   const onStartupListeners: StartupListener[] = []
+  // eslint-disable-next-line typescript/require-await
   const storageGet = vi.fn(async (keys?: unknown) => {
     if (keys == null) {
       return {
@@ -86,10 +87,12 @@ const createChromeHarness = (
     }
     return {}
   })
+  // eslint-disable-next-line typescript/require-await
   const storageSet = vi.fn(async (next: Record<string, unknown>) => {
     Object.assign(storage, next)
   })
   const tabsCreate = vi.fn(
+    // eslint-disable-next-line typescript/require-await
     async (createProperties: chrome.tabs.CreateProperties) => ({
       id: 100,
       ...createProperties,
@@ -127,6 +130,7 @@ const createChromeHarness = (
     tabs: {
       create: tabsCreate,
       update: vi.fn(),
+      // eslint-disable-next-line typescript/require-await
       query: vi.fn(async () => []),
       get: vi.fn(),
       remove: vi.fn(),
@@ -191,6 +195,7 @@ const triggerInstalled = async (
   reason: 'install' | 'update' | 'chrome_update',
 ): Promise<void> => {
   await Promise.all(
+    // eslint-disable-next-line typescript/await-thenable
     harness.onInstalledListeners.map((listener) =>
       listener({
         reason,
@@ -199,8 +204,10 @@ const triggerInstalled = async (
   )
 }
 const triggerStartup = async (harness: ChromeHarness): Promise<void> => {
+  // eslint-disable-next-line typescript/await-thenable
   await Promise.all(harness.onStartupListeners.map((listener) => listener()))
 }
+// eslint-disable-next-line vitest/require-top-level-describe
 beforeEach(() => {
   vi.restoreAllMocks()
   vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -367,8 +374,12 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       })
       expect(console.log).not.toBe(originalLog)
       expect(console.debug).not.toBe(originalDebug)
-      expect(() => console.log('suppressed')).not.toThrow()
-      expect(() => console.debug('suppressed')).not.toThrow()
+      expect(() => {
+        console.log('suppressed')
+      }).not.toThrow()
+      expect(() => {
+        console.debug('suppressed')
+      }).not.toThrow()
     } finally {
       vi.unstubAllEnvs()
       console.log = originalLog

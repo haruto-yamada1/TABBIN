@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 type ProfilerGlobal = typeof globalThis & {
   enableSavedTabsProfiler?: boolean
@@ -42,7 +42,7 @@ describe('savedTabsProfiler', () => {
     handleSavedTabsRender('SavedTabs', 'update', 56.78, 0, 0, 0)
 
     expect(isDevProfileEnabled).toBe(true)
-    expect(profilerGlobal.savedTabsProfiler).toEqual({
+    expect(profilerGlobal.savedTabsProfiler).toStrictEqual({
       actualDuration: 56.78,
       commits: 2,
       phase: 'update',

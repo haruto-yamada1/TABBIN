@@ -18,6 +18,7 @@ import {
   getUrlRecordsByIds,
   saveUrlRecords,
 } from './urls'
+import { CustomProjectSchema } from './zod-storage'
 
 const CUSTOM_UNCATEGORIZED_PROJECT_ID = 'custom-uncategorized'
 const CUSTOM_UNCATEGORIZED_PROJECT_NAME = '未分類'
@@ -61,8 +62,8 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
       customProjects?: CustomProject[]
       customProjectOrder?: string[]
     }>(['customProjects', 'customProjectOrder'])
-    const customProjects = data.customProjects || []
-    const projectOrder = data.customProjectOrder || []
+    const customProjects = data.customProjects ?? []
+    const projectOrder = data.customProjectOrder ?? []
     console.log(
       `ストレージから取得したカスタムプロジェクト: ${customProjects.length}個`,
     )
@@ -81,27 +82,29 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
         return []
       }
 
-      const validProject = project as CustomProject
-      // 新形式のURLIDsが存在しない場合は初期化
-      if (!(validProject.urlIds && Array.isArray(validProject.urlIds))) {
-        validProject.urlIds = []
+      const parsed = CustomProjectSchema.safeParse(project)
+      if (!parsed.success) {
+        // スキーマ違反のレコードは drop し、配列全体は壊さない
+        console.warn(
+          `不正なプロジェクトデータをスキップ: id=${String((project as { id?: unknown }).id)}`,
+          parsed.error.issues,
+        )
+        return []
       }
-      validProject.projectKeywords = normalizeProjectKeywords(
-        validProject.projectKeywords,
-      )
-
-      // 必須フィールドの確認と修正
-      if (
-        !(validProject.categories && Array.isArray(validProject.categories))
-      ) {
-        validProject.categories = []
-      }
-      if (!validProject.updatedAt) {
-        validProject.updatedAt = Date.now()
-      }
-      if (!validProject.createdAt) {
-        validProject.createdAt = Date.now()
-      }
+      const base = parsed.data
+      const validProject = {
+        id: base.id,
+        name: base.name,
+        urlIds: base.urlIds ?? [],
+        projectKeywords: normalizeProjectKeywords(base.projectKeywords),
+        categories: base.categories ?? [],
+        createdAt: base.createdAt ?? Date.now(),
+        updatedAt: base.updatedAt ?? Date.now(),
+        urls: base.urls,
+        urlMetadata: base.urlMetadata,
+        categoryOrder: base.categoryOrder,
+      } satisfies CustomProject
+      Object.assign(project, validProject)
       return [validProject]
     })
     if (validProjects.length !== customProjects.length) {
@@ -171,7 +174,7 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
   await saveCustomProjects([...projects, newProject])
 
   // 新規プロジェクトを常に先頭に配置し、既存順序は維持する
-  const { customProjectOrder = [] } =
+  const { customProjectOrder } =
     await chrome.storage.local.get('customProjectOrder')
   const currentIdsInDisplayOrder = projects.map((project) => project.id)
   const normalizedOrder = Array.isArray(customProjectOrder)
@@ -192,7 +195,7 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
 }
 
 const appendUncategorizedProjectToOrder = async (): Promise<void> => {
-  const { customProjectOrder = [] } =
+  const { customProjectOrder } =
     await chrome.storage.local.get('customProjectOrder')
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
@@ -201,6 +204,7 @@ const appendUncategorizedProjectToOrder = async (): Promise<void> => {
     return
   }
   await chrome.storage.local.set({
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     customProjectOrder: [...normalizedOrder, CUSTOM_UNCATEGORIZED_PROJECT_ID],
   })
 }
@@ -269,7 +273,7 @@ const addUrlsToUncategorizedProject = async (
   }
 
   const targetProject = projects[targetIndex]
-  const targetUrlIds = targetProject.urlIds as string[]
+  const targetUrlIds = targetProject.urlIds ?? []
   const urlIdSet = new Set(targetUrlIds)
   const now = Date.now()
   const urlRecords = await getUrlRecords()
@@ -325,7 +329,7 @@ const addUrlsToUncategorizedProject = async (
 }
 
 const getCustomProjectOrder = async (): Promise<string[]> => {
-  const { customProjectOrder = [] } =
+  const { customProjectOrder } =
     await chrome.storage.local.get('customProjectOrder')
   return Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
@@ -334,7 +338,8 @@ const getCustomProjectOrder = async (): Promise<string[]> => {
     : []
 }
 const addUrlIdToProject = (project: CustomProject, urlId: string): boolean => {
-  const urlIds = project.urlIds as string[]
+  project.urlIds ??= []
+  const urlIds = project.urlIds
   if (urlIds.includes(urlId)) {
     return false
   }
@@ -353,6 +358,7 @@ const removeUrlIdFromProject = (
 
   project.urlIds = project.urlIds.filter((id) => id !== urlId)
   if (project.urlMetadata?.[urlId]) {
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete project.urlMetadata[urlId]
   }
   project.updatedAt = updatedAt
@@ -388,9 +394,7 @@ const setProjectUrlMetadata = (
   if (!(notes || category)) {
     return
   }
-  if (!project.urlMetadata) {
-    project.urlMetadata = {}
-  }
+  project.urlMetadata ??= {}
   project.urlMetadata[urlId] = {
     category,
     notes,
@@ -401,9 +405,7 @@ const getDomainFromUrl = (url: string): string => {
   return `${urlObj.protocol}//${urlObj.hostname}`
 }
 const ensureUrlIdInGroup = (group: TabGroup, urlId: string): TabGroup => {
-  if (!group.urlIds) {
-    group.urlIds = []
-  }
+  group.urlIds ??= []
   if (!group.urlIds.includes(urlId)) {
     group.urlIds.push(urlId)
   }
@@ -414,7 +416,7 @@ const addUrlIdToDomainMode = async (
   urlId: string,
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const domain = getDomainFromUrl(url)
   const domainGroup = savedTabs.find(
@@ -544,6 +546,7 @@ const removeUrlFromCustomProject = async (
 
       // メタデータも削除
       if (project.urlMetadata?.[urlRecord.id]) {
+        // eslint-disable-next-line typescript/no-dynamic-delete
         delete project.urlMetadata[urlRecord.id]
       }
     }
@@ -555,12 +558,12 @@ const removeUrlFromCustomProject = async (
   // ドメインモードからも同じURLを削除
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
 
     // URLレコードを取得
     const urlRecords = await getUrlRecordsByIds(
-      savedTabs.flatMap((group: TabGroup) => group.urlIds || []),
+      savedTabs.flatMap((group: TabGroup) => group.urlIds ?? []),
     )
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
@@ -599,11 +602,11 @@ const syncDeleteToDomainMode = async (
 ): Promise<void> => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
 
     const urlRecords = await getUrlRecordsByIds(
-      savedTabs.flatMap((g: TabGroup) => g.urlIds || []),
+      savedTabs.flatMap((g: TabGroup) => g.urlIds ?? []),
     )
     const recordsToDelete = urlRecords.filter((record) =>
       targetUrlsSet.has(record.url),
@@ -656,6 +659,7 @@ const updateProjectUrlIdsAndMetadata = (
     if (project.urlMetadata) {
       for (const id of idsToDelete) {
         if (project.urlMetadata[id]) {
+          // eslint-disable-next-line typescript/no-dynamic-delete
           delete project.urlMetadata[id]
         }
       }
@@ -849,12 +853,8 @@ const ensureProjectMetadataEntry = (
   project: CustomProject,
   urlId: string,
 ): void => {
-  if (!project.urlMetadata) {
-    project.urlMetadata = {}
-  }
-  if (!project.urlMetadata[urlId]) {
-    project.urlMetadata[urlId] = {}
-  }
+  project.urlMetadata ??= {}
+  project.urlMetadata[urlId] ??= {}
 }
 
 const mergeUrlsIntoUncategorized = (
@@ -864,7 +864,8 @@ const mergeUrlsIntoUncategorized = (
   if (!(projectToDelete.urlIds && projectToDelete.urlIds.length > 0)) {
     return
   }
-  const uncategorizedUrlIds = uncategorizedProject.urlIds as string[]
+  uncategorizedProject.urlIds ??= []
+  const uncategorizedUrlIds = uncategorizedProject.urlIds
   const targetUrlSet = new Set(uncategorizedUrlIds)
   for (const urlId of projectToDelete.urlIds) {
     if (targetUrlSet.has(urlId)) {
@@ -877,7 +878,9 @@ const mergeUrlsIntoUncategorized = (
       continue
     }
     ensureProjectMetadataEntry(uncategorizedProject, urlId)
-    uncategorizedProject.urlMetadata![urlId].notes = metadata.notes
+    if (uncategorizedProject.urlMetadata) {
+      uncategorizedProject.urlMetadata[urlId].notes = metadata.notes
+    }
   }
   uncategorizedProject.updatedAt = Date.now()
 }
@@ -898,7 +901,7 @@ const findOrCreateUncategorizedProject = async (
 }
 
 const removeProjectIdFromOrder = async (projectId: string): Promise<void> => {
-  const { customProjectOrder = [] } =
+  const { customProjectOrder } =
     await chrome.storage.local.get('customProjectOrder')
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
@@ -1037,9 +1040,7 @@ const setUrlCategory = async (
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
-      if (!project.urlMetadata) {
-        project.urlMetadata = {}
-      }
+      project.urlMetadata ??= {}
       if (!project.urlMetadata[urlRecord.id]) {
         project.urlMetadata[urlRecord.id] = {}
       }
@@ -1109,6 +1110,7 @@ const reorderProjectUrls = async (
   projects[projectIndex] = project
   await saveCustomProjects(projects)
 } // プロジェクト順序を保存する関数
+// eslint-disable-next-line eslint/complexity
 const moveUrlBetweenCustomProjects = async (
   sourceProjectId: string,
   targetProjectId: string,
@@ -1143,7 +1145,8 @@ const moveUrlBetweenCustomProjects = async (
   }
 
   const urlId = urlRecord.id
-  const targetUrlIds = targetProject.urlIds as string[]
+  targetProject.urlIds ??= []
+  const targetUrlIds = targetProject.urlIds
   if (targetUrlIds.includes(urlId)) {
     throw new Error('URL already exists in target project')
   }
@@ -1153,12 +1156,11 @@ const moveUrlBetweenCustomProjects = async (
 
   const sourceMetadata = sourceProject.urlMetadata?.[urlId]
   if (sourceProject.urlMetadata?.[urlId]) {
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete sourceProject.urlMetadata[urlId]
   }
   if (sourceMetadata?.notes) {
-    if (!targetProject.urlMetadata) {
-      targetProject.urlMetadata = {}
-    }
+    targetProject.urlMetadata ??= {}
     targetProject.urlMetadata[urlId] = {
       notes: sourceMetadata.notes,
     }

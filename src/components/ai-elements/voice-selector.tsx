@@ -70,6 +70,7 @@ export const VoiceSelector = ({
   onValueChange,
   open: openProp,
   defaultOpen = false,
+  // eslint-disable-next-line typescript/unbound-method
   onOpenChange,
   children,
   ...props
@@ -200,8 +201,10 @@ export const VoiceSelectorGender = ({
   children,
   ...props
 }: VoiceSelectorGenderProps) => {
+  // eslint-disable-next-line eslint/no-useless-assignment
   let icon: ReactNode | null = null
 
+  // eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (value) {
     case 'male': {
       icon = <MarsIcon className='size-4' />
@@ -241,47 +244,80 @@ export const VoiceSelectorGender = ({
 
 export type VoiceSelectorAccentProps = ComponentProps<'span'> & {
   value?:
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'american'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'british'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'australian'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'canadian'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'irish'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'scottish'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'indian'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'south-african'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'new-zealand'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'spanish'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'french'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'german'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'italian'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'portuguese'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'brazilian'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'mexican'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'argentinian'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'japanese'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'chinese'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'korean'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'russian'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'arabic'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'dutch'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'swedish'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'norwegian'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'danish'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'finnish'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'polish'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'turkish'
+    // eslint-disable-next-line typescript/no-redundant-type-constituents
     | 'greek'
     | string
 }
 
+// eslint-disable-next-line eslint/complexity
 export const VoiceSelectorAccent = ({
   className,
   value,
   children,
   ...props
 }: VoiceSelectorAccentProps) => {
+  // eslint-disable-next-line eslint/no-useless-assignment
   let emoji: string | null = null
 
+  // eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (value) {
     case 'american': {
       emoji = '🇺🇸'

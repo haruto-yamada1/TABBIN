@@ -1,6 +1,7 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
   loadConversationHistory: vi.fn(),
@@ -22,7 +23,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 
 vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
   buildConversationTitle: (
-    messages: Array<{ content: string; role: 'assistant' | 'user' }>,
+    messages: { content: string; role: 'assistant' | 'user' }[],
   ) => messages[0]?.content || '新しい会話',
   createConversationRecord: ({
     id = 'new-conversation',
@@ -30,11 +31,11 @@ vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
     now = 10,
   }: {
     id?: string
-    messages?: Array<{
+    messages?: {
       content: string
       id: string
       role: 'assistant' | 'user'
-    }>
+    }[]
     now?: number
   } = {}) => ({
     createdAt: now,
@@ -133,7 +134,7 @@ describe('useSharedAiChatHistory', () => {
     expect(mocked.saveConversationHistory).not.toHaveBeenCalled()
     expect(result.current.activeConversation?.title).toBe('新しい会話')
     expect(result.current.historyItems).toHaveLength(2)
-    expect(result.current.historyItems.map((item) => item.id)).toEqual([
+    expect(result.current.historyItems.map((item) => item.id)).toStrictEqual([
       'conversation-2',
       'conversation-1',
     ])
@@ -230,7 +231,7 @@ describe('useSharedAiChatHistory', () => {
           conversation.id === 'new-conversation',
       ),
     ).toHaveLength(1)
-    expect(lastSavedHistory).toEqual({
+    expect(lastSavedHistory).toStrictEqual({
       activeConversationId: 'new-conversation',
       conversations: [
         expect.objectContaining({
@@ -313,7 +314,7 @@ describe('useSharedAiChatHistory', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.historyItems.map((item) => item.id)).toEqual([
+      expect(result.current.historyItems.map((item) => item.id)).toStrictEqual([
         'conversation-2',
         'conversation-1',
       ])
@@ -327,7 +328,7 @@ describe('useSharedAiChatHistory', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.historyItems.map((item) => item.id)).toEqual([
+    expect(result.current.historyItems.map((item) => item.id)).toStrictEqual([
       'conversation-2',
       'conversation-1',
     ])
@@ -365,7 +366,7 @@ describe('useSharedAiChatHistory', () => {
       })
     })
 
-    expect(result.current.historyItems.map((item) => item.id)).toEqual([
+    expect(result.current.historyItems.map((item) => item.id)).toStrictEqual([
       'conversation-1',
       'conversation-2',
     ])
@@ -405,7 +406,7 @@ describe('useSharedAiChatHistory', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.historyItems.map((item) => item.id)).toEqual([
+    expect(result.current.historyItems.map((item) => item.id)).toStrictEqual([
       'conversation-c',
       'conversation-b',
       'conversation-a',
@@ -440,10 +441,9 @@ describe('useSharedAiChatHistory', () => {
     })
 
     expect(result.current.activeConversation?.id).toBe('conversation-new')
-    expect(result.current.historyItems.map((item) => item.isActive)).toEqual([
-      false,
-      false,
-    ])
+    expect(
+      result.current.historyItems.map((item) => item.isActive),
+    ).toStrictEqual([false, false])
   })
 
   it('ロード完了前に unmount されたら状態更新しない', async () => {
@@ -462,6 +462,7 @@ describe('useSharedAiChatHistory', () => {
 
     expect(result.current.isLoading).toBe(true)
     unmount()
+    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveHistory?.({
         activeConversationId: 'conversation-1',
@@ -524,7 +525,7 @@ describe('useSharedAiChatHistory', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.historyItems.map((item) => item.id)).toEqual([
+      expect(result.current.historyItems.map((item) => item.id)).toStrictEqual([
         'conversation-1',
       ])
       expect(result.current.activeConversation?.id).toBe('conversation-1')
@@ -665,7 +666,7 @@ describe('useSharedAiChatHistory', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.historyItems).toEqual([])
+      expect(result.current.historyItems).toStrictEqual([])
       expect(result.current.activeConversation?.id).toBe('new-conversation')
       expect(result.current.activeConversation?.title).toBe('新しい会話')
     })

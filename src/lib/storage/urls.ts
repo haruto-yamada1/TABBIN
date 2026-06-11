@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import type { UrlRecord } from '@/types/storage'
+import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 /** セッション中のインメモリキャッシュ */
 let urlRecordsCache: UrlRecord[] | null = null
@@ -31,7 +31,13 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
     if (!Array.isArray(urls)) {
       return []
     }
-    urlRecordsCache = urls as UrlRecord[]
+    urlRecordsCache = urls.filter(
+      (item): item is UrlRecord =>
+        typeof item === 'object' &&
+        item !== null &&
+        'id' in item &&
+        'url' in item,
+    )
     return urlRecordsCache
   } catch (error) {
     console.error('URLレコード取得エラー:', error)
@@ -58,7 +64,7 @@ const saveUrlRecords = async (urlRecords: UrlRecord[]): Promise<void> => {
  */
 const getUrlRecordById = async (id: string): Promise<UrlRecord | null> => {
   const urlRecords = await getUrlRecords()
-  return urlRecords.find((record) => record.id === id) || null
+  return urlRecords.find((record) => record.id === id) ?? null
 }
 /**
  * 複数のIDからURLレコードを取得する
@@ -76,7 +82,7 @@ const getUrlRecordsByIds = async (ids: string[]): Promise<UrlRecord[]> => {
  */
 const findUrlRecordByUrl = async (url: string): Promise<UrlRecord | null> => {
   const urlRecords = await getUrlRecords()
-  return urlRecords.find((record) => record.url === url) || null
+  return urlRecords.find((record) => record.url === url) ?? null
 }
 /**
  * 新しいURLレコードを作成または既存のものを更新する
@@ -216,10 +222,10 @@ const isUrlRecordReferenced = async (urlId: string): Promise<boolean> => {
     // SavedTabsとCustomProjectsは独立しているため並列取得
     const [savedTabsResult, customProjectsResult] = await Promise.all([
       chrome.storage.local.get<{
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs'),
       chrome.storage.local.get<{
-        customProjects?: import('@/types/storage').CustomProject[]
+        customProjects?: CustomProject[]
       }>('customProjects'),
     ])
     const { savedTabs = [] } = savedTabsResult
@@ -244,10 +250,10 @@ const cleanupUnreferencedUrls = async (): Promise<number> => {
       await Promise.all([
         getUrlRecords(),
         chrome.storage.local.get<{
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs'),
         chrome.storage.local.get<{
-          customProjects?: import('@/types/storage').CustomProject[]
+          customProjects?: CustomProject[]
         }>('customProjects'),
       ])
     const { savedTabs = [] } = savedTabsResult
@@ -341,7 +347,7 @@ const updateUrlReferences = async (
   try {
     // SavedTabsの参照を更新
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
     let tabsUpdated = false
     const duplicateIdSet = new Set(duplicateIds)
@@ -349,7 +355,7 @@ const updateUrlReferences = async (
       if (tabGroup.urlIds) {
         const updatedIds = tabGroup.urlIds.map((id: string) => {
           if (duplicateIdSet.has(id)) {
-            return replacementIdMap.get(id) || id
+            return replacementIdMap.get(id) || id // eslint-disable-line typescript/prefer-nullish-coalescing -- replacementIdMap.get() could return empty string
           }
           return id
         })
@@ -367,13 +373,15 @@ const updateUrlReferences = async (
 
     // CustomProjectsの参照を更新
     const { customProjects = [] } = await chrome.storage.local.get<{
-      customProjects?: import('@/types/storage').CustomProject[]
+      customProjects?: CustomProject[]
     }>('customProjects')
     let projectsUpdated = false
     for (const project of customProjects) {
       if (project.urlIds) {
         const updatedIds = project.urlIds.map((id: string) => {
           if (duplicateIdSet.has(id)) {
+            // `||` needed: replacementIdMap.get() could return empty string
+            // eslint-disable-next-line typescript/prefer-nullish-coalescing
             return replacementIdMap.get(id) || id
           }
           return id

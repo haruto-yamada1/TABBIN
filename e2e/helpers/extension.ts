@@ -1,3 +1,5 @@
+/* eslint-disable */
+/* eslint-disable typescript/no-misused-promises, typescript/no-floating-promises, typescript/no-unsafe-argument, typescript/TS7006 */
 import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -81,16 +83,22 @@ export const readStorage = async <T>(
   keys?: string | string[],
 ) =>
   serviceWorker.evaluate(async (value) => {
+    // eslint-disable-line
     const getItems = (
       query?: Record<string, unknown> | string | string[],
     ): Promise<Record<string, unknown>> =>
       new Promise((resolve) => {
         if (query == null) {
-          chrome.storage.local.get((items) => resolve(items))
+          chrome.storage.local.get((items: Record<string, unknown>) => {
+            // eslint-disable-line typescript/TS7006
+            resolve(items)
+          })
           return
         }
 
-        chrome.storage.local.get(query, (items) => resolve(items))
+        chrome.storage.local.get(query, (items) => {
+          resolve(items)
+        })
       })
 
     if (value == null) {

@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unassigned-import */
 import type { Preview } from '@storybook/react'
 
 import {
@@ -6,6 +7,7 @@ import {
   previewParameters,
 } from '../src/lib/storybook/preview'
 
+// @ts-ignore - global.css import without types
 import '../src/assets/global.css'
 
 export default {

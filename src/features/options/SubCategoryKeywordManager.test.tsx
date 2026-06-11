@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import {
   cleanup,
@@ -6,18 +7,18 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup } from '@/types/storage'
 
+import { SubCategoryKeywordManager } from './SubCategoryKeywordManager'
 import {
   getCategoryKeywordsForName,
   getRenameDraftName,
   replaceTabGroup,
   shouldSkipRename,
-  SubCategoryKeywordManager,
   updateTabGroup,
-} from './SubCategoryKeywordManager'
+} from './subCategoryKeywordManager.helpers'
 
 vi.mock('sonner', () => ({
   toast: {
@@ -143,17 +144,19 @@ describe('SubCategoryKeywordManager', () => {
       savedTabs: [otherGroup, tabGroup],
     })
 
-    expect(replaceTabGroup([otherGroup, tabGroup], tabGroup)).toEqual([
+    expect(replaceTabGroup([otherGroup, tabGroup], tabGroup)).toStrictEqual([
       otherGroup,
       tabGroup,
     ])
-    expect(getCategoryKeywordsForName(tabGroup, 'Docs')).toEqual(['Guide'])
+    expect(getCategoryKeywordsForName(tabGroup, 'Docs')).toStrictEqual([
+      'Guide',
+    ])
     expect(
       getCategoryKeywordsForName(
         createTabGroup({ categoryKeywords: undefined }),
         'Docs',
       ),
-    ).toEqual([])
+    ).toStrictEqual([])
     expect(getRenameDraftName(null)).toBe('')
     expect(getRenameDraftName('Docs')).toBe('Docs')
     expect(shouldSkipRename('', 'Docs')).toBe(true)
@@ -357,8 +360,8 @@ describe('SubCategoryKeywordManager', () => {
     })
 
     await waitFor(() => {
-      expect(getLastSavedTab()?.subCategories).toEqual(['Docs', 'News'])
-      expect(getLastSavedTab()?.categoryKeywords).toEqual([
+      expect(getLastSavedTab()?.subCategories).toStrictEqual(['Docs', 'News'])
+      expect(getLastSavedTab()?.categoryKeywords).toStrictEqual([
         { categoryName: 'Docs', keywords: ['Guide'] },
         { categoryName: 'News', keywords: [] },
       ])
@@ -407,8 +410,8 @@ describe('SubCategoryKeywordManager', () => {
     fireEvent.blur(screen.getByLabelText('Subcategory name'))
 
     await waitFor(() => {
-      expect(getLastSavedTab()?.subCategories).toEqual(['News'])
-      expect(getLastSavedTab()?.categoryKeywords).toEqual([
+      expect(getLastSavedTab()?.subCategories).toStrictEqual(['News'])
+      expect(getLastSavedTab()?.categoryKeywords).toStrictEqual([
         { categoryName: 'News', keywords: [] },
       ])
     })
@@ -468,8 +471,8 @@ describe('SubCategoryKeywordManager', () => {
     fireEvent.click(screen.getByLabelText('Delete Guides'))
 
     await waitFor(() => {
-      expect(getLastSavedTab()?.subCategories).toEqual(['Docs'])
-      expect(getLastSavedTab()?.categoryKeywords).toEqual([
+      expect(getLastSavedTab()?.subCategories).toStrictEqual(['Docs'])
+      expect(getLastSavedTab()?.categoryKeywords).toStrictEqual([
         { categoryName: 'Docs', keywords: ['Guide'] },
       ])
     })
@@ -520,7 +523,7 @@ describe('SubCategoryKeywordManager', () => {
     fireEvent.click(screen.getByLabelText('Delete Docs'))
 
     await waitFor(() => {
-      expect(getLastSavedTab()).toEqual(
+      expect(getLastSavedTab()).toStrictEqual(
         expect.objectContaining({
           categoryKeywords: [],
           subCategories: [],
@@ -586,12 +589,15 @@ describe('SubCategoryKeywordManager', () => {
     })
 
     await waitFor(() => {
-      expect(getLastSavedTab()?.subCategories).toEqual(['Reference', 'Guides'])
-      expect(getLastSavedTab()?.categoryKeywords).toEqual([
+      expect(getLastSavedTab()?.subCategories).toStrictEqual([
+        'Reference',
+        'Guides',
+      ])
+      expect(getLastSavedTab()?.categoryKeywords).toStrictEqual([
         { categoryName: 'Reference', keywords: ['Guide'] },
         { categoryName: 'Guides', keywords: ['Article'] },
       ])
-      expect(getLastSavedTab()?.urls).toEqual([
+      expect(getLastSavedTab()?.urls).toStrictEqual([
         {
           id: 'url-1',
           subCategory: 'Reference',
@@ -605,18 +611,16 @@ describe('SubCategoryKeywordManager', () => {
           url: 'https://example.com/article',
         },
       ])
-      expect(getLastSavedTab()?.subCategoryOrder).toEqual([
+      expect(getLastSavedTab()?.subCategoryOrder).toStrictEqual([
         'Reference',
         'Guides',
       ])
-      expect(getLastSavedTab()?.subCategoryOrderWithUncategorized).toEqual([
-        'Uncategorized',
-        'Reference',
-        'Guides',
-      ])
-      expect(storageLocalSet.mock.calls.at(-1)?.[0]?.savedTabs?.[1]).toEqual(
-        untouchedTab,
-      )
+      expect(
+        getLastSavedTab()?.subCategoryOrderWithUncategorized,
+      ).toStrictEqual(['Uncategorized', 'Reference', 'Guides'])
+      expect(
+        storageLocalSet.mock.calls.at(-1)?.[0]?.savedTabs?.[1],
+      ).toStrictEqual(untouchedTab)
     })
   })
 
@@ -645,7 +649,7 @@ describe('SubCategoryKeywordManager', () => {
     })
 
     await waitFor(() => {
-      expect(getLastSavedTab()).toEqual(
+      expect(getLastSavedTab()).toStrictEqual(
         expect.objectContaining({
           categoryKeywords: [],
           subCategories: [],

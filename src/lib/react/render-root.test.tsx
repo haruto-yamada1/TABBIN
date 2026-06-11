@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { getOrCreateRoot, mountToElement, renderToRoot } from './render-root'
 
@@ -25,6 +25,7 @@ describe('render-root', () => {
 
     renderToRoot(container, <span>content</span>)
 
+    // eslint-disable-next-line typescript/unbound-method
     expect(firstRoot.render).toHaveBeenCalledWith(<span>content</span>)
   })
 
@@ -33,11 +34,11 @@ describe('render-root', () => {
     container.id = 'app'
     document.body.append(container)
 
-    expect(() =>
-      mountToElement('app', <span>mounted</span>, 'missing'),
-    ).not.toThrow()
-    expect(() =>
-      mountToElement('missing-app', <span>missing</span>, 'root missing'),
-    ).toThrow('root missing')
+    expect(() => {
+      mountToElement('app', <span>mounted</span>, 'missing')
+    }).not.toThrow()
+    expect(() => {
+      mountToElement('missing-app', <span>missing</span>, 'root missing')
+    }).toThrow('root missing')
   })
 })

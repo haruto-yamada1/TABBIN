@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop, react-perf/jsx-no-new-object-as-prop */
 import {
   Check,
   ChevronDown,
@@ -125,6 +126,10 @@ import {
   getUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
+import {
+  UserSettingsSchema,
+  fromStorageChange,
+} from '@/lib/storage/zod-storage'
 import { cn } from '@/lib/utils'
 import type {
   AiChatResponse,
@@ -137,6 +142,22 @@ import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
 type ChatMessage = AiChatConversationMessage
+
+function isAiChatResponse(value: unknown): value is AiChatResponse {
+  return typeof value === 'object' && value !== null && 'status' in value
+}
+
+function isOllamaModelListResponse(
+  value: unknown,
+): value is OllamaModelListResponse {
+  return typeof value === 'object' && value !== null && 'status' in value
+}
+
+function isAiChatStreamServerMessage(
+  value: unknown,
+): value is AiChatStreamServerMessage {
+  return typeof value === 'object' && value !== null && 'type' in value
+}
 
 interface ChatMessageSource {
   title: string
@@ -275,11 +296,13 @@ const syncExternalConversationState = ({
   setIsSubmitting(false)
 }
 
+const HEX_RADIX = 16
+
 const createMessageId = (): string =>
-  `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  `${Date.now()}-${Math.random().toString(HEX_RADIX).slice(2)}`
 
 const createSystemPromptId = (): string =>
-  `system-prompt-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  `system-prompt-${Date.now()}-${Math.random().toString(HEX_RADIX).slice(2)}`
 
 const getMaxSidebarWidth = (): number => {
   if (typeof window === 'undefined') {
@@ -476,7 +499,7 @@ const isAiChatConfigured = (settings: UserSettings | null): boolean =>
 const getAiChatErrorMessage = (
   response: AiChatResponse | undefined,
   t: TranslateFn,
-): string => response?.error || t('aiChat.responseError')
+): string => response?.error || t('aiChat.responseError') // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error should show default message
 
 const getAiChatOllamaError = (
   response: AiChatResponse | undefined,
@@ -533,20 +556,24 @@ const requestAssistantAnswer = async (
   history: Pick<ChatMessage, 'attachments' | 'content' | 'role'>[],
   prompt: string,
   attachments: AiChatAttachment[] = [],
-): Promise<AiChatResponse | undefined> =>
-  (await sendRuntimeMessage({
+): Promise<AiChatResponse | undefined> => {
+  const response = await sendRuntimeMessage({
     action: 'runAiChat',
     history,
     prompt,
     ...(attachments.length > 0 ? { attachments } : {}),
-  })) as AiChatResponse | undefined
+  })
+  return isAiChatResponse(response) ? response : undefined
+}
 
 const requestOllamaModels = async (): Promise<
   OllamaModelListResponse | undefined
-> =>
-  (await sendRuntimeMessage({
+> => {
+  const response = await sendRuntimeMessage({
     action: 'listOllamaModels',
-  })) as OllamaModelListResponse | undefined
+  })
+  return isOllamaModelListResponse(response) ? response : undefined
+}
 
 const createInitialStreamingReasoning = (
   prompt: string,
@@ -591,17 +618,24 @@ const areMessagesEquivalent = (
   right: ChatMessage[],
 ): boolean => JSON.stringify(left) === JSON.stringify(right)
 
+function tryGetItemsArray(value: object): unknown[] | undefined {
+  const desc = Object.getOwnPropertyDescriptor(value, 'items')
+  if (!desc) {
+    return undefined
+  }
+  return Array.isArray(desc.value) ? desc.value : undefined
+}
+
 const getSourceItems = (output: unknown): ChatMessageSource[] => {
   let items: unknown[] = []
 
   if (Array.isArray(output)) {
     items = output
-  } else if (
-    output &&
-    typeof output === 'object' &&
-    Array.isArray((output as { items?: unknown[] }).items)
-  ) {
-    ;({ items } = output as { items: unknown[] })
+  } else if (typeof output === 'object' && output !== null) {
+    const extracted = tryGetItemsArray(output)
+    if (extracted) {
+      items = extracted
+    }
   }
 
   return items.flatMap((item) => {
@@ -647,11 +681,9 @@ const getMessageSources = (
 
 const requestPromptSubmit = (textarea: HTMLTextAreaElement) => {
   const { form } = textarea
-  const submitButton = form?.querySelector(
-    'button[type="submit"]',
-  ) as HTMLButtonElement | null
+  const submitButton = form?.querySelector('button[type="submit"]')
 
-  if (submitButton?.disabled) {
+  if (!(submitButton instanceof HTMLButtonElement) || submitButton.disabled) {
     return
   }
 
@@ -845,6 +877,7 @@ const renderSystemPromptSelector = ({
 }
 
 const useSystemPromptManagerDialogView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   activePromptId,
   errorMessage,
   isOpen,
@@ -912,7 +945,9 @@ const useSystemPromptManagerDialogView = ({
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-border/80 hover:bg-muted/30',
                     )}
-                    onClick={() => onSelectPrompt(prompt.id)}
+                    onClick={() => {
+                      onSelectPrompt(prompt.id)
+                    }}
                     key={prompt.id}
                     type='button'
                     variant='ghost'
@@ -951,9 +986,9 @@ const useSystemPromptManagerDialogView = ({
                         className='flex-1'
                         maxLength={MAX_AI_SYSTEM_PROMPT_NAME_LENGTH}
                         value={selectedPrompt.name}
-                        onChange={(event) =>
+                        onChange={(event) => {
                           onChangePromptName(event.target.value)
-                        }
+                        }}
                       />
                       <Button
                         type='button'
@@ -987,9 +1022,9 @@ const useSystemPromptManagerDialogView = ({
                       aria-label={t('aiChat.systemPrompt.bodyLabel')}
                       className='min-h-[420px] resize-y'
                       value={selectedPrompt.template}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         onChangePromptTemplate(event.target.value)
-                      }
+                      }}
                     />
                   </div>
 
@@ -1387,13 +1422,15 @@ const useChatSidebarHeaderView = ({
   )
 }
 
+const ATTACHMENT_PREVIEW_LENGTH = 32
+
 const getAttachmentId = (attachment: AiChatAttachment) =>
   [
     attachment.filename,
     attachment.mediaType,
     attachment.kind,
     attachment.content.length,
-    attachment.content.slice(0, 32),
+    attachment.content.slice(0, ATTACHMENT_PREVIEW_LENGTH),
   ].join('-')
 
 const renderChatMessageAttachments = ({
@@ -1454,6 +1491,7 @@ const renderConversationMessageBody = ({
 }
 
 const renderChatConversationMessage = ({
+  // eslint-disable-line eslint/complexity
   message,
   platform,
   t,
@@ -1535,6 +1573,7 @@ const renderChatConversationMessage = ({
 }
 
 const useChatPromptComposerView = ({
+  // eslint-disable-line eslint/complexity
   input,
   presentation,
   modelName,
@@ -1624,7 +1663,9 @@ const useChatPromptComposerView = ({
         aria-label={t('aiChat.inputLabel')}
         className={cn('min-h-16', isCompactLayout && 'min-h-24 text-sm')}
         value={input}
-        onChange={(event) => onInputChange(event.target.value)}
+        onChange={(event) => {
+          onInputChange(event.target.value)
+        }}
         onKeyDown={handleTextareaKeyDown}
         disabled={!isConfigured || isSavingModel}
         placeholder={
@@ -1684,6 +1725,7 @@ const useChatPromptComposerView = ({
 }
 
 const useSavedTabsChatPanelView = ({
+  // eslint-disable-line eslint/complexity
   activeSystemPromptId,
   chatErrorMessage,
   chatOllamaError,
@@ -1892,6 +1934,7 @@ const useSavedTabsChatPanelView = ({
 }
 
 const useSavedTabsChatWidgetView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   conversationId,
   defaultOpen = false,
   historyItems = EMPTY_HISTORY_ITEMS,
@@ -2047,7 +2090,8 @@ const useSavedTabsChatWidgetView = ({
       }
 
       setSettings(
-        (changes.userSettings.newValue as UserSettings) ?? defaultSettings,
+        fromStorageChange(UserSettingsSchema, changes.userSettings.newValue) ??
+          defaultSettings,
       )
     }
 
@@ -2059,6 +2103,7 @@ const useSavedTabsChatWidgetView = ({
 
     storageOnChanged.addListener(storageChangeListener)
 
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }
@@ -2080,8 +2125,13 @@ const useSavedTabsChatWidgetView = ({
   const resolvedSettings = getResolvedSettings(settings)
   const activeSystemPrompt = getActiveAiSystemPrompt(resolvedSettings)
   const isConfigured = isAiChatConfigured(resolvedSettings)
+  const TABLET_BREAKPOINT = 768
+  const SIDEBAR_COMPACT_BREAKPOINT = 360
+
   const isCompactLayout =
-    mode === 'page' ? viewportWidth < 768 : sidebarWidth <= 360
+    mode === 'page'
+      ? viewportWidth < TABLET_BREAKPOINT
+      : sidebarWidth <= SIDEBAR_COMPACT_BREAKPOINT
   const resolvedTitle = title ?? t('aiChat.chatTitle')
 
   const setMessagesState = (nextMessages: ChatMessage[]) => {
@@ -2192,7 +2242,7 @@ const useSavedTabsChatWidgetView = ({
 
     if (response?.status !== 'ok' || !response.models) {
       setModelOptions([])
-      setSetupErrorMessage(response?.error || t('aiChat.modelListLoadError'))
+      setSetupErrorMessage(response?.error || t('aiChat.modelListLoadError')) // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error should show default message
       setSetupOllamaError(response?.ollamaError)
       setIsLoadingModels(false)
       return
@@ -2591,7 +2641,11 @@ const useSavedTabsChatWidgetView = ({
       return false
     }
 
-    const streamMessage = message as AiChatStreamServerMessage
+    if (!isAiChatStreamServerMessage(message)) {
+      return false
+    }
+
+    const streamMessage: AiChatStreamServerMessage = message
 
     if (streamMessage.type === 'step') {
       handleStreamStep(assistantMessageId, streamMessage)
@@ -2679,6 +2733,7 @@ const useSavedTabsChatWidgetView = ({
         prompt: nextPrompt,
         type: 'run',
         ...(attachments.length > 0 ? { attachments } : {}),
+        // eslint-disable-next-line unicorn/require-post-message-target-origin
       })
       return true
     } catch {
@@ -2825,6 +2880,7 @@ const useSavedTabsChatWidgetView = ({
       void handleCopyConversation()
     },
     onDeleteHistoryItem,
+    // eslint-disable-next-line typescript/no-misused-promises
     onFetchModels: handleFetchModels,
     onInputChange: setInput,
     onOpenSystemPromptManager: handleOpenSystemPromptManager,

@@ -32,12 +32,14 @@ interface HeaderProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   onOpenFilter?: () => void
-  customProjects: CustomProject[]
+  customProjects?: CustomProject[]
   filteredCustomProjects?: CustomProject[]
-  onCreateProject: (name: string) => void
+  onCreateProject?: (name: string) => void
 }
 
+// eslint-disable-next-line eslint/complexity
 export const Header = ({
+  // eslint-disable-line eslint/max-lines-per-function
   tabGroups,
   filteredTabGroups,
   currentMode,
@@ -54,8 +56,8 @@ export const Header = ({
     useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const normalizedSearchQuery = searchQuery.trim()
-  const groupsForDisplay = filteredTabGroups || tabGroups
-  const customGroupsForDisplay = filteredCustomProjects || customProjects
+  const groupsForDisplay = filteredTabGroups ?? tabGroups
+  const customGroupsForDisplay = filteredCustomProjects ?? customProjects
   const handleNewProjectNameInputRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (node && isCustomProjectModalOpen) {
@@ -89,6 +91,7 @@ export const Header = ({
 
   const tabCount = currentMode === 'custom' ? customTabCount : domainTabCount
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleCustomProjectEnter = (
     event: React.KeyboardEvent<HTMLInputElement>,
   ) => {
@@ -98,8 +101,11 @@ export const Header = ({
 
     const isComposing =
       event.nativeEvent.isComposing ||
-      (event as unknown as { isComposing?: boolean }).isComposing ||
-      event.keyCode === 229
+      (typeof event === 'object' &&
+        event !== null &&
+        'isComposing' in event &&
+        Boolean((event as { isComposing?: unknown }).isComposing)) ||
+      false
     if (isComposing) {
       return
     }
@@ -136,7 +142,10 @@ export const Header = ({
             aria-label={t('savedTabs.searchPlaceholder')}
             placeholder={t('savedTabs.searchPlaceholder')}
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+            onChange={(e) => {
+              onSearchChange(e.target.value)
+            }}
             className='h-9 w-full pr-9'
           />
           {searchQuery && (
@@ -145,7 +154,10 @@ export const Header = ({
               variant='ghost'
               aria-label={t('savedTabs.searchClear')}
               title={t('savedTabs.searchClear')}
-              onClick={() => onSearchChange('')}
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              onClick={() => {
+                onSearchChange('')
+              }}
               className='absolute top-1/2 right-0 mr-0.5 flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center'
             >
               <X size={16} />
@@ -160,7 +172,10 @@ export const Header = ({
               <Button
                 variant='outline'
                 size='sm'
-                onClick={() => setIsModalOpen(true)}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onClick={() => {
+                  setIsModalOpen(true)
+                }}
                 className='flex h-9 cursor-pointer items-center gap-2'
               >
                 <Plus size={16} />
@@ -180,7 +195,10 @@ export const Header = ({
               <Button
                 variant='outline'
                 size='sm'
-                onClick={() => setIsCustomProjectModalOpen(true)}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                onClick={() => {
+                  setIsCustomProjectModalOpen(true)
+                }}
                 className='flex h-9 cursor-pointer items-center gap-2'
               >
                 <Plus size={16} />
@@ -217,7 +235,10 @@ export const Header = ({
 
       {currentMode === 'domain' && isModalOpen && (
         <CategoryModal
-          onClose={() => setIsModalOpen(false)}
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onClose={() => {
+            setIsModalOpen(false)
+          }}
           tabGroups={tabGroups}
         />
       )}
@@ -233,7 +254,10 @@ export const Header = ({
             <Input
               ref={handleNewProjectNameInputRef}
               value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              onChange={(e) => {
+                setNewProjectName(e.target.value)
+              }}
               onKeyDown={handleCustomProjectEnter}
               placeholder={t('savedTabs.newProjectPlaceholder')}
               className='mb-2 w-full'

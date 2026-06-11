@@ -15,7 +15,10 @@ const ChatPromptAttachmentButton = () => {
       size='icon'
       aria-label={t('aiChat.attachments.add')}
       className='shrink-0'
-      onClick={() => attachments.openFileDialog()}
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      onClick={() => {
+        attachments.openFileDialog()
+      }}
     >
       <Paperclip className='size-4' />
     </Button>

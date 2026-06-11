@@ -14,6 +14,8 @@ import {
 } from './projectUrlItemHelpers'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 
+const MAX_URL_PREVIEW_LENGTH = 30
+
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
 let isGlobalInternalDrop = false
 if (typeof window !== 'undefined') {
@@ -40,6 +42,7 @@ interface ProjectUrlItemProps {
   settings: UserSettings
 }
 
+// eslint-disable-next-line eslint/complexity
 const ProjectUrlItemComponent = ({
   item,
   projectId,
@@ -70,7 +73,7 @@ const ProjectUrlItemComponent = ({
       type: 'url',
       url: originalUrl,
       projectId,
-      title: item.title || originalUrl.substring(0, 30), // タイトルがない場合はURLの一部を使用
+      title: item.title || originalUrl.substring(0, MAX_URL_PREVIEW_LENGTH), // タイトルがない場合はURLの一部を使用
       isUncategorized: !item.category,
       category: item.category,
       notes: item.notes, // メタデータを保存
@@ -88,6 +91,7 @@ const ProjectUrlItemComponent = ({
     id: originalUrl,
   })
 
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -113,6 +117,7 @@ const ProjectUrlItemComponent = ({
     }
   }, [])
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDragStart = (e: React.DragEvent<HTMLElement>) => {
     isDraggingRef.current = true
     windowBlurredDuringDragRef.current = false
@@ -178,7 +183,7 @@ const ProjectUrlItemComponent = ({
         data-category={item.category}
         data-has-category={Boolean(item.category)}
         data-category-level={categoryLevel}
-        data-parent-type={parentType || ''}
+        data-parent-type={parentType ?? ''}
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
         <div
@@ -197,7 +202,10 @@ const ProjectUrlItemComponent = ({
             draggable
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            onClick={() => handleOpenUrl(item.url)}
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+            onClick={() => {
+              handleOpenUrl(item.url)
+            }}
             className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
           >
             {/* サブカテゴリ付きのURLの場合はChevronRightを表示 */}
@@ -223,6 +231,7 @@ const ProjectUrlItemComponent = ({
           <Button
             variant='ghost'
             size='sm'
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -244,7 +253,10 @@ const ProjectUrlItemComponent = ({
       <DeleteUrlConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => handleDeleteUrl(projectId, item.url)}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onConfirm={() => {
+          handleDeleteUrl(projectId, item.url)
+        }}
       />
     </>
   )

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
 
@@ -28,6 +28,7 @@ vi.mock('@dnd-kit/utilities', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -40,7 +41,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -116,6 +117,7 @@ describe('ProjectUrlItem', () => {
     cleanup()
   })
 
+  // eslint-disable-next-line eslint/complexity
   it('未分類URLを描画しリンククリックと即時削除を処理する', () => {
     const handleOpenUrl = vi.fn()
     const handleDeleteUrl = vi.fn()

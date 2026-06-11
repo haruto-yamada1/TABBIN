@@ -2,7 +2,15 @@
 
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import type { CSSProperties, ComponentProps, HTMLAttributes } from 'react'
-import { createContext, memo, use, useEffect, useMemo, useState } from 'react'
+import {
+  createContext,
+  memo,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import type {
   HighlighterCore,
   LanguageRegistration,
@@ -25,10 +33,11 @@ import { cn } from '@/lib/utils'
 import { useCopyState } from './use-copy-state'
 
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
+const FONT_STYLE_UNDERLINE = 4
 const isItalic = (fontStyle: number | undefined) => fontStyle && fontStyle & 1
 const isBold = (fontStyle: number | undefined) => fontStyle && fontStyle & 2
 const isUnderline = (fontStyle: number | undefined) =>
-  fontStyle && fontStyle & 4
+  fontStyle && fontStyle & FONT_STYLE_UNDERLINE
 
 // Transform tokens to include pre-computed keys to avoid noArrayIndexKey lint
 interface KeyedToken {
@@ -50,23 +59,26 @@ const addKeysToTokens = (lines: ThemedToken[][]): KeyedLine[] =>
   }))
 
 // Token rendering component
-const TokenSpan = ({ token }: { token: ThemedToken }) => (
-  <span
-    className='dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)!'
-    style={
-      {
-        backgroundColor: token.bgColor,
-        color: token.color,
-        fontStyle: isItalic(token.fontStyle) ? 'italic' : undefined,
-        fontWeight: isBold(token.fontStyle) ? 'bold' : undefined,
-        textDecoration: isUnderline(token.fontStyle) ? 'underline' : undefined,
-        ...token.htmlStyle,
-      } as CSSProperties
-    }
-  >
-    {token.content}
-  </span>
-)
+const TokenSpan = ({ token }: { token: ThemedToken }) => {
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+  const tokenStyle: CSSProperties = {
+    backgroundColor: token.bgColor,
+    color: token.color,
+    fontStyle: isItalic(token.fontStyle) ? 'italic' : undefined,
+    fontWeight: isBold(token.fontStyle) ? 'bold' : undefined,
+    textDecoration: isUnderline(token.fontStyle) ? 'underline' : undefined,
+    ...token.htmlStyle,
+  }
+
+  return (
+    <span
+      className='dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)!'
+      style={tokenStyle}
+    >
+      {token.content}
+    </span>
+  )
+}
 
 // Line rendering component
 const LineSpan = ({
@@ -199,9 +211,12 @@ const loadThemes = () => {
   return themesPromise
 }
 
+const CACHE_KEY_LENGTH = 100
+
 const getTokensCacheKey = (code: string, language: SupportedCodeLanguage) => {
-  const start = code.slice(0, 100)
-  const end = code.length > 100 ? code.slice(-100) : ''
+  const start = code.slice(0, CACHE_KEY_LENGTH)
+  const end =
+    code.length > CACHE_KEY_LENGTH ? code.slice(-CACHE_KEY_LENGTH) : ''
   return `${language}:${code.length}:${start}:${end}`
 }
 
@@ -232,14 +247,15 @@ const getHighlighter = (
 const createRawTokens = (code: string): TokenizedCode => ({
   bg: 'transparent',
   fg: 'inherit',
-  tokens: code.split('\n').map((line) =>
+  tokens: code.split('\n').map((line): ThemedToken[] =>
     line === ''
       ? []
       : [
           {
             color: 'inherit',
             content: line,
-          } as ThemedToken,
+            offset: 0,
+          },
         ],
   ),
 })
@@ -248,7 +264,6 @@ const createRawTokens = (code: string): TokenizedCode => ({
 export const highlightCode = (
   code: string,
   language: string,
-  // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-callbacks)
   callback?: (result: TokenizedCode) => void,
 ): TokenizedCode | null => {
   const supportedLanguage = getSupportedCodeLanguage(language)
@@ -274,7 +289,6 @@ export const highlightCode = (
 
   // Start highlighting in background - fire-and-forget async pattern
   getHighlighter(supportedLanguage)
-    // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then)
     .then((highlighter) => {
       const availableLangs = highlighter.getLoadedLanguages()
       const langToUse = availableLangs.includes(supportedLanguage)
@@ -307,7 +321,6 @@ export const highlightCode = (
         subscribers.delete(tokensCacheKey)
       }
     })
-    // oxlint-disable-next-line eslint-plugin-promise(prefer-await-to-then), eslint-plugin-promise(prefer-await-to-callbacks)
     .catch((error) => {
       console.error('Failed to highlight code:', error)
       subscribers.delete(tokensCacheKey)
@@ -395,21 +408,26 @@ export const CodeBlockContainer = ({
   language,
   style,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { language: string }) => (
-  <div
-    className={cn(
-      'group relative w-full overflow-hidden rounded-md border bg-background text-foreground',
-      className,
-    )}
-    data-language={language}
-    style={{
-      containIntrinsicSize: 'auto 200px',
-      contentVisibility: 'auto',
-      ...style,
-    }}
-    {...props}
-  />
-)
+}: HTMLAttributes<HTMLDivElement> & { language: string }) => {
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+  const containerStyle: CSSProperties = {
+    containIntrinsicSize: 'auto 200px',
+    contentVisibility: 'auto',
+    ...style,
+  }
+
+  return (
+    <div
+      className={cn(
+        'group relative w-full overflow-hidden rounded-md border bg-background text-foreground',
+        className,
+      )}
+      data-language={language}
+      style={containerStyle}
+      {...props}
+    />
+  )
+}
 
 export const CodeBlockHeader = ({
   children,
@@ -556,12 +574,16 @@ export const CodeBlockCopyButton = ({
   const { code } = use(CodeBlockContext)
   const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
 
+  const handleCopy = useCallback(() => {
+    void copyText(code, { skipIfCopied: true })
+  }, [code, copyText])
+
   const Icon = isCopied ? CheckIcon : CopyIcon
 
   return (
     <Button
       className={cn('shrink-0', className)}
-      onClick={() => copyText(code, { skipIfCopied: true })}
+      onClick={handleCopy}
       size='icon'
       variant='ghost'
       {...props}

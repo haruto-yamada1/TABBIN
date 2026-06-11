@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react'
 import { lazy } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { DeferredStoryLoader } from './deferred-story'
 
+// eslint-disable-next-line typescript/require-await
 const HeavyStory = lazy(async () => ({
   default: () => <div>heavy story content</div>,
 }))
@@ -25,6 +26,6 @@ describe('DeferredStoryLoader', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Load heavy story' }))
 
-    expect(await screen.findByText('heavy story content')).toBeTruthy()
+    await expect(screen.findByText('heavy story content')).resolves.toBeTruthy()
   })
 })

@@ -44,8 +44,9 @@ const isPointerDroppedInUncategorizedArea = (
   const { delta } = event
   const dropX = activatorEvent.clientX + delta.x
   const dropY = activatorEvent.clientY + delta.y
-  const dropEl = document.elementFromPoint(dropX, dropY) as HTMLElement | null
-  return Boolean(dropEl?.closest('[data-uncategorized-area="true"]'))
+  const dropEl = document.elementFromPoint(dropX, dropY)
+  const dropHTMLEl = dropEl instanceof HTMLElement ? dropEl : null
+  return Boolean(dropHTMLEl?.closest('[data-uncategorized-area="true"]'))
 }
 const isUncategorizedDropTarget = (
   over: DragEndEvent['over'],
@@ -90,8 +91,10 @@ const resolveOverCategory = (
     return undefined
   }
   if (over.data?.current?.type === 'category') {
+    // eslint-disable-next-line typescript/no-unsafe-return
     return over.data.current.categoryName
   }
+  // eslint-disable-next-line typescript/no-unsafe-return
   return over.data?.current?.category
 }
 type UrlToUrlDropResult =
@@ -222,11 +225,14 @@ const handleProcessedUrlDrop = (params: {
     return
   }
   if (over?.data?.current?.type === 'category') {
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     const targetCategory = over.data.current.categoryName
     if (targetCategory && targetCategory !== dragSourceCategory) {
+      // eslint-disable-next-line typescript/no-unsafe-argument
       handleSetUrlCategory(projectId, actualUrl, targetCategory)
       toast.success(
         getMessage(language, 'savedTabs.tab.movedToCategory', undefined, {
+          // eslint-disable-next-line typescript/no-unsafe-assignment
           name: targetCategory,
         }),
       )
@@ -255,6 +261,8 @@ const processUrlToUrlDrop = (params: {
   }
   const overCategory = resolveOverCategory(over)
   const isSameBucket =
+    // `||` needed: empty string category should be treated as absent
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     !(dragSourceCategory || overCategory) || dragSourceCategory === overCategory
   if (!isSameBucket) {
     return {
@@ -337,6 +345,7 @@ export const useCustomProjectCard = ({
       }
       setUrlState({ isLoadingUrls: false, projectUrls: nextProjectUrls })
     }
+    // eslint-disable-next-line typescript/no-floating-promises
     loadProjectUrls()
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- URL loading intentionally tracks the project fields that affect stored URLs.
   }, [project.id, project.updatedAt, project.urlIds, project.urls])
@@ -351,17 +360,24 @@ export const useCustomProjectCard = ({
   const handleUrlDragEnd = useCallback(
     (event: DragEndEvent, isUncategorizedOver: boolean) => {
       const { active, over } = event
-      const actualUrl = active.data.current?.url || String(active.id)
+      // `||` needed: url could be empty string; fallback to active.id
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
+      const actualUrl = active.data.current?.url || String(active.id) // eslint-disable-line typescript/no-unsafe-assignment
+      // eslint-disable-next-line typescript/no-unsafe-assignment
       const dragSourceCategory = active.data.current?.category
       setActiveId(null)
-      const clearDragState = () => setDraggedOverCategory(null)
+      const clearDragState = () => {
+        setDraggedOverCategory(null)
+      }
       if (!over) {
         clearDragState()
         return
       }
       handleProcessedUrlDrop({
+        // eslint-disable-next-line typescript/no-unsafe-assignment
         actualUrl,
         clearDragState,
+        // eslint-disable-next-line typescript/no-unsafe-assignment
         dragSourceCategory,
         event,
         handleReorderUrls,
@@ -395,14 +411,18 @@ export const useCustomProjectCard = ({
         return
       }
       if (isDraggingCategory && draggedCategoryName && active.id !== over.id) {
+        const activeId = String(active.id)
+        const overId = String(over.id)
         const oldIndex =
-          project.categoryOrder?.indexOf(active.id as string) ??
-          project.categories.indexOf(active.id as string)
+          project.categoryOrder?.indexOf(activeId) ??
+          project.categories.indexOf(activeId)
         const newIndex =
-          project.categoryOrder?.indexOf(over.id as string) ??
-          project.categories.indexOf(over.id as string)
+          project.categoryOrder?.indexOf(overId) ??
+          project.categories.indexOf(overId)
         if (oldIndex !== -1 && newIndex !== -1) {
           const newOrder = arrayMove(
+            // `||` needed: empty array [] categoryOrder should fall through to project.categories
+            // eslint-disable-next-line typescript/prefer-nullish-coalescing
             project.categoryOrder || project.categories,
             oldIndex,
             newIndex,
@@ -428,31 +448,32 @@ export const useCustomProjectCard = ({
   useEffect(() => {
     const handleManualCategoryReset = (e: MouseEvent) => {
       if (e.altKey) {
-        const targetElement = document.elementFromPoint(
-          e.clientX,
-          e.clientY,
-        ) as HTMLElement
-        if (targetElement) {
-          const urlAttr =
-            targetElement.getAttribute('data-url') ||
-            targetElement.closest('[data-url]')?.getAttribute('data-url')
-          if (
-            urlAttr &&
-            projectUrlsRef.current.some((u) => u.url === urlAttr)
-          ) {
-            handleSetUrlCategoryRef.current(project.id, urlAttr, undefined)
-            toast.success(t('savedTabs.tab.categoryClearedAlt'))
-          }
+        const targetElement = document.elementFromPoint(e.clientX, e.clientY)
+        if (!(targetElement instanceof HTMLElement)) {
+          return
+        }
+
+        const urlAttr =
+          // `||` needed: getAttribute could return empty string
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
+          targetElement.getAttribute('data-url') ||
+          targetElement.closest('[data-url]')?.getAttribute('data-url')
+        if (urlAttr && projectUrlsRef.current.some((u) => u.url === urlAttr)) {
+          handleSetUrlCategoryRef.current(project.id, urlAttr, undefined)
+          toast.success(t('savedTabs.tab.categoryClearedAlt'))
         }
       }
     }
     document.addEventListener('click', handleManualCategoryReset)
-    return () =>
+    return () => {
       document.removeEventListener('click', handleManualCategoryReset)
+    }
   }, [project.id, t])
 
   // --- 計算済みデータ ---
   const uncategorizedUrls = projectUrls.filter((url) => !url.category)
+  // `||` needed: empty array [] categoryOrder should fall through to project.categories
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   const categoryOrder = project.categoryOrder || project.categories
   return {
     /** カテゴリ表示順 */

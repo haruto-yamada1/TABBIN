@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import type { CustomProject } from '@/types/storage'
 
@@ -21,7 +21,7 @@ const createProject = (
 
 describe('project-keywords', () => {
   it('キーワード未設定時は空配列に正規化する', () => {
-    expect(normalizeProjectKeywords(undefined)).toEqual({
+    expect(normalizeProjectKeywords(undefined)).toStrictEqual({
       titleKeywords: [],
       urlKeywords: [],
       domainKeywords: [],
@@ -35,7 +35,7 @@ describe('project-keywords', () => {
         urlKeywords: undefined as unknown as string[],
         domainKeywords: [' example.com ', 'EXAMPLE.com'],
       }),
-    ).toEqual({
+    ).toStrictEqual({
       titleKeywords: ['Docs', 'Plan'],
       urlKeywords: [],
       domainKeywords: ['example.com'],

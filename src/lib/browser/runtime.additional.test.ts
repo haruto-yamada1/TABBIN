@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 type GlobalWithBrowserApis = Omit<typeof globalThis, 'browser' | 'chrome'> & {
   browser?: unknown
@@ -17,6 +17,7 @@ const globalWithApis = globalThis as GlobalWithBrowserApis
 const originalBrowser = globalWithApis.browser
 const originalChrome = globalWithApis.chrome
 
+// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   vi.resetModules()
   vi.doUnmock('webextension-polyfill')

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -10,7 +12,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup } from '@/types/storage'
 
@@ -30,6 +32,7 @@ vi.mock('./CategoryModalContext', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -42,13 +45,14 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
   }
 })
 
+// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -71,7 +75,7 @@ const setCategoryModalContext = ({
 }: {
   tabGroups: TabGroup[]
   selectedCategoryId: string | null
-  categories?: Array<{ id: string; name: string }>
+  categories?: { id: string; name: string }[]
   domainCategories: Record<string, { id: string; name: string } | null>
   toggleDomainSelection?: (domainId: string) => void
 }) => {
@@ -99,10 +103,7 @@ const setCategoryModalContext = ({
 describe('DomainSelectionList', () => {
   it('shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './DomainSelectionList.tsx',
-      ),
+      resolve(import.meta.dirname, './DomainSelectionList.tsx'),
       'utf8',
     )
 

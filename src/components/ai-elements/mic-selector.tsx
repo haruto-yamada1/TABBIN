@@ -29,6 +29,8 @@ import {
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
+const DEFAULT_MIC_SELECTOR_WIDTH = 200
+
 const deviceIdRegex = /\(([\da-fA-F]{4}:[\da-fA-F]{4})\)$/
 
 interface MicSelectorContextType {
@@ -78,11 +80,12 @@ export const MicSelector = ({
     onChange: controlledOnOpenChange,
     prop: controlledOpen,
   })
-  const [width, setWidth] = useState(200)
+  const [width, setWidth] = useState(DEFAULT_MIC_SELECTOR_WIDTH)
   const { devices, loading, hasPermission, loadDevices } = useAudioDevices()
 
   useEffect(() => {
     if (open && !hasPermission && !loading) {
+      // eslint-disable-next-line typescript/no-floating-promises
       loadDevices()
     }
   }, [open, hasPermission, loading, loadDevices])
@@ -120,7 +123,10 @@ export const MicSelectorTrigger = ({
     // Create a ResizeObserver to detect width changes
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const newWidth = (entry.target as HTMLElement).offsetWidth
+        if (!(entry.target instanceof HTMLElement)) {
+          continue
+        }
+        const newWidth = entry.target.offsetWidth
         if (newWidth) {
           setWidth?.(newWidth)
         }
@@ -164,6 +170,7 @@ export const MicSelectorContent = ({
   return (
     <PopoverContent
       className={cn('p-0', className)}
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{ width }}
       {...popoverOptions}
     >
@@ -343,14 +350,17 @@ export const useAudioDevices = () => {
   }, [loading])
 
   useEffect(() => {
+    // eslint-disable-next-line typescript/no-floating-promises
     loadDevicesWithoutPermission()
   }, [loadDevicesWithoutPermission])
 
   useEffect(() => {
     const handleDeviceChange = () => {
       if (hasPermission) {
+        // eslint-disable-next-line typescript/no-floating-promises
         loadDevicesWithPermission()
       } else {
+        // eslint-disable-next-line typescript/no-floating-promises
         loadDevicesWithoutPermission()
       }
     }

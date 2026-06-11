@@ -52,6 +52,7 @@ export const CategoryGroupContent = () => {
         onDragEnd={reorder.handleDragEnd}
       >
         <SortableContext
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           items={displayDomains.map((domain) => domain.id)}
           strategy={verticalListSortingStrategy}
         >
@@ -59,12 +60,19 @@ export const CategoryGroupContent = () => {
             <SortableDomainCard
               key={group.id}
               group={group}
+              // eslint-disable-next-line react/jsx-handler-names
               handleOpenAllTabs={handlers.handleOpenAllTabs}
+              // eslint-disable-next-line react/jsx-handler-names, typescript/no-misused-promises
               handleDeleteGroup={reorder.handleDeleteSingleDomain}
+              // eslint-disable-next-line react/jsx-handler-names
               handleDeleteUrl={handlers.handleDeleteUrl}
+              // eslint-disable-next-line react/jsx-handler-names
               handleDeleteUrls={handlers.handleDeleteUrls}
+              // eslint-disable-next-line react/jsx-handler-names
               handleOpenTab={handlers.handleOpenTab}
+              // eslint-disable-next-line react/jsx-handler-names
               handleUpdateUrls={handlers.handleUpdateUrls}
+              // eslint-disable-next-line react/jsx-handler-names
               handleDeleteCategory={handlers.handleDeleteCategory}
               categoryId={category.id}
               isDraggingOver={reorder.isDraggingDomains}

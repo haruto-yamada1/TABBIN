@@ -1,19 +1,25 @@
 import * as React from 'react'
+import type {
+  DefaultLegendContentProps,
+  TooltipContentProps,
+  TooltipPayloadEntry,
+} from 'recharts'
 
 import { cn } from '@/lib/utils'
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { dark: '.dark', light: '' } as const
 
-export interface ChartConfig {
-  [key: string]: {
+export type ChartConfig = Record<
+  string,
+  {
     label?: React.ReactNode
     icon?: React.ComponentType
   } & (
     | { color?: string; theme?: never }
     | { color?: never; theme: Record<keyof typeof THEMES, string> }
   )
-}
+>
 
 interface ChartContextProps {
   config: ChartConfig
@@ -61,6 +67,7 @@ const ChartContainer = ({
   children: React.ReactNode
 }) => {
   const uniqueId = React.useId()
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty id string should fall through to uniqueId
   const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const [hasMeasuredSize, setHasMeasuredSize] = React.useState(false)
@@ -88,6 +95,7 @@ const ChartContainer = ({
 
       window.addEventListener('resize', handleWindowResize)
 
+      // eslint-disable-next-line typescript/consistent-return
       return () => {
         window.removeEventListener('resize', handleWindowResize)
       }
@@ -101,15 +109,19 @@ const ChartContainer = ({
 
     observer.observe(node)
 
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       observer.disconnect()
     }
   }, [])
 
+  const chartContextValue = React.useMemo(() => ({ config }), [config])
+
   return (
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={chartContextValue}>
       <div
         data-chart={chartId}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         ref={(node) => {
           containerRef.current = node
 
@@ -157,7 +169,7 @@ ${Object.entries(config)
       return items
     }
     const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+      (itemConfig.theme as Record<string, string> | undefined)?.[theme] ??
       itemConfig.color
 
     if (color) {
@@ -173,6 +185,7 @@ ${Object.entries(config)
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- theme/color could be empty string
     ([, config]) => config.theme || config.color,
   )
 
@@ -184,7 +197,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 }
 
 type ChartTooltipContentProps = React.ComponentProps<'div'> &
-  Partial<import('recharts').TooltipContentProps> & {
+  Partial<TooltipContentProps> & {
     hideLabel?: boolean
     hideIndicator?: boolean
     indicator?: 'line' | 'dot' | 'dashed'
@@ -192,7 +205,7 @@ type ChartTooltipContentProps = React.ComponentProps<'div'> &
     labelKey?: string
   }
 
-const renderTooltipIndicator = ({
+const TooltipIndicator = ({
   hideIndicator,
   indicator,
   indicatorColor,
@@ -202,8 +215,21 @@ const renderTooltipIndicator = ({
   indicator: 'line' | 'dot' | 'dashed'
   indicatorColor?: string
   nestLabel: boolean
-}) =>
-  hideIndicator ? null : (
+}) => {
+  const indicatorStyle: React.CSSProperties &
+    Record<string, string | undefined> = React.useMemo(
+    () => ({
+      '--color-bg': indicatorColor,
+      '--color-border': indicatorColor,
+    }),
+    [indicatorColor],
+  )
+
+  if (hideIndicator) {
+    return null
+  }
+
+  return (
     <div
       className={cn(
         'shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]',
@@ -215,15 +241,12 @@ const renderTooltipIndicator = ({
           'w-1': indicator === 'line',
         },
       )}
-      style={
-        {
-          '--color-bg': indicatorColor,
-          '--color-border': indicatorColor,
-        } as React.CSSProperties
-      }
+      style={indicatorStyle}
     />
   )
+}
 
+// eslint-disable-next-line eslint/complexity
 const renderTooltipRow = ({
   color,
   config,
@@ -241,15 +264,17 @@ const renderTooltipRow = ({
   formatter?: ChartTooltipContentProps['formatter']
   hideIndicator: boolean
   indicator: 'line' | 'dot' | 'dashed'
-  item: import('recharts').TooltipPayloadEntry
+  item: TooltipPayloadEntry
   index: number
   nameKey?: string
   nestLabel: boolean
   tooltipLabel: React.ReactNode
 }) => {
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
   const key = `${nameKey || item.name || item.dataKey || 'value'}`
   const itemConfig = getPayloadConfigFromPayload(config, item, key)
-  const indicatorColor = color || item.payload.fill || item.color
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- colors could be empty string; chain fallthrough
+  const indicatorColor = color || item.payload.fill || item.color // eslint-disable-line typescript/no-unsafe-member-access, typescript/no-unsafe-assignment
 
   return (
     <div
@@ -260,18 +285,20 @@ const renderTooltipRow = ({
       )}
     >
       {formatter && item?.value !== undefined && item.name ? (
+        // eslint-disable-next-line typescript/no-unsafe-argument
         formatter(item.value, item.name, item, index, item.payload)
       ) : (
         <>
           {itemConfig?.icon ? (
             <itemConfig.icon />
           ) : (
-            renderTooltipIndicator({
-              hideIndicator,
-              indicator,
-              indicatorColor,
-              nestLabel,
-            })
+            <TooltipIndicator
+              hideIndicator={hideIndicator}
+              indicator={indicator}
+              // eslint-disable-next-line typescript/no-unsafe-assignment
+              indicatorColor={indicatorColor}
+              nestLabel={nestLabel}
+            />
           )}
           <div
             className={cn(
@@ -282,6 +309,7 @@ const renderTooltipRow = ({
             <div className='grid gap-1.5'>
               {nestLabel ? tooltipLabel : null}
               <span className='text-muted-foreground'>
+                {/* eslint-disable-next-line typescript/prefer-nullish-coalescing -- label could be empty string */}
                 {itemConfig?.label || item.name}
               </span>
             </div>
@@ -297,6 +325,7 @@ const renderTooltipRow = ({
   )
 }
 
+// eslint-disable-next-line eslint/complexity
 const ChartTooltipContent = ({
   active,
   className,
@@ -322,11 +351,13 @@ const ChartTooltipContent = ({
   let tooltipLabel: React.ReactNode = null
   if (!hideLabel) {
     const [item] = payload
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
     const key = `${labelKey || item?.dataKey || item?.name || 'value'}`
     const itemConfig = getPayloadConfigFromPayload(config, item, key)
     const value =
       !labelKey && typeof label === 'string'
-        ? config[label as keyof typeof config]?.label || label
+        ? // eslint-disable-next-line typescript/prefer-nullish-coalescing -- label could be empty string
+          config[label]?.label || label
         : itemConfig?.label
 
     if (labelFormatter) {
@@ -388,7 +419,7 @@ const ChartLegendContent = ({
   ref,
   verticalAlign = 'bottom',
 }: React.ComponentProps<'div'> &
-  Partial<import('recharts').DefaultLegendContentProps> & {
+  Partial<DefaultLegendContentProps> & {
     hideIcon?: boolean
     nameKey?: string
   }) => {
@@ -411,6 +442,7 @@ const ChartLegendContent = ({
         if (item.type === 'none') {
           return items
         }
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
         const key = `${nameKey || item.dataKey || 'value'}`
         const itemConfig = getPayloadConfigFromPayload(config, item, key)
         const itemKey = String(item.dataKey ?? item.value ?? item.color)
@@ -427,6 +459,7 @@ const ChartLegendContent = ({
             ) : (
               <div
                 className='size-2 shrink-0 rounded-[2px]'
+                // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
                 style={{
                   backgroundColor: item.color,
                 }}
@@ -441,6 +474,18 @@ const ChartLegendContent = ({
   )
 }
 ChartLegendContent.displayName = 'ChartLegend'
+
+const getPayloadStringValue = (
+  obj: object,
+  key: string,
+): string | undefined => {
+  const entry = Object.entries(obj).find(([k]) => k === key)
+  if (entry) {
+    const value: unknown = entry[1]
+    return typeof value === 'string' ? value : undefined
+  }
+  return undefined
+}
 
 // Helper to extract item config from a payload.
 function getPayloadConfigFromPayload(
@@ -461,24 +506,17 @@ function getPayloadConfigFromPayload(
 
   let configLabelKey: string = key
 
-  if (
-    key in payload &&
-    typeof payload[key as keyof typeof payload] === 'string'
-  ) {
-    configLabelKey = payload[key as keyof typeof payload] as string
-  } else if (
-    payloadPayload &&
-    key in payloadPayload &&
-    typeof payloadPayload[key as keyof typeof payloadPayload] === 'string'
-  ) {
-    configLabelKey = payloadPayload[
-      key as keyof typeof payloadPayload
-    ] as string
+  const payloadValue = getPayloadStringValue(payload, key)
+  if (payloadValue !== undefined) {
+    configLabelKey = payloadValue
+  } else if (payloadPayload) {
+    const nestedValue = getPayloadStringValue(payloadPayload, key)
+    if (nestedValue !== undefined) {
+      configLabelKey = nestedValue
+    }
   }
 
-  return configLabelKey in config
-    ? config[configLabelKey]
-    : config[key as keyof typeof config]
+  return configLabelKey in config ? config[configLabelKey] : config[key]
 }
 
 export {

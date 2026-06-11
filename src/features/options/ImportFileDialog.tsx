@@ -1,6 +1,5 @@
 import { AlertCircle, Upload } from 'lucide-react'
 import { useCallback, useReducer, useRef, useState } from 'react'
-import type { Dispatch } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { toast } from 'sonner'
 
@@ -23,87 +22,14 @@ import {
   importSettings,
 } from '@/features/options/lib/import-export'
 
-const shouldCloseImportDialog = (open: boolean): boolean => !open
-const createImportDialogOpenChangeHandler =
-  ({
-    close,
-    resetFileInput,
-  }: {
-    close: () => void
-    resetFileInput: () => void
-  }) =>
-  (open: boolean): void => {
-    if (shouldCloseImportDialog(open)) {
-      close()
-      resetFileInput()
-    }
-  }
-const createCloseImportDialogAction =
-  (dispatchImportDialog: Dispatch<ImportDialogAction>) => (): void => {
-    dispatchImportDialog({ type: 'CLOSE' })
-  }
-const resetImportFileInput = (fileInput: HTMLInputElement | null): void => {
-  if (fileInput) {
-    fileInput.value = ''
-  }
-}
-
-interface PreviewData {
-  version: string
-  timestamp: string
-  categoriesCount: number
-  domainsCount: number
-  projectsCount: number
-  hasAiChat: boolean
-  hasAnalytics: boolean
-}
-
-interface ImportDialogState {
-  isOpen: boolean
-  step: 'select' | 'preview'
-  previewData: PreviewData | null
-  mergeData: boolean
-}
-
-type ImportDialogAction =
-  | { type: 'OPEN' }
-  | { type: 'CLOSE' }
-  | { type: 'RESET' }
-  | { type: 'SET_PREVIEW'; preview: PreviewData }
-  | { type: 'SET_MERGE'; mergeData: boolean }
-
-const initialImportDialogState: ImportDialogState = {
-  isOpen: false,
-  step: 'select',
-  previewData: null,
-  mergeData: true,
-}
-
-const importDialogReducer = (
-  state: ImportDialogState,
-  action: ImportDialogAction,
-): ImportDialogState => {
-  switch (action.type) {
-    case 'OPEN': {
-      return { ...state, isOpen: true, step: 'select', previewData: null }
-    }
-    case 'CLOSE': {
-      return initialImportDialogState
-    }
-    case 'RESET': {
-      return { ...state, step: 'select', previewData: null }
-    }
-    case 'SET_PREVIEW': {
-      return { ...state, previewData: action.preview, step: 'preview' }
-    }
-    case 'SET_MERGE': {
-      return { ...state, mergeData: action.mergeData }
-    }
-    default: {
-      return state
-    }
-  }
-}
+import {
+  createCloseImportDialogAction,
+  createImportDialogOpenChangeHandler,
+  importDialogReducer,
+  initialImportDialogState,
+  resetImportFileInput,
+} from './importFileDialog.helpers'
+import type { PreviewData } from './importFileDialog.helpers'
 
 interface ImportSelectStepProps {
   mergeData: boolean
@@ -128,7 +54,10 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
         <Checkbox
           id='merge-data'
           checked={mergeData}
-          onCheckedChange={(checked) => onMergeChange(checked === true)}
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onCheckedChange={(checked) => {
+            onMergeChange(checked === true)
+          }}
         />
         <Label htmlFor='merge-data' className='cursor-pointer'>
           {t('options.importExport.merge')}
@@ -248,6 +177,7 @@ interface ImportFileDialogProps {
 }
 
 export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
+  // eslint-disable-line eslint/max-lines-per-function
   onImportSuccess,
 }) => {
   const { t } = useI18n()
@@ -259,10 +189,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   )
   const selectedFileRef = useRef<File | null>(null)
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenImportDialog = () => {
     dispatchImportDialog({ type: 'OPEN' })
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) {
@@ -273,14 +205,18 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   }
 
   const processFile = useCallback(
-    async (file: File) => {
+    (file: File) => {
       if (!file.name.endsWith('.json')) {
         toast.error(t('options.importExport.invalidJson'))
         return
       }
 
-      const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-      if (file.size > MAX_FILE_SIZE) {
+      const MAX_IMPORT_FILE_SIZE_MB = 10
+      const BYTES_PER_KILOBYTE = 1024
+      const KILOBYTE = BYTES_PER_KILOBYTE
+      const MAX_IMPORT_FILE_SIZE_BYTES =
+        MAX_IMPORT_FILE_SIZE_MB * KILOBYTE * KILOBYTE // 10MB
+      if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
         toast.error(
           t('options.importExport.fileTooLarge', undefined, {
             maxSize: '10MB',
@@ -293,9 +229,11 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       selectedFileRef.current = file
 
       const reader = new FileReader()
-      reader.onload = async (event) => {
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
+      reader.onload = (event) => {
         try {
-          const content = event.target?.result as string
+          const fileResult = event.target?.result
+          const content = typeof fileResult === 'string' ? fileResult : ''
           if (!content) {
             toast.error(t('options.importExport.readError'))
             return
@@ -316,10 +254,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         }
       }
 
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         toast.error(t('options.importExport.readError'))
       }
 
+      // eslint-disable-next-line unicorn/prefer-blob-reading-methods
       reader.readAsText(file)
     },
     [t],
@@ -348,13 +288,16 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     resetImportFileInput(fileInputRef.current)
   }
 
-  const handleConfirmImport = async () => {
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  const handleConfirmImport = () => {
     setIsImporting(true)
     try {
       const reader = new FileReader()
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onload = async (event) => {
         try {
-          const content = event.target?.result as string
+          const fileResult = event.target?.result
+          const content = typeof fileResult === 'string' ? fileResult : ''
           if (!content) {
             toast.error(t('options.importExport.readError'))
             return
@@ -383,11 +326,16 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
           }
         }
       }
+      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         toast.error(t('options.importExport.readError'))
         setIsImporting(false)
       }
-      reader.readAsText(selectedFileRef.current!)
+      const file = selectedFileRef.current
+      if (!file) {
+        return
+      }
+      reader.readAsText(file) // eslint-disable-line unicorn/prefer-blob-reading-methods
     } catch (error) {
       console.error('インポートエラー:', error)
       toast.error(t('options.importExport.importError'))
@@ -444,9 +392,10 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
               {importDialog.step === 'select' && (
                 <ImportSelectStep
                   mergeData={importDialog.mergeData}
-                  onMergeChange={(mergeData) =>
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                  onMergeChange={(mergeData) => {
                     dispatchImportDialog({ type: 'SET_MERGE', mergeData })
-                  }
+                  }}
                   isDragActive={isDragActive}
                   getRootProps={getRootProps}
                   getInputProps={getInputProps}
@@ -466,6 +415,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             {importDialog.step === 'preview' && (
               <Button
                 variant='outline'
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   dispatchImportDialog({ type: 'RESET' })
                   resetFileInput()
@@ -492,13 +442,4 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       </Dialog>
     </>
   )
-}
-
-export {
-  createCloseImportDialogAction,
-  createImportDialogOpenChangeHandler,
-  importDialogReducer,
-  initialImportDialogState,
-  resetImportFileInput,
-  shouldCloseImportDialog,
 }

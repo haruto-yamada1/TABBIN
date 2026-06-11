@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { useCategories } from './useCategories'
 
@@ -21,7 +21,7 @@ import { getUserSettings } from '@/lib/storage/settings'
 import type { UserSettings } from '@/types/storage'
 
 type StorageListener = (
-  changes: { [key: string]: chrome.storage.StorageChange },
+  changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void
 
@@ -84,7 +84,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual(categories)
+      expect(result.current.parentCategories).toStrictEqual(categories)
     })
   })
 
@@ -135,7 +135,7 @@ describe('useCategoriesフック', () => {
         vi.advanceTimersByTime(3000)
       })
 
-      expect(result.current.categoryError).toBe(null)
+      expect(result.current.categoryError).toBeNull()
     } finally {
       vi.useRealTimers()
     }
@@ -147,7 +147,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     vi.useFakeTimers()
@@ -171,7 +171,7 @@ describe('useCategoriesフック', () => {
         vi.advanceTimersByTime(3000)
       })
 
-      expect(result.current.categoryError).toBe(null)
+      expect(result.current.categoryError).toBeNull()
     } finally {
       vi.useRealTimers()
     }
@@ -183,7 +183,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -211,7 +211,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -226,7 +226,7 @@ describe('useCategoriesフック', () => {
     expect(success).toBe(true)
     expect(createParentCategory).toHaveBeenCalledWith('New Category')
     expect(result.current.newCategoryName).toBe('')
-    expect(result.current.categoryError).toBe(null)
+    expect(result.current.categoryError).toBeNull()
   })
 
   it('カテゴリ作成エラーを処理する', async () => {
@@ -238,7 +238,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     vi.useFakeTimers()
@@ -262,7 +262,7 @@ describe('useCategoriesフック', () => {
         vi.advanceTimersByTime(3000)
       })
 
-      expect(result.current.categoryError).toBe(null)
+      expect(result.current.categoryError).toBeNull()
     } finally {
       vi.useRealTimers()
     }
@@ -274,7 +274,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     const updatedCategories = [
@@ -293,7 +293,7 @@ describe('useCategoriesフック', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual(updatedCategories)
+    expect(result.current.parentCategories).toStrictEqual(updatedCategories)
   })
 
   it('無関係なストレージ変更を無視し不正な parentCategories payload をリセットする', async () => {
@@ -302,7 +302,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     const syncCategories = [
@@ -321,7 +321,7 @@ describe('useCategoriesフック', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual([])
+    expect(result.current.parentCategories).toStrictEqual([])
 
     const localCategories = [
       { id: '21', name: 'Local', domains: [], domainNames: [] },
@@ -339,13 +339,13 @@ describe('useCategoriesフック', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual(localCategories)
+    expect(result.current.parentCategories).toStrictEqual(localCategories)
 
     act(() => {
       listeners[0]({}, 'local')
     })
 
-    expect(result.current.parentCategories).toEqual(localCategories)
+    expect(result.current.parentCategories).toStrictEqual(localCategories)
 
     act(() => {
       listeners[0](
@@ -359,7 +359,7 @@ describe('useCategoriesフック', () => {
       )
     })
 
-    expect(result.current.parentCategories).toEqual([])
+    expect(result.current.parentCategories).toStrictEqual([])
   })
 
   it('userSettings の language が欠損した storage change では UI locale にフォールバックする', async () => {
@@ -412,7 +412,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -428,6 +428,7 @@ describe('useCategoriesフック', () => {
       result.current.handleCategoryKeyDown(event)
     })
 
+    // eslint-disable-next-line typescript/unbound-method
     expect(event.preventDefault).toHaveBeenCalledTimes(1)
     await waitFor(() => {
       expect(createParentCategory).toHaveBeenCalledWith('Enter Add')
@@ -440,7 +441,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     act(() => {
@@ -457,6 +458,7 @@ describe('useCategoriesフック', () => {
       result.current.handleCategoryKeyDown(event)
     })
 
+    // eslint-disable-next-line typescript/unbound-method
     expect(event.preventDefault).toHaveBeenCalledTimes(1)
     expect(createParentCategory).not.toHaveBeenCalled()
   })
@@ -467,7 +469,7 @@ describe('useCategoriesフック', () => {
     const { result } = renderHook(() => useCategories())
 
     await waitFor(() => {
-      expect(result.current.parentCategories).toEqual([])
+      expect(result.current.parentCategories).toStrictEqual([])
     })
 
     const event = {
@@ -479,6 +481,7 @@ describe('useCategoriesフック', () => {
       result.current.handleCategoryKeyDown(event)
     })
 
+    // eslint-disable-next-line typescript/unbound-method
     expect(event.preventDefault).not.toHaveBeenCalled()
     expect(createParentCategory).not.toHaveBeenCalled()
   })
@@ -487,7 +490,9 @@ describe('useCategoriesフック', () => {
     vi.mocked(getParentCategories).mockResolvedValue([])
 
     const { unmount } = renderHook(() => useCategories())
+    // eslint-disable-next-line typescript/unbound-method
     const addListener = vi.mocked(chrome.storage.onChanged.addListener)
+    // eslint-disable-next-line typescript/unbound-method
     const removeListener = vi.mocked(chrome.storage.onChanged.removeListener)
 
     await waitFor(() => {

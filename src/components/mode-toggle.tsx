@@ -30,16 +30,36 @@ export const ModeToggle = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
-        <DropdownMenuItem onClick={() => setTheme('light')}>
+        <DropdownMenuItem
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onClick={() => {
+            setTheme('light')
+          }}
+        >
           {getThemeMessage('theme.light')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
+        <DropdownMenuItem
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onClick={() => {
+            setTheme('dark')
+          }}
+        >
           {getThemeMessage('theme.dark')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
+        <DropdownMenuItem
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onClick={() => {
+            setTheme('system')
+          }}
+        >
           {getThemeMessage('theme.system')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('user')}>
+        <DropdownMenuItem
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onClick={() => {
+            setTheme('user')
+          }}
+        >
           {getThemeMessage('theme.user')}
         </DropdownMenuItem>
       </DropdownMenuContent>

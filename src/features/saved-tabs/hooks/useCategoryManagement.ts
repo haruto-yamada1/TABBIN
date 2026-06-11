@@ -79,7 +79,7 @@ const removeSubCategoryFromGroup = (
   }
   console.log('削除前のサブカテゴリ:', group.subCategories)
   const updatedSubCategories =
-    group.subCategories?.filter((cat) => cat !== categoryName) || []
+    group.subCategories?.filter((cat) => cat !== categoryName) ?? []
   console.log('削除後のサブカテゴリ:', updatedSubCategories)
   const updatedUrlSubCategories = {
     ...group.urlSubCategories,
@@ -87,6 +87,7 @@ const removeSubCategoryFromGroup = (
   if (updatedUrlSubCategories) {
     for (const urlId in updatedUrlSubCategories) {
       if (updatedUrlSubCategories[urlId] === categoryName) {
+        // eslint-disable-next-line typescript/no-dynamic-delete
         delete updatedUrlSubCategories[urlId]
       }
     }
@@ -96,7 +97,7 @@ const removeSubCategoryFromGroup = (
     categoryKeywords:
       group.categoryKeywords?.filter(
         (ck) => ck.categoryName !== categoryName,
-      ) || [],
+      ) ?? [],
     subCategories: updatedSubCategories,
     urlSubCategories: updatedUrlSubCategories,
   }
@@ -123,13 +124,13 @@ const buildReorderedCategoryOrder = (params: {
   }
   return arrayMove(currentOrder, oldIndex, newIndex)
 }
+const isStateSetter = <T>(value: SetStateAction<T>): value is (prev: T) => T =>
+  typeof value === 'function'
+
 const resolveStateValue = <T>(
   nextValue: SetStateAction<T>,
   previousValue: T,
-): T =>
-  typeof nextValue === 'function'
-    ? (nextValue as (value: T) => T)(previousValue)
-    : nextValue
+): T => (isStateSetter(nextValue) ? nextValue(previousValue) : nextValue)
 /**
  * 親カテゴリ管理フック。
  * カテゴリの読み込み・並び替えモード・ドメイン間移動を担う。
@@ -137,6 +138,7 @@ const resolveStateValue = <T>(
  * @returns UseCategoryManagementReturn
  */
 const useCategoryManagement = (): UseCategoryManagementReturn => {
+  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const [categories, setCategoriesState] = useState<ParentCategory[]>([])
   const [categoryOrder, setCategoryOrder] = useState<string[]>([])
@@ -175,7 +177,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
       try {
         console.log(`カテゴリ ${categoryName} の削除を開始します...`)
         const storageResult = await chrome.storage.local.get<{
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs')
         const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
           ? storageResult.savedTabs
@@ -367,7 +369,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
         await saveParentCategories(updatedCategories)
         setCategories(updatedCategories)
         console.log(
-          `ドメイン ${domainGroup.domain} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`,
+          `ドメイン ${domainGroup.domain} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`, // eslint-disable-line typescript/prefer-nullish-coalescing -- fromCategoryId could be empty string
         )
       } catch (error) {
         console.error('カテゴリ間ドメイン移動エラー:', error)

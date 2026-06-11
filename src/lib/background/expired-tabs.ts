@@ -3,9 +3,28 @@
  */
 
 import type { AutoDeletePeriod } from '@/types/background'
-import type { TabGroup } from '@/types/storage'
+import type { TabGroup, UserSettings } from '@/types/storage'
 
-const AUTO_DELETE_PERIODS = new Set<AutoDeletePeriod>([
+const MS_IN_SECOND_ET = 1000
+const SECONDS_IN_MINUTE_ET = 60
+const MINUTES_IN_HOUR_ET = 60
+const HOURS_IN_DAY_ET = 24
+
+const MINUTE_MS = SECONDS_IN_MINUTE_ET * MS_IN_SECOND_ET
+const HOUR_MS = MINUTES_IN_HOUR_ET * MINUTE_MS
+const DAY_MS = HOURS_IN_DAY_ET * HOUR_MS
+
+const THIRTY_SECONDS_VALUE = 30
+const SEVEN_DAYS_VALUE = 7
+const FOURTEEN_DAYS_VALUE = 14
+const THIRTY_DAYS_VALUE = 30
+const ONE_HUNDRED_EIGHTY_DAYS_VALUE = 180
+const THREE_HUNDRED_SIXTY_FIVE_DAYS_VALUE = 365
+
+const TIMESTAMP_OFFSET_30_SEC = 40
+const TIMESTAMP_OFFSET_1_MIN = 70
+
+const AUTO_DELETE_PERIODS = new Set<string>([
   'never',
   '30sec',
   '1min',
@@ -20,7 +39,7 @@ const AUTO_DELETE_PERIODS = new Set<AutoDeletePeriod>([
 export const isAutoDeletePeriod = (
   period: string,
 ): period is AutoDeletePeriod => {
-  return AUTO_DELETE_PERIODS.has(period as AutoDeletePeriod)
+  return AUTO_DELETE_PERIODS.has(period)
 }
 /**
  * 期限の文字列を対応するミリ秒に変換
@@ -28,40 +47,37 @@ export const isAutoDeletePeriod = (
 export const getExpirationPeriodMs = (
   period: AutoDeletePeriod,
 ): number | null => {
-  const minute = 60 * 1000
-  const hour = 60 * minute
-  const day = 24 * hour
-
   // テスト用に30秒も追加
+  // eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (period) {
     case '30sec': {
-      return 30 * 1000
+      return THIRTY_SECONDS_VALUE * MS_IN_SECOND_ET
     }
     // テスト用30秒
     case '1min': {
-      return minute
+      return MINUTE_MS
     }
     case '1hour': {
-      return hour
+      return HOUR_MS
     }
     case '1day': {
-      return day
+      return DAY_MS
     }
     case '7days': {
-      return 7 * day
+      return SEVEN_DAYS_VALUE * DAY_MS
     }
     case '14days': {
-      return 14 * day
+      return FOURTEEN_DAYS_VALUE * DAY_MS
     }
     case '30days': {
-      return 30 * day
+      return THIRTY_DAYS_VALUE * DAY_MS
     }
     case '180days': {
-      return 180 * day
+      return ONE_HUNDRED_EIGHTY_DAYS_VALUE * DAY_MS
     }
     // 約6ヶ月
     case '365days': {
-      return 365 * day
+      return THREE_HUNDRED_SIXTY_FIVE_DAYS_VALUE * DAY_MS
     }
     // 1年
     default: {
@@ -79,7 +95,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 
     // ストレージから直接取得する - より単純化した取得方法
     const data = await chrome.storage.local.get<{
-      userSettings?: import('@/types/storage').UserSettings
+      userSettings?: UserSettings
     }>(['userSettings'])
     const autoDeletePeriod = data.userSettings?.autoDeletePeriod ?? 'never'
 
@@ -99,7 +115,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 
     // 期限をミリ秒で計算
     // "never" と無効値は上で除外済みのため、ここでは null にならない想定
-    const expirationPeriod = getExpirationPeriodMs(autoDeletePeriod) as number
+    const expirationPeriod = getExpirationPeriodMs(autoDeletePeriod) ?? 0
     const currentTime = Date.now()
     const cutoffTime = currentTime - expirationPeriod
     console.log(`現在時刻: ${new Date(currentTime).toLocaleString()}`)
@@ -107,9 +123,9 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
 
     // 保存されたタブを取得
     const storageResult = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
-    const savedTabs: TabGroup[] = storageResult.savedTabs || []
+    const savedTabs: TabGroup[] = storageResult.savedTabs ?? []
     if (savedTabs.length === 0) {
       console.log('保存されたタブはありません')
       return
@@ -190,11 +206,12 @@ export const updateTabTimestamps = async (
   timestamp: number
 }> => {
   try {
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty string fallback
     console.log(`タブの保存時刻を更新します: ${period || '不明な期間'}`)
     const storageResult = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
-    const savedTabs: TabGroup[] = storageResult.savedTabs || []
+    const savedTabs: TabGroup[] = storageResult.savedTabs ?? []
     if (savedTabs.length === 0) {
       console.log('保存されたタブがありません')
       return {
@@ -207,9 +224,9 @@ export const updateTabTimestamps = async (
 
     // 短いテスト用期間では、即時検証しやすいように過去時刻を設定する
     if (period === '30sec') {
-      timestamp = now - 40 * 1000
+      timestamp = now - TIMESTAMP_OFFSET_30_SEC * MS_IN_SECOND_ET
     } else if (period === '1min') {
-      timestamp = now - 70 * 1000
+      timestamp = now - TIMESTAMP_OFFSET_1_MIN * MS_IN_SECOND_ET
     } else {
       timestamp = now
     }
@@ -229,6 +246,7 @@ export const updateTabTimestamps = async (
     )
 
     // 即座に確認
+    // eslint-disable-next-line typescript/no-floating-promises
     checkAndRemoveExpiredTabs()
     return {
       success: true,

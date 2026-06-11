@@ -11,6 +11,9 @@ import type { LanguageSetting } from '@/features/i18n/messages'
 import { cn } from '@/lib/utils'
 
 const languageOptions: LanguageSetting[] = ['system', 'ja', 'en']
+const isValidLanguage = (v: string): v is LanguageSetting =>
+  v === 'system' || v === 'ja' || v === 'en'
+
 const getLanguageOptionKey = (option: LanguageSetting) => {
   switch (option) {
     case 'system': {
@@ -21,6 +24,9 @@ const getLanguageOptionKey = (option: LanguageSetting) => {
     }
     case 'en': {
       return 'language.english'
+    }
+    default: {
+      return 'language.system'
     }
   }
 }
@@ -44,9 +50,12 @@ export const LanguageSelect = ({
       </Label>
       <Select
         value={languageSetting}
-        onValueChange={(value) =>
-          void setLanguageSetting(value as LanguageSetting)
-        }
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onValueChange={(value) => {
+          if (isValidLanguage(value)) {
+            void setLanguageSetting(value)
+          }
+        }}
       >
         <SelectTrigger
           id='language-select'

@@ -1,6 +1,6 @@
 import { Plus, RotateCcw, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
+import { z } from 'zod'
 
 import { ModeToggle } from '@/components/mode-toggle'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,8 @@ import { useSettings } from '@/features/options/hooks/useSettings'
 import { ImportExportSettings } from '@/features/options/ImportExportSettings'
 import type { UserSettings } from '@/types/storage'
 
+import { resetFontSizeInputState } from './optionsRoute.helpers'
+
 const createThemeColorChangeHandler =
   (
     key: keyof NonNullable<UserSettings['colors']>,
@@ -46,48 +48,17 @@ const createThemeColorChangeHandler =
     handleColorChange(key, event.target.value)
   }
 
+const FONT_SIZE_PERCENT_DIVISOR = 100
+
 const applyFontSizePreview = (value: number) => {
   document.documentElement.style.setProperty(
     '--app-font-scale',
-    String(normalizeFontSizePercent(value) / 100),
+    String(normalizeFontSizePercent(value) / FONT_SIZE_PERCENT_DIVISOR),
   )
 }
 
-const resetFontSizeInputValue = <
-  T extends {
-    fontSizeInputValue: string
-  },
->(
-  values: T,
-  fontSizePercent: number,
-): T => ({
-  ...values,
-  fontSizeInputValue: String(fontSizePercent),
-})
-
-const createResetFontSizeInputValueUpdater =
-  <
-    T extends {
-      fontSizeInputValue: string
-    },
-  >(
-    fontSizePercent: number,
-  ) =>
-  (values: T): T =>
-    resetFontSizeInputValue(values, fontSizePercent)
-
-const resetFontSizeInputState = <
-  T extends {
-    fontSizeInputValue: string
-  },
->(
-  setValues: Dispatch<SetStateAction<T>>,
-  fontSizePercent: number,
-): void => {
-  setValues(createResetFontSizeInputValueUpdater(fontSizePercent))
-}
-
 const useOptionsRouteView = () => {
+  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const {
     addExcludePattern,
@@ -129,7 +100,7 @@ const useOptionsRouteView = () => {
     await updateSetting('fontSizePercent', normalizedValue)
   }
 
-  const handleFontSizeSliderChange = async (
+  const handleFontSizeSliderChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setFontSizeValues({
@@ -142,7 +113,7 @@ const useOptionsRouteView = () => {
     await updateFontSizePercent(Number(fontSizeSliderValue))
   }
 
-  const handleFontSizeInputChange = async (
+  const handleFontSizeInputChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setFontSizeValues((prev) => ({
@@ -162,46 +133,67 @@ const useOptionsRouteView = () => {
     await updateFontSizePercent(nextValue)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleResetFontSize = async () => {
     await updateFontSizePercent(DEFAULT_FONT_SIZE_PERCENT)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleClickBehaviorChange = async (value: string) => {
-    await updateSetting('clickBehavior', value as UserSettings['clickBehavior'])
+    await updateSetting(
+      'clickBehavior',
+      z
+        .enum([
+          'saveCurrentTab',
+          'saveWindowTabs',
+          'saveSameDomainTabs',
+          'saveAllWindowsTabs',
+        ])
+        .parse(value),
+    )
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleRemoveAfterOpen = async (checked: boolean) => {
     await updateSetting('removeTabAfterOpen', checked)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleRemoveAfterExternalDrop = async (checked: boolean) => {
     await updateSetting('removeTabAfterExternalDrop', checked)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleExcludePinnedTabs = async (checked: boolean) => {
     await updateSetting('excludePinnedTabs', checked)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleShowSavedTime = async (checked: boolean) => {
     await updateSetting('showSavedTime', checked)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleOpenUrlInBackground = async (checked: boolean) => {
     await updateSetting('openUrlInBackground', checked)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleOpenAllInNewWindow = async (checked: boolean) => {
     await updateSetting('openAllInNewWindow', checked)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleConfirmDeleteEach = async (checked: boolean) => {
     await updateSetting('confirmDeleteEach', checked)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleToggleConfirmDeleteAll = async (checked: boolean) => {
     await updateSetting('confirmDeleteAll', checked)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleExcludePatternKeyDown = async (
     event: React.KeyboardEvent<HTMLInputElement>,
   ) => {
@@ -257,6 +249,7 @@ const useOptionsRouteView = () => {
             <div className='gap-y-2'>
               <Select
                 value={settings.clickBehavior || 'saveWindowTabs'}
+                // eslint-disable-next-line typescript/no-misused-promises
                 onValueChange={handleClickBehaviorChange}
               >
                 <SelectTrigger
@@ -282,6 +275,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='remove-after-open'
               checked={settings.removeTabAfterOpen}
+              // eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleRemoveAfterOpen}
               className='cursor-pointer'
             />
@@ -300,6 +294,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='remove-after-external-drop'
               checked={settings.removeTabAfterExternalDrop}
+              // eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleRemoveAfterExternalDrop}
               className='cursor-pointer'
             />
@@ -318,6 +313,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='exclude-pinned-tabs'
               checked={settings.excludePinnedTabs}
+              // eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleExcludePinnedTabs}
               className='cursor-pointer'
             />
@@ -336,6 +332,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='open-url-in-blank'
               checked={settings.openUrlInBackground}
+              // eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleOpenUrlInBackground}
               className='cursor-pointer'
             />
@@ -354,6 +351,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='open-all-in-new-window'
               checked={settings.openAllInNewWindow}
+              // eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleOpenAllInNewWindow}
               className='cursor-pointer'
             />
@@ -372,6 +370,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='show-saved-time'
               checked={settings.showSavedTime}
+              // eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleShowSavedTime}
               className='cursor-pointer'
             />
@@ -390,6 +389,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='confirm-delete-each'
               checked={settings.confirmDeleteEach}
+              // eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleConfirmDeleteEach}
               className='cursor-pointer'
             />
@@ -408,6 +408,7 @@ const useOptionsRouteView = () => {
             <Checkbox
               id='confirm-delete-all'
               checked={settings.confirmDeleteAll}
+              // eslint-disable-next-line typescript/no-misused-promises
               onCheckedChange={handleToggleConfirmDeleteAll}
               className='cursor-pointer'
             />
@@ -439,15 +440,18 @@ const useOptionsRouteView = () => {
                 id='excludePatterns'
                 value={excludePatternInput}
                 onChange={handleExcludePatternInputChange}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onBlur={() => {
                   void addExcludePattern()
                 }}
+                // eslint-disable-next-line typescript/no-misused-promises
                 onKeyDown={handleExcludePatternKeyDown}
                 className='bg-background text-foreground'
                 placeholder={t('options.excludePatterns.placeholder')}
               />
               <Button
                 type='button'
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   void addExcludePattern()
                 }}
@@ -478,6 +482,7 @@ const useOptionsRouteView = () => {
                       variant='ghost'
                       size='icon-sm'
                       className='size-5 rounded-full'
+                      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                       onClick={() => {
                         void removeExcludePattern(pattern)
                       }}
@@ -514,6 +519,7 @@ const useOptionsRouteView = () => {
             <Button
               variant='outline'
               size='sm'
+              // eslint-disable-next-line typescript/no-misused-promises
               onClick={handleResetFontSize}
               className='flex cursor-pointer items-center gap-1'
             >
@@ -538,18 +544,23 @@ const useOptionsRouteView = () => {
                 max={MAX_FONT_SIZE_PERCENT}
                 step={FONT_SIZE_PERCENT_STEP}
                 value={fontSizeSliderValue}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onChange={(event) => {
-                  void handleFontSizeSliderChange(event)
+                  handleFontSizeSliderChange(event)
                 }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onMouseUp={() => {
                   void commitFontSizeSliderValue()
                 }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onTouchEnd={() => {
                   void commitFontSizeSliderValue()
                 }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onBlur={() => {
                   void commitFontSizeSliderValue()
                 }}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onKeyUp={(event) => {
                   if (
                     ![
@@ -588,12 +599,15 @@ const useOptionsRouteView = () => {
                   max={MAX_FONT_SIZE_PERCENT}
                   step={FONT_SIZE_PERCENT_STEP}
                   value={fontSizeInputValue}
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onChange={(event) => {
-                    void handleFontSizeInputChange(event)
+                    handleFontSizeInputChange(event)
                   }}
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onBlur={() => {
                     void commitFontSizeInputValue()
                   }}
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onKeyDown={(event) => {
                     if (event.key !== 'Enter') {
                       return
@@ -618,6 +632,7 @@ const useOptionsRouteView = () => {
             <Button
               variant='outline'
               size='sm'
+              // eslint-disable-next-line typescript/no-misused-promises
               onClick={handleResetColors}
               className='flex cursor-pointer items-center gap-1'
             >
@@ -629,6 +644,7 @@ const useOptionsRouteView = () => {
             {colorOptions.map(({ key, labelKey }) => {
               const handleThemeColorChange = createThemeColorChangeHandler(
                 key,
+                // eslint-disable-next-line typescript/no-misused-promises
                 handleColorChange,
               )
 
@@ -645,6 +661,8 @@ const useOptionsRouteView = () => {
                       aria-label={t(labelKey)}
                       id={`${key}-picker`}
                       type='color'
+                      // `||` needed: color could be empty string
+                      // eslint-disable-next-line typescript/prefer-nullish-coalescing
                       value={settings.colors?.[key] || getDefaultColor(key)}
                       onChange={handleThemeColorChange}
                       className='size-8 shrink-0 cursor-pointer border-0 p-0'
@@ -653,6 +671,8 @@ const useOptionsRouteView = () => {
                       <Input
                         id={`${key}-hex`}
                         type='text'
+                        // `||` needed: color could be empty string
+                        // eslint-disable-next-line typescript/prefer-nullish-coalescing
                         value={settings.colors?.[key] || getDefaultColor(key)}
                         onChange={handleThemeColorChange}
                         className='w-full bg-background text-foreground'
@@ -669,6 +689,7 @@ const useOptionsRouteView = () => {
         <div className='mt-4'>
           <Button
             type='button'
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={() =>
               window.open(
                 'https://forms.gle/c9gBiF2TmgXaeU7J6',
@@ -689,6 +710,7 @@ const useOptionsRouteView = () => {
           <Button
             type='button'
             className='w-full cursor-pointer'
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onClick={() =>
               window.open(
                 chrome.runtime.getURL('changelog.html'),
@@ -707,10 +729,4 @@ const useOptionsRouteView = () => {
 
 const OptionsRoute = () => useOptionsRouteView()
 
-export {
-  createResetFontSizeInputValueUpdater,
-  OptionsRoute,
-  OptionsRoute as OptionsPage,
-  resetFontSizeInputState,
-  resetFontSizeInputValue,
-}
+export { OptionsRoute, OptionsRoute as OptionsPage }

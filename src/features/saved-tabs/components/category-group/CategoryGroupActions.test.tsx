@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const { cardGroupActionsSpy, useCategoryGroupMock } = vi.hoisted(() => ({
   cardGroupActionsSpy: vi.fn(),
@@ -15,6 +15,7 @@ const { cardGroupActionsSpy, useCategoryGroupMock } = vi.hoisted(() => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
+    // eslint-disable-next-line eslint/complexity
     t: (key: string, _fallback?: string, values?: Record<string, string>) => {
       if (key === 'savedTabs.deleteAll') {
         return 'すべて削除'
@@ -56,6 +57,7 @@ vi.mock('../shared/CardGroupActions', () => ({
     cardGroupActionsSpy(props)
     return (
       <button
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           ;(props.onDeleteAll as (() => void) | undefined)?.()
         }}

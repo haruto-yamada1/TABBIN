@@ -13,7 +13,9 @@ interface SpeechRecognition extends EventTarget {
   continuous: boolean
   interimResults: boolean
   lang: string
+  // eslint-disable-next-line typescript/method-signature-style
   start(): void
+  // eslint-disable-next-line typescript/method-signature-style
   stop(): void
   onstart: ((this: SpeechRecognition, ev: Event) => void) | null
   onend: ((this: SpeechRecognition, ev: Event) => void) | null
@@ -32,12 +34,14 @@ interface SpeechRecognitionEvent extends Event {
 
 interface SpeechRecognitionResultList {
   readonly length: number
+  // eslint-disable-next-line typescript/method-signature-style
   item(index: number): SpeechRecognitionResult
   [index: number]: SpeechRecognitionResult
 }
 
 interface SpeechRecognitionResult {
   readonly length: number
+  // eslint-disable-next-line typescript/method-signature-style
   item(index: number): SpeechRecognitionAlternative
   [index: number]: SpeechRecognitionAlternative
   isFinal: boolean
@@ -55,6 +59,10 @@ const RECORDING_START_FAILED_MESSAGE =
 const RECORDING_PROCESS_FAILED_MESSAGE =
   'Unable to process the recorded audio. Please try again.'
 const RECORDING_FAILED_MESSAGE = 'Recording failed. Please try again.'
+
+const isSpeechRecognitionEvent = (
+  event: Event,
+): event is SpeechRecognitionEvent => 'results' in event
 
 const stopStreamTracks = (stream: MediaStream | null) => {
   if (!stream) {
@@ -181,6 +189,7 @@ const RecordingButton = ({
         <div
           className='absolute inset-0 animate-ping rounded-full border-2 border-red-400/30'
           key={id}
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           style={{
             animationDelay: delay,
             animationDuration: '900ms',
@@ -212,6 +221,7 @@ const RecordingErrorAlert = ({ message }: { message: string }) => (
 )
 
 export const SpeechInput = ({
+  // eslint-disable-line eslint/max-lines-per-function
   className,
   onTranscriptionChange,
   onAudioRecorded,
@@ -251,7 +261,10 @@ export const SpeechInput = ({
   }, [])
 
   const handleSpeechRecognitionResult = useCallback((event: Event) => {
-    const speechEvent = event as SpeechRecognitionEvent
+    if (!isSpeechRecognitionEvent(event)) {
+      return
+    }
+    const speechEvent = event
     let finalTranscript = ''
 
     for (
@@ -313,11 +326,18 @@ export const SpeechInput = ({
     speechRecognition.interimResults = true
     speechRecognition.lang = lang
 
-    const handleStart = () => handleSpeechRecognitionStartRef.current()
-    const handleEnd = () => handleSpeechRecognitionEndRef.current()
-    const handleResult = (event: Event) =>
+    const handleStart = () => {
+      handleSpeechRecognitionStartRef.current()
+    }
+    const handleEnd = () => {
+      handleSpeechRecognitionEndRef.current()
+    }
+    const handleResult = (event: Event) => {
       handleSpeechRecognitionResultRef.current(event)
-    const handleError = () => handleSpeechRecognitionErrorRef.current()
+    }
+    const handleError = () => {
+      handleSpeechRecognitionErrorRef.current()
+    }
 
     speechRecognition.addEventListener('start', handleStart)
     speechRecognition.addEventListener('end', handleEnd)
@@ -327,6 +347,7 @@ export const SpeechInput = ({
     recognitionRef.current = speechRecognition
     setIsRecognitionReady(true)
 
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       speechRecognition.removeEventListener('start', handleStart)
       speechRecognition.removeEventListener('end', handleEnd)
@@ -432,10 +453,12 @@ export const SpeechInput = ({
       }
 
       mediaRecorder.addEventListener('dataavailable', handleDataAvailable)
+      // eslint-disable-next-line typescript/no-misused-promises
       mediaRecorder.addEventListener('stop', handleStop)
       mediaRecorder.addEventListener('error', handleError)
       mediaRecorderCleanupRef.current = () => {
         mediaRecorder.removeEventListener('dataavailable', handleDataAvailable)
+        // eslint-disable-next-line typescript/no-misused-promises
         mediaRecorder.removeEventListener('stop', handleStop)
         mediaRecorder.removeEventListener('error', handleError)
       }
@@ -479,6 +502,7 @@ export const SpeechInput = ({
       if (isListening) {
         stopMediaRecorder()
       } else {
+        // eslint-disable-next-line typescript/no-floating-promises
         startMediaRecorder()
       }
     }

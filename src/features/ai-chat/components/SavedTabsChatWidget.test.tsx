@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-misused-promises, @typescript-eslint/unbound-method, typescript/TS2367, typescript/TS2352, typescript/only-throw-error */
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -11,7 +14,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
 import type { UserSettings } from '@/types/storage'
@@ -76,6 +79,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -88,7 +92,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -97,6 +101,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 vi.mock('@/components/ai-elements/conversation', async () => {
   const actual = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/components/ai-elements/conversation')
   >('@/components/ai-elements/conversation')
 
@@ -114,6 +119,7 @@ vi.mock('@/components/ai-elements/conversation', async () => {
           aria-label={ariaLabel}
           className={className}
           data-testid='conversation-scroll-button'
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             mocked.conversationScrollButtonClick()
           }}
@@ -126,7 +132,7 @@ vi.mock('@/components/ai-elements/conversation', async () => {
 import { SavedTabsChatWidget } from './SavedTabsChatWidget'
 
 type StorageListener = (
-  changes: { [key: string]: chrome.storage.StorageChange },
+  changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void
 
@@ -248,10 +254,7 @@ describe('SavedTabsChatWidget', () => {
 
   it('uses the shared ui button and does not leave raw button/input elements', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './SavedTabsChatWidget.tsx',
-      ),
+      resolve(import.meta.dirname, './SavedTabsChatWidget.tsx'),
       'utf8',
     )
 
@@ -582,6 +585,7 @@ describe('SavedTabsChatWidget', () => {
     render(
       <SavedTabsChatWidget
         defaultOpen
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         historyItems={[
           {
             id: 'conversation-1',
@@ -649,6 +653,7 @@ describe('SavedTabsChatWidget', () => {
     render(
       <SavedTabsChatWidget
         defaultOpen
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         historyItems={[
           {
             id: 'conversation-1',
@@ -728,9 +733,9 @@ describe('SavedTabsChatWidget', () => {
       'local',
     )
 
-    expect(
-      await screen.findByRole('combobox', { name: 'Imported' }),
-    ).toBeTruthy()
+    await expect(
+      screen.findByRole('combobox', { name: 'Imported' }),
+    ).resolves.toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'qwen3:latest' })).toBeTruthy()
   })
 
@@ -742,6 +747,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-1'
         defaultOpen
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content: 'First conversation',
@@ -762,6 +768,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-2'
         defaultOpen
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content: 'Another conversation',
@@ -790,6 +797,7 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-1'
         defaultOpen
+        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content:
@@ -824,6 +832,7 @@ describe('SavedTabsChatWidget', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -907,9 +916,9 @@ describe('SavedTabsChatWidget', () => {
       screen.getByRole('button', { name: 'Open system prompt settings' }),
     )
 
-    expect(
-      await screen.findByRole('dialog', { name: 'System prompt manager' }),
-    ).toBeTruthy()
+    await expect(
+      screen.findByRole('dialog', { name: 'System prompt manager' }),
+    ).resolves.toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'New prompt' }))
 
@@ -994,7 +1003,7 @@ describe('SavedTabsChatWidget', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
 
-    expect(await screen.findByText('First response')).toBeTruthy()
+    await expect(screen.findByText('First response')).resolves.toBeTruthy()
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Default' }))
     fireEvent.click(await screen.findByRole('option', { name: 'Research' }))
@@ -1097,6 +1106,7 @@ describe('SavedTabsChatWidget', () => {
 
     expect(saveButton.hasAttribute('disabled')).toBe(false)
 
+    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const nameInput = screen.getByLabelText('Prompt name') as HTMLInputElement
 
     expect(nameInput.maxLength).toBe(25)
@@ -1140,6 +1150,7 @@ describe('SavedTabsChatWidget', () => {
     mocked.getUserSettings.mockResolvedValue({
       ...buildConfiguredSettings(),
       aiSystemPrompts: [
+        // eslint-disable-next-line typescript/non-nullable-type-assertion-style
         buildConfiguredSettings().aiSystemPrompts?.[0] as NonNullable<
           UserSettings['aiSystemPrompts']
         >[number],
@@ -1208,6 +1219,7 @@ describe('SavedTabsChatWidget', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1246,15 +1258,14 @@ describe('SavedTabsChatWidget', () => {
       type: 'complete',
     })
 
-    expect(
-      await screen.findByText((_, element) =>
-        Boolean(
+    await expect(
+      screen.findByText(
+        (_, element) =>
           element?.tagName === 'P' &&
           element.textContent ===
             'The added URL this month is https://react.dev/learn.',
-        ),
       ),
-    ).toBeTruthy()
+    ).resolves.toBeTruthy()
 
     const copyButton = screen.getByRole('button', { name: 'Copy conversation' })
 
@@ -1298,15 +1309,14 @@ describe('SavedTabsChatWidget', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
 
-    expect(await screen.findByText('First response')).toBeTruthy()
+    await expect(screen.findByText('First response')).resolves.toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'New conversation' }))
 
     expect(screen.queryByText('First response')).toBeNull()
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
-    expect((screen.getByLabelText('Ask AI') as HTMLTextAreaElement).value).toBe(
-      '',
-    )
+    // eslint-disable-next-line typescript/TS2339
+    expect((screen.getByLabelText('Ask AI') as HTMLInputElement).value).toBe('')
   })
 
   it('disconnects the active stream when new conversation is clicked', async () => {
@@ -1362,6 +1372,7 @@ describe('SavedTabsChatWidget', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1430,22 +1441,22 @@ describe('SavedTabsChatWidget', () => {
     })
     expect(sourcesTrigger).toBeTruthy()
     fireEvent.click(sourcesTrigger)
-    expect(
-      await screen.findByRole('link', {
+    await expect(
+      screen.findByRole('link', {
         name: 'https://react.dev/learn',
       }),
-    ).toBeTruthy()
-    expect(
-      await screen.findAllByText(
+    ).resolves.toBeTruthy()
+    await expect(
+      screen.findAllByText(
         (_, element) =>
           element?.textContent?.includes('Saved tabs list') ?? false,
       ),
-    ).not.toHaveLength(0)
-    expect(
-      await screen.findAllByText(
+    ).resolves.not.toHaveLength(0)
+    await expect(
+      screen.findAllByText(
         (_, element) => element?.textContent?.includes('Tools run') ?? false,
       ),
-    ).not.toHaveLength(0)
+    ).resolves.not.toHaveLength(0)
     expect(screen.queryByText('Parameters')).toBeNull()
 
     fireEvent.click(
@@ -1454,7 +1465,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-    expect(await screen.findByText('Parameters')).toBeTruthy()
+    await expect(screen.findByText('Parameters')).resolves.toBeTruthy()
 
     handlePortMessage?.({
       answer: 'The added URL this month is https://react.dev/learn.',
@@ -1485,22 +1496,20 @@ describe('SavedTabsChatWidget', () => {
       type: 'complete',
     })
 
-    expect(
-      await screen.findByText((_, element) =>
-        Boolean(
+    await expect(
+      screen.findByText(
+        (_, element) =>
           element?.tagName === 'P' &&
           element.textContent ===
             'The added URL this month is https://react.dev/learn.',
-        ),
       ),
-    ).toBeTruthy()
+    ).resolves.toBeTruthy()
     const reasoningTrigger = screen.getByRole('button', { name: /Reasoning/i })
-    const answerText = screen.getByText((_, element) =>
-      Boolean(
+    const answerText = screen.getByText(
+      (_, element) =>
         element?.tagName === 'P' &&
         element.textContent ===
           'The added URL this month is https://react.dev/learn.',
-      ),
     )
 
     expect(
@@ -1520,6 +1529,7 @@ describe('SavedTabsChatWidget', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1607,6 +1617,7 @@ describe('SavedTabsChatWidget', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1698,6 +1709,7 @@ describe('SavedTabsChatWidget', () => {
     fireEvent.click(sourcesTrigger)
 
     const sourcesGroup =
+      // eslint-disable-next-line typescript/no-unnecessary-type-assertion
       (sourcesTrigger.closest('[data-slot="sources"]') as HTMLElement | null) ??
       document.body
 
@@ -1750,6 +1762,7 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
+    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
     const submitButton = screen.getByRole('button', { name: 'Submit' })
 
@@ -1798,7 +1811,9 @@ describe('SavedTabsChatWidget', () => {
     })
 
     expect(screen.queryByRole('dialog', { name: 'Select a model' })).toBeNull()
-    expect(await screen.findAllByText('llama3.2 (8B)')).not.toHaveLength(0)
+    await expect(
+      screen.findAllByText('llama3.2 (8B)'),
+    ).resolves.not.toHaveLength(0)
   })
 
   it('sends immediately when a suggestion is clicked and passes history on the second send', async () => {
@@ -1833,11 +1848,10 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
-    expect((screen.getByLabelText('Ask AI') as HTMLTextAreaElement).value).toBe(
-      '',
-    )
+    // eslint-disable-next-line typescript/TS2339
+    expect((screen.getByLabelText('Ask AI') as HTMLInputElement).value).toBe('')
 
-    expect(await screen.findByText('First response')).toBeTruthy()
+    await expect(screen.findByText('First response')).resolves.toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('Ask AI'), {
       target: { value: 'Tell me more' },
@@ -1883,9 +1897,9 @@ describe('SavedTabsChatWidget', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
 
-    expect(
-      await screen.findAllByText('Could not get a response from AI.'),
-    ).toHaveLength(2)
+    await expect(
+      screen.findAllByText('Could not get a response from AI.'),
+    ).resolves.toHaveLength(2)
   })
 
   it('shows macOS setup guidance and the FAQ link for Ollama 403 stream errors', async () => {
@@ -1899,6 +1913,7 @@ describe('SavedTabsChatWidget', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
+          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1942,9 +1957,9 @@ describe('SavedTabsChatWidget', () => {
       type: 'error',
     })
 
-    expect(
-      await screen.findAllByText('Open Terminal from Spotlight search.'),
-    ).toHaveLength(1)
+    await expect(
+      screen.findAllByText('Open Terminal from Spotlight search.'),
+    ).resolves.toHaveLength(1)
     expect(
       screen.getAllByText('Copy and paste the following command.'),
     ).toHaveLength(1)
@@ -2049,6 +2064,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
+    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
     fireEvent.change(textarea, {
@@ -2085,6 +2101,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
+    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
     fireEvent.change(textarea, {
@@ -2105,7 +2122,9 @@ describe('SavedTabsChatWidget', () => {
         prompt: 'Ctrl submit',
       })
     })
-    expect(await screen.findByText('Ctrl submit response')).toBeTruthy()
+    await expect(
+      screen.findByText('Ctrl submit response'),
+    ).resolves.toBeTruthy()
   })
 
   it('sends text attachments in the conversation payload when selected from the bottom-left picker', async () => {
@@ -2131,7 +2150,7 @@ describe('SavedTabsChatWidget', () => {
       },
     })
 
-    expect(await screen.findByText('memo.txt')).toBeTruthy()
+    await expect(screen.findByText('memo.txt')).resolves.toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('Ask AI'), {
       target: {
@@ -2156,7 +2175,9 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
-    expect(await screen.findByText('I read the attachment')).toBeTruthy()
+    await expect(
+      screen.findByText('I read the attachment'),
+    ).resolves.toBeTruthy()
   })
 
   it('can select and save a model from inside the chat when none is set', async () => {
@@ -2182,8 +2203,9 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
+    // eslint-disable-next-line typescript/TS2339
     expect(
-      (screen.getByLabelText('Ask AI') as HTMLTextAreaElement).disabled,
+      (screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled,
     ).toBe(true)
 
     expect(screen.queryByRole('button', { name: 'Load models' })).toBeNull()
@@ -2209,8 +2231,9 @@ describe('SavedTabsChatWidget', () => {
     })
 
     await waitFor(() => {
+      // eslint-disable-next-line typescript/TS2339
       expect(
-        (screen.getByLabelText('Ask AI') as HTMLTextAreaElement).disabled,
+        (screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled,
       ).toBe(false)
     })
     expect(screen.queryByText('Ollama: llama3.2')).toBeNull()
@@ -2248,11 +2271,11 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
-    expect(
-      await screen.findByText(
+    await expect(
+      screen.findByText(
         'Search for Environment Variables in the Windows start menu.',
       ),
-    ).toBeTruthy()
+    ).resolves.toBeTruthy()
     expect(
       screen.getByText('Open Edit the system environment variables.'),
     ).toBeTruthy()

@@ -1,11 +1,10 @@
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import type { StorybookConfig } from '@storybook/react-vite'
 import tailwindcss from '@tailwindcss/vite'
 import { mergeConfig } from 'vite'
 
-const dirname = fileURLToPath(new URL('.', import.meta.url))
+const dirname = import.meta.dirname
 
 export default {
   addons: ['@chromatic-com/storybook', '@storybook/addon-vitest'],
@@ -21,7 +20,7 @@ export default {
   typescript: {
     reactDocgen: false,
   },
-  viteFinal: async (config) =>
+  viteFinal: (config) =>
     mergeConfig(config, {
       plugins: [tailwindcss()],
       resolve: {

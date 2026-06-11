@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CustomProject } from '@/types/storage'
 
@@ -50,13 +50,14 @@ describe('filterCustomProjectsByQuery', () => {
       loadProjectUrls,
     })
 
-    expect(result).toEqual([projects[0]])
+    expect(result).toStrictEqual([projects[0]])
     expect(loadProjectUrls).toHaveBeenCalledTimes(1)
     expect(loadProjectUrls).toHaveBeenCalledWith(projects[1])
   })
 
   it('urlIds ベースの URL タイトル一致で対象プロジェクトと一致 URL だけを返す', async () => {
     const projects = createProjects()
+    // eslint-disable-next-line typescript/require-await
     const loadProjectUrls = vi.fn(async (project: CustomProject) => {
       if (project.id === 'project-1') {
         return [
@@ -93,7 +94,7 @@ describe('filterCustomProjectsByQuery', () => {
       loadProjectUrls,
     })
 
-    expect(result).toEqual([
+    expect(result).toStrictEqual([
       {
         ...projects[0],
         urlIds: ['url-1'],
@@ -125,6 +126,7 @@ describe('filterCustomProjectsByQuery', () => {
     const result = await filterCustomProjectsByQuery({
       customProjects: [project],
       searchQuery: 'react',
+      // eslint-disable-next-line typescript/require-await
       loadProjectUrls: vi.fn(async () => [
         {
           id: 'url-1',
@@ -141,7 +143,7 @@ describe('filterCustomProjectsByQuery', () => {
       ]),
     })
 
-    expect(result[0]?.urls).toEqual([
+    expect(result[0]?.urls).toStrictEqual([
       {
         category: undefined,
         notes: undefined,

@@ -2,7 +2,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const storyRoots = [
@@ -57,7 +57,7 @@ describe('storybook story exports', () => {
     }
 
     const duplicates = [...exportMap.entries()].reduce<
-      Array<{ exportName: string; files: string[] }>
+      { exportName: string; files: string[] }[]
     >((items, [exportName, files]) => {
       if (files.length > 1) {
         items.push({ exportName, files })
@@ -65,6 +65,6 @@ describe('storybook story exports', () => {
       return items
     }, [])
 
-    expect(duplicates).toEqual([])
+    expect(duplicates).toStrictEqual([])
   })
 })

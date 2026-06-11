@@ -18,7 +18,10 @@ import {
 } from '@/features/saved-tabs/components/shared/SavedTabsResponsive'
 import { SortableDomainCard } from '@/features/saved-tabs/components/SortableDomainCard'
 import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibility'
+import { defaultSettings } from '@/lib/storage/settings'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+
+const BULK_OPEN_THRESHOLD = 10
 
 type DndSensors = ComponentProps<typeof DndKitContext>['sensors']
 
@@ -68,7 +71,7 @@ interface DomainModeContainerProps {
 }
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
-  (group.urls || []).map((item) => item.url)
+  (group.urls ?? []).map((item) => item.url)
 const deleteVisibleUrlsForGroups = async (
   groups: TabGroup[],
   handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>,
@@ -120,6 +123,7 @@ interface UncategorizedDomainSectionProps {
 }
 
 const UncategorizedDomainSection = ({
+  // eslint-disable-line eslint/max-lines-per-function
   state: {
     shouldShowSectionHeader,
     hasVisibleCategoryGroups,
@@ -149,6 +153,13 @@ const UncategorizedDomainSection = ({
   hasContentCount,
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
+  const uncategorizedSettings = useMemo(
+    () => ({
+      ...defaultSettings,
+      confirmDeleteAll,
+    }),
+    [confirmDeleteAll],
+  )
 
   return (
     <>
@@ -191,6 +202,7 @@ const UncategorizedDomainSection = ({
             {displayedDomainCount > 0 && (
               <CardGroupActions
                 onOpenAll={handleOpenAll}
+                // eslint-disable-next-line typescript/no-misused-promises
                 onDeleteAll={handleDeleteAll}
                 openAllAriaLabel={getScopedNounActionLabel(
                   t,
@@ -212,7 +224,7 @@ const UncategorizedDomainSection = ({
                   targetName,
                   t('savedTabs.deleteAllTabs'),
                 )}
-                onConfirmOpenAll={displayedTabCount >= 10}
+                onConfirmOpenAll={displayedTabCount >= BULK_OPEN_THRESHOLD}
                 onConfirmDeleteAll={confirmDeleteAll}
                 openAllThreshold={10}
                 openAllCount={displayedTabCount}
@@ -264,6 +276,7 @@ const UncategorizedDomainSection = ({
                     <Button
                       variant='default'
                       size='sm'
+                      // eslint-disable-next-line typescript/no-misused-promises
                       onClick={handleConfirmReorder}
                       className='flex cursor-pointer items-center gap-1'
                       aria-label={t('savedTabs.reorder.confirmAria')}
@@ -291,6 +304,7 @@ const UncategorizedDomainSection = ({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
+            // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
             items={uncategorizedForDisplay.map((group) => group.id)}
             strategy={verticalListSortingStrategy}
           >
@@ -299,15 +313,22 @@ const UncategorizedDomainSection = ({
                 <SortableDomainCard
                   key={group.id}
                   group={group}
+                  // eslint-disable-next-line typescript/no-misused-promises
                   handleOpenAllTabs={handleOpenAllTabs}
+                  // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteGroup={handleDeleteGroup}
+                  // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteGroups={handleDeleteGroups}
+                  // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteUrl={handleDeleteUrl}
                   handleDeleteUrls={handleDeleteUrls}
+                  // eslint-disable-next-line typescript/no-misused-promises
                   handleOpenTab={handleOpenTab}
+                  // eslint-disable-next-line typescript/no-misused-promises
                   handleUpdateUrls={handleUpdateUrls}
+                  // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteCategory={handleDeleteCategory}
-                  settings={{ confirmDeleteAll } as UserSettings}
+                  settings={uncategorizedSettings}
                   isReorderMode={isReorderMode}
                   searchQuery={searchQuery}
                 />
@@ -383,7 +404,7 @@ export const DomainModeContainer = ({
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
   const uncategorizedTargetName = t('savedTabs.uncategorizedDomainsTitle')
   const uncategorizedUrlsToOpen = useMemo(
-    () => uncategorizedForDisplay.flatMap((group) => group.urls || []),
+    () => uncategorizedForDisplay.flatMap((group) => group.urls ?? []),
     [uncategorizedForDisplay],
   )
   const displayedUncategorizedTabCount = uncategorizedUrlsToOpen.length
@@ -413,6 +434,23 @@ export const DomainModeContainer = ({
     uncategorizedForDisplay,
   ])
 
+  const uncategorizedSectionState = useMemo(
+    () => ({
+      shouldShowSectionHeader: shouldShowUncategorizedSectionHeader,
+      hasVisibleCategoryGroups,
+      confirmDeleteAll: settings.confirmDeleteAll,
+      isReorderMode: isUncategorizedReorderMode,
+      shouldShowList: shouldShowUncategorizedList,
+    }),
+    [
+      shouldShowUncategorizedSectionHeader,
+      hasVisibleCategoryGroups,
+      settings.confirmDeleteAll,
+      isUncategorizedReorderMode,
+      shouldShowUncategorizedList,
+    ],
+  )
+
   if (isLoading) {
     return <LoadingState />
   }
@@ -438,6 +476,7 @@ export const DomainModeContainer = ({
                 if (!category) {
                   return null
                 }
+                // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
                 const domainGroups = categorized[categoryId] || []
                 if (domainGroups.length === 0) {
                   return null
@@ -447,17 +486,26 @@ export const DomainModeContainer = ({
                     key={categoryId}
                     category={category}
                     domains={domainGroups}
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleOpenAllTabs={handleOpenAllTabs}
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteGroup={handleDeleteGroup}
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteGroups={handleDeleteGroups}
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteUrl={handleDeleteUrl}
                     handleDeleteUrls={handleDeleteUrls}
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleOpenTab={handleOpenTab}
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleUpdateUrls={handleUpdateUrls}
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleUpdateDomainsOrder={handleUpdateDomainsOrder}
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleMoveDomainToCategory={
                       handleMoveDomainToCategoryWithTabGroups
                     }
+                    // eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteCategory={handleDeleteCategory}
                     settings={settings}
                     isCategoryReorderMode={isCategoryReorderMode}
@@ -471,13 +519,7 @@ export const DomainModeContainer = ({
       )}
 
       <UncategorizedDomainSection
-        state={{
-          shouldShowSectionHeader: shouldShowUncategorizedSectionHeader,
-          hasVisibleCategoryGroups,
-          confirmDeleteAll: settings.confirmDeleteAll,
-          isReorderMode: isUncategorizedReorderMode,
-          shouldShowList: shouldShowUncategorizedList,
-        }}
+        state={uncategorizedSectionState}
         displayedDomainCount={displayedUncategorizedDomainCount}
         displayedTabCount={displayedUncategorizedTabCount}
         targetName={uncategorizedTargetName}

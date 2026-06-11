@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -9,7 +11,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { OllamaErrorNotice } from './OllamaErrorNotice'
 
@@ -29,6 +31,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -41,7 +44,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -78,10 +81,7 @@ describe('OllamaErrorNotice', () => {
 
   it('uses the shared ui input in the copy row and does not leave a raw input element', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './OllamaErrorNotice.tsx',
-      ),
+      resolve(import.meta.dirname, './OllamaErrorNotice.tsx'),
       'utf8',
     )
 
@@ -92,6 +92,7 @@ describe('OllamaErrorNotice', () => {
   it('shows the Windows user-environment-variable setup steps', () => {
     render(
       <OllamaErrorNotice
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'notInstalledOrNotRunning',
@@ -118,6 +119,7 @@ describe('OllamaErrorNotice', () => {
   it('has wrapping and scroll classes for long content', () => {
     render(
       <OllamaErrorNotice
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'forbidden',
@@ -140,6 +142,7 @@ describe('OllamaErrorNotice', () => {
   it('can copy the macOS command row', async () => {
     render(
       <OllamaErrorNotice
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'forbidden',
@@ -175,6 +178,7 @@ describe('OllamaErrorNotice', () => {
   it('can copy the Windows value row', async () => {
     render(
       <OllamaErrorNotice
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'notInstalledOrNotRunning',
@@ -195,6 +199,7 @@ describe('OllamaErrorNotice', () => {
   it('can copy the check command row', async () => {
     render(
       <OllamaErrorNotice
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'forbidden',
@@ -215,6 +220,7 @@ describe('OllamaErrorNotice', () => {
   it('shows an error toast when the clipboard API is unavailable', async () => {
     render(
       <OllamaErrorNotice
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'notInstalledOrNotRunning',
@@ -242,6 +248,7 @@ describe('OllamaErrorNotice', () => {
 
     render(
       <OllamaErrorNotice
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'forbidden',

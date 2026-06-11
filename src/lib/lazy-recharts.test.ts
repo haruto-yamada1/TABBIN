@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import * as lazyRecharts from './lazy-recharts'
 
@@ -34,7 +34,7 @@ describe('lazy recharts exports', () => {
       return component._payload._result()
     })
 
-    await expect(Promise.all(lazyResults)).resolves.toEqual(
+    await expect(Promise.all(lazyResults)).resolves.toStrictEqual(
       componentNames.map(() => ({
         default: expect.anything(),
       })),

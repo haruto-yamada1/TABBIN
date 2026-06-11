@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const projectCardI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -20,6 +22,7 @@ vi.mock('./ProjectCardContext', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -32,7 +35,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -79,10 +82,7 @@ describe('ProjectCardUncategorizedArea', () => {
 
   it('shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './ProjectCardUncategorizedArea.tsx',
-      ),
+      resolve(import.meta.dirname, './ProjectCardUncategorizedArea.tsx'),
       'utf8',
     )
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { createCompoundContext } from './createCompoundContext'
 
@@ -11,12 +11,13 @@ describe('createCompoundContext', () => {
       value: string
     }>('Sample')
     const wrapper = ({ children }: { children: ReactNode }) => (
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       <Context value={{ value: 'provided' }}>{children}</Context>
     )
 
     expect(
       renderHook(() => useCompoundContext(), { wrapper }).result.current,
-    ).toEqual({
+    ).toStrictEqual({
       value: 'provided',
     })
     expect(() => renderHook(() => useCompoundContext())).toThrow(

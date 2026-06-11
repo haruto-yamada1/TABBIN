@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-unsafe-call */
 type StorageChangeListener = Parameters<
   typeof chrome.storage.onChanged.addListener
 >[0]
@@ -149,6 +150,7 @@ const chromeMock = {
       runtimeMessages.push(message)
       if (typeof maybeCallback === 'function') {
         maybeCallback({
+          // eslint-disable-line typescript/no-unsafe-call
           ok: true,
         })
       }
@@ -156,37 +158,41 @@ const chromeMock = {
   },
   storage: {
     local: {
-      clear: async () => {
+      clear: () => {
         for (const key of Object.keys(storageState)) {
+          // eslint-disable-next-line typescript/no-dynamic-delete
           delete storageState[key]
         }
+        return Promise.resolve()
       },
-      get: async (keys: null | string | string[] | Record<string, unknown>) => {
+      get: (keys: null | string | string[] | Record<string, unknown>) => {
         const requestedKeys = resolveRequestedKeys(keys)
 
         if (!requestedKeys) {
-          return cloneValue(storageState)
+          return Promise.resolve(cloneValue(storageState))
         }
 
-        return Object.fromEntries(
-          requestedKeys.reduce<[string, unknown][]>((items, key) => {
-            if (key in storageState) {
-              items.push([key, cloneValue(storageState[key])])
-            }
-            return items
-          }, []),
+        return Promise.resolve(
+          Object.fromEntries(
+            requestedKeys.reduce<[string, unknown][]>((items, key) => {
+              if (key in storageState) {
+                items.push([key, cloneValue(storageState[key])])
+              }
+              return items
+            }, []),
+          ),
         )
       },
-      remove: async (
-        keys: null | string | string[] | Record<string, unknown>,
-      ) => {
+      remove: (keys: null | string | string[] | Record<string, unknown>) => {
         const requestedKeys = resolveRequestedKeys(keys) ?? []
 
         for (const key of requestedKeys) {
+          // eslint-disable-next-line typescript/no-dynamic-delete
           delete storageState[key]
         }
+        return Promise.resolve()
       },
-      set: async (items: Record<string, unknown>) => {
+      set: (items: Record<string, unknown>) => {
         const changes: StorybookStorageState = {}
 
         for (const [key, value] of Object.entries(items)) {
@@ -195,6 +201,7 @@ const chromeMock = {
         }
 
         emitStorageChanges(changes)
+        return Promise.resolve()
       },
     },
     onChanged: {
@@ -208,18 +215,18 @@ const chromeMock = {
       },
     },
     sync: {
-      clear: async () => undefined,
-      get: async () => ({}),
-      remove: async () => undefined,
-      set: async () => undefined,
+      clear: () => undefined,
+      get: () => ({}),
+      remove: () => undefined,
+      set: () => undefined,
     },
   },
-} as unknown as typeof chrome
+}
 
 const browserMock = {
   runtime: {
     connect: () => createRuntimePort(),
-    sendMessage: async (message: unknown) => {
+    sendMessage: (message: unknown) => {
       runtimeMessages.push(message)
       return {
         ok: true,
@@ -237,7 +244,7 @@ const ensureNavigatorMocks = () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: {
-        writeText: async () => undefined,
+        writeText: () => Promise.resolve(undefined),
       },
     })
   }
@@ -247,20 +254,19 @@ const ensureNavigatorMocks = () => {
       configurable: true,
       value: {
         addEventListener: () => undefined,
-        enumerateDevices: async () =>
-          [
+        enumerateDevices: () =>
+          Promise.resolve([
             {
               deviceId: 'mic-primary',
               groupId: 'group-primary',
               kind: 'audioinput',
               label: 'Built-in Microphone (1234:5678)',
               toJSON: () => ({}),
-            },
-          ] satisfies MediaDeviceInfo[],
-        getUserMedia: async () =>
-          new StorybookMediaStream() as unknown as MediaStream,
+            } satisfies MediaDeviceInfo,
+          ]),
+        getUserMedia: () => Promise.resolve(new StorybookMediaStream()),
         removeEventListener: () => undefined,
-      } satisfies Partial<MediaDevices>,
+      },
     })
   }
 
@@ -281,8 +287,11 @@ const ensureNavigatorMocks = () => {
   }
 
   if (!globalThis.MediaRecorder) {
-    globalThis.MediaRecorder =
-      StorybookMediaRecorder as unknown as typeof MediaRecorder
+    Object.defineProperty(globalThis, 'MediaRecorder', {
+      configurable: true,
+      value: StorybookMediaRecorder,
+      writable: true,
+    })
   }
 
   if (
@@ -300,19 +309,8 @@ const ensureNavigatorMocks = () => {
   }
 }
 
-export const createStorybookChromeMock = (): typeof chrome => {
-  ;(
-    globalThis as typeof globalThis & {
-      browser?: typeof browserMock
-      chrome?: typeof chrome
-    }
-  ).chrome = chromeMock
-  ;(
-    globalThis as typeof globalThis & {
-      browser?: typeof browserMock
-      chrome?: typeof chrome
-    }
-  ).browser = browserMock
+export const createStorybookChromeMock = () => {
+  Object.assign(globalThis, { chrome: chromeMock, browser: browserMock })
   ensureNavigatorMocks()
 
   return chromeMock
@@ -324,6 +322,7 @@ export const primeStorybookBrowserMocks = (
   createStorybookChromeMock()
 
   for (const key of Object.keys(storageState)) {
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete storageState[key]
   }
 
@@ -340,6 +339,7 @@ export const setStorybookStorage = (nextState: StorybookStorageState) => {
 
 export const resetStorybookBrowserMocks = () => {
   for (const key of Object.keys(storageState)) {
+    // eslint-disable-next-line typescript/no-dynamic-delete
     delete storageState[key]
   }
   runtimeMessages.length = 0

@@ -13,6 +13,12 @@ const harnessRoot = '.agents/harness'
 const runRoot = `${harnessRoot}/runs`
 const schemaRoot = '.apm/harness/schemas'
 
+const TOP_ACTIONS_DISPLAY_LIMIT = 3
+const RUN_ID_SUFFIX_LENGTH = 8
+const SCORE_PASSED = 10
+const SCORE_REVIEW = 4
+const LINE_PREFIX_OFFSET = 3
+
 const stateStatuses = [
   'pending',
   'running',
@@ -901,7 +907,10 @@ export function buildHarnessSurfaceAudit(options: HarnessRunOptions): string {
     ),
     '',
     '## Top 3 actions',
-    ...listLines(topActions.slice(0, 3), '追加アクションなし。'),
+    ...listLines(
+      topActions.slice(0, TOP_ACTIONS_DISPLAY_LIMIT),
+      '追加アクションなし。',
+    ),
     '',
     '## APM source-of-truth sync',
     ...listLines(sourceFindings, 'drift / orphan は検出されませんでした。'),
@@ -1096,6 +1105,7 @@ function readJsonFile(
   filePath: string,
 ): { ok: true; value: JsonValue } | { message: string; ok: false } {
   try {
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     return { ok: true, value: JSON.parse(readFileSync(filePath, 'utf8')) }
   } catch (error) {
     return {
@@ -1109,6 +1119,7 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
+// eslint-disable-next-line eslint/complexity
 function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
   const issues: { message: string; path: string }[] = []
 
@@ -1123,6 +1134,7 @@ function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
   if (schema.enum && !schema.enum.some((item) => deepEqual(item, value))) {
     issues.push({
       path: at,
+      // eslint-disable-next-line typescript/no-base-to-string
       message: `許可されていない値です。許可値: ${schema.enum.join(', ')}`,
     })
   }
@@ -1155,16 +1167,15 @@ function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
     }
   }
 
-  if (schema.type === 'array' && Array.isArray(value) && schema.items) {
-    value.forEach((item, index) => {
-      issues.push(
-        ...validateJsonSchema(
-          item,
-          schema.items!,
-          joinPointer(at, String(index)),
-        ),
-      )
-    })
+  if (schema.type === 'array' && Array.isArray(value)) {
+    const items = schema.items
+    if (items) {
+      value.forEach((item, index) => {
+        issues.push(
+          ...validateJsonSchema(item, items, joinPointer(at, String(index))),
+        )
+      })
+    }
   }
 
   return issues
@@ -1213,6 +1224,7 @@ function stateSummaryLine(label: string, state: HarnessStateFile | null) {
   return `- ${label}: \`${state.status ?? 'unknown'}\` - ${state.summary ?? 'summary なし'}`
 }
 
+// eslint-disable-next-line eslint/complexity
 function verificationLines(snapshot: HarnessSnapshot) {
   const records = [
     ...(snapshot.orchestrator?.verification ?? []),
@@ -1248,6 +1260,7 @@ function findingLines(snapshot: HarnessSnapshot) {
   })
 }
 
+// eslint-disable-next-line eslint/complexity
 function nextActionLines(snapshot: HarnessSnapshot) {
   const actions = [
     snapshot.orchestrator?.next_action &&
@@ -1263,7 +1276,7 @@ function nextActionLines(snapshot: HarnessSnapshot) {
       `Scorecard: ${snapshot.scorecard.next_action}`,
     snapshot.learning?.next_action &&
       `Learning: ${snapshot.learning.next_action}`,
-  ].filter((line): line is string => Boolean(line))
+  ].filter((line): line is string => Boolean(line)) // eslint-disable-line unicorn/prefer-native-coercion-functions
 
   return listLines(actions, '次アクションなし。')
 }
@@ -1274,7 +1287,11 @@ function defaultRunId() {
     .replaceAll('-', '')
     .replaceAll(':', '')
     .replace(/\.\d{3}Z$/, 'Z')
-  const suffix = Math.random().toString(36).slice(2, 8)
+  const BASE36_RADIX = 36
+
+  const suffix = Math.random()
+    .toString(BASE36_RADIX)
+    .slice(2, RUN_ID_SUFFIX_LENGTH)
   return `run-${compactTimestamp}-${suffix}`
 }
 
@@ -1300,26 +1317,37 @@ function readGovernanceLearningCandidates(
     return []
   }
 
-  return readFileSync(governancePath, 'utf8')
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map((line) => {
-      try {
-        return JSON.parse(line) as { kind?: string; message?: string }
-      } catch {
-        return null
-      }
-    })
-    .filter(
-      (event): event is { kind?: string; message: string } =>
-        typeof event?.message === 'string' && event.message.length > 0,
-    )
-    .map((event) => ({
-      source: `governance:${event.kind ?? 'manual'}`,
-      summary: event.message,
+  const records: LearningRecord[] = []
+  for (const line of readFileSync(governancePath, 'utf8').split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (trimmed.length === 0) {
+      continue
+    }
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(trimmed)
+    } catch {
+      continue
+    }
+    if (typeof parsed !== 'object' || parsed === null) {
+      continue
+    }
+    const message = 'message' in parsed ? String(parsed.message) : ''
+    if (message.length === 0) {
+      continue
+    }
+    const kind =
+      'kind' in parsed && typeof parsed.kind === 'string'
+        ? parsed.kind
+        : undefined
+    records.push({
+      source: `governance:${kind ?? 'manual'}`,
+      summary: message,
       status: 'candidate',
-      target: learningTargetForSummary(event.message),
-    }))
+      target: learningTargetForSummary(message),
+    })
+  }
+  return records
 }
 
 function surfaceAuditCategoryNames() {
@@ -1417,7 +1445,7 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
   }
 
   return surfaceAuditCategoryNames().map((name) => {
-    const check = checks[name]!
+    const check = checks[name]
     const findings = findingsForCategory(name, sourceFindings, securityFindings)
     const ok = check.ok
     return {
@@ -1425,8 +1453,8 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
       status: ok ? 'covered' : 'review',
       evidence: check.evidence,
       notes: ok ? 'deterministic check passed' : '確認または同期が必要です。',
-      score: ok ? 10 : 4,
-      max_score: 10,
+      score: ok ? SCORE_PASSED : SCORE_REVIEW,
+      max_score: SCORE_PASSED,
       findings,
     }
   })
@@ -1438,7 +1466,7 @@ function summarizeScore(categories: ScorecardRecord[]) {
     0,
   )
   const maxScore = categories.reduce(
-    (total, category) => total + (category.max_score ?? 10),
+    (total, category) => total + (category.max_score ?? SCORE_PASSED),
     0,
   )
   return { maxScore, overallScore }
@@ -1449,7 +1477,10 @@ function topActionLines(
   extraFindings: (SecurityFinding | string)[] = [],
 ) {
   const categoryActions = categories
-    .filter((category) => (category.score ?? 0) < (category.max_score ?? 10))
+    .filter(
+      (category) =>
+        (category.score ?? 0) < (category.max_score ?? SCORE_PASSED),
+    )
     .map(
       (category) =>
         `[${category.name}] ${category.evidence} を確認し、source-of-truth から不足を補う。`,
@@ -1460,7 +1491,10 @@ function topActionLines(
     }
     return `[Security Guardrails] ${finding.file}: ${finding.summary}`
   })
-  return [...categoryActions, ...extraActions].slice(0, 3)
+  return [...categoryActions, ...extraActions].slice(
+    0,
+    TOP_ACTIONS_DISPLAY_LIMIT,
+  )
 }
 
 function findingsForCategory(
@@ -1495,7 +1529,7 @@ function collectSecurityFindings(projectRoot: string): SecurityFinding[] {
     }
     const scannedContent = securityRelevantContent(file, content)
     const isExecutableSurface = /\.(sh|ts|js|json|yaml|yml)$/.test(file)
-    const checks: Array<[RegExp, string, string, boolean]> = [
+    const checks: [RegExp, string, string, boolean][] = [
       [
         /\bcurl\b|\bwget\b/,
         'high',
@@ -1595,9 +1629,9 @@ function readPackageScriptNames(projectRoot: string) {
   }
 
   try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
-      scripts?: Record<string, string>
-    }
+    const raw: unknown = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
+    const packageJson: { scripts?: Record<string, string> } =
+      raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
     return Object.keys(packageJson.scripts ?? {})
   } catch {
     return []
@@ -1680,7 +1714,7 @@ function collectChangedFiles(projectRoot: string) {
 
     return output
       .split(/\r?\n/)
-      .map((line) => line.slice(3).trim())
+      .map((line) => line.slice(LINE_PREFIX_OFFSET).trim())
       .filter(Boolean)
       .map((line) => line.replace(/^"|"$/g, ''))
       .toSorted()

@@ -63,7 +63,7 @@ export const CategorySelector = () => {
           )}
       </div>
       <Select
-        value={selection.selectedCategoryId || ''}
+        value={selection.selectedCategoryId ?? ''}
         onValueChange={selection.handleCategoryChange}
       >
         <SelectTrigger className='w-full' id='categorySelect'>

@@ -1,5 +1,5 @@
 import { Check, Plus, X } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,13 @@ import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { setCategoryKeywords } from '@/lib/storage/tabs'
 import type { TabGroup } from '@/types/storage'
+
+import {
+  getCategoryKeywordsForName,
+  getRenameDraftName,
+  replaceTabGroup,
+  updateTabGroup,
+} from './subCategoryKeywordManager.helpers'
 
 interface NewSubCategoryFieldProps {
   value: string
@@ -23,69 +30,48 @@ const NewSubCategoryField = ({
   placeholder,
   onChange,
   onAdd,
-}: NewSubCategoryFieldProps) => (
-  <div className='mb-4'>
-    <Label
-      htmlFor='new-subcategory'
-      className='mb-1 block text-sm font-medium text-foreground'
-    >
-      {label}
-    </Label>
-    <Input
-      id='new-subcategory'
-      type='text'
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={onAdd}
-      placeholder={placeholder}
-      className='w-full rounded border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          onAdd()
-        }
-      }}
-    />
-  </div>
-)
-
-const replaceTabGroup = (
-  savedTabs: TabGroup[],
-  updatedTabGroup: TabGroup,
-): TabGroup[] =>
-  savedTabs.map((tab: TabGroup) =>
-    tab.id === updatedTabGroup.id ? updatedTabGroup : tab,
+}: NewSubCategoryFieldProps) => {
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange(e.target.value)
+    },
+    [onChange],
   )
 
-const getCategoryKeywordsForName = (
-  tabGroup: TabGroup,
-  categoryName: string | null,
-): string[] =>
-  tabGroup.categoryKeywords?.find((ck) => ck.categoryName === categoryName)
-    ?.keywords || []
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        onAdd()
+      }
+    },
+    [onAdd],
+  )
 
-const getRenameDraftName = (activeCategory: string | null): string =>
-  activeCategory || ''
-
-const shouldSkipRename = (oldName: string, newName: string): boolean =>
-  !(oldName && newName) || oldName === newName
-
-// タブグループを更新するヘルパー関数
-const updateTabGroup = async (updatedTabGroup: TabGroup) => {
-  try {
-    const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
-    }>('savedTabs')
-    const updatedTabs = replaceTabGroup(savedTabs, updatedTabGroup)
-    await chrome.storage.local.set({ savedTabs: updatedTabs })
-    return true
-  } catch (error) {
-    console.error('タブグループ更新エラー:', error)
-    return false
-  }
+  return (
+    <div className='mb-4'>
+      <Label
+        htmlFor='new-subcategory'
+        className='mb-1 block text-sm font-medium text-foreground'
+      >
+        {label}
+      </Label>
+      <Input
+        id='new-subcategory'
+        type='text'
+        value={value}
+        onChange={handleChange}
+        onBlur={onAdd}
+        placeholder={placeholder}
+        className='w-full rounded border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
+        onKeyDown={handleKeyDown}
+      />
+    </div>
+  )
 }
 
 const useSubCategoryKeywordManagerView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   tabGroup,
 }: {
   tabGroup: TabGroup
@@ -111,7 +97,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // キーワード追加関数に重複チェックを追加
-  const handleAddKeyword = () => {
+  const handleAddKeyword = useCallback(() => {
     if (newKeyword.trim() && activeCategory) {
       // 重複チェックを追加
       if (
@@ -127,10 +113,14 @@ const useSubCategoryKeywordManagerView = ({
       const updatedKeywords = [...keywords, newKeyword.trim()]
       setKeywords(updatedKeywords)
       setCategoryKeywords(tabGroup.id, activeCategory, updatedKeywords)
-        .then(() => setNewKeyword(''))
-        .catch((error) => console.error('キーワード保存エラー:', error))
+        .then(() => {
+          setNewKeyword('')
+        })
+        .catch((error) => {
+          console.error('キーワード保存エラー:', error)
+        })
     }
-  }
+  }, [newKeyword, activeCategory, keywords, tabGroup.id, t])
 
   // キーワードを削除した時に自動保存する処理を修正
   const handleRemoveKeyword = async (keywordToRemove: string) => {
@@ -142,7 +132,10 @@ const useSubCategoryKeywordManagerView = ({
       setKeywords(updatedKeywords)
 
       // ストレージに保存
-      await setCategoryKeywords(tabGroup.id, activeCategory!, updatedKeywords)
+      if (!activeCategory) {
+        return
+      }
+      await setCategoryKeywords(tabGroup.id, activeCategory, updatedKeywords)
 
       console.log(`キーワード "${keywordToRemove}" を削除しました`)
     } catch (error) {
@@ -157,7 +150,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // 新しい子カテゴリを追加
-  const handleAddSubCategory = async () => {
+  const handleAddSubCategory = useCallback(async () => {
     if (newSubCategory.trim()) {
       const categoryName = newSubCategory.trim()
 
@@ -171,10 +164,10 @@ const useSubCategoryKeywordManagerView = ({
       const updatedTabGroup = {
         ...tabGroup,
         categoryKeywords: [
-          ...(tabGroup.categoryKeywords || []),
+          ...(tabGroup.categoryKeywords ?? []),
           { categoryName, keywords: [] },
         ],
-        subCategories: [...(tabGroup.subCategories || []), categoryName],
+        subCategories: [...(tabGroup.subCategories ?? []), categoryName],
       }
 
       const success = await updateTabGroup(updatedTabGroup)
@@ -184,7 +177,7 @@ const useSubCategoryKeywordManagerView = ({
         setKeywords([])
       }
     }
-  }
+  }, [newSubCategory, tabGroup, t])
 
   // 子カテゴリ削除関数を完全に書き換え - saved-tabs/main.tsxのパターンに基づく
   const handleRemoveSubCategory = async (categoryToRemove: string) => {
@@ -206,7 +199,7 @@ const useSubCategoryKeywordManagerView = ({
 
       // タブの情報を取得
       const { savedTabs = [] } = await chrome.storage.local.get<{
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs')
       console.log('取得したsavedTabs:', savedTabs)
 
@@ -222,12 +215,12 @@ const useSubCategoryKeywordManagerView = ({
       }
 
       // 子カテゴリリストと関連キーワードからカテゴリを削除
-      const updatedSubCategories = (groupToUpdate.subCategories || []).filter(
+      const updatedSubCategories = (groupToUpdate.subCategories ?? []).filter(
         (cat: string) => cat !== categoryToRemove,
       )
 
       const updatedCategoryKeywords = (
-        groupToUpdate.categoryKeywords || []
+        groupToUpdate.categoryKeywords ?? []
       ).filter(
         (ck: { categoryName: string }) => ck.categoryName !== categoryToRemove,
       )
@@ -261,7 +254,7 @@ const useSubCategoryKeywordManagerView = ({
   }
 
   // リネームモードを開始する関数
-  const startRenameMode = () => {
+  const startRenameMode = useCallback(() => {
     setIsRenamingSubCategory(true)
     setNewCategoryName(getRenameDraftName(activeCategory))
 
@@ -272,10 +265,76 @@ const useSubCategoryKeywordManagerView = ({
         renameInputRef.current.select()
       }
     })
-  }
+  }, [activeCategory])
+
+  // カテゴリ名変更の処理関数
+  const handleRenameCategory = useCallback(
+    async (oldName: string, newName: string) => {
+      console.log(`カテゴリ名を変更: ${oldName} → ${newName}`)
+
+      // ストレージからタブグループを取得
+      const { savedTabs = [] } = await chrome.storage.local.get<{
+        savedTabs?: TabGroup[]
+      }>('savedTabs')
+
+      const updatedTabs = savedTabs.map((tab: TabGroup) => {
+        if (tab.id === tabGroup.id) {
+          // 1. subCategories配列を更新
+          const updatedSubCategories =
+            tab.subCategories?.map((cat) =>
+              cat === oldName ? newName : cat,
+            ) ?? []
+
+          // 2. categoryKeywords内の該当カテゴリを更新
+          const updatedCategoryKeywords =
+            tab.categoryKeywords?.map((ck) => {
+              if (ck.categoryName === oldName) {
+                return { ...ck, categoryName: newName }
+              }
+              return ck
+            }) ?? []
+
+          // 3. 各URLのサブカテゴリ参照を更新
+          const updatedUrls = (tab.urls ?? []).map((url) => {
+            if (url.subCategory === oldName) {
+              return { ...url, subCategory: newName }
+            }
+            return url
+          })
+
+          // 4. カテゴリ順序配列があれば更新
+          const updatedSubCategoryOrder =
+            tab.subCategoryOrder?.map((cat) =>
+              cat === oldName ? newName : cat,
+            ) ?? []
+
+          const updatedSubCategoryOrderWithUncategorized =
+            tab.subCategoryOrderWithUncategorized?.map((cat) =>
+              cat === oldName ? newName : cat,
+            ) ?? []
+
+          return {
+            ...tab,
+            categoryKeywords: updatedCategoryKeywords,
+            subCategories: updatedSubCategories,
+            subCategoryOrder: updatedSubCategoryOrder,
+            subCategoryOrderWithUncategorized:
+              updatedSubCategoryOrderWithUncategorized,
+            urls: updatedUrls,
+          }
+        }
+        return tab
+      })
+
+      // 更新したタブをストレージに保存
+      await chrome.storage.local.set({ savedTabs: updatedTabs })
+      console.log(`カテゴリ名の変更を完了: ${oldName} → ${newName}`)
+    },
+    [tabGroup],
+  )
 
   // リネームを完了する関数
-  const completeRename = async () => {
+  const completeRename = useCallback(async () => {
     if (!(isRenamingSubCategory && activeCategory && newCategoryName.trim())) {
       setIsRenamingSubCategory(false)
       return
@@ -304,75 +363,57 @@ const useSubCategoryKeywordManagerView = ({
       console.error('カテゴリ名変更エラー:', error)
       toast.error(t('savedTabs.subCategory.renameError'))
     }
-  }
-
-  // カテゴリ名変更の処理関数
-  const handleRenameCategory = async (oldName: string, newName: string) => {
-    console.log(`カテゴリ名を変更: ${oldName} → ${newName}`)
-
-    // ストレージからタブグループを取得
-    const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
-    }>('savedTabs')
-
-    const updatedTabs = savedTabs.map((tab: TabGroup) => {
-      if (tab.id === tabGroup.id) {
-        // 1. subCategories配列を更新
-        const updatedSubCategories =
-          tab.subCategories?.map((cat) => (cat === oldName ? newName : cat)) ||
-          []
-
-        // 2. categoryKeywords内の該当カテゴリを更新
-        const updatedCategoryKeywords =
-          tab.categoryKeywords?.map((ck) => {
-            if (ck.categoryName === oldName) {
-              return { ...ck, categoryName: newName }
-            }
-            return ck
-          }) || []
-
-        // 3. 各URLのサブカテゴリ参照を更新
-        const updatedUrls = (tab.urls || []).map((url) => {
-          if (url.subCategory === oldName) {
-            return { ...url, subCategory: newName }
-          }
-          return url
-        })
-
-        // 4. カテゴリ順序配列があれば更新
-        const updatedSubCategoryOrder =
-          tab.subCategoryOrder?.map((cat) =>
-            cat === oldName ? newName : cat,
-          ) || []
-
-        const updatedSubCategoryOrderWithUncategorized =
-          tab.subCategoryOrderWithUncategorized?.map((cat) =>
-            cat === oldName ? newName : cat,
-          ) || []
-
-        return {
-          ...tab,
-          categoryKeywords: updatedCategoryKeywords,
-          subCategories: updatedSubCategories,
-          subCategoryOrder: updatedSubCategoryOrder,
-          subCategoryOrderWithUncategorized:
-            updatedSubCategoryOrderWithUncategorized,
-          urls: updatedUrls,
-        }
-      }
-      return tab
-    })
-
-    // 更新したタブをストレージに保存
-    await chrome.storage.local.set({ savedTabs: updatedTabs })
-    console.log(`カテゴリ名の変更を完了: ${oldName} → ${newName}`)
-  }
+  }, [
+    isRenamingSubCategory,
+    activeCategory,
+    newCategoryName,
+    tabGroup,
+    t,
+    handleRenameCategory,
+  ])
 
   // キャンセル時の処理
-  const cancelRename = () => {
+  const cancelRename = useCallback(() => {
     setIsRenamingSubCategory(false)
     setNewCategoryName(getRenameDraftName(activeCategory))
-  }
+  }, [activeCategory])
+
+  const handleRenameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNewCategoryName(e.target.value)
+    },
+    [],
+  )
+
+  const handleRenameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        void completeRename()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        cancelRename()
+      }
+    },
+    [completeRename, cancelRename],
+  )
+
+  const handleKeywordChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNewKeyword(e.target.value)
+    },
+    [],
+  )
+
+  const handleKeywordKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        handleAddKeyword()
+      }
+    },
+    [handleAddKeyword],
+  )
 
   if (!tabGroup.subCategories || tabGroup.subCategories.length === 0) {
     return (
@@ -385,6 +426,7 @@ const useSubCategoryKeywordManagerView = ({
           label={t('savedTabs.subCategory.addTitle')}
           placeholder={t('savedTabs.subCategory.addPlaceholder')}
           onChange={setNewSubCategory}
+          // eslint-disable-next-line typescript/no-misused-promises
           onAdd={handleAddSubCategory}
         />
       </div>
@@ -403,6 +445,7 @@ const useSubCategoryKeywordManagerView = ({
         label={t('savedTabs.subCategory.addTitle')}
         placeholder={t('savedTabs.subCategory.addPlaceholder')}
         onChange={setNewSubCategory}
+        // eslint-disable-next-line typescript/no-misused-promises
         onAdd={handleAddSubCategory}
       />
 
@@ -412,7 +455,10 @@ const useSubCategoryKeywordManagerView = ({
           <div key={category} className='flex max-w-full items-center'>
             <Button
               type='button'
-              onClick={() => handleCategorySelect(category)}
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              onClick={() => {
+                handleCategorySelect(category)
+              }}
               variant={activeCategory === category ? 'secondary' : 'outline'}
               size='sm'
               className={`max-w-[180px] cursor-pointer truncate rounded-r-none ${
@@ -425,6 +471,7 @@ const useSubCategoryKeywordManagerView = ({
             </Button>
             <Button
               type='button'
+              // eslint-disable-next-line typescript/no-misused-promises, jsx-no-new-function-as-prop
               onClick={() => handleRemoveSubCategory(category)}
               variant='outline'
               size='sm'
@@ -456,21 +503,14 @@ const useSubCategoryKeywordManagerView = ({
                   ref={renameInputRef}
                   type='text'
                   value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      completeRename()
-                    } else if (e.key === 'Escape') {
-                      e.preventDefault()
-                      cancelRename()
-                    }
-                  }}
+                  onChange={handleRenameChange}
+                  onKeyDown={handleRenameKeyDown}
                   className='grow rounded-l border border-border bg-input p-2 text-foreground'
                 />
                 <div className='flex shrink-0'>
                   <Button
                     type='button'
+                    // eslint-disable-next-line typescript/no-misused-promises
                     onClick={completeRename}
                     variant='secondary'
                     size='icon'
@@ -535,15 +575,10 @@ const useSubCategoryKeywordManagerView = ({
                 id={`keyword-input-${activeCategory}`}
                 type='text'
                 value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
+                onChange={handleKeywordChange}
                 placeholder={t('savedTabs.keywords.placeholder')}
                 className='grow rounded-l border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    handleAddKeyword()
-                  }
-                }}
+                onKeyDown={handleKeywordKeyDown}
               />
               <Button
                 type='button'
@@ -578,6 +613,7 @@ const useSubCategoryKeywordManagerView = ({
                   <span className='max-w-[150px] truncate'>{keyword}</span>
                   <Button
                     type='button'
+                    // eslint-disable-next-line typescript/no-misused-promises, jsx-no-new-function-as-prop
                     onClick={() => handleRemoveKeyword(keyword)}
                     variant='ghost'
                     size='sm'
@@ -601,11 +637,3 @@ const useSubCategoryKeywordManagerView = ({
 }
 export const SubCategoryKeywordManager = (props: { tabGroup: TabGroup }) =>
   useSubCategoryKeywordManagerView(props)
-
-export {
-  getCategoryKeywordsForName,
-  getRenameDraftName,
-  replaceTabGroup,
-  shouldSkipRename,
-  updateTabGroup,
-}

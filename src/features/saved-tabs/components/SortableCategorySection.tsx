@@ -36,6 +36,8 @@ import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'
 import { useSortableCategoryDrag } from './shared/useSortableCategoryDrag'
 import { CategorySection } from './TimeRemaining'
 
+const BULK_OPEN_THRESHOLD = 10
+
 type SortOrder = 'default' | 'asc' | 'desc'
 
 const nextSortOrderMap: Record<SortOrder, SortOrder> = {
@@ -84,7 +86,7 @@ const openTabsWithConfirm = ({
   handleOpenAllTabs: SortableCategorySectionProps['handleOpenAllTabs']
   urls: Parameters<SortableCategorySectionProps['handleOpenAllTabs']>[0]
 }) => {
-  if (urlCount >= 10) {
+  if (urlCount >= BULK_OPEN_THRESHOLD) {
     setIsOpenAllConfirmOpen(true)
     return
   }
@@ -98,6 +100,7 @@ type SortableCategorySectionViewProps = SortableCategorySectionProps & {
 }
 
 const useSortableCategorySectionView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   id,
   handleOpenAllTabs,
   handleDeleteAllTabs, // 削除ハンドラを追加
@@ -121,7 +124,7 @@ const useSortableCategorySectionView = ({
       return urls
     }
     const arr = [...urls]
-    arr.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0))
+    arr.sort((a, b) => (a.savedAt ?? 0) - (b.savedAt ?? 0))
     if (sortOrder === 'desc') {
       arr.reverse()
     }
@@ -172,31 +175,40 @@ const useSortableCategorySectionView = ({
     t('savedTabs.deleteAllTabs'),
   )
 
-  const handleToggleCollapse = (event: React.MouseEvent) => {
+  const handleToggleCollapse = useCallback((event: React.MouseEvent) => {
     event.stopPropagation()
     setUserCollapsedState((current) => !current)
-  }
+  }, [])
 
-  const handleToggleSort = (event: React.MouseEvent) => {
+  const handleToggleSort = useCallback((event: React.MouseEvent) => {
     event.stopPropagation()
     setSortOrder((current) => nextSortOrderMap[current])
-  }
+  }, [])
 
-  const handleOpenAllClick = (event: React.MouseEvent) => {
-    event.stopPropagation()
-    openTabsWithConfirm({
-      handleOpenAllTabs,
-      setIsOpenAllConfirmOpen,
-      urlCount,
-      urls,
-    })
-  }
+  const handleOpenAllClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation()
+      openTabsWithConfirm({
+        handleOpenAllTabs,
+        setIsOpenAllConfirmOpen,
+        urlCount,
+        urls,
+      })
+    },
+    [handleOpenAllTabs, urlCount, urls],
+  )
+
+  const handleConfirmOpenAll = useCallback(() => {
+    setIsOpenAllConfirmOpen(false)
+    handleOpenAllTabs(urls)
+  }, [handleOpenAllTabs, urls])
 
   const onDeleteAllTabsConfirmed = useCallback(async () => {
     setIsDeleteConfirmOpen(false)
     setIsDeleting(true)
     try {
       const urlsToDelete = [...urls]
+      // eslint-disable-next-line typescript/await-thenable
       await handleDeleteAllTabs?.(urlsToDelete)
     } catch (error) {
       console.error('削除処理中にエラーが発生しました:', error)
@@ -222,10 +234,9 @@ const useSortableCategorySectionView = ({
     setIsDragCollapsed(false)
   }, [])
 
-  const handleConfirmOpenAll = () => {
-    setIsOpenAllConfirmOpen(false)
-    handleOpenAllTabs(urls)
-  }
+  const handleDeleteAllClick = useCallback(() => {
+    void onDeleteAllTabsConfirmed()
+  }, [onDeleteAllTabsConfirmed])
 
   useDndMonitor({
     onDragCancel: handleDragEndOrCancel,
@@ -354,7 +365,7 @@ const useSortableCategorySectionView = ({
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              onClick={() => void onDeleteAllTabsConfirmed()}
+              onClick={handleDeleteAllClick}
             >
               {t('common.delete')}
             </AlertDialogAction>

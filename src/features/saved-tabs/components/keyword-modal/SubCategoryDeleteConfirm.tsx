@@ -34,7 +34,10 @@ export const SubCategoryDeleteConfirm = () => {
         <Button
           variant='ghost'
           size='sm'
-          onClick={() => deletion.setShowDeleteConfirm(false)}
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onClick={() => {
+            deletion.setShowDeleteConfirm(false)
+          }}
           className='cursor-pointer rounded px-2 py-1'
         >
           {t('common.cancel')}
@@ -42,6 +45,7 @@ export const SubCategoryDeleteConfirm = () => {
         <Button
           variant='destructive'
           size='sm'
+          // eslint-disable-next-line typescript/no-misused-promises
           onClick={deletion.handleDeleteCategory}
           className='flex cursor-pointer items-center gap-1'
         >

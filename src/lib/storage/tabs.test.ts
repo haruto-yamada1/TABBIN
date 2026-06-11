@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup, UrlRecord } from '@/types/storage'
 
@@ -46,7 +47,9 @@ describe('tabs storage', () => {
     mocks.migrateToUrlsStorageMock.mockResolvedValue(undefined)
     mocks.getDomainCategorySettingsMock.mockResolvedValue([])
     mocks.createOrUpdateUrlRecordMock.mockImplementation(
+      // eslint-disable-next-line typescript/require-await
       async (url, title) => ({
+        // eslint-disable-line
         id: `id:${url}`,
         savedAt: 1,
         title,
@@ -94,7 +97,7 @@ describe('tabs storage', () => {
 
     const { resolveTabGroupsWithUrls } = await loadTabsModule()
 
-    await expect(resolveTabGroupsWithUrls(groups)).resolves.toEqual([
+    await expect(resolveTabGroupsWithUrls(groups)).resolves.toStrictEqual([
       {
         ...groups[0],
         urls: [
@@ -150,7 +153,7 @@ describe('tabs storage', () => {
 
     expect(
       buildDomainCategorySetting(groupWithoutSubCategories, 'docs', ['guide']),
-    ).toEqual({
+    ).toStrictEqual({
       categoryKeywords: [
         {
           categoryName: 'docs',
@@ -175,7 +178,7 @@ describe('tabs storage', () => {
           existing: 'keep',
         },
       ),
-    ).toEqual({
+    ).toStrictEqual({
       existing: 'keep',
     })
     expect(
@@ -195,7 +198,7 @@ describe('tabs storage', () => {
           },
         ],
       ),
-    ).toEqual({
+    ).toStrictEqual({
       'url-1': 'docs',
     })
     expect(
@@ -212,18 +215,18 @@ describe('tabs storage', () => {
         new Set(['url-1']),
       ),
     ).toBe(true)
-    expect(groupWithoutUrlSubCategories.urlIds).toEqual([])
+    expect(groupWithoutUrlSubCategories.urlIds).toStrictEqual([])
     const mappingGroups = [groupWithoutUrlIds]
     applySubCategoryMapping(mappingGroups, 'missing-group', { 'url-1': 'docs' })
     expect(mappingGroups[0].urlSubCategories).toBeUndefined()
     applySubCategoryMapping(mappingGroups, 'legacy-group', { 'url-1': 'docs' })
-    expect(mappingGroups[0].urlSubCategories).toEqual({ 'url-1': 'docs' })
+    expect(mappingGroups[0].urlSubCategories).toStrictEqual({ 'url-1': 'docs' })
   })
 
   it('resolveTabGroupsWithUrls は空配列ならマイグレーションもURL取得もしない', async () => {
     const { resolveTabGroupsWithUrls } = await loadTabsModule()
 
-    await expect(resolveTabGroupsWithUrls([])).resolves.toEqual([])
+    await expect(resolveTabGroupsWithUrls([])).resolves.toStrictEqual([])
 
     expect(mocks.migrateToUrlsStorageMock).not.toHaveBeenCalled()
     expect(mocks.getUrlRecordsMock).not.toHaveBeenCalled()
@@ -238,7 +241,7 @@ describe('tabs storage', () => {
 
     const { resolveTabGroupsWithUrls } = await loadTabsModule()
 
-    await expect(resolveTabGroupsWithUrls([group])).resolves.toEqual([
+    await expect(resolveTabGroupsWithUrls([group])).resolves.toStrictEqual([
       {
         ...group,
         urls: [],
@@ -272,7 +275,7 @@ describe('tabs storage', () => {
 
     const { getTabGroupUrls } = await loadTabsModule()
 
-    await expect(getTabGroupUrls(group)).resolves.toEqual([
+    await expect(getTabGroupUrls(group)).resolves.toStrictEqual([
       {
         id: 'url-2',
         savedAt: 2,
@@ -302,7 +305,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -322,7 +327,7 @@ describe('tabs storage', () => {
     await addUrlToTabGroup('group-1', 'https://example.com/doc', 'Doc', 'docs')
     await addUrlToTabGroup('missing', 'https://example.com/other', 'Other')
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',
@@ -346,7 +351,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -364,7 +371,7 @@ describe('tabs storage', () => {
 
     await addUrlToTabGroup('group-1', 'https://example.com/doc', 'Doc')
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',
@@ -387,7 +394,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -424,7 +433,7 @@ describe('tabs storage', () => {
     await addSubCategoryWithKeywords('group-1', 'tech', ['Reference'])
     await addSubCategoryWithKeywords('group-1', 'plain')
 
-    expect(state.savedTabs[0]).toEqual(
+    expect(state.savedTabs[0]).toStrictEqual(
       expect.objectContaining({
         categoryKeywords: [
           {
@@ -470,7 +479,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -497,7 +508,7 @@ describe('tabs storage', () => {
     await addSubCategoryToGroup('group-1', 'docs')
     await setCategoryKeywords('group-1', 'docs', ['new'])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         categoryKeywords: [
           {
@@ -516,7 +527,7 @@ describe('tabs storage', () => {
         subCategories: [],
       },
     ])
-    expect(settings[0].categoryKeywords).toEqual([
+    expect(settings[0].categoryKeywords).toStrictEqual([
       {
         categoryName: 'docs',
         keywords: ['new'],
@@ -540,7 +551,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -560,7 +573,7 @@ describe('tabs storage', () => {
 
     await setUrlSubCategory('group-1', 'https://example.com/reference', 'news')
 
-    expect(state.savedTabs[0]?.urlSubCategories).toEqual({
+    expect(state.savedTabs[0]?.urlSubCategories).toStrictEqual({
       'url-1': 'news',
     })
   })
@@ -578,7 +591,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -624,7 +639,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -650,7 +667,7 @@ describe('tabs storage', () => {
 
     await autoCategorizeTabs('group-1')
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'group-1',
         urlSubCategories: {
@@ -676,7 +693,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -696,7 +715,7 @@ describe('tabs storage', () => {
 
     await autoCategorizeTabs('group-1')
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         id: 'group-1',
         urlSubCategories: {
@@ -724,7 +743,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -767,7 +788,7 @@ describe('tabs storage', () => {
     await removeUrlsFromTabGroup('group-1', ['https://example.com/two'])
     await removeUrlIdsFromTabGroup('group-1', ['url-3'])
 
-    expect(state.savedTabs).toEqual([])
+    expect(state.savedTabs).toStrictEqual([])
     expect(mocks.removeUrlFromAllCustomProjectsMock).toHaveBeenCalledWith(
       'https://example.com/one',
     )
@@ -795,7 +816,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -828,7 +851,7 @@ describe('tabs storage', () => {
       }),
     ).rejects.toThrow('sync failed')
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',
@@ -856,7 +879,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -889,7 +914,7 @@ describe('tabs storage', () => {
         throwOnSyncError: true,
       }),
     ).rejects.toThrow('sync by ids failed')
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',
@@ -908,7 +933,7 @@ describe('tabs storage', () => {
         throwOnSyncError: true,
       }),
     ).rejects.toThrow('sync by urls failed')
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',
@@ -940,7 +965,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -971,7 +998,7 @@ describe('tabs storage', () => {
     await removeUrlsFromTabGroup('group-2', ['https://example.com/only'])
     await removeUrlFromTabGroup('group-1', 'https://example.com/only')
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'empty.example.com',
         id: 'group-2',
@@ -991,7 +1018,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1003,7 +1032,7 @@ describe('tabs storage', () => {
 
     await removeUrlIdsFromTabGroup('group-1', ['url-1'])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'empty.example.com',
         id: 'group-1',
@@ -1024,7 +1053,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1050,7 +1081,7 @@ describe('tabs storage', () => {
 
     await removeUrlFromTabGroup('group-1', 'https://example.com/one')
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',
@@ -1071,7 +1102,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1084,7 +1117,7 @@ describe('tabs storage', () => {
 
     await removeUrlsFromTabGroup('group-1', ['https://empty.example.com/a'])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'empty.example.com',
         id: 'group-1',
@@ -1113,7 +1146,7 @@ describe('tabs storage', () => {
         domain: 'example.com',
         id: 'group-1',
       }),
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       categoryKeywords: [
         {
           categoryName: 'docs',
@@ -1129,7 +1162,7 @@ describe('tabs storage', () => {
         domain: 'missing.example.com',
         id: 'group-2',
       }),
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       domain: 'missing.example.com',
       id: 'group-2',
     })
@@ -1147,7 +1180,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1166,7 +1201,7 @@ describe('tabs storage', () => {
 
     await expect(
       getTabGroupUrls({ id: 'empty', domain: 'empty' }),
-    ).resolves.toEqual([])
+    ).resolves.toStrictEqual([])
     await setUrlSubCategory('missing', 'https://example.com/a', 'docs')
     await setUrlSubCategory('group-1', 'https://example.com/a', 'docs')
     await setCategoryKeywords('missing', 'docs', ['doc'])
@@ -1178,7 +1213,7 @@ describe('tabs storage', () => {
     await removeUrlsFromTabGroup('missing', ['https://example.com/a'])
     await removeUrlsFromTabGroup('group-1', ['https://example.com/a'])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',
@@ -1199,7 +1234,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1220,7 +1257,7 @@ describe('tabs storage', () => {
     await removeUrlFromTabGroup('group-1', 'https://example.com/missing')
     await removeUrlsFromTabGroup('group-1', ['https://example.com/missing'])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',
@@ -1243,7 +1280,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1294,7 +1333,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1335,7 +1376,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1376,7 +1419,7 @@ describe('tabs storage', () => {
         subCategories: ['docs'],
       },
     ])
-    expect(state.savedTabs[0].urlSubCategories).toEqual({
+    expect(state.savedTabs[0].urlSubCategories).toStrictEqual({
       'url-1': 'existing',
     })
   })
@@ -1398,7 +1441,9 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
+          // eslint-disable-next-line typescript/require-await
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1426,7 +1471,7 @@ describe('tabs storage', () => {
     await removeUrlFromTabGroup('group-1', 'https://example.com/one')
     await removeUrlsFromTabGroup('group-1', ['https://example.com/one'])
 
-    expect(state.savedTabs).toEqual([
+    expect(state.savedTabs).toStrictEqual([
       {
         domain: 'example.com',
         id: 'group-1',

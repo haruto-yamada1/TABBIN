@@ -18,8 +18,13 @@ import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 
+const SECONDS_IN_MINUTE_SB = 60
+const MINUTES_IN_HOUR_SB = 60
+const HOURS_IN_DAY_SB = 24
+const DAYS_IN_WEEK_SB = 7
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+const SIDEBAR_COOKIE_MAX_AGE =
+  SECONDS_IN_MINUTE_SB * MINUTES_IN_HOUR_SB * HOURS_IN_DAY_SB * DAYS_IN_WEEK_SB
 const SIDEBAR_WIDTH = 256
 const SIDEBAR_WIDTH_ICON = '3rem'
 const SIDEBAR_WIDTH_ICON_PX = 48
@@ -136,10 +141,9 @@ const SidebarProvider = ({
   )
 
   // Helper to toggle the sidebar.
-  const toggleSidebar = React.useCallback(
-    () => setOpen((open) => !open),
-    [setOpen],
-  )
+  const toggleSidebar = React.useCallback(() => {
+    setOpen((open) => !open)
+  }, [setOpen])
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -154,7 +158,9 @@ const SidebarProvider = ({
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [toggleSidebar])
 
   React.useEffect(() => {
@@ -193,17 +199,21 @@ const SidebarProvider = ({
     [state, open, setOpen, sidebarWidth, isMobile, toggleSidebar],
   )
 
+  const sidebarStyle = React.useMemo(
+    () =>
+      ({
+        '--sidebar-width': `${sidebarWidth}px`,
+        '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
+        ...style,
+      }) as React.CSSProperties,
+    [sidebarWidth, style],
+  )
+
   return (
     <SidebarContext.Provider value={contextValue}>
       <TooltipProvider delayDuration={0}>
         <div
-          style={
-            {
-              '--sidebar-width': `${sidebarWidth}px`,
-              '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
-              ...style,
-            } as React.CSSProperties
-          }
+          style={sidebarStyle}
           className={cn(
             'group/sidebar-wrapper flex h-svh min-h-0 w-full overflow-hidden has-data-[variant=inset]:bg-sidebar',
             className,
@@ -219,6 +229,7 @@ const SidebarProvider = ({
 }
 SidebarProvider.displayName = 'SidebarProvider'
 
+// eslint-disable-next-line eslint/complexity
 const Sidebar = ({
   children,
   className,
@@ -261,38 +272,41 @@ const Sidebar = ({
     resizeCleanupRef.current = null
   }, [])
 
-  const handleResizeStart = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!open) {
-      return
-    }
+  const handleResizeStart = React.useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (!open) {
+        return
+      }
 
-    event.preventDefault()
-    stopResize()
-
-    const previousBodyStyle = document.body.style.cssText
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      const nextWidth =
-        side === 'left'
-          ? clampSidebarWidth(moveEvent.clientX)
-          : clampSidebarWidth(window.innerWidth - moveEvent.clientX)
-      sidebarWidthRef.current = nextWidth
-      setSidebarWidth(nextWidth)
-    }
-    const handlePointerUp = () => {
-      persistSidebarWidth(sidebarWidthRef.current)
+      event.preventDefault()
       stopResize()
-    }
 
-    document.body.style.cssText = `${previousBodyStyle}; cursor: col-resize; user-select: none;`
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
+      const previousBodyStyle = document.body.style.cssText
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const nextWidth =
+          side === 'left'
+            ? clampSidebarWidth(moveEvent.clientX)
+            : clampSidebarWidth(window.innerWidth - moveEvent.clientX)
+        sidebarWidthRef.current = nextWidth
+        setSidebarWidth(nextWidth)
+      }
+      const handlePointerUp = () => {
+        persistSidebarWidth(sidebarWidthRef.current)
+        stopResize()
+      }
 
-    resizeCleanupRef.current = () => {
-      document.body.style.cssText = previousBodyStyle
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
-    }
-  }
+      document.body.style.cssText = `${previousBodyStyle}; cursor: col-resize; user-select: none;`
+      window.addEventListener('pointermove', handlePointerMove)
+      window.addEventListener('pointerup', handlePointerUp)
+
+      resizeCleanupRef.current = () => {
+        document.body.style.cssText = previousBodyStyle
+        window.removeEventListener('pointermove', handlePointerMove)
+        window.removeEventListener('pointerup', handlePointerUp)
+      }
+    },
+    [open, side, stopResize, setSidebarWidth],
+  )
 
   if (collapsible === 'none') {
     return (
@@ -366,6 +380,14 @@ const SidebarTrigger = ({
   const t = useI18nText()
   const sidebarToggleLabel = t('common.toggleSidebar')
 
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event)
+      toggleSidebar()
+    },
+    [onClick, toggleSidebar],
+  )
+
   return (
     <Button
       ref={ref}
@@ -373,10 +395,7 @@ const SidebarTrigger = ({
       variant='ghost'
       size='icon'
       className={cn('h-7 w-7', className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
+      onClick={handleClick}
       {...props}
     >
       <PanelLeft />
@@ -754,10 +773,16 @@ const SidebarMenuSkeleton = ({
 }: React.ComponentProps<'div'> & {
   showIcon?: boolean
 }) => {
+  const SKELETON_WIDTH_RANGE = 40
+  const SKELETON_WIDTH_MIN = 50
+
   // Random width between 50 to 90%.
   const [width] = React.useState(
-    () => `${Math.floor(Math.random() * 40) + 50}%`,
+    () =>
+      `${Math.floor(Math.random() * SKELETON_WIDTH_RANGE) + SKELETON_WIDTH_MIN}%`,
   )
+  const skeletonStyle: React.CSSProperties & { '--skeleton-width': string } =
+    React.useMemo(() => ({ '--skeleton-width': width }), [width])
 
   return (
     <div
@@ -775,11 +800,7 @@ const SidebarMenuSkeleton = ({
       <Skeleton
         className='h-4 max-w-[--skeleton-width] flex-1'
         data-sidebar='menu-skeleton-text'
-        style={
-          {
-            '--skeleton-width': width,
-          } as React.CSSProperties
-        }
+        style={skeletonStyle}
       />
     </div>
   )

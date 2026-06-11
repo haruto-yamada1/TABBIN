@@ -22,6 +22,8 @@ import { OpenAllTabsConfirmDialog } from './shared/OpenAllTabsConfirmDialog'
 import { useSortableCategoryDrag } from './shared/useSortableCategoryDrag'
 import { CategorySection } from './TimeRemaining'
 
+const BULK_OPEN_THRESHOLD = 10
+
 // 並び替え可能なカテゴリセクションコンポーネント
 export const SortableCategorySection = ({
   id,
@@ -60,7 +62,8 @@ export const SortableCategorySection = ({
       const urlsToDelete = [...urls]
       const urlsToRemove = urlsToDelete.map((item) => item.url)
       if (handleDeleteAllTabs) {
-        await handleDeleteAllTabs(urlsToDelete)
+        // eslint-disable-next-line typescript/no-confusing-void-expression
+        await handleDeleteAllTabs(urlsToDelete) // eslint-disable-line typescript/await-thenable
       } else {
         await removeUrlsFromTabGroup(props.groupId, urlsToRemove)
       }
@@ -142,8 +145,9 @@ export const SortableCategorySection = ({
               categoryDisplayName,
               t('savedTabs.deleteAllTabs'),
             )}
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onOpenAll={(e) => {
-              if (urlCount >= 10) {
+              if (urlCount >= BULK_OPEN_THRESHOLD) {
                 e.stopPropagation()
                 setIsOpenAllConfirmOpen(true)
                 return
@@ -167,7 +171,8 @@ export const SortableCategorySection = ({
         })}
         cancelLabel={t('common.cancel')}
         openLabel={t('common.open')}
-        onConfirm={() => handleOpenAllTabs(urls)}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onConfirm={() => handleOpenAllTabs(urls)} // eslint-disable-line typescript/no-confusing-void-expression
       />
 
       {/* カテゴリ全削除確認ダイアログ */}
@@ -190,6 +195,7 @@ export const SortableCategorySection = ({
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => void executeDeleteAllTabs()}
             >
               {t('common.delete')}

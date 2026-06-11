@@ -59,6 +59,7 @@ export const DomainCardRoot = ({
   // グローバルドラッグ監視
   useDndMonitor(state.dndMonitorHandlers)
 
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style: CSSProperties = {
     containIntrinsicSize: '360px',
     contentVisibility: 'auto',
@@ -68,7 +69,7 @@ export const DomainCardRoot = ({
 
   // 検索でヒットしない場合は非表示
   const hasSearchQuery = searchQuery.trim().length > 0
-  const totalUrls = group.urls?.length || 0
+  const totalUrls = group.urls?.length ?? 0
   const visibleSubCategoryCount = categoryId
     ? Object.entries(state.computed.categorizedUrls).filter(
         ([categoryName, urls]) =>
@@ -114,7 +115,7 @@ export const DomainCardRoot = ({
         className='shadow-md'
         data-category-id={categoryId}
         data-saved-tabs-scroll-target='domain'
-        data-urls-count={group.urls?.length || 0}
+        data-urls-count={group.urls?.length ?? 0}
       >
         {children}
       </div>

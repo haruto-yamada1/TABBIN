@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import {
   filterItemsBySavableUrl,
@@ -52,7 +52,7 @@ describe('url-filter', () => {
         ],
         ['private'],
       ),
-    ).toEqual([
+    ).toStrictEqual([
       { id: 'valid', url: 'https://example.com/a' },
       { id: 'file', url: 'file:///tmp/example.txt' },
       { id: 'about', url: 'about:blank' },

@@ -30,6 +30,7 @@ const Temporary = ({
       className='stroke-ring stroke-1'
       id={id}
       path={edgePath}
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{
         strokeDasharray: '5, 5',
       }}
@@ -76,6 +77,7 @@ const getHandleCoordsByPosition = (
       break
     }
     default: {
+      // eslint-disable-next-line typescript/restrict-template-expressions
       throw new Error(`Invalid handle position: ${handlePosition}`)
     }
   }

@@ -95,6 +95,7 @@ export const SortableUrlItem = ({
     )
   }, [url, groupId])
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDragEnd = (e: React.DragEvent<HTMLElement>) => {
     // リスナーをクリーンアップ
     window.removeEventListener('blur', handleWindowBlur)
@@ -125,6 +126,7 @@ export const SortableUrlItem = ({
     [handleWindowBlur],
   )
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteButtonClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
@@ -135,6 +137,7 @@ export const SortableUrlItem = ({
     }
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -161,9 +164,15 @@ export const SortableUrlItem = ({
             variant='ghost'
             size='sm'
             draggable
-            onDragStart={(e) => handleDragStart(e, url)}
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+            onDragStart={(e) => {
+              handleDragStart(e, url)
+            }}
             onDragEnd={handleDragEnd}
-            onClick={() => handleOpenTab(url)}
+            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+            onClick={() => {
+              handleOpenTab(url)
+            }}
             className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
           >
             <div className='flex w-full min-w-0 flex-col overflow-hidden'>
@@ -202,7 +211,10 @@ export const SortableUrlItem = ({
       <DeleteUrlConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => handleDeleteUrl(groupId, url)}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onConfirm={() => {
+          handleDeleteUrl(groupId, url)
+        }}
       />
     </>
   )

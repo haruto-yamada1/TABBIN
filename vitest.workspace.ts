@@ -1,17 +1,15 @@
+/* eslint-disable import/no-default-export */
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import { playwright } from '@vitest/browser-playwright'
 import { defineProject } from 'vitest/config'
 
 const dirname =
-  typeof __dirname !== 'undefined'
-    ? __dirname
-    : path.dirname(fileURLToPath(import.meta.url))
+  typeof __dirname !== 'undefined' ? __dirname : import.meta.dirname
 
 // More info at: https://storybook.js.org/docs/writing-tests/test-addon
-export default [
+const workspaces = [
   'vitest.config.ts',
   defineProject({
     plugins: [
@@ -31,3 +29,5 @@ export default [
     },
   }),
 ]
+
+export default workspaces

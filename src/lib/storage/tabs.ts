@@ -118,7 +118,7 @@ const addUrlToTabGroup = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
   if (groupIndex === -1) {
@@ -130,6 +130,7 @@ const addUrlToTabGroup = async (
   const group = savedTabs[groupIndex]
 
   // URLIDsが存在しない場合は初期化
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing
   if (!group.urlIds) {
     group.urlIds = []
   }
@@ -141,6 +142,7 @@ const addUrlToTabGroup = async (
 
   // サブカテゴリが指定されている場合は設定
   if (subCategory) {
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (!group.urlSubCategories) {
       group.urlSubCategories = {}
     }
@@ -156,7 +158,7 @@ const addSubCategoryToGroup = async (
   subCategoryName: string,
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const group = savedTabs.find((g: TabGroup) => g.id === groupId)
   if (!group) {
@@ -164,7 +166,7 @@ const addSubCategoryToGroup = async (
   }
   const updatedGroups = savedTabs.map((existingGroup: TabGroup) => {
     if (existingGroup.id === groupId) {
-      const subCategories = existingGroup.subCategories || []
+      const subCategories = existingGroup.subCategories ?? []
       if (!subCategories.includes(subCategoryName)) {
         return {
           ...existingGroup,
@@ -215,6 +217,7 @@ const setUrlSubCategory = async (
     const urlRecords = await getUrlRecordsByIds(group.urlIds)
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing
       if (!group.urlSubCategories) {
         group.urlSubCategories = {}
       }
@@ -238,7 +241,7 @@ const buildDomainCategorySetting = (
     },
   ],
   domain: group.domain,
-  subCategories: group.subCategories || [],
+  subCategories: group.subCategories ?? [],
 })
 // 子カテゴリにキーワードを設定する関数（永続設定にも保存）
 const setCategoryKeywords = async (
@@ -247,7 +250,7 @@ const setCategoryKeywords = async (
   keywords: string[],
 ): Promise<void> => {
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const group = savedTabs.find((g: TabGroup) => g.id === groupId)
   if (!group) {
@@ -258,7 +261,7 @@ const setCategoryKeywords = async (
   const updatedGroups = savedTabs.map((currentGroup: TabGroup) => {
     if (currentGroup.id === groupId) {
       // 既存のカテゴリキーワード設定を取得
-      const categoryKeywords = currentGroup.categoryKeywords || []
+      const categoryKeywords = currentGroup.categoryKeywords ?? []
 
       // 対象カテゴリのインデックスを探す
       const categoryIndex = categoryKeywords.findIndex(
@@ -380,7 +383,7 @@ const autoCategorizeTabs = async (groupId: string): Promise<void> => {
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const uniqueGroups = dedupeTabGroups(savedTabs)
   const targetGroup = uniqueGroups.find(
@@ -508,6 +511,7 @@ const removeUrlFromTabGroup = async (
 
       // サブカテゴリ情報も削除
       if (group.urlSubCategories?.[urlRecord.id]) {
+        // eslint-disable-next-line typescript/no-dynamic-delete
         delete group.urlSubCategories[urlRecord.id]
       }
 
@@ -565,6 +569,7 @@ const processTabGroupForBulkDelete = (
   if (group.urlSubCategories) {
     for (const id of idsToDelete) {
       if (group.urlSubCategories[id]) {
+        // eslint-disable-next-line typescript/no-dynamic-delete
         delete group.urlSubCategories[id]
       }
     }
@@ -640,7 +645,7 @@ const removeUrlIdsFromTabGroup = async (
 
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
   if (groupIndex === -1) {
@@ -681,7 +686,7 @@ const removeUrlsFromTabGroup = async (
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: import('@/types/storage').TabGroup[]
+    savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
   if (groupIndex === -1) {

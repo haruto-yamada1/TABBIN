@@ -56,6 +56,7 @@ export const CategoryGroupRoot = ({
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: category.id })
 
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -65,17 +66,17 @@ export const CategoryGroupRoot = ({
   useDndMonitor(state.dndMonitorHandlers)
 
   // このカテゴリ内のすべてのURLを取得
-  const allUrls = domains.flatMap((group) => group.urls || [])
+  const allUrls = domains.flatMap((group) => group.urls ?? [])
 
   // 検索でヒットしないカテゴリは非表示
   const hasSearchQuery = searchQuery.trim().length > 0
   const hasVisibleDomains = domains.some(
-    (domain) => (domain.urls?.length || 0) > 0,
+    (domain) => (domain.urls?.length ?? 0) > 0,
   )
 
   // 検索結果に応じたドメイン数を計算
   const visibleDomainsCount = hasSearchQuery
-    ? domains.filter((domain) => (domain.urls?.length || 0) > 0).length
+    ? domains.filter((domain) => (domain.urls?.length ?? 0) > 0).length
     : domains.length
 
   const contextValue: CategoryGroupContextType = useMemo(
@@ -123,9 +124,10 @@ export const CategoryGroupRoot = ({
         })}
         onDragOver={state.nativeDnD.handleDragOver}
         onDragLeave={state.nativeDnD.handleDragLeave}
-        onDrop={(e) =>
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onDrop={(e) => {
           state.nativeDnD.handleDrop(e, handlers.handleMoveDomainToCategory)
-        }
+        }}
       >
         {children}
       </fieldset>
@@ -133,11 +135,13 @@ export const CategoryGroupRoot = ({
       {/* カテゴリ管理モーダル */}
       <CategoryManagementModal
         isOpen={state.modal.isModalOpen}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClose={() => {
           state.modal.setIsModalOpen(false)
         }}
         category={category}
         domains={state.localDomains}
+        // eslint-disable-next-line typescript/no-misused-promises
         onCategoryUpdate={state.handleCategoryUpdate}
       />
     </CategoryGroupContext>

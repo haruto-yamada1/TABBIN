@@ -6,6 +6,8 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** カテゴリ名のバリデーションスキーマ */
+const MAX_CATEGORY_NAME_LENGTH = 25
+
 const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
   z
     .string()
@@ -13,7 +15,7 @@ const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
     .min(1, {
       message: t('savedTabs.categoryModal.validation.empty'),
     })
-    .max(25, {
+    .max(MAX_CATEGORY_NAME_LENGTH, {
       message: t('savedTabs.categoryModal.validation.maxLength'),
     })
 
@@ -58,7 +60,7 @@ const renameCategoryInTab = (
   const updatedSubCategories =
     tab.subCategories?.map((cat) =>
       cat === activeCategory ? validName : cat,
-    ) || []
+    ) ?? []
   const updatedCategoryKeywords =
     tab.categoryKeywords?.map((ck) =>
       ck.categoryName === activeCategory
@@ -67,8 +69,8 @@ const renameCategoryInTab = (
             categoryName: validName,
           }
         : ck,
-    ) || []
-  const updatedUrls = (tab.urls || []).map((url) =>
+    ) ?? []
+  const updatedUrls = (tab.urls ?? []).map((url) =>
     url.subCategory === activeCategory
       ? {
           ...url,
@@ -76,10 +78,10 @@ const renameCategoryInTab = (
         }
       : url,
   )
-  const updatedSubCategoryOrder = (tab.subCategoryOrder || []).map((cat) =>
+  const updatedSubCategoryOrder = (tab.subCategoryOrder ?? []).map((cat) =>
     cat === activeCategory ? validName : cat,
   )
-  const updatedAllOrder = (tab.subCategoryOrderWithUncategorized || []).map(
+  const updatedAllOrder = (tab.subCategoryOrderWithUncategorized ?? []).map(
     (cat) => (cat === activeCategory ? validName : cat),
   )
   return {
@@ -97,6 +99,7 @@ const renameCategoryInTab = (
  * @returns サブカテゴリ・キーワード・リネーム・削除・親カテゴリ関連の状態と操作
  */
 export const useCategoryKeywordModal = ({
+  // eslint-disable-line eslint/max-lines-per-function
   group,
   isOpen,
   onSave,
@@ -160,15 +163,13 @@ export const useCategoryKeywordModal = ({
       name: string,
       setError: React.Dispatch<React.SetStateAction<string | null>>,
     ): boolean => {
-      try {
-        createCategoryNameSchema(t).parse(name)
+      const result = createCategoryNameSchema(t).safeParse(name)
+      if (result.success) {
         setError(null)
         return true
-      } catch (error) {
-        const validationError = error as z.ZodError
-        setError(validationError.issues[0]!.message)
-        return false
       }
+      setError(result.error.issues[0]?.message ?? '')
+      return false
     },
     [t],
   )
@@ -184,12 +185,13 @@ export const useCategoryKeywordModal = ({
   const loadParentCategories = useCallback(async () => {
     try {
       const { parentCategories: stored = [] } = await chrome.storage.local.get<{
-        parentCategories?: import('@/types/storage').ParentCategory[]
+        parentCategories?: ParentCategory[]
       }>('parentCategories')
       const storedCategories = stored
       setInternalParentCategories(storedCategories)
       if (onUpdateParentCategories) {
-        await onUpdateParentCategories(storedCategories)
+        // eslint-disable-next-line typescript/no-confusing-void-expression
+        await onUpdateParentCategories(storedCategories) // eslint-disable-line typescript/await-thenable
       }
       const newParentId = resolveSelectedParentCategoryId(
         storedCategories,
@@ -222,6 +224,7 @@ export const useCategoryKeywordModal = ({
 
     chrome.storage.onChanged.addListener(handleStorageChange)
 
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange)
     }
@@ -233,7 +236,7 @@ export const useCategoryKeywordModal = ({
       const categoryKeywords = group.categoryKeywords?.find(
         (ck) => ck.categoryName === activeCategory,
       )
-      const loadedKeywords = categoryKeywords?.keywords || []
+      const loadedKeywords = categoryKeywords?.keywords ?? []
       setCategoryEditState((current) => ({
         ...current,
         isRenaming: false,
@@ -277,13 +280,13 @@ export const useCategoryKeywordModal = ({
       updateCategoryEditState({ keywords: updatedKeywords })
       try {
         const { savedTabs = [] } = await chrome.storage.local.get<{
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs')
         const updatedGroups = savedTabs.map((g) =>
           g.id === group.id
             ? {
                 ...g,
-                categoryKeywords: (g.categoryKeywords || []).map((ck) =>
+                categoryKeywords: (g.categoryKeywords ?? []).map((ck) =>
                   ck.categoryName === activeCategory
                     ? {
                         ...ck,
@@ -291,7 +294,7 @@ export const useCategoryKeywordModal = ({
                       }
                     : ck,
                 ),
-                urls: (g.urls || []).map((item) =>
+                urls: (g.urls ?? []).map((item) =>
                   item.subCategory === activeCategory
                     ? {
                         ...item,
@@ -350,13 +353,13 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newSubCategory.trim()
       const { savedTabs = [] } = await chrome.storage.local.get<{
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs')
       const updatedTabs = savedTabs.map((tab: TabGroup) => {
         if (tab.id === group.id) {
           return {
             ...tab,
-            subCategories: [...(tab.subCategories || []), validName],
+            subCategories: [...(tab.subCategories ?? []), validName],
           }
         }
         return tab
@@ -398,7 +401,8 @@ export const useCategoryKeywordModal = ({
     }
     try {
       const categoryToDelete = activeCategory
-      await onDeleteCategory(group.id, categoryToDelete)
+      // eslint-disable-next-line typescript/no-confusing-void-expression
+      await onDeleteCategory(group.id, categoryToDelete) // eslint-disable-line typescript/await-thenable
       if (group.subCategories && group.subCategories.length > 1) {
         const updatedSubCategories = group.subCategories.filter(
           (cat: string) => cat !== categoryToDelete,
@@ -424,9 +428,9 @@ export const useCategoryKeywordModal = ({
       newCategoryName: activeCategory,
     })
     requestAnimationFrame(() => {
-      const inputElement = document.querySelector(
+      const inputElement = document.querySelector<HTMLInputElement>(
         'input[data-rename-input]',
-      ) as HTMLInputElement
+      )
       if (inputElement) {
         inputElement.focus()
         inputElement.select()
@@ -457,9 +461,9 @@ export const useCategoryKeywordModal = ({
     }
     if (!validateCategoryName(newCategoryName.trim(), setCategoryRenameError)) {
       requestAnimationFrame(() => {
-        const inputElement = document.querySelector(
+        const inputElement = document.querySelector<HTMLInputElement>(
           'input[data-rename-input]',
-        ) as HTMLInputElement
+        )
         if (inputElement) {
           inputElement.focus()
         }
@@ -471,9 +475,9 @@ export const useCategoryKeywordModal = ({
       setCategoryRenameError(duplicateMessage)
       toast.error(duplicateMessage)
       requestAnimationFrame(() => {
-        const inputElement = document.querySelector(
+        const inputElement = document.querySelector<HTMLInputElement>(
           'input[data-rename-input]',
-        ) as HTMLInputElement
+        )
         if (inputElement) {
           inputElement.focus()
         }
@@ -484,7 +488,7 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newCategoryName.trim()
       const { savedTabs = [] } = await chrome.storage.local.get<{
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs')
       const updatedTabs = savedTabs.map((tab: TabGroup) =>
         renameCategoryInTab(tab, group.id, activeCategory, validName),

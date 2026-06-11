@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
 
@@ -64,7 +64,7 @@ describe('filterTabsByUserSettings関数', () => {
 
     const result = await filterTabsByUserSettings(tabs)
 
-    expect(result).toEqual([tabs[4]])
+    expect(result).toStrictEqual([tabs[4]])
     expect(console.log).toHaveBeenCalledWith(
       '固定タブを 1 個除外しました (5 → 4)',
     )
@@ -91,7 +91,7 @@ describe('filterTabsByUserSettings関数', () => {
 
     const result = await filterTabsByUserSettings([pinnedTab, normalTab])
 
-    expect(result).toEqual([pinnedTab, normalTab])
+    expect(result).toStrictEqual([pinnedTab, normalTab])
   })
 
   it('除外パターン未設定なら about:blank も保持し、不正URLだけ除外する', async () => {
@@ -124,7 +124,7 @@ describe('filterTabsByUserSettings関数', () => {
       httpsTab,
     ])
 
-    expect(result).toEqual([aboutTab, httpsTab])
+    expect(result).toStrictEqual([aboutTab, httpsTab])
   })
 
   it('excludePatterns に about: がある場合は about:blank を除外する', async () => {
@@ -148,7 +148,7 @@ describe('filterTabsByUserSettings関数', () => {
 
     const result = await filterTabsByUserSettings([aboutTab, httpsTab])
 
-    expect(result).toEqual([httpsTab])
+    expect(result).toStrictEqual([httpsTab])
   })
 
   it('ピン留めタブが除外されなかった場合はその除外ログを出力しない', async () => {
@@ -166,7 +166,7 @@ describe('filterTabsByUserSettings関数', () => {
 
     const result = await filterTabsByUserSettings(tabs)
 
-    expect(result).toEqual(tabs)
+    expect(result).toStrictEqual(tabs)
     expect(console.log).not.toHaveBeenCalledWith(
       expect.stringContaining('固定タブを'),
     )

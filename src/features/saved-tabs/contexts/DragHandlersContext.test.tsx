@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { DragHandlersContext, useDragHandlers } from './DragHandlersContext'
 
@@ -14,15 +14,15 @@ const Consumer = () => {
   )
 }
 
+const mockContextValue = {
+  registerHandlers: vi.fn(),
+  unregisterHandlers: vi.fn(),
+}
+
 describe('DragHandlersContext', () => {
   it('provider 配下では登録ハンドラを取得できる', () => {
     render(
-      <DragHandlersContext.Provider
-        value={{
-          registerHandlers: vi.fn(),
-          unregisterHandlers: vi.fn(),
-        }}
-      >
+      <DragHandlersContext.Provider value={mockContextValue}>
         <Consumer />
       </DragHandlersContext.Provider>,
     )

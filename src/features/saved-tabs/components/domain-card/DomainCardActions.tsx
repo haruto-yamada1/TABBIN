@@ -24,11 +24,14 @@ import { handleSaveKeywords } from '@/features/saved-tabs/lib/category-keywords'
 
 import { useDomainCard } from './DomainCardContext'
 
+const BULK_OPEN_THRESHOLD = 10
+
 /**
  * DomainCard の操作ボタン群
  * 子カテゴリ管理、すべて開く、すべて削除、キーワードモーダルを含む
  */
 export const DomainCardActions = () => {
+  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const { state, group, settings, isReorderMode, searchQuery, handlers } =
     useDomainCard()
@@ -55,7 +58,7 @@ export const DomainCardActions = () => {
   )
 
   const executeDeleteAll = useCallback(() => {
-    const visibleUrls = (group.urls || []).map((item) => item.url)
+    const visibleUrls = (group.urls ?? []).map((item) => item.url)
 
     if (hasSearchQuery && handlers.handleDeleteUrls && visibleUrls.length > 0) {
       void handlers.handleDeleteUrls(group.id, visibleUrls)
@@ -74,9 +77,10 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-              onClick={() =>
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              onClick={() => {
                 keywordModal.setShowKeywordModal(!keywordModal.showKeywordModal)
-              }
+              }}
               className='flex cursor-pointer items-center gap-1'
               aria-label={manageSubcategoriesLabel}
             >
@@ -97,13 +101,14 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
-                if ((group.urls?.length || 0) >= 10) {
+                if ((group.urls?.length ?? 0) >= BULK_OPEN_THRESHOLD) {
                   setIsOpenAllConfirmOpen(true)
                   return
                 }
                 e.stopPropagation()
-                handlers.handleOpenAllTabs(group.urls || [])
+                handlers.handleOpenAllTabs(group.urls ?? [])
                 if (isReorderMode) {
                   console.log(
                     `並び替えモード中にドメイン ${group.domain} のタブをすべて開きました`,
@@ -130,6 +135,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
                 e.stopPropagation()
                 e.preventDefault()
@@ -164,6 +170,7 @@ export const DomainCardActions = () => {
             group={group}
             isOpen={keywordModal.showKeywordModal}
             onClose={keywordModal.handleCloseKeywordModal}
+            // eslint-disable-next-line typescript/no-misused-promises
             onSave={handleSaveKeywords}
             onDeleteCategory={categoryActions.handleCategoryDelete}
             parentCategories={parentCategories.categories}
@@ -190,7 +197,7 @@ export const DomainCardActions = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t('savedTabs.openAllConfirmDescriptionWithName', undefined, {
-                count: String(group.urls?.length || 0),
+                count: String(group.urls?.length ?? 0),
                 name: domainName,
               })}
             </AlertDialogDescription>
@@ -198,8 +205,9 @@ export const DomainCardActions = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
-                handlers.handleOpenAllTabs(group.urls || [])
+                handlers.handleOpenAllTabs(group.urls ?? [])
                 if (isReorderMode) {
                   console.log(
                     `並び替えモード中にドメイン ${group.domain} のタブをすべて開きました`,
@@ -226,7 +234,7 @@ export const DomainCardActions = () => {
             <AlertDialogDescription>
               {t('savedTabs.deleteAllConfirmDescriptionWithCount', undefined, {
                 categoryName: domainName,
-                count: String(group.urls?.length || 0),
+                count: String(group.urls?.length ?? 0),
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -234,6 +242,7 @@ export const DomainCardActions = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 executeDeleteAll()
                 if (isReorderMode) {

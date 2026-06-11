@@ -1,6 +1,7 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup } from '@/types/storage'
 
@@ -39,6 +40,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -51,7 +53,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -95,6 +97,7 @@ describe('useDomainCardState', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [createGroup()],
           })),
@@ -108,7 +111,7 @@ describe('useDomainCardState', () => {
     expect(arraysEqual(['a'], ['a'])).toBe(true)
     expect(arraysEqual(['a'], ['b'])).toBe(false)
     expect(arraysEqual(['a'], ['a', 'b'])).toBe(false)
-    expect(sortUrlsByOrder(undefined, 'default')).toEqual([])
+    expect(sortUrlsByOrder(undefined, 'default')).toStrictEqual([])
     expect(
       sortUrlsByOrder(
         [
@@ -128,8 +131,8 @@ describe('useDomainCardState', () => {
         ],
         'asc',
       )?.map((url) => url.title),
-    ).toEqual(['No savedAt B', 'No savedAt', 'Saved'])
-    expect(buildCategorizedUrls(undefined, undefined)).toEqual({
+    ).toStrictEqual(['No savedAt B', 'No savedAt', 'Saved'])
+    expect(buildCategorizedUrls(undefined, undefined)).toStrictEqual({
       __uncategorized: [],
     })
     expect(
@@ -148,7 +151,7 @@ describe('useDomainCardState', () => {
         ],
         ['known'],
       ),
-    ).toEqual({
+    ).toStrictEqual({
       __uncategorized: [
         {
           subCategory: 'unknown',
@@ -170,7 +173,7 @@ describe('useDomainCardState', () => {
         ['known', 'new'],
         true,
       ),
-    ).toEqual(['__uncategorized', 'known', 'new'])
+    ).toStrictEqual(['__uncategorized', 'known', 'new'])
   })
 
   it('bulk delete handler があるときは子カテゴリ一括削除でそれを 1 回だけ使う', async () => {
@@ -312,15 +315,17 @@ describe('useDomainCardState', () => {
     })
     expect(
       result.current.computed.categorizedUrls.news.map((item) => item.title),
-    ).toEqual(['Older', 'Newer'])
+    ).toStrictEqual(['Older', 'Newer'])
 
     act(() => {
       result.current.sort.setSortOrder('desc')
     })
     expect(
       result.current.computed.categorizedUrls.news.map((item) => item.title),
-    ).toEqual(['Newer', 'Older'])
-    expect(result.current.computed.categorizedUrls.__uncategorized).toEqual([
+    ).toStrictEqual(['Newer', 'Older'])
+    expect(
+      result.current.computed.categorizedUrls.__uncategorized,
+    ).toStrictEqual([
       expect.objectContaining({
         title: 'Uncategorized',
       }),
@@ -341,6 +346,7 @@ describe('useDomainCardState', () => {
     globalThis.chrome = {
       storage: {
         local: {
+          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [group, otherGroup],
           })),
@@ -358,7 +364,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'tech',
         'news',
       ])
@@ -370,7 +376,7 @@ describe('useDomainCardState', () => {
         over: { id: 'news' },
       })
     })
-    expect(result.current.categoryReorder.tempCategoryOrder).toEqual([
+    expect(result.current.categoryReorder.tempCategoryOrder).toStrictEqual([
       'news',
       'tech',
     ])
@@ -430,7 +436,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         '__uncategorized',
       ])
@@ -456,10 +462,10 @@ describe('useDomainCardState', () => {
       expect(getParentCategories).toHaveBeenCalledTimes(1)
     })
 
-    expect(result.current.computed.categorizedUrls).toEqual({
+    expect(result.current.computed.categorizedUrls).toStrictEqual({
       __uncategorized: [],
     })
-    expect(result.current.categoryReorder.allCategoryIds).toEqual([])
+    expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([])
   })
 
   it('保存済みカテゴリ順から不要な未分類を除き不足カテゴリを末尾に補う', async () => {
@@ -485,7 +491,9 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual(['news'])
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
+        'news',
+      ])
     })
   })
 
@@ -504,7 +512,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
       ])
@@ -537,7 +545,7 @@ describe('useDomainCardState', () => {
       })
     })
 
-    expect(result.current.categoryReorder.tempCategoryOrder).toEqual([
+    expect(result.current.categoryReorder.tempCategoryOrder).toStrictEqual([
       'news',
       'tech',
     ])
@@ -548,6 +556,7 @@ describe('useDomainCardState', () => {
       ...createGroup(),
       subCategoryOrderWithUncategorized: ['news', 'tech'],
     }
+    // eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(
       new Error('write failed'),
     )
@@ -561,7 +570,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
       ])
@@ -610,7 +619,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
       ])
@@ -636,7 +645,7 @@ describe('useDomainCardState', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'later',
       ])
@@ -663,7 +672,7 @@ describe('useDomainCardState', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
         'later',
@@ -684,7 +693,9 @@ describe('useDomainCardState', () => {
     })
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual(['tech'])
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
+        'tech',
+      ])
     })
   })
 
@@ -708,7 +719,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
         'news',
         'tech',
         '__uncategorized',
@@ -757,13 +768,13 @@ describe('useDomainCardState', () => {
     await act(async () => {
       await expect(
         result.current.parentCategories.handleCreateParentCategory('Parent'),
-      ).resolves.toEqual(
+      ).resolves.toStrictEqual(
         expect.objectContaining({
           id: 'parent-1',
         }),
       )
     })
-    expect(result.current.parentCategories.categories).toEqual([
+    expect(result.current.parentCategories.categories).toStrictEqual([
       expect.objectContaining({
         id: 'parent-1',
       }),
@@ -787,7 +798,7 @@ describe('useDomainCardState', () => {
         },
       ])
     })
-    expect(result.current.parentCategories.categories).toEqual([
+    expect(result.current.parentCategories.categories).toStrictEqual([
       expect.objectContaining({
         id: 'parent-2',
       }),

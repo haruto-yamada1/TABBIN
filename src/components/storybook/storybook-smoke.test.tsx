@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { composeStories } from '@storybook/react'
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import * as inputStories from '@/components/ai-elements/inputs.stories'
 import * as messageStories from '@/components/ai-elements/message.stories'

@@ -59,11 +59,11 @@ const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
   for (const group of savedTabs) {
     console.log(`グループ ${group.domain}:`, {
       id: group.id,
-      urlIds: group.urlIds?.length || 0,
+      urlIds: group.urlIds?.length ?? 0,
       urlSubCategories: group.urlSubCategories
         ? Object.keys(group.urlSubCategories).length
         : 0,
-      urls: group.urls?.length || 0,
+      urls: group.urls?.length ?? 0,
     })
   }
   if (savedTabs.length === 0) {
@@ -81,7 +81,7 @@ const ensureValidParentCategories = async (
   }
   console.log('無効なカテゴリを検出、再マイグレーションを実行')
   await migrateParentCategoriesToDomainNames()
-  return await getParentCategories()
+  return getParentCategories()
 }
 const repairSavedTabParentCategoryIds = (
   savedTabs: TabGroup[],
@@ -190,7 +190,7 @@ const useTabData = (
       for (const group of groupsWithUrls) {
         if (group.urlIds && group.urlIds.length > 0) {
           console.log(
-            `グループ ${group.domain}: ${group.urls?.length || 0}個のURLを取得`,
+            `グループ ${group.domain}: ${group.urls?.length ?? 0}個のURLを取得`,
           )
           continue
         }
@@ -216,7 +216,7 @@ const useTabData = (
         nextGroups ??
         (
           await chrome.storage.local.get<{
-            savedTabs?: import('@/types/storage').TabGroup[]
+            savedTabs?: TabGroup[]
           }>('savedTabs')
         ).savedTabs ??
         []
@@ -241,7 +241,7 @@ const useTabData = (
 
         // データ読み込み
         const storageResult = await chrome.storage.local.get<{
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs')
         const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
           ? storageResult.savedTabs
@@ -297,6 +297,7 @@ const useTabData = (
         }))
       }
     }
+    // eslint-disable-next-line typescript/no-floating-promises
     loadSavedTabs()
   }, [])
 
@@ -317,6 +318,7 @@ const useTabData = (
         }))
       }
     }
+    // eslint-disable-next-line typescript/no-floating-promises
     loadUrlsForTabGroups()
     return () => {
       cancelled = true

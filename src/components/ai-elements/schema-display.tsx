@@ -13,6 +13,10 @@ import {
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
+const SCHEMA_BASE_PADDING = 40
+const SCHEMA_DEPTH_INDENT = 16
+const SCHEMA_DESCRIPTION_INDENT = 24
+
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 interface SchemaParameter {
@@ -385,8 +389,13 @@ export const SchemaDisplayProperty = ({
   ...props
 }: SchemaDisplayPropertyProps) => {
   const t = useI18nText()
-  const hasChildren = properties || items
-  const paddingLeft = 40 + depth * 16
+  const hasChildren = properties ?? items
+  const paddingLeft = SCHEMA_BASE_PADDING + depth * SCHEMA_DEPTH_INDENT
+  const paddingStyle = useMemo(() => ({ paddingLeft }), [paddingLeft])
+  const descriptionPaddingStyle = useMemo(
+    () => ({ paddingLeft: paddingLeft + SCHEMA_DESCRIPTION_INDENT }),
+    [paddingLeft],
+  )
 
   if (hasChildren) {
     return (
@@ -396,7 +405,7 @@ export const SchemaDisplayProperty = ({
             'group flex w-full items-center gap-2 py-3 text-left transition-colors hover:bg-muted/50',
             className,
           )}
-          style={{ paddingLeft }}
+          style={paddingStyle}
         >
           <ChevronRightIcon className='size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90' />
           <span className='font-mono text-sm'>{name}</span>
@@ -415,7 +424,7 @@ export const SchemaDisplayProperty = ({
         {description && (
           <p
             className='pb-2 text-sm text-muted-foreground'
-            style={{ paddingLeft: paddingLeft + 24 }}
+            style={descriptionPaddingStyle}
           >
             {description}
           </p>
@@ -443,11 +452,7 @@ export const SchemaDisplayProperty = ({
   }
 
   return (
-    <div
-      className={cn('py-3 pr-4', className)}
-      style={{ paddingLeft }}
-      {...props}
-    >
+    <div className={cn('py-3 pr-4', className)} style={paddingStyle} {...props}>
       <div className='flex items-center gap-2'>
         {/* Spacer for alignment */}
         <span className='size-4' />

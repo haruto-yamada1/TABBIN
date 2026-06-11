@@ -41,7 +41,7 @@ const isUrlsMigrationCompleted = async (): Promise<boolean> => {
     'urlsMigrationCompleted',
   )
 
-  return Boolean(urlsMigrationCompleted)
+  return urlsMigrationCompleted
 }
 
 const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
@@ -49,16 +49,22 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
     await Promise.all([
       chrome.storage.local.get('urls'),
       chrome.storage.local.get<{
-        savedTabs?: import('@/types/storage').TabGroup[]
+        savedTabs?: TabGroup[]
       }>('savedTabs'),
       chrome.storage.local.get<{
-        customProjects?: import('@/types/storage').CustomProject[]
+        customProjects?: CustomProject[]
       }>('customProjects'),
     ])
 
   return {
     existingUrls: Array.isArray(existingUrlsResult.urls)
-      ? (existingUrlsResult.urls as UrlRecord[])
+      ? existingUrlsResult.urls.filter(
+          (item): item is UrlRecord =>
+            typeof item === 'object' &&
+            item !== null &&
+            'id' in item &&
+            'url' in item,
+        )
       : [],
     savedTabs: Array.isArray(savedTabsResult.savedTabs)
       ? savedTabsResult.savedTabs
@@ -106,7 +112,9 @@ const upsertUrlEntry = (
   const newRecord: UrlRecord = {
     id: uuidv4(),
     url: legacyUrl.url,
-    title: legacyUrl.title || '',
+    title: legacyUrl.title ?? '',
+    // `legacyUrl.savedAt || Date.now()` uses || intentionally: 0 should trigger current time fallback
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     savedAt: legacyUrl.savedAt || Date.now(),
     favIconUrl: undefined,
   }

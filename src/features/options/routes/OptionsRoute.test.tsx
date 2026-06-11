@@ -7,16 +7,16 @@ import {
   waitFor,
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
 
+import { OptionsRoute } from './OptionsRoute'
 import {
   createResetFontSizeInputValueUpdater,
-  OptionsRoute,
   resetFontSizeInputState,
   resetFontSizeInputValue,
-} from './OptionsRoute'
+} from './optionsRoute.helpers'
 
 const optionsRouteMocks = vi.hoisted(() => ({
   handleColorChange: vi.fn(),
@@ -59,12 +59,14 @@ vi.mock('@/components/ui/select', () => ({
   }) => (
     <select
       aria-label='click-behavior'
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onValueChange?.(event.target.value)}
       value={value}
     >
       {children}
     </select>
   ),
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   SelectContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
   SelectItem: ({
     children,
@@ -73,8 +75,10 @@ vi.mock('@/components/ui/select', () => ({
     children?: ReactNode
     value: string
   }) => <option value={value}>{children}</option>,
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   SelectTrigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
   SelectValue: ({ placeholder }: { placeholder?: string }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{placeholder}</>
   ),
 }))
@@ -89,9 +93,11 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
+    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       checked={Boolean(checked)}
       id={id}
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onCheckedChange?.(event.target.checked)}
       type='checkbox'
     />
@@ -107,6 +113,7 @@ vi.mock('@/features/options/hooks/useColorSettings', () => ({
 
 vi.mock('@/features/options/hooks/useSettings', () => ({
   useSettings: () => ({
+    // eslint-disable-next-line typescript/require-await
     addExcludePattern: vi.fn(async () => false),
     excludePatternInput: '',
     handleExcludePatternInputChange: vi.fn(),
@@ -148,7 +155,7 @@ describe('OptionsRoute', () => {
         },
         120,
       ),
-    ).toEqual({
+    ).toStrictEqual({
       fontSizeInputValue: '120',
       other: 'keep',
     })
@@ -156,7 +163,7 @@ describe('OptionsRoute', () => {
       createResetFontSizeInputValueUpdater(110)({
         fontSizeInputValue: '90',
       }),
-    ).toEqual({
+    ).toStrictEqual({
       fontSizeInputValue: '110',
     })
     const setValues = vi.fn()
@@ -166,7 +173,7 @@ describe('OptionsRoute', () => {
     }) => {
       fontSizeInputValue: string
     }
-    expect(updater({ fontSizeInputValue: '90' })).toEqual({
+    expect(updater({ fontSizeInputValue: '90' })).toStrictEqual({
       fontSizeInputValue: '100',
     })
   })
@@ -240,6 +247,7 @@ describe('OptionsRoute', () => {
     expect((input as HTMLInputElement).value).toBe('100')
   })
 
+  // eslint-disable-next-line typescript/require-await
   it('updates behavior, color, reset, exclude removal, and external links', async () => {
     render(<OptionsRoute />)
 
@@ -294,8 +302,9 @@ describe('OptionsRoute', () => {
 
     render(<OptionsRoute />)
 
+    // eslint-disable-next-line typescript/TS2339
     expect(
-      (screen.getByLabelText('click-behavior') as HTMLSelectElement).value,
+      (screen.getByLabelText('click-behavior') as HTMLInputElement).value,
     ).toBe('saveWindowTabs')
     expect(screen.getByText('options.excludePatterns.empty')).toBeTruthy()
   })

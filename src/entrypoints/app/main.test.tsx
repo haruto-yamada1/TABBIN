@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { createElement } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
   createRoot: vi.fn(),
@@ -14,12 +14,14 @@ vi.mock('react-dom/client', () => ({
 
 vi.mock('@/components/theme-provider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   useI18n: () => ({
@@ -28,14 +30,18 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -91,7 +97,7 @@ describe('app bootstrap', () => {
     domReadyHandler?.(new Event('DOMContentLoaded'))
 
     expect(mocked.createRoot).toHaveBeenCalledWith(
-      document.getElementById('app'),
+      document.querySelector('#app'),
     )
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
   })

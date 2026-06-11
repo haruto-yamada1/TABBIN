@@ -6,7 +6,7 @@ import {
   screen,
   within,
 } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { ViewMode } from '@/types/storage'
 
@@ -16,6 +16,7 @@ const viewModeI18nState = vi.hoisted(() => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -28,7 +29,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -46,6 +47,7 @@ vi.mock('@/components/ui/select', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='select-root' data-value={value}>
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onValueChange?.('custom')} type='button'>
         emit-custom
       </button>

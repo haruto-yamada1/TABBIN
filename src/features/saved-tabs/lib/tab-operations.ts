@@ -59,7 +59,7 @@ const updateDomainCategoryMappingIfNeeded = async (
 export const handleTabGroupRemoval = async (groupId: string): Promise<void> => {
   try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
     const groupToRemove = savedTabs.find(
       (group: TabGroup) => group.id === groupId,
@@ -71,8 +71,8 @@ export const handleTabGroupRemoval = async (groupId: string): Promise<void> => {
     await Promise.all([
       updateDomainCategorySettings(
         groupToRemove.domain,
-        groupToRemove.subCategories || [],
-        groupToRemove.categoryKeywords || [],
+        groupToRemove.subCategories ?? [],
+        groupToRemove.categoryKeywords ?? [],
       ),
       ensureDomainNameInParentCategory(groupToRemove),
       updateDomainCategoryMappingIfNeeded(groupToRemove),
@@ -96,7 +96,7 @@ export const safelyUpdateGroupUrls = async (
   try {
     // ローカルストレージからタブを取得
     const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: import('@/types/storage').TabGroup[]
+      savedTabs?: TabGroup[]
     }>('savedTabs')
 
     // 対象グループを特定
@@ -104,9 +104,11 @@ export const safelyUpdateGroupUrls = async (
     if (!targetGroup) {
       console.log(`グループID ${groupId} が見つかりません`)
       if (callback) {
-        Promise.resolve().then(callback)
+        Promise.resolve()
+          .then(callback)
+          .catch(() => {})
       }
-      return Promise.resolve()
+      return
     }
 
     // グループ内のURLが空になる場合でも、グループ自体は維持（表示はしない）
@@ -151,11 +153,14 @@ export const safelyUpdateGroupUrls = async (
 
     // 成功時にコールバックを実行 - 非同期で実行
     if (callback) {
-      Promise.resolve().then(callback)
+      Promise.resolve()
+        .then(callback)
+        .catch(() => {})
     }
-    return Promise.resolve()
+    // eslint-disable-next-line eslint/no-useless-return
+    return
   } catch (error) {
     console.error('タブ更新エラー:', error)
-    return Promise.reject(error)
+    throw error
   }
 }

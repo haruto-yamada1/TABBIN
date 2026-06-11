@@ -46,6 +46,7 @@ export const CustomProjectCategoryManageDialog = ({
 }: CategoryManageDialogProps) => {
   const { t } = useI18n()
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleRenameInputKeyDown = (event: React.KeyboardEvent) => {
     if (event.key !== 'Enter') {
       return
@@ -57,8 +58,14 @@ export const CustomProjectCategoryManageDialog = ({
   return (
     <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
       <DialogContent
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onClick={(event) => {
+          event.stopPropagation()
+        }}
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onPointerDown={(event) => {
+          event.stopPropagation()
+        }}
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader>
@@ -77,7 +84,10 @@ export const CustomProjectCategoryManageDialog = ({
             <Input
               id='rename-input'
               value={newCategoryName}
-              onChange={(event) => setNewCategoryName(event.target.value)}
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              onChange={(event) => {
+                setNewCategoryName(event.target.value)
+              }}
               onBlur={onRename}
               placeholder={t('savedTabs.projectCategory.renamePlaceholder')}
               className={`w-full rounded border p-2 ${renameError ? 'border-red-500' : ''}`}
@@ -97,7 +107,10 @@ export const CustomProjectCategoryManageDialog = ({
                 <Button
                   variant='ghost'
                   size='sm'
-                  onClick={() => setShowDeleteConfirm(false)}
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                  onClick={() => {
+                    setShowDeleteConfirm(false)
+                  }}
                 >
                   {t('common.cancel')}
                 </Button>
@@ -114,7 +127,10 @@ export const CustomProjectCategoryManageDialog = ({
                 <Button
                   variant='secondary'
                   size='sm'
-                  onClick={() => setShowDeleteConfirm(true)}
+                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                  onClick={() => {
+                    setShowDeleteConfirm(true)
+                  }}
                 >
                   {t('savedTabs.projectCategory.deleteAction')}
                 </Button>

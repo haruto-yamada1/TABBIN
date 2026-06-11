@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 
@@ -14,6 +14,7 @@ const storageMocks = vi.hoisted(() => {
 
   return {
     getChromeStorageLocal: vi.fn(() => ({
+      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async (keys: string | string[]) => {
         if (Array.isArray(keys)) {
           return Object.fromEntries(keys.map((key) => [key, state[key]]))
@@ -23,12 +24,14 @@ const storageMocks = vi.hoisted(() => {
           [keys]: state[keys],
         }
       }),
+      // eslint-disable-next-line typescript/require-await
       set: vi.fn(async (value: Record<string, unknown>) => {
         Object.assign(state, value)
       }),
     })),
     reset: () => {
       for (const key of Object.keys(state)) {
+        // eslint-disable-next-line typescript/no-dynamic-delete
         delete state[key]
       }
     },
@@ -84,7 +87,7 @@ describe('analytics storage', () => {
       },
     ]
 
-    await expect(loadSavedAnalyticsViews()).resolves.toEqual(
+    await expect(loadSavedAnalyticsViews()).resolves.toStrictEqual(
       storageMocks.state.savedAnalyticsViews,
     )
   })
@@ -94,12 +97,12 @@ describe('analytics storage', () => {
       id: 'not-an-array',
     }
 
-    await expect(loadSavedAnalyticsViews()).resolves.toEqual([])
+    await expect(loadSavedAnalyticsViews()).resolves.toStrictEqual([])
   })
 
   it('Chrome storage がない場合は読み込みと保存を警告だけで終える', async () => {
     storageMocks.getChromeStorageLocal.mockReturnValueOnce(null as never)
-    await expect(loadSavedAnalyticsViews()).resolves.toEqual([])
+    await expect(loadSavedAnalyticsViews()).resolves.toStrictEqual([])
 
     storageMocks.getChromeStorageLocal.mockReturnValueOnce(null as never)
     await expect(saveSavedAnalyticsViews([])).resolves.toBeUndefined()
@@ -125,10 +128,11 @@ describe('analytics storage', () => {
 
     await saveSavedAnalyticsViews(views)
 
-    expect(storageMocks.state.savedAnalyticsViews).toEqual(views)
+    expect(storageMocks.state.savedAnalyticsViews).toStrictEqual(views)
   })
 
   it('新しい分析ビューを作成する', async () => {
+    // eslint-disable-next-line typescript/await-thenable
     const view = await createSavedAnalyticsView({
       name: 'Custom View',
       now: 100,
@@ -164,7 +168,7 @@ describe('analytics storage', () => {
 
     await deleteSavedAnalyticsView('view-1')
 
-    expect(storageMocks.state.savedAnalyticsViews).toEqual([
+    expect(storageMocks.state.savedAnalyticsViews).toStrictEqual([
       {
         createdAt: 3,
         id: 'view-2',

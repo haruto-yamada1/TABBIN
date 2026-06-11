@@ -10,6 +10,7 @@ export const CategoryGroupReorderControl = () => {
     <CardReorderControls
       isReorderMode={reorder.isReorderMode}
       onCancel={reorder.handleCancelReorder}
+      // eslint-disable-next-line typescript/no-misused-promises
       onConfirm={reorder.handleConfirmReorder}
       className='pointer-events-auto ml-2 gap-2'
     />

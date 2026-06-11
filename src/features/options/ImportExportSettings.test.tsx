@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import {
   cleanup,
@@ -6,7 +7,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { ImportExportSettings } from './ImportExportSettings'
 
@@ -158,6 +159,7 @@ class MockFileReader {
 }
 
 const getHiddenFileInput = (container: HTMLElement): HTMLInputElement => {
+  // eslint-disable-next-line typescript/no-unnecessary-type-assertion
   const fileInput = container.querySelector(
     'input[type="file"].hidden',
   ) as HTMLInputElement | null
@@ -168,6 +170,7 @@ const getHiddenFileInput = (container: HTMLElement): HTMLInputElement => {
 }
 
 const getDropzoneFileInput = (container: HTMLElement): HTMLInputElement => {
+  // eslint-disable-next-line typescript/no-unnecessary-type-assertion
   const fileInputs = Array.from(
     document.querySelectorAll('input[type="file"]'),
   ) as HTMLInputElement[]
@@ -188,7 +191,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     readerContent = '{"import":"payload"}'
     readerAsync = false
 
-    ;(globalThis as { [key: string]: unknown }).FileReader =
+    ;(globalThis as Record<string, unknown>).FileReader =
       MockFileReader as unknown as typeof FileReader
 
     vi.mocked(exportSettings).mockResolvedValue({
@@ -740,7 +743,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         throw new Error('reader constructor failed')
       }
     }
-    ;(globalThis as { [key: string]: unknown }).FileReader =
+    ;(globalThis as Record<string, unknown>).FileReader =
       ThrowingFileReader as unknown as typeof FileReader
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Import' }))

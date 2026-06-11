@@ -64,6 +64,7 @@ export const KeywordModalRoot = ({
     return null
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const contextValue: KeywordModalContextType = {
     group,
     state,
@@ -74,8 +75,15 @@ export const KeywordModalRoot = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           className='max-h-[90vh] overflow-y-auto'
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onClick={(e) => {
+            e.stopPropagation()
+          }}
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+          onPointerDown={(e) => {
+            e.stopPropagation()
+          }}
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.stopPropagation()

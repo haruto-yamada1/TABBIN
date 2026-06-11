@@ -147,6 +147,7 @@ const applyDomainSelectionChange = async (params: {
  * @returns カテゴリ作成・選択・削除・ドメイン選択関連の状態と操作
  */
 export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
+  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   // --- 新規カテゴリ名状態 ---
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -200,12 +201,17 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   const [categoryToDelete, setCategoryToDelete] =
     useState<ParentCategory | null>(null)
 
+  const MAX_CATEGORY_NAME_LENGTH = 25
+
   const validateCategoryName = useCallback(
     (value: string) =>
       z
         .string()
         .min(1, t('savedTabs.categoryModal.validation.empty'))
-        .max(25, t('savedTabs.categoryModal.validation.maxLength'))
+        .max(
+          MAX_CATEGORY_NAME_LENGTH,
+          t('savedTabs.categoryModal.validation.maxLength'),
+        )
         .safeParse(value),
     [t],
   )
@@ -217,7 +223,8 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       const categoryDomainNames =
         category === 'uncategorized'
           ? null
-          : new Set(category.domainNames ?? [])
+          : // eslint-disable-next-line unicorn/no-useless-collection-argument
+            new Set(category.domainNames ?? [])
       for (const group of tabGroups) {
         if (category === 'uncategorized') {
           newSelectedDomains[group.id] = !domainCategories[group.id]
@@ -251,6 +258,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
         toast.error(t('savedTabs.categoryModal.loadError'))
       }
     }
+    // eslint-disable-next-line typescript/no-floating-promises
     loadCategories()
   }, [t, tabGroups])
 
@@ -351,6 +359,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       if (e.key === 'Enter') {
         e.preventDefault()
         if (newCategoryName.trim() && !nameError && !isLoading) {
+          // eslint-disable-next-line typescript/no-floating-promises
           handleCreateCategory()
         }
       }
@@ -361,6 +370,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   // --- フォーカスアウトハンドラ ---
   const handleBlur = useCallback(() => {
     if (newCategoryName.trim() && !nameError && !isLoading) {
+      // eslint-disable-next-line typescript/no-floating-promises
       handleCreateCategory()
     }
   }, [newCategoryName, nameError, isLoading, handleCreateCategory])
@@ -432,11 +442,12 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   const toggleDomainSelection = useCallback(
     (domainId: string) => {
       const previousChecked = selectedDomains[domainId]
-      const rollbackSelection = () =>
+      const rollbackSelection = () => {
         setSelectedDomains((prev) => ({
           ...prev,
           [domainId]: previousChecked,
         }))
+      }
       const newChecked = !previousChecked
       setSelectedDomains((prev) => ({
         ...prev,

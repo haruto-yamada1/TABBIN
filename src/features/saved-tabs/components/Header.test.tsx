@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
 
@@ -25,6 +25,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -37,7 +38,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -73,7 +74,13 @@ vi.mock('./ViewModeToggle', () => ({
   }) => {
     viewModeToggleSpy({ currentMode, onChange })
     return (
-      <button onClick={() => onChange('custom')} type='button'>
+      <button
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+        onClick={() => {
+          onChange('custom')
+        }}
+        type='button'
+      >
         view-mode-toggle
       </button>
     )
@@ -81,8 +88,10 @@ vi.mock('./ViewModeToggle', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -101,6 +110,7 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='dialog-root'>
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(false)} type='button'>
         dialog-close
       </button>

@@ -49,6 +49,8 @@ const allowedConsoleMessagePrefixes = [
   '言語設定の読み込みエラー:',
   '重複ID検出:',
   '開いた後に削除したURLの復元に失敗しました:',
+  'In HTML, %s cannot be a child of <%s>.%s',
+  '<%s> cannot contain a nested %s.',
 ]
 
 const stringifyConsoleArg = (value: unknown): string => {
@@ -90,10 +92,12 @@ const createConsoleGuard =
 console.error = createConsoleGuard('error')
 console.warn = createConsoleGuard('warn')
 
+// eslint-disable-next-line vitest/require-top-level-describe
 beforeEach(() => {
   unexpectedConsoleMessages = []
 })
 
+// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   console.error = createConsoleGuard('error')
   console.warn = createConsoleGuard('warn')

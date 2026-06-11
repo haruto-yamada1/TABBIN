@@ -7,11 +7,11 @@ const mocked = vi.hoisted(() => ({
 }))
 
 const resizeObserverState = vi.hoisted(() => {
-  const instances: Array<{
+  const instances: {
     callback: ResizeObserverCallback
     disconnect: ReturnType<typeof vi.fn>
     observe: ReturnType<typeof vi.fn>
-  }> = []
+  }[] = []
 
   class MockResizeObserver {
     callback: ResizeObserverCallback
@@ -81,6 +81,7 @@ describe('ChartContainer', () => {
     render(
       <ChartContainer
         className='h-64'
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         config={{ active: { color: 'var(--color-primary)', label: 'Active' } }}
       >
         <div>chart</div>
@@ -93,7 +94,9 @@ describe('ChartContainer', () => {
       resizeObserverState.emit({ height: 256, width: 320 })
     })
 
-    expect(await screen.findByTestId('responsive-container')).toBeTruthy()
+    await expect(
+      screen.findByTestId('responsive-container'),
+    ).resolves.toBeTruthy()
     expect(mocked.responsiveContainerProps).toMatchObject({
       height: '100%',
       minWidth: 0,

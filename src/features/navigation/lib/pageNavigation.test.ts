@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import {
   getAppEntryHref,
@@ -22,49 +22,51 @@ describe('pageNavigation', () => {
   it('location から現在のサイドバー状態を判定する', () => {
     expect(
       getSidebarStateFromLocation('/saved-tabs.html', '?mode=custom'),
-    ).toEqual({
+    ).toStrictEqual({
       expandedGroup: 'tab-list',
       item: 'saved-tabs-custom',
     })
 
-    expect(getSidebarStateFromLocation('/ai-chat.html', '')).toEqual({
+    expect(getSidebarStateFromLocation('/ai-chat.html', '')).toStrictEqual({
       expandedGroup: 'tab-list',
       item: 'ai-chat',
     })
 
-    expect(getSidebarStateFromLocation('/ai-chat', '')).toEqual({
+    expect(getSidebarStateFromLocation('/ai-chat', '')).toStrictEqual({
       expandedGroup: 'tab-list',
       item: 'ai-chat',
     })
 
-    expect(getSidebarStateFromLocation('/periodic-execution.html', '')).toEqual(
-      {
-        expandedGroup: 'tab-list',
-        item: 'periodic-execution',
-      },
-    )
-
-    expect(getSidebarStateFromLocation('/periodic-execution', '')).toEqual({
+    expect(
+      getSidebarStateFromLocation('/periodic-execution.html', ''),
+    ).toStrictEqual({
       expandedGroup: 'tab-list',
       item: 'periodic-execution',
     })
 
-    expect(getSidebarStateFromLocation('/analytics.html', '')).toEqual({
+    expect(
+      getSidebarStateFromLocation('/periodic-execution', ''),
+    ).toStrictEqual({
+      expandedGroup: 'tab-list',
+      item: 'periodic-execution',
+    })
+
+    expect(getSidebarStateFromLocation('/analytics.html', '')).toStrictEqual({
       expandedGroup: 'tab-list',
       item: 'analytics',
     })
 
-    expect(getSidebarStateFromLocation('/analytics', '')).toEqual({
+    expect(getSidebarStateFromLocation('/analytics', '')).toStrictEqual({
       expandedGroup: 'tab-list',
       item: 'analytics',
     })
 
-    expect(getSidebarStateFromLocation('/options.html', '')).toEqual({
+    expect(getSidebarStateFromLocation('/options.html', '')).toStrictEqual({
       expandedGroup: 'tab-list',
       item: 'options',
     })
 
-    expect(getSidebarStateFromLocation('/options', '')).toEqual({
+    expect(getSidebarStateFromLocation('/options', '')).toStrictEqual({
       expandedGroup: 'tab-list',
       item: 'options',
     })

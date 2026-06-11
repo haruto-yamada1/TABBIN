@@ -14,34 +14,69 @@ export const isPeriodShortening = (
   }
 
   // 期間を秒数に変換して比較
+  const THIRTY_SECONDS = 30
+  const SECONDS_IN_MINUTE_PS = 60
+  const MINUTES_IN_HOUR_PS = 60
+  const HOURS_IN_DAY_PS = 24
+  const DAYS_IN_WEEK_PS = 7
+  const DAYS_IN_14_DAYS_PS = 14
+  const DAYS_IN_30_DAYS_PS = 30
+  const DAYS_IN_180_DAYS_PS = 180
+  const DAYS_IN_365_DAYS_PS = 365
+
   const getPeriodSeconds = (period: string): number => {
     switch (period) {
       case '30sec': {
-        return 30
+        return THIRTY_SECONDS
       }
       case '1min': {
-        return 60
+        return SECONDS_IN_MINUTE_PS
       }
       case '1hour': {
-        return 3600
+        return SECONDS_IN_MINUTE_PS * MINUTES_IN_HOUR_PS
       }
       case '1day': {
-        return 86400
+        return SECONDS_IN_MINUTE_PS * MINUTES_IN_HOUR_PS * HOURS_IN_DAY_PS
       }
       case '7days': {
-        return 604800
+        return (
+          SECONDS_IN_MINUTE_PS *
+          MINUTES_IN_HOUR_PS *
+          HOURS_IN_DAY_PS *
+          DAYS_IN_WEEK_PS
+        )
       }
       case '14days': {
-        return 1209600
+        return (
+          SECONDS_IN_MINUTE_PS *
+          MINUTES_IN_HOUR_PS *
+          HOURS_IN_DAY_PS *
+          DAYS_IN_14_DAYS_PS
+        )
       }
       case '30days': {
-        return 2592000
+        return (
+          SECONDS_IN_MINUTE_PS *
+          MINUTES_IN_HOUR_PS *
+          HOURS_IN_DAY_PS *
+          DAYS_IN_30_DAYS_PS
+        )
       }
       case '180days': {
-        return 15552000
+        return (
+          SECONDS_IN_MINUTE_PS *
+          MINUTES_IN_HOUR_PS *
+          HOURS_IN_DAY_PS *
+          DAYS_IN_180_DAYS_PS
+        )
       }
       case '365days': {
-        return 31536000
+        return (
+          SECONDS_IN_MINUTE_PS *
+          MINUTES_IN_HOUR_PS *
+          HOURS_IN_DAY_PS *
+          DAYS_IN_365_DAYS_PS
+        )
       }
       default: {
         return Number.POSITIVE_INFINITY

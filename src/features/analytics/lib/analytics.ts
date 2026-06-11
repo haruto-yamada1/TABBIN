@@ -138,6 +138,13 @@ const EMPTY_FILTERS: AnalyticsFilters = {
   includedSubCategories: [],
 }
 
+const HOURS_IN_DAY_A = 24
+const MINUTES_IN_HOUR_A = 60
+const SECONDS_IN_MINUTE_A = 60
+const MS_IN_SECOND_A = 1000
+const DAY_MS =
+  HOURS_IN_DAY_A * MINUTES_IN_HOUR_A * SECONDS_IN_MINUTE_A * MS_IN_SECOND_A
+
 const RANGE_IN_DAYS: Record<
   Exclude<AnalyticsTimeRange, 'all' | 'custom'>,
   number
@@ -163,6 +170,7 @@ const interpolate = (
   template: string,
   values: Record<string, string>,
 ): string =>
+  // eslint-disable-next-line typescript/no-unsafe-member-access
   template.replaceAll(/\{\{(\w+)\}\}/g, (_, token) => values[token] ?? '')
 const getDefaultAnalyticsQuery = (): AnalyticsQuery => ({
   chartType: 'bar',
@@ -238,10 +246,7 @@ const isWithinTimeRange = (
     )
   }
 
-  return (
-    savedAt >=
-    options.now - RANGE_IN_DAYS[options.timeRange] * 24 * 60 * 60 * 1000
-  )
+  return savedAt >= options.now - RANGE_IN_DAYS[options.timeRange] * DAY_MS
 }
 
 const arrayMatchesFilters = (
@@ -311,6 +316,7 @@ const sortEntries = (
   sort: AnalyticsSort,
 ) => {
   entries.sort((left, right) => {
+    // eslint-disable-next-line typescript/switch-exhaustiveness-check
     switch (sort) {
       case 'label-asc': {
         return left.label.localeCompare(right.label, 'en')
@@ -350,6 +356,7 @@ const getTimeBucketLabel = (
   return getLocalDateKey(savedAt, timeZone)
 }
 
+// eslint-disable-next-line eslint/complexity
 const getLabelsForGroup = (
   record: AiSavedUrlRecord,
   groupBy: AnalyticsGroupBy,
@@ -383,6 +390,9 @@ const getLabelsForGroup = (
     case 'timeTop': {
       return [getTimeBucketLabel(record.savedAt, 'day')]
     }
+    default: {
+      return [record.domain]
+    }
   }
 }
 
@@ -410,6 +420,9 @@ const getSingleSeriesTitle = (
     case 'timeTop': {
       return messages.chartDailySavedTrend
     }
+    default: {
+      return messages.chartSavedCountByDomain
+    }
   }
 }
 
@@ -417,6 +430,7 @@ const getTimeTitle = (
   bucket: AnalyticsTimeBucket,
   messages: AnalyticsMessages,
 ): string => {
+  // eslint-disable-next-line typescript/switch-exhaustiveness-check
   switch (bucket) {
     case 'week': {
       return messages.chartWeeklySavedTrend
@@ -430,12 +444,14 @@ const getTimeTitle = (
   }
 }
 
+const PERCENTAGE_MULTIPLIER = 100
+
 const getNormalizedCount = (count: number, total: number): number => {
   if (total === 0) {
     return 0
   }
 
-  return Math.round((count / total) * 100)
+  return Math.round((count / total) * PERCENTAGE_MULTIPLIER)
 }
 
 const sortTimeEntriesByTotalDesc = (

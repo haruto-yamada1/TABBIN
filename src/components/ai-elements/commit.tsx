@@ -9,6 +9,7 @@ import {
   PlusIcon,
 } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
+import { useCallback } from 'react'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -152,6 +153,13 @@ const relativeTimeFormat = new Intl.RelativeTimeFormat('en', {
   numeric: 'auto',
 })
 
+const MS_IN_SECOND_CT = 1000
+const SECONDS_IN_MINUTE_CT = 60
+const MINUTES_IN_HOUR_CT = 60
+const HOURS_IN_DAY_CT = 24
+const DAY_MS_CT =
+  MS_IN_SECOND_CT * SECONDS_IN_MINUTE_CT * MINUTES_IN_HOUR_CT * HOURS_IN_DAY_CT
+
 export const CommitTimestamp = ({
   date,
   className,
@@ -159,7 +167,7 @@ export const CommitTimestamp = ({
   ...props
 }: CommitTimestampProps) => {
   const formatted = relativeTimeFormat.format(
-    Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    Math.round((date.getTime() - Date.now()) / DAY_MS_CT),
     'day',
   )
 
@@ -176,14 +184,19 @@ export const CommitTimestamp = ({
 
 export type CommitActionsProps = ComponentProps<'fieldset'>
 
-const handleActionsClick = (e: React.MouseEvent) => e.stopPropagation()
-const handleActionsKeyDown = (e: React.KeyboardEvent) => e.stopPropagation()
+const handleActionsClick = (e: React.MouseEvent) => {
+  e.stopPropagation()
+}
+const handleActionsKeyDown = (e: React.KeyboardEvent) => {
+  e.stopPropagation()
+}
 
 export const CommitActions = ({
   className,
   children,
   ...props
 }: CommitActionsProps) => (
+  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
   <fieldset
     className={cn(
       'm-0 flex min-w-0 items-center gap-1 border-0 p-0',
@@ -214,13 +227,16 @@ export const CommitCopyButton = ({
   ...props
 }: CommitCopyButtonProps) => {
   const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
+  const handleCopy = useCallback(() => {
+    void copyText(hash, { skipIfCopied: true })
+  }, [copyText, hash])
 
   const Icon = isCopied ? CheckIcon : CopyIcon
 
   return (
     <Button
       className={cn('size-7 shrink-0', className)}
-      onClick={() => copyText(hash, { skipIfCopied: true })}
+      onClick={handleCopy}
       size='icon'
       variant='ghost'
       {...props}

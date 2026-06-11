@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
 import type { ParentCategory, TabGroup } from '@/types/storage'
@@ -53,6 +53,7 @@ const createProps = (
   parentCategories: [
     { id: 'parent-1', name: 'Work', domains: [], domainNames: [] },
   ],
+  // eslint-disable-next-line typescript/require-await
   onCreateParentCategory: vi.fn(async (name: string) => ({
     id: 'created',
     name,

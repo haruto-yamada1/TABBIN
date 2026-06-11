@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { StorybookTestHarness, createPreview } from './preview'
 
@@ -15,7 +15,7 @@ describe('Storybook preview helpers', () => {
   it('sorts lightweight stories ahead of heavy AI element showcases', () => {
     const preview = createPreview()
 
-    expect(preview.parameters?.options?.storySort).toEqual({
+    expect(preview.parameters?.options?.storySort).toStrictEqual({
       order: ['UI', 'Components', 'Features', 'AI Elements'],
     })
   })

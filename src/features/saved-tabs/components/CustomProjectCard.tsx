@@ -40,6 +40,7 @@ const CustomProjectCard = memo(
       isDropTarget={isDropTarget}
       isProjectReorderMode={isProjectReorderMode}
       isCrossProjectUrlDragActive={isCrossProjectUrlDragActive}
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       handlers={{
         handleAddCategory,
         handleDeleteCategory,
@@ -53,6 +54,7 @@ const CustomProjectCard = memo(
         handleSetUrlCategory,
         handleUpdateProjectKeywords,
       }}
+      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       hookHandlers={{
         handleDeleteUrl,
         handleReorderUrls,

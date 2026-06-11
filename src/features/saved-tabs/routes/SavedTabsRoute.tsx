@@ -17,6 +17,8 @@ import { SavedTabsScrollControls } from '@/features/saved-tabs/components/SavedT
 import { SavedTabsResponsiveLayoutProvider } from '@/features/saved-tabs/contexts/SavedTabsResponsiveLayoutContext'
 import type { ViewMode } from '@/types/storage'
 
+import { getLeftPaneWidthStoreSnapshot } from './savedTabsRoute.helpers'
+
 const LEFT_PANE_COMPACT_BREAKPOINT = 1024
 
 const getViewportWidthSnapshot = () => window.innerWidth
@@ -33,9 +35,6 @@ const getElementWidthSnapshot = (element: HTMLDivElement | null) => {
 
   return width
 }
-
-const getLeftPaneWidthStoreSnapshot = (width: number | null) =>
-  width ?? getViewportWidthSnapshot()
 
 const subscribeToElementWidth = (
   element: HTMLDivElement | null,
@@ -76,6 +75,8 @@ const subscribeToElementWidth = (
 const useLeftPaneWidth = () => {
   const leftPaneRef = useRef<HTMLDivElement>(null)
   const widthRef = useRef<number | null>(null)
+  // widthRef.current === null can't use ??: intentional identity check
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- intentional === null check
   if (widthRef.current === null) {
     widthRef.current = getViewportWidthSnapshot()
   }
@@ -98,8 +99,6 @@ const useLeftPaneWidth = () => {
     leftPaneWidth,
   }
 }
-
-export { getLeftPaneWidthStoreSnapshot }
 
 interface SavedTabsRouteProps {
   onViewModeNavigate?: (mode: ViewMode) => void

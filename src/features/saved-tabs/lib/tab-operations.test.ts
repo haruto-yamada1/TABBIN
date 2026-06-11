@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup } from '@/types/storage'
 
@@ -23,6 +23,7 @@ interface LocalStore {
 }
 const createChromeMock = (initialStore: LocalStore = {}) => {
   const store: LocalStore = structuredClone(initialStore)
+  // eslint-disable-next-line typescript/require-await
   const get = vi.fn(async (key?: string) => {
     if (key == null) {
       return structuredClone(store)
@@ -31,9 +32,11 @@ const createChromeMock = (initialStore: LocalStore = {}) => {
       [key]: structuredClone(store[key as keyof LocalStore]),
     }
   })
+  // eslint-disable-next-line typescript/require-await
   const set = vi.fn(async (next: Partial<LocalStore>) => {
     Object.assign(store, structuredClone(next))
   })
+  // eslint-disable-next-line typescript/require-await
   const sendMessage = vi.fn(async () => undefined)
   ;(
     globalThis as {
@@ -338,7 +341,7 @@ describe('tab-operations ユーティリティ', () => {
       const callback = vi.fn()
       await expect(
         safelyUpdateGroupUrls('group-1', [], callback),
-      ).resolves.toBe(undefined)
+      ).resolves.toBeUndefined()
       await flushMicrotasks()
       expect(set).toHaveBeenCalledTimes(1)
       expect(set).toHaveBeenCalledWith({
@@ -360,7 +363,7 @@ describe('tab-operations ユーティリティ', () => {
           },
         ],
       })
-      expect(store.savedTabs?.[0]?.urls).toEqual([])
+      expect(store.savedTabs?.[0]?.urls).toStrictEqual([])
       expect(sendMessage).toHaveBeenCalledWith({
         action: 'groupEmptied',
         groupId: 'group-1',

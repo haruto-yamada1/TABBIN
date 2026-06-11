@@ -20,6 +20,7 @@ export const ImportExportSettings: React.FC = () => {
   const { t } = useI18n()
   const [isExporting, setIsExporting] = useState(false)
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleExport = async () => {
     try {
       setIsExporting(true)
@@ -51,6 +52,7 @@ export const ImportExportSettings: React.FC = () => {
 
       <div className='flex flex-wrap gap-2'>
         <Button
+          // eslint-disable-next-line typescript/no-misused-promises
           onClick={handleExport}
           disabled={isExporting}
           variant='outline'

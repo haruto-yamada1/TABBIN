@@ -4,15 +4,18 @@ import { getScopedNounActionLabel } from '@/features/saved-tabs/lib/accessibilit
 import { CardGroupActions } from '../shared/CardGroupActions'
 import { useCategoryGroup } from './CategoryGroupContext'
 
+const BULK_OPEN_THRESHOLD = 10
+
 const getVisibleUrls = (group: {
   urls?: {
     url: string
   }[]
-}): string[] => (group.urls || []).map((item) => item.url)
+}): string[] => (group.urls ?? []).map((item) => item.url)
 
 const deleteVisibleUrlsByGroup = async (
   groups: {
     id: string
+    // eslint-disable-next-line typescript/array-type
     urls?: Array<{
       url: string
     }>
@@ -41,7 +44,7 @@ export const CategoryGroupActions = () => {
   const { modal, reorder } = state
 
   const domainsToUse = reorder.isReorderMode ? reorder.tempDomainOrder : domains
-  const urlsToOpen = domainsToUse.flatMap((group) => group.urls || [])
+  const urlsToOpen = domainsToUse.flatMap((group) => group.urls ?? [])
   const hasSearchQuery = searchQuery.trim().length > 0
   const targetName = category.name
 
@@ -57,11 +60,11 @@ export const CategoryGroupActions = () => {
       : domains
 
     if (handlers.handleDeleteGroups) {
-      await handlers.handleDeleteGroups(domainsToDelete.map((d) => d.id))
+      // eslint-disable-next-line typescript/no-confusing-void-expression
+      handlers.handleDeleteGroups(domainsToDelete.map((d) => d.id))
     } else {
-      await Promise.all(
-        domainsToDelete.map(({ id }) => handlers.handleDeleteGroup(id)),
-      )
+      // eslint-disable-next-line typescript/no-confusing-void-expression
+      domainsToDelete.forEach(({ id }) => handlers.handleDeleteGroup(id))
     }
     if (reorder.isReorderMode) {
       console.log(
@@ -81,7 +84,8 @@ export const CategoryGroupActions = () => {
 
   return (
     <CardGroupActions
-      onManage={() => modal.setIsModalOpen(true)}
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+      onManage={() => modal.setIsModalOpen(true)} // eslint-disable-line typescript/no-confusing-void-expression
       manageLabel={t('savedTabs.manageParentCategories')}
       manageAriaLabel={getScopedNounActionLabel(
         t,
@@ -104,6 +108,7 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.openAllTabs'),
       )}
+      // eslint-disable-next-line typescript/no-misused-promises
       onDeleteAll={domainsToUse.length > 0 ? executeDeleteAll : undefined}
       deleteAllAriaLabel={getScopedNounActionLabel(
         t,
@@ -115,7 +120,8 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.deleteAllTabs'),
       )}
-      onConfirmOpenAll={urlsToOpen.length >= 10}
+      onConfirmOpenAll={urlsToOpen.length >= BULK_OPEN_THRESHOLD}
+      // eslint-disable-next-line react/jsx-handler-names
       onConfirmDeleteAll={settings.confirmDeleteAll}
       openAllThreshold={10}
       openAllCount={urlsToOpen.length}

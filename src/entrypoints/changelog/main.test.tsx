@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { getChangelogItems } from '@/features/i18n/messages'
 
@@ -17,12 +17,14 @@ vi.mock('react-dom/client', () => ({
 
 vi.mock('@/components/theme-provider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   useI18n: () => ({
@@ -75,7 +77,7 @@ describe('changelog bootstrap', () => {
     domReadyHandler?.(new Event('DOMContentLoaded'))
 
     expect(mocked.createRoot).toHaveBeenCalledWith(
-      document.getElementById('app'),
+      document.querySelector('#app'),
     )
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
   })
@@ -115,10 +117,10 @@ describe('changelog bootstrap', () => {
     const englishItems = getChangelogItems('en')
 
     expect(englishItems).toHaveLength(japaneseItems.length)
-    expect(englishItems.map((item) => item.version)).toEqual(
+    expect(englishItems.map((item) => item.version)).toStrictEqual(
       japaneseItems.map((item) => item.version),
     )
-    expect(englishItems.map((item) => item.features.length)).toEqual(
+    expect(englishItems.map((item) => item.features.length)).toStrictEqual(
       japaneseItems.map((item) => item.features.length),
     )
   })

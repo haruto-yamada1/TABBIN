@@ -29,303 +29,56 @@ import {
   getCustomProjects,
   moveUrlBetweenCustomProjects,
   removeUrlIdsFromAllCustomProjects,
-  removeUrlsFromAllCustomProjects,
 } from '@/lib/storage/projects'
 import { defaultSettings } from '@/lib/storage/settings'
 import {
-  getTabGroupUrls,
   removeUrlFromTabGroup,
   removeUrlIdsFromTabGroup,
   removeUrlsFromTabGroup,
 } from '@/lib/storage/tabs'
 import { getUrlRecords } from '@/lib/storage/urls'
 import type {
-  CustomProject,
   ParentCategory,
   TabGroup,
   UserSettings,
   ViewMode,
 } from '@/types/storage'
 
+import type {
+  CategoryLookup,
+  CategorySyncState,
+  OpenedUrlsStorageSnapshot,
+} from './savedTabsApp.helpers'
+import {
+  buildCategoryLookup,
+  buildDisplayTabGroup,
+  buildUrlIdsToRemove,
+  countTabGroupUrls,
+  createFilterGroupsByExcludedIdsUpdater,
+  filterGroupByQuery,
+  getDisplayUrlCount,
+  notifyDeleteFailure,
+  removeUrlsFromCustomProjectsForGroup,
+  removeUrlsFromCustomProjectsForGroups,
+  removeUrlIdsFromSavedTabs,
+  showOpenedUrlsUndoToast,
+  sortCategorizedGroups,
+  syncGroupCategoryAssignment,
+} from './savedTabsApp.helpers'
+
+// eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
-interface OpenedUrlsStorageSnapshot {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-}
-interface OpenedUrlsRestorePayload {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs: TabGroup[]
-}
-interface CategoryLookup {
-  byId: Map<string, ParentCategory>
-  byGroupId: Map<string, ParentCategory>
-  byDomainName: Map<string, ParentCategory>
-}
-type RefreshTabGroupsWithUrls = (
-  groups: TabGroup[],
-) => Promise<TabGroup[]> | TabGroup[] | Promise<void> | void
 const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
   Array.isArray(value) ? value : undefined
 const getSnapshotSavedTabs = (
   snapshot: OpenedUrlsStorageSnapshot,
 ): TabGroup[] => getSnapshotArray(snapshot.savedTabs) ?? []
-const buildUrlIdsToRemove = (
-  urlsToRemove: string[],
-  urlRecords: {
-    id: string
-    url: string
-  }[],
-) => {
-  const uniqueUrlSet = new Set(urlsToRemove)
-  const urlIdsToRemove = new Set<string>()
-  for (const record of urlRecords) {
-    if (uniqueUrlSet.has(record.url)) {
-      urlIdsToRemove.add(record.id)
-    }
-  }
-
-  return urlIdsToRemove
-}
-const createOpenedUrlsRestorePayload = (
-  snapshot: OpenedUrlsStorageSnapshot,
-) => {
-  const customProjects = getSnapshotArray(snapshot.customProjects)
-  const customProjectOrder = getSnapshotArray(snapshot.customProjectOrder)
-  const parentCategories = getSnapshotArray(snapshot.parentCategories)
-  const payload: OpenedUrlsRestorePayload = {
-    savedTabs: getSnapshotSavedTabs(snapshot),
-  }
-
-  if (customProjects) {
-    payload.customProjects = customProjects
-  }
-  if (customProjectOrder) {
-    payload.customProjectOrder = customProjectOrder
-  }
-  if (parentCategories) {
-    payload.parentCategories = parentCategories
-  }
-
-  return {
-    customProjects,
-    parentCategories,
-    payload,
-  }
-}
-
-const restoreOpenedUrlsSnapshot = async ({
-  refreshTabGroupsWithUrls,
-  setCategories,
-  setCustomProjects,
-  snapshot,
-}: {
-  refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
-  setCategories?: (categories: ParentCategory[]) => void
-  setCustomProjects: (projects: CustomProject[]) => void
-  snapshot: OpenedUrlsStorageSnapshot
-}) => {
-  const { customProjects, parentCategories, payload } =
-    createOpenedUrlsRestorePayload(snapshot)
-
-  await chrome.storage.local.set(payload)
-  if (customProjects) {
-    setCustomProjects(customProjects)
-  }
-  if (parentCategories && setCategories) {
-    setCategories(parentCategories)
-  }
-  await refreshTabGroupsWithUrls(payload.savedTabs)
-}
-
-const notifyDeleteFailure = async ({
-  refreshTabGroupsWithUrls,
-  setCategories,
-  setCustomProjects,
-  snapshot,
-  t,
-}: {
-  refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
-  setCategories?: (categories: ParentCategory[]) => void
-  setCustomProjects: (projects: CustomProject[]) => void
-  snapshot?: OpenedUrlsStorageSnapshot
-  t: (key: string, fallback?: string, values?: Record<string, string>) => string
-}) => {
-  if (snapshot) {
-    try {
-      await restoreOpenedUrlsSnapshot({
-        refreshTabGroupsWithUrls,
-        setCategories,
-        setCustomProjects,
-        snapshot,
-      })
-    } catch (restoreError) {
-      console.error('削除失敗後の保存データ復元に失敗しました:', restoreError)
-    }
-  }
-
-  toast.error(t('savedTabs.deleteError'))
-}
-
-const showOpenedUrlsUndoToast = ({
-  count,
-  messageKey = 'savedTabs.undo.removedAfterOpen',
-  refreshTabGroupsWithUrls,
-  setCategories,
-  setCustomProjects,
-  snapshot,
-  t,
-}: {
-  count: number
-  messageKey?: string
-  refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
-  setCategories?: (categories: ParentCategory[]) => void
-  setCustomProjects: (projects: CustomProject[]) => void
-  snapshot: OpenedUrlsStorageSnapshot
-  t: (key: string, fallback?: string, values?: Record<string, string>) => string
-}) => {
-  toast.info(
-    t(messageKey, undefined, {
-      count: String(count),
-    }),
-    {
-      action: {
-        label: t('common.undo'),
-        onClick: async () => {
-          try {
-            await restoreOpenedUrlsSnapshot({
-              refreshTabGroupsWithUrls,
-              setCategories,
-              setCustomProjects,
-              snapshot,
-            })
-            toast.success(t('savedTabs.undo.restored'))
-          } catch (error) {
-            console.error('開いた後に削除したURLの復元に失敗しました:', error)
-            toast.error(t('savedTabs.undo.restoreError'))
-          }
-        },
-      },
-    },
-  )
-}
-const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
-  const byId = new Map<string, ParentCategory>()
-  const byGroupId = new Map<string, ParentCategory>()
-  const byDomainName = new Map<string, ParentCategory>()
-
-  for (const category of categories) {
-    byId.set(category.id, category)
-    for (const domainId of category.domains) {
-      if (!byGroupId.has(domainId)) {
-        byGroupId.set(domainId, category)
-      }
-    }
-    for (const domainName of category.domainNames) {
-      if (!byDomainName.has(domainName)) {
-        byDomainName.set(domainName, category)
-      }
-    }
-  }
-
-  return {
-    byDomainName,
-    byGroupId,
-    byId,
-  }
-}
-const countTabGroupUrls = (group: TabGroup): number =>
-  group.urlIds?.length ?? group.urls?.length ?? 0
-const getDisplayUrlCount = (group: TabGroup): number =>
-  (group.urls || group.urlIds || []).length
-const buildDisplayTabGroup = (project: CustomProject): TabGroup =>
-  ({
-    id: project.id,
-    domain: project.name,
-    urls: project.urls || [],
-    urlIds: project.urlIds || [],
-  }) as TabGroup
-const matchesParentCategoryQuery = (
-  group: TabGroup,
-  categoryLookup: CategoryLookup,
-  query: string,
-): boolean => {
-  if (group.parentCategoryId) {
-    const parentCategory = categoryLookup.byId.get(group.parentCategoryId)
-    if (parentCategory) {
-      const matched = parentCategory.name.toLowerCase().includes(query)
-      console.log(
-        `親カテゴリ検索デバッグ: ドメイン ${group.domain}, 親カテゴリ「${parentCategory.name}」, クエリ「${query}」, マッチ: ${matched}`,
-      )
-      if (matched) {
-        return true
-      }
-    } else {
-      console.log(
-        `親カテゴリ検索デバッグ: ドメイン ${group.domain}, parentCategoryId ${group.parentCategoryId} に対応するカテゴリが見つかりません`,
-      )
-    }
-  }
-  const fallbackCategory =
-    categoryLookup.byGroupId.get(group.id) ||
-    categoryLookup.byDomainName.get(group.domain)
-  if (fallbackCategory) {
-    const matched = fallbackCategory.name.toLowerCase().includes(query)
-    if (matched) {
-      console.log(
-        `親カテゴリ検索デバッグ（リアルタイム）: ドメイン ${group.domain}, 親カテゴリ「${fallbackCategory.name}」, クエリ「${query}」, マッチ: ${matched}`,
-      )
-      return true
-    }
-  }
-  if (!group.parentCategoryId) {
-    console.log(
-      `親カテゴリ検索デバッグ: ドメイン ${group.domain}, parentCategoryIdが未設定かつカテゴリマッチなし`,
-    )
-  }
-  return false
-}
-const filterGroupByQuery = (
-  group: TabGroup,
-  normalizedQuery: string,
-  categoryLookup: CategoryLookup,
-): TabGroup => {
-  const currentUrls = group.urls || []
-  if (currentUrls.length === 0) {
-    return group
-  }
-  const parentCategoryMatched = matchesParentCategoryQuery(
-    group,
-    categoryLookup,
-    normalizedQuery,
-  )
-  const filteredUrls = currentUrls.filter((item) => {
-    const matchesBasicFields =
-      item.title.toLowerCase().includes(normalizedQuery) ||
-      item.url.toLowerCase().includes(normalizedQuery) ||
-      group.domain.toLowerCase().includes(normalizedQuery)
-    const matchesSubCategory = item.subCategory
-      ?.toLowerCase()
-      .includes(normalizedQuery)
-    return matchesBasicFields || matchesSubCategory || parentCategoryMatched
-  })
-  if (filteredUrls.length === currentUrls.length) {
-    return group
-  }
-  return {
-    ...group,
-    urls: filteredUrls,
-  }
-}
 const hasDisplayableUrls = (group: TabGroup): boolean => {
   const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
   const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
   console.log(
-    `フィルタチェック ${group.domain}: urlIds=${group.urlIds?.length || 0}, urls=${group.urls?.length || 0}, 表示=${hasNewUrls || hasOldUrls}`,
+    `フィルタチェック ${group.domain}: urlIds=${group.urlIds?.length ?? 0}, urls=${group.urls?.length ?? 0}, 表示=${hasNewUrls || hasOldUrls}`, // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: boolean values; false should not be treated as "not set"
   )
   return hasNewUrls || hasOldUrls
 }
@@ -383,170 +136,6 @@ const tryCategorizeByDomainName = (
     return true
   }
   return false
-}
-const sortCategorizedGroups = (
-  categorizedGroups: Record<string, TabGroup[]>,
-  categoryLookup: CategoryLookup,
-): void => {
-  for (const categoryId of Object.keys(categorizedGroups)) {
-    const category = categoryLookup.byId.get(categoryId)
-    const domains = category?.domains
-    if (!(domains && domains.length > 0)) {
-      continue
-    }
-    const domainOrder = new Map(domains.map((domain, index) => [domain, index]))
-    categorizedGroups[categoryId].sort((a, b) => {
-      const indexA = domainOrder.get(a.id) ?? -1
-      const indexB = domainOrder.get(b.id) ?? -1
-      if (indexA === -1) {
-        return 1
-      }
-      if (indexB === -1) {
-        return -1
-      }
-      return indexA - indexB
-    })
-  }
-}
-const filterGroupsByExcludedIds = (
-  groups: TabGroup[],
-  idsToExclude: Set<string>,
-): TabGroup[] => groups.filter((group) => !idsToExclude.has(group.id))
-const createFilterGroupsByExcludedIdsUpdater =
-  (idsToExclude: Set<string>) =>
-  (groups: TabGroup[]): TabGroup[] =>
-    filterGroupsByExcludedIds(groups, idsToExclude)
-const removeUrlIdsFromSavedTabs = (
-  savedTabs: TabGroup[],
-  idsToRemove: ReadonlySet<string>,
-): {
-  updatedSavedTabs: TabGroup[]
-  hasChanges: boolean
-} => {
-  let hasChanges = false
-  const updatedSavedTabs: TabGroup[] = []
-
-  for (const group of savedTabs) {
-    if (!(group.urlIds && group.urlIds.length > 0)) {
-      updatedSavedTabs.push(group)
-      continue
-    }
-
-    const remainingUrlIds = group.urlIds.filter((id) => !idsToRemove.has(id))
-    if (remainingUrlIds.length === group.urlIds.length) {
-      updatedSavedTabs.push(group)
-      continue
-    }
-
-    hasChanges = true
-    if (remainingUrlIds.length === 0) {
-      continue
-    }
-
-    const updatedGroup = buildUpdatedGroupAfterUrlIdRemoval(
-      group,
-      remainingUrlIds,
-      idsToRemove,
-    )
-
-    updatedSavedTabs.push(updatedGroup)
-  }
-
-  return {
-    hasChanges,
-    updatedSavedTabs,
-  }
-}
-const buildUpdatedGroupAfterUrlIdRemoval = (
-  group: TabGroup,
-  remainingUrlIds: string[],
-  idsToRemove: ReadonlySet<string>,
-): TabGroup => {
-  const updatedGroup: TabGroup = {
-    ...group,
-    urlIds: remainingUrlIds,
-  }
-
-  if (!group.urlSubCategories) {
-    return updatedGroup
-  }
-
-  const nextUrlSubCategories = { ...group.urlSubCategories }
-  for (const id of idsToRemove) {
-    delete nextUrlSubCategories[id]
-  }
-  updatedGroup.urlSubCategories =
-    Object.keys(nextUrlSubCategories).length > 0
-      ? nextUrlSubCategories
-      : undefined
-
-  return updatedGroup
-}
-interface CategorySyncState {
-  updatedSavedTabs: TabGroup[]
-  updatedCategories: ParentCategory[]
-  savedTabsChanged: boolean
-  categoriesChanged: boolean
-}
-const updateSavedTabParentCategory = (
-  tabs: TabGroup[],
-  groupId: string,
-  categoryId: string,
-): TabGroup[] =>
-  tabs.map((tab) =>
-    tab.id === groupId
-      ? {
-          ...tab,
-          parentCategoryId: categoryId,
-        }
-      : tab,
-  )
-const syncGroupCategoryAssignment = (
-  group: TabGroup,
-  categoryLookup: CategoryLookup,
-  state: CategorySyncState,
-): CategorySyncState => {
-  const idBasedCategory = categoryLookup.byGroupId.get(group.id)
-  if (idBasedCategory && group.parentCategoryId !== idBasedCategory.id) {
-    state.updatedSavedTabs = updateSavedTabParentCategory(
-      state.updatedSavedTabs,
-      group.id,
-      idBasedCategory.id,
-    )
-    state.savedTabsChanged = true
-    console.log(
-      `[カテゴリ同期] ドメイン ${group.domain} のparentCategoryIdをIDベースで ${idBasedCategory.id} に更新しました`,
-    )
-  }
-  const foundByDomainName = categoryLookup.byDomainName.get(group.domain)
-  if (!foundByDomainName) {
-    return state
-  }
-  if (
-    foundByDomainName.domains.includes(group.id) ||
-    foundByDomainName.id === idBasedCategory?.id
-  ) {
-    return state
-  }
-  state.updatedCategories = state.updatedCategories.map((category) =>
-    category.id === foundByDomainName.id
-      ? {
-          ...category,
-          domains: [...category.domains, group.id],
-        }
-      : category,
-  )
-  state.categoriesChanged = true
-  state.updatedSavedTabs = updateSavedTabParentCategory(
-    state.updatedSavedTabs,
-    group.id,
-    foundByDomainName.id,
-  )
-  state.savedTabsChanged = true
-  console.log(
-    `[カテゴリ同期] ドメイン ${group.domain} のIDを親カテゴリ ${foundByDomainName.id} に同期しました`,
-  )
-  return state
 }
 const organizeTabGroupsWithCategories = ({
   enableCategories,
@@ -668,71 +257,10 @@ const syncSavedTabsViewModeLocation = ({
 /**
  * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
  */
-const removeUrlsFromCustomProjectsForGroup = async (
-  groupToDelete: TabGroup,
-) => {
-  if (groupToDelete.urlIds && groupToDelete.urlIds.length > 0) {
-    await removeUrlIdsFromAllCustomProjects(groupToDelete.urlIds, {
-      throwOnError: true,
-    })
-    return
-  }
-
-  let urlsToDelete: Awaited<ReturnType<typeof getTabGroupUrls>> = []
-  try {
-    urlsToDelete = await getTabGroupUrls(groupToDelete)
-  } catch (error) {
-    console.error('URL一覧の取得または削除エラー:', error)
-    return
-  }
-  if (urlsToDelete && urlsToDelete.length > 0) {
-    await removeUrlsFromAllCustomProjects(
-      urlsToDelete.map((item) => item.url),
-      {
-        throwOnError: true,
-      },
-    )
-  }
-}
 
 /**
  * 複数のドメイングループに属するURLをすべてカスタムプロジェクトから一括削除します。
  */
-const removeUrlsFromCustomProjectsForGroups = async (
-  groupsToDelete: TabGroup[],
-) => {
-  const groupsWithUrlIds = groupsToDelete.filter(
-    (group) => group.urlIds && group.urlIds.length > 0,
-  )
-  const groupsWithoutUrlIds = groupsToDelete.filter(
-    (group) => !(group.urlIds && group.urlIds.length > 0),
-  )
-  const allUrlIdsToDelete = groupsWithUrlIds.flatMap((group) => group.urlIds!)
-  if (allUrlIdsToDelete.length > 0) {
-    await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
-      throwOnError: true,
-    })
-  }
-
-  let urlsByGroup: Awaited<ReturnType<typeof getTabGroupUrls>>[] = []
-  try {
-    urlsByGroup = await Promise.all(
-      groupsWithoutUrlIds.map((group) => getTabGroupUrls(group)),
-    )
-  } catch (error) {
-    console.error('複数グループのURL取得エラー:', error)
-    return
-  }
-  const allUrlsToDelete = urlsByGroup.flatMap((urlsToDelete) =>
-    (urlsToDelete || []).map((item) => item.url),
-  )
-
-  if (allUrlsToDelete.length > 0) {
-    await removeUrlsFromAllCustomProjects(allUrlsToDelete, {
-      throwOnError: true,
-    })
-  }
-}
 
 /**
  * 親カテゴリから指定されたドメインIDを削除して保存します。
@@ -757,6 +285,7 @@ interface SavedTabsAppProps {
 }
 
 const useSavedTabsAppView = ({
+  // eslint-disable-line eslint/max-lines-per-function
   initialViewMode,
   isAiSidebarOpen = false,
   onViewModeNavigate,
@@ -1165,7 +694,7 @@ const useSavedTabsAppView = ({
         const targetGroup = tabGroupsWithUrls.find(
           (group) => group.id === groupId,
         )
-        const resolvedUrlIds = (targetGroup?.urls || [])
+        const resolvedUrlIds = (targetGroup?.urls ?? [])
           .reduce<{ id: string; url: string }[]>((items, item) => {
             if (item.id && targetUrls.has(item.url)) {
               items.push({
@@ -1209,8 +738,9 @@ const useSavedTabsAppView = ({
     [refreshTabGroupsWithUrls, setCustomProjects, t, tabGroupsWithUrls],
   )
   const handleUpdateUrls = useCallback(
-    async (groupId: string, _updatedUrls: TabGroup['urls']) => {
+    (groupId: string, _updatedUrls: TabGroup['urls']) => {
       console.log(`グループ ${groupId} のURL更新はストレージ同期に委譲しました`)
+      return Promise.resolve()
     },
     [],
   )
@@ -1281,7 +811,7 @@ const useSavedTabsAppView = ({
     const syncCategoryAssignments = async () => {
       try {
         const { savedTabs = [] } = await chrome.storage.local.get<{
-          savedTabs?: import('@/types/storage').TabGroup[]
+          savedTabs?: TabGroup[]
         }>('savedTabs')
         const currentSavedTabs = savedTabs
         const currentCategories = [...categories]
@@ -1309,6 +839,7 @@ const useSavedTabsAppView = ({
         console.error('[カテゴリ同期] ストレージ同期エラー:', error)
       }
     }
+    // eslint-disable-next-line typescript/no-floating-promises
     syncCategoryAssignments()
   }, [tabGroupsWithUrls, categories, categoryLookup, settings.enableCategories])
 
@@ -1445,8 +976,10 @@ const useSavedTabsAppView = ({
         viewModeRef,
       })
     }
+    // eslint-disable-next-line typescript/no-misused-promises
     chrome.storage.onChanged.addListener(handleStorageChanged)
     return () => {
+      // eslint-disable-next-line typescript/no-misused-promises
       chrome.storage.onChanged.removeListener(handleStorageChanged)
     }
   }, [
@@ -1532,12 +1065,14 @@ const useSavedTabsAppView = ({
   const categoryOrderForDisplay = isCategoryReorderMode
     ? tempCategoryOrder
     : categoryOrder
+  // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
   const uncategorizedForDisplay = (
     isUncategorizedReorderMode ? tempUncategorizedOrder : uncategorized
   ).filter((group) => getDisplayUrlCount(group) > 0)
   const mainContent =
     viewMode === 'domain' ? (
       <DomainModeContainer
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           hasVisibleCategoryGroups,
           isCategoryReorderMode,
@@ -1610,8 +1145,10 @@ const useSavedTabsAppView = ({
           filteredTabGroups={headerFilteredTabGroups}
           customProjects={customProjectsForHeader}
           filteredCustomProjects={filteredCustomProjects}
+          // eslint-disable-next-line typescript/no-misused-promises
           onCreateProject={handleCreateProject}
           currentMode={viewMode}
+          // eslint-disable-next-line typescript/no-misused-promises
           onModeChange={handleViewModeChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -1619,6 +1156,7 @@ const useSavedTabsAppView = ({
         {mainContent}
         {shouldShowCategoryReorderFooter && (
           <CategoryReorderFooter
+            // eslint-disable-next-line typescript/no-misused-promises
             onConfirmCategoryReorder={handleConfirmCategoryReorder}
             onCancelCategoryReorder={handleCancelCategoryReorder}
           />
@@ -1630,21 +1168,4 @@ const useSavedTabsAppView = ({
 
 const SavedTabsApp = (props: SavedTabsAppProps) => useSavedTabsAppView(props)
 
-export {
-  buildCategoryLookup,
-  buildDisplayTabGroup,
-  buildUpdatedGroupAfterUrlIdRemoval,
-  buildUrlIdsToRemove,
-  countTabGroupUrls,
-  createFilterGroupsByExcludedIdsUpdater,
-  filterGroupByQuery,
-  filterGroupsByExcludedIds,
-  getDisplayUrlCount,
-  notifyDeleteFailure,
-  removeUrlsFromCustomProjectsForGroup,
-  removeUrlsFromCustomProjectsForGroups,
-  restoreOpenedUrlsSnapshot,
-  SavedTabsApp,
-  sortCategorizedGroups,
-  syncGroupCategoryAssignment,
-}
+export { SavedTabsApp }

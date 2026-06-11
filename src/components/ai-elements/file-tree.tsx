@@ -1,3 +1,4 @@
+/* eslint-disable import/first */
 'use client'
 
 import {
@@ -277,13 +278,16 @@ export const FileTreeName = ({
 
 export type FileTreeActionsProps = ComponentProps<'fieldset'>
 
-const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation()
+const stopPropagation = (e: React.SyntheticEvent) => {
+  e.stopPropagation()
+}
 
 export const FileTreeActions = ({
   className,
   children,
   ...props
 }: FileTreeActionsProps) => (
+  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
   <fieldset
     className={cn(
       'm-0 ml-auto flex min-w-0 items-center gap-1 border-0 p-0',

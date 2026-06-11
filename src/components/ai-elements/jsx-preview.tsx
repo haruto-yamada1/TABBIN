@@ -51,7 +51,7 @@ const matchJsxTag = (code: string) => {
 
   const match = TAG_REGEX.exec(code)
 
-  if (!match || match.index === undefined) {
+  if (match?.index === undefined) {
     return null
   }
 
@@ -154,18 +154,21 @@ export const JSXPreview = memo(
       [processedJsx],
     )
 
+    const contextValue = useMemo(
+      () => ({
+        bindings,
+        components,
+        error,
+        jsx,
+        onErrorProp: onError,
+        processedJsx,
+        setError,
+      }),
+      [bindings, components, error, jsx, onError, processedJsx, setError],
+    )
+
     return (
-      <JSXPreviewContext.Provider
-        value={{
-          bindings,
-          components,
-          error,
-          jsx,
-          onErrorProp: onError,
-          processedJsx,
-          setError,
-        }}
-      >
+      <JSXPreviewContext.Provider value={contextValue}>
         <div className={cn('relative', className)} {...props}>
           {children}
         </div>

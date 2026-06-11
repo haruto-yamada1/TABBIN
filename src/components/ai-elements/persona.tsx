@@ -13,6 +13,9 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
 
+const RGB_WHITE = 255
+const RGB_BLACK = 0
+
 export type PersonaState =
   | 'idle'
   | 'listening'
@@ -116,6 +119,7 @@ const useTheme = (enabled: boolean) => {
       mql.addEventListener('change', handleMediaChange)
     }
 
+    // eslint-disable-next-line typescript/consistent-return
     return () => {
       observer.disconnect()
       if (mql) {
@@ -151,7 +155,10 @@ const PersonaWithModel = memo(
         return
       }
 
-      const [r, g, b] = theme === 'dark' ? [255, 255, 255] : [0, 0, 0]
+      const [r, g, b] =
+        theme === 'dark'
+          ? [RGB_WHITE, RGB_WHITE, RGB_WHITE]
+          : [RGB_BLACK, RGB_BLACK, RGB_BLACK]
       viewModelInstanceColor.setRgb(r, g, b)
     }, [viewModelInstanceColor, theme, source.dynamicColor])
 
@@ -174,7 +181,7 @@ PersonaWithoutModel.displayName = 'PersonaWithoutModel'
 export const Persona: FC<PersonaProps> = memo(
   ({
     variant = 'obsidian',
-    state = 'idle',
+    state,
     onLoad,
     onLoadError,
     onReady,

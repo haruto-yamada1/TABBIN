@@ -29,7 +29,7 @@ export const DomainCardTitle = () => {
       <span className='text-sm text-muted-foreground'>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant='secondary'>{group.urls?.length || 0}</Badge>
+            <Badge variant='secondary'>{group.urls?.length ?? 0}</Badge>
           </TooltipTrigger>
           <SavedTabsResponsiveTooltipContent side='top'>
             タブ数

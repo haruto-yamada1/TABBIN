@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { useSettings } from './useSettings'
 
@@ -36,7 +36,7 @@ import {
 } from '@/lib/storage/settings'
 
 type StorageListener = (
-  changes: { [key: string]: chrome.storage.StorageChange },
+  changes: Record<string, chrome.storage.StorageChange>,
   areaName: string,
 ) => void
 
@@ -85,7 +85,7 @@ describe('useSettingsフック', () => {
     })
 
     expect(getUserSettings).toHaveBeenCalledTimes(1)
-    expect(result.current.settings).toEqual(loadedSettings)
+    expect(result.current.settings).toStrictEqual(loadedSettings)
   })
 
   it('読み込み失敗時はデフォルト設定にフォールバックする', async () => {
@@ -100,7 +100,7 @@ describe('useSettingsフック', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(result.current.settings).toEqual(defaultSettings)
+    expect(result.current.settings).toStrictEqual(defaultSettings)
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       '設定の読み込みエラー:',
       expect.any(Error),
@@ -146,7 +146,7 @@ describe('useSettingsフック', () => {
       await result.current.updateSetting('openUrlInBackground', false)
     })
 
-    expect(result.current.settings).toEqual(
+    expect(result.current.settings).toStrictEqual(
       expect.objectContaining({
         openUrlInBackground: false,
         showSavedTime: true,
@@ -211,7 +211,7 @@ describe('useSettingsフック', () => {
 
     expect(success).toBe(true)
     expect(result.current.excludePatternInput).toBe('')
-    expect(result.current.settings.excludePatterns).toEqual([
+    expect(result.current.settings.excludePatterns).toStrictEqual([
       'chrome-extension://',
       'chrome://',
       'https://example.com',
@@ -255,7 +255,7 @@ describe('useSettingsフック', () => {
       )
     })
 
-    expect(result.current.settings).toEqual(updatedSettings)
+    expect(result.current.settings).toStrictEqual(updatedSettings)
 
     act(() => {
       listeners[0](
@@ -269,6 +269,6 @@ describe('useSettingsフック', () => {
       )
     })
 
-    expect(result.current.settings).toEqual(defaultSettings)
+    expect(result.current.settings).toStrictEqual(defaultSettings)
   })
 })

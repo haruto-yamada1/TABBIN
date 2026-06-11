@@ -49,7 +49,7 @@ const getConversationPreview = (
   conversation: AiChatConversation,
   defaultPreview: string,
 ): AiChatHistoryItem['preview'] =>
-  conversation.messages.at(-1)?.content || defaultPreview
+  conversation.messages.at(-1)?.content || defaultPreview // eslint-disable-line typescript/prefer-nullish-coalescing -- empty content should fall through
 
 const resolveCurrentConversationId = (
   activeConversationId: string | null,
@@ -91,6 +91,7 @@ const resolveNextActiveConversationId = ({
 }
 
 const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
+  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const newConversationTitle = t('aiChat.newConversation')
   const historyStartPrompt = t('aiChat.history.startPrompt')

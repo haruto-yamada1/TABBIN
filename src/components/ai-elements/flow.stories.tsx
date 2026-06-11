@@ -38,18 +38,21 @@ export default {
 } satisfies Meta<typeof Canvas>
 
 type Story = StoryObj<typeof Canvas>
-const PreviewConnection = Connection as unknown as (
-  props: Record<string, unknown>,
-) => ReactElement
-const TemporaryEdge = Edge.Temporary as unknown as (
-  props: Record<string, unknown>,
-) => ReactElement
+const PreviewConnection = (props: Record<string, unknown>): ReactElement => {
+  // @ts-expect-error - storybook passes arbitrary connection props
+  return <Connection {...props} />
+}
+const TemporaryEdge = (props: Record<string, unknown>): ReactElement => {
+  // @ts-expect-error - storybook passes arbitrary edge props
+  return <Edge.Temporary {...props} />
+}
 
 const FlowCard = ({
   data,
 }: {
   data: { description: string; title: string }
 }) => (
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   <Node className='w-64' handles={{ source: true, target: true }}>
     <Toolbar isVisible>
       <Button size='sm' variant='outline'>
@@ -114,8 +117,11 @@ export const FlowCanvas: Story = {
       <Canvas
         defaultEdges={edges}
         defaultNodes={nodes}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         edgeTypes={{ animated: Edge.Animated }}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         fitViewOptions={{ padding: 0.2 }}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         nodeTypes={{ 'flow-card': FlowCard }}
       >
         <Controls />
@@ -139,10 +145,12 @@ export const ConnectionPreview: Story = {
           connectionLineType='smoothstep'
           connectionStatus='valid'
           fromHandle={null}
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           fromNode={{}}
           fromPosition={Position.Right}
           fromX={24}
           fromY={24}
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           pointer={{ x: 280, y: 72 }}
           toHandle={null}
           toNode={null}

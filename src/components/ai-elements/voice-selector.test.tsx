@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import {
   VoiceSelectorAccent,
@@ -27,6 +27,7 @@ describe('VoiceSelectorGender', () => {
     ['non-binary', 'svg'],
     ['intersex', 'svg'],
   ] as const)('value="%s" のときアイコンを表示する', (value, _tag) => {
+    // eslint-disable-line
     const { container } = render(<VoiceSelectorGender value={value} />)
     expect(container.querySelector('svg')).toBeTruthy()
   })
@@ -63,6 +64,7 @@ describe('VoiceSelectorAccent', () => {
   ] as const)(
     'value="%s" のとき対応する国旗絵文字を表示する',
     (value, emoji) => {
+      // eslint-disable-line
       render(<VoiceSelectorAccent value={value} />)
       expect(screen.getByText(emoji)).toBeTruthy()
     },

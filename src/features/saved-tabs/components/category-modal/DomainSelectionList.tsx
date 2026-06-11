@@ -145,7 +145,10 @@ const DomainRow = ({
     belongsToCategory?.id === selection.selectedCategoryId
   const disabled = isLoading || !selection.selectedCategoryId
   const checkboxId = `domain-${group.id}`
-  const onToggle = () => domains.toggleDomainSelection(group.id)
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+  const onToggle = () => {
+    domains.toggleDomainSelection(group.id)
+  }
 
   return (
     <div
@@ -199,9 +202,11 @@ export const DomainSelectionList = () => {
     [sortedTabGroups, selection.selectedCategoryId, domains.domainCategories],
   )
 
+  const ESTIMATED_ROW_HEIGHT = 56
+
   const rowVirtualizer = useVirtualizer({
     count: visibleTabGroups.length,
-    estimateSize: () => 56,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
     getScrollElement: () => scrollElementRef.current,
     initialRect: {
       height: 560,
@@ -237,6 +242,7 @@ export const DomainSelectionList = () => {
   } else {
     listContent = (
       <div
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
           position: 'relative',
@@ -248,6 +254,7 @@ export const DomainSelectionList = () => {
           return (
             <div
               key={group.id}
+              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               style={{
                 left: 0,
                 position: 'absolute',

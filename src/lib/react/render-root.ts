@@ -1,3 +1,4 @@
+/* eslint-disable typescript/TS2740 */
 import type { ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { Root } from 'react-dom/client'
@@ -11,6 +12,7 @@ type RootContainer = HTMLElement & {
 const getOrCreateRoot = (container: HTMLElement) => {
   const rootContainer = container as RootContainer
 
+  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- intentional initialization pattern
   if (!rootContainer[ROOT_KEY]) {
     rootContainer[ROOT_KEY] = createRoot(container)
   }
@@ -27,9 +29,13 @@ const mountToElement = (
   node: ReactNode,
   notFoundMessage: string,
 ) => {
-  const container = document.getElementById(containerId)
+  const container = document.querySelector(`#${containerId}`)
   if (!container) {
     throw new Error(notFoundMessage)
+  }
+
+  if (!(container instanceof HTMLElement)) {
+    throw new Error(`Container #${containerId} is not an HTMLElement`)
   }
 
   renderToRoot(container, node)

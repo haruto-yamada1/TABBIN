@@ -1,5 +1,5 @@
 import type { RefObject, SetStateAction } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   CustomProject,
@@ -49,9 +49,11 @@ const createSyncContext = (params?: {
   const mode = params?.mode ?? 'custom'
 
   const refreshTabGroupsWithUrls = vi.fn(
+    // eslint-disable-next-line typescript/require-await
     async (_nextGroups?: TabGroup[]) => [] as TabGroup[],
   )
   const syncDomainDataToCustomProjects = vi.fn(
+    // eslint-disable-next-line typescript/require-await
     async () => [] as CustomProject[],
   )
   const setSettings = vi.fn((updater: SetStateAction<UserSettings>) => {
@@ -120,7 +122,7 @@ describe('syncStorageChanges', () => {
       },
     })
 
-    expect(ctx.state.getProjects().map((project) => project.id)).toEqual([
+    expect(ctx.state.getProjects().map((project) => project.id)).toStrictEqual([
       'project-3',
       'project-1',
       'project-2',
@@ -206,7 +208,7 @@ describe('syncStorageChanges', () => {
     )
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledTimes(1)
     expect(ctx.spies.syncDomainDataToCustomProjects).toHaveBeenCalledTimes(1)
-    expect(events.map((event) => event.type)).toEqual([
+    expect(events.map((event) => event.type)).toStrictEqual([
       'savedTabsUpdated',
       'urlsUpdated',
     ])
@@ -256,8 +258,8 @@ describe('syncStorageChanges', () => {
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith()
     expect(ctx.spies.syncDomainDataToCustomProjects).not.toHaveBeenCalled()
     expect(ctx.state.getSettings().removeTabAfterOpen).toBe(true)
-    expect(ctx.state.getCategories()).toEqual(nextCategories)
-    expect(events.map((event) => event.type)).toEqual([
+    expect(ctx.state.getCategories()).toStrictEqual(nextCategories)
+    expect(events.map((event) => event.type)).toStrictEqual([
       'urlsUpdated',
       'settingsUpdated',
       'categoriesUpdated',
@@ -317,7 +319,7 @@ describe('syncStorageChanges', () => {
       },
     })
 
-    expect(ctx.state.getProjects()).toEqual([])
+    expect(ctx.state.getProjects()).toStrictEqual([])
   })
 
   it('urlMetadata のキー数が異なる場合は参照を維持しない', async () => {
@@ -492,7 +494,7 @@ describe('syncStorageChanges', () => {
       },
     })
 
-    expect(ctx.state.getSettings()).toEqual(initialSettings)
+    expect(ctx.state.getSettings()).toStrictEqual(initialSettings)
   })
 
   it('parentCategories が配列以外の場合は空配列を設定する', async () => {
@@ -516,7 +518,7 @@ describe('syncStorageChanges', () => {
       },
     })
 
-    expect(ctx.state.getCategories()).toEqual([])
+    expect(ctx.state.getCategories()).toStrictEqual([])
   })
 
   it('urlMetadata と urls が未定義でも等価なら参照を維持する', async () => {
@@ -550,11 +552,65 @@ describe('syncStorageChanges', () => {
       changes: {},
     })
 
-    expect(events).toEqual([])
+    expect(events).toStrictEqual([])
     expect(ctx.spies.refreshTabGroupsWithUrls).not.toHaveBeenCalled()
     expect(ctx.spies.syncDomainDataToCustomProjects).not.toHaveBeenCalled()
     expect(ctx.spies.setSettings).not.toHaveBeenCalled()
     expect(ctx.spies.setCategories).not.toHaveBeenCalled()
     expect(ctx.spies.setCustomProjects).not.toHaveBeenCalled()
+  })
+
+  it('savedTabs に壊れた要素が混ざっても他要素を反映し同期を止めない', async () => {
+    // Codex P2 修正: 1 件の壊れたレコードで refreshTabGroupsWithUrls / syncDomainDataToCustomProjects が落ちない
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const ctx = createSyncContext()
+    const validGroup: TabGroup = {
+      id: 'group-1',
+      domain: 'https://example.com',
+      urlIds: ['url-1'],
+    }
+
+    await syncStorageChanges({
+      ...ctx.args,
+      changes: {
+        savedTabs: createStorageChange([
+          validGroup,
+          { id: 'broken' } as unknown as TabGroup, // domain 欠損
+        ]),
+      },
+    })
+
+    expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith([
+      validGroup,
+    ])
+    expect(ctx.spies.syncDomainDataToCustomProjects).toHaveBeenCalledTimes(1)
+    expect(warnSpy).toHaveBeenCalled()
+  })
+
+  it('parentCategories に旧形式の壊れた要素が混ざっても他要素を反映する', async () => {
+    // Codex P2 修正: domainNames 欠損の旧レコードをスキップしつつ、正常分は反映する
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const ctx = createSyncContext()
+    const valid: ParentCategory = {
+      id: 'parent-1',
+      name: 'Work',
+      domains: [],
+      domainNames: [],
+    }
+    const broken = {
+      id: 'parent-old',
+      name: 'Legacy',
+      domains: [],
+    } as unknown as ParentCategory
+
+    await syncStorageChanges({
+      ...ctx.args,
+      changes: {
+        parentCategories: createStorageChange([valid, broken]),
+      },
+    })
+
+    expect(ctx.state.getCategories()).toStrictEqual([valid])
+    expect(warnSpy).toHaveBeenCalled()
   })
 })

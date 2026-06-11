@@ -52,11 +52,44 @@ import {
   filterAnalyticsRecords,
   generateAnalyticsResult,
   getDefaultAnalyticsQuery,
-  normalizeAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { AnalyticsRecordActionButtons } from '@/features/analytics/routes/AnalyticsRecordActionButtons'
+import type {
+  AnalyticsChartMessages,
+  AnalyticsDeleteUndoSnapshot,
+  AnalyticsDrilldownSelection,
+  DeleteAllAction,
+  DeleteClickAction,
+  OpenAllAction,
+  ViewNameValidationError,
+} from '@/features/analytics/routes/analyticsRoute.helpers'
+import {
+  awaitableEmptyRecords,
+  createAnalyticsDeleteUndoPayload,
+  getAnalyticsDateLocale,
+  getAnalyticsDeleteUndoSnapshot,
+  getDeleteAllAction,
+  getDeleteClickAction,
+  getDrilldownMatchingRecords,
+  getLatestAssistantCharts,
+  getNextBulkDeleteDialogOpen,
+  getNextDeleteTargetAfterDialogOpenChange,
+  getOpenAllAction,
+  getViewNameValidationError,
+  matchesDrilldownLabel,
+  noop,
+  normalizeAnalyticsRouteQuery,
+  parseChartType,
+  parseGroupBy,
+  rebuildAnalyticsDrilldownSelection,
+  removeUrlFromStorage,
+  removeUrlRecordsFromStorage,
+  runBulkDeleteWhenAllowed,
+  runConfirmedDelete,
+  runSingleDeleteWhenAllowed,
+} from '@/features/analytics/routes/analyticsRoute.helpers'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   createSavedAnalyticsView,
@@ -66,13 +99,6 @@ import {
 } from '@/lib/storage/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
-import type { AiChatToolTrace } from '@/types/background'
-import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  UrlRecord,
-} from '@/types/storage'
 import { formatLocaleDateTime } from '@/utils/localDateTime'
 
 const defaultAnalyticsQuery = getDefaultAnalyticsQuery()
@@ -81,538 +107,8 @@ const deferredDrilldownCardStyle: CSSProperties = {
   contentVisibility: 'auto',
 }
 
-const isAnalyticsQuery = (value: unknown): value is AnalyticsQuery => {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const query = value as Partial<AnalyticsQuery>
-  return (
-    typeof query.chartType === 'string' &&
-    typeof query.groupBy === 'string' &&
-    typeof query.mode === 'string'
-  )
-}
-
-const getLatestAnalyticsQuery = (
-  toolTraces: AiChatToolTrace[] | undefined,
-): AnalyticsQuery | null => {
-  if (!toolTraces) {
-    return null
-  }
-
-  for (const toolTrace of [...toolTraces].toReversed()) {
-    if (toolTrace.toolName !== 'generateSavedTabsAnalytics') {
-      continue
-    }
-
-    const output =
-      toolTrace.output && typeof toolTrace.output === 'object'
-        ? (toolTrace.output as Record<string, unknown>)
-        : null
-    if (!output) {
-      continue
-    }
-
-    const { query } = output
-    if (isAnalyticsQuery(query)) {
-      return query
-    }
-  }
-
-  return null
-}
-
-const getLatestAssistantCharts = (
-  messages: AiChatConversationMessage[],
-): {
-  charts: AiChartSpec[]
-  query: AnalyticsQuery | null
-} | null => {
-  for (const message of [...messages].toReversed()) {
-    if (message.role !== 'assistant' || !message.charts?.length) {
-      continue
-    }
-
-    return {
-      charts: message.charts,
-      query: getLatestAnalyticsQuery(message.toolTraces),
-    }
-  }
-
-  return null
-}
-
-const awaitableEmptyRecords: Awaited<ReturnType<typeof loadAnalyticsRecords>> =
-  []
-
-const shouldConfirmBulkOpen = (recordCount: number): boolean =>
-  recordCount >= 10
-const noop = (): void => {}
-
-const shouldSkipSingleDelete = ({
-  deletingUrl,
-  isBulkDeleting,
-}: {
-  deletingUrl: string | null
-  isBulkDeleting: boolean
-}): boolean => Boolean(deletingUrl || isBulkDeleting)
-
-const shouldSkipOpenAll = (recordCount: number): boolean => recordCount === 0
-
-const shouldSkipBulkDelete = ({
-  deletingUrl,
-  isBulkDeleting,
-  matchingRecordCount,
-}: {
-  deletingUrl: string | null
-  isBulkDeleting: boolean
-  matchingRecordCount: number
-}): boolean =>
-  matchingRecordCount === 0 || Boolean(deletingUrl || isBulkDeleting)
-
-const shouldIgnoreBulkDeleteDialogClose = ({
-  isBulkDeleting,
-  isOpen,
-}: {
-  isBulkDeleting: boolean
-  isOpen: boolean
-}): boolean => !isOpen && isBulkDeleting
-
-const shouldIgnoreSingleDeleteDialogClose = ({
-  deletingUrl,
-  isOpen,
-}: {
-  deletingUrl: string | null
-  isOpen: boolean
-}): boolean => !isOpen && Boolean(deletingUrl)
-
-const getDrilldownMatchingRecords = (
-  selection: AnalyticsDrilldownSelection | null,
-): AiSavedUrlRecord[] => selection?.matchingRecords ?? []
-
-const runSingleDeleteWhenAllowed = async ({
-  deletingUrl,
-  isBulkDeleting,
-  onRun,
-}: {
-  deletingUrl: string | null
-  isBulkDeleting: boolean
-  onRun: () => Promise<void>
-}): Promise<boolean> => {
-  if (shouldSkipSingleDelete({ deletingUrl, isBulkDeleting })) {
-    return false
-  }
-
-  await onRun()
-  return true
-}
-
-const runBulkDeleteWhenAllowed = async ({
-  deletingUrl,
-  isBulkDeleting,
-  matchingRecordCount,
-  onRun,
-}: {
-  deletingUrl: string | null
-  isBulkDeleting: boolean
-  matchingRecordCount: number
-  onRun: () => Promise<void>
-}): Promise<boolean> => {
-  if (
-    shouldSkipBulkDelete({
-      deletingUrl,
-      isBulkDeleting,
-      matchingRecordCount,
-    })
-  ) {
-    return false
-  }
-
-  await onRun()
-  return true
-}
-
-type DeleteClickAction = 'confirm' | 'delete' | 'skip'
-const getDeleteClickAction = ({
-  confirmDeleteEach,
-  deletingUrl,
-  isBulkDeleting,
-}: {
-  confirmDeleteEach: boolean
-  deletingUrl: string | null
-  isBulkDeleting: boolean
-}): DeleteClickAction => {
-  if (shouldSkipSingleDelete({ deletingUrl, isBulkDeleting })) {
-    return 'skip'
-  }
-
-  return confirmDeleteEach ? 'confirm' : 'delete'
-}
-
-type OpenAllAction = 'confirm' | 'open' | 'skip'
-const getOpenAllAction = (recordCount: number): OpenAllAction => {
-  if (shouldSkipOpenAll(recordCount)) {
-    return 'skip'
-  }
-
-  return shouldConfirmBulkOpen(recordCount) ? 'confirm' : 'open'
-}
-
-type DeleteAllAction = 'confirm' | 'delete' | 'skip'
-const getDeleteAllAction = ({
-  confirmDeleteAll,
-  deletingUrl,
-  isBulkDeleting,
-  matchingRecordCount,
-}: {
-  confirmDeleteAll: boolean
-  deletingUrl: string | null
-  isBulkDeleting: boolean
-  matchingRecordCount: number
-}): DeleteAllAction => {
-  if (
-    shouldSkipBulkDelete({
-      deletingUrl,
-      isBulkDeleting,
-      matchingRecordCount,
-    })
-  ) {
-    return 'skip'
-  }
-
-  return confirmDeleteAll ? 'confirm' : 'delete'
-}
-
-const getNextBulkDeleteDialogOpen = ({
-  currentOpen,
-  isBulkDeleting,
-  isOpen,
-}: {
-  currentOpen: boolean
-  isBulkDeleting: boolean
-  isOpen: boolean
-}): boolean =>
-  shouldIgnoreBulkDeleteDialogClose({ isBulkDeleting, isOpen })
-    ? currentOpen
-    : isOpen
-
-const getNextDeleteTargetAfterDialogOpenChange = ({
-  currentTarget,
-  deletingUrl,
-  isOpen,
-}: {
-  currentTarget: AiSavedUrlRecord | null
-  deletingUrl: string | null
-  isOpen: boolean
-}): AiSavedUrlRecord | null => {
-  if (shouldIgnoreSingleDeleteDialogClose({ deletingUrl, isOpen })) {
-    return currentTarget
-  }
-
-  if (isOpen) {
-    return currentTarget
-  }
-
-  return null
-}
-
-const removeUrlFromStorage = async (url: string): Promise<void> =>
-  new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        action: 'removeUrlFromStorage',
-        url,
-      },
-      (response?: { error?: string; status?: string }) => {
-        if (response?.status === 'removed') {
-          resolve()
-          return
-        }
-
-        reject(new Error(response?.error || 'removeUrlFromStorage failed'))
-      },
-    )
-  })
-
-const getAnalyticsDateLocale = (language: string): 'en-US' | 'ja-JP' =>
-  language === 'ja' ? 'ja-JP' : 'en-US'
-
-const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
-  new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        action: 'removeUrlRecordsFromStorage',
-        urlIds,
-      },
-      (response?: { error?: string; status?: string }) => {
-        if (response?.status === 'removed') {
-          resolve()
-          return
-        }
-
-        reject(
-          new Error(response?.error || 'removeUrlRecordsFromStorage failed'),
-        )
-      },
-    )
-  })
-
-interface AnalyticsDeleteUndoSnapshot {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-  urls?: UrlRecord[]
-}
-
-interface AnalyticsDeleteUndoPayload {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-  urls?: UrlRecord[]
-}
-
-const getAnalyticsDeleteUndoSnapshot =
-  async (): Promise<AnalyticsDeleteUndoSnapshot> =>
-    chrome.storage.local.get<AnalyticsDeleteUndoSnapshot>([
-      'savedTabs',
-      'customProjects',
-      'customProjectOrder',
-      'parentCategories',
-      'urls',
-    ])
-
-const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
-  Array.isArray(value) ? value : undefined
-const createAnalyticsDeleteUndoPayload = (
-  snapshot: AnalyticsDeleteUndoSnapshot,
-): AnalyticsDeleteUndoPayload => {
-  const payload: AnalyticsDeleteUndoPayload = {}
-  const savedTabs = getSnapshotArray(snapshot.savedTabs)
-  const customProjects = getSnapshotArray(snapshot.customProjects)
-  const customProjectOrder = getSnapshotArray(snapshot.customProjectOrder)
-  const parentCategories = getSnapshotArray(snapshot.parentCategories)
-  const urls = getSnapshotArray(snapshot.urls)
-
-  if (savedTabs) {
-    payload.savedTabs = savedTabs
-  }
-  if (customProjects) {
-    payload.customProjects = customProjects
-  }
-  if (customProjectOrder) {
-    payload.customProjectOrder = customProjectOrder
-  }
-  if (parentCategories) {
-    payload.parentCategories = parentCategories
-  }
-  if (urls) {
-    payload.urls = urls
-  }
-
-  return payload
-}
-
-const normalizeAnalyticsRouteQuery = (
-  analyticsQuery: AnalyticsQuery,
-): AnalyticsQuery => ({
-  ...normalizeAnalyticsQuery(analyticsQuery),
-  mode: 'both',
-})
-
-interface AnalyticsDrilldownSelection {
-  label: string
-  matchingRecords: AiSavedUrlRecord[]
-  seriesKey?: string
-  specTitle: string
-}
-
-type ViewNameValidationError = 'duplicate' | 'required'
-
-type AnalyticsChartMessages = NonNullable<
-  Parameters<typeof generateAnalyticsResult>[2]
->['messages']
-
-const getAnalyticsChartDatumLabels = (
-  data: Array<{ label?: unknown }> | undefined,
-): string[] =>
-  data?.reduce<string[]>((items, datum) => {
-    const label = String(datum.label ?? '')
-    if (label) {
-      items.push(label)
-    }
-    return items
-  }, []) ?? []
-
-const getDrilldownLabelsForRecord = (
-  record: AiSavedUrlRecord,
-  query: AnalyticsQuery,
-  uncategorizedLabel: string,
-  chartMessages: AnalyticsChartMessages,
-): string[] => {
-  switch (query.groupBy) {
-    case 'timeRecent':
-    case 'timeTop': {
-      return getAnalyticsChartDatumLabels(
-        generateAnalyticsResult(
-          [record],
-          {
-            ...query,
-            compareBy: 'none',
-          },
-          { messages: chartMessages },
-        ).chartSpecs[0]?.data,
-      )
-    }
-    case 'parentCategory': {
-      return record.parentCategories.length > 0
-        ? record.parentCategories
-        : [uncategorizedLabel]
-    }
-    case 'subCategory': {
-      return record.subCategories.length > 0
-        ? record.subCategories
-        : [uncategorizedLabel]
-    }
-    case 'project': {
-      return record.savedInProjects.length > 0
-        ? record.savedInProjects
-        : [uncategorizedLabel]
-    }
-    case 'projectCategory': {
-      return record.projectCategories.length > 0
-        ? record.projectCategories
-        : [uncategorizedLabel]
-    }
-    default: {
-      return [record.domain]
-    }
-  }
-}
-
-const matchesDrilldownMode = ({
-  record,
-  query,
-  seriesKey,
-}: {
-  record: AiSavedUrlRecord
-  query: AnalyticsQuery
-  seriesKey?: string
-}): boolean => {
-  if (query.compareBy !== 'mode' || !seriesKey) {
-    return true
-  }
-
-  if (seriesKey === 'domain') {
-    return record.savedInTabGroups.length > 0
-  }
-
-  if (seriesKey === 'custom') {
-    return record.savedInProjects.length > 0
-  }
-
-  return true
-}
-
-const matchesDrilldownLabel = ({
-  label,
-  query,
-  record,
-  seriesKey,
-  uncategorizedLabel,
-  chartMessages,
-}: {
-  label: string
-  query: AnalyticsQuery
-  record: AiSavedUrlRecord
-  seriesKey?: string
-  uncategorizedLabel: string
-  chartMessages: AnalyticsChartMessages
-}): boolean => {
-  const normalizedLabel = label.trim().toLowerCase()
-  if (!normalizedLabel) {
-    return false
-  }
-
-  if (!matchesDrilldownMode({ query, record, seriesKey })) {
-    return false
-  }
-
-  return getDrilldownLabelsForRecord(
-    record,
-    query,
-    uncategorizedLabel,
-    chartMessages,
-  ).some((value) => value.toLowerCase() === normalizedLabel)
-}
-
-const rebuildAnalyticsDrilldownSelection = ({
-  chartMessages,
-  currentSelection,
-  nextRecords,
-  query,
-  uncategorizedLabel,
-}: {
-  chartMessages: AnalyticsChartMessages
-  currentSelection: AnalyticsDrilldownSelection | null
-  nextRecords: AiSavedUrlRecord[]
-  query: AnalyticsQuery
-  uncategorizedLabel: string
-}): AnalyticsDrilldownSelection | null => {
-  if (!currentSelection) {
-    return null
-  }
-
-  return {
-    ...currentSelection,
-    matchingRecords: filterAnalyticsRecords(nextRecords, query, {
-      messages: chartMessages,
-    }).filter((record) =>
-      matchesDrilldownLabel({
-        chartMessages,
-        label: currentSelection.label,
-        query,
-        record,
-        seriesKey: currentSelection.seriesKey,
-        uncategorizedLabel,
-      }),
-    ),
-  }
-}
-
-const runConfirmedDelete = (
-  deleteTarget: AiSavedUrlRecord | null,
-  performDelete: (record: AiSavedUrlRecord) => Promise<void>,
-): boolean => {
-  if (!deleteTarget) {
-    return false
-  }
-
-  void performDelete(deleteTarget)
-  return true
-}
-
-const getViewNameValidationError = ({
-  savedViews,
-  viewName,
-}: {
-  savedViews: SavedAnalyticsView[]
-  viewName: string
-}): ViewNameValidationError | null => {
-  const trimmedViewName = viewName.trim()
-
-  if (!trimmedViewName) {
-    return 'required'
-  }
-
-  return savedViews.some((view) => view.name.trim() === trimmedViewName)
-    ? 'duplicate'
-    : null
-}
-
 const useAnalyticsRouteView = () => {
+  // eslint-disable-line eslint/max-lines-per-function
   const { language, t } = useI18n()
   const [analyticsData, setAnalyticsData] = useState(() => ({
     records: awaitableEmptyRecords,
@@ -746,6 +242,7 @@ const useAnalyticsRouteView = () => {
     }
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleSaveView = async () => {
     const trimmedName = viewName.trim()
     const nextError = getViewNameValidationError({
@@ -774,6 +271,7 @@ const useAnalyticsRouteView = () => {
     await deleteSavedAnalyticsView(viewId)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleMessagesChange = (messages: AiChatConversationMessage[]) => {
     const latestAssistantCharts = getLatestAssistantCharts(messages)
     if (!latestAssistantCharts) {
@@ -788,6 +286,7 @@ const useAnalyticsRouteView = () => {
     setDrilldownSelection(null)
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleChartPointClick = ({
     label,
     seriesKey,
@@ -844,6 +343,7 @@ const useAnalyticsRouteView = () => {
       {
         action: {
           label: t('common.undo'),
+          // eslint-disable-next-line typescript/no-misused-promises
           onClick: async () => {
             try {
               await chrome.storage.local.set(
@@ -892,6 +392,7 @@ const useAnalyticsRouteView = () => {
     })
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteClick = (record: AiSavedUrlRecord) => {
     const action = getDeleteClickAction({
       confirmDeleteEach: settings.confirmDeleteEach,
@@ -899,7 +400,9 @@ const useAnalyticsRouteView = () => {
       isBulkDeleting,
     })
     const actions: Record<DeleteClickAction, () => void> = {
-      confirm: () => setDeleteTarget(record),
+      confirm: () => {
+        setDeleteTarget(record)
+      },
       delete: () => {
         void performDelete(record)
       },
@@ -915,12 +418,15 @@ const useAnalyticsRouteView = () => {
     }
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenAllClick = () => {
     const action = getOpenAllAction(
       getDrilldownMatchingRecords(drilldownSelection).length,
     )
     const actions: Record<OpenAllAction, () => void> = {
-      confirm: () => setIsOpenAllConfirmOpen(true),
+      confirm: () => {
+        setIsOpenAllConfirmOpen(true)
+      },
       open: handleOpenAllDrilldownRecords,
       skip: noop,
     }
@@ -959,6 +465,7 @@ const useAnalyticsRouteView = () => {
     })
   }
 
+  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDeleteAllClick = () => {
     const action = getDeleteAllAction({
       confirmDeleteAll: settings.confirmDeleteAll,
@@ -968,7 +475,9 @@ const useAnalyticsRouteView = () => {
         getDrilldownMatchingRecords(drilldownSelection).length,
     })
     const actions: Record<DeleteAllAction, () => void> = {
-      confirm: () => setIsBulkDeleteConfirmOpen(true),
+      confirm: () => {
+        setIsBulkDeleteConfirmOpen(true)
+      },
       delete: () => {
         void performBulkDelete()
       },
@@ -1026,6 +535,7 @@ const useAnalyticsRouteView = () => {
                           aria-invalid={viewNameError !== null}
                           className='rounded-xl bg-background'
                           id='analytics-view-name'
+                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                           onChange={(event) => {
                             const nextValue = event.target.value
                             setViewName(nextValue)
@@ -1053,12 +563,13 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.groupByLabel')}
                         </Label>
                         <Select
-                          onValueChange={(value) =>
+                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                          onValueChange={(value) => {
                             applyQuery({
                               ...query,
-                              groupBy: value as AnalyticsQuery['groupBy'],
+                              groupBy: parseGroupBy(value),
                             })
-                          }
+                          }}
                           value={query.groupBy}
                         >
                           <SelectTrigger
@@ -1088,12 +599,13 @@ const useAnalyticsRouteView = () => {
                           {t('analytics.chartTypeLabel')}
                         </Label>
                         <Select
-                          onValueChange={(value) =>
+                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                          onValueChange={(value) => {
                             applyQuery({
                               ...query,
-                              chartType: value as AnalyticsQuery['chartType'],
+                              chartType: parseChartType(value),
                             })
-                          }
+                          }}
                           value={query.chartType}
                         >
                           <SelectTrigger
@@ -1124,7 +636,8 @@ const useAnalyticsRouteView = () => {
                           className='rounded-xl bg-background'
                           id='analytics-limit'
                           min={1}
-                          onChange={(event) =>
+                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                          onChange={(event) => {
                             applyQuery({
                               ...query,
                               limit: Math.max(
@@ -1132,7 +645,7 @@ const useAnalyticsRouteView = () => {
                                 Number(event.target.value) || 1,
                               ),
                             })
-                          }
+                          }}
                           type='number'
                           value={query.limit}
                         />
@@ -1141,6 +654,7 @@ const useAnalyticsRouteView = () => {
                     <div className='mt-4 grid grid-cols-2 gap-2'>
                       <Button
                         className='w-full cursor-pointer rounded-xl'
+                        // eslint-disable-next-line typescript/no-misused-promises
                         onClick={handleSaveView}
                         type='button'
                       >
@@ -1148,7 +662,10 @@ const useAnalyticsRouteView = () => {
                       </Button>
                       <Button
                         className='w-full cursor-pointer rounded-xl'
-                        onClick={() => applyQuery(defaultAnalyticsQuery)}
+                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                        onClick={() => {
+                          applyQuery(defaultAnalyticsQuery)
+                        }}
                         type='button'
                         variant='outline'
                       >
@@ -1181,9 +698,10 @@ const useAnalyticsRouteView = () => {
                               <div className='flex items-center justify-between gap-2'>
                                 <Button
                                   className='min-w-0 flex-1 justify-start px-0 text-left hover:bg-transparent'
-                                  onClick={() =>
+                                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                                  onClick={() => {
                                     applyQuery(view.query, view.name)
-                                  }
+                                  }}
                                   type='button'
                                   variant='ghost'
                                 >
@@ -1197,6 +715,7 @@ const useAnalyticsRouteView = () => {
                                     undefined,
                                     { name: view.name },
                                   )}
+                                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                                   onClick={() => void handleDeleteView(view.id)}
                                   size='sm'
                                   type='button'
@@ -1384,6 +903,7 @@ const useAnalyticsRouteView = () => {
       <Toaster />
 
       <AlertDialog
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onOpenChange={(isOpen) => {
           setIsBulkDeleteConfirmOpen((currentOpen) =>
             getNextBulkDeleteDialogOpen({
@@ -1408,6 +928,7 @@ const useAnalyticsRouteView = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(event) => {
                 event.preventDefault()
                 void performBulkDelete()
@@ -1437,6 +958,7 @@ const useAnalyticsRouteView = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 handleOpenAllDrilldownRecords()
               }}
@@ -1448,6 +970,7 @@ const useAnalyticsRouteView = () => {
       </AlertDialog>
 
       <AlertDialog
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onOpenChange={(isOpen) => {
           setDeleteTarget((currentTarget) =>
             getNextDeleteTargetAfterDialogOpenChange({
@@ -1472,6 +995,7 @@ const useAnalyticsRouteView = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(event) => {
                 event.preventDefault()
                 runConfirmedDelete(deleteTarget, performDelete)
@@ -1488,34 +1012,4 @@ const useAnalyticsRouteView = () => {
 
 const AnalyticsRoute = () => useAnalyticsRouteView()
 
-export {
-  AnalyticsRoute,
-  createAnalyticsDeleteUndoPayload,
-  getAnalyticsChartDatumLabels,
-  getDeleteAllAction,
-  getDeleteClickAction,
-  getDrilldownLabelsForRecord,
-  getDrilldownMatchingRecords,
-  getAnalyticsDateLocale,
-  getLatestAnalyticsQuery,
-  getLatestAssistantCharts,
-  getNextBulkDeleteDialogOpen,
-  getNextDeleteTargetAfterDialogOpenChange,
-  getOpenAllAction,
-  getViewNameValidationError,
-  matchesDrilldownLabel,
-  normalizeAnalyticsRouteQuery,
-  noop,
-  rebuildAnalyticsDrilldownSelection,
-  removeUrlFromStorage,
-  removeUrlRecordsFromStorage,
-  runBulkDeleteWhenAllowed,
-  runConfirmedDelete,
-  runSingleDeleteWhenAllowed,
-  shouldConfirmBulkOpen,
-  shouldIgnoreBulkDeleteDialogClose,
-  shouldIgnoreSingleDeleteDialogClose,
-  shouldSkipBulkDelete,
-  shouldSkipOpenAll,
-  shouldSkipSingleDelete,
-}
+export { AnalyticsRoute }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { defaultSettings } from '@/lib/storage/settings'
 
@@ -13,6 +13,7 @@ const mockedSettings = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/storage/settings', async () => {
+  // eslint-disable-next-line typescript/consistent-type-imports
   const actual = await vi.importActual<typeof import('@/lib/storage/settings')>(
     '@/lib/storage/settings',
   )
@@ -36,6 +37,7 @@ vi.mock('@/components/ui/select', () => ({
   }) => (
     <select
       aria-label='language-select'
+      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onValueChange?.(event.target.value)}
       value={value}
     >
@@ -43,6 +45,7 @@ vi.mock('@/components/ui/select', () => ({
     </select>
   ),
   SelectContent: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   SelectItem: ({
@@ -53,6 +56,7 @@ vi.mock('@/components/ui/select', () => ({
     value: string
   }) => <option value={value}>{children}</option>,
   SelectTrigger: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   SelectValue: () => null,

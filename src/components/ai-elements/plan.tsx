@@ -48,7 +48,8 @@ export const Plan = ({
   children,
   ...props
 }: PlanProps) => (
-  <PlanContext.Provider value={{ isStreaming }}>
+  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+  <PlanContext.Provider value={useMemo(() => ({ isStreaming }), [isStreaming])}>
     <Collapsible asChild data-slot='plan' {...props}>
       <Card className={cn('shadow-none', className)}>{children}</Card>
     </Collapsible>

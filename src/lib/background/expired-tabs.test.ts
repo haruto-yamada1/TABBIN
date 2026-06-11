@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup } from '@/types/storage'
 
@@ -18,6 +18,7 @@ interface Store {
 const createChromeStorageMock = (initialStore: Store = {}) => {
   const store: Store = structuredClone(initialStore)
   const get = vi.fn(
+    // eslint-disable-next-line typescript/require-await
     async (keys?: string | string[] | Record<string, unknown>) => {
       if (keys == null) {
         return structuredClone(store)
@@ -37,11 +38,13 @@ const createChromeStorageMock = (initialStore: Store = {}) => {
       const result: Record<string, unknown> = {}
       for (const [key, fallback] of Object.entries(keys)) {
         const value = store[key as keyof Store]
+        // eslint-disable-next-line typescript/prefer-nullish-coalescing
         result[key] = value === undefined ? structuredClone(fallback) : value
       }
       return result
     },
   )
+  // eslint-disable-next-line typescript/require-await
   const set = vi.fn(async (next: Partial<Store>) => {
     Object.assign(store, structuredClone(next))
   })
@@ -312,14 +315,14 @@ describe('expired-tabs ユーティリティ', () => {
       createChromeStorageMock({
         savedTabs: [],
       })
-      await expect(updateTabTimestamps('1day')).resolves.toEqual({
+      await expect(updateTabTimestamps('1day')).resolves.toStrictEqual({
         success: false,
         timestamp: 0,
       })
     })
     it('savedTabs キーがない場合は失敗を返す', async () => {
       createChromeStorageMock({})
-      await expect(updateTabTimestamps('1day')).resolves.toEqual({
+      await expect(updateTabTimestamps('1day')).resolves.toStrictEqual({
         success: false,
         timestamp: 0,
       })
@@ -388,7 +391,7 @@ describe('expired-tabs ユーティリティ', () => {
         ],
       })
       const result = await updateTabTimestamps('1min')
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         success: true,
         timestamp: now - 70000,
       })
@@ -412,7 +415,7 @@ describe('expired-tabs ユーティリティ', () => {
         ],
       })
       const result = await updateTabTimestamps()
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         success: true,
         timestamp: now,
       })

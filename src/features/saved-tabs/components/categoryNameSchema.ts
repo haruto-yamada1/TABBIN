@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+const MAX_CATEGORY_NAME_LENGTH = 25
+
 const createCategoryNameSchema = (
   validationMessages: { empty: string; maxLength: string } = {
     empty: 'カテゴリ名を入力してください',
@@ -12,7 +14,7 @@ const createCategoryNameSchema = (
     .min(1, {
       message: validationMessages.empty,
     })
-    .max(25, {
+    .max(MAX_CATEGORY_NAME_LENGTH, {
       message: validationMessages.maxLength,
     })
 

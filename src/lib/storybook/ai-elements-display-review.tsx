@@ -1,3 +1,4 @@
+import { jsonSchema } from 'ai'
 import type { Tool as AiTool } from 'ai'
 import { Copy, ExternalLink } from 'lucide-react'
 
@@ -64,15 +65,15 @@ const samplePng =
 
 const sampleTool = {
   description: 'Cluster tabs by project and urgency',
-  inputSchema: {
+  inputSchema: jsonSchema({
     properties: {
       includeArchived: { type: 'boolean' },
       projectId: { type: 'string' },
     },
     required: ['projectId'],
     type: 'object',
-  },
-} as unknown as AiTool
+  }),
+} satisfies AiTool
 
 const sampleAttachment = {
   filename: 'review.png',
@@ -86,6 +87,7 @@ const sampleSource = {
   filename: 'migration-guide.md',
   id: 'source-1',
   mediaType: 'text/markdown',
+  sourceId: 'source-1',
   title: 'Migration guide',
   type: 'source-document',
   url: 'https://tabbin.app/docs/migration',
@@ -184,6 +186,7 @@ const ReviewArtifacts = () => (
     <Section title='Attachments + Snippet'>
       <div className='gap-y-4'>
         <Attachments variant='grid'>
+          {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
           <Attachment data={sampleAttachment} onRemove={() => undefined}>
             <AttachmentHoverCard>
               <AttachmentHoverCardTrigger asChild>
@@ -204,7 +207,7 @@ const ReviewArtifacts = () => (
         </Attachments>
 
         <Attachments variant='list'>
-          <Attachment data={sampleSource as never}>
+          <Attachment data={sampleSource}>
             <AttachmentPreview />
             <AttachmentInfo showMediaType />
           </Attachment>
@@ -227,18 +230,17 @@ const ReviewArtifacts = () => (
         <Transcription
           className='rounded-lg border p-3'
           currentTime={4}
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onSeek={() => undefined}
-          segments={
-            [
-              { endSecond: 2, startSecond: 0, text: 'Pinned tabs grouped.' },
-              { endSecond: 5, startSecond: 2, text: 'Cleanup draft prepared.' },
-              {
-                endSecond: 8,
-                startSecond: 5,
-                text: 'Export ready for review.',
-              },
-            ] as never
-          }
+          segments={[
+            { endSecond: 2, startSecond: 0, text: 'Pinned tabs grouped.' },
+            { endSecond: 5, startSecond: 2, text: 'Cleanup draft prepared.' },
+            {
+              endSecond: 8,
+              startSecond: 5,
+              text: 'Export ready for review.',
+            },
+          ]}
         >
           {(segment, index) => (
             <TranscriptionSegment index={index} segment={segment} />

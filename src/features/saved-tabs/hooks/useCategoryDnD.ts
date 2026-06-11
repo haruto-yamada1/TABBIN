@@ -2,23 +2,38 @@ import type { Active, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 // Filepath: features/saved-tabs/hooks/useCategoryDnD.ts
 import { useState } from 'react'
 
+const MIN_ID_PARTS = 4
+const CATEGORY_NAME_START_INDEX = 3
+
 const parseCategoryNameFromOverId = (overId: string): string | undefined => {
   const parts = overId.split('-')
-  if (parts.length < 4) {
+  if (parts.length < MIN_ID_PARTS) {
     return undefined
   }
-  return parts.slice(3).join('-')
+  return parts.slice(CATEGORY_NAME_START_INDEX).join('-')
 }
 const isUncategorizedDrop = (
   over: DragOverEvent['over'],
   projectId: string,
 ): boolean =>
-  Boolean(
-    over?.id === `uncategorized-${projectId}` ||
-    (typeof over?.id === 'string' &&
-      String(over.id).includes('uncategorized')) ||
-    over?.data?.current?.type === 'uncategorized',
-  )
+  over?.id === `uncategorized-${projectId}` ||
+  (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
+  over?.data?.current?.type === 'uncategorized'
+const isCategoryOver = (
+  overData: {
+    type?: string
+    isCategory?: boolean
+    isDropArea?: boolean
+    categoryName?: string
+  },
+  overId: string | number | null,
+): boolean =>
+  overData.type === 'category' ||
+  overData.isCategory === true ||
+  overData.isDropArea === true ||
+  (typeof overId === 'string' &&
+    (overId.startsWith('category-drop-') || overId.includes('category')))
+
 const resolveOverCategoryName = (
   over: DragOverEvent['over'],
 ): string | null => {
@@ -36,21 +51,14 @@ const resolveOverCategoryName = (
   ) {
     return overData.category
   }
-  const isCategory =
-    overData.type === 'category' ||
-    overData.isCategory === true ||
-    overData.isDropArea === true ||
-    (typeof over.id === 'string' &&
-      (String(over.id).startsWith('category-drop-') ||
-        String(over.id).includes('category')))
-  if (!isCategory) {
+  if (!isCategoryOver(overData, over.id)) {
     return null
   }
   if (overData.categoryName) {
-    return overData.categoryName
+    return overData.categoryName // eslint-disable-line typescript/no-unsafe-return
   }
   if (typeof over.id === 'string') {
-    return parseCategoryNameFromOverId(String(over.id)) || null
+    return parseCategoryNameFromOverId(over.id) ?? null
   }
   return null
 }
@@ -71,6 +79,7 @@ export const useCategoryDnD = () => {
 
   // ドラッグ開始
   const handleDragStart = (event: DragStartEvent) => {
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     const itemType = event.active.data.current?.type
     const itemId = event.active.id
     if (itemType === 'category') {
@@ -98,6 +107,7 @@ export const useCategoryDnD = () => {
     const { over } = event
 
     // 他のプロジェクト上のドラッグであれば、ハイライトを解除する
+    // eslint-disable-next-line typescript/no-unsafe-assignment
     const overProjectId = over?.data?.current?.projectId
     if (overProjectId && overProjectId !== project.id) {
       setDraggedOverCategory(null)

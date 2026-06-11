@@ -50,7 +50,10 @@ export const AnalyticsRecordActionButtons = ({
             <Button
               aria-label={t('savedTabs.url.deleteAria')}
               disabled={isDeleteActionDisabled || deletingUrl === record.url}
-              onClick={() => handleDeleteClick(record)}
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+              onClick={() => {
+                handleDeleteClick(record)
+              }}
               size='icon-sm'
               type='button'
               variant='ghost'

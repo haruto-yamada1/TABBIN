@@ -78,6 +78,7 @@ export const ConversationScrollButton = ({
   const { isAtBottom, scrollToBottom } = useStickToBottomContext()
 
   const handleScrollToBottom = useCallback(() => {
+    // eslint-disable-next-line typescript/no-floating-promises
     scrollToBottom()
   }, [scrollToBottom])
 

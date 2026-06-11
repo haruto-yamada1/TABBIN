@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
+// eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
+// eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -10,7 +12,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CustomProject } from '@/types/storage'
 
@@ -19,8 +21,10 @@ const projectManagementModalI18nState = vi.hoisted(() => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -39,6 +43,7 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='dialog-root'>
+      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(false)} type='button'>
         dialog-close
       </button>
@@ -58,6 +63,7 @@ vi.mock('@/components/ui/dialog', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
+    // eslint-disable-next-line typescript/consistent-type-imports
     typeof import('@/features/i18n/messages')
   >('@/features/i18n/messages')
 
@@ -70,7 +76,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '',
+          (_, token) => values?.[token] ?? '', // eslint-disable-line
         )
       },
     }),
@@ -140,10 +146,7 @@ describe('ProjectManagementModal', () => {
 
   it('shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        './ProjectManagementModal.tsx',
-      ),
+      resolve(import.meta.dirname, './ProjectManagementModal.tsx'),
       'utf8',
     )
 
@@ -194,9 +197,11 @@ describe('ProjectManagementModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '名前を変更' }))
     flushAnimationFrames()
+    // eslint-disable-next-line typescript/unbound-method
     const initialFocusCalls = vi.mocked(HTMLInputElement.prototype.focus).mock
       .calls.length
     expect(initialFocusCalls).toBeGreaterThan(0)
+    // eslint-disable-next-line typescript/unbound-method
     expect(HTMLInputElement.prototype.select).toHaveBeenCalledTimes(1)
 
     const input = screen.getByPlaceholderText('例: ウェブサイトリニューアル')
@@ -204,6 +209,7 @@ describe('ProjectManagementModal', () => {
     expect(screen.getByText('プロジェクト名を入力してください')).toBeTruthy()
 
     fireEvent.blur(input)
+    // eslint-disable-next-line typescript/unbound-method
     expect(vi.mocked(HTMLInputElement.prototype.focus).mock.calls.length).toBe(
       initialFocusCalls + 1,
     )

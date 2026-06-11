@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
 
@@ -45,6 +45,7 @@ vi.mock('@/components/ui/button', () => ({
   }: ComponentPropsWithoutRef<'button'> & {
     ref?: React.Ref<HTMLButtonElement>
   }) => (
+    // eslint-disable-next-line react/button-has-type
     <button ref={ref} type={type} {...props}>
       {children}
     </button>
@@ -73,6 +74,7 @@ vi.mock('@/components/ui/select', () => ({
     <div>
       <button
         data-testid='mock-select-change'
+        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => onValueChange?.(value === 'never' ? '30days' : 'never')}
         type='button'
       >
@@ -109,14 +111,18 @@ vi.mock('@/components/ui/select', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -263,9 +269,7 @@ describe('PeriodicExecutionRoute', () => {
 
     render(createElement(PeriodicExecutionRoute))
 
-    fireEvent.click(
-      screen.getAllByTestId('mock-select-change')[0] as HTMLElement,
-    )
+    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
   })
 
@@ -281,9 +285,7 @@ describe('PeriodicExecutionRoute', () => {
   it('自動削除期間の変更と確認操作を処理する', () => {
     render(createElement(PeriodicExecutionRoute))
 
-    fireEvent.click(
-      screen.getAllByTestId('mock-select-change')[0] as HTMLElement,
-    )
+    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
@@ -305,9 +307,11 @@ describe('PeriodicExecutionRoute', () => {
 
     expect(labelledBy).toBeTruthy()
     expect(describedBy).toBeTruthy()
+    // eslint-disable-next-line unicorn/prefer-query-selector
     expect(document.getElementById(labelledBy ?? '')?.textContent).toBe(
       'Auto delete',
     )
+    // eslint-disable-next-line unicorn/prefer-query-selector
     expect(document.getElementById(describedBy ?? '')?.textContent).toBe(
       '確認メッセージ',
     )

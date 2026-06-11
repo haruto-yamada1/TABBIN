@@ -169,9 +169,7 @@ describe('Sidebar', () => {
     })
     fireEvent.pointerUp(window)
 
-    const content = container.querySelector(
-      '[data-sidebar="content"]',
-    ) as HTMLElement | null
+    const content = container.querySelector('[data-sidebar="content"]')
 
     expect(content?.className.includes('overflow-auto')).toBe(true)
     expect(
@@ -195,9 +193,7 @@ describe('Sidebar', () => {
       name: resizeLabel,
     })
     const wrapper = container.firstElementChild as HTMLElement | null
-    const sidebarRoot = resizeHandle.closest(
-      '[data-side]',
-    ) as HTMLElement | null
+    const sidebarRoot = resizeHandle.closest('[data-side]')
 
     fireEvent.pointerDown(resizeHandle, {
       clientX: 256,
@@ -233,7 +229,7 @@ describe('Sidebar', () => {
     })
     const sidebarRoot = screen
       .getByRole('button', { name: resizeLabel })
-      .closest('[data-side]') as HTMLElement | null
+      .closest('[data-side]')
 
     fireEvent.click(trigger)
 

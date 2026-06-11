@@ -2,7 +2,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const componentsRoot = path.join(repoRoot, 'components')
@@ -46,18 +46,22 @@ const storyFiles = walk(componentsRoot).reduce<string[]>((files, filePath) => {
   return files
 }, [])
 
-const coveredComponentFiles = storyFiles.flatMap((filePath) => {
-  const contents = readFileSync(path.join(repoRoot, filePath), 'utf8')
+const coveredComponentFiles = new Set(
+  storyFiles.flatMap((filePath) => {
+    const contents = readFileSync(path.join(repoRoot, filePath), 'utf8')
 
-  return [...contents.matchAll(/@covers\s+([^\s]+)/g)].map((match) => match[1])
-})
+    return [...contents.matchAll(/@covers\s+([^\s]+)/g)].map(
+      (match) => match[1],
+    )
+  }),
+)
 
 describe('storybook component coverage', () => {
   it('covers every component in components/ with at least one story file', () => {
     const uncovered = componentFiles.filter(
-      (filePath) => !coveredComponentFiles.includes(filePath),
+      (filePath) => !coveredComponentFiles.has(filePath),
     )
 
-    expect(uncovered).toEqual([])
+    expect(uncovered).toStrictEqual([])
   })
 })

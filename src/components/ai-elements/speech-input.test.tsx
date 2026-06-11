@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { SpeechInput } from './speech-input'
 
@@ -129,12 +129,11 @@ describe('SpeechInput', () => {
 
     fireEvent.click(screen.getByRole('button'))
 
-    await waitFor(() =>
-      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(
-        MockMediaRecorder,
-      ),
-    )
+    await waitFor(() => {
+      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder)
+    })
 
+    // eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const recorder = MockMediaRecorder.latestInstance as MockMediaRecorder
     using removeEventListenerSpy = vi.spyOn(recorder, 'removeEventListener')
     using stopSpy = vi.spyOn(recorder, 'stop')
@@ -142,6 +141,7 @@ describe('SpeechInput', () => {
     unmount()
 
     expect(stopSpy).toHaveBeenCalledTimes(1)
+    // eslint-disable-next-line typescript/unbound-method
     expect(track.stop).toHaveBeenCalledTimes(1)
     expect(removeEventListenerSpy).toHaveBeenCalledWith(
       'dataavailable',
@@ -174,6 +174,7 @@ describe('SpeechInput', () => {
 
   it('録音後の文字起こし失敗をユーザーへ表示する', async () => {
     const { stream } = createMockStream()
+    // eslint-disable-next-line typescript/require-await
     const onAudioRecorded = vi.fn(async (_audioBlob: Blob) => {
       throw new Error('transcription failed')
     })
@@ -186,16 +187,17 @@ describe('SpeechInput', () => {
 
     fireEvent.click(button)
 
-    await waitFor(() =>
-      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(
-        MockMediaRecorder,
-      ),
-    )
+    await waitFor(() => {
+      expect(MockMediaRecorder.latestInstance).toBeInstanceOf(MockMediaRecorder)
+    })
 
+    // eslint-disable-next-line typescript/non-nullable-type-assertion-style
     ;(MockMediaRecorder.latestInstance as MockMediaRecorder).emitData()
     fireEvent.click(button)
 
-    await waitFor(() => expect(onAudioRecorded).toHaveBeenCalledTimes(1))
+    await waitFor(() => {
+      expect(onAudioRecorded).toHaveBeenCalledTimes(1)
+    })
     expect((await screen.findByRole('alert')).textContent).toContain(
       'transcription failed',
     )

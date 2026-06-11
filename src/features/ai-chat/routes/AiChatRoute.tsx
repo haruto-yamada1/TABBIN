@@ -1,6 +1,5 @@
 import { Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -18,20 +17,9 @@ import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChat
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
+import { createPendingDeleteHistoryOpenChangeHandler } from './aiChatRoute.helpers'
+
 const AI_CHAT_HISTORY_BREAKPOINT = 1024
-
-const getNextPendingDeleteHistoryItem = <T,>(
-  currentItem: T | null,
-  open: boolean,
-): T | null => (open ? currentItem : null)
-
-const createPendingDeleteHistoryOpenChangeHandler =
-  <T,>(setPendingItem: Dispatch<SetStateAction<T | null>>) =>
-  (open: boolean): void => {
-    setPendingItem((currentItem) =>
-      getNextPendingDeleteHistoryItem(currentItem, open),
-    )
-  }
 
 export const AiChatRoute = () => {
   const { t } = useI18n()
@@ -107,7 +95,10 @@ export const AiChatRoute = () => {
                     <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
                       <Button
                         className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
-                        onClick={() => selectConversation(historyItem.id)}
+                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
+                        onClick={() => {
+                          selectConversation(historyItem.id)
+                        }}
                         type='button'
                         variant='ghost'
                       >
@@ -128,6 +119,7 @@ export const AiChatRoute = () => {
                           { title: historyItem.title },
                         )}
                         className='shrink-0 justify-self-end text-muted-foreground hover:text-destructive'
+                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                         onClick={(event) => {
                           event.stopPropagation()
                           setPendingDeleteHistoryItem(historyItem)
@@ -157,6 +149,7 @@ export const AiChatRoute = () => {
                 title={activeConversation.title}
                 mode='page'
                 onMessagesChange={updateMessages}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onToggleHistory={() => {
                   setIsHistoryVisible((current) => !current)
                 }}
@@ -183,6 +176,7 @@ export const AiChatRoute = () => {
             <Button
               type='button'
               variant='outline'
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 setPendingDeleteHistoryItem(null)
               }}
@@ -192,8 +186,12 @@ export const AiChatRoute = () => {
             <Button
               type='button'
               variant='destructive'
+              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
-                deleteConversation(pendingDeleteHistoryItem!.id)
+                if (!pendingDeleteHistoryItem) {
+                  return
+                }
+                deleteConversation(pendingDeleteHistoryItem.id)
                 setPendingDeleteHistoryItem(null)
               }}
             >
@@ -204,9 +202,4 @@ export const AiChatRoute = () => {
       </Dialog>
     </div>
   )
-}
-
-export {
-  createPendingDeleteHistoryOpenChangeHandler,
-  getNextPendingDeleteHistoryItem,
 }

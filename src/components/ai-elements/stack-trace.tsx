@@ -68,6 +68,7 @@ const useStackTrace = () => {
   return context
 }
 
+// eslint-disable-next-line eslint/complexity
 const parseStackFrame = (line: string): StackFrame => {
   const trimmed = line.trim()
 
@@ -295,7 +296,9 @@ export const StackTraceErrorMessage = memo(
 
 export type StackTraceActionsProps = ComponentProps<'fieldset'>
 
-const handleActionsClick = (e: React.MouseEvent) => e.stopPropagation()
+const handleActionsClick = (e: React.MouseEvent) => {
+  e.stopPropagation()
+}
 const handleActionsKeyDown = (e: React.KeyboardEvent) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.stopPropagation()
@@ -304,6 +307,7 @@ const handleActionsKeyDown = (e: React.KeyboardEvent) => {
 
 export const StackTraceActions = memo(
   ({ className, children, ...props }: StackTraceActionsProps) => (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <fieldset
       className={cn(
         'm-0 flex min-w-0 shrink-0 items-center gap-1 border-0 p-0',
@@ -347,12 +351,11 @@ export const StackTraceCopyButton = memo(
         await navigator.clipboard.writeText(raw)
         setIsCopied(true)
         onCopy?.()
-        timeoutRef.current = window.setTimeout(
-          () => setIsCopied(false),
-          timeout,
-        )
+        timeoutRef.current = window.setTimeout(() => {
+          setIsCopied(false)
+        }, timeout)
       } catch (error) {
-        onError?.(error as Error)
+        onError?.(error instanceof Error ? error : new Error(String(error)))
       }
     }, [raw, onCopy, onError, timeout])
 
@@ -368,6 +371,7 @@ export const StackTraceCopyButton = memo(
     return (
       <Button
         className={cn('size-7', className)}
+        // eslint-disable-next-line typescript/no-misused-promises
         onClick={copyToClipboard}
         size='icon'
         variant='ghost'
@@ -424,6 +428,7 @@ export const StackTraceContent = memo(
             'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
             className,
           )}
+          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           style={{ maxHeight }}
           {...props}
         >
@@ -520,6 +525,7 @@ export const StackTraceFrames = memo(
                 <span className='text-muted-foreground'>)</span>
               </>
             )}
+            {/* eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty filePath/functionName should fall through */}
             {!(frame.filePath || frame.functionName) && (
               <span>{frame.raw.replace(AT_PREFIX_REGEX, '')}</span>
             )}

@@ -61,7 +61,7 @@ const reuseStoredSavedTabsPageId = async (): Promise<number | null> => {
       return null
     }
     console.log(`保存されていたタブID ${savedTabsPageId} を再利用します`)
-    await activateAndPinTabIfNeeded(savedTabsPageId, Boolean(tab.pinned))
+    await activateAndPinTabIfNeeded(savedTabsPageId, tab.pinned)
     return savedTabsPageId
   } catch {
     console.log('保存されていたタブIDは存在しませんでした。新規作成します。')
@@ -80,12 +80,12 @@ const reuseExistingSavedTabsPage = async (
     return null
   }
   const mainTab = savedTabsPages[0]
-  savedTabsPageId = mainTab.id || null
+  savedTabsPageId = mainTab.id ?? null
   console.log(`既存のタブを使用します: ${savedTabsPageId}`)
   if (!savedTabsPageId) {
     return null
   }
-  await activateAndPinTabIfNeeded(savedTabsPageId, Boolean(mainTab.pinned))
+  await activateAndPinTabIfNeeded(savedTabsPageId, mainTab.pinned)
   await closeDuplicateTabs(savedTabsPages, savedTabsPageId)
   return savedTabsPageId
 }
@@ -96,7 +96,7 @@ const createSavedTabsPage = async (
   const newTab = await chrome.tabs.create({
     url: savedTabsUrl,
   })
-  savedTabsPageId = newTab.id || null
+  savedTabsPageId = newTab.id ?? null
   console.log(`新しいsaved-tabsページを作成しました。ID: ${savedTabsPageId}`)
   if (savedTabsPageId) {
     await activateAndPinTabIfNeeded(savedTabsPageId, false)

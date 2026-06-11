@@ -63,6 +63,7 @@ export const CardCollapseControl = ({
           variant='secondary'
           size='sm'
           onPointerDown={onPointerDown}
+          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={(e) => {
             e.stopPropagation()
             const newState = !isCollapsed

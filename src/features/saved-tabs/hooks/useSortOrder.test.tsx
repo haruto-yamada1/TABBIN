@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { useSortOrder } from './useSortOrder'
 
@@ -21,7 +21,7 @@ describe('useSortOrderフック', () => {
     )
 
     expect(result.current.sortOrder).toBe('default')
-    expect(result.current.sortedItems).toEqual(items)
+    expect(result.current.sortedItems).toStrictEqual(items)
   })
 
   it('sortOrder が asc のとき昇順に並べ替える', () => {
@@ -33,11 +33,9 @@ describe('useSortOrderフック', () => {
       result.current.setSortOrder('asc')
     })
 
-    expect(result.current.sortedItems.map((item) => item.domain)).toEqual([
-      'alpha.example.com',
-      'beta.example.com',
-      'zeta.example.com',
-    ])
+    expect(result.current.sortedItems.map((item) => item.domain)).toStrictEqual(
+      ['alpha.example.com', 'beta.example.com', 'zeta.example.com'],
+    )
   })
 
   it('sortOrder が desc のとき降順に並べ替える', () => {
@@ -49,10 +47,8 @@ describe('useSortOrderフック', () => {
       result.current.setSortOrder('desc')
     })
 
-    expect(result.current.sortedItems.map((item) => item.domain)).toEqual([
-      'zeta.example.com',
-      'beta.example.com',
-      'alpha.example.com',
-    ])
+    expect(result.current.sortedItems.map((item) => item.domain)).toStrictEqual(
+      ['zeta.example.com', 'beta.example.com', 'alpha.example.com'],
+    )
   })
 })

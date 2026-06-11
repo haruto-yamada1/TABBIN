@@ -223,9 +223,11 @@ export const EnvironmentVariableValue = ({
   const { value } = use(EnvironmentVariableContext)
   const { showValues } = use(EnvironmentVariablesContext)
 
+  const MAX_ENV_VALUE_DISPLAY_LENGTH = 20
+
   const displayValue = showValues
     ? value
-    : '•'.repeat(Math.min(value.length, 20))
+    : '•'.repeat(Math.min(value.length, MAX_ENV_VALUE_DISPLAY_LENGTH))
 
   return (
     <span
@@ -271,10 +273,14 @@ export const EnvironmentVariableCopyButton = ({
     return formatMap[copyFormat]()
   }, [name, value, copyFormat])
 
+  const handleCopy = useCallback(() => {
+    void copyText(getTextToCopy())
+  }, [copyText, getTextToCopy])
+
   return (
     <Button
       className={cn('size-6 shrink-0', className)}
-      onClick={() => copyText(getTextToCopy())}
+      onClick={handleCopy}
       size='icon'
       variant='ghost'
       {...props}
