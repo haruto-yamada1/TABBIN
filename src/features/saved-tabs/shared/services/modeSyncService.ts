@@ -4,8 +4,8 @@ import { z } from 'zod'
 import { invalidateUrlCache } from '@/lib/storage/urls'
 import {
   CustomProjectSchema,
-  fromStorageChange,
   ParentCategorySchema,
+  safeParseArrayFromStorage,
   TabGroupSchema,
   UserSettingsSchema,
 } from '@/lib/storage/zod-storage'
@@ -93,8 +93,8 @@ const applyCategoryChange = (
     return
   }
   const nextCategories = Array.isArray(changes.parentCategories.newValue)
-    ? fromStorageChange(
-        z.array(ParentCategorySchema),
+    ? safeParseArrayFromStorage(
+        ParentCategorySchema,
         changes.parentCategories.newValue,
       )
     : []
@@ -127,16 +127,16 @@ const applyProjectChange = (
   let nextCustomProjects: CustomProject[] | null = null
   if (hasProjectsChange) {
     nextCustomProjects = Array.isArray(changes.customProjects?.newValue)
-      ? fromStorageChange(
-          z.array(CustomProjectSchema),
+      ? safeParseArrayFromStorage(
+          CustomProjectSchema,
           changes.customProjects.newValue,
         ).map(toCustomProject)
       : []
   }
   const nextProjectOrder =
     hasOrderChange && Array.isArray(changes.customProjectOrder?.newValue)
-      ? fromStorageChange(
-          z.array(z.string()),
+      ? safeParseArrayFromStorage(
+          z.string(),
           changes.customProjectOrder.newValue,
         )
       : null
@@ -278,7 +278,7 @@ const applyTabsAndUrlsChanges = async (
 
   if (hasSavedTabsChange) {
     const nextSavedTabs = Array.isArray(changes.savedTabs.newValue)
-      ? fromStorageChange(z.array(TabGroupSchema), changes.savedTabs.newValue)
+      ? safeParseArrayFromStorage(TabGroupSchema, changes.savedTabs.newValue)
       : []
     await refreshTabGroupsWithUrls(nextSavedTabs)
     await syncDomainDataToCustomProjects()

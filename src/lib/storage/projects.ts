@@ -82,7 +82,16 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
         return []
       }
 
-      const base = CustomProjectSchema.parse(project)
+      const parsed = CustomProjectSchema.safeParse(project)
+      if (!parsed.success) {
+        // スキーマ違反のレコードは drop し、配列全体は壊さない
+        console.warn(
+          `不正なプロジェクトデータをスキップ: id=${String((project as { id?: unknown }).id)}`,
+          parsed.error.issues,
+        )
+        return []
+      }
+      const base = parsed.data
       const validProject = {
         id: base.id,
         name: base.name,

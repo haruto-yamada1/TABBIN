@@ -580,6 +580,38 @@ describe('projects storage', () => {
     expect(state.customProjects).toHaveLength(2)
   })
 
+  it('getCustomProjects はスキーマ違反の1件をスキップして他プロジェクトを返す', async () => {
+    // urlIds が string (本来は string[]) だと parse() が throw するため、
+    // 配列全体ではなく当該レコードだけ drop することを保証する (Codex P1 修正)
+    const broken = {
+      id: 'project-broken',
+      name: 'Broken',
+      urlIds: 'not-an-array',
+    } as unknown as CustomProject
+    const state: StorageState = {
+      customProjects: [
+        createProject({ id: 'project-ok', name: 'OK', urlIds: ['url-1'] }),
+        broken,
+        createProject({ id: 'project-also-ok', name: 'Also OK' }),
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const { getCustomProjects } = await loadModule()
+
+    // eslint-disable-next-line vitest/prefer-strict-equal
+    await expect(getCustomProjects()).resolves.toEqual([
+      expect.objectContaining({ id: 'project-ok', name: 'OK' }),
+      expect.objectContaining({ id: 'project-also-ok', name: 'Also OK' }),
+    ])
+    expect(warnSpy).toHaveBeenCalled()
+  })
+
   it('getCustomProjects は順序にないプロジェクトを後ろへ送る', async () => {
     const state: StorageState = {
       customProjectOrder: ['project-a'],

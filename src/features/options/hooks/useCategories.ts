@@ -13,8 +13,8 @@ import {
 } from '@/lib/storage/categories'
 import { getUserSettings } from '@/lib/storage/settings'
 import {
-  fromStorageChange,
   ParentCategorySchema,
+  safeParseArrayFromStorage,
 } from '@/lib/storage/zod-storage'
 import type { ParentCategory } from '@/types/storage'
 
@@ -68,7 +68,7 @@ export const useCategories = () => {
       if (areaName === 'local' && changes.parentCategories) {
         const raw = changes.parentCategories.newValue
         const nextParentCategories = Array.isArray(raw)
-          ? fromStorageChange(z.array(ParentCategorySchema), raw)
+          ? safeParseArrayFromStorage(ParentCategorySchema, raw)
           : []
         setCategoryState((prev) => ({
           ...prev,

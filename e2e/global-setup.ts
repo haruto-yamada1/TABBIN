@@ -1,12 +1,17 @@
-/* eslint-disable import/no-anonymous-default-export, import/no-default-export, typescript/no-require-imports, unicorn/no-anonymous-default-export, typescript/no-var-requires, eslint/no-unused-vars, typescript/no-unsafe-assignment */
-// @ts-check
-const { chromium } = require('playwright')
+/* eslint-disable import/no-default-export, typescript/require-await -- Playwright globalSetup contract requires default exported async function */
+import { execFileSync } from 'node:child_process'
+import path from 'node:path'
 
-/** @type {import('@playwright/test').PlaywrightTestConfig} */
-const config = {
-  use: {
-    baseURL: 'http://localhost:5173',
-  },
+import type { FullConfig } from '@playwright/test'
+
+const resolveWxtBinary = () =>
+  path.join(process.cwd(), 'node_modules', '.bin', 'wxt')
+
+const wxtBuildGlobalSetup = async (_config: FullConfig) => {
+  execFileSync(resolveWxtBinary(), ['build'], {
+    cwd: process.cwd(),
+    stdio: 'inherit',
+  })
 }
 
-module.exports = config
+export default wxtBuildGlobalSetup

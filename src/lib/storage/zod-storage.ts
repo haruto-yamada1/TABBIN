@@ -21,6 +21,33 @@ export function fromStorageChange<T extends z.ZodType>(
   return schema.parse(value) as z.output<T>
 }
 
+/**
+ * chrome.storage.onChanged のように 1 件壊れた要素で配列全体が破棄されると困る場面で
+ * 要素単位で safeParse し、成功したものだけ返す。失敗した要素はコンソールに警告を出す。
+ */
+export function safeParseArrayFromStorage<T extends z.ZodType>(
+  schema: T,
+  value: unknown,
+): z.output<T>[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  const results: z.output<T>[] = []
+  for (let i = 0; i < value.length; i += 1) {
+    const item: unknown = value[i]
+    const result = schema.safeParse(item)
+    if (result.success) {
+      results.push(result.data)
+      continue
+    }
+    console.warn(
+      `[storage] 配列要素 ${i} のパースに失敗したためスキップしました`,
+      result.error.issues,
+    )
+  }
+  return results
+}
+
 const SubCategoryKeywordSchema = z.object({
   categoryName: z.string(),
   keywords: z.array(z.string()),
