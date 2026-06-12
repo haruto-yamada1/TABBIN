@@ -49,7 +49,7 @@ export default defineConfig({
         },
         test: {
           name: 'dom',
-          environment: 'jsdom',
+          environment: 'happy-dom',
           setupFiles: sharedSetupFiles,
           exclude: sharedExclude,
           include: [
