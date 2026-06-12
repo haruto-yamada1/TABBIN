@@ -109,6 +109,16 @@ src/contexts/saved-tabs/
 | infrastructure | presentation への依存 / domain interface を通さない直接アクセス                                                                                    |
 | presentation   | `chrome.storage.local` / `chrome.*` API の直接利用 / ドメインルールの埋め込み                                                                      |
 
+## oxlint による機械的ガード
+
+上記の禁止ルールは `.oxlintrc.json` の `overrides` で機械的にチェックされます。`bun run lint` を実行すると、`src/contexts/saved-tabs/{domain,application,infrastructure,presentation}/**` 配下で禁止された import / global 参照 / プロパティアクセスを即座に検出します。
+
+- `eslint/no-restricted-imports` — layer を越えた依存（`@/components/*` / `@/features/**/components/**` / `@/contexts/**/application/**` など）をブロック
+- `eslint/no-restricted-globals` — domain 層での `chrome` / `localStorage` / `sessionStorage` / `document` / `window` 利用をブロック
+- `eslint/no-restricted-properties` — `chrome.tabs` / `chrome.storage` / `chrome.contextMenus` / `chrome.alarms` / `chrome.notifications` / `chrome.runtime` の直叩きを layer 別にブロック
+
+false positive が出たら `// oxlint-disable-next-line` ではなく、ルール側（許可リストや `allowImportNames`）で解決することを優先してください。Issue #462 がガード設定の source of truth です。
+
 ## composition ルール
 
 - Repository / port の実装インスタンスは `app/composition/` などの composition 層で生成し、context の外側（entrypoint や hook）から use-case へ注入します。
@@ -131,4 +141,5 @@ src/contexts/saved-tabs/
 
 - #454: DDD 構成へ段階移行するための全体設計と実装計画
 - #455: contexts/saved-tabs の DDD ディレクトリを追加する（最初の PR）
+- #462: oxlint で DDD レイヤ境界を機械的にガードする
 - #380: feature UI の直接 chrome API 利用を wrapper/service に寄せる（DDD 移行と並行で進める）

@@ -444,6 +444,228 @@
         "unicorn/no-abusive-eslint-disable": "off",
         "typescript/prefer-ts-expect-error": "off"
       }
+    },
+    {
+      "files": ["src/contexts/saved-tabs/domain/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "message": "domain 層は React に依存できません"
+              },
+              {
+                "name": "react-dom",
+                "message": "domain 層は React DOM に依存できません"
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^@/components(/|$)",
+                "message": "domain 層は UI コンポーネントに依存できません"
+              },
+              {
+                "regex": "^@/features/[^/]+/components(/|$)",
+                "message": "domain 層は feature の UI コンポーネントに依存できません"
+              },
+              {
+                "regex": "^@/contexts/[^/]+/application(/|$)",
+                "message": "domain 層は application 層に依存できません"
+              },
+              {
+                "regex": "^@/contexts/[^/]+/infrastructure(/|$)",
+                "message": "domain 層は infrastructure 層に依存できません"
+              },
+              {
+                "regex": "^@/contexts/[^/]+/presentation(/|$)",
+                "message": "domain 層は presentation 層に依存できません"
+              }
+            ]
+          }
+        ],
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "chrome",
+            "message": "domain 層は chrome.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "localStorage",
+            "message": "domain 層は localStorage を直接利用できません"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "domain 層は sessionStorage を直接利用できません"
+          },
+          {
+            "name": "document",
+            "message": "domain 層は document に依存できません"
+          },
+          {
+            "name": "window",
+            "message": "domain 層は window に依存できません"
+          }
+        ],
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "chrome",
+            "property": "tabs",
+            "message": "domain 層は chrome.tabs を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "storage",
+            "message": "domain 層は chrome.storage を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "contextMenus",
+            "message": "domain 層は chrome.contextMenus を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "alarms",
+            "message": "domain 層は chrome.alarms を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "notifications",
+            "message": "domain 層は chrome.notifications を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "runtime",
+            "message": "domain 層は chrome.runtime を直接利用できません"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/contexts/saved-tabs/application/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "message": "application 層は React に依存できません"
+              },
+              {
+                "name": "react-dom",
+                "message": "application 層は React DOM に依存できません"
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^@/components(/|$)",
+                "message": "application 層は UI コンポーネントに依存できません"
+              },
+              {
+                "regex": "^@/features/[^/]+/components(/|$)",
+                "message": "application 層は feature の UI コンポーネントに依存できません"
+              },
+              {
+                "regex": "^@/contexts/[^/]+/presentation(/|$)",
+                "message": "application 層は presentation 層に依存できません"
+              }
+            ]
+          }
+        ],
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "chrome",
+            "property": "tabs",
+            "message": "application 層は chrome.tabs を直接利用できません（BrowserTabPort 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "storage",
+            "message": "application 層は chrome.storage を直接利用できません（Repository 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "contextMenus",
+            "message": "application 層は chrome.contextMenus を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "alarms",
+            "message": "application 層は chrome.alarms を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "notifications",
+            "message": "application 層は chrome.notifications を直接利用できません（NotificationPort 経由）"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/contexts/saved-tabs/infrastructure/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "message": "infrastructure 層は React に依存できません"
+              },
+              {
+                "name": "react-dom",
+                "message": "infrastructure 層は React DOM に依存できません"
+              }
+            ],
+            "patterns": [
+              {
+                "regex": "^@/components(/|$)",
+                "message": "infrastructure 層は UI コンポーネントに依存できません"
+              },
+              {
+                "regex": "^@/features/[^/]+/components(/|$)",
+                "message": "infrastructure 層は feature の UI コンポーネントに依存できません"
+              },
+              {
+                "regex": "^@/contexts/[^/]+/presentation(/|$)",
+                "message": "infrastructure 層は presentation 層に依存できません"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/contexts/saved-tabs/presentation/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "chrome",
+            "property": "storage",
+            "message": "presentation 層は chrome.storage を直接利用できません（Repository 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "tabs",
+            "message": "presentation 層は chrome.tabs を直接利用できません（BrowserTabPort 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "contextMenus",
+            "message": "presentation 層は chrome.contextMenus を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "alarms",
+            "message": "presentation 層は chrome.alarms を直接利用できません"
+          }
+        ]
+      }
     }
   ]
 }
