@@ -87,6 +87,7 @@ export default defineConfig({
             'src/lib/**/*.test.ts',
             'src/utils/**/*.test.ts',
             'src/constants/**/*.test.ts',
+            'src/contexts/**/*.test.ts',
             'src/features/**/lib/**/*.test.ts',
             'src/features/i18n/lib/**/*.test.ts',
             'src/features/analytics/**/*.test.ts',
