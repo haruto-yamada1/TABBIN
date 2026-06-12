@@ -14,7 +14,7 @@ export default defineConfig({
     default_locale: 'ja',
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
-    version: '2.0.6',
+    version: '2.0.7',
     host_permissions: ['http://localhost:11434/*', 'http://127.0.0.1:11434/*'],
     permissions: ['alarms', 'tabs', 'storage', 'contextMenus', 'notifications'],
     action: {
