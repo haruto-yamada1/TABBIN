@@ -10,6 +10,19 @@ applyTo: "**/*"
 
 テストは多くの場合 `*.test.ts` / `*.test.tsx` として対象コードの近くに置かれます。E2E テストは `e2e/`（`*.spec.ts`）にあります。Storybook の story と Storybook 用の補助 assets は `src/` 配下に置きます。ローカル検査や保守用スクリプトは `tools/scripts/` にあります。`.output/`、`coverage/`、`playwright-report/`、`test-results/` などの生成出力ディレクトリは手動編集しないでください。
 
+### DDD 移行先（`src/contexts/*`）
+`src/features/` 配下のドメイン機能を、段階的に `src/contexts/<context>/` の DDD レイヤ構成へ移行します（全体方針は Issue #454、最初の一手は Issue #455）。WXT の `src/entrypoints/` は維持し、UI からの依存方向は次のとおりです。
+
+```
+entrypoints → app/composition → contexts/*/presentation
+                                  → contexts/*/application
+                                  → contexts/*/domain
+```
+
+`infrastructure` は `domain/repositories` と `application/ports` の interface を実装します。最初に着手するのは `src/contexts/saved-tabs/` のみで、`ai-chat` / `analytics` / `settings` / `extension-runtime` は後続 Issue で扱います。`src/features/saved-tabs` の既存ロジックは段階的に薄くし、一括移動はしません。
+
+`src/contexts/saved-tabs/` の DDD レイヤ構成と各層の責務は `docs/architecture/ddd.md` を参照してください。AI / Codex / Claude Code は `saved-tabs` 周りの実装や修正を依頼されたとき、まず `docs/architecture/ddd.md` と既存の `src/features/saved-tabs/` を比較し、移行先と既存コードの責務境界を確認してから編集してください。
+
 ## ビルド、テスト、開発コマンド
 - `bun install`: 依存関係をインストールします（CI は Node `22` と Bun `1.2.8` を使用）。
 - `bun run dev` / `bun run dev:firefox`: Chrome / Firefox 向けに WXT dev mode を起動します。
