@@ -109,6 +109,7 @@ export const SystemPromptManagerDialog = ({
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-border/80 hover:bg-muted/30',
                     )}
+                    // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                     onClick={() => {
                       onSelectPrompt(prompt.id)
                     }}
@@ -150,6 +151,7 @@ export const SystemPromptManagerDialog = ({
                         className='flex-1'
                         maxLength={MAX_AI_SYSTEM_PROMPT_NAME_LENGTH}
                         value={selectedPrompt.name}
+                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                         onChange={(event) => {
                           onChangePromptName(event.target.value)
                         }}
@@ -186,6 +188,7 @@ export const SystemPromptManagerDialog = ({
                       aria-label={t('aiChat.systemPrompt.bodyLabel')}
                       className='min-h-[420px] resize-y'
                       value={selectedPrompt.template}
+                      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                       onChange={(event) => {
                         onChangePromptTemplate(event.target.value)
                       }}
@@ -239,6 +242,7 @@ export const SystemPromptManagerDialog = ({
               <Button
                 type='button'
                 disabled={isSaveDisabled}
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => void onSave()}
               >
                 {isSaving
