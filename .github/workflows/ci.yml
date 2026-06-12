@@ -68,7 +68,6 @@ jobs:
   run-tests:
     name: Run Vitest Tests
     runs-on: ubuntu-latest
-    run-name: ${{ github.workflow }} / ${{ github.job }} (shard ${{ matrix.shard }}/${{ matrix.total }})
 
     strategy:
       fail-fast: false
