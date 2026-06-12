@@ -76,27 +76,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
 import { AiChartRenderer } from '@/features/ai-chat/components/AiChartRenderer'
 import { ChatPromptAttachmentButton } from '@/features/ai-chat/components/ChatPromptAttachmentButton'
 import { ChatPromptAttachments } from '@/features/ai-chat/components/ChatPromptAttachments'
 import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
 import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
 import { OllamaModelSelector } from '@/features/ai-chat/components/OllamaModelSelector'
+import { SystemPromptManagerDialog } from '@/features/ai-chat/components/SystemPromptManagerDialog'
+import type { SystemPromptManagerDialogProps } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import {
   AI_CHAT_MAX_ATTACHMENTS,
   AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES,
@@ -104,15 +102,13 @@ import {
   getAiChatAttachmentInputAccept,
 } from '@/features/ai-chat/lib/attachments'
 import {
-  MAX_AI_SYSTEM_PROMPT_NAME_LENGTH,
-  MAX_AI_SYSTEM_PROMPT_PRESETS,
   createAiSystemPromptPreset,
   getActiveAiSystemPrompt,
+  MAX_AI_SYSTEM_PROMPT_PRESETS,
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
 import type {
   AiChatAttachment,
-  AiChatConversationMessage,
   AiChatHistoryItem,
 } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -120,49 +116,63 @@ import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
-import { connectRuntimePort, sendRuntimeMessage } from '@/lib/browser/runtime'
-import {
-  defaultSettings,
-  getUserSettings,
-  saveUserSettings,
-} from '@/lib/storage/settings'
+import { connectRuntimePort } from '@/lib/browser/runtime'
+import { defaultSettings, saveUserSettings } from '@/lib/storage/settings'
 import {
   UserSettingsSchema,
   fromStorageChange,
 } from '@/lib/storage/zod-storage'
 import { cn } from '@/lib/utils'
 import type {
-  AiChatResponse,
   AiChatStreamServerMessage,
-  AiChatToolTrace,
   OllamaErrorDetails,
-  OllamaModelListResponse,
 } from '@/types/background'
-import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
-type ChatMessage = AiChatConversationMessage
-
-function isAiChatResponse(value: unknown): value is AiChatResponse {
-  return typeof value === 'object' && value !== null && 'status' in value
-}
-
-function isOllamaModelListResponse(
-  value: unknown,
-): value is OllamaModelListResponse {
-  return typeof value === 'object' && value !== null && 'status' in value
-}
-
-function isAiChatStreamServerMessage(
-  value: unknown,
-): value is AiChatStreamServerMessage {
-  return typeof value === 'object' && value !== null && 'type' in value
-}
-
-interface ChatMessageSource {
-  title: string
-  url: string
-}
+import {
+  createChatMessage,
+  createMessageId,
+  getConversationCopyText,
+  getMessageSources,
+  getSourcesLabel,
+  insertLineBreakAtCursor,
+  requestPromptSubmit,
+  tryGetItemsArray,
+} from './savedTabsChat/messages'
+import type { ChatMessage, TranslateFn } from './savedTabsChat/messages'
+import {
+  createSystemPromptId,
+  getPromptManagerValidationError,
+  getSelectedPrompt,
+  getUniquePromptName,
+  SYSTEM_PROMPT_SELECTOR_EMPTY_VALUE,
+} from './savedTabsChat/prompts'
+import {
+  areMessagesEquivalent,
+  clampSidebarWidth,
+  COPIED_CONVERSATION_ICON_TIMEOUT,
+  DEFAULT_CHAT_SIDEBAR_WIDTH,
+  EMPTY_CHAT_MESSAGES,
+  EMPTY_HISTORY_ITEMS,
+  EMPTY_TOOL_TRACES,
+  getResolvedSettings,
+  isAiChatConfigured,
+  loadSidebarWidth,
+  loadWidgetSettings,
+  persistSidebarWidth,
+  syncExternalConversationState,
+} from './savedTabsChat/storage'
+import {
+  AI_CHAT_STREAM_PORT_NAME,
+  createInitialStreamingReasoning,
+  getAiChatErrorMessage,
+  getAiChatOllamaError,
+  getAttachmentInputErrorMessage,
+  getRuntimePlatform,
+  isAiChatStreamServerMessage,
+  requestAssistantAnswer,
+  requestOllamaModels,
+} from './savedTabsChat/streaming'
 
 interface SavedTabsChatPanelProps {
   activeSystemPromptId: string
@@ -229,479 +239,6 @@ interface SavedTabsChatWidgetProps {
   onSelectHistoryItem?: (conversationId: string) => void
   onToggleHistory?: () => void
 }
-
-interface SystemPromptManagerDialogProps {
-  activePromptId: string
-  errorMessage: string
-  isOpen: boolean
-  isSaveDisabled: boolean
-  isSaving: boolean
-  presets: AiSystemPromptPreset[]
-  selectedPromptId: string
-  onCancel: () => void
-  onChangePromptName: (value: string) => void
-  onChangePromptTemplate: (value: string) => void
-  onCloseChange: (isOpen: boolean) => void
-  onCreatePrompt: () => void
-  onDeletePrompt: () => void
-  onDuplicatePrompt: () => void
-  onSave: () => Promise<void>
-  onSelectPrompt: (promptId: string) => void
-}
-
-type TranslateFn = (
-  key: string,
-  fallback?: string,
-  values?: Record<string, string>,
-) => string
-
-const CHAT_SIDEBAR_STORAGE_KEY = 'tabbin-ai-chat-sidebar-width'
-const DEFAULT_CHAT_SIDEBAR_WIDTH = 420
-const MIN_CHAT_SIDEBAR_WIDTH = 320
-const MAX_CHAT_SIDEBAR_WIDTH = 720
-const CHAT_SIDEBAR_VIEWPORT_GUTTER = 48
-const COPIED_CONVERSATION_ICON_TIMEOUT = 2000
-const SYSTEM_PROMPT_SELECTOR_EMPTY_VALUE = '__no-system-prompt__'
-const EMPTY_CHAT_MESSAGES: ChatMessage[] = []
-const EMPTY_HISTORY_ITEMS: AiChatHistoryItem[] = []
-const EMPTY_TOOL_TRACES: AiChatToolTrace[] = []
-
-const syncExternalConversationState = ({
-  conversationId,
-  initialMessages,
-  messagesRef,
-  setChatOllamaError,
-  setErrorMessage,
-  setInput,
-  setIsSubmitting,
-  setMessages,
-  syncedConversationIdRef,
-}: {
-  conversationId?: string
-  initialMessages: ChatMessage[]
-  messagesRef: { current: ChatMessage[] }
-  setChatOllamaError: (error: OllamaErrorDetails | undefined) => void
-  setErrorMessage: (message: string) => void
-  setInput: (input: string) => void
-  setIsSubmitting: (isSubmitting: boolean) => void
-  setMessages: (messages: ChatMessage[]) => void
-  syncedConversationIdRef: { current: string | undefined }
-}) => {
-  syncedConversationIdRef.current = conversationId
-  messagesRef.current = initialMessages
-  setMessages(initialMessages)
-  setInput('')
-  setErrorMessage('')
-  setChatOllamaError(undefined)
-  setIsSubmitting(false)
-}
-
-const HEX_RADIX = 16
-
-const createMessageId = (): string =>
-  `${Date.now()}-${Math.random().toString(HEX_RADIX).slice(2)}`
-
-const createSystemPromptId = (): string =>
-  `system-prompt-${Date.now()}-${Math.random().toString(HEX_RADIX).slice(2)}`
-
-const getMaxSidebarWidth = (): number => {
-  if (typeof window === 'undefined') {
-    return MAX_CHAT_SIDEBAR_WIDTH
-  }
-
-  return Math.max(
-    MIN_CHAT_SIDEBAR_WIDTH,
-    Math.min(
-      MAX_CHAT_SIDEBAR_WIDTH,
-      window.innerWidth - CHAT_SIDEBAR_VIEWPORT_GUTTER,
-    ),
-  )
-}
-
-const clampSidebarWidth = (width: number): number =>
-  Math.min(Math.max(width, MIN_CHAT_SIDEBAR_WIDTH), getMaxSidebarWidth())
-
-const loadSidebarWidth = (): number => {
-  if (typeof window === 'undefined') {
-    return DEFAULT_CHAT_SIDEBAR_WIDTH
-  }
-
-  const storedWidth = window.localStorage.getItem(CHAT_SIDEBAR_STORAGE_KEY)
-  if (!storedWidth) {
-    return clampSidebarWidth(DEFAULT_CHAT_SIDEBAR_WIDTH)
-  }
-
-  const savedWidth = Number(storedWidth)
-
-  return Number.isFinite(savedWidth)
-    ? clampSidebarWidth(savedWidth)
-    : clampSidebarWidth(DEFAULT_CHAT_SIDEBAR_WIDTH)
-}
-
-const persistSidebarWidth = (width: number): void => {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  try {
-    window.localStorage.setItem(
-      CHAT_SIDEBAR_STORAGE_KEY,
-      String(clampSidebarWidth(width)),
-    )
-  } catch {
-    // Skip persistence when localStorage is unavailable.
-  }
-}
-
-const createChatMessage = (
-  role: ChatMessage['role'],
-  content: string,
-  metadata?: Pick<
-    ChatMessage,
-    'attachments' | 'charts' | 'isStreaming' | 'reasoning' | 'toolTraces'
-  >,
-): ChatMessage => ({
-  attachments: metadata?.attachments,
-  charts: metadata?.charts,
-  content,
-  id: createMessageId(),
-  isStreaming: metadata?.isStreaming,
-  reasoning: metadata?.reasoning,
-  role,
-  toolTraces: metadata?.toolTraces,
-})
-
-const getBaseSettings = (settings: UserSettings | null): UserSettings => ({
-  ...defaultSettings,
-  ...settings,
-})
-
-const getResolvedSettings = (settings: UserSettings | null): UserSettings =>
-  normalizeAiSystemPromptSettings(getBaseSettings(settings))
-
-const clampPromptName = (value: string): string =>
-  value.trim().slice(0, MAX_AI_SYSTEM_PROMPT_NAME_LENGTH)
-
-const buildPromptNameCandidate = (
-  baseName: string,
-  t: TranslateFn,
-  suffix = '',
-): string => {
-  const normalizedBaseName =
-    clampPromptName(baseName) || t('aiChat.systemPrompt.new')
-  if (!suffix) {
-    return normalizedBaseName
-  }
-
-  const truncatedBaseName = normalizedBaseName
-    .slice(0, Math.max(0, MAX_AI_SYSTEM_PROMPT_NAME_LENGTH - suffix.length))
-    .trimEnd()
-
-  return `${truncatedBaseName}${suffix}`.trim()
-}
-
-const getUniquePromptName = (
-  presets: AiSystemPromptPreset[],
-  baseName: string,
-  t: TranslateFn,
-  initialSuffix = '',
-): string => {
-  const normalizedBaseName =
-    clampPromptName(baseName) || t('aiChat.systemPrompt.new')
-  const existingNames = new Set(presets.map((preset) => preset.name.trim()))
-  const initialCandidateName = buildPromptNameCandidate(
-    normalizedBaseName,
-    t,
-    initialSuffix,
-  )
-
-  if (!existingNames.has(initialCandidateName)) {
-    return initialCandidateName
-  }
-
-  for (let index = 2; index <= MAX_AI_SYSTEM_PROMPT_PRESETS + 1; index += 1) {
-    const candidateName = buildPromptNameCandidate(
-      normalizedBaseName,
-      t,
-      initialSuffix ? `${initialSuffix} ${index}` : ` ${index}`,
-    )
-    if (!existingNames.has(candidateName)) {
-      return candidateName
-    }
-  }
-
-  return buildPromptNameCandidate(normalizedBaseName, t, ` ${Date.now()}`)
-}
-
-const getSelectedPrompt = (
-  presets: AiSystemPromptPreset[],
-  selectedPromptId: string,
-): AiSystemPromptPreset | undefined =>
-  presets.find((prompt) => prompt.id === selectedPromptId)
-
-const getPromptManagerValidationError = (
-  presets: AiSystemPromptPreset[],
-  t: TranslateFn,
-): string => {
-  const trimmedPresets = presets.map((prompt) => ({
-    name: prompt.name.trim(),
-    template: prompt.template.trim(),
-  }))
-
-  if (
-    trimmedPresets.some(
-      (prompt) => prompt.name.length === 0 || prompt.template.length === 0,
-    )
-  ) {
-    return t('aiChat.systemPrompt.validation.empty')
-  }
-
-  if (
-    trimmedPresets.some(
-      (prompt) => prompt.name.length > MAX_AI_SYSTEM_PROMPT_NAME_LENGTH,
-    )
-  ) {
-    return t('aiChat.systemPrompt.validation.maxLength', undefined, {
-      count: String(MAX_AI_SYSTEM_PROMPT_NAME_LENGTH),
-    })
-  }
-
-  const duplicateNames = new Set<string>()
-  const seenNames = new Set<string>()
-
-  for (const prompt of trimmedPresets) {
-    if (seenNames.has(prompt.name)) {
-      duplicateNames.add(prompt.name)
-      continue
-    }
-
-    seenNames.add(prompt.name)
-  }
-
-  if (duplicateNames.size > 0) {
-    return t('aiChat.systemPrompt.validation.duplicate')
-  }
-
-  return ''
-}
-
-const loadWidgetSettings = async (): Promise<UserSettings | null> => {
-  try {
-    return await getUserSettings()
-  } catch {
-    return null
-  }
-}
-
-const isAiChatConfigured = (settings: UserSettings | null): boolean =>
-  Boolean(settings?.ollamaModel)
-
-const getAiChatErrorMessage = (
-  response: AiChatResponse | undefined,
-  t: TranslateFn,
-): string => response?.error || t('aiChat.responseError') // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error should show default message
-
-const getAiChatOllamaError = (
-  response: AiChatResponse | undefined,
-): OllamaErrorDetails | undefined => response?.ollamaError
-
-const getRuntimePlatform = async (): Promise<OllamaErrorPlatform> => {
-  if (!chrome?.runtime?.getPlatformInfo) {
-    return 'unknown'
-  }
-
-  try {
-    const platformInfo = await new Promise<chrome.runtime.PlatformInfo | null>(
-      (resolve) => {
-        chrome.runtime.getPlatformInfo((info) => {
-          resolve(info ?? null)
-        })
-      },
-    )
-
-    return platformInfo?.os === 'mac' || platformInfo?.os === 'win'
-      ? platformInfo.os
-      : 'unknown'
-  } catch {
-    return 'unknown'
-  }
-}
-
-const getAttachmentInputErrorMessage = (
-  error: {
-    code: 'accept' | 'max_file_size' | 'max_files'
-    message: string
-  },
-  t: TranslateFn,
-) => {
-  switch (error.code) {
-    case 'accept': {
-      return t('aiChat.attachments.unsupportedType')
-    }
-    case 'max_file_size': {
-      return t('aiChat.attachments.maxFileSize')
-    }
-    case 'max_files': {
-      return t('aiChat.attachments.maxFiles', undefined, {
-        count: String(AI_CHAT_MAX_ATTACHMENTS),
-      })
-    }
-    default: {
-      return error.message
-    }
-  }
-}
-
-const requestAssistantAnswer = async (
-  history: Pick<ChatMessage, 'attachments' | 'content' | 'role'>[],
-  prompt: string,
-  attachments: AiChatAttachment[] = [],
-): Promise<AiChatResponse | undefined> => {
-  const response = await sendRuntimeMessage({
-    action: 'runAiChat',
-    history,
-    prompt,
-    ...(attachments.length > 0 ? { attachments } : {}),
-  })
-  return isAiChatResponse(response) ? response : undefined
-}
-
-const requestOllamaModels = async (): Promise<
-  OllamaModelListResponse | undefined
-> => {
-  const response = await sendRuntimeMessage({
-    action: 'listOllamaModels',
-  })
-  return isOllamaModelListResponse(response) ? response : undefined
-}
-
-const createInitialStreamingReasoning = (
-  prompt: string,
-  t: TranslateFn,
-): string =>
-  [
-    t('aiChat.streaming.receivedQuestion', undefined, { prompt }),
-    t('aiChat.streaming.checkingTabs'),
-    t('aiChat.streaming.toolsFollow'),
-  ].join('\n')
-
-const getConversationCopyText = (
-  messages: ChatMessage[],
-  t: TranslateFn,
-): string =>
-  messages
-    .reduce<string[]>((items, message) => {
-      if (message.content.trim().length === 0) {
-        return items
-      }
-      items.push(
-        [
-          message.role === 'user'
-            ? t('aiChat.copy.user')
-            : t('aiChat.copy.assistant'),
-          message.attachments?.length
-            ? `${t('aiChat.copy.attachments')} ${message.attachments
-                .map((attachment) => attachment.filename)
-                .join(', ')}`
-            : '',
-          message.content.trim(),
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      )
-      return items
-    }, [])
-    .join('\n\n')
-
-const areMessagesEquivalent = (
-  left: ChatMessage[],
-  right: ChatMessage[],
-): boolean => JSON.stringify(left) === JSON.stringify(right)
-
-function tryGetItemsArray(value: object): unknown[] | undefined {
-  const desc = Object.getOwnPropertyDescriptor(value, 'items')
-  if (!desc) {
-    return undefined
-  }
-  return Array.isArray(desc.value) ? desc.value : undefined
-}
-
-const getSourceItems = (output: unknown): ChatMessageSource[] => {
-  let items: unknown[] = []
-
-  if (Array.isArray(output)) {
-    items = output
-  } else if (typeof output === 'object' && output !== null) {
-    const extracted = tryGetItemsArray(output)
-    if (extracted) {
-      items = extracted
-    }
-  }
-
-  return items.flatMap((item) => {
-    if (!item || typeof item !== 'object') {
-      return []
-    }
-
-    const { url } = item as { url?: unknown }
-    if (typeof url !== 'string' || url.length === 0) {
-      return []
-    }
-
-    const { title } = item as { title?: unknown }
-
-    return [
-      {
-        title:
-          typeof title === 'string' && title.trim().length > 0
-            ? title.trim()
-            : url,
-        url,
-      },
-    ]
-  })
-}
-
-const getMessageSources = (
-  toolTraces: AiChatToolTrace[] = [],
-): ChatMessageSource[] => {
-  const seenUrls = new Set<string>()
-
-  return toolTraces.flatMap((toolTrace) =>
-    getSourceItems(toolTrace.output).filter((source) => {
-      if (seenUrls.has(source.url)) {
-        return false
-      }
-
-      seenUrls.add(source.url)
-      return true
-    }),
-  )
-}
-
-const requestPromptSubmit = (textarea: HTMLTextAreaElement) => {
-  const { form } = textarea
-  const submitButton = form?.querySelector('button[type="submit"]')
-
-  if (!(submitButton instanceof HTMLButtonElement) || submitButton.disabled) {
-    return
-  }
-
-  form?.requestSubmit()
-}
-
-const insertLineBreakAtCursor = ({
-  selectionEnd,
-  selectionStart,
-  value,
-}: {
-  selectionEnd: number
-  selectionStart: number
-  value: string
-}) => ({
-  cursorPosition: selectionStart + 1,
-  nextValue: `${value.slice(0, selectionStart)}\n${value.slice(selectionEnd)}`,
-})
 
 const AssistantMessageDiagnostics = ({
   isStreaming,
@@ -873,219 +410,6 @@ const renderSystemPromptSelector = ({
         )}
       </PromptInputSelectContent>
     </PromptInputSelect>
-  )
-}
-
-const useSystemPromptManagerDialogView = ({
-  // eslint-disable-line eslint/max-lines-per-function
-  activePromptId,
-  errorMessage,
-  isOpen,
-  isSaveDisabled,
-  isSaving,
-  presets,
-  selectedPromptId,
-  onCancel,
-  onChangePromptName,
-  onChangePromptTemplate,
-  onCloseChange,
-  onCreatePrompt,
-  onDeletePrompt,
-  onDuplicatePrompt,
-  onSave,
-  onSelectPrompt,
-}: SystemPromptManagerDialogProps) => {
-  const { t } = useI18n()
-  const selectedPrompt = getSelectedPrompt(presets, selectedPromptId)
-  const isLimitReached = presets.length >= MAX_AI_SYSTEM_PROMPT_PRESETS
-  const isDeleteDisabled = presets.length <= 1
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onCloseChange}>
-      <DialogContent
-        aria-describedby={undefined}
-        className='flex h-[calc(100vh-48px)] max-h-none w-[calc(100vw-48px)] max-w-none flex-col gap-0 overflow-hidden p-0'
-      >
-        <DialogHeader className='border-b border-border px-6 py-4 text-left'>
-          <DialogTitle>{t('aiChat.systemPrompt.managerTitle')}</DialogTitle>
-        </DialogHeader>
-
-        <div className='grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)] overflow-hidden'>
-          <div className='flex min-h-0 flex-col border-r border-border'>
-            <div className='border-b border-border p-4'>
-              <div className='mb-3 flex items-center justify-between gap-2'>
-                <p className='text-sm font-medium'>
-                  {t('aiChat.systemPrompt.listTitle')}
-                </p>
-                <span className='text-xs text-muted-foreground'>
-                  {presets.length} / {MAX_AI_SYSTEM_PROMPT_PRESETS}
-                </span>
-              </div>
-              <div className='grid gap-2'>
-                <Button
-                  type='button'
-                  variant='secondary'
-                  size='sm'
-                  disabled={isLimitReached}
-                  onClick={onCreatePrompt}
-                >
-                  <Plus className='size-4' />
-                  {t('aiChat.systemPrompt.new')}
-                </Button>
-              </div>
-            </div>
-
-            <div className='min-h-0 flex-1 overflow-y-auto p-3'>
-              <div className='grid gap-2'>
-                {presets.map((prompt) => (
-                  <Button
-                    className={cn(
-                      'cursor-pointer overflow-hidden rounded-md border p-3 text-left transition-colors',
-                      prompt.id === selectedPromptId
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-border/80 hover:bg-muted/30',
-                    )}
-                    onClick={() => {
-                      onSelectPrompt(prompt.id)
-                    }}
-                    key={prompt.id}
-                    type='button'
-                    variant='ghost'
-                  >
-                    <div className='flex min-w-0 items-center justify-between gap-2'>
-                      <p className='min-w-0 flex-1 truncate text-sm font-medium'>
-                        {prompt.name}
-                      </p>
-                      {prompt.id === activePromptId ? (
-                        <span className='shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground'>
-                          {t('aiChat.systemPrompt.inUse')}
-                        </span>
-                      ) : null}
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className='flex min-h-0 flex-col'>
-            <div className='min-h-0 flex-1 overflow-y-auto px-6 py-5'>
-              {selectedPrompt ? (
-                <div className='gap-y-5'>
-                  <div className='gap-y-2'>
-                    <Label htmlFor='system-prompt-name'>
-                      {t('aiChat.systemPrompt.nameLabel')}
-                    </Label>
-                    <div
-                      className='flex items-start gap-2'
-                      data-testid='system-prompt-name-row'
-                    >
-                      <Input
-                        id='system-prompt-name'
-                        aria-label={t('aiChat.systemPrompt.nameLabel')}
-                        className='flex-1'
-                        maxLength={MAX_AI_SYSTEM_PROMPT_NAME_LENGTH}
-                        value={selectedPrompt.name}
-                        onChange={(event) => {
-                          onChangePromptName(event.target.value)
-                        }}
-                      />
-                      <Button
-                        type='button'
-                        variant='outline'
-                        size='sm'
-                        disabled={isLimitReached}
-                        onClick={onDuplicatePrompt}
-                      >
-                        <Copy className='size-4' />
-                        {t('aiChat.systemPrompt.duplicate')}
-                      </Button>
-                      <Button
-                        type='button'
-                        variant='secondary'
-                        size='sm'
-                        disabled={isDeleteDisabled}
-                        onClick={onDeletePrompt}
-                      >
-                        <Trash2 className='size-4' />
-                        {t('common.delete')}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className='gap-y-2'>
-                    <Label htmlFor='system-prompt-template'>
-                      {t('aiChat.systemPrompt.bodyLabel')}
-                    </Label>
-                    <Textarea
-                      id='system-prompt-template'
-                      aria-label={t('aiChat.systemPrompt.bodyLabel')}
-                      className='min-h-[420px] resize-y'
-                      value={selectedPrompt.template}
-                      onChange={(event) => {
-                        onChangePromptTemplate(event.target.value)
-                      }}
-                    />
-                  </div>
-
-                  <div className='gap-y-3'>
-                    <div className='gap-y-1'>
-                      <p className='text-sm font-medium'>
-                        {t('aiChat.systemPrompt.availableTools')}
-                      </p>
-                      <p className='text-xs text-muted-foreground'>
-                        {t('aiChat.systemPrompt.availableToolsDescription')}
-                      </p>
-                    </div>
-                    <div className='grid gap-2 xl:grid-cols-2'>
-                      {AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => (
-                        <div
-                          className='rounded-md border border-border/70 bg-muted/20 p-3'
-                          key={toolDefinition.name}
-                        >
-                          <p className='font-mono text-xs'>
-                            {toolDefinition.name}
-                          </p>
-                          <p className='mt-2 text-sm text-muted-foreground'>
-                            {toolDefinition.description}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {errorMessage ? (
-                    <p className='text-sm whitespace-pre-line text-destructive'>
-                      {errorMessage}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-
-            <DialogFooter className='border-t border-border px-6 py-4'>
-              <Button
-                type='button'
-                variant='outline'
-                disabled={isSaving}
-                onClick={onCancel}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                type='button'
-                disabled={isSaveDisabled}
-                onClick={() => void onSave()}
-              >
-                {isSaving
-                  ? t('aiChat.systemPrompt.saving')
-                  : t('aiChat.systemPrompt.save')}
-              </Button>
-            </DialogFooter>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -1458,17 +782,6 @@ const renderChatMessageAttachments = ({
     </Attachments>
   )
 }
-
-const getSourcesLabel = ({
-  count,
-  t,
-}: {
-  count: number
-  t: (key: string, fallback?: string, values?: Record<string, string>) => string
-}) =>
-  t(count === 1 ? 'aiChat.sources.one' : 'aiChat.sources.other', undefined, {
-    count: String(count),
-  })
 
 const renderConversationMessageBody = ({
   message,
@@ -2398,6 +1711,7 @@ const useSavedTabsChatWidgetView = ({
           t('aiChat.systemPrompt.new'),
           t,
         ),
+        template: '',
       })
 
       setSelectedPromptIdInModal(nextPrompt.id)
@@ -2913,7 +2227,7 @@ const useSavedTabsChatWidgetView = ({
     systemPrompts: resolvedSettings.aiSystemPrompts ?? [],
     title: resolvedTitle,
   })
-  const systemPromptManagerDialog = useSystemPromptManagerDialogView({
+  const systemPromptManagerDialogProps: SystemPromptManagerDialogProps = {
     activePromptId: draftActivePromptId,
     errorMessage: promptManagerDisplayError,
     isOpen: isPromptManagerOpen,
@@ -2933,7 +2247,7 @@ const useSavedTabsChatWidgetView = ({
     },
     presets: promptDrafts,
     selectedPromptId: selectedPromptIdInModal,
-  })
+  }
 
   return (
     <>
@@ -2952,7 +2266,7 @@ const useSavedTabsChatWidgetView = ({
       ) : null}
 
       {chatPanel}
-      {systemPromptManagerDialog}
+      <SystemPromptManagerDialog {...systemPromptManagerDialogProps} />
     </>
   )
 }
@@ -2961,3 +2275,7 @@ const SavedTabsChatWidget = (props: SavedTabsChatWidgetProps = {}) =>
   useSavedTabsChatWidgetView(props)
 
 export { SavedTabsChatWidget }
+
+// re-exports for tests / consumers that may import internals
+export { areMessagesEquivalent, tryGetItemsArray }
+export type { ChatMessage }

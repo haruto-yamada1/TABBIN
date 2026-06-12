@@ -1,11 +1,17 @@
 import { toast } from 'sonner'
 
+import { getPageHref } from '@/features/navigation/lib/pageNavigation'
 import {
   removeUrlIdsFromAllCustomProjects,
   removeUrlsFromAllCustomProjects,
 } from '@/lib/storage/projects'
 import { getTabGroupUrls } from '@/lib/storage/tabs'
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
+import type {
+  CustomProject,
+  ParentCategory,
+  TabGroup,
+  ViewMode,
+} from '@/types/storage'
 
 interface OpenedUrlsStorageSnapshot {
   customProjectOrder?: string[]
@@ -525,6 +531,61 @@ const removeUrlsFromCustomProjectsForGroups = async (
   }
 }
 
+/**
+ * view mode に対応する href を解決する。
+ */
+const resolveSavedTabsViewModeHref = (viewMode: ViewMode): string =>
+  getPageHref(viewMode === 'custom' ? 'saved-tabs-custom' : 'saved-tabs-domain')
+
+/**
+ * 初期 view mode の解決待ち状態を判定する。
+ */
+const shouldWaitForInitialViewMode = ({
+  hasResolvedInitialViewMode,
+  initialViewMode,
+  viewMode,
+}: {
+  hasResolvedInitialViewMode: boolean
+  initialViewMode?: ViewMode
+  viewMode: ViewMode
+}): boolean => {
+  if (!initialViewMode || hasResolvedInitialViewMode) {
+    return false
+  }
+
+  return viewMode !== initialViewMode
+}
+
+/**
+ * 現在の view mode を URL に同期する。
+ * ナビゲートコールバックが指定されていればそれを使う。
+ */
+const syncSavedTabsViewModeLocation = ({
+  onViewModeNavigate,
+  viewMode,
+}: {
+  onViewModeNavigate?: (mode: ViewMode) => void
+  viewMode: ViewMode
+}): void => {
+  if (onViewModeNavigate) {
+    onViewModeNavigate(viewMode)
+    return
+  }
+
+  const nextHref = resolveSavedTabsViewModeHref(viewMode)
+  const currentUrl = new URL(window.location.href)
+  const nextUrl = new URL(nextHref, window.location.href)
+
+  if (
+    currentUrl.pathname === nextUrl.pathname &&
+    currentUrl.search === nextUrl.search
+  ) {
+    return
+  }
+
+  window.history.replaceState({}, '', `${nextUrl.pathname}${nextUrl.search}`)
+}
+
 export type {
   CategoryLookup,
   CategorySyncState,
@@ -541,12 +602,16 @@ export {
   filterGroupByQuery,
   filterGroupsByExcludedIds,
   getDisplayUrlCount,
+  getSnapshotSavedTabs,
   notifyDeleteFailure,
   removeUrlsFromCustomProjectsForGroup,
   removeUrlsFromCustomProjectsForGroups,
   removeUrlIdsFromSavedTabs,
+  resolveSavedTabsViewModeHref,
   restoreOpenedUrlsSnapshot,
+  shouldWaitForInitialViewMode,
   showOpenedUrlsUndoToast,
   sortCategorizedGroups,
   syncGroupCategoryAssignment,
+  syncSavedTabsViewModeLocation,
 }
