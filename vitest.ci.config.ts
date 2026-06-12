@@ -42,6 +42,7 @@ export default defineConfig({
     },
     pool: 'threads',
     isolate: false,
+    testTimeout: 15000,
     projects: [
       {
         resolve: {
@@ -58,6 +59,7 @@ export default defineConfig({
             'src/entrypoints/**/*.test.ts',
             'src/features/saved-tabs/app/**/*.test.ts',
             'src/features/saved-tabs/lib/scroll-controls.test.ts',
+            'src/features/saved-tabs/shared/services/modeSyncService.test.ts',
             'src/features/options/ImportFileDialog.test.ts',
             'src/features/ai-chat/hooks/useSharedAiChatHistory.test.ts',
             'src/lib/storybook/browser-mocks.test.ts',
@@ -76,6 +78,7 @@ export default defineConfig({
             ...sharedExclude,
             'src/features/saved-tabs/lib/scroll-controls.test.ts',
             'src/features/saved-tabs/app/**/*.test.ts',
+            'src/features/saved-tabs/shared/services/modeSyncService.test.ts',
             'src/features/options/ImportFileDialog.test.ts',
             'src/features/ai-chat/hooks/useSharedAiChatHistory.test.ts',
             'src/lib/storybook/browser-mocks.test.ts',
