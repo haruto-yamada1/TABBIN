@@ -11,7 +11,6 @@ import { toast } from 'sonner'
 
 import { Toaster } from '@/components/ui/sonner'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { getPageHref } from '@/features/navigation/lib/pageNavigation'
 import { CategoryReorderFooter } from '@/features/saved-tabs/components/Footer'
 import { Header } from '@/features/saved-tabs/components/Header' // ヘッダーコンポーネントをインポート
 import { CustomModeContainer } from '@/features/saved-tabs/custom/CustomModeContainer'
@@ -44,11 +43,6 @@ import type {
   ViewMode,
 } from '@/types/storage'
 
-import type {
-  CategoryLookup,
-  CategorySyncState,
-  OpenedUrlsStorageSnapshot,
-} from './savedTabsApp.helpers'
 import {
   buildCategoryLookup,
   buildDisplayTabGroup,
@@ -57,23 +51,26 @@ import {
   createFilterGroupsByExcludedIdsUpdater,
   filterGroupByQuery,
   getDisplayUrlCount,
+  getSnapshotSavedTabs,
   notifyDeleteFailure,
   removeUrlsFromCustomProjectsForGroup,
   removeUrlsFromCustomProjectsForGroups,
   removeUrlIdsFromSavedTabs,
+  shouldWaitForInitialViewMode,
   showOpenedUrlsUndoToast,
   sortCategorizedGroups,
   syncGroupCategoryAssignment,
+  syncSavedTabsViewModeLocation,
+} from './savedTabsApp.helpers'
+import type {
+  CategoryLookup,
+  CategorySyncState,
+  OpenedUrlsStorageSnapshot,
 } from './savedTabsApp.helpers'
 
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
-const getSnapshotArray = <T,>(value: T[] | undefined): T[] | undefined =>
-  Array.isArray(value) ? value : undefined
-const getSnapshotSavedTabs = (
-  snapshot: OpenedUrlsStorageSnapshot,
-): TabGroup[] => getSnapshotArray(snapshot.savedTabs) ?? []
 const hasDisplayableUrls = (group: TabGroup): boolean => {
   const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
   const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
@@ -209,55 +206,9 @@ const organizeTabGroupsWithCategories = ({
   }
 }
 
-const resolveSavedTabsViewModeHref = (viewMode: ViewMode): string =>
-  getPageHref(viewMode === 'custom' ? 'saved-tabs-custom' : 'saved-tabs-domain')
-
-const shouldWaitForInitialViewMode = ({
-  hasResolvedInitialViewMode,
-  initialViewMode,
-  viewMode,
-}: {
-  hasResolvedInitialViewMode: boolean
-  initialViewMode?: ViewMode
-  viewMode: ViewMode
-}): boolean => {
-  if (!initialViewMode || hasResolvedInitialViewMode) {
-    return false
-  }
-
-  return viewMode !== initialViewMode
-}
-
-const syncSavedTabsViewModeLocation = ({
-  onViewModeNavigate,
-  viewMode,
-}: {
-  onViewModeNavigate?: (mode: ViewMode) => void
-  viewMode: ViewMode
-}): void => {
-  if (onViewModeNavigate) {
-    onViewModeNavigate(viewMode)
-    return
-  }
-
-  const nextHref = resolveSavedTabsViewModeHref(viewMode)
-  const currentUrl = new URL(window.location.href)
-  const nextUrl = new URL(nextHref, window.location.href)
-
-  if (
-    currentUrl.pathname === nextUrl.pathname &&
-    currentUrl.search === nextUrl.search
-  ) {
-    return
-  }
-
-  window.history.replaceState({}, '', `${nextUrl.pathname}${nextUrl.search}`)
-}
-
 /**
  * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
  */
-
 /**
  * 複数のドメイングループに属するURLをすべてカスタムプロジェクトから一括削除します。
  */
