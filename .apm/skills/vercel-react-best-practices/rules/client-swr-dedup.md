@@ -1,15 +1,15 @@
 ---
-title: Use SWR for Automatic Deduplication
+title: 自動重複排除に SWR を使用
 impact: MEDIUM-HIGH
-impactDescription: automatic deduplication
+impactDescription: 自動重複排除
 tags: client, swr, deduplication, data-fetching
 ---
 
-## Use SWR for Automatic Deduplication
+## 自動重複排除に SWR を使用
 
-SWR enables request deduplication, caching, and revalidation across component instances.
+SWR はコンポーネントインスタンス間でリクエスト重複排除、キャッシング、再検証を可能にします。
 
-**Incorrect (no deduplication, each instance fetches):**
+**不適切（重複排除なし、各インスタンスがフェッチ）:**
 
 ```tsx
 function UserList() {
@@ -22,7 +22,7 @@ function UserList() {
 }
 ```
 
-**Correct (multiple instances share one request):**
+**適切（複数インスタンスが 1 リクエストを共有）:**
 
 ```tsx
 import useSWR from 'swr'
@@ -32,7 +32,7 @@ function UserList() {
 }
 ```
 
-**For immutable data:**
+**不変データの場合:**
 
 ```tsx
 import { useImmutableSWR } from '@/lib/swr'
@@ -42,7 +42,7 @@ function StaticContent() {
 }
 ```
 
-**For mutations:**
+**mutation の場合:**
 
 ```tsx
 import { useSWRMutation } from 'swr/mutation'
@@ -53,4 +53,4 @@ function UpdateButton() {
 }
 ```
 
-Reference: [https://swr.vercel.app](https://swr.vercel.app)
+参考: [https://swr.vercel.app](https://swr.vercel.app)

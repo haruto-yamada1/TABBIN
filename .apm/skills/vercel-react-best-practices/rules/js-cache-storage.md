@@ -1,15 +1,15 @@
 ---
-title: Cache Storage API Calls
+title: Storage API 呼び出しをキャッシュ
 impact: LOW-MEDIUM
-impactDescription: reduces expensive I/O
+impactDescription: 高コスト I/O を削減
 tags: javascript, localStorage, storage, caching, performance
 ---
 
-## Cache Storage API Calls
+## Storage API 呼び出しをキャッシュ
 
-`localStorage`, `sessionStorage`, and `document.cookie` are synchronous and expensive. Cache reads in memory.
+`localStorage`、`sessionStorage`、`document.cookie` は同期的で高コストです。読み取りはメモリにキャッシュします。
 
-**Incorrect (reads storage on every call):**
+**不適切（呼び出しごとに storage を読み取り）:**
 
 ```typescript
 function getTheme() {
@@ -18,7 +18,7 @@ function getTheme() {
 // Called 10 times = 10 storage reads
 ```
 
-**Correct (Map cache):**
+**適切（Map キャッシュ）:**
 
 ```typescript
 const storageCache = new Map<string, string | null>()
@@ -36,9 +36,9 @@ function setLocalStorage(key: string, value: string) {
 }
 ```
 
-Use a Map (not a hook) so it works everywhere: utilities, event handlers, not just React components.
+フックではなく Map を使うことで、React コンポーネントだけでなくユーティリティやイベントハンドラーなどどこでも動作します。
 
-**Cookie caching:**
+**Cookie キャッシュ:**
 
 ```typescript
 let cookieCache: Record<string, string> | null = null
@@ -53,9 +53,9 @@ function getCookie(name: string) {
 }
 ```
 
-**Important (invalidate on external changes):**
+**重要（外部変更時は無効化）:**
 
-If storage can change externally (another tab, server-set cookies), invalidate cache:
+storage が外部から変更され得る場合（別タブ、サーバー設定 cookie）、キャッシュを無効化します:
 
 ```typescript
 window.addEventListener('storage', (e) => {

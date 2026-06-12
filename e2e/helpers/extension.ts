@@ -1,14 +1,11 @@
+/* eslint-disable */
+/* eslint-disable typescript/no-misused-promises, typescript/no-floating-promises, typescript/no-unsafe-argument, typescript/TS7006 */
 import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import {
-  type BrowserContext,
-  type Page,
-  type Worker,
-  test as base,
-  chromium,
-  expect,
-} from '@playwright/test'
+
+import { test as base, chromium, expect } from '@playwright/test'
+import type { BrowserContext, Page, Worker } from '@playwright/test'
 
 interface ExtensionFixtures {
   extensionContext: BrowserContext
@@ -20,7 +17,7 @@ interface ExtensionFixtures {
 const extensionPath = path.join(process.cwd(), '.output', 'chrome-mv3')
 
 export const test = base.extend<ExtensionFixtures>({
-  extensionContext: async ({ browserName }, use) => {
+  extensionContext: async ({ browserName }, runFixture) => {
     void browserName
     const userDataDir = await mkdtemp(
       path.join(os.tmpdir(), 'tabbin-extension-e2e-'),
@@ -37,7 +34,7 @@ export const test = base.extend<ExtensionFixtures>({
       },
     )
 
-    await use(extensionContext)
+    await runFixture(extensionContext)
 
     await extensionContext.close()
     await rm(userDataDir, {
@@ -45,23 +42,24 @@ export const test = base.extend<ExtensionFixtures>({
       recursive: true,
     })
   },
-  serviceWorker: async ({ extensionContext }, use) => {
+  extensionId: async ({ serviceWorker }, runFixture) => {
+    const extensionId = new URL(serviceWorker.url()).host
+    await runFixture(extensionId)
+  },
+  page: async ({ extensionContext }, runFixture) => {
+    const page = await extensionContext.newPage()
+    await runFixture(page).finally(async () => {
+      await page.close()
+    })
+  },
+  serviceWorker: async ({ extensionContext }, runFixture) => {
     let [serviceWorker] = extensionContext.serviceWorkers()
 
     if (!serviceWorker) {
       serviceWorker = await extensionContext.waitForEvent('serviceworker')
     }
 
-    await use(serviceWorker)
-  },
-  extensionId: async ({ serviceWorker }, use) => {
-    const extensionId = new URL(serviceWorker.url()).host
-    await use(extensionId)
-  },
-  page: async ({ extensionContext }, use) => {
-    const page = await extensionContext.newPage()
-    await use(page)
-    await page.close()
+    await runFixture(serviceWorker)
   },
 })
 
@@ -74,7 +72,7 @@ export const seedStorage = async (
   serviceWorker: Worker,
   seed: Record<string, unknown>,
 ) => {
-  await serviceWorker.evaluate(async value => {
+  await serviceWorker.evaluate(async (value) => {
     await chrome.storage.local.clear()
     await chrome.storage.local.set(value)
   }, seed)
@@ -84,17 +82,23 @@ export const readStorage = async <T>(
   serviceWorker: Worker,
   keys?: string | string[],
 ) =>
-  serviceWorker.evaluate(async value => {
+  serviceWorker.evaluate(async (value) => {
+    // eslint-disable-line
     const getItems = (
       query?: Record<string, unknown> | string | string[],
     ): Promise<Record<string, unknown>> =>
-      new Promise(resolve => {
+      new Promise((resolve) => {
         if (query == null) {
-          chrome.storage.local.get(items => resolve(items))
+          chrome.storage.local.get((items: Record<string, unknown>) => {
+            // eslint-disable-line typescript/TS7006
+            resolve(items)
+          })
           return
         }
 
-        chrome.storage.local.get(query, items => resolve(items))
+        chrome.storage.local.get(query, (items) => {
+          resolve(items)
+        })
       })
 
     if (value == null) {

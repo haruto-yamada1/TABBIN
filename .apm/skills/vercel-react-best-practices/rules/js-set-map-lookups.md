@@ -1,22 +1,22 @@
 ---
-title: Use Set/Map for O(1) Lookups
+title: O(1) ルックアップに Set/Map を使用
 impact: LOW-MEDIUM
-impactDescription: O(n) to O(1)
+impactDescription: O(n) から O(1) へ
 tags: javascript, set, map, data-structures, performance
 ---
 
-## Use Set/Map for O(1) Lookups
+## O(1) ルックアップに Set/Map を使用
 
-Convert arrays to Set/Map for repeated membership checks.
+繰り返しメンバーシップチェックには配列を Set/Map に変換します。
 
-**Incorrect (O(n) per check):**
+**不適切（チェックごとに O(n)）:**
 
 ```typescript
 const allowedIds = ['a', 'b', 'c', ...]
 items.filter(item => allowedIds.includes(item.id))
 ```
 
-**Correct (O(1) per check):**
+**適切（チェックごとに O(1)）:**
 
 ```typescript
 const allowedIds = new Set(['a', 'b', 'c', ...])

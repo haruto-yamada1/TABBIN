@@ -2,36 +2,36 @@ import { defineConfig } from 'vitest/config'
 import { WxtVitest } from 'wxt/testing'
 
 export default defineConfig({
+  optimizeDeps: {
+    exclude: ['lightningcss', 'fsevents'],
+  },
+
+  plugins: [WxtVitest()],
+
   test: {
-    mockReset: true,
-    restoreMocks: true,
     environment: 'node',
-    include: [
-      'entrypoints/**/*.test.ts',
-      'components/**/*.test.ts',
-      'components/**/*.test.tsx',
-      'features/**/*.test.ts',
-      'features/**/*.test.tsx',
-      'hooks/**/*.test.ts',
-      'hooks/**/*.test.tsx',
-      'lib/**/*.test.ts',
-      'lib/**/*.test.tsx',
-      'utils/**/*.test.ts',
-      'utils/**/*.test.tsx',
-    ],
     exclude: [
       '**/node_modules/**',
       '**/stories/**',
       '**/*.stories.ts',
       '.storybook/**',
     ],
+    include: [
+      'src/entrypoints/**/*.test.ts',
+      'src/components/**/*.test.ts',
+      'src/components/**/*.test.tsx',
+      'src/features/**/*.test.ts',
+      'src/features/**/*.test.tsx',
+      'src/hooks/**/*.test.ts',
+      'src/hooks/**/*.test.tsx',
+      'src/lib/**/*.test.ts',
+      'src/lib/**/*.test.tsx',
+      'src/utils/**/*.test.ts',
+      'src/utils/**/*.test.tsx',
+    ],
+    setupFiles: ['./src/test/setup-console.ts'],
     typecheck: {
       enabled: false,
     },
-  },
-
-  plugins: [WxtVitest()],
-  optimizeDeps: {
-    exclude: ['lightningcss', 'fsevents'],
   },
 })

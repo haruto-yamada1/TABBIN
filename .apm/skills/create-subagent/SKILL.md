@@ -1,25 +1,22 @@
 ---
 name: create-subagent
-description: >-
-  Create custom subagents for specialized AI tasks. Use when you want to create
-  a new type of subagent, set up task-specific agents, configure code reviewers,
-  debuggers, or domain-specific assistants with custom prompts.
+description: 専門タスク用の custom subagent を作成します。新しい subagent 種別、task-specific agent、code reviewer、debugger、domain-specific assistant の設定、custom prompt 作成時に使います。
 disable-model-invocation: true
 ---
-# Creating Custom Subagents
+# カスタム subagent の作成
 
-This skill guides you through creating custom subagents for Cursor. Subagents are specialized AI assistants that run in isolated contexts with custom system prompts.
+Cursor 用 custom subagent 作成の手順です。subagent は isolated context で custom system prompt 付きの specialized AI assistant として動作します。
 
-## When to Use Subagents
+## Subagent を使うタイミング
 
-Subagents help you:
-- **Preserve context** by isolating exploration from your main conversation
-- **Specialize behavior** with focused system prompts for specific domains
-- **Reuse configurations** across projects with user-level subagents
+subagent は次の用途に役立ちます:
+- **Context を保全** — exploration を main conversation から分離
+- **Behavior を specialize** — 特定 domain 向け focused system prompt
+- **Configuration を再利用** — user-level subagent を project 横断で使う
 
-### Inferring from Context
+### コンテキストからの推測
 
-If you have previous conversation context, infer the subagent's purpose and behavior from what was discussed. Create the subagent based on specialized tasks or workflows that emerged in the conversation.
+会話に context がある場合、議論内容から subagent の purpose と behavior を推測します。会話で出てきた specialized task や workflow に基づいて subagent を作成できます。
 
 ## Subagent Locations
 
@@ -28,15 +25,15 @@ If you have previous conversation context, infer the subagent's purpose and beha
 | `.cursor/agents/` | Current project | Higher |
 | `~/.cursor/agents/` | All your projects | Lower |
 
-When multiple subagents share the same name, the higher-priority location wins.
+同名 subagent が複数ある場合、優先度の高い location が勝ちます。
 
-**Project subagents** (`.cursor/agents/`): Ideal for codebase-specific agents. Check into version control to share with your team.
+**Project subagents**（`.cursor/agents/`）: codebase 固有 agent に最適。version control に commit して team と共有します。
 
-**User subagents** (`~/.cursor/agents/`): Personal agents available across all your projects.
+**User subagents**（`~/.cursor/agents/`）: すべての project で使える personal agent。
 
 ## Subagent File Format
 
-Create a `.md` file with YAML frontmatter and a markdown body (the system prompt):
+YAML frontmatter と markdown body（system prompt）付き `.md` file を作成します:
 
 ```markdown
 ---
@@ -52,12 +49,12 @@ specific, actionable feedback on quality, security, and best practices.
 
 | Field | Description |
 |-------|-------------|
-| `name` | Unique identifier (lowercase letters and hyphens only) |
-| `description` | When to delegate to this subagent (be specific!) |
+| `name` | 一意 identifier（小文字とハイフンのみ） |
+| `description` | この subagent に delegate するタイミング（具体的に！） |
 
-## Writing Effective Descriptions
+## 効果的な description の書き方
 
-The description is **critical** - the AI uses it to decide when to delegate.
+description は **critical** — AI が delegate タイミングを決めるために使います。
 
 ```yaml
 # ❌ Too vague
@@ -67,9 +64,9 @@ description: Helps with code
 description: Expert code review specialist. Proactively reviews code for quality, security, and maintainability. Use immediately after writing or modifying code.
 ```
 
-Include "use proactively" to encourage automatic delegation.
+自動 delegate を促す場合は "use proactively" を含めます。
 
-## Example Subagents
+## Subagent 例
 
 ### Code Reviewer
 
@@ -171,14 +168,14 @@ For each analysis:
 Always ensure queries are efficient and cost-effective.
 ```
 
-## Subagent Creation Workflow
+## Subagent 作成ワークフロー
 
-### Step 1: Decide the Scope
+### Step 1: Scope を決める
 
-- **Project-level** (`.cursor/agents/`): For codebase-specific agents shared with team
-- **User-level** (`~/.cursor/agents/`): For personal agents across all projects
+- **Project-level**（`.cursor/agents/`）: team と共有する codebase 固有 agent
+- **User-level**（`~/.cursor/agents/`）: すべての project 向け personal agent
 
-### Step 2: Create the File
+### Step 2: File を作成
 
 ```bash
 # For project-level
@@ -190,36 +187,36 @@ mkdir -p ~/.cursor/agents
 touch ~/.cursor/agents/my-agent.md
 ```
 
-### Step 3: Define Configuration
+### Step 3: Configuration を定義
 
-Write the frontmatter with the required fields (`name` and `description`).
+required field（`name` と `description`）付き frontmatter を書きます。
 
-### Step 4: Write the System Prompt
+### Step 4: System Prompt を書く
 
-The body becomes the system prompt. Be specific about:
-- What the agent should do when invoked
-- The workflow or process to follow
-- Output format and structure
-- Any constraints or guidelines
+body が system prompt になります。次を具体的に書きます:
+- invoke 時に agent が何をするか
+- 従う workflow または process
+- output format と structure
+- constraint や guideline
 
-### Step 5: Test the Agent
+### Step 5: Agent をテスト
 
-Ask the AI to use your new agent:
+AI に新 agent の使用を依頼します:
 
 ```
 Use the my-agent subagent to [task description]
 ```
 
-## Best Practices
+## ベストプラクティス
 
-1. **Design focused subagents**: Each should excel at one specific task
-2. **Write detailed descriptions**: Include trigger terms so the AI knows when to delegate
-3. **Check into version control**: Share project subagents with your team
-4. **Use proactive language**: Include "use proactively" in descriptions
+1. **Focused subagent を設計**: 各 agent は 1 つの specific task に特化
+2. **詳細な description を書く**: delegate タイミングが分かる trigger term を含める
+3. **Version control に commit**: project subagent を team と共有
+4. **Proactive な表現を使う**: description に "use proactively" を含める
 
-## Troubleshooting
+## トラブルシューティング
 
 ### Subagent Not Found
-- Ensure file is in `.cursor/agents/` or `~/.cursor/agents/`
-- Check file has `.md` extension
-- Verify YAML frontmatter syntax is valid
+- file が `.cursor/agents/` または `~/.cursor/agents/` にあることを確認
+- file が `.md` extension であることを確認
+- YAML frontmatter syntax が valid であることを確認

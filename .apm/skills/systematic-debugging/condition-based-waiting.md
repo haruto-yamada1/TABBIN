@@ -1,37 +1,37 @@
-# Condition-Based Waiting
+# 条件ベース待機
 
-## Overview
+## 概要
 
-Flaky tests often guess at timing with arbitrary delays. This creates race conditions where tests pass on fast machines but fail under load or in CI.
+flaky テストは任意 delay でタイミングを推測することが多い。高速マシンでは通り、負荷下や CI では失敗する race condition を生む。
 
-**Core principle:** Wait for the actual condition you care about, not a guess about how long it takes.
+**中核原則:** かかる時間の推測ではなく、**実際に気にする条件** を待つ。
 
-## When to Use
+## いつ使うか
 
 ```dot
 digraph when_to_use {
-    "Test uses setTimeout/sleep?" [shape=diamond];
-    "Testing timing behavior?" [shape=diamond];
-    "Document WHY timeout needed" [shape=box];
-    "Use condition-based waiting" [shape=box];
+    "setTimeout/sleep 使用?" [shape=diamond];
+    "タイミング挙動をテスト?" [shape=diamond];
+    "WHY timeout が必要か文書化" [shape=box];
+    "条件ベース待機を使う" [shape=box];
 
-    "Test uses setTimeout/sleep?" -> "Testing timing behavior?" [label="yes"];
-    "Testing timing behavior?" -> "Document WHY timeout needed" [label="yes"];
-    "Testing timing behavior?" -> "Use condition-based waiting" [label="no"];
+    "setTimeout/sleep 使用?" -> "タイミング挙動をテスト?" [label="yes"];
+    "タイミング挙動をテスト?" -> "WHY timeout が必要か文書化" [label="yes"];
+    "タイミング挙動をテスト?" -> "条件ベース待機を使う" [label="no"];
 }
 ```
 
-**Use when:**
-- Tests have arbitrary delays (`setTimeout`, `sleep`, `time.sleep()`)
-- Tests are flaky (pass sometimes, fail under load)
-- Tests timeout when run in parallel
-- Waiting for async operations to complete
+**使う場合:**
+- 任意 delay があるテスト（`setTimeout`、`sleep`、`time.sleep()`）
+- flaky テスト（時々通る、負荷下で失敗）
+- 並列実行で timeout
+- 非同期操作完了を待つ
 
-**Don't use when:**
-- Testing actual timing behavior (debounce, throttle intervals)
-- Always document WHY if using arbitrary timeout
+**使わない場合:**
+- 実際のタイミング挙動をテスト（debounce、throttle 間隔）
+- 任意 timeout を使うなら常に WHY を文書化
 
-## Core Pattern
+## コアパターン
 
 ```typescript
 // ❌ BEFORE: Guessing at timing
@@ -45,19 +45,19 @@ const result = getResult();
 expect(result).toBeDefined();
 ```
 
-## Quick Patterns
+## クイックパターン
 
-| Scenario | Pattern |
+| シナリオ | パターン |
 |----------|---------|
-| Wait for event | `waitFor(() => events.find(e => e.type === 'DONE'))` |
-| Wait for state | `waitFor(() => machine.state === 'ready')` |
-| Wait for count | `waitFor(() => items.length >= 5)` |
-| Wait for file | `waitFor(() => fs.existsSync(path))` |
-| Complex condition | `waitFor(() => obj.ready && obj.value > 10)` |
+| イベント待ち | `waitFor(() => events.find(e => e.type === 'DONE'))` |
+| state 待ち | `waitFor(() => machine.state === 'ready')` |
+| 件数待ち | `waitFor(() => items.length >= 5)` |
+| ファイル待ち | `waitFor(() => fs.existsSync(path))` |
+| 複合条件 | `waitFor(() => obj.ready && obj.value > 10)` |
 
-## Implementation
+## 実装
 
-Generic polling function:
+汎用ポーリング関数:
 ```typescript
 async function waitFor<T>(
   condition: () => T | undefined | null | false,
@@ -79,20 +79,20 @@ async function waitFor<T>(
 }
 ```
 
-See `condition-based-waiting-example.ts` in this directory for complete implementation with domain-specific helpers (`waitForEvent`, `waitForEventCount`, `waitForEventMatch`) from actual debugging session.
+完全実装とドメイン固有 helper（`waitForEvent`、`waitForEventCount`、`waitForEventMatch`）は、このディレクトリの `condition-based-waiting-example.ts` を参照。実際の debug セッション由来。
 
-## Common Mistakes
+## よくある間違い
 
-**❌ Polling too fast:** `setTimeout(check, 1)` - wastes CPU
-**✅ Fix:** Poll every 10ms
+**❌ ポーリングが速すぎ:** `setTimeout(check, 1)` — CPU 浪費
+**✅ 修正:** 10ms ごとにポーリング
 
-**❌ No timeout:** Loop forever if condition never met
-**✅ Fix:** Always include timeout with clear error
+**❌ timeout なし:** 条件が満たされなければ永久ループ
+**✅ 修正:** 常に明確なエラー付き timeout
 
-**❌ Stale data:** Cache state before loop
-**✅ Fix:** Call getter inside loop for fresh data
+**❌ 古いデータ:** ループ前に state をキャッシュ
+**✅ 修正:** ループ内で getter を呼び fresh データ
 
-## When Arbitrary Timeout IS Correct
+## 任意 timeout が正しい場合
 
 ```typescript
 // Tool ticks every 100ms - need 2 ticks to verify partial output
@@ -101,15 +101,15 @@ await new Promise(r => setTimeout(r, 200));   // Then: wait for timed behavior
 // 200ms = 2 ticks at 100ms intervals - documented and justified
 ```
 
-**Requirements:**
-1. First wait for triggering condition
-2. Based on known timing (not guessing)
-3. Comment explaining WHY
+**要件:**
+1. まずトリガー条件を待つ
+2. 既知タイミングに基づく（推測ではない）
+3. WHY を説明するコメント
 
-## Real-World Impact
+## 実世界への影響
 
-From debugging session (2025-10-03):
-- Fixed 15 flaky tests across 3 files
-- Pass rate: 60% → 100%
-- Execution time: 40% faster
-- No more race conditions
+debug セッションより（2025-10-03）:
+- 3 ファイル 15 flaky テストを修正
+- 通過率: 60% → 100%
+- 実行時間: 40% 短縮
+- race condition 解消

@@ -1,77 +1,75 @@
 ---
 name: create-hook
-description: >-
-  Create Cursor hooks. Use when you want to create a hook, write hooks.json, add
-  hook scripts, or automate behavior around agent events.
+description: Cursor hook を作成します。hook 作成、hooks.json 記述、hook script 追加、agent event 周辺の behavior 自動化時に使います。
 ---
-# Creating Cursor Hooks
+# Cursor hook の作成
 
-Create hooks when you want Cursor to run custom logic before or after agent events. Hooks are scripts or prompt-based checks that exchange JSON over stdin/stdout and can observe, block, modify, or follow up on behavior.
+agent event の前後に custom logic を実行したい場合に hook を作成します。hook は stdin/stdout で JSON をやり取りする script または prompt-based check で、behavior を observe、block、modify、follow up できます。
 
-When the user asks for a hook, don't stop at describing the format. Gather the missing requirements, then create or update the hook files directly.
+ユーザーが hook を依頼した場合、format の説明で止まらず、不足要件を収集し、hook file を直接 create または update します。
 
-## Gather Requirements
+## 要件の収集
 
-Before you write anything, determine:
+書き始める前に次を決めます:
 
-1. **Scope**: Should this be a project hook or a user hook?
-2. **Trigger**: Which event should run the hook?
-3. **Behavior**: Should it audit, deny/allow, rewrite input, inject context, or continue a workflow?
-4. **Implementation**: Should it be a command hook (script) or a prompt hook?
-5. **Filtering**: Does it need a matcher so it only runs for certain tools, commands, or subagent types?
-6. **Safety**: Should failures fail open or fail closed?
+1. **Scope**: project hook か user hook か
+2. **Trigger**: どの event で hook を実行するか
+3. **Behavior**: audit、deny/allow、input rewrite、context inject、workflow 継続のどれか
+4. **Implementation**: command hook（script）か prompt hook か
+5. **Filtering**: 特定 tool、command、subagent type のみに限定する matcher が必要か
+6. **Safety**: failure 時は fail open か fail closed か
 
-Infer these from the conversation when possible. Only ask for the missing pieces.
+会話から推測できる場合は推測し、不足分だけ尋ねます。
 
-## Choose the Right Location
+## 正しい Location の選択
 
-- **Project hooks**: `.cursor/hooks.json` and `.cursor/hooks/*`
-- **User hooks**: `~/.cursor/hooks.json` and `~/.cursor/hooks/*`
+- **Project hooks**: `.cursor/hooks.json` と `.cursor/hooks/*`
+- **User hooks**: `~/.cursor/hooks.json` と `~/.cursor/hooks/*`
 
-Path behavior matters:
+path の扱い:
 
-- **Project hooks** run from the project root, so use paths like `.cursor/hooks/my-hook.sh`
-- **User hooks** run from `~/.cursor/`, so use paths like `./hooks/my-hook.sh` or `hooks/my-hook.sh`
+- **Project hooks** は project root から実行 — `.cursor/hooks/my-hook.sh` のような path
+- **User hooks** は `~/.cursor/` から実行 — `./hooks/my-hook.sh` または `hooks/my-hook.sh`
 
-Prefer **project hooks** when the behavior should be shared with the repository and checked into version control.
+repository と共有し version control する behavior には **project hooks** を優先します。
 
-## Choose the Hook Event
+## Hook Event の選択
 
-Use the narrowest event that matches the user's goal.
+ユーザーの goal に最も narrow な event を選びます。
 
-### Common Agent events
+### よく使う Agent event
 
-- `sessionStart`, `sessionEnd`: set up or audit a session
-- `preToolUse`, `postToolUse`, `postToolUseFailure`: work across all tools
-- `subagentStart`, `subagentStop`: control or continue Task/subagent workflows
-- `beforeShellExecution`, `afterShellExecution`: gate or audit terminal commands
-- `beforeMCPExecution`, `afterMCPExecution`: gate or audit MCP tool calls
-- `beforeReadFile`, `afterFileEdit`: control file reads or post-process edits
-- `beforeSubmitPrompt`: validate prompts before they are sent
-- `preCompact`: observe context compaction
-- `stop`: handle agent completion
-- `afterAgentResponse`, `afterAgentThought`: track agent output or reasoning
+- `sessionStart`, `sessionEnd`: session の setup または audit
+- `preToolUse`, `postToolUse`, `postToolUseFailure`: すべての tool 横断
+- `subagentStart`, `subagentStop`: Task/subagent workflow の制御または継続
+- `beforeShellExecution`, `afterShellExecution`: terminal command の gate または audit
+- `beforeMCPExecution`, `afterMCPExecution`: MCP tool call の gate または audit
+- `beforeReadFile`, `afterFileEdit`: file read 制御または edit 後処理
+- `beforeSubmitPrompt`: prompt 送信前の validate
+- `preCompact`: context compaction の observe
+- `stop`: agent 完了の handle
+- `afterAgentResponse`, `afterAgentThought`: agent output または reasoning の track
 
-### Tab events
+### Tab event
 
-- `beforeTabFileRead`: control file access for inline completions
-- `afterTabFileEdit`: post-process edits made by Tab
+- `beforeTabFileRead`: inline completion 用 file access 制御
+- `afterTabFileEdit`: Tab による edit の後処理
 
-### Quick event chooser
+### Event 選択クイックガイド
 
-- **Block or approve shell commands** -> `beforeShellExecution`
-- **Audit shell output** -> `afterShellExecution`
-- **Format files after edits** -> `afterFileEdit`
-- **Block or rewrite a specific tool call** -> `preToolUse`
-- **Add follow-up context after a tool succeeds** -> `postToolUse`
-- **Control whether subagents can run** -> `subagentStart`
-- **Chain subagent loops** -> `subagentStop`
-- **Check prompts for secrets or policy violations** -> `beforeSubmitPrompt`
-- **Protect MCP calls** -> `beforeMCPExecution`
+- **shell command を block または approve** → `beforeShellExecution`
+- **shell output を audit** → `afterShellExecution`
+- **edit 後に file を format** → `afterFileEdit`
+- **特定 tool call を block または rewrite** → `preToolUse`
+- **tool 成功後に follow-up context を追加** → `postToolUse`
+- **subagent 実行可否を制御** → `subagentStart`
+- **subagent loop を chain** → `subagentStop`
+- **prompt の secret や policy 違反を check** → `beforeSubmitPrompt`
+- **MCP call を protect** → `beforeMCPExecution`
 
 ## Hooks File Format
 
-Create a `hooks.json` file with schema version 1:
+schema version 1 の `hooks.json` を作成:
 
 ```json
 {
@@ -86,47 +84,47 @@ Create a `hooks.json` file with schema version 1:
 }
 ```
 
-Each hook definition can include:
+各 hook definition に含められる項目:
 
-- `command`: shell command or script path
-- `type`: `"command"` or `"prompt"` (defaults to `"command"`)
-- `timeout`: timeout in seconds
-- `matcher`: filter for when the hook runs
-- `failClosed`: block the action when the hook crashes, times out, or returns invalid JSON
-- `loop_limit`: mainly for `stop` and `subagentStop` follow-up loops
+- `command`: shell command または script path
+- `type`: `"command"` または `"prompt"`（default: `"command"`）
+- `timeout`: timeout（秒）
+- `matcher`: hook 実行条件の filter
+- `failClosed`: hook crash、timeout、invalid JSON 時に action を block
+- `loop_limit`: 主に `stop` と `subagentStop` の follow-up loop 用
 
 ## Matchers
 
-Use matchers to avoid running the hook on every event.
+すべての event で hook を走らせないよう matcher を使います。
 
-- `preToolUse` / `postToolUse` / `postToolUseFailure`: match on tool type such as `Shell`, `Read`, `Write`, `Task`, or MCP tools in `MCP: ...` form
-- `subagentStart` / `subagentStop`: match on subagent type such as `generalPurpose`, `explore`, or `shell`
-- `beforeShellExecution` / `afterShellExecution`: match on the full shell command string
-- `beforeReadFile`: match on tool type such as `Read` or `TabRead`
-- `afterFileEdit`: match on tool type such as `Write` or `TabWrite`
-- `beforeSubmitPrompt`: matches the value `UserPromptSubmit`
+- `preToolUse` / `postToolUse` / `postToolUseFailure`: `Shell`、`Read`、`Write`、`Task`、または `MCP: ...` 形式の MCP tool など tool type で match
+- `subagentStart` / `subagentStop`: `generalPurpose`、`explore`、`shell` など subagent type で match
+- `beforeShellExecution` / `afterShellExecution`: 完全な shell command string で match
+- `beforeReadFile`: `Read` または `TabRead` など tool type で match
+- `afterFileEdit`: `Write` または `TabWrite` など tool type で match
+- `beforeSubmitPrompt`: 値 `UserPromptSubmit` に match
 
-Important matcher warning:
+matcher に関する重要な警告:
 
-- Matchers use JavaScript-style regular expressions, not POSIX/grep syntax
-- Do not use POSIX classes like `[[:space:]]`; use JavaScript equivalents like `\s`
-- If the matcher is at all tricky, start by getting the hook working without one or with a very simple matcher, then tighten it after the hook is confirmed to load and fire
+- matcher は POSIX/grep ではなく JavaScript-style regular expression
+- `[[:space:]]` など POSIX class は使わない。`\s` など JavaScript 相当を使う
+- matcher が tricky な場合、まず matcher なしまたは非常に単純な matcher で動作確認し、load と fire を確認してから絞る
 
-If the user wants a hook for only one risky command family, prefer script-side filtering for the first working version and add a matcher afterward only if it is simple and clearly correct.
+1 つの risky command family だけに限定したい場合、最初の動作版は script 側 filter を優先し、matcher は単純で明確に正しい場合のみ後から追加します。
 
 ## Command Hooks
 
-Command hooks are the default. They receive JSON on stdin and can return JSON on stdout.
+command hook が default。stdin で JSON を受け取り、stdout で JSON を返せます。
 
-Before using a command hook, verify that every executable it depends on will actually run in the hook environment:
+command hook を使う前に、依存する executable が hook environment で実際に動くか確認:
 
-- the script itself has a valid shebang and is executable
-- any helper binary it calls is already installed and on `$PATH`
-- if the script depends on tools like `jq`, `python3`, `node`, or repo-local CLIs, verify that explicitly before finishing
+- script 自体に valid shebang があり executable
+- 呼び出す helper binary が install 済みで `$PATH` 上にある
+- `jq`、`python3`、`node`、repo-local CLI など script が依存する tool を明示的に verify
 
-Do not assume a binary exists just because it is common on your machine.
+自分の machine に common だから存在すると仮定しない。
 
-### Minimal project-level example
+### 最小 project-level 例
 
 ```json
 {
@@ -161,17 +159,17 @@ echo '{ "permission": "allow" }'
 exit 0
 ```
 
-Important behavior:
+重要な behavior:
 
 - Exit code `0`: success
-- Exit code `2`: block the action, same as returning deny
-- Other non-zero exit codes: fail open by default unless `failClosed: true`
+- Exit code `2`: action を block（deny を返すのと同じ）
+- その他 non-zero exit code: `failClosed: true` でない限り fail open
 
-Always make hook scripts executable after creating them.
+hook script 作成後は必ず executable にします。
 
 ## Prompt Hooks
 
-Prompt hooks are useful when the policy is easier to describe than to script.
+policy を script より説明しやすい場合に prompt hook が有用です。
 
 ```json
 {
@@ -188,52 +186,52 @@ Prompt hooks are useful when the policy is easier to describe than to script.
 }
 ```
 
-Use prompt hooks for lightweight policy decisions. Prefer command hooks when the logic must be deterministic or when the user needs exact, auditable behavior.
+軽量 policy 判断には prompt hook。logic が deterministic である必要がある、または exact で auditable な behavior が必要な場合は command hook を優先します。
 
 ## Event Output Cheat Sheet
 
-Use the event's supported output fields only.
+その event がサポートする output field のみ返します。
 
-- `preToolUse`: can return `permission`, `user_message`, `agent_message`, and `updated_input`
-- `postToolUse`: can return `additional_context`; for MCP tools it can also return `updated_mcp_tool_output`
-- `subagentStart`: can return `permission` and `user_message`
-- `subagentStop`: can return `followup_message`
-- `beforeShellExecution` / `beforeMCPExecution`: can return `permission`, `user_message`, and `agent_message`
+- `preToolUse`: `permission`、`user_message`、`agent_message`、`updated_input` を返せる
+- `postToolUse`: `additional_context` を返せる。MCP tool では `updated_mcp_tool_output` も
+- `subagentStart`: `permission` と `user_message` を返せる
+- `subagentStop`: `followup_message` を返せる
+- `beforeShellExecution` / `beforeMCPExecution`: `permission`、`user_message`、`agent_message` を返せる
 
-When the user wants to rewrite a tool call, prefer `preToolUse`. When they want to gate only shell commands, prefer `beforeShellExecution`.
+tool call を rewrite したい場合は `preToolUse` を優先。shell command の gate のみなら `beforeShellExecution` を優先。
 
-## Implementation Workflow
+## 実装ワークフロー
 
-1. Pick the correct location and event
-2. Create or update the correct `hooks.json` file
-3. Start with no matcher or the simplest safe matcher
-4. Create the script under the matching hooks directory
-5. Read stdin JSON and implement the required behavior
-6. Make the script executable
-7. Verify any helper executables the script uses are installed and on `$PATH`
-8. Trigger the relevant action to test the hook
-9. Verify behavior in Cursor's **Hooks** settings tab or the **Hooks** output channel
+1. 正しい location と event を選ぶ
+2. 正しい `hooks.json` を create または update
+3. matcher なし、または最も単純で安全な matcher から始める
+4. 対応する hooks directory に script を作成
+5. stdin JSON を読み、必要な behavior を実装
+6. script を executable にする
+7. script が使う helper executable が install 済みで `$PATH` 上にあることを verify
+8. 関連 action を trigger して hook をテスト
+9. Cursor の **Hooks** settings tab または **Hooks** output channel で behavior を確認
 
-If you are editing an existing hooks setup, preserve unrelated hooks and only change the minimum necessary entries.
+既存 hooks setup を編集する場合、無関係な hook は保持し、必要最小限の entry だけ変更します。
 
-## Validation and Troubleshooting
+## Validation と Troubleshooting
 
-- Cursor watches `hooks.json` and reloads on save
-- If hooks still do not load, restart Cursor
-- Double-check relative paths:
-  - project hooks -> relative to the project root
-  - user hooks -> relative to `~/.cursor/`
-- If the hook does not appear to load at all, suspect matcher/config parsing first; remove the matcher and confirm the base hook works before tightening it
-- If the script runs external commands, verify each one is installed and reachable from the hook process with `command -v` or equivalent
-- If the hook should block on failure, set `failClosed: true`
-- If a command hook should intentionally block, returning exit code `2` is valid
+- Cursor は `hooks.json` を watch し save 時に reload
+- hook が load されない場合は Cursor を restart
+- relative path を再確認:
+  - project hooks → project root 相対
+  - user hooks → `~/.cursor/` 相対
+- hook が全く load されない場合、matcher/config parsing を疑う。matcher を外して base hook が動くことを確認してから絞る
+- script が external command を実行する場合、各 command が hook process から `command -v` 等で reachable か verify
+- failure 時に block すべきなら `failClosed: true`
+- command hook が意図的に block する場合、exit code `2` は valid
 
 ## Final Checklist
 
-- [ ] Used the correct hook location and path style
-- [ ] Chose the narrowest correct event
-- [ ] Added a matcher when appropriate
-- [ ] Returned only fields supported by that hook event
-- [ ] Made the script executable
-- [ ] Tested the hook by triggering the real event
-- [ ] Checked the Hooks tab or Hooks output channel if debugging was needed
+- [ ] 正しい hook location と path style を使った
+- [ ] 最も narrow な正しい event を選んだ
+- [ ] 適切な場合 matcher を追加した
+- [ ] その hook event がサポートする field のみ返した
+- [ ] script を executable にした
+- [ ] 実際の event を trigger して hook をテストした
+- [ ] debug が必要なら Hooks tab または Hooks output channel を確認した

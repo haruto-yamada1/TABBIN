@@ -1,15 +1,15 @@
 ---
-title: Extract to Memoized Components
+title: メモ化コンポーネントへ抽出
 impact: MEDIUM
-impactDescription: enables early returns
+impactDescription: 早期 return を可能にする
 tags: rerender, memo, useMemo, optimization
 ---
 
-## Extract to Memoized Components
+## メモ化コンポーネントへ抽出
 
-Extract expensive work into memoized components to enable early returns before computation.
+高コストな処理をメモ化コンポーネントに抽出し、計算前の早期 return を可能にします。
 
-**Incorrect (computes avatar even when loading):**
+**不適切（loading 中も avatar を計算）:**
 
 ```tsx
 function Profile({ user, loading }: Props) {
@@ -23,7 +23,7 @@ function Profile({ user, loading }: Props) {
 }
 ```
 
-**Correct (skips computation when loading):**
+**適切（loading 時は計算をスキップ）:**
 
 ```tsx
 const UserAvatar = memo(function UserAvatar({ user }: { user: User }) {
@@ -41,4 +41,4 @@ function Profile({ user, loading }: Props) {
 }
 ```
 
-**Note:** If your project has [React Compiler](https://react.dev/learn/react-compiler) enabled, manual memoization with `memo()` and `useMemo()` is not necessary. The compiler automatically optimizes re-renders.
+**注:** プロジェクトで [React Compiler](https://react.dev/learn/react-compiler) が有効な場合、`memo()` と `useMemo()` による手動メモ化は不要です。コンパイラが再レンダーを自動最適化します。

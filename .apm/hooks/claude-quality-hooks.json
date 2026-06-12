@@ -2,11 +2,99 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
-            "async": true,
-            "command": "./scripts/format-write.sh",
+            "command": "./scripts/harness-activity-track.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
+        "hooks": [
+          {
+            "command": "./scripts/harness-postflight-capture.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|apply_patch",
+        "hooks": [
+          {
+            "command": "./scripts/track-edit.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "command": "./scripts/rtk-usage-replace.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
+        "hooks": [
+          {
+            "command": "./scripts/publish-verify.sh",
+            "timeout": 300,
+            "type": "command"
+          },
+          {
+            "command": "./scripts/harness-safety-warn.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|apply_patch",
+        "hooks": [
+          {
+            "command": "./scripts/harness-config-protection.sh",
+            "timeout": 10,
+            "type": "command"
+          },
+          {
+            "command": "./scripts/harness-first-edit-gate.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "./scripts/harness-profile-gate.sh",
+            "timeout": 10,
+            "type": "command"
+          },
+          {
+            "command": "./scripts/harness-session-context.sh",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "command": "./scripts/harness-precompact.sh",
+            "timeout": 10,
             "type": "command"
           }
         ]
@@ -17,6 +105,7 @@
         "hooks": [
           {
             "command": "./scripts/stop-verify.sh",
+            "timeout": 300,
             "type": "command"
           }
         ]

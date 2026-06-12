@@ -1,18 +1,15 @@
 ---
-title: Use a List Virtualizer for Any List
+title: すべてのリストにリスト仮想化を使用
 impact: HIGH
-impactDescription: reduced memory, faster mounts
+impactDescription: メモリ削減、マウントの高速化
 tags: lists, performance, virtualization, scrollview
 ---
 
-## Use a List Virtualizer for Any List
+## すべてのリストにリスト仮想化を使用
 
-Use a list virtualizer like LegendList or FlashList instead of ScrollView with
-mapped children—even for short lists. Virtualizers only render visible items,
-reducing memory usage and mount time. ScrollView renders all children upfront,
-which gets expensive quickly.
+子要素を map した ScrollView の代わりに、LegendList や FlashList などのリスト仮想化を使用してください。短いリストでも同様です。仮想化は表示中のアイテムだけをレンダリングし、メモリ使用量とマウント時間を削減します。ScrollView はすべての子要素を事前にレンダリングするため、すぐにコストが高くなります。
 
-**Incorrect (ScrollView renders all items at once):**
+**不適切（ScrollView がすべてのアイテムを一度にレンダリング）:**
 
 ```tsx
 function Feed({ items }: { items: Item[] }) {
@@ -27,7 +24,7 @@ function Feed({ items }: { items: Item[] }) {
 // 50 items = 50 components mounted, even if only 10 visible
 ```
 
-**Correct (virtualizer renders only visible items):**
+**適切（仮想化は表示中のアイテムだけレンダリング）:**
 
 ```tsx
 import { LegendList } from '@legendapp/list'
@@ -46,7 +43,7 @@ function Feed({ items }: { items: Item[] }) {
 // Only ~10-15 visible items mounted at a time
 ```
 
-**Alternative (FlashList):**
+**代替案（FlashList）:**
 
 ```tsx
 import { FlashList } from '@shopify/flash-list'
@@ -63,5 +60,4 @@ function Feed({ items }: { items: Item[] }) {
 }
 ```
 
-Benefits apply to any screen with scrollable content—profiles, settings, feeds,
-search results. Default to virtualization.
+プロフィール、設定、フィード、検索結果など、スクロール可能なコンテンツを持つあらゆる画面にメリットがあります。デフォルトで仮想化を使用してください。

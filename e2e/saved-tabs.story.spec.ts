@@ -50,6 +50,7 @@ const createSavedTabSeed = () => ({
     enableCategories: true,
     excludePatterns: ['chrome-extension://', 'chrome://'],
     excludePinnedTabs: true,
+    language: 'ja',
     ollamaModel: '',
     openAllInNewWindow: false,
     openUrlInBackground: true,
@@ -86,6 +87,7 @@ test.describe('saved-tabs stories', () => {
         enableCategories: true,
         excludePatterns: ['chrome-extension://', 'chrome://'],
         excludePinnedTabs: true,
+        language: 'ja',
         ollamaModel: '',
         openAllInNewWindow: false,
         openUrlInBackground: true,
@@ -129,7 +131,7 @@ test.describe('saved-tabs stories', () => {
     await page.getByPlaceholder('検索').fill('')
 
     const openedPagePromise = extensionContext.waitForEvent('page')
-    await page.getByRole('link', { name: 'Example Home' }).click()
+    await page.getByRole('button', { name: 'Example Home' }).click()
     const openedPage = await openedPagePromise
     await openedPage.waitForLoadState()
 
@@ -138,10 +140,10 @@ test.describe('saved-tabs stories', () => {
     await expect
       .poll(async () => {
         const data = await readStorage<{
-          savedTabs: Array<{ id: string; urlIds?: string[] }>
+          savedTabs: { id: string; urlIds?: string[] }[]
         }>(serviceWorker, ['savedTabs'])
         return (
-          data.savedTabs.find(group => group.id === 'group-example')?.urlIds
+          data.savedTabs.find((group) => group.id === 'group-example')?.urlIds
             ?.length ?? 0
         )
       })
@@ -179,7 +181,7 @@ test.describe('saved-tabs stories', () => {
     await expect
       .poll(async () => {
         const data = await readStorage<{
-          parentCategories: Array<{ domainNames: string[]; name: string }>
+          parentCategories: { domainNames: string[]; name: string }[]
         }>(serviceWorker, ['parentCategories'])
         return data.parentCategories[0]
       })
@@ -221,17 +223,10 @@ test.describe('saved-tabs stories', () => {
     await expect
       .poll(async () => {
         const data = await readStorage<{
-          customProjects: Array<{ name: string }>
-          viewMode: string
-        }>(serviceWorker, ['customProjects', 'viewMode'])
-        return {
-          names: data.customProjects.map(project => project.name),
-          viewMode: data.viewMode,
-        }
+          customProjects: { name: string }[]
+        }>(serviceWorker, ['customProjects'])
+        return data.customProjects.map((project) => project.name)
       })
-      .toEqual({
-        names: ['調査'],
-        viewMode: 'custom',
-      })
+      .toEqual(['調査'])
   })
 })

@@ -1,8 +1,8 @@
 ---
-description: Check code changes against the TABBIN repository style.
+description: TABBIN リポジトリのスタイルに照らしてコード変更を確認する。
 ---
 
-# Code Style Review
+# コードスタイルレビュー
 
 TABBIN の既存コードと `AGENTS.md` のリポジトリガイドラインを基準に、
 現在の変更差分を確認してください。
@@ -10,7 +10,7 @@ TABBIN の既存コードと `AGENTS.md` のリポジトリガイドラインを
 ## 確認観点
 
 - TypeScript と React の既存パターンに沿っているか。
-- Biome の設定に合う import、命名、整形になっているか。
+- Oxlint / oxfmt の設定に合う import、命名、整形になっているか。
 - 不要な抽象化、重複、広すぎる変更が入っていないか。
 - テストが変更範囲に対して十分か。
 

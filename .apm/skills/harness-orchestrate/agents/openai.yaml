@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Orchestrate"
+  short_description: "ハーネス全体の入口として TABBIN の複雑な作業を管理します"
+  default_prompt: "TABBIN の Harness Orchestrator として、必要なら run を開始し、Planner / Generator / Evaluator / Optimizer の流れを管理してください。"

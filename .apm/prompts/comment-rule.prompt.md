@@ -1,8 +1,8 @@
 ---
-description: Review whether code comments are useful and necessary.
+description: コードコメントが有用かつ必要かを確認する。
 ---
 
-# Comment Review
+# コメントレビュー
 
 現在の変更差分に含まれるコメントを確認してください。
 

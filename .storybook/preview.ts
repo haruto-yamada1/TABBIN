@@ -1,10 +1,14 @@
-import '../assets/global.css'
+/* eslint-disable import/no-unassigned-import */
 import type { Preview } from '@storybook/react'
+
 import {
   previewDecorators,
   previewGlobalTypes,
   previewParameters,
-} from '../lib/storybook/preview'
+} from '../src/lib/storybook/preview'
+
+// @ts-ignore - global.css import without types
+import '../src/assets/global.css'
 
 export default {
   decorators: previewDecorators,

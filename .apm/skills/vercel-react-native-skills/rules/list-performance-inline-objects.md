@@ -1,17 +1,15 @@
 ---
-title: Avoid Inline Objects in renderItem
+title: renderItem 内のインラインオブジェクトを避ける
 impact: HIGH
-impactDescription: prevents unnecessary re-renders of memoized list items
+impactDescription: メモ化リストアイテムの不要な再レンダーを防ぐ
 tags: lists, performance, flatlist, virtualization, memo
 ---
 
-## Avoid Inline Objects in renderItem
+## renderItem 内のインラインオブジェクトを避ける
 
-Don't create new objects inside `renderItem` to pass as props. Inline objects
-create new references on every render, breaking memoization. Pass primitive
-values directly from `item` instead.
+props として渡す新しいオブジェクトを `renderItem` 内で作成しないでください。インラインオブジェクトはレンダーごとに新しい参照を作り、メモ化を壊します。代わりに `item` からプリミティブ値を直接渡します。
 
-**Incorrect (inline object breaks memoization):**
+**不適切（インラインオブジェクトがメモ化を壊す）:**
 
 ```tsx
 function UserList({ users }: { users: User[] }) {
@@ -29,7 +27,7 @@ function UserList({ users }: { users: User[] }) {
 }
 ```
 
-**Incorrect (inline style object):**
+**不適切（インライン style オブジェクト）:**
 
 ```tsx
 renderItem={({ item }) => (
@@ -41,7 +39,7 @@ renderItem={({ item }) => (
 )}
 ```
 
-**Correct (pass item directly or primitives):**
+**適切（item を直接またはプリミティブを渡す）:**
 
 ```tsx
 function UserList({ users }: { users: User[] }) {
@@ -57,7 +55,7 @@ function UserList({ users }: { users: User[] }) {
 }
 ```
 
-**Correct (pass primitives, derive inside child):**
+**適切（プリミティブを渡し、子で派生）:**
 
 ```tsx
 renderItem={({ item }) => (
@@ -75,7 +73,7 @@ const UserRow = memo(function UserRow({ id, name, isActive }: Props) {
 })
 ```
 
-**Correct (hoist static styles in module scope):**
+**適切（静的スタイルをモジュールスコープに巻き上げ）:**
 
 ```tsx
 const activeStyle = { backgroundColor: 'green' }
@@ -90,8 +88,6 @@ renderItem={({ item }) => (
 )}
 ```
 
-Passing primitives or stable references allows `memo()` to skip re-renders when
-the actual values haven't changed.
+プリミティブまたは安定した参照を渡すことで、実際の値が変わっていない場合 `memo()` が再レンダーをスキップできます。
 
-**Note:** If you have the React Compiler enabled, it handles memoization
-automatically and these manual optimizations become less critical.
+**注:** React Compiler が有効な場合、メモ化を自動処理するため、これらの手動最適化は重要性が下がります。

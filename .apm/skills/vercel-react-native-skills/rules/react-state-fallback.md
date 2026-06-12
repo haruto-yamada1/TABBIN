@@ -1,18 +1,15 @@
 ---
-title: Use fallback state instead of initialState
+title: initialState の代わりに fallback state を使用
 impact: MEDIUM
-impactDescription: reactive fallbacks without syncing
+impactDescription: 同期なしでリアクティブなフォールバック
 tags: state, hooks, derived-state, props, initialState
 ---
 
-## Use fallback state instead of initialState
+## initialState の代わりに fallback state を使用
 
-Use `undefined` as initial state and nullish coalescing (`??`) to fall back to
-parent or server values. State represents user intent only—`undefined` means
-"user hasn't chosen yet." This enables reactive fallbacks that update when the
-source changes, not just on initial render.
+初期 state に `undefined` を使い、nullish coalescing（`??`）で親またはサーバー値にフォールバックします。state はユーザー意図のみを表し、`undefined` は「ユーザーがまだ選択していない」意味です。初期レンダーだけでなく、ソース変更時にも更新されるリアクティブなフォールバックが可能になります。
 
-**Incorrect (syncs state, loses reactivity):**
+**不適切（state を同期し、リアクティビティを失う）:**
 
 ```tsx
 type Props = { fallbackEnabled: boolean }
@@ -26,7 +23,7 @@ function Toggle({ fallbackEnabled }: Props) {
 }
 ```
 
-**Correct (state is user intent, reactive fallback):**
+**適切（state はユーザー意図、リアクティブなフォールバック）:**
 
 ```tsx
 type Props = { fallbackEnabled: boolean }
@@ -42,7 +39,7 @@ function Toggle({ fallbackEnabled }: Props) {
 }
 ```
 
-**With server data:**
+**サーバーデータ付き:**
 
 ```tsx
 function ProfileForm({ data }: { data: User }) {

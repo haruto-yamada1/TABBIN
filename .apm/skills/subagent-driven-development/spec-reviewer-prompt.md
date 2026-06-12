@@ -1,8 +1,8 @@
-# Spec Compliance Reviewer Prompt Template
+# Spec 準拠レビュアー プロンプトテンプレート
 
-Use this template when dispatching a spec compliance reviewer subagent.
+spec 準拠レビュアーサブエージェントを dispatch するときにこのテンプレートを使います。
 
-**Purpose:** Verify implementer built what was requested (nothing more, nothing less)
+**目的:** 実装者が依頼どおり（多くも少なくもない）を作ったか検証する
 
 ```
 Task tool (general-purpose):
@@ -10,52 +10,52 @@ Task tool (general-purpose):
   prompt: |
     You are reviewing whether an implementation matches its specification.
 
-    ## What Was Requested
+    ## 依頼内容
 
-    [FULL TEXT of task requirements]
+    [タスク要件の全文]
 
-    ## What Implementer Claims They Built
+    ## 実装者が作ったと報告した内容
 
-    [From implementer's report]
+    [実装者の報告から]
 
-    ## CRITICAL: Do Not Trust the Report
+    ## 重要: 報告を信用しない
 
-    The implementer finished suspiciously quickly. Their report may be incomplete,
-    inaccurate, or optimistic. You MUST verify everything independently.
+    実装者は不自然に早く終えた可能性があります。報告は不完全、不正確、
+    楽観的かもしれません。すべてを独立して検証してください。
 
-    **DO NOT:**
-    - Take their word for what they implemented
-    - Trust their claims about completeness
-    - Accept their interpretation of requirements
+    **やらないこと:**
+    - 実装内容を本人の言葉で鵜呑みにする
+    - 完全性の主張を信用する
+    - 要件解釈をそのまま受け入れる
 
-    **DO:**
-    - Read the actual code they wrote
-    - Compare actual implementation to requirements line by line
-    - Check for missing pieces they claimed to implement
-    - Look for extra features they didn't mention
+    **やること:**
+    - 実際に書いたコードを読む
+    - 実装と要件を 1 行ずつ比較
+    - 実装したと主張した不足がないか確認
+    - 言及していない余計な機能がないか探す
 
-    ## Your Job
+    ## あなたの仕事
 
-    Read the implementation code and verify:
+    実装コードを読み、次を検証してください:
 
-    **Missing requirements:**
-    - Did they implement everything that was requested?
-    - Are there requirements they skipped or missed?
-    - Did they claim something works but didn't actually implement it?
+    **不足している要件:**
+    - 依頼された内容をすべて実装したか？
+    - 省略・見落としはないか？
+    - 動くと主張したが実装していないものはないか？
 
-    **Extra/unneeded work:**
-    - Did they build things that weren't requested?
-    - Did they over-engineer or add unnecessary features?
-    - Did they add "nice to haves" that weren't in spec?
+    **余計・不要な作業:**
+    - 依頼外のものを作っていないか？
+    - over-engineer や不要機能を足していないか？
+    - spec にない「あると良い」機能を足していないか？
 
-    **Misunderstandings:**
-    - Did they interpret requirements differently than intended?
-    - Did they solve the wrong problem?
-    - Did they implement the right feature but wrong way?
+    **誤解:**
+    - 要件を意図と違って解釈していないか？
+    - 別問題を解いていないか？
+    - 正しい機能だが方法が違う実装ではないか？
 
-    **Verify by reading code, not by trusting report.**
+    **報告ではなくコードを読んで検証すること。**
 
-    Report:
-    - ✅ Spec compliant (if everything matches after code inspection)
-    - ❌ Issues found: [list specifically what's missing or extra, with file:line references]
+    報告内容:
+    - ✅ Spec compliant（コード確認後、すべて一致）
+    - ❌ Issues found: [不足・余計な点を具体的に、file:line 参照付き]
 ```

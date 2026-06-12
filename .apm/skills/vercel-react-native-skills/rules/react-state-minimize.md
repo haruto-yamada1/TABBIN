@@ -1,15 +1,15 @@
 ---
-title: Minimize State Variables and Derive Values
+title: state 変数を最小化し値を派生
 impact: MEDIUM
-impactDescription: fewer re-renders, less state drift
+impactDescription: 再レンダー削減、state のずれ低減
 tags: state, derived-state, hooks, optimization
 ---
 
-## Minimize State Variables and Derive Values
+## state 変数を最小化し値を派生
 
-Use the fewest state variables possible. If a value can be computed from existing state or props, derive it during render instead of storing it in state. Redundant state causes unnecessary re-renders and can drift out of sync.
+可能な限り state 変数を少なくします。既存の state や props から計算できる値は state に保存せず、レンダー中に派生させます。冗長な state は不要な再レンダーを引き起こし、同期がずれる可能性があります。
 
-**Incorrect (redundant state):**
+**不適切（冗長な state）:**
 
 ```tsx
 function Cart({ items }: { items: Item[] }) {
@@ -30,7 +30,7 @@ function Cart({ items }: { items: Item[] }) {
 }
 ```
 
-**Correct (derived values):**
+**適切（派生値）:**
 
 ```tsx
 function Cart({ items }: { items: Item[] }) {
@@ -46,7 +46,7 @@ function Cart({ items }: { items: Item[] }) {
 }
 ```
 
-**Another example:**
+**別の例:**
 
 ```tsx
 // Incorrect: storing both firstName, lastName, AND fullName
@@ -60,6 +60,6 @@ const [lastName, setLastName] = useState('')
 const fullName = `${firstName} ${lastName}`
 ```
 
-State should be the minimal source of truth. Everything else is derived.
+state は最小限の source of truth であるべきです。それ以外はすべて派生します。
 
-Reference: [Choosing the State Structure](https://react.dev/learn/choosing-the-state-structure)
+参考: [Choosing the State Structure](https://react.dev/learn/choosing-the-state-structure)

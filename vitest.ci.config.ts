@@ -1,10 +1,31 @@
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+
 import { defineConfig } from 'vitest/config'
 
-const dirname = fileURLToPath(new URL('.', import.meta.url))
+const dirname = import.meta.dirname
+
+const alias = {
+  '@': path.resolve(dirname, './src'),
+}
+
+const sharedExclude = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/e2e/**',
+  '**/*.spec.ts',
+  '**/*.spec.tsx',
+  'tests/**',
+  'tests-examples/**',
+  'storybook-static/**',
+  '**/.{idea,git,cache,output,temp}/**',
+]
+
+const sharedSetupFiles = ['./src/test/setup-console.ts']
 
 export default defineConfig({
+  resolve: {
+    alias,
+  },
   test: {
     coverage: {
       exclude: [
@@ -19,36 +40,59 @@ export default defineConfig({
         'lib/storybook/**',
       ],
     },
-    environment: 'jsdom',
-    include: [
-      'entrypoints/**/*.test.ts',
-      'entrypoints/**/*.test.tsx',
-      'components/**/*.test.ts',
-      'components/**/*.test.tsx',
-      'features/**/*.test.ts',
-      'features/**/*.test.tsx',
-      'hooks/**/*.test.ts',
-      'hooks/**/*.test.tsx',
-      'lib/**/*.test.ts',
-      'lib/**/*.test.tsx',
-      'utils/**/*.test.ts',
-      'utils/**/*.test.tsx',
+    pool: 'threads',
+    isolate: false,
+    testTimeout: 15000,
+    projects: [
+      {
+        resolve: {
+          alias,
+        },
+        test: {
+          name: 'dom',
+          environment: 'happy-dom',
+          setupFiles: sharedSetupFiles,
+          exclude: sharedExclude,
+          include: [
+            'src/**/*.test.tsx',
+            'src/components/**/*.test.ts',
+            'src/entrypoints/**/*.test.ts',
+            'src/features/saved-tabs/app/**/*.test.ts',
+            'src/features/saved-tabs/lib/scroll-controls.test.ts',
+            'src/features/saved-tabs/shared/services/modeSyncService.test.ts',
+            'src/features/options/ImportFileDialog.test.ts',
+            'src/features/ai-chat/hooks/useSharedAiChatHistory.test.ts',
+            'src/lib/storybook/browser-mocks.test.ts',
+          ],
+        },
+      },
+      {
+        resolve: {
+          alias,
+        },
+        test: {
+          name: 'node',
+          environment: 'node',
+          setupFiles: sharedSetupFiles,
+          exclude: [
+            ...sharedExclude,
+            'src/features/saved-tabs/lib/scroll-controls.test.ts',
+            'src/features/saved-tabs/app/**/*.test.ts',
+            'src/features/saved-tabs/shared/services/modeSyncService.test.ts',
+            'src/features/options/ImportFileDialog.test.ts',
+            'src/features/ai-chat/hooks/useSharedAiChatHistory.test.ts',
+            'src/lib/storybook/browser-mocks.test.ts',
+          ],
+          include: [
+            'src/lib/**/*.test.ts',
+            'src/utils/**/*.test.ts',
+            'src/constants/**/*.test.ts',
+            'src/features/**/lib/**/*.test.ts',
+            'src/features/i18n/lib/**/*.test.ts',
+            'src/features/analytics/**/*.test.ts',
+          ],
+        },
+      },
     ],
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/e2e/**',
-      '**/*.spec.ts',
-      '**/*.spec.tsx',
-      'tests/**',
-      'tests-examples/**',
-      'storybook-static/**',
-      '**/.{idea,git,cache,output,temp}/**',
-    ],
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(dirname, './'),
-    },
   },
 })

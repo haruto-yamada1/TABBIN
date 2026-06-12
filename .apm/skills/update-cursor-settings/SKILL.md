@@ -1,16 +1,13 @@
 ---
 name: update-cursor-settings
-description: >-
-  Modify Cursor/VSCode user settings in settings.json. Use when you want to
-  change editor settings, preferences, configuration, themes, font size, tab
-  size, format on save, auto save, keybindings, or any settings.json values.
+description: Cursor/VSCode の user settings（settings.json）を変更します。editor 設定、preferences、configuration、theme、font size、tab size、format on save、auto save、keybinding、その他 settings.json の値を変更したいときに使います。
 metadata:
   surfaces:
     - ide
 ---
-# Updating Cursor Settings
+# Cursor 設定の更新
 
-This skill guides you through modifying Cursor/VSCode user settings. Use this when you want to change editor settings, preferences, configuration, themes, keybindings, or any `settings.json` values.
+Cursor/VSCode user settings 変更の手順です。editor 設定、preferences、configuration、theme、keybinding、その他 `settings.json` の値を変更するときに使います。
 
 ## Settings File Location
 
@@ -20,15 +17,15 @@ This skill guides you through modifying Cursor/VSCode user settings. Use this wh
 | Linux | ~/.config/Cursor/User/settings.json |
 | Windows | %APPDATA%\Cursor\User\settings.json |
 
-## Before Modifying Settings
+## 変更前の確認
 
-1. **Read the existing settings file** to understand current configuration
-2. **Preserve existing settings** - only add/modify what the user requested
-3. **Validate JSON syntax** before writing to avoid breaking the editor
+1. **既存 settings file を読む** — 現在の configuration を把握
+2. **既存 settings を保持** — ユーザーが依頼した項目だけ add/modify
+3. **JSON syntax を validate** — editor を壊さないよう書き込み前に確認
 
-## Modifying Settings
+## Settings の変更
 
-### Step 1: Read Current Settings
+### Step 1: 現在の Settings を読む
 
 ```typescript
 // Read the settings file first
@@ -36,26 +33,26 @@ const settingsPath = "~/Library/Application Support/Cursor/User/settings.json";
 // Use the Read tool to get current contents
 ```
 
-### Step 2: Identify the Setting to Change
+### Step 2: 変更する Setting を特定
 
-Common setting categories:
+よくある setting カテゴリ:
 - **Editor**: `editor.fontSize`, `editor.tabSize`, `editor.wordWrap`, `editor.formatOnSave`
 - **Workbench**: `workbench.colorTheme`, `workbench.iconTheme`, `workbench.sideBar.location`
 - **Files**: `files.autoSave`, `files.exclude`, `files.associations`
 - **Terminal**: `terminal.integrated.fontSize`, `terminal.integrated.shell.*`
-- **Cursor-specific**: Settings prefixed with `cursor.` or `aipopup.`
+- **Cursor-specific**: `cursor.` または `aipopup.` で始まる setting
 
-### Step 3: Update the Setting
+### Step 3: Setting を更新
 
-When modifying settings.json:
-1. Parse the existing JSON (handle comments - VSCode settings support JSON with comments)
-2. Add or update the requested setting
-3. Preserve all other existing settings
-4. Write back with proper formatting (2-space indentation)
+settings.json 変更時:
+1. 既存 JSON を parse（comment 対応 — VSCode settings は JSON with comments）
+2. 依頼された setting を add または update
+3. 他の既存 setting はすべて保持
+4. 適切な formatting（2-space indent）で書き戻す
 
 ### Example: Changing Font Size
 
-If user says "make the font bigger":
+「font を大きくして」と言われた場合:
 
 ```json
 {
@@ -65,7 +62,7 @@ If user says "make the font bigger":
 
 ### Example: Enabling Format on Save
 
-If user says "format my code when I save":
+「save 時に format して」と言われた場合:
 
 ```json
 {
@@ -75,7 +72,7 @@ If user says "format my code when I save":
 
 ### Example: Changing Theme
 
-If user says "use dark theme" or "change my theme":
+「dark theme にして」「theme を変えて」と言われた場合:
 
 ```json
 {
@@ -83,21 +80,21 @@ If user says "use dark theme" or "change my theme":
 }
 ```
 
-## Important Notes
+## 重要な注意点
 
-1. **JSON with Comments**: VSCode/Cursor settings.json supports comments (`//` and `/* */`). When reading, be aware comments may exist. When writing, preserve comments if possible.
+1. **JSON with Comments**: VSCode/Cursor settings.json は comment（`//` と `/* */`）をサポートします。読み取り時は comment がある可能性に注意。書き込み時は可能なら comment を保持します。
 
-2. **Restart May Be Required**: Some settings take effect immediately, others require reloading the window or restarting Cursor. Inform the user if a restart is needed.
+2. **Restart が必要な場合あり**: 一部 setting は即時反映、他は window reload または Cursor restart が必要です。restart が必要ならユーザーに伝えます。
 
-3. **Backup**: For significant changes, consider mentioning the user can undo via Ctrl/Cmd+Z in the settings file or by reverting git changes if tracked.
+3. **Backup**: 大きな変更の場合、settings file で Ctrl/Cmd+Z、または git で tracked なら revert できることを伝えてもよいです。
 
 4. **Workspace vs User Settings**:
-   - User settings (what this skill covers): Apply globally to all projects
-   - Workspace settings (`.vscode/settings.json`): Apply only to the current project
+   - User settings（この skill の対象）: すべての project に global 適用
+   - Workspace settings（`.vscode/settings.json`）: 現在の project のみ適用
 
-5. **Commit Attribution**: When the user asks about commit attribution, clarify whether they want to edit the **CLI agent** or the **IDE agent**. For the CLI agent, modify `~/.cursor/cli-config.json`. For the IDE agent, it is controlled from the UI at **Cursor Settings > Agent > Attribution** (not settings.json).
+5. **Commit Attribution**: commit attribution について聞かれた場合、**CLI agent** と **IDE agent** のどちらかを確認します。CLI agent の場合は `~/.cursor/cli-config.json` を変更。IDE agent は **Cursor Settings > Agent > Attribution**（settings.json ではない）から制御します。
 
-## Common User Requests → Settings
+## よくある依頼 → Settings
 
 | User Request | Setting |
 |--------------|---------|
@@ -113,10 +110,10 @@ If user says "use dark theme" or "change my theme":
 | "cursor style" | `editor.cursorStyle` |
 | "smooth scrolling" | `editor.smoothScrolling` |
 
-## Workflow
+## ワークフロー
 
-1. Read ~/Library/Application Support/Cursor/User/settings.json
-2. Parse the JSON content
-3. Add/modify the requested setting(s)
-4. Write the updated JSON back to the file
-5. Inform the user the setting has been changed and whether a reload is needed
+1. ~/Library/Application Support/Cursor/User/settings.json を読む
+2. JSON content を parse
+3. 依頼された setting を add/modify
+4. 更新した JSON を file に書き戻す
+5. setting が変更されたこと、reload が必要かどうかをユーザーに伝える

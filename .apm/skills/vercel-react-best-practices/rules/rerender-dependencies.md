@@ -1,15 +1,15 @@
 ---
-title: Narrow Effect Dependencies
+title: Effect 依存関係を絞り込む
 impact: LOW
-impactDescription: minimizes effect re-runs
+impactDescription: effect の再実行を最小化
 tags: rerender, useEffect, dependencies, optimization
 ---
 
-## Narrow Effect Dependencies
+## Effect 依存関係を絞り込む
 
-Specify primitive dependencies instead of objects to minimize effect re-runs.
+オブジェクトではなくプリミティブな依存関係を指定し、effect の再実行を最小化します。
 
-**Incorrect (re-runs on any user field change):**
+**不適切（user の任意フィールド変更で再実行）:**
 
 ```tsx
 useEffect(() => {
@@ -17,7 +17,7 @@ useEffect(() => {
 }, [user])
 ```
 
-**Correct (re-runs only when id changes):**
+**適切（id 変更時のみ再実行）:**
 
 ```tsx
 useEffect(() => {
@@ -25,7 +25,7 @@ useEffect(() => {
 }, [user.id])
 ```
 
-**For derived state, compute outside effect:**
+**派生 state は effect の外で計算:**
 
 ```tsx
 // Incorrect: runs on width=767, 766, 765...

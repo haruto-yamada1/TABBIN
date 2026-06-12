@@ -1,4 +1,0 @@
-interface:
-  display_name: "マルチエージェント・オーケストレーター"
-  short_description: "Codex CLI向けの階層型マルチエージェント実行"
-  default_prompt: "$multi-agent-orchestrator を使って、このリポジトリのタスクを Supervisor/Reviewer/Worker で計画・実装・レビューしてください。"

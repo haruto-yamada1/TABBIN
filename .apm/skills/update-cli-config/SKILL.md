@@ -1,86 +1,82 @@
 ---
 name: update-cli-config
-description: >-
-  View and modify Cursor CLI configuration settings in
-  ~/.cursor/cli-config.json. Use when the user wants to change CLI settings,
-  configure permissions, switch approval mode, enable vim mode, toggle display
-  options, configure sandbox, or manage any CLI preferences.
+description: Cursor CLI の configuration（~/.cursor/cli-config.json）を表示・変更します。CLI setting 変更、permission 設定、approval mode 切替、vim mode 有効化、display option 切替、sandbox 設定、その他 CLI preference 管理時に使います。
 metadata:
   surfaces:
     - cli
 ---
-# Cursor CLI Configuration
+# Cursor CLI 設定
 
-This skill explains how to view and modify Cursor CLI settings stored in `~/.cursor/cli-config.json`.
+`~/.cursor/cli-config.json` に保存される Cursor CLI setting の表示・変更手順です。
 
 ## Config File Location
 
-The config file is `~/.cursor/cli-config.json`.
+config file は `~/.cursor/cli-config.json` です。
 
-Projects can layer overrides via `.cursor/cli.json` files. The CLI walks from the git root to the current working directory and merges each `.cursor/cli.json` it finds (deeper files take precedence). Project overrides only affect the current session; they are not written back to the home config.
+project は `.cursor/cli.json` で override を layer できます。CLI は git root から current working directory まで walk し、見つかった各 `.cursor/cli.json` を merge します（深い file が優先）。project override は現在の session にのみ影響し、home config には書き戻されません。
 
-## How to Modify
+## 変更方法
 
-Read `~/.cursor/cli-config.json`, apply changes, and write it back. The file is standard JSON. Changes take effect after restarting the CLI.
+`~/.cursor/cli-config.json` を読み、変更を適用し、書き戻します。file は standard JSON です。変更は CLI restart 後に有効になります。
 
 ## Available Settings
 
 ### `permissions` (required)
-Tool permission rules. Each entry is a string pattern.
-- `allow`: string[] — patterns for allowed tool calls (e.g. `"Shell(**)"`, `"Mcp(server-name, tool-name)"`)
-- `deny`: string[] — patterns for denied tool calls
+tool permission rule。各 entry は string pattern。
+- `allow`: string[] — 許可する tool call の pattern（例: `"Shell(**)"`, `"Mcp(server-name, tool-name)"`）
+- `deny`: string[] — 拒否する tool call の pattern
 
 ### `editor`
-- `vimMode`: boolean — enable vim keybindings in the CLI input
-- `defaultBehavior`: `"ide"` | `"agent"` — default behavior mode
+- `vimMode`: boolean — CLI input で vim keybinding を有効化
+- `defaultBehavior`: `"ide"` | `"agent"` — 既定 behavior mode
 
 ### `display` (optional)
-- `showLineNumbers`: boolean (default: false) — show line numbers in code output
-- `showThinkingBlocks`: boolean (default: false) — show model thinking/reasoning blocks
-- `showStatusIndicators`: boolean (default: false) — show status indicators in the UI
+- `showLineNumbers`: boolean (default: false) — code output に line number を表示
+- `showThinkingBlocks`: boolean (default: false) — model thinking/reasoning block を表示
+- `showStatusIndicators`: boolean (default: false) — UI に status indicator を表示
 
 ### `channel` (optional)
-Release channel: `"prod"` | `"staging"` | `"lab"` | `"static"`
+release channel: `"prod"` | `"staging"` | `"lab"` | `"static"`
 
 ### `maxMode` (optional)
-boolean (default: false) — enable max mode for higher-quality model responses
+boolean (default: false) — 高品質 model response のため max mode を有効化
 
 ### `approvalMode` (optional)
-Controls tool approval behavior:
-- `"allowlist"` (default) — require approval for tools not in the allow list
-- `"unrestricted"` — auto-approve all tool calls (yolo mode)
+tool approval behavior を制御:
+- `"allowlist"` (default) — allow list にない tool は approval 必須
+- `"unrestricted"` — すべての tool call を auto-approve（yolo mode）
 
 ### `sandbox` (optional)
-Sandbox execution environment settings:
+sandbox 実行環境 setting:
 - `mode`: `"disabled"` | `"enabled"` (default: `"disabled"`)
-- `networkAccess`: `"user_config_only"` | `"user_config_with_defaults"` | `"allow_all"` — controls network access from sandbox
-- `networkAllowlist`: string[] — domains the sandbox is allowed to reach
+- `networkAccess`: `"user_config_only"` | `"user_config_with_defaults"` | `"allow_all"` — sandbox からの network access を制御
+- `networkAllowlist`: string[] — sandbox が到達可能な domain
 
 ### `network` (optional)
-- `useHttp1ForAgent`: boolean (default: false) — use HTTP/1.1 instead of HTTP/2 for agent connections (enables SSE-based streaming)
+- `useHttp1ForAgent`: boolean (default: false) — agent connection に HTTP/2 の代わり HTTP/1.1 を使用（SSE-based streaming を有効化）
 
 ### `bedrock` (optional)
-AWS Bedrock integration settings:
+AWS Bedrock integration setting:
 - `enabled`: boolean (default: false)
 - `mode`: `"access-key"` | `"team-role"` (default: `"access-key"`)
 - `region`: string — AWS region
-- `testModel`: string — model to use for testing
-- `teamRoleArn`: string — IAM role ARN for team mode
-- `teamExternalId`: string — external ID for STS assume-role
+- `testModel`: string — テスト用 model
+- `teamRoleArn`: string — team mode 用 IAM role ARN
+- `teamExternalId`: string — STS assume-role 用 external ID
 
 ### `attribution` (optional)
-Controls how agent work is attributed in git:
-- `attributeCommitsToAgent`: boolean (default: true) — attribute commits to the agent
-- `attributePRsToAgent`: boolean (default: true) — attribute PRs to the agent
+agent 作業の git attribution を制御:
+- `attributeCommitsToAgent`: boolean (default: true) — commit を agent に attribute
+- `attributePRsToAgent`: boolean (default: true) — PR を agent に attribute
 
 ### `webFetchDomainAllowlist` (optional)
-string[] — domains the web fetch tool is allowed to access (e.g. `"docs.github.com"`, `"*.example.com"`, `"*"`)
+string[] — web fetch tool が access 可能な domain（例: `"docs.github.com"`, `"*.example.com"`, `"*"`）
 
-## Fields You Should NOT Modify
+## 手動変更してはいけない Field
 
-These are internal/cached state and should not be edited manually:
+internal/cached state のため手動編集しないでください:
 - `version` — config schema version
-- `model` / `selectedModel` / `modelParameters` / `hasChangedDefaultModel` — managed by the model picker
+- `model` / `selectedModel` / `modelParameters` / `hasChangedDefaultModel` — model picker が管理
 - `privacyCache` — cached privacy mode state
 - `authInfo` — cached authentication info
 - `showSandboxIntro` — one-time UI flag

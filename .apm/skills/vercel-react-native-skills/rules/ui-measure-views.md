@@ -1,18 +1,15 @@
 ---
-title: Measuring View Dimensions
+title: View 寸法の計測
 impact: MEDIUM
-impactDescription: synchronous measurement, avoid unnecessary re-renders
+impactDescription: 同期計測、不要な再レンダーを回避
 tags: layout, measurement, onLayout, useLayoutEffect
 ---
 
-## Measuring View Dimensions
+## View 寸法の計測
 
-Use both `useLayoutEffect` (synchronous) and `onLayout` (for updates). The sync
-measurement gives you the initial size immediately; `onLayout` keeps it current
-when the view changes. For non-primitive states, use a dispatch updater to
-compare values and avoid unnecessary re-renders.
+更新用の `onLayout` とともに `useLayoutEffect`（同期）の両方を使用します。同期計測で初期サイズを即座に取得し、`onLayout` で View 変更時に最新を保ちます。非プリミティブ state には dispatch updater で値を比較し、不要な再レンダーを避けます。
 
-**Height only:**
+**高さのみ:**
 
 ```tsx
 import { useLayoutEffect, useRef, useState } from 'react'
@@ -41,7 +38,7 @@ function MeasuredBox({ children }: { children: React.ReactNode }) {
 }
 ```
 
-**Both dimensions:**
+**両次元:**
 
 ```tsx
 import { useLayoutEffect, useRef, useState } from 'react'
@@ -75,4 +72,4 @@ function MeasuredBox({ children }: { children: React.ReactNode }) {
 }
 ```
 
-Use functional setState to compare—don't read state directly in the callback.
+比較には関数型 setState を使用 — コールバック内で state を直接読まないでください。

@@ -1,25 +1,21 @@
 ---
-title: Use Native Navigators for Navigation
+title: ナビゲーションにネイティブナビゲーターを使用
 impact: HIGH
-impactDescription: native performance, platform-appropriate UI
+impactDescription: ネイティブパフォーマンス、プラットフォームに適した UI
 tags: navigation, react-navigation, expo-router, native-stack, tabs
 ---
 
-## Use Native Navigators for Navigation
+## ナビゲーションにネイティブナビゲーターを使用
 
-Always use native navigators instead of JS-based ones. Native navigators use
-platform APIs (UINavigationController on iOS, Fragment on Android) for better
-performance and native behavior.
+JS ベースではなく常にネイティブナビゲーターを使用します。ネイティブナビゲーターはプラットフォーム API（iOS の UINavigationController、Android の Fragment）を使い、より良いパフォーマンスとネイティブな挙動を提供します。
 
-**For stacks:** Use `@react-navigation/native-stack` or expo-router's default
-stack (which uses native-stack). Avoid `@react-navigation/stack`.
+**スタック:** `@react-navigation/native-stack` または expo-router のデフォルトスタック（native-stack 使用）を使います。`@react-navigation/stack` は避けてください。
 
-**For tabs:** Use `react-native-bottom-tabs` (native) or expo-router's native
-tabs. Avoid `@react-navigation/bottom-tabs` when native feel matters.
+**タブ:** `react-native-bottom-tabs`（ネイティブ）または expo-router のネイティブタブを使います。ネイティブな感触が重要な場合は `@react-navigation/bottom-tabs` を避けてください。
 
-### Stack Navigation
+### スタックナビゲーション
 
-**Incorrect (JS stack navigator):**
+**不適切（JS スタックナビゲーター）:**
 
 ```tsx
 import { createStackNavigator } from '@react-navigation/stack'
@@ -36,7 +32,7 @@ function App() {
 }
 ```
 
-**Correct (native stack with react-navigation):**
+**適切（react-navigation のネイティブスタック）:**
 
 ```tsx
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
@@ -53,7 +49,7 @@ function App() {
 }
 ```
 
-**Correct (expo-router uses native stack by default):**
+**適切（expo-router はデフォルトでネイティブスタック）:**
 
 ```tsx
 // app/_layout.tsx
@@ -64,9 +60,9 @@ export default function Layout() {
 }
 ```
 
-### Tab Navigation
+### タブナビゲーション
 
-**Incorrect (JS bottom tabs):**
+**不適切（JS bottom tabs）:**
 
 ```tsx
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
@@ -83,7 +79,7 @@ function App() {
 }
 ```
 
-**Correct (native bottom tabs with react-navigation):**
+**適切（react-navigation のネイティブ bottom tabs）:**
 
 ```tsx
 import { createNativeBottomTabNavigator } from '@bottom-tabs/react-navigation'
@@ -112,7 +108,7 @@ function App() {
 }
 ```
 
-**Correct (expo-router native tabs):**
+**適切（expo-router ネイティブタブ）:**
 
 ```tsx
 // app/(tabs)/_layout.tsx
@@ -134,14 +130,11 @@ export default function TabLayout() {
 }
 ```
 
-On iOS, native tabs automatically enable `contentInsetAdjustmentBehavior` on the
-first `ScrollView` at the root of each tab screen, so content scrolls correctly
-behind the translucent tab bar. If you need to disable this, use
-`disableAutomaticContentInsets` on the trigger.
+iOS ではネイティブタブが各タブ画面ルートの最初の `ScrollView` で `contentInsetAdjustmentBehavior` を自動有効化し、半透明タブバーの背後でコンテンツが正しくスクロールします。無効化する場合は trigger で `disableAutomaticContentInsets` を使用します。
 
-### Prefer Native Header Options Over Custom Components
+### カスタムコンポーネントよりネイティブヘッダーオプションを優先
 
-**Incorrect (custom header component):**
+**不適切（カスタムヘッダーコンポーネント）:**
 
 ```tsx
 <Stack.Screen
@@ -153,7 +146,7 @@ behind the translucent tab bar. If you need to disable this, use
 />
 ```
 
-**Correct (native header options):**
+**適切（ネイティブヘッダーオプション）:**
 
 ```tsx
 <Stack.Screen
@@ -169,18 +162,16 @@ behind the translucent tab bar. If you need to disable this, use
 />
 ```
 
-Native headers support iOS large titles, search bars, blur effects, and proper
-safe area handling automatically.
+ネイティブヘッダーは iOS の large title、検索バー、ブラー効果、適切な safe area 処理を自動でサポートします。
 
-### Why Native Navigators
+### ネイティブナビゲーターを使う理由
 
-- **Performance**: Native transitions and gestures run on the UI thread
-- **Platform behavior**: Automatic iOS large titles, Android material design
-- **System integration**: Scroll-to-top on tab tap, PiP avoidance, proper safe
-  areas
-- **Accessibility**: Platform accessibility features work automatically
+- **パフォーマンス**: ネイティブ遷移とジェスチャーは UI スレッドで実行
+- **プラットフォーム挙動**: iOS large title、Android Material Design を自動
+- **システム統合**: タブタップでのスクロールトップ、PiP 回避、適切な safe area
+- **アクセシビリティ**: プラットフォームのアクセシビリティ機能が自動で動作
 
-Reference:
+参考:
 
 - [React Navigation Native Stack](https://reactnavigation.org/docs/native-stack-navigator)
 - [React Native Bottom Tabs with React Navigation](https://oss.callstack.com/react-native-bottom-tabs/docs/guides/usage-with-react-navigation)

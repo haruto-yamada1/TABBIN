@@ -1,19 +1,21 @@
 ---
 name: react-doctor
-description: Run after making React changes to catch issues early. Use when reviewing code, finishing a feature, or fixing bugs in a React project.
+description: React の変更後に問題を早期検出するために実行します。React project の code review、feature 完了、bug fix 時に使います。
 version: 1.0.0
 ---
 
 # React Doctor
 
-Scans your React codebase for security, performance, correctness, and architecture issues. Outputs a 0-100 score with actionable diagnostics.
+React codebase を走査し、security、performance、correctness、architecture の問題を
+検出します。0-100 の score と、対応可能な diagnostic を出力します。
 
-## Usage
+## 使い方
 
 ```bash
 npx -y react-doctor@latest . --verbose --diff
 ```
 
-## Workflow
+## ワークフロー
 
-Run after making changes to catch issues early. Fix errors first, then re-run to verify the score improved.
+変更後に実行し、問題を早期に捕捉します。まず error を修正し、その後に再実行して
+score が改善したことを確認します。

@@ -1,15 +1,15 @@
 ---
-title: Suppress Expected Hydration Mismatches
+title: 想定内のハイドレーション不一致を抑制
 impact: LOW-MEDIUM
-impactDescription: avoids noisy hydration warnings for known differences
+impactDescription: 既知の差異によるノイズの多い警告を回避
 tags: rendering, hydration, ssr, nextjs
 ---
 
-## Suppress Expected Hydration Mismatches
+## 想定内のハイドレーション不一致を抑制
 
-In SSR frameworks (e.g., Next.js), some values are intentionally different on server vs client (random IDs, dates, locale/timezone formatting). For these *expected* mismatches, wrap the dynamic text in an element with `suppressHydrationWarning` to prevent noisy warnings. Do not use this to hide real bugs. Don’t overuse it.
+SSR フレームワーク（例: Next.js）では、サーバーとクライアントで意図的に異なる値があります（ランダム ID、日付、ロケール/タイムゾーン書式）。これら *想定内* の不一致については、動的テキストを `suppressHydrationWarning` 付き要素でラップし、ノイズの多い警告を防ぎます。本物のバグを隠すために使わないでください。乱用も避けてください。
 
-**Incorrect (known mismatch warnings):**
+**不適切（既知の不一致警告）:**
 
 ```tsx
 function Timestamp() {
@@ -17,7 +17,7 @@ function Timestamp() {
 }
 ```
 
-**Correct (suppress expected mismatch only):**
+**適切（想定内の不一致のみ抑制）:**
 
 ```tsx
 function Timestamp() {

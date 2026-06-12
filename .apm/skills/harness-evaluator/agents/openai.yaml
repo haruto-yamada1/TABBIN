@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Evaluator"
+  short_description: "TABBIN harness run を fresh-context でレビューします"
+  default_prompt: "ACTIVE harness run を fresh-context Evaluator として評価し、evaluator.json に判断、checklist、findings、verification を記録してください。"

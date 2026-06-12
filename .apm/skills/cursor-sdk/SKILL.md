@@ -1,49 +1,37 @@
 ---
 name: cursor-sdk
-description: >-
-  Guide users building apps, scripts, CI pipelines, or automations on top of the
-  Cursor TypeScript SDK (`@cursor/sdk`). Use when the user mentions integrating,
-  installing, or writing code against the Cursor SDK; says `Agent.create`,
-  `Agent.prompt`, `Agent.resume`, `agent.send`, `run.stream`,
-  `CursorAgentError`, or `@cursor/sdk`; asks to run Cursor agents
-  programmatically from a script, CI/CD pipeline, GitHub Action, backend
-  service, or other code outside the Cursor IDE; wants to pick between local and
-  cloud runtime, configure MCP servers for an SDK agent, or handle streaming,
-  cancellation, or errors; or is wiring Cursor into an automation, bot, or REST
-  `/v1/agents` migration. Use eagerly rather than answering from memory; the SDK
-  surface evolves and this skill is the source of truth for the external
-  package.
+description: Cursor TypeScript SDK（`@cursor/sdk`）上で app、script、CI pipeline、automation を構築するガイド。Cursor SDK の統合・インストール・コード記述、`Agent.create`、`Agent.prompt`、`Agent.resume`、`agent.send`、`run.stream`、`CursorAgentError`、`@cursor/sdk` の言及、Cursor IDE 外（script、CI/CD pipeline、GitHub Action、backend service など）から Cursor agent を programmatic に実行、local/cloud runtime 選択、SDK agent 用 MCP server 設定、streaming・cancellation・error 処理、automation/bot/REST `/v1/agents` migration への Cursor 組み込み時に使います。記憶に頼らず積極的に使ってください。SDK surface は進化し、この skill が external package の source of truth です。
 ---
-# Cursor SDK
+# Cursor SDK ガイド
 
-The Cursor TypeScript SDK (`@cursor/sdk`) runs Cursor agents programmatically. The same interface drives the local runtime (agent runs on your machine against your files) and the cloud runtime (agent runs on Cursor-hosted or self-hosted infrastructure against a cloned repo and opens PRs).
+Cursor TypeScript SDK（`@cursor/sdk`）は Cursor agent を programmatic に実行します。同じ interface が local runtime（caller machine 上、caller file に対して）と cloud runtime（Cursor-hosted または self-hosted infrastructure、clone repo に対し PR を開く）の両方を駆動します。
 
-Use this skill to help someone **bootstrap a working integration quickly** and **avoid the traps that bite new users**. Canonical docs live at [https://cursor.com/docs/api/sdk/typescript](https://cursor.com/docs/api/sdk/typescript); this skill adds decision-making, failure-mode prevention, and ready-to-extend patterns.
+この skill で **working integration を素早く bootstrap** し、**新規ユーザーが踏みがちな trap を避ける** 支援をします。canonical docs は [https://cursor.com/docs/api/sdk/typescript](https://cursor.com/docs/api/sdk/typescript)。この skill は decision-making、failure-mode prevention、ready-to-extend pattern を追加します。
 
 ## Voice and Posture
 
-This skill helps the user **build** with the SDK. It is not the place to validate, congratulate, or sell the SDK as a choice. The user's intent is the input; your job is execution.
+この skill はユーザーが SDK で **構築する** 支援です。SDK 選択の validate、congratulate、sell の場ではありません。user intent が input、あなたの役割は execution です。
 
-- **When the user names the SDK explicitly** (says "Cursor SDK", `@cursor/sdk`, `Agent.create`, `Agent.prompt`, etc.): assume they know what the SDK is and have decided to use it. Skip framing, skip pep talk, go straight to producing the integration. No "good news", no "the SDK is perfect for this", no "this is almost exactly the pattern X is designed for".
-- **When the user describes a problem the SDK fits but doesn't name it** ("I want a bot that reviews my PRs", "I want a script that asks Cursor questions about my repo"): the SDK isn't yet a confirmed choice. Surface it as a question, briefly, then wait: *"The Cursor SDK is what I'd reach for here - want me to design it that way, or do you have a different runtime in mind?"* If they confirm, proceed. If they push back or want options, give options.
-- **In either case, don't restate the user's intent back to them.** They know what they want. Get to the design.
+- **ユーザーが SDK を明示的に名指し**（"Cursor SDK"、`@cursor/sdk`、`Agent.create`、`Agent.prompt` など）: SDK を知っていて使うと決めたと仮定。framing、pep talk を skip し integration 生成へ。No "good news"、no "the SDK is perfect for this"。
+- **SDK に fit する問題を述べるが SDK を名指ししない**（"PR を review する bot が欲しい" など）: SDK は未確定の選択。brief に question として surface し待つ: *"The Cursor SDK is what I'd reach for here - want me to design it that way, or do you have a different runtime in mind?"* 確認後 proceed。push back や option 希望なら option を提示。
+- **どちらの場合も user intent を restate しない。** 彼らは欲しいものを知っている。design へ進む。
 
-Avoid these specific openers (and their close cousins):
+避ける opener（および類似表現）:
 
 - "Good news: this is exactly the pattern..."
 - "The SDK is built for this shape."
 - "Great, you've come to the right place."
 - "This is almost exactly the X the SDK is designed for."
-- Any lede that compliments the user's choice or restates their goal in flattering terms.
+- user choice を compliment したり goal を flattering に restate する lede
 
 Prefer:
 
-- Open with the design decision or the first thing they need to know.
-- If you genuinely have a design choice to flag (local vs cloud, prompt vs send, sync vs stream), name it in one sentence and explain why.
+- design decision または最初に知るべきことから open。
+- 本当に flag する design choice（local vs cloud、prompt vs send、sync vs stream）があれば 1 文で name し reason を説明。
 
-## The Three Invocation Patterns
+## 3 つの Invocation Pattern
 
-Almost every SDK integration collapses to one of three shapes. Pick the one that fits the job, don't mix them.
+ほぼすべての SDK integration は 3 shape の 1 つに収束。job に fit する 1 つを選び、混ぜない。
 
 ### 1. `Agent.prompt(...)` - one-shot
 
@@ -58,7 +46,7 @@ const result = await Agent.prompt("Refactor src/utils.ts for readability", {
 console.log(result.status, result.result);
 ```
 
-Use for fire-and-forget scripts, GitHub Actions steps, or any "send this prompt, get a result, exit" flow. No streaming, no follow-ups, no cleanup to remember. If you're reaching for this and then immediately resuming, you wanted pattern 2 instead.
+fire-and-forget script、GitHub Actions step、「prompt を送って result を得て exit」の flow に。streaming、follow-up、cleanup 不要。これを選んで即 resume するなら pattern 2 が欲しかった。
 
 ### 2. `Agent.create(...)` + `agent.send(...)` - durable with follow-ups
 
@@ -90,7 +78,7 @@ try {
 }
 ```
 
-Use when you need streaming, multi-turn conversation, or lifecycle operations (cancel, status listener). This is the shape of most non-trivial integrations.
+streaming、multi-turn conversation、lifecycle operation（cancel、status listener）が必要な場合。non-trivial integration の大半がこの shape。
 
 ### 3. `Agent.resume(...)` - pick up an existing agent later
 
@@ -104,15 +92,15 @@ const run = await agent.send("Also update the changelog");
 await run.wait();
 ```
 
-Use across process boundaries: a cron that continues last night's cleanup, a webhook that extends a user's agent, an interactive CLI that reloads conversation state. **Inline `mcpServers` are not persisted across resume** - pass them again on the resume call.
+process boundary をまたぐ: 昨夜の cleanup を続ける cron、user agent を extend する webhook、conversation state を reload する interactive CLI。**inline `mcpServers` は resume 跨ぎで persist されない** — resume call で再度 pass。
 
 ## Top Five Traps
 
-These trip up almost every new integration. They're all easy to prevent once you know about them.
+ほぼすべての新規 integration が踏む trap。知っていれば prevent は容易。
 
 ### 1. Missing `cloud: { repos }` silently defaults to local
 
-`AgentOptions` doesn't require `local` or `cloud`; if you omit both, the SDK selects the local runtime. The trap: if you intended a cloud agent and forgot the `cloud:` field, you get a local agent silently - no error, just a local agent ID and a local executor. Always pass `cloud: { repos }` explicitly when you want cloud, and pass `local: { cwd }` explicitly for local even though it's the default.
+`AgentOptions` は `local` も `cloud` も require しない。両方 omit すると SDK は local runtime を選択。trap: cloud agent を意図して `cloud:` field を忘れると、error なしで local agent — local agent ID と local executor だけ。cloud が欲しいときは常に `cloud: { repos }` を明示。local でも default だが `local: { cwd }` を明示。
 
 ### 2. Two different kinds of failure, one instinct to conflate them
 
@@ -139,11 +127,11 @@ try {
 }
 ```
 
-`CursorAgentError` thrown -> the run never executed (auth, config, network). `result.status === "error"` -> the agent did work, and that work failed. Different fixes, different exit codes, different observability.
+`CursorAgentError` thrown → run は実行されなかった（auth、config、network）。`result.status === "error"` → agent は work し、その work が failed。fix、exit code、observability が異なる。
 
 ### 3. Forgetting `await agent[Symbol.asyncDispose]()` leaks resources
 
-The SDK holds handles to local executors, persisted run stores, and cloud API clients. Not disposing means leaked child processes, open databases, and in long-running services, memory growth. Always dispose in a `finally`, or use `Agent.prompt()` (disposes for you), or use the `await using` syntax if your tsconfig targets it:
+SDK は local executor、persisted run store、cloud API client の handle を保持。dispose しないと child process leak、open database、long-running service では memory growth。常に `finally` で dispose、または `Agent.prompt()`（自動 dispose）、または tsconfig が対応なら `await using`:
 
 ```typescript
 await using agent = Agent.create({ /* ... */ });
@@ -151,23 +139,23 @@ await using agent = Agent.create({ /* ... */ });
 
 ### 4. Streaming is optional but `wait()` is almost always required
 
-`run.stream()` is how you observe; `run.wait()` is how you get the terminal result. You can skip streaming, but skipping `wait()` means you can't tell whether the run finished, errored, or was cancelled, and you'll leak the run's internal watchers. Always call `wait()`. If you don't want live output, just call `wait()` alone.
+`run.stream()` は observe、`run.wait()` は terminal result。streaming skip 可だが `wait()` skip すると finished/error/cancelled が分からず run internal watcher leak。常に `wait()`。live output 不要なら `wait()` のみ。
 
 ### 5. Not every `run` operation is supported on every runtime
 
-`Run` exposes four operations - `stream`, `wait`, `cancel`, `conversation` - and the runtime may or may not support each. Always guard with `run.supports("...")` before calling:
+`Run` は 4 operation — `stream`、`wait`、`cancel`、`conversation` — runtime が各々サポートするかは不定。呼ぶ前に常に `run.supports("...")` で guard:
 
 ```typescript
 if (run.supports("cancel")) await run.cancel();
 if (run.supports("conversation")) console.log(await run.conversation());
 ```
 
-Current gap worth knowing about: detached or rehydrated runs (you got the handle from `Agent.getRun(...)` after the live event store has closed) may not support `stream()` and may have empty `conversation()`. `run.unsupportedReason(op)` tells you why. Cloud `run.conversation()` is supported - it accumulates best-effort from the stream.
+知っておく gap: detached/rehydrated run（live event store 閉後 `Agent.getRun(...)` で handle 取得）は `stream()` 非サポート、`conversation()` empty の場合あり。`run.unsupportedReason(op)` で reason。cloud `run.conversation()` は supported — stream から best-effort accumulate。
 
 ## Local vs Cloud, in one sentence each
 
-- **Local** - runs on the caller's machine against `cwd`, reuses their environment and credentials, good for dev loops and CI that already has a repo checkout.
-- **Cloud** - runs on a Cursor-hosted VM against a freshly cloned `repos[].url`, good for long jobs, fire-and-forget automation, and opening real PRs (`autoCreatePR: true`).
+- **Local** — caller machine 上で `cwd` に対し実行。caller environment と credential を再利用。dev loop と repo checkout 済み CI に good。
+- **Cloud** — freshly cloned `repos[].url` に対し Cursor-hosted VM 上で実行。長時間 job、fire-and-forget automation、real PR 開封（`autoCreatePR: true`）に good。
 
 ## Auth, minimum viable
 
@@ -175,9 +163,9 @@ Current gap worth knowing about: detached or rehydrated runs (you got the handle
 export CURSOR_API_KEY="cursor_..."  # user API key or team service-account key
 ```
 
-The SDK reads `CURSOR_API_KEY` if `apiKey` isn't passed. Both user keys (from [https://cursor.com/dashboard/cloud-agents](https://cursor.com/dashboard/cloud-agents)) and team service-account keys (Team Settings -> Service accounts) work for local and cloud runs.
+`apiKey` 未指定時 SDK は `CURSOR_API_KEY` を読む。user key（[https://cursor.com/dashboard/cloud-agents](https://cursor.com/dashboard/cloud-agents)）も team service-account key（Team Settings -> Service accounts）も local/cloud 両方で動作。
 
-If you're seeing 401s, the usual suspects are: key pasted with surrounding whitespace, key minted against a different environment, or the key belongs to a user without repo access for a cloud run.
+401 なら usual suspects: key に surrounding whitespace、別 environment 向け mint、cloud run で repo access ない user の key。
 
 ## Model Selection
 
@@ -187,34 +175,34 @@ import { Cursor } from "@cursor/sdk";
 const models = await Cursor.models.list({ apiKey: process.env.CURSOR_API_KEY! });
 ```
 
-`composer-2` is the current default for most integrations. `{ id: "auto" }` lets the server pick. Model IDs change; don't hardcode exotic ones without calling `Cursor.models.list()` first to confirm the caller has access.
+`composer-2` は現在の default。`{ id: "auto" }` は server 選択。model ID は変わる。`Cursor.models.list()` で access 確認せず exotic ID を hardcode しない。
 
-Model is **required for local**, **optional for cloud** (the server resolves a default from the caller's account).
+model は **local では required**、**cloud では optional**（server が caller account から default resolve）。
 
 ## MCP Servers
 
-Pass MCP servers inline when the integration needs tools beyond the working tree. Be explicit about runtime transport:
+working tree 超の tool が必要な integration では inline で MCP server を pass。runtime transport を explicit に:
 
-- Local agents can use stdio or HTTP MCP servers available on the caller's machine.
-- Cloud agents need network-reachable HTTP MCP servers or cloud-supported configuration; local stdio processes are not available inside a cloud VM.
-- If you resume an agent and still need MCP tools, pass `mcpServers` again on `Agent.resume(...)`.
+- Local agent は caller machine 上の stdio または HTTP MCP server 可。
+- Cloud agent は network-reachable HTTP MCP または cloud-supported config が必要。cloud VM 内に local stdio process 不可。
+- agent resume 後も MCP tool が必要なら `Agent.resume(...)` で再度 `mcpServers` を pass。
 
 ## Production Best Practices
 
-Apply these to any integration that runs unattended:
+unattended 実行の integration に適用:
 
-1. **Wrap every `Agent.create` / `Agent.prompt` / `Agent.resume` in a try/finally with `[Symbol.asyncDispose]()`**. Non-negotiable.
-2. **Distinguish startup failures from run failures** - exit code 1 for `CursorAgentError`, exit code 2 for `result.status === "error"`, exit code 0 only for `finished`.
-3. **Log `run.id` and `agent.agentId` immediately after `send()`** before streaming. If the stream hangs, the IDs are what you need to investigate in the dashboard or via `Agent.getRun(...)`.
-4. **Respect `error.isRetryable`** - it's the backend telling you the specific failure is safe to retry. Blind retries can cause duplicate cloud runs; respecting the flag doesn't.
-5. **Use `local: { settingSources: [] }` (default) unless you need ambient config.** Opting into `"all"` loads project/user/team/MDM settings from the caller's environment, which is rarely what you want from a service. `settingSources` lives under `local`, not at the top level; it has no effect on cloud agents (cloud always honors team/project/plugins).
-6. **For cloud agents in CI, set `skipReviewerRequest: true`** unless a human should be paged - it suppresses the reviewer-request step and keeps PR notifications quiet.
-7. **Always pass `apiKey` explicitly** in shared-infrastructure code instead of relying on the env var. Makes the credential dependency obvious and prevents cross-tenant mistakes.
-8. **Prefer `Agent.prompt(...)` for true one-shots** - it disposes for you and is harder to leak.
+1. **すべての `Agent.create` / `Agent.prompt` / `Agent.resume` を try/finally + `[Symbol.asyncDispose]()` で wrap**。non-negotiable。
+2. **startup failure と run failure を区別** — `CursorAgentError` で exit 1、`result.status === "error"` で exit 2、`finished` のみ exit 0。
+3. **streaming 前に `send()` 直後 `run.id` と `agent.agentId` を log**。stream hang 時、dashboard または `Agent.getRun(...)` 調査に ID が必要。
+4. **`error.isRetryable` を respect** — backend が retry safe と示す specific failure。blind retry は duplicate cloud run。flag respect はしない。
+5. **ambient config 不要なら `local: { settingSources: [] }`（default）**。`"all"` opt-in は caller environment から project/user/team/MDM settings を load — service からは rarely 望ましい。`settingSources` は `local` 下、top level ではない。cloud agent 無効（cloud は常に team/project/plugins honor）。
+6. **CI の cloud agent では human page 不要なら `skipReviewerRequest: true`** — reviewer-request step 抑制、PR notification quiet。
+7. **shared-infrastructure code では env var 頼りせず `apiKey` を explicit pass**。credential dependency 明確、cross-tenant mistake 防止。
+8. **true one-shot では `Agent.prompt(...)` を prefer** — 自動 dispose、leak しにくい。
 
 ## Observing a Run You Didn't Launch
 
-You can inspect any agent/run by ID later:
+agent/run を ID で後から inspect 可:
 
 ```typescript
 // Cloud: IDs that start with "bc-" auto-route to the cloud API.
@@ -225,15 +213,15 @@ const run = await Agent.getRun(runId, { runtime: "cloud", agentId: "bc-abc123", 
 const localInfo = await Agent.list({ runtime: "local", cwd: process.cwd() });
 ```
 
-A cloud `bc-`-prefixed agent ID is **not** a run ID. If you only have a run ID (from a log or a webhook), pass it to `Agent.getRun` with the runtime hint; don't confuse the two.
+cloud `bc-` prefix agent ID は **run ID ではない**。run ID のみ（log や webhook から）なら runtime hint 付き `Agent.getRun` に pass。混同しない。
 
-## Offering a Canvas
+## Canvas の提案
 
-If the user's integration monitors, lists, or visualizes agents - dashboards of active runs, conversation replays, tool-call timelines - offer a Cursor Canvas to render it. If they accept, defer entirely to the `canvas` skill.
+integration が agent を monitor、list、visualize する — active run dashboard、conversation replay、tool-call timeline — なら Cursor Canvas 提示。accept なら `canvas` skill に entirely defer。
 
-## What This Skill Doesn't Cover
+## この Skill が Cover しないもの
 
-- The Cloud Agents REST API (`/v1/agents/*`). If the user needs a non-TypeScript client, use the REST API docs for current capabilities before assuming parity with the SDK.
-- `.cursor/hooks.json` hooks. Cloud agents execute them but the SDK doesn't manage them; see Cursor's Hooks docs.
-- Private workers / self-hosted cloud. Send users to the Private Workers docs.
-- Python / non-TypeScript SDKs. There is no first-party SDK in other languages at time of writing; REST is the portable option.
+- Cloud Agents REST API（`/v1/agents/*`）。non-TypeScript client 必要なら SDK parity 仮定前に REST API docs で current capabilities 確認。
+- `.cursor/hooks.json` hooks。cloud agent は execute するが SDK は manage しない。Cursor Hooks docs 参照。
+- Private workers / self-hosted cloud。Private Workers docs へ。
+- Python / non-TypeScript SDK。執筆時点 first-party SDK なし。REST が portable option。

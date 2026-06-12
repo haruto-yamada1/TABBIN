@@ -6,9 +6,11 @@
 
 **TABBIN（タビン）- 次世代のブラウザタブ管理ソリューション**
 
-*散らかりがちなタブをスマートに整理し、生産性を向上させる Chrome 拡張機能*
+_散らかりがちなタブをスマートに整理し、生産性を向上させる Chrome 拡張機能_
 
 [🚀 Chrome ウェブストアでインストール](https://chromewebstore.google.com/detail/tabbin/dljblklbpmoocinnlcejeokopmfoldaj)
+
+[プライバシーとデータの扱い](PRIVACY.md)
 
 ## 📋 概要
 
@@ -32,6 +34,7 @@ TABBIN(タビン)はブラウザのタブを整理・分類する拡張機能で
 5. タブをクリックして開く、または右クリックで追加オプションを表示
 
 ## 🛠️ 開発者向け情報
+
 ### [🌐 DeepWiki](https://deepwiki.com/TarouTanakaYokohama/TABBIN/1-overview)
 
 ## 📞 サポート

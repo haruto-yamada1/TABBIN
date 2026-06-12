@@ -1,0 +1,47 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 80,
+  "semi": false,
+  "singleQuote": true,
+  "jsxSingleQuote": true,
+  "sortTailwindcss": {
+    "stylesheet": "./src/assets/global.css",
+    "functions": ["cn", "clsx", "cva"]
+  },
+  "sortImports": {
+    "internalPattern": ["@/"],
+    "groups": [
+      "builtin",
+      "external",
+      "internal",
+      ["parent", "sibling", "index"],
+      "style",
+      "side_effect",
+      "unknown"
+    ]
+  },
+  "ignorePatterns": [
+    ".output/**",
+    ".wxt/**",
+    ".apm/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".github/hooks/**",
+    ".github/skills/**",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    "wxt.config.ts",
+    "node_modules/**",
+    "apm_modules/**",
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    "blob-report/**",
+    "storybook-static/**",
+    "tmp-profile-saved-tabs.cjs"
+  ]
+}

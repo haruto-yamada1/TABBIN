@@ -1,15 +1,15 @@
 ---
-title: Version and Minimize localStorage Data
+title: localStorage データのバージョン管理と最小化
 impact: MEDIUM
-impactDescription: prevents schema conflicts, reduces storage size
+impactDescription: スキーマ競合を防ぎストレージサイズを削減
 tags: client, localStorage, storage, versioning, data-minimization
 ---
 
-## Version and Minimize localStorage Data
+## localStorage データのバージョン管理と最小化
 
-Add version prefix to keys and store only needed fields. Prevents schema conflicts and accidental storage of sensitive data.
+キーにバージョンプレフィックスを付け、必要なフィールドだけを保存します。スキーマ競合と機密データの誤保存を防ぎます。
 
-**Incorrect:**
+**不適切:**
 
 ```typescript
 // No version, stores everything, no error handling
@@ -17,7 +17,7 @@ localStorage.setItem('userConfig', JSON.stringify(fullUserObject))
 const data = localStorage.getItem('userConfig')
 ```
 
-**Correct:**
+**適切:**
 
 ```typescript
 const VERSION = 'v2'
@@ -52,7 +52,7 @@ function migrate() {
 }
 ```
 
-**Store minimal fields from server responses:**
+**サーバーレスポンスから最小フィールドを保存:**
 
 ```typescript
 // User object has 20+ fields, only store what UI needs
@@ -66,6 +66,6 @@ function cachePrefs(user: FullUser) {
 }
 ```
 
-**Always wrap in try-catch:** `getItem()` and `setItem()` throw in incognito/private browsing (Safari, Firefox), when quota exceeded, or when disabled.
+**常に try-catch でラップ:** シークレット/プライベートブラウジング（Safari、Firefox）、クォータ超過、無効化時に `getItem()` と `setItem()` は例外を投げます。
 
-**Benefits:** Schema evolution via versioning, reduced storage size, prevents storing tokens/PII/internal flags.
+**メリット:** バージョン管理によるスキーマ進化、ストレージサイズ削減、トークン/PII/内部フラグの保存防止。

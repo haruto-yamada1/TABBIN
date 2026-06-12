@@ -22,13 +22,13 @@
     "**/start/**"
   ],
   "path": [
-    "components",
-    "constants",
-    "entrypoints",
-    "features",
-    "hooks",
-    "lib",
-    "types",
-    "utils"
+    "src/components",
+    "src/constants",
+    "src/entrypoints",
+    "src/features",
+    "src/hooks",
+    "src/lib",
+    "src/types",
+    "src/utils"
   ]
 }

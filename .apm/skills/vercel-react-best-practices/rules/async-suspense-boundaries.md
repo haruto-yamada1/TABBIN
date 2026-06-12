@@ -1,15 +1,15 @@
 ---
-title: Strategic Suspense Boundaries
+title: 戦略的な Suspense 境界
 impact: HIGH
-impactDescription: faster initial paint
+impactDescription: 初期描画の高速化
 tags: async, suspense, streaming, layout-shift
 ---
 
-## Strategic Suspense Boundaries
+## 戦略的な Suspense 境界
 
-Instead of awaiting data in async components before returning JSX, use Suspense boundaries to show the wrapper UI faster while data loads.
+async コンポーネントで JSX を返す前にデータを await する代わりに、Suspense 境界を使ってデータ読み込み中もラッパー UI を早く表示します。
 
-**Incorrect (wrapper blocked by data fetching):**
+**不適切（データフェッチがラッパーをブロック）:**
 
 ```tsx
 async function Page() {
@@ -28,9 +28,9 @@ async function Page() {
 }
 ```
 
-The entire layout waits for data even though only the middle section needs it.
+中間セクションだけがデータを必要とするのに、レイアウト全体がデータを待ちます。
 
-**Correct (wrapper shows immediately, data streams in):**
+**適切（ラッパーは即座に表示、データはストリーミング）:**
 
 ```tsx
 function Page() {
@@ -54,9 +54,9 @@ async function DataDisplay() {
 }
 ```
 
-Sidebar, Header, and Footer render immediately. Only DataDisplay waits for data.
+Sidebar、Header、Footer は即座にレンダリングされます。DataDisplay だけがデータを待ちます。
 
-**Alternative (share promise across components):**
+**代替案（コンポーネント間で Promise を共有）:**
 
 ```tsx
 function Page() {
@@ -87,13 +87,13 @@ function DataSummary({ dataPromise }: { dataPromise: Promise<Data> }) {
 }
 ```
 
-Both components share the same promise, so only one fetch occurs. Layout renders immediately while both components wait together.
+両コンポーネントが同じ Promise を共有するため、フェッチは 1 回だけです。レイアウトは即座にレンダリングされ、両コンポーネントが一緒に待ちます。
 
-**When NOT to use this pattern:**
+**このパターンを使わない場合:**
 
-- Critical data needed for layout decisions (affects positioning)
-- SEO-critical content above the fold
-- Small, fast queries where suspense overhead isn't worth it
-- When you want to avoid layout shift (loading → content jump)
+- レイアウト判断に必要なクリティカルなデータ（配置に影響）
+- ファーストビューで SEO 上重要なコンテンツ
+- Suspense のオーバーヘッドに見合わない小さく高速なクエリ
+- レイアウトシフト（読み込み → コンテンツのジャンプ）を避けたい場合
 
-**Trade-off:** Faster initial paint vs potential layout shift. Choose based on your UX priorities.
+**トレードオフ:** 初期描画の高速化 vs レイアウトシフトの可能性。UX の優先度に応じて選択してください。
