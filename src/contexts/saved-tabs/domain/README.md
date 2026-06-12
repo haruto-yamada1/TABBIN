@@ -4,13 +4,13 @@
 
 ## サブディレクトリ
 
-| ディレクトリ | 役割 |
-| --- | --- |
-| `entities/` | `TabGroup` / `UrlRecord` / `ParentCategory` / `CustomProject` の entity 定義 |
-| `value-objects/` | `Url` / `DomainName` / `CategoryName` / `*Id` / `SavedAt` などの不変値型 |
-| `repositories/` | repository の **interface のみ**（実装は `infrastructure/persistence/`） |
-| `services/` | 複数 entity にまたがる pure なドメインサービス（カテゴリ判定、URL 参照チェック、削除ポリシーなど） |
-| `errors/` | `SavedTabsDomainError` などのドメイン例外 |
+| ディレクトリ     | 役割                                                                                               |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| `entities/`      | `TabGroup` / `UrlRecord` / `ParentCategory` / `CustomProject` の entity 定義                       |
+| `value-objects/` | `Url` / `DomainName` / `CategoryName` / `*Id` / `SavedAt` などの不変値型                           |
+| `repositories/`  | repository の **interface のみ**（実装は `infrastructure/persistence/`）                           |
+| `services/`      | 複数 entity にまたがる pure なドメインサービス（カテゴリ判定、URL 参照チェック、削除ポリシーなど） |
+| `errors/`        | `SavedTabsDomainError` などのドメイン例外                                                          |
 
 ## 禁止
 

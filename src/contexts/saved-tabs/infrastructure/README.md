@@ -4,12 +4,12 @@
 
 ## サブディレクトリ
 
-| ディレクトリ | 役割 |
-| --- | --- |
+| ディレクトリ                  | 役割                                                                               |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
 | `persistence/chrome-storage/` | `Chrome*Repository` 実装 / `savedTabsStorageKeys.ts` / `savedTabsStorageSchema.ts` |
-| `persistence/migrations/` | 既存保存データを壊さない migration（`migrateLegacySavedTabs.ts` など） |
-| `browser/` | `chrome.tabs` / `chrome.contextMenus` / `chrome.alarms` などの adapter |
-| `mappers/` | storage の生データ ↔ domain entity / DTO の相互変換 |
+| `persistence/migrations/`     | 既存保存データを壊さない migration（`migrateLegacySavedTabs.ts` など）             |
+| `browser/`                    | `chrome.tabs` / `chrome.contextMenus` / `chrome.alarms` などの adapter             |
+| `mappers/`                    | storage の生データ ↔ domain entity / DTO の相互変換                                |
 
 ## 禁止
 

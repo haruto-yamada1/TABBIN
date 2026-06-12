@@ -4,13 +4,13 @@
 
 ## サブディレクトリ
 
-| ディレクトリ | 役割 |
-| --- | --- |
-| `routes/` | React Router のルート定義 |
-| `pages/` | ページコンポーネント（controller hook + components の組み立て） |
-| `controllers/` | use-case を呼ぶ controller hook（`useSavedTabsController` など） |
-| `components/` | view model を受け取り描画する純粋な component（`TabGroupCard` / `TabGroupList` など） |
-| `view-models/` | presentation 内部の整形済みモデル |
+| ディレクトリ   | 役割                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------- |
+| `routes/`      | React Router のルート定義                                                             |
+| `pages/`       | ページコンポーネント（controller hook + components の組み立て）                       |
+| `controllers/` | use-case を呼ぶ controller hook（`useSavedTabsController` など）                      |
+| `components/`  | view model を受け取り描画する純粋な component（`TabGroupCard` / `TabGroupList` など） |
+| `view-models/` | presentation 内部の整形済みモデル                                                     |
 
 ## 禁止
 

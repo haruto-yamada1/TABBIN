@@ -20,12 +20,12 @@ contexts/*/domain
 
 `infrastructure` は `domain/repositories` の interface と `application/ports` の interface を実装します。`presentation` は `application` の use-case を呼び出し、Repository や port を直接持たないようにします。
 
-| 依存元 ↓ / 依存先 → | domain | application | infrastructure | presentation |
-| --- | --- | --- | --- | --- |
-| domain | — | × | × | × |
-| application | ○ (entity, repository interface) | — | × | × |
-| infrastructure | ○ (entity) | ○ (DTO) | — | × |
-| presentation | × (DTO 経由) | ○ (use-case) | × (composition 経由) | — |
+| 依存元 ↓ / 依存先 → | domain                           | application  | infrastructure       | presentation |
+| ------------------- | -------------------------------- | ------------ | -------------------- | ------------ |
+| domain              | —                                | ×            | ×                    | ×            |
+| application         | ○ (entity, repository interface) | —            | ×                    | ×            |
+| infrastructure      | ○ (entity)                       | ○ (DTO)      | —                    | ×            |
+| presentation        | × (DTO 経由)                     | ○ (use-case) | × (composition 経由) | —            |
 
 `○` = 依存可 / `×` = 依存不可。
 
@@ -102,12 +102,12 @@ src/contexts/saved-tabs/
 
 ## 禁止ルール（厳守）
 
-| 層 | 禁止事項 |
-| --- | --- |
-| domain | React import / `chrome.*` import / `localStorage`・`sessionStorage` 直接利用 / `toast`・router・DOM API 依存 / repository interface 以外での永続化 |
-| application | React 依存 / presentation 依存 / `chrome.*` 直接呼び出し / 複数操作をまとめた use-case |
-| infrastructure | presentation への依存 / domain interface を通さない直接アクセス |
-| presentation | `chrome.storage.local` / `chrome.*` API の直接利用 / ドメインルールの埋め込み |
+| 層             | 禁止事項                                                                                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| domain         | React import / `chrome.*` import / `localStorage`・`sessionStorage` 直接利用 / `toast`・router・DOM API 依存 / repository interface 以外での永続化 |
+| application    | React 依存 / presentation 依存 / `chrome.*` 直接呼び出し / 複数操作をまとめた use-case                                                             |
+| infrastructure | presentation への依存 / domain interface を通さない直接アクセス                                                                                    |
+| presentation   | `chrome.storage.local` / `chrome.*` API の直接利用 / ドメインルールの埋め込み                                                                      |
 
 ## composition ルール
 
