@@ -65,15 +65,9 @@ jobs:
           include-hidden-files: true
           retention-days: 7
 
-  run-tests:
+  run-tests-shard-1:
     name: Run Vitest Tests
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
-        total: [2]
 
     steps:
       - uses: actions/checkout@v4
@@ -91,5 +85,28 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run unit tests (shard ${{ matrix.shard }}/${{ matrix.total }})
-        run: bun run test --shard=${{ matrix.shard }}/${{ matrix.total }}
+      - name: Run unit tests (shard 1/2)
+        run: bun run test --shard=1/2
+
+  run-tests-shard-2:
+    name: Run Vitest Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.8'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run unit tests (shard 2/2)
+        run: bun run test --shard=2/2
