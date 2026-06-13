@@ -1,0 +1,290 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { createCustomProjectId } from '../../../domain/value-objects/CustomProjectId'
+import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStorageMapper'
+import { createChromeCustomProjectRepository } from './ChromeCustomProjectRepository'
+import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
+import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
+import { CUSTOM_PROJECTS_KEY } from './savedTabsStorageKeys'
+
+type StorageState = Record<string, unknown>
+
+const createPort = (state: StorageState): ChromeStorageLocalPort => {
+  // mock 内で await しない同期関数を async として書くため lint ルールを局所的に解除する
+  /* eslint-disable typescript/require-await */
+  return {
+    get: vi.fn((key: string) => Promise.resolve({ [key]: state[key] })),
+    remove: vi.fn((key: string) => {
+      // eslint-disable-next-line typescript/no-dynamic-delete
+      delete state[key]
+      return Promise.resolve()
+    }),
+    set: vi.fn((value: Record<string, unknown>) => {
+      Object.assign(state, value)
+      return Promise.resolve()
+    }),
+  }
+  /* eslint-enable typescript/require-await */
+}
+
+const createSampleCustomProject = (id: string, name: string) =>
+  ChromeSavedTabsStorageMapper.parseCustomProject({
+    categories: ['research'],
+    createdAt: 1,
+    id,
+    name,
+    updatedAt: 2,
+    urlIds: [`url-${id}`],
+  })
+
+describe('ChromeCustomProjectRepository', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('createChromeCustomProjectRepository (factory)', () => {
+    it('port を渡すと repository を返す', () => {
+      const repo = createChromeCustomProjectRepository(createPort({}))
+      expect(repo.findAll).toBeTypeOf('function')
+    })
+
+    it('port が null なら SavedTabsRepositoryUnavailableError を投げる', () => {
+      const warnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined)
+      try {
+        expect(() => createChromeCustomProjectRepository(null)).toThrow(
+          SavedTabsRepositoryUnavailableError,
+        )
+      } finally {
+        warnSpy.mockRestore()
+      }
+    })
+  })
+
+  describe('findAll', () => {
+    it('空 storage のとき空配列を返す', async () => {
+      const repo = createChromeCustomProjectRepository(createPort({}))
+      await expect(repo.findAll()).resolves.toStrictEqual([])
+    })
+
+    it('CUSTOM_PROJECTS_KEY の生データを entity 配列に変換する', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECTS_KEY]: [
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            updatedAt: 1,
+          },
+          {
+            categories: [],
+            createdAt: 1,
+            id: 'project-2',
+            name: 'Empty',
+            updatedAt: 1,
+            urlIds: ['url-1', 'url-2'],
+          },
+        ],
+      }
+      const repo = createChromeCustomProjectRepository(createPort(state))
+      const result = await repo.findAll()
+      expect(result).toHaveLength(2)
+      expect(result[0]?.name).toBe('Q4')
+      expect(result[1]?.urlIds).toStrictEqual(['url-1', 'url-2'])
+    })
+
+    it('不正な要素をスキップして有効要素だけ返す', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECTS_KEY]: [
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            updatedAt: 1,
+          },
+          { createdAt: 1, id: 'project-2', name: 'NoCategories', updatedAt: 1 },
+          null,
+          {
+            categories: [],
+            createdAt: 1,
+            id: 'project-3',
+            name: 'Plain',
+            updatedAt: 1,
+          },
+        ],
+      }
+      const repo = createChromeCustomProjectRepository(createPort(state))
+      const result = await repo.findAll()
+      expect(result.map((p) => p.id)).toStrictEqual(['project-1', 'project-3'])
+    })
+  })
+
+  describe('findById', () => {
+    it('該当 ID の entity を返す', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECTS_KEY]: [
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            updatedAt: 1,
+          },
+          {
+            categories: ['work'],
+            createdAt: 1,
+            id: 'project-2',
+            name: 'Work',
+            updatedAt: 1,
+          },
+        ],
+      }
+      const repo = createChromeCustomProjectRepository(createPort(state))
+      const result = await repo.findById(createCustomProjectId('project-2'))
+      expect(result?.name).toBe('Work')
+    })
+
+    it('存在しない ID は null を返す', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECTS_KEY]: [
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            updatedAt: 1,
+          },
+        ],
+      }
+      const repo = createChromeCustomProjectRepository(createPort(state))
+      await expect(
+        repo.findById(createCustomProjectId('project-999')),
+      ).resolves.toBeNull()
+    })
+  })
+
+  describe('saveAll', () => {
+    it('entity 配列を CUSTOM_PROJECTS_KEY に raw 形式で保存する', async () => {
+      const port = createPort({})
+      const repo = createChromeCustomProjectRepository(port)
+      const project = createSampleCustomProject('project-1', 'Q4')
+      expect(project).not.toBeNull()
+      if (!project) {
+        return
+      }
+      await repo.saveAll([project])
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      expect(lastSetArg[CUSTOM_PROJECTS_KEY]).toStrictEqual([
+        {
+          categories: ['research'],
+          createdAt: 1,
+          id: 'project-1',
+          name: 'Q4',
+          updatedAt: 2,
+          urlIds: ['url-project-1'],
+        },
+      ])
+    })
+
+    it('空配列を渡したら空配列を保存する', async () => {
+      const port = createPort({})
+      const repo = createChromeCustomProjectRepository(port)
+      await repo.saveAll([])
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      expect(lastSetArg[CUSTOM_PROJECTS_KEY]).toStrictEqual([])
+    })
+  })
+
+  describe('removeByIds', () => {
+    it('指定 ID を除いて保存する', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECTS_KEY]: [
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            updatedAt: 1,
+          },
+          {
+            categories: ['work'],
+            createdAt: 1,
+            id: 'project-2',
+            name: 'Work',
+            updatedAt: 1,
+          },
+          {
+            categories: ['side'],
+            createdAt: 1,
+            id: 'project-3',
+            name: 'Side',
+            updatedAt: 1,
+          },
+        ],
+      }
+      const port = createPort(state)
+      const repo = createChromeCustomProjectRepository(port)
+      await repo.removeByIds([
+        createCustomProjectId('project-1'),
+        createCustomProjectId('project-3'),
+      ])
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      expect(lastSetArg[CUSTOM_PROJECTS_KEY]).toStrictEqual([
+        {
+          categories: ['work'],
+          createdAt: 1,
+          id: 'project-2',
+          name: 'Work',
+          updatedAt: 1,
+        },
+      ])
+    })
+
+    it('存在しない ID を指定しても保存呼び出しは走らない', async () => {
+      const port = createPort({
+        [CUSTOM_PROJECTS_KEY]: [
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            updatedAt: 1,
+          },
+        ],
+      })
+      const repo = createChromeCustomProjectRepository(port)
+      await repo.removeByIds([createCustomProjectId('project-999')])
+      expect(port.set).not.toHaveBeenCalled()
+    })
+
+    it('空配列を渡したら何もしない', async () => {
+      const port = createPort({
+        [CUSTOM_PROJECTS_KEY]: [
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            updatedAt: 1,
+          },
+        ],
+      })
+      const repo = createChromeCustomProjectRepository(port)
+      await repo.removeByIds([])
+      expect(port.set).not.toHaveBeenCalled()
+    })
+  })
+})
