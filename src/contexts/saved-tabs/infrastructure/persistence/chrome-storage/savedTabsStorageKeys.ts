@@ -6,12 +6,14 @@
  *
  * 旧 `src/lib/storage/*` と同じキー名を維持しているため、既存ユーザーの
  * データ（`chrome.storage.local.savedTabs` / `urls` / `parentCategories` /
- * `customProjects`）はそのまま読み書きできる。
+ * `customProjects` / `customProjectOrder`）はそのまま読み書きできる。
  *
  * 並び替え順序など付随する storage key（`customProjectOrder` /
  * `domainCategoryMappings` / `domainCategorySettings` /
- * `urlsMigrationCompleted`）は別 issue で domain / repository 化するため、
- * ここでは 4 つのメイン key だけを公開する。
+ * `urlsMigrationCompleted`）のうち、`customProjectOrder` は
+ * `CustomProjectRepository.findOrder` / `saveOrder` 経由で扱う DDD
+ * 永続化境界に取り込んだ（issue #487）。残りは別 issue で
+ * domain / repository 化する。
  */
 
 export const SAVED_TABS_KEY = 'savedTabs' as const
@@ -22,11 +24,14 @@ export const PARENT_CATEGORIES_KEY = 'parentCategories' as const
 
 export const CUSTOM_PROJECTS_KEY = 'customProjects' as const
 
+export const CUSTOM_PROJECT_ORDER_KEY = 'customProjectOrder' as const
+
 export const SAVED_TABS_STORAGE_KEYS = [
   SAVED_TABS_KEY,
   URLS_KEY,
   PARENT_CATEGORIES_KEY,
   CUSTOM_PROJECTS_KEY,
+  CUSTOM_PROJECT_ORDER_KEY,
 ] as const
 
 export type SavedTabsStorageKey = (typeof SAVED_TABS_STORAGE_KEYS)[number]

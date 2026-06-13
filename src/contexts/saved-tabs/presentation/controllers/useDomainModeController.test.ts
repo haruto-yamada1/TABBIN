@@ -81,6 +81,10 @@ const createInMemoryRepositories = (initial: Partial<InMemoryState> = {}) => {
     saveAll: async (projects) => {
       state.customProjects = projects.map((project) => ({ ...project }))
     },
+    // eslint-disable-next-line typescript/require-await
+    findOrder: async () => [],
+    // eslint-disable-next-line typescript/require-await
+    saveOrder: async () => undefined,
   }
   return { customProjectRepository, state, tabGroupRepository }
 }

@@ -544,7 +544,10 @@ describe('SavedTabsApp custom search', () => {
 
     // 不正な id の TabGroup / CustomProject / ParentCategory は
     // domain factory の SavedTabsDomainError 経由でスキップされる。
-    // chromeSetMock は customProjectOrder 1 件だけ。
+    // customProjectOrder も含めて snapshot は command に詰め替えられ、
+    // RestoreOpenedUrlsSnapshotUseCase 経由で repository へ書き戻される
+    // （issue #487）。presentation 層は chrome.storage.local.set を
+    // 呼ばないため chromeSetMock は 0 呼び出しのまま。
     const captured: unknown[] = []
     // eslint-disable-next-line typescript/require-await
     const captureUseCase = vi.fn(async (input: { snapshot: unknown }) => {
@@ -627,6 +630,7 @@ describe('SavedTabsApp custom search', () => {
 
     expect(captureUseCase).toHaveBeenCalledTimes(1)
     const command = (captured[0] as { snapshot: unknown }).snapshot as {
+      customProjectOrder?: string[]
       customProjects: { id: string }[]
       parentCategories: { id: string }[]
       savedTabs: { id: string }[]
@@ -638,9 +642,11 @@ describe('SavedTabsApp custom search', () => {
     expect(command.parentCategories.map((c) => c.id)).toStrictEqual([
       'cat-good',
     ])
-    expect(chromeSetMock).toHaveBeenLastCalledWith({
-      customProjectOrder: ['project-good'],
-    })
+    // customProjectOrder は RestoreOpenedUrlsSnapshotUseCase 経由で
+    // repository へ書き戻される（issue #487）。presentation 層からは
+    // chrome.storage.local.set を呼ばない。
+    expect(command.customProjectOrder).toStrictEqual(['project-good'])
+    expect(chromeSetMock).not.toHaveBeenCalled()
     expect(setCustomProjects2).toHaveBeenCalledWith([
       {
         categories: [],
@@ -1444,8 +1450,10 @@ describe('SavedTabsApp custom search', () => {
     await undoOptions?.action?.onClick?.()
 
     // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
-    // CustomProject / ParentCategory は各 repository の saveAll で個別に
-    // 書き戻される。presentation 層で残るのは customProjectOrder のみ。
+    // CustomProject / ParentCategory / customProjectOrder すべて
+    // repository 経由で個別に書き戻される（issue #487）。
+    // customProjectOrder は chromeCustomProjectRepository.saveOrder
+    // 経由で chrome.storage.local.set に到達する。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })
@@ -1813,8 +1821,10 @@ describe('SavedTabsApp custom search', () => {
     await undoOptions?.action?.onClick?.()
 
     // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
-    // CustomProject は各 repository の saveAll で個別に書き戻される。
-    // presentation 層で残るのは customProjectOrder のみ。
+    // CustomProject / customProjectOrder すべて repository 経由で
+    // 個別に書き戻される（issue #487）。customProjectOrder は
+    // chromeCustomProjectRepository.saveOrder 経由で chrome.storage.local
+    // に到達する。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })
@@ -1889,8 +1899,10 @@ describe('SavedTabsApp custom search', () => {
 
     // 削除失敗時は catch から `notifyDeleteFailure` が呼ばれ、
     // RestoreOpenedUrlsSnapshotUseCase 経由で snapshot が復元される。
-    // snapshot の savedTabs が repository.saveAll 経由で書き戻され、
-    // customProjectOrder のみ presentation 層で補助的に書き戻される。
+    // TabGroup / CustomProject / customProjectOrder すべて
+    // repository 経由で書き戻される（issue #487）。
+    // customProjectOrder は chromeCustomProjectRepository.saveOrder
+    // 経由で chrome.storage.local.set に到達する。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })
@@ -2041,8 +2053,10 @@ describe('SavedTabsApp custom search', () => {
     await undoOptions?.action?.onClick?.()
 
     // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
-    // CustomProject は各 repository の saveAll で個別に書き戻される。
-    // presentation 層で残るのは customProjectOrder のみ。
+    // CustomProject / customProjectOrder すべて repository 経由で
+    // 個別に書き戻される（issue #487）。customProjectOrder は
+    // chromeCustomProjectRepository.saveOrder 経由で chrome.storage.local
+    // に到達する。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })
@@ -2401,8 +2415,10 @@ describe('SavedTabsApp custom search', () => {
     await undoOptions?.action?.onClick?.()
 
     // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
-    // CustomProject / ParentCategory は各 repository の saveAll で個別に
-    // 書き戻される。presentation 層で残るのは customProjectOrder のみ。
+    // CustomProject / ParentCategory / customProjectOrder すべて
+    // repository 経由で個別に書き戻される（issue #487）。
+    // customProjectOrder は chromeCustomProjectRepository.saveOrder
+    // 経由で chrome.storage.local.set に到達する。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })

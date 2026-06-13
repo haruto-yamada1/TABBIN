@@ -5,7 +5,10 @@ import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStora
 import { createChromeCustomProjectRepository } from './ChromeCustomProjectRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
-import { CUSTOM_PROJECTS_KEY } from './savedTabsStorageKeys'
+import {
+  CUSTOM_PROJECT_ORDER_KEY,
+  CUSTOM_PROJECTS_KEY,
+} from './savedTabsStorageKeys'
 
 type StorageState = Record<string, unknown>
 
@@ -393,6 +396,66 @@ describe('ChromeCustomProjectRepository', () => {
       const repo = createChromeCustomProjectRepository(port)
       await repo.removeByIds([])
       expect(port.set).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('findOrder', () => {
+    it('空 storage のとき空配列を返す', async () => {
+      const repo = createChromeCustomProjectRepository(createPort({}))
+      await expect(repo.findOrder()).resolves.toStrictEqual([])
+    })
+
+    it('CUSTOM_PROJECT_ORDER_KEY の生 string[] を CustomProjectId[] として返す', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECT_ORDER_KEY]: ['project-2', 'project-1'],
+      }
+      const repo = createChromeCustomProjectRepository(createPort(state))
+      const result = await repo.findOrder()
+      expect(result.map((id) => id)).toStrictEqual(['project-2', 'project-1'])
+    })
+
+    it('非配列 / 配列でない string / 空文字 / 重複を除外して返す', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECT_ORDER_KEY]: [
+          'project-1',
+          '',
+          null,
+          42,
+          'project-1',
+          'project-2',
+        ],
+      }
+      const repo = createChromeCustomProjectRepository(createPort(state))
+      const result = await repo.findOrder()
+      expect(result.map((id) => id)).toStrictEqual(['project-1', 'project-2'])
+    })
+  })
+
+  describe('saveOrder', () => {
+    it('CustomProjectId[] を CUSTOM_PROJECT_ORDER_KEY に string[] として保存する', async () => {
+      const port = createPort({})
+      const repo = createChromeCustomProjectRepository(port)
+      await repo.saveOrder([
+        createCustomProjectId('project-1'),
+        createCustomProjectId('project-2'),
+      ])
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      expect(lastSetArg[CUSTOM_PROJECT_ORDER_KEY]).toStrictEqual([
+        'project-1',
+        'project-2',
+      ])
+    })
+
+    it('空配列を渡したら空配列を保存する', async () => {
+      const port = createPort({})
+      const repo = createChromeCustomProjectRepository(port)
+      await repo.saveOrder([])
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      expect(lastSetArg[CUSTOM_PROJECT_ORDER_KEY]).toStrictEqual([])
     })
   })
 })

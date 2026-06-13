@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  CUSTOM_PROJECT_ORDER_KEY,
   CUSTOM_PROJECTS_KEY,
   PARENT_CATEGORIES_KEY,
   SAVED_TABS_KEY,
@@ -16,12 +17,17 @@ describe('savedTabsStorageKeys', () => {
     expect(CUSTOM_PROJECTS_KEY).toBe('customProjects')
   })
 
-  it('4 つのメイン key を配列で列挙できる', () => {
+  it('issue #487 で customProjectOrder を DDD 永続化境界に取り込んだ', () => {
+    expect(CUSTOM_PROJECT_ORDER_KEY).toBe('customProjectOrder')
+  })
+
+  it('5 つのメイン key を配列で列挙できる', () => {
     expect(SAVED_TABS_STORAGE_KEYS).toStrictEqual([
       'savedTabs',
       'urls',
       'parentCategories',
       'customProjects',
+      'customProjectOrder',
     ])
   })
 })

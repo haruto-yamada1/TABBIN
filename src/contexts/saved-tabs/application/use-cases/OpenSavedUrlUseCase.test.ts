@@ -84,6 +84,10 @@ const createInMemoryRepositories = (
     saveAll: async (projects) => {
       customProjects.splice(0, customProjects.length, ...projects)
     },
+    // eslint-disable-next-line typescript/require-await
+    findOrder: async () => [],
+    // eslint-disable-next-line typescript/require-await
+    saveOrder: async () => undefined,
   }
   return {
     customProjectRepository,

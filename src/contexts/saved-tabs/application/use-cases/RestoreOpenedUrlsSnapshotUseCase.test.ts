@@ -8,6 +8,7 @@ import type { CustomProjectRepository } from '../../domain/repositories/CustomPr
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
+import { createCustomProjectId } from '../../domain/value-objects/CustomProjectId'
 import type { RestoreOpenedUrlsSnapshotUseCaseDeps } from './RestoreOpenedUrlsSnapshotUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from './RestoreOpenedUrlsSnapshotUseCase'
 
@@ -15,6 +16,7 @@ interface Repositories extends RestoreOpenedUrlsSnapshotUseCaseDeps {
   tabGroups: ReturnType<typeof createTabGroup>[]
   urlRecords: ReturnType<typeof createUrlRecord>[]
   customProjects: ReturnType<typeof createCustomProject>[]
+  customProjectOrder: ReturnType<typeof createCustomProjectId>[]
   parentCategories: ReturnType<typeof createParentCategory>[]
 }
 
@@ -23,6 +25,7 @@ const createInMemoryRepositories = (
     tabGroups?: ReturnType<typeof createTabGroup>[]
     urlRecords?: ReturnType<typeof createUrlRecord>[]
     customProjects?: ReturnType<typeof createCustomProject>[]
+    customProjectOrder?: ReturnType<typeof createCustomProjectId>[]
     parentCategories?: ReturnType<typeof createParentCategory>[]
   } = {},
 ): Repositories => {
@@ -34,6 +37,9 @@ const createInMemoryRepositories = (
   ]
   const customProjects: ReturnType<typeof createCustomProject>[] = [
     ...(initial.customProjects ?? []),
+  ]
+  const customProjectOrder: ReturnType<typeof createCustomProjectId>[] = [
+    ...(initial.customProjectOrder ?? []),
   ]
   const parentCategories: ReturnType<typeof createParentCategory>[] = [
     ...(initial.parentCategories ?? []),
@@ -87,6 +93,12 @@ const createInMemoryRepositories = (
     saveAll: async (projects) => {
       customProjects.splice(0, customProjects.length, ...projects)
     },
+    // eslint-disable-next-line typescript/require-await
+    findOrder: async () => [...customProjectOrder],
+    // eslint-disable-next-line typescript/require-await
+    saveOrder: async (order) => {
+      customProjectOrder.splice(0, customProjectOrder.length, ...order)
+    },
   }
   const parentCategoryRepository: ParentCategoryRepository = {
     // eslint-disable-next-line typescript/require-await
@@ -108,6 +120,7 @@ const createInMemoryRepositories = (
     },
   }
   return {
+    customProjectOrder,
     customProjectRepository,
     customProjects,
     parentCategories,
@@ -265,6 +278,44 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     expect(result.restoredUrlRecords).toStrictEqual([])
     expect(result.restoredCustomProjects).toStrictEqual([])
     expect(result.restoredParentCategories).toStrictEqual([])
+    expect(result.restoredCustomProjectOrder).toBeUndefined()
     expect(repos.tabGroups).toStrictEqual([])
+    expect(repos.customProjectOrder).toStrictEqual([])
+  })
+
+  it('snapshot の customProjectOrder を repository 経由で保存する', async () => {
+    const repos = createInMemoryRepositories({
+      customProjectOrder: [
+        createCustomProjectId('project-old'),
+        createCustomProjectId('project-stale'),
+      ],
+    })
+    const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
+
+    const result = await useCase({
+      snapshot: {
+        customProjectOrder: ['project-new', 'project-old', 'project-new', ''],
+      },
+    })
+
+    expect(result.restoredCustomProjectOrder?.map((id) => id)).toStrictEqual([
+      'project-new',
+      'project-old',
+    ])
+    expect(repos.customProjectOrder.map((id) => id)).toStrictEqual([
+      'project-new',
+      'project-old',
+    ])
+  })
+
+  it('snapshot に customProjectOrder が無いとき repository には書き戻さない', async () => {
+    const initial = [createCustomProjectId('project-keep')]
+    const repos = createInMemoryRepositories({ customProjectOrder: initial })
+    const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
+
+    const result = await useCase({ snapshot: {} })
+
+    expect(result.restoredCustomProjectOrder).toBeUndefined()
+    expect(repos.customProjectOrder).toStrictEqual(initial)
   })
 })
