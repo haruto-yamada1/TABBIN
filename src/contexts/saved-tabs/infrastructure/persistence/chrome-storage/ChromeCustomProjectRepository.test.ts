@@ -245,9 +245,10 @@ describe('ChromeCustomProjectRepository', () => {
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
         -1,
       )?.[0] as Record<string, unknown>
-      const savedRaw = (
-        lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[]
-      )[0] as Record<string, unknown>
+      const savedRaw = (lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[])[0] as Record<
+        string,
+        unknown
+      >
       expect(savedRaw).toMatchObject({
         categories: ['research'],
         categoryOrder: ['research', 'news'],
@@ -262,7 +263,57 @@ describe('ChromeCustomProjectRepository', () => {
         updatedAt: 2,
         urlIds: ['url-keep'],
         urlMetadata: { 'url-keep': { category: 'research', notes: 'kept' } },
-        urls: [{ title: 'Legacy entry', url: 'https://example.com/legacy' }],
+        urls: [
+          { title: 'Legacy entry', url: 'https://example.com/legacy' },
+        ],
+      })
+    })
+
+    it('既存 raw に不正な要素が混じっていても有効要素のリッチフィールドを保持する', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECTS_KEY]: [
+          // 不正要素（categories 無し）
+          { createdAt: 1, id: 'broken', name: 'Broken', updatedAt: 1 },
+          // 有効要素 + リッチフィールド
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            projectKeywords: {
+              domainKeywords: ['example.com'],
+              titleKeywords: ['quarterly'],
+              urlKeywords: ['report'],
+            },
+            updatedAt: 2,
+            urlIds: ['url-remove', 'url-keep'],
+          },
+        ],
+      }
+      const port = createPort(state)
+      const repo = createChromeCustomProjectRepository(port)
+      const entities = await repo.findAll()
+      const remaining = entities.map((entity) => ({
+        ...entity,
+        urlIds: entity.urlIds.filter((id) => id !== 'url-remove'),
+      }))
+      await repo.saveAll(remaining)
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      const savedRaw = (lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[])[0] as Record<
+        string,
+        unknown
+      >
+      // 不正要素混入下でも、有効要素の projectKeywords が merge で持ち越される
+      expect(savedRaw).toMatchObject({
+        id: 'project-1',
+        urlIds: ['url-keep'],
+        projectKeywords: {
+          domainKeywords: ['example.com'],
+          titleKeywords: ['quarterly'],
+          urlKeywords: ['report'],
+        },
       })
     })
   })

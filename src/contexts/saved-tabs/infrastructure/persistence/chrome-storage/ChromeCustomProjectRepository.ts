@@ -10,7 +10,7 @@ import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStora
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { CUSTOM_PROJECTS_KEY } from './savedTabsStorageKeys'
-import { CustomProjectRawArraySchema } from './savedTabsStorageSchema'
+import { CustomProjectRawSchema } from './savedTabsStorageSchema'
 import type { CustomProjectRaw } from './savedTabsStorageSchema'
 
 const getDefaultPort = (): ChromeStorageLocalPort | null => {
@@ -30,11 +30,20 @@ const findAllRawCustomProjects = async (
 ): Promise<CustomProjectRaw[]> => {
   const result = await port.get(CUSTOM_PROJECTS_KEY)
   const raw = result[CUSTOM_PROJECTS_KEY]
-  const parsed = CustomProjectRawArraySchema.safeParse(raw)
-  if (!parsed.success) {
+  if (!Array.isArray(raw)) {
     return []
   }
-  return [...parsed.data]
+  // 1 要素ずつ safeParse する。`CustomProjectRawArraySchema.safeParse(raw)` を
+  // 使うと配列全体に対する単一の zod パースになり、不正要素が 1 つでも
+  // 含まれていると全体が failure になってしまい、merge 元データが失われる。
+  const valid: CustomProjectRaw[] = []
+  for (const item of raw) {
+    const parsed = CustomProjectRawSchema.safeParse(item)
+    if (parsed.success) {
+      valid.push(parsed.data)
+    }
+  }
+  return valid
 }
 
 const createChromeCustomProjectRepositoryImpl = (

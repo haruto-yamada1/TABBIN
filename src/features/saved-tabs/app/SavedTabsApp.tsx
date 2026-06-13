@@ -425,7 +425,12 @@ const useSavedTabsAppView = ({
           urlRecordId,
         })
 
-        if (snapshot && result.removedUrlRecordId) {
+        // use-case が `snapshot` を返すのは「TabGroup / CustomProject の
+        // urlIds から実際に削除が走った」ケース。urlRecord 自体が他で
+        // 参照されていて削除されない場合でも、TabGroup から URL ID が
+        // 取り除かれているなら Undo 対象として扱う必要がある。よって
+        // `removedUrlRecordId` ではなく `snapshot` の有無を判定基準にする。
+        if (snapshot && result.snapshot) {
           const updated = await chrome.storage.local.get<{
             savedTabs?: TabGroup[]
           }>('savedTabs')

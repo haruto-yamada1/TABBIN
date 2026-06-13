@@ -10,7 +10,7 @@ import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStora
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SAVED_TABS_KEY } from './savedTabsStorageKeys'
-import { SavedTabRawArraySchema } from './savedTabsStorageSchema'
+import { SavedTabRawSchema } from './savedTabsStorageSchema'
 import type { SavedTabRaw } from './savedTabsStorageSchema'
 
 const getDefaultPort = (): ChromeStorageLocalPort | null => {
@@ -30,11 +30,21 @@ const findAllRawTabGroups = async (
 ): Promise<SavedTabRaw[]> => {
   const result = await port.get(SAVED_TABS_KEY)
   const raw = result[SAVED_TABS_KEY]
-  const parsed = SavedTabRawArraySchema.safeParse(raw)
-  if (!parsed.success) {
+  if (!Array.isArray(raw)) {
     return []
   }
-  return [...parsed.data]
+  // 1 要素ずつ safeParse する。`SavedTabRawArraySchema.safeParse(raw)` を
+  // 使うと配列全体に対する単一の zod パースになり、不正要素が 1 つでも
+  // 含まれていると全体が failure になってしまい、merge 元データが失われる。
+  // ここは「有効要素だけ集める」挙動が必要なため要素ごとにパースする。
+  const valid: SavedTabRaw[] = []
+  for (const item of raw) {
+    const parsed = SavedTabRawSchema.safeParse(item)
+    if (parsed.success) {
+      valid.push(parsed.data)
+    }
+  }
+  return valid
 }
 
 const createChromeTabGroupRepositoryImpl = (

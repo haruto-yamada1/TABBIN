@@ -3959,6 +3959,107 @@ describe('SavedTabsApp custom search', () => {
     )
   })
 
+  it('handleOpenTab は他で参照されている URL でも Undo トーストを表示する（snapshot 経由）', async () => {
+    mocked.settings.removeTabAfterOpen = true
+    mocked.settings.openUrlInBackground = false
+    mocked.projectState.viewMode = 'custom'
+    mocked.projectState.viewModeRef = { current: 'custom' }
+    const group1: TabGroup = {
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-shared'],
+      urls: [
+        {
+          id: 'url-shared',
+          title: 'Shared',
+          url: 'https://example.com/shared',
+        },
+      ],
+    }
+    // 同じ URL ID を参照する別グループ → urlRecord 自体は削除されない
+    const group2: TabGroup = {
+      domain: 'other.com',
+      id: 'group-2',
+      urlIds: ['url-shared'],
+      urls: [
+        {
+          id: 'url-shared',
+          title: 'Shared',
+          url: 'https://example.com/shared',
+        },
+      ],
+    }
+    const urlRecords: UrlRecord[] = [
+      {
+        id: 'url-shared',
+        savedAt: 1,
+        title: 'Shared',
+        url: 'https://example.com/shared',
+      },
+    ]
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          // eslint-disable-next-line typescript/require-await
+          get: vi.fn(async (key: unknown) => {
+            const keys = Array.isArray(key)
+              ? (key as string[])
+              : typeof key === 'string'
+                ? [key]
+                : []
+            const result: Record<string, unknown> = {}
+            for (const k of keys) {
+              if (k === 'savedTabs') result.savedTabs = [group1, group2]
+              if (k === 'urls') result.urls = urlRecords
+              if (k === 'customProjects') result.customProjects = []
+              if (k === 'customProjectOrder') result.customProjectOrder = []
+            }
+            return result
+          }),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: {
+        create: vi.fn(),
+      },
+      windows: {
+        create: vi.fn(),
+      },
+      runtime: {
+        getURL: vi.fn(),
+      },
+    } as unknown as typeof chrome
+    vi.mocked(getUrlRecords).mockResolvedValue(urlRecords)
+
+    render(<SavedTabsApp />)
+
+    const customProps = mocked.customModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleOpenUrl: (url: string) => Promise<void>
+    }
+
+    await customProps.handleOpenUrl('https://example.com/shared')
+
+    // URL ID は group-1 / group-2 双方から削除されるが、url-shared 自体は
+    // 他で参照されているので urlRecord は削除されない。
+    // それでも use-case は snapshot を返すため、Undo toast は表示される。
+    expect(toast.info).toHaveBeenCalledWith(
+      '開いた1件のタブを保存データから削除しました',
+      expect.objectContaining({
+        action: expect.objectContaining({
+          label: '元に戻す',
+        }),
+      }),
+    )
+  })
+
   it('handleOpenTab は active 設定の変化を resolveActive 経由で反映する', async () => {
     mocked.projectState.viewMode = 'custom'
     mocked.projectState.viewModeRef = { current: 'custom' }
