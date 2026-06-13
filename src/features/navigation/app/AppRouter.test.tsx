@@ -51,7 +51,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   }),
 }))
 
-vi.mock('@/features/saved-tabs/routes/SavedTabsRoute', () => ({
+vi.mock('@/contexts/saved-tabs/presentation/routes/SavedTabsRoute', () => ({
   SavedTabsRoute: ({
     onViewModeNavigate,
     search,
