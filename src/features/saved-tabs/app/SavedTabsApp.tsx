@@ -428,6 +428,17 @@ const useSavedTabsAppView = ({
       }[],
     ) => {
       try {
+        // Undo 用 snapshot は use-case 呼び出し**前**に取得する。
+        // use-case 実行後は storage が post-delete 状態になっているため、
+        // その snapshot を渡しても Undo が no-op 相当になり復元できない。
+        const preDeleteSnapshot = settings.removeTabAfterOpen
+          ? await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
+              'savedTabs',
+              'customProjects',
+              'customProjectOrder',
+            ])
+          : undefined
+
         // 一括オープンは OpenAllSavedUrlsUseCase に委譲し、
         // `chrome.tabs.create` / `chrome.windows.create` の直接呼び出しを
         // presentation 層から撤去する。`active` 制御は composition 層の
@@ -440,23 +451,21 @@ const useSavedTabsAppView = ({
         })
 
         // 開いたあとに保存データから削除する設定のときは、Undo 用 toast を
-        // 出せるよう removeOpenedUrlsFromStorage を併用する。
-        // use-case 自体は既に storage への書き戻しを済ませているため、
-        // ここでは snapshot / toast 表示だけを扱う。
-        if (settings.removeTabAfterOpen && result.snapshot) {
-          const storageResult =
-            await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
-              'savedTabs',
-              'customProjects',
-              'customProjectOrder',
-            ])
-          await refreshTabGroupsWithUrls(getSnapshotSavedTabs(storageResult))
+        // 出して pre-delete snapshot から復元できるようにする。
+        if (
+          settings.removeTabAfterOpen &&
+          preDeleteSnapshot &&
+          result.snapshot
+        ) {
+          await refreshTabGroupsWithUrls(
+            getSnapshotSavedTabs(preDeleteSnapshot),
+          )
           showOpenedUrlsUndoToast({
             count: result.removedUrlRecordIds.length,
             refreshTabGroupsWithUrls,
             savedTabsUseCases,
             setCustomProjects,
-            snapshot: storageResult,
+            snapshot: preDeleteSnapshot,
             t,
           })
           console.log(

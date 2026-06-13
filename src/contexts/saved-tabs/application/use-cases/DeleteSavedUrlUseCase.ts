@@ -1,3 +1,4 @@
+import type { CustomProject } from '../../domain/entities/CustomProject'
 import type { TabGroup } from '../../domain/entities/TabGroup'
 import type { UrlRecord } from '../../domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
@@ -35,8 +36,12 @@ export type DeleteSavedUrlUseCase = (
  *    `SavedTabsDomainError` を投げる。
  * 3. 該当 `UrlRecordId` を `TabGroup` の `urlIds` から取り除く。
  *    `urlIds` が空になった場合は `TabGroup` 自体を削除する。
- * 4. 該当 `UrlRecord` が他で参照されていなければ `UrlRecordRepository.removeByIds` で削除する。
- * 5. Undo 用 snapshot を `DeletedSavedUrlDto` にまとめて返す。
+ * 4. 同じ `UrlRecordId` を参照している `CustomProject` の `urlIds` からも
+ *    取り除き、storage を書き戻す（旧 `removeUrlFromTabGroup` の
+ *    `removeUrlFromAllCustomProjects` 相当）。
+ * 5. 残った参照（他 `TabGroup` / `CustomProject`）が無ければ
+ *    `UrlRecordRepository.removeByIds` で `UrlRecord` 自体を削除する。
+ * 6. Undo 用 snapshot を `DeletedSavedUrlDto` にまとめて返す。
  *
  * 1 件も `UrlRecord` が消せず `TabGroup` も変更なしのケースでは
  * `snapshot: null` を返す。
@@ -85,6 +90,7 @@ export const createDeleteSavedUrlUseCase = (
 
     const previousGroup: TabGroup = targetGroup
     const previousUrlRecord: UrlRecord = targetUrlRecord
+    const previousCustomProjects: readonly CustomProject[] = allCustomProjects
 
     // 該当 URL を TabGroup から取り除く。
     const remainingUrlIds = targetGroup.urlIds.filter(
@@ -99,11 +105,29 @@ export const createDeleteSavedUrlUseCase = (
             : group,
         )
 
+    // 同じ URL を保持している CustomProject からも取り除く。
+    // 旧 `removeUrlFromTabGroup` の `removeUrlFromAllCustomProjects` 相当で、
+    // custom モード上に幽霊表示が残らないようにする。
+    const updatedCustomProjects: readonly CustomProject[] =
+      allCustomProjects.map((project) => {
+        const remaining = project.urlIds.filter(
+          (urlId) => urlId !== targetUrlId,
+        )
+        if (remaining.length === project.urlIds.length) {
+          return project
+        }
+        return { ...project, urlIds: remaining }
+      })
+
     // UrlRecord が他で参照されていなければ削除する。
+    // 参照判定は更新後の TabGroup / CustomProject 全体で行う。
+    // target group が urlIds 空で削除された場合 (`isGroupEmpty = true`) も
+    // 他 TabGroup からの参照は残るので `updatedGroups` をそのまま渡し、
+    // `origin` パラメータで当該 group を除外判定させる。
     const stillReferenced = isUrlRecordReferencedElsewhere({
-      customProjects: allCustomProjects,
+      customProjects: updatedCustomProjects,
       origin: { id: targetGroup.id, kind: 'tabGroup' },
-      tabGroups: isGroupEmpty ? [] : updatedGroups,
+      tabGroups: updatedGroups,
       urlRecordId: targetUrlId,
     })
 
@@ -112,6 +136,14 @@ export const createDeleteSavedUrlUseCase = (
       updatedGroups.some((group, index) => group !== allTabGroups[index])
     ) {
       await deps.tabGroupRepository.saveAll(updatedGroups)
+    }
+    if (
+      updatedCustomProjects.length !== allCustomProjects.length ||
+      updatedCustomProjects.some(
+        (project, index) => project !== allCustomProjects[index],
+      )
+    ) {
+      await deps.customProjectRepository.saveAll(updatedCustomProjects)
     }
 
     let removedUrlRecordId: UrlRecordId | null = null
@@ -133,9 +165,12 @@ export const createDeleteSavedUrlUseCase = (
       }
     }
 
+    // Undo 用 snapshot には pre-mutation の TabGroup / CustomProject /
+    // UrlRecord を含めて、RestoreOpenedUrlsSnapshotUseCase が
+    // storage を正確に巻き戻せるようにする。
     const snapshot: OpenedUrlsRestoreSnapshot = {
       customProjectOrder: undefined,
-      customProjects: undefined,
+      customProjects: previousCustomProjects,
       parentCategories: undefined,
       savedTabs: isGroupEmpty ? [previousGroup] : [],
       urlRecords: removedUrlRecord ? [previousUrlRecord] : [],

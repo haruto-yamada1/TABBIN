@@ -166,7 +166,7 @@ describe('DeleteSavedUrlsUseCase', () => {
     await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
   })
 
-  it('他で参照されている UrlRecord は削除せず残す', async () => {
+  it('CustomProject からも url id を取り除き、未参照なら UrlRecord を削除する', async () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
@@ -204,7 +204,56 @@ describe('DeleteSavedUrlsUseCase', () => {
       urls: ['https://example.com/a', 'https://example.com/b'],
     })
 
+    // group / project 双方から url-1 / url-2 を取り除き、参照が無くなった
+    // ため UrlRecord も両方削除される。group は urlIds が空になり削除。
+    expect(result.removedUrlRecordIds).toStrictEqual(['url-1', 'url-2'])
+    expect(result.removedTabGroupIds).toStrictEqual([group.id])
+    expect(result.snapshot).not.toBeNull()
+    expect(result.snapshot?.customProjects).toContainEqual(project)
+    expect(
+      (await repos.urlRecordRepository.findAll()).map((record) => record.id),
+    ).toStrictEqual([])
+    const remainingProjects = await repos.customProjectRepository.findAll()
+    expect(remainingProjects[0].urlIds).toStrictEqual([])
+  })
+
+  it('別 group が同じ UrlRecord を参照している場合はその UrlRecord を残す', async () => {
+    const targetGroup = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1', 'url-2'],
+    })
+    const otherGroup = createTabGroup({
+      domain: 'other.com',
+      id: 'group-2',
+      urlIds: ['url-1'],
+    })
+    const url1 = createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    })
+    const url2 = createUrlRecord({
+      id: 'url-2',
+      savedAt: 1,
+      title: 'B',
+      url: 'https://example.com/b',
+    })
+    const repos = createInMemoryRepositories({
+      tabGroups: [targetGroup, otherGroup],
+      urlRecords: [url1, url2],
+    })
+    const useCase = createDeleteSavedUrlsUseCase(repos)
+
+    const result = await useCase({
+      tabGroupId: targetGroup.id,
+      urls: ['https://example.com/a', 'https://example.com/b'],
+    })
+
+    // url-1 は otherGroup からの参照があるため残す。url-2 は単独で削除。
     expect(result.removedUrlRecordIds).toStrictEqual(['url-2'])
+    expect(result.removedTabGroupIds).toStrictEqual([targetGroup.id])
     expect(
       (await repos.urlRecordRepository.findAll()).map((record) => record.id),
     ).toStrictEqual(['url-1'])

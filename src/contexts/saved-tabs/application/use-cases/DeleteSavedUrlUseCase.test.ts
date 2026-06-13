@@ -153,7 +153,7 @@ describe('DeleteSavedUrlUseCase', () => {
     await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
   })
 
-  it('他で参照されている UrlRecord は削除せず残す', async () => {
+  it('CustomProject からも url id を取り除き、UrlRecord も未参照なら削除する', async () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
@@ -185,14 +185,54 @@ describe('DeleteSavedUrlUseCase', () => {
       url: 'https://example.com/a',
     })
 
-    // UrlRecord は project に参照されているため削除されない。
-    // 一方、group から URL を取り除いた結果 urlIds が空になるため
-    // group 自体は削除される（既存 removeUrlFromTabGroup と同じ挙動）。
-    expect(result.removedUrlRecordId).toBeNull()
+    // group / project の双方から url-1 を取り除き、参照箇所が無くなるため
+    // UrlRecord も削除される。group の urlIds が空になるので group 自体も削除。
+    expect(result.removedUrlRecordId).toBe('url-1')
     expect(result.removedTabGroupId).toBe(group.id)
-    expect(result.removedUrlRecord).toBeNull()
+    expect(result.removedUrlRecord?.id).toBe('url-1')
     expect(result.snapshot).not.toBeNull()
+    expect(result.snapshot?.customProjects).toContainEqual(project)
     await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
+    const remainingProjects = await repos.customProjectRepository.findAll()
+    expect(remainingProjects[0].urlIds).toStrictEqual([])
+    const remainingRecords = await repos.urlRecordRepository.findAll()
+    expect(remainingRecords.map((record) => record.id)).toStrictEqual([])
+  })
+
+  it('別 group が同じ UrlRecord を参照している場合は削除しない', async () => {
+    const targetGroup = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1'],
+    })
+    const otherGroup = createTabGroup({
+      domain: 'other.com',
+      id: 'group-2',
+      urlIds: ['url-1'],
+    })
+    const url1 = createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    })
+    const repos = createInMemoryRepositories({
+      tabGroups: [targetGroup, otherGroup],
+      urlRecords: [url1],
+    })
+    const useCase = createDeleteSavedUrlUseCase(repos)
+
+    const result = await useCase({
+      tabGroupId: targetGroup.id,
+      url: 'https://example.com/a',
+    })
+
+    // 他 group から参照されているので UrlRecord は残す。
+    // targetGroup 単体では urlIds が空になるので group 自体は削除。
+    expect(result.removedUrlRecordId).toBeNull()
+    expect(result.removedTabGroupId).toBe(targetGroup.id)
+    const remainingTabGroups = await repos.tabGroupRepository.findAll()
+    expect(remainingTabGroups.map((g) => g.id)).toStrictEqual([otherGroup.id])
     const remainingRecords = await repos.urlRecordRepository.findAll()
     expect(remainingRecords.map((record) => record.id)).toStrictEqual(['url-1'])
   })
