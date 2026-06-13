@@ -10,7 +10,7 @@
 | `queries/`   | 読み取り専用リクエスト型（`GetSavedTabsQuery` / `SearchSavedTabsQuery` など）                |
 | `use-cases/` | 1 操作 1 ファイルを基本とするオーケストレーション。副作用は repository interface / port 経由 |
 | `dto/`       | presentation 層へ返す読み取り専用モデル（domain entity を UI に渡さない）                    |
-| `ports/`     | `BrowserTabPort` / `NotificationPort` / `ClockPort` / `IdGeneratorPort` などの interface     |
+| `ports/`     | `BrowserTabPort` / `NotificationPort` などの interface（chrome / toast 副作用の抽象）        |
 
 ## 禁止
 
