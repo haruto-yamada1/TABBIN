@@ -15,7 +15,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18nText: () => (key: string, fallback?: string) => fallback ?? key,
 }))
 
-vi.mock('@/features/saved-tabs/lib/scroll-controls', () => ({
+vi.mock('@/contexts/saved-tabs/presentation/lib/scroll-controls', () => ({
   getRelativeScrollTarget: scrollControlState.getRelativeScrollTarget,
   getScrollControlAvailability: scrollControlState.getScrollControlAvailability,
   scrollContainerToTarget: scrollControlState.scrollContainerToTarget,

@@ -7,10 +7,10 @@ import * as inputStories from '@/components/ai-elements/inputs.stories'
 import * as messageStories from '@/components/ai-elements/message.stories'
 import * as modeToggleStories from '@/components/mode-toggle.stories'
 import * as buttonStories from '@/components/ui/button.stories'
+import * as viewModeStories from '@/contexts/saved-tabs/presentation/components/ViewModeToggle.stories'
 import * as ollamaStories from '@/features/ai-chat/components/OllamaErrorNotice.stories'
 import * as headerStories from '@/features/navigation/components/ExtensionPageHeader.stories'
 import * as importExportStories from '@/features/options/ImportExportSettings.stories'
-import * as viewModeStories from '@/features/saved-tabs/components/ViewModeToggle.stories'
 
 import preview from '../../../.storybook/preview'
 

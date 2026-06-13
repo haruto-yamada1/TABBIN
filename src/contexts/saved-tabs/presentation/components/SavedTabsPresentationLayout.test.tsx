@@ -19,7 +19,7 @@ const presentationMock = vi.hoisted(() => ({
   scrollControlsCalls: 0,
 }))
 
-vi.mock('@/features/saved-tabs/app/SavedTabsApp', () => ({
+vi.mock('@/contexts/saved-tabs/presentation/app/SavedTabsApp', () => ({
   SavedTabsApp: ({
     initialViewMode,
     isAiSidebarOpen,
@@ -40,7 +40,7 @@ vi.mock('@/features/saved-tabs/app/SavedTabsApp', () => ({
   ),
 }))
 
-vi.mock('@/features/saved-tabs/app/savedTabsProfiler', () => ({
+vi.mock('@/contexts/saved-tabs/presentation/app/savedTabsProfiler', () => ({
   handleSavedTabsRender: vi.fn(),
   isDevProfileEnabled: false,
 }))
