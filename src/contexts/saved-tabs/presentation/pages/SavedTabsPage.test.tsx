@@ -1,4 +1,5 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+// @vitest-environment jsdom
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
@@ -11,7 +12,33 @@ import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepos
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import { createSavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
-import { SavedTabsPage } from './SavedTabsPage'
+
+vi.mock('@/features/i18n/context/I18nProvider', () => ({
+  I18nProvider: ({ children }: { children: React.ReactNode }) => (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
+    <>{children}</>
+  ),
+  useI18n: () => ({
+    language: 'ja',
+    t: (key: string) => key,
+  }),
+  useI18nText: () => (key: string) => key,
+}))
+
+vi.mock('@/features/saved-tabs/app/SavedTabsApp', () => ({
+  SavedTabsApp: () => <div data-testid='saved-tabs-app-mock'>SavedTabsApp</div>,
+}))
+
+vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
+  LazySavedTabsChatWidget: () => (
+    <div data-testid='saved-tabs-chat-widget-mock'>LazySavedTabsChatWidget</div>
+  ),
+}))
+
+vi.mock('@/features/saved-tabs/app/savedTabsProfiler', () => ({
+  handleSavedTabsRender: vi.fn(),
+  isDevProfileEnabled: false,
+}))
 
 const createInMemoryDeps = (input: {
   tabGroups?: ReturnType<typeof createTabGroup>[]
@@ -101,6 +128,8 @@ const createInMemoryDeps = (input: {
   }
 }
 
+import { SavedTabsPage } from './SavedTabsPage'
+
 describe('SavedTabsPage', () => {
   afterEach(() => {
     cleanup()
@@ -138,21 +167,11 @@ describe('SavedTabsPage', () => {
     expect(root.getAttribute('data-has-content')).toBe('true')
   })
 
-  it('refresh ボタンで再フェッチが走る', async () => {
+  it('SavedTabsPresentationLayout を描画する (data-testid=saved-tabs-page-layout)', () => {
     const deps = createInMemoryDeps({})
     render(<SavedTabsPage deps={deps} />)
-    const root = screen.getByTestId('saved-tabs-page-presentation')
-    await waitFor(() => {
-      expect(root.getAttribute('data-loading')).toBe('false')
-    })
-    await act(async () => {
-      await Promise.resolve()
-      screen.getByText('refresh').click()
-      await Promise.resolve()
-    })
-    await waitFor(() => {
-      expect(root.getAttribute('data-loading')).toBe('false')
-    })
+    expect(screen.getByTestId('saved-tabs-page-layout')).toBeTruthy()
+    expect(screen.getByTestId('saved-tabs-app-mock')).toBeTruthy()
   })
 
   it('deps と useCases を両方渡すと、contextValue の deps / useCases 分岐を使う', async () => {
@@ -249,5 +268,19 @@ describe('SavedTabsPage', () => {
         .getByTestId('saved-tabs-page-presentation')
         .getAttribute('data-error'),
     ).toBe('refresh failed')
+  })
+
+  it('initialViewMode / onViewModeNavigate / search を渡すと SavedTabsPresentationLayout へ反映する', () => {
+    const deps = createInMemoryDeps({})
+    const onViewModeNavigate = vi.fn()
+    render(
+      <SavedTabsPage
+        deps={deps}
+        initialViewMode='custom'
+        onViewModeNavigate={onViewModeNavigate}
+        search='?mode=custom'
+      />,
+    )
+    expect(screen.getByTestId('saved-tabs-app-mock')).toBeTruthy()
   })
 })

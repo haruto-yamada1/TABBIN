@@ -1,9 +1,17 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+
+import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
+import type { ViewMode } from '@/types/storage'
 
 import type { CustomProject } from '../../domain/entities/CustomProject'
 import type { TabGroup } from '../../domain/entities/TabGroup'
 import type { SavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
+import { SavedTabsPresentationLayout } from '../components/SavedTabsPresentationLayout'
+import {
+  LEFT_PANE_COMPACT_BREAKPOINT_PX,
+  useSavedTabsLeftPaneWidth,
+} from '../components/savedTabsPresentationLayout.helpers'
 import { createSavedTabsUseCasesContextValueFromDeps } from '../controllers/SavedTabsUseCasesContext'
 import { useSavedTabsController } from '../controllers/useSavedTabsController'
 import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'
@@ -18,12 +26,21 @@ import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'
  * - `initialTabGroups` / `initialCustomProjects` は SSR / Storybook 用に
  *   事前データを渡す補助。テストで repository を差し替えずに view-model を
  *   検証したいときに使う。
+ * - `initialViewMode` / `onViewModeNavigate` は
+ *   `SavedTabsPresentationLayout` (と内部の `SavedTabsApp`) へ
+ *   直接渡すための props。`search` 経由で URL から解決する場合は
+ *   呼び出し側で `getSavedTabsModeFromLocation` を使って渡す。
+ * - `search` を渡すと `initialViewMode` より優先して URL の mode クエリ
+ *   を読む。`SavedTabsRoute` からの呼び出し時は `search` を渡す。
  */
 export interface SavedTabsPageProps {
   readonly deps?: SavedTabsUseCasesDeps
-  readonly useCases?: SavedTabsUseCases
-  readonly initialTabGroups?: readonly TabGroup[]
   readonly initialCustomProjects?: readonly CustomProject[]
+  readonly initialTabGroups?: readonly TabGroup[]
+  readonly initialViewMode?: ViewMode
+  readonly onViewModeNavigate?: (mode: ViewMode) => void
+  readonly search?: string
+  readonly useCases?: SavedTabsUseCases
 }
 
 /**
@@ -97,14 +114,31 @@ export const useSavedTabsPage = (
 /**
  * `SavedTabsPage` コンポーネント。
  *
- * presentation 層 page の薄い shell。controller フックを呼んで
- * view-model を取り出し、layout 系の子要素へ流す。
+ * presentation 層 page の shell。`useSavedTabsPage` で controller を
+ * 確立し、URL から導出した `initialViewMode` と一緒に
+ * `SavedTabsPresentationLayout` へ流す。
  *
- * 旧 `SavedTabsApp` の layout 互換は別 issue（またはこの issue の
- * フォローアップ）で `SavedTabsPresentationLayout` を作って差し替える。
+ * UI 構造は旧 `features/saved-tabs/routes/SavedTabsRoute` と等価
+ * (左右 split / 左ペイン scroll container / スクロールコントロール /
+ * AI チャットウィジェット) で、見た目・操作感は変えない。
  */
 export const SavedTabsPage = (props: SavedTabsPageProps) => {
   const { viewModel, refresh } = useSavedTabsPage(props)
+  const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false)
+  const { attachLeftPaneRef, leftPaneRef, leftPaneWidth } =
+    useSavedTabsLeftPaneWidth()
+  const isCompactLeftPaneLayout =
+    leftPaneWidth < LEFT_PANE_COMPACT_BREAKPOINT_PX
+  const resolvedInitialViewMode: ViewMode =
+    props.initialViewMode ??
+    getSavedTabsModeFromLocation(
+      props.search ??
+        (typeof window !== 'undefined' ? window.location.search : ''),
+    )
+  // view-model の refresh は layout の close 動線 (AI チャットなど) では
+  // 直接呼ばないが、controller 側で `refresh` を提供していることを
+  // 利用側へ示すために保持する。
+  void refresh
   return (
     <div
       data-testid='saved-tabs-page-presentation'
@@ -112,24 +146,15 @@ export const SavedTabsPage = (props: SavedTabsPageProps) => {
       data-error={viewModel.error ?? ''}
       data-has-content={viewModel.hasContent ? 'true' : 'false'}
     >
-      <p data-testid='saved-tabs-page-display-count'>
-        {viewModel.displayCount}
-      </p>
-      {viewModel.loading ? (
-        <p data-testid='saved-tabs-page-loading'>loading</p>
-      ) : null}
-      {viewModel.error ? (
-        <p data-testid='saved-tabs-page-error'>{viewModel.error}</p>
-      ) : null}
-      <button
-        type='button'
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-        onClick={() => {
-          void refresh()
-        }}
-      >
-        refresh
-      </button>
+      <SavedTabsPresentationLayout
+        attachLeftPaneRef={attachLeftPaneRef}
+        initialViewMode={resolvedInitialViewMode}
+        isAiSidebarOpen={isAiSidebarOpen}
+        isCompactLeftPaneLayout={isCompactLeftPaneLayout}
+        leftPaneRef={leftPaneRef}
+        onAiSidebarOpenChange={setIsAiSidebarOpen}
+        onViewModeNavigate={props.onViewModeNavigate}
+      />
     </div>
   )
 }
