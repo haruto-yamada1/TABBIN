@@ -36,9 +36,15 @@ export interface UseSavedTabsControllerInput {
 
 /**
  * `useSavedTabsController` の戻り値。UI は view-model と操作関数だけを受け取る。
+ *
+ * `useCases` / `deps` は mode 別 controller (`useDomainModeController` /
+ * `useCustomModeController`) が個別 use-case を直接参照するための導線。
+ * 既存 features (`SavedTabsApp`) からも暫定的に参照可能。
  */
 export interface UseSavedTabsControllerReturn {
   readonly viewModel: SavedTabsViewModel
+  readonly deps: SavedTabsUseCasesDeps
+  readonly useCases: SavedTabsUseCases
   readonly openSavedUrl: (
     input: OpenSavedUrlControllerInput,
   ) => Promise<OpenSavedUrlControllerResult>
@@ -431,11 +437,13 @@ export const useSavedTabsController = (
 
   return {
     deleteTabGroup,
+    deps,
     openSavedUrl,
     refresh,
     removeUnreferencedUrlRecords,
     restoreOpenedUrlsSnapshot,
     syncCategoryAssignments,
+    useCases,
     viewModel,
   }
 }

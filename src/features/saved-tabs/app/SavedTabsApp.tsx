@@ -14,6 +14,10 @@ import { createSavedTabsUseCases } from '@/app/composition/createSavedTabsUseCas
 import { Toaster } from '@/components/ui/sonner'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { createSavedTabsUseCases as createContextSavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
+import { createSavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import { useDomainModeController } from '@/contexts/saved-tabs/presentation/controllers/useDomainModeController'
+import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { CategoryReorderFooter } from '@/features/saved-tabs/components/Footer'
 import { Header } from '@/features/saved-tabs/components/Header' // ヘッダーコンポーネントをインポート
@@ -247,7 +251,6 @@ const useSavedTabsAppView = ({
 }: SavedTabsAppProps) => {
   const { t } = useI18n()
   const [settings, setSettings] = useState<UserSettings>(defaultSettings)
-  const [searchQuery, setSearchQuery] = useState('')
   const hasResolvedInitialViewModeRef = useRef(!initialViewMode)
   const previousInitialViewModeRef = useRef(initialViewMode)
 
@@ -279,6 +282,26 @@ const useSavedTabsAppView = ({
       }),
     [],
   )
+
+  // presentation 層の controller フック。Domain モード用 state
+  // (searchQuery, parentCategories) を presentation 層へ持ち上げ、
+  // `setSearchQuery` / `setParentCategories` を controller 経由で
+  // 配下に提供する。複雑 (Undo / snapshot 連携) な処理は従来通り
+  // 既存の `savedTabsUseCases` / `savedTabsPorts` 経由で実行する。
+  const controllerDeps = useMemo(() => createSavedTabsUseCasesDeps(), [])
+  const contextUseCases = useMemo(
+    () => createContextSavedTabsUseCases(controllerDeps),
+    [controllerDeps],
+  )
+  const presentationController = useSavedTabsController({
+    deps: controllerDeps,
+    useCases: contextUseCases,
+  })
+  const domainController = useDomainModeController({
+    controller: presentationController,
+  })
+  const searchQuery = domainController.searchQuery
+  const setSearchQuery = domainController.setSearchQuery
 
   // 未分類ドメインの並び替えモード状態管理
   const [isUncategorizedReorderMode, setIsUncategorizedReorderMode] =
