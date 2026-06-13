@@ -250,4 +250,28 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(names).toContain('chrome.alarms')
     })
   })
+
+  describe('domain/repositories/ の純度 (issue #457)', () => {
+    const repositoryInterfaceFiles = [
+      'src/contexts/saved-tabs/domain/repositories/TabGroupRepository.ts',
+      'src/contexts/saved-tabs/domain/repositories/UrlRecordRepository.ts',
+      'src/contexts/saved-tabs/domain/repositories/ParentCategoryRepository.ts',
+      'src/contexts/saved-tabs/domain/repositories/CustomProjectRepository.ts',
+    ]
+
+    for (const file of repositoryInterfaceFiles) {
+      it(`${file} は chrome.* や storage / 副作用を import / 利用しない`, () => {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        // コード本体に限定して import / プロパティアクセス / import パスを検査する。
+        // JSDoc のテキスト説明は対象外。
+        expect(source).not.toMatch(/from\s+['"]chrome['"]/)
+        expect(source).not.toMatch(/from\s+['"]@\/lib\/storage/)
+        expect(source).not.toMatch(/chrome\.storage\.local\./)
+        expect(source).not.toMatch(/chrome\.storage\.onChanged/)
+        expect(source).not.toMatch(/\blocalStorage\./)
+        expect(source).not.toMatch(/\bsessionStorage\./)
+        expect(source).not.toMatch(/chrome\.runtime\.sendMessage/)
+      })
+    }
+  })
 })
