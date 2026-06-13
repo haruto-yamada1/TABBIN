@@ -2,6 +2,8 @@ import type { CustomProjectRepository } from '../../domain/repositories/CustomPr
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
+import { createCustomProjectId } from '../../domain/value-objects/CustomProjectId'
+import type { CustomProjectId } from '../../domain/value-objects/CustomProjectId'
 import type { RestoreOpenedUrlsSnapshotCommand } from '../commands/RestoreOpenedUrlsSnapshotCommand'
 import type { RestoredSnapshotDto } from '../dto/RestoredSnapshotDto'
 
@@ -26,6 +28,34 @@ export type RestoreOpenedUrlsSnapshotUseCase = (
 ) => Promise<RestoredSnapshotDto>
 
 /**
+ * snapshot 内の `customProjectOrder` を検証して `CustomProjectId[]` へ
+ * 正規化する。空文字や重複は破棄し、復元対象から外す。
+ *
+ * 旧 `presentation` 層で `chrome.storage.local.set({ customProjectOrder })`
+ * を補助呼び出ししていた処理を repository 経由に置き換える（issue #487）。
+ */
+const normalizeCustomProjectOrder = (
+  order: readonly string[] | undefined,
+): readonly CustomProjectId[] | undefined => {
+  if (!order) {
+    return undefined
+  }
+  const result: CustomProjectId[] = []
+  const seen = new Set<string>()
+  for (const raw of order) {
+    if (typeof raw !== 'string' || raw.length === 0) {
+      continue
+    }
+    if (seen.has(raw)) {
+      continue
+    }
+    seen.add(raw)
+    result.push(createCustomProjectId(raw))
+  }
+  return result
+}
+
+/**
  * `RestoreOpenedUrlsSnapshotUseCase` を生成する。
  *
  * 責務:
@@ -36,9 +66,11 @@ export type RestoreOpenedUrlsSnapshotUseCase = (
  * - `savedTabs` / `urlRecords` / `customProjects` については、
  *   snapshot の内容を **既存データへ追加** する（ID 重複は snapshot 優先）。
  * - `parentCategories` は `saveAll` で全置換する（カテゴリは集合として扱う）。
- * - `customProjectOrder` は repository interface がないため、現状は DTO へ
- *   そのまま載せず、presentation 層で `chrome.storage.local` へ書き戻す
- *   拡張は別 issue に切り出す。
+ * - `customProjectOrder` は `customProjectRepository.saveOrder` で
+ *   snapshot の値で **全置換** する。`order` は表示用並び順なので
+ *   「既存に項目を残してマージ」する意味が薄く、Undo 押下時点の
+ *   ユーザー期待は「snapshot 時点の表示順に戻る」ため、全置換が
+ *   直感に合う（issue #487）。
  *
  * この use-case は冪等ではなく、Undo ボタンが押されるたびに
  * 同じ snapshot を適用する想定。複数回押された場合は
@@ -54,6 +86,9 @@ export const createRestoreOpenedUrlsSnapshotUseCase = (
     const restoredUrlRecords = snapshot.urlRecords ?? []
     const restoredCustomProjects = snapshot.customProjects ?? []
     const restoredParentCategories = snapshot.parentCategories ?? []
+    const restoredCustomProjectOrder = normalizeCustomProjectOrder(
+      snapshot.customProjectOrder,
+    )
 
     if (snapshot.savedTabs && snapshot.savedTabs.length > 0) {
       const existing = await deps.tabGroupRepository.findAll()
@@ -93,7 +128,12 @@ export const createRestoreOpenedUrlsSnapshotUseCase = (
       await deps.parentCategoryRepository.saveAll(snapshot.parentCategories)
     }
 
+    if (restoredCustomProjectOrder) {
+      await deps.customProjectRepository.saveOrder(restoredCustomProjectOrder)
+    }
+
     return {
+      restoredCustomProjectOrder,
       restoredCustomProjects,
       restoredParentCategories,
       restoredTabGroups,

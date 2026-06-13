@@ -156,8 +156,8 @@ const toDomainParentCategories = (
 
 /**
  * 旧 storage スナップショットを `RestoreOpenedUrlsSnapshotUseCase` の
- * command へ変換する。`customProjectOrder` は use-case DTO に載らない
- * ため、command には含めず presentation 層で補助的に書き戻す。
+ * command へ変換する。`customProjectOrder` は repository 経由で復元する
+ * ため、command にも `customProjectOrder` を含める（issue #487）。
  */
 const toOpenedUrlsRestoreCommand = (
   snapshot: OpenedUrlsStorageSnapshot,
@@ -165,6 +165,7 @@ const toOpenedUrlsRestoreCommand = (
   const command: {
     savedTabs?: OpenedUrlsRestoreSnapshot['savedTabs']
     customProjects?: OpenedUrlsRestoreSnapshot['customProjects']
+    customProjectOrder?: OpenedUrlsRestoreSnapshot['customProjectOrder']
     parentCategories?: OpenedUrlsRestoreSnapshot['parentCategories']
   } = {}
   const savedTabs = toDomainTabGroups(snapshot.savedTabs)
@@ -174,6 +175,9 @@ const toOpenedUrlsRestoreCommand = (
   const customProjects = toDomainCustomProjects(snapshot.customProjects)
   if (customProjects) {
     command.customProjects = customProjects
+  }
+  if (snapshot.customProjectOrder) {
+    command.customProjectOrder = [...snapshot.customProjectOrder]
   }
   const parentCategories = toDomainParentCategories(snapshot.parentCategories)
   if (parentCategories) {
@@ -196,22 +200,14 @@ const restoreOpenedUrlsSnapshot = async ({
   snapshot: OpenedUrlsStorageSnapshot
 }) => {
   // 復元本体は RestoreOpenedUrlsSnapshotUseCase に委譲する。
-  // presentation 層は snapshot を domain command へ詰め替えるだけとし、
-  // chrome.storage.local.set の直接呼び出しは customProjectOrder の補助
-  // 書き込みに限定する。
+  // presentation 層は snapshot を domain command へ詰め替えるだけに
+  // 閉じ、chrome.storage.local.set の直接呼び出しは行わない
+  // （issue #487 で `customProjectOrder` も use-case / repository 経由に
+  // 移管）。
   const command = toOpenedUrlsRestoreCommand(snapshot)
   await savedTabsUseCases.restoreOpenedUrlsSnapshot({
     snapshot: command,
   })
-
-  // customProjectOrder は RestoreOpenedUrlsSnapshotUseCase の DTO に含まれ
-  // ない（repository interface 未整備のため別 issue 切り出し）ため、
-  // presentation 層で補助的に書き戻す。
-  if (snapshot.customProjectOrder) {
-    await chrome.storage.local.set({
-      customProjectOrder: [...snapshot.customProjectOrder],
-    })
-  }
 
   // 画面側 state は storage 形状を期待するため、use-case DTO ではなく
   // 入力 snapshot をそのまま state へ反映する。Repository 側の mapper が

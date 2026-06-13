@@ -89,6 +89,10 @@ const createInMemoryDeps = (input: {
         ...projects.map((p) => ({ ...p })),
       )
     },
+    // eslint-disable-next-line typescript/require-await
+    findOrder: async () => [],
+    // eslint-disable-next-line typescript/require-await
+    saveOrder: async () => undefined,
   }
   const urlRecordRepository: UrlRecordRepository = {
     // eslint-disable-next-line typescript/require-await

@@ -9,7 +9,10 @@ import type { CustomProjectId } from '../../../domain/value-objects/CustomProjec
 import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStorageMapper'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
-import { CUSTOM_PROJECTS_KEY } from './savedTabsStorageKeys'
+import {
+  CUSTOM_PROJECT_ORDER_KEY,
+  CUSTOM_PROJECTS_KEY,
+} from './savedTabsStorageKeys'
 import { CustomProjectRawSchema } from './savedTabsStorageSchema'
 import type { CustomProjectRaw } from './savedTabsStorageSchema'
 
@@ -44,6 +47,34 @@ const findAllRawCustomProjects = async (
     }
   }
   return valid
+}
+
+/**
+ * `CUSTOM_PROJECT_ORDER_KEY` の生値を `CustomProjectId[]` へ詰め替える。
+ *
+ * - 非配列 / 配列でも要素が文字列以外 / 空文字はスキップする。
+ * - ドメイン層で `createCustomProjectId` が空文字を拒否するため、parse
+ *   時点で空文字を除外しないと repository 境界で例外が漏れる。
+ */
+const parseCustomProjectOrder = (raw: unknown): readonly CustomProjectId[] => {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+  const result: CustomProjectId[] = []
+  const seen = new Set<string>()
+  for (const item of raw) {
+    if (typeof item !== 'string' || item.length === 0) {
+      continue
+    }
+    if (seen.has(item)) {
+      continue
+    }
+    seen.add(item)
+    // ブランド型タグ付けに限定し、検証は `createCustomProjectId` 側に委ねる
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
+    result.push(item as CustomProjectId)
+  }
+  return result
 }
 
 const createChromeCustomProjectRepositoryImpl = (
@@ -96,7 +127,30 @@ const createChromeCustomProjectRepositoryImpl = (
     await saveAll(remaining)
   }
 
-  return { findAll, findById, removeByIds, saveAll }
+  const findOrder = async (): Promise<readonly CustomProjectId[]> => {
+    const result = await port.get(CUSTOM_PROJECT_ORDER_KEY)
+    return parseCustomProjectOrder(result[CUSTOM_PROJECT_ORDER_KEY])
+  }
+
+  const saveOrder = async (
+    order: readonly CustomProjectId[],
+  ): Promise<void> => {
+    // ブランド型を剥いで素の string[] として保存する。重複や空文字は
+    // parse 側で弾いているためここでは素直に unwrap するだけで十分。
+    const plain: string[] = order.map((id) =>
+      ChromeSavedTabsStorageMapper.customProjectIdToString(id),
+    )
+    await port.set({ [CUSTOM_PROJECT_ORDER_KEY]: plain })
+  }
+
+  return {
+    findAll,
+    findById,
+    findOrder,
+    removeByIds,
+    saveAll,
+    saveOrder,
+  }
 }
 
 /**
@@ -107,6 +161,13 @@ const createChromeCustomProjectRepositoryImpl = (
  * `categoryOrder`）は domain entity には載らないが、`saveAll` で既存 raw
  * データから持ち越して `urlIds` の集合に合わせて整合性を取りつつ保存する。
  * これによりユーザーの既存保存データを破壊しない。
+ *
+ * `findOrder` / `saveOrder` は `CUSTOM_PROJECT_ORDER_KEY`（旧
+ * `customProjectOrder`）を読み書きする。`order` は `CustomProject`
+ * 集合とは独立した表示用並び順情報で、`CustomProject` が storage 上から
+ * 消えてもエントリ自体は残ってよい。presentation 層は order を
+ * stable sort の手掛かりとして扱い、未知 ID の扱いは view-model 側の
+ * 責務とする（issue #487 で use-case 経由での復元を保証）。
  *
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */

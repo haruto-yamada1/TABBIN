@@ -64,6 +64,10 @@ const createInMemoryRepositories = (
     removeByIds: async () => undefined,
     // eslint-disable-next-line typescript/require-await
     saveAll: async () => undefined,
+    // eslint-disable-next-line typescript/require-await
+    findOrder: async () => [],
+    // eslint-disable-next-line typescript/require-await
+    saveOrder: async () => undefined,
   }
   return {
     customProjectRepository,
