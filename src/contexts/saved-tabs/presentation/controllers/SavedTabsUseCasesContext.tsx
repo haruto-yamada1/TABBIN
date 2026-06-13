@@ -45,7 +45,8 @@ export const useSavedTabsUseCases = (): SavedTabsUseCasesContextValue | null =>
  * 渡された `deps` から `SavedTabsUseCasesContextValue` を組み立てる。
  *
  * chrome 依存を初期化しないため、SSR / Storybook / テストでも安全に呼べる。
- * 実機環境では `createSavedTabsUseCasesContextValue`（chrome 側）を使う。
+ * 実機環境で `deps` を組み立てるには
+ * `createSavedTabsUseCasesDeps()`（`@/app/composition`）を使う。
  */
 export const createSavedTabsUseCasesContextValueFromDeps = (
   deps: SavedTabsUseCasesDeps,

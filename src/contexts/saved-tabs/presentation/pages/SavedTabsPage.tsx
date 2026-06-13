@@ -12,7 +12,9 @@ import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'
  * `SavedTabsPage` の props。
  *
  * - `deps` / `useCases` を渡すと composition 済みの use-case が使える。
- *   未指定なら `createSavedTabsUseCasesContextValue()` を内部で生成する。
+ *   chrome 実環境で deps を組み立てるには
+ *   `createSavedTabsUseCasesDeps()`（`@/app/composition`）を、context 値
+ *   への変換は `createSavedTabsUseCasesContextValueFromDeps` を使う。
  * - `initialTabGroups` / `initialCustomProjects` は SSR / Storybook 用に
  *   事前データを渡す補助。テストで repository を差し替えずに view-model を
  *   検証したいときに使う。
@@ -47,7 +49,7 @@ export const useSavedTabsPage = (
 ): SavedTabsPageState => {
   if (!input.deps) {
     throw new Error(
-      'SavedTabsPage: deps is required. Use createSavedTabsUseCasesContextValue() at the call site for chrome real environment.',
+      'SavedTabsPage: deps is required. Use createSavedTabsUseCasesDeps() at the call site for chrome real environment.',
     )
   }
   const deps: SavedTabsUseCasesDeps = input.deps

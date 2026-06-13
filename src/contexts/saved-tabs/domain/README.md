@@ -20,3 +20,4 @@
 - `toast` / router / DOM API 依存
 - 副作用（`Date.now()` などの現在時刻依存は `application/ports/ClockPort` 経由で注入）
 - `repositories/` から `infrastructure/` 配下を import する（interface のみで完結させる）
+- 現在の時刻取得は `Date.now()` を直接利用する。現在時刻依存を port 経由で注入したくなったら別途 `application/ports/` へ追加する。

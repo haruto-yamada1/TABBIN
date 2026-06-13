@@ -2,7 +2,9 @@
   "$schema": "./node_modules/knip/schema.json",
   "entry": [
     "src/entrypoints/**/*.{ts,tsx}",
+    "src/app/**/*.{test,stories}.{ts,tsx}",
     "src/components/**/*.{test,stories}.{ts,tsx}",
+    "src/contexts/**/*.{test,stories}.{ts,tsx}",
     "src/features/**/*.{test,stories}.{ts,tsx}",
     "src/lib/**/*.{test,stories}.{ts,tsx}",
     "src/utils/**/*.{test,stories}.{ts,tsx}",
@@ -13,8 +15,10 @@
     "vitest.workspace.ts"
   ],
   "project": [
+    "src/app/**/*.{ts,tsx}",
     "src/components/**/*.{ts,tsx}",
     "src/constants/**/*.ts",
+    "src/contexts/**/*.{ts,tsx}",
     "src/entrypoints/**/*.{ts,tsx}",
     "e2e/**/*.{ts,tsx}",
     "src/features/**/*.{ts,tsx}",
