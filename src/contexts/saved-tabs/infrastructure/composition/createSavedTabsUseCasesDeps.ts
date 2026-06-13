@@ -4,12 +4,14 @@ import {
 } from '@/lib/browser/chrome-storage'
 
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
+import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import { createChromeBrowserTabAdapter } from '../browser/ChromeBrowserTabAdapter'
+import { createChromeBrowserWindowAdapter } from '../browser/ChromeBrowserWindowAdapter'
 import { createSonnerNotificationAdapter } from '../browser/SonnerNotificationAdapter'
 import { createChromeCustomProjectRepository } from '../persistence/chrome-storage/ChromeCustomProjectRepository'
 import { createChromeParentCategoryRepository } from '../persistence/chrome-storage/ChromeParentCategoryRepository'
@@ -30,6 +32,7 @@ export interface SavedTabsUseCasesDeps {
   readonly customProjectRepository: CustomProjectRepository
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly browserTabPort: BrowserTabPort
+  readonly browserWindowPort: BrowserWindowPort
   readonly notificationPort: NotificationPort
 }
 
@@ -40,9 +43,20 @@ interface ChromeLike {
       readonly url: string
     }) => Promise<{ readonly url?: string } | undefined> | undefined
   }
+  readonly windows?: {
+    readonly create?: (createProperties: {
+      readonly focused?: boolean
+      readonly url?: readonly string[] | string
+    }) =>
+      | Promise<
+          { readonly tabs?: readonly { readonly url?: string }[] } | undefined
+        >
+      | undefined
+  }
 }
 
 const getChromeApi = (): ChromeLike | undefined =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   (globalThis as typeof globalThis & { chrome?: ChromeLike }).chrome
 
 /**
@@ -74,6 +88,9 @@ export const createSavedTabsUseCasesDeps = (): SavedTabsUseCasesDeps => {
 
   return {
     browserTabPort: createChromeBrowserTabAdapter({
+      getApi: () => getChromeApi(),
+    }),
+    browserWindowPort: createChromeBrowserWindowAdapter({
       getApi: () => getChromeApi(),
     }),
     customProjectRepository: createChromeCustomProjectRepository(port),

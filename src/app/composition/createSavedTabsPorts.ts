@@ -1,7 +1,9 @@
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
+import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
 import type { NotificationPort } from '@/contexts/saved-tabs/application/ports/NotificationPort'
 import { createChromeBrowserTabAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import type { ChromeApiLike } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
+import { createChromeBrowserWindowAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserWindowAdapter'
 import { createSonnerNotificationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter'
 
 /**
@@ -9,12 +11,14 @@ import { createSonnerNotificationAdapter } from '@/contexts/saved-tabs/infrastru
  * `Port` 実装のバンドル。
  *
  * `BrowserTabPort` は `chrome.tabs` をラップした `ChromeBrowserTabAdapter`、
+ * `BrowserWindowPort` は `chrome.windows` をラップした `ChromeBrowserWindowAdapter`、
  * `NotificationPort` は `sonner` の `toast` をラップした
  * `SonnerNotificationAdapter` で実装する。`application/ports/` の
  * interface を満たすため、use-case 側からは adapter の詳細を隠せる。
  */
 export interface SavedTabsPorts {
   readonly browserTabPort: BrowserTabPort
+  readonly browserWindowPort: BrowserWindowPort
   readonly notificationPort: NotificationPort
 }
 
@@ -33,16 +37,28 @@ interface ChromeApi extends ChromeApiLike {
   readonly tabs?: ChromeApiLike['tabs'] & {
     readonly create?: NonNullable<NonNullable<ChromeApiLike['tabs']>['create']>
   }
+  readonly windows?: {
+    readonly create?: (createProperties: {
+      readonly focused?: boolean
+      readonly url?: readonly string[] | string
+    }) =>
+      | Promise<
+          { readonly tabs?: readonly { readonly url?: string }[] } | undefined
+        >
+      | undefined
+  }
 }
 
 const getChromeApi = (): ChromeApi | undefined =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   (globalThis as typeof globalThis & { chrome?: ChromeApi }).chrome
 
 /**
  * saved-tabs 用 port 実装を生成する。
  *
  * `chrome` グローバルが利用できない環境（Storybook / SSR など）では
- * `BrowserTabPort.open` を呼び出した瞬間に `Error` が投げられる。
+ * `BrowserTabPort.open` / `BrowserWindowPort.openWithUrls` を
+ * 呼び出した瞬間に `Error` が投げられる。
  * `NotificationPort` は `sonner.toast` が無い場合に
  * `console.warn` / `console.error` にフォールバックするため、通知で
  * use-case 全体を落とさない。
@@ -66,5 +82,8 @@ export const createSavedTabsPorts = (
     { getApi: () => getChromeApi() },
     options.resolveActive ? { resolveActive: options.resolveActive } : {},
   ),
+  browserWindowPort: createChromeBrowserWindowAdapter({
+    getApi: () => getChromeApi(),
+  }),
   notificationPort: createSonnerNotificationAdapter(),
 })

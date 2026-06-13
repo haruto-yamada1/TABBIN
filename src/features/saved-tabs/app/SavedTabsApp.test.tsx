@@ -458,7 +458,11 @@ describe('SavedTabsApp custom search', () => {
     await notifyDeleteFailure({
       refreshTabGroupsWithUrls,
       savedTabsUseCases: {
+        deleteSavedUrl: vi.fn(),
+        deleteSavedUrls: vi.fn(),
         deleteTabGroup: vi.fn(),
+        deleteTabGroups: vi.fn(),
+        openAllSavedUrls: vi.fn(),
         openSavedUrl: vi.fn(),
         removeUnreferencedUrlRecords: vi.fn(),
         restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
@@ -481,7 +485,11 @@ describe('SavedTabsApp custom search', () => {
     await notifyDeleteFailure({
       refreshTabGroupsWithUrls,
       savedTabsUseCases: {
+        deleteSavedUrl: vi.fn(),
+        deleteSavedUrls: vi.fn(),
         deleteTabGroup: vi.fn(),
+        deleteTabGroups: vi.fn(),
+        openAllSavedUrls: vi.fn(),
         openSavedUrl: vi.fn(),
         removeUnreferencedUrlRecords: vi.fn(),
         restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
@@ -513,7 +521,11 @@ describe('SavedTabsApp custom search', () => {
     await restoreOpenedUrlsSnapshot({
       refreshTabGroupsWithUrls,
       savedTabsUseCases: {
+        deleteSavedUrl: vi.fn(),
+        deleteSavedUrls: vi.fn(),
         deleteTabGroup: vi.fn(),
+        deleteTabGroups: vi.fn(),
+        openAllSavedUrls: vi.fn(),
         openSavedUrl: vi.fn(),
         removeUnreferencedUrlRecords: vi.fn(),
         restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
@@ -549,7 +561,11 @@ describe('SavedTabsApp custom search', () => {
     await restoreOpenedUrlsSnapshot({
       refreshTabGroupsWithUrls: refreshTabGroupsWithUrls2,
       savedTabsUseCases: {
+        deleteSavedUrl: vi.fn(),
+        deleteSavedUrls: vi.fn(),
         deleteTabGroup: vi.fn(),
+        deleteTabGroups: vi.fn(),
+        openAllSavedUrls: vi.fn(),
         openSavedUrl: vi.fn(),
         removeUnreferencedUrlRecords: vi.fn(),
         restoreOpenedUrlsSnapshot: captureUseCase,
@@ -1271,16 +1287,15 @@ describe('SavedTabsApp custom search', () => {
       ],
       urlIds: ['url-1'],
     }
+    const category = {
+      id: 'category-1',
+      name: 'Reading',
+      domains: ['group-1'],
+      domainNames: ['example.com'],
+    }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
-    mocked.categoryState.categories = [
-      {
-        id: 'category-1',
-        name: 'Reading',
-        domains: ['group-1'],
-        domainNames: ['example.com'],
-      },
-    ]
+    mocked.categoryState.categories = [category]
     mocked.categoryState.categoryOrder = ['category-1']
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
@@ -1291,7 +1306,15 @@ describe('SavedTabsApp custom search', () => {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({ savedTabs: [group] })),
+          get: vi.fn(async (key: string) => {
+            if (key === 'parentCategories') {
+              return { parentCategories: [category] }
+            }
+            if (key === 'savedTabs') {
+              return { savedTabs: [group] }
+            }
+            return {}
+          }),
           set: chromeSetMock,
         },
         onChanged: {
@@ -1464,12 +1487,34 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
+    const urlRecords = [
+      {
+        id: 'url-a',
+        url: 'https://example.com/a',
+        title: 'A',
+        savedAt: 1,
+      },
+      {
+        id: 'url-b',
+        url: 'https://example.com/b',
+        title: 'B',
+        savedAt: 2,
+      },
+    ]
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({ savedTabs: [group] })),
+          get: vi.fn(async (key: string) => {
+            if (key === 'savedTabs') {
+              return { savedTabs: [group] }
+            }
+            if (key === 'urls') {
+              return { urls: urlRecords }
+            }
+            return {}
+          }),
           set: vi.fn(),
         },
         onChanged: {
@@ -1501,11 +1546,11 @@ describe('SavedTabsApp custom search', () => {
       'https://example.com/b',
     ])
 
-    expect(removeUrlIdsFromTabGroup).toHaveBeenCalledWith(
-      'group-1',
-      ['url-a', 'url-b'],
-      { throwOnSyncError: true },
-    )
+    // 複数 URL 削除は use-case 経由で実行される。
+    // `removeUrlIdsFromTabGroup` / `removeUrlsFromTabGroup` は呼ばれず、
+    // use-case が repository 経由で storage を更新する。
+    expect(removeUrlIdsFromTabGroup).not.toHaveBeenCalled()
+    expect(removeUrlsFromTabGroup).not.toHaveBeenCalled()
     expect(toast.info).toHaveBeenCalledWith(
       '削除した2件のタブを保存データに戻せます',
       expect.objectContaining({
@@ -1523,6 +1568,31 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = []
     mocked.tabDataState.tabGroupsWithUrls = []
 
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          // eslint-disable-next-line typescript/require-await
+          get: vi.fn(async () => ({ savedTabs: [] })),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: {
+        create: vi.fn(),
+      },
+      windows: {
+        create: vi.fn(),
+      },
+      runtime: {
+        getURL: vi.fn(),
+      },
+    } as unknown as typeof chrome
+
     render(<SavedTabsApp initialViewMode='domain' />)
 
     const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
@@ -1531,23 +1601,15 @@ describe('SavedTabsApp custom search', () => {
       handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>
     }
 
+    // 存在しないグループに対する handleDeleteUrls は use-case 内で
+    // `SavedTabsDomainError` を投げ、UI 側で notifyDeleteFailure が走る。
+    // 旧 `removeUrlsFromTabGroup` フォールバックはリプレース済みのため
+    // 呼ばれない。
     await domainProps.handleDeleteUrls('missing-group', [
       'https://example.com/missing',
     ])
 
-    expect(removeUrlsFromTabGroup).toHaveBeenCalledWith(
-      'missing-group',
-      ['https://example.com/missing'],
-      { throwOnSyncError: true },
-    )
-
-    vi.mocked(removeUrlsFromTabGroup).mockRejectedValueOnce(
-      new Error('delete failed'),
-    )
-    await domainProps.handleDeleteUrls('missing-group', [
-      'https://example.com/missing-2',
-    ])
-
+    expect(removeUrlsFromTabGroup).not.toHaveBeenCalled()
     expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
   })
 
@@ -1654,6 +1716,12 @@ describe('SavedTabsApp custom search', () => {
       urls: [{ id: 'url-a', url: 'https://example.com/a', title: 'A' }],
       urlIds: ['url-a'],
     }
+    const urlRecord = {
+      id: 'url-a',
+      url: 'https://example.com/a',
+      title: 'A',
+      savedAt: 1,
+    }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.tabDataState.tabGroups = [group]
@@ -1675,11 +1743,22 @@ describe('SavedTabsApp custom search', () => {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({
-            customProjectOrder: ['project-1'],
-            customProjects: customProjectsSnapshot,
-            savedTabs: [group],
-          })),
+          get: vi.fn(async (key: string | string[]) => {
+            const keys = Array.isArray(key) ? key : [key]
+            const result: Record<string, unknown> = {}
+            for (const k of keys) {
+              if (k === 'customProjectOrder') {
+                result.customProjectOrder = ['project-1']
+              } else if (k === 'customProjects') {
+                result.customProjects = customProjectsSnapshot
+              } else if (k === 'savedTabs') {
+                result.savedTabs = [group]
+              } else if (k === 'urls') {
+                result.urls = [urlRecord]
+              }
+            }
+            return result
+          }),
           set: chromeSetMock,
         },
         onChanged: {
@@ -1708,11 +1787,13 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteUrl('group-1', 'https://example.com/a')
 
-    expect(removeUrlFromTabGroup).toHaveBeenCalledWith(
-      'group-1',
-      'https://example.com/a',
-      { throwOnSyncError: true },
-    )
+    // 単体 URL 削除は use-case 経由で実行される。`removeUrlFromTabGroup` は
+    // 呼ばれず、use-case が repository 経由で storage を更新する。
+    // グループに 1 件しか URL が無いため、削除後はグループ自体が消える。
+    expect(removeUrlFromTabGroup).not.toHaveBeenCalled()
+    expect(chromeSetMock).toHaveBeenCalledWith({
+      savedTabs: [],
+    })
     expect(toast.info).toHaveBeenCalledWith(
       '削除した1件のタブを保存データに戻せます',
       expect.objectContaining({
@@ -1861,17 +1942,46 @@ describe('SavedTabsApp custom search', () => {
     ]
 
     const chromeSetMock = vi.fn()
-    const chromeTabsCreateMock = vi.fn()
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({
-            customProjectOrder: ['project-1'],
-            customProjects: customProjectsSnapshot,
-            savedTabs: [group1, group2],
-          })),
+          get: vi.fn(async (key: string | string[]) => {
+            const keys = Array.isArray(key) ? key : [key]
+            const result: Record<string, unknown> = {}
+            for (const k of keys) {
+              if (k === 'customProjectOrder') {
+                result.customProjectOrder = ['project-1']
+              } else if (k === 'customProjects') {
+                result.customProjects = customProjectsSnapshot
+              } else if (k === 'savedTabs') {
+                result.savedTabs = [group1, group2]
+              } else if (k === 'urls') {
+                result.urls = [
+                  {
+                    id: 'url-a',
+                    url: 'https://example.com/a',
+                    title: 'A',
+                    savedAt: 1,
+                  },
+                  {
+                    id: 'url-b',
+                    url: 'https://example.com/b',
+                    title: 'B',
+                    savedAt: 2,
+                  },
+                  {
+                    id: 'url-c',
+                    url: 'https://other.com/c',
+                    title: 'C',
+                    savedAt: 3,
+                  },
+                ]
+              }
+            }
+            return result
+          }),
           set: chromeSetMock,
         },
         onChanged: {
@@ -1880,7 +1990,7 @@ describe('SavedTabsApp custom search', () => {
         },
       },
       tabs: {
-        create: chromeTabsCreateMock,
+        create: vi.fn(),
       },
       windows: {
         create: vi.fn(),
@@ -1889,12 +1999,6 @@ describe('SavedTabsApp custom search', () => {
         getURL: vi.fn(),
       },
     } as unknown as typeof chrome
-
-    vi.mocked(getUrlRecords).mockResolvedValue([
-      { id: 'url-a', url: 'https://example.com/a', title: 'A', savedAt: 1 },
-      { id: 'url-b', url: 'https://example.com/b', title: 'B', savedAt: 2 },
-      { id: 'url-c', url: 'https://other.com/c', title: 'C', savedAt: 3 },
-    ] satisfies UrlRecord[])
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -1911,7 +2015,10 @@ describe('SavedTabsApp custom search', () => {
       { url: 'https://example.com/b', title: 'B' },
     ])
 
-    expect(chromeTabsCreateMock).toHaveBeenCalledTimes(2)
+    // BrowserTabPort の呼び出し検証は
+    // SavedTabsUseCases.openAllSavedUrls の mock 経由に切り替わったため、
+    // 旧 `chrome.tabs.create` 直叩きではなく storage の更新有無で
+    // 削除フローを確認する。
     expect(chromeSetMock).toHaveBeenCalledWith({
       savedTabs: [group2],
     })
@@ -1943,11 +2050,10 @@ describe('SavedTabsApp custom search', () => {
       customProjectsSnapshot,
     )
     expect(toast.success).toHaveBeenCalledWith('保存データを復元しました')
-    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledTimes(1)
-    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith([
-      'url-a',
-      'url-b',
-    ])
+    // 一括オープン時の customProject 側 URL ID 同期削除は、
+    // OpenAllSavedUrlsUseCase が customProjectRepository 経由で
+    // 行うため、lib/storage/projects のヘルパは呼ばれない。
+    expect(removeUrlIdsFromAllCustomProjects).not.toHaveBeenCalled()
     expect(getTabGroupUrls).not.toHaveBeenCalled()
     expect(removeUrlFromAllCustomProjects).not.toHaveBeenCalled()
   })
@@ -1997,15 +2103,30 @@ describe('SavedTabsApp custom search', () => {
     ]
     mocked.tabDataState.tabGroupsWithUrls = mocked.tabDataState.tabGroups
 
+    const partialUrlRecord = {
+      id: 'url-remove',
+      savedAt: 1,
+      title: 'Remove',
+      url: 'https://partial.example.com/remove',
+    }
+
     const chromeSetMock = vi.fn()
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({
-            savedTabs: [groupWithoutIds, unchangedGroup, partialGroup],
-          })),
+          get: vi.fn(async (key: string) => {
+            if (key === 'savedTabs') {
+              return {
+                savedTabs: [groupWithoutIds, unchangedGroup, partialGroup],
+              }
+            }
+            if (key === 'urls') {
+              return { urls: [partialUrlRecord] }
+            }
+            return {}
+          }),
           set: chromeSetMock,
         },
         onChanged: {
@@ -2023,16 +2144,6 @@ describe('SavedTabsApp custom search', () => {
         getURL: vi.fn(),
       },
     } as unknown as typeof chrome
-    vi.mocked(getUrlRecords)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        {
-          id: 'url-remove',
-          savedAt: 1,
-          title: 'Remove',
-          url: 'https://partial.example.com/remove',
-        },
-      ])
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -2047,6 +2158,8 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleOpenAllTabs([])
     expect(chromeSetMock).not.toHaveBeenCalled()
 
+    // URL ID 未解決（storage の urls キーに存在しない）のときは
+    // use-case 側で削除対象 0 件となり storage 更新されない。
     await domainProps.handleOpenAllTabs([
       { title: 'Missing ID', url: 'https://missing.example.com/a' },
     ])
@@ -2316,6 +2429,10 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
+    // 一部 URL に ID が無い場合、旧実装は URL 文字列削除へフォールバック
+    // していたが、新実装（DeleteSavedUrlsUseCase）は ID 解決できない URL
+    // を SavedTabsDomainError で拒否し、UI 側で notifyDeleteFailure を
+    // 走らせる。
     render(<SavedTabsApp initialViewMode='domain' />)
 
     const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
@@ -2329,11 +2446,8 @@ describe('SavedTabsApp custom search', () => {
       'https://example.com/no-id',
     ])
 
-    expect(removeUrlsFromTabGroup).toHaveBeenCalledWith(
-      'group-1',
-      ['https://example.com/a', 'https://example.com/no-id'],
-      { throwOnSyncError: true },
-    )
+    expect(removeUrlsFromTabGroup).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
   })
 
   it('複数ドメイン削除で legacy URL 取得に失敗しても削除処理は継続する', async () => {
@@ -2663,7 +2777,18 @@ describe('SavedTabsApp custom search', () => {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({ savedTabs: [group] })),
+          get: vi.fn(async (key: string | string[]) => {
+            const keys = Array.isArray(key) ? key : [key]
+            const result: Record<string, unknown> = {}
+            for (const k of keys) {
+              if (k === 'parentCategories') {
+                result.parentCategories = [category]
+              } else if (k === 'savedTabs') {
+                result.savedTabs = [group]
+              }
+            }
+            return result
+          }),
           set: chromeSetMock,
         },
         onChanged: {
@@ -2684,13 +2809,18 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
+    // カテゴリ同期は use-case 経由で実行され、storage の parentCategories /
+    // savedTabs がそれぞれ repository.saveAll で個別に更新される。
+    // `saveParentCategories` ヘルパは issue 範囲外なので呼ばれない。
     await waitFor(() => {
-      expect(saveParentCategories).toHaveBeenCalledWith([
-        expect.objectContaining({
-          domains: ['group-1'],
-          id: 'category-1',
-        }),
-      ])
+      expect(chromeSetMock).toHaveBeenLastCalledWith({
+        parentCategories: [
+          expect.objectContaining({
+            domains: ['group-1'],
+            id: 'category-1',
+          }),
+        ],
+      })
     })
     expect(chromeSetMock).toHaveBeenCalledWith({
       savedTabs: [
@@ -3385,23 +3515,22 @@ describe('SavedTabsApp custom search', () => {
   it('ドメイン削除系ハンドラのエラーと空入力を処理する', async () => {
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
-    mocked.tabDataState.tabGroups = [
+    const storedGroups = [
       {
         domain: 'example.com',
         id: 'group-1',
         urlIds: ['url-a'],
       },
     ]
-    mocked.tabDataState.tabGroupsWithUrls = mocked.tabDataState.tabGroups
+    mocked.tabDataState.tabGroups = storedGroups
+    mocked.tabDataState.tabGroupsWithUrls = storedGroups
 
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({
-            savedTabs: mocked.tabDataState.tabGroups,
-          })),
+          get: vi.fn(async () => ({ savedTabs: storedGroups })),
           set: vi.fn(),
         },
         onChanged: {
@@ -3420,13 +3549,6 @@ describe('SavedTabsApp custom search', () => {
       },
     } as unknown as typeof chrome
 
-    vi.mocked(removeUrlFromTabGroup).mockRejectedValueOnce(
-      new Error('delete url failed'),
-    )
-    vi.mocked(handleTabGroupRemoval).mockRejectedValueOnce(
-      new Error('delete group failed'),
-    )
-
     render(<SavedTabsApp initialViewMode='domain' />)
 
     const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
@@ -3439,17 +3561,18 @@ describe('SavedTabsApp custom search', () => {
       handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>
     }
 
+    // 単体 URL 削除: use-case が UrlRecord を見つけられず
+    // SavedTabsDomainError を投げ、UI 側で notifyDeleteFailure 経由の
+    // toast.error が表示される。
     await domainProps.handleDeleteUrl('group-1', 'https://example.com/a')
     await domainProps.handleDeleteUrls('group-1', [])
     await domainProps.handleDeleteGroup('group-1')
     await domainProps.handleDeleteGroups(['missing'])
     domainProps.handleCancelUncategorizedReorder()
 
-    expect(removeUrlFromTabGroup).toHaveBeenCalledWith(
-      'group-1',
-      'https://example.com/a',
-      { throwOnSyncError: true },
-    )
+    // 旧 `removeUrlFromTabGroup` は新実装では呼ばれない。
+    expect(removeUrlFromTabGroup).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
   })
 
   it('単体タブを開いた後の自動削除では空になった URL サブカテゴリを落とす', async () => {
