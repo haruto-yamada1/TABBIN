@@ -102,4 +102,54 @@ describe('createSavedTabsUseCases (app/composition)', () => {
       warnSpy.mockRestore()
     }
   })
+
+  it('options.resolveActive を渡すと openSavedUrl が active 設定を反映する', async () => {
+    const state: Record<string, unknown> = {
+      customProjects: [],
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          urlIds: ['url-1'],
+        },
+      ],
+      urls: [
+        {
+          id: 'url-1',
+          savedAt: 1,
+          title: 'A',
+          url: 'https://example.com/a',
+        },
+      ],
+    }
+    vi.mocked(getChromeStorageLocal).mockReturnValue(
+      buildChromeStorageLocal(state),
+    )
+    const create = vi.fn(
+      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
+      async ({ url }: { active?: boolean; url: string }) => ({ url }),
+    )
+    setChromeApi({ tabs: { create } })
+
+    const useCases = createSavedTabsUseCases({
+      resolveActive: () => false,
+    })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const urlRecordId = 'url-1' as unknown as Parameters<
+      typeof useCases.openSavedUrl
+    >[0]['urlRecordId']
+    await useCases.openSavedUrl({
+      origin: 'click',
+      settings: {
+        removeTabAfterExternalDrop: false,
+        removeTabAfterOpen: false,
+      },
+      urlRecordId,
+    })
+
+    expect(create).toHaveBeenCalledWith({
+      active: false,
+      url: 'https://example.com/a',
+    })
+  })
 })

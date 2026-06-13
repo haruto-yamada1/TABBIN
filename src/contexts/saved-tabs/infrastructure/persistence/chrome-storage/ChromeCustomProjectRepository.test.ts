@@ -204,6 +204,67 @@ describe('ChromeCustomProjectRepository', () => {
       )?.[0] as Record<string, unknown>
       expect(lastSetArg[CUSTOM_PROJECTS_KEY]).toStrictEqual([])
     })
+
+    it('既存 raw のリッチ補助フィールド（projectKeywords / urlMetadata / categoryOrder / urls）を保持する', async () => {
+      const state: StorageState = {
+        [CUSTOM_PROJECTS_KEY]: [
+          {
+            categories: ['research'],
+            categoryOrder: ['research', 'news'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            projectKeywords: {
+              domainKeywords: ['example.com'],
+              titleKeywords: ['quarterly'],
+              urlKeywords: ['report'],
+            },
+            updatedAt: 2,
+            urlIds: ['url-remove', 'url-keep'],
+            urlMetadata: {
+              'url-keep': { category: 'research', notes: 'kept' },
+              'url-remove': { category: 'news', notes: 'removed' },
+            },
+            urls: [
+              {
+                title: 'Legacy entry',
+                url: 'https://example.com/legacy',
+              },
+            ],
+          },
+        ],
+      }
+      const port = createPort(state)
+      const repo = createChromeCustomProjectRepository(port)
+      const entities = await repo.findAll()
+      const remaining = entities.map((entity) => ({
+        ...entity,
+        urlIds: entity.urlIds.filter((id) => id !== 'url-remove'),
+      }))
+      await repo.saveAll(remaining)
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      const savedRaw = (
+        lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[]
+      )[0] as Record<string, unknown>
+      expect(savedRaw).toMatchObject({
+        categories: ['research'],
+        categoryOrder: ['research', 'news'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        projectKeywords: {
+          domainKeywords: ['example.com'],
+          titleKeywords: ['quarterly'],
+          urlKeywords: ['report'],
+        },
+        updatedAt: 2,
+        urlIds: ['url-keep'],
+        urlMetadata: { 'url-keep': { category: 'research', notes: 'kept' } },
+        urls: [{ title: 'Legacy entry', url: 'https://example.com/legacy' }],
+      })
+    })
   })
 
   describe('removeByIds', () => {

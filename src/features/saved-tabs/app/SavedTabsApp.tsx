@@ -9,7 +9,10 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { createSavedTabsPorts } from '@/app/composition/createSavedTabsPorts'
+import { createSavedTabsUseCases } from '@/app/composition/createSavedTabsUseCases'
 import { Toaster } from '@/components/ui/sonner'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { CategoryReorderFooter } from '@/features/saved-tabs/components/Footer'
 import { Header } from '@/features/saved-tabs/components/Header' // ヘッダーコンポーネントをインポート
@@ -252,6 +255,30 @@ const useSavedTabsAppView = ({
     hasResolvedInitialViewModeRef.current = !initialViewMode
   }
 
+  // BrowserTabPort の `resolveActive` から参照される最新 settings。
+  // settings オブジェクト全体が変わってもタブを開く度に最新値を見るため、
+  // 関数クロージャからは ref を読む。
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+
+  // saved-tabs use-case バンドルと port バンドル。
+  // resolveActive 関数を ref 経由で渡し、`openUrlInBackground` 設定変更を
+  // 再 mount なしで反映する。
+  const savedTabsUseCases = useMemo(
+    () =>
+      createSavedTabsUseCases({
+        resolveActive: () => !settingsRef.current.openUrlInBackground,
+      }),
+    [],
+  )
+  const savedTabsPorts = useMemo(
+    () =>
+      createSavedTabsPorts({
+        resolveActive: () => !settingsRef.current.openUrlInBackground,
+      }),
+    [],
+  )
+
   // 未分類ドメインの並び替えモード状態管理
   const [isUncategorizedReorderMode, setIsUncategorizedReorderMode] =
     useState(false)
@@ -359,19 +386,57 @@ const useSavedTabsAppView = ({
     [refreshTabGroupsWithUrls, setCustomProjects, t],
   )
 
-  // 既存のタブ開く処理を拡張して両方のモードで同期する
+  // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え。
+  // - URL → urlRecordId は `getUrlRecords()` から逆引きし、見つからない
+  //   旧データは `browserTabPort` で開くだけのフォールバックを取る。
+  // - `removeTabAfterOpen` が true のときは、削除前 snapshot を取得して
+  //   既存の Undo トースト経路と接続する。snapshot は use-case の
+  //   戻り値ではなく chrome.storage.local の生データを使うことで、
+  //   `urls` / `urlSubCategories` などのリッチフィールド復元を維持する。
   const handleOpenTab = useCallback(
     async (url: string) => {
       try {
-        // 設定に基づきバックグラウンド(active: false)またはフォアグラウンド(active: true)で開く
-        await chrome.tabs.create({
-          active: !settings.openUrlInBackground,
-          url,
+        const urlRecords = await getUrlRecords()
+        const targetRecord = urlRecords.find((record) => record.url === url)
+
+        if (!targetRecord) {
+          // urlRecord に登録されていない URL（旧データなど）は
+          // browserTabPort 経由で開くだけにとどめ、削除処理はスキップする。
+          await savedTabsPorts.browserTabPort.open({ url })
+          return
+        }
+
+        const snapshot = settings.removeTabAfterOpen
+          ? await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
+              'savedTabs',
+              'customProjects',
+              'customProjectOrder',
+            ])
+          : undefined
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        const urlRecordId = targetRecord.id as unknown as UrlRecordId
+        const result = await savedTabsUseCases.openSavedUrl({
+          origin: 'click',
+          settings: {
+            removeTabAfterExternalDrop: false,
+            removeTabAfterOpen: settings.removeTabAfterOpen,
+          },
+          urlRecordId,
         })
 
-        // 設定に基づいて、開いたタブを削除するかどうかを決定（新形式対応）
-        if (settings.removeTabAfterOpen) {
-          await removeOpenedUrlsFromStorage([url])
+        if (snapshot && result.removedUrlRecordId) {
+          const updated = await chrome.storage.local.get<{
+            savedTabs?: TabGroup[]
+          }>('savedTabs')
+          await refreshTabGroupsWithUrls(updated.savedTabs ?? [])
+          showOpenedUrlsUndoToast({
+            count: 1,
+            refreshTabGroupsWithUrls,
+            setCustomProjects,
+            snapshot,
+            t,
+          })
           console.log(`URL ${url} を開いた後、保存データから削除しました`)
         }
       } catch (error) {
@@ -379,9 +444,12 @@ const useSavedTabsAppView = ({
       }
     },
     [
-      settings.openUrlInBackground,
+      savedTabsPorts,
+      savedTabsUseCases,
       settings.removeTabAfterOpen,
-      removeOpenedUrlsFromStorage,
+      refreshTabGroupsWithUrls,
+      setCustomProjects,
+      t,
     ],
   )
   const handleOpenAllTabs = useCallback(

@@ -491,4 +491,76 @@ describe('OpenSavedUrlUseCase', () => {
     // 開かない
     expect(browser.opened).toStrictEqual([])
   })
+
+  it('TabGroup から URL を一つだけ削除してグループ自体は残る場合も saveAll が呼ばれる', async () => {
+    const urlToOpen = createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    })
+    const urlKept = createUrlRecord({
+      id: 'url-2',
+      savedAt: 1,
+      title: 'B',
+      url: 'https://example.com/b',
+    })
+    const group = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1', 'url-2'],
+    })
+    const repos = createInMemoryRepositories({
+      tabGroups: [group],
+      urlRecords: [urlToOpen, urlKept],
+    })
+    const saveSpy = vi.spyOn(repos.tabGroupRepository, 'saveAll')
+    const browser = createSpyBrowserTabPort()
+    const useCase = createOpenSavedUrlUseCase({
+      ...repos,
+      browserTabPort: browser.port,
+    })
+
+    await useCase({
+      origin: 'click',
+      settings: { ...baseSettings, removeTabAfterOpen: true },
+      urlRecordId: urlToOpen.id,
+    })
+
+    expect(saveSpy).toHaveBeenCalledTimes(1)
+    expect(repos.tabGroups[0]?.urlIds).toStrictEqual([urlKept.id])
+  })
+
+  it('TabGroup の内容が変わらないときは saveAll を呼ばない', async () => {
+    const url = createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    })
+    const group = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1'],
+    })
+    const repos = createInMemoryRepositories({
+      tabGroups: [group],
+      urlRecords: [url],
+    })
+    const saveSpy = vi.spyOn(repos.tabGroupRepository, 'saveAll')
+    const browser = createSpyBrowserTabPort()
+    const useCase = createOpenSavedUrlUseCase({
+      ...repos,
+      browserTabPort: browser.port,
+    })
+
+    // 設定 OFF なので削除も saveAll も走らない
+    await useCase({
+      origin: 'click',
+      settings: baseSettings,
+      urlRecordId: url.id,
+    })
+
+    expect(saveSpy).not.toHaveBeenCalled()
+  })
 })

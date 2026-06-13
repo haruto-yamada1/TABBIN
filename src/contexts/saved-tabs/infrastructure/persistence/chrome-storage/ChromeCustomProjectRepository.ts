@@ -10,6 +10,7 @@ import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStora
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { CUSTOM_PROJECTS_KEY } from './savedTabsStorageKeys'
+import { CustomProjectRawArraySchema } from './savedTabsStorageSchema'
 import type { CustomProjectRaw } from './savedTabsStorageSchema'
 
 const getDefaultPort = (): ChromeStorageLocalPort | null => {
@@ -22,6 +23,18 @@ const getDefaultPort = (): ChromeStorageLocalPort | null => {
     remove: (key) => local.remove(key),
     set: (value) => local.set(value),
   }
+}
+
+const findAllRawCustomProjects = async (
+  port: ChromeStorageLocalPort,
+): Promise<CustomProjectRaw[]> => {
+  const result = await port.get(CUSTOM_PROJECTS_KEY)
+  const raw = result[CUSTOM_PROJECTS_KEY]
+  const parsed = CustomProjectRawArraySchema.safeParse(raw)
+  if (!parsed.success) {
+    return []
+  }
+  return [...parsed.data]
 }
 
 const createChromeCustomProjectRepositoryImpl = (
@@ -42,8 +55,19 @@ const createChromeCustomProjectRepositoryImpl = (
   }
 
   const saveAll = async (projects: readonly CustomProject[]): Promise<void> => {
+    // 既存ユーザーデータ（`projectKeywords`, `urls`, `urlMetadata`,
+    // `categoryOrder`）を破壊しないため、書き込み前に既存 raw を取得し、
+    // entity と merge する。
+    const existingRaws = await findAllRawCustomProjects(port)
+    const originalById = new Map<string, CustomProjectRaw>()
+    for (const original of existingRaws) {
+      originalById.set(original.id, original)
+    }
     const raws: CustomProjectRaw[] = projects.map((project) =>
-      ChromeSavedTabsStorageMapper.toCustomProjectRaw(project),
+      ChromeSavedTabsStorageMapper.toCustomProjectRaw(
+        project,
+        originalById.get(project.id),
+      ),
     )
     await port.set({ [CUSTOM_PROJECTS_KEY]: raws })
   }
@@ -71,8 +95,9 @@ const createChromeCustomProjectRepositoryImpl = (
  * `CustomProject` 永続化用に使う `CustomProjectRepository` 実装を生成する。
  *
  * Rich な補助フィールド（`projectKeywords` / `urls` / `urlMetadata` /
- * `categoryOrder`）は現時点では永続化対象外。既存
- * `src/lib/storage/projects.ts` を併用するか、別 issue の use-case 化で対応する。
+ * `categoryOrder`）は domain entity には載らないが、`saveAll` で既存 raw
+ * データから持ち越して `urlIds` の集合に合わせて整合性を取りつつ保存する。
+ * これによりユーザーの既存保存データを破壊しない。
  *
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */

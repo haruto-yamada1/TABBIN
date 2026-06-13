@@ -128,6 +128,17 @@ export const createOpenSavedUrlUseCase = (
 
     if (updatedTabGroups.length !== previousTabGroups.length) {
       await deps.tabGroupRepository.saveAll(updatedTabGroups)
+    } else {
+      // length が同じでも、グループ内の urlIds が変わった場合は
+      // saveAll で書き戻す必要がある。`removeUrlRecordIdsFromTabGroups` は
+      // 変更があったグループだけ新しい object を返すので reference 比較で
+      // 検出できる。
+      const hasTabGroupContentChanged = updatedTabGroups.some(
+        (group, index) => group !== previousTabGroups[index],
+      )
+      if (hasTabGroupContentChanged) {
+        await deps.tabGroupRepository.saveAll(updatedTabGroups)
+      }
     }
     const hasCustomProjectChanged = updatedCustomProjects.some(
       (project, index) => project !== previousCustomProjects[index],
