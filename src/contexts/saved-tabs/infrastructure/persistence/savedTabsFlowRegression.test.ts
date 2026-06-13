@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
+import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
 import { searchSavedTabs } from '../../domain/services/SavedTabsSearchService'
 import { createSavedTabsUseCases } from '../composition/createSavedTabsUseCases'
@@ -58,6 +59,27 @@ const createSpyBrowserTabPort = (
   }
 }
 
+interface SpyBrowserWindowPort {
+  readonly port: BrowserWindowPort
+  readonly openWithUrls: ReturnType<typeof vi.fn>
+  readonly opened: { focused?: boolean; urls: readonly string[] }[]
+}
+
+const createSpyBrowserWindowPort = (): SpyBrowserWindowPort => {
+  const opened: { focused?: boolean; urls: readonly string[] }[] = []
+  const openWithUrls = vi.fn(
+    (input: { urls: readonly string[]; focused?: boolean }) => {
+      opened.push({ focused: input.focused, urls: [...input.urls] })
+      return Promise.resolve({ urls: [...input.urls] })
+    },
+  )
+  return {
+    openWithUrls,
+    opened,
+    port: { openWithUrls },
+  }
+}
+
 const createCaptureNotificationPort = (): {
   notificationPort: NotificationPort
   calls: { level: 'error' | 'info' | 'success'; message: string }[]
@@ -82,6 +104,7 @@ interface Bundle {
   readonly port: ChromeStorageLocalPort
   readonly portState: StorageState
   readonly browserTabPort: SpyBrowserTabPort
+  readonly browserWindowPort: SpyBrowserWindowPort
   readonly notificationPort: ReturnType<typeof createCaptureNotificationPort>
   readonly useCases: ReturnType<typeof createSavedTabsUseCases>
 }
@@ -90,9 +113,11 @@ const createBundle = (initial: StorageState = {}): Bundle => {
   const state: StorageState = { ...initial }
   const port = createPort(state)
   const browserTabPort = createSpyBrowserTabPort(() => true)
+  const browserWindowPort = createSpyBrowserWindowPort()
   const notification = createCaptureNotificationPort()
   const deps: SavedTabsUseCasesDeps = {
     browserTabPort: browserTabPort.port,
+    browserWindowPort: browserWindowPort.port,
     customProjectRepository: createChromeCustomProjectRepository(port),
     notificationPort: notification.notificationPort,
     parentCategoryRepository: createChromeParentCategoryRepository(port),
@@ -101,6 +126,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
   }
   return {
     browserTabPort,
+    browserWindowPort,
     deps,
     notificationPort: notification,
     port,
@@ -299,13 +325,19 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const resolveActive = vi.fn(() => false)
       const { createChromeBrowserTabAdapter } =
         await import('../browser/ChromeBrowserTabAdapter')
+      const { createChromeBrowserWindowAdapter } =
+        await import('../browser/ChromeBrowserWindowAdapter')
       const browserTabPort = createChromeBrowserTabAdapter(
         { getApi: () => ({ tabs: { create: openSpy } }) },
         { resolveActive },
       )
+      const browserWindowPort = createChromeBrowserWindowAdapter({
+        getApi: () => undefined,
+      })
       const notification = createCaptureNotificationPort()
       const deps: SavedTabsUseCasesDeps = {
         browserTabPort,
+        browserWindowPort,
         customProjectRepository: createChromeCustomProjectRepository(port),
         notificationPort: notification.notificationPort,
         parentCategoryRepository: createChromeParentCategoryRepository(port),

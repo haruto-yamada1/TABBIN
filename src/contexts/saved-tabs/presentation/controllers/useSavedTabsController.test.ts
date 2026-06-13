@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
+import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
 import { createCustomProject } from '../../domain/entities/CustomProject'
 import type { CustomProject } from '../../domain/entities/CustomProject'
@@ -131,6 +132,12 @@ const createEmptyDeps = (
     Promise.resolve({ url: input.url }),
   )
   const browserTabPort: BrowserTabPort = { open: openSpy }
+  const browserWindowPort: BrowserWindowPort = {
+    // eslint-disable-next-line typescript/require-await
+    openWithUrls: vi.fn(async (input) => ({
+      urls: [...input.urls],
+    })),
+  }
   const notifySpy = vi.fn()
   const notificationPort: NotificationPort = {
     error: notifySpy,
@@ -140,6 +147,7 @@ const createEmptyDeps = (
   return {
     deps: {
       browserTabPort,
+      browserWindowPort,
       customProjectRepository:
         createInMemoryRepositories().customProjectRepository,
       notificationPort,

@@ -1,5 +1,9 @@
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
+import { createDeleteSavedUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteSavedUrlsUseCase'
+import { createDeleteSavedUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteSavedUrlUseCase'
+import { createDeleteTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteTabGroupsUseCase'
 import { createDeleteTabGroupUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteTabGroupUseCase'
+import { createOpenAllSavedUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
@@ -23,8 +27,8 @@ export interface CreateSavedTabsUseCasesOptions {
  * `src/app/composition/` レベルの composition root。
  *
  * `chrome.storage.local` ベースの repository 実装と
- * `chrome.tabs` / `sonner` ベースの port 実装を 1 度だけ組み立て、
- * そこから `saved-tabs` の優先 use-case 5 種を生成して返す。
+ * `chrome.tabs` / `chrome.windows` / `sonner` ベースの port 実装を
+ * 1 度だけ組み立て、そこから `saved-tabs` の優先 use-case を生成して返す。
  *
  * この関数以降、UI / hook / テストは
  * `chrome.*` API を直接触れず、use-case だけを呼び出す形になる。
@@ -49,7 +53,29 @@ export const createSavedTabsUseCases = (
   )
 
   return {
+    deleteSavedUrl: createDeleteSavedUrlUseCase({
+      customProjectRepository: repositories.customProjectRepository,
+      tabGroupRepository: repositories.tabGroupRepository,
+      urlRecordRepository: repositories.urlRecordRepository,
+    }),
+    deleteSavedUrls: createDeleteSavedUrlsUseCase({
+      customProjectRepository: repositories.customProjectRepository,
+      tabGroupRepository: repositories.tabGroupRepository,
+      urlRecordRepository: repositories.urlRecordRepository,
+    }),
     deleteTabGroup: createDeleteTabGroupUseCase({
+      customProjectRepository: repositories.customProjectRepository,
+      tabGroupRepository: repositories.tabGroupRepository,
+      urlRecordRepository: repositories.urlRecordRepository,
+    }),
+    deleteTabGroups: createDeleteTabGroupsUseCase({
+      customProjectRepository: repositories.customProjectRepository,
+      tabGroupRepository: repositories.tabGroupRepository,
+      urlRecordRepository: repositories.urlRecordRepository,
+    }),
+    openAllSavedUrls: createOpenAllSavedUrlsUseCase({
+      browserTabPort: ports.browserTabPort,
+      browserWindowPort: ports.browserWindowPort,
       customProjectRepository: repositories.customProjectRepository,
       tabGroupRepository: repositories.tabGroupRepository,
       urlRecordRepository: repositories.urlRecordRepository,

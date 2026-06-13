@@ -179,6 +179,10 @@ const syncAll = async (
       unassignedTabGroupIds.push(group.id)
     }
     assignedTabGroupIds.push(group.id)
+    // 新規 / 付け替えで親カテゴリが変わる場合も、カテゴリ側の
+    // `domainNames` を member groups から再計算するため、
+    // updatedCategoryIds に追加して saveAll 対象にする。
+    updatedCategoryIds.add(category.id)
     return { ...group, parentCategoryId: category.id }
   })
 
@@ -192,9 +196,13 @@ const syncAll = async (
     const memberDomainNames = Array.from(
       new Set(memberGroups.map((group) => group.domain)),
     )
+    const memberDomainIds = Array.from(
+      new Set(memberGroups.map((group) => group.id)),
+    )
     return {
       ...category,
       domainNames: memberDomainNames,
+      domains: memberDomainIds,
     }
   })
 

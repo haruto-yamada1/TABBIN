@@ -1,4 +1,8 @@
+import type { DeleteSavedUrlsUseCase } from './use-cases/DeleteSavedUrlsUseCase'
+import type { DeleteSavedUrlUseCase } from './use-cases/DeleteSavedUrlUseCase'
+import type { DeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
 import type { DeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
+import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
@@ -25,7 +29,11 @@ import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAss
  */
 export interface SavedTabsUseCases {
   readonly openSavedUrl: OpenSavedUrlUseCase
+  readonly openAllSavedUrls: OpenAllSavedUrlsUseCase
   readonly deleteTabGroup: DeleteTabGroupUseCase
+  readonly deleteTabGroups: DeleteTabGroupsUseCase
+  readonly deleteSavedUrl: DeleteSavedUrlUseCase
+  readonly deleteSavedUrls: DeleteSavedUrlsUseCase
   readonly restoreOpenedUrlsSnapshot: RestoreOpenedUrlsSnapshotUseCase
   readonly syncCategoryAssignments: SyncCategoryAssignmentsUseCase
   readonly removeUnreferencedUrlRecords: RemoveUnreferencedUrlRecordsUseCase

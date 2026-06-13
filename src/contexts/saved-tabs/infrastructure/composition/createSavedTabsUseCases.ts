@@ -1,5 +1,9 @@
 import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
+import { createDeleteSavedUrlsUseCase } from '../../application/use-cases/DeleteSavedUrlsUseCase'
+import { createDeleteSavedUrlUseCase } from '../../application/use-cases/DeleteSavedUrlUseCase'
+import { createDeleteTabGroupsUseCase } from '../../application/use-cases/DeleteTabGroupsUseCase'
 import { createDeleteTabGroupUseCase } from '../../application/use-cases/DeleteTabGroupUseCase'
+import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
@@ -34,7 +38,29 @@ export type { SavedTabsUseCases }
 export const createSavedTabsUseCases = (
   deps: SavedTabsUseCasesDeps,
 ): SavedTabsUseCases => ({
+  deleteSavedUrl: createDeleteSavedUrlUseCase({
+    customProjectRepository: deps.customProjectRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
+  deleteSavedUrls: createDeleteSavedUrlsUseCase({
+    customProjectRepository: deps.customProjectRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
   deleteTabGroup: createDeleteTabGroupUseCase({
+    customProjectRepository: deps.customProjectRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
+  deleteTabGroups: createDeleteTabGroupsUseCase({
+    customProjectRepository: deps.customProjectRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
+  openAllSavedUrls: createOpenAllSavedUrlsUseCase({
+    browserTabPort: deps.browserTabPort,
+    browserWindowPort: deps.browserWindowPort,
     customProjectRepository: deps.customProjectRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
