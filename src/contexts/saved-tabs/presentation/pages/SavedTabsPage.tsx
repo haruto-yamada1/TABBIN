@@ -5,6 +5,8 @@ import type { ViewMode } from '@/types/storage'
 
 import type { CustomProject } from '../../domain/entities/CustomProject'
 import type { TabGroup } from '../../domain/entities/TabGroup'
+import { createChromeBrowserTabAdapter } from '../../infrastructure/browser/ChromeBrowserTabAdapter'
+import type { ChromeApiLike } from '../../infrastructure/browser/ChromeBrowserTabAdapter'
 import type { SavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
 import { SavedTabsPresentationLayout } from '../components/SavedTabsPresentationLayout'
@@ -14,6 +16,7 @@ import {
 } from '../components/savedTabsPresentationLayout.helpers'
 import { createSavedTabsUseCasesContextValueFromDeps } from '../controllers/SavedTabsUseCasesContext'
 import { useSavedTabsController } from '../controllers/useSavedTabsController'
+import type { UseSavedTabsControllerReturn } from '../controllers/useSavedTabsController'
 import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'
 
 /**
@@ -44,6 +47,25 @@ export interface SavedTabsPageProps {
 }
 
 /**
+ * `resolveActive` を presentation 層 (SavedTabsApp) 側から差し込むための
+ * 橋渡し ref。
+ *
+ * 以下のフローで settings → port まで動的に反映する:
+ * 1. `SavedTabsPage` が `useRef` を作る
+ * 2. `BrowserTabPort` 構築時に `resolveActive: () => ref.current()` を渡す
+ * 3. 同じ ref を layout / app へ下す
+ * 4. `SavedTabsApp` 側の `useEffect` で `ref.current` を
+ *    `() => !settingsRef.current.openUrlInBackground` に更新する
+ * 5. ポートが `open()` 呼び出し時に `resolveActive()` を評価し、最新値を読む
+ *
+ * ref を介すことで use-case 自体は mount 時に 1 度だけ組み立てればよく、
+ * 設定変更のたびに use-case / port を作り直す必要がない。
+ */
+export interface ResolveActiveRef {
+  current: () => boolean
+}
+
+/**
  * `SavedTabsPage` 内部の controller 状態。
  *
  * ページ → controller フック → use-case → repository / port の流れを
@@ -52,8 +74,15 @@ export interface SavedTabsPageProps {
 export interface SavedTabsPageState {
   readonly viewModel: SavedTabsViewModel
   readonly refresh: () => Promise<void>
-  readonly controller: ReturnType<typeof useSavedTabsController>
+  readonly controller: UseSavedTabsControllerReturn
+  readonly deps: SavedTabsUseCasesDeps
+  readonly useCases: SavedTabsUseCases
+  readonly resolveActiveRef: ResolveActiveRef
 }
+
+const getChromeApiFromGlobalThis = (): ChromeApiLike | undefined =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  (globalThis as typeof globalThis & { chrome?: ChromeApiLike }).chrome
 
 /**
  * `SavedTabsPage` のロジック hook。
@@ -64,19 +93,42 @@ export interface SavedTabsPageState {
 export const useSavedTabsPage = (
   input: SavedTabsPageProps,
 ): SavedTabsPageState => {
-  if (!input.deps) {
+  const { deps: inputDeps, useCases: inputUseCases } = input
+  if (!inputDeps) {
     throw new Error(
       'SavedTabsPage: deps is required. Use createSavedTabsUseCasesDeps() at the call site for chrome real environment.',
     )
   }
-  const deps: SavedTabsUseCasesDeps = input.deps
-  const contextValue = useMemo(
+  // 初期値は `() => true` (active 固定)。`SavedTabsApp` 側の
+  // useEffect が settings を読んで本関数を上書きする。
+  const resolveActiveRef = useRef<() => boolean>(() => true)
+  // ref ベースの resolveActive を使う `BrowserTabPort` を 1 度だけ組み立てる。
+  // port の `open()` 呼び出し時に ref.current() を評価するため、
+  // use-case / port を作り直さずに settings を動反映できる。
+  const dynamicBrowserTabPort = useMemo(
     () =>
-      input.useCases
-        ? { deps, useCases: input.useCases }
-        : createSavedTabsUseCasesContextValueFromDeps(deps),
-    [deps, input.useCases],
+      createChromeBrowserTabAdapter(
+        { getApi: getChromeApiFromGlobalThis },
+        { resolveActive: () => resolveActiveRef.current() },
+      ),
+    [resolveActiveRef],
   )
+  // 早期 return 後の inputDeps は `SavedTabsUseCasesDeps` で確定する。
+  // TypeScript の型 narrowing を確実にするため、別名に取り出して使う。
+  const stableDeps: SavedTabsUseCasesDeps = inputDeps
+  const composedDeps = useMemo<SavedTabsUseCasesDeps>(
+    () => ({
+      ...stableDeps,
+      browserTabPort: dynamicBrowserTabPort,
+    }),
+    [stableDeps, dynamicBrowserTabPort],
+  )
+  const contextValue = useMemo(() => {
+    if (inputUseCases) {
+      return { deps: composedDeps, useCases: inputUseCases }
+    }
+    return createSavedTabsUseCasesContextValueFromDeps(composedDeps)
+  }, [composedDeps, inputUseCases])
   const controller = useSavedTabsController({
     deps: contextValue.deps,
     initialCustomProjects: input.initialCustomProjects,
@@ -106,7 +158,10 @@ export const useSavedTabsPage = (
   }, [])
   return {
     controller,
+    deps: contextValue.deps,
     refresh: controller.refresh,
+    resolveActiveRef,
+    useCases: contextValue.useCases,
     viewModel: controller.viewModel,
   }
 }
@@ -123,7 +178,8 @@ export const useSavedTabsPage = (
  * AI チャットウィジェット) で、見た目・操作感は変えない。
  */
 export const SavedTabsPage = (props: SavedTabsPageProps) => {
-  const { viewModel, refresh } = useSavedTabsPage(props)
+  const { viewModel, refresh, controller, deps, useCases, resolveActiveRef } =
+    useSavedTabsPage(props)
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false)
   const { attachLeftPaneRef, leftPaneRef, leftPaneWidth } =
     useSavedTabsLeftPaneWidth()
@@ -148,12 +204,16 @@ export const SavedTabsPage = (props: SavedTabsPageProps) => {
     >
       <SavedTabsPresentationLayout
         attachLeftPaneRef={attachLeftPaneRef}
+        controller={controller}
+        deps={deps}
         initialViewMode={resolvedInitialViewMode}
         isAiSidebarOpen={isAiSidebarOpen}
         isCompactLeftPaneLayout={isCompactLeftPaneLayout}
         leftPaneRef={leftPaneRef}
         onAiSidebarOpenChange={setIsAiSidebarOpen}
         onViewModeNavigate={props.onViewModeNavigate}
+        resolveActiveRef={resolveActiveRef}
+        useCases={useCases}
       />
     </div>
   )

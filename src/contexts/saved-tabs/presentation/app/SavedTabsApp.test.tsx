@@ -9,6 +9,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -284,6 +285,68 @@ vi.mock('@/contexts/saved-tabs/presentation/lib/uncategorized-display', () => ({
   shouldShowUncategorizedHeader: vi.fn(() => false),
 }))
 
+vi.mock('./SavedTabsApp', async () => {
+  // 旧 `SavedTabsApp` は use-case / controller / deps を内部で組み立てていたが、
+  // issue #493 の composition root 集約によりそれらは props 注入になった。
+  // 既存テストは props を渡さず `render(<SavedTabsApp />)` する形なので、
+  // ここで production と同じ `createSavedTabsUseCasesDeps()` を使った
+  // composition を補完するラッパに差し替える。
+  // テスト本体では `globalThis.chrome` が beforeEach で mock されているため、
+  // chrome-storage ベースの deps も同じ経路で chrome とやり取りする。
+  // `BrowserTabPort` の `resolveActive` は `SavedTabsApp` 側が ref.current を
+  // 動的に書き換えるため、ref-based な resolveActive を持つ port を
+  // composition 時に渡す必要がある。
+  const actual =
+    await vi.importActual<typeof import('./SavedTabsApp')>('./SavedTabsApp')
+  const controllerMod = await vi.importActual<
+    typeof import('@/contexts/saved-tabs/presentation/controllers/useSavedTabsController')
+  >('@/contexts/saved-tabs/presentation/controllers/useSavedTabsController')
+  const compositionMod = await vi.importActual<
+    typeof import('@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases')
+  >('@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases')
+  const depsMod = await vi.importActual<
+    typeof import('@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps')
+  >(
+    '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps',
+  )
+
+  const TestSavedTabsApp = (
+    props: React.ComponentProps<typeof actual.SavedTabsApp>,
+  ) => {
+    // 1) ref を先に作る (active 固定で初期化)
+    const resolveActiveRef = useRef<() => boolean>(() => true)
+    // 2) ref ベースの resolveActive を持つ BrowserTabPort を構築するため、
+    //    1 度 deps を組み立ててから browserTabPort だけ差し替える。
+    const baseDeps = useMemo(
+      () =>
+        depsMod.createSavedTabsUseCasesDeps({
+          resolveActive: () => resolveActiveRef.current(),
+        }),
+      [resolveActiveRef],
+    )
+    const useCases = useMemo(
+      () => compositionMod.createSavedTabsUseCases(baseDeps),
+      [baseDeps],
+    )
+    const controller = controllerMod.useSavedTabsController({
+      deps: baseDeps,
+      useCases,
+    })
+    return actual.useSavedTabsAppView({
+      ...props,
+      controller,
+      deps: baseDeps,
+      resolveActiveRef,
+      useCases,
+    })
+  }
+
+  return {
+    SavedTabsApp: TestSavedTabsApp,
+    useSavedTabsAppView: actual.useSavedTabsAppView,
+  }
+})
+
 vi.mock(
   '@/contexts/saved-tabs/presentation/hooks/useCategoryManagement',
   () => ({
@@ -351,7 +414,15 @@ import {
 } from '@/lib/storage/tabs'
 import { getUrlRecords } from '@/lib/storage/urls'
 
-import { SavedTabsApp } from './SavedTabsApp'
+import { SavedTabsApp as ImportedSavedTabsApp } from './SavedTabsApp'
+// `vi.mock` により `SavedTabsApp` は in-memory deps を補完するラッパへ
+// 差し替えられる。runtime のシグネチャは composition props を補完した形に
+// なるため、テストでの利用は JSX のオプショナル props だけに閉じる。
+const SavedTabsApp = ImportedSavedTabsApp as unknown as React.ComponentType<{
+  initialViewMode?: 'custom' | 'domain'
+  isAiSidebarOpen?: boolean
+  onViewModeNavigate?: (mode: 'custom' | 'domain') => void
+}>
 import {
   buildCategoryLookup,
   buildDisplayTabGroup,

@@ -9,19 +9,17 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-import { createSavedTabsPorts } from '@/app/composition/createSavedTabsPorts'
-import { createSavedTabsUseCases } from '@/app/composition/createSavedTabsUseCases'
 import { Toaster } from '@/components/ui/sonner'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
-import { createSavedTabsUseCases as createContextSavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
-import { createSavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
 import { Header } from '@/contexts/saved-tabs/presentation/components/Header' // ヘッダーコンポーネントをインポート
 import { CustomModeContainer } from '@/contexts/saved-tabs/presentation/containers/CustomModeContainer'
 import { DomainModeContainer } from '@/contexts/saved-tabs/presentation/containers/DomainModeContainer'
 import { useDomainModeController } from '@/contexts/saved-tabs/presentation/controllers/useDomainModeController'
-import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
+import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import { useCategoryManagement } from '@/contexts/saved-tabs/presentation/hooks/useCategoryManagement'
 import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
@@ -29,6 +27,7 @@ import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presenta
 import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
 import { handleTabGroupRemoval } from '@/contexts/saved-tabs/presentation/lib/tab-operations'
 import { shouldShowUncategorizedHeader as computeShouldShowUncategorizedHeader } from '@/contexts/saved-tabs/presentation/lib/uncategorized-display'
+import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { saveParentCategories } from '@/lib/storage/categories'
@@ -228,16 +227,24 @@ const removeDomainFromParentCategories = async (
 }
 
 interface SavedTabsAppProps {
-  initialViewMode?: ViewMode
-  isAiSidebarOpen?: boolean
-  onViewModeNavigate?: (mode: ViewMode) => void
+  readonly controller: UseSavedTabsControllerReturn
+  readonly deps: SavedTabsUseCasesDeps
+  readonly initialViewMode?: ViewMode
+  readonly isAiSidebarOpen?: boolean
+  readonly onViewModeNavigate?: (mode: ViewMode) => void
+  readonly resolveActiveRef: ResolveActiveRef
+  readonly useCases: SavedTabsUseCases
 }
 
 const useSavedTabsAppView = ({
   // eslint-disable-line eslint/max-lines-per-function
+  controller,
+  deps,
   initialViewMode,
   isAiSidebarOpen = false,
   onViewModeNavigate,
+  resolveActiveRef,
+  useCases: savedTabsUseCases,
 }: SavedTabsAppProps) => {
   const { t } = useI18n()
   const [settings, setSettings] = useState<UserSettings>(defaultSettings)
@@ -255,40 +262,21 @@ const useSavedTabsAppView = ({
   const settingsRef = useRef(settings)
   settingsRef.current = settings
 
-  // saved-tabs use-case バンドルと port バンドル。
-  // resolveActive 関数を ref 経由で渡し、`openUrlInBackground` 設定変更を
-  // 再 mount なしで反映する。
-  const savedTabsUseCases = useMemo(
-    () =>
-      createSavedTabsUseCases({
-        resolveActive: () => !settingsRef.current.openUrlInBackground,
-      }),
-    [],
-  )
-  const savedTabsPorts = useMemo(
-    () =>
-      createSavedTabsPorts({
-        resolveActive: () => !settingsRef.current.openUrlInBackground,
-      }),
-    [],
-  )
+  // `SavedTabsPage` 側で組み立てた `BrowserTabPort` の `resolveActive` を
+  // 最新 settings から毎回評価する関数で上書きする。`BrowserTabPort` は
+  // `open()` 呼び出し時に `resolveActive?.()` を都度評価するため、
+  // use-case / port を作り直さずに `openUrlInBackground` を反映できる。
+  // 関数 ref の中身だけ差し替えるため ref 自体は安定。
+  useEffect(() => {
+    resolveActiveRef.current = () => !settingsRef.current.openUrlInBackground
+  }, [resolveActiveRef])
 
-  // presentation 層の controller フック。Domain モード用 state
-  // (searchQuery, parentCategories) を presentation 層へ持ち上げ、
-  // `setSearchQuery` / `setParentCategories` を controller 経由で
-  // 配下に提供する。複雑 (Undo / snapshot 連携) な処理は従来通り
-  // 既存の `savedTabsUseCases` / `savedTabsPorts` 経由で実行する。
-  const controllerDeps = useMemo(() => createSavedTabsUseCasesDeps(), [])
-  const contextUseCases = useMemo(
-    () => createContextSavedTabsUseCases(controllerDeps),
-    [controllerDeps],
-  )
-  const presentationController = useSavedTabsController({
-    deps: controllerDeps,
-    useCases: contextUseCases,
-  })
+  // presentation 層の controller は composition root である
+  // `SavedTabsPage` 側で組み立てて props 注入する。`SavedTabsApp` 側では
+  // UI 派生 state のために `useDomainModeController` を controller に対して
+  // 適用するだけに留め、use-case / repository / port の再生成は行わない。
   const domainController = useDomainModeController({
-    controller: presentationController,
+    controller,
   })
   const searchQuery = domainController.searchQuery
   const setSearchQuery = domainController.setSearchQuery
@@ -366,7 +354,7 @@ const useSavedTabsAppView = ({
         if (!targetRecord) {
           // urlRecord に登録されていない URL（旧データなど）は
           // browserTabPort 経由で開くだけにとどめ、削除処理はスキップする。
-          await savedTabsPorts.browserTabPort.open({ url })
+          await deps.browserTabPort.open({ url })
           return
         }
 
@@ -418,7 +406,7 @@ const useSavedTabsAppView = ({
       }
     },
     [
-      savedTabsPorts,
+      deps,
       savedTabsUseCases,
       settings.removeTabAfterOpen,
       refreshTabGroupsWithUrls,
@@ -1222,4 +1210,4 @@ const useSavedTabsAppView = ({
 
 const SavedTabsApp = (props: SavedTabsAppProps) => useSavedTabsAppView(props)
 
-export { SavedTabsApp }
+export { SavedTabsApp, useSavedTabsAppView }

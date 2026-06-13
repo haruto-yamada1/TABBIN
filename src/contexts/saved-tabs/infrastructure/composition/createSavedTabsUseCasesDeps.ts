@@ -36,6 +36,17 @@ export interface SavedTabsUseCasesDeps {
   readonly notificationPort: NotificationPort
 }
 
+/**
+ * `createSavedTabsUseCasesDeps` に渡せる任意設定。
+ *
+ * - `resolveActive` : `BrowserTabPort` 配下で開く新規タブを active にするかを
+ *   実行時に解決する関数。presentation 層が `openUrlInBackground` 設定を
+ *   ref 経由で読むために利用。未指定なら active 固定。
+ */
+export interface CreateSavedTabsUseCasesDepsOptions {
+  readonly resolveActive?: () => boolean
+}
+
 interface ChromeLike {
   readonly tabs?: {
     readonly create?: (createProperties: {
@@ -67,13 +78,19 @@ const getChromeApi = (): ChromeLike | undefined =>
  * presentation 層はそれを呼び出し元（`SavedTabsPage`）でハンドルし、
  * loading 状態を `error` へ遷移させる。
  *
+ * `options.resolveActive` を渡すと `BrowserTabPort` 配下の `open` が
+ * 呼び出しごとに同関数を評価するため、presentation 層は settings ref の
+ * 現在値を動的に反映できる。
+ *
  * @example
  * ```tsx
  * const deps = createSavedTabsUseCasesDeps()
  * const controller = useSavedTabsController({ deps })
  * ```
  */
-export const createSavedTabsUseCasesDeps = (): SavedTabsUseCasesDeps => {
+export const createSavedTabsUseCasesDeps = (
+  options: CreateSavedTabsUseCasesDepsOptions = {},
+): SavedTabsUseCasesDeps => {
   const local = getChromeStorageLocal()
   if (!local) {
     warnMissingChromeStorage('createSavedTabsUseCasesDeps')
@@ -87,9 +104,10 @@ export const createSavedTabsUseCasesDeps = (): SavedTabsUseCasesDeps => {
     : null
 
   return {
-    browserTabPort: createChromeBrowserTabAdapter({
-      getApi: () => getChromeApi(),
-    }),
+    browserTabPort: createChromeBrowserTabAdapter(
+      { getApi: () => getChromeApi() },
+      options.resolveActive ? { resolveActive: options.resolveActive } : {},
+    ),
     browserWindowPort: createChromeBrowserWindowAdapter({
       getApi: () => getChromeApi(),
     }),
