@@ -1,6 +1,7 @@
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import type { BuildSavedTabsSnapshotCommand } from '../commands/BuildSavedTabsSnapshotCommand'
 import type { OpenedUrlsRestoreSnapshot } from '../commands/RestoreOpenedUrlsSnapshotCommand'
 
@@ -9,11 +10,15 @@ import type { OpenedUrlsRestoreSnapshot } from '../commands/RestoreOpenedUrlsSna
  *
  * テスト時は in-memory mock を注入する。`chrome.storage.local` への
  * 依存を排除した unit test を書けるように、interface のみを公開する。
+ *
+ * `urlRecordRepository` は Undo 時に削除された `UrlRecord` を復元するため
+ * 必須 (Codex レビュー対応: P1 / issue #494)。
  */
 export interface BuildSavedTabsSnapshotUseCaseDeps {
   readonly tabGroupRepository: TabGroupRepository
   readonly customProjectRepository: CustomProjectRepository
   readonly parentCategoryRepository: ParentCategoryRepository
+  readonly urlRecordRepository: UrlRecordRepository
 }
 
 /**
@@ -47,19 +52,26 @@ export const createBuildSavedTabsSnapshotUseCase = (
   deps: BuildSavedTabsSnapshotUseCaseDeps,
 ): BuildSavedTabsSnapshotUseCase => {
   return async (command) => {
-    const [tabGroups, customProjects, customProjectOrder, storedCategories] =
-      await Promise.all([
-        deps.tabGroupRepository.findAll(),
-        deps.customProjectRepository.findAll(),
-        deps.customProjectRepository.findOrder(),
-        deps.parentCategoryRepository.findAll(),
-      ])
+    const [
+      tabGroups,
+      customProjects,
+      customProjectOrder,
+      storedCategories,
+      urlRecords,
+    ] = await Promise.all([
+      deps.tabGroupRepository.findAll(),
+      deps.customProjectRepository.findAll(),
+      deps.customProjectRepository.findOrder(),
+      deps.parentCategoryRepository.findAll(),
+      deps.urlRecordRepository.findAll(),
+    ])
     const parentCategories = command.parentCategories ?? storedCategories
     return {
       customProjectOrder: [...customProjectOrder],
       customProjects: [...customProjects],
       parentCategories: [...parentCategories],
       savedTabs: [...tabGroups],
+      urlRecords: [...urlRecords],
     }
   }
 }

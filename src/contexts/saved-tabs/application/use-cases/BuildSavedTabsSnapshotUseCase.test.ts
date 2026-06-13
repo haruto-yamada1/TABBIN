@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { createCustomProject } from '../../domain/entities/CustomProject'
 import { createParentCategory } from '../../domain/entities/ParentCategory'
 import { createTabGroup } from '../../domain/entities/TabGroup'
+import { createUrlRecord } from '../../domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import { createCustomProjectId } from '../../domain/value-objects/CustomProjectId'
 import type { BuildSavedTabsSnapshotUseCaseDeps } from './BuildSavedTabsSnapshotUseCase'
 import { createBuildSavedTabsSnapshotUseCase } from './BuildSavedTabsSnapshotUseCase'
@@ -15,6 +17,7 @@ interface Repositories extends BuildSavedTabsSnapshotUseCaseDeps {
   customProjects: ReturnType<typeof createCustomProject>[]
   customProjectOrder: ReturnType<typeof createCustomProjectId>[]
   parentCategories: ReturnType<typeof createParentCategory>[]
+  urlRecords: ReturnType<typeof createUrlRecord>[]
 }
 
 const createInMemoryRepositories = (
@@ -23,6 +26,7 @@ const createInMemoryRepositories = (
     customProjects?: ReturnType<typeof createCustomProject>[]
     customProjectOrder?: ReturnType<typeof createCustomProjectId>[]
     parentCategories?: ReturnType<typeof createParentCategory>[]
+    urlRecords?: ReturnType<typeof createUrlRecord>[]
   } = {},
 ): Repositories => {
   const tabGroups: ReturnType<typeof createTabGroup>[] = [
@@ -36,6 +40,9 @@ const createInMemoryRepositories = (
   ]
   const parentCategories: ReturnType<typeof createParentCategory>[] = [
     ...(initial.parentCategories ?? []),
+  ]
+  const urlRecords: ReturnType<typeof createUrlRecord>[] = [
+    ...(initial.urlRecords ?? []),
   ]
   const tabGroupRepository: TabGroupRepository = {
     // eslint-disable-next-line typescript/require-await
@@ -81,6 +88,19 @@ const createInMemoryRepositories = (
     // eslint-disable-next-line typescript/require-await
     removeByIds: async () => undefined,
   }
+  const urlRecordRepository: UrlRecordRepository = {
+    // eslint-disable-next-line typescript/require-await
+    findAll: async () => [...urlRecords],
+    // eslint-disable-next-line typescript/require-await
+    findById: async (id) =>
+      urlRecords.find((record) => record.id === id) ?? null,
+    // eslint-disable-next-line typescript/require-await
+    saveAll: async (records) => {
+      urlRecords.splice(0, urlRecords.length, ...records)
+    },
+    // eslint-disable-next-line typescript/require-await
+    removeByIds: async () => undefined,
+  }
   return {
     customProjectOrder,
     customProjectRepository,
@@ -89,6 +109,8 @@ const createInMemoryRepositories = (
     parentCategoryRepository,
     tabGroupRepository,
     tabGroups,
+    urlRecordRepository,
+    urlRecords,
   }
 }
 
@@ -120,11 +142,20 @@ describe('BuildSavedTabsSnapshotUseCase', () => {
         name: 'Cat 1',
       }),
     ]
+    const urlRecords = [
+      createUrlRecord({
+        id: 'url-1',
+        savedAt: 1,
+        title: 'Example',
+        url: 'https://example.com',
+      }),
+    ]
     const repositories = createInMemoryRepositories({
       customProjectOrder,
       customProjects,
       parentCategories,
       tabGroups,
+      urlRecords,
     })
     const useCase = createBuildSavedTabsSnapshotUseCase(repositories)
 
@@ -137,6 +168,8 @@ describe('BuildSavedTabsSnapshotUseCase', () => {
     expect(snapshot.customProjectOrder).toStrictEqual(['project-1'])
     expect(snapshot.parentCategories).toHaveLength(1)
     expect(snapshot.parentCategories?.[0]?.id).toBe('cat-1')
+    expect(snapshot.urlRecords).toHaveLength(1)
+    expect(snapshot.urlRecords?.[0]?.id).toBe('url-1')
   })
 
   it('command.parentCategories が指定された場合は storage より優先する', async () => {
@@ -193,5 +226,6 @@ describe('BuildSavedTabsSnapshotUseCase', () => {
     expect(snapshot.customProjects).toStrictEqual([])
     expect(snapshot.customProjectOrder).toStrictEqual([])
     expect(snapshot.parentCategories).toStrictEqual([])
+    expect(snapshot.urlRecords).toStrictEqual([])
   })
 })

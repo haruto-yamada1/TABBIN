@@ -61,7 +61,6 @@ import {
   syncSavedTabsViewModeLocation,
   toDomainParentCategories,
   toDomainTabGroupsForReorder,
-  toStorageTabGroup,
 } from './savedTabsApp.helpers'
 import type {
   CategoryLookup,
@@ -384,10 +383,14 @@ const useSavedTabsAppView = ({
         // 取り除かれているなら Undo 対象として扱う必要がある。よって
         // `removedUrlRecordId` ではなく `snapshot` の有無を判定基準にする。
         if (snapshot && result.snapshot) {
-          const updated = await deps.tabGroupRepository.findAll()
-          await refreshTabGroupsWithUrls(
-            updated.map((group) => toStorageTabGroup(group)),
-          )
+          // post-open の UI 更新は \`refreshTabGroupsWithUrls()\` (引数なし)
+          // に委譲し、\`useTabData\` 側の storage 読み取り経路 (\`urls\` /
+          // \`urlSubCategories\` / \`subCategories\` / \`categoryKeywords\` /
+          // \`subCategoryOrder\` などのリッチ補助フィールド付き) を
+          // そのまま使う。repository の \`findAll\` 戻り値は domain entity
+          // (リッチ補助フィールドを持たない) なので、ここでは渡さない
+          // (Codex レビュー対応: P2 / issue #494)。
+          await refreshTabGroupsWithUrls()
           showOpenedUrlsUndoToast({
             count: 1,
             refreshTabGroupsWithUrls,

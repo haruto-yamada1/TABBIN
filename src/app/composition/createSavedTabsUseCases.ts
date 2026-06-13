@@ -59,6 +59,7 @@ export const createSavedTabsUseCases = (
       customProjectRepository: repositories.customProjectRepository,
       parentCategoryRepository: repositories.parentCategoryRepository,
       tabGroupRepository: repositories.tabGroupRepository,
+      urlRecordRepository: repositories.urlRecordRepository,
     }),
     deleteSavedUrl: createDeleteSavedUrlUseCase({
       customProjectRepository: repositories.customProjectRepository,
