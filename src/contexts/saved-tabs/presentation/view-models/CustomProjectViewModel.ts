@@ -25,14 +25,24 @@ export interface CustomProjectViewModel {
 
 /**
  * domain `CustomProject` を view-model へ変換する純関数。
+ *
+ * branded な `CustomProjectId` / `UrlRecordId` などを含む entity を受け取れる
+ * よう、`urlIds` は readonly 許容にしている。`toCustomProjectViewModel` の
+ * 利用側 (`createDomainModeViewModel` / `createCustomModeViewModel`) は
+ * presentation 層で branded 型を意識せず `readonly` として扱える。
  */
 export const toCustomProjectViewModel = (project: {
   id: string
   name: string
-  urlIds?: string[]
-  urls?: { id: string; url: string; title: string; category?: string }[]
-  categories: string[]
-  categoryOrder?: string[]
+  urlIds?: readonly string[]
+  urls?: readonly {
+    id: string
+    url: string
+    title: string
+    category?: string
+  }[]
+  categories: readonly string[]
+  categoryOrder?: readonly string[]
   createdAt: number
   updatedAt: number
 }): CustomProjectViewModel => {
@@ -40,15 +50,15 @@ export const toCustomProjectViewModel = (project: {
   const urls = project.urls ?? []
   const displayUrlCount = urls.length > 0 ? urls.length : urlIds.length
   return {
-    categories: project.categories,
-    categoryOrder: project.categoryOrder ?? project.categories,
+    categories: [...project.categories],
+    categoryOrder: [...(project.categoryOrder ?? project.categories)],
     createdAt: project.createdAt,
     displayUrlCount,
     hasUrls: displayUrlCount > 0,
     id: project.id,
     name: project.name,
     updatedAt: project.updatedAt,
-    urlIds,
-    urls,
+    urlIds: [...urlIds],
+    urls: [...urls],
   }
 }

@@ -33,14 +33,23 @@ export interface TabGroupViewModel {
  * presentation 層に閉じ、application 層では呼び出さない。
  * repository / use-case が返した entity 配列を `SavedTabsController` が
  * まとめてこの関数に通し、コンポーネントへ渡す。
+ *
+ * branded な `TabGroupId` / `UrlRecordId` を含む entity を受け取れるよう
+ * 配列は `readonly` 許容にしている。presentation 層で branded 型を意識
+ * せず `readonly` として扱える。
  */
 export const toTabGroupViewModel = (group: {
   id: string
   domain: string
   parentCategoryId?: string
-  urlIds?: string[]
-  urls?: { id: string; url: string; title: string; subCategory?: string }[]
-  subCategories?: string[]
+  urlIds?: readonly string[]
+  urls?: readonly {
+    id: string
+    url: string
+    title: string
+    subCategory?: string
+  }[]
+  subCategories?: readonly string[]
 }): TabGroupViewModel => {
   const urlIds = group.urlIds ?? []
   const urls = group.urls ?? []
@@ -53,7 +62,7 @@ export const toTabGroupViewModel = (group: {
     id: group.id,
     parentCategoryId: group.parentCategoryId,
     subCategoryCount: subCategories.length,
-    urlIds,
-    urls,
+    urlIds: [...urlIds],
+    urls: [...urls],
   }
 }
