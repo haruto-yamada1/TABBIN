@@ -1,11 +1,11 @@
 import { Profiler } from 'react'
 import type { RefObject } from 'react'
 
-import { SavedTabsApp } from '@/features/saved-tabs/app/SavedTabsApp'
+import { SavedTabsApp } from '@/contexts/saved-tabs/presentation/app/SavedTabsApp'
 import {
   handleSavedTabsRender,
   isDevProfileEnabled,
-} from '@/features/saved-tabs/app/savedTabsProfiler'
+} from '@/contexts/saved-tabs/presentation/app/savedTabsProfiler'
 import type { ViewMode } from '@/types/storage'
 
 import { SavedTabsChatWidgetBridge } from './SavedTabsChatWidgetBridge'

@@ -18,17 +18,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useI18nText } from '@/features/i18n/context/I18nProvider'
 import {
   getRelativeScrollTarget,
   getScrollControlAvailability,
   scrollContainerToTarget,
-} from '@/features/saved-tabs/lib/scroll-controls'
+} from '@/contexts/saved-tabs/presentation/lib/scroll-controls'
 import type {
   ScrollControlAvailability,
   ScrollDirection,
   ScrollTargetType,
-} from '@/features/saved-tabs/lib/scroll-controls'
+} from '@/contexts/saved-tabs/presentation/lib/scroll-controls'
+import { useI18nText } from '@/features/i18n/context/I18nProvider'
 import type { ViewMode } from '@/types/storage'
 
 const HIGHLIGHT_CLASS_NAME = 'saved-tabs-scroll-highlight'

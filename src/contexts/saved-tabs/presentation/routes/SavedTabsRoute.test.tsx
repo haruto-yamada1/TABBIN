@@ -28,7 +28,7 @@ vi.mock('../../infrastructure/composition/createSavedTabsUseCasesDeps', () => ({
   },
 }))
 
-vi.mock('@/features/saved-tabs/app/SavedTabsApp', () => ({
+vi.mock('@/contexts/saved-tabs/presentation/app/SavedTabsApp', () => ({
   SavedTabsApp: () => <div data-testid='saved-tabs-app-mock'>SavedTabsApp</div>,
 }))
 
@@ -38,7 +38,7 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
   ),
 }))
 
-vi.mock('@/features/saved-tabs/app/savedTabsProfiler', () => ({
+vi.mock('@/contexts/saved-tabs/presentation/app/savedTabsProfiler', () => ({
   handleSavedTabsRender: vi.fn(),
   isDevProfileEnabled: false,
 }))

@@ -1,0 +1,1225 @@
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
+
+import { createSavedTabsPorts } from '@/app/composition/createSavedTabsPorts'
+import { createSavedTabsUseCases } from '@/app/composition/createSavedTabsUseCases'
+import { Toaster } from '@/components/ui/sonner'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { createSavedTabsUseCases as createContextSavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
+import { createSavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
+import { Header } from '@/contexts/saved-tabs/presentation/components/Header' // ヘッダーコンポーネントをインポート
+import { CustomModeContainer } from '@/contexts/saved-tabs/presentation/containers/CustomModeContainer'
+import { DomainModeContainer } from '@/contexts/saved-tabs/presentation/containers/DomainModeContainer'
+import { useDomainModeController } from '@/contexts/saved-tabs/presentation/controllers/useDomainModeController'
+import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
+import { useCategoryManagement } from '@/contexts/saved-tabs/presentation/hooks/useCategoryManagement'
+import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
+import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
+import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
+import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
+import { handleTabGroupRemoval } from '@/contexts/saved-tabs/presentation/lib/tab-operations'
+import { shouldShowUncategorizedHeader as computeShouldShowUncategorizedHeader } from '@/contexts/saved-tabs/presentation/lib/uncategorized-display'
+import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
+import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { saveParentCategories } from '@/lib/storage/categories'
+import {
+  getCustomProjects,
+  moveUrlBetweenCustomProjects,
+} from '@/lib/storage/projects'
+import { defaultSettings } from '@/lib/storage/settings'
+import { getUrlRecords } from '@/lib/storage/urls'
+import type {
+  ParentCategory,
+  TabGroup,
+  UserSettings,
+  ViewMode,
+} from '@/types/storage'
+
+import {
+  buildCategoryLookup,
+  buildDisplayTabGroup,
+  countTabGroupUrls,
+  createFilterGroupsByExcludedIdsUpdater,
+  filterGroupByQuery,
+  getDisplayUrlCount,
+  getSnapshotSavedTabs,
+  notifyDeleteFailure,
+  removeUrlsFromCustomProjectsForGroup,
+  removeUrlsFromCustomProjectsForGroups,
+  shouldWaitForInitialViewMode,
+  showOpenedUrlsUndoToast,
+  sortCategorizedGroups,
+  syncSavedTabsViewModeLocation,
+} from './savedTabsApp.helpers'
+import type {
+  CategoryLookup,
+  OpenedUrlsStorageSnapshot,
+} from './savedTabsApp.helpers'
+
+// eslint-disable-next-line import/no-unassigned-import
+import '@/assets/global.css'
+
+const hasDisplayableUrls = (group: TabGroup): boolean => {
+  const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
+  const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
+  console.log(
+    `フィルタチェック ${group.domain}: urlIds=${group.urlIds?.length ?? 0}, urls=${group.urls?.length ?? 0}, 表示=${hasNewUrls || hasOldUrls}`, // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: boolean values; false should not be treated as "not set"
+  )
+  return hasNewUrls || hasOldUrls
+}
+const pushGroupToCategory = (
+  categorizedGroups: Record<string, TabGroup[]>,
+  categoryId: string,
+  group: TabGroup,
+): void => {
+  if (!categorizedGroups[categoryId]) {
+    categorizedGroups[categoryId] = []
+  }
+  const categorizedGroup =
+    group.parentCategoryId === categoryId
+      ? group
+      : {
+          ...group,
+          parentCategoryId: categoryId,
+        }
+  categorizedGroups[categoryId].push(categorizedGroup)
+}
+const tryCategorizeById = (
+  group: TabGroup,
+  categoryLookup: CategoryLookup,
+  categorizedGroups: Record<string, TabGroup[]>,
+): boolean => {
+  const category = categoryLookup.byGroupId.get(group.id)
+  if (category) {
+    pushGroupToCategory(categorizedGroups, category.id, group)
+    if (group.parentCategoryId !== category.id) {
+      console.log(
+        `ドメイン ${group.domain} のparentCategoryIdをIDベースで ${category.id} に更新しました`,
+      )
+    }
+    console.log(
+      `ドメイン ${group.domain} はIDベースで ${category.name} に分類されました`,
+    )
+    return true
+  }
+  return false
+}
+const tryCategorizeByDomainName = (
+  group: TabGroup,
+  categoryLookup: CategoryLookup,
+  categorizedGroups: Record<string, TabGroup[]>,
+): boolean => {
+  const category = categoryLookup.byDomainName.get(group.domain)
+  if (category) {
+    pushGroupToCategory(categorizedGroups, category.id, group)
+    console.log(
+      `ドメイン ${group.domain} はドメイン名ベースで ${category.name} に分類されました`,
+    )
+    console.log(
+      `ドメイン ${group.domain} のparentCategoryIdを ${category.id} に設定しました`,
+    )
+    return true
+  }
+  return false
+}
+const organizeTabGroupsWithCategories = ({
+  enableCategories,
+  tabGroupsWithUrls,
+  categoryLookup,
+  searchQuery,
+}: {
+  enableCategories: boolean
+  tabGroupsWithUrls: TabGroup[]
+  categoryLookup: CategoryLookup
+  searchQuery: string
+}): {
+  categorized: Record<string, TabGroup[]>
+  uncategorized: TabGroup[]
+} => {
+  if (!enableCategories) {
+    return {
+      categorized: {},
+      uncategorized: tabGroupsWithUrls,
+    }
+  }
+  console.log('親カテゴリ一覧:', [...categoryLookup.byId.values()])
+  console.log('organizeTabGroups開始:')
+  console.log('- tabGroupsWithUrls:', tabGroupsWithUrls)
+  console.log('- tabGroupsWithUrls.length:', tabGroupsWithUrls.length)
+  const categorizedGroups: Record<string, TabGroup[]> = {}
+  const uncategorizedGroups: TabGroup[] = []
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  const hasSearchQuery = normalizedQuery.length > 0
+  const groupsToOrganize = tabGroupsWithUrls.reduce<TabGroup[]>(
+    (groups, group) => {
+      const nextGroup = hasSearchQuery
+        ? filterGroupByQuery(group, normalizedQuery, categoryLookup)
+        : group
+      if (hasDisplayableUrls(nextGroup)) {
+        groups.push(nextGroup)
+      }
+      return groups
+    },
+    [],
+  )
+  console.log('groupsToOrganize:', groupsToOrganize)
+  console.log('groupsToOrganize.length:', groupsToOrganize.length)
+  for (const group of groupsToOrganize) {
+    const categorizedById = tryCategorizeById(
+      group,
+      categoryLookup,
+      categorizedGroups,
+    )
+    if (categorizedById) {
+      continue
+    }
+    const categorizedByDomainName = tryCategorizeByDomainName(
+      group,
+      categoryLookup,
+      categorizedGroups,
+    )
+    if (!categorizedByDomainName) {
+      uncategorizedGroups.push(group)
+      console.log(`ドメイン ${group.domain} は未分類です`)
+    }
+  }
+  sortCategorizedGroups(categorizedGroups, categoryLookup)
+  console.log('organizeTabGroups結果:')
+  console.log('- categorizedGroups:', categorizedGroups)
+  console.log('- uncategorizedGroups:', uncategorizedGroups)
+  console.log('- uncategorizedGroups.length:', uncategorizedGroups.length)
+  return {
+    categorized: categorizedGroups,
+    uncategorized: uncategorizedGroups,
+  }
+}
+
+/**
+ * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
+ */
+/**
+ * 複数のドメイングループに属するURLをすべてカスタムプロジェクトから一括削除します。
+ */
+
+/**
+ * 親カテゴリから指定されたドメインIDを削除して保存します。
+ */
+const removeDomainFromParentCategories = async (
+  id: string,
+  categories: ParentCategory[],
+  setCategories: (cats: ParentCategory[]) => void,
+) => {
+  const updatedCategories = categories.map((category) => ({
+    ...category,
+    domains: category.domains.filter((domainId) => domainId !== id),
+  }))
+  await saveParentCategories(updatedCategories)
+  setCategories(updatedCategories)
+}
+
+interface SavedTabsAppProps {
+  initialViewMode?: ViewMode
+  isAiSidebarOpen?: boolean
+  onViewModeNavigate?: (mode: ViewMode) => void
+}
+
+const useSavedTabsAppView = ({
+  // eslint-disable-line eslint/max-lines-per-function
+  initialViewMode,
+  isAiSidebarOpen = false,
+  onViewModeNavigate,
+}: SavedTabsAppProps) => {
+  const { t } = useI18n()
+  const [settings, setSettings] = useState<UserSettings>(defaultSettings)
+  const hasResolvedInitialViewModeRef = useRef(!initialViewMode)
+  const previousInitialViewModeRef = useRef(initialViewMode)
+
+  if (previousInitialViewModeRef.current !== initialViewMode) {
+    previousInitialViewModeRef.current = initialViewMode
+    hasResolvedInitialViewModeRef.current = !initialViewMode
+  }
+
+  // BrowserTabPort の `resolveActive` から参照される最新 settings。
+  // settings オブジェクト全体が変わってもタブを開く度に最新値を見るため、
+  // 関数クロージャからは ref を読む。
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+
+  // saved-tabs use-case バンドルと port バンドル。
+  // resolveActive 関数を ref 経由で渡し、`openUrlInBackground` 設定変更を
+  // 再 mount なしで反映する。
+  const savedTabsUseCases = useMemo(
+    () =>
+      createSavedTabsUseCases({
+        resolveActive: () => !settingsRef.current.openUrlInBackground,
+      }),
+    [],
+  )
+  const savedTabsPorts = useMemo(
+    () =>
+      createSavedTabsPorts({
+        resolveActive: () => !settingsRef.current.openUrlInBackground,
+      }),
+    [],
+  )
+
+  // presentation 層の controller フック。Domain モード用 state
+  // (searchQuery, parentCategories) を presentation 層へ持ち上げ、
+  // `setSearchQuery` / `setParentCategories` を controller 経由で
+  // 配下に提供する。複雑 (Undo / snapshot 連携) な処理は従来通り
+  // 既存の `savedTabsUseCases` / `savedTabsPorts` 経由で実行する。
+  const controllerDeps = useMemo(() => createSavedTabsUseCasesDeps(), [])
+  const contextUseCases = useMemo(
+    () => createContextSavedTabsUseCases(controllerDeps),
+    [controllerDeps],
+  )
+  const presentationController = useSavedTabsController({
+    deps: controllerDeps,
+    useCases: contextUseCases,
+  })
+  const domainController = useDomainModeController({
+    controller: presentationController,
+  })
+  const searchQuery = domainController.searchQuery
+  const setSearchQuery = domainController.setSearchQuery
+
+  // 未分類ドメインの並び替えモード状態管理
+  const [isUncategorizedReorderMode, setIsUncategorizedReorderMode] =
+    useState(false)
+  const [tempUncategorizedOrder, setTempUncategorizedOrder] = useState<
+    TabGroup[]
+  >([])
+
+  const categoryState = useCategoryManagement()
+  const tabDataState = useTabData(categoryState.setCategories, setSettings)
+  const projectState = useProjectManagement(
+    tabDataState.tabGroups,
+    settings,
+    initialViewMode,
+  )
+  const {
+    categories,
+    setCategories,
+    categoryOrder,
+    isCategoryReorderMode,
+    tempCategoryOrder,
+    handleDeleteCategory,
+    handleCategoryDragEnd,
+    handleConfirmCategoryReorder,
+    handleCancelCategoryReorder,
+    handleUpdateDomainsOrder,
+    handleMoveDomainToCategory,
+  } = categoryState
+  const { tabGroups, isLoading, tabGroupsWithUrls, refreshTabGroupsWithUrls } =
+    tabDataState
+  const {
+    customProjects,
+    setCustomProjects,
+    viewMode,
+    viewModeRef,
+    syncDomainDataToCustomProjects,
+    handleViewModeChange,
+    handleCreateProject,
+    handleDeleteProject,
+    handleRenameProject,
+    handleUpdateProjectKeywords,
+    handleAddUrlToProject,
+    handleDeleteUrlFromProject,
+    handleDeleteUrlsFromProject,
+    handleAddCategory,
+    handleDeleteProjectCategory,
+    handleSetUrlCategory,
+    handleUpdateCategoryOrder,
+    handleReorderUrls,
+    handleReorderProjects,
+    handleRenameCategory,
+  } = projectState
+  const categoryLookup = useMemo(
+    () => buildCategoryLookup(categories),
+    [categories],
+  )
+  // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え。
+  // - URL → urlRecordId は `getUrlRecords()` から逆引きし、見つからない
+  //   旧データは `browserTabPort` で開くだけのフォールバックを取る。
+  // - `removeTabAfterOpen` が true のときは、削除前 snapshot を取得して
+  //   既存の Undo トースト経路と接続する。snapshot は use-case の
+  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+  //   戻り値ではなく chrome.storage.local の生データを使うことで、
+  //   `urls` / `urlSubCategories` などのリッチフィールド復元を維持する。
+  const handleOpenTab = useCallback(
+    async (url: string) => {
+      try {
+        const urlRecords = await getUrlRecords()
+        const targetRecord = urlRecords.find((record) => record.url === url)
+
+        if (!targetRecord) {
+          // urlRecord に登録されていない URL（旧データなど）は
+          // browserTabPort 経由で開くだけにとどめ、削除処理はスキップする。
+          await savedTabsPorts.browserTabPort.open({ url })
+          return
+        }
+
+        const snapshot = settings.removeTabAfterOpen
+          ? // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+            // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+            await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
+              'savedTabs',
+              'customProjects',
+              'customProjectOrder',
+            ])
+          : undefined
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        const urlRecordId = targetRecord.id as unknown as UrlRecordId
+        const result = await savedTabsUseCases.openSavedUrl({
+          origin: 'click',
+          settings: {
+            removeTabAfterExternalDrop: false,
+            removeTabAfterOpen: settings.removeTabAfterOpen,
+          },
+          urlRecordId,
+        })
+
+        // use-case が `snapshot` を返すのは「TabGroup / CustomProject の
+        // urlIds から実際に削除が走った」ケース。urlRecord 自体が他で
+        // 参照されていて削除されない場合でも、TabGroup から URL ID が
+        // 取り除かれているなら Undo 対象として扱う必要がある。よって
+        // `removedUrlRecordId` ではなく `snapshot` の有無を判定基準にする。
+        if (snapshot && result.snapshot) {
+          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          const updated = await chrome.storage.local.get<{
+            savedTabs?: TabGroup[]
+          }>('savedTabs')
+          await refreshTabGroupsWithUrls(updated.savedTabs ?? [])
+          showOpenedUrlsUndoToast({
+            count: 1,
+            refreshTabGroupsWithUrls,
+            savedTabsUseCases,
+            setCustomProjects,
+            snapshot,
+            t,
+          })
+          console.log(`URL ${url} を開いた後、保存データから削除しました`)
+        }
+      } catch (error) {
+        console.error('タブを開く処理エラー:', error)
+      }
+    },
+    [
+      savedTabsPorts,
+      savedTabsUseCases,
+      settings.removeTabAfterOpen,
+      refreshTabGroupsWithUrls,
+      setCustomProjects,
+      t,
+    ],
+  )
+  const handleOpenAllTabs = useCallback(
+    async (
+      urls: {
+        url: string
+        title: string
+      }[],
+    ) => {
+      try {
+        // Undo 用 snapshot は use-case 呼び出し**前**に取得する。
+        // use-case 実行後は storage が post-delete 状態になっているため、
+        // その snapshot を渡しても Undo が no-op 相当になり復元できない。
+        const preDeleteSnapshot = settings.removeTabAfterOpen
+          ? // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+            // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+            await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
+              'savedTabs',
+              'customProjects',
+              'customProjectOrder',
+            ])
+          : undefined
+
+        // 一括オープンは OpenAllSavedUrlsUseCase に委譲し、
+        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+        // `chrome.tabs.create` / `chrome.windows.create` の直接呼び出しを
+        // presentation 層から撤去する。`active` 制御は composition 層の
+        // `BrowserTabPort.resolveActive` が `settings.openUrlInBackground` を
+        // 反映する。
+        const result = await savedTabsUseCases.openAllSavedUrls({
+          mode: settings.openAllInNewWindow ? 'newWindow' : 'backgroundTabs',
+          removeTabAfterOpen: settings.removeTabAfterOpen,
+          urls: urls.map((u) => u.url),
+        })
+
+        // 開いたあとに保存データから削除する設定のときは、Undo 用 toast を
+        // 出して pre-delete snapshot から復元できるようにする。
+        if (
+          settings.removeTabAfterOpen &&
+          preDeleteSnapshot &&
+          result.snapshot
+        ) {
+          await refreshTabGroupsWithUrls(
+            getSnapshotSavedTabs(preDeleteSnapshot),
+          )
+          showOpenedUrlsUndoToast({
+            count: result.removedUrlRecordIds.length,
+            refreshTabGroupsWithUrls,
+            savedTabsUseCases,
+            setCustomProjects,
+            snapshot: preDeleteSnapshot,
+            t,
+          })
+          console.log(
+            `${urls.length}個のURLを開いた後、保存データから削除しました`,
+          )
+        }
+      } catch (error) {
+        console.error('タブ一括オープンエラー:', error)
+      }
+    },
+    [
+      settings.openAllInNewWindow,
+      settings.removeTabAfterOpen,
+      savedTabsUseCases,
+      refreshTabGroupsWithUrls,
+      setCustomProjects,
+      t,
+    ],
+  )
+
+  // 単一 TabGroup 削除を DeleteTabGroupUseCase 経由に置き換える。
+  // - 削除判断・未参照 URL 削除・対象 TabGroup の storage 書き戻しは
+  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+  //   use-case に委譲し、UI 側は `chrome.storage.local` の
+  //   `savedTabs` 直接 set を持たない。
+  // - Undo snapshot は storage の生データ（`urls` / `urlSubCategories` など
+  //   domain entity 化対象外のリッチフィールドを含む）を保持するため、
+  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+  //   `chrome.storage.local.get` を use-case 呼び出し前に 1 回だけ走らせる。
+  //   復元は `restoreOpenedUrlsSnapshot` 経由で従来通り。
+  // - `handleTabGroupRemoval` / `removeUrlsFromCustomProjectsForGroup` /
+  //   `removeDomainFromParentCategories` などは他 storage key を触る
+  //   副作用なので、issue 範囲外として従来通り UI 側で実行する。
+  const handleDeleteGroup = useCallback(
+    async (id: string) => {
+      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
+      try {
+        // 削除前にカテゴリ設定と親カテゴリ情報を保存
+        const storageResult =
+          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
+            'savedTabs',
+            'customProjects',
+            'customProjectOrder',
+          ])
+        deleteSnapshot = {
+          ...storageResult,
+          parentCategories: categories,
+        }
+        const savedTabs = getSnapshotSavedTabs(storageResult)
+        const groupToDelete = savedTabs.find((group) => group.id === id)
+        if (!groupToDelete) {
+          return
+        }
+        console.log(`グループを削除: ${groupToDelete.domain}`)
+
+        // 専用の削除前処理関数を呼び出し（インポートした関数を使用）
+        await handleTabGroupRemoval(id)
+
+        // 削除判断・未参照 UrlRecord 掃除・savedTabs の書き戻しは
+        // DeleteTabGroupUseCase に委譲する。use-case が見つからない
+        // グループを SavedTabsDomainError で通知するため、UI 側は
+        // 事前に savedTabs から対象グループの存在を保証しておく。
+        await savedTabsUseCases.deleteTabGroup({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          tabGroupId: id as unknown as TabGroupId,
+        })
+
+        // グループに属するすべてのURLをカスタムプロジェクトからも削除
+        await removeUrlsFromCustomProjectsForGroup(groupToDelete)
+
+        // 以降は従来通りの処理
+        const updatedGroups = savedTabs.filter((group) => group.id !== id)
+        await refreshTabGroupsWithUrls(updatedGroups)
+
+        // 並び替えモード中の削除処理：一時的な順序からも削除
+        if (isUncategorizedReorderMode) {
+          setTempUncategorizedOrder((prev) =>
+            prev.filter((group) => group.id !== id),
+          )
+          console.log(
+            `並び替えモード中にドメイン ${groupToDelete.domain} を一時順序からも削除しました`,
+          )
+        }
+
+        // 親カテゴリからはドメインIDのみを削除（ドメイン名は保持）
+        await removeDomainFromParentCategories(id, categories, setCategories)
+        showOpenedUrlsUndoToast({
+          count: countTabGroupUrls(groupToDelete),
+          messageKey: 'savedTabs.undo.deletedTabs',
+          refreshTabGroupsWithUrls,
+          savedTabsUseCases,
+          setCategories,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
+
+        console.log('グループ削除処理が完了しました')
+      } catch {
+        await notifyDeleteFailure({
+          refreshTabGroupsWithUrls,
+          savedTabsUseCases,
+          setCategories,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
+      }
+    },
+    [
+      isUncategorizedReorderMode,
+      categories,
+      refreshTabGroupsWithUrls,
+      savedTabsUseCases,
+      setCustomProjects,
+      setCategories,
+      t,
+    ],
+  )
+
+  const handleDeleteGroups = useCallback(
+    async (ids: string[]) => {
+      if (ids.length === 0) {
+        return
+      }
+      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
+      try {
+        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+        // 削除前のスナップショットは chrome.storage.local の生データを取り、
+        // Undo 時の storage 全体復元（`customProjects` /
+        // `customProjectOrder` を含む）で使う。`savedTabs` 側の
+        // 削除本体は use-case 側に委譲する。
+        const storageResult =
+          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
+            'savedTabs',
+            'customProjects',
+            'customProjectOrder',
+          ])
+        deleteSnapshot = {
+          ...storageResult,
+          parentCategories: categories,
+        }
+        const savedTabs = getSnapshotSavedTabs(storageResult)
+
+        const groupsToDelete = savedTabs.filter((group) =>
+          ids.includes(group.id),
+        )
+        if (groupsToDelete.length === 0) {
+          return
+        }
+
+        console.log(`${groupsToDelete.length}件のグループを一括削除します`)
+
+        // 旧 `features/saved-tabs/lib/tab-operations` のドメイン設定
+        // 保存処理は、他 storage key（domainCategorySettings /
+        // parentCategories.domainNames）を触る副作用のため、issue 範囲外
+        // として従来通り UI 側で実行する。
+        await Promise.all(ids.map((id) => handleTabGroupRemoval(id)))
+
+        // 複数 TabGroup 削除本体は DeleteTabGroupsUseCase 経由に置き換える。
+        // 未参照になった UrlRecord の掃除と savedTabs の書き戻しは
+        // use-case が一括で行う。
+        await savedTabsUseCases.deleteTabGroups({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          tabGroupIds: ids as unknown as Parameters<
+            typeof savedTabsUseCases.deleteTabGroups
+          >[0]['tabGroupIds'],
+        })
+
+        // customProject 側の URL ID 同期削除は他 storage key を触る
+        // ため、issue 範囲外として従来通り UI 側で実行する。
+        await removeUrlsFromCustomProjectsForGroups(groupsToDelete)
+
+        const idSet = new Set(ids)
+        const updatedGroups = savedTabs.filter((group) => !idSet.has(group.id))
+        await refreshTabGroupsWithUrls(updatedGroups)
+
+        if (isUncategorizedReorderMode) {
+          setTempUncategorizedOrder(
+            createFilterGroupsByExcludedIdsUpdater(idSet),
+          )
+        }
+
+        const updatedCategories = categories.map((category) => ({
+          ...category,
+          domains: category.domains.filter((domainId) => !idSet.has(domainId)),
+        }))
+        await saveParentCategories(updatedCategories)
+        setCategories(updatedCategories)
+        showOpenedUrlsUndoToast({
+          count: groupsToDelete.reduce(
+            (total, group) => total + countTabGroupUrls(group),
+            0,
+          ),
+          messageKey: 'savedTabs.undo.deletedTabs',
+          refreshTabGroupsWithUrls,
+          savedTabsUseCases,
+          setCategories,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
+
+        console.log('一括グループ削除処理が完了しました')
+      } catch {
+        await notifyDeleteFailure({
+          refreshTabGroupsWithUrls,
+          savedTabsUseCases,
+          setCategories,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
+      }
+    },
+    [
+      isUncategorizedReorderMode,
+      categories,
+      refreshTabGroupsWithUrls,
+      savedTabsUseCases,
+      setCustomProjects,
+      setCategories,
+      t,
+    ],
+  )
+  const handleDeleteUrl = useCallback(
+    async (groupId: string, url: string) => {
+      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
+      try {
+        deleteSnapshot =
+          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
+            'savedTabs',
+            'customProjects',
+            'customProjectOrder',
+          ])
+        // 単体 URL 削除は DeleteSavedUrlUseCase 経由に置き換える。
+        // TabGroup と未参照 UrlRecord の削除は use-case に委譲し、
+        // customProject 側の URL 同期削除は他 storage key を触るため
+        // issue 範囲外として従来通り UI 側で実行する。
+        await savedTabsUseCases.deleteSavedUrl({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          tabGroupId: groupId as unknown as Parameters<
+            typeof savedTabsUseCases.deleteSavedUrl
+          >[0]['tabGroupId'],
+          url,
+        })
+        showOpenedUrlsUndoToast({
+          count: 1,
+          messageKey: 'savedTabs.undo.deletedTabs',
+          refreshTabGroupsWithUrls,
+          savedTabsUseCases,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
+        console.log(`URL ${url} をグループ ${groupId} から削除しました`)
+      } catch {
+        await notifyDeleteFailure({
+          refreshTabGroupsWithUrls,
+          savedTabsUseCases,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
+      }
+    },
+    [refreshTabGroupsWithUrls, savedTabsUseCases, setCustomProjects, t],
+  )
+  const handleDeleteUrls = useCallback(
+    async (groupId: string, urls: string[]) => {
+      if (urls.length === 0) {
+        return
+      }
+      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
+      try {
+        deleteSnapshot =
+          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+          await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
+            'savedTabs',
+            'customProjects',
+            'customProjectOrder',
+          ])
+        // 複数 URL 削除は DeleteSavedUrlsUseCase 経由に置き換える。
+        await savedTabsUseCases.deleteSavedUrls({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          tabGroupId: groupId as unknown as Parameters<
+            typeof savedTabsUseCases.deleteSavedUrls
+          >[0]['tabGroupId'],
+          urls,
+        })
+        console.log(
+          `${urls.length}件のURLをグループ ${groupId} から削除しました`,
+        )
+        showOpenedUrlsUndoToast({
+          count: urls.length,
+          messageKey: 'savedTabs.undo.deletedTabs',
+          refreshTabGroupsWithUrls,
+          savedTabsUseCases,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
+      } catch {
+        await notifyDeleteFailure({
+          refreshTabGroupsWithUrls,
+          savedTabsUseCases,
+          setCustomProjects,
+          snapshot: deleteSnapshot,
+          t,
+        })
+      }
+    },
+    [refreshTabGroupsWithUrls, savedTabsUseCases, setCustomProjects, t],
+  )
+  const handleUpdateUrls = useCallback(
+    (groupId: string, _updatedUrls: TabGroup['urls']) => {
+      console.log(`グループ ${groupId} のURL更新はストレージ同期に委譲しました`)
+      return Promise.resolve()
+    },
+    [],
+  )
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
+
+  // Const handleDragEnd = (event: DragEndEvent) => {
+  //   Const { active, over } = event
+
+  //   If (over && active.id !== over.id) {
+  //     SetTabGroups((groups: TabGroup[]) => {
+  //       Const oldIndex = groups.findIndex(group => group.id === active.id)
+  //       Const newIndex = groups.findIndex(group => group.id === over.id)
+
+  //       Const newGroups = arrayMove(groups, oldIndex, newIndex)
+
+  //       // ストレージに保存
+  //       Chrome.storage.local.set({ savedTabs: newGroups })
+
+  //       Return newGroups
+  //     })
+  //   }
+  // }
+
+  // 未分類ドメインの並び替えをキャンセルする
+  const handleCancelUncategorizedReorder = useCallback(() => {
+    if (!isUncategorizedReorderMode) {
+      return
+    }
+
+    // 元の順序に戻す
+    setTempUncategorizedOrder([])
+
+    // 並び替えモードを終了
+    setIsUncategorizedReorderMode(false)
+    toast.info(t('savedTabs.domainOrder.canceled'))
+  }, [isUncategorizedReorderMode, t])
+
+  // タブグループをカテゴリごとに整理する関数を強化
+  const organizeTabGroups = useCallback(
+    (): {
+      categorized: Record<string, TabGroup[]>
+      uncategorized: TabGroup[]
+    } =>
+      organizeTabGroupsWithCategories({
+        categoryLookup,
+        enableCategories: settings.enableCategories,
+        searchQuery,
+        tabGroupsWithUrls,
+      }),
+    [tabGroupsWithUrls, categoryLookup, settings.enableCategories, searchQuery],
+  )
+
+  // TabGroupsWithUrls と categories が変わったとき、カテゴリ割り当ての不一致を
+  // ストレージに反映するための副作用（organizeTabGroups から分離した副作用）。
+  // 同期本体は SyncCategoryAssignmentsUseCase 経由で実行し、
+  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+  // `chrome.storage.local.get/set` の直接呼び出しを削減する。
+  useEffect(() => {
+    if (!settings.enableCategories) {
+      return
+    }
+    if (tabGroupsWithUrls.length === 0 || categories.length === 0) {
+      return
+    }
+    const syncCategoryAssignments = async () => {
+      try {
+        await savedTabsUseCases.syncCategoryAssignments({})
+        console.log('[カテゴリ同期] use-case 経由で同期しました')
+      } catch (error) {
+        console.error('[カテゴリ同期] ストレージ同期エラー:', error)
+      }
+    }
+    // eslint-disable-next-line typescript/no-floating-promises
+    syncCategoryAssignments()
+  }, [
+    tabGroupsWithUrls,
+    categories,
+    categoryLookup,
+    settings.enableCategories,
+    savedTabsUseCases,
+  ])
+
+  // 検索・フィルタ適用後のグループを整理（メモ化）
+  const { categorized, uncategorized } = useMemo(
+    () => organizeTabGroups(),
+    [organizeTabGroups],
+  )
+  // コンテンツがあるグループリスト（カテゴリと未分類を結合、URLがあるもののみ）
+  const hasContentTabGroups = useMemo(
+    () =>
+      [...Object.values(categorized).flat(), ...uncategorized].filter(
+        (group) => getDisplayUrlCount(group) > 0,
+      ),
+    [categorized, uncategorized],
+  )
+
+  // 未分類ドメインのドラッグエンド処理（並び替えモード対応）
+  const handleUncategorizedDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      if (over && active.id !== over.id) {
+        const currentOrder = isUncategorizedReorderMode
+          ? tempUncategorizedOrder
+          : uncategorized
+        const oldIndex = currentOrder.findIndex(
+          (group) => group.id === active.id,
+        )
+        const newIndex = currentOrder.findIndex((group) => group.id === over.id)
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const updatedOrder = arrayMove(currentOrder, oldIndex, newIndex)
+          if (isUncategorizedReorderMode) {
+            // 既に並び替えモード中：一時的な順序を更新
+            setTempUncategorizedOrder(updatedOrder)
+          } else {
+            // 初回の並び替え時：並び替えモードを開始
+            setIsUncategorizedReorderMode(true)
+            setTempUncategorizedOrder(updatedOrder)
+          }
+        }
+      }
+    },
+    [isUncategorizedReorderMode, tempUncategorizedOrder, uncategorized],
+  )
+
+  // 未分類ドメインの並び替えを確定する
+  const handleConfirmUncategorizedReorder = useCallback(async () => {
+    if (!isUncategorizedReorderMode) {
+      return
+    }
+    try {
+      const categorizedDomains = Object.values(categorized).flat()
+
+      // 新しい順序：カテゴリ分類されたドメイン + 並び替えた未分類ドメイン
+      const newTabGroups = [...categorizedDomains, ...tempUncategorizedOrder]
+
+      // ストレージに保存
+      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+      await chrome.storage.local.set({
+        savedTabs: newTabGroups,
+      })
+      await refreshTabGroupsWithUrls(newTabGroups)
+
+      // 並び替えモードを終了
+      setIsUncategorizedReorderMode(false)
+      setTempUncategorizedOrder([])
+      toast.success(t('savedTabs.domainOrder.updated'))
+    } catch (error) {
+      console.error('未分類ドメイン順序の更新に失敗しました:', error)
+      toast.error(t('savedTabs.domainOrder.updateError'))
+    }
+  }, [
+    isUncategorizedReorderMode,
+    categorized,
+    tempUncategorizedOrder,
+    refreshTabGroupsWithUrls,
+    t,
+  ])
+  console.log('表示判定デバッグ:')
+  console.log('- categorized:', categorized)
+  console.log('- uncategorized:', uncategorized)
+  console.log('- hasContentTabGroups:', hasContentTabGroups)
+  console.log('- hasContentTabGroups.length:', hasContentTabGroups.length)
+
+  const customProjectsForHeader = customProjects
+  const [filteredCustomProjects, setFilteredCustomProjects] =
+    useState(customProjects)
+
+  const handleDeleteUrlFromCustomMode = useCallback(
+    async (projectId: string, url: string) => {
+      await handleDeleteUrlFromProject(projectId, url)
+    },
+    [handleDeleteUrlFromProject],
+  )
+  const handleDeleteCategoryWithRefresh = useCallback(
+    async (groupId: string, categoryName: string) =>
+      handleDeleteCategory(groupId, categoryName, refreshTabGroupsWithUrls),
+    [handleDeleteCategory, refreshTabGroupsWithUrls],
+  )
+
+  useEffect(() => {
+    let isCancelled = false
+
+    const syncFilteredCustomProjects = async () => {
+      const nextProjects = await filterCustomProjectsByQuery({
+        customProjects,
+        searchQuery,
+      })
+
+      if (!isCancelled) {
+        setFilteredCustomProjects(nextProjects)
+      }
+    }
+
+    void syncFilteredCustomProjects()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [customProjects, searchQuery])
+
+  // ストレージ変更検出時のリスナーを改善（ドメインモードとカスタムモード間の同期）
+  useEffect(() => {
+    const handleStorageChanged = async (
+      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+      changes: Record<string, chrome.storage.StorageChange>,
+    ) => {
+      console.log('ストレージ変更を検出:', changes)
+      await syncStorageChanges({
+        changes,
+        refreshTabGroupsWithUrls,
+        setCategories,
+        setCustomProjects,
+        setSettings,
+        syncDomainDataToCustomProjects,
+        viewModeRef,
+      })
+    }
+    // eslint-disable-next-line eslint/no-restricted-properties, typescript/no-misused-promises, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+    chrome.storage.onChanged.addListener(handleStorageChanged)
+    return () => {
+      // eslint-disable-next-line eslint/no-restricted-properties, typescript/no-misused-promises, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
+      chrome.storage.onChanged.removeListener(handleStorageChanged)
+    }
+  }, [
+    refreshTabGroupsWithUrls,
+    syncDomainDataToCustomProjects,
+    setCategories,
+    setCustomProjects,
+    viewModeRef,
+  ]) // 必要な依存関係を追加
+
+  useEffect(() => {
+    if (
+      shouldWaitForInitialViewMode({
+        hasResolvedInitialViewMode: hasResolvedInitialViewModeRef.current,
+        initialViewMode,
+        viewMode,
+      })
+    ) {
+      return
+    }
+
+    if (initialViewMode && !hasResolvedInitialViewModeRef.current) {
+      hasResolvedInitialViewModeRef.current = true
+    }
+
+    syncSavedTabsViewModeLocation({ onViewModeNavigate, viewMode })
+  }, [initialViewMode, onViewModeNavigate, viewMode])
+
+  // カスタムプロジェクト間でURLを移動するハンドラ
+  const handleMoveUrlBetweenProjects = useCallback(
+    async (sourceProjectId: string, targetProjectId: string, url: string) => {
+      try {
+        console.log(
+          `URL移動: ${sourceProjectId} → ${targetProjectId}, URL: ${url}`,
+        )
+        await moveCustomProjectUrlAndSyncState({
+          getCustomProjects,
+          moveUrlBetweenCustomProjects,
+          setCustomProjects,
+          sourceProjectId,
+          targetProjectId,
+          url,
+        })
+        toast.success(t('savedTabs.tab.movedBetweenProjects'))
+        return null
+      } catch (error) {
+        console.error('URL移動エラー:', error)
+        toast.error(t('savedTabs.tab.moveBetweenProjectsError'))
+        return null
+      }
+    },
+    [setCustomProjects, t],
+  )
+
+  // カテゴリ間でURLを移動するハンドラ
+  const handleMoveUrlsBetweenCategories = useCallback(async () => {}, [])
+  const visibleUncategorizedGroups = useMemo(
+    () => uncategorized.filter((group) => getDisplayUrlCount(group) > 0),
+    [uncategorized],
+  )
+  const hasVisibleCategoryGroups =
+    settings.enableCategories && Object.keys(categorized).length > 0
+  const shouldShowUncategorizedSectionHeader =
+    settings.enableCategories &&
+    computeShouldShowUncategorizedHeader({
+      isUncategorizedReorderMode,
+      searchQuery,
+      uncategorizedCount: uncategorized.length,
+      visibleUncategorizedCount: visibleUncategorizedGroups.length,
+    })
+  const shouldShowUncategorizedList = visibleUncategorizedGroups.length > 0
+  const headerFilteredTabGroups = useMemo(() => {
+    if (viewMode === 'domain') {
+      return hasContentTabGroups
+    }
+    return filteredCustomProjects.map((project) =>
+      buildDisplayTabGroup(project),
+    )
+  }, [viewMode, hasContentTabGroups, filteredCustomProjects])
+  const customProjectsForDisplay = filteredCustomProjects
+  const shouldShowCategoryReorderFooter =
+    isCategoryReorderMode && viewMode === 'domain'
+  const categoryOrderForDisplay = isCategoryReorderMode
+    ? tempCategoryOrder
+    : categoryOrder
+  // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+  const uncategorizedForDisplay = (
+    isUncategorizedReorderMode ? tempUncategorizedOrder : uncategorized
+  ).filter((group) => getDisplayUrlCount(group) > 0)
+  const mainContent =
+    viewMode === 'domain' ? (
+      <DomainModeContainer
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
+        state={{
+          hasVisibleCategoryGroups,
+          isCategoryReorderMode,
+          isLoading,
+          isUncategorizedReorderMode,
+          shouldShowUncategorizedList,
+          shouldShowUncategorizedSectionHeader,
+        }}
+        settings={settings}
+        categories={categories}
+        categorized={categorized}
+        categoryOrderForDisplay={categoryOrderForDisplay}
+        tabGroups={tabGroups}
+        searchQuery={searchQuery}
+        sensors={sensors}
+        handleCategoryDragEnd={handleCategoryDragEnd}
+        handleOpenAllTabs={handleOpenAllTabs}
+        handleDeleteGroup={handleDeleteGroup}
+        handleDeleteGroups={handleDeleteGroups}
+        handleDeleteUrl={handleDeleteUrl}
+        handleDeleteUrls={handleDeleteUrls}
+        handleOpenTab={handleOpenTab}
+        handleUpdateUrls={handleUpdateUrls}
+        handleUpdateDomainsOrder={handleUpdateDomainsOrder}
+        handleMoveDomainToCategory={handleMoveDomainToCategory}
+        handleDeleteCategory={handleDeleteCategoryWithRefresh}
+        handleCancelUncategorizedReorder={handleCancelUncategorizedReorder}
+        handleConfirmUncategorizedReorder={handleConfirmUncategorizedReorder}
+        uncategorizedForDisplay={uncategorizedForDisplay}
+        handleUncategorizedDragEnd={handleUncategorizedDragEnd}
+        hasContentTabGroupsCount={hasContentTabGroups.length}
+      />
+    ) : (
+      <CustomModeContainer
+        isLoading={isLoading}
+        projects={customProjectsForDisplay}
+        settings={settings}
+        handleOpenUrl={handleOpenTab}
+        handleDeleteUrl={handleDeleteUrlFromCustomMode}
+        handleDeleteUrlsFromProject={handleDeleteUrlsFromProject}
+        handleAddUrl={handleAddUrlToProject}
+        handleCreateProject={handleCreateProject}
+        handleDeleteProject={handleDeleteProject}
+        handleRenameProject={handleRenameProject}
+        handleUpdateProjectKeywords={handleUpdateProjectKeywords}
+        handleAddCategory={handleAddCategory}
+        handleDeleteCategory={handleDeleteProjectCategory}
+        handleSetUrlCategory={handleSetUrlCategory}
+        handleUpdateCategoryOrder={handleUpdateCategoryOrder}
+        handleReorderUrls={handleReorderUrls}
+        handleOpenAllUrls={handleOpenAllTabs}
+        handleMoveUrlBetweenProjects={handleMoveUrlBetweenProjects}
+        handleMoveUrlsBetweenCategories={handleMoveUrlsBetweenCategories}
+        handleReorderProjects={handleReorderProjects}
+        handleRenameCategory={handleRenameCategory}
+      />
+    )
+  return (
+    <>
+      <Toaster />
+      <div
+        className={
+          isAiSidebarOpen
+            ? 'min-h-screen w-full py-2'
+            : 'container mx-auto min-h-screen py-2'
+        }
+      >
+        <Header
+          tabGroups={tabGroups}
+          filteredTabGroups={headerFilteredTabGroups}
+          customProjects={customProjectsForHeader}
+          filteredCustomProjects={filteredCustomProjects}
+          // eslint-disable-next-line typescript/no-misused-promises
+          onCreateProject={handleCreateProject}
+          currentMode={viewMode}
+          // eslint-disable-next-line typescript/no-misused-promises
+          onModeChange={handleViewModeChange}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+        {mainContent}
+        {shouldShowCategoryReorderFooter && (
+          <CategoryReorderFooter
+            // eslint-disable-next-line typescript/no-misused-promises
+            onConfirmCategoryReorder={handleConfirmCategoryReorder}
+            onCancelCategoryReorder={handleCancelCategoryReorder}
+          />
+        )}
+      </div>
+    </>
+  )
+}
+
+const SavedTabsApp = (props: SavedTabsAppProps) => useSavedTabsAppView(props)
+
+export { SavedTabsApp }
