@@ -364,4 +364,109 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       })
     }
   })
+
+  describe('issue #469: app-level composition root が追加されている', () => {
+    const appCompositionFiles = [
+      'src/app/composition/createSavedTabsRepositories.ts',
+      'src/app/composition/createSavedTabsPorts.ts',
+      'src/app/composition/createSavedTabsUseCases.ts',
+    ]
+
+    for (const file of appCompositionFiles) {
+      it(`${file} が存在する`, () => {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source.length).toBeGreaterThan(0)
+      })
+    }
+
+    it('createSavedTabsRepositories は 4 つの Chrome*Repository を組み立てる', () => {
+      const source = readFileSync(
+        resolve(repoRoot, 'src/app/composition/createSavedTabsRepositories.ts'),
+        'utf8',
+      )
+      expect(source).toContain('createChromeTabGroupRepository')
+      expect(source).toContain('createChromeUrlRecordRepository')
+      expect(source).toContain('createChromeParentCategoryRepository')
+      expect(source).toContain('createChromeCustomProjectRepository')
+    })
+
+    it('createSavedTabsPorts は ChromeBrowserTabAdapter / SonnerNotificationAdapter を組み立てる', () => {
+      const source = readFileSync(
+        resolve(repoRoot, 'src/app/composition/createSavedTabsPorts.ts'),
+        'utf8',
+      )
+      expect(source).toContain('createChromeBrowserTabAdapter')
+      expect(source).toContain('createSonnerNotificationAdapter')
+    })
+
+    it('createSavedTabsUseCases は 5 つの use-case を返す', () => {
+      const source = readFileSync(
+        resolve(repoRoot, 'src/app/composition/createSavedTabsUseCases.ts'),
+        'utf8',
+      )
+      expect(source).toContain('createOpenSavedUrlUseCase')
+      expect(source).toContain('createDeleteTabGroupUseCase')
+      expect(source).toContain('createRestoreOpenedUrlsSnapshotUseCase')
+      expect(source).toContain('createSyncCategoryAssignmentsUseCase')
+      expect(source).toContain('createRemoveUnreferencedUrlRecordsUseCase')
+    })
+
+    it('app/composition 配下は React / @/components / @/features/*/components を import しない', () => {
+      for (const file of appCompositionFiles) {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source, `${file} should not import react`).not.toMatch(
+          /from\s+['"]react['"]/,
+        )
+        expect(source, `${file} should not import @/components`).not.toMatch(
+          /from\s+['"]@\/components/,
+        )
+        expect(
+          source,
+          `${file} should not import @/features/*/components`,
+        ).not.toMatch(/from\s+['"]@\/features\/[^/]+\/components/)
+      }
+    })
+  })
+
+  describe('issue #469: application 層に SavedTabsUseCases 型が追加されている', () => {
+    it('application/SavedTabsUseCases.ts が存在する', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/SavedTabsUseCases.ts',
+        ),
+        'utf8',
+      )
+      expect(source.length).toBeGreaterThan(0)
+    })
+
+    it('application/SavedTabsUseCases.ts は 5 つの use-case プロパティを export する', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/SavedTabsUseCases.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toMatch(/openSavedUrl/)
+      expect(source).toMatch(/deleteTabGroup/)
+      expect(source).toMatch(/restoreOpenedUrlsSnapshot/)
+      expect(source).toMatch(/syncCategoryAssignments/)
+      expect(source).toMatch(/removeUnreferencedUrlRecords/)
+    })
+
+    it('application/SavedTabsUseCases.ts は React / chrome.* / 永続化 API を import しない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/SavedTabsUseCases.ts',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(/from\s+['"]react['"]/)
+      expect(source).not.toMatch(/from\s+['"]chrome['"]/)
+      expect(source).not.toMatch(/from\s+['"]sonner['"]/)
+      expect(source).not.toMatch(/chrome\.storage\./)
+    })
+  })
 })

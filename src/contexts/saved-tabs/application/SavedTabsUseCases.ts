@@ -1,0 +1,32 @@
+import type { DeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
+import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
+import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
+import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
+
+/**
+ * `saved-tabs` の優先 use-case を 1 つに束ねたバンドル interface。
+ *
+ * presentation / composition 層はこの interface 越しに use-case を受け取り、
+ * UI からは個別関数を呼び出す。`domain` 層・`application` 層には
+ * React / chrome.* / storage への直接依存を持ち込まない方針のため、
+ * この interface も pure な関数シグネチャだけを公開する。
+ *
+ * バンドル化することで:
+ * - composition root からの取得窓口を 1 つに絞り、
+ *   個別 use-case を presentation 各所から個別 import する散らかりを防ぐ。
+ * - presentation hook の dependency array に use-case オブジェクトを 1 個
+ *   渡せば済む形にして、テスト時の差し替えを簡単にする。
+ * - 新しい use-case を追加するときに presentation 側の import 修正を
+ *   最小化（必要なら interface に追加するだけ）する。
+ *
+ * 実装は `src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases.ts`
+ * および `src/app/composition/createSavedTabsUseCases.ts` が提供する。
+ */
+export interface SavedTabsUseCases {
+  readonly openSavedUrl: OpenSavedUrlUseCase
+  readonly deleteTabGroup: DeleteTabGroupUseCase
+  readonly restoreOpenedUrlsSnapshot: RestoreOpenedUrlsSnapshotUseCase
+  readonly syncCategoryAssignments: SyncCategoryAssignmentsUseCase
+  readonly removeUnreferencedUrlRecords: RemoveUnreferencedUrlRecordsUseCase
+}
