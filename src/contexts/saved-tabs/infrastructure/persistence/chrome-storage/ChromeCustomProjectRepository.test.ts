@@ -245,10 +245,9 @@ describe('ChromeCustomProjectRepository', () => {
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
         -1,
       )?.[0] as Record<string, unknown>
-      const savedRaw = (lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[])[0] as Record<
-        string,
-        unknown
-      >
+      const savedRaw = (
+        lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[]
+      )[0] as Record<string, unknown>
       expect(savedRaw).toMatchObject({
         categories: ['research'],
         categoryOrder: ['research', 'news'],
@@ -263,9 +262,7 @@ describe('ChromeCustomProjectRepository', () => {
         updatedAt: 2,
         urlIds: ['url-keep'],
         urlMetadata: { 'url-keep': { category: 'research', notes: 'kept' } },
-        urls: [
-          { title: 'Legacy entry', url: 'https://example.com/legacy' },
-        ],
+        urls: [{ title: 'Legacy entry', url: 'https://example.com/legacy' }],
       })
     })
 
@@ -301,10 +298,9 @@ describe('ChromeCustomProjectRepository', () => {
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
         -1,
       )?.[0] as Record<string, unknown>
-      const savedRaw = (lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[])[0] as Record<
-        string,
-        unknown
-      >
+      const savedRaw = (
+        lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[]
+      )[0] as Record<string, unknown>
       // 不正要素混入下でも、有効要素の projectKeywords が merge で持ち越される
       expect(savedRaw).toMatchObject({
         id: 'project-1',
