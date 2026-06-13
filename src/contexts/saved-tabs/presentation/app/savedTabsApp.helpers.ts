@@ -1,10 +1,9 @@
 import { toast } from 'sonner'
 
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { ParentCategory as DomainParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import { getPageHref } from '@/features/navigation/lib/pageNavigation'
 import {
@@ -19,12 +18,13 @@ import type {
   ViewMode,
 } from '@/types/storage'
 
-interface OpenedUrlsStorageSnapshot {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-}
+/**
+ * `BuildSavedTabsSnapshotUseCase` 由来の `OpenedUrlsRestoreSnapshot` を
+ * presentation 層で扱うための alias。旧 `OpenedUrlsStorageSnapshot` と同じ
+ * 用途で、復元経路（Undo）とスナップショット捕捉（use-case）の
+ * インターフェースが一致するようになった（issue #494）。
+ */
+type OpenedUrlsStorageSnapshot = OpenedUrlsRestoreSnapshot
 interface CategoryLookup {
   byId: Map<string, ParentCategory>
   byGroupId: Map<string, ParentCategory>
@@ -35,11 +35,15 @@ type RefreshTabGroupsWithUrls = (
   // eslint-disable-next-line typescript/no-invalid-void-type
 ) => Promise<TabGroup[]> | TabGroup[] | Promise<void> | void
 
-const getSnapshotArray = <T>(value: T[] | undefined): T[] | undefined =>
-  Array.isArray(value) ? value : undefined
+const getSnapshotArray = <T>(
+  value: readonly T[] | undefined,
+): T[] | undefined =>
+  // eslint-disable-next-line typescript/no-unsafe-return
+  Array.isArray(value) ? value.slice() : undefined
 const getSnapshotSavedTabs = (
   snapshot: OpenedUrlsStorageSnapshot,
-): TabGroup[] => getSnapshotArray(snapshot.savedTabs) ?? []
+): TabGroup[] =>
+  getSnapshotArray(snapshot.savedTabs)?.map(toStorageTabGroup) ?? []
 const buildUrlIdsToRemove = (
   urlsToRemove: string[],
   urlRecords: {
@@ -59,132 +63,92 @@ const buildUrlIdsToRemove = (
 }
 
 /**
- * 旧 storage 形式の `TabGroup` を domain entity へ詰め替える。
- *
- * `urls` / `urlSubCategories` / `subCategories` / `categoryKeywords` /
- * `subCategoryOrder` などの chrome.storage 上のリッチ補助フィールドは
- * domain entity に載らないため破棄する。Repository 実装側の mapper が
- * 既存 raw と `urlIds` の整合を取りつつリッチフィールドを持ち越すため、
- * 復元時の見た目データは失われない。
- *
- * factory が `SavedTabsDomainError` を投げる要素（空 ID や重複 urlId）は
- * スキップして Undo 対象から除外する。
+ * domain entity の `CustomProject` を presentation 層の
+ * `CustomProject` 形へ持ち替える。エンティティは storage 形のサブセット
+ * （`projectKeywords` / `urlMetadata` / `categoryOrder` 等を持たない）なので、
+ * Undo 後の state 反映は最小限のフィールドだけで行い、リッチ補助フィールド
+ * は次回 storage 同期時に再取得する前提とする（issue #494）。
  */
-const toDomainTabGroups = (
-  groups: readonly TabGroup[] | undefined,
-): OpenedUrlsRestoreSnapshot['savedTabs'] => {
-  if (!groups || groups.length === 0) {
-    return undefined
-  }
-  const result = []
-  for (const group of groups) {
-    try {
-      result.push(
-        createTabGroup({
-          domain: group.domain,
-          id: group.id,
-          parentCategoryId: group.parentCategoryId,
-          savedAt: group.savedAt,
-          urlIds: group.urlIds ?? [],
-        }),
-      )
-    } catch (error) {
-      if (error instanceof SavedTabsDomainError) {
-        continue
-      }
-      throw error
-    }
-  }
-  return result
-}
-
-const toDomainCustomProjects = (
-  projects: readonly CustomProject[] | undefined,
-): OpenedUrlsRestoreSnapshot['customProjects'] => {
-  if (!projects || projects.length === 0) {
-    return undefined
-  }
-  const result = []
-  for (const project of projects) {
-    try {
-      result.push(
-        createCustomProject({
-          categories: project.categories ?? [],
-          createdAt: project.createdAt,
-          id: project.id,
-          name: project.name,
-          updatedAt: project.updatedAt,
-          urlIds: project.urlIds ?? [],
-        }),
-      )
-    } catch (error) {
-      if (error instanceof SavedTabsDomainError) {
-        continue
-      }
-      throw error
-    }
-  }
-  return result
-}
-
-const toDomainParentCategories = (
-  categories: readonly ParentCategory[] | undefined,
-): OpenedUrlsRestoreSnapshot['parentCategories'] => {
-  if (!categories || categories.length === 0) {
-    return undefined
-  }
-  const result = []
-  for (const category of categories) {
-    try {
-      result.push(
-        createParentCategory({
-          domainNames: category.domainNames ?? [],
-          domains: category.domains ?? [],
-          id: category.id,
-          name: category.name,
-        }),
-      )
-    } catch (error) {
-      if (error instanceof SavedTabsDomainError) {
-        continue
-      }
-      throw error
-    }
-  }
-  return result
-}
+const toStorageCustomProject = (
+  project: DomainCustomProject,
+): CustomProject => ({
+  categories: [...project.categories],
+  createdAt: project.createdAt,
+  id: project.id,
+  name: project.name,
+  updatedAt: project.updatedAt,
+  urlIds: [...project.urlIds],
+})
 
 /**
- * 旧 storage スナップショットを `RestoreOpenedUrlsSnapshotUseCase` の
- * command へ変換する。`customProjectOrder` は repository 経由で復元する
- * ため、command にも `customProjectOrder` を含める（issue #487）。
+ * presentation 層（`useCategoryManagement`）が保持する storage 形
+ * `ParentCategory[]` を、`BuildSavedTabsSnapshotUseCase` command の
+ * `readonly DomainParentCategory[]` へ持ち替える。両者の差分は
+ * branded 型（`ParentCategoryId` / `CategoryName` / `TabGroupId` /
+ * `DomainName`）の有無のみで、構造は一致する（issue #494）。
  */
-const toOpenedUrlsRestoreCommand = (
-  snapshot: OpenedUrlsStorageSnapshot,
-): OpenedUrlsRestoreSnapshot => {
-  const command: {
-    savedTabs?: OpenedUrlsRestoreSnapshot['savedTabs']
-    customProjects?: OpenedUrlsRestoreSnapshot['customProjects']
-    customProjectOrder?: OpenedUrlsRestoreSnapshot['customProjectOrder']
-    parentCategories?: OpenedUrlsRestoreSnapshot['parentCategories']
-  } = {}
-  const savedTabs = toDomainTabGroups(snapshot.savedTabs)
-  if (savedTabs) {
-    command.savedTabs = savedTabs
-  }
-  const customProjects = toDomainCustomProjects(snapshot.customProjects)
-  if (customProjects) {
-    command.customProjects = customProjects
-  }
-  if (snapshot.customProjectOrder) {
-    command.customProjectOrder = [...snapshot.customProjectOrder]
-  }
-  const parentCategories = toDomainParentCategories(snapshot.parentCategories)
-  if (parentCategories) {
-    command.parentCategories = parentCategories
-  }
-  return command
-}
+const toDomainParentCategories = (
+  categories: readonly ParentCategory[] | undefined,
+): readonly DomainParentCategory[] | undefined =>
+  categories
+    ? // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      (categories.map((category) => ({
+        domains: [...category.domains],
+        domainNames: [...category.domainNames],
+        id: category.id,
+        name: category.name,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      })) as unknown as readonly DomainParentCategory[])
+    : undefined
+
+/**
+ * presentation 層が保持する storage 形 `TabGroup[]` を、
+ * `ReorderTabGroupsUseCase` command の `readonly DomainTabGroup[]` へ
+ * 持ち替える。エンティティは storage 形のサブセットなので、ID / domain /
+ * urlIds などの主要フィールドだけ詰め替えれば use-case 入力として十分
+ * （issue #494）。
+ */
+const toDomainTabGroupsForReorder = (
+  groups: readonly TabGroup[],
+): readonly DomainTabGroup[] =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  groups.map((group) => ({
+    id: group.id,
+    domain: group.domain,
+    parentCategoryId: group.parentCategoryId,
+    savedAt: group.savedAt,
+    urlIds: [...(group.urlIds ?? [])],
+  })) as unknown as readonly DomainTabGroup[]
+
+/**
+ * domain entity の `ParentCategory` を presentation 層の
+ * `ParentCategory` 形へ持ち替える。エンティティと storage 形は構造が
+ * ほぼ一致するため、`id` / `name` / `domains` / `domainNames` をコピー
+ * するだけで十分（issue #494）。
+ */
+const toStorageParentCategory = (
+  category: DomainParentCategory,
+): ParentCategory => ({
+  domains: [...category.domains],
+  domainNames: [...category.domainNames],
+  id: category.id,
+  name: category.name,
+})
+
+/**
+ * domain entity の `TabGroup` を presentation 層の `TabGroup` 形へ
+ * 持ち替える。エンティティは storage 形のサブセットなので、必要最小限の
+ * フィールドのみコピーする。`refreshTabGroupsWithUrls` 側で `urls` を
+ * urlRecords から再解決するため、`urls` を持たないエンティティでも
+ * 表示に必要な情報は揃う（issue #494）。
+ */
+const toStorageTabGroup = (group: DomainTabGroup): TabGroup => ({
+  id: group.id,
+  domain: group.domain,
+  urlIds: [...group.urlIds],
+  parentCategoryId: group.parentCategoryId,
+  savedAt: group.savedAt,
+})
 
 const restoreOpenedUrlsSnapshot = async ({
   refreshTabGroupsWithUrls,
@@ -200,24 +164,24 @@ const restoreOpenedUrlsSnapshot = async ({
   snapshot: OpenedUrlsStorageSnapshot
 }) => {
   // 復元本体は RestoreOpenedUrlsSnapshotUseCase に委譲する。
-  // presentation 層は snapshot を domain command へ詰め替えるだけに
-  // 閉じ、chrome.storage.local.set の直接呼び出しは行わない
-  // （issue #487 で `customProjectOrder` も use-case / repository 経由に
-  // 移管）。
-  const command = toOpenedUrlsRestoreCommand(snapshot)
+  // presentation 層は snapshot を use-case 入力としてそのまま渡し、
+  // chrome.storage.local.set の直接呼び出しは行わない
+  // （issue #487 / #494）。
   await savedTabsUseCases.restoreOpenedUrlsSnapshot({
-    snapshot: command,
+    snapshot,
   })
 
-  // 画面側 state は storage 形状を期待するため、use-case DTO ではなく
-  // 入力 snapshot をそのまま state へ反映する。Repository 側の mapper が
-  // `urls` / `urlSubCategories` などのリッチ補助フィールドを保存時に
-  // 持ち越すため、見た目の欠落は起こらない。
+  // 画面側 state は storage 形状を期待するため、use-case 由来の
+  // domain entity 形 snapshot を presentation 形へ持ち替えて反映する。
+  // リッチ補助フィールド（`projectKeywords` / `urlMetadata` /
+  // `categoryOrder` / `urls`）は domain entity には載らないため、
+  // 次回 storage 同期時または `refreshTabGroupsWithUrls` の
+  // `loadTabGroupsWithUrls` で再取得される前提とする。
   if (snapshot.customProjects) {
-    setCustomProjects([...snapshot.customProjects])
+    setCustomProjects(snapshot.customProjects.map(toStorageCustomProject))
   }
   if (snapshot.parentCategories && setCategories) {
-    setCategories([...snapshot.parentCategories])
+    setCategories(snapshot.parentCategories.map(toStorageParentCategory))
   }
   const savedTabs = getSnapshotSavedTabs(snapshot)
   await refreshTabGroupsWithUrls(savedTabs)
@@ -730,4 +694,9 @@ export {
   sortCategorizedGroups,
   syncGroupCategoryAssignment,
   syncSavedTabsViewModeLocation,
+  toDomainParentCategories,
+  toDomainTabGroupsForReorder,
+  toStorageCustomProject,
+  toStorageParentCategory,
+  toStorageTabGroup,
 }

@@ -1,4 +1,5 @@
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
+import { createBuildSavedTabsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/BuildSavedTabsSnapshotUseCase'
 import { createDeleteSavedUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteSavedUrlsUseCase'
 import { createDeleteSavedUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteSavedUrlUseCase'
 import { createDeleteTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteTabGroupsUseCase'
@@ -6,6 +7,7 @@ import { createDeleteTabGroupUseCase } from '@/contexts/saved-tabs/application/u
 import { createOpenAllSavedUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import { createReorderTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import { createSyncCategoryAssignmentsUseCase } from '@/contexts/saved-tabs/application/use-cases/SyncCategoryAssignmentsUseCase'
 
@@ -53,6 +55,11 @@ export const createSavedTabsUseCases = (
   )
 
   return {
+    buildSavedTabsSnapshot: createBuildSavedTabsSnapshotUseCase({
+      customProjectRepository: repositories.customProjectRepository,
+      parentCategoryRepository: repositories.parentCategoryRepository,
+      tabGroupRepository: repositories.tabGroupRepository,
+    }),
     deleteSavedUrl: createDeleteSavedUrlUseCase({
       customProjectRepository: repositories.customProjectRepository,
       tabGroupRepository: repositories.tabGroupRepository,
@@ -90,6 +97,9 @@ export const createSavedTabsUseCases = (
       customProjectRepository: repositories.customProjectRepository,
       tabGroupRepository: repositories.tabGroupRepository,
       urlRecordRepository: repositories.urlRecordRepository,
+    }),
+    reorderTabGroups: createReorderTabGroupsUseCase({
+      tabGroupRepository: repositories.tabGroupRepository,
     }),
     restoreOpenedUrlsSnapshot: createRestoreOpenedUrlsSnapshotUseCase({
       customProjectRepository: repositories.customProjectRepository,
