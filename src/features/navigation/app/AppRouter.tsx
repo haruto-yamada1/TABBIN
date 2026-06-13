@@ -49,7 +49,7 @@ const PeriodicExecutionRoutePage = lazy(() =>
 )
 
 const SavedTabsRouteComponent = lazy(() =>
-  import('@/features/saved-tabs/routes/SavedTabsRoute').then(
+  import('@/contexts/saved-tabs/presentation/routes/SavedTabsRoute').then(
     ({ SavedTabsRoute }) => ({
       default: SavedTabsRoute,
     }),
