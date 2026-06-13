@@ -251,6 +251,96 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
   })
 
+  describe('issue #459: presentation controller / view-model / page ファイルが追加されている', () => {
+    const expectedFiles = [
+      'src/contexts/saved-tabs/presentation/controllers/useSavedTabsController.ts',
+      'src/contexts/saved-tabs/presentation/view-models/SavedTabsViewModel.ts',
+      'src/contexts/saved-tabs/presentation/view-models/TabGroupViewModel.ts',
+      'src/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel.ts',
+      'src/contexts/saved-tabs/presentation/pages/SavedTabsPage.tsx',
+      'src/contexts/saved-tabs/presentation/routes/SavedTabsRoute.tsx',
+    ]
+
+    for (const file of expectedFiles) {
+      it(`${file} が存在する`, () => {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source.length).toBeGreaterThan(0)
+      })
+    }
+
+    it('SavedTabsPage は chrome.* / localStorage / sessionStorage を import / 利用しない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/presentation/pages/SavedTabsPage.tsx',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(/from\s+['"]chrome['"]/)
+      expect(source).not.toMatch(/chrome\.storage\.local\./)
+      expect(source).not.toMatch(/chrome\.tabs\./)
+      expect(source).not.toMatch(/\blocalStorage\./)
+      expect(source).not.toMatch(/\bsessionStorage\./)
+    })
+
+    it('useSavedTabsController は chrome.* / localStorage / sessionStorage を import / 利用しない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/presentation/controllers/useSavedTabsController.ts',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(/from\s+['"]chrome['"]/)
+      expect(source).not.toMatch(/chrome\.storage\.local\./)
+      expect(source).not.toMatch(/chrome\.tabs\./)
+      expect(source).not.toMatch(/\blocalStorage\./)
+      expect(source).not.toMatch(/\bsessionStorage\./)
+    })
+  })
+
+  describe('issue #459: infrastructure browser adapter / composition ファイルが追加されている', () => {
+    const expectedFiles = [
+      'src/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter.ts',
+      'src/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter.ts',
+      'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+      'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases.ts',
+    ]
+
+    for (const file of expectedFiles) {
+      it(`${file} が存在する`, () => {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source.length).toBeGreaterThan(0)
+      })
+    }
+
+    it('ChromeBrowserTabAdapter は application port 経由で chrome.tabs を呼ぶ', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('BrowserTabPort')
+      expect(source).not.toMatch(/from\s+['"]@\/components/)
+      expect(source).not.toMatch(/from\s+['"]@\/features\//)
+    })
+
+    it('SonnerNotificationAdapter は application port 経由で sonner を呼ぶ', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('NotificationPort')
+      expect(source).not.toMatch(/from\s+['"]@\/components/)
+      expect(source).not.toMatch(/from\s+['"]@\/features\//)
+    })
+  })
+
   describe('domain/repositories/ の純度 (issue #457)', () => {
     const repositoryInterfaceFiles = [
       'src/contexts/saved-tabs/domain/repositories/TabGroupRepository.ts',
