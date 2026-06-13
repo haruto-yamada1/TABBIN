@@ -5,7 +5,10 @@ import type { ViewMode } from '@/types/storage'
 
 import type { CustomProject } from '../../domain/entities/CustomProject'
 import type { TabGroup } from '../../domain/entities/TabGroup'
-import { createChromeBrowserTabAdapter } from '../../infrastructure/browser/ChromeBrowserTabAdapter'
+import {
+  CHROME_BROWSER_TAB_ADAPTER_MARKER,
+  createChromeBrowserTabAdapter,
+} from '../../infrastructure/browser/ChromeBrowserTabAdapter'
 import type { ChromeApiLike } from '../../infrastructure/browser/ChromeBrowserTabAdapter'
 import type { SavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
@@ -84,6 +87,25 @@ const getChromeApiFromGlobalThis = (): ChromeApiLike | undefined =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   (globalThis as typeof globalThis & { chrome?: ChromeApiLike }).chrome
 
+const isChromeBrowserTabPort = (
+  port: SavedTabsUseCasesDeps['browserTabPort'],
+): boolean => {
+  // `createChromeBrowserTabAdapter` が生成した port には
+  // `CHROME_BROWSER_TAB_ADAPTER_MARKER` をマーカーとして立てている。
+  // テスト / SSR / 個別 mock が注入した独自 port は本マーカーを持たないため
+  // そのまま保持する。`undefined` (route テストの mock 化された deps など)
+  // は Chrome adapter ではないと見なす。
+  if (!port) {
+    return false
+  }
+  // `Object.getOwnPropertySymbols` で port 自身の symbol プロパティを列挙し、
+  // マーカーが立っているかを確認する。`BrowserTabPort` interface は symbol
+  // index signature を持たないため unsafe cast を使わず、配列比較で判定する。
+  return Object.getOwnPropertySymbols(port).includes(
+    CHROME_BROWSER_TAB_ADAPTER_MARKER,
+  )
+}
+
 /**
  * `SavedTabsPage` のロジック hook。
  *
@@ -102,16 +124,19 @@ export const useSavedTabsPage = (
   // 初期値は `() => true` (active 固定)。`SavedTabsApp` 側の
   // useEffect が settings を読んで本関数を上書きする。
   const resolveActiveRef = useRef<() => boolean>(() => true)
-  // ref ベースの resolveActive を使う `BrowserTabPort` を 1 度だけ組み立てる。
-  // port の `open()` 呼び出し時に ref.current() を評価するため、
-  // use-case / port を作り直さずに settings を動反映できる。
+  // 注入された deps の `browserTabPort` が Chrome adapter のときだけ、
+  // ref ベースの resolveActive を持つ port へ差し替える。独自 port
+  // (テスト / SSR) はそのまま保持する。
+  const inputBrowserTabPort = inputDeps.browserTabPort
   const dynamicBrowserTabPort = useMemo(
     () =>
-      createChromeBrowserTabAdapter(
-        { getApi: getChromeApiFromGlobalThis },
-        { resolveActive: () => resolveActiveRef.current() },
-      ),
-    [resolveActiveRef],
+      isChromeBrowserTabPort(inputBrowserTabPort)
+        ? createChromeBrowserTabAdapter(
+            { getApi: getChromeApiFromGlobalThis },
+            { resolveActive: () => resolveActiveRef.current() },
+          )
+        : inputBrowserTabPort,
+    [inputBrowserTabPort, resolveActiveRef],
   )
   // 早期 return 後の inputDeps は `SavedTabsUseCasesDeps` で確定する。
   // TypeScript の型 narrowing を確実にするため、別名に取り出して使う。

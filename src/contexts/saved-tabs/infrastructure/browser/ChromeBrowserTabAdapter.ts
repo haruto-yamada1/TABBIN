@@ -45,6 +45,17 @@ interface ChromeBrowserTabAdapterOptions {
 }
 
 /**
+ * `createChromeBrowserTabAdapter` が生成した port に付くマーカー。
+ *
+ * `SavedTabsPage` などの composition 層が「chrome 由来の port であるか」
+ * を識別し、動的 `resolveActive` ラップへの差し替え可否を判断するために使う。
+ * テストや SSR 用途の独自 port は本マーカーを持たないため、そのまま保持される。
+ */
+export const CHROME_BROWSER_TAB_ADAPTER_MARKER = Symbol.for(
+  'tabbin.chromeBrowserTabAdapter',
+)
+
+/**
  * `chrome.tabs.create` を利用する `BrowserTabPort` 実装を生成する。
  *
  * `chrome` API が見つからない環境（テスト / SSR など）では
@@ -57,6 +68,7 @@ export const createChromeBrowserTabAdapter = (
   options: ChromeBrowserTabAdapterOptions = {},
 ) => {
   return {
+    [CHROME_BROWSER_TAB_ADAPTER_MARKER]: true,
     open: async (input: { readonly url: string }) => {
       const api = deps.getApi()
       const tabs = api?.tabs

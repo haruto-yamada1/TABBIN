@@ -295,4 +295,19 @@ describe('SavedTabsPage', () => {
     )
     expect(screen.getByTestId('saved-tabs-app-mock')).toBeTruthy()
   })
+
+  it('deps の browserTabPort が Chrome adapter 以外の port ならそれを保持する (review #493 P2)', () => {
+    // テスト / SSR 用に独自 port を注入した deps を使い、
+    // SavedTabsPage 内の composition が port を Chrome adapter で
+    // 上書きしないことを確認する。in-memory deps は in-memory port を
+    // 持っており、in-memory port は `CHROME_BROWSER_TAB_ADAPTER_MARKER`
+    // を持たないため保持される。
+    const inMemoryDeps = createInMemoryDeps({})
+    const inMemoryPort = inMemoryDeps.browserTabPort
+    expect(inMemoryPort).toBeDefined()
+    render(<SavedTabsPage deps={inMemoryDeps} />)
+    // port が差し替えられていないことを、参照同一性で確認する。
+    // もし Chrome adapter で上書きされていたら inMemoryPort とは別物になる。
+    expect(inMemoryDeps.browserTabPort).toBe(inMemoryPort)
+  })
 })
