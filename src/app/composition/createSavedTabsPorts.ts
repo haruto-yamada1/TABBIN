@@ -18,6 +18,17 @@ export interface SavedTabsPorts {
   readonly notificationPort: NotificationPort
 }
 
+/**
+ * `createSavedTabsPorts` に渡せる任意設定。
+ *
+ * `resolveActive` は presentation 層が `openUrlInBackground` 設定をランタイムで
+ * 反映するための関数。`true` を返すと新規タブを active で開き、`false` を返すと
+ * バックグラウンド (`active: false`) で開く。未指定なら `active: true` 既定。
+ */
+export interface CreateSavedTabsPortsOptions {
+  readonly resolveActive?: () => boolean
+}
+
 interface ChromeApi extends ChromeApiLike {
   readonly tabs?: ChromeApiLike['tabs'] & {
     readonly create?: NonNullable<NonNullable<ChromeApiLike['tabs']>['create']>
@@ -36,16 +47,24 @@ const getChromeApi = (): ChromeApi | undefined =>
  * `console.warn` / `console.error` にフォールバックするため、通知で
  * use-case 全体を落とさない。
  *
+ * `options.resolveActive` を渡すと、presentation 層が `openUrlInBackground`
+ * 設定をランタイムで反映できる。指定しなければ `active: true` で開く。
+ *
  * @example
  * ```ts
- * const ports = createSavedTabsPorts()
+ * const ports = createSavedTabsPorts({
+ *   resolveActive: () => !settings.openUrlInBackground,
+ * })
  * const opened = await ports.browserTabPort.open({ url: 'https://example.com' })
  * ports.notificationPort.info({ message: '開きました' })
  * ```
  */
-export const createSavedTabsPorts = (): SavedTabsPorts => ({
-  browserTabPort: createChromeBrowserTabAdapter({
-    getApi: () => getChromeApi(),
-  }),
+export const createSavedTabsPorts = (
+  options: CreateSavedTabsPortsOptions = {},
+): SavedTabsPorts => ({
+  browserTabPort: createChromeBrowserTabAdapter(
+    { getApi: () => getChromeApi() },
+    options.resolveActive ? { resolveActive: options.resolveActive } : {},
+  ),
   notificationPort: createSonnerNotificationAdapter(),
 })

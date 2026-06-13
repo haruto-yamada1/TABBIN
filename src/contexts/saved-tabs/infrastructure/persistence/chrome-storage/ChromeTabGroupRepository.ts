@@ -10,6 +10,7 @@ import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStora
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SAVED_TABS_KEY } from './savedTabsStorageKeys'
+import { SavedTabRawSchema } from './savedTabsStorageSchema'
 import type { SavedTabRaw } from './savedTabsStorageSchema'
 
 const getDefaultPort = (): ChromeStorageLocalPort | null => {
@@ -22,6 +23,28 @@ const getDefaultPort = (): ChromeStorageLocalPort | null => {
     remove: (key) => local.remove(key),
     set: (value) => local.set(value),
   }
+}
+
+const findAllRawTabGroups = async (
+  port: ChromeStorageLocalPort,
+): Promise<SavedTabRaw[]> => {
+  const result = await port.get(SAVED_TABS_KEY)
+  const raw = result[SAVED_TABS_KEY]
+  if (!Array.isArray(raw)) {
+    return []
+  }
+  // 1 要素ずつ safeParse する。`SavedTabRawArraySchema.safeParse(raw)` を
+  // 使うと配列全体に対する単一の zod パースになり、不正要素が 1 つでも
+  // 含まれていると全体が failure になってしまい、merge 元データが失われる。
+  // ここは「有効要素だけ集める」挙動が必要なため要素ごとにパースする。
+  const valid: SavedTabRaw[] = []
+  for (const item of raw) {
+    const parsed = SavedTabRawSchema.safeParse(item)
+    if (parsed.success) {
+      valid.push(parsed.data)
+    }
+  }
+  return valid
 }
 
 const createChromeTabGroupRepositoryImpl = (
@@ -40,8 +63,19 @@ const createChromeTabGroupRepositoryImpl = (
   }
 
   const saveAll = async (groups: readonly TabGroup[]): Promise<void> => {
+    // 既存ユーザーデータ（`urls`, `urlSubCategories`, `subCategories`,
+    // `categoryKeywords`, `subCategoryOrder`, `subCategoryOrderWithUncategorized`）
+    // を破壊しないため、書き込み前に既存 raw を取得し、entity と merge する。
+    const existingRaws = await findAllRawTabGroups(port)
+    const originalById = new Map<string, SavedTabRaw>()
+    for (const original of existingRaws) {
+      originalById.set(original.id, original)
+    }
     const raws: SavedTabRaw[] = groups.map((group) =>
-      ChromeSavedTabsStorageMapper.toSavedTabRaw(group),
+      ChromeSavedTabsStorageMapper.toSavedTabRaw(
+        group,
+        originalById.get(group.id),
+      ),
     )
     await port.set({ [SAVED_TABS_KEY]: raws })
   }
@@ -68,8 +102,9 @@ const createChromeTabGroupRepositoryImpl = (
  *
  * Rich な補助フィールド（`urlSubCategories` / `subCategories` /
  * `categoryKeywords` / `subCategoryOrder` /
- * `subCategoryOrderWithUncategorized` / `urls`）は現時点では永続化対象外。
- * 既存 `src/lib/storage/tabs.ts` を併用するか、別 issue の use-case 化で対応する。
+ * `subCategoryOrderWithUncategorized` / `urls`）は domain entity には載らないが、
+ * `saveAll` で既存 raw データから持ち越して `urlIds` の集合に合わせて整合性を
+ * 取りつつ保存する。これによりユーザーの既存保存データを破壊しない。
  *
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */

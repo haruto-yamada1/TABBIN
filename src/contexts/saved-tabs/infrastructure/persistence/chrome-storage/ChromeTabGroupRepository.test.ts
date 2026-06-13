@@ -169,6 +169,136 @@ describe('ChromeTabGroupRepository', () => {
       )?.[0] as Record<string, unknown>
       expect(lastSetArg[SAVED_TABS_KEY]).toStrictEqual([])
     })
+
+    it('既存 raw のリッチ補助フィールド（urlSubCategories / urls / subCategories 等）を保持する', async () => {
+      const state: StorageState = {
+        [SAVED_TABS_KEY]: [
+          {
+            categoryKeywords: [{ categoryName: 'docs', keywords: ['doc'] }],
+            domain: 'example.com',
+            id: 'group-1',
+            parentCategoryId: 'cat-1',
+            savedAt: 1_700_000_000_000,
+            subCategories: ['docs'],
+            subCategoryOrder: ['docs'],
+            subCategoryOrderWithUncategorized: ['docs', 'uncategorized'],
+            urlIds: ['url-remove', 'url-keep'],
+            urls: [
+              {
+                id: 'url-remove',
+                title: 'Remove',
+                url: 'https://example.com/remove',
+              },
+              {
+                id: 'url-keep',
+                title: 'Keep',
+                url: 'https://example.com/keep',
+              },
+            ],
+            urlSubCategories: {
+              'url-keep': 'docs',
+              'url-remove': 'news',
+            },
+          },
+        ],
+      }
+      const port = createPort(state)
+      const repo = createChromeTabGroupRepository(port)
+      const entities = await repo.findAll()
+      expect(entities).toHaveLength(1)
+      // url-remove だけ取り除く形で saveAll を呼ぶ
+      const remaining = entities.map((entity) => ({
+        ...entity,
+        urlIds: entity.urlIds.filter((id) => id !== 'url-remove'),
+      }))
+      await repo.saveAll(remaining)
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      const savedRaw = (lastSetArg[SAVED_TABS_KEY] as unknown[])[0] as Record<
+        string,
+        unknown
+      >
+      expect(savedRaw).toMatchObject({
+        domain: 'example.com',
+        id: 'group-1',
+        parentCategoryId: 'cat-1',
+        savedAt: 1_700_000_000_000,
+        urlIds: ['url-keep'],
+        urls: [
+          {
+            id: 'url-keep',
+            title: 'Keep',
+            url: 'https://example.com/keep',
+          },
+        ],
+        urlSubCategories: { 'url-keep': 'docs' },
+        subCategories: ['docs'],
+        categoryKeywords: [{ categoryName: 'docs', keywords: ['doc'] }],
+        subCategoryOrder: ['docs'],
+        subCategoryOrderWithUncategorized: ['docs', 'uncategorized'],
+      })
+    })
+
+    it('既存 raw に不正な要素が混じっていても有効要素のリッチフィールドを保持する', async () => {
+      const state: StorageState = {
+        [SAVED_TABS_KEY]: [
+          // 不正要素（id 無し）
+          { domain: 'broken.example.com' },
+          // 有効要素 + リッチフィールド
+          {
+            domain: 'example.com',
+            id: 'group-1',
+            urlIds: ['url-remove', 'url-keep'],
+            urls: [
+              {
+                id: 'url-remove',
+                title: 'Remove',
+                url: 'https://example.com/remove',
+              },
+              {
+                id: 'url-keep',
+                title: 'Keep',
+                url: 'https://example.com/keep',
+              },
+            ],
+            urlSubCategories: { 'url-keep': 'docs' },
+          },
+          // 不正要素（domain 無し）
+          { id: 'broken-2' },
+        ],
+      }
+      const port = createPort(state)
+      const repo = createChromeTabGroupRepository(port)
+      const entities = await repo.findAll()
+      const remaining = entities.map((entity) => ({
+        ...entity,
+        urlIds: entity.urlIds.filter((id) => id !== 'url-remove'),
+      }))
+      await repo.saveAll(remaining)
+      const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
+        -1,
+      )?.[0] as Record<string, unknown>
+      const savedRaw = (lastSetArg[SAVED_TABS_KEY] as unknown[])[0] as Record<
+        string,
+        unknown
+      >
+      // 不正要素が混じっていても、有効要素の urls / urlSubCategories は
+      // merge で持ち越されている必要がある。
+      expect(savedRaw).toMatchObject({
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-keep'],
+        urls: [
+          {
+            id: 'url-keep',
+            title: 'Keep',
+            url: 'https://example.com/keep',
+          },
+        ],
+        urlSubCategories: { 'url-keep': 'docs' },
+      })
+    })
   })
 
   describe('removeByIds', () => {

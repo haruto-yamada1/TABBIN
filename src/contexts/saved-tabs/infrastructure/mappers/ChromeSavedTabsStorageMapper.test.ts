@@ -278,6 +278,120 @@ describe('ChromeSavedTabsStorageMapper', () => {
       expect(raw.urlIds).toStrictEqual(['url-1', 'url-2'])
     })
 
+    it('toSavedTabRaw は original を渡すとリッチ補助フィールドを urlIds に揃えて持ち越す', () => {
+      const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-keep'],
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toSavedTabRaw(entity, {
+        categoryKeywords: [{ categoryName: 'docs', keywords: ['doc', 'spec'] }],
+        domain: 'example.com',
+        id: 'group-1',
+        subCategories: ['docs'],
+        subCategoryOrder: ['docs'],
+        subCategoryOrderWithUncategorized: ['docs', 'uncategorized'],
+        urlIds: ['url-remove', 'url-keep'],
+        urls: [
+          {
+            id: 'url-remove',
+            title: 'Remove',
+            url: 'https://example.com/remove',
+          },
+          {
+            id: 'url-keep',
+            title: 'Keep',
+            url: 'https://example.com/keep',
+          },
+        ],
+        urlSubCategories: {
+          'url-keep': 'docs',
+          'url-remove': 'news',
+        },
+      })
+      expect(raw.urlIds).toStrictEqual(['url-keep'])
+      expect(raw.urls).toStrictEqual([
+        {
+          id: 'url-keep',
+          title: 'Keep',
+          url: 'https://example.com/keep',
+        },
+      ])
+      expect(raw.urlSubCategories).toStrictEqual({ 'url-keep': 'docs' })
+      expect(raw.subCategories).toStrictEqual(['docs'])
+      expect(raw.categoryKeywords).toStrictEqual([
+        { categoryName: 'docs', keywords: ['doc', 'spec'] },
+      ])
+      expect(raw.subCategoryOrder).toStrictEqual(['docs'])
+      expect(raw.subCategoryOrderWithUncategorized).toStrictEqual([
+        'docs',
+        'uncategorized',
+      ])
+    })
+
+    it('toSavedTabRaw は urls が全て削除対象なら urls キー自体を省く', () => {
+      const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-keep'],
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toSavedTabRaw(entity, {
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-remove'],
+        urls: [
+          {
+            id: 'url-remove',
+            title: 'Remove',
+            url: 'https://example.com/remove',
+          },
+        ],
+        urlSubCategories: { 'url-remove': 'news' },
+      })
+      expect(raw.urls).toBeUndefined()
+      expect(raw.urlSubCategories).toBeUndefined()
+    })
+
+    it('toSavedTabRaw は id が無い url エントリも保持する（既存挙動互換）', () => {
+      const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-keep'],
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toSavedTabRaw(entity, {
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-keep'],
+        urls: [
+          {
+            title: 'Legacy without ID',
+            url: 'https://legacy.example.com/a',
+          },
+          {
+            id: 'url-keep',
+            title: 'Keep',
+            url: 'https://example.com/keep',
+          },
+        ],
+      })
+      expect(raw.urls).toStrictEqual([
+        { title: 'Legacy without ID', url: 'https://legacy.example.com/a' },
+        { id: 'url-keep', title: 'Keep', url: 'https://example.com/keep' },
+      ])
+    })
+
     it('toParentCategoryRaw は domains / domainNames をコピーして保持する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
         domainNames: ['example.com'],
@@ -312,6 +426,87 @@ describe('ChromeSavedTabsStorageMapper', () => {
       expect(raw.urlIds).toStrictEqual(['url-1'])
       expect(raw.createdAt).toBe(1)
       expect(raw.updatedAt).toBe(2)
+    })
+
+    it('toCustomProjectRaw は original を渡すと projectKeywords / urlMetadata / categoryOrder / urls を持ち越す', () => {
+      const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
+        categories: ['research'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        updatedAt: 2,
+        urlIds: ['url-keep'],
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toCustomProjectRaw(entity, {
+        categories: ['research'],
+        categoryOrder: ['research', 'news'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        projectKeywords: {
+          domainKeywords: ['example.com'],
+          titleKeywords: ['quarterly'],
+          urlKeywords: ['report'],
+        },
+        updatedAt: 2,
+        urlIds: ['url-remove', 'url-keep'],
+        urlMetadata: {
+          'url-keep': { category: 'research', notes: 'kept' },
+          'url-remove': { category: 'news', notes: 'removed' },
+        },
+        urls: [
+          {
+            title: 'Existing URL',
+            url: 'https://example.com/legacy',
+          },
+        ],
+      })
+      expect(raw.urlIds).toStrictEqual(['url-keep'])
+      expect(raw.projectKeywords).toStrictEqual({
+        domainKeywords: ['example.com'],
+        titleKeywords: ['quarterly'],
+        urlKeywords: ['report'],
+      })
+      expect(raw.urlMetadata).toStrictEqual({
+        'url-keep': { category: 'research', notes: 'kept' },
+      })
+      expect(raw.categoryOrder).toStrictEqual(['research', 'news'])
+      expect(raw.urls).toStrictEqual([
+        { title: 'Existing URL', url: 'https://example.com/legacy' },
+      ])
+    })
+
+    it('toCustomProjectRaw は urlIds が空なら urls キーを省く', () => {
+      const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
+        categories: ['research'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        updatedAt: 2,
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toCustomProjectRaw(entity, {
+        categories: ['research'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        updatedAt: 2,
+        urlIds: ['url-remove'],
+        urls: [
+          {
+            title: 'Will be dropped',
+            url: 'https://example.com/dropped',
+          },
+        ],
+      })
+      expect(raw.urls).toBeUndefined()
     })
   })
 

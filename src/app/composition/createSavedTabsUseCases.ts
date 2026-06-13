@@ -9,6 +9,17 @@ import { createSavedTabsPorts } from './createSavedTabsPorts'
 import { createSavedTabsRepositories } from './createSavedTabsRepositories'
 
 /**
+ * `createSavedTabsUseCases` 呼び出し時に渡せる任意設定。
+ *
+ * presentation 層が `openUrlInBackground` 設定をランタイムで反映するため、
+ * `resolveActive` を渡せるようにしている。`BrowserTabPort` の adapter に
+ * 委譲される。`createSavedTabsPorts` の同名 option と同じ意味。
+ */
+export interface CreateSavedTabsUseCasesOptions {
+  readonly resolveActive?: () => boolean
+}
+
+/**
  * `src/app/composition/` レベルの composition root。
  *
  * `chrome.storage.local` ベースの repository 実装と
@@ -18,15 +29,24 @@ import { createSavedTabsRepositories } from './createSavedTabsRepositories'
  * この関数以降、UI / hook / テストは
  * `chrome.*` API を直接触れず、use-case だけを呼び出す形になる。
  *
+ * `options.resolveActive` を渡すと presentation 層が `openUrlInBackground`
+ * のような設定値をランタイムで `BrowserTabPort` に反映できる。
+ *
  * @example
  * ```ts
- * const useCases = createSavedTabsUseCases()
+ * const useCases = createSavedTabsUseCases({
+ *   resolveActive: () => !settings.openUrlInBackground,
+ * })
  * await useCases.openSavedUrl({ urlRecordId, origin: 'click', settings })
  * ```
  */
-export const createSavedTabsUseCases = (): SavedTabsUseCases => {
+export const createSavedTabsUseCases = (
+  options: CreateSavedTabsUseCasesOptions = {},
+): SavedTabsUseCases => {
   const repositories = createSavedTabsRepositories()
-  const ports = createSavedTabsPorts()
+  const ports = createSavedTabsPorts(
+    options.resolveActive ? { resolveActive: options.resolveActive } : {},
+  )
 
   return {
     deleteTabGroup: createDeleteTabGroupUseCase({

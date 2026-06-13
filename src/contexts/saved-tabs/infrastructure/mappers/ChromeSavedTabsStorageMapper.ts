@@ -150,7 +150,10 @@ const toUrlRecordRaw = (entity: UrlRecord): UrlRecordRaw => {
   return base
 }
 
-const toSavedTabRaw = (entity: TabGroup): SavedTabRaw => {
+const toSavedTabRaw = (
+  entity: TabGroup,
+  original?: SavedTabRaw,
+): SavedTabRaw => {
   // parentCategoryId / savedAt が undefined のときも undefined プロパティを
   // 残さない。chrome.storage には undefined 値ではなく key 自体を省略する。
   // urlIds は空配列のときも key を省略（domain entity 化する時点で [] が入る
@@ -168,6 +171,54 @@ const toSavedTabRaw = (entity: TabGroup): SavedTabRaw => {
   if (entity.savedAt !== undefined) {
     base.savedAt = entity.savedAt
   }
+  if (!original) {
+    return base
+  }
+  // domain entity が表現しないリッチ補助フィールドは original から持ち越す。
+  // 既存ユーザーデータ（`urls`, `urlSubCategories`, `subCategories`,
+  // `categoryKeywords`, `subCategoryOrder`, `subCategoryOrderWithUncategorized`）
+  // を破壊しないため、entity.urlIds に揃えて整合性を取りつつ保持する。
+  // entity.urlIds は branded `UrlRecordId[]` だが、original.urls.id /
+  // urlSubCategories のキーは raw 文字列なので Set<string> に揃える。
+  const preservedUrlIds = new Set<string>(entity.urlIds)
+  if (original.urls) {
+    const filteredUrls = original.urls.filter((item) =>
+      item.id === undefined ? true : preservedUrlIds.has(item.id),
+    )
+    if (filteredUrls.length > 0) {
+      base.urls = filteredUrls
+    }
+  }
+  if (original.urlSubCategories) {
+    const filteredSubCategories: Record<string, string> = {}
+    for (const [urlId, subCategory] of Object.entries(
+      original.urlSubCategories,
+    )) {
+      if (preservedUrlIds.has(urlId)) {
+        filteredSubCategories[urlId] = subCategory
+      }
+    }
+    if (Object.keys(filteredSubCategories).length > 0) {
+      base.urlSubCategories = filteredSubCategories
+    }
+  }
+  if (original.subCategories) {
+    base.subCategories = [...original.subCategories]
+  }
+  if (original.categoryKeywords) {
+    base.categoryKeywords = original.categoryKeywords.map((keyword) => ({
+      categoryName: keyword.categoryName,
+      keywords: [...keyword.keywords],
+    }))
+  }
+  if (original.subCategoryOrder) {
+    base.subCategoryOrder = [...original.subCategoryOrder]
+  }
+  if (original.subCategoryOrderWithUncategorized) {
+    base.subCategoryOrderWithUncategorized = [
+      ...original.subCategoryOrderWithUncategorized,
+    ]
+  }
   return base
 }
 
@@ -178,7 +229,10 @@ const toParentCategoryRaw = (entity: ParentCategory): ParentCategoryRaw => ({
   name: entity.name,
 })
 
-const toCustomProjectRaw = (entity: CustomProject): CustomProjectRaw => {
+const toCustomProjectRaw = (
+  entity: CustomProject,
+  original?: CustomProjectRaw,
+): CustomProjectRaw => {
   const base: CustomProjectRaw = {
     categories: [...entity.categories],
     createdAt: entity.createdAt,
@@ -188,6 +242,46 @@ const toCustomProjectRaw = (entity: CustomProject): CustomProjectRaw => {
   }
   if (entity.urlIds.length > 0) {
     base.urlIds = [...entity.urlIds]
+  }
+  if (!original) {
+    return base
+  }
+  // domain entity 未表現のリッチ補助フィールドを original から持ち越す。
+  // urls / urlMetadata は urlIds の集合に合わせて整合性を取り、
+  // projectKeywords / categoryOrder はそのまま保持する。
+  // entity.urlIds は branded `UrlRecordId[]` だが、original.urlMetadata の
+  // キーは raw 文字列なので Set<string> に揃える。
+  const preservedUrlIds = new Set<string>(entity.urlIds)
+  if (original.projectKeywords) {
+    base.projectKeywords = {
+      domainKeywords: [...original.projectKeywords.domainKeywords],
+      titleKeywords: [...original.projectKeywords.titleKeywords],
+      urlKeywords: [...original.projectKeywords.urlKeywords],
+    }
+  }
+  if (original.urlMetadata) {
+    const filteredMetadata: Record<
+      string,
+      { notes?: string; category?: string }
+    > = {}
+    for (const [urlId, metadata] of Object.entries(original.urlMetadata)) {
+      if (preservedUrlIds.has(urlId)) {
+        filteredMetadata[urlId] = metadata
+      }
+    }
+    if (Object.keys(filteredMetadata).length > 0) {
+      base.urlMetadata = filteredMetadata
+    }
+  }
+  if (original.categoryOrder) {
+    base.categoryOrder = [...original.categoryOrder]
+  }
+  // urls 配列は legacy 形式（URL 文字列を保持）。urlIds 同期は不能なので、
+  // entity の urlIds が空ではない限り original.urls をそのまま保持する。
+  // entity.urlIds が空になった場合は対象 project の URL がすべて削除された
+  // と解釈し、urls 配列も省略する。
+  if (original.urls && entity.urlIds.length > 0) {
+    base.urls = original.urls.map((entry) => ({ ...entry }))
   }
   return base
 }
