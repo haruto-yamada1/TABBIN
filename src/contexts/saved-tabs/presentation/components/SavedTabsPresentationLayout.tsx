@@ -1,13 +1,17 @@
 import { Profiler } from 'react'
 import type { RefObject } from 'react'
 
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
 import { SavedTabsApp } from '@/contexts/saved-tabs/presentation/app/SavedTabsApp'
 import {
   handleSavedTabsRender,
   isDevProfileEnabled,
 } from '@/contexts/saved-tabs/presentation/app/savedTabsProfiler'
+import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import type { ViewMode } from '@/types/storage'
 
+import type { ResolveActiveRef } from '../pages/SavedTabsPage'
 import { SavedTabsChatWidgetBridge } from './SavedTabsChatWidgetBridge'
 import { SavedTabsResponsiveLayoutProvider } from './SavedTabsResponsiveLayoutContext'
 import { SavedTabsScrollControls } from './SavedTabsScrollControls'
@@ -29,15 +33,23 @@ import { SavedTabsScrollControls } from './SavedTabsScrollControls'
  * - `onAiSidebarOpenChange` : chat widget の開閉が変わった際の
  *   親 (SavedTabsPage) への通知
  * - `onViewModeNavigate` : view mode 切替時に親 (AppRouter) へ通知
+ * - `controller` / `useCases` / `deps` / `resolveActiveRef` :
+ *   composition root である `SavedTabsPage` 側で組み立てた
+ *   use-case バンドルと controller。`SavedTabsApp` 内部での
+ *   use-case 再生成を避けるため props 注入する。
  */
 export interface SavedTabsPresentationLayoutProps {
   readonly attachLeftPaneRef: (node: HTMLDivElement | null) => void
+  readonly controller: UseSavedTabsControllerReturn
+  readonly deps: SavedTabsUseCasesDeps
   readonly initialViewMode: ViewMode
   readonly isAiSidebarOpen: boolean
   readonly isCompactLeftPaneLayout: boolean
   readonly leftPaneRef: RefObject<HTMLDivElement | null>
   readonly onAiSidebarOpenChange: (isOpen: boolean) => void
   readonly onViewModeNavigate?: (mode: ViewMode) => void
+  readonly resolveActiveRef: ResolveActiveRef
+  readonly useCases: SavedTabsUseCases
 }
 
 /**
@@ -54,18 +66,26 @@ export interface SavedTabsPresentationLayoutProps {
  */
 export const SavedTabsPresentationLayout = ({
   attachLeftPaneRef,
+  controller,
+  deps,
   initialViewMode,
   isAiSidebarOpen,
   isCompactLeftPaneLayout,
   leftPaneRef,
   onAiSidebarOpenChange,
   onViewModeNavigate,
+  resolveActiveRef,
+  useCases,
 }: SavedTabsPresentationLayoutProps) => {
   const savedTabsAppNode = (
     <SavedTabsApp
+      controller={controller}
+      deps={deps}
       initialViewMode={initialViewMode}
       isAiSidebarOpen={isAiSidebarOpen}
       onViewModeNavigate={onViewModeNavigate}
+      resolveActiveRef={resolveActiveRef}
+      useCases={useCases}
     />
   )
 

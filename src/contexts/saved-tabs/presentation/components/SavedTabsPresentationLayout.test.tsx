@@ -1,6 +1,16 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
+import { useRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { createSavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
+import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
+import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
+
+import { SavedTabsPresentationLayout } from './SavedTabsPresentationLayout'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => (
@@ -67,9 +77,96 @@ vi.mock('./SavedTabsChatWidgetBridge', () => ({
   },
 }))
 
-import { useRef } from 'react'
+/**
+ * テストで SavedTabsPresentationLayout が要求する composition props
+ * (deps / useCases / controller / resolveActiveRef) を組み立てるヘルパ。
+ *
+ * 実 chrome 依存は注入せず、空の in-memory リポジトリ / port を使う。
+ * `controller` は `useSavedTabsController` フックで生成するため、
+ * 組み立てヘルパからは外している。
+ */
+const buildLayoutComposition = () => {
+  const deps: SavedTabsUseCasesDeps = {
+    browserTabPort: {
+      // eslint-disable-next-line typescript/require-await
+      open: async (input: { url: string }) => ({ url: input.url }),
+    },
+    browserWindowPort: {
+      // eslint-disable-next-line typescript/require-await
+      openWithUrls: async (input: { urls: readonly string[] }) => ({
+        urls: [...input.urls],
+      }),
+    },
+    notificationPort: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+    customProjectRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      findById: async () => null,
+      // eslint-disable-next-line typescript/require-await
+      removeByIds: async () => undefined,
+      // eslint-disable-next-line typescript/require-await
+      saveAll: async () => undefined,
+      // eslint-disable-next-line typescript/require-await
+      findOrder: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      saveOrder: async () => undefined,
+    },
+    parentCategoryRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      findById: async () => null,
+      // eslint-disable-next-line typescript/require-await
+      removeByIds: async () => undefined,
+      // eslint-disable-next-line typescript/require-await
+      saveAll: async () => undefined,
+    },
+    tabGroupRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      findById: async () => null,
+      // eslint-disable-next-line typescript/require-await
+      removeByIds: async () => undefined,
+      // eslint-disable-next-line typescript/require-await
+      saveAll: async () => undefined,
+    },
+    urlRecordRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      findById: async () => null,
+      // eslint-disable-next-line typescript/require-await
+      removeByIds: async () => undefined,
+      // eslint-disable-next-line typescript/require-await
+      saveAll: async () => undefined,
+    },
+  }
+  const useCases: SavedTabsUseCases = createSavedTabsUseCases(deps)
+  const resolveActiveRef: ResolveActiveRef = { current: () => true }
+  return { deps, resolveActiveRef, useCases }
+}
 
-import { SavedTabsPresentationLayout } from './SavedTabsPresentationLayout'
+interface CompositionContext {
+  readonly controller: UseSavedTabsControllerReturn
+  readonly deps: SavedTabsUseCasesDeps
+  readonly resolveActiveRef: ResolveActiveRef
+  readonly useCases: SavedTabsUseCases
+}
+
+const CompositionProbe = ({
+  children,
+}: {
+  children: (composition: CompositionContext) => React.ReactNode
+}) => {
+  const composition = buildLayoutComposition()
+  const controller = useSavedTabsController({
+    deps: composition.deps,
+    useCases: composition.useCases,
+  })
+  return <>{children({ ...composition, controller })}</>
+}
 
 describe('SavedTabsPresentationLayout', () => {
   afterEach(() => {
@@ -87,16 +184,24 @@ describe('SavedTabsPresentationLayout', () => {
     const Probe = () => {
       const leftPaneRef = useRef<HTMLDivElement>(null)
       return (
-        <SavedTabsPresentationLayout
-          attachLeftPaneRef={(node) => {
-            leftPaneRef.current = node
-          }}
-          initialViewMode={initialViewMode}
-          isAiSidebarOpen={isAiSidebarOpen}
-          isCompactLeftPaneLayout={isCompactLeftPaneLayout}
-          leftPaneRef={leftPaneRef}
-          onAiSidebarOpenChange={vi.fn()}
-        />
+        <CompositionProbe>
+          {({ controller, deps, resolveActiveRef, useCases }) => (
+            <SavedTabsPresentationLayout
+              attachLeftPaneRef={(node) => {
+                leftPaneRef.current = node
+              }}
+              controller={controller}
+              deps={deps}
+              initialViewMode={initialViewMode}
+              isAiSidebarOpen={isAiSidebarOpen}
+              isCompactLeftPaneLayout={isCompactLeftPaneLayout}
+              leftPaneRef={leftPaneRef}
+              onAiSidebarOpenChange={vi.fn()}
+              resolveActiveRef={resolveActiveRef}
+              useCases={useCases}
+            />
+          )}
+        </CompositionProbe>
       )
     }
     return render(<Probe />)
@@ -148,14 +253,22 @@ describe('SavedTabsPresentationLayout', () => {
     const Probe = () => {
       const leftPaneRef = useRef<HTMLDivElement>(null)
       return (
-        <SavedTabsPresentationLayout
-          attachLeftPaneRef={() => undefined}
-          initialViewMode='domain'
-          isAiSidebarOpen={false}
-          isCompactLeftPaneLayout={false}
-          leftPaneRef={leftPaneRef}
-          onAiSidebarOpenChange={onAiSidebarOpenChange}
-        />
+        <CompositionProbe>
+          {({ controller, deps, resolveActiveRef, useCases }) => (
+            <SavedTabsPresentationLayout
+              attachLeftPaneRef={() => undefined}
+              controller={controller}
+              deps={deps}
+              initialViewMode='domain'
+              isAiSidebarOpen={false}
+              isCompactLeftPaneLayout={false}
+              leftPaneRef={leftPaneRef}
+              onAiSidebarOpenChange={onAiSidebarOpenChange}
+              resolveActiveRef={resolveActiveRef}
+              useCases={useCases}
+            />
+          )}
+        </CompositionProbe>
       )
     }
     render(<Probe />)
@@ -167,15 +280,23 @@ describe('SavedTabsPresentationLayout', () => {
     const Probe = () => {
       const leftPaneRef = useRef<HTMLDivElement>(null)
       return (
-        <SavedTabsPresentationLayout
-          attachLeftPaneRef={() => undefined}
-          initialViewMode='domain'
-          isAiSidebarOpen={false}
-          isCompactLeftPaneLayout={false}
-          leftPaneRef={leftPaneRef}
-          onAiSidebarOpenChange={vi.fn()}
-          onViewModeNavigate={onViewModeNavigate}
-        />
+        <CompositionProbe>
+          {({ controller, deps, resolveActiveRef, useCases }) => (
+            <SavedTabsPresentationLayout
+              attachLeftPaneRef={() => undefined}
+              controller={controller}
+              deps={deps}
+              initialViewMode='domain'
+              isAiSidebarOpen={false}
+              isCompactLeftPaneLayout={false}
+              leftPaneRef={leftPaneRef}
+              onAiSidebarOpenChange={vi.fn()}
+              onViewModeNavigate={onViewModeNavigate}
+              resolveActiveRef={resolveActiveRef}
+              useCases={useCases}
+            />
+          )}
+        </CompositionProbe>
       )
     }
     render(<Probe />)
