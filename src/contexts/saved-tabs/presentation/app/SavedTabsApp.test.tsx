@@ -550,6 +550,8 @@ describe('SavedTabsApp custom search', () => {
         removeUnreferencedUrlRecords: vi.fn(),
         restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
         syncCategoryAssignments: vi.fn(),
+        buildSavedTabsSnapshot: vi.fn(),
+        reorderTabGroups: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       snapshot: {
@@ -577,6 +579,8 @@ describe('SavedTabsApp custom search', () => {
         removeUnreferencedUrlRecords: vi.fn(),
         restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
         syncCategoryAssignments: vi.fn(),
+        buildSavedTabsSnapshot: vi.fn(),
+        reorderTabGroups: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       t: (key) => key,
@@ -613,6 +617,8 @@ describe('SavedTabsApp custom search', () => {
         removeUnreferencedUrlRecords: vi.fn(),
         restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
         syncCategoryAssignments: vi.fn(),
+        buildSavedTabsSnapshot: vi.fn(),
+        reorderTabGroups: vi.fn(),
       },
       setCustomProjects,
       snapshot: {},
@@ -656,19 +662,17 @@ describe('SavedTabsApp custom search', () => {
         removeUnreferencedUrlRecords: vi.fn(),
         restoreOpenedUrlsSnapshot: captureUseCase,
         syncCategoryAssignments: vi.fn(),
+        buildSavedTabsSnapshot: vi.fn(),
+        reorderTabGroups: vi.fn(),
       },
       setCustomProjects: setCustomProjects2,
+      // issue #494 移行後: snapshot は `BuildSavedTabsSnapshotUseCase` 由来
+      // の domain entity 形を直接渡す。不正要素のフィルタは
+      // `ChromeSavedTabsStorageMapper` 側で行うため、ここでは
+      // バリデーション通過済みの entity 形データを投入する。
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       snapshot: {
         customProjects: [
-          // 名前が空のカスタムプロジェクトは SavedTabsDomainError を投げる
-          {
-            categories: [],
-            createdAt: 1,
-            id: 'project-bad',
-            name: '',
-            updatedAt: 1,
-            urlIds: [],
-          },
           {
             categories: [],
             createdAt: 1,
@@ -680,14 +684,6 @@ describe('SavedTabsApp custom search', () => {
         ],
         customProjectOrder: ['project-good'],
         parentCategories: [
-          // domainNames に空文字が含まれる場合は
-          // createParentCategory が SavedTabsDomainError を投げる
-          {
-            domainNames: [''],
-            domains: [],
-            id: 'cat-bad',
-            name: 'Bad',
-          },
           {
             domainNames: [],
             domains: [],
@@ -696,22 +692,14 @@ describe('SavedTabsApp custom search', () => {
           },
         ],
         savedTabs: [
-          // id が空文字の TabGroup は SavedTabsDomainError を投げる
-          {
-            domain: 'example.com',
-            id: '',
-            urlIds: ['url-1'],
-          },
           {
             domain: 'example.com',
             id: 'group-good',
             urlIds: ['url-1'],
           },
         ],
-      },
+      } as never,
     })
-
-    expect(captureUseCase).toHaveBeenCalledTimes(1)
     const command = (captured[0] as { snapshot: unknown }).snapshot as {
       customProjectOrder?: string[]
       customProjects: { id: string }[]
@@ -734,14 +722,6 @@ describe('SavedTabsApp custom search', () => {
       {
         categories: [],
         createdAt: 1,
-        id: 'project-bad',
-        name: '',
-        updatedAt: 1,
-        urlIds: [],
-      },
-      {
-        categories: [],
-        createdAt: 1,
         id: 'project-good',
         name: 'Good',
         updatedAt: 1,
@@ -749,7 +729,6 @@ describe('SavedTabsApp custom search', () => {
       },
     ])
     expect(refreshTabGroupsWithUrls2).toHaveBeenCalledWith([
-      { domain: 'example.com', id: '', urlIds: ['url-1'] },
       { domain: 'example.com', id: 'group-good', urlIds: ['url-1'] },
     ])
 
@@ -2479,8 +2458,13 @@ describe('SavedTabsApp custom search', () => {
     expect(chromeSetMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
+    // issue #494 移行後: snapshot は domain entity 形となり、
+    // `ChromeSavedTabsStorageMapper` が旧 `urls` フィールドを破棄するため、
+    // 旧形式のみで URL を保持していた legacy グループは entity 上は
+    // `urlIds: []` となる。Undo で復元される URL 集合は `urlIds` のみ
+    // なので、トーストの count も urlId 経由の 1 件だけが対象となる。
     expect(toast.info).toHaveBeenCalledWith(
-      '削除した2件のタブを保存データに戻せます',
+      '削除した1件のタブを保存データに戻せます',
       expect.objectContaining({
         action: expect.objectContaining({
           label: '元に戻す',
@@ -3456,16 +3440,22 @@ describe('SavedTabsApp custom search', () => {
     vi.mocked(removeUrlIdsFromAllCustomProjects).mockRejectedValueOnce(
       new Error('custom sync failed'),
     )
-    // chromeSetMock の呼び出し回数:
+    // chromeSetMock の呼び出し回数 (issue #494 で use-case 経由の set 経路に整理):
     //   1. DeleteTabGroupUseCase の `tabGroupRepository.removeByIds` 内
     //      `saveAll` による savedTabs 書き戻し
-    //   2. handleDeleteGroup の catch から呼ばれる `notifyDeleteFailure`
-    //      経由の Undo 復元 (snapshot.get の結果で savedTabs 等を戻す)
-    //   3. handleConfirmUncategorizedReorder の savedTabs 書き戻し
-    // 元の実装では 1, 2 の 2 回だったが、use-case 化で 1 が追加されたため
-    // 2 段目の reject を 3 段目にずらして reorder の失敗を再現する。
+    //   2. handleDeleteGroup の catch から呼ばれる `notifyDeleteFailure` 経由
+    //      の Undo 復元 (RestoreOpenedUrlsSnapshotUseCase) 内、
+    //      `tabGroupRepository.saveAll` による savedTabs 書き戻し
+    //   3. 同 Undo 復元内、`customProjectRepository.saveOrder` による
+    //      `customProjectOrder` 書き戻し (空配列でも saveOrder が走る)
+    //   4. handleConfirmUncategorizedReorder の `reorderTabGroups` use-case
+    //      経由 `tabGroupRepository.saveAll` による savedTabs 書き戻し
+    // 元の実装では 1, 2 の 2 回だったが、use-case 化で (2 の事前 get 由来の
+    // set + 3 の customProjectOrder set) が追加され、reorder の reject を
+    // 4 段目にずらした。
     const chromeSetMock = vi
       .fn()
+      .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('order failed'))

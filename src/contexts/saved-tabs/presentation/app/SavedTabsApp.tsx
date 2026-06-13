@@ -59,6 +59,8 @@ import {
   showOpenedUrlsUndoToast,
   sortCategorizedGroups,
   syncSavedTabsViewModeLocation,
+  toDomainParentCategories,
+  toDomainTabGroupsForReorder,
 } from './savedTabsApp.helpers'
 import type {
   CategoryLookup,
@@ -339,12 +341,12 @@ const useSavedTabsAppView = ({
   // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え。
   // - URL → urlRecordId は `getUrlRecords()` から逆引きし、見つからない
   //   旧データは `browserTabPort` で開くだけのフォールバックを取る。
-  // - `removeTabAfterOpen` が true のときは、削除前 snapshot を取得して
-  //   既存の Undo トースト経路と接続する。snapshot は use-case の
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  //   戻り値ではなく chrome.storage.local の生データを使うことで、
-  //   `urls` / `urlSubCategories` などのリッチフィールド復元を維持する。
+  // - `removeTabAfterOpen` が true のときは、`BuildSavedTabsSnapshotUseCase`
+  //   経由で削除前 snapshot を取得して既存の Undo トースト経路と接続する
+  //   （issue #494 で `chrome.storage.local.get` 直叩きを撤去）。
+  // - post-open の UI 更新は `TabGroupRepository.findAll` を使い、
+  //   `chrome.storage.local.get` を残さない（`refreshTabGroupsWithUrls` 内で
+  //   urlRecords から `urls` を再解決する）。
   const handleOpenTab = useCallback(
     async (url: string) => {
       try {
@@ -359,13 +361,9 @@ const useSavedTabsAppView = ({
         }
 
         const snapshot = settings.removeTabAfterOpen
-          ? // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
-              'savedTabs',
-              'customProjects',
-              'customProjectOrder',
-            ])
+          ? await savedTabsUseCases.buildSavedTabsSnapshot({
+              parentCategories: toDomainParentCategories(categories),
+            })
           : undefined
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
@@ -385,12 +383,14 @@ const useSavedTabsAppView = ({
         // 取り除かれているなら Undo 対象として扱う必要がある。よって
         // `removedUrlRecordId` ではなく `snapshot` の有無を判定基準にする。
         if (snapshot && result.snapshot) {
-          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          const updated = await chrome.storage.local.get<{
-            savedTabs?: TabGroup[]
-          }>('savedTabs')
-          await refreshTabGroupsWithUrls(updated.savedTabs ?? [])
+          // post-open の UI 更新は \`refreshTabGroupsWithUrls()\` (引数なし)
+          // に委譲し、\`useTabData\` 側の storage 読み取り経路 (\`urls\` /
+          // \`urlSubCategories\` / \`subCategories\` / \`categoryKeywords\` /
+          // \`subCategoryOrder\` などのリッチ補助フィールド付き) を
+          // そのまま使う。repository の \`findAll\` 戻り値は domain entity
+          // (リッチ補助フィールドを持たない) なので、ここでは渡さない
+          // (Codex レビュー対応: P2 / issue #494)。
+          await refreshTabGroupsWithUrls()
           showOpenedUrlsUndoToast({
             count: 1,
             refreshTabGroupsWithUrls,
@@ -406,6 +406,7 @@ const useSavedTabsAppView = ({
       }
     },
     [
+      categories,
       deps,
       savedTabsUseCases,
       settings.removeTabAfterOpen,
@@ -425,14 +426,12 @@ const useSavedTabsAppView = ({
         // Undo 用 snapshot は use-case 呼び出し**前**に取得する。
         // use-case 実行後は storage が post-delete 状態になっているため、
         // その snapshot を渡しても Undo が no-op 相当になり復元できない。
+        // `BuildSavedTabsSnapshotUseCase` 経由で取得し、
+        // `chrome.storage.local.get` の直叩きを撤去する（issue #494）。
         const preDeleteSnapshot = settings.removeTabAfterOpen
-          ? // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
-              'savedTabs',
-              'customProjects',
-              'customProjectOrder',
-            ])
+          ? await savedTabsUseCases.buildSavedTabsSnapshot({
+              parentCategories: toDomainParentCategories(categories),
+            })
           : undefined
 
         // 一括オープンは OpenAllSavedUrlsUseCase に委譲し、
@@ -475,6 +474,7 @@ const useSavedTabsAppView = ({
       }
     },
     [
+      categories,
       settings.openAllInNewWindow,
       settings.removeTabAfterOpen,
       savedTabsUseCases,
@@ -486,16 +486,11 @@ const useSavedTabsAppView = ({
 
   // 単一 TabGroup 削除を DeleteTabGroupUseCase 経由に置き換える。
   // - 削除判断・未参照 URL 削除・対象 TabGroup の storage 書き戻しは
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
   //   use-case に委譲し、UI 側は `chrome.storage.local` の
   //   `savedTabs` 直接 set を持たない。
-  // - Undo snapshot は storage の生データ（`urls` / `urlSubCategories` など
-  //   domain entity 化対象外のリッチフィールドを含む）を保持するため、
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  //   `chrome.storage.local.get` を use-case 呼び出し前に 1 回だけ走らせる。
-  //   復元は `restoreOpenedUrlsSnapshot` 経由で従来通り。
+  // - Undo snapshot は `BuildSavedTabsSnapshotUseCase` 経由で repository
+  //   群から組み立て、`chrome.storage.local.get` の直叩きを撤去する
+  //   （issue #494）。
   // - `handleTabGroupRemoval` / `removeUrlsFromCustomProjectsForGroup` /
   //   `removeDomainFromParentCategories` などは他 storage key を触る
   //   副作用なので、issue 範囲外として従来通り UI 側で実行する。
@@ -503,20 +498,11 @@ const useSavedTabsAppView = ({
     async (id: string) => {
       let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
-        // 削除前にカテゴリ設定と親カテゴリ情報を保存
-        const storageResult =
-          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
-            'savedTabs',
-            'customProjects',
-            'customProjectOrder',
-          ])
-        deleteSnapshot = {
-          ...storageResult,
-          parentCategories: categories,
-        }
-        const savedTabs = getSnapshotSavedTabs(storageResult)
+        // 削除前にカテゴリ設定と親カテゴリ情報を含めた snapshot を取得
+        deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
+          parentCategories: toDomainParentCategories(categories),
+        })
+        const savedTabs = getSnapshotSavedTabs(deleteSnapshot)
         const groupToDelete = savedTabs.find((group) => group.id === id)
         if (!groupToDelete) {
           return
@@ -595,25 +581,14 @@ const useSavedTabsAppView = ({
       }
       let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // 削除前のスナップショットは chrome.storage.local の生データを取り、
-        // Undo 時の storage 全体復元（`customProjects` /
-        // `customProjectOrder` を含む）で使う。`savedTabs` 側の
-        // 削除本体は use-case 側に委譲する。
-        const storageResult =
-          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
-            'savedTabs',
-            'customProjects',
-            'customProjectOrder',
-          ])
-        deleteSnapshot = {
-          ...storageResult,
-          parentCategories: categories,
-        }
-        const savedTabs = getSnapshotSavedTabs(storageResult)
+        // 削除前のスナップショットは `BuildSavedTabsSnapshotUseCase` 経由で
+        // repository 群から組み立て、Undo 時の storage 全体復元
+        // （`customProjects` / `customProjectOrder` を含む）で使う
+        // （issue #494）。`savedTabs` 側の削除本体は use-case 側に委譲する。
+        deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
+          parentCategories: toDomainParentCategories(categories),
+        })
+        const savedTabs = getSnapshotSavedTabs(deleteSnapshot)
 
         const groupsToDelete = savedTabs.filter((group) =>
           ids.includes(group.id),
@@ -700,14 +675,12 @@ const useSavedTabsAppView = ({
     async (groupId: string, url: string) => {
       let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
-        deleteSnapshot =
-          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
-            'savedTabs',
-            'customProjects',
-            'customProjectOrder',
-          ])
+        // Undo 用 snapshot は `BuildSavedTabsSnapshotUseCase` 経由で
+        // repository 群から組み立て、`chrome.storage.local.get` の
+        // 直叩きを撤去する（issue #494）。
+        deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
+          parentCategories: toDomainParentCategories(categories),
+        })
         // 単体 URL 削除は DeleteSavedUrlUseCase 経由に置き換える。
         // TabGroup と未参照 UrlRecord の削除は use-case に委譲し、
         // customProject 側の URL 同期削除は他 storage key を触るため
@@ -739,7 +712,13 @@ const useSavedTabsAppView = ({
         })
       }
     },
-    [refreshTabGroupsWithUrls, savedTabsUseCases, setCustomProjects, t],
+    [
+      categories,
+      refreshTabGroupsWithUrls,
+      savedTabsUseCases,
+      setCustomProjects,
+      t,
+    ],
   )
   const handleDeleteUrls = useCallback(
     async (groupId: string, urls: string[]) => {
@@ -748,14 +727,11 @@ const useSavedTabsAppView = ({
       }
       let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
-        deleteSnapshot =
-          // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-          await chrome.storage.local.get<OpenedUrlsStorageSnapshot>([
-            'savedTabs',
-            'customProjects',
-            'customProjectOrder',
-          ])
+        // Undo 用 snapshot は `BuildSavedTabsSnapshotUseCase` 経由で取得
+        // （issue #494）。
+        deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
+          parentCategories: toDomainParentCategories(categories),
+        })
         // 複数 URL 削除は DeleteSavedUrlsUseCase 経由に置き換える。
         await savedTabsUseCases.deleteSavedUrls({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
@@ -786,7 +762,13 @@ const useSavedTabsAppView = ({
         })
       }
     },
-    [refreshTabGroupsWithUrls, savedTabsUseCases, setCustomProjects, t],
+    [
+      categories,
+      refreshTabGroupsWithUrls,
+      savedTabsUseCases,
+      setCustomProjects,
+      t,
+    ],
   )
   const handleUpdateUrls = useCallback(
     (groupId: string, _updatedUrls: TabGroup['urls']) => {
@@ -934,11 +916,12 @@ const useSavedTabsAppView = ({
       // 新しい順序：カテゴリ分類されたドメイン + 並び替えた未分類ドメイン
       const newTabGroups = [...categorizedDomains, ...tempUncategorizedOrder]
 
-      // ストレージに保存
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      await chrome.storage.local.set({
-        savedTabs: newTabGroups,
+      // 並び替え保存は `ReorderTabGroupsUseCase` 経由で
+      // `TabGroupRepository.saveAll` に委譲し、`chrome.storage.local.set`
+      // の直叩きを撤去する（issue #494）。Repository 実装側の mapper が
+      // `urls` / `urlSubCategories` などのリッチ補助フィールドを持ち越す。
+      await savedTabsUseCases.reorderTabGroups({
+        tabGroups: toDomainTabGroupsForReorder(newTabGroups),
       })
       await refreshTabGroupsWithUrls(newTabGroups)
 
@@ -955,6 +938,7 @@ const useSavedTabsAppView = ({
     categorized,
     tempUncategorizedOrder,
     refreshTabGroupsWithUrls,
+    savedTabsUseCases,
     t,
   ])
   console.log('表示判定デバッグ:')

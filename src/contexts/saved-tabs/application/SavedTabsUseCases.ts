@@ -1,3 +1,4 @@
+import type { BuildSavedTabsSnapshotUseCase } from './use-cases/BuildSavedTabsSnapshotUseCase'
 import type { DeleteSavedUrlsUseCase } from './use-cases/DeleteSavedUrlsUseCase'
 import type { DeleteSavedUrlUseCase } from './use-cases/DeleteSavedUrlUseCase'
 import type { DeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
@@ -5,6 +6,7 @@ import type { DeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
 import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
 
@@ -37,4 +39,6 @@ export interface SavedTabsUseCases {
   readonly restoreOpenedUrlsSnapshot: RestoreOpenedUrlsSnapshotUseCase
   readonly syncCategoryAssignments: SyncCategoryAssignmentsUseCase
   readonly removeUnreferencedUrlRecords: RemoveUnreferencedUrlRecordsUseCase
+  readonly buildSavedTabsSnapshot: BuildSavedTabsSnapshotUseCase
+  readonly reorderTabGroups: ReorderTabGroupsUseCase
 }
