@@ -1,30 +1,22 @@
+import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
 import { createDeleteTabGroupUseCase } from '../../application/use-cases/DeleteTabGroupUseCase'
-import type { DeleteTabGroupUseCase } from '../../application/use-cases/DeleteTabGroupUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
-import type { OpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
-import type { RemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
-import type { RestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import { createSyncCategoryAssignmentsUseCase } from '../../application/use-cases/SyncCategoryAssignmentsUseCase'
-import type { SyncCategoryAssignmentsUseCase } from '../../application/use-cases/SyncCategoryAssignmentsUseCase'
 import type { SavedTabsUseCasesDeps } from './createSavedTabsUseCasesDeps'
 
 /**
  * presentation 層（controller hook / page）へ公開する SavedTabs の
- * 主要 use-case バンドル。
+ * 主要 use-case バンドル interface の re-export。
  *
- * 各 use-case は repository 実装と port 実装を
- * `createSavedTabsUseCasesDeps()` から受け取り、純関数として保持する。
- * React 側はこのバンドルから個別 use-case を取り出して呼び出す。
+ * `SavedTabsUseCases` interface の source of truth は
+ * `application/SavedTabsUseCases.ts` に集約し、ここでは依存先
+ * import を壊さないための型 re-export だけを保つ。`SavedTabsUseCases` を
+ * `infrastructure/composition/` 配下から import している既存テスト
+ * （`useSavedTabsController.test.ts` など）の互換性維持が目的。
  */
-export interface SavedTabsUseCases {
-  readonly openSavedUrl: OpenSavedUrlUseCase
-  readonly deleteTabGroup: DeleteTabGroupUseCase
-  readonly restoreOpenedUrlsSnapshot: RestoreOpenedUrlsSnapshotUseCase
-  readonly syncCategoryAssignments: SyncCategoryAssignmentsUseCase
-  readonly removeUnreferencedUrlRecords: RemoveUnreferencedUrlRecordsUseCase
-}
+export type { SavedTabsUseCases }
 
 /**
  * `SavedTabsUseCasesDeps` から `SavedTabsUseCases` を組み立てる composition 関数。
