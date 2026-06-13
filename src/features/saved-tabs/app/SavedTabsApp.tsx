@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { createSavedTabsPorts } from '@/app/composition/createSavedTabsPorts'
 import { createSavedTabsUseCases } from '@/app/composition/createSavedTabsUseCases'
 import { Toaster } from '@/components/ui/sonner'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { CategoryReorderFooter } from '@/features/saved-tabs/components/Footer'
@@ -503,7 +504,17 @@ const useSavedTabsAppView = ({
     ],
   )
 
-  // HandleDeleteGroup関数を修正
+  // 単一 TabGroup 削除を DeleteTabGroupUseCase 経由に置き換える。
+  // - 削除判断・未参照 URL 削除・対象 TabGroup の storage 書き戻しは
+  //   use-case に委譲し、UI 側は `chrome.storage.local` の
+  //   `savedTabs` 直接 set を持たない。
+  // - Undo snapshot は storage の生データ（`urls` / `urlSubCategories` など
+  //   domain entity 化対象外のリッチフィールドを含む）を保持するため、
+  //   `chrome.storage.local.get` を use-case 呼び出し前に 1 回だけ走らせる。
+  //   復元は `restoreOpenedUrlsSnapshot` 経由で従来通り。
+  // - `handleTabGroupRemoval` / `removeUrlsFromCustomProjectsForGroup` /
+  //   `removeDomainFromParentCategories` などは他 storage key を触る
+  //   副作用なので、issue 範囲外として従来通り UI 側で実行する。
   const handleDeleteGroup = useCallback(
     async (id: string) => {
       let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
@@ -529,14 +540,20 @@ const useSavedTabsAppView = ({
         // 専用の削除前処理関数を呼び出し（インポートした関数を使用）
         await handleTabGroupRemoval(id)
 
+        // 削除判断・未参照 UrlRecord 掃除・savedTabs の書き戻しは
+        // DeleteTabGroupUseCase に委譲する。use-case が見つからない
+        // グループを SavedTabsDomainError で通知するため、UI 側は
+        // 事前に savedTabs から対象グループの存在を保証しておく。
+        await savedTabsUseCases.deleteTabGroup({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          tabGroupId: id as unknown as TabGroupId,
+        })
+
         // グループに属するすべてのURLをカスタムプロジェクトからも削除
         await removeUrlsFromCustomProjectsForGroup(groupToDelete)
 
         // 以降は従来通りの処理
         const updatedGroups = savedTabs.filter((group) => group.id !== id)
-        await chrome.storage.local.set({
-          savedTabs: updatedGroups,
-        })
         await refreshTabGroupsWithUrls(updatedGroups)
 
         // 並び替えモード中の削除処理：一時的な順序からも削除
@@ -579,6 +596,7 @@ const useSavedTabsAppView = ({
       setCustomProjects,
       setCategories,
       t,
+      savedTabsUseCases,
     ],
   )
 

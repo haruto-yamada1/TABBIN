@@ -2807,6 +2807,164 @@ describe('SavedTabsApp custom search', () => {
     })
   })
 
+  it('handleDeleteGroup は DeleteTabGroupUseCase 経由で savedTabs から対象グループを取り除く', async () => {
+    const target: TabGroup = {
+      id: 'group-target',
+      domain: 'target.example.com',
+      urlIds: ['url-target-1', 'url-target-2'],
+    }
+    const other: TabGroup = {
+      id: 'group-other',
+      domain: 'other.example.com',
+      urlIds: ['url-other'],
+    }
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.categoryState.categories = [
+      {
+        id: 'category-1',
+        name: 'Reading',
+        domains: ['group-target'],
+        domainNames: ['target.example.com'],
+      },
+    ]
+    mocked.tabDataState.tabGroups = [target, other]
+    mocked.tabDataState.tabGroupsWithUrls = [target, other]
+
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          // eslint-disable-next-line typescript/require-await
+          get: vi.fn(async () => ({
+            customProjectOrder: [],
+            customProjects: [],
+            savedTabs: [target, other],
+          })),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: {
+        create: vi.fn(),
+      },
+      windows: {
+        create: vi.fn(),
+      },
+      runtime: {
+        getURL: vi.fn(),
+      },
+    } as unknown as typeof chrome
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleDeleteGroup: (id: string) => Promise<void>
+    }
+
+    await domainProps.handleDeleteGroup('group-target')
+
+    // DeleteTabGroupUseCase 経由で savedTabs から対象グループだけ
+    // 取り除かれて保存される。use-case 内の `saveAll` 呼び出しが
+    // chrome.storage.local.set にそのまま伝搬する。
+    expect(chromeSetMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        savedTabs: [other],
+      }),
+    )
+    expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-target')
+    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
+      ['url-target-1', 'url-target-2'],
+      { throwOnError: true },
+    )
+    expect(toast.info).toHaveBeenCalledWith(
+      '削除した2件のタブを保存データに戻せます',
+      expect.objectContaining({
+        action: expect.objectContaining({
+          label: '元に戻す',
+        }),
+      }),
+    )
+  })
+
+  it('handleDeleteGroup は他で参照されている UrlRecord を保持する', async () => {
+    const target: TabGroup = {
+      id: 'group-target',
+      domain: 'target.example.com',
+      urlIds: ['url-shared', 'url-only-target'],
+    }
+    const other: TabGroup = {
+      id: 'group-other',
+      domain: 'other.example.com',
+      urlIds: ['url-shared'],
+    }
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          // eslint-disable-next-line typescript/require-await
+          get: vi.fn(async () => ({
+            customProjectOrder: [],
+            customProjects: [],
+            savedTabs: [target, other],
+          })),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: {
+        create: vi.fn(),
+      },
+      windows: {
+        create: vi.fn(),
+      },
+      runtime: {
+        getURL: vi.fn(),
+      },
+    } as unknown as typeof chrome
+
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.tabDataState.tabGroups = [target, other]
+    mocked.tabDataState.tabGroupsWithUrls = [target, other]
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleDeleteGroup: (id: string) => Promise<void>
+    }
+
+    await domainProps.handleDeleteGroup('group-target')
+
+    // 他で参照されている `url-shared` を持つグループは URL ID として
+    // 残ったまま、TabGroup だけが削除される。DeleteTabGroupUseCase は
+    // 未参照 URL のみを urls から取り除くので、customProject 同期時に
+    // removeUrlIdsFromAllCustomProjects には url-shared は渡されない。
+    expect(removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
+      ['url-shared', 'url-only-target'],
+      { throwOnError: true },
+    )
+    // savedTabs は other だけが残る。url-shared の TabGroup 内
+    // 参照は他グループ側 (`group-other`) に維持される。
+    expect(chromeSetMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        savedTabs: [other],
+      }),
+    )
+  })
+
   it('削除 Undo の復元失敗はエラートーストにする', async () => {
     const group: TabGroup = {
       domain: 'example.com',
@@ -2911,8 +3069,17 @@ describe('SavedTabsApp custom search', () => {
     vi.mocked(removeUrlIdsFromAllCustomProjects).mockRejectedValueOnce(
       new Error('custom sync failed'),
     )
+    // chromeSetMock の呼び出し回数:
+    //   1. DeleteTabGroupUseCase の `tabGroupRepository.removeByIds` 内
+    //      `saveAll` による savedTabs 書き戻し
+    //   2. handleDeleteGroup の catch から呼ばれる `notifyDeleteFailure`
+    //      経由の Undo 復元 (snapshot.get の結果で savedTabs 等を戻す)
+    //   3. handleConfirmUncategorizedReorder の savedTabs 書き戻し
+    // 元の実装では 1, 2 の 2 回だったが、use-case 化で 1 が追加されたため
+    // 2 段目の reject を 3 段目にずらして reorder の失敗を再現する。
     const chromeSetMock = vi
       .fn()
+      .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('order failed'))
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
