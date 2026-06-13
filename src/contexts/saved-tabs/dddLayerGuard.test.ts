@@ -469,4 +469,98 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(source).not.toMatch(/chrome\.storage\./)
     })
   })
+
+  describe('issue #485: presentation/components 配下に layout / scroll / chat bridge が追加されている', () => {
+    const expectedFiles = [
+      'src/contexts/saved-tabs/presentation/components/SavedTabsPresentationLayout.tsx',
+      'src/contexts/saved-tabs/presentation/components/SavedTabsResponsiveLayoutContext.tsx',
+      'src/contexts/saved-tabs/presentation/components/SavedTabsScrollControls.tsx',
+      'src/contexts/saved-tabs/presentation/components/SavedTabsChatWidgetBridge.tsx',
+      'src/contexts/saved-tabs/presentation/components/savedTabsPresentationLayout.helpers.ts',
+    ]
+
+    for (const file of expectedFiles) {
+      it(`${file} が存在する`, () => {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source.length).toBeGreaterThan(0)
+      })
+    }
+
+    it('SavedTabsPresentationLayout は SavedTabsApp / SavedTabsScrollControls / chat bridge を呼び split layout を組み立てる', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/presentation/components/SavedTabsPresentationLayout.tsx',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('SavedTabsApp')
+      expect(source).toContain('SavedTabsScrollControls')
+      expect(source).toContain('SavedTabsChatWidgetBridge')
+      expect(source).toContain('SavedTabsResponsiveLayoutProvider')
+      expect(source).toContain('saved-tabs-page-layout')
+    })
+
+    it('SavedTabsChatWidgetBridge は LazySavedTabsChatWidget 経由で chat widget を読み込む', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/presentation/components/SavedTabsChatWidgetBridge.tsx',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('LazySavedTabsChatWidget')
+      expect(source).toContain("historyVariant='dropdown'")
+    })
+
+    it('presentation/components は chrome.storage / chrome.tabs / chrome.contextMenus / chrome.alarms の直叩きを禁止している', () => {
+      for (const file of expectedFiles) {
+        if (!file.endsWith('.tsx') && !file.endsWith('.ts')) {
+          continue
+        }
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source, `${file} should not call chrome.storage`).not.toMatch(
+          /chrome\.storage\./,
+        )
+        expect(source, `${file} should not call chrome.tabs`).not.toMatch(
+          /chrome\.tabs\./,
+        )
+        expect(
+          source,
+          `${file} should not call chrome.contextMenus`,
+        ).not.toMatch(/chrome\.contextMenus\./)
+        expect(source, `${file} should not call chrome.alarms`).not.toMatch(
+          /chrome\.alarms\./,
+        )
+      }
+    })
+  })
+
+  describe('issue #485: contexts/SavedTabsRoute / SavedTabsPage は旧 features route の再 export ではない', () => {
+    it('contexts/SavedTabsRoute.tsx は features route を re-export していない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/presentation/routes/SavedTabsRoute.tsx',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(
+        /export\s*\{\s*SavedTabsRoute\s*\}\s*from\s+['"]@\/features\/saved-tabs\/routes\/SavedTabsRoute['"]/,
+      )
+      expect(source).toContain('SavedTabsPage')
+      expect(source).toContain('createSavedTabsUseCasesDeps')
+    })
+
+    it('contexts/SavedTabsPage.tsx は SavedTabsPresentationLayout を直接描画する', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/presentation/pages/SavedTabsPage.tsx',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('SavedTabsPresentationLayout')
+    })
+  })
 })
