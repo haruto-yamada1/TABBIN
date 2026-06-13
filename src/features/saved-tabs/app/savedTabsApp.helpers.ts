@@ -1,5 +1,11 @@
 import { toast } from 'sonner'
 
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import { getPageHref } from '@/features/navigation/lib/pageNavigation'
 import {
   removeUrlIdsFromAllCustomProjects,
@@ -18,12 +24,6 @@ interface OpenedUrlsStorageSnapshot {
   customProjects?: CustomProject[]
   parentCategories?: ParentCategory[]
   savedTabs?: TabGroup[]
-}
-interface OpenedUrlsRestorePayload {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs: TabGroup[]
 }
 interface CategoryLookup {
   byId: Map<string, ParentCategory>
@@ -57,61 +57,181 @@ const buildUrlIdsToRemove = (
 
   return urlIdsToRemove
 }
-const createOpenedUrlsRestorePayload = (
+
+/**
+ * 旧 storage 形式の `TabGroup` を domain entity へ詰め替える。
+ *
+ * `urls` / `urlSubCategories` / `subCategories` / `categoryKeywords` /
+ * `subCategoryOrder` などの chrome.storage 上のリッチ補助フィールドは
+ * domain entity に載らないため破棄する。Repository 実装側の mapper が
+ * 既存 raw と `urlIds` の整合を取りつつリッチフィールドを持ち越すため、
+ * 復元時の見た目データは失われない。
+ *
+ * factory が `SavedTabsDomainError` を投げる要素（空 ID や重複 urlId）は
+ * スキップして Undo 対象から除外する。
+ */
+const toDomainTabGroups = (
+  groups: readonly TabGroup[] | undefined,
+): OpenedUrlsRestoreSnapshot['savedTabs'] => {
+  if (!groups || groups.length === 0) {
+    return undefined
+  }
+  const result = []
+  for (const group of groups) {
+    try {
+      result.push(
+        createTabGroup({
+          domain: group.domain,
+          id: group.id,
+          parentCategoryId: group.parentCategoryId,
+          savedAt: group.savedAt,
+          urlIds: group.urlIds ?? [],
+        }),
+      )
+    } catch (error) {
+      if (error instanceof SavedTabsDomainError) {
+        continue
+      }
+      throw error
+    }
+  }
+  return result
+}
+
+const toDomainCustomProjects = (
+  projects: readonly CustomProject[] | undefined,
+): OpenedUrlsRestoreSnapshot['customProjects'] => {
+  if (!projects || projects.length === 0) {
+    return undefined
+  }
+  const result = []
+  for (const project of projects) {
+    try {
+      result.push(
+        createCustomProject({
+          categories: project.categories ?? [],
+          createdAt: project.createdAt,
+          id: project.id,
+          name: project.name,
+          updatedAt: project.updatedAt,
+          urlIds: project.urlIds ?? [],
+        }),
+      )
+    } catch (error) {
+      if (error instanceof SavedTabsDomainError) {
+        continue
+      }
+      throw error
+    }
+  }
+  return result
+}
+
+const toDomainParentCategories = (
+  categories: readonly ParentCategory[] | undefined,
+): OpenedUrlsRestoreSnapshot['parentCategories'] => {
+  if (!categories || categories.length === 0) {
+    return undefined
+  }
+  const result = []
+  for (const category of categories) {
+    try {
+      result.push(
+        createParentCategory({
+          domainNames: category.domainNames ?? [],
+          domains: category.domains ?? [],
+          id: category.id,
+          name: category.name,
+        }),
+      )
+    } catch (error) {
+      if (error instanceof SavedTabsDomainError) {
+        continue
+      }
+      throw error
+    }
+  }
+  return result
+}
+
+/**
+ * 旧 storage スナップショットを `RestoreOpenedUrlsSnapshotUseCase` の
+ * command へ変換する。`customProjectOrder` は use-case DTO に載らない
+ * ため、command には含めず presentation 層で補助的に書き戻す。
+ */
+const toOpenedUrlsRestoreCommand = (
   snapshot: OpenedUrlsStorageSnapshot,
-) => {
-  const customProjects = getSnapshotArray(snapshot.customProjects)
-  const customProjectOrder = getSnapshotArray(snapshot.customProjectOrder)
-  const parentCategories = getSnapshotArray(snapshot.parentCategories)
-  const payload: OpenedUrlsRestorePayload = {
-    savedTabs: getSnapshotSavedTabs(snapshot),
+): OpenedUrlsRestoreSnapshot => {
+  const command: {
+    savedTabs?: OpenedUrlsRestoreSnapshot['savedTabs']
+    customProjects?: OpenedUrlsRestoreSnapshot['customProjects']
+    parentCategories?: OpenedUrlsRestoreSnapshot['parentCategories']
+  } = {}
+  const savedTabs = toDomainTabGroups(snapshot.savedTabs)
+  if (savedTabs) {
+    command.savedTabs = savedTabs
   }
-
+  const customProjects = toDomainCustomProjects(snapshot.customProjects)
   if (customProjects) {
-    payload.customProjects = customProjects
+    command.customProjects = customProjects
   }
-  if (customProjectOrder) {
-    payload.customProjectOrder = customProjectOrder
-  }
+  const parentCategories = toDomainParentCategories(snapshot.parentCategories)
   if (parentCategories) {
-    payload.parentCategories = parentCategories
+    command.parentCategories = parentCategories
   }
-
-  return {
-    customProjects,
-    parentCategories,
-    payload,
-  }
+  return command
 }
 
 const restoreOpenedUrlsSnapshot = async ({
   refreshTabGroupsWithUrls,
+  savedTabsUseCases,
   setCategories,
   setCustomProjects,
   snapshot,
 }: {
   refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
+  savedTabsUseCases: SavedTabsUseCases
   setCategories?: (categories: ParentCategory[]) => void
   setCustomProjects: (projects: CustomProject[]) => void
   snapshot: OpenedUrlsStorageSnapshot
 }) => {
-  const { customProjects, parentCategories, payload } =
-    createOpenedUrlsRestorePayload(snapshot)
+  // 復元本体は RestoreOpenedUrlsSnapshotUseCase に委譲する。
+  // presentation 層は snapshot を domain command へ詰め替えるだけとし、
+  // chrome.storage.local.set の直接呼び出しは customProjectOrder の補助
+  // 書き込みに限定する。
+  const command = toOpenedUrlsRestoreCommand(snapshot)
+  await savedTabsUseCases.restoreOpenedUrlsSnapshot({
+    snapshot: command,
+  })
 
-  await chrome.storage.local.set(payload)
-  if (customProjects) {
-    setCustomProjects(customProjects)
+  // customProjectOrder は RestoreOpenedUrlsSnapshotUseCase の DTO に含まれ
+  // ない（repository interface 未整備のため別 issue 切り出し）ため、
+  // presentation 層で補助的に書き戻す。
+  if (snapshot.customProjectOrder) {
+    await chrome.storage.local.set({
+      customProjectOrder: [...snapshot.customProjectOrder],
+    })
   }
-  if (parentCategories && setCategories) {
-    setCategories(parentCategories)
+
+  // 画面側 state は storage 形状を期待するため、use-case DTO ではなく
+  // 入力 snapshot をそのまま state へ反映する。Repository 側の mapper が
+  // `urls` / `urlSubCategories` などのリッチ補助フィールドを保存時に
+  // 持ち越すため、見た目の欠落は起こらない。
+  if (snapshot.customProjects) {
+    setCustomProjects([...snapshot.customProjects])
   }
-  await refreshTabGroupsWithUrls(payload.savedTabs)
+  if (snapshot.parentCategories && setCategories) {
+    setCategories([...snapshot.parentCategories])
+  }
+  const savedTabs = getSnapshotSavedTabs(snapshot)
+  await refreshTabGroupsWithUrls(savedTabs)
 }
 
 const showOpenedUrlsUndoToast = ({
   count,
   messageKey = 'savedTabs.undo.removedAfterOpen',
   refreshTabGroupsWithUrls,
+  savedTabsUseCases,
   setCategories,
   setCustomProjects,
   snapshot,
@@ -120,6 +240,7 @@ const showOpenedUrlsUndoToast = ({
   count: number
   messageKey?: string
   refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
+  savedTabsUseCases: SavedTabsUseCases
   setCategories?: (categories: ParentCategory[]) => void
   setCustomProjects: (projects: CustomProject[]) => void
   snapshot: OpenedUrlsStorageSnapshot
@@ -137,6 +258,7 @@ const showOpenedUrlsUndoToast = ({
           try {
             await restoreOpenedUrlsSnapshot({
               refreshTabGroupsWithUrls,
+              savedTabsUseCases,
               setCategories,
               setCustomProjects,
               snapshot,
@@ -154,12 +276,14 @@ const showOpenedUrlsUndoToast = ({
 
 const notifyDeleteFailure = async ({
   refreshTabGroupsWithUrls,
+  savedTabsUseCases,
   setCategories,
   setCustomProjects,
   snapshot,
   t,
 }: {
   refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
+  savedTabsUseCases: SavedTabsUseCases
   setCategories?: (categories: ParentCategory[]) => void
   setCustomProjects: (projects: CustomProject[]) => void
   snapshot?: OpenedUrlsStorageSnapshot
@@ -169,6 +293,7 @@ const notifyDeleteFailure = async ({
     try {
       await restoreOpenedUrlsSnapshot({
         refreshTabGroupsWithUrls,
+        savedTabsUseCases,
         setCategories,
         setCustomProjects,
         snapshot,
@@ -586,12 +711,7 @@ const syncSavedTabsViewModeLocation = ({
   window.history.replaceState({}, '', `${nextUrl.pathname}${nextUrl.search}`)
 }
 
-export type {
-  CategoryLookup,
-  CategorySyncState,
-  OpenedUrlsRestorePayload,
-  OpenedUrlsStorageSnapshot,
-}
+export type { CategoryLookup, CategorySyncState, OpenedUrlsStorageSnapshot }
 export {
   buildCategoryLookup,
   buildDisplayTabGroup,

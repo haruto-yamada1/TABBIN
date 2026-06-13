@@ -447,9 +447,23 @@ describe('SavedTabsApp custom search', () => {
     const refreshTabGroupsWithUrls = vi.fn(async () => {
       throw new Error('restore failed')
     })
+    // eslint-disable-next-line typescript/require-await
+    const restoreOpenedUrlsSnapshotUseCase = vi.fn(async () => ({
+      restoredCustomProjects: [],
+      restoredParentCategories: [],
+      restoredTabGroups: [],
+      restoredUrlRecords: [],
+    }))
 
     await notifyDeleteFailure({
       refreshTabGroupsWithUrls,
+      savedTabsUseCases: {
+        deleteTabGroup: vi.fn(),
+        openSavedUrl: vi.fn(),
+        removeUnreferencedUrlRecords: vi.fn(),
+        restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
+        syncCategoryAssignments: vi.fn(),
+      },
       setCustomProjects: vi.fn(),
       snapshot: {
         customProjects: [],
@@ -466,6 +480,13 @@ describe('SavedTabsApp custom search', () => {
 
     await notifyDeleteFailure({
       refreshTabGroupsWithUrls,
+      savedTabsUseCases: {
+        deleteTabGroup: vi.fn(),
+        openSavedUrl: vi.fn(),
+        removeUnreferencedUrlRecords: vi.fn(),
+        restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
+        syncCategoryAssignments: vi.fn(),
+      },
       setCustomProjects: vi.fn(),
       t: (key) => key,
     })
@@ -481,18 +502,151 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome.storage.local.set = chromeSetMock
     const setCustomProjects = vi.fn()
     const refreshTabGroupsWithUrls = vi.fn()
+    // eslint-disable-next-line typescript/require-await
+    const restoreOpenedUrlsSnapshotUseCase = vi.fn(async () => ({
+      restoredCustomProjects: [],
+      restoredParentCategories: [],
+      restoredTabGroups: [],
+      restoredUrlRecords: [],
+    }))
 
     await restoreOpenedUrlsSnapshot({
       refreshTabGroupsWithUrls,
+      savedTabsUseCases: {
+        deleteTabGroup: vi.fn(),
+        openSavedUrl: vi.fn(),
+        removeUnreferencedUrlRecords: vi.fn(),
+        restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
+        syncCategoryAssignments: vi.fn(),
+      },
       setCustomProjects,
       snapshot: {},
     })
 
-    expect(chromeSetMock).toHaveBeenCalledWith({
-      savedTabs: [],
+    expect(restoreOpenedUrlsSnapshotUseCase).toHaveBeenCalledWith({
+      snapshot: {},
     })
+    expect(chromeSetMock).not.toHaveBeenCalled()
     expect(setCustomProjects).not.toHaveBeenCalled()
     expect(refreshTabGroupsWithUrls).toHaveBeenCalledWith([])
+
+    // 不正な id の TabGroup / CustomProject / ParentCategory は
+    // domain factory の SavedTabsDomainError 経由でスキップされる。
+    // chromeSetMock は customProjectOrder 1 件だけ。
+    const captured: unknown[] = []
+    // eslint-disable-next-line typescript/require-await
+    const captureUseCase = vi.fn(async (input: { snapshot: unknown }) => {
+      captured.push(input)
+      return {
+        restoredCustomProjects: [],
+        restoredParentCategories: [],
+        restoredTabGroups: [],
+        restoredUrlRecords: [],
+      }
+    })
+    const refreshTabGroupsWithUrls2 = vi.fn()
+    const setCustomProjects2 = vi.fn()
+    await restoreOpenedUrlsSnapshot({
+      refreshTabGroupsWithUrls: refreshTabGroupsWithUrls2,
+      savedTabsUseCases: {
+        deleteTabGroup: vi.fn(),
+        openSavedUrl: vi.fn(),
+        removeUnreferencedUrlRecords: vi.fn(),
+        restoreOpenedUrlsSnapshot: captureUseCase,
+        syncCategoryAssignments: vi.fn(),
+      },
+      setCustomProjects: setCustomProjects2,
+      snapshot: {
+        customProjects: [
+          // 名前が空のカスタムプロジェクトは SavedTabsDomainError を投げる
+          {
+            categories: [],
+            createdAt: 1,
+            id: 'project-bad',
+            name: '',
+            updatedAt: 1,
+            urlIds: [],
+          },
+          {
+            categories: [],
+            createdAt: 1,
+            id: 'project-good',
+            name: 'Good',
+            updatedAt: 1,
+            urlIds: [],
+          },
+        ],
+        customProjectOrder: ['project-good'],
+        parentCategories: [
+          // domainNames に空文字が含まれる場合は
+          // createParentCategory が SavedTabsDomainError を投げる
+          {
+            domainNames: [''],
+            domains: [],
+            id: 'cat-bad',
+            name: 'Bad',
+          },
+          {
+            domainNames: [],
+            domains: [],
+            id: 'cat-good',
+            name: 'Good',
+          },
+        ],
+        savedTabs: [
+          // id が空文字の TabGroup は SavedTabsDomainError を投げる
+          {
+            domain: 'example.com',
+            id: '',
+            urlIds: ['url-1'],
+          },
+          {
+            domain: 'example.com',
+            id: 'group-good',
+            urlIds: ['url-1'],
+          },
+        ],
+      },
+    })
+
+    expect(captureUseCase).toHaveBeenCalledTimes(1)
+    const command = (captured[0] as { snapshot: unknown }).snapshot as {
+      customProjects: { id: string }[]
+      parentCategories: { id: string }[]
+      savedTabs: { id: string }[]
+    }
+    expect(command.savedTabs.map((g) => g.id)).toStrictEqual(['group-good'])
+    expect(command.customProjects.map((p) => p.id)).toStrictEqual([
+      'project-good',
+    ])
+    expect(command.parentCategories.map((c) => c.id)).toStrictEqual([
+      'cat-good',
+    ])
+    expect(chromeSetMock).toHaveBeenLastCalledWith({
+      customProjectOrder: ['project-good'],
+    })
+    expect(setCustomProjects2).toHaveBeenCalledWith([
+      {
+        categories: [],
+        createdAt: 1,
+        id: 'project-bad',
+        name: '',
+        updatedAt: 1,
+        urlIds: [],
+      },
+      {
+        categories: [],
+        createdAt: 1,
+        id: 'project-good',
+        name: 'Good',
+        updatedAt: 1,
+        urlIds: [],
+      },
+    ])
+    expect(refreshTabGroupsWithUrls2).toHaveBeenCalledWith([
+      { domain: 'example.com', id: '', urlIds: ['url-1'] },
+      { domain: 'example.com', id: 'group-good', urlIds: ['url-1'] },
+    ])
 
     const groupWithoutUrls: TabGroup = {
       domain: 'empty.example.com',
@@ -1266,11 +1420,11 @@ describe('SavedTabsApp custom search', () => {
       | undefined
     await undoOptions?.action?.onClick?.()
 
+    // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
+    // CustomProject / ParentCategory は各 repository の saveAll で個別に
+    // 書き戻される。presentation 層で残るのは customProjectOrder のみ。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
-      customProjects: customProjectsSnapshot,
-      parentCategories: mocked.categoryState.categories,
-      savedTabs: [group],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
       customProjectsSnapshot,
@@ -1577,10 +1731,11 @@ describe('SavedTabsApp custom search', () => {
       | undefined
     await undoOptions?.action?.onClick?.()
 
+    // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
+    // CustomProject は各 repository の saveAll で個別に書き戻される。
+    // presentation 層で残るのは customProjectOrder のみ。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
-      customProjects: customProjectsSnapshot,
-      savedTabs: [group],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
       customProjectsSnapshot,
@@ -1651,10 +1806,12 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteUrl('group-1', 'https://example.com/a')
 
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    // 削除失敗時は catch から `notifyDeleteFailure` が呼ばれ、
+    // RestoreOpenedUrlsSnapshotUseCase 経由で snapshot が復元される。
+    // snapshot の savedTabs が repository.saveAll 経由で書き戻され、
+    // customProjectOrder のみ presentation 層で補助的に書き戻される。
+    expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
-      customProjects: customProjectsSnapshot,
-      savedTabs: [group],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
       customProjectsSnapshot,
@@ -1776,10 +1933,11 @@ describe('SavedTabsApp custom search', () => {
       | undefined
     await undoOptions?.action?.onClick?.()
 
+    // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
+    // CustomProject は各 repository の saveAll で個別に書き戻される。
+    // presentation 層で残るのは customProjectOrder のみ。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
-      customProjects: customProjectsSnapshot,
-      savedTabs: [group1, group2],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
       customProjectsSnapshot,
@@ -2129,11 +2287,11 @@ describe('SavedTabsApp custom search', () => {
       | undefined
     await undoOptions?.action?.onClick?.()
 
+    // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
+    // CustomProject / ParentCategory は各 repository の saveAll で個別に
+    // 書き戻される。presentation 層で残るのは customProjectOrder のみ。
     expect(chromeSetMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
-      customProjects: customProjectsSnapshot,
-      parentCategories: [],
-      savedTabs: [groupWithIds, legacyGroup],
     })
   })
 
@@ -3770,8 +3928,11 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteGroups(['group-1', 'group-2'])
 
+    // 同期削除エラー時は catch から `notifyDeleteFailure` が呼ばれ、
+    // snapshot が RestoreOpenedUrlsSnapshotUseCase 経由で復元される。
+    // snapshot に customProjectOrder は含まれないため
+    // presentation 層からの chrome.storage.local.set は発生しない。
     expect(chromeSetMock).toHaveBeenCalledWith({
-      parentCategories: [],
       savedTabs: [groupWithIds, legacyGroup],
     })
     expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')

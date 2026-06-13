@@ -379,12 +379,13 @@ const useSavedTabsAppView = ({
       showOpenedUrlsUndoToast({
         count: urlIdsToRemove.size,
         refreshTabGroupsWithUrls,
+        savedTabsUseCases,
         setCustomProjects,
         snapshot: storageResult,
         t,
       })
     },
-    [refreshTabGroupsWithUrls, setCustomProjects, t],
+    [refreshTabGroupsWithUrls, savedTabsUseCases, setCustomProjects, t],
   )
 
   // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え。
@@ -439,6 +440,7 @@ const useSavedTabsAppView = ({
           showOpenedUrlsUndoToast({
             count: 1,
             refreshTabGroupsWithUrls,
+            savedTabsUseCases,
             setCustomProjects,
             snapshot,
             t,
@@ -572,6 +574,7 @@ const useSavedTabsAppView = ({
           count: countTabGroupUrls(groupToDelete),
           messageKey: 'savedTabs.undo.deletedTabs',
           refreshTabGroupsWithUrls,
+          savedTabsUseCases,
           setCategories,
           setCustomProjects,
           snapshot: deleteSnapshot,
@@ -582,6 +585,7 @@ const useSavedTabsAppView = ({
       } catch {
         await notifyDeleteFailure({
           refreshTabGroupsWithUrls,
+          savedTabsUseCases,
           setCategories,
           setCustomProjects,
           snapshot: deleteSnapshot,
@@ -593,10 +597,10 @@ const useSavedTabsAppView = ({
       isUncategorizedReorderMode,
       categories,
       refreshTabGroupsWithUrls,
+      savedTabsUseCases,
       setCustomProjects,
       setCategories,
       t,
-      savedTabsUseCases,
     ],
   )
 
@@ -659,6 +663,7 @@ const useSavedTabsAppView = ({
           ),
           messageKey: 'savedTabs.undo.deletedTabs',
           refreshTabGroupsWithUrls,
+          savedTabsUseCases,
           setCategories,
           setCustomProjects,
           snapshot: deleteSnapshot,
@@ -669,6 +674,7 @@ const useSavedTabsAppView = ({
       } catch {
         await notifyDeleteFailure({
           refreshTabGroupsWithUrls,
+          savedTabsUseCases,
           setCategories,
           setCustomProjects,
           snapshot: deleteSnapshot,
@@ -680,6 +686,7 @@ const useSavedTabsAppView = ({
       isUncategorizedReorderMode,
       categories,
       refreshTabGroupsWithUrls,
+      savedTabsUseCases,
       setCustomProjects,
       setCategories,
       t,
@@ -703,6 +710,7 @@ const useSavedTabsAppView = ({
           count: 1,
           messageKey: 'savedTabs.undo.deletedTabs',
           refreshTabGroupsWithUrls,
+          savedTabsUseCases,
           setCustomProjects,
           snapshot: deleteSnapshot,
           t,
@@ -711,13 +719,14 @@ const useSavedTabsAppView = ({
       } catch {
         await notifyDeleteFailure({
           refreshTabGroupsWithUrls,
+          savedTabsUseCases,
           setCustomProjects,
           snapshot: deleteSnapshot,
           t,
         })
       }
     },
-    [refreshTabGroupsWithUrls, setCustomProjects, t],
+    [refreshTabGroupsWithUrls, savedTabsUseCases, setCustomProjects, t],
   )
   const handleDeleteUrls = useCallback(
     async (groupId: string, urls: string[]) => {
@@ -764,6 +773,7 @@ const useSavedTabsAppView = ({
           count: urls.length,
           messageKey: 'savedTabs.undo.deletedTabs',
           refreshTabGroupsWithUrls,
+          savedTabsUseCases,
           setCustomProjects,
           snapshot: deleteSnapshot,
           t,
@@ -771,13 +781,20 @@ const useSavedTabsAppView = ({
       } catch {
         await notifyDeleteFailure({
           refreshTabGroupsWithUrls,
+          savedTabsUseCases,
           setCustomProjects,
           snapshot: deleteSnapshot,
           t,
         })
       }
     },
-    [refreshTabGroupsWithUrls, setCustomProjects, t, tabGroupsWithUrls],
+    [
+      refreshTabGroupsWithUrls,
+      savedTabsUseCases,
+      setCustomProjects,
+      t,
+      tabGroupsWithUrls,
+    ],
   )
   const handleUpdateUrls = useCallback(
     (groupId: string, _updatedUrls: TabGroup['urls']) => {
