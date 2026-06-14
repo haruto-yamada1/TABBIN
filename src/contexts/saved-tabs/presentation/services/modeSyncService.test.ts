@@ -10,14 +10,6 @@ import type {
   ViewMode,
 } from '@/types/storage'
 
-const { invalidateUrlCacheMock } = vi.hoisted(() => ({
-  invalidateUrlCacheMock: vi.fn(),
-}))
-
-vi.mock('@/lib/storage/urls', () => ({
-  invalidateUrlCache: invalidateUrlCacheMock,
-}))
-
 import { syncStorageChanges } from './modeSyncService'
 
 const createProject = (overrides: Partial<CustomProject>): CustomProject => ({
@@ -205,7 +197,8 @@ describe('syncStorageChanges', () => {
       ],
     })
 
-    expect(invalidateUrlCacheMock).toHaveBeenCalledTimes(1)
+    // 旧 `invalidateUrlCache()` の呼び出しは DDD 移行で撤去済み。
+    // cache 無効化は不要（repository 経由の `findAll` は storage から都度読む）。
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith(
       nextSavedTabs,
     )
@@ -256,7 +249,8 @@ describe('syncStorageChanges', () => {
       ],
     })
 
-    expect(invalidateUrlCacheMock).toHaveBeenCalledTimes(1)
+    // 旧 `invalidateUrlCache()` の呼び出しは DDD 移行で撤去済み。
+    // cache 無効化は不要（repository 経由の `findAll` は storage から都度読む）。
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledTimes(1)
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith()
     expect(ctx.spies.syncDomainDataToCustomProjects).not.toHaveBeenCalled()

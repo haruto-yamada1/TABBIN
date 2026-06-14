@@ -11,9 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // esli
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
 
-const { useSortableMock, removeUrlFromTabGroupMock } = vi.hoisted(() => ({
+const { useSortableMock } = vi.hoisted(() => ({
   useSortableMock: vi.fn(),
-  removeUrlFromTabGroupMock: vi.fn(),
 }))
 
 const savedTabsContentI18nState = vi.hoisted(() => ({
@@ -30,10 +29,6 @@ vi.mock('@dnd-kit/utilities', () => ({
       toString: () => undefined,
     },
   },
-}))
-
-vi.mock('@/lib/storage/tabs', () => ({
-  removeUrlFromTabGroup: removeUrlFromTabGroupMock,
 }))
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
@@ -202,7 +197,6 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       transition: undefined,
       isDragging: false,
     })
-    removeUrlFromTabGroupMock.mockResolvedValue(undefined)
 
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
@@ -394,7 +388,6 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       ])
     })
 
-    expect(removeUrlFromTabGroupMock).not.toHaveBeenCalled()
     expect(console.log).toHaveBeenCalled()
   })
 

@@ -167,13 +167,15 @@ export const DomainCardActions = () => {
         </Tooltip>
 
         {/* キーワードモーダル */}
-        {keywordModal.showKeywordModal && (
+        {keywordModal.showKeywordModal && useCases && (
           <CategoryKeywordModal
             group={group}
             isOpen={keywordModal.showKeywordModal}
             onClose={keywordModal.handleCloseKeywordModal}
-            // eslint-disable-next-line typescript/no-misused-promises
-            onSave={handleSaveKeywords}
+            // eslint-disable-next-line typescript/no-misused-promises, react-perf/jsx-no-new-function-as-prop
+            onSave={(...args: [string, string, string[]]) =>
+              handleSaveKeywords(useCases.useCases, ...args)
+            }
             onDeleteCategory={categoryActions.handleCategoryDelete}
             parentCategories={parentCategories.categories}
             onCreateParentCategory={parentCategories.handleCreateParentCategory}
@@ -183,7 +185,7 @@ export const DomainCardActions = () => {
             onUpdateParentCategories={
               parentCategories.handleUpdateParentCategories
             }
-            storageChangePort={useCases?.deps.storageChangePort}
+            storageChangePort={useCases.deps.storageChangePort}
           />
         )}
       </div>

@@ -4,12 +4,18 @@ import { createDeleteSavedUrlsUseCase } from '@/contexts/saved-tabs/application/
 import { createDeleteSavedUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteSavedUrlUseCase'
 import { createDeleteTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteTabGroupsUseCase'
 import { createDeleteTabGroupUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteTabGroupUseCase'
+import { createFindUrlRecordByUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/FindUrlRecordByUrlUseCase'
+import { createLoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupsWithUrlsUseCase'
+import { createLoadTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupUrlsUseCase'
 import { createOpenAllSavedUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import { createReorderTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupsUseCase'
+import { createReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
+import { createSetCategoryKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/SetCategoryKeywordsUseCase'
 import { createSyncCategoryAssignmentsUseCase } from '@/contexts/saved-tabs/application/use-cases/SyncCategoryAssignmentsUseCase'
+import { createLibSetCategoryKeywordsAdapter } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeSetCategoryKeywordsAdapter'
 
 import { createSavedTabsPorts } from './createSavedTabsPorts'
 import { createSavedTabsRepositories } from './createSavedTabsRepositories'
@@ -81,6 +87,15 @@ export const createSavedTabsUseCases = (
       tabGroupRepository: repositories.tabGroupRepository,
       urlRecordRepository: repositories.urlRecordRepository,
     }),
+    findUrlRecordByUrl: createFindUrlRecordByUrlUseCase({
+      urlRecordRepository: repositories.urlRecordRepository,
+    }),
+    loadTabGroupUrls: createLoadTabGroupUrlsUseCase({
+      urlRecordRepository: repositories.urlRecordRepository,
+    }),
+    loadTabGroupsWithUrls: createLoadTabGroupsWithUrlsUseCase({
+      urlRecordRepository: repositories.urlRecordRepository,
+    }),
     openAllSavedUrls: createOpenAllSavedUrlsUseCase({
       browserTabPort: ports.browserTabPort,
       browserWindowPort: ports.browserWindowPort,
@@ -99,6 +114,10 @@ export const createSavedTabsUseCases = (
       tabGroupRepository: repositories.tabGroupRepository,
       urlRecordRepository: repositories.urlRecordRepository,
     }),
+    reorderTabGroupUrls: createReorderTabGroupUrlsUseCase({
+      tabGroupRepository: repositories.tabGroupRepository,
+      urlRecordRepository: repositories.urlRecordRepository,
+    }),
     reorderTabGroups: createReorderTabGroupsUseCase({
       tabGroupRepository: repositories.tabGroupRepository,
     }),
@@ -107,6 +126,9 @@ export const createSavedTabsUseCases = (
       parentCategoryRepository: repositories.parentCategoryRepository,
       tabGroupRepository: repositories.tabGroupRepository,
       urlRecordRepository: repositories.urlRecordRepository,
+    }),
+    setCategoryKeywords: createSetCategoryKeywordsUseCase({
+      setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
     }),
     syncCategoryAssignments: createSyncCategoryAssignmentsUseCase({
       parentCategoryRepository: repositories.parentCategoryRepository,

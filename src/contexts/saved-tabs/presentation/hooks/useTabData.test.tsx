@@ -8,13 +8,13 @@ import { useTabData } from './useTabData'
 
 const {
   getParentCategoriesMock,
-  resolveTabGroupsWithUrlsMock,
+  loadTabGroupsWithUrlsUseCaseMock,
   getUserSettingsMock,
   migrateParentCategoriesToDomainNamesMock,
   migrateToUrlsStorageMock,
 } = vi.hoisted(() => ({
   getParentCategoriesMock: vi.fn().mockResolvedValue([]),
-  resolveTabGroupsWithUrlsMock: vi.fn(),
+  loadTabGroupsWithUrlsUseCaseMock: vi.fn(),
   getUserSettingsMock: vi.fn().mockResolvedValue({} as UserSettings),
   migrateParentCategoriesToDomainNamesMock: vi
     .fn()
@@ -36,9 +36,17 @@ vi.mock('@/lib/storage/settings', () => ({
   getUserSettings: getUserSettingsMock,
 }))
 
-vi.mock('@/lib/storage/tabs', () => ({
-  resolveTabGroupsWithUrls: resolveTabGroupsWithUrlsMock,
-}))
+const renderUseTabData = (
+  onCategoriesLoaded: (categories: ParentCategory[]) => void = vi.fn(),
+  onSettingsLoaded: (settings: UserSettings) => void = vi.fn(),
+) =>
+  renderHook(() =>
+    useTabData({
+      loadTabGroupsWithUrlsUseCase: loadTabGroupsWithUrlsUseCaseMock as never,
+      onCategoriesLoaded,
+      onSettingsLoaded,
+    }),
+  )
 
 describe('useTabData', () => {
   beforeEach(() => {
@@ -47,9 +55,13 @@ describe('useTabData', () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     getParentCategoriesMock.mockReset()
     getParentCategoriesMock.mockResolvedValue([])
-    resolveTabGroupsWithUrlsMock.mockReset()
-    // eslint-disable-next-line typescript/require-await
-    resolveTabGroupsWithUrlsMock.mockImplementation(async (groups) => groups) // eslint-disable-line
+    loadTabGroupsWithUrlsUseCaseMock.mockReset()
+    loadTabGroupsWithUrlsUseCaseMock.mockImplementation(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (command: any) => ({
+        tabGroups: command.tabGroups,
+      }),
+    )
     getUserSettingsMock.mockReset()
     getUserSettingsMock.mockResolvedValue({} as UserSettings)
     migrateParentCategoriesToDomainNamesMock.mockReset()
@@ -167,9 +179,7 @@ describe('useTabData', () => {
     const onCategoriesLoaded = vi.fn()
     const onSettingsLoaded = vi.fn()
 
-    const { result } = renderHook(() =>
-      useTabData(onCategoriesLoaded, onSettingsLoaded),
-    )
+    const { result } = renderUseTabData(onCategoriesLoaded, onSettingsLoaded)
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -220,7 +230,7 @@ describe('useTabData', () => {
       new Error('storage failed'),
     )
 
-    const { result } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+    const { result } = renderUseTabData()
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -260,7 +270,7 @@ describe('useTabData', () => {
       return {}
     })
 
-    const { result } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+    const { result } = renderUseTabData()
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -281,7 +291,7 @@ describe('useTabData', () => {
     ]
     getParentCategoriesMock.mockResolvedValue(validCategories)
 
-    const { result } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+    const { result } = renderUseTabData()
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -298,26 +308,28 @@ describe('useTabData', () => {
       urlIds: ['url-1'],
     }
 
-    resolveTabGroupsWithUrlsMock.mockResolvedValue([
-      {
-        ...group,
-        urls: [
-          {
-            id: 'url-1',
-            url: 'https://example.com/a',
-            title: 'A',
-          },
-        ],
-      },
-    ])
+    loadTabGroupsWithUrlsUseCaseMock.mockResolvedValue({
+      tabGroups: [
+        {
+          ...group,
+          urls: [
+            {
+              id: 'url-1',
+              url: 'https://example.com/a',
+              title: 'A',
+            },
+          ],
+        },
+      ],
+    })
 
-    const { result } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+    const { result } = renderUseTabData()
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    resolveTabGroupsWithUrlsMock.mockClear()
+    loadTabGroupsWithUrlsUseCaseMock.mockClear()
 
     await act(async () => {
       await result.current.refreshTabGroupsWithUrls([group])
@@ -338,8 +350,10 @@ describe('useTabData', () => {
       ])
     })
 
-    expect(resolveTabGroupsWithUrlsMock).toHaveBeenCalledTimes(1)
-    expect(resolveTabGroupsWithUrlsMock).toHaveBeenCalledWith([group])
+    expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledTimes(1)
+    expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledWith({
+      tabGroups: [group],
+    })
   })
 
   it('loadTabGroupsWithUrls は空・新形式・旧形式・URLなしを処理する', async () => {
@@ -364,9 +378,11 @@ describe('useTabData', () => {
         domain: 'empty.example.com',
       },
     ]
-    resolveTabGroupsWithUrlsMock.mockResolvedValueOnce(groups)
+    loadTabGroupsWithUrlsUseCaseMock.mockResolvedValueOnce({
+      tabGroups: groups,
+    })
 
-    const { result } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+    const { result } = renderUseTabData()
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -379,18 +395,21 @@ describe('useTabData', () => {
       result.current.loadTabGroupsWithUrls(groups),
     ).resolves.toStrictEqual(groups)
 
-    expect(resolveTabGroupsWithUrlsMock).toHaveBeenCalledWith(groups)
+    expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledWith({
+      tabGroups: groups,
+    })
   })
 
   it('URL 解決中に unmount されたら tabGroupsWithUrls を更新しない', async () => {
     let resolveGroups: ((groups: TabGroup[]) => void) | undefined
-    resolveTabGroupsWithUrlsMock.mockReturnValue(
+    loadTabGroupsWithUrlsUseCaseMock.mockReturnValue(
       new Promise((resolve) => {
-        resolveGroups = resolve
+        resolveGroups = (groups: TabGroup[]) =>
+          resolve({ tabGroups: groups } as never)
       }),
     )
 
-    const { result, unmount } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+    const { result, unmount } = renderUseTabData()
 
     unmount()
 
@@ -438,7 +457,7 @@ describe('useTabData', () => {
       return {}
     })
 
-    const { result } = renderHook(() => useTabData(vi.fn(), vi.fn()))
+    const { result } = renderUseTabData()
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)

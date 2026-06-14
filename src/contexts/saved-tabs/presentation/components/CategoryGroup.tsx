@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
 
 import { CategoryGroupActions } from './category-group/CategoryGroupActions'
@@ -34,7 +35,14 @@ const CategoryGroupComponent = ({
   settings,
   isCategoryReorderMode = false,
   searchQuery = '',
-}: CategoryGroupProps) => {
+  reorderTabGroupUrlsUseCase,
+}: CategoryGroupProps & {
+  /**
+   * URL 並び替え use-case。`@/lib/storage/tabs.reorderTabGroupUrls`
+   * 直叩きを置換（issue #501）。
+   */
+  reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
+}) => {
   const handlers = useMemo(
     () => ({
       handleDeleteCategory,
@@ -70,6 +78,7 @@ const CategoryGroupComponent = ({
       isCategoryReorderMode={isCategoryReorderMode}
       searchQuery={searchQuery}
       handlers={handlers}
+      reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
     >
       <CategoryGroupHeader>
         <div className='flex grow items-center gap-2'>

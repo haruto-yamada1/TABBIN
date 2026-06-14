@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
@@ -107,7 +108,12 @@ describe('CategoryGroup', () => {
   it('CategoryGroupRoot に handlers とデフォルト値を渡し、構成要素を描画する', () => {
     const props = createProps()
 
-    render(<CategoryGroup {...props} />)
+    render(
+      <CategoryGroup
+        {...props}
+        reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
+      />,
+    )
 
     expect(categoryGroupRootSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -146,6 +152,7 @@ describe('CategoryGroup', () => {
           isCategoryReorderMode: true,
           searchQuery: 'example',
         })}
+        reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
       />,
     )
 

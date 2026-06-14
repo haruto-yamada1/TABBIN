@@ -8,6 +8,7 @@ import { createSavedTabsUseCases } from '../composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '../composition/createSavedTabsUseCasesDeps'
 import { createChromeCustomProjectRepository } from './chrome-storage/ChromeCustomProjectRepository'
 import { createChromeParentCategoryRepository } from './chrome-storage/ChromeParentCategoryRepository'
+import { createLibSetCategoryKeywordsAdapter } from './chrome-storage/ChromeSetCategoryKeywordsAdapter'
 import { createChromeTabGroupRepository } from './chrome-storage/ChromeTabGroupRepository'
 import type { ChromeStorageLocalPort } from './chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUrlRecordRepository } from './chrome-storage/ChromeUrlRecordRepository'
@@ -121,6 +122,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     customProjectRepository: createChromeCustomProjectRepository(port),
     notificationPort: notification.notificationPort,
     parentCategoryRepository: createChromeParentCategoryRepository(port),
+    setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
     storageChangePort: {
       subscribe: () => () => {},
     },
@@ -344,6 +346,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         customProjectRepository: createChromeCustomProjectRepository(port),
         notificationPort: notification.notificationPort,
         parentCategoryRepository: createChromeParentCategoryRepository(port),
+        setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
         storageChangePort: {
           subscribe: () => () => {},
         },

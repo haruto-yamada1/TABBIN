@@ -2,6 +2,8 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+
 import type { DomainCardContextType } from './DomainCardContext'
 
 const { useDomainCardStateMock, useSortableMock, useDndMonitorMock } =
@@ -146,6 +148,7 @@ describe('DomainCardRoot', () => {
         }}
         categoryId='parent-1'
         handlers={defaultHandlers}
+        reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
       >
         <Consumer />
       </DomainCardRoot>,
@@ -195,6 +198,7 @@ describe('DomainCardRoot', () => {
           colors: {},
         }}
         handlers={defaultHandlers}
+        reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
       >
         <Consumer />
       </DomainCardRoot>,

@@ -15,7 +15,6 @@ import {
   organizeTabGroupsWithCategories,
 } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
@@ -40,7 +39,6 @@ import {
   moveUrlBetweenCustomProjects,
 } from '@/lib/storage/projects'
 import { defaultSettings } from '@/lib/storage/settings'
-import { getUrlRecords } from '@/lib/storage/urls'
 import type {
   ParentCategory,
   TabGroup,
@@ -154,7 +152,11 @@ const useSavedTabsAppView = ({
   >([])
 
   const categoryState = useCategoryManagement()
-  const tabDataState = useTabData(categoryState.setCategories, setSettings)
+  const tabDataState = useTabData({
+    loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,
+    onCategoriesLoaded: categoryState.setCategories,
+    onSettingsLoaded: setSettings,
+  })
   const projectState = useProjectManagement(
     tabDataState.tabGroups,
     settings,
@@ -202,8 +204,8 @@ const useSavedTabsAppView = ({
     [categories],
   )
   // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え。
-  // - URL → urlRecordId は `getUrlRecords()` から逆引きし、見つからない
-  //   旧データは `browserTabPort` で開くだけのフォールバックを取る。
+  // - URL → urlRecordId は `findUrlRecordByUrlUseCase` から逆引きし、
+  //   見つからない旧データは `browserTabPort` で開くだけのフォールバックを取る。
   // - `removeTabAfterOpen` が true のときは、`BuildSavedTabsSnapshotUseCase`
   //   経由で削除前 snapshot を取得して既存の Undo トースト経路と接続する
   //   （issue #494 で `chrome.storage.local.get` 直叩きを撤去）。
@@ -213,10 +215,9 @@ const useSavedTabsAppView = ({
   const handleOpenTab = useCallback(
     async (url: string) => {
       try {
-        const urlRecords = await getUrlRecords()
-        const targetRecord = urlRecords.find((record) => record.url === url)
+        const lookup = await savedTabsUseCases.findUrlRecordByUrl({ url })
 
-        if (!targetRecord) {
+        if (!lookup.record) {
           // urlRecord に登録されていない URL（旧データなど）は
           // browserTabPort 経由で開くだけにとどめ、削除処理はスキップする。
           await deps.browserTabPort.open({ url })
@@ -229,8 +230,7 @@ const useSavedTabsAppView = ({
             })
           : undefined
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        const urlRecordId = targetRecord.id as unknown as UrlRecordId
+        const urlRecordId = lookup.record.id
         const result = await savedTabsUseCases.openSavedUrl({
           origin: 'click',
           settings: {
@@ -385,7 +385,10 @@ const useSavedTabsAppView = ({
         })
 
         // グループに属するすべてのURLをカスタムプロジェクトからも削除
-        await removeUrlsFromCustomProjectsForGroup(groupToDelete)
+        await removeUrlsFromCustomProjectsForGroup(
+          groupToDelete,
+          savedTabsUseCases,
+        )
 
         // 以降は従来通りの処理
         const updatedGroups = savedTabs.filter((group) => group.id !== id)
@@ -480,7 +483,10 @@ const useSavedTabsAppView = ({
 
         // customProject 側の URL ID 同期削除は他 storage key を触る
         // ため、issue 範囲外として従来通り UI 側で実行する。
-        await removeUrlsFromCustomProjectsForGroups(groupsToDelete)
+        await removeUrlsFromCustomProjectsForGroups(
+          groupsToDelete,
+          savedTabsUseCases,
+        )
 
         const idSet = new Set(ids)
         const updatedGroups = savedTabs.filter((group) => !idSet.has(group.id))
@@ -988,6 +994,7 @@ const useSavedTabsAppView = ({
         uncategorizedForDisplay={uncategorizedForDisplay}
         handleUncategorizedDragEnd={handleUncategorizedDragEnd}
         hasContentTabGroupsCount={hasContentTabGroups.length}
+        reorderTabGroupUrlsUseCase={savedTabsUseCases.reorderTabGroupUrls}
       />
     ) : (
       <CustomModeContainer

@@ -23,8 +23,14 @@ import { useCategoryGroup } from './CategoryGroupContext'
  * 折りたたみ時は何も表示しない
  */
 export const CategoryGroupContent = () => {
-  const { state, category, settings, searchQuery, handlers } =
-    useCategoryGroup()
+  const {
+    state,
+    category,
+    settings,
+    searchQuery,
+    handlers,
+    reorderTabGroupUrlsUseCase,
+  } = useCategoryGroup()
   const { collapse, sort, reorder } = state
 
   // DnDのセンサー設定
@@ -79,6 +85,7 @@ export const CategoryGroupContent = () => {
               settings={settings}
               isReorderMode={reorder.isReorderMode}
               searchQuery={searchQuery}
+              reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
             />
           ))}
         </SortableContext>

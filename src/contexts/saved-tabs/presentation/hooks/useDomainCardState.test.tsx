@@ -26,10 +26,6 @@ vi.mock('@/lib/storage/migration', () => ({
   assignDomainToCategory: vi.fn(),
 }))
 
-vi.mock('@/lib/storage/tabs', () => ({
-  removeUrlFromTabGroup: vi.fn().mockResolvedValue(undefined),
-}))
-
 vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
@@ -67,7 +63,6 @@ import {
   getParentCategories,
 } from '@/lib/storage/categories'
 import { assignDomainToCategory } from '@/lib/storage/migration'
-import { removeUrlFromTabGroup } from '@/lib/storage/tabs'
 
 const createGroup = (): TabGroup => ({
   id: 'group-1',
@@ -88,8 +83,6 @@ describe('useDomainCardState', () => {
     vi.mocked(getParentCategories).mockResolvedValue([])
     vi.mocked(createParentCategory).mockReset()
     vi.mocked(assignDomainToCategory).mockReset()
-    vi.mocked(removeUrlFromTabGroup).mockReset()
-    vi.mocked(removeUrlFromTabGroup).mockResolvedValue(undefined)
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0)
       return 1
@@ -207,13 +200,14 @@ describe('useDomainCardState', () => {
       'https://example.com/news-1',
       'https://example.com/news-2',
     ])
-    expect(removeUrlFromTabGroup).not.toHaveBeenCalled()
   })
 
-  it('bulk delete handler がないときは個別削除にフォールバックする', async () => {
+  it('bulk delete handler がないときは deleteSingleUrl フォールバックを使う', async () => {
+    const deleteSingleUrl = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() =>
       useDomainCardState({
         group: createGroup(),
+        deleteSingleUrl,
         handleDeleteCategory: vi.fn(),
         isReorderMode: false,
       }),
@@ -233,13 +227,13 @@ describe('useDomainCardState', () => {
       )
     })
 
-    expect(removeUrlFromTabGroup).toHaveBeenCalledTimes(2)
-    expect(removeUrlFromTabGroup).toHaveBeenNthCalledWith(
+    expect(deleteSingleUrl).toHaveBeenCalledTimes(2)
+    expect(deleteSingleUrl).toHaveBeenNthCalledWith(
       1,
       'group-1',
       'https://example.com/news-1',
     )
-    expect(removeUrlFromTabGroup).toHaveBeenNthCalledWith(
+    expect(deleteSingleUrl).toHaveBeenNthCalledWith(
       2,
       'group-1',
       'https://example.com/news-2',
@@ -270,7 +264,6 @@ describe('useDomainCardState', () => {
     })
 
     expect(handleDeleteUrls).not.toHaveBeenCalled()
-    expect(removeUrlFromTabGroup).not.toHaveBeenCalled()
   })
 
   it('URLを保存時刻で昇順/降順に並べてカテゴリ別に返す', async () => {
@@ -817,12 +810,13 @@ describe('useDomainCardState', () => {
     vi.mocked(assignDomainToCategory).mockRejectedValueOnce(
       new Error('assign failed'),
     )
-    vi.mocked(removeUrlFromTabGroup).mockRejectedValueOnce(
-      new Error('delete failed'),
-    )
+    const deleteSingleUrl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('delete failed'))
 
     const { result } = renderHook(() =>
       useDomainCardState({
+        deleteSingleUrl,
         group: createGroup(),
         isReorderMode: false,
       }),

@@ -6,6 +6,7 @@ import {
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
+import type { SetCategoryKeywordsPort } from '../../application/ports/SetCategoryKeywordsPort'
 import type { StorageChangePort } from '../../application/ports/StorageChangePort'
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
@@ -17,6 +18,7 @@ import { createChromeStorageChangeAdapter } from '../browser/ChromeStorageChange
 import { createSonnerNotificationAdapter } from '../browser/SonnerNotificationAdapter'
 import { createChromeCustomProjectRepository } from '../persistence/chrome-storage/ChromeCustomProjectRepository'
 import { createChromeParentCategoryRepository } from '../persistence/chrome-storage/ChromeParentCategoryRepository'
+import { createLibSetCategoryKeywordsAdapter } from '../persistence/chrome-storage/ChromeSetCategoryKeywordsAdapter'
 import { createChromeTabGroupRepository } from '../persistence/chrome-storage/ChromeTabGroupRepository'
 import { createChromeUrlRecordRepository } from '../persistence/chrome-storage/ChromeUrlRecordRepository'
 
@@ -33,6 +35,7 @@ export interface SavedTabsUseCasesDeps {
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository
   readonly parentCategoryRepository: ParentCategoryRepository
+  readonly setCategoryKeywordsPort: SetCategoryKeywordsPort
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
   readonly notificationPort: NotificationPort
@@ -128,6 +131,7 @@ export const createSavedTabsUseCasesDeps = (
     customProjectRepository: createChromeCustomProjectRepository(port),
     notificationPort: createSonnerNotificationAdapter(),
     parentCategoryRepository: createChromeParentCategoryRepository(port),
+    setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
     storageChangePort: createChromeStorageChangeAdapter({
       getApi: () => getChromeApi(),
     }),

@@ -22,6 +22,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import {
   getScopedNounActionLabel,
   getScopedObjectActionLabel,
@@ -97,6 +98,11 @@ const openTabsWithConfirm = ({
 type SortableCategorySectionViewProps = SortableCategorySectionProps & {
   settings: UserSettings
   handleDeleteAllTabs?: (urls: { url: string }[]) => void
+  /**
+   * URL 並び替え use-case。`@/lib/storage/tabs.reorderTabGroupUrls`
+   * 直叩きを置換（issue #501）。
+   */
+  reorderTabGroupUrlsUseCase?: ReorderTabGroupUrlsUseCase
 }
 
 const useSortableCategorySectionView = ({
@@ -107,6 +113,7 @@ const useSortableCategorySectionView = ({
   settings,
   stickyTop = 'top-16', // デフォルト値を設定
   isReorderMode = false, // 並び替えモード状態
+  reorderTabGroupUrlsUseCase,
   ...props
 }: SortableCategorySectionViewProps) => {
   const { t } = useI18n()
@@ -337,6 +344,7 @@ const useSortableCategorySectionView = ({
             urls={sortedUrls}
             settings={settings}
             scrollTarget={false}
+            reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
           />
         )}
       </div>

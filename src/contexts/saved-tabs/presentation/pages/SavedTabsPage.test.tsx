@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
+import type { SetCategoryKeywordsPort } from '../../application/ports/SetCategoryKeywordsPort'
 import { createCustomProject } from '../../domain/entities/CustomProject'
 import { createTabGroup } from '../../domain/entities/TabGroup'
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
@@ -129,12 +130,16 @@ const createInMemoryDeps = (input: {
     info: vi.fn(),
     success: vi.fn(),
   }
+  const setCategoryKeywordsPort: SetCategoryKeywordsPort = {
+    setCategoryKeywords: vi.fn().mockResolvedValue(undefined),
+  }
   return {
     browserTabPort,
     browserWindowPort,
     customProjectRepository,
     notificationPort,
     parentCategoryRepository,
+    setCategoryKeywordsPort,
     storageChangePort: {
       subscribe: () => () => {},
     },

@@ -8,6 +8,7 @@ import {
 } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 const domainModeI18nState = vi.hoisted(() => ({
@@ -151,6 +152,7 @@ const createProps = () => ({
   uncategorizedForDisplay: [] as TabGroup[],
   handleUncategorizedDragEnd: vi.fn(),
   hasContentTabGroupsCount: 0,
+  reorderTabGroupUrlsUseCase: vi.fn<ReorderTabGroupUrlsUseCase>(),
 })
 
 const uncategorizedGroups: TabGroup[] = [

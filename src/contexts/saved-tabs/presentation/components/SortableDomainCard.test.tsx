@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
 import type { TabGroup, UserSettings } from '@/types/storage'
 
@@ -99,7 +100,12 @@ describe('SortableDomainCard', () => {
   it('DomainCardRoot に handlers とデフォルト値を渡し、構成要素を描画する', () => {
     const props = createProps()
 
-    render(<SortableDomainCard {...props} />)
+    render(
+      <SortableDomainCard
+        {...props}
+        reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
+      />,
+    )
 
     expect(domainCardRootSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -136,6 +142,7 @@ describe('SortableDomainCard', () => {
           isReorderMode: true,
           searchQuery: 'example',
         })}
+        reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
       />,
     )
 
