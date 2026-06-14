@@ -29,6 +29,16 @@
             "type": "command"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|apply_patch",
+        "hooks": [
+          {
+            "command": "./scripts/format-check-on-edit.sh",
+            "timeout": 60,
+            "type": "command"
+          }
+        ]
       }
     ],
     "PreToolUse": [
