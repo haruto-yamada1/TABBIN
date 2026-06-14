@@ -10,6 +10,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Toaster } from '@/components/ui/sonner'
+import {
+  buildPresentationCategoryLookup,
+  organizeTabGroupsWithCategories,
+} from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
@@ -45,11 +49,9 @@ import type {
 } from '@/types/storage'
 
 import {
-  buildCategoryLookup,
   buildDisplayTabGroup,
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
-  filterGroupByQuery,
   getDisplayUrlCount,
   getSnapshotSavedTabs,
   notifyDeleteFailure,
@@ -57,153 +59,14 @@ import {
   removeUrlsFromCustomProjectsForGroups,
   shouldWaitForInitialViewMode,
   showOpenedUrlsUndoToast,
-  sortCategorizedGroups,
   syncSavedTabsViewModeLocation,
   toDomainParentCategories,
   toDomainTabGroupsForReorder,
 } from './savedTabsApp.helpers'
-import type {
-  CategoryLookup,
-  OpenedUrlsStorageSnapshot,
-} from './savedTabsApp.helpers'
+import type { OpenedUrlsStorageSnapshot } from './savedTabsApp.helpers'
 
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
-
-const hasDisplayableUrls = (group: TabGroup): boolean => {
-  const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
-  const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
-  console.log(
-    `フィルタチェック ${group.domain}: urlIds=${group.urlIds?.length ?? 0}, urls=${group.urls?.length ?? 0}, 表示=${hasNewUrls || hasOldUrls}`, // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: boolean values; false should not be treated as "not set"
-  )
-  return hasNewUrls || hasOldUrls
-}
-const pushGroupToCategory = (
-  categorizedGroups: Record<string, TabGroup[]>,
-  categoryId: string,
-  group: TabGroup,
-): void => {
-  if (!categorizedGroups[categoryId]) {
-    categorizedGroups[categoryId] = []
-  }
-  const categorizedGroup =
-    group.parentCategoryId === categoryId
-      ? group
-      : {
-          ...group,
-          parentCategoryId: categoryId,
-        }
-  categorizedGroups[categoryId].push(categorizedGroup)
-}
-const tryCategorizeById = (
-  group: TabGroup,
-  categoryLookup: CategoryLookup,
-  categorizedGroups: Record<string, TabGroup[]>,
-): boolean => {
-  const category = categoryLookup.byGroupId.get(group.id)
-  if (category) {
-    pushGroupToCategory(categorizedGroups, category.id, group)
-    if (group.parentCategoryId !== category.id) {
-      console.log(
-        `ドメイン ${group.domain} のparentCategoryIdをIDベースで ${category.id} に更新しました`,
-      )
-    }
-    console.log(
-      `ドメイン ${group.domain} はIDベースで ${category.name} に分類されました`,
-    )
-    return true
-  }
-  return false
-}
-const tryCategorizeByDomainName = (
-  group: TabGroup,
-  categoryLookup: CategoryLookup,
-  categorizedGroups: Record<string, TabGroup[]>,
-): boolean => {
-  const category = categoryLookup.byDomainName.get(group.domain)
-  if (category) {
-    pushGroupToCategory(categorizedGroups, category.id, group)
-    console.log(
-      `ドメイン ${group.domain} はドメイン名ベースで ${category.name} に分類されました`,
-    )
-    console.log(
-      `ドメイン ${group.domain} のparentCategoryIdを ${category.id} に設定しました`,
-    )
-    return true
-  }
-  return false
-}
-const organizeTabGroupsWithCategories = ({
-  enableCategories,
-  tabGroupsWithUrls,
-  categoryLookup,
-  searchQuery,
-}: {
-  enableCategories: boolean
-  tabGroupsWithUrls: TabGroup[]
-  categoryLookup: CategoryLookup
-  searchQuery: string
-}): {
-  categorized: Record<string, TabGroup[]>
-  uncategorized: TabGroup[]
-} => {
-  if (!enableCategories) {
-    return {
-      categorized: {},
-      uncategorized: tabGroupsWithUrls,
-    }
-  }
-  console.log('親カテゴリ一覧:', [...categoryLookup.byId.values()])
-  console.log('organizeTabGroups開始:')
-  console.log('- tabGroupsWithUrls:', tabGroupsWithUrls)
-  console.log('- tabGroupsWithUrls.length:', tabGroupsWithUrls.length)
-  const categorizedGroups: Record<string, TabGroup[]> = {}
-  const uncategorizedGroups: TabGroup[] = []
-  const normalizedQuery = searchQuery.trim().toLowerCase()
-  const hasSearchQuery = normalizedQuery.length > 0
-  const groupsToOrganize = tabGroupsWithUrls.reduce<TabGroup[]>(
-    (groups, group) => {
-      const nextGroup = hasSearchQuery
-        ? filterGroupByQuery(group, normalizedQuery, categoryLookup)
-        : group
-      if (hasDisplayableUrls(nextGroup)) {
-        groups.push(nextGroup)
-      }
-      return groups
-    },
-    [],
-  )
-  console.log('groupsToOrganize:', groupsToOrganize)
-  console.log('groupsToOrganize.length:', groupsToOrganize.length)
-  for (const group of groupsToOrganize) {
-    const categorizedById = tryCategorizeById(
-      group,
-      categoryLookup,
-      categorizedGroups,
-    )
-    if (categorizedById) {
-      continue
-    }
-    const categorizedByDomainName = tryCategorizeByDomainName(
-      group,
-      categoryLookup,
-      categorizedGroups,
-    )
-    if (!categorizedByDomainName) {
-      uncategorizedGroups.push(group)
-      console.log(`ドメイン ${group.domain} は未分類です`)
-    }
-  }
-  sortCategorizedGroups(categorizedGroups, categoryLookup)
-  console.log('organizeTabGroups結果:')
-  console.log('- categorizedGroups:', categorizedGroups)
-  console.log('- uncategorizedGroups:', uncategorizedGroups)
-  console.log('- uncategorizedGroups.length:', uncategorizedGroups.length)
-  return {
-    categorized: categorizedGroups,
-    uncategorized: uncategorizedGroups,
-  }
-}
 
 /**
  * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
@@ -335,7 +198,7 @@ const useSavedTabsAppView = ({
     handleRenameCategory,
   } = projectState
   const categoryLookup = useMemo(
-    () => buildCategoryLookup(categories),
+    () => buildPresentationCategoryLookup(categories),
     [categories],
   )
   // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え。

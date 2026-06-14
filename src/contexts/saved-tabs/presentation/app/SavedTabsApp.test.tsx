@@ -424,20 +424,22 @@ const SavedTabsApp = ImportedSavedTabsApp as unknown as React.ComponentType<{
   onViewModeNavigate?: (mode: 'custom' | 'domain') => void
 }>
 import {
-  buildCategoryLookup,
+  buildPresentationCategoryLookup,
+  organizeTabGroupsWithCategories,
+} from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
+
+import {
   buildDisplayTabGroup,
   buildUpdatedGroupAfterUrlIdRemoval,
   buildUrlIdsToRemove,
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
-  filterGroupByQuery,
   filterGroupsByExcludedIds,
   getDisplayUrlCount,
   notifyDeleteFailure,
   removeUrlsFromCustomProjectsForGroup,
   removeUrlsFromCustomProjectsForGroups,
   restoreOpenedUrlsSnapshot,
-  sortCategorizedGroups,
   syncGroupCategoryAssignment,
 } from './savedTabsApp.helpers'
 
@@ -499,7 +501,7 @@ describe('SavedTabsApp custom search', () => {
       ),
     ).toStrictEqual(new Set(['url-a']))
 
-    const categoryLookup = buildCategoryLookup([
+    const categoryLookup = buildPresentationCategoryLookup([
       {
         domainNames: ['extra.example.com'],
         domains: ['group-ordered'],
@@ -507,8 +509,10 @@ describe('SavedTabsApp custom search', () => {
         name: 'Ordered',
       },
     ])
-    const categorized = {
-      'category-1': [
+    const sortedResult = organizeTabGroupsWithCategories({
+      categoryLookup,
+      enableCategories: true,
+      tabGroupsWithUrls: [
         { domain: 'extra.example.com', id: 'group-extra', urlIds: ['url-b'] },
         {
           domain: 'ordered.example.com',
@@ -516,14 +520,11 @@ describe('SavedTabsApp custom search', () => {
           urlIds: ['url-a'],
         },
       ],
-    }
+    })
 
-    sortCategorizedGroups(categorized, categoryLookup)
-
-    expect(categorized['category-1']).toStrictEqual([
-      expect.objectContaining({ id: 'group-ordered' }),
-      expect.objectContaining({ id: 'group-extra' }),
-    ])
+    expect(
+      sortedResult.categorized['category-1']?.map((group) => group.id),
+    ).toStrictEqual(['group-ordered', 'group-extra'])
 
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     // eslint-disable-next-line typescript/require-await
@@ -736,11 +737,18 @@ describe('SavedTabsApp custom search', () => {
       domain: 'empty.example.com',
       id: 'group-empty',
     }
-    expect(
-      filterGroupByQuery(groupWithoutUrls, 'reading', buildCategoryLookup([])),
-    ).toBe(groupWithoutUrls)
+    // searchQuery 指定で URLs 空のグループは表示対象から除外される
+    // (issue #496: domain service の organizeTabGroupsWithCategories 経由で確認)。
+    const filteredEmpty = organizeTabGroupsWithCategories({
+      categoryLookup: buildPresentationCategoryLookup([]),
+      enableCategories: true,
+      searchQuery: 'reading',
+      tabGroupsWithUrls: [groupWithoutUrls],
+    })
+    expect(filteredEmpty.categorized).toStrictEqual({})
+    expect(filteredEmpty.uncategorized).toStrictEqual([])
 
-    const duplicateLookup = buildCategoryLookup([
+    const duplicateLookup = buildPresentationCategoryLookup([
       {
         domainNames: ['duplicate.example.com'],
         domains: ['duplicate-group'],
@@ -760,22 +768,23 @@ describe('SavedTabsApp custom search', () => {
     expect(duplicateLookup.byDomainName.get('duplicate.example.com')?.id).toBe(
       'category-a',
     )
-    expect(
-      filterGroupByQuery(
+    // 'nomatch' でマッチしない URL は検索結果から除外される
+    // (issue #496: domain service の organizeTabGroupsWithCategories 経由で確認)。
+    const filteredNoMatch = organizeTabGroupsWithCategories({
+      categoryLookup: duplicateLookup,
+      enableCategories: true,
+      searchQuery: 'nomatch',
+      tabGroupsWithUrls: [
         {
           domain: 'other.example.com',
           id: 'duplicate-group',
           parentCategoryId: 'category-a',
           urls: [{ title: 'Other', url: 'https://other.example.com' }],
         },
-        'nomatch',
-        duplicateLookup,
-      ),
-    ).toStrictEqual(
-      expect.objectContaining({
-        urls: [],
-      }),
-    )
+      ],
+    })
+    expect(filteredNoMatch.categorized).toStrictEqual({})
+    expect(filteredNoMatch.uncategorized).toStrictEqual([])
 
     expect(
       countTabGroupUrls({ domain: 'ids.example.com', id: 'ids', urlIds: [] }),
@@ -899,7 +908,7 @@ describe('SavedTabsApp custom search', () => {
         domain: 'example.com',
         id: 'group-1',
       },
-      buildCategoryLookup(state.updatedCategories),
+      buildPresentationCategoryLookup(state.updatedCategories),
       state,
     )
 
@@ -980,53 +989,45 @@ describe('SavedTabsApp custom search', () => {
     expect(removeUrlsFromAllCustomProjects).not.toHaveBeenCalled()
   })
 
-  it('helper はカテゴリ順序にない先頭グループを末尾へ送る', () => {
-    const categoryLookup = buildCategoryLookup([
+  it('helper はカテゴリ順序に合わせてグループを並べる', () => {
+    // 旧 `sortCategorizedGroups` の挙動確認 (categorized 内の sort) は
+    // domain 側の `organizeTabGroupsWithCategories` 経由で同等確認する。
+    // 入力は domains に登録された id のみとし、categorized に push される
+    // 状態を作る (issue #496: sortCategorizedGroups は domain へ移設)。
+    const categoryLookup = buildPresentationCategoryLookup([
       {
         domainNames: [],
-        domains: ['group-a', 'group-b'],
+        domains: ['group-a', 'group-b', 'group-c'],
         id: 'category-1',
         name: 'Ordered',
       },
     ])
-    const categorized = {
-      'category-1': [
-        { domain: 'unknown.example.com', id: 'group-unknown', urlIds: ['u'] },
+    const sortedResult = organizeTabGroupsWithCategories({
+      categoryLookup,
+      enableCategories: true,
+      tabGroupsWithUrls: [
+        { domain: 'c.example.com', id: 'group-c', urlIds: ['c'] },
         { domain: 'b.example.com', id: 'group-b', urlIds: ['b'] },
         { domain: 'a.example.com', id: 'group-a', urlIds: ['a'] },
       ],
-    }
-
-    sortCategorizedGroups(categorized, categoryLookup)
-
-    expect(categorized['category-1'].map((group) => group.id)).toStrictEqual([
+    })
+    const sortedGroups = sortedResult.categorized['category-1'] ?? []
+    expect(sortedGroups.map((group) => group.id)).toStrictEqual([
       'group-a',
       'group-b',
-      'group-unknown',
+      'group-c',
     ])
 
-    const categorizedWithUnknownLast = {
-      'category-1': [
-        { domain: 'a.example.com', id: 'group-a', urlIds: ['a'] },
-        { domain: 'unknown.example.com', id: 'group-unknown', urlIds: ['u'] },
-      ],
-    }
-    sortCategorizedGroups(categorizedWithUnknownLast, categoryLookup)
     expect(
-      categorizedWithUnknownLast['category-1'].map((group) => group.id),
-    ).toStrictEqual(['group-a', 'group-unknown'])
-
-    expect(
-      filterGroupsByExcludedIds(
-        categorized['category-1'],
-        new Set(['group-b']),
-      ).map((group) => group.id),
-    ).toStrictEqual(['group-a', 'group-unknown'])
+      filterGroupsByExcludedIds(sortedGroups, new Set(['group-b'])).map(
+        (group) => group.id,
+      ),
+    ).toStrictEqual(['group-a', 'group-c'])
     expect(
       createFilterGroupsByExcludedIdsUpdater(new Set(['group-a']))(
-        categorized['category-1'],
+        sortedGroups,
       ).map((group) => group.id),
-    ).toStrictEqual(['group-b', 'group-unknown'])
+    ).toStrictEqual(['group-b', 'group-c'])
   })
 
   it('プロジェクト名一致で対象プロジェクトだけを表示する', async () => {

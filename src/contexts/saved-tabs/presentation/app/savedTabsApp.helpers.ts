@@ -4,6 +4,7 @@ import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/applicatio
 import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { ParentCategory as DomainParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { PresentationCategoryLookup } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import { getPageHref } from '@/features/navigation/lib/pageNavigation'
 import {
@@ -25,11 +26,6 @@ import type {
  * インターフェースが一致するようになった（issue #494）。
  */
 type OpenedUrlsStorageSnapshot = OpenedUrlsRestoreSnapshot
-interface CategoryLookup {
-  byId: Map<string, ParentCategory>
-  byGroupId: Map<string, ParentCategory>
-  byDomainName: Map<string, ParentCategory>
-}
 type RefreshTabGroupsWithUrls = (
   groups: TabGroup[],
   // eslint-disable-next-line typescript/no-invalid-void-type
@@ -266,31 +262,6 @@ const notifyDeleteFailure = async ({
   toast.error(t('savedTabs.deleteError'))
 }
 
-const buildCategoryLookup = (categories: ParentCategory[]): CategoryLookup => {
-  const byId = new Map<string, ParentCategory>()
-  const byGroupId = new Map<string, ParentCategory>()
-  const byDomainName = new Map<string, ParentCategory>()
-
-  for (const category of categories) {
-    byId.set(category.id, category)
-    for (const domainId of category.domains) {
-      if (!byGroupId.has(domainId)) {
-        byGroupId.set(domainId, category)
-      }
-    }
-    for (const domainName of category.domainNames) {
-      if (!byDomainName.has(domainName)) {
-        byDomainName.set(domainName, category)
-      }
-    }
-  }
-
-  return {
-    byDomainName,
-    byGroupId,
-    byId,
-  }
-}
 const countTabGroupUrls = (group: TabGroup): number =>
   group.urlIds?.length ?? group.urls?.length ?? 0
 const getDisplayUrlCount = (group: TabGroup): number =>
@@ -302,105 +273,6 @@ const buildDisplayTabGroup = (project: CustomProject): TabGroup =>
     urls: project.urls ?? [],
     urlIds: project.urlIds ?? [],
   }) as TabGroup
-const matchesParentCategoryQuery = (
-  group: TabGroup,
-  categoryLookup: CategoryLookup,
-  query: string,
-): boolean => {
-  if (group.parentCategoryId) {
-    const parentCategory = categoryLookup.byId.get(group.parentCategoryId)
-    if (parentCategory) {
-      const matched = parentCategory.name.toLowerCase().includes(query)
-      console.log(
-        `親カテゴリ検索デバッグ: ドメイン ${group.domain}, 親カテゴリ「${parentCategory.name}」, クエリ「${query}」, マッチ: ${matched}`,
-      )
-      if (matched) {
-        return true
-      }
-    } else {
-      console.log(
-        `親カテゴリ検索デバッグ: ドメイン ${group.domain}, parentCategoryId ${group.parentCategoryId} に対応するカテゴリが見つかりません`,
-      )
-    }
-  }
-  const fallbackCategory =
-    // `||` needed: Map.get() could return empty string
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
-    categoryLookup.byGroupId.get(group.id) ||
-    categoryLookup.byDomainName.get(group.domain)
-  if (fallbackCategory) {
-    const matched = fallbackCategory.name.toLowerCase().includes(query)
-    if (matched) {
-      console.log(
-        `親カテゴリ検索デバッグ（リアルタイム）: ドメイン ${group.domain}, 親カテゴリ「${fallbackCategory.name}」, クエリ「${query}」, マッチ: ${matched}`,
-      )
-      return true
-    }
-  }
-  if (!group.parentCategoryId) {
-    console.log(
-      `親カテゴリ検索デバッグ: ドメイン ${group.domain}, parentCategoryIdが未設定かつカテゴリマッチなし`,
-    )
-  }
-  return false
-}
-const filterGroupByQuery = (
-  group: TabGroup,
-  normalizedQuery: string,
-  categoryLookup: CategoryLookup,
-): TabGroup => {
-  const currentUrls = group.urls ?? []
-  if (currentUrls.length === 0) {
-    return group
-  }
-  const parentCategoryMatched = matchesParentCategoryQuery(
-    group,
-    categoryLookup,
-    normalizedQuery,
-  )
-  const filteredUrls = currentUrls.filter((item) => {
-    const matchesBasicFields =
-      item.title.toLowerCase().includes(normalizedQuery) ||
-      item.url.toLowerCase().includes(normalizedQuery) ||
-      group.domain.toLowerCase().includes(normalizedQuery)
-    const matchesSubCategory = item.subCategory
-      ?.toLowerCase()
-      .includes(normalizedQuery)
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- boolean values; false should not fall through
-    return matchesBasicFields || matchesSubCategory || parentCategoryMatched
-  })
-  if (filteredUrls.length === currentUrls.length) {
-    return group
-  }
-  return {
-    ...group,
-    urls: filteredUrls,
-  }
-}
-const sortCategorizedGroups = (
-  categorizedGroups: Record<string, TabGroup[]>,
-  categoryLookup: CategoryLookup,
-): void => {
-  for (const categoryId of Object.keys(categorizedGroups)) {
-    const category = categoryLookup.byId.get(categoryId)
-    const domains = category?.domains
-    if (!(domains && domains.length > 0)) {
-      continue
-    }
-    const domainOrder = new Map(domains.map((domain, index) => [domain, index]))
-    categorizedGroups[categoryId].sort((a, b) => {
-      const indexA = domainOrder.get(a.id) ?? -1
-      const indexB = domainOrder.get(b.id) ?? -1
-      if (indexA === -1) {
-        return 1
-      }
-      if (indexB === -1) {
-        return -1
-      }
-      return indexA - indexB
-    })
-  }
-}
 const filterGroupsByExcludedIds = (
   groups: TabGroup[],
   idsToExclude: Set<string>,
@@ -497,7 +369,7 @@ const updateSavedTabParentCategory = (
   )
 const syncGroupCategoryAssignment = (
   group: TabGroup,
-  categoryLookup: CategoryLookup,
+  categoryLookup: PresentationCategoryLookup,
   state: CategorySyncState,
 ): CategorySyncState => {
   const idBasedCategory = categoryLookup.byGroupId.get(group.id)
@@ -671,15 +543,13 @@ const syncSavedTabsViewModeLocation = ({
   window.history.replaceState({}, '', `${nextUrl.pathname}${nextUrl.search}`)
 }
 
-export type { CategoryLookup, CategorySyncState, OpenedUrlsStorageSnapshot }
+export type { CategorySyncState, OpenedUrlsStorageSnapshot }
 export {
-  buildCategoryLookup,
   buildDisplayTabGroup,
   buildUpdatedGroupAfterUrlIdRemoval,
   buildUrlIdsToRemove,
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
-  filterGroupByQuery,
   filterGroupsByExcludedIds,
   getDisplayUrlCount,
   getSnapshotSavedTabs,
@@ -691,7 +561,6 @@ export {
   restoreOpenedUrlsSnapshot,
   shouldWaitForInitialViewMode,
   showOpenedUrlsUndoToast,
-  sortCategorizedGroups,
   syncGroupCategoryAssignment,
   syncSavedTabsViewModeLocation,
   toDomainParentCategories,
