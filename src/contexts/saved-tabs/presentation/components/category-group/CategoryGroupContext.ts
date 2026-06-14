@@ -1,5 +1,6 @@
 import type { useSortable } from '@dnd-kit/sortable'
 
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
@@ -39,6 +40,11 @@ export interface CategoryGroupContextType {
     handleMoveDomainToCategory: CategoryGroupProps['handleMoveDomainToCategory']
     handleDeleteCategory: CategoryGroupProps['handleDeleteCategory']
   }
+  /**
+   * URL 並び替え use-case。`@/lib/storage/tabs.reorderTabGroupUrls`
+   * 直叩きを置換（issue #501）。
+   */
+  reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
 }
 
 export const {

@@ -27,6 +27,11 @@ interface DomainCardRootProps {
   handlers: DomainCardContextType['handlers']
   /** カテゴリ削除ハンドラ */
   handleDeleteCategory?: (groupId: string, categoryName: string) => void
+  /**
+   * URL 並び替え use-case。`@/lib/storage/tabs.reorderTabGroupUrls`
+   * 直叩きを置換（issue #501）。
+   */
+  reorderTabGroupUrlsUseCase: DomainCardContextType['reorderTabGroupUrlsUseCase']
   /** 子コンポーネント */
   children: React.ReactNode
 }
@@ -44,6 +49,7 @@ export const DomainCardRoot = ({
   searchQuery = '',
   handlers,
   handleDeleteCategory,
+  reorderTabGroupUrlsUseCase,
   children,
 }: DomainCardRootProps) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -83,6 +89,7 @@ export const DomainCardRoot = ({
       group,
       handlers,
       isReorderMode,
+      reorderTabGroupUrlsUseCase,
       searchQuery,
       settings,
       sortable: { attributes, listeners },
@@ -100,6 +107,7 @@ export const DomainCardRoot = ({
       attributes,
       listeners,
       handlers,
+      reorderTabGroupUrlsUseCase,
     ],
   )
 

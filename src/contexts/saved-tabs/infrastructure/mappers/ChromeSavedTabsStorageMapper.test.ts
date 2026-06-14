@@ -392,6 +392,45 @@ describe('ChromeSavedTabsStorageMapper', () => {
       ])
     })
 
+    it('toSavedTabRaw は original.domain が schemeful 形式ならそれを持ち越す（issue #501 review P1）', () => {
+      // 既存 chrome.storage には `https://example.com` のようにスキーム付き
+      // で書き込まれているケースがある。entity 化時に hostname 形式
+      // （`example.com`）へ正規化されるが、書き戻し時にスキーム付きへ戻して
+      // おかないと `getTabDomain()`（`src/lib/storage/migration.ts`）が
+      // 生成する schemeful 形式と一致しなくなり重複グループが発生する。
+      const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
+        domain: 'https://example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toSavedTabRaw(entity, {
+        domain: 'https://example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      })
+      expect(raw.domain).toBe('https://example.com')
+    })
+
+    it('toSavedTabRaw は original が無い場合 entity.domain をそのまま書き出す', () => {
+      // original が無い新規エンティティは entity 側の正規化済み domain を
+      // そのまま書き出す（既存挙動と互換）。
+      const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toSavedTabRaw(entity)
+      expect(raw.domain).toBe('example.com')
+    })
+
     it('toParentCategoryRaw は domains / domainNames をコピーして保持する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
         domainNames: ['example.com'],
@@ -406,6 +445,31 @@ describe('ChromeSavedTabsStorageMapper', () => {
       const raw = ChromeSavedTabsStorageMapper.toParentCategoryRaw(entity)
       expect(raw.domains).toStrictEqual(['group-1'])
       expect(raw.domainNames).toStrictEqual(['example.com'])
+    })
+
+    it('toParentCategoryRaw は original.domainNames が schemeful 形式ならそれを持ち越す（issue #501 review P1 同根）', () => {
+      // `assignDomainToCategory` が tabGroup.domain（schemeful）を
+      // category.domainNames に追加するため、既存 chrome.storage には
+      // schemeful 形式で書き込まれているケースがある。entity 化時に
+      // hostname 形式へ正規化されるが、書き戻し時に original 側の
+      // schemeful 形式を持ち越す。
+      const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
+        domainNames: ['https://example.com'],
+        domains: ['group-1'],
+        id: 'cat-1',
+        name: 'Docs',
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toParentCategoryRaw(entity, {
+        domainNames: ['https://example.com'],
+        domains: ['group-1'],
+        id: 'cat-1',
+        name: 'Docs',
+      })
+      expect(raw.domainNames).toStrictEqual(['https://example.com'])
     })
 
     it('toCustomProjectRaw は categories / urlIds をコピーして保持する', () => {

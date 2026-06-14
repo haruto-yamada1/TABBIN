@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
 
@@ -34,7 +35,15 @@ const SortableDomainCardComponent = ({
   settings,
   isReorderMode = false,
   searchQuery = '',
-}: SortableDomainCardProps & { settings: UserSettings }) => {
+  reorderTabGroupUrlsUseCase,
+}: SortableDomainCardProps & {
+  settings: UserSettings
+  /**
+   * URL 並び替え use-case。`@/lib/storage/tabs.reorderTabGroupUrls`
+   * 直叩きを置換（issue #501）。
+   */
+  reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
+}) => {
   const handlers = useMemo(
     () => ({
       handleDeleteGroup,
@@ -65,6 +74,7 @@ const SortableDomainCardComponent = ({
       searchQuery={searchQuery}
       handlers={handlers}
       handleDeleteCategory={handleDeleteCategory}
+      reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
     >
       <DomainCardHeader>
         <DomainCardCollapseControl />

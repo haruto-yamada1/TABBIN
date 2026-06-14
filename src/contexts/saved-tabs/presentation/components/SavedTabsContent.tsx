@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { removeUrlsFromTabGroup } from '@/lib/storage/tabs'
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 import type { UserSettings } from '@/types/storage'
 
@@ -25,6 +24,7 @@ import { CategorySection } from './TimeRemaining'
 const BULK_OPEN_THRESHOLD = 10
 
 // 並び替え可能なカテゴリセクションコンポーネント
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const SortableCategorySection = ({
   id,
   handleOpenAllTabs,
@@ -52,6 +52,10 @@ export const SortableCategorySection = ({
 
   /**
    * カテゴリ内の全タブを削除する処理（確認済みの場合に呼び出す）
+   *
+   * `handleDeleteAllTabs` が指定されていればそれを呼ぶ。`@/lib/storage/tabs`
+   * 直叩きフォールバックは issue #501 で撤去済み（presentation 層は
+   * use-case / repository 経由で削除する）。
    */
   const executeDeleteAllTabs = useCallback(async () => {
     if (isDeleting) {
@@ -65,7 +69,11 @@ export const SortableCategorySection = ({
         // eslint-disable-next-line typescript/no-confusing-void-expression
         await handleDeleteAllTabs(urlsToDelete) // eslint-disable-line typescript/await-thenable
       } else {
-        await removeUrlsFromTabGroup(props.groupId, urlsToRemove)
+        // 削除ハンドラ未指定時は no-op（presentation 層から
+        // `@/lib/storage/tabs.removeUrlsFromTabGroup` を直叩きしない）。
+        console.warn(
+          '[SavedTabsContent] handleDeleteAllTabs が未指定のため、URL 削除をスキップしました',
+        )
       }
       console.log(
         `カテゴリ「${categoryDisplayName}」から${urlsToRemove.length}件のURLを削除しました`,
@@ -75,13 +83,7 @@ export const SortableCategorySection = ({
     } finally {
       setIsDeleting(false)
     }
-  }, [
-    categoryDisplayName,
-    handleDeleteAllTabs,
-    isDeleting,
-    props.groupId,
-    urls,
-  ])
+  }, [categoryDisplayName, handleDeleteAllTabs, isDeleting, urls])
 
   // 削除ボタンクリック時の処理
   const onDeleteAllTabs = useCallback((e: React.MouseEvent) => {

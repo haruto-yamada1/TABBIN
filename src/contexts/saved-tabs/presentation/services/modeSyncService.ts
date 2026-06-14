@@ -1,7 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { z } from 'zod'
 
-import { invalidateUrlCache } from '@/lib/storage/urls'
 import {
   CustomProjectSchema,
   ParentCategorySchema,
@@ -276,10 +275,6 @@ const applyTabsAndUrlsChanges = async (
   const savedTabsChange = findChange(changes, 'savedTabs')
   const urlsChange = findChange(changes, 'urls')
 
-  if (urlsChange) {
-    invalidateUrlCache()
-  }
-
   if (savedTabsChange) {
     const nextSavedTabs = Array.isArray(savedTabsChange.newValue)
       ? safeParseArrayFromStorage(TabGroupSchema, savedTabsChange.newValue)
@@ -290,6 +285,12 @@ const applyTabsAndUrlsChanges = async (
   }
 
   if (urlsChange) {
+    // 旧 `invalidateUrlCache()` 相当の処理は DDD 移行で不要。
+    // `UrlRecordRepository`（chrome impl）は `findAll` 呼び出しごとに
+    // `chrome.storage.local.get` を直接実行するため、cache 無効化は
+    // 必要ない（`chrome.storage.onChanged` 経由の最新値を即時読む）。
+    // ここでは `refreshTabGroupsWithUrls()` のみ呼んで urlRecords を
+    // 取り直させれば十分（issue #501）。
     await refreshTabGroupsWithUrls()
   }
 }

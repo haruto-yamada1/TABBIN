@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
+import type { SetCategoryKeywordsPort } from '../../application/ports/SetCategoryKeywordsPort'
 import { createCustomProject } from '../../domain/entities/CustomProject'
 import type { CustomProject } from '../../domain/entities/CustomProject'
 import { createTabGroup } from '../../domain/entities/TabGroup'
@@ -148,6 +149,9 @@ const createEmptyDeps = (
     info: notifySpy,
     success: notifySpy,
   }
+  const setCategoryKeywordsPort: SetCategoryKeywordsPort = {
+    setCategoryKeywords: vi.fn().mockResolvedValue(undefined),
+  }
   return {
     deps: {
       browserTabPort,
@@ -156,6 +160,7 @@ const createEmptyDeps = (
         createInMemoryRepositories().customProjectRepository,
       notificationPort,
       parentCategoryRepository,
+      setCategoryKeywordsPort,
       storageChangePort: {
         subscribe: () => () => {},
       },

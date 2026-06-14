@@ -7,14 +7,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
+import type { LoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupsWithUrlsUseCase'
 import { getParentCategories } from '@/lib/storage/categories'
 import {
   migrateParentCategoriesToDomainNames,
   migrateToUrlsStorage,
 } from '@/lib/storage/migration'
 import { getUserSettings } from '@/lib/storage/settings'
-import { resolveTabGroupsWithUrls } from '@/lib/storage/tabs'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+
+/** UseTabData フックの引数 */
+interface UseTabDataParams {
+  /** URL 解決用 use-case。presentation 層が `loadTabGroupsWithUrls` 相当の操作で `@/lib/storage/tabs` を直接呼ばないようにするための依存注入ポイント。 */
+  readonly loadTabGroupsWithUrlsUseCase: LoadTabGroupsWithUrlsUseCase
+  /** 初回ロード時にカテゴリが確定したときに呼び出されるコールバック */
+  readonly onCategoriesLoaded: (categories: ParentCategory[]) => void
+  /** 初回ロード時にユーザー設定が確定したときに呼び出されるコールバック */
+  readonly onSettingsLoaded: (settings: UserSettings) => void
+}
 
 /** UseTabData フックの戻り値型 */
 interface UseTabDataReturn {
@@ -138,14 +148,18 @@ const repairSavedTabParentCategoryIds = (
  * タブグループデータの管理フック。
  * マイグレーション実行・初回ロード・URL解決・ストレージ変更連携を担う。
  *
- * @param onCategoriesLoaded - 初回ロード時にカテゴリが確定したときに呼び出されるコールバック
- * @param onSettingsLoaded   - 初回ロード時にユーザー設定が確定したときに呼び出されるコールバック
+ * `loadTabGroupsWithUrlsUseCase` を介して URL 解決を委譲する
+ * （旧 `@/lib/storage/tabs.resolveTabGroupsWithUrls` 直叩きを置換、
+ * issue #501）。
+ *
+ * @param params - フック引数（use-case / ロード完了コールバック）
  * @returns UseTabDataReturn
  */
-const useTabData = (
-  onCategoriesLoaded: (categories: ParentCategory[]) => void,
-  onSettingsLoaded: (settings: UserSettings) => void,
-): UseTabDataReturn => {
+const useTabData = ({
+  loadTabGroupsWithUrlsUseCase,
+  onCategoriesLoaded,
+  onSettingsLoaded,
+}: UseTabDataParams): UseTabDataReturn => {
   const [{ isLoading, tabGroups, tabGroupsWithUrls }, setTabData] = useState({
     isLoading: true,
     tabGroups: [] as TabGroup[],
@@ -175,6 +189,12 @@ const useTabData = (
     onSettingsLoadedRef.current = onSettingsLoaded
   }, [onSettingsLoaded])
 
+  // use-case 参照を ref で保持（useCallback の依存安定性のため）
+  const loadTabGroupsWithUrlsUseCaseRef = useRef(loadTabGroupsWithUrlsUseCase)
+  useEffect(() => {
+    loadTabGroupsWithUrlsUseCaseRef.current = loadTabGroupsWithUrlsUseCase
+  }, [loadTabGroupsWithUrlsUseCase])
+
   /**
    * タブグループ配列に対して各グループの URL をストレージから取得する。
    * @param groups - 対象のタブグループ配列
@@ -186,7 +206,8 @@ const useTabData = (
         return []
       }
       console.log('タブグループのURL取得を開始...')
-      const groupsWithUrls = await resolveTabGroupsWithUrls(groups)
+      const { tabGroups: groupsWithUrls } =
+        await loadTabGroupsWithUrlsUseCaseRef.current({ tabGroups: groups })
       for (const group of groupsWithUrls) {
         if (group.urlIds && group.urlIds.length > 0) {
           console.log(
@@ -200,7 +221,7 @@ const useTabData = (
         }
         console.log(`グループ ${group.domain}: URLなし`)
       }
-      return groupsWithUrls
+      return [...groupsWithUrls]
     },
     [],
   )

@@ -14,6 +14,7 @@ import {
 import { useCallback } from 'react'
 
 import { CardContent } from '@/components/ui/card'
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { SortableCategorySection } from '@/contexts/saved-tabs/presentation/components/SortableCategorySection'
 import { CategorySection } from '@/contexts/saved-tabs/presentation/components/TimeRemaining'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -39,6 +40,7 @@ interface CategorySectionItemProps {
   settings: UserSettings
   stickyTop: string
   isCategoryReorderMode: boolean
+  reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
 }
 
 const CategorySectionItem = ({
@@ -53,6 +55,7 @@ const CategorySectionItem = ({
   settings,
   stickyTop,
   isCategoryReorderMode,
+  reorderTabGroupUrlsUseCase,
 }: CategorySectionItemProps) => {
   const handleDeleteAllTabs = useCallback(
     (deleteUrls: { url: string }[]) => {
@@ -75,6 +78,7 @@ const CategorySectionItem = ({
       settings={settings}
       stickyTop={stickyTop}
       isReorderMode={isCategoryReorderMode}
+      reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
     />
   )
 }
@@ -86,7 +90,14 @@ const CategorySectionItem = ({
  */
 export const DomainCardContent = () => {
   const { t } = useI18n()
-  const { state, group, settings, categoryId, handlers } = useDomainCard()
+  const {
+    state,
+    group,
+    settings,
+    categoryId,
+    handlers,
+    reorderTabGroupUrlsUseCase,
+  } = useDomainCard()
   const { collapse, categoryReorder, computed, categoryActions } = state
 
   // DnDのセンサー設定
@@ -135,6 +146,7 @@ export const DomainCardContent = () => {
           handleUpdateUrls={handlers.handleUpdateUrls}
           handleOpenAllTabs={handlers.handleOpenAllTabs}
           settings={settings}
+          reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
         />
       </CardContent>
     )
@@ -174,6 +186,7 @@ export const DomainCardContent = () => {
                 settings={settings}
                 stickyTop={categorySectionStickyTop}
                 isCategoryReorderMode={categoryReorder.isCategoryReorderMode}
+                reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
               />
             )
           })}

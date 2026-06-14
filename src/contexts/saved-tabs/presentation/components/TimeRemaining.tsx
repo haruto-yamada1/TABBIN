@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { useState } from 'react'
 
-import { reorderTabGroupUrls } from '@/lib/storage/tabs'
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { CategorySectionProps } from '@/types/saved-tabs'
 
 import { SortableUrlItem } from './SortableUrlItem'
@@ -32,7 +32,14 @@ export const CategorySection = ({
   handleUpdateUrls,
   scrollTarget = true,
   settings,
-}: CategorySectionProps) => {
+  reorderTabGroupUrlsUseCase,
+}: CategorySectionProps & {
+  /**
+   * URL 並び替え use-case。`@/lib/storage/tabs.reorderTabGroupUrls`
+   * 直叩きを置換（issue #501）。未指定時は並び替えを no-op とする。
+   */
+  reorderTabGroupUrlsUseCase?: ReorderTabGroupUrlsUseCase
+}) => {
   const urlsKey = urls.map((item) => item.url).join('\0')
   const [optimisticOrder, setOptimisticOrder] = useState<{
     sourceKey: string
@@ -68,11 +75,14 @@ export const CategorySection = ({
         setOptimisticOrder({ sourceKey: urlsKey, urls: newUrls })
 
         try {
-          // 新形式のURL並び替え関数を呼び出し
-          await reorderTabGroupUrls(
-            groupId,
-            newUrls.map((item) => item.url),
-          )
+          if (reorderTabGroupUrlsUseCase) {
+            // 新形式のURL並び替え use-case を呼び出し
+            await reorderTabGroupUrlsUseCase({
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+              tabGroupId: groupId as never,
+              newUrlOrder: newUrls.map((item) => item.url),
+            })
+          }
 
           // 親コンポーネントに通知してUIを更新
           handleUpdateUrls(groupId, newUrls)

@@ -4,11 +4,16 @@ import { createDeleteSavedUrlsUseCase } from '../../application/use-cases/Delete
 import { createDeleteSavedUrlUseCase } from '../../application/use-cases/DeleteSavedUrlUseCase'
 import { createDeleteTabGroupsUseCase } from '../../application/use-cases/DeleteTabGroupsUseCase'
 import { createDeleteTabGroupUseCase } from '../../application/use-cases/DeleteTabGroupUseCase'
+import { createFindUrlRecordByUrlUseCase } from '../../application/use-cases/FindUrlRecordByUrlUseCase'
+import { createLoadTabGroupsWithUrlsUseCase } from '../../application/use-cases/LoadTabGroupsWithUrlsUseCase'
+import { createLoadTabGroupUrlsUseCase } from '../../application/use-cases/LoadTabGroupUrlsUseCase'
 import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import { createReorderTabGroupsUseCase } from '../../application/use-cases/ReorderTabGroupsUseCase'
+import { createReorderTabGroupUrlsUseCase } from '../../application/use-cases/ReorderTabGroupUrlsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
+import { createSetCategoryKeywordsUseCase } from '../../application/use-cases/SetCategoryKeywordsUseCase'
 import { createSyncCategoryAssignmentsUseCase } from '../../application/use-cases/SyncCategoryAssignmentsUseCase'
 import type { SavedTabsUseCasesDeps } from './createSavedTabsUseCasesDeps'
 
@@ -66,6 +71,15 @@ export const createSavedTabsUseCases = (
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
   }),
+  findUrlRecordByUrl: createFindUrlRecordByUrlUseCase({
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
+  loadTabGroupUrls: createLoadTabGroupUrlsUseCase({
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
+  loadTabGroupsWithUrls: createLoadTabGroupsWithUrlsUseCase({
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
   openAllSavedUrls: createOpenAllSavedUrlsUseCase({
     browserTabPort: deps.browserTabPort,
     browserWindowPort: deps.browserWindowPort,
@@ -84,6 +98,10 @@ export const createSavedTabsUseCases = (
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
   }),
+  reorderTabGroupUrls: createReorderTabGroupUrlsUseCase({
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
   reorderTabGroups: createReorderTabGroupsUseCase({
     tabGroupRepository: deps.tabGroupRepository,
   }),
@@ -92,6 +110,9 @@ export const createSavedTabsUseCases = (
     parentCategoryRepository: deps.parentCategoryRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
+  }),
+  setCategoryKeywords: createSetCategoryKeywordsUseCase({
+    setCategoryKeywordsPort: deps.setCategoryKeywordsPort,
   }),
   syncCategoryAssignments: createSyncCategoryAssignmentsUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,

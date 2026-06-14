@@ -98,6 +98,9 @@ const buildLayoutComposition = () => {
       }),
     },
     notificationPort: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+    setCategoryKeywordsPort: {
+      setCategoryKeywords: vi.fn().mockResolvedValue(undefined),
+    },
     storageChangePort: {
       subscribe: () => () => {},
     },

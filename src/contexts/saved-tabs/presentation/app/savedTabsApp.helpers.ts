@@ -11,7 +11,6 @@ import {
   removeUrlIdsFromAllCustomProjects,
   removeUrlsFromAllCustomProjects,
 } from '@/lib/storage/projects'
-import { getTabGroupUrls } from '@/lib/storage/tabs'
 import type {
   CustomProject,
   ParentCategory,
@@ -417,9 +416,16 @@ const syncGroupCategoryAssignment = (
 
 /**
  * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
+ *
+ * `urlIds` を持つグループは `removeUrlIdsFromAllCustomProjects` 経由で
+ * URL ID 同期削除し、`urlIds` を持たない旧形式グループは
+ * `loadTabGroupUrlsUseCase` で URL を解決してから URL 文字列ベースで
+ * 削除する。`@/lib/storage/tabs.getTabGroupUrls` 直叩きは
+ * issue #501 で撤去済み。
  */
 const removeUrlsFromCustomProjectsForGroup = async (
   groupToDelete: TabGroup,
+  useCases: SavedTabsUseCases,
 ) => {
   if (groupToDelete.urlIds && groupToDelete.urlIds.length > 0) {
     await removeUrlIdsFromAllCustomProjects(groupToDelete.urlIds, {
@@ -428,10 +434,12 @@ const removeUrlsFromCustomProjectsForGroup = async (
     return
   }
 
-  // eslint-disable-next-line eslint/no-useless-assignment
-  let urlsToDelete: Awaited<ReturnType<typeof getTabGroupUrls>> = []
+  let urlsToDelete: { url: string }[]
   try {
-    urlsToDelete = await getTabGroupUrls(groupToDelete)
+    const { urls } = await useCases.loadTabGroupUrls({
+      tabGroup: groupToDelete,
+    })
+    urlsToDelete = (urls ?? []).map((item) => ({ url: item.url }))
   } catch (error) {
     console.error('URL一覧の取得または削除エラー:', error)
     return
@@ -451,6 +459,7 @@ const removeUrlsFromCustomProjectsForGroup = async (
  */
 const removeUrlsFromCustomProjectsForGroups = async (
   groupsToDelete: TabGroup[],
+  useCases: SavedTabsUseCases,
 ) => {
   const groupsWithUrlIds = groupsToDelete.filter(
     (group) => group.urlIds && group.urlIds.length > 0,
@@ -467,11 +476,13 @@ const removeUrlsFromCustomProjectsForGroups = async (
     })
   }
 
-  // eslint-disable-next-line eslint/no-useless-assignment
-  let urlsByGroup: Awaited<ReturnType<typeof getTabGroupUrls>>[] = []
+  let urlsByGroup: { url: string }[][]
   try {
     urlsByGroup = await Promise.all(
-      groupsWithoutUrlIds.map((group) => getTabGroupUrls(group)),
+      groupsWithoutUrlIds.map(async (group) => {
+        const { urls } = await useCases.loadTabGroupUrls({ tabGroup: group })
+        return (urls ?? []).map((item) => ({ url: item.url }))
+      }),
     )
   } catch (error) {
     console.error('複数グループのURL取得エラー:', error)

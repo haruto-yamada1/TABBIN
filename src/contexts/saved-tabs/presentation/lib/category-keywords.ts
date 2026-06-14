@@ -1,13 +1,30 @@
-import { setCategoryKeywords } from '@/lib/storage/tabs'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 
-// キーワードの保存を処理する関数
+/**
+ * キーワードの保存を処理する関数。
+ *
+ * `@/lib/storage/tabs.setCategoryKeywords` 直叩きを置換し、
+ * use-case 経由で副作用を委譲する（issue #501）。
+ *
+ * @param useCases - SavedTabs の use-case バンドル
+ * @param groupId - 対象 TabGroup ID
+ * @param categoryName - カテゴリ名
+ * @param keywords - キーワード一覧
+ */
 export const handleSaveKeywords = async (
+  useCases: SavedTabsUseCases,
   groupId: string,
   categoryName: string,
   keywords: string[],
 ) => {
   try {
-    await setCategoryKeywords(groupId, categoryName, keywords)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    await useCases.setCategoryKeywords({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      tabGroupId: groupId as never,
+      categoryName,
+      keywords,
+    })
     console.log('カテゴリキーワードを保存しました:', {
       categoryName,
       groupId,

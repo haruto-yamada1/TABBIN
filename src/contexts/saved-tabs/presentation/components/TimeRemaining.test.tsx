@@ -4,17 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // esli
 
 import type { UserSettings } from '@/types/storage'
 
-const { dndContextHandlersRef, reorderTabGroupUrlsMock } = vi.hoisted(() => ({
-  dndContextHandlersRef: {
-    current: {} as {
-      onDragEnd?: (event: {
-        active: { id: string }
-        over: { id: string } | null
-      }) => void | Promise<void>
+const { dndContextHandlersRef, reorderTabGroupUrlsUseCaseMock } = vi.hoisted(
+  () => ({
+    dndContextHandlersRef: {
+      current: {} as {
+        onDragEnd?: (event: {
+          active: { id: string }
+          over: { id: string } | null
+        }) => void | Promise<void>
+      },
     },
-  },
-  reorderTabGroupUrlsMock: vi.fn(),
-}))
+    reorderTabGroupUrlsUseCaseMock: vi.fn(),
+  }),
+)
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({
@@ -53,10 +55,6 @@ vi.mock('@dnd-kit/sortable', () => ({
   verticalListSortingStrategy: 'verticalListSortingStrategy',
 }))
 
-vi.mock('@/lib/storage/tabs', () => ({
-  reorderTabGroupUrls: reorderTabGroupUrlsMock,
-}))
-
 vi.mock('./SortableUrlItem', () => ({
   SortableUrlItem: ({ url }: { url: string }) => (
     <li data-testid='sortable-url-item'>{url}</li>
@@ -93,6 +91,10 @@ const createProps = () => ({
   handleOpenTab: vi.fn(),
   handleUpdateUrls: vi.fn(),
   settings: defaultSettings,
+  reorderTabGroupUrlsUseCase:
+    reorderTabGroupUrlsUseCaseMock as unknown as Parameters<
+      typeof CategorySection
+    >[0]['reorderTabGroupUrlsUseCase'],
 })
 
 describe('CategorySection', () => {
@@ -108,7 +110,7 @@ describe('CategorySection', () => {
 
   it('ドロップ後に先に表示順を更新し、保存完了後に親更新を通知する', async () => {
     let resolvePersist: (() => void) | null = null
-    reorderTabGroupUrlsMock.mockImplementation(
+    reorderTabGroupUrlsUseCaseMock.mockImplementation(
       () =>
         new Promise<void>((resolve) => {
           resolvePersist = resolve
@@ -152,7 +154,9 @@ describe('CategorySection', () => {
 
   it('保存に失敗した場合は表示順を元に戻して親更新を呼ばない', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    reorderTabGroupUrlsMock.mockRejectedValueOnce(new Error('save failed'))
+    reorderTabGroupUrlsUseCaseMock.mockRejectedValueOnce(
+      new Error('save failed'),
+    )
     const props = createProps()
     render(<CategorySection {...props} />)
 
@@ -190,7 +194,7 @@ describe('CategorySection', () => {
       })
     })
 
-    expect(reorderTabGroupUrlsMock).not.toHaveBeenCalled()
+    expect(reorderTabGroupUrlsUseCaseMock).not.toHaveBeenCalled()
     expect(props.handleUpdateUrls).not.toHaveBeenCalled()
     expect(
       screen

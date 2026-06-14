@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { CategoryGroup } from '@/contexts/saved-tabs/presentation/components/CategoryGroup'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import {
@@ -68,6 +69,7 @@ interface DomainModeContainerProps {
   uncategorizedForDisplay: TabGroup[]
   handleUncategorizedDragEnd: (event: DragEndEvent) => void
   hasContentTabGroupsCount: number
+  reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
 }
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
@@ -115,11 +117,12 @@ interface UncategorizedDomainSectionProps {
   handleOpenTab: (url: string) => Promise<void>
   handleUpdateUrls: (
     groupId: string,
-    updatedUrls: TabGroup['urls'],
-  ) => Promise<void>
-  handleDeleteCategory: (groupId: string, categoryName: string) => Promise<void>
+    urls: TabGroup['urls'],
+  ) => void | Promise<void>
+  handleDeleteCategory?: (groupId: string, categoryName: string) => void
   searchQuery: string
   hasContentCount: number
+  reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
 }
 
 const UncategorizedDomainSection = ({
@@ -151,6 +154,7 @@ const UncategorizedDomainSection = ({
   handleDeleteCategory,
   searchQuery,
   hasContentCount,
+  reorderTabGroupUrlsUseCase,
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
   const uncategorizedSettings = useMemo(
@@ -331,6 +335,7 @@ const UncategorizedDomainSection = ({
                   settings={uncategorizedSettings}
                   isReorderMode={isReorderMode}
                   searchQuery={searchQuery}
+                  reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
                 />
               ))}
             </div>
@@ -377,6 +382,7 @@ export const DomainModeContainer = ({
   uncategorizedForDisplay,
   handleUncategorizedDragEnd,
   hasContentTabGroupsCount,
+  reorderTabGroupUrlsUseCase,
 }: DomainModeContainerProps) => {
   const {
     hasVisibleCategoryGroups,
@@ -510,6 +516,7 @@ export const DomainModeContainer = ({
                     settings={settings}
                     isCategoryReorderMode={isCategoryReorderMode}
                     searchQuery={searchQuery}
+                    reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
                   />
                 )
               })}
@@ -537,9 +544,11 @@ export const DomainModeContainer = ({
         handleDeleteUrls={handleDeleteUrls}
         handleOpenTab={handleOpenTab}
         handleUpdateUrls={handleUpdateUrls}
+        // eslint-disable-next-line typescript/no-misused-promises
         handleDeleteCategory={handleDeleteCategory}
         searchQuery={searchQuery}
         hasContentCount={hasContentTabGroupsCount}
+        reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
       />
     </>
   )

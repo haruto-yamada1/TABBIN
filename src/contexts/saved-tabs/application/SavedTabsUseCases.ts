@@ -3,11 +3,16 @@ import type { DeleteSavedUrlsUseCase } from './use-cases/DeleteSavedUrlsUseCase'
 import type { DeleteSavedUrlUseCase } from './use-cases/DeleteSavedUrlUseCase'
 import type { DeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
 import type { DeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
+import type { FindUrlRecordByUrlUseCase } from './use-cases/FindUrlRecordByUrlUseCase'
+import type { LoadTabGroupsWithUrlsUseCase } from './use-cases/LoadTabGroupsWithUrlsUseCase'
+import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCase'
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
+import type { ReorderTabGroupUrlsUseCase } from './use-cases/ReorderTabGroupUrlsUseCase'
 import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
+import type { SetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
 import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
 
 /**
@@ -41,4 +46,9 @@ export interface SavedTabsUseCases {
   readonly removeUnreferencedUrlRecords: RemoveUnreferencedUrlRecordsUseCase
   readonly buildSavedTabsSnapshot: BuildSavedTabsSnapshotUseCase
   readonly reorderTabGroups: ReorderTabGroupsUseCase
+  readonly reorderTabGroupUrls: ReorderTabGroupUrlsUseCase
+  readonly loadTabGroupsWithUrls: LoadTabGroupsWithUrlsUseCase
+  readonly loadTabGroupUrls: LoadTabGroupUrlsUseCase
+  readonly findUrlRecordByUrl: FindUrlRecordByUrlUseCase
+  readonly setCategoryKeywords: SetCategoryKeywordsUseCase
 }

@@ -26,6 +26,11 @@ interface CategoryGroupRootProps {
   searchQuery?: string
   /** 操作ハンドラ */
   handlers: CategoryGroupContextType['handlers']
+  /**
+   * URL 並び替え use-case。`@/lib/storage/tabs.reorderTabGroupUrls`
+   * 直叩きを置換（issue #501）。
+   */
+  reorderTabGroupUrlsUseCase: CategoryGroupContextType['reorderTabGroupUrlsUseCase']
   /** 子コンポーネント */
   children: React.ReactNode
 }
@@ -42,6 +47,7 @@ export const CategoryGroupRoot = ({
   isCategoryReorderMode = false,
   searchQuery = '',
   handlers,
+  reorderTabGroupUrlsUseCase,
   children,
 }: CategoryGroupRootProps) => {
   const { t } = useI18n()
@@ -86,6 +92,7 @@ export const CategoryGroupRoot = ({
       domains,
       handlers,
       isCategoryReorderMode,
+      reorderTabGroupUrlsUseCase,
       searchQuery,
       settings,
       sortable: { attributes, listeners },
@@ -104,6 +111,7 @@ export const CategoryGroupRoot = ({
       attributes,
       listeners,
       handlers,
+      reorderTabGroupUrlsUseCase,
     ],
   )
 

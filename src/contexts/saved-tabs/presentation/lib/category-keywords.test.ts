@@ -1,36 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-vi.mock('@/lib/storage/tabs', () => ({
-  setCategoryKeywords: vi.fn(),
-}))
-
-import { setCategoryKeywords } from '@/lib/storage/tabs'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 
 import { handleSaveKeywords } from './category-keywords'
 
+const createMockUseCases = (): SavedTabsUseCases => {
+  const setCategoryKeywords = vi.fn().mockResolvedValue(undefined)
+  return {
+    setCategoryKeywords,
+  } as unknown as SavedTabsUseCases
+}
+
 describe('handleSaveKeywords関数', () => {
+  let useCases: SavedTabsUseCases
+
   beforeEach(() => {
-    vi.clearAllMocks()
+    useCases = createMockUseCases()
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   it('カテゴリキーワードを保存して成功ログを出力する', async () => {
-    vi.mocked(setCategoryKeywords).mockResolvedValue(undefined)
-
     await expect(
-      handleSaveKeywords('group-1', 'Docs', ['guide', 'api']),
+      handleSaveKeywords(useCases, 'group-1', 'Docs', ['guide', 'api']),
     ).resolves.toBeUndefined()
 
-    expect(setCategoryKeywords).toHaveBeenCalledWith('group-1', 'Docs', [
-      'guide',
-      'api',
-    ])
+    expect(useCases.setCategoryKeywords).toHaveBeenCalledWith({
+      tabGroupId: 'group-1',
+      categoryName: 'Docs',
+      keywords: ['guide', 'api'],
+    })
     expect(console.log).toHaveBeenCalledWith(
       'カテゴリキーワードを保存しました:',
       {
-        groupId: 'group-1',
         categoryName: 'Docs',
+        groupId: 'group-1',
         keywords: ['guide', 'api'],
       },
     )
@@ -38,10 +42,10 @@ describe('handleSaveKeywords関数', () => {
 
   it('ストレージエラーを握りつぶしてログ出力する', async () => {
     const error = new Error('save failed')
-    vi.mocked(setCategoryKeywords).mockRejectedValue(error)
+    vi.mocked(useCases.setCategoryKeywords).mockRejectedValueOnce(error)
 
     await expect(
-      handleSaveKeywords('group-1', 'Docs', ['guide']),
+      handleSaveKeywords(useCases, 'group-1', 'Docs', ['guide']),
     ).resolves.toBeUndefined()
 
     expect(console.error).toHaveBeenCalledWith(

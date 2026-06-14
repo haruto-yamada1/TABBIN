@@ -8,6 +8,7 @@ import { createSavedTabsUseCases } from '../composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '../composition/createSavedTabsUseCasesDeps'
 import { createChromeCustomProjectRepository } from './chrome-storage/ChromeCustomProjectRepository'
 import { createChromeParentCategoryRepository } from './chrome-storage/ChromeParentCategoryRepository'
+import { createLibSetCategoryKeywordsAdapter } from './chrome-storage/ChromeSetCategoryKeywordsAdapter'
 import { createChromeTabGroupRepository } from './chrome-storage/ChromeTabGroupRepository'
 import type { ChromeStorageLocalPort } from './chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUrlRecordRepository } from './chrome-storage/ChromeUrlRecordRepository'
@@ -121,6 +122,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     customProjectRepository: createChromeCustomProjectRepository(port),
     notificationPort: notification.notificationPort,
     parentCategoryRepository: createChromeParentCategoryRepository(port),
+    setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
     storageChangePort: {
       subscribe: () => () => {},
     },
@@ -344,6 +346,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         customProjectRepository: createChromeCustomProjectRepository(port),
         notificationPort: notification.notificationPort,
         parentCategoryRepository: createChromeParentCategoryRepository(port),
+        setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
         storageChangePort: {
           subscribe: () => () => {},
         },
@@ -726,12 +729,18 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       expect(customProjects).toHaveLength(1)
 
       // rich な補助フィールドが writeback で消えていないこと
+      // domain フィールドは schemeful 形式（`https://other.com`）のまま
+      // 保持される（issue #501 review P1 修正: 既存ユーザーの storage
+      // 形式と互換にして重複グループ生成を防ぐ）
       const savedTabsRaw = bundle.portState[SAVED_TABS_KEY] as Record<
         string,
         unknown
       >[]
       const otherRaw = savedTabsRaw.find((entry) => entry.id === 'group-other')
-      expect(otherRaw).toMatchObject({ domain: 'other.com', id: 'group-other' })
+      expect(otherRaw).toMatchObject({
+        domain: 'https://other.com',
+        id: 'group-other',
+      })
     })
 
     it('repository の writeback は entity → raw への写像で必須欠けを起こさない', async () => {

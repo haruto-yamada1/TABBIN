@@ -8,7 +8,6 @@ import {
   getParentCategories,
 } from '@/lib/storage/categories'
 import { assignDomainToCategory } from '@/lib/storage/migration'
-import { removeUrlFromTabGroup } from '@/lib/storage/tabs'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseDomainCardState フックの引数 */
@@ -21,6 +20,12 @@ interface UseDomainCardStateParams {
   handleDeleteCategory?: (groupId: string, categoryName: string) => void
   /** 並び替えモード状態 */
   isReorderMode: boolean
+  /**
+   * `bulk delete handler がないときのフォールバック削除` で使う
+   * 1 件削除ハンドラ（`DeleteSavedUrlUseCase` 経由）。
+   * 未指定なら `handleDeleteUrls` 必須の挙動のみになる。
+   */
+  deleteSingleUrl?: (groupId: string, url: string) => Promise<void>
 }
 interface CategorizedUrlItem {
   id?: string
@@ -114,6 +119,7 @@ export const useDomainCardState = ({
   handleDeleteUrls,
   handleDeleteCategory,
   isReorderMode,
+  deleteSingleUrl,
 }: UseDomainCardStateParams) => {
   const { t } = useI18n()
   // --- 基本状態 ---
@@ -418,10 +424,14 @@ export const useDomainCardState = ({
         )
         if (handleDeleteUrls) {
           await handleDeleteUrls(group.id, urlsToRemove)
-        } else {
+        } else if (deleteSingleUrl) {
           await Promise.all(
-            urlsToRemove.map((url) => removeUrlFromTabGroup(group.id, url)),
+            urlsToRemove.map((url) => deleteSingleUrl(group.id, url)),
           )
+        } else {
+          // どちらも未指定なら何もしない（旧 `@/lib/storage/tabs.removeUrlFromTabGroup`
+          // 直叩きフォールバックは issue #501 で撤去）。
+          return
         }
         console.log(
           `「${categoryName}」カテゴリから${urlsToRemove.length}件のタブを削除完了`,
@@ -430,7 +440,7 @@ export const useDomainCardState = ({
         console.error('カテゴリ内タブ削除エラー:', error)
       }
     },
-    [group.id, handleDeleteUrls],
+    [group.id, handleDeleteUrls, deleteSingleUrl],
   )
 
   // --- 親カテゴリ読み込み ---
