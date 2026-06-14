@@ -10,6 +10,7 @@ import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStora
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { PARENT_CATEGORIES_KEY } from './savedTabsStorageKeys'
+import { ParentCategoryRawSchema } from './savedTabsStorageSchema'
 import type { ParentCategoryRaw } from './savedTabsStorageSchema'
 
 const getDefaultPort = (): ChromeStorageLocalPort | null => {
@@ -33,6 +34,24 @@ const createChromeParentCategoryRepositoryImpl = (
     return ChromeSavedTabsStorageMapper.parseParentCategories(raw)
   }
 
+  const findAllRawParentCategories = async (): Promise<ParentCategoryRaw[]> => {
+    const result = await port.get(PARENT_CATEGORIES_KEY)
+    const raw = result[PARENT_CATEGORIES_KEY]
+    if (!Array.isArray(raw)) {
+      return []
+    }
+    // 1 要素ずつ safeParse。配列全体のパースだと 1 件の不正で全体が
+    // 失敗して既存ユーザーデータが失われるため。
+    const valid: ParentCategoryRaw[] = []
+    for (const item of raw) {
+      const parsed = ParentCategoryRawSchema.safeParse(item)
+      if (parsed.success) {
+        valid.push(parsed.data)
+      }
+    }
+    return valid
+  }
+
   const findById = async (
     id: ParentCategoryId,
   ): Promise<ParentCategory | null> => {
@@ -44,8 +63,21 @@ const createChromeParentCategoryRepositoryImpl = (
   const saveAll = async (
     categories: readonly ParentCategory[],
   ): Promise<void> => {
+    // 既存 raw を取得し、entity と merge する。`domainNames` は既存ユーザ
+    // ーデータが schemeful 形式（`https://example.com`）で書き込まれている
+    // ケースがあり、entity 化時に hostname 形式へ正規化されるため、
+    // 書き戻しで original 側の schemeful 形式を持ち越す必要がある
+    // （issue #501 review P1 と同根の問題）。
+    const existingRaws = await findAllRawParentCategories()
+    const originalById = new Map<string, ParentCategoryRaw>()
+    for (const original of existingRaws) {
+      originalById.set(original.id, original)
+    }
     const raws: ParentCategoryRaw[] = categories.map((category) =>
-      ChromeSavedTabsStorageMapper.toParentCategoryRaw(category),
+      ChromeSavedTabsStorageMapper.toParentCategoryRaw(
+        category,
+        originalById.get(category.id),
+      ),
     )
     await port.set({ [PARENT_CATEGORIES_KEY]: raws })
   }

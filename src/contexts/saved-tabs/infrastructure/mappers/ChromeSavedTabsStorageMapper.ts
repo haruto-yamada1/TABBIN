@@ -158,8 +158,18 @@ const toSavedTabRaw = (
   // 残さない。chrome.storage には undefined 値ではなく key 自体を省略する。
   // urlIds は空配列のときも key を省略（domain entity 化する時点で [] が入る
   // ため、書き出し時にまで残すと input データと差分が出てしまう）。
+  //
+  // `domain` フィールド: domain entity 化時に hostname 形式へ正規化されるが、
+  // 既存ユーザーの chrome.storage には schemeful 形式
+  // （例: `https://example.com`）で書き込まれているケースがある。
+  // その状態で use-case 経由で save すると正規化後の `example.com` が
+  // 書き戻され、続いて `getTabDomain()`（`src/lib/storage/migration.ts`）が
+  // 生成する schemeful 形式の `https://example.com` と一致しなくなって
+  // 重複グループが発生する（issue #501 review P1 指摘）。
+  // 既存 raw があればそちらの schemeful 形式を保持し、新規エンティティの
+  // 場合のみ entity 側の正規化済み domain を使う。
   const base: SavedTabRaw = {
-    domain: entity.domain,
+    domain: original?.domain ?? entity.domain,
     id: entity.id,
   }
   if (entity.urlIds.length > 0) {
@@ -222,12 +232,26 @@ const toSavedTabRaw = (
   return base
 }
 
-const toParentCategoryRaw = (entity: ParentCategory): ParentCategoryRaw => ({
-  domainNames: [...entity.domainNames],
-  domains: [...entity.domains],
-  id: entity.id,
-  name: entity.name,
-})
+const toParentCategoryRaw = (
+  entity: ParentCategory,
+  original?: ParentCategoryRaw,
+): ParentCategoryRaw => {
+  // `domainNames` フィールド: domain entity 化時に hostname 形式へ
+  // 正規化されるが、既存 chrome.storage には schemeful 形式
+  // （例: `https://example.com`）で書き込まれているケースがある
+  // （`assignDomainToCategory` が `tabGroup.domain`（schemeful）を
+  // そのまま `category.domainNames` に追加するため）。書き戻し時に
+  // original 側の schemeful 形式を持ち越さないと、既存 parent
+  // category と新規割当の `domainNames` 比較でミスマッチが起きる
+  // （issue #501 review P1 と同根の問題）。
+  const base: ParentCategoryRaw = {
+    domainNames: original ? [...original.domainNames] : [...entity.domainNames],
+    domains: [...entity.domains],
+    id: entity.id,
+    name: entity.name,
+  }
+  return base
+}
 
 const toCustomProjectRaw = (
   entity: CustomProject,
