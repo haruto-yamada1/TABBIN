@@ -1316,15 +1316,19 @@ describe('SavedTabsApp custom search', () => {
 
     const listener = addListener.mock.calls[0]?.[0] as (
       changes: Record<string, chrome.storage.StorageChange>,
-    ) => Promise<void>
+      area: string,
+    ) => void
     await act(async () => {
-      await listener({
-        settings: {
-          newValue: {
-            enableCategories: false,
+      listener(
+        {
+          settings: {
+            newValue: {
+              enableCategories: false,
+            },
           },
         },
-      })
+        'local',
+      )
     })
 
     await waitFor(() => {
@@ -2749,24 +2753,29 @@ describe('SavedTabsApp custom search', () => {
     const { unmount } = render(<SavedTabsApp />)
     const listener = addListener.mock.calls[0]?.[0] as (
       changes: Record<string, chrome.storage.StorageChange>,
-    ) => Promise<void>
+      area: string,
+    ) => void
 
-    await listener({
-      savedTabs: {
-        newValue: [],
-        oldValue: [],
+    listener(
+      {
+        savedTabs: {
+          newValue: [],
+          oldValue: [],
+        },
       },
-    })
+      'local',
+    )
     unmount()
 
     expect(syncStorageChanges).toHaveBeenCalledWith(
       expect.objectContaining({
-        changes: {
-          savedTabs: {
+        changes: [
+          {
+            key: 'savedTabs',
             newValue: [],
             oldValue: [],
           },
-        },
+        ],
       }),
     )
     expect(removeListener).toHaveBeenCalledWith(listener)
@@ -3134,15 +3143,19 @@ describe('SavedTabsApp custom search', () => {
 
     const listener = addListener.mock.calls[0]?.[0] as (
       changes: Record<string, chrome.storage.StorageChange>,
-    ) => Promise<void>
+      area: string,
+    ) => void
     await act(async () => {
-      await listener({
-        settings: {
-          newValue: {
-            openAllInNewWindow: true,
+      listener(
+        {
+          settings: {
+            newValue: {
+              openAllInNewWindow: true,
+            },
           },
         },
-      })
+        'local',
+      )
     })
 
     await waitFor(() => {
@@ -3824,15 +3837,19 @@ describe('SavedTabsApp custom search', () => {
 
     const listener = addListener.mock.calls[0]?.[0] as (
       changes: Record<string, chrome.storage.StorageChange>,
-    ) => Promise<void>
+      area: string,
+    ) => void
     await act(async () => {
-      await listener({
-        settings: {
-          newValue: {
-            removeTabAfterOpen: false,
+      listener(
+        {
+          settings: {
+            newValue: {
+              removeTabAfterOpen: false,
+            },
           },
         },
-      })
+        'local',
+      )
     })
     const customProps = mocked.customModeContainerSpy.mock.calls.at(
       -1,
@@ -4656,11 +4673,15 @@ describe('SavedTabsApp custom search', () => {
     // 設定を openUrlInBackground=false に変えてから再描画
     const listener = addListener.mock.calls[0]?.[0] as (
       changes: Record<string, chrome.storage.StorageChange>,
-    ) => Promise<void>
+      area: string,
+    ) => void
     await act(async () => {
-      await listener({
-        settings: { newValue: { openUrlInBackground: false } },
-      })
+      listener(
+        {
+          settings: { newValue: { openUrlInBackground: false } },
+        },
+        'local',
+      )
     })
 
     // 2回目: openUrlInBackground=false → active: true

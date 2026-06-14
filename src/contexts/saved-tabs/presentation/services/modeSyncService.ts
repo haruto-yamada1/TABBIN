@@ -17,10 +17,11 @@ import type {
   ViewMode,
 } from '@/types/storage'
 
+import type { SavedTabsStorageChange } from '../../application/ports/StorageChangePort'
 import type { ModeSyncEvent } from '../types/mode'
 
 interface SyncStorageChangesParams {
-  changes: Record<string, chrome.storage.StorageChange>
+  changes: readonly SavedTabsStorageChange[]
   viewModeRef: RefObject<ViewMode>
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>
   syncDomainDataToCustomProjects: () => Promise<CustomProject[]>
@@ -29,36 +30,42 @@ interface SyncStorageChangesParams {
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
 }
 
+const findChange = (
+  changes: readonly SavedTabsStorageChange[],
+  key: SavedTabsStorageChange['key'],
+): SavedTabsStorageChange | undefined =>
+  changes.find((change) => change.key === key)
+
 const resolveSyncEvents = (
-  changes: Record<string, chrome.storage.StorageChange>,
+  changes: readonly SavedTabsStorageChange[],
 ): ModeSyncEvent[] => {
   const events: ModeSyncEvent[] = []
-  if (changes.savedTabs) {
+  if (findChange(changes, 'savedTabs')) {
     events.push({
       type: 'savedTabsUpdated',
     })
   }
-  if (changes.customProjects) {
+  if (findChange(changes, 'customProjects')) {
     events.push({
       type: 'customProjectsUpdated',
     })
   }
-  if (changes.customProjectOrder) {
+  if (findChange(changes, 'customProjectOrder')) {
     events.push({
       type: 'customProjectsUpdated',
     })
   }
-  if (changes.urls) {
+  if (findChange(changes, 'urls')) {
     events.push({
       type: 'urlsUpdated',
     })
   }
-  if (changes.userSettings) {
+  if (findChange(changes, 'userSettings')) {
     events.push({
       type: 'settingsUpdated',
     })
   }
-  if (changes.parentCategories) {
+  if (findChange(changes, 'parentCategories')) {
     events.push({
       type: 'categoriesUpdated',
     })
@@ -67,15 +74,14 @@ const resolveSyncEvents = (
 }
 
 const applyUserSettingsChange = (
-  changes: Record<string, chrome.storage.StorageChange>,
+  changes: readonly SavedTabsStorageChange[],
   setSettings: Dispatch<SetStateAction<UserSettings>>,
 ): void => {
-  if (!changes.userSettings) {
+  const change = findChange(changes, 'userSettings')
+  if (!change) {
     return
   }
-  const result = UserSettingsSchema.partial().safeParse(
-    changes.userSettings.newValue,
-  )
+  const result = UserSettingsSchema.partial().safeParse(change.newValue)
   if (!result.success) {
     return
   }
@@ -86,17 +92,15 @@ const applyUserSettingsChange = (
 }
 
 const applyCategoryChange = (
-  changes: Record<string, chrome.storage.StorageChange>,
+  changes: readonly SavedTabsStorageChange[],
   setCategories: Dispatch<SetStateAction<ParentCategory[]>>,
 ): void => {
-  if (!changes.parentCategories) {
+  const change = findChange(changes, 'parentCategories')
+  if (!change) {
     return
   }
-  const nextCategories = Array.isArray(changes.parentCategories.newValue)
-    ? safeParseArrayFromStorage(
-        ParentCategorySchema,
-        changes.parentCategories.newValue,
-      )
+  const nextCategories = Array.isArray(change.newValue)
+    ? safeParseArrayFromStorage(ParentCategorySchema, change.newValue)
     : []
   setCategories(nextCategories)
 }
@@ -111,34 +115,34 @@ const toCustomProject = (
 })
 
 const applyProjectChange = (
-  changes: Record<string, chrome.storage.StorageChange>,
+  changes: readonly SavedTabsStorageChange[],
   viewModeRef: RefObject<ViewMode>,
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>,
 ): void => {
   if (viewModeRef.current !== 'custom') {
     return
   }
-  const hasProjectsChange = Boolean(changes.customProjects)
-  const hasOrderChange = Boolean(changes.customProjectOrder)
-  if (!(hasProjectsChange || hasOrderChange)) {
+  const projectsChange = findChange(changes, 'customProjects')
+  const orderChange = findChange(changes, 'customProjectOrder')
+  if (!projectsChange && !orderChange) {
     return
   }
 
+  // `customProjects` キーが change に含まれていれば、
+  // newValue が配列かどうかに関わらず同期対象として扱う
+  // （配列以外なら空配列で反映する旧挙動を維持する）。
   let nextCustomProjects: CustomProject[] | null = null
-  if (hasProjectsChange) {
-    nextCustomProjects = Array.isArray(changes.customProjects?.newValue)
+  if (projectsChange) {
+    nextCustomProjects = Array.isArray(projectsChange.newValue)
       ? safeParseArrayFromStorage(
           CustomProjectSchema,
-          changes.customProjects.newValue,
+          projectsChange.newValue,
         ).map(toCustomProject)
       : []
   }
   const nextProjectOrder =
-    hasOrderChange && Array.isArray(changes.customProjectOrder?.newValue)
-      ? safeParseArrayFromStorage(
-          z.string(),
-          changes.customProjectOrder.newValue,
-        )
+    orderChange && Array.isArray(orderChange.newValue)
+      ? safeParseArrayFromStorage(z.string(), orderChange.newValue)
       : null
 
   setCustomProjects((prevProjects) => {
@@ -265,27 +269,27 @@ const areProjectArraysReferenceEqual = (
 }
 
 const applyTabsAndUrlsChanges = async (
-  changes: Record<string, chrome.storage.StorageChange>,
+  changes: readonly SavedTabsStorageChange[],
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>,
   syncDomainDataToCustomProjects: () => Promise<CustomProject[]>,
 ): Promise<void> => {
-  const hasSavedTabsChange = Boolean(changes.savedTabs)
-  const hasUrlsChange = Boolean(changes.urls)
+  const savedTabsChange = findChange(changes, 'savedTabs')
+  const urlsChange = findChange(changes, 'urls')
 
-  if (hasUrlsChange) {
+  if (urlsChange) {
     invalidateUrlCache()
   }
 
-  if (hasSavedTabsChange) {
-    const nextSavedTabs = Array.isArray(changes.savedTabs.newValue)
-      ? safeParseArrayFromStorage(TabGroupSchema, changes.savedTabs.newValue)
+  if (savedTabsChange) {
+    const nextSavedTabs = Array.isArray(savedTabsChange.newValue)
+      ? safeParseArrayFromStorage(TabGroupSchema, savedTabsChange.newValue)
       : []
     await refreshTabGroupsWithUrls(nextSavedTabs)
     await syncDomainDataToCustomProjects()
     return
   }
 
-  if (hasUrlsChange) {
+  if (urlsChange) {
     await refreshTabGroupsWithUrls()
   }
 }

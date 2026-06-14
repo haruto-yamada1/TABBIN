@@ -121,6 +121,9 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     customProjectRepository: createChromeCustomProjectRepository(port),
     notificationPort: notification.notificationPort,
     parentCategoryRepository: createChromeParentCategoryRepository(port),
+    storageChangePort: {
+      subscribe: () => () => {},
+    },
     tabGroupRepository: createChromeTabGroupRepository(port),
     urlRecordRepository: createChromeUrlRecordRepository(port),
   }
@@ -341,6 +344,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         customProjectRepository: createChromeCustomProjectRepository(port),
         notificationPort: notification.notificationPort,
         parentCategoryRepository: createChromeParentCategoryRepository(port),
+        storageChangePort: {
+          subscribe: () => () => {},
+        },
         tabGroupRepository: createChromeTabGroupRepository(port),
         urlRecordRepository: createChromeUrlRecordRepository(port),
       }

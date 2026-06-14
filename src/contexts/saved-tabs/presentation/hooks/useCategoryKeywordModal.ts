@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -33,6 +34,13 @@ interface UseCategoryKeywordModalParams {
   initialParentCategories: ParentCategory[]
   /** 親カテゴリ更新ハンドラ */
   onUpdateParentCategories?: (categories: ParentCategory[]) => void
+  /**
+   * storage 変更通知 port。`chrome.storage.onChanged` の直叩きは禁止の
+   * ため、presentation 層は本 port 経由でのみ storage 変更を購読する。
+   * 未指定時は購読を行わず、初回 `loadParentCategories` 呼び出しだけで
+   * 親カテゴリを同期する（テストで chrome 依存を完全に切りたい場合用）。
+   */
+  readonly storageChangePort?: StorageChangePort
 }
 const resolveSelectedParentCategoryId = (
   storedCategories: ParentCategory[],
@@ -106,6 +114,7 @@ export const useCategoryKeywordModal = ({
   onDeleteCategory,
   initialParentCategories,
   onUpdateParentCategories,
+  storageChangePort,
 }: UseCategoryKeywordModalParams) => {
   const { t } = useI18n()
   // --- サブカテゴリ選択状態 ---
@@ -211,32 +220,25 @@ export const useCategoryKeywordModal = ({
   // --- モーダル開閉時の初期化 ---
   useEffect(() => {
     if (!isOpen) {
-      return
+      return undefined
     }
 
     void loadParentCategories()
 
-    const handleStorageChange = (
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      changes: Record<string, chrome.storage.StorageChange>,
-    ) => {
-      if (changes.parentCategories) {
+    if (!storageChangePort) {
+      return undefined
+    }
+
+    const unsubscribe = storageChangePort.subscribe((changes) => {
+      if (changes.some((change) => change.key === 'parentCategories')) {
         void loadParentCategories()
       }
-    }
+    })
 
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    chrome.storage.onChanged.addListener(handleStorageChange)
-
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      chrome.storage.onChanged.removeListener(handleStorageChange)
+      unsubscribe()
     }
-  }, [isOpen, loadParentCategories])
+  }, [isOpen, loadParentCategories, storageChangePort])
 
   // --- カテゴリ変更時のキーワード読み込み ---
   useEffect(() => {

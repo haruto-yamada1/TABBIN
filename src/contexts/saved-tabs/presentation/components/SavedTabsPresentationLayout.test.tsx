@@ -98,6 +98,9 @@ const buildLayoutComposition = () => {
       }),
     },
     notificationPort: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+    storageChangePort: {
+      subscribe: () => () => {},
+    },
     customProjectRepository: {
       // eslint-disable-next-line typescript/require-await
       findAll: async () => [],

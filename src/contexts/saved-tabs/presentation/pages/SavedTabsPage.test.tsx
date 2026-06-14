@@ -135,6 +135,9 @@ const createInMemoryDeps = (input: {
     customProjectRepository,
     notificationPort,
     parentCategoryRepository,
+    storageChangePort: {
+      subscribe: () => () => {},
+    },
     tabGroupRepository,
     urlRecordRepository,
   }

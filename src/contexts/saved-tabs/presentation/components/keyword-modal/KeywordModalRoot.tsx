@@ -4,6 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
 
@@ -31,6 +32,13 @@ interface KeywordModalRootProps {
   initialParentCategories?: CategoryKeywordModalProps['parentCategories']
   /** 親カテゴリ更新ハンドラ */
   onUpdateParentCategories?: CategoryKeywordModalProps['onUpdateParentCategories']
+  /**
+   * storage 変更通知 port。`chrome.storage.onChanged` の直叩きは禁止の
+   * ため、presentation 層は本 port 経由でのみ storage 変更を購読する。
+   * 未指定時は購読を行わない（テストや SSR など chrome 依存を完全に
+   * 切りたい場合用）。
+   */
+  readonly storageChangePort?: StorageChangePort
   /** 子コンポーネント */
   children: React.ReactNode
 }
@@ -48,6 +56,7 @@ export const KeywordModalRoot = ({
   onDeleteCategory,
   initialParentCategories = EMPTY_PARENT_CATEGORIES,
   onUpdateParentCategories,
+  storageChangePort,
   children,
 }: KeywordModalRootProps) => {
   const { t } = useI18n()
@@ -58,6 +67,7 @@ export const KeywordModalRoot = ({
     onDeleteCategory,
     onSave,
     onUpdateParentCategories,
+    storageChangePort,
   })
 
   if (!isOpen) {
