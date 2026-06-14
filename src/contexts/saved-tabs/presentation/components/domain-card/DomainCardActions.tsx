@@ -18,6 +18,7 @@ import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
+import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { handleSaveKeywords } from '@/contexts/saved-tabs/presentation/lib/category-keywords'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -35,6 +36,7 @@ export const DomainCardActions = () => {
   const { t } = useI18n()
   const { state, group, settings, isReorderMode, searchQuery, handlers } =
     useDomainCard()
+  const useCases = useSavedTabsUseCases()
   const { keywordModal, parentCategories, categoryActions } = state
   const domainName = group.domain
 
@@ -181,6 +183,7 @@ export const DomainCardActions = () => {
             onUpdateParentCategories={
               parentCategories.handleUpdateParentCategories
             }
+            storageChangePort={useCases?.deps.storageChangePort}
           />
         )}
       </div>

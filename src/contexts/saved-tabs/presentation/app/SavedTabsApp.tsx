@@ -984,15 +984,12 @@ const useSavedTabsAppView = ({
     }
   }, [customProjects, searchQuery])
 
-  // ストレージ変更検出時のリスナーを改善（ドメインモードとカスタムモード間の同期）
+  // ストレージ変更検出時のリスナー。`chrome.storage.onChanged` 直叩きは禁止のため
+  // `StorageChangePort` 経由で chrome API 実装 (infrastructure 層) と疎結合にする。
   useEffect(() => {
-    const handleStorageChanged = async (
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      changes: Record<string, chrome.storage.StorageChange>,
-    ) => {
+    const unsubscribe = deps.storageChangePort.subscribe((changes) => {
       console.log('ストレージ変更を検出:', changes)
-      await syncStorageChanges({
+      void syncStorageChanges({
         changes,
         refreshTabGroupsWithUrls,
         setCategories,
@@ -1001,14 +998,12 @@ const useSavedTabsAppView = ({
         syncDomainDataToCustomProjects,
         viewModeRef,
       })
-    }
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/no-misused-promises, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    chrome.storage.onChanged.addListener(handleStorageChanged)
+    })
     return () => {
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/no-misused-promises, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      chrome.storage.onChanged.removeListener(handleStorageChanged)
+      unsubscribe()
     }
   }, [
+    deps.storageChangePort,
     refreshTabGroupsWithUrls,
     syncDomainDataToCustomProjects,
     setCategories,

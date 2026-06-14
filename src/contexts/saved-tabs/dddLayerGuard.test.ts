@@ -341,6 +341,96 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
   })
 
+  describe('issue #495: chrome.storage.onChanged を StorageChangePort 経由へ移行', () => {
+    const expectedFiles = [
+      'src/contexts/saved-tabs/application/ports/StorageChangePort.ts',
+      'src/contexts/saved-tabs/infrastructure/browser/ChromeStorageChangeAdapter.ts',
+    ]
+
+    for (const file of expectedFiles) {
+      it(`${file} が存在する`, () => {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source.length).toBeGreaterThan(0)
+      })
+    }
+
+    it('StorageChangePort は chrome API を import / 利用しない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/ports/StorageChangePort.ts',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(/from\s+['"]chrome['"]/)
+      // JSDoc 内の言及は除外するため、import / プロパティアクセスを厳密検出
+      expect(source).not.toMatch(/chrome\.storage\.(local|onChanged|sync)\.\w/)
+      expect(source).not.toMatch(/chrome\.storage\.(local|onChanged|sync)\(/)
+    })
+
+    it('ChromeStorageChangeAdapter は StorageChangePort を実装し chrome.storage.onChanged を含む', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/browser/ChromeStorageChangeAdapter.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('StorageChangePort')
+      expect(source).toContain('getChromeStorageOnChanged')
+      expect(source).not.toMatch(/from\s+['"]@\/components/)
+      expect(source).not.toMatch(/from\s+['"]@\/features\//)
+    })
+
+    it('createSavedTabsUseCasesDeps は storageChangePort を組み立てる', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('storageChangePort')
+      expect(source).toContain('createChromeStorageChangeAdapter')
+    })
+
+    it('createSavedTabsPorts は storageChangePort を組み立てる', () => {
+      const source = readFileSync(
+        resolve(repoRoot, 'src/app/composition/createSavedTabsPorts.ts'),
+        'utf8',
+      )
+      expect(source).toContain('storageChangePort')
+      expect(source).toContain('createChromeStorageChangeAdapter')
+    })
+
+    it('SavedTabsApp は chrome.storage.onChanged を直接呼び出さない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/presentation/app/SavedTabsApp.tsx',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(
+        /chrome\.storage\.onChanged\.(addListener|removeListener)/,
+      )
+      expect(source).toContain('storageChangePort')
+    })
+
+    it('useCategoryKeywordModal は chrome.storage.onChanged を直接呼び出さない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/presentation/hooks/useCategoryKeywordModal.ts',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(
+        /chrome\.storage\.onChanged\.(addListener|removeListener)/,
+      )
+    })
+  })
+
   describe('domain/repositories/ の純度 (issue #457)', () => {
     const repositoryInterfaceFiles = [
       'src/contexts/saved-tabs/domain/repositories/TabGroupRepository.ts',

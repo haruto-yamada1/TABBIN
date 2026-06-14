@@ -6,12 +6,14 @@ import {
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
+import type { StorageChangePort } from '../../application/ports/StorageChangePort'
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import { createChromeBrowserTabAdapter } from '../browser/ChromeBrowserTabAdapter'
 import { createChromeBrowserWindowAdapter } from '../browser/ChromeBrowserWindowAdapter'
+import { createChromeStorageChangeAdapter } from '../browser/ChromeStorageChangeAdapter'
 import { createSonnerNotificationAdapter } from '../browser/SonnerNotificationAdapter'
 import { createChromeCustomProjectRepository } from '../persistence/chrome-storage/ChromeCustomProjectRepository'
 import { createChromeParentCategoryRepository } from '../persistence/chrome-storage/ChromeParentCategoryRepository'
@@ -34,6 +36,7 @@ export interface SavedTabsUseCasesDeps {
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
   readonly notificationPort: NotificationPort
+  readonly storageChangePort: StorageChangePort
 }
 
 /**
@@ -64,7 +67,18 @@ interface ChromeLike {
         >
       | undefined
   }
+  readonly storage?: {
+    readonly onChanged?: {
+      readonly addListener: (callback: ChromeOnChangedListener) => void
+      readonly removeListener: (callback: ChromeOnChangedListener) => void
+    }
+  }
 }
+
+type ChromeOnChangedListener = (
+  changes: Record<string, chrome.storage.StorageChange>,
+  areaName: string,
+) => void
 
 const getChromeApi = (): ChromeLike | undefined =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
@@ -114,6 +128,9 @@ export const createSavedTabsUseCasesDeps = (
     customProjectRepository: createChromeCustomProjectRepository(port),
     notificationPort: createSonnerNotificationAdapter(),
     parentCategoryRepository: createChromeParentCategoryRepository(port),
+    storageChangePort: createChromeStorageChangeAdapter({
+      getApi: () => getChromeApi(),
+    }),
     tabGroupRepository: createChromeTabGroupRepository(port),
     urlRecordRepository: createChromeUrlRecordRepository(port),
   }

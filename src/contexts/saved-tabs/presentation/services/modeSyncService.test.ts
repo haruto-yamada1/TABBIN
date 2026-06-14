@@ -1,6 +1,7 @@
 import type { RefObject, SetStateAction } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { SavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type {
   CustomProject,
   ParentCategory,
@@ -28,14 +29,15 @@ const createProject = (overrides: Partial<CustomProject>): CustomProject => ({
   ...overrides,
 })
 
-const createStorageChange = (
+const createChange = (
+  key: SavedTabsStorageChange['key'],
   newValue: unknown,
   oldValue?: unknown,
-): chrome.storage.StorageChange =>
-  ({
-    oldValue,
-    newValue,
-  }) as chrome.storage.StorageChange
+): SavedTabsStorageChange => ({
+  key,
+  newValue,
+  oldValue,
+})
 
 const createSyncContext = (params?: {
   mode?: ViewMode
@@ -114,12 +116,13 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjectOrder: createStorageChange(
+      changes: [
+        createChange(
+          'customProjectOrder',
           ['project-3', 'project-1'],
           ['project-1', 'project-2', 'project-3'],
         ),
-      },
+      ],
     })
 
     expect(ctx.state.getProjects().map((project) => project.id)).toStrictEqual([
@@ -154,8 +157,8 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange([
+      changes: [
+        createChange('customProjects', [
           createProject({
             id: 'project-1',
             name: 'P1',
@@ -175,7 +178,7 @@ describe('syncStorageChanges', () => {
           }),
           createProject({ id: 'project-2', name: 'P2 updated' }),
         ]),
-      },
+      ],
     })
 
     const nextProjects = ctx.state.getProjects()
@@ -196,10 +199,10 @@ describe('syncStorageChanges', () => {
 
     const events = await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        savedTabs: createStorageChange(nextSavedTabs),
-        urls: createStorageChange([]),
-      },
+      changes: [
+        createChange('savedTabs', nextSavedTabs),
+        createChange('urls', []),
+      ],
     })
 
     expect(invalidateUrlCacheMock).toHaveBeenCalledTimes(1)
@@ -244,13 +247,13 @@ describe('syncStorageChanges', () => {
 
     const events = await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        urls: createStorageChange([]),
-        userSettings: createStorageChange({
+      changes: [
+        createChange('urls', []),
+        createChange('userSettings', {
           removeTabAfterOpen: true,
         }),
-        parentCategories: createStorageChange(nextCategories),
-      },
+        createChange('parentCategories', nextCategories),
+      ],
     })
 
     expect(invalidateUrlCacheMock).toHaveBeenCalledTimes(1)
@@ -277,9 +280,7 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjectOrder: createStorageChange(['missing-project']),
-      },
+      changes: [createChange('customProjectOrder', ['missing-project'])],
     })
 
     expect(ctx.state.getProjects()).toBe(initialProjects)
@@ -294,11 +295,11 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange([
+      changes: [
+        createChange('customProjects', [
           createProject({ id: 'project-1', name: 'P1 updated' }),
         ]),
-      },
+      ],
     })
 
     expect(ctx.spies.setCustomProjects).not.toHaveBeenCalled()
@@ -312,11 +313,11 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange({
+      changes: [
+        createChange('customProjects', {
           invalid: true,
         }),
-      },
+      ],
     })
 
     expect(ctx.state.getProjects()).toStrictEqual([])
@@ -337,14 +338,14 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange([
+      changes: [
+        createChange('customProjects', [
           createProject({
             id: 'project-1',
             urlMetadata: {},
           }),
         ]),
-      },
+      ],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -365,8 +366,8 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange([
+      changes: [
+        createChange('customProjects', [
           createProject({
             id: 'project-1',
             urlMetadata: {
@@ -376,7 +377,7 @@ describe('syncStorageChanges', () => {
             },
           }),
         ]),
-      },
+      ],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -397,8 +398,8 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange([
+      changes: [
+        createChange('customProjects', [
           createProject({
             id: 'project-1',
             urlMetadata: {
@@ -408,7 +409,7 @@ describe('syncStorageChanges', () => {
             },
           }),
         ]),
-      },
+      ],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -425,14 +426,14 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange([
+      changes: [
+        createChange('customProjects', [
           createProject({
             id: 'project-1',
             categories: [],
           }),
         ]),
-      },
+      ],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -449,14 +450,14 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange([
+      changes: [
+        createChange('customProjects', [
           createProject({
             id: 'project-1',
             categories: ['Private'],
           }),
         ]),
-      },
+      ],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -467,11 +468,11 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        savedTabs: createStorageChange({
+      changes: [
+        createChange('savedTabs', {
           invalid: true,
         }),
-      },
+      ],
     })
 
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith([])
@@ -489,9 +490,7 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        userSettings: createStorageChange(undefined),
-      },
+      changes: [createChange('userSettings', undefined)],
     })
 
     expect(ctx.state.getSettings()).toStrictEqual(initialSettings)
@@ -511,11 +510,11 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        parentCategories: createStorageChange({
+      changes: [
+        createChange('parentCategories', {
           invalid: true,
         }),
-      },
+      ],
     })
 
     expect(ctx.state.getCategories()).toStrictEqual([])
@@ -532,14 +531,14 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        customProjects: createStorageChange([
+      changes: [
+        createChange('customProjects', [
           createProject({
             id: 'project-1',
             name: 'Same',
           }),
         ]),
-      },
+      ],
     })
 
     expect(ctx.state.getProjects()[0]).toBe(prev)
@@ -549,7 +548,7 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext()
     const events = await syncStorageChanges({
       ...ctx.args,
-      changes: {},
+      changes: [],
     })
 
     expect(events).toStrictEqual([])
@@ -572,12 +571,12 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        savedTabs: createStorageChange([
+      changes: [
+        createChange('savedTabs', [
           validGroup,
           { id: 'broken' } as unknown as TabGroup, // domain 欠損
         ]),
-      },
+      ],
     })
 
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith([
@@ -605,9 +604,7 @@ describe('syncStorageChanges', () => {
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: {
-        parentCategories: createStorageChange([valid, broken]),
-      },
+      changes: [createChange('parentCategories', [valid, broken])],
     })
 
     expect(ctx.state.getCategories()).toStrictEqual([valid])

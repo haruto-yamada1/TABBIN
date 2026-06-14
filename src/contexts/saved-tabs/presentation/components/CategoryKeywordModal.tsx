@@ -1,3 +1,4 @@
+import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
 import type { ParentCategory } from '@/types/storage'
 
@@ -13,6 +14,10 @@ const EMPTY_PARENT_CATEGORIES: ParentCategory[] = []
  * 複合コンポーネントパターンで構成される薄いラッパー
  * @param props CategoryKeywordModalProps
  */
+interface CategoryKeywordModalExtraProps {
+  readonly storageChangePort?: StorageChangePort
+}
+
 export const CategoryKeywordModal = ({
   group,
   isOpen,
@@ -21,7 +26,8 @@ export const CategoryKeywordModal = ({
   onDeleteCategory,
   parentCategories: initialParentCategories = EMPTY_PARENT_CATEGORIES,
   onUpdateParentCategories,
-}: CategoryKeywordModalProps) => (
+  storageChangePort,
+}: CategoryKeywordModalProps & CategoryKeywordModalExtraProps) => (
   <KeywordModalRoot
     group={group}
     isOpen={isOpen}
@@ -30,6 +36,7 @@ export const CategoryKeywordModal = ({
     onDeleteCategory={onDeleteCategory}
     initialParentCategories={initialParentCategories}
     onUpdateParentCategories={onUpdateParentCategories}
+    storageChangePort={storageChangePort}
   >
     <SubCategoryAddSection />
     <SubCategorySelector />

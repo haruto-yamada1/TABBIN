@@ -1,9 +1,11 @@
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
 import type { NotificationPort } from '@/contexts/saved-tabs/application/ports/NotificationPort'
+import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import { createChromeBrowserTabAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import type { ChromeApiLike } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import { createChromeBrowserWindowAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserWindowAdapter'
+import { createChromeStorageChangeAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeStorageChangeAdapter'
 import { createSonnerNotificationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter'
 
 /**
@@ -20,6 +22,7 @@ export interface SavedTabsPorts {
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
   readonly notificationPort: NotificationPort
+  readonly storageChangePort: StorageChangePort
 }
 
 /**
@@ -47,7 +50,18 @@ interface ChromeApi extends ChromeApiLike {
         >
       | undefined
   }
+  readonly storage?: {
+    readonly onChanged?: {
+      readonly addListener: (callback: ChromeOnChangedListener) => void
+      readonly removeListener: (callback: ChromeOnChangedListener) => void
+    }
+  }
 }
+
+type ChromeOnChangedListener = (
+  changes: Record<string, chrome.storage.StorageChange>,
+  areaName: string,
+) => void
 
 const getChromeApi = (): ChromeApi | undefined =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
@@ -86,4 +100,7 @@ export const createSavedTabsPorts = (
     getApi: () => getChromeApi(),
   }),
   notificationPort: createSonnerNotificationAdapter(),
+  storageChangePort: createChromeStorageChangeAdapter({
+    getApi: () => getChromeApi(),
+  }),
 })

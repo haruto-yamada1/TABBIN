@@ -17,7 +17,10 @@ import {
   LEFT_PANE_COMPACT_BREAKPOINT_PX,
   useSavedTabsLeftPaneWidth,
 } from '../components/savedTabsPresentationLayout.helpers'
-import { createSavedTabsUseCasesContextValueFromDeps } from '../controllers/SavedTabsUseCasesContext'
+import {
+  createSavedTabsUseCasesContextValueFromDeps,
+  SavedTabsUseCasesProvider,
+} from '../controllers/SavedTabsUseCasesContext'
 import { useSavedTabsController } from '../controllers/useSavedTabsController'
 import type { UseSavedTabsControllerReturn } from '../controllers/useSavedTabsController'
 import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'
@@ -216,30 +219,41 @@ export const SavedTabsPage = (props: SavedTabsPageProps) => {
       props.search ??
         (typeof window !== 'undefined' ? window.location.search : ''),
     )
+  // `useSavedTabsUseCases()` が `null` を返すと子コンポーネントが
+  // `StorageChangePort` などの port を取り出せず、開いたモーダルが
+  // storage 変更に追従できなくなる。`SavedTabsPage` 配下の
+  // presentation ツリー全体に deps / useCases を配布するため
+  // `SavedTabsUseCasesProvider` で wrap する。
+  // provider value は useMemo で同一参照を保ち、子の不要な
+  // 再レンダーを抑える。
+  const providerValue = useMemo(() => ({ deps, useCases }), [deps, useCases])
+
   // view-model の refresh は layout の close 動線 (AI チャットなど) では
   // 直接呼ばないが、controller 側で `refresh` を提供していることを
   // 利用側へ示すために保持する。
   void refresh
   return (
-    <div
-      data-testid='saved-tabs-page-presentation'
-      data-loading={viewModel.loading ? 'true' : 'false'}
-      data-error={viewModel.error ?? ''}
-      data-has-content={viewModel.hasContent ? 'true' : 'false'}
-    >
-      <SavedTabsPresentationLayout
-        attachLeftPaneRef={attachLeftPaneRef}
-        controller={controller}
-        deps={deps}
-        initialViewMode={resolvedInitialViewMode}
-        isAiSidebarOpen={isAiSidebarOpen}
-        isCompactLeftPaneLayout={isCompactLeftPaneLayout}
-        leftPaneRef={leftPaneRef}
-        onAiSidebarOpenChange={setIsAiSidebarOpen}
-        onViewModeNavigate={props.onViewModeNavigate}
-        resolveActiveRef={resolveActiveRef}
-        useCases={useCases}
-      />
-    </div>
+    <SavedTabsUseCasesProvider value={providerValue}>
+      <div
+        data-testid='saved-tabs-page-presentation'
+        data-loading={viewModel.loading ? 'true' : 'false'}
+        data-error={viewModel.error ?? ''}
+        data-has-content={viewModel.hasContent ? 'true' : 'false'}
+      >
+        <SavedTabsPresentationLayout
+          attachLeftPaneRef={attachLeftPaneRef}
+          controller={controller}
+          deps={deps}
+          initialViewMode={resolvedInitialViewMode}
+          isAiSidebarOpen={isAiSidebarOpen}
+          isCompactLeftPaneLayout={isCompactLeftPaneLayout}
+          leftPaneRef={leftPaneRef}
+          onAiSidebarOpenChange={setIsAiSidebarOpen}
+          onViewModeNavigate={props.onViewModeNavigate}
+          resolveActiveRef={resolveActiveRef}
+          useCases={useCases}
+        />
+      </div>
+    </SavedTabsUseCasesProvider>
   )
 }

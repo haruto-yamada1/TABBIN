@@ -156,6 +156,9 @@ const createEmptyDeps = (
         createInMemoryRepositories().customProjectRepository,
       notificationPort,
       parentCategoryRepository,
+      storageChangePort: {
+        subscribe: () => () => {},
+      },
       tabGroupRepository: createInMemoryRepositories().tabGroupRepository,
       urlRecordRepository,
     },

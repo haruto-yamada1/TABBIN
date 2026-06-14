@@ -5,6 +5,10 @@ import type { ChangeEvent } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type {
+  SavedTabsStorageChange,
+  StorageChangePort,
+} from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import {
@@ -75,9 +79,6 @@ const createChangeEvent = (value: string) =>
   }) as ChangeEvent<HTMLInputElement>
 
 const setupChromeStorage = (state: StorageState = {}) => {
-  const listeners = new Set<
-    (changes: Record<string, chrome.storage.StorageChange>) => void
-  >()
   const local = {
     // eslint-disable-next-line typescript/require-await
     get: vi.fn(async (keys?: string | string[]) => {
@@ -100,53 +101,40 @@ const setupChromeStorage = (state: StorageState = {}) => {
       Object.assign(state, value)
     }),
   }
-  const onChanged = {
-    addListener: vi.fn(
-      (
-        listener: (
-          changes: Record<string, chrome.storage.StorageChange>,
-        ) => void,
-      ) => {
-        listeners.add(listener)
-      },
-    ),
-    removeListener: vi.fn(
-      (
-        listener: (
-          changes: Record<string, chrome.storage.StorageChange>,
-        ) => void,
-      ) => {
-        listeners.delete(listener)
-      },
-    ),
-  }
 
   globalThis.chrome = {
     storage: {
       local,
-      onChanged,
     },
   } as unknown as typeof chrome
 
   return {
-    emitParentCategoriesChanged: () => {
-      for (const listener of listeners) {
-        listener({
-          parentCategories: {
-            newValue: state.parentCategories,
-            oldValue: [],
-          },
-        })
-      }
-    },
-    emitUnrelatedChanged: () => {
-      for (const listener of listeners) {
-        listener({})
-      }
-    },
     local,
-    onChanged,
     state,
+  }
+}
+
+const createMockStorageChangePort = () => {
+  const listeners = new Set<
+    (changes: readonly SavedTabsStorageChange[]) => void
+  >()
+  const port: StorageChangePort = {
+    subscribe: (listener) => {
+      listeners.add(listener)
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+  }
+  return {
+    emit: (changes: readonly SavedTabsStorageChange[]) => {
+      for (const listener of listeners) {
+        listener(changes)
+      }
+    },
+    listeners,
+    port,
+    subscribeSpy: vi.fn(port.subscribe),
   }
 }
 
@@ -339,9 +327,11 @@ describe('useCategoryKeywordModal', () => {
       parentCategories: createParentCategories(),
       savedTabs: [createGroup()],
     })
+    const changePort = createMockStorageChangePort()
 
     const { result, unmount } = renderModalHook({
       onUpdateParentCategories,
+      storageChangePort: changePort.port,
     })
 
     await waitFor(() => {
@@ -352,7 +342,7 @@ describe('useCategoryKeywordModal', () => {
     expect(onUpdateParentCategories).toHaveBeenCalledWith(
       createParentCategories(),
     )
-    expect(storage.onChanged.addListener).toHaveBeenCalled()
+    expect(changePort.listeners.size).toBe(1)
 
     storage.state.parentCategories = [
       {
@@ -365,8 +355,14 @@ describe('useCategoryKeywordModal', () => {
 
     // eslint-disable-next-line typescript/require-await
     await act(async () => {
-      storage.emitUnrelatedChanged()
-      storage.emitParentCategoriesChanged()
+      changePort.emit([
+        { key: 'customProjects', oldValue: [], newValue: [] },
+        {
+          key: 'parentCategories',
+          oldValue: createParentCategories(),
+          newValue: storage.state.parentCategories,
+        },
+      ])
     })
 
     await waitFor(() => {
@@ -377,7 +373,7 @@ describe('useCategoryKeywordModal', () => {
 
     unmount()
 
-    expect(storage.onChanged.removeListener).toHaveBeenCalled()
+    expect(changePort.listeners.size).toBe(0)
   })
 
   it('親カテゴリ読み込みに失敗した場合はエラートーストを表示する', async () => {
