@@ -469,10 +469,6 @@ import {
   createFilterGroupsByExcludedIdsUpdater,
   filterGroupsByExcludedIds,
   notifyDeleteFailure,
-  removeUrlsFromCustomProjectsForGroup,
-  removeUrlsFromCustomProjectsForGroups,
-  restoreOpenedUrlsSnapshot,
-  syncGroupCategoryAssignment,
 } from './savedTabsApp.helpers'
 
 // chrome.storage.local の production code 経由の読み取りを補完するため、
@@ -608,43 +604,44 @@ describe('SavedTabsApp custom search', () => {
       throw new Error('restore failed')
     })
     // eslint-disable-next-line typescript/require-await
-    const restoreOpenedUrlsSnapshotUseCase = vi.fn(async () => ({
-      restoredCustomProjects: [],
-      restoredParentCategories: [],
-      restoredTabGroups: [],
-      restoredUrlRecords: [],
+    const restoreOpenedUrlsSnapshotView = vi.fn(async () => ({
+      customProjects: undefined,
+      parentCategories: undefined,
+      savedTabs: [],
     }))
 
     await notifyDeleteFailure({
       refreshTabGroupsWithUrls,
       savedTabsUseCases: {
+        addDomainToParentCategory: vi.fn(),
+        assignDomainToCategory: vi.fn(),
+        buildSavedTabsSnapshot: vi.fn(),
+        createCustomProject: vi.fn(),
+        createParentCategory: vi.fn(),
+        deleteCustomProject: vi.fn(),
+        deleteParentCategory: vi.fn(),
         deleteSavedUrl: vi.fn(),
         deleteSavedUrls: vi.fn(),
         deleteTabGroup: vi.fn(),
         deleteTabGroups: vi.fn(),
-        openAllSavedUrls: vi.fn(),
-        openSavedUrl: vi.fn(),
-        removeUnreferencedUrlRecords: vi.fn(),
-        restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
-        syncCategoryAssignments: vi.fn(),
-        buildSavedTabsSnapshot: vi.fn(),
-        reorderTabGroups: vi.fn(),
-        reorderTabGroupUrls: vi.fn(),
-        loadTabGroupsWithUrls: vi.fn(),
-        loadTabGroupUrls: vi.fn(),
         findUrlRecordByUrl: vi.fn(),
-        setCategoryKeywords: vi.fn(),
-        renameParentCategory: vi.fn(),
-        addDomainToParentCategory: vi.fn(),
-        removeDomainFromParentCategory: vi.fn(),
-        createParentCategory: vi.fn(),
-        deleteParentCategory: vi.fn(),
-        assignDomainToCategory: vi.fn(),
-        createCustomProject: vi.fn(),
-        deleteCustomProject: vi.fn(),
-        updateCustomProjectName: vi.fn(),
         getProjectUrls: vi.fn(),
         getSavedTabsPageData: vi.fn(),
+        loadTabGroupUrls: vi.fn(),
+        loadTabGroupsWithUrls: vi.fn(),
+        openAllSavedUrls: vi.fn(),
+        openSavedUrl: vi.fn(),
+        removeDomainFromParentCategory: vi.fn(),
+        removeUnreferencedUrlRecords: vi.fn(),
+        removeUrlsFromCustomProjects: vi.fn(),
+        renameParentCategory: vi.fn(),
+        reorderTabGroupUrls: vi.fn(),
+        reorderTabGroups: vi.fn(),
+        restoreOpenedUrlsSnapshot: vi.fn(),
+        restoreOpenedUrlsSnapshotView,
+        setCategoryKeywords: vi.fn(),
+        syncCategoryAssignments: vi.fn(),
+        updateCustomProjectName: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       snapshot: {
@@ -663,33 +660,35 @@ describe('SavedTabsApp custom search', () => {
     await notifyDeleteFailure({
       refreshTabGroupsWithUrls,
       savedTabsUseCases: {
+        addDomainToParentCategory: vi.fn(),
+        assignDomainToCategory: vi.fn(),
+        buildSavedTabsSnapshot: vi.fn(),
+        createCustomProject: vi.fn(),
+        createParentCategory: vi.fn(),
+        deleteCustomProject: vi.fn(),
+        deleteParentCategory: vi.fn(),
         deleteSavedUrl: vi.fn(),
         deleteSavedUrls: vi.fn(),
         deleteTabGroup: vi.fn(),
         deleteTabGroups: vi.fn(),
-        openAllSavedUrls: vi.fn(),
-        openSavedUrl: vi.fn(),
-        removeUnreferencedUrlRecords: vi.fn(),
-        restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
-        syncCategoryAssignments: vi.fn(),
-        buildSavedTabsSnapshot: vi.fn(),
-        reorderTabGroups: vi.fn(),
-        reorderTabGroupUrls: vi.fn(),
-        loadTabGroupsWithUrls: vi.fn(),
-        loadTabGroupUrls: vi.fn(),
         findUrlRecordByUrl: vi.fn(),
-        setCategoryKeywords: vi.fn(),
-        renameParentCategory: vi.fn(),
-        addDomainToParentCategory: vi.fn(),
-        removeDomainFromParentCategory: vi.fn(),
-        createParentCategory: vi.fn(),
-        deleteParentCategory: vi.fn(),
-        assignDomainToCategory: vi.fn(),
-        createCustomProject: vi.fn(),
-        deleteCustomProject: vi.fn(),
-        updateCustomProjectName: vi.fn(),
         getProjectUrls: vi.fn(),
         getSavedTabsPageData: vi.fn(),
+        loadTabGroupUrls: vi.fn(),
+        loadTabGroupsWithUrls: vi.fn(),
+        openAllSavedUrls: vi.fn(),
+        openSavedUrl: vi.fn(),
+        removeDomainFromParentCategory: vi.fn(),
+        removeUnreferencedUrlRecords: vi.fn(),
+        removeUrlsFromCustomProjects: vi.fn(),
+        renameParentCategory: vi.fn(),
+        reorderTabGroupUrls: vi.fn(),
+        reorderTabGroups: vi.fn(),
+        restoreOpenedUrlsSnapshot: vi.fn(),
+        restoreOpenedUrlsSnapshotView,
+        setCategoryKeywords: vi.fn(),
+        syncCategoryAssignments: vi.fn(),
+        updateCustomProjectName: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       t: (key) => key,
@@ -700,179 +699,11 @@ describe('SavedTabsApp custom search', () => {
     consoleError.mockRestore()
   })
 
-  it('helper は snapshot 復元とカテゴリ検索のフォールバックを扱う', async () => {
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome.storage.local.set = chromeSetMock
-    const setCustomProjects = vi.fn()
-    const refreshTabGroupsWithUrls = vi.fn()
-    // eslint-disable-next-line typescript/require-await
-    const restoreOpenedUrlsSnapshotUseCase = vi.fn(async () => ({
-      restoredCustomProjects: [],
-      restoredParentCategories: [],
-      restoredTabGroups: [],
-      restoredUrlRecords: [],
-    }))
-
-    await restoreOpenedUrlsSnapshot({
-      refreshTabGroupsWithUrls,
-      savedTabsUseCases: {
-        deleteSavedUrl: vi.fn(),
-        deleteSavedUrls: vi.fn(),
-        deleteTabGroup: vi.fn(),
-        deleteTabGroups: vi.fn(),
-        openAllSavedUrls: vi.fn(),
-        openSavedUrl: vi.fn(),
-        removeUnreferencedUrlRecords: vi.fn(),
-        restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
-        syncCategoryAssignments: vi.fn(),
-        buildSavedTabsSnapshot: vi.fn(),
-        reorderTabGroups: vi.fn(),
-        reorderTabGroupUrls: vi.fn(),
-        loadTabGroupsWithUrls: vi.fn(),
-        loadTabGroupUrls: vi.fn(),
-        findUrlRecordByUrl: vi.fn(),
-        setCategoryKeywords: vi.fn(),
-        renameParentCategory: vi.fn(),
-        addDomainToParentCategory: vi.fn(),
-        removeDomainFromParentCategory: vi.fn(),
-        createParentCategory: vi.fn(),
-        deleteParentCategory: vi.fn(),
-        assignDomainToCategory: vi.fn(),
-        createCustomProject: vi.fn(),
-        deleteCustomProject: vi.fn(),
-        updateCustomProjectName: vi.fn(),
-        getProjectUrls: vi.fn(),
-        getSavedTabsPageData: vi.fn(),
-      },
-      setCustomProjects,
-      snapshot: {},
-    })
-
-    expect(restoreOpenedUrlsSnapshotUseCase).toHaveBeenCalledWith({
-      snapshot: {},
-    })
-    expect(chromeSetMock).not.toHaveBeenCalled()
-    expect(setCustomProjects).not.toHaveBeenCalled()
-    expect(refreshTabGroupsWithUrls).toHaveBeenCalledWith([])
-
-    // 不正な id の TabGroup / CustomProject / ParentCategory は
-    // domain factory の SavedTabsDomainError 経由でスキップされる。
-    // customProjectOrder も含めて snapshot は command に詰め替えられ、
-    // RestoreOpenedUrlsSnapshotUseCase 経由で repository へ書き戻される
-    // （issue #487）。presentation 層は chrome.storage.local.set を
-    // 呼ばないため chromeSetMock は 0 呼び出しのまま。
-    const captured: unknown[] = []
-    // eslint-disable-next-line typescript/require-await
-    const captureUseCase = vi.fn(async (input: { snapshot: unknown }) => {
-      captured.push(input)
-      return {
-        restoredCustomProjects: [],
-        restoredParentCategories: [],
-        restoredTabGroups: [],
-        restoredUrlRecords: [],
-      }
-    })
-    const refreshTabGroupsWithUrls2 = vi.fn()
-    const setCustomProjects2 = vi.fn()
-    await restoreOpenedUrlsSnapshot({
-      refreshTabGroupsWithUrls: refreshTabGroupsWithUrls2,
-      savedTabsUseCases: {
-        deleteSavedUrl: vi.fn(),
-        deleteSavedUrls: vi.fn(),
-        deleteTabGroup: vi.fn(),
-        deleteTabGroups: vi.fn(),
-        openAllSavedUrls: vi.fn(),
-        openSavedUrl: vi.fn(),
-        removeUnreferencedUrlRecords: vi.fn(),
-        restoreOpenedUrlsSnapshot: captureUseCase,
-        syncCategoryAssignments: vi.fn(),
-        buildSavedTabsSnapshot: vi.fn(),
-        reorderTabGroups: vi.fn(),
-        reorderTabGroupUrls: vi.fn(),
-        loadTabGroupsWithUrls: vi.fn(),
-        loadTabGroupUrls: vi.fn(),
-        findUrlRecordByUrl: vi.fn(),
-        setCategoryKeywords: vi.fn(),
-        renameParentCategory: vi.fn(),
-        addDomainToParentCategory: vi.fn(),
-        removeDomainFromParentCategory: vi.fn(),
-        createParentCategory: vi.fn(),
-        deleteParentCategory: vi.fn(),
-        assignDomainToCategory: vi.fn(),
-        createCustomProject: vi.fn(),
-        deleteCustomProject: vi.fn(),
-        updateCustomProjectName: vi.fn(),
-        getProjectUrls: vi.fn(),
-        getSavedTabsPageData: vi.fn(),
-      },
-      setCustomProjects: setCustomProjects2,
-      // issue #494 移行後: snapshot は `BuildSavedTabsSnapshotUseCase` 由来
-      // の domain entity 形を直接渡す。不正要素のフィルタは
-      // `ChromeSavedTabsStorageMapper` 側で行うため、ここでは
-      // バリデーション通過済みの entity 形データを投入する。
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      snapshot: {
-        customProjects: [
-          {
-            categories: [],
-            createdAt: 1,
-            id: 'project-good',
-            name: 'Good',
-            updatedAt: 1,
-            urlIds: [],
-          },
-        ],
-        customProjectOrder: ['project-good'],
-        parentCategories: [
-          {
-            domainNames: [],
-            domains: [],
-            id: 'cat-good',
-            name: 'Good',
-          },
-        ],
-        savedTabs: [
-          {
-            domain: 'example.com',
-            id: 'group-good',
-            urlIds: ['url-1'],
-          },
-        ],
-      } as never,
-    })
-    const command = (captured[0] as { snapshot: unknown }).snapshot as {
-      customProjectOrder?: string[]
-      customProjects: { id: string }[]
-      parentCategories: { id: string }[]
-      savedTabs: { id: string }[]
-    }
-    expect(command.savedTabs.map((g) => g.id)).toStrictEqual(['group-good'])
-    expect(command.customProjects.map((p) => p.id)).toStrictEqual([
-      'project-good',
-    ])
-    expect(command.parentCategories.map((c) => c.id)).toStrictEqual([
-      'cat-good',
-    ])
-    // customProjectOrder は RestoreOpenedUrlsSnapshotUseCase 経由で
-    // repository へ書き戻される（issue #487）。presentation 層からは
-    // chrome.storage.local.set を呼ばない。
-    expect(command.customProjectOrder).toStrictEqual(['project-good'])
-    expect(chromeSetMock).not.toHaveBeenCalled()
-    expect(setCustomProjects2).toHaveBeenCalledWith([
-      {
-        categories: [],
-        createdAt: 1,
-        id: 'project-good',
-        name: 'Good',
-        updatedAt: 1,
-        urlIds: [],
-      },
-    ])
-    expect(refreshTabGroupsWithUrls2).toHaveBeenCalledWith([
-      { domain: 'example.com', id: 'group-good', urlIds: ['url-1'] },
-    ])
-
+  it('helper は search とカテゴリ検索のフォールバックを扱う', () => {
+    // snapshot 復元 (`restoreOpenedUrlsSnapshot`) は
+    // `RestoreOpenedUrlsSnapshotViewUseCase` + `SavedTabsSnapshotMapper`
+    // 経由で同等確認済み (issue #512)。presentation helper 側は
+    // search / カテゴリ lookup フォールバックの確認に専念する。
     const groupWithoutUrls: TabGroup = {
       domain: 'empty.example.com',
       id: 'group-empty',
@@ -1015,143 +846,6 @@ describe('SavedTabsApp custom search', () => {
         },
       ],
     })
-  })
-
-  it('helper はカテゴリ同期で対象カテゴリ以外を維持する', () => {
-    const state = {
-      categoriesChanged: false,
-      savedTabsChanged: false,
-      updatedCategories: [
-        {
-          domainNames: ['example.com'],
-          domains: [],
-          id: 'category-1',
-          name: 'Reading',
-        },
-        {
-          domainNames: [],
-          domains: ['other-group'],
-          id: 'category-2',
-          name: 'Other',
-        },
-      ],
-      updatedSavedTabs: [
-        {
-          domain: 'example.com',
-          id: 'group-1',
-        },
-      ],
-    }
-
-    const nextState = syncGroupCategoryAssignment(
-      {
-        domain: 'example.com',
-        id: 'group-1',
-      },
-      buildPresentationCategoryLookup(state.updatedCategories),
-      state,
-    )
-
-    expect(nextState.updatedCategories).toStrictEqual([
-      expect.objectContaining({
-        domains: ['group-1'],
-        id: 'category-1',
-      }),
-      expect.objectContaining({
-        domains: ['other-group'],
-        id: 'category-2',
-      }),
-    ])
-    expect(nextState.updatedSavedTabs).toStrictEqual([
-      expect.objectContaining({
-        id: 'group-1',
-        parentCategoryId: 'category-1',
-      }),
-    ])
-    expect(nextState.categoriesChanged).toBe(true)
-    expect(nextState.savedTabsChanged).toBe(true)
-  })
-
-  it('helper は複数グループ削除で ID と legacy URL の同期削除を扱う', async () => {
-    const useCases = {
-      loadTabGroupUrls: vi.fn().mockResolvedValue({
-        urls: [
-          {
-            id: 'legacy-url',
-            savedAt: 1,
-            title: 'Legacy',
-            url: 'https://legacy.example.com/a',
-          },
-        ],
-      }),
-    }
-
-    await removeUrlsFromCustomProjectsForGroups(
-      [
-        {
-          domain: 'ids.example.com',
-          id: 'group-with-ids',
-          urlIds: ['url-a'],
-        },
-        {
-          domain: 'legacy.example.com',
-          id: 'legacy-group',
-        },
-      ],
-      useCases as never,
-      commandServiceMock as never,
-    )
-
-    expect(
-      commandServiceMock.removeUrlIdsFromAllCustomProjects,
-    ).toHaveBeenCalledWith(['url-a'], {
-      throwOnError: true,
-    })
-    expect(
-      commandServiceMock.removeUrlsFromAllCustomProjects,
-    ).toHaveBeenCalledWith(['https://legacy.example.com/a'], {
-      throwOnError: true,
-    })
-  })
-
-  it('helper は legacy URL 取得が undefined を返しても同期削除をスキップする', async () => {
-    const useCases = {
-      loadTabGroupUrls: vi.fn().mockResolvedValue({ urls: undefined }),
-    }
-
-    await removeUrlsFromCustomProjectsForGroups(
-      [
-        {
-          domain: 'legacy.example.com',
-          id: 'legacy-group',
-        },
-      ],
-      useCases as never,
-      commandServiceMock as never,
-    )
-
-    expect(
-      commandServiceMock.removeUrlsFromAllCustomProjects,
-    ).not.toHaveBeenCalled()
-  })
-
-  it('helper は legacy URL 取得が空配列なら同期削除をスキップする', async () => {
-    const useCases = {
-      loadTabGroupUrls: vi.fn().mockResolvedValue({ urls: [] }),
-    }
-
-    await removeUrlsFromCustomProjectsForGroup(
-      {
-        domain: 'empty.example.com',
-        id: 'empty-group',
-      },
-      useCases as never,
-      commandServiceMock as never,
-    )
-
-    expect(
-      commandServiceMock.removeUrlsFromAllCustomProjects,
-    ).not.toHaveBeenCalled()
   })
 
   it('helper はカテゴリ順序に合わせてグループを並べる', () => {

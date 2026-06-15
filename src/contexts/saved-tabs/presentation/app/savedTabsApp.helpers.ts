@@ -1,573 +1,77 @@
-import { toast } from 'sonner'
-
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
-import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
-import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { ParentCategory as DomainParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import type { PresentationCategoryLookup } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
-import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
-import { getPageHref } from '@/features/navigation/lib/pageNavigation'
-import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  ViewMode,
-} from '@/types/storage'
 
 /**
- * `BuildSavedTabsSnapshotUseCase` 由来の `OpenedUrlsRestoreSnapshot` を
- * presentation 層で扱うための alias。旧 `OpenedUrlsStorageSnapshot` と同じ
- * 用途で、復元経路（Undo）とスナップショット捕捉（use-case）の
- * インターフェースが一致するようになった（issue #494）。
- */
-type OpenedUrlsStorageSnapshot = OpenedUrlsRestoreSnapshot
-type RefreshTabGroupsWithUrls = (
-  groups: TabGroup[],
-  // eslint-disable-next-line typescript/no-invalid-void-type
-) => Promise<TabGroup[]> | TabGroup[] | Promise<void> | void
-
-const getSnapshotArray = <T>(
-  value: readonly T[] | undefined,
-): T[] | undefined =>
-  // eslint-disable-next-line typescript/no-unsafe-return
-  Array.isArray(value) ? value.slice() : undefined
-const getSnapshotSavedTabs = (
-  snapshot: OpenedUrlsStorageSnapshot,
-): TabGroup[] =>
-  getSnapshotArray(snapshot.savedTabs)?.map(toStorageTabGroup) ?? []
-const buildUrlIdsToRemove = (
-  urlsToRemove: string[],
-  urlRecords: {
-    id: string
-    url: string
-  }[],
-) => {
-  const uniqueUrlSet = new Set(urlsToRemove)
-  const urlIdsToRemove = new Set<string>()
-  for (const record of urlRecords) {
-    if (uniqueUrlSet.has(record.url)) {
-      urlIdsToRemove.add(record.id)
-    }
-  }
-
-  return urlIdsToRemove
-}
-
-/**
- * domain entity の `CustomProject` を presentation 層の
- * `CustomProject` 形へ持ち替える。エンティティは storage 形のサブセット
- * （`projectKeywords` / `urlMetadata` / `categoryOrder` 等を持たない）なので、
- * Undo 後の state 反映は最小限のフィールドだけで行い、リッチ補助フィールド
- * は次回 storage 同期時に再取得する前提とする（issue #494）。
- */
-const toStorageCustomProject = (
-  project: DomainCustomProject,
-): CustomProject => ({
-  categories: [...project.categories],
-  createdAt: project.createdAt,
-  id: project.id,
-  name: project.name,
-  updatedAt: project.updatedAt,
-  urlIds: [...project.urlIds],
-})
-
-/**
- * presentation 層（`useCategoryManagement`）が保持する storage 形
- * `ParentCategory[]` を、`BuildSavedTabsSnapshotUseCase` command の
- * `readonly DomainParentCategory[]` へ持ち替える。両者の差分は
- * branded 型（`ParentCategoryId` / `CategoryName` / `TabGroupId` /
- * `DomainName`）の有無のみで、構造は一致する（issue #494）。
- */
-const toDomainParentCategories = (
-  categories: readonly ParentCategory[] | undefined,
-): readonly DomainParentCategory[] | undefined =>
-  categories
-    ? // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      (categories.map((category) => ({
-        domains: [...category.domains],
-        domainNames: [...category.domainNames],
-        id: category.id,
-        name: category.name,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      })) as unknown as readonly DomainParentCategory[])
-    : undefined
-
-/**
- * presentation 層が保持する storage 形 `TabGroup[]` を、
- * `ReorderTabGroupsUseCase` command の `readonly DomainTabGroup[]` へ
- * 持ち替える。エンティティは storage 形のサブセットなので、ID / domain /
- * urlIds などの主要フィールドだけ詰め替えれば use-case 入力として十分
- * （issue #494）。
- */
-const toDomainTabGroupsForReorder = (
-  groups: readonly TabGroup[],
-): readonly DomainTabGroup[] =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  groups.map((group) => ({
-    id: group.id,
-    domain: group.domain,
-    parentCategoryId: group.parentCategoryId,
-    savedAt: group.savedAt,
-    urlIds: [...(group.urlIds ?? [])],
-  })) as unknown as readonly DomainTabGroup[]
-
-/**
- * domain entity の `ParentCategory` を presentation 層の
- * `ParentCategory` 形へ持ち替える。エンティティと storage 形は構造が
- * ほぼ一致するため、`id` / `name` / `domains` / `domainNames` をコピー
- * するだけで十分（issue #494）。
- */
-const toStorageParentCategory = (
-  category: DomainParentCategory,
-): ParentCategory => ({
-  domains: [...category.domains],
-  domainNames: [...category.domainNames],
-  id: category.id,
-  name: category.name,
-})
-
-/**
- * domain entity の `TabGroup` を presentation 層の `TabGroup` 形へ
- * 持ち替える。エンティティは storage 形のサブセットなので、必要最小限の
- * フィールドのみコピーする。`refreshTabGroupsWithUrls` 側で `urls` を
- * urlRecords から再解決するため、`urls` を持たないエンティティでも
- * 表示に必要な情報は揃う（issue #494）。
- */
-const toStorageTabGroup = (group: DomainTabGroup): TabGroup => ({
-  id: group.id,
-  domain: group.domain,
-  urlIds: [...group.urlIds],
-  parentCategoryId: group.parentCategoryId,
-  savedAt: group.savedAt,
-})
-
-const restoreOpenedUrlsSnapshot = async ({
-  refreshTabGroupsWithUrls,
-  savedTabsUseCases,
-  setCategories,
-  setCustomProjects,
-  snapshot,
-}: {
-  refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
-  savedTabsUseCases: SavedTabsUseCases
-  setCategories?: (categories: ParentCategory[]) => void
-  setCustomProjects: (projects: CustomProject[]) => void
-  snapshot: OpenedUrlsStorageSnapshot
-}) => {
-  // 復元本体は RestoreOpenedUrlsSnapshotUseCase に委譲する。
-  // presentation 層は snapshot を use-case 入力としてそのまま渡し、
-  // chrome.storage.local.set の直接呼び出しは行わない
-  // （issue #487 / #494）。
-  await savedTabsUseCases.restoreOpenedUrlsSnapshot({
-    snapshot,
-  })
-
-  // 画面側 state は storage 形状を期待するため、use-case 由来の
-  // domain entity 形 snapshot を presentation 形へ持ち替えて反映する。
-  // リッチ補助フィールド（`projectKeywords` / `urlMetadata` /
-  // `categoryOrder` / `urls`）は domain entity には載らないため、
-  // 次回 storage 同期時または `refreshTabGroupsWithUrls` の
-  // `loadTabGroupsWithUrls` で再取得される前提とする。
-  if (snapshot.customProjects) {
-    setCustomProjects(snapshot.customProjects.map(toStorageCustomProject))
-  }
-  if (snapshot.parentCategories && setCategories) {
-    setCategories(snapshot.parentCategories.map(toStorageParentCategory))
-  }
-  const savedTabs = getSnapshotSavedTabs(snapshot)
-  await refreshTabGroupsWithUrls(savedTabs)
-}
-
-const showOpenedUrlsUndoToast = ({
-  count,
-  messageKey = 'savedTabs.undo.removedAfterOpen',
-  refreshTabGroupsWithUrls,
-  savedTabsUseCases,
-  setCategories,
-  setCustomProjects,
-  snapshot,
-  t,
-}: {
-  count: number
-  messageKey?: string
-  refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
-  savedTabsUseCases: SavedTabsUseCases
-  setCategories?: (categories: ParentCategory[]) => void
-  setCustomProjects: (projects: CustomProject[]) => void
-  snapshot: OpenedUrlsStorageSnapshot
-  t: (key: string, fallback?: string, values?: Record<string, string>) => string
-}) => {
-  toast.info(
-    t(messageKey, undefined, {
-      count: String(count),
-    }),
-    {
-      action: {
-        label: t('common.undo'),
-        // eslint-disable-next-line typescript/no-misused-promises
-        onClick: async () => {
-          try {
-            await restoreOpenedUrlsSnapshot({
-              refreshTabGroupsWithUrls,
-              savedTabsUseCases,
-              setCategories,
-              setCustomProjects,
-              snapshot,
-            })
-            toast.success(t('savedTabs.undo.restored'))
-          } catch (error) {
-            console.error('開いた後に削除したURLの復元に失敗しました:', error)
-            toast.error(t('savedTabs.undo.restoreError'))
-          }
-        },
-      },
-    },
-  )
-}
-
-const notifyDeleteFailure = async ({
-  refreshTabGroupsWithUrls,
-  savedTabsUseCases,
-  setCategories,
-  setCustomProjects,
-  snapshot,
-  t,
-}: {
-  refreshTabGroupsWithUrls: RefreshTabGroupsWithUrls
-  savedTabsUseCases: SavedTabsUseCases
-  setCategories?: (categories: ParentCategory[]) => void
-  setCustomProjects: (projects: CustomProject[]) => void
-  snapshot?: OpenedUrlsStorageSnapshot
-  t: (key: string, fallback?: string, values?: Record<string, string>) => string
-}) => {
-  if (snapshot) {
-    try {
-      await restoreOpenedUrlsSnapshot({
-        refreshTabGroupsWithUrls,
-        savedTabsUseCases,
-        setCategories,
-        setCustomProjects,
-        snapshot,
-      })
-    } catch (restoreError) {
-      console.error('削除失敗後の保存データ復元に失敗しました:', restoreError)
-    }
-  }
-
-  toast.error(t('savedTabs.deleteError'))
-}
-
-const countTabGroupUrls = (group: TabGroup): number =>
-  group.urlIds?.length ?? group.urls?.length ?? 0
-const filterGroupsByExcludedIds = (
-  groups: TabGroup[],
-  idsToExclude: Set<string>,
-): TabGroup[] => groups.filter((group) => !idsToExclude.has(group.id))
-const createFilterGroupsByExcludedIdsUpdater =
-  (idsToExclude: Set<string>) =>
-  (groups: TabGroup[]): TabGroup[] =>
-    filterGroupsByExcludedIds(groups, idsToExclude)
-const removeUrlIdsFromSavedTabs = (
-  savedTabs: TabGroup[],
-  idsToRemove: ReadonlySet<string>,
-): {
-  updatedSavedTabs: TabGroup[]
-  hasChanges: boolean
-} => {
-  let hasChanges = false
-  const updatedSavedTabs: TabGroup[] = []
-
-  for (const group of savedTabs) {
-    if (!(group.urlIds && group.urlIds.length > 0)) {
-      updatedSavedTabs.push(group)
-      continue
-    }
-
-    const remainingUrlIds = group.urlIds.filter((id) => !idsToRemove.has(id))
-    if (remainingUrlIds.length === group.urlIds.length) {
-      updatedSavedTabs.push(group)
-      continue
-    }
-
-    hasChanges = true
-    if (remainingUrlIds.length === 0) {
-      continue
-    }
-
-    const updatedGroup = buildUpdatedGroupAfterUrlIdRemoval(
-      group,
-      remainingUrlIds,
-      idsToRemove,
-    )
-
-    updatedSavedTabs.push(updatedGroup)
-  }
-
-  return {
-    hasChanges,
-    updatedSavedTabs,
-  }
-}
-const buildUpdatedGroupAfterUrlIdRemoval = (
-  group: TabGroup,
-  remainingUrlIds: string[],
-  idsToRemove: ReadonlySet<string>,
-): TabGroup => {
-  const updatedGroup: TabGroup = {
-    ...group,
-    urlIds: remainingUrlIds,
-  }
-
-  if (!group.urlSubCategories) {
-    return updatedGroup
-  }
-
-  const nextUrlSubCategories = { ...group.urlSubCategories }
-  for (const id of idsToRemove) {
-    // eslint-disable-next-line typescript/no-dynamic-delete
-    delete nextUrlSubCategories[id]
-  }
-  updatedGroup.urlSubCategories =
-    Object.keys(nextUrlSubCategories).length > 0
-      ? nextUrlSubCategories
-      : undefined
-
-  return updatedGroup
-}
-interface CategorySyncState {
-  updatedSavedTabs: TabGroup[]
-  updatedCategories: ParentCategory[]
-  savedTabsChanged: boolean
-  categoriesChanged: boolean
-}
-const updateSavedTabParentCategory = (
-  tabs: TabGroup[],
-  groupId: string,
-  categoryId: string,
-): TabGroup[] =>
-  tabs.map((tab) =>
-    tab.id === groupId
-      ? {
-          ...tab,
-          parentCategoryId: categoryId,
-        }
-      : tab,
-  )
-const syncGroupCategoryAssignment = (
-  group: TabGroup,
-  categoryLookup: PresentationCategoryLookup,
-  state: CategorySyncState,
-): CategorySyncState => {
-  const idBasedCategory = categoryLookup.byGroupId.get(group.id)
-  if (idBasedCategory && group.parentCategoryId !== idBasedCategory.id) {
-    state.updatedSavedTabs = updateSavedTabParentCategory(
-      state.updatedSavedTabs,
-      group.id,
-      idBasedCategory.id,
-    )
-    state.savedTabsChanged = true
-    console.log(
-      `[カテゴリ同期] ドメイン ${group.domain} のparentCategoryIdをIDベースで ${idBasedCategory.id} に更新しました`,
-    )
-  }
-  const foundByDomainName = categoryLookup.byDomainName.get(group.domain)
-  if (!foundByDomainName) {
-    return state
-  }
-  if (
-    foundByDomainName.domains.includes(group.id) ||
-    foundByDomainName.id === idBasedCategory?.id
-  ) {
-    return state
-  }
-  state.updatedCategories = state.updatedCategories.map((category) =>
-    category.id === foundByDomainName.id
-      ? {
-          ...category,
-          domains: [...category.domains, group.id],
-        }
-      : category,
-  )
-  state.categoriesChanged = true
-  state.updatedSavedTabs = updateSavedTabParentCategory(
-    state.updatedSavedTabs,
-    group.id,
-    foundByDomainName.id,
-  )
-  state.savedTabsChanged = true
-  console.log(
-    `[カテゴリ同期] ドメイン ${group.domain} のIDを親カテゴリ ${foundByDomainName.id} に同期しました`,
-  )
-  return state
-}
-
-/**
- * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
+ * `savedTabsApp.helpers.ts` の最終整理 (issue #512)。
  *
- * `urlIds` を持つグループは `customProjectsCommandService.removeUrlIdsFromAllCustomProjects` 経由で
- * URL ID 同期削除し、`urlIds` を持たない旧形式グループは
- * `loadTabGroupUrlsUseCase` で URL を解決してから URL 文字列ベースで
- * 削除する。`@/lib/storage/tabs.getTabGroupUrls` 直叩きは
- * issue #501 で撤去済み。
+ * 旧ファイルは `Undo / snapshot変換` / `customProjects URL削除` /
+ * `category sync` / `URL削除対象算出` / `navigation sync` / `UI 都合の
+ * 整形` を全部抱えていたため、責務を application / domain / presentation の
+ * 適切なレイヤへ分割した。
+ *
+ * このファイルは **presentation 層からの re-export 集約点** としてのみ
+ * 残し、UI 整形・view バインド専用の薄いヘルパーだけを再公開する。
+ *
+ * 移設先:
+ * - snapshot 変換 / domain ↔ storage マッピング →
+ *   `@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper`
+ * - Undo 復元 + storage 形 payload 変換 →
+ *   `@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotViewUseCase`
+ * - customProjects URL 削除 →
+ *   `@/contexts/saved-tabs/application/use-cases/RemoveUrlsFromCustomProjectsUseCase`
+ * - view mode の URL 同期 / href 解決 →
+ *   `@/contexts/saved-tabs/presentation/services/viewModeNavigationService`
+ * - Undo トースト / 削除失敗通知 →
+ *   `@/contexts/saved-tabs/presentation/services/savedTabsUndoNotificationService`
+ * - TabGroup / カテゴリ同期 state 整形 →
+ *   `@/contexts/saved-tabs/presentation/lib/tab-group-state`
  */
-const removeUrlsFromCustomProjectsForGroup = async (
-  groupToDelete: TabGroup,
-  useCases: SavedTabsUseCases,
-  commandService: CustomProjectsCommandService,
-) => {
-  if (groupToDelete.urlIds && groupToDelete.urlIds.length > 0) {
-    await commandService.removeUrlIdsFromAllCustomProjects(
-      groupToDelete.urlIds,
-      {
-        throwOnError: true,
-      },
-    )
-    return
-  }
 
-  let urlsToDelete: { url: string }[]
-  try {
-    const { urls } = await useCases.loadTabGroupUrls({
-      tabGroup: groupToDelete,
-    })
-    urlsToDelete = (urls ?? []).map((item) => ({ url: item.url }))
-  } catch (error) {
-    console.error('URL一覧の取得または削除エラー:', error)
-    return
-  }
-  if (urlsToDelete && urlsToDelete.length > 0) {
-    await commandService.removeUrlsFromAllCustomProjects(
-      urlsToDelete.map((item) => item.url),
-      {
-        throwOnError: true,
-      },
-    )
-  }
-}
-
-/**
- * 複数のドメイングループに属するURLをすべてカスタムプロジェクトから一括削除します。
- */
-const removeUrlsFromCustomProjectsForGroups = async (
-  groupsToDelete: TabGroup[],
-  useCases: SavedTabsUseCases,
-  commandService: CustomProjectsCommandService,
-) => {
-  const groupsWithUrlIds = groupsToDelete.filter(
-    (group) => group.urlIds && group.urlIds.length > 0,
-  )
-  const groupsWithoutUrlIds = groupsToDelete.filter(
-    (group) => !(group.urlIds && group.urlIds.length > 0),
-  )
-  const allUrlIdsToDelete = groupsWithUrlIds.flatMap(
-    (group) => group.urlIds ?? [],
-  )
-  if (allUrlIdsToDelete.length > 0) {
-    await commandService.removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
-      throwOnError: true,
-    })
-  }
-
-  let urlsByGroup: { url: string }[][]
-  try {
-    urlsByGroup = await Promise.all(
-      groupsWithoutUrlIds.map(async (group) => {
-        const { urls } = await useCases.loadTabGroupUrls({ tabGroup: group })
-        return (urls ?? []).map((item) => ({ url: item.url }))
-      }),
-    )
-  } catch (error) {
-    console.error('複数グループのURL取得エラー:', error)
-    return
-  }
-  const allUrlsToDelete = urlsByGroup.flatMap((urlsToDelete) =>
-    (urlsToDelete || []).map((item) => item.url),
-  )
-
-  if (allUrlsToDelete.length > 0) {
-    await commandService.removeUrlsFromAllCustomProjects(allUrlsToDelete, {
-      throwOnError: true,
-    })
-  }
-}
-
-/**
- * view mode に対応する href を解決する。
- */
-const resolveSavedTabsViewModeHref = (viewMode: ViewMode): string =>
-  getPageHref(viewMode === 'custom' ? 'saved-tabs-custom' : 'saved-tabs-domain')
-
-/**
- * 初期 view mode の解決待ち状態を判定する。
- */
-const shouldWaitForInitialViewMode = ({
-  hasResolvedInitialViewMode,
-  initialViewMode,
-  viewMode,
-}: {
-  hasResolvedInitialViewMode: boolean
-  initialViewMode?: ViewMode
-  viewMode: ViewMode
-}): boolean => {
-  if (!initialViewMode || hasResolvedInitialViewMode) {
-    return false
-  }
-
-  return viewMode !== initialViewMode
-}
-
-/**
- * 現在の view mode を URL に同期する。
- * ナビゲートコールバックが指定されていればそれを使う。
- */
-const syncSavedTabsViewModeLocation = ({
-  onViewModeNavigate,
-  viewMode,
-}: {
-  onViewModeNavigate?: (mode: ViewMode) => void
-  viewMode: ViewMode
-}): void => {
-  if (onViewModeNavigate) {
-    onViewModeNavigate(viewMode)
-    return
-  }
-
-  const nextHref = resolveSavedTabsViewModeHref(viewMode)
-  const currentUrl = new URL(window.location.href)
-  const nextUrl = new URL(nextHref, window.location.href)
-
-  if (
-    currentUrl.pathname === nextUrl.pathname &&
-    currentUrl.search === nextUrl.search
-  ) {
-    return
-  }
-
-  window.history.replaceState({}, '', `${nextUrl.pathname}${nextUrl.search}`)
-}
-
-export type { CategorySyncState, OpenedUrlsStorageSnapshot }
 export {
   buildUpdatedGroupAfterUrlIdRemoval,
   buildUrlIdsToRemove,
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
   filterGroupsByExcludedIds,
-  getSnapshotSavedTabs,
-  notifyDeleteFailure,
-  removeUrlsFromCustomProjectsForGroup,
-  removeUrlsFromCustomProjectsForGroups,
   removeUrlIdsFromSavedTabs,
-  resolveSavedTabsViewModeHref,
-  restoreOpenedUrlsSnapshot,
-  shouldWaitForInitialViewMode,
-  showOpenedUrlsUndoToast,
   syncGroupCategoryAssignment,
+  updateSavedTabParentCategory,
+} from '@/contexts/saved-tabs/presentation/lib/tab-group-state'
+export type { CategorySyncState } from '@/contexts/saved-tabs/presentation/lib/tab-group-state'
+
+export {
+  resolveSavedTabsViewModeHref,
+  shouldWaitForInitialViewMode,
   syncSavedTabsViewModeLocation,
+} from '@/contexts/saved-tabs/presentation/services/viewModeNavigationService'
+
+export {
+  notifyDeleteFailure,
+  showOpenedUrlsUndoToast,
+} from '@/contexts/saved-tabs/presentation/services/savedTabsUndoNotificationService'
+export type {
+  NotifyDeleteFailureParams,
+  ShowOpenedUrlsUndoToastParams,
+} from '@/contexts/saved-tabs/presentation/services/savedTabsUndoNotificationService'
+
+export {
+  getSnapshotSavedTabs,
   toDomainParentCategories,
   toDomainTabGroupsForReorder,
   toStorageCustomProject,
   toStorageParentCategory,
   toStorageTabGroup,
-}
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+
+/**
+ * `BuildSavedTabsSnapshotUseCase` 由来の `OpenedUrlsRestoreSnapshot` を
+ * presentation 層で扱うための alias。旧 `OpenedUrlsStorageSnapshot` と同じ
+ * 用途で、復元経路（Undo）とスナップショット捕捉（use-case）の
+ * インターフェースが一致するようになった (issue #494)。
+ *
+ * `application/mappers/SavedTabsSnapshotMapper` 経由で domain entity 形
+ * snapshot を storage 形へ変換するため、presentation helper としては
+ * 型の re-export だけに閉じる。
+ */
+type OpenedUrlsStorageSnapshot = OpenedUrlsRestoreSnapshot
+
+export type { OpenedUrlsStorageSnapshot }

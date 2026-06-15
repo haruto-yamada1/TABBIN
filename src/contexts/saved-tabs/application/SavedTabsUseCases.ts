@@ -18,10 +18,12 @@ import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCas
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from './use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import type { RemoveUrlsFromCustomProjectsUseCase } from './use-cases/RemoveUrlsFromCustomProjectsUseCase'
 import type { RenameParentCategoryUseCase } from './use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
 import type { ReorderTabGroupUrlsUseCase } from './use-cases/ReorderTabGroupUrlsUseCase'
 import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
+import type { RestoreOpenedUrlsSnapshotViewUseCase } from './use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
 import type { SetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
 import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
 import type { UpdateCustomProjectNameUseCase } from './use-cases/UpdateCustomProjectNameUseCase'
@@ -53,8 +55,10 @@ export interface SavedTabsUseCases {
   readonly deleteSavedUrl: DeleteSavedUrlUseCase
   readonly deleteSavedUrls: DeleteSavedUrlsUseCase
   readonly restoreOpenedUrlsSnapshot: RestoreOpenedUrlsSnapshotUseCase
+  readonly restoreOpenedUrlsSnapshotView: RestoreOpenedUrlsSnapshotViewUseCase
   readonly syncCategoryAssignments: SyncCategoryAssignmentsUseCase
   readonly removeUnreferencedUrlRecords: RemoveUnreferencedUrlRecordsUseCase
+  readonly removeUrlsFromCustomProjects: RemoveUrlsFromCustomProjectsUseCase
   readonly buildSavedTabsSnapshot: BuildSavedTabsSnapshotUseCase
   readonly reorderTabGroups: ReorderTabGroupsUseCase
   readonly reorderTabGroupUrls: ReorderTabGroupUrlsUseCase
