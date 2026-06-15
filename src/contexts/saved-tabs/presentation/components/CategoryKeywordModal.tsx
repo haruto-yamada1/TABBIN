@@ -1,4 +1,6 @@
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
 import type { ParentCategory } from '@/types/storage'
 
@@ -16,6 +18,11 @@ const EMPTY_PARENT_CATEGORIES: ParentCategory[] = []
  */
 interface CategoryKeywordModalExtraProps {
   readonly storageChangePort?: StorageChangePort
+  /** 永続化依存（Repository 群） */
+  readonly deps: {
+    tabGroupRepository: TabGroupRepository
+    parentCategoryRepository: ParentCategoryRepository
+  }
 }
 
 export const CategoryKeywordModal = ({
@@ -27,6 +34,7 @@ export const CategoryKeywordModal = ({
   parentCategories: initialParentCategories = EMPTY_PARENT_CATEGORIES,
   onUpdateParentCategories,
   storageChangePort,
+  deps,
 }: CategoryKeywordModalProps & CategoryKeywordModalExtraProps) => (
   <KeywordModalRoot
     group={group}
@@ -36,6 +44,7 @@ export const CategoryKeywordModal = ({
     onDeleteCategory={onDeleteCategory}
     initialParentCategories={initialParentCategories}
     onUpdateParentCategories={onUpdateParentCategories}
+    deps={deps}
     storageChangePort={storageChangePort}
   >
     <SubCategoryAddSection />

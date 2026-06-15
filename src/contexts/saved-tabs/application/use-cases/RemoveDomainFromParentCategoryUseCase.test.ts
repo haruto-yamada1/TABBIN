@@ -1,0 +1,91 @@
+import { beforeEach, describe, expect, it } from 'vitest'
+
+import { createParentCategory } from '../../domain/entities/ParentCategory'
+import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
+import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
+import { createDomainName } from '../../domain/value-objects/DomainName'
+import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
+import {
+  createRemoveDomainFromParentCategoryUseCase,
+  type RemoveDomainFromParentCategoryUseCaseDeps,
+} from './RemoveDomainFromParentCategoryUseCase'
+
+const createInMemoryRepository = (
+  initial: ReturnType<typeof createParentCategory>[] = [],
+): ParentCategoryRepository => {
+  let store: ReturnType<typeof createParentCategory>[] = [...initial]
+  return {
+    findAll: async () => store.map((category) => ({ ...category })),
+    findById: async (id) =>
+      store.find((category) => category.id === id) ?? null,
+    removeByIds: async (ids) => {
+      const idSet = new Set(ids)
+      store = store.filter((category) => !idSet.has(category.id))
+    },
+    saveAll: async (categories) => {
+      store = categories.map((category) => ({ ...category }))
+    },
+  }
+}
+
+const createDeps = (
+  repo: ParentCategoryRepository,
+): RemoveDomainFromParentCategoryUseCaseDeps => ({
+  parentCategoryRepository: repo,
+})
+
+describe('createRemoveDomainFromParentCategoryUseCase', () => {
+  let repo: ParentCategoryRepository
+
+  beforeEach(() => {
+    repo = createInMemoryRepository([
+      createParentCategory({
+        domainNames: ['example.com', 'extra.com'],
+        domains: ['tab-1', 'tab-2'],
+        id: 'cat-1',
+        name: 'Docs',
+      }),
+    ])
+  })
+
+  it('指定 domain を domains / domainNames から削除する', async () => {
+    const useCase = createRemoveDomainFromParentCategoryUseCase(
+      createDeps(repo),
+    )
+    const result = await useCase({
+      categoryId: createParentCategoryId('cat-1'),
+      domainId: createTabGroupId('tab-1'),
+      domainName: createDomainName('example.com'),
+    })
+    const target = result.find((c) => c.id === 'cat-1')
+    expect(target?.domains).toEqual(['tab-2'])
+    expect(target?.domainNames).toEqual(['extra.com'])
+  })
+
+  it('対象カテゴリが見つからない場合はエラー', async () => {
+    const useCase = createRemoveDomainFromParentCategoryUseCase(
+      createDeps(repo),
+    )
+    await expect(
+      useCase({
+        categoryId: createParentCategoryId('cat-missing'),
+        domainId: createTabGroupId('tab-1'),
+        domainName: createDomainName('example.com'),
+      }),
+    ).rejects.toThrowError(SavedTabsDomainError)
+  })
+
+  it('指定 domain が含まれていない場合はエラー', async () => {
+    const useCase = createRemoveDomainFromParentCategoryUseCase(
+      createDeps(repo),
+    )
+    await expect(
+      useCase({
+        categoryId: createParentCategoryId('cat-1'),
+        domainId: createTabGroupId('tab-not-found'),
+        domainName: createDomainName('missing.com'),
+      }),
+    ).rejects.toThrowError(SavedTabsDomainError)
+  })
+})

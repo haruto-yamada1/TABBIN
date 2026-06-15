@@ -3,6 +3,12 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMemo } from 'react'
 
+import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type {
+  CategoryManagementModalDeps,
+  CategoryManagementModalUseCases,
+} from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { CategoryManagementModal } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { useCategoryGroupState } from '@/contexts/saved-tabs/presentation/hooks/useCategoryGroupState'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -31,6 +37,22 @@ interface CategoryGroupRootProps {
    * 直叩きを置換（issue #501）。
    */
   reorderTabGroupUrlsUseCase: CategoryGroupContextType['reorderTabGroupUrlsUseCase']
+  /**
+   * 親カテゴリリネーム use-case。`chrome.storage.local` 直叩きの
+   * 置換先（issue #502）。
+   */
+  renameParentCategoryUseCase: RenameParentCategoryUseCase
+  /**
+   * `CategoryManagementModal` の repository 群。`chrome.storage.local`
+   * 直叩きを置換（issue #502）。context 経由でも解決可能だが、
+   * テスト容易性のため props としても受け取る。
+   */
+  categoryManagementModalDeps: CategoryManagementModalDeps
+  /**
+   * `CategoryManagementModal` が直接実行する use-case 群。
+   * 旧 `onCategoryUpdate` コールバックを置換（issue #502）。
+   */
+  categoryManagementModalUseCases: CategoryManagementModalUseCases
   /** 子コンポーネント */
   children: React.ReactNode
 }
@@ -48,6 +70,9 @@ export const CategoryGroupRoot = ({
   searchQuery = '',
   handlers,
   reorderTabGroupUrlsUseCase,
+  renameParentCategoryUseCase,
+  categoryManagementModalDeps,
+  categoryManagementModalUseCases,
   children,
 }: CategoryGroupRootProps) => {
   const { t } = useI18n()
@@ -57,6 +82,7 @@ export const CategoryGroupRoot = ({
     handleDeleteGroup: handlers.handleDeleteGroup,
     handleUpdateDomainsOrder: handlers.handleUpdateDomainsOrder,
     isCategoryReorderMode,
+    renameParentCategoryUseCase,
   })
 
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -149,8 +175,8 @@ export const CategoryGroupRoot = ({
         }}
         category={category}
         domains={state.localDomains}
-        // eslint-disable-next-line typescript/no-misused-promises
-        onCategoryUpdate={state.handleCategoryUpdate}
+        deps={categoryManagementModalDeps}
+        useCases={categoryManagementModalUseCases}
       />
     </CategoryGroupContext>
   )

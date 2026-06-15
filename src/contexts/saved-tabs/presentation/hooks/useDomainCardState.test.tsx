@@ -3,6 +3,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { TabGroup } from '@/types/storage'
 
 import {
@@ -348,12 +349,20 @@ describe('useDomainCardState', () => {
       },
     } as unknown as typeof chrome
 
+    const tabGroupRepository = {
+      findAll: vi.fn().mockResolvedValue([group, otherGroup]),
+      findById: vi.fn(),
+      removeByIds: vi.fn(),
+      saveAll: vi.fn(),
+    } as unknown as TabGroupRepository
+
     const { result } = renderHook(() =>
       useDomainCardState({
         group,
         handleDeleteCategory: vi.fn(),
         isReorderMode: false,
-      }),
+        tabGroupRepository,
+      } as never),
     )
 
     await waitFor(() => {
@@ -377,16 +386,14 @@ describe('useDomainCardState', () => {
     await act(async () => {
       await result.current.categoryReorder.handleConfirmCategoryReorder()
     })
-    expect(setStorage).toHaveBeenCalledWith({
-      savedTabs: [
-        expect.objectContaining({
-          id: 'group-1',
-          subCategoryOrder: ['news', 'tech'],
-          subCategoryOrderWithUncategorized: ['news', 'tech'],
-        }),
-        otherGroup,
-      ],
-    })
+    expect(vi.mocked(tabGroupRepository.saveAll)).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: 'group-1',
+        subCategoryOrder: ['news', 'tech'],
+        subCategoryOrderWithUncategorized: ['news', 'tech'],
+      }),
+      otherGroup,
+    ])
     expect(toast.success).toHaveBeenCalled()
 
     act(() => {
@@ -549,18 +556,22 @@ describe('useDomainCardState', () => {
       ...createGroup(),
       subCategoryOrderWithUncategorized: ['news', 'tech'],
     }
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(
-      new Error('write failed'),
-    )
+    const tabGroupRepository = {
+      findAll: vi.fn().mockResolvedValue([group]),
+      findById: vi.fn(),
+      removeByIds: vi.fn(),
+      saveAll: vi
+        .fn()
+        .mockRejectedValueOnce(new Error('write failed'))
+        .mockRejectedValueOnce(new Error('write failed')),
+    } as unknown as TabGroupRepository
 
     const { result } = renderHook(() =>
       useDomainCardState({
         group,
         handleDeleteCategory: vi.fn(),
         isReorderMode: false,
+        tabGroupRepository,
       }),
     )
 
@@ -723,6 +734,7 @@ describe('useDomainCardState', () => {
   })
 
   it('カテゴリ変更・モーダル close・親カテゴリ操作をハンドラへ反映する', async () => {
+    const group: TabGroup = createGroup()
     const handleDeleteCategory = vi.fn()
     vi.mocked(createParentCategory).mockResolvedValue({
       domains: [],
@@ -734,7 +746,7 @@ describe('useDomainCardState', () => {
 
     const { result } = renderHook(() =>
       useDomainCardState({
-        group: createGroup(),
+        group,
         handleDeleteCategory,
         isReorderMode: false,
       }),
@@ -801,6 +813,7 @@ describe('useDomainCardState', () => {
   })
 
   it('カテゴリ削除ハンドラがない場合と各種失敗を扱う', async () => {
+    const group: TabGroup = createGroup()
     vi.mocked(getParentCategories).mockRejectedValueOnce(
       new Error('load failed'),
     )
@@ -816,9 +829,10 @@ describe('useDomainCardState', () => {
 
     const { result } = renderHook(() =>
       useDomainCardState({
-        deleteSingleUrl,
-        group: createGroup(),
+        group,
+        handleDeleteCategory: vi.fn(),
         isReorderMode: false,
+        deleteSingleUrl,
       }),
     )
 

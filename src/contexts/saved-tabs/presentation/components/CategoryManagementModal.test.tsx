@@ -17,7 +17,22 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { z } from 'zod'
 
+import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
+import { createAddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
+import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
+import { createRemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
+import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
+import { createRenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import { categoryNameSchema } from '@/contexts/saved-tabs/presentation/components/categoryNameSchema'
+import type {
+  CategoryManagementModalDeps,
+  CategoryManagementModalUseCases,
+} from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const categoryManagementModalI18nState = vi.hoisted(() => ({
@@ -28,6 +43,13 @@ const { toastErrorSpy, toastSuccessSpy, buttonPropsSpy } = vi.hoisted(() => ({
   toastErrorSpy: vi.fn(),
   toastSuccessSpy: vi.fn(),
   buttonPropsSpy: vi.fn(),
+}))
+
+// chrome.storage 直叩きを置換した repository 経由で共有する storage 状態。
+// 旧 `getMock` / `setMock` と同じ役割を in-memory ref で再現する
+// （issue #502）。
+const mockStateRef = vi.hoisted(() => ({
+  current: { savedTabs: [] as TabGroup[], parentCategories: [] as ParentCategory[] },
 }))
 
 vi.mock('sonner', () => ({
@@ -162,15 +184,6 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 import { CategoryManagementModal } from './CategoryManagementModal'
 
-interface StorageState {
-  savedTabs: TabGroup[]
-  parentCategories: ParentCategory[]
-}
-
-let storageState: StorageState
-let getMock: ReturnType<typeof vi.fn>
-let setMock: ReturnType<typeof vi.fn>
-
 const getLatestButtonProps = (
   predicate: (props: Record<string, unknown>) => boolean,
 ) =>
@@ -189,34 +202,120 @@ const createDeferred = <T,>() => {
   return { promise, resolve: resolveRef, reject: rejectRef }
 }
 
-const setupChrome = () => {
-  // eslint-disable-next-line typescript/require-await
-  getMock = vi.fn(async (key: string) => {
-    if (key === 'savedTabs') {
-      return { savedTabs: storageState.savedTabs }
-    }
-    if (key === 'parentCategories') {
-      return { parentCategories: storageState.parentCategories }
-    }
-    return {}
-  })
-  // eslint-disable-next-line typescript/require-await
-  setMock = vi.fn(async (value: Partial<StorageState>) => {
-    storageState = {
-      ...storageState,
-      ...value,
-    }
-  })
-
-  const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-  chromeGlobal.chrome = {
-    storage: {
-      local: {
-        get: getMock,
-        set: setMock,
+const resetMockState = () => {
+  mockStateRef.current = {
+    savedTabs: [
+      { id: 'g1', domain: 'a.com', urls: [] },
+      { id: 'g2', domain: 'b.com', urls: [] },
+    ],
+    parentCategories: [
+      {
+        id: 'cat-1',
+        name: '仕事',
+        domains: ['g1'],
+        domainNames: ['a.com'],
       },
-    },
-  } as unknown as typeof chrome
+    ],
+  }
+}
+
+const createMockRepositories = (): {
+  tabGroupRepository: TabGroupRepository
+  parentCategoryRepository: ParentCategoryRepository
+} => {
+  const tabGroupRepository: TabGroupRepository = {
+    // eslint-disable-next-line typescript/require-await
+    findAll: vi.fn(
+      async () =>
+        [...mockStateRef.current.savedTabs] as unknown as ReturnType<
+          TabGroupRepository['findAll']
+        >,
+    ),
+    // eslint-disable-next-line typescript/require-await
+    findById: vi.fn(
+      async (id) =>
+        (mockStateRef.current.savedTabs.find(
+          (g) => g.id === (id as unknown as string),
+        ) ?? null) as unknown as ReturnType<TabGroupRepository['findById']>,
+    ),
+    // eslint-disable-next-line typescript/require-await
+    saveAll: vi.fn(async (groups) => {
+      mockStateRef.current.savedTabs = [...groups] as unknown as typeof mockStateRef.current.savedTabs
+    }),
+    // eslint-disable-next-line typescript/require-await
+    removeByIds: vi.fn(async (ids) => {
+      const idSet = new Set(ids as unknown as string[])
+      mockStateRef.current.savedTabs = mockStateRef.current.savedTabs.filter(
+        (g) => !idSet.has(g.id),
+      )
+    }),
+  }
+  const parentCategoryRepository: ParentCategoryRepository = {
+    // eslint-disable-next-line typescript/require-await
+    findAll: vi.fn(
+      async () =>
+        [...mockStateRef.current.parentCategories] as unknown as ReturnType<
+          ParentCategoryRepository['findAll']
+        >,
+    ),
+    // eslint-disable-next-line typescript/require-await
+    findById: vi.fn(
+      async (id) =>
+        (mockStateRef.current.parentCategories.find(
+          (c) => c.id === (id as unknown as string),
+        ) ?? null) as unknown as ReturnType<ParentCategoryRepository['findById']>,
+    ),
+    // eslint-disable-next-line typescript/require-await
+    saveAll: vi.fn(async (cats) => {
+      mockStateRef.current.parentCategories = [...cats]
+    }),
+    // eslint-disable-next-line typescript/require-await
+    removeByIds: vi.fn(async (ids) => {
+      const idSet = new Set(ids as unknown as string[])
+      mockStateRef.current.parentCategories =
+        mockStateRef.current.parentCategories.filter(
+          (c) => !idSet.has(c.id),
+        )
+    }),
+  }
+  return { tabGroupRepository, parentCategoryRepository }
+}
+
+const createUseCases = (
+  parentCategoryRepository: ParentCategoryRepository,
+): CategoryManagementModalUseCases => ({
+  renameParentCategory: createRenameParentCategoryUseCase({
+    parentCategoryRepository,
+  }),
+  addDomainToParentCategory: createAddDomainToParentCategoryUseCase({
+    parentCategoryRepository,
+  }),
+  removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase({
+    parentCategoryRepository,
+  }),
+})
+
+interface SetupMocksOptions {
+  useCases?: Partial<CategoryManagementModalUseCases>
+  state?: Partial<{ savedTabs: TabGroup[]; parentCategories: ParentCategory[] }>
+}
+
+const setupMocks = (options: SetupMocksOptions = {}) => {
+  resetMockState()
+  if (options.state) {
+    mockStateRef.current = { ...mockStateRef.current, ...options.state }
+  }
+  const { tabGroupRepository, parentCategoryRepository } =
+    createMockRepositories()
+  const useCases: CategoryManagementModalUseCases = {
+    ...createUseCases(parentCategoryRepository),
+    ...(options.useCases ?? {}),
+  }
+  const deps: CategoryManagementModalDeps = {
+    tabGroupRepository,
+    parentCategoryRepository,
+  }
+  return { deps, useCases, tabGroupRepository, parentCategoryRepository }
 }
 
 const createCategory = () => ({
@@ -233,18 +332,7 @@ describe('CategoryManagementModal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     categoryManagementModalI18nState.language = 'ja'
-    storageState = {
-      savedTabs: createDomains(),
-      parentCategories: [
-        {
-          id: 'cat-1',
-          name: '仕事',
-          domains: ['g1'],
-          domainNames: ['a.com'],
-        },
-      ],
-    }
-    setupChrome()
+    resetMockState()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(
@@ -270,12 +358,15 @@ describe('CategoryManagementModal', () => {
   })
 
   it('isOpen=false のときは何も描画しない', () => {
+    const { deps, useCases } = setupMocks()
     const { container } = render(
       <CategoryManagementModal
         isOpen={false}
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -284,12 +375,16 @@ describe('CategoryManagementModal', () => {
 
   it('開いたときに初期化して利用可能ドメインを読み込み、通常時は閉じられる', async () => {
     const onClose = vi.fn()
+    const { deps, useCases, tabGroupRepository, parentCategoryRepository } =
+      setupMocks()
     render(
       <CategoryManagementModal
         isOpen
         onClose={onClose}
         category={createCategory()}
         domains={createDomains()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -298,16 +393,17 @@ describe('CategoryManagementModal', () => {
     ).resolves.toBeTruthy()
     expect(screen.getByText('a.com')).toBeTruthy()
     expect(screen.getByTestId('select-item-g2')).toBeTruthy()
-    expect(getMock).toHaveBeenCalledWith('savedTabs')
-    expect(getMock).toHaveBeenCalledWith('parentCategories')
+    expect(tabGroupRepository.findAll).toHaveBeenCalled()
+    expect(parentCategoryRepository.findAll).toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('追加可能ドメインがない場合の初期状態を処理する', async () => {
-    storageState.savedTabs = []
-    storageState.parentCategories = []
+    const { deps, useCases } = setupMocks({
+      state: { savedTabs: [], parentCategories: [] },
+    })
 
     render(
       <CategoryManagementModal
@@ -316,6 +412,8 @@ describe('CategoryManagementModal', () => {
         category={createCategory()}
         // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -334,12 +432,15 @@ describe('CategoryManagementModal', () => {
       return 1
     })
 
+    const { deps, useCases } = setupMocks()
     render(
       <CategoryManagementModal
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -362,15 +463,26 @@ describe('CategoryManagementModal', () => {
 
   it('リネーム時の Enter/Blur 分岐（変更なし・バリデーション失敗・処理中・キャンセル）を処理する', async () => {
     // eslint-disable-next-line typescript/no-invalid-void-type
-    const deferredUpdate = createDeferred<void>()
-    const onCategoryUpdate = vi.fn(
-      async (categoryId: string, newName: string) => {
-        storageState.parentCategories = storageState.parentCategories.map(
-          (cat) => (cat.id === categoryId ? { ...cat, name: newName } : cat),
-        )
-        await deferredUpdate.promise
+    const deferredRename = createDeferred<void>()
+    const renameParentCategory = vi.fn(
+      async (command: {
+        categoryId: ParentCategoryId
+        newName: string
+      }) => {
+        mockStateRef.current.parentCategories =
+          mockStateRef.current.parentCategories.map((cat) =>
+            cat.id === (command.categoryId as unknown as string)
+              ? { ...cat, name: command.newName }
+              : cat,
+          )
+        await deferredRename.promise
+        return mockStateRef.current.parentCategories
       },
-    )
+    ) as unknown as RenameParentCategoryUseCase
+
+    const { deps, useCases } = setupMocks({
+      useCases: { renameParentCategory },
+    })
 
     render(
       <CategoryManagementModal
@@ -378,8 +490,8 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
-        // eslint-disable-next-line typescript/no-misused-promises
-        onCategoryUpdate={onCategoryUpdate}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -419,7 +531,12 @@ describe('CategoryManagementModal', () => {
     fireEvent.change(input, { target: { value: 'BlurSave' } })
     fireEvent.blur(input)
     await waitFor(() => {
-      expect(onCategoryUpdate).toHaveBeenCalledWith('cat-1', 'BlurSave')
+      expect(renameParentCategory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categoryId: expect.anything(),
+          newName: 'BlurSave',
+        }),
+      )
     })
 
     // 処理中 Enter/Blur は早期 return
@@ -428,7 +545,7 @@ describe('CategoryManagementModal', () => {
 
     // eslint-disable-next-line typescript/require-await
     await act(async () => {
-      deferredUpdate.resolve()
+      deferredRename.resolve()
     })
 
     await waitFor(() => {
@@ -447,14 +564,24 @@ describe('CategoryManagementModal', () => {
 
   it('リネーム開始/バリデーション/成功保存/closeガード（isRenaming）を処理する', async () => {
     const onClose = vi.fn()
-    const onCategoryUpdate = vi.fn(
+    const renameParentCategory = vi.fn(
       // eslint-disable-next-line typescript/require-await
-      async (categoryId: string, newName: string) => {
-        storageState.parentCategories = storageState.parentCategories.map(
-          (cat) => (cat.id === categoryId ? { ...cat, name: newName } : cat),
-        )
+      async (command: {
+        categoryId: ParentCategoryId
+        newName: string
+      }) => {
+        mockStateRef.current.parentCategories =
+          mockStateRef.current.parentCategories.map((cat) =>
+            cat.id === (command.categoryId as unknown as string)
+              ? { ...cat, name: command.newName }
+              : cat,
+          )
+        return mockStateRef.current.parentCategories
       },
-    )
+    ) as unknown as RenameParentCategoryUseCase
+    const { deps, useCases } = setupMocks({
+      useCases: { renameParentCategory },
+    })
 
     render(
       <CategoryManagementModal
@@ -462,8 +589,8 @@ describe('CategoryManagementModal', () => {
         onClose={onClose}
         category={createCategory()}
         domains={createDomains()}
-        // eslint-disable-next-line typescript/no-misused-promises
-        onCategoryUpdate={onCategoryUpdate}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -488,7 +615,12 @@ describe('CategoryManagementModal', () => {
     fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => {
-      expect(onCategoryUpdate).toHaveBeenCalledWith('cat-1', '新しいカテゴリ')
+      expect(renameParentCategory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categoryId: expect.anything(),
+          newName: '新しいカテゴリ',
+        }),
+      )
       expect(toastSuccessSpy).toHaveBeenCalled()
     })
 
@@ -497,91 +629,113 @@ describe('CategoryManagementModal', () => {
     ).toBeNull()
   })
 
-  it('リネーム失敗時（callbackなし/更新確認失敗）に toast.error を出す', async () => {
-    const { rerender } = render(
-      <CategoryManagementModal
-        isOpen
-        onClose={vi.fn()}
-        category={createCategory()}
-        domains={createDomains()}
-      />,
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
-    let input = await screen.findByPlaceholderText(
-      '例: ビジネスツール、技術情報',
-    )
-    fireEvent.change(input, { target: { value: '失敗1' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-
-    await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith(
-        '親カテゴリ名の更新に失敗しました',
+  it('リネーム失敗時（use-case throw / 確認失敗）に toast.error を出す', async () => {
+    // Sub-test 1: renameParentCategory use-case が throw する
+    {
+      const renameParentCategory = vi.fn(async () => {
+        throw new Error('use-case failed')
+      }) as unknown as RenameParentCategoryUseCase
+      const { deps, useCases } = setupMocks({
+        useCases: { renameParentCategory },
+      })
+      render(
+        <CategoryManagementModal
+          isOpen
+          onClose={vi.fn()}
+          category={createCategory()}
+          domains={createDomains()}
+          deps={deps}
+          useCases={useCases}
+        />,
       )
-    })
 
-    storageState.parentCategories = [
-      {
-        id: 'cat-1',
-        name: '仕事',
-        domains: ['g1'],
-        domainNames: ['a.com'],
-      },
-    ]
-    rerender(
-      <CategoryManagementModal
-        isOpen
-        onClose={vi.fn()}
-        category={createCategory()}
-        domains={createDomains()}
-        // eslint-disable-next-line typescript/no-misused-promises
-        onCategoryUpdate={vi.fn(async () => {})}
-      />,
-    )
-
-    input = await screen.findByPlaceholderText('例: ビジネスツール、技術情報')
-    fireEvent.change(input, { target: { value: '更新未反映' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-
-    await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith(
-        '親カテゴリ名の更新に失敗しました',
+      fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+      const input = await screen.findByPlaceholderText(
+        '例: ビジネスツール、技術情報',
       )
-    })
+      fireEvent.change(input, { target: { value: '失敗1' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(toastErrorSpy).toHaveBeenCalledWith(
+          '親カテゴリ名の更新に失敗しました',
+        )
+      })
+
+      cleanup()
+    }
+
+    // Sub-test 2: renameParentCategory use-case が state を更新せず、戻り値検証で失敗する
+    toastErrorSpy.mockClear()
+    {
+      const renameParentCategory = vi.fn(
+        // eslint-disable-next-line typescript/require-await
+        async () => mockStateRef.current.parentCategories,
+      ) as unknown as RenameParentCategoryUseCase
+      const { deps, useCases } = setupMocks({
+        useCases: { renameParentCategory },
+      })
+      render(
+        <CategoryManagementModal
+          isOpen
+          onClose={vi.fn()}
+          category={createCategory()}
+          domains={createDomains()}
+          deps={deps}
+          useCases={useCases}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+      const input = await screen.findByPlaceholderText(
+        '例: ビジネスツール、技術情報',
+      )
+      fireEvent.change(input, { target: { value: '更新未反映' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(toastErrorSpy).toHaveBeenCalledWith(
+          '親カテゴリ名の更新に失敗しました',
+        )
+      })
+    }
   })
 
   it('リネーム保存後の最終確認不一致をエラーとして処理する', async () => {
-    let parentCategoryGetCount = 0
-    // eslint-disable-next-line typescript/require-await
-    getMock.mockImplementation(async (key: string) => {
-      if (key === 'savedTabs') {
-        return { savedTabs: storageState.savedTabs }
-      }
-      if (key === 'parentCategories') {
-        parentCategoryGetCount += 1
-        if (parentCategoryGetCount === 3) {
-          return {
-            parentCategories: [
-              {
-                id: 'cat-1',
-                name: '最終確認で不一致',
-                domains: ['g1'],
-                domainNames: ['a.com'],
-              },
-            ],
-          }
-        }
-        return { parentCategories: storageState.parentCategories }
-      }
-      return {}
-    })
-
-    const onCategoryUpdate = vi.fn(
+    // use-case は state を正しく更新するが、Repository.findById の最終確認が
+    // 不一致を返すシナリオを再現する（use-case 戻り値検証は通過しつつ、
+    // 永続層との差分を検知）。
+    const renameParentCategory = vi.fn(
       // eslint-disable-next-line typescript/require-await
-      async (categoryId: string, newName: string) => {
-        storageState.parentCategories = storageState.parentCategories.map(
-          (cat) => (cat.id === categoryId ? { ...cat, name: newName } : cat),
-        )
+      async (command: { categoryId: ParentCategoryId; newName: string }) => {
+        mockStateRef.current.parentCategories =
+          mockStateRef.current.parentCategories.map((cat) =>
+            cat.id === (command.categoryId as unknown as string)
+              ? { ...cat, name: command.newName }
+              : cat,
+          )
+        return mockStateRef.current.parentCategories
+      },
+    ) as unknown as RenameParentCategoryUseCase
+
+    const { deps, useCases, parentCategoryRepository } = setupMocks({
+      useCases: { renameParentCategory },
+    })
+    // 最終確認時の `findById` 呼び出しのみ古い名前を返すよう上書きする。
+    // use-case 内部の `findAll` は別メソッドなので影響を受けない。
+    const originalFindById = parentCategoryRepository.findById
+    // eslint-disable-next-line typescript/require-await
+    vi.mocked(parentCategoryRepository.findById).mockImplementation(
+      // eslint-disable-next-line typescript/require-await
+      async () => {
+        return {
+          id: 'cat-1',
+          name: '最終確認で不一致',
+          domains: ['g1'],
+          domainNames: ['a.com'],
+        } as unknown as Awaited<
+          ReturnType<typeof originalFindById>
+        >
       },
     )
 
@@ -591,8 +745,8 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
-        // eslint-disable-next-line typescript/no-misused-promises
-        onCategoryUpdate={onCategoryUpdate}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -611,17 +765,22 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム保存で non-Error を投げた場合も stack なしでハンドリングする', async () => {
+    const renameParentCategory = vi.fn(async () => {
+      // eslint-disable-next-line eslint/no-throw-literal
+      throw 'string-error'
+    }) as unknown as RenameParentCategoryUseCase
+    const { deps, useCases } = setupMocks({
+      useCases: { renameParentCategory },
+    })
+
     render(
       <CategoryManagementModal
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
-        // eslint-disable-next-line typescript/require-await
-        onCategoryUpdate={vi.fn(async () => {
-          // eslint-disable-next-line eslint/no-throw-literal
-          throw 'string-error'
-        })}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -648,13 +807,19 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム保存時に validateCategoryName が false を返した場合は処理を中止する', async () => {
+    const renameParentCategory = vi.fn() as unknown as RenameParentCategoryUseCase
+    const { deps, useCases } = setupMocks({
+      useCases: { renameParentCategory },
+    })
+
     render(
       <CategoryManagementModal
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
-        onCategoryUpdate={vi.fn()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -684,16 +849,20 @@ describe('CategoryManagementModal', () => {
     await waitFor(() => {
       expect(screen.getByText('カテゴリ名が無効です')).toBeTruthy()
     })
+    expect(renameParentCategory).not.toHaveBeenCalled()
   })
 
   it('親カテゴリ削除の成功/失敗を処理する', async () => {
     const onClose = vi.fn()
+    const { deps, useCases, parentCategoryRepository } = setupMocks()
     const { rerender } = render(
       <CategoryManagementModal
         isOpen
         onClose={onClose}
         category={createCategory()}
         domains={createDomains()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -701,15 +870,19 @@ describe('CategoryManagementModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /^削除$/ }))
 
     await waitFor(() => {
-      expect(setMock).toHaveBeenCalled()
+      expect(parentCategoryRepository.removeByIds).toHaveBeenCalled()
       expect(toastSuccessSpy).toHaveBeenCalledWith(
         'カテゴリ「仕事」を削除しました',
       )
       expect(onClose).toHaveBeenCalled()
     })
 
-    setMock.mockRejectedValueOnce(new Error('boom'))
-    storageState.parentCategories = [
+    // 失敗ケース: removeByIds を reject させ、toast.error が表示されることを確認
+    vi.mocked(parentCategoryRepository.removeByIds).mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    // 失敗ケース用に state を再投入して再描画する
+    mockStateRef.current.parentCategories = [
       { id: 'cat-1', name: '仕事', domains: ['g1'], domainNames: ['a.com'] },
     ]
     rerender(
@@ -718,6 +891,8 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
     fireEvent.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
@@ -730,12 +905,18 @@ describe('CategoryManagementModal', () => {
 
   it('親カテゴリ削除確認のキャンセル・関連ドメインなし表示・処理中の再入防止を処理する', async () => {
     // eslint-disable-next-line typescript/no-invalid-void-type
-    const deferredSet = createDeferred<void>()
-    // eslint-disable-next-line typescript/no-misused-promises
-    setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
-      storageState = { ...storageState, ...value }
-      await deferredSet.promise
+    const deferredRemove = createDeferred<void>()
+    const removeByIdsMock = vi.fn(async (ids: readonly ParentCategoryId[]) => {
+      const idSet = new Set(ids as unknown as string[])
+      mockStateRef.current.parentCategories =
+        mockStateRef.current.parentCategories.filter(
+          (c) => !idSet.has(c.id),
+        )
+      await deferredRemove.promise
     })
+    const { deps, useCases, parentCategoryRepository } = setupMocks()
+    parentCategoryRepository.removeByIds =
+      removeByIdsMock as unknown as typeof parentCategoryRepository.removeByIds
 
     render(
       <CategoryManagementModal
@@ -744,6 +925,8 @@ describe('CategoryManagementModal', () => {
         category={createCategory()}
         // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -752,22 +935,11 @@ describe('CategoryManagementModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
     expect(screen.queryByRole('button', { name: /^削除$/ })).toBeNull()
 
-    // eslint-disable-next-line typescript/require-await
-    getMock.mockImplementationOnce(async (key: string) => {
-      if (key === 'parentCategories') {
-        return {}
-      }
-      if (key === 'savedTabs') {
-        return { savedTabs: storageState.savedTabs }
-      }
-      return {}
-    })
-
     fireEvent.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
     fireEvent.click(screen.getByRole('button', { name: /^削除$/ }))
 
     await waitFor(() => {
-      expect(setMock).toHaveBeenCalledTimes(1)
+      expect(removeByIdsMock).toHaveBeenCalledTimes(1)
     })
 
     const deleteConfirmButtonProps = getLatestButtonProps(
@@ -777,11 +949,11 @@ describe('CategoryManagementModal', () => {
         props.onClick instanceof Function,
     ) as { onClick?: () => Promise<void> | void } | undefined
     await deleteConfirmButtonProps?.onClick?.()
-    expect(setMock).toHaveBeenCalledTimes(1)
+    expect(removeByIdsMock).toHaveBeenCalledTimes(1)
 
     // eslint-disable-next-line typescript/require-await
     await act(async () => {
-      deferredSet.resolve()
+      deferredRemove.resolve()
     })
   })
 
@@ -792,66 +964,93 @@ describe('CategoryManagementModal', () => {
       throw new Error('currentDomain not found')
     }
 
-    render(
-      <CategoryManagementModal
-        isOpen
-        onClose={vi.fn()}
-        category={createCategory()}
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
-        domains={[currentDomain]}
-      />,
-    )
-
-    await screen.findByTestId('select-item-g2')
-    const plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
-      .previousElementSibling as HTMLButtonElement | null
-    expect(plusButton).toBeTruthy()
-    if (!plusButton) {
-      throw new Error('plusButton not found')
-    }
-    fireEvent.click(plusButton)
-
-    await waitFor(() => {
-      expect(toastSuccessSpy).toHaveBeenCalledWith(
-        'ドメイン b.com を「仕事」に追加しました',
+    // 1 回目: 正常に追加できるシナリオ
+    {
+      const { deps, useCases } = setupMocks()
+      render(
+        <CategoryManagementModal
+          isOpen
+          onClose={vi.fn()}
+          category={createCategory()}
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+          domains={[currentDomain]}
+          deps={deps}
+          useCases={useCases}
+        />,
       )
-    })
 
-    // 不整合データで duplicate 分岐を通す
-    storageState.parentCategories = [
-      {
-        id: 'cat-1',
-        name: '仕事',
-        domains: [],
-        domainNames: ['b.com'],
-      },
-    ]
-    storageState.savedTabs = [{ id: 'g2', domain: 'b.com', urls: [] }]
+      await screen.findByTestId('select-item-g2')
+      const plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
+        .previousElementSibling as HTMLButtonElement | null
+      expect(plusButton).toBeTruthy()
+      if (!plusButton) {
+        throw new Error('plusButton not found')
+      }
+      fireEvent.click(plusButton)
 
-    cleanup()
-    render(
-      <CategoryManagementModal
-        isOpen
-        onClose={vi.fn()}
-        category={createCategory()}
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
-        domains={[]}
-      />,
-    )
+      await waitFor(() => {
+        // eslint-disable-next-line no-console
+        process.stderr.write(
+          `DEBUG: toastSuccess=${JSON.stringify(toastSuccessSpy.mock.calls)}\n`,
+        )
+        // eslint-disable-next-line no-console
+        process.stderr.write(
+          `DEBUG: toastError=${JSON.stringify(toastErrorSpy.mock.calls)}\n`,
+        )
+        // eslint-disable-next-line no-console
+        process.stderr.write(
+          `DEBUG: state=${JSON.stringify(mockStateRef.current.parentCategories)}\n`,
+        )
+        expect(toastSuccessSpy).toHaveBeenCalledWith(
+          'ドメイン b.com を「仕事」に追加しました',
+        )
+      })
 
-    await screen.findByTestId('select-item-g2')
-    const secondPlusButton = screen.getByText(
-      '選択したドメインを親カテゴリに追加',
-    ).previousElementSibling as HTMLButtonElement | null
-    expect(secondPlusButton).toBeTruthy()
-    if (!secondPlusButton) {
-      throw new Error('secondPlusButton not found')
+      cleanup()
     }
-    fireEvent.click(secondPlusButton)
 
-    await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
-    })
+    // 2 回目: 不整合データで duplicate 分岐を通す
+    {
+      toastSuccessSpy.mockClear()
+      const { deps, useCases } = setupMocks({
+        state: {
+          parentCategories: [
+            {
+              id: 'cat-1',
+              name: '仕事',
+              domains: [],
+              domainNames: ['b.com'],
+            },
+          ],
+          savedTabs: [{ id: 'g2', domain: 'b.com', urls: [] }],
+        },
+      })
+      render(
+        <CategoryManagementModal
+          isOpen
+          onClose={vi.fn()}
+          category={createCategory()}
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+          domains={[]}
+          deps={deps}
+          useCases={useCases}
+        />,
+      )
+
+      await screen.findByTestId('select-item-g2')
+      const secondPlusButton = screen.getByText(
+        '選択したドメインを親カテゴリに追加',
+      ).previousElementSibling as HTMLButtonElement | null
+      expect(secondPlusButton).toBeTruthy()
+      if (!secondPlusButton) {
+        throw new Error('secondPlusButton not found')
+      }
+      fireEvent.click(secondPlusButton)
+
+      await waitFor(() => {
+        expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
+      })
+    }
   })
 
   it('ドメイン追加の残件選択・カテゴリ更新分岐・処理中再入防止を処理する', async () => {
@@ -860,28 +1059,53 @@ describe('CategoryManagementModal', () => {
       { id: 'g2', domain: 'b.com', urls: [] },
       { id: 'g3', domain: 'c.com', urls: [] },
     ]
-    storageState.savedTabs = domains3
-    storageState.parentCategories = [
-      {
-        id: 'cat-1',
-        name: '仕事',
-        domains: ['g1'],
-        domainNames: undefined as unknown as string[],
-      } as ParentCategory,
-      {
-        id: 'cat-2',
-        name: '他',
-        domains: ['g9'],
-        domainNames: ['x.com'],
-      },
-    ]
-
     // eslint-disable-next-line typescript/no-invalid-void-type
-    const deferredSet = createDeferred<void>()
-    // eslint-disable-next-line typescript/no-misused-promises
-    setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
-      storageState = { ...storageState, ...value }
-      await deferredSet.promise
+    const deferredAdd = createDeferred<void>()
+    const addDomainToParentCategory = vi.fn(
+      async (command: {
+        categoryId: ParentCategoryId
+        domainId: TabGroupId
+        domainName: DomainName
+      }) => {
+        mockStateRef.current.parentCategories =
+          mockStateRef.current.parentCategories.map((cat) =>
+            cat.id === (command.categoryId as unknown as string)
+              ? {
+                  ...cat,
+                  domains: [
+                    ...cat.domains,
+                    command.domainId as unknown as string,
+                  ],
+                  domainNames: [
+                    ...(cat.domainNames ?? []),
+                    command.domainName as unknown as string,
+                  ],
+                }
+              : cat,
+          )
+        await deferredAdd.promise
+        return mockStateRef.current.parentCategories
+      },
+    ) as unknown as AddDomainToParentCategoryUseCase
+    const { deps, useCases } = setupMocks({
+      state: {
+        savedTabs: domains3,
+        parentCategories: [
+          {
+            id: 'cat-1',
+            name: '仕事',
+            domains: ['g1'],
+            domainNames: undefined as unknown as string[],
+          } as ParentCategory,
+          {
+            id: 'cat-2',
+            name: '他',
+            domains: ['g9'],
+            domainNames: ['x.com'],
+          },
+        ],
+      },
+      useCases: { addDomainToParentCategory },
     })
 
     render(
@@ -891,6 +1115,8 @@ describe('CategoryManagementModal', () => {
         category={createCategory()}
         // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[domains3[0]]}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -905,7 +1131,7 @@ describe('CategoryManagementModal', () => {
 
     fireEvent.click(plusButton)
     await waitFor(() => {
-      expect(setMock).toHaveBeenCalledTimes(1)
+      expect(addDomainToParentCategory).toHaveBeenCalledTimes(1)
     })
 
     const plusButtonProps = getLatestButtonProps(
@@ -925,11 +1151,11 @@ describe('CategoryManagementModal', () => {
       preventDefault: vi.fn(),
       stopPropagation: vi.fn(),
     })
-    expect(setMock).toHaveBeenCalledTimes(1)
+    expect(addDomainToParentCategory).toHaveBeenCalledTimes(1)
 
     // eslint-disable-next-line typescript/require-await
     await act(async () => {
-      deferredSet.resolve()
+      deferredAdd.resolve()
     })
 
     await waitFor(() => {
@@ -941,10 +1167,19 @@ describe('CategoryManagementModal', () => {
       )
     })
 
-    const firstSetArg = setMock.mock.calls[0]?.[0] as
-      | Partial<StorageState>
+    // use-case 呼び出し時の state (parentCategories 配列) を検証する
+    const addCallArg = vi.mocked(addDomainToParentCategory).mock
+      .calls[0]?.[0] as
+      | {
+          categoryId: ParentCategoryId
+          domainId: TabGroupId
+          domainName: DomainName
+        }
       | undefined
-    expect(firstSetArg?.parentCategories).toStrictEqual(
+    expect(addCallArg?.categoryId).toBeTruthy()
+    expect(addCallArg?.domainId).toBeTruthy()
+    expect(addCallArg?.domainName).toBeTruthy()
+    expect(mockStateRef.current.parentCategories).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'cat-2',
@@ -955,7 +1190,7 @@ describe('CategoryManagementModal', () => {
       ]),
     )
     expect(
-      firstSetArg?.parentCategories?.find((cat) => cat.id === 'cat-1'),
+      mockStateRef.current.parentCategories.find((cat) => cat.id === 'cat-1'),
     ).toStrictEqual(
       expect.objectContaining({
         domains: ['g1', 'g2'],
@@ -971,97 +1206,110 @@ describe('CategoryManagementModal', () => {
       throw new Error('currentDomain not found')
     }
 
-    storageState.parentCategories = []
-    render(
-      <CategoryManagementModal
-        isOpen
-        onClose={vi.fn()}
-        category={createCategory()}
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
-        domains={[currentDomain]}
-      />,
-    )
+    // 1 回目: カテゴリが存在しないため addDomainToParentCategory が SavedTabsDomainError を投げる
+    {
+      const { deps, useCases } = setupMocks({
+        state: { parentCategories: [] },
+      })
+      render(
+        <CategoryManagementModal
+          isOpen
+          onClose={vi.fn()}
+          category={createCategory()}
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+          domains={[currentDomain]}
+          deps={deps}
+          useCases={useCases}
+        />,
+      )
 
-    await screen.findByTestId('select-item-g1')
-    let plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
-      .previousElementSibling as HTMLButtonElement | null
-    expect(plusButton).toBeTruthy()
-    if (!plusButton) {
-      throw new Error('plusButton not found')
-    }
-    fireEvent.click(plusButton)
-    await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
-    })
-
-    cleanup()
-    storageState = {
-      savedTabs: createDomains(),
-      parentCategories: [
-        {
-          id: 'cat-1',
-          name: '仕事',
-          domains: ['g1'],
-          domainNames: ['a.com'],
-        },
-      ],
-    }
-    setupChrome()
-    toastErrorSpy.mockClear()
-    render(
-      <CategoryManagementModal
-        isOpen
-        onClose={vi.fn()}
-        category={createCategory()}
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
-        domains={[currentDomain]}
-      />,
-    )
-    await screen.findByTestId('select-item-g2')
-    plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
-      .previousElementSibling as HTMLButtonElement | null
-    expect(plusButton).toBeTruthy()
-    if (!plusButton) {
-      throw new Error('plusButton not found')
-    }
-
-    const originalFind = Array.prototype.find
-    using findSpy = vi.spyOn(Array.prototype, 'find')
-    findSpy.mockImplementation((predicate, thisArg) => {
-      // eslint-disable-line
-      const context = findSpy.mock.contexts[
-        findSpy.mock.calls.length - 1
-      ] as unknown[]
-      if (
-        context.every(
-          (item) =>
-            Boolean(item) &&
-            typeof item === 'object' &&
-            'id' in (item as Record<string, unknown>) &&
-            'domain' in (item as Record<string, unknown>) &&
-            !('urls' in (item as Record<string, unknown>)),
-        )
-      ) {
-        return
+      await screen.findByTestId('select-item-g1')
+      const plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
+        .previousElementSibling as HTMLButtonElement | null
+      expect(plusButton).toBeTruthy()
+      if (!plusButton) {
+        throw new Error('plusButton not found')
       }
-      // eslint-disable-next-line typescript/consistent-return
-      return originalFind.call(context, predicate, thisArg)
-    })
+      fireEvent.click(plusButton)
+      await waitFor(() => {
+        expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
+      })
 
-    fireEvent.click(plusButton)
-    await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
-    })
+      cleanup()
+      toastErrorSpy.mockClear()
+    }
+
+    // 2 回目: domains から find で undefined が返るシナリオ。
+    // availableDomains 構築時に利用される find を undefined 化する。
+    {
+      const { deps, useCases } = setupMocks()
+      render(
+        <CategoryManagementModal
+          isOpen
+          onClose={vi.fn()}
+          category={createCategory()}
+          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+          domains={[currentDomain]}
+          deps={deps}
+          useCases={useCases}
+        />,
+      )
+      await screen.findByTestId('select-item-g2')
+      const plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
+        .previousElementSibling as HTMLButtonElement | null
+      expect(plusButton).toBeTruthy()
+      if (!plusButton) {
+        throw new Error('plusButton not found')
+      }
+
+      const originalFind = Array.prototype.find
+      using findSpy = vi.spyOn(Array.prototype, 'find')
+      findSpy.mockImplementation((predicate, thisArg) => {
+        // eslint-disable-line
+        const context = findSpy.mock.contexts[
+          findSpy.mock.calls.length - 1
+        ] as unknown[]
+        if (
+          context.every(
+            (item) =>
+              Boolean(item) &&
+              typeof item === 'object' &&
+              'id' in (item as Record<string, unknown>) &&
+              'domain' in (item as Record<string, unknown>) &&
+              !('urls' in (item as Record<string, unknown>)),
+          )
+        ) {
+          return
+        }
+        // eslint-disable-next-line typescript/consistent-return
+        return originalFind.call(context, predicate, thisArg)
+      })
+
+      fireEvent.click(plusButton)
+      await waitFor(() => {
+        expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
+      })
+    }
   })
 
   it('ドメイン削除の成功/失敗と closeガード（loading中）を処理する', async () => {
     const originalReadyState = document.readyState
+    const removeDomainFromParentCategory = vi.fn(
+      // eslint-disable-next-line typescript/require-await
+      async () => mockStateRef.current.parentCategories,
+    ) as unknown as RemoveDomainFromParentCategoryUseCase
+    const { deps, useCases } = setupMocks({
+      useCases: { removeDomainFromParentCategory },
+    })
+
     render(
       <CategoryManagementModal
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -1080,13 +1328,13 @@ describe('CategoryManagementModal', () => {
       )
     })
 
-    // eslint-disable-next-line typescript/require-await
-    getMock.mockImplementationOnce(async (key: string) => {
-      if (key === 'parentCategories') {
+    // 失敗ケース: 2 回目の削除は use-case が throw する
+    vi.mocked(removeDomainFromParentCategory).mockImplementationOnce(
+      // eslint-disable-next-line typescript/require-await
+      async () => {
         throw new Error('boom')
-      }
-      return { savedTabs: storageState.savedTabs }
-    })
+      },
+    )
     const nextRemoveButtons = screen.getAllByRole('button', {
       name: 'ドメインを削除',
     })
@@ -1113,27 +1361,51 @@ describe('CategoryManagementModal', () => {
   })
 
   it('ドメイン削除のカテゴリ更新分岐・処理中再入防止・関連データ不足を処理する', async () => {
-    storageState.parentCategories = [
-      {
-        id: 'cat-1',
-        name: '仕事',
-        domains: ['g1', 'g2'],
-        domainNames: undefined as unknown as string[],
-      } as ParentCategory,
-      {
-        id: 'cat-2',
-        name: '他',
-        domains: ['g9'],
-        domainNames: ['x.com'],
-      },
-    ]
-
     // eslint-disable-next-line typescript/no-invalid-void-type
-    const deferredSet = createDeferred<void>()
-    // eslint-disable-next-line typescript/no-misused-promises
-    setMock.mockImplementationOnce(async (value: Partial<StorageState>) => {
-      storageState = { ...storageState, ...value }
-      await deferredSet.promise
+    const deferredRemove = createDeferred<void>()
+    const removeDomainFromParentCategory = vi.fn(
+      async (command: {
+        categoryId: ParentCategoryId
+        domainId: TabGroupId
+        domainName: DomainName
+      }) => {
+        mockStateRef.current.parentCategories =
+          mockStateRef.current.parentCategories.map((cat) =>
+            cat.id === (command.categoryId as unknown as string)
+              ? {
+                  ...cat,
+                  domains: cat.domains.filter(
+                    (d) => d !== (command.domainId as unknown as string),
+                  ),
+                  domainNames: (cat.domainNames ?? []).filter(
+                    (d) => d !== (command.domainName as unknown as string),
+                  ),
+                }
+              : cat,
+          )
+        await deferredRemove.promise
+        return mockStateRef.current.parentCategories
+      },
+    ) as unknown as RemoveDomainFromParentCategoryUseCase
+
+    const { deps, useCases } = setupMocks({
+      state: {
+        parentCategories: [
+          {
+            id: 'cat-1',
+            name: '仕事',
+            domains: ['g1', 'g2'],
+            domainNames: undefined as unknown as string[],
+          } as ParentCategory,
+          {
+            id: 'cat-2',
+            name: '他',
+            domains: ['g9'],
+            domainNames: ['x.com'],
+          },
+        ],
+      },
+      useCases: { removeDomainFromParentCategory },
     })
 
     render(
@@ -1142,6 +1414,8 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 
@@ -1156,7 +1430,7 @@ describe('CategoryManagementModal', () => {
     fireEvent.click(removeButton)
 
     await waitFor(() => {
-      expect(setMock).toHaveBeenCalledTimes(1)
+      expect(removeDomainFromParentCategory).toHaveBeenCalledTimes(1)
     })
 
     const removeButtonProps = getLatestButtonProps(
@@ -1165,11 +1439,11 @@ describe('CategoryManagementModal', () => {
         props.onClick instanceof Function,
     ) as { onClick?: () => void } | undefined
     removeButtonProps?.onClick?.()
-    expect(setMock).toHaveBeenCalledTimes(1)
+    expect(removeDomainFromParentCategory).toHaveBeenCalledTimes(1)
 
     // eslint-disable-next-line typescript/require-await
     await act(async () => {
-      deferredSet.resolve()
+      deferredRemove.resolve()
     })
 
     await waitFor(() => {
@@ -1178,10 +1452,7 @@ describe('CategoryManagementModal', () => {
       )
     })
 
-    const removeSetArg = setMock.mock.calls[0]?.[0] as
-      | Partial<StorageState>
-      | undefined
-    expect(removeSetArg?.parentCategories).toStrictEqual(
+    expect(mockStateRef.current.parentCategories).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'cat-2',
@@ -1192,15 +1463,18 @@ describe('CategoryManagementModal', () => {
     )
 
     // カテゴリ不存在
-    storageState.parentCategories = []
     cleanup()
-    setupChrome()
+    const setup = setupMocks({
+      state: { parentCategories: [] },
+    })
     render(
       <CategoryManagementModal
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+        deps={setup.deps}
+        useCases={setup.useCases}
       />,
     )
     removeButtons = screen.getAllByRole('button', { name: 'ドメインを削除' })
@@ -1210,29 +1484,22 @@ describe('CategoryManagementModal', () => {
     })
 
     // ドメイン情報不存在
-    storageState.parentCategories = [
-      {
-        id: 'cat-1',
-        name: '仕事',
-        domains: ['g1'],
-        domainNames: ['a.com'],
-      },
-    ]
+    cleanup()
+    const setup2 = setupMocks()
     const weirdDomains = [...createDomains()] as TabGroup[]
     ;(
       weirdDomains as unknown as {
         find: (predicate: (value: TabGroup) => boolean) => TabGroup | undefined
       }
     ).find = () => undefined
-
-    cleanup()
-    setupChrome()
     render(
       <CategoryManagementModal
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
         domains={weirdDomains}
+        deps={setup2.deps}
+        useCases={setup2.useCases}
       />,
     )
     removeButtons = screen.getAllByRole('button', { name: 'ドメインを削除' })
@@ -1243,7 +1510,10 @@ describe('CategoryManagementModal', () => {
   })
 
   it('利用可能ドメインの読み込み失敗をハンドリングする', async () => {
-    getMock.mockRejectedValueOnce(new Error('load failed'))
+    const { deps, useCases, tabGroupRepository } = setupMocks()
+    vi.mocked(tabGroupRepository.findAll).mockRejectedValueOnce(
+      new Error('load failed'),
+    )
 
     render(
       <CategoryManagementModal
@@ -1251,6 +1521,8 @@ describe('CategoryManagementModal', () => {
         onClose={vi.fn()}
         category={createCategory()}
         domains={createDomains()}
+        deps={deps}
+        useCases={useCases}
       />,
     )
 

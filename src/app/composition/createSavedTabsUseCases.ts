@@ -1,4 +1,5 @@
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
+import { createAddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import { createBuildSavedTabsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/BuildSavedTabsSnapshotUseCase'
 import { createDeleteSavedUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteSavedUrlsUseCase'
 import { createDeleteSavedUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteSavedUrlUseCase'
@@ -9,7 +10,9 @@ import { createLoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/applic
 import { createLoadTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupUrlsUseCase'
 import { createOpenAllSavedUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '@/contexts/saved-tabs/application/use-cases/OpenSavedUrlUseCase'
+import { createRemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import { createRenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import { createReorderTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupsUseCase'
 import { createReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
@@ -61,6 +64,9 @@ export const createSavedTabsUseCases = (
   )
 
   return {
+    addDomainToParentCategory: createAddDomainToParentCategoryUseCase({
+      parentCategoryRepository: repositories.parentCategoryRepository,
+    }),
     buildSavedTabsSnapshot: createBuildSavedTabsSnapshotUseCase({
       customProjectRepository: repositories.customProjectRepository,
       parentCategoryRepository: repositories.parentCategoryRepository,
@@ -109,6 +115,9 @@ export const createSavedTabsUseCases = (
       tabGroupRepository: repositories.tabGroupRepository,
       urlRecordRepository: repositories.urlRecordRepository,
     }),
+    removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase({
+      parentCategoryRepository: repositories.parentCategoryRepository,
+    }),
     removeUnreferencedUrlRecords: createRemoveUnreferencedUrlRecordsUseCase({
       customProjectRepository: repositories.customProjectRepository,
       tabGroupRepository: repositories.tabGroupRepository,
@@ -133,6 +142,9 @@ export const createSavedTabsUseCases = (
     syncCategoryAssignments: createSyncCategoryAssignmentsUseCase({
       parentCategoryRepository: repositories.parentCategoryRepository,
       tabGroupRepository: repositories.tabGroupRepository,
+    }),
+    renameParentCategory: createRenameParentCategoryUseCase({
+      parentCategoryRepository: repositories.parentCategoryRepository,
     }),
   }
 }

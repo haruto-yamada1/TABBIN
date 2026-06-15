@@ -12,6 +12,8 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { saveParentCategories } from '@/lib/storage/categories'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+
 /** UseCategoryManagement フックの戻り値型 */
 interface UseCategoryManagementReturn {
   /** 親カテゴリ一覧 */
@@ -131,14 +133,26 @@ const resolveStateValue = <T>(
   nextValue: SetStateAction<T>,
   previousValue: T,
 ): T => (isStateSetter(nextValue) ? nextValue(previousValue) : nextValue)
+/** UseCategoryManagement フックの引数 */
+interface UseCategoryManagementParams {
+  /**
+   * タブグループ永続化先。`presentation` 層から直接
+   * `chrome.storage.local` を触らず、repository 経由で読み書きする。
+   */
+  tabGroupRepository: TabGroupRepository
+}
 /**
  * 親カテゴリ管理フック。
  * カテゴリの読み込み・並び替えモード・ドメイン間移動を担う。
  *
+ * @param params - フック引数
  * @returns UseCategoryManagementReturn
  */
-const useCategoryManagement = (): UseCategoryManagementReturn => {
+const useCategoryManagement = (
+  params: UseCategoryManagementParams,
+): UseCategoryManagementReturn => {
   // eslint-disable-line eslint/max-lines-per-function
+  const { tabGroupRepository } = params
   const { t } = useI18n()
   const [categories, setCategoriesState] = useState<ParentCategory[]>([])
   const [categoryOrder, setCategoryOrder] = useState<string[]>([])
@@ -176,14 +190,7 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
     ): Promise<void> => {
       try {
         console.log(`カテゴリ ${categoryName} の削除を開始します...`)
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        const storageResult = await chrome.storage.local.get<{
-          savedTabs?: TabGroup[]
-        }>('savedTabs')
-        const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
-          ? storageResult.savedTabs
-          : []
+        const savedTabs = await tabGroupRepository.findAll()
 
         // 削除前にグループを取得して現在のカテゴリを確認
         const targetGroup = savedTabs.find((group) => group.id === groupId)
@@ -191,22 +198,33 @@ const useCategoryManagement = (): UseCategoryManagementReturn => {
           console.error('カテゴリ削除対象のグループが見つかりません:', groupId)
           return
         }
-        const updatedGroups = savedTabs.map((group) =>
+        // `domain.TabGroup` には presentation 専用の `subCategories` /
+        // `urlSubCategories` / `categoryKeywords` フィールドが型上存在しない
+        // ため、保存形式 (`storage.TabGroup`) へキャストして
+        // `removeSubCategoryFromGroup` を適用する。
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        const updatedGroups = (
+          savedTabs as unknown as readonly TabGroup[]
+        ).map((group) =>
           removeSubCategoryFromGroup(group, groupId, categoryName),
         )
         console.log(`カテゴリ ${categoryName} を削除します`)
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        await chrome.storage.local.set({
-          savedTabs: updatedGroups,
-        })
+        // domain entity は readonly + branded、`storage.TabGroup` は
+        // mutable + plain string なので双方向で直接代入不可。`saveAll` は
+        // 内部 mapper で raw へ変換するため、エンティティ相当の構造的
+        // スーパーセットとして渡せば十分。
+        await tabGroupRepository.saveAll(
+          updatedGroups as unknown as Parameters<
+            typeof tabGroupRepository.saveAll
+          >[0],
+        )
         await refreshTabGroupsWithUrls(updatedGroups)
         console.log(`カテゴリ ${groupId} を削除しました`)
       } catch (error) {
         console.error('カテゴリ削除エラー:', error)
       }
     },
-    [],
+    [tabGroupRepository],
   )
 
   /** 親カテゴリのドラッグエンド処理（並び替えモード開始または更新） */

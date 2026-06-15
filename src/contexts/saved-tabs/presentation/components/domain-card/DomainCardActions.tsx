@@ -186,6 +186,11 @@ export const DomainCardActions = () => {
               parentCategories.handleUpdateParentCategories
             }
             storageChangePort={useCases.deps.storageChangePort}
+            deps={{
+              parentCategoryRepository:
+                useCases.deps.parentCategoryRepository,
+              tabGroupRepository: useCases.deps.tabGroupRepository,
+            }}
           />
         )}
       </div>

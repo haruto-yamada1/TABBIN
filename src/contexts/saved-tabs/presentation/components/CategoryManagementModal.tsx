@@ -20,6 +20,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
+import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
+import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import {
   categoryNameSchema,
   createCategoryNameSchema,
@@ -29,6 +32,11 @@ import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -36,6 +44,27 @@ import type { ParentCategory, TabGroup } from '@/types/storage'
 interface AvailableDomain {
   id: string
   domain: string
+}
+
+/**
+ * `CategoryManagementModal` が repository に直接アクセスするために受け取る
+ * 依存バンドル。`chrome.storage.local` 直叩きを置換し、presentation 層から
+ * chrome.* を撤去する（issue #502）。
+ */
+export interface CategoryManagementModalDeps {
+  readonly tabGroupRepository: TabGroupRepository
+  readonly parentCategoryRepository: ParentCategoryRepository
+}
+
+/**
+ * `CategoryManagementModal` が直接実行する use-case 群。
+ * 旧 `onCategoryUpdate` コールバックを置換し、storage 直叩きを撤去する
+ * （issue #502）。
+ */
+export interface CategoryManagementModalUseCases {
+  readonly renameParentCategory: RenameParentCategoryUseCase
+  readonly addDomainToParentCategory: AddDomainToParentCategoryUseCase
+  readonly removeDomainFromParentCategory: RemoveDomainFromParentCategoryUseCase
 }
 
 // 親カテゴリ管理モーダルの型定義
@@ -47,7 +76,8 @@ interface CategoryManagementModalProps {
     name: string
   }
   domains: TabGroup[]
-  onCategoryUpdate?: (categoryId: string, newName: string) => void
+  deps: CategoryManagementModalDeps
+  useCases: CategoryManagementModalUseCases
 }
 
 interface CategoryManagementFormState {
@@ -67,64 +97,6 @@ const createCategoryManagementFormState = (
   localCategoryName: categoryName,
   newCategoryName: categoryName,
 })
-const confirmCategoryNameUpdated = async (
-  categoryId: string,
-  trimmedName: string,
-): Promise<boolean> => {
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  const { parentCategories = [] } = await chrome.storage.local.get<{
-    parentCategories?: ParentCategory[]
-  }>('parentCategories')
-  const categoriesById = new Map(
-    parentCategories.map((cat: ParentCategory) => [cat.id, cat]),
-  )
-  const updatedCategory = categoriesById.get(categoryId)
-  if (updatedCategory?.name === trimmedName) {
-    console.log('Modal - カテゴリ名の更新を確認:', updatedCategory)
-    return true
-  }
-  return false
-}
-const updateCategoryWithDomain = async (
-  categoryId: string,
-  selectedDomain: string,
-  selectedDomainInfo: AvailableDomain,
-): Promise<ParentCategory[]> => {
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  const { parentCategories = [] } = await chrome.storage.local.get<{
-    parentCategories?: ParentCategory[]
-  }>('parentCategories')
-  const targetCategory = parentCategories.find(
-    (cat: ParentCategory) => cat.id === categoryId,
-  )
-  if (!targetCategory) {
-    throw new Error('カテゴリが見つかりません')
-  }
-  const existingDomainNames = targetCategory.domainNames || []
-  if (
-    targetCategory.domains.includes(selectedDomain) ||
-    existingDomainNames.includes(selectedDomainInfo.domain)
-  ) {
-    throw new Error('このドメインは既にカテゴリに追加されています')
-  }
-  const updatedCategories = parentCategories.map((cat: ParentCategory) =>
-    cat.id === categoryId
-      ? {
-          ...cat,
-          domainNames: [...existingDomainNames, selectedDomainInfo.domain],
-          domains: [...cat.domains, selectedDomain],
-        }
-      : cat,
-  )
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  await chrome.storage.local.set({
-    parentCategories: updatedCategories,
-  })
-  return updatedCategories
-}
 const buildAvailableDomains = ({
   categoryId,
   parentCategories,
@@ -156,8 +128,15 @@ const useCategoryManagementModalView = ({
   onClose,
   category,
   domains,
-  onCategoryUpdate,
+  deps,
+  useCases,
 }: CategoryManagementModalProps) => {
+  const { tabGroupRepository, parentCategoryRepository } = deps
+  const {
+    renameParentCategory,
+    addDomainToParentCategory,
+    removeDomainFromParentCategory,
+  } = useCases
   const { t } = useI18n()
   const localizedCategoryNameSchema = useMemo(
     () =>
@@ -245,26 +224,19 @@ const useCategoryManagementModalView = ({
 
     const loadDomainSources = async () => {
       try {
-        const [{ savedTabs = [] }, { parentCategories = [] }] =
-          await Promise.all([
-            // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            chrome.storage.local.get<{
-              savedTabs?: TabGroup[]
-            }>('savedTabs'),
-            // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            chrome.storage.local.get<{
-              parentCategories?: ParentCategory[]
-            }>('parentCategories'),
-          ])
+        const [savedTabs, loadedParentCategories] = await Promise.all([
+          tabGroupRepository.findAll(),
+          parentCategoryRepository.findAll(),
+        ])
 
         if (!isMounted) {
           return
         }
 
-        setSavedTabGroups(savedTabs)
-        setParentCategories(parentCategories)
+        setSavedTabGroups([...savedTabs] as unknown as TabGroup[])
+        setParentCategories(
+          [...loadedParentCategories] as unknown as ParentCategory[],
+        )
       } catch (error) {
         console.error('利用可能なドメインの取得に失敗しました:', error)
       }
@@ -275,7 +247,12 @@ const useCategoryManagementModalView = ({
     return () => {
       isMounted = false
     }
-  }, [category.id, isOpen])
+  }, [
+    category.id,
+    isOpen,
+    parentCategoryRepository,
+    tabGroupRepository,
+  ])
 
   // カテゴリのリネーム処理を開始
   const handleStartRenaming = useCallback(() => {
@@ -313,7 +290,6 @@ const useCategoryManagementModalView = ({
   const handleSaveRenaming = async () => {
     console.log('Modal - handleSaveRenaming開始', {
       currentCategory: category,
-      hasUpdateCallback: Boolean(onCategoryUpdate),
       localState: {
         isProcessing,
         isRenaming,
@@ -335,42 +311,41 @@ const useCategoryManagementModalView = ({
       oldName: category.name,
     })
     try {
-      // OnCategoryUpdateが提供されていない場合はエラー
-      if (!onCategoryUpdate) {
-        throw new Error('カテゴリ更新機能が利用できません')
-      }
-
-      // カテゴリ名の更新処理を実行
-      console.log('Modal - onCategoryUpdate呼び出し開始', {
+      // カテゴリ名の更新処理を実行（`renameParentCategory` use-case 経由）。
+      // 旧 `useCategoryGroupState.handleCategoryUpdate` / `confirmCategorySaved`
+      // を統合し、presentation 層から `chrome.storage.local` 直叩きを撤去する
+      // （issue #502）。
+      console.log('Modal - renameParentCategory呼び出し開始', {
         categoryId: category.id,
         newName: trimmedName,
       })
       setIsSaving(true)
       try {
-        // eslint-disable-next-line typescript/no-confusing-void-expression
-        await onCategoryUpdate(category.id, trimmedName) // eslint-disable-line typescript/await-thenable
-        console.log('Modal - onCategoryUpdate呼び出し完了')
+        const updatedCategories = await renameParentCategory({
+          categoryId: createParentCategoryId(category.id),
+          newName: trimmedName,
+        })
+        console.log('Modal - renameParentCategory呼び出し完了')
+
+        // 1 次検証: use-case 戻り値から対象カテゴリの更新を確認する。
+        // 戻り値が `trimmedName` と一致しない場合は storage 反映に失敗している
+        // 可能性があるため明示的にエラー扱いとする。
+        const updatedCategory = updatedCategories.find(
+          (cat) => cat.id === category.id,
+        )
+        if (updatedCategory?.name !== trimmedName) {
+          throw new Error('カテゴリ名の更新が確認できません')
+        }
       } finally {
         setIsSaving(false)
         console.log('Modal - 保存状態をリセット')
       }
-      const isUpdateConfirmed = await confirmCategoryNameUpdated(
-        category.id,
-        trimmedName,
-      )
-      if (!isUpdateConfirmed) {
-        throw new Error('カテゴリ名の更新が確認できません')
-      }
 
-      // すべての更新が完了したことを確認してからリロード
+      // 最終確認: Repository.findById で永続化された値を読み直し、リネーム結果を
+      // 改めて検証する。use-case の戻り値と永続層の差分を検知する目的。
       console.log('Modal - 最終確認開始')
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      const finalCheck = await chrome.storage.local.get<{
-        parentCategories?: ParentCategory[]
-      }>('parentCategories')
-      const finalCategory = finalCheck.parentCategories?.find(
-        (cat: ParentCategory) => cat.id === category.id,
+      const finalCategory = await parentCategoryRepository.findById(
+        createParentCategoryId(category.id),
       )
       if (finalCategory?.name !== trimmedName) {
         console.error('Modal - 最終確認でカテゴリ名が一致しません:', {
@@ -417,20 +392,11 @@ const useCategoryManagementModalView = ({
     }
     setIsProcessing(true)
     try {
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      const data = await chrome.storage.local.get<{
-        parentCategories?: ParentCategory[]
-      }>('parentCategories')
-      const parentCategories: ParentCategory[] = data.parentCategories ?? []
-      const updatedCategories = parentCategories.filter(
-        (cat) => cat.id !== category.id,
-      )
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      await chrome.storage.local.set({
-        parentCategories: updatedCategories,
-      })
+      // Repository.removeByIds 経由で該当カテゴリを永続化層から削除する
+      // （`chrome.storage.local.set` の直叩きを置換、issue #502）。
+      await parentCategoryRepository.removeByIds([
+        createParentCategoryId(category.id),
+      ])
       toast.success(
         t('savedTabs.categoryModal.deleted', undefined, {
           name: category.name,
@@ -443,7 +409,14 @@ const useCategoryManagementModalView = ({
     } finally {
       setIsProcessing(false)
     }
-  }, [isProcessing, category.id, category.name, onClose, t])
+  }, [
+    category.id,
+    category.name,
+    isProcessing,
+    onClose,
+    parentCategoryRepository,
+    t,
+  ])
 
   // ドメインをカテゴリに追加
   const handleAddDomain = useCallback(async () => {
@@ -458,12 +431,14 @@ const useCategoryManagementModalView = ({
       if (!selectedDomainInfo) {
         throw new Error('ドメインが見つかりません')
       }
-      const updatedCategories = await updateCategoryWithDomain(
-        category.id,
-        activeSelectedDomain,
-        selectedDomainInfo,
-      )
-      setParentCategories(updatedCategories)
+      const updatedCategories = await addDomainToParentCategory({
+        categoryId: createParentCategoryId(category.id),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        domainId: activeSelectedDomain as unknown as TabGroupId,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        domainName: selectedDomainInfo.domain as unknown as DomainName,
+      })
+      setParentCategories([...updatedCategories] as unknown as ParentCategory[])
       setSelectedDomain('')
       toast.success(
         t('savedTabs.categoryModal.domainAssigned', undefined, {
@@ -479,12 +454,11 @@ const useCategoryManagementModalView = ({
     }
   }, [
     activeSelectedDomain,
-    isProcessing,
+    addDomainToParentCategory,
+    availableDomains,
     category.id,
     category.name,
-    availableDomains,
-    setParentCategories,
-    setSelectedDomain,
+    isProcessing,
     t,
   ])
 
@@ -511,48 +485,22 @@ const useCategoryManagementModalView = ({
     }
     setIsProcessing(true)
     try {
-      // 現在のカテゴリデータを取得
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      const { parentCategories = [] } = await chrome.storage.local.get<{
-        parentCategories?: ParentCategory[]
-      }>('parentCategories')
-
-      // 対象のカテゴリを検索
-      const targetCategory = parentCategories.find(
-        (cat: ParentCategory) => cat.id === category.id,
-      )
-      if (!targetCategory) {
-        throw new Error('カテゴリが見つかりません')
-      }
-
       // 削除するドメインの情報を取得
       const domainInfo = domains.find((d) => d.id === domainId)
       if (!domainInfo) {
         throw new Error('ドメインが見つかりません')
       }
 
-      // カテゴリを更新
-      const updatedCategories = parentCategories.map((cat: ParentCategory) => {
-        if (cat.id === category.id) {
-          return {
-            ...cat,
-            domainNames: (cat.domainNames || []).filter(
-              (d) => d !== domainInfo.domain,
-            ),
-            domains: cat.domains.filter((d) => d !== domainId),
-          }
-        }
-        return cat
+      // カテゴリ更新は `removeDomainFromParentCategory` use-case 経由で行い、
+      // `chrome.storage.local.get/set` の直叩きを撤去する（issue #502）。
+      const updatedCategories = await removeDomainFromParentCategory({
+        categoryId: createParentCategoryId(category.id),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        domainId: domainId as unknown as TabGroupId,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        domainName: domainInfo.domain as unknown as DomainName,
       })
-
-      // 保存
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      await chrome.storage.local.set({
-        parentCategories: updatedCategories,
-      })
-      setParentCategories(updatedCategories)
+      setParentCategories([...updatedCategories] as unknown as ParentCategory[])
       toast.success(
         t('savedTabs.categoryModal.domainRemoved', undefined, {
           categoryName: category.name,

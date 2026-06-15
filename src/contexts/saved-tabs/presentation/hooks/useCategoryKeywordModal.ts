@@ -3,6 +3,8 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -20,6 +22,14 @@ const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
       message: t('savedTabs.categoryModal.validation.maxLength'),
     })
 
+/** UseCategoryKeywordModal フックの依存（Repository 群） */
+interface UseCategoryKeywordModalDeps {
+  /** TabGroup 永続化 Repository */
+  tabGroupRepository: TabGroupRepository
+  /** ParentCategory 永続化 Repository */
+  parentCategoryRepository: ParentCategoryRepository
+}
+
 /** UseCategoryKeywordModal フックの引数 */
 interface UseCategoryKeywordModalParams {
   /** タブグループデータ */
@@ -34,6 +44,8 @@ interface UseCategoryKeywordModalParams {
   initialParentCategories: ParentCategory[]
   /** 親カテゴリ更新ハンドラ */
   onUpdateParentCategories?: (categories: ParentCategory[]) => void
+  /** 永続化依存（Repository 群）。`chrome.storage.local` 直叩きを撤去するため必須。 */
+  deps: UseCategoryKeywordModalDeps
   /**
    * storage 変更通知 port。`chrome.storage.onChanged` の直叩きは禁止の
    * ため、presentation 層は本 port 経由でのみ storage 変更を購読する。
@@ -114,8 +126,10 @@ export const useCategoryKeywordModal = ({
   onDeleteCategory,
   initialParentCategories,
   onUpdateParentCategories,
+  deps,
   storageChangePort,
 }: UseCategoryKeywordModalParams) => {
+  const { tabGroupRepository, parentCategoryRepository } = deps
   const { t } = useI18n()
   // --- サブカテゴリ選択状態 ---
   const [activeCategory, setActiveCategory] = useState<string>(
@@ -195,10 +209,9 @@ export const useCategoryKeywordModal = ({
     try {
       // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
       // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      const { parentCategories: stored = [] } = await chrome.storage.local.get<{
-        parentCategories?: ParentCategory[]
-      }>('parentCategories')
-      const storedCategories = stored
+      const stored =
+        (await parentCategoryRepository.findAll()) as unknown as readonly ParentCategory[]
+      const storedCategories = [...stored]
       setInternalParentCategories(storedCategories)
       if (onUpdateParentCategories) {
         // eslint-disable-next-line typescript/no-confusing-void-expression
@@ -215,7 +228,13 @@ export const useCategoryKeywordModal = ({
       console.error('親カテゴリの読み込みに失敗:', error)
       toast.error(t('savedTabs.categoryModal.loadError'))
     }
-  }, [group, onUpdateParentCategories, selectedParentCategory, t])
+  }, [
+    group,
+    onUpdateParentCategories,
+    parentCategoryRepository,
+    selectedParentCategory,
+    t,
+  ])
 
   // --- モーダル開閉時の初期化 ---
   useEffect(() => {
@@ -289,11 +308,8 @@ export const useCategoryKeywordModal = ({
       const updatedKeywords = keywords.filter((k) => k !== keywordToRemove)
       updateCategoryEditState({ keywords: updatedKeywords })
       try {
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        const { savedTabs = [] } = await chrome.storage.local.get<{
-          savedTabs?: TabGroup[]
-        }>('savedTabs')
+        const savedTabs =
+          (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
         const updatedGroups = savedTabs.map((g) =>
           g.id === group.id
             ? {
@@ -317,16 +333,22 @@ export const useCategoryKeywordModal = ({
               }
             : g,
         )
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        await chrome.storage.local.set({
-          savedTabs: updatedGroups,
-        })
+        await tabGroupRepository.saveAll(
+          updatedGroups as unknown as Parameters<
+            typeof tabGroupRepository.saveAll
+          >[0],
+        )
       } catch (error) {
         console.error('キーワード削除に伴う保存処理に失敗しました:', error)
       }
     },
-    [keywords, group.id, activeCategory, updateCategoryEditState],
+    [
+      activeCategory,
+      group.id,
+      keywords,
+      tabGroupRepository,
+      updateCategoryEditState,
+    ],
   )
 
   // --- サブカテゴリ名入力ハンドラ ---
@@ -366,11 +388,8 @@ export const useCategoryKeywordModal = ({
     setIsProcessing(true)
     try {
       const validName = newSubCategory.trim()
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      const { savedTabs = [] } = await chrome.storage.local.get<{
-        savedTabs?: TabGroup[]
-      }>('savedTabs')
+      const savedTabs =
+        (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
       const updatedTabs = savedTabs.map((tab: TabGroup) => {
         if (tab.id === group.id) {
           return {
@@ -380,11 +399,11 @@ export const useCategoryKeywordModal = ({
         }
         return tab
       })
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      await chrome.storage.local.set({
-        savedTabs: updatedTabs,
-      })
+      await tabGroupRepository.saveAll(
+        updatedTabs as unknown as Parameters<
+          typeof tabGroupRepository.saveAll
+        >[0],
+      )
       setActiveCategory(validName)
       setNewSubCategory('')
       setSubCategoryNameError(null)
@@ -400,12 +419,13 @@ export const useCategoryKeywordModal = ({
       setIsProcessing(false)
     }
   }, [
-    newSubCategory,
-    isProcessing,
-    group.subCategories,
     group.id,
-    validateCategoryName,
+    group.subCategories,
+    isProcessing,
+    newSubCategory,
+    tabGroupRepository,
     t,
+    validateCategoryName,
   ])
 
   // --- カテゴリ削除 ---
@@ -505,19 +525,16 @@ export const useCategoryKeywordModal = ({
     setIsProcessing(true)
     try {
       const validName = newCategoryName.trim()
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      const { savedTabs = [] } = await chrome.storage.local.get<{
-        savedTabs?: TabGroup[]
-      }>('savedTabs')
+      const savedTabs =
+        (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
       const updatedTabs = savedTabs.map((tab: TabGroup) =>
         renameCategoryInTab(tab, group.id, activeCategory, validName),
       )
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      await chrome.storage.local.set({
-        savedTabs: updatedTabs,
-      })
+      await tabGroupRepository.saveAll(
+        updatedTabs as unknown as Parameters<
+          typeof tabGroupRepository.saveAll
+        >[0],
+      )
       setActiveCategory(validName)
       updateCategoryEditState({
         isRenaming: false,
@@ -537,14 +554,15 @@ export const useCategoryKeywordModal = ({
       setIsProcessing(false)
     }
   }, [
-    newCategoryName,
     activeCategory,
-    isProcessing,
-    group.subCategories,
     group.id,
-    validateCategoryName,
+    group.subCategories,
+    isProcessing,
+    newCategoryName,
+    tabGroupRepository,
     t,
     updateCategoryEditState,
+    validateCategoryName,
   ])
   return {
     /** 削除関連 */

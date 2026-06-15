@@ -151,13 +151,19 @@ const useSavedTabsAppView = ({
     TabGroup[]
   >([])
 
-  const categoryState = useCategoryManagement()
+  const categoryState = useCategoryManagement({
+    tabGroupRepository: deps.tabGroupRepository,
+  })
   const tabDataState = useTabData({
     loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
     onCategoriesLoaded: categoryState.setCategories,
     onSettingsLoaded: setSettings,
   })
   const projectState = useProjectManagement(
+    deps.customProjectRepository,
     tabDataState.tabGroups,
     settings,
     initialViewMode,
@@ -995,6 +1001,18 @@ const useSavedTabsAppView = ({
         handleUncategorizedDragEnd={handleUncategorizedDragEnd}
         hasContentTabGroupsCount={hasContentTabGroups.length}
         reorderTabGroupUrlsUseCase={savedTabsUseCases.reorderTabGroupUrls}
+        renameParentCategoryUseCase={savedTabsUseCases.renameParentCategory}
+        categoryManagementModalDeps={{
+          tabGroupRepository: deps.tabGroupRepository,
+          parentCategoryRepository: deps.parentCategoryRepository,
+        }}
+        categoryManagementModalUseCases={{
+          renameParentCategory: savedTabsUseCases.renameParentCategory,
+          addDomainToParentCategory:
+            savedTabsUseCases.addDomainToParentCategory,
+          removeDomainFromParentCategory:
+            savedTabsUseCases.removeDomainFromParentCategory,
+        }}
       />
     ) : (
       <CustomModeContainer

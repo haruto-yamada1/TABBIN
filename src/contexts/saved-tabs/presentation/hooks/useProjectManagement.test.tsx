@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { CustomProject, UserSettings } from '@/types/storage'
 
 import { useProjectManagement } from './useProjectManagement'
@@ -126,6 +127,8 @@ const waitForLoadedProjects = async (
 }
 
 describe('useProjectManagement', () => {
+  let customProjectRepository: CustomProjectRepository
+
   beforeEach(() => {
     for (const mock of Object.values(projectManagementMocks)) {
       mock.mockReset() // eslint-disable-line
@@ -136,20 +139,32 @@ describe('useProjectManagement', () => {
     vi.setSystemTime(new Date('2026-01-02T03:04:05.000Z'))
     projectManagementMocks.getCustomProjects.mockResolvedValue(projectSnapshot)
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({
-            customProjectOrder: ['project-1'],
-            customProjects: projectSnapshot,
-          })),
-          set: chromeSetMock,
-        },
-      },
-    } as unknown as typeof chrome
+    customProjectRepository = {
+      findAll: vi.fn(),
+      findById: vi.fn(),
+      removeByIds: vi.fn(),
+      saveAll: vi.fn(),
+      findOrder: vi.fn(),
+      saveOrder: vi.fn(),
+    } as unknown as CustomProjectRepository
+    ;(customProjectRepository.findAll as unknown as {
+      mockResolvedValue: (value: unknown) => void
+    }).mockResolvedValue(projectSnapshot)
+    ;(customProjectRepository.findOrder as unknown as {
+      mockResolvedValue: (value: unknown) => void
+    }).mockResolvedValue(['project-1'])
+    ;(customProjectRepository.saveAll as unknown as {
+      mockResolvedValue: (value: unknown) => void
+    }).mockResolvedValue(undefined)
+    ;(customProjectRepository.saveOrder as unknown as {
+      mockResolvedValue: (value: unknown) => void
+    }).mockResolvedValue(undefined)
+    ;(customProjectRepository.findById as unknown as {
+      mockResolvedValue: (value: unknown) => void
+    }).mockResolvedValue(null)
+    ;(customProjectRepository.removeByIds as unknown as {
+      mockResolvedValue: (value: unknown) => void
+    }).mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -165,7 +180,7 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(latestProjects)
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'domain'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'domain'),
     )
 
     await waitForLoadedProjects(result)
@@ -187,7 +202,7 @@ describe('useProjectManagement', () => {
     )
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitFor(() => {
@@ -207,7 +222,7 @@ describe('useProjectManagement', () => {
     )
 
     const { result: pendingResult, unmount } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
     unmount()
 
@@ -226,7 +241,7 @@ describe('useProjectManagement', () => {
       .mockRejectedValueOnce(new Error('second failure'))
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'domain'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'domain'),
     )
 
     await waitForLoadedProjects(result)
@@ -247,7 +262,7 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce([projectWithCategories])
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'domain'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'domain'),
     )
 
     await waitForLoadedProjects(result)
@@ -269,7 +284,7 @@ describe('useProjectManagement', () => {
 
   it('initialViewMode 未指定なら domain モードで初期化する', async () => {
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings),
+      useProjectManagement(customProjectRepository, [], defaultSettings),
     )
 
     await waitForLoadedProjects(result)
@@ -295,7 +310,7 @@ describe('useProjectManagement', () => {
     )
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result)
@@ -332,7 +347,7 @@ describe('useProjectManagement', () => {
     )
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result)
@@ -367,7 +382,7 @@ describe('useProjectManagement', () => {
     ])
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result, [projectSnapshot[0], untouchedProject])
@@ -422,7 +437,7 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(updatedProjects)
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result)
@@ -505,7 +520,7 @@ describe('useProjectManagement', () => {
     ]
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result, [
@@ -591,7 +606,7 @@ describe('useProjectManagement', () => {
     ])
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result, [
@@ -654,7 +669,7 @@ describe('useProjectManagement', () => {
     )
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result)
@@ -720,7 +735,7 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(updatedProjects)
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result)
@@ -756,13 +771,12 @@ describe('useProjectManagement', () => {
       await undoOptions?.action?.onClick?.()
     })
 
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    expect(chrome.storage.local.set).toHaveBeenLastCalledWith({
-      customProjectOrder: ['project-1'],
-      customProjects: projectSnapshot,
-    })
+    expect(customProjectRepository.saveAll).toHaveBeenLastCalledWith(
+      projectSnapshot,
+    )
+    expect(customProjectRepository.saveOrder).toHaveBeenLastCalledWith([
+      'project-1',
+    ])
     expect(result.current.customProjects).toStrictEqual(projectSnapshot)
   })
 
@@ -772,7 +786,7 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce([])
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result)
@@ -806,25 +820,17 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(updatedProjects)
       .mockResolvedValueOnce(updatedProjects)
 
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
+    const findAll = customProjectRepository.findAll as unknown as {
       mockResolvedValueOnce: (value: unknown) => void
     }
-    storageGet.mockResolvedValueOnce({})
-    storageGet.mockResolvedValueOnce({
-      customProjects: projectSnapshot,
-    })
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(
-      new Error('restore failed'),
-    )
+    findAll.mockResolvedValueOnce([])
+    findAll.mockResolvedValueOnce(projectSnapshot)
+    ;(customProjectRepository.saveAll as unknown as {
+      mockRejectedValueOnce: (value: unknown) => void
+    }).mockRejectedValueOnce(new Error('restore failed'))
 
     const { result } = renderHook(() =>
-      useProjectManagement([], defaultSettings, 'custom'),
+      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
     )
 
     await waitForLoadedProjects(result)
@@ -848,10 +854,7 @@ describe('useProjectManagement', () => {
       await missingUndoOptions?.action?.onClick?.()
     })
 
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+    expect(customProjectRepository.saveAll).not.toHaveBeenCalled()
 
     await act(async () => {
       await result.current.handleDeleteUrlFromProject(
@@ -872,12 +875,9 @@ describe('useProjectManagement', () => {
       await failingUndoOptions?.action?.onClick?.()
     })
 
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({
-      customProjects: projectSnapshot,
-    })
+    expect(customProjectRepository.saveAll).toHaveBeenCalledWith(
+      projectSnapshot,
+    )
     expect(toast.error).toHaveBeenCalledWith('保存データを復元できませんでした')
   })
 })
