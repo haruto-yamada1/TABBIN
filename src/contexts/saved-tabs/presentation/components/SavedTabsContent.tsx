@@ -11,10 +11,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
-import type { UserSettings } from '@/types/storage'
 
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
 import { OpenAllTabsConfirmDialog } from './shared/OpenAllTabsConfirmDialog'

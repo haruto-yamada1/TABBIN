@@ -1,26 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ParentCategory, TabGroup } from '@/types/storage'
-
+import type { ParentCategoryDto } from '../dto/ParentCategoryDto'
+import type { TabGroupDto } from '../dto/TabGroupDto'
 import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
 } from './SavedTabsCategorizationService'
 
-const docsCategory: ParentCategory = {
+const docsCategory: ParentCategoryDto = {
   domainNames: ['docs.example.com'],
   domains: ['group-docs-1', 'group-docs-2'],
   id: 'docs',
   name: 'Docs',
 }
-const newsCategory: ParentCategory = {
+const newsCategory: ParentCategoryDto = {
   domainNames: ['news.example.com'],
   domains: [],
   id: 'news',
   name: 'News',
 }
 
-const makeGroup = (overrides: Partial<TabGroup> = {}): TabGroup => ({
+const makeGroup = (overrides: Partial<TabGroupDto> = {}): TabGroupDto => ({
   domain: 'example.com',
   id: 'group-1',
   urlIds: ['url-1'],
@@ -38,7 +38,7 @@ describe('SavedTabsCategorizationService.buildPresentationCategoryLookup', () =>
   })
 
   it('同一 id / domainName を複数カテゴリが宣言したら先勝ちで保持する', () => {
-    const conflicting: ParentCategory = {
+    const conflicting: ParentCategoryDto = {
       domainNames: ['docs.example.com'],
       domains: ['group-docs-1'],
       id: 'docs-conflict',

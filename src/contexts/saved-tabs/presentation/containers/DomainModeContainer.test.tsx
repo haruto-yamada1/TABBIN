@@ -12,9 +12,10 @@ import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/app
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const domainModeI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -109,7 +110,7 @@ vi.mock(
 
 import { DomainModeContainer } from './DomainModeContainer'
 
-const defaultSettings: UserSettings = {
+const defaultSettings: UserSettingsDto = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
   excludePatterns: [],

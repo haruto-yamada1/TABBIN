@@ -1,8 +1,8 @@
 import { memo, useMemo } from 'react'
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
-import type { UserSettings } from '@/types/storage'
 
 import { DomainCardActions } from './domain-card/DomainCardActions'
 import { DomainCardContent } from './domain-card/DomainCardContent'

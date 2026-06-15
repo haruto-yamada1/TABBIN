@@ -4,8 +4,9 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
-import type { CustomProject, UserSettings } from '@/types/storage'
+import type { CustomProject } from '@/types/storage'
 
 import { useProjectManagement } from './useProjectManagement'
 
@@ -64,7 +65,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
   }
 })
 
-const defaultSettings: UserSettings = {
+const defaultSettings: UserSettingsDto = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
   excludePatterns: [],

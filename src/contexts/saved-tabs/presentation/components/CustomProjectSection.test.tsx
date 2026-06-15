@@ -10,8 +10,8 @@ import {
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
-import type { UserSettings } from '@/types/storage'
 
 const customProjectSectionI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',

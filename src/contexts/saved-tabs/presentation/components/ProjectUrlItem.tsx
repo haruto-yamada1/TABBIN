@@ -5,8 +5,9 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { CustomProject, UserSettings } from '@/types/storage'
+import type { CustomProject } from '@/types/storage'
 
 import {
   getCategoryDisplayName,
@@ -39,7 +40,7 @@ interface ProjectUrlItemProps {
   isInUncategorizedArea?: boolean
   // 追加: 親要素のタイプ情報
   parentType?: string
-  settings: UserSettings
+  settings: UserSettingsDto
 }
 
 // eslint-disable-next-line eslint/complexity

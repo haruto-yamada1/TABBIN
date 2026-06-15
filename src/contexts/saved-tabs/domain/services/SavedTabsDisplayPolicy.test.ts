@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { TabGroup } from '@/types/storage'
-
+import type { TabGroupDto } from '../dto/TabGroupDto'
 import { hasDisplayableUrls } from './SavedTabsDisplayPolicy'
 
-const makeGroup = (overrides: Partial<TabGroup> = {}): TabGroup => ({
+const makeGroup = (overrides: Partial<TabGroupDto> = {}): TabGroupDto => ({
   domain: 'example.com',
   id: 'group-1',
   ...overrides,

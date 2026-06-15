@@ -2,7 +2,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import { useTabData } from './useTabData'
 
@@ -39,7 +40,7 @@ let migrationPort: ReturnType<typeof createMigrationPortMock>
 
 const renderUseTabData = (
   onCategoriesLoaded: (categories: ParentCategory[]) => void = vi.fn(),
-  onSettingsLoaded: (settings: UserSettings) => void = vi.fn(),
+  onSettingsLoaded: (settings: UserSettingsDto) => void = vi.fn(),
 ) =>
   renderHook(() =>
     useTabData({
@@ -55,11 +56,11 @@ const renderUseTabData = (
 const buildPageData = (params: {
   tabGroups?: readonly TabGroup[]
   parentCategories?: readonly ParentCategory[]
-  userSettings?: UserSettings
+  userSettings?: UserSettingsDto
 }) => ({
   tabGroups: params.tabGroups ?? [],
   parentCategories: params.parentCategories ?? [],
-  userSettings: params.userSettings ?? ({} as UserSettings),
+  userSettings: params.userSettings ?? ({} as UserSettingsDto),
 })
 
 describe('useTabData', () => {
@@ -87,7 +88,7 @@ describe('useTabData', () => {
   it('初期ロードで親カテゴリと保存タブを修復して通知する', async () => {
     const settings = {
       removeTabAfterOpen: true,
-    } as UserSettings
+    } as UserSettingsDto
     const savedTabs: TabGroup[] = [
       {
         id: 'group-by-id',

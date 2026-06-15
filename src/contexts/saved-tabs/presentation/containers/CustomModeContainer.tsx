@@ -1,15 +1,12 @@
 import { LoadingState } from '@/components/ui/loading-state'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { CustomProjectSection } from '@/contexts/saved-tabs/presentation/components/CustomProjectSection'
-import type {
-  CustomProject,
-  ProjectKeywordSettings,
-  UserSettings,
-} from '@/types/storage'
+import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
 interface CustomModeContainerProps {
   isLoading: boolean
   projects: CustomProject[]
-  settings: UserSettings
+  settings: UserSettingsDto
   handleOpenUrl: (url: string) => Promise<void>
   handleDeleteUrl: (projectId: string, url: string) => Promise<void>
   handleDeleteUrlsFromProject: (

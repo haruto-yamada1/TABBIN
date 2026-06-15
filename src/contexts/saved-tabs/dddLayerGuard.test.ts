@@ -284,6 +284,31 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
   })
 
+  describe('issue #511: domain 層は @/types/storage に依存しない', () => {
+    const override = findOverride(config, 'domain')
+
+    it('domain override に ^@/types/storage(/|$) の no-restricted-imports が定義されている', () => {
+      const names = getRestrictedImportNames(override)
+      expect(names.some((name) => name.includes('@/types/storage'))).toBe(true)
+    })
+
+    it('domain 配下の全 .ts / .tsx ファイルが @/types/storage を import / 利用しない', () => {
+      const domainRoot = resolve(repoRoot, 'src/contexts/saved-tabs/domain')
+      const domainSourceFiles = collectSourceFiles(domainRoot)
+      expect(domainSourceFiles.length).toBeGreaterThan(0)
+      for (const absolutePath of domainSourceFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not import @/types/storage`,
+        ).not.toMatch(/from\s+['"]@\/types\/storage['"]/)
+      }
+    })
+  })
+
   describe('issue #459: presentation controller / view-model / page ファイルが追加されている', () => {
     const expectedFiles = [
       'src/contexts/saved-tabs/presentation/controllers/useSavedTabsController.ts',

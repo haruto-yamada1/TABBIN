@@ -2,11 +2,11 @@ import type { RefObject, SetStateAction } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type {
   CustomProject,
   ParentCategory,
   TabGroup,
-  UserSettings,
   ViewMode,
 } from '@/types/storage'
 
@@ -34,11 +34,11 @@ const createChange = (
 const createSyncContext = (params?: {
   mode?: ViewMode
   projects?: CustomProject[]
-  settings?: UserSettings
+  settings?: UserSettingsDto
   categories?: ParentCategory[]
 }) => {
   let projects = params?.projects ?? []
-  let settings = params?.settings ?? ({} as UserSettings)
+  let settings = params?.settings ?? ({} as UserSettingsDto)
   let categories = params?.categories ?? []
   const mode = params?.mode ?? 'custom'
 
@@ -50,7 +50,7 @@ const createSyncContext = (params?: {
     // eslint-disable-next-line typescript/require-await
     async () => [] as CustomProject[],
   )
-  const setSettings = vi.fn((updater: SetStateAction<UserSettings>) => {
+  const setSettings = vi.fn((updater: SetStateAction<UserSettingsDto>) => {
     settings = typeof updater === 'function' ? updater(settings) : updater
     return settings
   })
@@ -225,7 +225,7 @@ describe('syncStorageChanges', () => {
       confirmDeleteAll: false,
       confirmDeleteEach: false,
       colors: {},
-    } as UserSettings
+    } as UserSettingsDto
     const ctx = createSyncContext({
       settings: initialSettings,
     })
@@ -477,7 +477,7 @@ describe('syncStorageChanges', () => {
     const initialSettings = {
       removeTabAfterOpen: false,
       colors: {},
-    } as UserSettings
+    } as UserSettingsDto
     const ctx = createSyncContext({
       settings: initialSettings,
     })

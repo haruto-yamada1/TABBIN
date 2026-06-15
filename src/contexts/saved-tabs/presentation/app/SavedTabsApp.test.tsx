@@ -13,12 +13,12 @@ import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type {
   CustomProject,
   ParentCategory,
   TabGroup,
   UrlRecord,
-  UserSettings,
   ViewMode,
 } from '@/types/storage'
 
@@ -117,12 +117,12 @@ const mocked = vi.hoisted(() => {
   const domainModeContainerSpy = vi.fn()
   const headerSpy = vi.fn()
 
-  const settings: UserSettings = {
+  const settings: UserSettingsDto = {
     enableCategories: true,
     openUrlInBackground: false,
     removeTabAfterOpen: false,
     openAllInNewWindow: false,
-  } as UserSettings
+  } as UserSettingsDto
 
   const categoryState = {
     categories: [] as ParentCategory[],
@@ -3008,7 +3008,7 @@ describe('SavedTabsApp custom search', () => {
             // eslint-disable-line
             // eslint-disable-line
             // eslint-disable-line
-            settings: UserSettings
+            settings: UserSettingsDto
           }
         ).settings.openAllInNewWindow,
       ).toBe(true)

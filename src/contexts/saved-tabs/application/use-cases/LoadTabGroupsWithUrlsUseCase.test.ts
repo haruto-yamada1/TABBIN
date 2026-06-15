@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest' // eslint-disable-line
 
-import type { TabGroup } from '@/types/storage'
-
+import type { TabGroupDto } from '../../domain/dto/TabGroupDto'
 import type { UrlRecord } from '../../domain/entities/UrlRecord'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import { createLoadTabGroupsWithUrlsUseCase } from './LoadTabGroupsWithUrlsUseCase'
@@ -16,7 +15,7 @@ const createUrlRecord = (overrides: Partial<UrlRecord>): UrlRecord => ({
   ...overrides,
 })
 
-const createTabGroup = (overrides: Partial<TabGroup>): TabGroup => ({
+const createTabGroup = (overrides: Partial<TabGroupDto>): TabGroupDto => ({
   domain: 'example.com',
   id: 'group-1',
   urlIds: [],

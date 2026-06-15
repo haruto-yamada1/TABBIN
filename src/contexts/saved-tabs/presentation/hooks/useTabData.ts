@@ -10,8 +10,9 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { LoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupsWithUrlsUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseTabData フックの引数 */
 interface UseTabDataParams {
@@ -37,7 +38,7 @@ interface UseTabDataParams {
   /** 初回ロード時にカテゴリが確定したときに呼び出されるコールバック */
   readonly onCategoriesLoaded: (categories: ParentCategory[]) => void
   /** 初回ロード時にユーザー設定が確定したときに呼び出されるコールバック */
-  readonly onSettingsLoaded: (settings: UserSettings) => void
+  readonly onSettingsLoaded: (settings: UserSettingsDto) => void
 }
 
 /** UseTabData フックの戻り値型 */

@@ -1,8 +1,5 @@
-import type {
-  CustomProject,
-  ProjectKeywordSettings,
-  UserSettings,
-} from '@/types/storage'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
 export interface CustomProjectCardProps {
   project: CustomProject
@@ -31,7 +28,7 @@ export interface CustomProjectCardProps {
   handleUpdateCategoryOrder: (projectId: string, newOrder: string[]) => void
   handleReorderUrls: (projectId: string, urls: CustomProject['urls']) => void
   handleOpenAllUrls?: (urls: { url: string; title: string }[]) => void
-  settings: UserSettings
+  settings: UserSettingsDto
   draggedItem?: { url: string; projectId: string; title: string } | null
   handleMoveUrlsBetweenCategories?: (
     projectId: string,

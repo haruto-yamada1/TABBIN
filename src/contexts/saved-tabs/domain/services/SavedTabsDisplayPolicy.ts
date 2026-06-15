@@ -1,4 +1,4 @@
-import type { TabGroup } from '@/types/storage'
+import type { TabGroupDto } from '../dto/TabGroupDto'
 
 /**
  * `SavedTabsApp` 内の pure な表示判定ロジックを domain 側へ集約した
@@ -11,13 +11,16 @@ import type { TabGroup } from '@/types/storage'
  * 旧実装にあった `console.log` デバッグ出力は domain 層では省略している
  * （純粋関数としてのシグナル/ノイズ比を改善し、テスト時のログ汚染を防ぐため）。
  *
+ * `@/types/storage.TabGroup` ではなく domain DTO `TabGroupDto` を
+ * 受け取る (issue #511)。DTO は構造互換なので挙動は変わらない。
+ *
  * @example
  * ```ts
  * hasDisplayableUrls({ id: 'g1', domain: 'example.com', urlIds: ['u1'] }) // true
  * hasDisplayableUrls({ id: 'g1', domain: 'example.com' })                 // false
  * ```
  */
-export const hasDisplayableUrls = (group: TabGroup): boolean => {
+export const hasDisplayableUrls = (group: TabGroupDto): boolean => {
   const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
   const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
   return hasNewUrls || hasOldUrls

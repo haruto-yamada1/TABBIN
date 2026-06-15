@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useMemo } from 'react'
 
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
+import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type {
   CategoryManagementModalDeps,
   CategoryManagementModalUseCases,
@@ -12,7 +13,6 @@ import { CategoryManagementModal } from '@/contexts/saved-tabs/presentation/comp
 import { useCategoryGroupState } from '@/contexts/saved-tabs/presentation/hooks/useCategoryGroupState'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
-import type { UserSettings } from '@/types/storage'
 
 import { CategoryGroupContext } from './CategoryGroupContext'
 import type { CategoryGroupContextType } from './CategoryGroupContext'

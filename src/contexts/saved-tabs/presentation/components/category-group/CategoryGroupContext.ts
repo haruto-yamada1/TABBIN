@@ -1,9 +1,9 @@
 import type { useSortable } from '@dnd-kit/sortable'
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
-import type { UserSettings } from '@/types/storage'
 
 import type { useCategoryGroupState } from '../../hooks/useCategoryGroupState'
 
@@ -16,7 +16,7 @@ export interface CategoryGroupContextType {
   /** ドメイングループ配列 */
   domains: CategoryGroupProps['domains']
   /** 設定 */
-  settings: UserSettings
+  settings: UserSettingsDto
   /** 親カテゴリ並び替えモード */
   isCategoryReorderMode: boolean
   /** 検索クエリ */

@@ -1,3 +1,5 @@
+import type { SubCategoryKeywordDto } from '../../domain/dto/DomainCategorySettingsDto'
+
 /**
  * 旧 `src/lib/storage/categories` の高レベル操作のうち entity 化
  * されないフィールド (`domainCategorySettings`) を mutate する
@@ -20,6 +22,9 @@
  * `deleteParentCategory` / `getDomainCategoryMappings` /
  * `getDomainCategorySettings`) は repository / use-case 経由で
  * 扱う方針 (issue #509)。
+ *
+ * `@/types/storage.SubCategoryKeyword` ではなく domain DTO
+ * `SubCategoryKeywordDto` を使う (issue #511)。
  */
 export interface CategoriesCommandService {
   /**
@@ -29,6 +34,6 @@ export interface CategoriesCommandService {
   updateDomainCategorySettings: (
     domain: string,
     subCategories: string[],
-    categoryKeywords: { categoryName: string; keywords: string[] }[],
+    categoryKeywords: SubCategoryKeywordDto[],
   ) => Promise<void>
 }

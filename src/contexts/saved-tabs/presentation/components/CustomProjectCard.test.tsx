@@ -2,8 +2,8 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
-import type { UserSettings } from '@/types/storage'
 
 const { projectCardRootSpy } = vi.hoisted(() => ({
   projectCardRootSpy: vi.fn(),

@@ -1,5 +1,6 @@
-import type { ParentCategory, TabGroup, UrlRecord } from '@/types/storage'
+import type { TabGroup, UrlRecord } from '@/types/storage'
 
+import type { ParentCategoryDto } from '../../domain/dto/ParentCategoryDto'
 import type { PresentationCategoryLookup } from '../../domain/services/SavedTabsCategorizationService'
 
 /**
@@ -136,11 +137,16 @@ export const buildUpdatedGroupAfterUrlIdRemoval = (
  *
  * 旧 `savedTabsApp.helpers.ts` の同名を
  * `presentation/lib/tab-group-state.ts` へ移設 (issue #512)。
+ *
+ * `updatedCategories` は domain DTO `ParentCategoryDto[]` ベース
+ * (issue #511)。`updatedSavedTabs` は storage 形 `TabGroup[]` の
+ * ままだが、これは `urlSubCategories` 等の presentation 専用
+ * 補助フィールドを含むため。
  */
 interface CategorySyncState {
   categoriesChanged: boolean
   savedTabsChanged: boolean
-  updatedCategories: ParentCategory[]
+  updatedCategories: ParentCategoryDto[]
   updatedSavedTabs: TabGroup[]
 }
 

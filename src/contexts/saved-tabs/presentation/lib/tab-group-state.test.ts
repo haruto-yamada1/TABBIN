@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest' // eslint-disable-line
 
+import type { ParentCategoryDto } from '../../domain/dto/ParentCategoryDto'
 import { buildPresentationCategoryLookup } from '../../domain/services/SavedTabsCategorizationService'
 import {
   buildUpdatedGroupAfterUrlIdRemoval,
@@ -199,17 +200,18 @@ describe('tab-group-state.updateSavedTabParentCategory', () => {
 
 describe('tab-group-state.syncGroupCategoryAssignment', () => {
   it('ID 一致カテゴリと domain 一致カテゴリの両方が反映される', () => {
+    const updatedCategories: ParentCategoryDto[] = [
+      {
+        domainNames: ['example.com'],
+        domains: [],
+        id: 'cat-1',
+        name: 'Reading',
+      },
+    ]
     const state = {
       categoriesChanged: false,
       savedTabsChanged: false,
-      updatedCategories: [
-        {
-          domainNames: ['example.com'],
-          domains: [],
-          id: 'cat-1',
-          name: 'Reading',
-        },
-      ],
+      updatedCategories,
       updatedSavedTabs: [{ domain: 'example.com', id: 'g1' }],
     }
     const result = syncGroupCategoryAssignment(
@@ -229,7 +231,7 @@ describe('tab-group-state.syncGroupCategoryAssignment', () => {
     const state = {
       categoriesChanged: false,
       savedTabsChanged: false,
-      updatedCategories: [],
+      updatedCategories: [] as ParentCategoryDto[],
       updatedSavedTabs: [{ domain: 'example.com', id: 'g1' }],
     }
     const result = syncGroupCategoryAssignment(

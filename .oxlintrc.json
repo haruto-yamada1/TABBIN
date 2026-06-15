@@ -481,6 +481,10 @@
               {
                 "regex": "^@/contexts/[^/]+/presentation(/|$)",
                 "message": "domain 層は presentation 層に依存できません"
+              },
+              {
+                "regex": "^@/types/storage(/|$)",
+                "message": "domain 層は @/types/storage に直接依存できません（domain DTO / application mapper 経由）"
               }
             ]
           }

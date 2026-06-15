@@ -1,5 +1,4 @@
-import type { UserSettings } from '@/types/storage'
-
+import type { UserSettingsDto } from '../../domain/dto/UserSettingsDto'
 import type { ParentCategory } from '../../domain/entities/ParentCategory'
 import type { TabGroup } from '../../domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
@@ -14,11 +13,15 @@ import type { UserSettingsRepository } from '../../domain/repositories/UserSetti
  * を直接呼んで `getTabGroups` / `getParentCategories` / `getUserSettings`
  * を並列 fetch していたパスを 1 つの query にまとめる
  * (issue #510)。
+ *
+ * `userSettings` は `@/types/storage.UserSettings` ではなく
+ * domain DTO `UserSettingsDto` を返す (issue #511)。
+ * `tabGroups` / `parentCategories` は branded domain entity のまま。
  */
 export interface SavedTabsPageDataDto {
   readonly tabGroups: readonly TabGroup[]
   readonly parentCategories: readonly ParentCategory[]
-  readonly userSettings: UserSettings
+  readonly userSettings: UserSettingsDto
 }
 
 /**
@@ -47,6 +50,10 @@ export interface GetSavedTabsPageDataQueryDeps {
  *
  * 旧 `@/lib/storage/{tabs,categories,settings}.get*` の
  * domain 等価物。
+ *
+ * `@/types/storage` には依存せず、domain entity / domain DTO
+ * (`TabGroup` / `ParentCategory` / `UserSettingsDto`) だけを返す
+ * (issue #511)。
  */
 export const createGetSavedTabsPageDataQuery = (
   deps: GetSavedTabsPageDataQueryDeps,

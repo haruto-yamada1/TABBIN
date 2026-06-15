@@ -1,5 +1,3 @@
-import type { TabGroup } from '@/types/storage'
-
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import { resolveGroupUrls } from '../../domain/services/TabGroupUrlResolver'
 import { urlRecordIdToString } from '../../domain/value-objects/UrlRecordId'
@@ -35,6 +33,9 @@ export type LoadTabGroupUrlsUseCase = (
  * 旧 `src/lib/storage/tabs.getTabGroupUrls` の domain 等価物。
  * issue #501 で presentation 層から `@/lib/storage/tabs` への
  * 直接依存を撤去するために新設。
+ *
+ * `@/types/storage` には依存せず、domain DTO のみを契約とする
+ * (issue #511)。
  */
 export const createLoadTabGroupUrlsUseCase = (
   deps: LoadTabGroupUrlsUseCaseDeps,
@@ -52,6 +53,3 @@ export const createLoadTabGroupUrlsUseCase = (
     return { urls }
   }
 }
-
-// `TabGroup` 型が unused 警告で落ちないようにするための marker。
-export type _LoadTabGroupUrlsTabGroupMarker = TabGroup

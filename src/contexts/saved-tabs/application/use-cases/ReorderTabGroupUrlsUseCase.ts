@@ -1,5 +1,4 @@
-import type { TabGroup as StorageTabGroup } from '@/types/storage'
-
+import type { TabGroupDto } from '../../domain/dto/TabGroupDto'
 import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
@@ -38,6 +37,9 @@ export type ReorderTabGroupUrlsUseCase = (
  * 旧 `src/lib/storage/tabs.reorderTabGroupUrls` の domain 等価物。
  * issue #501 で presentation 層から `@/lib/storage/tabs` への
  * 直接依存を撤去するために新設。
+ *
+ * `@/types/storage` には依存せず、domain DTO `TabGroupDto` のみで
+ * 動作する (issue #511)。
  */
 export const createReorderTabGroupUrlsUseCase = (
   deps: ReorderTabGroupUrlsUseCaseDeps,
@@ -63,13 +65,13 @@ export const createReorderTabGroupUrlsUseCase = (
         'TAB_GROUP_NOT_FOUND',
       )
     }
-    const storageGroup: StorageTabGroup = {
+    const dtoGroup: TabGroupDto = {
       id: targetGroup.id,
       domain: targetGroup.domain,
       urlIds: targetGroup.urlIds.map(String),
     }
     const reorderedUrlIds = reorderTabGroupUrlIds({
-      group: storageGroup,
+      group: dtoGroup,
       newUrlOrder: command.newUrlOrder,
       urlRecords: allUrlRecords,
     })

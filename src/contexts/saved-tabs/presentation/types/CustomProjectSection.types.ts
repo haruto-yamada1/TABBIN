@@ -1,9 +1,6 @@
 // Filepath: contexts/saved-tabs/presentation/types/CustomProjectSection.types.ts
-import type {
-  CustomProject,
-  ProjectKeywordSettings,
-  UserSettings,
-} from '@/types/storage'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
 export interface CustomProjectSectionProps {
   projects: CustomProject[]
@@ -49,5 +46,5 @@ export interface CustomProjectSectionProps {
     sourceCategoryName: string,
     targetCategoryName: string,
   ) => void
-  settings: UserSettings
+  settings: UserSettingsDto
 }

@@ -1,12 +1,11 @@
-import type { TabGroup } from '@/types/storage'
+import type { TabGroupDto } from '../../domain/dto/TabGroupDto'
 
 /**
  * `LoadTabGroupsWithUrlsUseCase` の入力。
  *
- * presentation 層が `useTabData` 内で保持している `TabGroup[]`
- * （= URL 未解決、storage 形）を渡すと、use-case 側が
- * `UrlRecordRepository` から URL を引き直し、`urls` フィールドを
- * 埋めた `TabGroup[]` を返す。
+ * presentation 層が `useTabData` 内で保持している `TabGroupDto[]`
+ * （= URL 未解決）を渡すと、use-case 側が `UrlRecordRepository` から
+ * URL を引き直し、`urls` フィールドを埋めた `TabGroupDto[]` を返す。
  *
  * `tabGroups` を空配列で呼ぶと即座に空配列を返す（storage アクセスなし）。
  *
@@ -14,13 +13,11 @@ import type { TabGroup } from '@/types/storage'
  * 等価物。`@/lib/storage/tabs` への直接依存を撤去するために新設
  * （issue #501）。
  *
- * 入力型は storage 形 `TabGroup` を採用している。domain エンティティは
- * `urlSubCategories` などの rich 補助フィールドを持たないが、
- * presentation 層は `subCategory` の引き継ぎが必要なので
- * storage 形を直接受け取る形にしている。use-case 内部では
- * `UrlRecordRepository.findAll` の結果（domain `UrlRecord`）を
- * storage 形の `TabGroup.urlSubCategories` と突き合わせる。
+ * 入力型は domain DTO `TabGroupDto` を採用している (issue #511)。
+ * `urlSubCategories` の引き継ぎは `TabGroupDto` widening 後の
+ * `resolveGroupUrls` 側で吸収する（domain 層 widening は
+ * `TabGroupUrlResolver.ts` 内で行う）。
  */
 export interface LoadTabGroupsWithUrlsCommand {
-  readonly tabGroups: readonly TabGroup[]
+  readonly tabGroups: readonly TabGroupDto[]
 }

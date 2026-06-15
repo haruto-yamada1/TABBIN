@@ -2,8 +2,8 @@ import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
-import type { UserSettings } from '@/types/storage'
 
+import type { UserSettingsDto } from '../../../domain/dto/UserSettingsDto'
 import type { UserSettingsRepository } from '../../../domain/repositories/UserSettingsRepository'
 import { normalizeUserSettings } from '../../../domain/services/UserSettingsDefaults'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
@@ -25,12 +25,12 @@ const getDefaultPort = (): ChromeStorageLocalPort | null => {
 const createChromeUserSettingsRepositoryImpl = (
   port: ChromeStorageLocalPort,
 ): UserSettingsRepository => {
-  const findAll = async (): Promise<UserSettings> => {
+  const findAll = async (): Promise<UserSettingsDto> => {
     const result = await port.get(USER_SETTINGS_KEY)
     return normalizeUserSettings(result).normalized
   }
 
-  const save = async (settings: UserSettings): Promise<void> => {
+  const save = async (settings: UserSettingsDto): Promise<void> => {
     const normalized = normalizeUserSettings({
       userSettings: settings,
     }).normalized
@@ -42,13 +42,17 @@ const createChromeUserSettingsRepositoryImpl = (
 
 /**
  * `chrome.storage.local` 上の `USER_SETTINGS_KEY` を
- * `UserSettings` 永続化用に使う `UserSettingsRepository` 実装を生成する。
+ * `UserSettingsDto` 永続化用に使う `UserSettingsRepository` 実装を生成する。
  *
  * 旧 `src/lib/storage/settings.getUserSettings` / `saveUserSettings` の
  * 正規化ロジック (`mergeStoredUserSettings` / `normalizeAiSystemPromptSettings`
  * / legacy `aiChatEnabled` / `aiProvider` 除去) を `normalizeUserSettings`
  * 純関数に集約し、presentation 層から `@/lib/storage/settings` を
  * import しない方針 (issue #509) に揃える。
+ *
+ * 戻り値 / 引数は `@/types/storage.UserSettings` ではなく domain DTO
+ * `UserSettingsDto` を返す (issue #511)。DTO は構造互換なので
+ * `chrome.storage.local.set` の payload もそのまま書ける。
  *
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */

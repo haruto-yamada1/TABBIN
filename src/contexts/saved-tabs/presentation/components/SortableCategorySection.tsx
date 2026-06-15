@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import {
   getScopedNounActionLabel,
   getScopedObjectActionLabel,
@@ -30,7 +31,6 @@ import {
 } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { SortableCategorySectionProps } from '@/types/saved-tabs'
-import type { UserSettings } from '@/types/storage'
 
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
 import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'

@@ -1,7 +1,7 @@
-import type { UserSettings } from '@/types/storage'
+import type { UserSettingsDto } from '../dto/UserSettingsDto'
 
 /**
- * `UserSettings` の永続化責務だけを抽出した repository interface。
+ * `UserSettingsDto` の永続化責務だけを抽出した repository interface。
  *
  * 旧 `src/lib/storage/settings.getUserSettings` / `saveUserSettings` の
  * 互換 API を DDD repository として再公開する。`chrome.storage.local`
@@ -12,6 +12,9 @@ import type { UserSettings } from '@/types/storage'
  * `save` は `chrome.storage.local` に書き戻し、merge / 正規化も
  * 実装側に閉じる。
  *
+ * `@/types/storage` には依存せず、domain DTO `UserSettingsDto` を
+ * 返す/受け取る (issue #511)。
+ *
  * @example
  * ```ts
  * const settings = await userSettingsRepository.findAll()
@@ -19,6 +22,6 @@ import type { UserSettings } from '@/types/storage'
  * ```
  */
 export interface UserSettingsRepository {
-  findAll: () => Promise<UserSettings>
-  save: (settings: UserSettings) => Promise<void>
+  findAll: () => Promise<UserSettingsDto>
+  save: (settings: UserSettingsDto) => Promise<void>
 }

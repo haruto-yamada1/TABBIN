@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { TabGroup } from '@/types/storage'
-
+import type { TabGroupDto } from '../../domain/dto/TabGroupDto'
 import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
 import type { LoadTabGroupUrlsUseCase } from './LoadTabGroupUrlsUseCase'
 import { createRemoveUrlsFromCustomProjectsUseCase } from './RemoveUrlsFromCustomProjectsUseCase'
@@ -45,17 +44,17 @@ const createCommandServiceMock = (): {
 
 const createLoadTabGroupUrlsMock = (
   // eslint-disable-next-line typescript/consistent-type-imports
-  resolveUrls: (group: TabGroup) => Promise<{ url: string }[] | undefined>,
+  resolveUrls: (group: TabGroupDto) => Promise<{ url: string }[] | undefined>,
 ): LoadTabGroupUrlsUseCase => {
   // eslint-disable-next-line typescript/require-await
-  return (async (command: { tabGroup: TabGroup }) => {
+  return (async (command: { tabGroup: TabGroupDto }) => {
     return { urls: (await resolveUrls(command.tabGroup)) ?? [] }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as any
 }
 
 const buildDeps = (options: {
-  resolveUrls?: (group: TabGroup) => Promise<{ url: string }[] | undefined>
+  resolveUrls?: (group: TabGroupDto) => Promise<{ url: string }[] | undefined>
 }): RemoveUrlsFromCustomProjectsUseCaseDeps & {
   commandServiceMock: ReturnType<typeof createCommandServiceMock>
 } => {
@@ -71,7 +70,7 @@ const buildDeps = (options: {
   }
 }
 
-const buildTabGroup = (overrides: Partial<TabGroup>): TabGroup => ({
+const buildTabGroup = (overrides: Partial<TabGroupDto>): TabGroupDto => ({
   domain: 'example.com',
   id: 'group-1',
   urlIds: [],

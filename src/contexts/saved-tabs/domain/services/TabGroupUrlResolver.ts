@@ -1,12 +1,12 @@
-import type { TabGroup } from '@/types/storage'
-
+import type { ResolvedTabGroupUrlDto } from '../dto/ResolvedTabGroupUrlDto'
+import type { TabGroupDto } from '../dto/TabGroupDto'
 import type { UrlRecord } from '../entities/UrlRecord'
 import { urlRecordIdToString } from '../value-objects/UrlRecordId'
 
 /**
- * ドメイン型として保持している `TabGroup` に対して、
- * `urlIds` から `UrlRecord` を引き当てて `urls` フィールドを組み立てる
- * pure ドメインサービス。
+ * ドメイン型として保持している `UrlRecord` に対して、
+ * `TabGroupDto.urlIds` から `UrlRecord` を引き当てて
+ * `urls` フィールドを組み立てる pure ドメインサービス。
  *
  * 旧 `src/lib/storage/tabs.resolveTabGroupsWithUrls` /
  * `src/lib/storage/tabs.getTabGroupUrls` の domain 等価物。
@@ -17,44 +17,30 @@ import { urlRecordIdToString } from '../value-objects/UrlRecordId'
  * `subCategory` 付与より domain 側で確定させる方が、presentation
  * 層の `lib/storage` 直叩きを置換しやすい）。
  *
- * 入力 / 出力は storage 形の `TabGroup` を採用している。domain
- * エンティティは `urlSubCategories` などの rich 補助フィールドを
- * 持たないが、presentation 層は `subCategory` 引き継ぎが必要
- * なため storage 形を直接扱う。
+ * `@/types/storage` には依存せず、domain DTO (`TabGroupDto` /
+ * `ResolvedTabGroupUrlDto`) だけで動作する (issue #511)。
  *
  * issue #501 で presentation 層から `@/lib/storage/tabs` への
  * 直接依存を撤去するために新設。
  */
 
-export interface ResolvedTabGroupUrl {
-  readonly id: string
-  readonly url: string
-  readonly title: string
-  readonly savedAt: number
-  readonly subCategory?: string
-}
-
 /**
- * `TabGroup.urlIds` を `UrlRecord` に解決し、`urls` フィールドを
- * 埋めた `TabGroup[]` を返す。
+ * `TabGroupDto.urlIds` を `UrlRecord` に解決し、`urls` フィールドを
+ * 埋めた `TabGroupDto[]` を返す。
  *
  * - `urlGroups` が空配列なら空配列を返す（storage アクセス不要）。
  * - `urlIds` が空のグループは `urls: []` として返す（旧挙動と一致）。
- * - `urlSubCategories` があれば、各 URL に `subCategory` を引き継ぐ。
  *
- * 戻り値は `TabGroup[]` 型だが、storage `TabGroup.urls` の要素型は
- * 緩い（`id?` / `savedAt?` 任意）なので、戻り値では `id` と
- * `savedAt` が常に存在する点を TypeScript に明示するため
- * `ResolvedTabGroupUrl[]` を経由せず `TabGroup` 配列として返す。
- * 呼び出し側で `TabGroup[]` として扱えば十分。
+ * `@/types/storage` には依存せず、domain DTO のみで動作する
+ * (issue #511)。
  */
 export const resolveTabGroupsWithUrls = ({
   tabGroups,
   urlRecords,
 }: {
-  tabGroups: readonly TabGroup[]
+  tabGroups: readonly TabGroupDto[]
   urlRecords: readonly UrlRecord[]
-}): readonly TabGroup[] => {
+}): readonly TabGroupDto[] => {
   if (tabGroups.length === 0) {
     return []
   }
@@ -74,13 +60,22 @@ export const resolveTabGroupsWithUrls = ({
   }))
 }
 
+/**
+ * `TabGroupDto.urlIds` を `UrlRecord` に解決し、解決済み
+ * `ResolvedTabGroupUrlDto[]` を返す。
+ *
+ * `urlSubCategories` 引き継ぎは `group.urlSubCategories` 経由で
+ * 各 URL に `subCategory` を注入する (issue #501 由来)。
+ * `TabGroupDto` に `urlSubCategories?: Record<string, string>` を
+ * 含めているため widening なしで受け取れる。
+ */
 export const resolveGroupUrls = ({
   group,
   urlRecordMap,
 }: {
-  group: TabGroup
+  group: TabGroupDto
   urlRecordMap: ReadonlyMap<string, UrlRecord>
-}): NonNullable<TabGroup['urls']> => {
+}): ResolvedTabGroupUrlDto[] => {
   if (!(group.urlIds && group.urlIds.length > 0)) {
     return []
   }

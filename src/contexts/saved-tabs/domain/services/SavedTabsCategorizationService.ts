@@ -1,28 +1,32 @@
-import type { ParentCategory, TabGroup } from '@/types/storage'
+import type { ParentCategoryDto } from '../dto/ParentCategoryDto'
+import type { TabGroupDto } from '../dto/TabGroupDto'
 
 /**
- * 親カテゴリの高速検索用マップ (presentation 形 / unbranded ID ベース)。
+ * 親カテゴリの高速検索用マップ (domain DTO ベース)。
  *
  * `CategoryAssignmentPolicy.CategoryLookup` (branded types ベース) とは
  * キー型が branded か `string` かのみが異なる。`SavedTabsApp` 既存挙動
  * (string ID ベース) と完全互換の lookup を domain 側でも提供するための型
  * (issue #496)。
  *
- * - `byId`: `ParentCategory.id` から `ParentCategory` を引く (O(1))
- * - `byGroupId`: `TabGroup.id` から所属カテゴリを引く (O(1))
- * - `byDomainName`: `TabGroup.domain` から所属カテゴリを引く (O(1))
+ * - `byId`: `ParentCategoryDto.id` から `ParentCategoryDto` を引く (O(1))
+ * - `byGroupId`: `TabGroupDto.id` から所属カテゴリを引く (O(1))
+ * - `byDomainName`: `TabGroupDto.domain` から所属カテゴリを引く (O(1))
  *
- * 同じ `TabGroupId` / `DomainName` を複数カテゴリが宣言している場合は
+ * 同じ `TabGroupDto.id` / domain name を複数カテゴリが宣言している場合は
  * 最初に出現したカテゴリを優先する（先勝ち）。
+ *
+ * `@/types/storage` への依存を避け、domain DTO のみで lookup を構築
+ * する (issue #511)。
  */
 export interface PresentationCategoryLookup {
-  readonly byId: ReadonlyMap<string, ParentCategory>
-  readonly byGroupId: ReadonlyMap<string, ParentCategory>
-  readonly byDomainName: ReadonlyMap<string, ParentCategory>
+  readonly byId: ReadonlyMap<string, ParentCategoryDto>
+  readonly byGroupId: ReadonlyMap<string, ParentCategoryDto>
+  readonly byDomainName: ReadonlyMap<string, ParentCategoryDto>
 }
 
 /**
- * `ParentCategory[]` から `PresentationCategoryLookup` を構築する。
+ * `ParentCategoryDto[]` から `PresentationCategoryLookup` を構築する。
  *
  * `SavedTabsApp.tsx` の `buildCategoryLookup` (presentation 形) を
  * domain 等価物に置き換えるための pure 関数 (issue #496)。
@@ -34,11 +38,11 @@ export interface PresentationCategoryLookup {
  * ```
  */
 export const buildPresentationCategoryLookup = (
-  categories: readonly ParentCategory[],
+  categories: readonly ParentCategoryDto[],
 ): PresentationCategoryLookup => {
-  const byId = new Map<string, ParentCategory>()
-  const byGroupId = new Map<string, ParentCategory>()
-  const byDomainName = new Map<string, ParentCategory>()
+  const byId = new Map<string, ParentCategoryDto>()
+  const byGroupId = new Map<string, ParentCategoryDto>()
+  const byDomainName = new Map<string, ParentCategoryDto>()
   for (const category of categories) {
     byId.set(category.id, category)
     for (const tabGroupId of category.domains) {
@@ -55,16 +59,16 @@ export const buildPresentationCategoryLookup = (
   return { byId, byGroupId, byDomainName }
 }
 
-const hasDisplayableUrls = (group: TabGroup): boolean => {
+const hasDisplayableUrls = (group: TabGroupDto): boolean => {
   const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
   const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
   return hasNewUrls || hasOldUrls
 }
 
 const pushGroupToCategory = (
-  categorizedGroups: Record<string, TabGroup[]>,
+  categorizedGroups: Record<string, TabGroupDto[]>,
   categoryId: string,
-  group: TabGroup,
+  group: TabGroupDto,
 ): void => {
   if (!categorizedGroups[categoryId]) {
     categorizedGroups[categoryId] = []
@@ -80,9 +84,9 @@ const pushGroupToCategory = (
 }
 
 const tryCategorizeById = (
-  group: TabGroup,
+  group: TabGroupDto,
   categoryLookup: PresentationCategoryLookup,
-  categorizedGroups: Record<string, TabGroup[]>,
+  categorizedGroups: Record<string, TabGroupDto[]>,
 ): boolean => {
   const category = categoryLookup.byGroupId.get(group.id)
   if (!category) {
@@ -93,9 +97,9 @@ const tryCategorizeById = (
 }
 
 const tryCategorizeByDomainName = (
-  group: TabGroup,
+  group: TabGroupDto,
   categoryLookup: PresentationCategoryLookup,
-  categorizedGroups: Record<string, TabGroup[]>,
+  categorizedGroups: Record<string, TabGroupDto[]>,
 ): boolean => {
   const category = categoryLookup.byDomainName.get(group.domain)
   if (!category) {
@@ -106,7 +110,7 @@ const tryCategorizeByDomainName = (
 }
 
 const matchesParentCategoryQuery = (
-  group: TabGroup,
+  group: TabGroupDto,
   categoryLookup: PresentationCategoryLookup,
   normalizedQuery: string,
 ): boolean => {
@@ -128,10 +132,10 @@ const matchesParentCategoryQuery = (
 }
 
 const filterGroupByQuery = (
-  group: TabGroup,
+  group: TabGroupDto,
   normalizedQuery: string,
   categoryLookup: PresentationCategoryLookup,
-): TabGroup => {
+): TabGroupDto => {
   const currentUrls = group.urls ?? []
   if (currentUrls.length === 0) {
     return group
@@ -162,7 +166,7 @@ const filterGroupByQuery = (
 }
 
 const sortCategorizedGroups = (
-  categorizedGroups: Record<string, TabGroup[]>,
+  categorizedGroups: Record<string, TabGroupDto[]>,
   categoryLookup: PresentationCategoryLookup,
 ): void => {
   for (const categoryId of Object.keys(categorizedGroups)) {
@@ -187,8 +191,8 @@ const sortCategorizedGroups = (
 }
 
 /**
- * `TabGroup` 配列を `ParentCategory` 配列と `PresentationCategoryLookup` を
- * 使ってカテゴリ別に振り分ける pure 関数。
+ * `TabGroupDto[]` 配列を `ParentCategoryDto[]` 配列と
+ * `PresentationCategoryLookup` を使ってカテゴリ別に振り分ける pure 関数。
  *
  * `SavedTabsApp.tsx` の `organizeTabGroupsWithCategories` を domain 側へ
  * 純粋関数として移設したもの (issue #496)。React / chrome API / toast /
@@ -197,13 +201,16 @@ const sortCategorizedGroups = (
  * - `enableCategories=false` のときは全グループを `uncategorized` に置く
  * - `searchQuery` が指定された場合は URL / title / subCategory / カテゴリ名で
  *   フィルタしたうえで分類する
- * - 戻り値の `categorized` は `Record<categoryId, TabGroup[]>` で、
- *   各カテゴリ配列は `ParentCategory.domains` 順でソートされる
+ * - 戻り値の `categorized` は `Record<categoryId, TabGroupDto[]>` で、
+ *   各カテゴリ配列は `ParentCategoryDto.domains` 順でソートされる
  *   (順序に存在しない TabGroup は末尾、相対順序維持)
  * - `uncategorized` はどのカテゴリにも該当しなかったグループ
  *
  * 旧 `SavedTabsApp.tsx` の `organizeTabGroupsWithCategories` と挙動互換。
  * `console.log` デバッグ出力は省略している。
+ *
+ * `@/types/storage` には依存せず、domain DTO (`TabGroupDto` /
+ * `ParentCategoryDto`) だけで動く (issue #511)。
  *
  * @example
  * ```ts
@@ -223,12 +230,12 @@ export const organizeTabGroupsWithCategories = ({
   searchQuery,
 }: {
   readonly enableCategories: boolean
-  readonly tabGroupsWithUrls: readonly TabGroup[]
+  readonly tabGroupsWithUrls: readonly TabGroupDto[]
   readonly categoryLookup: PresentationCategoryLookup
   readonly searchQuery?: string
 }): {
-  readonly categorized: Record<string, TabGroup[]>
-  readonly uncategorized: TabGroup[]
+  readonly categorized: Record<string, TabGroupDto[]>
+  readonly uncategorized: TabGroupDto[]
 } => {
   if (!enableCategories) {
     return {
@@ -236,11 +243,11 @@ export const organizeTabGroupsWithCategories = ({
       uncategorized: [...tabGroupsWithUrls],
     }
   }
-  const categorizedGroups: Record<string, TabGroup[]> = {}
-  const uncategorizedGroups: TabGroup[] = []
+  const categorizedGroups: Record<string, TabGroupDto[]> = {}
+  const uncategorizedGroups: TabGroupDto[] = []
   const normalizedQuery = searchQuery?.trim().toLowerCase() ?? ''
   const hasSearchQuery = normalizedQuery.length > 0
-  const groupsToOrganize = tabGroupsWithUrls.reduce<TabGroup[]>(
+  const groupsToOrganize = tabGroupsWithUrls.reduce<TabGroupDto[]>(
     (groups, group) => {
       const nextGroup = hasSearchQuery
         ? filterGroupByQuery(group, normalizedQuery, categoryLookup)
