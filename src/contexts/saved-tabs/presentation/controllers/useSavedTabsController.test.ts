@@ -53,6 +53,8 @@ const createInMemoryRepositories = (initial: Partial<InMemoryState> = {}) => {
     findById: async (id) =>
       state.tabGroups.find((group) => group.id === id) ?? null,
     // eslint-disable-next-line typescript/require-await
+    findRawDomainById: vi.fn(async () => null),
+    // eslint-disable-next-line typescript/require-await
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
       state.tabGroups = state.tabGroups.filter((group) => !idSet.has(group.id))
@@ -722,6 +724,8 @@ describe('useSavedTabsController', () => {
       },
       // eslint-disable-next-line typescript/require-await
       findById: async () => null,
+      // eslint-disable-next-line typescript/require-await
+      findRawDomainById: vi.fn(async () => null),
       // eslint-disable-next-line typescript/require-await
       removeByIds: async () => undefined,
       // eslint-disable-next-line typescript/require-await

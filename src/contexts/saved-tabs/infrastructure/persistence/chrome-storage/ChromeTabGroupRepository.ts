@@ -62,6 +62,13 @@ const createChromeTabGroupRepositoryImpl = (
     return all.find((group) => group.id === idString) ?? null
   }
 
+  const findRawDomainById = async (id: TabGroupId): Promise<string | null> => {
+    const idString = ChromeSavedTabsStorageMapper.tabGroupIdToString(id)
+    const raws = await findAllRawTabGroups(port)
+    const raw = raws.find((entry) => entry.id === idString)
+    return raw?.domain ?? null
+  }
+
   const saveAll = async (groups: readonly TabGroup[]): Promise<void> => {
     // 既存ユーザーデータ（`urls`, `urlSubCategories`, `subCategories`,
     // `categoryKeywords`, `subCategoryOrder`, `subCategoryOrderWithUncategorized`）
@@ -93,7 +100,7 @@ const createChromeTabGroupRepositoryImpl = (
     await saveAll(remaining)
   }
 
-  return { findAll, findById, removeByIds, saveAll }
+  return { findAll, findById, findRawDomainById, removeByIds, saveAll }
 }
 
 /**

@@ -23,6 +23,7 @@ const {
 const createTabGroupRepositoryMock = () => ({
   findAll: vi.fn().mockResolvedValue([]),
   findById: vi.fn().mockResolvedValue(null),
+  findRawDomainById: vi.fn(() => Promise.resolve(null)),
   removeByIds: vi.fn().mockResolvedValue(undefined),
   saveAll: vi.fn().mockResolvedValue(undefined),
 })

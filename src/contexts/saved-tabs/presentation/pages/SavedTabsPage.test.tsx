@@ -53,6 +53,7 @@ const createInMemoryDeps = (input: {
     findAll: async () => tabGroups.map((group) => ({ ...group })),
     // eslint-disable-next-line typescript/require-await
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
+    findRawDomainById: vi.fn(() => Promise.resolve(null)),
     // eslint-disable-next-line typescript/require-await
     removeByIds: async (ids) => {
       const idSet = new Set(ids)

@@ -32,6 +32,7 @@ const createInMemoryDeps = (): SavedTabsUseCasesDeps => {
     findAll: async () => [],
     // eslint-disable-next-line typescript/require-await
     findById: async () => null,
+    findRawDomainById: vi.fn(() => Promise.resolve(null)),
     // eslint-disable-next-line typescript/require-await
     removeByIds: async () => undefined,
     // eslint-disable-next-line typescript/require-await

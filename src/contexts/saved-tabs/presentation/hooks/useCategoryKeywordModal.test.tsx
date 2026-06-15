@@ -128,6 +128,7 @@ const setupChromeStorage = (state: StorageState = {}) => {
         ).savedTabs?.find((tab) => tab.id === id) ??
           null) as unknown as ReturnType<TabGroupRepository['findById']>,
     ),
+    findRawDomainById: vi.fn(() => Promise.resolve(null)),
     saveAll: vi.fn(
       async (_next: Parameters<TabGroupRepository['saveAll']>[0]) => {
         await local.set({
