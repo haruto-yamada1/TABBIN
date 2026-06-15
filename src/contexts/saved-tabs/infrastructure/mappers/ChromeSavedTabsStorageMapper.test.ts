@@ -472,6 +472,56 @@ describe('ChromeSavedTabsStorageMapper', () => {
       expect(raw.domainNames).toStrictEqual(['https://example.com'])
     })
 
+    it('toParentCategoryRaw は use-case が entity.domainNames に追加した新規エントリを保持する（PR #506 review P2 対応）', () => {
+      // AddDomainToParentCategoryUseCase が hostname 正規化後の entity に
+      // 新しい domain を追加した場合、original 側の `domainNames` には
+      // そのエントリが含まれないため、entity 側の追加分が反映されないと
+      // 保存されない。既存エントリは schemeful 形式を維持しつつ、新規は
+      // entity 側の hostname 形式をそのまま採用する。
+      const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
+        domainNames: ['example.com', 'newsite.com'],
+        domains: ['group-1', 'group-2'],
+        id: 'cat-1',
+        name: 'Docs',
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toParentCategoryRaw(entity, {
+        domainNames: ['https://example.com'],
+        domains: ['group-1'],
+        id: 'cat-1',
+        name: 'Docs',
+      })
+      expect(raw.domainNames).toStrictEqual([
+        'https://example.com',
+        'newsite.com',
+      ])
+    })
+
+    it('toParentCategoryRaw は use-case が entity.domainNames から削除したエントリを original から落とす（PR #506 review P2 対応）', () => {
+      // RemoveDomainFromParentCategoryUseCase で entity.domainNames から
+      // 削除した場合、original に残っていても最終 raw には含めない。
+      const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
+        domainNames: ['keep.com'],
+        domains: ['group-keep'],
+        id: 'cat-1',
+        name: 'Docs',
+      })
+      expect(entity).not.toBeNull()
+      if (!entity) {
+        return
+      }
+      const raw = ChromeSavedTabsStorageMapper.toParentCategoryRaw(entity, {
+        domainNames: ['https://keep.com', 'https://remove.com'],
+        domains: ['group-keep', 'group-remove'],
+        id: 'cat-1',
+        name: 'Docs',
+      })
+      expect(raw.domainNames).toStrictEqual(['https://keep.com'])
+    })
+
     it('toCustomProjectRaw は categories / urlIds をコピーして保持する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
         categories: ['research'],

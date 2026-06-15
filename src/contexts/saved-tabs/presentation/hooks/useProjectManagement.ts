@@ -9,7 +9,10 @@ import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
 import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type {
+  CustomProjectRawSnapshot,
+  CustomProjectRepository,
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { CustomProjectId as DomainCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
@@ -40,11 +43,13 @@ import type {
 interface CustomProjectUndoSnapshot {
   customProjectOrder?: readonly DomainCustomProjectId[]
   customProjects?: readonly DomainCustomProject[]
+  customProjectsRaw?: readonly CustomProjectRawSnapshot[]
 }
 
 interface CustomProjectUndoPayload {
   customProjectOrder?: readonly DomainCustomProjectId[]
   customProjects: readonly DomainCustomProject[]
+  customProjectsRaw?: readonly CustomProjectRawSnapshot[]
 }
 
 const getArraySnapshot = <T>(
@@ -71,13 +76,15 @@ const toStorageCustomProject = (
 const getCustomProjectUndoSnapshot = async (
   customProjectRepository: CustomProjectRepository,
 ): Promise<CustomProjectUndoSnapshot> => {
-  const [projects, order] = await Promise.all([
+  const [projects, order, raws] = await Promise.all([
     customProjectRepository.findAll(),
     customProjectRepository.findOrder(),
+    customProjectRepository.findAllRaw?.() ?? Promise.resolve([]),
   ])
   return {
     ...(order.length > 0 ? { customProjectOrder: order } : {}),
     ...(projects.length > 0 ? { customProjects: projects } : {}),
+    ...(raws.length > 0 ? { customProjectsRaw: raws } : {}),
   }
 }
 
@@ -90,9 +97,11 @@ const createCustomProjectUndoPayload = (
   }
 
   const customProjectOrder = getArraySnapshot(snapshot.customProjectOrder)
+  const customProjectsRaw = getArraySnapshot(snapshot.customProjectsRaw)
   return {
     ...(customProjectOrder ? { customProjectOrder } : {}),
     customProjects,
+    ...(customProjectsRaw ? { customProjectsRaw } : {}),
   }
 }
 
@@ -124,7 +133,21 @@ const showCustomProjectDeleteUndoToast = ({
               return
             }
 
-            await customProjectRepository.saveAll(payload.customProjects)
+            // 削除した URL の `urls` / `urlMetadata` / `projectKeywords` のような
+            // domain entity 化されない rich フィールドを保持するため、生 snapshot
+            // があれば merge を介さず `restoreAllRaw` で書き戻す（PR #506 review
+            // P2 対応）。モック等で `restoreAllRaw` が未実装の場合は
+            // フォールバックとして `saveAll` を使う。
+            if (
+              payload.customProjectsRaw &&
+              customProjectRepository.restoreAllRaw
+            ) {
+              await customProjectRepository.restoreAllRaw(
+                payload.customProjectsRaw,
+              )
+            } else {
+              await customProjectRepository.saveAll(payload.customProjects)
+            }
             await customProjectRepository.saveOrder(
               payload.customProjectOrder ?? [],
             )

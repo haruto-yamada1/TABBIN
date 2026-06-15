@@ -4,7 +4,10 @@ import {
 } from '@/lib/browser/chrome-storage'
 
 import type { CustomProject } from '../../../domain/entities/CustomProject'
-import type { CustomProjectRepository } from '../../../domain/repositories/CustomProjectRepository'
+import type {
+  CustomProjectRawSnapshot,
+  CustomProjectRepository,
+} from '../../../domain/repositories/CustomProjectRepository'
 import type { CustomProjectId } from '../../../domain/value-objects/CustomProjectId'
 import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStorageMapper'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
@@ -143,11 +146,27 @@ const createChromeCustomProjectRepositoryImpl = (
     await port.set({ [CUSTOM_PROJECT_ORDER_KEY]: plain })
   }
 
+  const findAllRaw = async (): Promise<readonly CustomProjectRawSnapshot[]> => {
+    return findAllRawCustomProjects(port)
+  }
+
+  const restoreAllRaw = async (
+    raws: readonly CustomProjectRawSnapshot[],
+  ): Promise<void> => {
+    // undo 用途：merge を介さず snapshot をそのまま chrome.storage に
+    // 反映する。`saveAll` の merge 経路は entity に載らない `urls` /
+    // `urlMetadata` を脱落させるため、削除→undo のような復元ではこちら
+    // を使う。
+    await port.set({ [CUSTOM_PROJECTS_KEY]: [...raws] })
+  }
+
   return {
     findAll,
+    findAllRaw,
     findById,
     findOrder,
     removeByIds,
+    restoreAllRaw,
     saveAll,
     saveOrder,
   }

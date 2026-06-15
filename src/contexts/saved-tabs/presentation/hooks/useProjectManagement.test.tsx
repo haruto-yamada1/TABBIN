@@ -141,8 +141,10 @@ describe('useProjectManagement', () => {
 
     customProjectRepository = {
       findAll: vi.fn(),
+      findAllRaw: vi.fn(),
       findById: vi.fn(),
       removeByIds: vi.fn(),
+      restoreAllRaw: vi.fn(),
       saveAll: vi.fn(),
       findOrder: vi.fn(),
       saveOrder: vi.fn(),
@@ -152,6 +154,11 @@ describe('useProjectManagement', () => {
         mockResolvedValue: (value: unknown) => void
       }
     ).mockResolvedValue(projectSnapshot)
+    ;(
+      customProjectRepository.findAllRaw as unknown as {
+        mockResolvedValue: (value: unknown) => void
+      }
+    ).mockResolvedValue([])
     ;(
       customProjectRepository.findOrder as unknown as {
         mockResolvedValue: (value: unknown) => void
@@ -855,6 +862,119 @@ describe('useProjectManagement', () => {
       'project-1',
     ])
     expect(result.current.customProjects).toStrictEqual(projectSnapshot)
+  })
+
+  it('Undo は生 snapshot があれば restoreAllRaw 経由で urls / urlMetadata を含めて復元する（PR #506 review P2 対応）', async () => {
+    // 生 snapshot にだけ存在する urls / urlMetadata / projectKeywords は
+    // entity snapshot には載らないため、saveAll 経由だと merge で脱落する。
+    // restoreAllRaw 経由で書けば全フィールドを保存できる。
+    const projectSnapshotRaw = [
+      {
+        categories: ['research'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        projectKeywords: {
+          domainKeywords: ['example.com'],
+          titleKeywords: ['design'],
+          urlKeywords: ['plan'],
+        },
+        updatedAt: 2,
+        urlIds: ['url-1'],
+        urlMetadata: {
+          'url-1': { category: 'research', notes: 'memo' },
+        },
+        urls: [{ title: 'A', url: 'https://example.com/a' }],
+      },
+    ]
+    ;(
+      customProjectRepository.findAllRaw as unknown as {
+        mockResolvedValueOnce: (value: unknown) => void
+      }
+    ).mockResolvedValueOnce(projectSnapshotRaw)
+    projectManagementMocks.getCustomProjects
+      .mockResolvedValueOnce(projectSnapshot)
+      .mockResolvedValueOnce([])
+
+    const { result } = renderHook(() =>
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
+    )
+
+    await waitForLoadedProjects(result)
+
+    await act(async () => {
+      await result.current.handleDeleteUrlFromProject(
+        'project-1',
+        'https://example.com/a',
+      )
+    })
+
+    const undoOptions = vi.mocked(toast.info).mock.calls.at(-1)?.[1] as
+      | {
+          action?: {
+            onClick?: () => Promise<void>
+          }
+        }
+      | undefined
+
+    await act(async () => {
+      await undoOptions?.action?.onClick?.()
+    })
+
+    expect(customProjectRepository.restoreAllRaw).toHaveBeenCalledWith(
+      projectSnapshotRaw,
+    )
+    expect(customProjectRepository.saveAll).not.toHaveBeenCalled()
+  })
+
+  it('restoreAllRaw が未実装の repository では saveAll にフォールバックする', async () => {
+    // テストモック等で restoreAllRaw / findAllRaw が省略されているケースを
+    // 想定し、entity 経由の saveAll へ安全側に倒れることを確認する。
+    const repoWithoutRaw = {
+      findAll: customProjectRepository.findAll,
+      findById: customProjectRepository.findById,
+      removeByIds: customProjectRepository.removeByIds,
+      saveAll: customProjectRepository.saveAll,
+      findOrder: customProjectRepository.findOrder,
+      saveOrder: customProjectRepository.saveOrder,
+    } as unknown as CustomProjectRepository
+    projectManagementMocks.getCustomProjects
+      .mockResolvedValueOnce(projectSnapshot)
+      .mockResolvedValueOnce([])
+
+    const { result } = renderHook(() =>
+      useProjectManagement(repoWithoutRaw, [], defaultSettings, 'custom'),
+    )
+
+    await waitForLoadedProjects(result)
+
+    await act(async () => {
+      await result.current.handleDeleteUrlFromProject(
+        'project-1',
+        'https://example.com/a',
+      )
+    })
+
+    const undoOptions = vi.mocked(toast.info).mock.calls.at(-1)?.[1] as
+      | {
+          action?: {
+            onClick?: () => Promise<void>
+          }
+        }
+      | undefined
+
+    await act(async () => {
+      await undoOptions?.action?.onClick?.()
+    })
+
+    expect(customProjectRepository.saveAll).toHaveBeenLastCalledWith(
+      projectSnapshot,
+    )
   })
 
   it('カスタムモードの一括タブ削除を Undo で復元できる', async () => {
