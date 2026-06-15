@@ -133,6 +133,21 @@ const waitForLoadedProjects = async (
 
 describe('useProjectManagement', () => {
   let customProjectRepository: CustomProjectRepository
+  /**
+   * issue #509 で `useProjectManagement` の引数として
+   * `customProjectsCommandService` と 3 つの use-case
+   * (`createCustomProject` / `deleteCustomProject` /
+   * `updateCustomProjectName`) を port として注入する形に
+   * なった。これらは `projectManagementMocks` 内の同名 mock 関数
+   * をそのまま参照する。
+   */
+  // `customProjectsCommandService` は `useProjectManagement` の第 5 引数
+  // `CustomProjectsCommandService` として渡される。テストでは
+  // `projectManagementMocks` の同名関数をそのまま参照する形に統一しつつ、
+  // presentation 側で未使用の `removeUrlIdsFromAllCustomProjects` /
+  // `removeUrlsFromAllCustomProjects` は no-op vi.fn で補完する。
+  // eslint-disable-next-line typescript/no-explicit-any
+  let customProjectsCommandService: any
 
   beforeEach(() => {
     for (const mock of Object.values(projectManagementMocks)) {
@@ -142,17 +157,13 @@ describe('useProjectManagement', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     vi.setSystemTime(new Date('2026-01-02T03:04:05.000Z'))
-    projectManagementMocks.getCustomProjects.mockResolvedValue(projectSnapshot)
-    // `getCustomProjects` 旧 mock は `customProjectRepository.findAll`
-    // の代替として後方互換で保持。テスト本体での
-    // `projectManagementMocks.getCustomProjects.mockResolvedValue(...)` 呼び出しは
-    // 下の `mockImplementation` で `findAll` にも伝搬される。
+    // `customProjectRepository.findAll` は `getCustomProjects` の mock
+    // 値を通じて後方互換を維持する。テスト本体は
+    // `projectManagementMocks.getCustomProjects.mockResolvedValue(...)` で
+    // 戻り値を制御できる。
     const findAllMock = vi
       .fn()
       .mockImplementation(() => projectManagementMocks.getCustomProjects())
-    projectManagementMocks.getCustomProjects.mockImplementation(() =>
-      findAllMock(),
-    )
 
     customProjectRepository = {
       findAll: findAllMock,
@@ -164,11 +175,6 @@ describe('useProjectManagement', () => {
       findOrder: vi.fn(),
       saveOrder: vi.fn(),
     } as unknown as CustomProjectRepository
-    ;(
-      customProjectRepository.findAll as unknown as {
-        mockResolvedValue: (value: unknown) => void
-      }
-    ).mockResolvedValue(projectSnapshot)
     ;(
       customProjectRepository.findAllRaw as unknown as {
         mockResolvedValue: (value: unknown) => void
@@ -199,6 +205,40 @@ describe('useProjectManagement', () => {
         mockResolvedValue: (value: unknown) => void
       }
     ).mockResolvedValue(undefined)
+    projectManagementMocks.getCustomProjects.mockResolvedValue(projectSnapshot)
+
+    customProjectsCommandService = {
+      addCategoryToProject: projectManagementMocks.addCategoryToProject,
+      addUrlToCustomProject: projectManagementMocks.addUrlToCustomProject,
+      // 旧 `updateProjectOrder` テスト互換: 実装は
+      // `customProjectRepository.saveOrder` を使うため、空の no-op。
+      moveUrlBetweenCustomProjects: vi.fn(),
+      removeCategoryFromProject:
+        projectManagementMocks.removeCategoryFromProject,
+      removeUrlFromCustomProject:
+        projectManagementMocks.removeUrlFromCustomProject,
+      // `removeUrlIdsFromAllCustomProjects` / `removeUrlsFromAllCustomProjects`
+      // は presentation 配下では use-case / port 経由の API として参照される
+      // ため、後方互換のため no-op vi.fn を用意する。
+      removeUrlIdsFromAllCustomProjects: vi.fn(),
+      removeUrlsFromAllCustomProjects: vi.fn(),
+      removeUrlsFromCustomProject:
+        projectManagementMocks.removeUrlsFromCustomProject,
+      renameCategoryInProject: projectManagementMocks.renameCategoryInProject,
+      reorderProjectUrls: projectManagementMocks.reorderProjectUrls,
+      setUrlCategory: projectManagementMocks.setUrlCategory,
+      updateCategoryOrder: projectManagementMocks.updateCategoryOrder,
+      updateProjectKeywords: projectManagementMocks.updateProjectKeywords,
+    } as never
+    projectManagementMocks.createCustomProject.mockResolvedValue({
+      category: projectSnapshot[0],
+      project: projectSnapshot[0],
+    })
+    projectManagementMocks.deleteCustomProject.mockResolvedValue(undefined)
+    projectManagementMocks.updateCustomProjectName.mockResolvedValue({
+      all: [projectSnapshot[0]],
+      project: projectSnapshot[0],
+    })
   })
 
   afterEach(() => {
@@ -219,6 +259,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'domain',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -246,6 +290,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -271,6 +319,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
     unmount()
@@ -295,6 +347,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'domain',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -321,6 +377,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'domain',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -343,7 +403,16 @@ describe('useProjectManagement', () => {
 
   it('initialViewMode 未指定なら domain モードで初期化する', async () => {
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        undefined,
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -360,10 +429,11 @@ describe('useProjectManagement', () => {
       createdAt: 30,
       updatedAt: 30,
     }
-    let resolveCreate: (value: CustomProject) => void = () => undefined
+    let resolveCreate: (value: { project: CustomProject }) => void = () =>
+      undefined
     projectManagementMocks.createCustomProject.mockImplementation(
       () =>
-        new Promise<CustomProject>((resolve) => {
+        new Promise<{ project: CustomProject }>((resolve) => {
           resolveCreate = resolve
         }),
     )
@@ -374,6 +444,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -388,14 +462,14 @@ describe('useProjectManagement', () => {
     await act(async () => {
       const firstCreate = result.current.handleCreateProject(' New Project ')
       const duplicateCreate = result.current.handleCreateProject('new project')
-      resolveCreate(createdProject)
+      resolveCreate({ project: createdProject })
       await Promise.all([firstCreate, duplicateCreate])
     })
 
     expect(projectManagementMocks.createCustomProject).toHaveBeenCalledOnce()
-    expect(projectManagementMocks.createCustomProject).toHaveBeenCalledWith(
-      'New Project',
-    )
+    expect(projectManagementMocks.createCustomProject).toHaveBeenCalledWith({
+      name: 'New Project',
+    })
     expect(result.current.customProjects[0]).toStrictEqual(createdProject)
     expect(toast.success).toHaveBeenCalledWith(
       'プロジェクト「New Project」を追加しました',
@@ -416,6 +490,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -456,6 +534,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -477,8 +559,10 @@ describe('useProjectManagement', () => {
     })
 
     expect(projectManagementMocks.updateCustomProjectName).toHaveBeenCalledWith(
-      'project-1',
-      'Renamed',
+      {
+        newName: 'Renamed',
+        projectId: 'project-1',
+      },
     )
     expect(result.current.customProjects[0]).toMatchObject({
       id: 'project-1',
@@ -497,9 +581,9 @@ describe('useProjectManagement', () => {
       await result.current.handleDeleteProject('project-1')
     })
 
-    expect(projectManagementMocks.deleteCustomProject).toHaveBeenCalledWith(
-      'project-1',
-    )
+    expect(projectManagementMocks.deleteCustomProject).toHaveBeenCalledWith({
+      projectId: 'project-1',
+    })
     expect(result.current.customProjects).toStrictEqual([untouchedProject])
   })
 
@@ -516,6 +600,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -604,6 +692,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -641,7 +733,7 @@ describe('useProjectManagement', () => {
       'project-2',
       reorderedUrls,
     )
-    expect(projectManagementMocks.updateProjectOrder).toHaveBeenCalledWith([
+    expect(customProjectRepository.saveOrder).toHaveBeenCalledWith([
       'project-1',
       'project-2',
     ])
@@ -695,6 +787,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -714,46 +810,53 @@ describe('useProjectManagement', () => {
   })
 
   it('各操作の失敗をエラートーストで通知する', async () => {
-    projectManagementMocks.createCustomProject.mockRejectedValueOnce(
+    projectManagementMocks.createCustomProject.mockRejectedValue(
       new Error('create failed'),
     )
-    projectManagementMocks.deleteCustomProject.mockRejectedValueOnce(
+    // `handleDeleteProject` 実装は `deleteCustomProjectUseCase` を
+    // 2 回 (UNCATEGORIZED_PROJECT_ID 用の noop と実 projectId) 呼ぶ
+    // ため、常に reject させる。
+    projectManagementMocks.deleteCustomProject.mockRejectedValue(
       new Error('delete failed'),
     )
-    projectManagementMocks.updateCustomProjectName.mockRejectedValueOnce(
+    projectManagementMocks.updateCustomProjectName.mockRejectedValue(
       new Error('rename failed'),
     )
-    projectManagementMocks.updateProjectKeywords.mockRejectedValueOnce(
+    projectManagementMocks.updateProjectKeywords.mockRejectedValue(
       new Error('keyword failed'),
     )
-    projectManagementMocks.addUrlToCustomProject.mockRejectedValueOnce(
+    projectManagementMocks.addUrlToCustomProject.mockRejectedValue(
       new Error('add url failed'),
     )
-    projectManagementMocks.removeUrlFromCustomProject.mockRejectedValueOnce(
+    projectManagementMocks.removeUrlFromCustomProject.mockRejectedValue(
       new Error('delete url failed'),
     )
-    projectManagementMocks.removeUrlsFromCustomProject.mockRejectedValueOnce(
+    projectManagementMocks.removeUrlsFromCustomProject.mockRejectedValue(
       new Error('delete urls failed'),
     )
-    projectManagementMocks.addCategoryToProject.mockRejectedValueOnce(
+    projectManagementMocks.addCategoryToProject.mockRejectedValue(
       new Error('add category failed'),
     )
-    projectManagementMocks.removeCategoryFromProject.mockRejectedValueOnce(
+    projectManagementMocks.removeCategoryFromProject.mockRejectedValue(
       new Error('delete category failed'),
     )
-    projectManagementMocks.setUrlCategory.mockRejectedValueOnce(
+    projectManagementMocks.setUrlCategory.mockRejectedValue(
       new Error('set category failed'),
     )
-    projectManagementMocks.updateCategoryOrder.mockRejectedValueOnce(
+    projectManagementMocks.updateCategoryOrder.mockRejectedValue(
       new Error('category order failed'),
     )
-    projectManagementMocks.reorderProjectUrls.mockRejectedValueOnce(
+    projectManagementMocks.reorderProjectUrls.mockRejectedValue(
       new Error('url order failed'),
     )
-    projectManagementMocks.updateProjectOrder.mockRejectedValueOnce(
-      new Error('project order failed'),
-    )
-    projectManagementMocks.renameCategoryInProject.mockRejectedValueOnce(
+    // 旧 `updateProjectOrder` テスト互換: 実装は
+    // `customProjectRepository.saveOrder` を使うため、ここで reject。
+    ;(
+      customProjectRepository.saveOrder as unknown as {
+        mockRejectedValue: (e: unknown) => void
+      }
+    ).mockRejectedValue(new Error('project order failed'))
+    projectManagementMocks.renameCategoryInProject.mockRejectedValue(
       new Error('category rename failed'),
     )
 
@@ -763,6 +866,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -826,6 +933,7 @@ describe('useProjectManagement', () => {
   it('カスタムモードの単体タブ削除を Undo で復元できる', async () => {
     projectManagementMocks.getCustomProjects
       .mockResolvedValueOnce(projectSnapshot)
+      .mockResolvedValueOnce(projectSnapshot)
       .mockResolvedValueOnce(updatedProjects)
 
     const { result } = renderHook(() =>
@@ -834,6 +942,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -907,7 +1019,9 @@ describe('useProjectManagement', () => {
         mockResolvedValueOnce: (value: unknown) => void
       }
     ).mockResolvedValueOnce(projectSnapshotRaw)
+    // 1 回目: 初回 load, 2 回目: undo snapshot (projectSnapshot), 3 回目: 削除後
     projectManagementMocks.getCustomProjects
+      .mockResolvedValueOnce(projectSnapshot)
       .mockResolvedValueOnce(projectSnapshot)
       .mockResolvedValueOnce([])
 
@@ -917,6 +1031,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -960,10 +1078,20 @@ describe('useProjectManagement', () => {
     } as unknown as CustomProjectRepository
     projectManagementMocks.getCustomProjects
       .mockResolvedValueOnce(projectSnapshot)
+      .mockResolvedValueOnce(projectSnapshot)
       .mockResolvedValueOnce([])
 
     const { result } = renderHook(() =>
-      useProjectManagement(repoWithoutRaw, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        repoWithoutRaw,
+        [],
+        defaultSettings,
+        'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -1003,6 +1131,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 
@@ -1032,16 +1164,15 @@ describe('useProjectManagement', () => {
   })
 
   it('Undo の保存データがない場合は復元処理を行わず、復元失敗は通知する', async () => {
+    // 1st delete: snapshot = []  → 復元スキップ
+    // 2nd delete: snapshot = projectSnapshot → 復元は saveAll (reject) → 失敗通知
     projectManagementMocks.getCustomProjects
-      .mockResolvedValueOnce(projectSnapshot)
-      .mockResolvedValueOnce(updatedProjects)
-      .mockResolvedValueOnce(updatedProjects)
+      .mockResolvedValueOnce(projectSnapshot) // useEffect mount
+      .mockResolvedValueOnce([]) // 1st delete: snapshot
+      .mockResolvedValueOnce([]) // 1st delete: get updated (削除後)
+      .mockResolvedValueOnce(projectSnapshot) // 2nd delete: snapshot
+      .mockResolvedValueOnce(projectSnapshot) // 2nd delete: get updated
 
-    const findAll = customProjectRepository.findAll as unknown as {
-      mockResolvedValueOnce: (value: unknown) => void
-    }
-    findAll.mockResolvedValueOnce([])
-    findAll.mockResolvedValueOnce(projectSnapshot)
     ;(
       customProjectRepository.saveAll as unknown as {
         mockRejectedValueOnce: (value: unknown) => void
@@ -1054,6 +1185,10 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
+        customProjectsCommandService,
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
       ),
     )
 

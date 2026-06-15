@@ -433,18 +433,11 @@ import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/
 // `removeUrlIdsFromAllCustomProjects` / `removeUrlsFromAllCustomProjects`
 // は presentation 層から撤去済み (issue #509)。
 // 後方互換のため `expect(_legacySaveParentCategories)` 等の
-// no-op プレースホルダをローカルに保持する。
-const _legacySaveParentCategories: (
-  ...args: never[]
-) => Promise<void> = async () => undefined
-const _legacyRemoveUrlFromAll: (...args: never[]) => Promise<void> = async () =>
-  undefined
-const _legacyRemoveUrlIdsFromAll: (
-  ...args: never[]
-) => Promise<void> = async () => undefined
-const _legacyRemoveUrlsFromAll: (
-  ...args: never[]
-) => Promise<void> = async () => undefined
+// vi.fn プレースホルダをローカルに保持する。
+const _legacySaveParentCategories = vi.fn(async (): Promise<void> => undefined)
+const _legacyRemoveUrlFromAll = vi.fn(async (): Promise<void> => undefined)
+const _legacyRemoveUrlIdsFromAll = vi.fn(async (): Promise<void> => undefined)
+const _legacyRemoveUrlsFromAll = vi.fn(async (): Promise<void> => undefined)
 import {
   getTabGroupUrls,
   removeUrlIdsFromTabGroup,
