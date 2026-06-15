@@ -419,15 +419,17 @@ import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
 } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
-
 import {
   buildDisplayTabGroup,
+  getDisplayUrlCount,
+} from '@/contexts/saved-tabs/presentation/lib/display-tab-group'
+
+import {
   buildUpdatedGroupAfterUrlIdRemoval,
   buildUrlIdsToRemove,
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
   filterGroupsByExcludedIds,
-  getDisplayUrlCount,
   notifyDeleteFailure,
   removeUrlsFromCustomProjectsForGroup,
   removeUrlsFromCustomProjectsForGroups,

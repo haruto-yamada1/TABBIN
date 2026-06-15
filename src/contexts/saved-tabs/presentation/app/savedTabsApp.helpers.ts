@@ -263,15 +263,6 @@ const notifyDeleteFailure = async ({
 
 const countTabGroupUrls = (group: TabGroup): number =>
   group.urlIds?.length ?? group.urls?.length ?? 0
-const getDisplayUrlCount = (group: TabGroup): number =>
-  (group.urls ?? group.urlIds ?? []).length
-const buildDisplayTabGroup = (project: CustomProject): TabGroup =>
-  ({
-    id: project.id,
-    domain: project.name,
-    urls: project.urls ?? [],
-    urlIds: project.urlIds ?? [],
-  }) as TabGroup
 const filterGroupsByExcludedIds = (
   groups: TabGroup[],
   idsToExclude: Set<string>,
@@ -556,13 +547,11 @@ const syncSavedTabsViewModeLocation = ({
 
 export type { CategorySyncState, OpenedUrlsStorageSnapshot }
 export {
-  buildDisplayTabGroup,
   buildUpdatedGroupAfterUrlIdRemoval,
   buildUrlIdsToRemove,
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
   filterGroupsByExcludedIds,
-  getDisplayUrlCount,
   getSnapshotSavedTabs,
   notifyDeleteFailure,
   removeUrlsFromCustomProjectsForGroup,
