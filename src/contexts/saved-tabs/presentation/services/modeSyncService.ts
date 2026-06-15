@@ -288,9 +288,9 @@ const applyTabsAndUrlsChanges = async (
     // 旧 `invalidateUrlCache()` 相当の処理は DDD 移行で不要。
     // `UrlRecordRepository`（chrome impl）は `findAll` 呼び出しごとに
     // `chrome.storage.local.get` を直接実行するため、cache 無効化は
-    // 必要ない（`chrome.storage.onChanged` 経由の最新値を即時読む）。
+    // 必要ない（`StorageChangePort` 経由の最新値を即時読む）。
     // ここでは `refreshTabGroupsWithUrls()` のみ呼んで urlRecords を
-    // 取り直させれば十分（issue #501）。
+    // 取り直させれば十分（issue #501 / #503）。
     await refreshTabGroupsWithUrls()
   }
 }
