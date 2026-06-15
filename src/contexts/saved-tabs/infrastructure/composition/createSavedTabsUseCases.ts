@@ -1,11 +1,17 @@
 import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
 import { createAddDomainToParentCategoryUseCase } from '../../application/use-cases/AddDomainToParentCategoryUseCase'
+import { createAssignDomainToCategoryUseCase } from '../../application/use-cases/AssignDomainToCategoryUseCase'
 import { createBuildSavedTabsSnapshotUseCase } from '../../application/use-cases/BuildSavedTabsSnapshotUseCase'
+import { createCreateCustomProjectUseCase } from '../../application/use-cases/CreateCustomProjectUseCase'
+import { createCreateParentCategoryUseCase } from '../../application/use-cases/CreateParentCategoryUseCase'
+import { createDeleteCustomProjectUseCase } from '../../application/use-cases/DeleteCustomProjectUseCase'
+import { createDeleteParentCategoryUseCase } from '../../application/use-cases/DeleteParentCategoryUseCase'
 import { createDeleteSavedUrlsUseCase } from '../../application/use-cases/DeleteSavedUrlsUseCase'
 import { createDeleteSavedUrlUseCase } from '../../application/use-cases/DeleteSavedUrlUseCase'
 import { createDeleteTabGroupsUseCase } from '../../application/use-cases/DeleteTabGroupsUseCase'
 import { createDeleteTabGroupUseCase } from '../../application/use-cases/DeleteTabGroupUseCase'
 import { createFindUrlRecordByUrlUseCase } from '../../application/use-cases/FindUrlRecordByUrlUseCase'
+import { createGetProjectUrlsUseCase } from '../../application/use-cases/GetProjectUrlsUseCase'
 import { createLoadTabGroupsWithUrlsUseCase } from '../../application/use-cases/LoadTabGroupsWithUrlsUseCase'
 import { createLoadTabGroupUrlsUseCase } from '../../application/use-cases/LoadTabGroupUrlsUseCase'
 import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
@@ -18,6 +24,7 @@ import { createReorderTabGroupUrlsUseCase } from '../../application/use-cases/Re
 import { createRestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import { createSetCategoryKeywordsUseCase } from '../../application/use-cases/SetCategoryKeywordsUseCase'
 import { createSyncCategoryAssignmentsUseCase } from '../../application/use-cases/SyncCategoryAssignmentsUseCase'
+import { createUpdateCustomProjectNameUseCase } from '../../application/use-cases/UpdateCustomProjectNameUseCase'
 import type { SavedTabsUseCasesDeps } from './createSavedTabsUseCasesDeps'
 
 /**
@@ -51,11 +58,35 @@ export const createSavedTabsUseCases = (
   addDomainToParentCategory: createAddDomainToParentCategoryUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
+  assignDomainToCategory: createAssignDomainToCategoryUseCase({
+    domainCategoryMappingRepository: deps.domainCategoryMappingRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+  }),
   buildSavedTabsSnapshot: createBuildSavedTabsSnapshotUseCase({
     customProjectRepository: deps.customProjectRepository,
     parentCategoryRepository: deps.parentCategoryRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
+  }),
+  createCustomProject: createCreateCustomProjectUseCase({
+    customProjectRepository: deps.customProjectRepository,
+  }),
+  createParentCategory: createCreateParentCategoryUseCase({
+    generateId: () => crypto.randomUUID(),
+    parentCategoryRepository: deps.parentCategoryRepository,
+  }),
+  deleteCustomProject: createDeleteCustomProjectUseCase({
+    customProjectRepository: deps.customProjectRepository,
+    uncategorizedProjectId:
+      // `lib/storage/projects` 側の sentinel に揃える。`chrome.storage.local`
+      // 上に必ず存在するシステム予約 project として、id 文字列を
+      // そのまま port 実装に伝搬する。
+      'custom-uncategorized',
+  }),
+  deleteParentCategory: createDeleteParentCategoryUseCase({
+    domainCategoryMappingRepository: deps.domainCategoryMappingRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
   }),
   deleteSavedUrl: createDeleteSavedUrlUseCase({
     customProjectRepository: deps.customProjectRepository,
@@ -78,6 +109,10 @@ export const createSavedTabsUseCases = (
     urlRecordRepository: deps.urlRecordRepository,
   }),
   findUrlRecordByUrl: createFindUrlRecordByUrlUseCase({
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
+  getProjectUrls: createGetProjectUrlsUseCase({
+    customProjectRepository: deps.customProjectRepository,
     urlRecordRepository: deps.urlRecordRepository,
   }),
   loadTabGroupUrls: createLoadTabGroupUrlsUseCase({
@@ -129,5 +164,8 @@ export const createSavedTabsUseCases = (
   syncCategoryAssignments: createSyncCategoryAssignmentsUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,
     tabGroupRepository: deps.tabGroupRepository,
+  }),
+  updateCustomProjectName: createUpdateCustomProjectNameUseCase({
+    customProjectRepository: deps.customProjectRepository,
   }),
 })

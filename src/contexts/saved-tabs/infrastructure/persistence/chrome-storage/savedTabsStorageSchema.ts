@@ -62,6 +62,53 @@ export const ParentCategoryRawSchema = z.object({
   domainNames: z.array(z.string()),
 })
 
+export const DomainCategoryMappingRawSchema = z.object({
+  domain: z.string(),
+  categoryId: z.string(),
+})
+
+export const DomainCategorySettingsRawSchema = z.object({
+  domain: z.string(),
+  subCategories: z.array(z.string()),
+  categoryKeywords: z.array(subCategoryKeywordSchema),
+})
+
+export const UserSettingsRawSchema = z.object({
+  language: z.union([z.literal('system'), z.literal('ja'), z.literal('en')]).optional(),
+  removeTabAfterOpen: z.boolean(),
+  removeTabAfterExternalDrop: z.boolean(),
+  excludePatterns: z.array(z.string()),
+  enableCategories: z.boolean(),
+  autoDeletePeriod: z.string().optional(),
+  showSavedTime: z.boolean(),
+  clickBehavior: z.enum([
+    'saveCurrentTab',
+    'saveWindowTabs',
+    'saveSameDomainTabs',
+    'saveAllWindowsTabs',
+  ]),
+  excludePinnedTabs: z.boolean(),
+  openUrlInBackground: z.boolean(),
+  openAllInNewWindow: z.boolean(),
+  confirmDeleteAll: z.boolean(),
+  confirmDeleteEach: z.boolean(),
+  fontSizePercent: z.number().optional(),
+  colors: z.record(z.string(), z.string()).optional(),
+  ollamaModel: z.string().optional(),
+  aiSystemPrompts: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        template: z.string(),
+        createdAt: z.number(),
+        updatedAt: z.number(),
+      }),
+    )
+    .optional(),
+  activeAiSystemPromptId: z.string().optional(),
+})
+
 const customProjectUrlEntrySchema = z.object({
   url: z.string(),
   title: z.string(),

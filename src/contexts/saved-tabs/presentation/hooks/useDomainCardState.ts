@@ -2,13 +2,11 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
+import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import {
-  createParentCategory,
-  getParentCategories,
-} from '@/lib/storage/categories'
-import { assignDomainToCategory } from '@/lib/storage/migration'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseDomainCardState フックの引数 */
@@ -33,6 +31,21 @@ interface UseDomainCardStateParams {
    * `chrome.storage.local` 直叩きを置換するために使用。
    */
   tabGroupRepository?: TabGroupRepository
+  /**
+   * 親カテゴリ永続化 repository (issue #509)。
+   * `getParentCategories` 直叩きを置換。
+   */
+  parentCategoryRepository?: ParentCategoryRepository
+  /**
+   * 親カテゴリ作成 use-case (issue #509)。
+   * `createParentCategory` 直叩きを置換。
+   */
+  createParentCategoryUseCase?: CreateParentCategoryUseCase
+  /**
+   * ドメイン割当 use-case (issue #509)。
+   * `assignDomainToCategory` 直叩きを置換。
+   */
+  assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
 }
 interface CategorizedUrlItem {
   id?: string
@@ -128,6 +141,9 @@ export const useDomainCardState = ({
   isReorderMode,
   deleteSingleUrl,
   tabGroupRepository,
+  parentCategoryRepository,
+  createParentCategoryUseCase,
+  assignDomainToCategoryUseCase,
 }: UseDomainCardStateParams) => {
   const { t } = useI18n()
   // --- 基本状態 ---
@@ -450,40 +466,57 @@ export const useDomainCardState = ({
   // --- 親カテゴリ読み込み ---
   useEffect(() => {
     const loadParentCategories = async () => {
+      if (!parentCategoryRepository) {
+        return
+      }
       try {
-        const categories = await getParentCategories()
-        setParentCategories(categories)
+        const fromRepo =
+          // domain entity (branded id) を storage shape へ投影
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
+          (await parentCategoryRepository.findAll()) as unknown as ParentCategory[]
+        setParentCategories(fromRepo)
       } catch (error) {
         console.error('親カテゴリの読み込みに失敗しました:', error)
       }
     }
     // eslint-disable-next-line typescript/no-floating-promises
     loadParentCategories()
-  }, [])
+  }, [parentCategoryRepository])
 
   // --- 親カテゴリ作成ハンドラ ---
-  const handleCreateParentCategory = useCallback(async (name: string) => {
-    try {
-      const newCategory = await createParentCategory(name)
-      setParentCategories((prev) => [...prev, newCategory])
-      return newCategory
-    } catch (error) {
-      console.error('親カテゴリ作成エラー:', error)
-      throw error
-    }
-  }, [])
+  const handleCreateParentCategory = useCallback(
+    async (name: string) => {
+      if (!createParentCategoryUseCase) {
+        throw new Error('createParentCategoryUseCase is not provided')
+      }
+      try {
+        const { category, all } = await createParentCategoryUseCase({ name })
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        const updatedAll = all as unknown as ParentCategory[]
+        setParentCategories(updatedAll)
+        return category as unknown as ParentCategory
+      } catch (error) {
+        console.error('親カテゴリ作成エラー:', error)
+        throw error
+      }
+    },
+    [createParentCategoryUseCase],
+  )
 
   // --- ドメインを親カテゴリに割り当て ---
   const handleAssignToParentCategory = useCallback(
     async (groupId: string, categoryId: string) => {
+      if (!assignDomainToCategoryUseCase) {
+        throw new Error('assignDomainToCategoryUseCase is not provided')
+      }
       try {
-        await assignDomainToCategory(groupId, categoryId)
+        await assignDomainToCategoryUseCase({ categoryId, domainId: groupId })
       } catch (error) {
         console.error('ドメイン割り当てエラー:', error)
         throw error
       }
     },
-    [],
+    [assignDomainToCategoryUseCase],
   )
 
   // --- 親カテゴリ更新 ---

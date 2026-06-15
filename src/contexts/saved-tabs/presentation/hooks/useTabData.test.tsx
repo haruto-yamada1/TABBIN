@@ -8,26 +8,18 @@ import { useTabData } from './useTabData'
 
 const {
   loadTabGroupsWithUrlsUseCaseMock,
-  getUserSettingsMock,
+  userSettingsFindAllMock,
   migrateParentCategoriesToDomainNamesMock,
   migrateToUrlsStorageMock,
 } = vi.hoisted(() => ({
   loadTabGroupsWithUrlsUseCaseMock: vi.fn(),
-  getUserSettingsMock: vi.fn().mockResolvedValue({} as UserSettings),
+  userSettingsFindAllMock: vi
+    .fn()
+    .mockResolvedValue({} as UserSettings),
   migrateParentCategoriesToDomainNamesMock: vi
     .fn()
     .mockResolvedValue(undefined),
   migrateToUrlsStorageMock: vi.fn().mockResolvedValue(undefined),
-}))
-
-vi.mock('@/lib/storage/migration', () => ({
-  migrateParentCategoriesToDomainNames:
-    migrateParentCategoriesToDomainNamesMock,
-  migrateToUrlsStorage: migrateToUrlsStorageMock,
-}))
-
-vi.mock('@/lib/storage/settings', () => ({
-  getUserSettings: getUserSettingsMock,
 }))
 
 const createTabGroupRepositoryMock = () => ({
@@ -51,11 +43,25 @@ const createParentCategoryRepositoryMock = () => ({
   saveAll: vi.fn().mockResolvedValue(undefined),
 })
 
+const createUserSettingsRepositoryMock = () => ({
+  findAll: userSettingsFindAllMock,
+  save: vi.fn().mockResolvedValue(undefined),
+})
+
+const createMigrationPortMock = () => ({
+  migrateParentCategoriesToDomainNames: migrateParentCategoriesToDomainNamesMock,
+  migrateToUrlsStorage: migrateToUrlsStorageMock,
+})
+
 let tabGroupRepository: ReturnType<typeof createTabGroupRepositoryMock>
 let urlRecordRepository: ReturnType<typeof createUrlRecordRepositoryMock>
 let parentCategoryRepository: ReturnType<
   typeof createParentCategoryRepositoryMock
 >
+let userSettingsRepository: ReturnType<
+  typeof createUserSettingsRepositoryMock
+>
+let migrationPort: ReturnType<typeof createMigrationPortMock>
 
 const renderUseTabData = (
   onCategoriesLoaded: (categories: ParentCategory[]) => void = vi.fn(),
@@ -67,6 +73,8 @@ const renderUseTabData = (
       tabGroupRepository,
       urlRecordRepository,
       parentCategoryRepository,
+      userSettingsRepository,
+      migrationPort,
       onCategoriesLoaded,
       onSettingsLoaded,
     }),
@@ -84,8 +92,8 @@ describe('useTabData', () => {
         tabGroups: command.tabGroups,
       }),
     )
-    getUserSettingsMock.mockReset()
-    getUserSettingsMock.mockResolvedValue({} as UserSettings)
+    userSettingsFindAllMock.mockReset()
+    userSettingsFindAllMock.mockResolvedValue({} as UserSettings)
     migrateParentCategoriesToDomainNamesMock.mockReset()
     migrateParentCategoriesToDomainNamesMock.mockResolvedValue(undefined)
     migrateToUrlsStorageMock.mockReset()
@@ -93,6 +101,8 @@ describe('useTabData', () => {
     tabGroupRepository = createTabGroupRepositoryMock()
     urlRecordRepository = createUrlRecordRepositoryMock()
     parentCategoryRepository = createParentCategoryRepositoryMock()
+    userSettingsRepository = createUserSettingsRepositoryMock()
+    migrationPort = createMigrationPortMock()
   })
 
   it('初期ロードで親カテゴリと保存タブを修復して通知する', async () => {
@@ -142,7 +152,7 @@ describe('useTabData', () => {
         name: 'Legacy',
       } as ParentCategory,
     ]
-    getUserSettingsMock.mockResolvedValue(settings)
+    userSettingsFindAllMock.mockResolvedValue(settings)
     parentCategoryRepository.findAll
       .mockResolvedValueOnce([
         {

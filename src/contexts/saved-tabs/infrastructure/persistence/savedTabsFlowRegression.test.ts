@@ -7,11 +7,14 @@ import { searchSavedTabs } from '../../domain/services/SavedTabsSearchService'
 import { createSavedTabsUseCases } from '../composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '../composition/createSavedTabsUseCasesDeps'
 import { createChromeCustomProjectRepository } from './chrome-storage/ChromeCustomProjectRepository'
+import { createChromeDomainCategoryMappingRepository } from './chrome-storage/ChromeDomainCategoryMappingRepository'
+import { createChromeDomainCategorySettingsRepository } from './chrome-storage/ChromeDomainCategorySettingsRepository'
 import { createChromeParentCategoryRepository } from './chrome-storage/ChromeParentCategoryRepository'
 import { createLibSetCategoryKeywordsAdapter } from './chrome-storage/ChromeSetCategoryKeywordsAdapter'
 import { createChromeTabGroupRepository } from './chrome-storage/ChromeTabGroupRepository'
 import type { ChromeStorageLocalPort } from './chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUrlRecordRepository } from './chrome-storage/ChromeUrlRecordRepository'
+import { createChromeUserSettingsRepository } from './chrome-storage/ChromeUserSettingsRepository'
 import {
   CUSTOM_PROJECTS_KEY,
   PARENT_CATEGORIES_KEY,
@@ -119,7 +122,35 @@ const createBundle = (initial: StorageState = {}): Bundle => {
   const deps: SavedTabsUseCasesDeps = {
     browserTabPort: browserTabPort.port,
     browserWindowPort: browserWindowPort.port,
+    categoriesCommandService: {
+      updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+    },
     customProjectRepository: createChromeCustomProjectRepository(port),
+    customProjectsCommandService: {
+      addCategoryToProject: vi.fn().mockResolvedValue(undefined),
+      addUrlToCustomProject: vi.fn().mockResolvedValue(undefined),
+      moveUrlBetweenCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeCategoryFromProject: vi.fn().mockResolvedValue(undefined),
+      removeUrlFromCustomProject: vi.fn().mockResolvedValue(undefined),
+      removeUrlIdsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeUrlsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeUrlsFromCustomProject: vi.fn().mockResolvedValue(undefined),
+      renameCategoryInProject: vi.fn().mockResolvedValue(undefined),
+      reorderProjectUrls: vi.fn().mockResolvedValue(undefined),
+      setUrlCategory: vi.fn().mockResolvedValue(undefined),
+      updateCategoryOrder: vi.fn().mockResolvedValue(undefined),
+      updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
+    },
+    domainCategoryMappingRepository:
+      createChromeDomainCategoryMappingRepository(port),
+    domainCategorySettingsRepository:
+      createChromeDomainCategorySettingsRepository(port),
+    migrationPort: {
+      migrateParentCategoriesToDomainNames: vi
+        .fn()
+        .mockResolvedValue(undefined),
+      migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
+    },
     notificationPort: notification.notificationPort,
     parentCategoryRepository: createChromeParentCategoryRepository(port),
     setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
@@ -128,6 +159,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     },
     tabGroupRepository: createChromeTabGroupRepository(port),
     urlRecordRepository: createChromeUrlRecordRepository(port),
+    userSettingsRepository: createChromeUserSettingsRepository(port),
   }
   return {
     browserTabPort,
@@ -343,7 +375,35 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const deps: SavedTabsUseCasesDeps = {
         browserTabPort,
         browserWindowPort,
+        categoriesCommandService: {
+          updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+        },
         customProjectRepository: createChromeCustomProjectRepository(port),
+        customProjectsCommandService: {
+          addCategoryToProject: vi.fn().mockResolvedValue(undefined),
+          addUrlToCustomProject: vi.fn().mockResolvedValue(undefined),
+          moveUrlBetweenCustomProjects: vi.fn().mockResolvedValue(undefined),
+          removeCategoryFromProject: vi.fn().mockResolvedValue(undefined),
+          removeUrlFromCustomProject: vi.fn().mockResolvedValue(undefined),
+          removeUrlIdsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+          removeUrlsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+          removeUrlsFromCustomProject: vi.fn().mockResolvedValue(undefined),
+          renameCategoryInProject: vi.fn().mockResolvedValue(undefined),
+          reorderProjectUrls: vi.fn().mockResolvedValue(undefined),
+          setUrlCategory: vi.fn().mockResolvedValue(undefined),
+          updateCategoryOrder: vi.fn().mockResolvedValue(undefined),
+          updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
+        },
+        domainCategoryMappingRepository:
+          createChromeDomainCategoryMappingRepository(port),
+        domainCategorySettingsRepository:
+          createChromeDomainCategorySettingsRepository(port),
+        migrationPort: {
+          migrateParentCategoriesToDomainNames: vi
+            .fn()
+            .mockResolvedValue(undefined),
+          migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
+        },
         notificationPort: notification.notificationPort,
         parentCategoryRepository: createChromeParentCategoryRepository(port),
         setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
@@ -352,6 +412,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         },
         tabGroupRepository: createChromeTabGroupRepository(port),
         urlRecordRepository: createChromeUrlRecordRepository(port),
+        userSettingsRepository: createChromeUserSettingsRepository(port),
       }
       const useCases = createSavedTabsUseCases(deps)
       await useCases.openSavedUrl({

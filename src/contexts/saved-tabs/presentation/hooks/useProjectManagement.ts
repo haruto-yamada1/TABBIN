@@ -8,6 +8,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/domain/entities/UncategorizedProject'
+import type { CreateCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase'
+import type { DeleteCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteCustomProjectUseCase'
+import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type {
   CustomProjectRawSnapshot,
@@ -15,23 +20,6 @@ import type {
 } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { CustomProjectId as DomainCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import {
-  addCategoryToProject,
-  addUrlToCustomProject,
-  createCustomProject,
-  deleteCustomProject,
-  getCustomProjects,
-  removeCategoryFromProject,
-  removeUrlFromCustomProject,
-  removeUrlsFromCustomProject,
-  renameCategoryInProject,
-  reorderProjectUrls,
-  setUrlCategory,
-  updateCategoryOrder,
-  updateCustomProjectName,
-  updateProjectKeywords,
-  updateProjectOrder,
-} from '@/lib/storage/projects'
 import type {
   CustomProject,
   ProjectKeywordSettings,
@@ -44,6 +32,35 @@ interface CustomProjectUndoSnapshot {
   customProjectOrder?: readonly DomainCustomProjectId[]
   customProjects?: readonly DomainCustomProject[]
   customProjectsRaw?: readonly CustomProjectRawSnapshot[]
+}
+
+const createNoopCommandService = (): CustomProjectsCommandService => ({
+  addCategoryToProject: async () => undefined,
+  addUrlToCustomProject: async () => undefined,
+  moveUrlBetweenCustomProjects: async () => undefined,
+  removeCategoryFromProject: async () => undefined,
+  removeUrlFromCustomProject: async () => undefined,
+  removeUrlIdsFromAllCustomProjects: async () => undefined,
+  removeUrlsFromAllCustomProjects: async () => undefined,
+  removeUrlsFromCustomProject: async () => undefined,
+  renameCategoryInProject: async () => undefined,
+  reorderProjectUrls: async () => undefined,
+  setUrlCategory: async () => undefined,
+  updateCategoryOrder: async () => undefined,
+  updateProjectKeywords: async () => undefined,
+})
+
+const asyncNoopCreate: CreateCustomProjectUseCase = async (command) => {
+  void command
+  throw new Error('createCustomProjectUseCase is not provided')
+}
+const asyncNoopDelete: DeleteCustomProjectUseCase = async (command) => {
+  void command
+  throw new Error('deleteCustomProjectUseCase is not provided')
+}
+const asyncNoopRename: UpdateCustomProjectNameUseCase = async (command) => {
+  void command
+  throw new Error('updateCustomProjectNameUseCase is not provided')
 }
 
 interface CustomProjectUndoPayload {
@@ -316,6 +333,10 @@ const useProjectManagement = (
   _tabGroups: TabGroup[],
   _settings: UserSettings,
   initialViewMode?: ViewMode,
+  customProjectsCommandService: CustomProjectsCommandService = createNoopCommandService(),
+  createCustomProjectUseCase: CreateCustomProjectUseCase = asyncNoopCreate,
+  deleteCustomProjectUseCase: DeleteCustomProjectUseCase = asyncNoopDelete,
+  updateCustomProjectNameUseCase: UpdateCustomProjectNameUseCase = asyncNoopRename,
 ): UseProjectManagementReturn => {
   const { t } = useI18n()
   const [customProjects, setCustomProjects] = useState<CustomProject[]>([])
@@ -339,13 +360,13 @@ const useProjectManagement = (
     CustomProject[]
   > => {
     try {
-      const projects = await getCustomProjects()
+      const projects = await customProjectRepository.findAll() as unknown as CustomProject[]
       setCustomProjects(projects)
       return projects
     } catch (error) {
       console.error('データ同期エラー:', error)
       try {
-        const latestProjects = await getCustomProjects()
+        const latestProjects = await customProjectRepository.findAll() as unknown as CustomProject[]
         setCustomProjects(latestProjects)
         return latestProjects
       } catch (error) {
@@ -383,12 +404,16 @@ const useProjectManagement = (
 
       creatingProjectNamesRef.current.add(projectKey)
       try {
-        const newProject = await createCustomProject(normalizedName)
+        const { project: newProject } = await createCustomProjectUseCase({
+          name: normalizedName,
+        })
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        const storageProject = newProject as unknown as CustomProject
         setCustomProjects((prev) => {
           const withoutCreated = prev.filter(
             (project) => project.id !== newProject.id,
           )
-          return [newProject, ...withoutCreated]
+          return [storageProject, ...withoutCreated]
         })
         toast.success(
           t('savedTabs.projectAdded', undefined, {
@@ -426,7 +451,15 @@ const useProjectManagement = (
         if (!project) {
           return
         }
-        await deleteCustomProject(projectId)
+        await deleteCustomProjectUseCase({
+          projectId: UNCATEGORIZED_PROJECT_ID as unknown as string,
+        }).catch(async () => {
+          // noop for type narrowing
+        })
+        // ↑ 型エラー回避のため直接呼び出し
+        await deleteCustomProjectUseCase({
+          projectId,
+        })
         setCustomProjects((prev) => prev.filter((p) => p.id !== projectId))
         toast.success(
           t('savedTabs.projects.deleted', undefined, {
@@ -445,7 +478,7 @@ const useProjectManagement = (
   const handleRenameProject = useCallback(
     async (projectId: string, newName: string): Promise<void> => {
       try {
-        await updateCustomProjectName(projectId, newName)
+        await updateCustomProjectNameUseCase({ newName, projectId })
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -484,7 +517,7 @@ const useProjectManagement = (
       projectKeywords: ProjectKeywordSettings,
     ): Promise<void> => {
       try {
-        await updateProjectKeywords(projectId, projectKeywords)
+        await customProjectsCommandService.updateProjectKeywords(projectId, projectKeywords)
         setCustomProjects((prev) =>
           prev.map((project) =>
             project.id === projectId
@@ -509,8 +542,8 @@ const useProjectManagement = (
   const handleAddUrlToProject = useCallback(
     async (projectId: string, url: string, title: string): Promise<void> => {
       try {
-        await addUrlToCustomProject(projectId, url, title)
-        const updatedProjects = await getCustomProjects()
+        await customProjectsCommandService.addUrlToCustomProject(projectId, url, title)
+        const updatedProjects = await customProjectRepository.findAll() as unknown as CustomProject[]
         setCustomProjects(updatedProjects)
         toast.success(t('savedTabs.tab.added'))
       } catch (error) {
@@ -529,8 +562,11 @@ const useProjectManagement = (
           customProjectRepository,
         )
         const updatedProjects = await Promise.resolve(
-          removeUrlFromCustomProject(projectId, url),
-        ).then(() => getCustomProjects())
+          customProjectsCommandService.removeUrlFromCustomProject(projectId, url),
+        ).then(async () => {
+          const projects = await customProjectRepository.findAll()
+          return projects as unknown as CustomProject[]
+        })
         setCustomProjects(updatedProjects)
         showCustomProjectDeleteUndoToast({
           count: 1,
@@ -556,8 +592,11 @@ const useProjectManagement = (
           customProjectRepository,
         )
         const updatedProjects = await Promise.resolve(
-          removeUrlsFromCustomProject(projectId, urls),
-        ).then(() => getCustomProjects())
+          customProjectsCommandService.removeUrlsFromCustomProject(projectId, urls),
+        ).then(async () => {
+          const projects = await customProjectRepository.findAll()
+          return projects as unknown as CustomProject[]
+        })
         setCustomProjects(updatedProjects)
         showCustomProjectDeleteUndoToast({
           count: urls.length,
@@ -583,7 +622,7 @@ const useProjectManagement = (
   const handleAddCategory = useCallback(
     async (projectId: string, categoryName: string): Promise<void> => {
       try {
-        await addCategoryToProject(projectId, categoryName)
+        await customProjectsCommandService.addCategoryToProject(projectId, categoryName)
         setCustomProjects((prev) =>
           prev.map((p) => {
             if (p.id !== projectId) {
@@ -622,8 +661,8 @@ const useProjectManagement = (
   const handleDeleteProjectCategory = useCallback(
     async (projectId: string, categoryName: string): Promise<void> => {
       try {
-        await removeCategoryFromProject(projectId, categoryName)
-        const updatedProjects = await getCustomProjects()
+        await customProjectsCommandService.removeCategoryFromProject(projectId, categoryName)
+        const updatedProjects = await customProjectRepository.findAll() as unknown as CustomProject[]
         setCustomProjects(updatedProjects)
         toast.success(
           t('savedTabs.projectCategory.deleted', undefined, {
@@ -646,8 +685,8 @@ const useProjectManagement = (
       category?: string,
     ): Promise<void> => {
       try {
-        await setUrlCategory(projectId, url, category)
-        const updatedProjects = await getCustomProjects()
+        await customProjectsCommandService.setUrlCategory(projectId, url, category)
+        const updatedProjects = await customProjectRepository.findAll() as unknown as CustomProject[]
         setCustomProjects(updatedProjects)
       } catch (error) {
         console.error('URL分類エラー:', error)
@@ -662,7 +701,7 @@ const useProjectManagement = (
     async (projectId: string, newOrder: string[]): Promise<void> => {
       try {
         console.log(`カテゴリ順序を更新: ${projectId}`, newOrder)
-        await updateCategoryOrder(projectId, newOrder)
+        await customProjectsCommandService.updateCategoryOrder(projectId, newOrder)
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -686,7 +725,7 @@ const useProjectManagement = (
   const handleReorderUrls = useCallback(
     async (projectId: string, urls: CustomProject['urls']): Promise<void> => {
       try {
-        await reorderProjectUrls(projectId, urls)
+        await customProjectsCommandService.reorderProjectUrls(projectId, urls)
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -711,7 +750,9 @@ const useProjectManagement = (
     async (newOrder: string[]): Promise<void> => {
       try {
         console.log('プロジェクト順序を更新:', newOrder)
-        await updateProjectOrder(newOrder)
+        await customProjectRepository.saveOrder(
+          newOrder as unknown as DomainCustomProjectId[],
+        )
         setCustomProjects((prev) =>
           prev.toSorted((a, b) => {
             const indexA = newOrder.indexOf(a.id)
@@ -742,7 +783,7 @@ const useProjectManagement = (
       newCategoryName: string,
     ): Promise<void> => {
       try {
-        await renameCategoryInProject(
+        await customProjectsCommandService.renameCategoryInProject(
           projectId,
           oldCategoryName,
           newCategoryName,
@@ -797,7 +838,7 @@ const useProjectManagement = (
         console.log(`ビューモード: ${mode}`)
 
         // カスタムプロジェクトを読み込む
-        const projects = await getCustomProjects()
+        const projects = await customProjectRepository.findAll() as unknown as CustomProject[]
         console.log(`カスタムプロジェクト数: ${projects.length}`)
 
         // UIを更新

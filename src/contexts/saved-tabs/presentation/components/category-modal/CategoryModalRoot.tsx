@@ -4,6 +4,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
+import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { TabGroup } from '@/types/storage'
 
@@ -17,6 +21,14 @@ interface CategoryModalRootProps {
   onClose: () => void
   /** タブグループ一覧 */
   tabGroups: TabGroup[]
+  /** 親カテゴリ永続化先。useCategoryModal の `parentCategoryRepository`。*/
+  parentCategoryRepository: ParentCategoryRepository
+  /** 親カテゴリ作成 use-case。useCategoryModal 経由で利用。*/
+  createParentCategoryUseCase: CreateParentCategoryUseCase
+  /** 親カテゴリ削除 use-case。useCategoryModal 経由で利用。*/
+  deleteParentCategoryUseCase: DeleteParentCategoryUseCase
+  /** ドメイン割当 use-case。useCategoryModal 経由で利用。*/
+  assignDomainToCategoryUseCase: AssignDomainToCategoryUseCase
   /** 子コンポーネント */
   children: React.ReactNode
 }
@@ -29,10 +41,20 @@ interface CategoryModalRootProps {
 export const CategoryModalRoot = ({
   onClose,
   tabGroups,
+  parentCategoryRepository,
+  createParentCategoryUseCase,
+  deleteParentCategoryUseCase,
+  assignDomainToCategoryUseCase,
   children,
 }: CategoryModalRootProps) => {
   const { t } = useI18n()
-  const state = useCategoryModal({ tabGroups })
+  const state = useCategoryModal({
+    assignDomainToCategoryUseCase,
+    createParentCategoryUseCase,
+    deleteParentCategoryUseCase,
+    parentCategoryRepository,
+    tabGroups,
+  })
 
   // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const contextValue: CategoryModalContextType = {

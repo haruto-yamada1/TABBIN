@@ -12,8 +12,12 @@ import { useProjectManagement } from './useProjectManagement'
 const projectManagementMocks = vi.hoisted(() => ({
   addCategoryToProject: vi.fn(),
   addUrlToCustomProject: vi.fn(),
-  createCustomProject: vi.fn(),
-  deleteCustomProject: vi.fn(),
+  createCustomProject: vi.fn().mockResolvedValue({}),
+  deleteCustomProject: vi.fn().mockResolvedValue({}),
+  // 後方互換: 旧テストが `getCustomProjects` を mock していた名残。
+  // 実装は `customProjectRepository.findAll` を使うが、テストでは
+  // customProjectRepository の `findAll` 実装を `getCustomProjects` の
+  // 戻り値で書き換えるだけで動かせる。
   getCustomProjects: vi.fn(),
   removeCategoryFromProject: vi.fn(),
   removeUrlFromCustomProject: vi.fn(),
@@ -22,8 +26,9 @@ const projectManagementMocks = vi.hoisted(() => ({
   reorderProjectUrls: vi.fn(),
   setUrlCategory: vi.fn(),
   updateCategoryOrder: vi.fn(),
-  updateCustomProjectName: vi.fn(),
+  updateCustomProjectName: vi.fn().mockResolvedValue({}),
   updateProjectKeywords: vi.fn(),
+  // 旧テスト互換: 実装は `customProjectRepository.saveOrder` を使う。
   updateProjectOrder: vi.fn(),
 }))
 
@@ -34,6 +39,8 @@ vi.mock('sonner', () => ({
     success: vi.fn(),
   },
 }))
+
+vi.mock('@/lib/storage/projects', () => projectManagementMocks)
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
@@ -56,8 +63,6 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
     }),
   }
 })
-
-vi.mock('@/lib/storage/projects', () => projectManagementMocks)
 
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
@@ -138,9 +143,19 @@ describe('useProjectManagement', () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     vi.setSystemTime(new Date('2026-01-02T03:04:05.000Z'))
     projectManagementMocks.getCustomProjects.mockResolvedValue(projectSnapshot)
+    // `getCustomProjects` 旧 mock は `customProjectRepository.findAll`
+    // の代替として後方互換で保持。テスト本体での
+    // `projectManagementMocks.getCustomProjects.mockResolvedValue(...)` 呼び出しは
+    // 下の `mockImplementation` で `findAll` にも伝搬される。
+    const findAllMock = vi
+      .fn()
+      .mockImplementation(() => projectManagementMocks.getCustomProjects())
+    projectManagementMocks.getCustomProjects.mockImplementation(() =>
+      findAllMock(),
+    )
 
     customProjectRepository = {
-      findAll: vi.fn(),
+      findAll: findAllMock,
       findAllRaw: vi.fn(),
       findById: vi.fn(),
       removeByIds: vi.fn(),

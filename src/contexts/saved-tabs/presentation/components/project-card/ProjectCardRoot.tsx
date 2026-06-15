@@ -67,6 +67,8 @@ interface ProjectCardRootProps {
     handleUpdateCategoryOrder: CustomProjectCardProps['handleUpdateCategoryOrder']
     handleReorderUrls: CustomProjectCardProps['handleReorderUrls']
   }
+  /** プロジェクト URL 取得 use-case。useCustomProjectCard へ伝搬。*/
+  getProjectUrlsUseCase?: import('@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase').GetProjectUrlsUseCase
   /** 子コンポーネント */
   children: React.ReactNode
 }
@@ -86,10 +88,12 @@ export const ProjectCardRoot = ({
   isCrossProjectUrlDragActive = false,
   handlers,
   hookHandlers,
+  getProjectUrlsUseCase,
   children,
 }: ProjectCardRootProps) => {
   const { t } = useI18n()
   const hookState = useCustomProjectCard({
+    getProjectUrlsUseCase,
     handleDeleteUrl: hookHandlers.handleDeleteUrl,
     handleReorderUrls: hookHandlers.handleReorderUrls,
     handleSetUrlCategory: hookHandlers.handleSetUrlCategory,

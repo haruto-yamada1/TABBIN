@@ -148,6 +148,48 @@ const buildLayoutComposition = () => {
       // eslint-disable-next-line typescript/require-await
       saveAll: async () => undefined,
     },
+    userSettingsRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => ({}) as never,
+      // eslint-disable-next-line typescript/require-await
+      save: async () => undefined,
+    },
+    domainCategoryMappingRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      saveAll: async () => undefined,
+    },
+    domainCategorySettingsRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      saveAll: async () => undefined,
+    },
+    migrationPort: {
+      migrateParentCategoriesToDomainNames: vi
+        .fn()
+        .mockResolvedValue(undefined),
+      migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
+    },
+    categoriesCommandService: {
+      updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+    },
+    customProjectsCommandService: {
+      addCategoryToProject: vi.fn().mockResolvedValue(undefined),
+      addUrlToCustomProject: vi.fn().mockResolvedValue(undefined),
+      moveUrlBetweenCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeCategoryFromProject: vi.fn().mockResolvedValue(undefined),
+      removeUrlFromCustomProject: vi.fn().mockResolvedValue(undefined),
+      removeUrlIdsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeUrlsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeUrlsFromCustomProject: vi.fn().mockResolvedValue(undefined),
+      renameCategoryInProject: vi.fn().mockResolvedValue(undefined),
+      reorderProjectUrls: vi.fn().mockResolvedValue(undefined),
+      setUrlCategory: vi.fn().mockResolvedValue(undefined),
+      updateCategoryOrder: vi.fn().mockResolvedValue(undefined),
+      updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
+    },
   }
   const useCases: SavedTabsUseCases = createSavedTabsUseCases(deps)
   const resolveActiveRef: ResolveActiveRef = { current: () => true }

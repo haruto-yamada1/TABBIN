@@ -1,3 +1,7 @@
+import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
+import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroup } from '@/types/storage'
 
 import { CategoryCreateSection } from './category-modal/CategoryCreateSection'
@@ -11,6 +15,14 @@ interface CategoryModalProps {
   onClose: () => void
   /** タブグループ一覧 */
   tabGroups: TabGroup[]
+  /** 親カテゴリ永続化先。`useCategoryModal` へ伝搬する。*/
+  parentCategoryRepository?: ParentCategoryRepository
+  /** 親カテゴリ作成 use-case。`useCategoryModal` へ伝搬する。*/
+  createParentCategoryUseCase?: CreateParentCategoryUseCase
+  /** 親カテゴリ削除 use-case。`useCategoryModal` へ伝搬する。*/
+  deleteParentCategoryUseCase?: DeleteParentCategoryUseCase
+  /** ドメイン割当 use-case。`useCategoryModal` へ伝搬する。*/
+  assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
 }
 
 /**
@@ -18,8 +30,22 @@ interface CategoryModalProps {
  * 複合コンポーネントパターンで構成される薄いラッパー
  * @param props CategoryModalProps
  */
-export const CategoryModal = ({ onClose, tabGroups }: CategoryModalProps) => (
-  <CategoryModalRoot onClose={onClose} tabGroups={tabGroups}>
+export const CategoryModal = ({
+  onClose,
+  tabGroups,
+  parentCategoryRepository,
+  createParentCategoryUseCase,
+  deleteParentCategoryUseCase,
+  assignDomainToCategoryUseCase,
+}: CategoryModalProps) => (
+  <CategoryModalRoot
+    assignDomainToCategoryUseCase={assignDomainToCategoryUseCase as never}
+    createParentCategoryUseCase={createParentCategoryUseCase as never}
+    deleteParentCategoryUseCase={deleteParentCategoryUseCase as never}
+    onClose={onClose}
+    parentCategoryRepository={parentCategoryRepository as never}
+    tabGroups={tabGroups}
+  >
     <CategoryCreateSection />
     <CategorySelector />
     <DomainSelectionList />

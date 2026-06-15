@@ -8,9 +8,9 @@ import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { saveParentCategories } from '@/lib/storage/categories'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseCategoryManagement フックの戻り値型 */
@@ -139,6 +139,12 @@ interface UseCategoryManagementParams {
    * `chrome.storage.local` を触らず、repository 経由で読み書きする。
    */
   tabGroupRepository: TabGroupRepository
+  /**
+   * 親カテゴリ永続化先。`saveParentCategories` 直叩きを
+   * `parentCategoryRepository.saveAll` 経由へ置換する
+   * (issue #509)。
+   */
+  parentCategoryRepository: ParentCategoryRepository
 }
 /**
  * 親カテゴリ管理フック。
@@ -151,7 +157,7 @@ const useCategoryManagement = (
   params: UseCategoryManagementParams,
 ): UseCategoryManagementReturn => {
   // eslint-disable-line eslint/max-lines-per-function
-  const { tabGroupRepository } = params
+  const { tabGroupRepository, parentCategoryRepository } = params
   const { t } = useI18n()
   const [categories, setCategoriesState] = useState<ParentCategory[]>([])
   const [categoryOrder, setCategoryOrder] = useState<string[]>([])
@@ -272,7 +278,13 @@ const useCategoryManagement = (
       )
 
       // ストレージに保存
-      await saveParentCategories(orderedCategories)
+      await parentCategoryRepository.saveAll(
+        // domain `ParentCategory` (branded 型) と storage shape は構造互換
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        orderedCategories as unknown as Parameters<
+          typeof parentCategoryRepository.saveAll
+        >[0],
+      )
       setCategories(orderedCategories)
 
       // 並び替えモードを終了
@@ -284,7 +296,14 @@ const useCategoryManagement = (
       console.error('親カテゴリ順序の更新に失敗しました:', error)
       toast.error(t('savedTabs.categoryManagement.reorderUpdateError'))
     }
-  }, [categories, isCategoryReorderMode, setCategories, t, tempCategoryOrder])
+  }, [
+    categories,
+    isCategoryReorderMode,
+    parentCategoryRepository,
+    setCategories,
+    t,
+    tempCategoryOrder,
+  ])
 
   /** 並び替えをキャンセルして元の順序に戻す */
   const handleCancelCategoryReorder = useCallback((): void => {
@@ -333,14 +352,19 @@ const useCategoryManagement = (
         })
 
         // ストレージに保存
-        await saveParentCategories(updatedCategories)
+        await parentCategoryRepository.saveAll(
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
+          updatedCategories as unknown as Parameters<
+            typeof parentCategoryRepository.saveAll
+          >[0],
+        )
         setCategories(updatedCategories)
         console.log('カテゴリ内のドメイン順序を更新しました:', categoryId)
       } catch (error) {
         console.error('カテゴリ内ドメイン順序更新エラー:', error)
       }
     },
-    [categories, setCategories],
+    [categories, parentCategoryRepository, setCategories],
   )
 
   /**
@@ -386,7 +410,12 @@ const useCategoryManagement = (
               }
             : cat,
         )
-        await saveParentCategories(updatedCategories)
+        await parentCategoryRepository.saveAll(
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
+          updatedCategories as unknown as Parameters<
+            typeof parentCategoryRepository.saveAll
+          >[0],
+        )
         setCategories(updatedCategories)
         console.log(
           `ドメイン ${domainGroup.domain} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`, // eslint-disable-line typescript/prefer-nullish-coalescing -- fromCategoryId could be empty string
@@ -395,7 +424,7 @@ const useCategoryManagement = (
         console.error('カテゴリ間ドメイン移動エラー:', error)
       }
     },
-    [categories, setCategories],
+    [categories, parentCategoryRepository, setCategories],
   )
   return {
     categories,

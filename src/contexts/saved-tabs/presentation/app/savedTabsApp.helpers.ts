@@ -1,16 +1,13 @@
 import { toast } from 'sonner'
 
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { ParentCategory as DomainParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { PresentationCategoryLookup } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import { getPageHref } from '@/features/navigation/lib/pageNavigation'
-import {
-  removeUrlIdsFromAllCustomProjects,
-  removeUrlsFromAllCustomProjects,
-} from '@/lib/storage/projects'
 import type {
   CustomProject,
   ParentCategory,
@@ -408,7 +405,7 @@ const syncGroupCategoryAssignment = (
 /**
  * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
  *
- * `urlIds` を持つグループは `removeUrlIdsFromAllCustomProjects` 経由で
+ * `urlIds` を持つグループは `customProjectsCommandService.removeUrlIdsFromAllCustomProjects` 経由で
  * URL ID 同期削除し、`urlIds` を持たない旧形式グループは
  * `loadTabGroupUrlsUseCase` で URL を解決してから URL 文字列ベースで
  * 削除する。`@/lib/storage/tabs.getTabGroupUrls` 直叩きは
@@ -417,11 +414,15 @@ const syncGroupCategoryAssignment = (
 const removeUrlsFromCustomProjectsForGroup = async (
   groupToDelete: TabGroup,
   useCases: SavedTabsUseCases,
+  commandService: CustomProjectsCommandService,
 ) => {
   if (groupToDelete.urlIds && groupToDelete.urlIds.length > 0) {
-    await removeUrlIdsFromAllCustomProjects(groupToDelete.urlIds, {
-      throwOnError: true,
-    })
+    await commandService.removeUrlIdsFromAllCustomProjects(
+      groupToDelete.urlIds,
+      {
+        throwOnError: true,
+      },
+    )
     return
   }
 
@@ -436,7 +437,7 @@ const removeUrlsFromCustomProjectsForGroup = async (
     return
   }
   if (urlsToDelete && urlsToDelete.length > 0) {
-    await removeUrlsFromAllCustomProjects(
+    await commandService.removeUrlsFromAllCustomProjects(
       urlsToDelete.map((item) => item.url),
       {
         throwOnError: true,
@@ -451,6 +452,7 @@ const removeUrlsFromCustomProjectsForGroup = async (
 const removeUrlsFromCustomProjectsForGroups = async (
   groupsToDelete: TabGroup[],
   useCases: SavedTabsUseCases,
+  commandService: CustomProjectsCommandService,
 ) => {
   const groupsWithUrlIds = groupsToDelete.filter(
     (group) => group.urlIds && group.urlIds.length > 0,
@@ -462,9 +464,12 @@ const removeUrlsFromCustomProjectsForGroups = async (
     (group) => group.urlIds ?? [],
   )
   if (allUrlIdsToDelete.length > 0) {
-    await removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
-      throwOnError: true,
-    })
+    await commandService.removeUrlIdsFromAllCustomProjects(
+      allUrlIdsToDelete,
+      {
+        throwOnError: true,
+      },
+    )
   }
 
   let urlsByGroup: { url: string }[][]
@@ -484,7 +489,7 @@ const removeUrlsFromCustomProjectsForGroups = async (
   )
 
   if (allUrlsToDelete.length > 0) {
-    await removeUrlsFromAllCustomProjects(allUrlsToDelete, {
+    await commandService.removeUrlsFromAllCustomProjects(allUrlsToDelete, {
       throwOnError: true,
     })
   }

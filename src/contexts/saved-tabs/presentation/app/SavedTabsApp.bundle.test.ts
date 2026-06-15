@@ -27,16 +27,17 @@ describe('SavedTabsApp bundling', () => {
     expect(source).not.toContain("await import('@/lib/storage/projects')")
   })
 
-  it('imports the bulk custom-project removal helper used by the delete flow', () => {
+  it('@/lib/storage/projects を直接 import しない (issue #509)', () => {
+    // 旧 `removeUrlsFromAllCustomProjects` は
+    // `CustomProjectsCommandService.removeUrlsFromAllCustomProjects`
+    // 経由へ置換済み。presentation 層は port interface だけ参照する。
     const componentSource = readSavedTabsAppSource('./SavedTabsApp.tsx')
     const helpersSource = readSavedTabsAppSource('./savedTabsApp.helpers.ts')
-
-    const modulePath = '@/lib/storage/projects'
-    const symbol = 'removeUrlsFromAllCustomProjects'
-
-    expect(
-      hasImportFromModule(componentSource, modulePath, symbol) ||
-        hasImportFromModule(helpersSource, modulePath, symbol),
-    ).toBe(true)
+    expect(componentSource).not.toMatch(
+      /from\s*'@\/lib\/storage\/projects'/,
+    )
+    expect(helpersSource).not.toMatch(
+      /from\s*'@\/lib\/storage\/projects'/,
+    )
   })
 })

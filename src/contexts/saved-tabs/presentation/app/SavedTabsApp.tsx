@@ -17,6 +17,7 @@ import {
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
 import { Header } from '@/contexts/saved-tabs/presentation/components/Header' // ヘッダーコンポーネントをインポート
 import { CustomModeContainer } from '@/contexts/saved-tabs/presentation/containers/CustomModeContainer'
@@ -33,12 +34,6 @@ import { handleTabGroupRemoval } from '@/contexts/saved-tabs/presentation/lib/ta
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { saveParentCategories } from '@/lib/storage/categories'
-import {
-  getCustomProjects,
-  moveUrlBetweenCustomProjects,
-} from '@/lib/storage/projects'
-import { defaultSettings } from '@/lib/storage/settings'
 import type {
   ParentCategory,
   TabGroup,
@@ -78,12 +73,18 @@ const removeDomainFromParentCategories = async (
   id: string,
   categories: ParentCategory[],
   setCategories: (cats: ParentCategory[]) => void,
+  parentCategoryRepository: import('@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository').ParentCategoryRepository,
 ) => {
   const updatedCategories = categories.map((category) => ({
     ...category,
     domains: category.domains.filter((domainId) => domainId !== id),
   }))
-  await saveParentCategories(updatedCategories)
+  await parentCategoryRepository.saveAll(
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
+    updatedCategories as unknown as Parameters<
+      typeof parentCategoryRepository.saveAll
+    >[0],
+  )
   setCategories(updatedCategories)
 }
 
@@ -108,7 +109,7 @@ const useSavedTabsAppView = ({
   useCases: savedTabsUseCases,
 }: SavedTabsAppProps) => {
   const { t } = useI18n()
-  const [settings, setSettings] = useState<UserSettings>(defaultSettings)
+  const [settings, setSettings] = useState<UserSettings>(defaultUserSettings)
   const hasResolvedInitialViewModeRef = useRef(!initialViewMode)
   const previousInitialViewModeRef = useRef(initialViewMode)
 
@@ -151,12 +152,15 @@ const useSavedTabsAppView = ({
 
   const categoryState = useCategoryManagement({
     tabGroupRepository: deps.tabGroupRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
   })
   const tabDataState = useTabData({
     loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
     parentCategoryRepository: deps.parentCategoryRepository,
+    userSettingsRepository: deps.userSettingsRepository,
+    migrationPort: deps.migrationPort,
     onCategoriesLoaded: categoryState.setCategories,
     onSettingsLoaded: setSettings,
   })
@@ -377,7 +381,12 @@ const useSavedTabsAppView = ({
         console.log(`グループを削除: ${groupToDelete.domain}`)
 
         // 専用の削除前処理関数を呼び出し（インポートした関数を使用）
-        await handleTabGroupRemoval(id)
+        await handleTabGroupRemoval(id, {
+          categoriesCommandService: deps.categoriesCommandService,
+          domainCategoryMappingRepository: deps.domainCategoryMappingRepository,
+          parentCategoryRepository: deps.parentCategoryRepository,
+          tabGroupRepository: deps.tabGroupRepository,
+        })
 
         // 削除判断・未参照 UrlRecord 掃除・savedTabs の書き戻しは
         // DeleteTabGroupUseCase に委譲する。use-case が見つからない
@@ -392,6 +401,7 @@ const useSavedTabsAppView = ({
         await removeUrlsFromCustomProjectsForGroup(
           groupToDelete,
           savedTabsUseCases,
+          deps.customProjectsCommandService,
         )
 
         // 以降は従来通りの処理
@@ -409,7 +419,12 @@ const useSavedTabsAppView = ({
         }
 
         // 親カテゴリからはドメインIDのみを削除（ドメイン名は保持）
-        await removeDomainFromParentCategories(id, categories, setCategories)
+        await removeDomainFromParentCategories(
+          id,
+          categories,
+          setCategories,
+          deps.parentCategoryRepository,
+        )
         showOpenedUrlsUndoToast({
           count: countTabGroupUrls(groupToDelete),
           messageKey: 'savedTabs.undo.deletedTabs',
@@ -473,7 +488,17 @@ const useSavedTabsAppView = ({
         // 保存処理は、他 storage key（domainCategorySettings /
         // parentCategories.domainNames）を触る副作用のため、issue 範囲外
         // として従来通り UI 側で実行する。
-        await Promise.all(ids.map((id) => handleTabGroupRemoval(id)))
+        await Promise.all(
+          ids.map((id) =>
+            handleTabGroupRemoval(id, {
+              categoriesCommandService: deps.categoriesCommandService,
+              domainCategoryMappingRepository:
+                deps.domainCategoryMappingRepository,
+              parentCategoryRepository: deps.parentCategoryRepository,
+              tabGroupRepository: deps.tabGroupRepository,
+            }),
+          ),
+        )
 
         // 複数 TabGroup 削除本体は DeleteTabGroupsUseCase 経由に置き換える。
         // 未参照になった UrlRecord の掃除と savedTabs の書き戻しは
@@ -490,6 +515,7 @@ const useSavedTabsAppView = ({
         await removeUrlsFromCustomProjectsForGroups(
           groupsToDelete,
           savedTabsUseCases,
+          deps.customProjectsCommandService,
         )
 
         const idSet = new Set(ids)
@@ -506,7 +532,12 @@ const useSavedTabsAppView = ({
           ...category,
           domains: category.domains.filter((domainId) => !idSet.has(domainId)),
         }))
-        await saveParentCategories(updatedCategories)
+        await deps.parentCategoryRepository.saveAll(
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion
+          updatedCategories as unknown as Parameters<
+            typeof deps.parentCategoryRepository.saveAll
+          >[0],
+        )
         setCategories(updatedCategories)
         showOpenedUrlsUndoToast({
           count: groupsToDelete.reduce(
@@ -868,6 +899,7 @@ const useSavedTabsAppView = ({
     const syncFilteredCustomProjects = async () => {
       const nextProjects = await filterCustomProjectsByQuery({
         customProjects,
+        loadProjectUrls: savedTabsUseCases.getProjectUrls,
         searchQuery,
       })
 
@@ -938,8 +970,19 @@ const useSavedTabsAppView = ({
           `URL移動: ${sourceProjectId} → ${targetProjectId}, URL: ${url}`,
         )
         await moveCustomProjectUrlAndSyncState({
-          getCustomProjects,
-          moveUrlBetweenCustomProjects,
+          getCustomProjects: async () => {
+            const projects = await deps.customProjectRepository.findAll()
+            return projects.map((project) => ({
+              categories: [...project.categories],
+              createdAt: project.createdAt,
+              id: project.id,
+              name: project.name,
+              updatedAt: project.updatedAt,
+              urlIds: [...project.urlIds],
+            }))
+          },
+          moveUrlBetweenCustomProjects:
+            deps.customProjectsCommandService.moveUrlBetweenCustomProjects,
           setCustomProjects,
           sourceProjectId,
           targetProjectId,
@@ -953,7 +996,7 @@ const useSavedTabsAppView = ({
         return null
       }
     },
-    [setCustomProjects, t],
+    [deps.customProjectRepository, deps.customProjectsCommandService, setCustomProjects, t],
   )
 
   // カテゴリ間でURLを移動するハンドラ
@@ -1062,6 +1105,12 @@ const useSavedTabsAppView = ({
           onModeChange={handleViewModeChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          parentCategoryRepository={deps.parentCategoryRepository}
+          createParentCategoryUseCase={savedTabsUseCases.createParentCategory}
+          deleteParentCategoryUseCase={savedTabsUseCases.deleteParentCategory}
+          assignDomainToCategoryUseCase={
+            savedTabsUseCases.assignDomainToCategory
+          }
         />
         {mainContent}
         {shouldShowCategoryReorderFooter && (

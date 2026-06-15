@@ -13,13 +13,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import { UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/domain/entities/UncategorizedProject'
 import { DeleteEntityConfirmPanel } from '@/contexts/saved-tabs/presentation/components/shared/DeleteEntityConfirmPanel'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { CUSTOM_UNCATEGORIZED_PROJECT_ID } from '@/lib/storage/projects'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
 interface ProjectManagementModalProps {
@@ -214,7 +214,7 @@ const useProjectManagementModalView = ({
       }),
     [t],
   )
-  const isUncategorizedProject = project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID
+  const isUncategorizedProject = project.id === UNCATEGORIZED_PROJECT_ID
   const [modalState, setModalState] = useState(() =>
     createProjectManagementModalState(project),
   )

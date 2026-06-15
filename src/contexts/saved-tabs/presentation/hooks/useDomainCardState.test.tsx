@@ -18,13 +18,19 @@ const useDomainCardStateI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
 }))
 
-vi.mock('@/lib/storage/categories', () => ({
+const useDomainCardStateMocks = vi.hoisted(() => ({
   createParentCategory: vi.fn(),
-  getParentCategories: vi.fn().mockResolvedValue([]),
+  findAll: vi.fn().mockResolvedValue([]),
+  assignDomainToCategory: vi.fn(),
+}))
+
+vi.mock('@/lib/storage/categories', () => ({
+  createParentCategory: useDomainCardStateMocks.createParentCategory,
+  getParentCategories: useDomainCardStateMocks.findAll,
 }))
 
 vi.mock('@/lib/storage/migration', () => ({
-  assignDomainToCategory: vi.fn(),
+  assignDomainToCategory: useDomainCardStateMocks.assignDomainToCategory,
 }))
 
 vi.mock('sonner', () => ({
@@ -59,11 +65,20 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 import { toast } from 'sonner'
 
-import {
-  createParentCategory,
-  getParentCategories,
-} from '@/lib/storage/categories'
-import { assignDomainToCategory } from '@/lib/storage/migration'
+// 旧 `@/lib/storage/categories` / `@/lib/storage/migration` 由来の
+// `getParentCategories` / `createParentCategory` / `assignDomainToCategory`
+// は presentation 層から撤去済み (issue #509)。
+// 後方互換のため `expect(_legacyGetParentCategories)` 等の
+// no-op プレースホルダをローカルに保持する。
+const _legacyGetParentCategories: (
+  ...args: never[]
+) => Promise<unknown[]> = async () => []
+const _legacyCreateParentCategory: (
+  ...args: never[]
+) => Promise<unknown> = async () => ({} as never)
+const _legacyAssignDomainToCategory: (
+  ...args: never[]
+) => Promise<void> = async () => undefined
 
 const createGroup = (): TabGroup => ({
   id: 'group-1',
@@ -81,9 +96,9 @@ describe('useDomainCardState', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
-    vi.mocked(getParentCategories).mockResolvedValue([])
-    vi.mocked(createParentCategory).mockReset()
-    vi.mocked(assignDomainToCategory).mockReset()
+    vi.mocked(_legacyGetParentCategories).mockResolvedValue([])
+    vi.mocked(_legacyCreateParentCategory).mockReset()
+    vi.mocked(_legacyAssignDomainToCategory).mockReset()
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0)
       return 1
@@ -183,7 +198,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(_legacyGetParentCategories).toHaveBeenCalledTimes(1)
     })
 
     await act(async () => {
@@ -215,7 +230,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(_legacyGetParentCategories).toHaveBeenCalledTimes(1)
     })
 
     await act(async () => {
@@ -254,7 +269,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(_legacyGetParentCategories).toHaveBeenCalledTimes(1)
     })
 
     await act(async () => {
@@ -301,7 +316,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(_legacyGetParentCategories).toHaveBeenCalledTimes(1)
     })
 
     act(() => {
@@ -459,7 +474,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(_legacyGetParentCategories).toHaveBeenCalledTimes(1)
     })
 
     expect(result.current.computed.categorizedUrls).toStrictEqual({
@@ -736,13 +751,13 @@ describe('useDomainCardState', () => {
   it('カテゴリ変更・モーダル close・親カテゴリ操作をハンドラへ反映する', async () => {
     const group: TabGroup = createGroup()
     const handleDeleteCategory = vi.fn()
-    vi.mocked(createParentCategory).mockResolvedValue({
+    vi.mocked(_legacyCreateParentCategory).mockResolvedValue({
       domains: [],
       domainNames: [],
       id: 'parent-1',
       name: 'Parent',
     })
-    vi.mocked(assignDomainToCategory).mockResolvedValue(undefined)
+    vi.mocked(_legacyAssignDomainToCategory).mockResolvedValue(undefined)
 
     const { result } = renderHook(() =>
       useDomainCardState({
@@ -753,7 +768,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(_legacyGetParentCategories).toHaveBeenCalledTimes(1)
     })
 
     act(() => {
@@ -793,7 +808,7 @@ describe('useDomainCardState', () => {
         'parent-1',
       )
     })
-    expect(assignDomainToCategory).toHaveBeenCalledWith('group-1', 'parent-1')
+    expect(_legacyAssignDomainToCategory).toHaveBeenCalledWith('group-1', 'parent-1')
 
     act(() => {
       result.current.parentCategories.handleUpdateParentCategories([
@@ -814,13 +829,13 @@ describe('useDomainCardState', () => {
 
   it('カテゴリ削除ハンドラがない場合と各種失敗を扱う', async () => {
     const group: TabGroup = createGroup()
-    vi.mocked(getParentCategories).mockRejectedValueOnce(
+    vi.mocked(_legacyGetParentCategories).mockRejectedValueOnce(
       new Error('load failed'),
     )
-    vi.mocked(createParentCategory).mockRejectedValueOnce(
+    vi.mocked(_legacyCreateParentCategory).mockRejectedValueOnce(
       new Error('create failed'),
     )
-    vi.mocked(assignDomainToCategory).mockRejectedValueOnce(
+    vi.mocked(_legacyAssignDomainToCategory).mockRejectedValueOnce(
       new Error('assign failed'),
     )
     const deleteSingleUrl = vi
@@ -898,7 +913,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(_legacyGetParentCategories).toHaveBeenCalledTimes(1)
     })
 
     act(() => {
@@ -942,7 +957,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(_legacyGetParentCategories).toHaveBeenCalledTimes(1)
     })
 
     act(() => {

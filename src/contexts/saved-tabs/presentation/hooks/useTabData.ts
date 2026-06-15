@@ -8,14 +8,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
 import type { LoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupsWithUrlsUseCase'
+import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
-import {
-  migrateParentCategoriesToDomainNames,
-  migrateToUrlsStorage,
-} from '@/lib/storage/migration'
-import { getUserSettings } from '@/lib/storage/settings'
+import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 /** UseTabData フックの引数 */
@@ -35,6 +32,16 @@ interface UseTabDataParams {
    * 親カテゴリ永続化先。`getParentCategories` の直接呼び出しを置き換える。
    */
   readonly parentCategoryRepository: ParentCategoryRepository
+  /**
+   * ユーザー設定永続化先。旧 `getUserSettings` / `saveUserSettings` の
+   * DDD repository 化（issue #509）。
+   */
+  readonly userSettingsRepository: UserSettingsRepository
+  /**
+   * migration port。旧 `migrateParentCategoriesToDomainNames` /
+   * `migrateToUrlsStorage` の DDD port 化（issue #509）。
+   */
+  readonly migrationPort: MigrationPort
   /** 初回ロード時にカテゴリが確定したときに呼び出されるコールバック */
   readonly onCategoriesLoaded: (categories: ParentCategory[]) => void
   /** 初回ロード時にユーザー設定が確定したときに呼び出されるコールバック */
@@ -63,16 +70,18 @@ interface UseTabDataReturn {
    */
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>
 }
-const runInitialMigrations = async (): Promise<void> => {
+const runInitialMigrations = async (
+  migrationPort: MigrationPort,
+): Promise<void> => {
   console.log('ページ読み込み時の親カテゴリ移行処理を開始...')
   try {
-    await migrateParentCategoriesToDomainNames()
+    await migrationPort.migrateParentCategoriesToDomainNames()
   } catch (error) {
     console.error('親カテゴリ移行エラー:', error)
   }
   try {
     console.log('URL管理マイグレーションを開始...')
-    await migrateToUrlsStorage()
+    await migrationPort.migrateToUrlsStorage()
     console.log('URL管理マイグレーションが完了しました')
   } catch (error) {
     console.error('URL管理マイグレーションエラー:', error)
@@ -98,6 +107,7 @@ const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
 const ensureValidParentCategories = async (
   parentCategories: ParentCategory[],
   parentCategoryRepository: ParentCategoryRepository,
+  migrationPort: MigrationPort,
 ): Promise<ParentCategory[]> => {
   const hasInvalidCategory = parentCategories.some(
     (cat) => !(cat.domainNames && Array.isArray(cat.domainNames)),
@@ -106,7 +116,7 @@ const ensureValidParentCategories = async (
     return parentCategories
   }
   console.log('無効なカテゴリを検出、再マイグレーションを実行')
-  await migrateParentCategoriesToDomainNames()
+  await migrationPort.migrateParentCategoriesToDomainNames()
   const refreshed = await parentCategoryRepository.findAll()
   // domain `ParentCategory` は branded 型を持つが、storage shape (`@/types/storage`)
   // とは構造的に互換 (`id`/`name`/`domains`/`domainNames` が string ベース)。
@@ -185,6 +195,8 @@ const useTabData = ({
   tabGroupRepository,
   urlRecordRepository,
   parentCategoryRepository,
+  userSettingsRepository,
+  migrationPort,
   onCategoriesLoaded,
   onSettingsLoaded,
 }: UseTabDataParams): UseTabDataReturn => {
@@ -227,6 +239,8 @@ const useTabData = ({
   const tabGroupRepositoryRef = useRef(tabGroupRepository)
   const urlRecordRepositoryRef = useRef(urlRecordRepository)
   const parentCategoryRepositoryRef = useRef(parentCategoryRepository)
+  const userSettingsRepositoryRef = useRef(userSettingsRepository)
+  const migrationPortRef = useRef(migrationPort)
   useEffect(() => {
     tabGroupRepositoryRef.current = tabGroupRepository
   }, [tabGroupRepository])
@@ -236,6 +250,12 @@ const useTabData = ({
   useEffect(() => {
     parentCategoryRepositoryRef.current = parentCategoryRepository
   }, [parentCategoryRepository])
+  useEffect(() => {
+    userSettingsRepositoryRef.current = userSettingsRepository
+  }, [userSettingsRepository])
+  useEffect(() => {
+    migrationPortRef.current = migrationPort
+  }, [migrationPort])
 
   /**
    * タブグループ配列に対して各グループの URL をストレージから取得する。
@@ -302,7 +322,7 @@ const useTabData = ({
   useEffect(() => {
     const loadSavedTabs = async () => {
       try {
-        await runInitialMigrations()
+        await runInitialMigrations(migrationPortRef.current)
 
         // データ読み込み: repository 経由 (issue #502)
         const savedTabsFromRepo = await tabGroupRepositoryRef.current.findAll()
@@ -313,7 +333,7 @@ const useTabData = ({
         const [urlRecords, userSettings, parentCategoriesFromRepo] =
           await Promise.all([
             urlRecordRepositoryRef.current.findAll(),
-            getUserSettings(),
+            userSettingsRepositoryRef.current.findAll(),
             parentCategoryRepositoryRef.current.findAll(),
           ])
         // domain entity (branded 型) を storage shape へキャストして扱う。
@@ -332,6 +352,7 @@ const useTabData = ({
         const finalCategories = await ensureValidParentCategories(
           parentCategories,
           parentCategoryRepositoryRef.current,
+          migrationPortRef.current,
         )
         onCategoriesLoadedRef.current(finalCategories)
         const { updatedTabGroups, needsUpdate } =
