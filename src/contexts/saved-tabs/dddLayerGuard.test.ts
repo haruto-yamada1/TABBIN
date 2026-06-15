@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { relative, resolve, sep } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -117,6 +117,39 @@ const getRestrictedProperties = (
     }
     return []
   })
+}
+
+const collectSourceFiles = (dir: string): string[] => {
+  const result: string[] = []
+  let entries: string[]
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return result
+  }
+  for (const entry of entries) {
+    const fullPath = resolve(dir, entry)
+    let stats
+    try {
+      stats = statSync(fullPath)
+    } catch {
+      continue
+    }
+    if (stats.isDirectory()) {
+      result.push(...collectSourceFiles(fullPath))
+      continue
+    }
+    if (!stats.isFile()) {
+      continue
+    }
+    if (entry.endsWith('.test.ts') || entry.endsWith('.test.tsx')) {
+      continue
+    }
+    if (entry.endsWith('.ts') || entry.endsWith('.tsx')) {
+      result.push(fullPath)
+    }
+  }
+  return result
 }
 
 describe('src/contexts/saved-tabs DDD layer guard', () => {
@@ -429,6 +462,39 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         /chrome\.storage\.onChanged\.(addListener|removeListener)/,
       )
     })
+  })
+
+  describe('issue #503: presentation 配下は chrome.storage.onChanged を直参照しない', () => {
+    const presentationRoot = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/presentation',
+    )
+    const presentationSourceFiles = collectSourceFiles(presentationRoot)
+
+    it('presentation 配下に .ts / .tsx ソースファイルが存在する', () => {
+      expect(presentationSourceFiles.length).toBeGreaterThan(0)
+    })
+
+    for (const absolutePath of presentationSourceFiles) {
+      const relativePath = relative(repoRoot, absolutePath).split(sep).join('/')
+      it(`${relativePath} は chrome.storage.onChanged 文字列を含まない`, () => {
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not reference chrome.storage.onChanged`,
+        ).not.toMatch(/chrome\.storage\.onChanged/)
+      })
+
+      it(`${relativePath} は chrome.storage.onChanged.addListener / removeListener を直接呼び出さない`, () => {
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not call chrome.storage.onChanged.addListener/removeListener`,
+        ).not.toMatch(
+          /chrome\.storage\.onChanged\.(addListener|removeListener)/,
+        )
+      })
+    }
   })
 
   describe('domain/repositories/ の純度 (issue #457)', () => {

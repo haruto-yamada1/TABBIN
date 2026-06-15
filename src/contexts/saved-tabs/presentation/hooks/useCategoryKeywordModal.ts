@@ -47,10 +47,12 @@ interface UseCategoryKeywordModalParams {
   /** 永続化依存（Repository 群）。`chrome.storage.local` 直叩きを撤去するため必須。 */
   deps: UseCategoryKeywordModalDeps
   /**
-   * storage 変更通知 port。`chrome.storage.onChanged` の直叩きは禁止の
-   * ため、presentation 層は本 port 経由でのみ storage 変更を購読する。
-   * 未指定時は購読を行わず、初回 `loadParentCategories` 呼び出しだけで
-   * 親カテゴリを同期する（テストで chrome 依存を完全に切りたい場合用）。
+   * storage 変更通知 port。`StorageChangePort` 経由でのみ storage 変更を
+   * 購読する（issue #503）。chrome API の詳細は infrastructure 層の
+   * `ChromeStorageChangeAdapter` に閉じ込めており、presentation 層から
+   * 購読 / 解除を直接行う場合は本 port を使う。未指定時は購読を行わず、
+   * 初回 `loadParentCategories` 呼び出しだけで親カテゴリを同期する
+   * （テストで chrome 依存を完全に切りたい場合用）。
    */
   readonly storageChangePort?: StorageChangePort
 }
