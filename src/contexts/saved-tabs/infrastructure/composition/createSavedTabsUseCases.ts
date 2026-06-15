@@ -19,10 +19,12 @@ import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenA
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveDomainFromParentCategoryUseCase } from '../../application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import { createRemoveUrlsFromCustomProjectsUseCase } from '../../application/use-cases/RemoveUrlsFromCustomProjectsUseCase'
 import { createRenameParentCategoryUseCase } from '../../application/use-cases/RenameParentCategoryUseCase'
 import { createReorderTabGroupsUseCase } from '../../application/use-cases/ReorderTabGroupsUseCase'
 import { createReorderTabGroupUrlsUseCase } from '../../application/use-cases/ReorderTabGroupUrlsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
+import { createRestoreOpenedUrlsSnapshotViewUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
 import { createSetCategoryKeywordsUseCase } from '../../application/use-cases/SetCategoryKeywordsUseCase'
 import { createSyncCategoryAssignmentsUseCase } from '../../application/use-cases/SyncCategoryAssignmentsUseCase'
 import { createUpdateCustomProjectNameUseCase } from '../../application/use-cases/UpdateCustomProjectNameUseCase'
@@ -148,6 +150,12 @@ export const createSavedTabsUseCases = (
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
   }),
+  removeUrlsFromCustomProjects: createRemoveUrlsFromCustomProjectsUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+    loadTabGroupUrls: createLoadTabGroupUrlsUseCase({
+      urlRecordRepository: deps.urlRecordRepository,
+    }),
+  }),
   renameParentCategory: createRenameParentCategoryUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
@@ -164,6 +172,17 @@ export const createSavedTabsUseCases = (
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
   }),
+  restoreOpenedUrlsSnapshotView: (() => {
+    const restoreOpenedUrlsSnapshot = createRestoreOpenedUrlsSnapshotUseCase({
+      customProjectRepository: deps.customProjectRepository,
+      parentCategoryRepository: deps.parentCategoryRepository,
+      tabGroupRepository: deps.tabGroupRepository,
+      urlRecordRepository: deps.urlRecordRepository,
+    })
+    return createRestoreOpenedUrlsSnapshotViewUseCase({
+      restoreOpenedUrlsSnapshot,
+    })
+  })(),
   setCategoryKeywords: createSetCategoryKeywordsUseCase({
     setCategoryKeywordsPort: deps.setCategoryKeywordsPort,
   }),

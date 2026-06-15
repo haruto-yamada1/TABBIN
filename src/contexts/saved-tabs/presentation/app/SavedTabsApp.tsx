@@ -47,8 +47,6 @@ import {
   createFilterGroupsByExcludedIdsUpdater,
   getSnapshotSavedTabs,
   notifyDeleteFailure,
-  removeUrlsFromCustomProjectsForGroup,
-  removeUrlsFromCustomProjectsForGroups,
   shouldWaitForInitialViewMode,
   showOpenedUrlsUndoToast,
   syncSavedTabsViewModeLocation,
@@ -59,13 +57,6 @@ import type { OpenedUrlsStorageSnapshot } from './savedTabsApp.helpers'
 
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
-
-/**
- * 指定のタブグループ内のURLをすべてカスタムプロジェクトからも削除します。
- */
-/**
- * 複数のドメイングループに属するURLをすべてカスタムプロジェクトから一括削除します。
- */
 
 /**
  * 親カテゴリから指定されたドメインIDを削除して保存します。
@@ -365,9 +356,12 @@ const useSavedTabsAppView = ({
   // - Undo snapshot は `BuildSavedTabsSnapshotUseCase` 経由で repository
   //   群から組み立て、`chrome.storage.local.get` の直叩きを撤去する
   //   （issue #494）。
-  // - `handleTabGroupRemoval` / `removeUrlsFromCustomProjectsForGroup` /
+  // - `handleTabGroupRemoval` /
   //   `removeDomainFromParentCategories` などは他 storage key を触る
   //   副作用なので、issue 範囲外として従来通り UI 側で実行する。
+  // - `removeUrlsFromCustomProjectsForGroup` は issue #512 で
+  //   `savedTabsUseCases.removeUrlsFromCustomProjects` use-case へ
+  //   移設済み。
   const handleDeleteGroup = useCallback(
     async (id: string) => {
       let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
@@ -401,11 +395,11 @@ const useSavedTabsAppView = ({
         })
 
         // グループに属するすべてのURLをカスタムプロジェクトからも削除
-        await removeUrlsFromCustomProjectsForGroup(
-          groupToDelete,
-          savedTabsUseCases,
-          deps.customProjectsCommandService,
-        )
+        // (issue #512: presentation helper から application use-case
+        //  `removeUrlsFromCustomProjects` へ移設済み)。
+        await savedTabsUseCases.removeUrlsFromCustomProjects({
+          tabGroups: [groupToDelete],
+        })
 
         // 以降は従来通りの処理
         const updatedGroups = savedTabs.filter((group) => group.id !== id)
@@ -516,12 +510,13 @@ const useSavedTabsAppView = ({
         })
 
         // customProject 側の URL ID 同期削除は他 storage key を触る
-        // ため、issue 範囲外として従来通り UI 側で実行する。
-        await removeUrlsFromCustomProjectsForGroups(
-          groupsToDelete,
-          savedTabsUseCases,
-          deps.customProjectsCommandService,
-        )
+        // ため、issue 範囲外として従来通り UI 側で実行していたが、
+        // issue #512 で `removeUrlsFromCustomProjects` use-case へ
+        // 移設済み。`deps.customProjectsCommandService` 直叩きは
+        // 必要なくなった。
+        await savedTabsUseCases.removeUrlsFromCustomProjects({
+          tabGroups: groupsToDelete,
+        })
 
         const idSet = new Set(ids)
         const updatedGroups = savedTabs.filter((group) => !idSet.has(group.id))
