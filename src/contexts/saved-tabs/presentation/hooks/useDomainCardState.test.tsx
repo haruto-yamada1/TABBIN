@@ -3,7 +3,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
+import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import type { TabGroup } from '@/types/storage'
 
 import {
@@ -16,15 +17,6 @@ import {
 
 const useDomainCardStateI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
-}))
-
-vi.mock('@/lib/storage/categories', () => ({
-  createParentCategory: vi.fn(),
-  getParentCategories: vi.fn().mockResolvedValue([]),
-}))
-
-vi.mock('@/lib/storage/migration', () => ({
-  assignDomainToCategory: vi.fn(),
 }))
 
 vi.mock('sonner', () => ({
@@ -59,11 +51,63 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 import { toast } from 'sonner'
 
-import {
-  createParentCategory,
-  getParentCategories,
-} from '@/lib/storage/categories'
-import { assignDomainToCategory } from '@/lib/storage/migration'
+// issue #509 で `@/lib/storage/categories` / `@/lib/storage/migration` の
+// 直 import は撤廃済み、issue #510 で `parentCategoryRepository` /
+// `tabGroupRepository` を query / port に置き換えた。テストでは
+// `getSavedTabsPageDataQuery` / `categoryAssignmentPort` / 2 use-cases を
+// vi.fn で用意し、フック引数として渡す。
+type UseDomainCardStateParams = Parameters<typeof useDomainCardState>[0]
+
+const buildPageData = () => ({
+  tabGroups: [] as readonly TabGroup[],
+  parentCategories: [],
+  userSettings: {},
+})
+
+/**
+ * テスト用 `useDomainCardState` 引数と、page data query / category
+ * assignment port / 2 use-cases の vi.fn モックを構築する。
+ */
+const createUseDomainCardStateParams = (
+  overrides: Partial<UseDomainCardStateParams> = {},
+) => {
+  const getSavedTabsPageDataQuery = vi.fn().mockResolvedValue(buildPageData())
+  const categoryAssignmentPort = {
+    saveParentCategories: vi.fn().mockResolvedValue(undefined),
+    saveTabGroups: vi.fn().mockResolvedValue(undefined),
+  }
+  // eslint-disable-next-line typescript/require-await
+  const createParentCategoryUseCase = vi.fn(
+    () =>
+      Promise.resolve({
+        all: [],
+        category: { id: '', name: '', domains: [], domainNames: [] } as never,
+      }) as unknown as ReturnType<CreateParentCategoryUseCase>,
+  ) as unknown as CreateParentCategoryUseCase
+  // eslint-disable-next-line typescript/require-await
+  const assignDomainToCategoryUseCase = vi.fn(
+    () =>
+      Promise.resolve({
+        all: [],
+        mapping: { categoryId: '', domainId: '' },
+      }) as unknown as ReturnType<AssignDomainToCategoryUseCase>,
+  ) as unknown as AssignDomainToCategoryUseCase
+  return {
+    assignDomainToCategoryUseCase,
+    categoryAssignmentPort,
+    createParentCategoryUseCase,
+    getSavedTabsPageDataQuery,
+    params: {
+      assignDomainToCategoryUseCase,
+      categoryAssignmentPort,
+      createParentCategoryUseCase,
+      getSavedTabsPageDataQuery,
+      handleDeleteCategory: vi.fn(),
+      isReorderMode: false,
+      ...overrides,
+    } as UseDomainCardStateParams,
+  }
+}
 
 const createGroup = (): TabGroup => ({
   id: 'group-1',
@@ -81,9 +125,6 @@ describe('useDomainCardState', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
-    vi.mocked(getParentCategories).mockResolvedValue([])
-    vi.mocked(createParentCategory).mockReset()
-    vi.mocked(assignDomainToCategory).mockReset()
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0)
       return 1
@@ -172,18 +213,16 @@ describe('useDomainCardState', () => {
 
   it('bulk delete handler があるときは子カテゴリ一括削除でそれを 1 回だけ使う', async () => {
     const handleDeleteUrls = vi.fn().mockResolvedValue(undefined)
-
-    const { result } = renderHook(() =>
-      useDomainCardState({
+    const { params, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({
         group: createGroup(),
-        handleDeleteCategory: vi.fn(),
         handleDeleteUrls,
-        isReorderMode: false,
-      } as never),
-    )
+      })
+
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
     })
 
     await act(async () => {
@@ -205,17 +244,16 @@ describe('useDomainCardState', () => {
 
   it('bulk delete handler がないときは deleteSingleUrl フォールバックを使う', async () => {
     const deleteSingleUrl = vi.fn().mockResolvedValue(undefined)
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group: createGroup(),
+    const { params, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({
         deleteSingleUrl,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-      }),
-    )
+        group: createGroup(),
+      })
+
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
     })
 
     await act(async () => {
@@ -243,18 +281,16 @@ describe('useDomainCardState', () => {
 
   it('削除対象 URL が空なら何もしない', async () => {
     const handleDeleteUrls = vi.fn().mockResolvedValue(undefined)
-
-    const { result } = renderHook(() =>
-      useDomainCardState({
+    const { params, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({
         group: createGroup(),
-        handleDeleteCategory: vi.fn(),
         handleDeleteUrls,
-        isReorderMode: false,
-      }),
-    )
+      })
+
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
     })
 
     await act(async () => {
@@ -291,17 +327,13 @@ describe('useDomainCardState', () => {
         },
       ],
     }
+    const { params, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({ group })
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-      }),
-    )
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(getSavedTabsPageDataQuery).toHaveBeenCalled()
     })
 
     act(() => {
@@ -336,34 +368,16 @@ describe('useDomainCardState', () => {
       id: 'other-group',
       domain: 'other.example.com',
     }
-    const setStorage = vi.fn()
-    globalThis.chrome = {
-      storage: {
-        local: {
-          // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({
-            savedTabs: [group, otherGroup],
-          })),
-          set: setStorage,
-        },
-      },
-    } as unknown as typeof chrome
 
-    const tabGroupRepository = {
-      findAll: vi.fn().mockResolvedValue([group, otherGroup]),
-      findById: vi.fn(),
-      removeByIds: vi.fn(),
-      saveAll: vi.fn(),
-    } as unknown as TabGroupRepository
+    const { params, categoryAssignmentPort, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({ group })
+    getSavedTabsPageDataQuery.mockResolvedValue({
+      tabGroups: [group, otherGroup],
+      parentCategories: [],
+      userSettings: {},
+    })
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-        tabGroupRepository,
-      } as never),
-    )
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
       expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
@@ -386,7 +400,7 @@ describe('useDomainCardState', () => {
     await act(async () => {
       await result.current.categoryReorder.handleConfirmCategoryReorder()
     })
-    expect(vi.mocked(tabGroupRepository.saveAll)).toHaveBeenCalledWith([
+    expect(categoryAssignmentPort.saveTabGroups).toHaveBeenCalledWith([
       expect.objectContaining({
         id: 'group-1',
         subCategoryOrder: ['news', 'tech'],
@@ -427,13 +441,9 @@ describe('useDomainCardState', () => {
       ],
     }
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-      }),
-    )
+    const { params } = createUseDomainCardStateParams({ group })
+
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
       expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
@@ -449,17 +459,13 @@ describe('useDomainCardState', () => {
       id: 'empty-group',
       subCategoryOrderWithUncategorized: [],
     }
+    const { params, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({ group })
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-      }),
-    )
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
     })
 
     expect(result.current.computed.categorizedUrls).toStrictEqual({
@@ -482,13 +488,9 @@ describe('useDomainCardState', () => {
       ],
     }
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-      }),
-    )
+    const { params } = createUseDomainCardStateParams({ group })
+
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
       expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
@@ -502,14 +504,9 @@ describe('useDomainCardState', () => {
       ...createGroup(),
       subCategoryOrderWithUncategorized: ['news', 'tech'],
     }
+    const { params } = createUseDomainCardStateParams({ group })
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-      }),
-    )
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
       expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
@@ -556,24 +553,18 @@ describe('useDomainCardState', () => {
       ...createGroup(),
       subCategoryOrderWithUncategorized: ['news', 'tech'],
     }
-    const tabGroupRepository = {
-      findAll: vi.fn().mockResolvedValue([group]),
-      findById: vi.fn(),
-      removeByIds: vi.fn(),
-      saveAll: vi
-        .fn()
-        .mockRejectedValueOnce(new Error('write failed'))
-        .mockRejectedValueOnce(new Error('write failed')),
-    } as unknown as TabGroupRepository
+    const { params, categoryAssignmentPort, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({ group })
+    getSavedTabsPageDataQuery.mockResolvedValue({
+      tabGroups: [group],
+      parentCategories: [],
+      userSettings: {},
+    })
+    categoryAssignmentPort.saveTabGroups
+      .mockRejectedValueOnce(new Error('write failed'))
+      .mockRejectedValueOnce(new Error('write failed'))
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-        tabGroupRepository,
-      }),
-    )
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
       expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
@@ -610,13 +601,9 @@ describe('useDomainCardState', () => {
   })
 
   it('カテゴリ設定とタブの変更を検知して表示順を更新する', async () => {
+    const { params } = createUseDomainCardStateParams()
     const { result, rerender } = renderHook(
-      ({ group }) =>
-        useDomainCardState({
-          group,
-          handleDeleteCategory: vi.fn(),
-          isReorderMode: false,
-        }),
+      ({ group }) => useDomainCardState({ ...params, group }),
       {
         initialProps: {
           group: createGroup(),
@@ -706,23 +693,21 @@ describe('useDomainCardState', () => {
   })
 
   it('保存済み順序に不足しているカテゴリと未分類を末尾へ補完する', async () => {
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group: {
-          ...createGroup(),
-          subCategoryOrderWithUncategorized: ['news'],
-          urls: [
-            ...(createGroup().urls ?? []),
-            {
-              title: 'No category',
-              url: 'https://example.com/uncategorized',
-            },
-          ],
-        },
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-      }),
-    )
+    const { params } = createUseDomainCardStateParams({
+      group: {
+        ...createGroup(),
+        subCategoryOrderWithUncategorized: ['news'],
+        urls: [
+          ...(createGroup().urls ?? []),
+          {
+            title: 'No category',
+            url: 'https://example.com/uncategorized',
+          },
+        ],
+      },
+    })
+
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
       expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
@@ -736,24 +721,50 @@ describe('useDomainCardState', () => {
   it('カテゴリ変更・モーダル close・親カテゴリ操作をハンドラへ反映する', async () => {
     const group: TabGroup = createGroup()
     const handleDeleteCategory = vi.fn()
-    vi.mocked(createParentCategory).mockResolvedValue({
-      domains: [],
-      domainNames: [],
-      id: 'parent-1',
-      name: 'Parent',
-    })
-    vi.mocked(assignDomainToCategory).mockResolvedValue(undefined)
+    const {
+      params,
+      createParentCategoryUseCase,
+      assignDomainToCategoryUseCase,
+      getSavedTabsPageDataQuery,
+    } = createUseDomainCardStateParams({ group, handleDeleteCategory })
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory,
-        isReorderMode: false,
-      }),
-    )
+    vi.mocked(createParentCategoryUseCase).mockResolvedValue({
+      all: [
+        {
+          domains: [],
+          domainNames: [],
+          id: 'parent-1' as never,
+          name: 'Parent' as never,
+        },
+      ],
+      category: {
+        domains: [],
+        domainNames: [],
+        id: 'parent-1' as never,
+        name: 'Parent' as never,
+      },
+    })
+    vi.mocked(assignDomainToCategoryUseCase).mockResolvedValue({
+      all: [
+        {
+          domains: [],
+          domainNames: [],
+          id: 'parent-1' as never,
+          name: 'Parent' as never,
+        },
+      ],
+      mappings: [
+        {
+          categoryId: 'parent-1' as never,
+          domain: 'group-1',
+        },
+      ],
+    })
+
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(getSavedTabsPageDataQuery).toHaveBeenCalled()
     })
 
     act(() => {
@@ -793,7 +804,10 @@ describe('useDomainCardState', () => {
         'parent-1',
       )
     })
-    expect(assignDomainToCategory).toHaveBeenCalledWith('group-1', 'parent-1')
+    expect(assignDomainToCategoryUseCase).toHaveBeenCalledWith({
+      categoryId: 'parent-1',
+      domainId: 'group-1',
+    })
 
     act(() => {
       result.current.parentCategories.handleUpdateParentCategories([
@@ -814,27 +828,26 @@ describe('useDomainCardState', () => {
 
   it('カテゴリ削除ハンドラがない場合と各種失敗を扱う', async () => {
     const group: TabGroup = createGroup()
-    vi.mocked(getParentCategories).mockRejectedValueOnce(
-      new Error('load failed'),
-    )
-    vi.mocked(createParentCategory).mockRejectedValueOnce(
+    const {
+      params,
+      getSavedTabsPageDataQuery,
+      createParentCategoryUseCase,
+      assignDomainToCategoryUseCase,
+    } = createUseDomainCardStateParams({ group })
+
+    getSavedTabsPageDataQuery.mockRejectedValueOnce(new Error('load failed'))
+    vi.mocked(createParentCategoryUseCase).mockRejectedValueOnce(
       new Error('create failed'),
     )
-    vi.mocked(assignDomainToCategory).mockRejectedValueOnce(
+    vi.mocked(assignDomainToCategoryUseCase).mockRejectedValueOnce(
       new Error('assign failed'),
     )
     const deleteSingleUrl = vi
       .fn()
       .mockRejectedValueOnce(new Error('delete failed'))
+    params.deleteSingleUrl = deleteSingleUrl
 
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group,
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-        deleteSingleUrl,
-      }),
-    )
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
@@ -883,13 +896,10 @@ describe('useDomainCardState', () => {
   })
 
   it('drag monitor はドラッグ中に折りたたみ、通常終了時にユーザー状態へ戻す', async () => {
+    const { params, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({ group: createGroup() })
     const { result, rerender } = renderHook(
-      ({ isReorderMode }) =>
-        useDomainCardState({
-          group: createGroup(),
-          handleDeleteCategory: vi.fn(),
-          isReorderMode,
-        }),
+      ({ isReorderMode }) => useDomainCardState({ ...params, isReorderMode }),
       {
         initialProps: {
           isReorderMode: false,
@@ -898,7 +908,7 @@ describe('useDomainCardState', () => {
     )
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
     })
 
     act(() => {
@@ -933,16 +943,13 @@ describe('useDomainCardState', () => {
   })
 
   it('drag monitor はユーザーが畳んでいなければ通常終了時に展開する', async () => {
-    const { result } = renderHook(() =>
-      useDomainCardState({
-        group: createGroup(),
-        handleDeleteCategory: vi.fn(),
-        isReorderMode: false,
-      }),
-    )
+    const { params, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({ group: createGroup() })
+
+    const { result } = renderHook(() => useDomainCardState(params))
 
     await waitFor(() => {
-      expect(getParentCategories).toHaveBeenCalledTimes(1)
+      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
     })
 
     act(() => {

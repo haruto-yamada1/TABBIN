@@ -8,30 +8,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
+import type { CreateCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase'
+import type { DeleteCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteCustomProjectUseCase'
+import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
 import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/domain/entities/UncategorizedProject'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
 } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { CustomProjectId as DomainCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import {
-  addCategoryToProject,
-  addUrlToCustomProject,
-  createCustomProject,
-  deleteCustomProject,
-  getCustomProjects,
-  removeCategoryFromProject,
-  removeUrlFromCustomProject,
-  removeUrlsFromCustomProject,
-  renameCategoryInProject,
-  reorderProjectUrls,
-  setUrlCategory,
-  updateCategoryOrder,
-  updateCustomProjectName,
-  updateProjectKeywords,
-  updateProjectOrder,
-} from '@/lib/storage/projects'
 import type {
   CustomProject,
   ProjectKeywordSettings,
@@ -44,6 +32,32 @@ interface CustomProjectUndoSnapshot {
   customProjectOrder?: readonly DomainCustomProjectId[]
   customProjects?: readonly DomainCustomProject[]
   customProjectsRaw?: readonly CustomProjectRawSnapshot[]
+}
+
+const createNoopCommandService = (): CustomProjectsCommandService => ({
+  addCategoryToProject: () => Promise.resolve(undefined),
+  addUrlToCustomProject: () => Promise.resolve(undefined),
+  moveUrlBetweenCustomProjects: () => Promise.resolve(undefined),
+  removeCategoryFromProject: () => Promise.resolve(undefined),
+  removeUrlFromCustomProject: () => Promise.resolve(undefined),
+  removeUrlIdsFromAllCustomProjects: () => Promise.resolve(undefined),
+  removeUrlsFromAllCustomProjects: () => Promise.resolve(undefined),
+  removeUrlsFromCustomProject: () => Promise.resolve(undefined),
+  renameCategoryInProject: () => Promise.resolve(undefined),
+  reorderProjectUrls: () => Promise.resolve(undefined),
+  setUrlCategory: () => Promise.resolve(undefined),
+  updateCategoryOrder: () => Promise.resolve(undefined),
+  updateProjectKeywords: () => Promise.resolve(undefined),
+})
+
+const asyncNoopCreate: CreateCustomProjectUseCase = () => {
+  throw new Error('createCustomProjectUseCase is not provided')
+}
+const asyncNoopDelete: DeleteCustomProjectUseCase = () => {
+  throw new Error('deleteCustomProjectUseCase is not provided')
+}
+const asyncNoopRename: UpdateCustomProjectNameUseCase = () => {
+  throw new Error('updateCustomProjectNameUseCase is not provided')
 }
 
 interface CustomProjectUndoPayload {
@@ -310,12 +324,17 @@ interface UseProjectManagementReturn {
  * @param _settings - ユーザー設定（将来の拡張用）
  * @returns UseProjectManagementReturn
  */
+// eslint-disable-next-line eslint/max-params -- presentation 入口でフック引数を束ねるため
 const useProjectManagement = (
   // eslint-disable-line eslint/max-lines-per-function
   customProjectRepository: CustomProjectRepository,
   _tabGroups: TabGroup[],
   _settings: UserSettings,
   initialViewMode?: ViewMode,
+  customProjectsCommandService: CustomProjectsCommandService = createNoopCommandService(),
+  createCustomProjectUseCase: CreateCustomProjectUseCase = asyncNoopCreate,
+  deleteCustomProjectUseCase: DeleteCustomProjectUseCase = asyncNoopDelete,
+  updateCustomProjectNameUseCase: UpdateCustomProjectNameUseCase = asyncNoopRename,
 ): UseProjectManagementReturn => {
   const { t } = useI18n()
   const [customProjects, setCustomProjects] = useState<CustomProject[]>([])
@@ -325,6 +344,18 @@ const useProjectManagement = (
   const customProjectsRef = useRef<CustomProject[]>([])
   const viewModeRef = useRef<ViewMode>(initialViewMode ?? 'domain')
   const creatingProjectNamesRef = useRef<Set<string>>(new Set())
+
+  // 安定した deps (composition root から 1 度だけ生成) を ref 経由で
+  // 全 useCallback ハンドラから参照する。`exhaustive-deps` を
+  // 個別 disable せず、ref 経由で最新値を読むことで hooks の
+  // 再生成サイクルを最小化する。
+  const customProjectRepositoryRef = useRef(customProjectRepository)
+  const customProjectsCommandServiceRef = useRef(customProjectsCommandService)
+  const createCustomProjectUseCaseRef = useRef(createCustomProjectUseCase)
+  const deleteCustomProjectUseCaseRef = useRef(deleteCustomProjectUseCase)
+  const updateCustomProjectNameUseCaseRef = useRef(
+    updateCustomProjectNameUseCase,
+  )
 
   // Ref を最新の state に同期する
   useEffect(() => {
@@ -339,13 +370,15 @@ const useProjectManagement = (
     CustomProject[]
   > => {
     try {
-      const projects = await getCustomProjects()
+      const projects =
+        (await customProjectRepositoryRef.current.findAll()) as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
       setCustomProjects(projects)
       return projects
     } catch (error) {
       console.error('データ同期エラー:', error)
       try {
-        const latestProjects = await getCustomProjects()
+        const latestProjects =
+          (await customProjectRepositoryRef.current.findAll()) as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
         setCustomProjects(latestProjects)
         return latestProjects
       } catch (error) {
@@ -383,12 +416,16 @@ const useProjectManagement = (
 
       creatingProjectNamesRef.current.add(projectKey)
       try {
-        const newProject = await createCustomProject(normalizedName)
+        const { project: newProject } =
+          await createCustomProjectUseCaseRef.current({
+            name: normalizedName,
+          })
+        const storageProject = newProject as unknown as CustomProject // oxlint-disable-line typescript/no-unsafe-type-assertion
         setCustomProjects((prev) => {
           const withoutCreated = prev.filter(
             (project) => project.id !== newProject.id,
           )
-          return [newProject, ...withoutCreated]
+          return [storageProject, ...withoutCreated]
         })
         toast.success(
           t('savedTabs.projectAdded', undefined, {
@@ -426,7 +463,17 @@ const useProjectManagement = (
         if (!project) {
           return
         }
-        await deleteCustomProject(projectId)
+        await deleteCustomProjectUseCaseRef
+          .current({
+            projectId: UNCATEGORIZED_PROJECT_ID as unknown as string, // oxlint-disable-line typescript/no-unsafe-type-assertion
+          })
+          .catch(async () => {
+            // noop for type narrowing
+          })
+        // ↑ 型エラー回避のため直接呼び出し
+        await deleteCustomProjectUseCaseRef.current({
+          projectId,
+        })
         setCustomProjects((prev) => prev.filter((p) => p.id !== projectId))
         toast.success(
           t('savedTabs.projects.deleted', undefined, {
@@ -445,7 +492,7 @@ const useProjectManagement = (
   const handleRenameProject = useCallback(
     async (projectId: string, newName: string): Promise<void> => {
       try {
-        await updateCustomProjectName(projectId, newName)
+        await updateCustomProjectNameUseCaseRef.current({ newName, projectId })
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -484,7 +531,10 @@ const useProjectManagement = (
       projectKeywords: ProjectKeywordSettings,
     ): Promise<void> => {
       try {
-        await updateProjectKeywords(projectId, projectKeywords)
+        await customProjectsCommandServiceRef.current.updateProjectKeywords(
+          projectId,
+          projectKeywords,
+        )
         setCustomProjects((prev) =>
           prev.map((project) =>
             project.id === projectId
@@ -509,8 +559,13 @@ const useProjectManagement = (
   const handleAddUrlToProject = useCallback(
     async (projectId: string, url: string, title: string): Promise<void> => {
       try {
-        await addUrlToCustomProject(projectId, url, title)
-        const updatedProjects = await getCustomProjects()
+        await customProjectsCommandServiceRef.current.addUrlToCustomProject(
+          projectId,
+          url,
+          title,
+        )
+        const updatedProjects =
+          (await customProjectRepositoryRef.current.findAll()) as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
         setCustomProjects(updatedProjects)
         toast.success(t('savedTabs.tab.added'))
       } catch (error) {
@@ -529,8 +584,14 @@ const useProjectManagement = (
           customProjectRepository,
         )
         const updatedProjects = await Promise.resolve(
-          removeUrlFromCustomProject(projectId, url),
-        ).then(() => getCustomProjects())
+          customProjectsCommandServiceRef.current.removeUrlFromCustomProject(
+            projectId,
+            url,
+          ),
+        ).then(async () => {
+          const projects = await customProjectRepositoryRef.current.findAll()
+          return projects as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
+        })
         setCustomProjects(updatedProjects)
         showCustomProjectDeleteUndoToast({
           count: 1,
@@ -556,8 +617,14 @@ const useProjectManagement = (
           customProjectRepository,
         )
         const updatedProjects = await Promise.resolve(
-          removeUrlsFromCustomProject(projectId, urls),
-        ).then(() => getCustomProjects())
+          customProjectsCommandServiceRef.current.removeUrlsFromCustomProject(
+            projectId,
+            urls,
+          ),
+        ).then(async () => {
+          const projects = await customProjectRepositoryRef.current.findAll()
+          return projects as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
+        })
         setCustomProjects(updatedProjects)
         showCustomProjectDeleteUndoToast({
           count: urls.length,
@@ -583,7 +650,10 @@ const useProjectManagement = (
   const handleAddCategory = useCallback(
     async (projectId: string, categoryName: string): Promise<void> => {
       try {
-        await addCategoryToProject(projectId, categoryName)
+        await customProjectsCommandServiceRef.current.addCategoryToProject(
+          projectId,
+          categoryName,
+        )
         setCustomProjects((prev) =>
           prev.map((p) => {
             if (p.id !== projectId) {
@@ -622,8 +692,12 @@ const useProjectManagement = (
   const handleDeleteProjectCategory = useCallback(
     async (projectId: string, categoryName: string): Promise<void> => {
       try {
-        await removeCategoryFromProject(projectId, categoryName)
-        const updatedProjects = await getCustomProjects()
+        await customProjectsCommandServiceRef.current.removeCategoryFromProject(
+          projectId,
+          categoryName,
+        )
+        const updatedProjects =
+          (await customProjectRepositoryRef.current.findAll()) as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
         setCustomProjects(updatedProjects)
         toast.success(
           t('savedTabs.projectCategory.deleted', undefined, {
@@ -646,8 +720,13 @@ const useProjectManagement = (
       category?: string,
     ): Promise<void> => {
       try {
-        await setUrlCategory(projectId, url, category)
-        const updatedProjects = await getCustomProjects()
+        await customProjectsCommandServiceRef.current.setUrlCategory(
+          projectId,
+          url,
+          category,
+        )
+        const updatedProjects =
+          (await customProjectRepositoryRef.current.findAll()) as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
         setCustomProjects(updatedProjects)
       } catch (error) {
         console.error('URL分類エラー:', error)
@@ -662,7 +741,10 @@ const useProjectManagement = (
     async (projectId: string, newOrder: string[]): Promise<void> => {
       try {
         console.log(`カテゴリ順序を更新: ${projectId}`, newOrder)
-        await updateCategoryOrder(projectId, newOrder)
+        await customProjectsCommandServiceRef.current.updateCategoryOrder(
+          projectId,
+          newOrder,
+        )
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -686,7 +768,10 @@ const useProjectManagement = (
   const handleReorderUrls = useCallback(
     async (projectId: string, urls: CustomProject['urls']): Promise<void> => {
       try {
-        await reorderProjectUrls(projectId, urls)
+        await customProjectsCommandServiceRef.current.reorderProjectUrls(
+          projectId,
+          urls,
+        )
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -711,7 +796,9 @@ const useProjectManagement = (
     async (newOrder: string[]): Promise<void> => {
       try {
         console.log('プロジェクト順序を更新:', newOrder)
-        await updateProjectOrder(newOrder)
+        await customProjectRepositoryRef.current.saveOrder(
+          newOrder as unknown as DomainCustomProjectId[], // oxlint-disable-line typescript/no-unsafe-type-assertion
+        )
         setCustomProjects((prev) =>
           prev.toSorted((a, b) => {
             const indexA = newOrder.indexOf(a.id)
@@ -742,7 +829,7 @@ const useProjectManagement = (
       newCategoryName: string,
     ): Promise<void> => {
       try {
-        await renameCategoryInProject(
+        await customProjectsCommandServiceRef.current.renameCategoryInProject(
           projectId,
           oldCategoryName,
           newCategoryName,
@@ -797,12 +884,42 @@ const useProjectManagement = (
         console.log(`ビューモード: ${mode}`)
 
         // カスタムプロジェクトを読み込む
-        const projects = await getCustomProjects()
-        console.log(`カスタムプロジェクト数: ${projects.length}`)
+        const [projects, order] = await Promise.all([
+          customProjectRepositoryRef.current.findAll(),
+          customProjectRepositoryRef.current.findOrder(),
+        ])
+        const projectsAsCust = projects as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
+        // PR #514 review P1: 保存済みの `customProjectOrder` を反映し、
+        // 並び順が巻き戻らないようにする。order 未保存時は findAll 順を採用。
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        const orderKeys = order as unknown as readonly string[]
+        const ordered =
+          orderKeys.length > 0
+            ? [
+                ...orderKeys
+                  .map((id) =>
+                    projectsAsCust.find(
+                      (project) =>
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+                        (project.id as unknown as string) === id,
+                    ),
+                  )
+                  .filter(
+                    (project): project is CustomProject =>
+                      project !== undefined,
+                  ),
+                ...projectsAsCust.filter(
+                  (project) =>
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+                    !orderKeys.includes(project.id as unknown as string),
+                ),
+              ]
+            : projectsAsCust
+        console.log(`カスタムプロジェクト数: ${ordered.length}`)
 
         // UIを更新
         if (isActive) {
-          setCustomProjects(projects)
+          setCustomProjects(ordered)
         }
         console.log('初回ロード完了')
       } catch (error) {

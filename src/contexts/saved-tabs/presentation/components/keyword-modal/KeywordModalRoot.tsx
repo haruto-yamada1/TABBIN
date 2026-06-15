@@ -4,9 +4,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
 
@@ -34,10 +34,10 @@ interface KeywordModalRootProps {
   initialParentCategories?: CategoryKeywordModalProps['parentCategories']
   /** 親カテゴリ更新ハンドラ */
   onUpdateParentCategories?: CategoryKeywordModalProps['onUpdateParentCategories']
-  /** 永続化依存（Repository 群） */
+  /** 永続化依存 (issue #510) */
   deps: {
-    tabGroupRepository: TabGroupRepository
-    parentCategoryRepository: ParentCategoryRepository
+    categoryAssignmentPort: CategoryAssignmentPort
+    getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
   }
   /**
    * storage 変更通知 port。`StorageChangePort` 経由でのみ storage 変更を

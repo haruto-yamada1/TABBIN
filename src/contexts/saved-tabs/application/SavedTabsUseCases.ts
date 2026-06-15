@@ -1,10 +1,17 @@
+import type { GetSavedTabsPageDataQuery } from './queries/GetSavedTabsPageDataQuery'
 import type { AddDomainToParentCategoryUseCase } from './use-cases/AddDomainToParentCategoryUseCase'
+import type { AssignDomainToCategoryUseCase } from './use-cases/AssignDomainToCategoryUseCase'
 import type { BuildSavedTabsSnapshotUseCase } from './use-cases/BuildSavedTabsSnapshotUseCase'
+import type { CreateCustomProjectUseCase } from './use-cases/CreateCustomProjectUseCase'
+import type { CreateParentCategoryUseCase } from './use-cases/CreateParentCategoryUseCase'
+import type { DeleteCustomProjectUseCase } from './use-cases/DeleteCustomProjectUseCase'
+import type { DeleteParentCategoryUseCase } from './use-cases/DeleteParentCategoryUseCase'
 import type { DeleteSavedUrlsUseCase } from './use-cases/DeleteSavedUrlsUseCase'
 import type { DeleteSavedUrlUseCase } from './use-cases/DeleteSavedUrlUseCase'
 import type { DeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
 import type { DeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
 import type { FindUrlRecordByUrlUseCase } from './use-cases/FindUrlRecordByUrlUseCase'
+import type { GetProjectUrlsUseCase } from './use-cases/GetProjectUrlsUseCase'
 import type { LoadTabGroupsWithUrlsUseCase } from './use-cases/LoadTabGroupsWithUrlsUseCase'
 import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCase'
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
@@ -17,6 +24,7 @@ import type { ReorderTabGroupUrlsUseCase } from './use-cases/ReorderTabGroupUrls
 import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import type { SetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
 import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
+import type { UpdateCustomProjectNameUseCase } from './use-cases/UpdateCustomProjectNameUseCase'
 
 /**
  * `saved-tabs` の優先 use-case を 1 つに束ねたバンドル interface。
@@ -57,4 +65,12 @@ export interface SavedTabsUseCases {
   readonly renameParentCategory: RenameParentCategoryUseCase
   readonly addDomainToParentCategory: AddDomainToParentCategoryUseCase
   readonly removeDomainFromParentCategory: RemoveDomainFromParentCategoryUseCase
+  readonly createParentCategory: CreateParentCategoryUseCase
+  readonly deleteParentCategory: DeleteParentCategoryUseCase
+  readonly assignDomainToCategory: AssignDomainToCategoryUseCase
+  readonly createCustomProject: CreateCustomProjectUseCase
+  readonly deleteCustomProject: DeleteCustomProjectUseCase
+  readonly updateCustomProjectName: UpdateCustomProjectNameUseCase
+  readonly getProjectUrls: GetProjectUrlsUseCase
+  readonly getSavedTabsPageData: GetSavedTabsPageDataQuery
 }

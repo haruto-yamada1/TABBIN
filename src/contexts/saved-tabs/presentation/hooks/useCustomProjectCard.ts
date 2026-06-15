@@ -5,9 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { getMessage } from '@/features/i18n/lib/language'
-import { getProjectUrls } from '@/lib/storage/projects'
 import type { CustomProject, UrlRecord } from '@/types/storage'
 
 import { useCategoryDnD } from './useCategoryDnD'
@@ -28,6 +28,13 @@ interface UseCustomProjectCardParams {
   handleUpdateCategoryOrder: (projectId: string, newOrder: string[]) => void
   /** URL並び替えハンドラ */
   handleReorderUrls: (projectId: string, urls: CustomProject['urls']) => void
+  /**
+   * プロジェクト URL 取得 use-case（issue #509）。
+   * テストで `useCustomProjectCard` 全体をモックする
+   * ケースを考慮して optional とし、未指定時は空配列を返す
+   * no-op 関数としてフォールバックする。
+   */
+  getProjectUrlsUseCase?: GetProjectUrlsUseCase
 }
 type ProjectUrlItem = UrlRecord & {
   notes?: string
@@ -291,11 +298,14 @@ const processUrlToUrlDrop = (params: {
  * @param params フックの引数
  * @returns プロジェクトURL・DnD・衝突検出関連の状態と操作
  */
+const noopGetProjectUrls: GetProjectUrlsUseCase = () => Promise.resolve([])
+
 export const useCustomProjectCard = ({
   project,
   handleSetUrlCategory,
   handleUpdateCategoryOrder,
   handleReorderUrls,
+  getProjectUrlsUseCase = noopGetProjectUrls,
 }: UseCustomProjectCardParams) => {
   const { t, language } = useI18n()
   // --- プロジェクトURL状態 ---
@@ -339,7 +349,7 @@ export const useCustomProjectCard = ({
     const loadProjectUrls = async () => {
       let nextProjectUrls: ProjectUrlItem[] = []
       try {
-        nextProjectUrls = await getProjectUrls(project)
+        nextProjectUrls = await getProjectUrlsUseCase(project)
       } catch (error) {
         console.error('プロジェクトURLの取得エラー:', error)
       }
@@ -348,7 +358,13 @@ export const useCustomProjectCard = ({
     // eslint-disable-next-line typescript/no-floating-promises
     loadProjectUrls()
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- URL loading intentionally tracks the project fields that affect stored URLs.
-  }, [project.id, project.updatedAt, project.urlIds, project.urls])
+  }, [
+    getProjectUrlsUseCase,
+    project.id,
+    project.updatedAt,
+    project.urlIds,
+    project.urls,
+  ])
 
   // --- 衝突検出ストラテジー ---
   const collisionDetectionStrategy: CollisionDetection = useCallback(

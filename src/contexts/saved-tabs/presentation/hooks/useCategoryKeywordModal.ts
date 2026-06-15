@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -22,12 +22,12 @@ const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
       message: t('savedTabs.categoryModal.validation.maxLength'),
     })
 
-/** UseCategoryKeywordModal フックの依存（Repository 群） */
+/** UseCategoryKeywordModal フックの依存 (issue #510) */
 interface UseCategoryKeywordModalDeps {
-  /** TabGroup 永続化 Repository */
-  tabGroupRepository: TabGroupRepository
-  /** ParentCategory 永続化 Repository */
-  parentCategoryRepository: ParentCategoryRepository
+  /** カテゴリ / タブグループの永続化 port */
+  categoryAssignmentPort: CategoryAssignmentPort
+  /** 保存タブページ全体 query (parentCategories 読み取り) */
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
 }
 
 /** UseCategoryKeywordModal フックの引数 */
@@ -131,7 +131,7 @@ export const useCategoryKeywordModal = ({
   deps,
   storageChangePort,
 }: UseCategoryKeywordModalParams) => {
-  const { tabGroupRepository, parentCategoryRepository } = deps
+  const { categoryAssignmentPort, getSavedTabsPageDataQuery } = deps
   const { t } = useI18n()
   // --- サブカテゴリ選択状態 ---
   const [activeCategory, setActiveCategory] = useState<string>(
@@ -207,7 +207,7 @@ export const useCategoryKeywordModal = ({
   }, [group.parentCategoryId])
 
   // --- 親カテゴリ読み込み ---
-  // 以下の値 (group, onUpdateParentCategories, parentCategoryRepository, t) は
+  // 以下の値 (group, onUpdateParentCategories, getSavedTabsPageDataQuery, t) は
   // 呼び出しごとに新しい参照になるケース (テストモック / i18n オブジェクト等) でも
   // loadParentCategories の再生成で useEffect が無限ループしないように ref 経由で
   // 読み取る。`selectedParentCategory` も同様に最新値参照用 ref を使うことで
@@ -216,8 +216,8 @@ export const useCategoryKeywordModal = ({
   groupRef.current = group
   const onUpdateParentCategoriesRef = useRef(onUpdateParentCategories)
   onUpdateParentCategoriesRef.current = onUpdateParentCategories
-  const parentCategoryRepositoryRef = useRef(parentCategoryRepository)
-  parentCategoryRepositoryRef.current = parentCategoryRepository
+  const getSavedTabsPageDataQueryRef = useRef(getSavedTabsPageDataQuery)
+  getSavedTabsPageDataQueryRef.current = getSavedTabsPageDataQuery
   const tRef = useRef(t)
   tRef.current = t
   const selectedParentCategoryRef = useRef(selectedParentCategory)
@@ -225,11 +225,10 @@ export const useCategoryKeywordModal = ({
 
   const loadParentCategories = useCallback(async () => {
     try {
-      // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-      // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
       const stored =
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 ParentCategory と domain 層 ParentCategory の branded 差異
-        (await parentCategoryRepositoryRef.current.findAll()) as unknown as readonly ParentCategory[]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded readonly) を storage 層 ParentCategory へ投影
+        (await getSavedTabsPageDataQueryRef.current())
+          .parentCategories as unknown as readonly ParentCategory[]
       const storedCategories = [...stored]
       setInternalParentCategories(storedCategories)
       const updateCallback = onUpdateParentCategoriesRef.current
@@ -331,9 +330,12 @@ export const useCategoryKeywordModal = ({
       const updatedKeywords = keywords.filter((k) => k !== keywordToRemove)
       updateCategoryEditState({ keywords: updatedKeywords })
       try {
-        const savedTabs =
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
-          (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
+        const pageData = await getSavedTabsPageDataQuery()
+        // domain.TabGroup (branded readonly) を storage shape へ投影してから
+        // presentation 専用フィールド (`categoryKeywords` / `urls` /
+        // `subCategory` 付き url) を編集する。
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
         const updatedGroups = savedTabs.map((g) =>
           g.id === group.id
             ? {
@@ -357,10 +359,10 @@ export const useCategoryKeywordModal = ({
               }
             : g,
         )
-        await tabGroupRepository.saveAll(
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
+        await categoryAssignmentPort.saveTabGroups(
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           updatedGroups as unknown as Parameters<
-            typeof tabGroupRepository.saveAll
+            CategoryAssignmentPort['saveTabGroups']
           >[0],
         )
       } catch (error) {
@@ -369,9 +371,10 @@ export const useCategoryKeywordModal = ({
     },
     [
       activeCategory,
+      categoryAssignmentPort,
+      getSavedTabsPageDataQuery,
       group.id,
       keywords,
-      tabGroupRepository,
       updateCategoryEditState,
     ],
   )
@@ -413,10 +416,10 @@ export const useCategoryKeywordModal = ({
     setIsProcessing(true)
     try {
       const validName = newSubCategory.trim()
-      const savedTabs =
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
-        (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
-      const updatedTabs = savedTabs.map((tab: TabGroup) => {
+      const pageData = await getSavedTabsPageDataQuery()
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage shape へ投影
+      const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
+      const updatedTabs = savedTabs.map((tab) => {
         if (tab.id === group.id) {
           return {
             ...tab,
@@ -425,10 +428,10 @@ export const useCategoryKeywordModal = ({
         }
         return tab
       })
-      await tabGroupRepository.saveAll(
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
+      await categoryAssignmentPort.saveTabGroups(
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         updatedTabs as unknown as Parameters<
-          typeof tabGroupRepository.saveAll
+          CategoryAssignmentPort['saveTabGroups']
         >[0],
       )
       setActiveCategory(validName)
@@ -446,11 +449,12 @@ export const useCategoryKeywordModal = ({
       setIsProcessing(false)
     }
   }, [
+    categoryAssignmentPort,
+    getSavedTabsPageDataQuery,
     group.id,
     group.subCategories,
     isProcessing,
     newSubCategory,
-    tabGroupRepository,
     t,
     validateCategoryName,
   ])
@@ -552,16 +556,16 @@ export const useCategoryKeywordModal = ({
     setIsProcessing(true)
     try {
       const validName = newCategoryName.trim()
-      const savedTabs =
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
-        (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
-      const updatedTabs = savedTabs.map((tab: TabGroup) =>
+      const pageData = await getSavedTabsPageDataQuery()
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage shape へ投影
+      const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
+      const updatedTabs = savedTabs.map((tab) =>
         renameCategoryInTab(tab, group.id, activeCategory, validName),
       )
-      await tabGroupRepository.saveAll(
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
+      await categoryAssignmentPort.saveTabGroups(
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         updatedTabs as unknown as Parameters<
-          typeof tabGroupRepository.saveAll
+          CategoryAssignmentPort['saveTabGroups']
         >[0],
       )
       setActiveCategory(validName)
@@ -584,11 +588,12 @@ export const useCategoryKeywordModal = ({
     }
   }, [
     activeCategory,
+    categoryAssignmentPort,
+    getSavedTabsPageDataQuery,
     group.id,
     group.subCategories,
     isProcessing,
     newCategoryName,
-    tabGroupRepository,
     t,
     updateCategoryEditState,
     validateCategoryName,

@@ -11,6 +11,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
 import { CategoryGroup } from '@/contexts/saved-tabs/presentation/components/CategoryGroup'
 import type {
   CategoryManagementModalDeps,
@@ -24,7 +25,6 @@ import {
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { defaultSettings } from '@/lib/storage/settings'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 const BULK_OPEN_THRESHOLD = 10
@@ -178,7 +178,7 @@ const UncategorizedDomainSection = ({
   const { t } = useI18n()
   const uncategorizedSettings = useMemo(
     () => ({
-      ...defaultSettings,
+      ...defaultUserSettings,
       confirmDeleteAll,
     }),
     [confirmDeleteAll],

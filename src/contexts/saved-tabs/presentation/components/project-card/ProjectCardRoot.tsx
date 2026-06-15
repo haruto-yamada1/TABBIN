@@ -7,6 +7,7 @@ import type { CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useCustomProjectCard } from '../../hooks/useCustomProjectCard'
@@ -67,6 +68,8 @@ interface ProjectCardRootProps {
     handleUpdateCategoryOrder: CustomProjectCardProps['handleUpdateCategoryOrder']
     handleReorderUrls: CustomProjectCardProps['handleReorderUrls']
   }
+  /** プロジェクト URL 取得 use-case。useCustomProjectCard へ伝搬。*/
+  getProjectUrlsUseCase?: GetProjectUrlsUseCase
   /** 子コンポーネント */
   children: React.ReactNode
 }
@@ -86,10 +89,12 @@ export const ProjectCardRoot = ({
   isCrossProjectUrlDragActive = false,
   handlers,
   hookHandlers,
+  getProjectUrlsUseCase,
   children,
 }: ProjectCardRootProps) => {
   const { t } = useI18n()
   const hookState = useCustomProjectCard({
+    getProjectUrlsUseCase,
     handleDeleteUrl: hookHandlers.handleDeleteUrl,
     handleReorderUrls: hookHandlers.handleReorderUrls,
     handleSetUrlCategory: hookHandlers.handleSetUrlCategory,

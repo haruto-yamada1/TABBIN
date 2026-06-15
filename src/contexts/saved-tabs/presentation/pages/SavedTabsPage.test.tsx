@@ -53,6 +53,7 @@ const createInMemoryDeps = (input: {
     findAll: async () => tabGroups.map((group) => ({ ...group })),
     // eslint-disable-next-line typescript/require-await
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
+    findRawDomainById: vi.fn(() => Promise.resolve(null)),
     // eslint-disable-next-line typescript/require-await
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
@@ -136,7 +137,47 @@ const createInMemoryDeps = (input: {
   return {
     browserTabPort,
     browserWindowPort,
+    categoriesCommandService: {
+      updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+    },
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn().mockResolvedValue(undefined),
+      saveTabGroups: vi.fn().mockResolvedValue(undefined),
+    },
     customProjectRepository,
+    customProjectsCommandService: {
+      addCategoryToProject: vi.fn().mockResolvedValue(undefined),
+      addUrlToCustomProject: vi.fn().mockResolvedValue(undefined),
+      moveUrlBetweenCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeCategoryFromProject: vi.fn().mockResolvedValue(undefined),
+      removeUrlFromCustomProject: vi.fn().mockResolvedValue(undefined),
+      removeUrlIdsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeUrlsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+      removeUrlsFromCustomProject: vi.fn().mockResolvedValue(undefined),
+      renameCategoryInProject: vi.fn().mockResolvedValue(undefined),
+      reorderProjectUrls: vi.fn().mockResolvedValue(undefined),
+      setUrlCategory: vi.fn().mockResolvedValue(undefined),
+      updateCategoryOrder: vi.fn().mockResolvedValue(undefined),
+      updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
+    },
+    domainCategoryMappingRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      saveAll: async () => undefined,
+    },
+    domainCategorySettingsRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => [],
+      // eslint-disable-next-line typescript/require-await
+      saveAll: async () => undefined,
+    },
+    migrationPort: {
+      migrateParentCategoriesToDomainNames: vi
+        .fn()
+        .mockResolvedValue(undefined),
+      migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
+    },
     notificationPort,
     parentCategoryRepository,
     setCategoryKeywordsPort,
@@ -145,6 +186,12 @@ const createInMemoryDeps = (input: {
     },
     tabGroupRepository,
     urlRecordRepository,
+    userSettingsRepository: {
+      // eslint-disable-next-line typescript/require-await
+      findAll: async () => ({}) as never,
+      // eslint-disable-next-line typescript/require-await
+      save: async () => undefined,
+    },
   }
 }
 

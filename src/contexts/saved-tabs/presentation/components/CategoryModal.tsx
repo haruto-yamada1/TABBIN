@@ -1,3 +1,7 @@
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
+import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
+import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { TabGroup } from '@/types/storage'
 
 import { CategoryCreateSection } from './category-modal/CategoryCreateSection'
@@ -11,6 +15,14 @@ interface CategoryModalProps {
   onClose: () => void
   /** タブグループ一覧 */
   tabGroups: TabGroup[]
+  /** 保存タブページ全体 query (issue #510)。`useCategoryModal` へ伝搬する。*/
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
+  /** 親カテゴリ作成 use-case。`useCategoryModal` へ伝搬する。*/
+  createParentCategoryUseCase?: CreateParentCategoryUseCase
+  /** 親カテゴリ削除 use-case。`useCategoryModal` へ伝搬する。*/
+  deleteParentCategoryUseCase?: DeleteParentCategoryUseCase
+  /** ドメイン割当 use-case。`useCategoryModal` へ伝搬する。*/
+  assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
 }
 
 /**
@@ -18,8 +30,25 @@ interface CategoryModalProps {
  * 複合コンポーネントパターンで構成される薄いラッパー
  * @param props CategoryModalProps
  */
-export const CategoryModal = ({ onClose, tabGroups }: CategoryModalProps) => (
-  <CategoryModalRoot onClose={onClose} tabGroups={tabGroups}>
+export const CategoryModal = ({
+  onClose,
+  tabGroups,
+  getSavedTabsPageDataQuery,
+  createParentCategoryUseCase,
+  deleteParentCategoryUseCase,
+  assignDomainToCategoryUseCase,
+}: CategoryModalProps) => (
+  <CategoryModalRoot
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    assignDomainToCategoryUseCase={assignDomainToCategoryUseCase as never}
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    createParentCategoryUseCase={createParentCategoryUseCase as never}
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    deleteParentCategoryUseCase={deleteParentCategoryUseCase as never}
+    getSavedTabsPageDataQuery={getSavedTabsPageDataQuery}
+    onClose={onClose}
+    tabGroups={tabGroups}
+  >
     <CategoryCreateSection />
     <CategorySelector />
     <DomainSelectionList />

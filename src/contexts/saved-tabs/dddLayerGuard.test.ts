@@ -556,8 +556,16 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('createSavedTabsUseCases は 5 つの use-case を返す', () => {
+      // `src/app/composition/createSavedTabsUseCases.ts` は
+      // `src/contexts/saved-tabs/infrastructure/composition/` の
+      // `createSavedTabsUseCases` に委譲する薄いラッパに
+      // なった (issue #509)。use-case 群は contexts 側で組み立てるため、
+      // そちらのファイルソースを検証する。
       const source = readFileSync(
-        resolve(repoRoot, 'src/app/composition/createSavedTabsUseCases.ts'),
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases.ts',
+        ),
         'utf8',
       )
       expect(source).toContain('createOpenSavedUrlUseCase')

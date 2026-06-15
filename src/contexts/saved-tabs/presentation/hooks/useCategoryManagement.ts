@@ -8,9 +8,9 @@ import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { saveParentCategories } from '@/lib/storage/categories'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseCategoryManagement フックの戻り値型 */
@@ -135,10 +135,18 @@ const resolveStateValue = <T>(
 /** UseCategoryManagement フックの引数 */
 interface UseCategoryManagementParams {
   /**
-   * タブグループ永続化先。`presentation` 層から直接
-   * `chrome.storage.local` を触らず、repository 経由で読み書きする。
+   * 保存タブページ全体の読み取り専用スナップショット query。旧
+   * `tabGroupRepository.findAll` / `parentCategoryRepository.findAll`
+   * 直叩きを置換し、presentation 層から repository 個別の read を
+   * 撤去する（issue #510）。
    */
-  tabGroupRepository: TabGroupRepository
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
+  /**
+   * カテゴリ / タブグループの永続化 port。`parentCategoryRepository.saveAll` /
+   * `tabGroupRepository.saveAll` 直叩きを `CategoryAssignmentPort` 経由へ
+   * 統一する（issue #510）。
+   */
+  categoryAssignmentPort: CategoryAssignmentPort
 }
 /**
  * 親カテゴリ管理フック。
@@ -151,7 +159,7 @@ const useCategoryManagement = (
   params: UseCategoryManagementParams,
 ): UseCategoryManagementReturn => {
   // eslint-disable-line eslint/max-lines-per-function
-  const { tabGroupRepository } = params
+  const { getSavedTabsPageDataQuery, categoryAssignmentPort } = params
   const { t } = useI18n()
   const [categories, setCategoriesState] = useState<ParentCategory[]>([])
   const [categoryOrder, setCategoryOrder] = useState<string[]>([])
@@ -189,7 +197,7 @@ const useCategoryManagement = (
     ): Promise<void> => {
       try {
         console.log(`カテゴリ ${categoryName} の削除を開始します...`)
-        const savedTabs = await tabGroupRepository.findAll()
+        const { tabGroups: savedTabs } = await getSavedTabsPageDataQuery()
 
         // 削除前にグループを取得して現在のカテゴリを確認
         const targetGroup = savedTabs.find((group) => group.id === groupId)
@@ -197,23 +205,19 @@ const useCategoryManagement = (
           console.error('カテゴリ削除対象のグループが見つかりません:', groupId)
           return
         }
-        // `domain.TabGroup` には presentation 専用の `subCategories` /
-        // `urlSubCategories` / `categoryKeywords` フィールドが型上存在しない
-        // ため、保存形式 (`storage.TabGroup`) へキャストして
-        // `removeSubCategoryFromGroup` を適用する。
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const updatedGroups = (savedTabs as unknown as readonly TabGroup[]).map(
-          (group) => removeSubCategoryFromGroup(group, groupId, categoryName),
+        const updatedGroups = [...savedTabs].map((group) =>
+          removeSubCategoryFromGroup(
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+            group as unknown as TabGroup,
+            groupId,
+            categoryName,
+          ),
         )
         console.log(`カテゴリ ${categoryName} を削除します`)
-        // domain entity は readonly + branded、`storage.TabGroup` は
-        // mutable + plain string なので双方向で直接代入不可。`saveAll` は
-        // 内部 mapper で raw へ変換するため、エンティティ相当の構造的
-        // スーパーセットとして渡せば十分。
-        await tabGroupRepository.saveAll(
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
+        await categoryAssignmentPort.saveTabGroups(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage 層 TabGroup と domain 層 TabGroup の branded 差異
           updatedGroups as unknown as Parameters<
-            typeof tabGroupRepository.saveAll
+            CategoryAssignmentPort['saveTabGroups']
           >[0],
         )
         await refreshTabGroupsWithUrls(updatedGroups)
@@ -222,7 +226,7 @@ const useCategoryManagement = (
         console.error('カテゴリ削除エラー:', error)
       }
     },
-    [tabGroupRepository],
+    [categoryAssignmentPort, getSavedTabsPageDataQuery],
   )
 
   /** 親カテゴリのドラッグエンド処理（並び替えモード開始または更新） */
@@ -272,7 +276,12 @@ const useCategoryManagement = (
       )
 
       // ストレージに保存
-      await saveParentCategories(orderedCategories)
+      await categoryAssignmentPort.saveParentCategories(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage 層 ParentCategory と domain 層 ParentCategory の branded 差異
+        orderedCategories as unknown as Parameters<
+          CategoryAssignmentPort['saveParentCategories']
+        >[0],
+      )
       setCategories(orderedCategories)
 
       // 並び替えモードを終了
@@ -284,7 +293,14 @@ const useCategoryManagement = (
       console.error('親カテゴリ順序の更新に失敗しました:', error)
       toast.error(t('savedTabs.categoryManagement.reorderUpdateError'))
     }
-  }, [categories, isCategoryReorderMode, setCategories, t, tempCategoryOrder])
+  }, [
+    categories,
+    categoryAssignmentPort,
+    isCategoryReorderMode,
+    setCategories,
+    t,
+    tempCategoryOrder,
+  ])
 
   /** 並び替えをキャンセルして元の順序に戻す */
   const handleCancelCategoryReorder = useCallback((): void => {
@@ -333,14 +349,19 @@ const useCategoryManagement = (
         })
 
         // ストレージに保存
-        await saveParentCategories(updatedCategories)
+        await categoryAssignmentPort.saveParentCategories(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage 層 ParentCategory と domain 層 ParentCategory の branded 差異
+          updatedCategories as unknown as Parameters<
+            CategoryAssignmentPort['saveParentCategories']
+          >[0],
+        )
         setCategories(updatedCategories)
         console.log('カテゴリ内のドメイン順序を更新しました:', categoryId)
       } catch (error) {
         console.error('カテゴリ内ドメイン順序更新エラー:', error)
       }
     },
-    [categories, setCategories],
+    [categories, categoryAssignmentPort, setCategories],
   )
 
   /**
@@ -386,7 +407,12 @@ const useCategoryManagement = (
               }
             : cat,
         )
-        await saveParentCategories(updatedCategories)
+        await categoryAssignmentPort.saveParentCategories(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage 層 ParentCategory と domain 層 ParentCategory の branded 差異
+          updatedCategories as unknown as Parameters<
+            CategoryAssignmentPort['saveParentCategories']
+          >[0],
+        )
         setCategories(updatedCategories)
         console.log(
           `ドメイン ${domainGroup.domain} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`, // eslint-disable-line typescript/prefer-nullish-coalescing -- fromCategoryId could be empty string
@@ -395,7 +421,7 @@ const useCategoryManagement = (
         console.error('カテゴリ間ドメイン移動エラー:', error)
       }
     },
-    [categories, setCategories],
+    [categories, categoryAssignmentPort, setCategories],
   )
   return {
     categories,

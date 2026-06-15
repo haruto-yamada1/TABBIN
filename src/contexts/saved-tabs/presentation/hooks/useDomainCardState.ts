@@ -2,13 +2,11 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
+import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
+import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import {
-  createParentCategory,
-  getParentCategories,
-} from '@/lib/storage/categories'
-import { assignDomainToCategory } from '@/lib/storage/migration'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseDomainCardState フックの引数 */
@@ -28,11 +26,27 @@ interface UseDomainCardStateParams {
    */
   deleteSingleUrl?: (groupId: string, url: string) => Promise<void>
   /**
-   * タブグループ永続化 repository (issue #502)。
+   * カテゴリ / タブグループの永続化 port (issue #510)。
    * `handleUpdateCategoryOrder` 内のサブカテゴリ並び替え保存で
-   * `chrome.storage.local` 直叩きを置換するために使用。
+   * `tabGroupRepository.saveAll` 直叩きを置換するために使用。
    */
-  tabGroupRepository?: TabGroupRepository
+  categoryAssignmentPort?: CategoryAssignmentPort
+  /**
+   * 保存タブページ全体 query (issue #510)。
+   * 親カテゴリ読み込み (`parentCategoryRepository.findAll` 直叩き)
+   * を 1 つの query に集約する。
+   */
+  getSavedTabsPageDataQuery?: GetSavedTabsPageDataQuery
+  /**
+   * 親カテゴリ作成 use-case (issue #509)。
+   * `createParentCategory` 直叩きを置換。
+   */
+  createParentCategoryUseCase?: CreateParentCategoryUseCase
+  /**
+   * ドメイン割当 use-case (issue #509)。
+   * `assignDomainToCategory` 直叩きを置換。
+   */
+  assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
 }
 interface CategorizedUrlItem {
   id?: string
@@ -127,7 +141,10 @@ export const useDomainCardState = ({
   handleDeleteCategory,
   isReorderMode,
   deleteSingleUrl,
-  tabGroupRepository,
+  categoryAssignmentPort,
+  getSavedTabsPageDataQuery,
+  createParentCategoryUseCase,
+  assignDomainToCategoryUseCase,
 }: UseDomainCardStateParams) => {
   const { t } = useI18n()
   // --- 基本状態 ---
@@ -224,13 +241,11 @@ export const useDomainCardState = ({
     async (updatedOrder: string[], updatedAllOrder: string[]) => {
       try {
         setAllCategoryIds(updatedAllOrder)
-        if (!tabGroupRepository) {
+        if (!categoryAssignmentPort || !getSavedTabsPageDataQuery) {
           return
         }
-        const savedTabs =
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
-          (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
-        const updatedTabs = savedTabs.map((tab: TabGroup) => {
+        const { tabGroups: savedTabs } = await getSavedTabsPageDataQuery()
+        const updatedTabs = [...savedTabs].map((tab) => {
           if (tab.id === group.id) {
             const updatedTab = {
               ...tab,
@@ -241,17 +256,17 @@ export const useDomainCardState = ({
           }
           return tab
         })
-        await tabGroupRepository.saveAll(
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
+        await categoryAssignmentPort.saveTabGroups(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage 層 TabGroup へ投影
           updatedTabs as unknown as Parameters<
-            TabGroupRepository['saveAll']
+            CategoryAssignmentPort['saveTabGroups']
           >[0],
         )
       } catch (error) {
         console.error('カテゴリ順序の更新に失敗しました:', error)
       }
     },
-    [group.id, tabGroupRepository],
+    [categoryAssignmentPort, getSavedTabsPageDataQuery, group.id],
   )
 
   // --- 新規カテゴリ順序の自動保存 ---
@@ -450,40 +465,58 @@ export const useDomainCardState = ({
   // --- 親カテゴリ読み込み ---
   useEffect(() => {
     const loadParentCategories = async () => {
+      if (!getSavedTabsPageDataQuery) {
+        return
+      }
       try {
-        const categories = await getParentCategories()
-        setParentCategories(categories)
+        const fromQuery =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
+          (await getSavedTabsPageDataQuery())
+            .parentCategories as unknown as ParentCategory[]
+        setParentCategories(fromQuery)
       } catch (error) {
         console.error('親カテゴリの読み込みに失敗しました:', error)
       }
     }
     // eslint-disable-next-line typescript/no-floating-promises
     loadParentCategories()
-  }, [])
+  }, [getSavedTabsPageDataQuery])
 
   // --- 親カテゴリ作成ハンドラ ---
-  const handleCreateParentCategory = useCallback(async (name: string) => {
-    try {
-      const newCategory = await createParentCategory(name)
-      setParentCategories((prev) => [...prev, newCategory])
-      return newCategory
-    } catch (error) {
-      console.error('親カテゴリ作成エラー:', error)
-      throw error
-    }
-  }, [])
+  const handleCreateParentCategory = useCallback(
+    async (name: string) => {
+      if (!createParentCategoryUseCase) {
+        throw new Error('createParentCategoryUseCase is not provided')
+      }
+      try {
+        const { category, all } = await createParentCategoryUseCase({ name })
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        const updatedAll = all as unknown as ParentCategory[]
+        setParentCategories(updatedAll)
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        return category as unknown as ParentCategory
+      } catch (error) {
+        console.error('親カテゴリ作成エラー:', error)
+        throw error
+      }
+    },
+    [createParentCategoryUseCase],
+  )
 
   // --- ドメインを親カテゴリに割り当て ---
   const handleAssignToParentCategory = useCallback(
     async (groupId: string, categoryId: string) => {
+      if (!assignDomainToCategoryUseCase) {
+        throw new Error('assignDomainToCategoryUseCase is not provided')
+      }
       try {
-        await assignDomainToCategory(groupId, categoryId)
+        await assignDomainToCategoryUseCase({ categoryId, domainId: groupId })
       } catch (error) {
         console.error('ドメイン割り当てエラー:', error)
         throw error
       }
     },
-    [],
+    [assignDomainToCategoryUseCase],
   )
 
   // --- 親カテゴリ更新 ---

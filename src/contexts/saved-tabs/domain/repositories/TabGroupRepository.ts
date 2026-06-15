@@ -26,4 +26,22 @@ export interface TabGroupRepository {
   findById: (id: TabGroupId) => Promise<TabGroup | null>
   saveAll: (groups: readonly TabGroup[]) => Promise<void>
   removeByIds: (ids: readonly TabGroupId[]) => Promise<void>
+  /**
+   * 永続化層に保存されている「そのままの domain 文字列」を取得する。
+   *
+   * entity 化された `TabGroup.domain` は `DomainName` ブランドを通す
+   * 過程で hostname 形式に正規化される。一方、storage には
+   * 旧来の schemeful 形式（例: `https://example.com`）が残っている
+   * ケースがあり、`domainCategoryMappings` /
+   * `parentCategory.domainNames` の lookup キーは依然として
+   * schemeful 形式を期待する。
+   *
+   * このメソッドは presentation / use-case 層が
+   * 「storage に書かれている domain 文字列そのもの」を必要とする
+   * ケース（主に schemeful 形式 lookup との一致）にだけ使う。
+   * 通常の entity 比較は `findById` の `domain` を使う。
+   *
+   * 見つからない場合は `null` を返す。
+   */
+  findRawDomainById: (id: TabGroupId) => Promise<string | null>
 }

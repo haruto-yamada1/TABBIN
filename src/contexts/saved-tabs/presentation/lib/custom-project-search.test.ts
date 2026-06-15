@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type { CustomProject } from '@/types/storage'
 
 import { filterCustomProjectsByQuery } from './custom-project-search'
+
+const asUseCase = (fn: ReturnType<typeof vi.fn>): GetProjectUrlsUseCase =>
+  fn as unknown as GetProjectUrlsUseCase
 
 const createProjects = (): CustomProject[] => [
   {
@@ -34,7 +38,7 @@ describe('filterCustomProjectsByQuery', () => {
     const result = await filterCustomProjectsByQuery({
       customProjects: projects,
       searchQuery: '  ',
-      loadProjectUrls: vi.fn(),
+      loadProjectUrls: asUseCase(vi.fn()),
     })
 
     expect(result).toBe(projects)
@@ -47,7 +51,7 @@ describe('filterCustomProjectsByQuery', () => {
     const result = await filterCustomProjectsByQuery({
       customProjects: projects,
       searchQuery: 'Reading',
-      loadProjectUrls,
+      loadProjectUrls: asUseCase(loadProjectUrls),
     })
 
     expect(result).toStrictEqual([projects[0]])

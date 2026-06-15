@@ -2,7 +2,12 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
+import type {
+  CustomProject,
+  TabGroup,
+  UserSettings,
+  ViewMode,
+} from '@/types/storage'
 
 const headerI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -168,6 +173,13 @@ const createProps = (
   onSearchChange: vi.fn(),
   customProjects: createCustomProjects(),
   onCreateProject: vi.fn(),
+  getSavedTabsPageDataQuery: vi.fn(() =>
+    Promise.resolve({
+      tabGroups: [],
+      parentCategories: [],
+      userSettings: {} as UserSettings,
+    }),
+  ),
   ...overrides,
 })
 

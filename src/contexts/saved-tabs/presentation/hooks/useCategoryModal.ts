@@ -3,19 +3,25 @@ import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
+import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
+import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import {
-  createParentCategory,
-  deleteParentCategory,
-  getParentCategories,
-} from '@/lib/storage/categories'
-import { assignDomainToCategory } from '@/lib/storage/migration'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseCategoryModal フックの引数 */
 interface UseCategoryModalParams {
   /** タブグループ一覧 */
   tabGroups: TabGroup[]
+  /** 保存タブページ全体 query。`parentCategoryRepository.findAll` 直叩きを置換 (issue #510)。*/
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
+  /** 親カテゴリ作成 use-case（issue #509）。*/
+  createParentCategoryUseCase: CreateParentCategoryUseCase
+  /** 親カテゴリ削除 use-case（issue #509）。*/
+  deleteParentCategoryUseCase: DeleteParentCategoryUseCase
+  /** ドメイン割当 use-case（issue #509）。*/
+  assignDomainToCategoryUseCase: AssignDomainToCategoryUseCase
 }
 type DomainCategoryMap = Record<
   string,
@@ -99,6 +105,8 @@ const applyDomainSelectionChange = async (params: {
   setCategories: Dispatch<SetStateAction<ParentCategory[]>>
   setDomainCategories: Dispatch<SetStateAction<DomainCategoryMap>>
   t: (key: string, fallback?: string, values?: Record<string, string>) => string
+  assignDomainToCategoryUseCase: AssignDomainToCategoryUseCase
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
 }) => {
   const {
     domainId,
@@ -110,11 +118,13 @@ const applyDomainSelectionChange = async (params: {
     setCategories,
     setDomainCategories,
     t,
+    assignDomainToCategoryUseCase,
+    getSavedTabsPageDataQuery,
   } = params
-  await assignDomainToCategory(
+  await assignDomainToCategoryUseCase({
+    categoryId: newChecked ? selectedCategoryId : 'none',
     domainId,
-    newChecked ? selectedCategoryId : 'none',
-  )
+  })
   const nextDomainCategories = applyDomainCategoryToggle({
     currentMap: domainCategories,
     domainId,
@@ -122,7 +132,10 @@ const applyDomainSelectionChange = async (params: {
     selectedCategory,
     selectedCategoryId,
   })
-  const updatedCategories = await getParentCategories()
+  const updatedCategories =
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
+    (await getSavedTabsPageDataQuery())
+      .parentCategories as unknown as ParentCategory[]
   setCategories(updatedCategories)
   setDomainCategories(nextDomainCategories)
   toast.success(
@@ -146,7 +159,13 @@ const applyDomainSelectionChange = async (params: {
  * @param params フックの引数
  * @returns カテゴリ作成・選択・削除・ドメイン選択関連の状態と操作
  */
-export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
+export const useCategoryModal = ({
+  tabGroups,
+  getSavedTabsPageDataQuery,
+  createParentCategoryUseCase,
+  deleteParentCategoryUseCase,
+  assignDomainToCategoryUseCase,
+}: UseCategoryModalParams) => {
   // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   // --- 新規カテゴリ名状態 ---
@@ -243,15 +262,14 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const parentCategories = await getParentCategories()
+        const fromRepo =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
+          (await getSavedTabsPageDataQuery())
+            .parentCategories as unknown as ParentCategory[]
         setCategoryData({
-          categories: parentCategories,
-          domainCategories: buildDomainCategoriesMap(
-            tabGroups,
-            parentCategories,
-          ),
-          selectedCategoryId:
-            parentCategories.length > 0 ? parentCategories[0].id : null,
+          categories: fromRepo,
+          domainCategories: buildDomainCategoriesMap(tabGroups, fromRepo),
+          selectedCategoryId: fromRepo.length > 0 ? fromRepo[0].id : null,
         })
       } catch (error) {
         console.error('カテゴリの取得に失敗しました', error)
@@ -260,7 +278,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     }
     // eslint-disable-next-line typescript/no-floating-promises
     loadCategories()
-  }, [t, tabGroups])
+  }, [getSavedTabsPageDataQuery, t, tabGroups])
 
   // --- 選択カテゴリ変更時のドメイン選択更新 ---
   useEffect(() => {
@@ -303,12 +321,17 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
 
     try {
       setIsCategoryUpdating(true)
-      const newCategory = await createParentCategory(newCategoryName)
-      setCategories((prev) => [...prev, newCategory])
+      const { category: newCategory, all } = await createParentCategoryUseCase({
+        name: newCategoryName,
+      })
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      const updatedAll = all as unknown as ParentCategory[]
+      setCategories(updatedAll)
       setSelectedCategoryId(newCategory.id)
       setNewCategoryName('')
       toast.success(t('savedTabs.categoryModal.created'))
-      updateSelectedDomains(newCategory)
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+      updateSelectedDomains(newCategory as never)
     } catch (error) {
       console.error('カテゴリの作成に失敗しました', error)
       if (
@@ -327,6 +350,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       setIsCategoryUpdating(false)
     }
   }, [
+    createParentCategoryUseCase,
     newCategoryName,
     setCategories,
     setSelectedCategoryId,
@@ -382,22 +406,21 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     }
     try {
       setIsCategoryUpdating(true)
-      await deleteParentCategory(categoryToDelete.id)
-      const updatedCategories = categories.filter(
-        (c) => c.id !== categoryToDelete.id,
-      )
-      setCategories(updatedCategories)
+      const { all } = await deleteParentCategoryUseCase({
+        categoryId: categoryToDelete.id,
+      })
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      const updatedAll = all as unknown as ParentCategory[]
+      setCategories(updatedAll)
       const updatedDomainCategories = clearCategoryFromDomainMap(
         domainCategories,
         categoryToDelete.id,
       )
       setDomainCategories(updatedDomainCategories)
       if (selectedCategoryId === categoryToDelete.id) {
-        setSelectedCategoryId(
-          updatedCategories.length > 0 ? updatedCategories[0].id : null,
-        )
-        if (updatedCategories.length > 0) {
-          updateSelectedDomains(updatedCategories[0])
+        setSelectedCategoryId(updatedAll.length > 0 ? updatedAll[0].id : null)
+        if (updatedAll.length > 0) {
+          updateSelectedDomains(updatedAll[0])
         } else {
           setSelectedDomains({})
         }
@@ -417,7 +440,7 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
     }
   }, [
     categoryToDelete,
-    categories,
+    deleteParentCategoryUseCase,
     domainCategories,
     selectedCategoryId,
     setCategories,
@@ -477,8 +500,10 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       }
       setIsCategoryUpdating(true)
       void applyDomainSelectionChange({
+        assignDomainToCategoryUseCase,
         domainCategories,
         domainId,
+        getSavedTabsPageDataQuery,
         groupDomain: group.domain,
         newChecked,
         selectedCategory,
@@ -505,6 +530,8 @@ export const useCategoryModal = ({ tabGroups }: UseCategoryModalParams) => {
       setCategories,
       setDomainCategories,
       t,
+      assignDomainToCategoryUseCase,
+      getSavedTabsPageDataQuery,
     ],
   )
   return {

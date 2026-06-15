@@ -7,7 +7,6 @@ import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tab
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
@@ -113,12 +112,6 @@ describe('CategoryGroup', () => {
   it('CategoryGroupRoot に handlers とデフォルト値を渡し、構成要素を描画する', () => {
     const props = createProps()
     const renameParentCategoryUseCase = vi.fn<RenameParentCategoryUseCase>()
-    const tabGroupRepository = {
-      findAll: vi.fn(),
-      findById: vi.fn(),
-      removeByIds: vi.fn(),
-      saveAll: vi.fn(),
-    } as unknown as TabGroupRepository
     const addDomainToParentCategory = vi.fn<AddDomainToParentCategoryUseCase>()
     const removeDomainFromParentCategory =
       vi.fn<RemoveDomainFromParentCategoryUseCase>()
@@ -129,8 +122,18 @@ describe('CategoryGroup', () => {
         reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
         renameParentCategoryUseCase={renameParentCategoryUseCase}
         categoryManagementModalDeps={{
+          categoryAssignmentPort: {
+            saveParentCategories: vi.fn(),
+            saveTabGroups: vi.fn(),
+          },
+          getSavedTabsPageDataQuery: vi.fn(() =>
+            Promise.resolve({
+              tabGroups: [],
+              parentCategories: [],
+              userSettings: {} as UserSettings,
+            }),
+          ),
           parentCategoryRepository: {} as unknown as ParentCategoryRepository,
-          tabGroupRepository,
         }}
         categoryManagementModalUseCases={{
           addDomainToParentCategory,
@@ -172,12 +175,6 @@ describe('CategoryGroup', () => {
 
   it('isCategoryReorderMode と searchQuery の明示値を CategoryGroupRoot に渡す', () => {
     const renameParentCategoryUseCase = vi.fn<RenameParentCategoryUseCase>()
-    const tabGroupRepository = {
-      findAll: vi.fn(),
-      findById: vi.fn(),
-      removeByIds: vi.fn(),
-      saveAll: vi.fn(),
-    } as unknown as TabGroupRepository
     const addDomainToParentCategory = vi.fn<AddDomainToParentCategoryUseCase>()
     const removeDomainFromParentCategory =
       vi.fn<RemoveDomainFromParentCategoryUseCase>()
@@ -191,8 +188,18 @@ describe('CategoryGroup', () => {
         reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
         renameParentCategoryUseCase={renameParentCategoryUseCase}
         categoryManagementModalDeps={{
+          categoryAssignmentPort: {
+            saveParentCategories: vi.fn(),
+            saveTabGroups: vi.fn(),
+          },
+          getSavedTabsPageDataQuery: vi.fn(() =>
+            Promise.resolve({
+              tabGroups: [],
+              parentCategories: [],
+              userSettings: {} as UserSettings,
+            }),
+          ),
           parentCategoryRepository: {} as unknown as ParentCategoryRepository,
-          tabGroupRepository,
         }}
         categoryManagementModalUseCases={{
           addDomainToParentCategory,

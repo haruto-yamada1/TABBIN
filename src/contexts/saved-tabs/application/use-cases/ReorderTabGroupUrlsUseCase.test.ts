@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup as DomainTabGroup } from '../../domain/entities/TabGroup'
 import type { UrlRecord } from '../../domain/entities/UrlRecord'
@@ -58,6 +58,8 @@ const createInMemoryTabGroupRepository = (
     findAll: async () => stored,
     // eslint-disable-next-line typescript/require-await
     findById: async (id) => stored.find((group) => group.id === id) ?? null,
+    // eslint-disable-next-line typescript/require-await
+    findRawDomainById: async () => null,
     // eslint-disable-next-line typescript/require-await
     saveAll: async (next) => {
       stored = [...next]

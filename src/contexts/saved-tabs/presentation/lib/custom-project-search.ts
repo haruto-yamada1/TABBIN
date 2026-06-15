@@ -1,14 +1,17 @@
 import Fuse from 'fuse.js'
 
-import { getProjectUrls } from '@/lib/storage/projects'
+import type {
+  GetProjectUrlsUseCase,
+  ProjectUrlEntry,
+} from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type { CustomProject } from '@/types/storage'
 
-type ProjectUrlItem = Awaited<ReturnType<typeof getProjectUrls>>[number]
+type ProjectUrlItem = ProjectUrlEntry
 
 interface FilterCustomProjectsByQueryParams {
   customProjects: CustomProject[]
   searchQuery: string
-  loadProjectUrls?: typeof getProjectUrls
+  loadProjectUrls: GetProjectUrlsUseCase
 }
 
 const projectFuseOptions = {
@@ -23,7 +26,7 @@ const projectUrlFuseOptions = {
 
 const mapMatchedUrlsToProject = (
   project: CustomProject,
-  matchedUrls: Awaited<ReturnType<typeof getProjectUrls>>,
+  matchedUrls: ProjectUrlEntry[],
 ): CustomProject => {
   const matchedUrlIds = matchedUrls.map((url) => url.id)
 
@@ -50,7 +53,7 @@ const mapMatchedUrlsToProject = (
 export const filterCustomProjectsByQuery = async ({
   customProjects,
   searchQuery,
-  loadProjectUrls = getProjectUrls,
+  loadProjectUrls,
 }: FilterCustomProjectsByQueryParams): Promise<CustomProject[]> => {
   const normalizedQuery = searchQuery.trim()
   if (!normalizedQuery) {

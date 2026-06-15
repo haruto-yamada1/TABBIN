@@ -1,12 +1,18 @@
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategoryMappingRepository'
+import type { DomainCategorySettingsRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategorySettingsRepository'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
 import { createChromeCustomProjectRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeCustomProjectRepository'
+import { createChromeDomainCategoryMappingRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeDomainCategoryMappingRepository'
+import { createChromeDomainCategorySettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeDomainCategorySettingsRepository'
 import { createChromeParentCategoryRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeParentCategoryRepository'
 import { createChromeTabGroupRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeTabGroupRepository'
 import type { ChromeStorageLocalPort } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUrlRecordRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUrlRecordRepository'
+import { createChromeUserSettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUserSettingsRepository'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 
 /**
@@ -23,6 +29,9 @@ export interface SavedTabsRepositories {
   readonly urlRecordRepository: UrlRecordRepository
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly customProjectRepository: CustomProjectRepository
+  readonly userSettingsRepository: UserSettingsRepository
+  readonly domainCategoryMappingRepository: DomainCategoryMappingRepository
+  readonly domainCategorySettingsRepository: DomainCategorySettingsRepository
 }
 
 const createChromeStorageLocalPort = (): ChromeStorageLocalPort | null => {
@@ -59,8 +68,13 @@ export const createSavedTabsRepositories = (): SavedTabsRepositories => {
   const port = createChromeStorageLocalPort()
   return {
     customProjectRepository: createChromeCustomProjectRepository(port),
+    domainCategoryMappingRepository:
+      createChromeDomainCategoryMappingRepository(port),
+    domainCategorySettingsRepository:
+      createChromeDomainCategorySettingsRepository(port),
     parentCategoryRepository: createChromeParentCategoryRepository(port),
     tabGroupRepository: createChromeTabGroupRepository(port),
     urlRecordRepository: createChromeUrlRecordRepository(port),
+    userSettingsRepository: createChromeUserSettingsRepository(port),
   }
 }

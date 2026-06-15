@@ -111,6 +111,8 @@ const createEmptyDeps = (
     // eslint-disable-next-line typescript/require-await
     findById: async () => null,
     // eslint-disable-next-line typescript/require-await
+    findRawDomainById: async () => null,
+    // eslint-disable-next-line typescript/require-await
     removeByIds: async () => undefined,
     // eslint-disable-next-line typescript/require-await
     saveAll: async () => undefined,
@@ -137,8 +139,48 @@ const createEmptyDeps = (
     deps: {
       browserTabPort,
       browserWindowPort,
+      categoriesCommandService: {
+        updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+      },
+      categoryAssignmentPort: {
+        saveParentCategories: vi.fn().mockResolvedValue(undefined),
+        saveTabGroups: vi.fn().mockResolvedValue(undefined),
+      },
       customProjectRepository:
         createInMemoryRepositories().customProjectRepository,
+      customProjectsCommandService: {
+        addCategoryToProject: vi.fn().mockResolvedValue(undefined),
+        addUrlToCustomProject: vi.fn().mockResolvedValue(undefined),
+        moveUrlBetweenCustomProjects: vi.fn().mockResolvedValue(undefined),
+        removeCategoryFromProject: vi.fn().mockResolvedValue(undefined),
+        removeUrlFromCustomProject: vi.fn().mockResolvedValue(undefined),
+        removeUrlIdsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+        removeUrlsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+        removeUrlsFromCustomProject: vi.fn().mockResolvedValue(undefined),
+        renameCategoryInProject: vi.fn().mockResolvedValue(undefined),
+        reorderProjectUrls: vi.fn().mockResolvedValue(undefined),
+        setUrlCategory: vi.fn().mockResolvedValue(undefined),
+        updateCategoryOrder: vi.fn().mockResolvedValue(undefined),
+        updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
+      },
+      domainCategoryMappingRepository: {
+        // eslint-disable-next-line typescript/require-await
+        findAll: async () => [],
+        // eslint-disable-next-line typescript/require-await
+        saveAll: async () => undefined,
+      },
+      domainCategorySettingsRepository: {
+        // eslint-disable-next-line typescript/require-await
+        findAll: async () => [],
+        // eslint-disable-next-line typescript/require-await
+        saveAll: async () => undefined,
+      },
+      migrationPort: {
+        migrateParentCategoriesToDomainNames: vi
+          .fn()
+          .mockResolvedValue(undefined),
+        migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
+      },
       notificationPort,
       parentCategoryRepository,
       setCategoryKeywordsPort,
@@ -147,6 +189,12 @@ const createEmptyDeps = (
       },
       tabGroupRepository,
       urlRecordRepository,
+      userSettingsRepository: {
+        // eslint-disable-next-line typescript/require-await
+        findAll: async () => ({}) as never,
+        // eslint-disable-next-line typescript/require-await
+        save: async () => undefined,
+      },
     },
     openSpy,
   }
