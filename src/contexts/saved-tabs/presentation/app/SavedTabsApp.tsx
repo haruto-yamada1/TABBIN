@@ -26,10 +26,10 @@ import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/present
 import { useCategoryManagement } from '@/contexts/saved-tabs/presentation/hooks/useCategoryManagement'
 import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
+import { createCategorizedDisplayState } from '@/contexts/saved-tabs/presentation/lib/categorized-display'
 import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
 import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
 import { handleTabGroupRemoval } from '@/contexts/saved-tabs/presentation/lib/tab-operations'
-import { shouldShowUncategorizedHeader as computeShouldShowUncategorizedHeader } from '@/contexts/saved-tabs/presentation/lib/uncategorized-display'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -47,10 +47,8 @@ import type {
 } from '@/types/storage'
 
 import {
-  buildDisplayTabGroup,
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
-  getDisplayUrlCount,
   getSnapshotSavedTabs,
   notifyDeleteFailure,
   removeUrlsFromCustomProjectsForGroup,
@@ -743,14 +741,6 @@ const useSavedTabsAppView = ({
     () => organizeTabGroups(),
     [organizeTabGroups],
   )
-  // コンテンツがあるグループリスト（カテゴリと未分類を結合、URLがあるもののみ）
-  const hasContentTabGroups = useMemo(
-    () =>
-      [...Object.values(categorized).flat(), ...uncategorized].filter(
-        (group) => getDisplayUrlCount(group) > 0,
-      ),
-    [categorized, uncategorized],
-  )
 
   // 未分類ドメインのドラッグエンド処理（並び替えモード対応）
   const handleUncategorizedDragEnd = useCallback(
@@ -819,12 +809,46 @@ const useSavedTabsAppView = ({
   console.log('表示判定デバッグ:')
   console.log('- categorized:', categorized)
   console.log('- uncategorized:', uncategorized)
-  console.log('- hasContentTabGroups:', hasContentTabGroups)
-  console.log('- hasContentTabGroups.length:', hasContentTabGroups.length)
 
   const customProjectsForHeader = customProjects
   const [filteredCustomProjects, setFilteredCustomProjects] =
     useState(customProjects)
+
+  // 表示判定・表示用整形は `createCategorizedDisplayState` へ移設（issue #504）。
+  // domain / chrome API / storage に依存しない pure 関数として
+  // `presentation/lib/categorized-display.ts` に切り出し済み。
+  // `filteredCustomProjects` が `useState(customProjects)` で確定したあとに
+  // 組み立てる必要があるため、`useEffect` で同期する処理群の直後に置く。
+  const {
+    hasContentTabGroups,
+    hasVisibleCategoryGroups,
+    headerFilteredTabGroups,
+    shouldShowUncategorizedList,
+    shouldShowUncategorizedSectionHeader,
+    uncategorizedForDisplay,
+  } = useMemo(
+    () =>
+      createCategorizedDisplayState({
+        categorized,
+        enableCategories: settings.enableCategories,
+        filteredCustomProjects,
+        isUncategorizedReorderMode,
+        searchQuery,
+        tempUncategorizedOrder,
+        uncategorized,
+        viewMode,
+      }),
+    [
+      categorized,
+      settings.enableCategories,
+      filteredCustomProjects,
+      isUncategorizedReorderMode,
+      searchQuery,
+      tempUncategorizedOrder,
+      uncategorized,
+      viewMode,
+    ],
+  )
 
   const handleDeleteUrlFromCustomMode = useCallback(
     async (projectId: string, url: string) => {
@@ -934,39 +958,12 @@ const useSavedTabsAppView = ({
 
   // カテゴリ間でURLを移動するハンドラ
   const handleMoveUrlsBetweenCategories = useCallback(async () => {}, [])
-  const visibleUncategorizedGroups = useMemo(
-    () => uncategorized.filter((group) => getDisplayUrlCount(group) > 0),
-    [uncategorized],
-  )
-  const hasVisibleCategoryGroups =
-    settings.enableCategories && Object.keys(categorized).length > 0
-  const shouldShowUncategorizedSectionHeader =
-    settings.enableCategories &&
-    computeShouldShowUncategorizedHeader({
-      isUncategorizedReorderMode,
-      searchQuery,
-      uncategorizedCount: uncategorized.length,
-      visibleUncategorizedCount: visibleUncategorizedGroups.length,
-    })
-  const shouldShowUncategorizedList = visibleUncategorizedGroups.length > 0
-  const headerFilteredTabGroups = useMemo(() => {
-    if (viewMode === 'domain') {
-      return hasContentTabGroups
-    }
-    return filteredCustomProjects.map((project) =>
-      buildDisplayTabGroup(project),
-    )
-  }, [viewMode, hasContentTabGroups, filteredCustomProjects])
   const customProjectsForDisplay = filteredCustomProjects
   const shouldShowCategoryReorderFooter =
     isCategoryReorderMode && viewMode === 'domain'
   const categoryOrderForDisplay = isCategoryReorderMode
     ? tempCategoryOrder
     : categoryOrder
-  // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
-  const uncategorizedForDisplay = (
-    isUncategorizedReorderMode ? tempUncategorizedOrder : uncategorized
-  ).filter((group) => getDisplayUrlCount(group) > 0)
   const mainContent =
     viewMode === 'domain' ? (
       <DomainModeContainer
