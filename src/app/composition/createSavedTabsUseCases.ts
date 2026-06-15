@@ -115,9 +115,11 @@ export const createSavedTabsUseCases = (
       tabGroupRepository: repositories.tabGroupRepository,
       urlRecordRepository: repositories.urlRecordRepository,
     }),
-    removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase({
-      parentCategoryRepository: repositories.parentCategoryRepository,
-    }),
+    removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase(
+      {
+        parentCategoryRepository: repositories.parentCategoryRepository,
+      },
+    ),
     removeUnreferencedUrlRecords: createRemoveUnreferencedUrlRecordsUseCase({
       customProjectRepository: repositories.customProjectRepository,
       tabGroupRepository: repositories.tabGroupRepository,

@@ -3,26 +3,28 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createParentCategory } from '../../domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
+import { createDomainName } from '../../domain/value-objects/DomainName'
 import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
 import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
-import { createDomainName } from '../../domain/value-objects/DomainName'
-import {
-  createAddDomainToParentCategoryUseCase,
-  type AddDomainToParentCategoryUseCaseDeps,
-} from './AddDomainToParentCategoryUseCase'
+import { createAddDomainToParentCategoryUseCase } from './AddDomainToParentCategoryUseCase'
+import type { AddDomainToParentCategoryUseCaseDeps } from './AddDomainToParentCategoryUseCase'
 
 const createInMemoryRepository = (
   initial: ReturnType<typeof createParentCategory>[] = [],
 ): ParentCategoryRepository => {
   let store: ReturnType<typeof createParentCategory>[] = [...initial]
   return {
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     findAll: async () => store.map((category) => ({ ...category })),
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     findById: async (id) =>
       store.find((category) => category.id === id) ?? null,
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
       store = store.filter((category) => !idSet.has(category.id))
     },
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     saveAll: async (categories) => {
       store = categories.map((category) => ({ ...category }))
     },
@@ -57,8 +59,8 @@ describe('createAddDomainToParentCategoryUseCase', () => {
       domainName: createDomainName('new.com'),
     })
     const target = result.find((c) => c.id === 'cat-1')
-    expect(target?.domains).toEqual(['tab-existing', 'tab-new'])
-    expect(target?.domainNames).toEqual(['existing.com', 'new.com'])
+    expect(target?.domains).toStrictEqual(['tab-existing', 'tab-new'])
+    expect(target?.domainNames).toStrictEqual(['existing.com', 'new.com'])
   })
 
   it('既存 domains にある domainId の追加はエラー', async () => {
@@ -69,7 +71,7 @@ describe('createAddDomainToParentCategoryUseCase', () => {
         domainId: createTabGroupId('tab-existing'),
         domainName: createDomainName('new.com'),
       }),
-    ).rejects.toThrowError(SavedTabsDomainError)
+    ).rejects.toThrow(SavedTabsDomainError)
   })
 
   it('既存 domainNames にある domainName の追加はエラー', async () => {
@@ -80,7 +82,7 @@ describe('createAddDomainToParentCategoryUseCase', () => {
         domainId: createTabGroupId('tab-new'),
         domainName: createDomainName('existing.com'),
       }),
-    ).rejects.toThrowError(SavedTabsDomainError)
+    ).rejects.toThrow(SavedTabsDomainError)
   })
 
   it('対象カテゴリが見つからない場合はエラー', async () => {
@@ -91,6 +93,6 @@ describe('createAddDomainToParentCategoryUseCase', () => {
         domainId: createTabGroupId('tab-new'),
         domainName: createDomainName('new.com'),
       }),
-    ).rejects.toThrowError(SavedTabsDomainError)
+    ).rejects.toThrow(SavedTabsDomainError)
   })
 })

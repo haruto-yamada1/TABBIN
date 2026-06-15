@@ -6,23 +6,25 @@ import type { ParentCategoryRepository } from '../../domain/repositories/ParentC
 import { createDomainName } from '../../domain/value-objects/DomainName'
 import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
 import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
-import {
-  createRemoveDomainFromParentCategoryUseCase,
-  type RemoveDomainFromParentCategoryUseCaseDeps,
-} from './RemoveDomainFromParentCategoryUseCase'
+import { createRemoveDomainFromParentCategoryUseCase } from './RemoveDomainFromParentCategoryUseCase'
+import type { RemoveDomainFromParentCategoryUseCaseDeps } from './RemoveDomainFromParentCategoryUseCase'
 
 const createInMemoryRepository = (
   initial: ReturnType<typeof createParentCategory>[] = [],
 ): ParentCategoryRepository => {
   let store: ReturnType<typeof createParentCategory>[] = [...initial]
   return {
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     findAll: async () => store.map((category) => ({ ...category })),
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     findById: async (id) =>
       store.find((category) => category.id === id) ?? null,
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
       store = store.filter((category) => !idSet.has(category.id))
     },
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     saveAll: async (categories) => {
       store = categories.map((category) => ({ ...category }))
     },
@@ -59,8 +61,8 @@ describe('createRemoveDomainFromParentCategoryUseCase', () => {
       domainName: createDomainName('example.com'),
     })
     const target = result.find((c) => c.id === 'cat-1')
-    expect(target?.domains).toEqual(['tab-2'])
-    expect(target?.domainNames).toEqual(['extra.com'])
+    expect(target?.domains).toStrictEqual(['tab-2'])
+    expect(target?.domainNames).toStrictEqual(['extra.com'])
   })
 
   it('対象カテゴリが見つからない場合はエラー', async () => {
@@ -73,7 +75,7 @@ describe('createRemoveDomainFromParentCategoryUseCase', () => {
         domainId: createTabGroupId('tab-1'),
         domainName: createDomainName('example.com'),
       }),
-    ).rejects.toThrowError(SavedTabsDomainError)
+    ).rejects.toThrow(SavedTabsDomainError)
   })
 
   it('指定 domain が含まれていない場合はエラー', async () => {
@@ -86,6 +88,6 @@ describe('createRemoveDomainFromParentCategoryUseCase', () => {
         domainId: createTabGroupId('tab-not-found'),
         domainName: createDomainName('missing.com'),
       }),
-    ).rejects.toThrowError(SavedTabsDomainError)
+    ).rejects.toThrow(SavedTabsDomainError)
   })
 })

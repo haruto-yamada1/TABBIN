@@ -123,8 +123,9 @@ const setupChromeStorage = (state: StorageState = {}) => {
     ),
     findById: vi.fn(
       async (id) =>
-        (((await local.get('savedTabs')) as { savedTabs?: TabGroup[] })
-          .savedTabs?.find((tab) => tab.id === id) ??
+        ((
+          (await local.get('savedTabs')) as { savedTabs?: TabGroup[] }
+        ).savedTabs?.find((tab) => tab.id === id) ??
           null) as unknown as ReturnType<TabGroupRepository['findById']>,
     ),
     saveAll: vi.fn(
@@ -151,9 +152,11 @@ const setupChromeStorage = (state: StorageState = {}) => {
   const parentCategoryRepository: ParentCategoryRepository = {
     findAll: vi.fn(
       async () =>
-        (((await local.get('parentCategories')) as {
-          parentCategories?: ParentCategory[]
-        }).parentCategories ?? []) as unknown as ReturnType<
+        ((
+          (await local.get('parentCategories')) as {
+            parentCategories?: ParentCategory[]
+          }
+        ).parentCategories ?? []) as unknown as ReturnType<
           ParentCategoryRepository['findAll']
         >,
     ),
@@ -164,9 +167,7 @@ const setupChromeStorage = (state: StorageState = {}) => {
             parentCategories?: ParentCategory[]
           }
         ).parentCategories?.find((category) => category.id === id) ??
-          null) as unknown as ReturnType<
-          ParentCategoryRepository['findById']
-        >,
+          null) as unknown as ReturnType<ParentCategoryRepository['findById']>,
     ),
     saveAll: vi.fn(
       async (_next: Parameters<ParentCategoryRepository['saveAll']>[0]) => {
@@ -178,9 +179,7 @@ const setupChromeStorage = (state: StorageState = {}) => {
       },
     ),
     removeByIds: vi.fn(
-      async (
-        ids: Parameters<ParentCategoryRepository['removeByIds']>[0],
-      ) => {
+      async (ids: Parameters<ParentCategoryRepository['removeByIds']>[0]) => {
         const current =
           (
             (await local.get('parentCategories')) as {

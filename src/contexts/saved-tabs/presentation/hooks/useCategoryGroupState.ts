@@ -97,6 +97,7 @@ export const useCategoryGroupState = ({
           newName,
         })
         await renameParentCategoryUseCase({
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 categoryId と domain 層 ParentCategoryId の branded 差異
           categoryId: categoryId as unknown as ParentCategoryId,
           newName,
         })

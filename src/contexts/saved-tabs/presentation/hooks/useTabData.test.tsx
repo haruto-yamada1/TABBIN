@@ -204,7 +204,9 @@ describe('useTabData', () => {
     migrateToUrlsStorageMock.mockRejectedValueOnce(
       new Error('url migration failed'),
     )
-    tabGroupRepository.findAll.mockRejectedValueOnce(new Error('storage failed'))
+    tabGroupRepository.findAll.mockRejectedValueOnce(
+      new Error('storage failed'),
+    )
 
     const { result } = renderUseTabData()
 

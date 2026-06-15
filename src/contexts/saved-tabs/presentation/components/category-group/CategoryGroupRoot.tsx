@@ -4,7 +4,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { useMemo } from 'react'
 
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type {
   CategoryManagementModalDeps,
   CategoryManagementModalUseCases,

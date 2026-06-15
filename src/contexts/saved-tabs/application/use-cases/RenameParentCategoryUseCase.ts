@@ -1,6 +1,6 @@
 import { parentCategoryById } from '../../domain/entities/ParentCategory'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
 import type { ParentCategory } from '../../domain/entities/ParentCategory'
+import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import { createCategoryName } from '../../domain/value-objects/CategoryName'
 import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'

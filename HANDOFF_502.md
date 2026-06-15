@@ -23,12 +23,14 @@
 ## 主な変更
 
 ### 新規ファイル (10 個)
+
 - `src/contexts/saved-tabs/application/commands/{Rename,AddDomainTo,RemoveDomainFrom}ParentCategoryCommand.ts` — Command DTO
 - `src/contexts/saved-tabs/application/use-cases/{Rename,AddDomainTo,RemoveDomainFrom}ParentCategoryUseCase.ts` — use-case 実装
 - `src/contexts/saved-tabs/application/use-cases/{Rename,AddDomainTo,RemoveDomainFrom}ParentCategoryUseCase.test.ts` — 各 3-5 テスト
 - `src/contexts/saved-tabs/domain/entities/ParentCategory.ts` に `parentCategoryById` ヘルパーを追加
 
 ### Refactor した source files
+
 1. `src/contexts/saved-tabs/presentation/hooks/useTabData.ts` — `tabGroupRepository` / `urlRecordRepository` / `parentCategoryRepository` をパラメータ注入
 2. `src/contexts/saved-tabs/presentation/hooks/useCategoryGroupState.ts` — `renameParentCategoryUseCase` 注入
 3. `src/contexts/saved-tabs/presentation/hooks/useCategoryManagement.ts` — `tabGroupRepository` 注入
@@ -39,6 +41,7 @@
 8. `src/contexts/saved-tabs/presentation/components/CategoryManagementModal.tsx` — `deps: { tabGroupRepository, parentCategoryRepository }` + `useCases: { renameParentCategory, addDomainToParentCategory, removeDomainFromParentCategory }` 注入
 
 ### Composition 拡張
+
 - `src/app/composition/createSavedTabsUseCases.ts` — 3 use-case を factory に追加
 - `src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases.ts` — 同上
 - `src/contexts/saved-tabs/application/SavedTabsUseCases.ts` — interface に 3 フィールドを追加

@@ -228,6 +228,7 @@ export const useDomainCardState = ({
           return
         }
         const savedTabs =
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
           (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
         const updatedTabs = savedTabs.map((tab: TabGroup) => {
           if (tab.id === group.id) {
@@ -241,6 +242,7 @@ export const useDomainCardState = ({
           return tab
         })
         await tabGroupRepository.saveAll(
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
           updatedTabs as unknown as Parameters<
             TabGroupRepository['saveAll']
           >[0],

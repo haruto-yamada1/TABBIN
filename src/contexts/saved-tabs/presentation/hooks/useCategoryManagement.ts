@@ -8,11 +8,10 @@ import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { saveParentCategories } from '@/lib/storage/categories'
 import type { ParentCategory, TabGroup } from '@/types/storage'
-
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 
 /** UseCategoryManagement フックの戻り値型 */
 interface UseCategoryManagementReturn {
@@ -203,10 +202,8 @@ const useCategoryManagement = (
         // ため、保存形式 (`storage.TabGroup`) へキャストして
         // `removeSubCategoryFromGroup` を適用する。
         // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const updatedGroups = (
-          savedTabs as unknown as readonly TabGroup[]
-        ).map((group) =>
-          removeSubCategoryFromGroup(group, groupId, categoryName),
+        const updatedGroups = (savedTabs as unknown as readonly TabGroup[]).map(
+          (group) => removeSubCategoryFromGroup(group, groupId, categoryName),
         )
         console.log(`カテゴリ ${categoryName} を削除します`)
         // domain entity は readonly + branded、`storage.TabGroup` は
@@ -214,6 +211,7 @@ const useCategoryManagement = (
         // 内部 mapper で raw へ変換するため、エンティティ相当の構造的
         // スーパーセットとして渡せば十分。
         await tabGroupRepository.saveAll(
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
           updatedGroups as unknown as Parameters<
             typeof tabGroupRepository.saveAll
           >[0],

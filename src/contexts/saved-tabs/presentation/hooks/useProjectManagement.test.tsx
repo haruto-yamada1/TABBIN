@@ -147,24 +147,36 @@ describe('useProjectManagement', () => {
       findOrder: vi.fn(),
       saveOrder: vi.fn(),
     } as unknown as CustomProjectRepository
-    ;(customProjectRepository.findAll as unknown as {
-      mockResolvedValue: (value: unknown) => void
-    }).mockResolvedValue(projectSnapshot)
-    ;(customProjectRepository.findOrder as unknown as {
-      mockResolvedValue: (value: unknown) => void
-    }).mockResolvedValue(['project-1'])
-    ;(customProjectRepository.saveAll as unknown as {
-      mockResolvedValue: (value: unknown) => void
-    }).mockResolvedValue(undefined)
-    ;(customProjectRepository.saveOrder as unknown as {
-      mockResolvedValue: (value: unknown) => void
-    }).mockResolvedValue(undefined)
-    ;(customProjectRepository.findById as unknown as {
-      mockResolvedValue: (value: unknown) => void
-    }).mockResolvedValue(null)
-    ;(customProjectRepository.removeByIds as unknown as {
-      mockResolvedValue: (value: unknown) => void
-    }).mockResolvedValue(undefined)
+    ;(
+      customProjectRepository.findAll as unknown as {
+        mockResolvedValue: (value: unknown) => void
+      }
+    ).mockResolvedValue(projectSnapshot)
+    ;(
+      customProjectRepository.findOrder as unknown as {
+        mockResolvedValue: (value: unknown) => void
+      }
+    ).mockResolvedValue(['project-1'])
+    ;(
+      customProjectRepository.saveAll as unknown as {
+        mockResolvedValue: (value: unknown) => void
+      }
+    ).mockResolvedValue(undefined)
+    ;(
+      customProjectRepository.saveOrder as unknown as {
+        mockResolvedValue: (value: unknown) => void
+      }
+    ).mockResolvedValue(undefined)
+    ;(
+      customProjectRepository.findById as unknown as {
+        mockResolvedValue: (value: unknown) => void
+      }
+    ).mockResolvedValue(null)
+    ;(
+      customProjectRepository.removeByIds as unknown as {
+        mockResolvedValue: (value: unknown) => void
+      }
+    ).mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -180,7 +192,12 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(latestProjects)
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'domain'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'domain',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -202,7 +219,12 @@ describe('useProjectManagement', () => {
     )
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitFor(() => {
@@ -222,7 +244,12 @@ describe('useProjectManagement', () => {
     )
 
     const { result: pendingResult, unmount } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
     unmount()
 
@@ -241,7 +268,12 @@ describe('useProjectManagement', () => {
       .mockRejectedValueOnce(new Error('second failure'))
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'domain'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'domain',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -262,7 +294,12 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce([projectWithCategories])
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'domain'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'domain',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -310,7 +347,12 @@ describe('useProjectManagement', () => {
     )
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -347,7 +389,12 @@ describe('useProjectManagement', () => {
     )
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -382,7 +429,12 @@ describe('useProjectManagement', () => {
     ])
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result, [projectSnapshot[0], untouchedProject])
@@ -437,7 +489,12 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(updatedProjects)
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -520,7 +577,12 @@ describe('useProjectManagement', () => {
     ]
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result, [
@@ -606,7 +668,12 @@ describe('useProjectManagement', () => {
     ])
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result, [
@@ -669,7 +736,12 @@ describe('useProjectManagement', () => {
     )
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -735,7 +807,12 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(updatedProjects)
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -786,7 +863,12 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce([])
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result)
@@ -825,12 +907,19 @@ describe('useProjectManagement', () => {
     }
     findAll.mockResolvedValueOnce([])
     findAll.mockResolvedValueOnce(projectSnapshot)
-    ;(customProjectRepository.saveAll as unknown as {
-      mockRejectedValueOnce: (value: unknown) => void
-    }).mockRejectedValueOnce(new Error('restore failed'))
+    ;(
+      customProjectRepository.saveAll as unknown as {
+        mockRejectedValueOnce: (value: unknown) => void
+      }
+    ).mockRejectedValueOnce(new Error('restore failed'))
 
     const { result } = renderHook(() =>
-      useProjectManagement(customProjectRepository, [], defaultSettings, 'custom'),
+      useProjectManagement(
+        customProjectRepository,
+        [],
+        defaultSettings,
+        'custom',
+      ),
     )
 
     await waitForLoadedProjects(result)

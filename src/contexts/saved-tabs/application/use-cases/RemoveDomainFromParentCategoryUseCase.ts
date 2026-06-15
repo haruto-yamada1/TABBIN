@@ -1,11 +1,9 @@
 import { parentCategoryById } from '../../domain/entities/ParentCategory'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
 import type { ParentCategory } from '../../domain/entities/ParentCategory'
+import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import {
-  createParentCategoryId,
-  type ParentCategoryId,
-} from '../../domain/value-objects/ParentCategoryId'
+import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
 import type { RemoveDomainFromParentCategoryCommand } from '../commands/RemoveDomainFromParentCategoryCommand'
 
 /**

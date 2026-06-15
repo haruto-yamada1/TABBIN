@@ -23,16 +23,16 @@ import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tab
 import { createRemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import { createRenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
-import { categoryNameSchema } from '@/contexts/saved-tabs/presentation/components/categoryNameSchema'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type {
   CategoryManagementModalDeps,
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { categoryNameSchema } from '@/contexts/saved-tabs/presentation/components/categoryNameSchema'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const categoryManagementModalI18nState = vi.hoisted(() => ({
@@ -49,7 +49,10 @@ const { toastErrorSpy, toastSuccessSpy, buttonPropsSpy } = vi.hoisted(() => ({
 // 旧 `getMock` / `setMock` と同じ役割を in-memory ref で再現する
 // （issue #502）。
 const mockStateRef = vi.hoisted(() => ({
-  current: { savedTabs: [] as TabGroup[], parentCategories: [] as ParentCategory[] },
+  current: {
+    savedTabs: [] as TabGroup[],
+    parentCategories: [] as ParentCategory[],
+  },
 }))
 
 vi.mock('sonner', () => ({
@@ -240,7 +243,9 @@ const createMockRepositories = (): {
     ),
     // eslint-disable-next-line typescript/require-await
     saveAll: vi.fn(async (groups) => {
-      mockStateRef.current.savedTabs = [...groups] as unknown as typeof mockStateRef.current.savedTabs
+      mockStateRef.current.savedTabs = [
+        ...groups,
+      ] as unknown as typeof mockStateRef.current.savedTabs
     }),
     // eslint-disable-next-line typescript/require-await
     removeByIds: vi.fn(async (ids) => {
@@ -263,7 +268,9 @@ const createMockRepositories = (): {
       async (id) =>
         (mockStateRef.current.parentCategories.find(
           (c) => c.id === (id as unknown as string),
-        ) ?? null) as unknown as ReturnType<ParentCategoryRepository['findById']>,
+        ) ?? null) as unknown as ReturnType<
+          ParentCategoryRepository['findById']
+        >,
     ),
     // eslint-disable-next-line typescript/require-await
     saveAll: vi.fn(async (cats) => {
@@ -273,9 +280,7 @@ const createMockRepositories = (): {
     removeByIds: vi.fn(async (ids) => {
       const idSet = new Set(ids as unknown as string[])
       mockStateRef.current.parentCategories =
-        mockStateRef.current.parentCategories.filter(
-          (c) => !idSet.has(c.id),
-        )
+        mockStateRef.current.parentCategories.filter((c) => !idSet.has(c.id))
     }),
   }
   return { tabGroupRepository, parentCategoryRepository }
@@ -309,7 +314,7 @@ const setupMocks = (options: SetupMocksOptions = {}) => {
     createMockRepositories()
   const useCases: CategoryManagementModalUseCases = {
     ...createUseCases(parentCategoryRepository),
-    ...(options.useCases ?? {}),
+    ...options.useCases,
   }
   const deps: CategoryManagementModalDeps = {
     tabGroupRepository,
@@ -465,10 +470,7 @@ describe('CategoryManagementModal', () => {
     // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredRename = createDeferred<void>()
     const renameParentCategory = vi.fn(
-      async (command: {
-        categoryId: ParentCategoryId
-        newName: string
-      }) => {
+      async (command: { categoryId: ParentCategoryId; newName: string }) => {
         mockStateRef.current.parentCategories =
           mockStateRef.current.parentCategories.map((cat) =>
             cat.id === (command.categoryId as unknown as string)
@@ -566,10 +568,7 @@ describe('CategoryManagementModal', () => {
     const onClose = vi.fn()
     const renameParentCategory = vi.fn(
       // eslint-disable-next-line typescript/require-await
-      async (command: {
-        categoryId: ParentCategoryId
-        newName: string
-      }) => {
+      async (command: { categoryId: ParentCategoryId; newName: string }) => {
         mockStateRef.current.parentCategories =
           mockStateRef.current.parentCategories.map((cat) =>
             cat.id === (command.categoryId as unknown as string)
@@ -632,6 +631,7 @@ describe('CategoryManagementModal', () => {
   it('リネーム失敗時（use-case throw / 確認失敗）に toast.error を出す', async () => {
     // Sub-test 1: renameParentCategory use-case が throw する
     {
+      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
       const renameParentCategory = vi.fn(async () => {
         throw new Error('use-case failed')
       }) as unknown as RenameParentCategoryUseCase
@@ -649,7 +649,9 @@ describe('CategoryManagementModal', () => {
         />,
       )
 
-      fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+      fireEvent.click(
+        screen.getByRole('button', { name: /親カテゴリ名を変更/ }),
+      )
       const input = await screen.findByPlaceholderText(
         '例: ビジネスツール、技術情報',
       )
@@ -686,7 +688,9 @@ describe('CategoryManagementModal', () => {
         />,
       )
 
-      fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+      fireEvent.click(
+        screen.getByRole('button', { name: /親カテゴリ名を変更/ }),
+      )
       const input = await screen.findByPlaceholderText(
         '例: ビジネスツール、技術情報',
       )
@@ -733,9 +737,7 @@ describe('CategoryManagementModal', () => {
           name: '最終確認で不一致',
           domains: ['g1'],
           domainNames: ['a.com'],
-        } as unknown as Awaited<
-          ReturnType<typeof originalFindById>
-        >
+        } as unknown as Awaited<ReturnType<typeof originalFindById>>
       },
     )
 
@@ -765,6 +767,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム保存で non-Error を投げた場合も stack なしでハンドリングする', async () => {
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
     const renameParentCategory = vi.fn(async () => {
       // eslint-disable-next-line eslint/no-throw-literal
       throw 'string-error'
@@ -807,7 +810,8 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム保存時に validateCategoryName が false を返した場合は処理を中止する', async () => {
-    const renameParentCategory = vi.fn() as unknown as RenameParentCategoryUseCase
+    const renameParentCategory =
+      vi.fn() as unknown as RenameParentCategoryUseCase
     const { deps, useCases } = setupMocks({
       useCases: { renameParentCategory },
     })
@@ -909,9 +913,7 @@ describe('CategoryManagementModal', () => {
     const removeByIdsMock = vi.fn(async (ids: readonly ParentCategoryId[]) => {
       const idSet = new Set(ids as unknown as string[])
       mockStateRef.current.parentCategories =
-        mockStateRef.current.parentCategories.filter(
-          (c) => !idSet.has(c.id),
-        )
+        mockStateRef.current.parentCategories.filter((c) => !idSet.has(c.id))
       await deferredRemove.promise
     })
     const { deps, useCases, parentCategoryRepository } = setupMocks()
@@ -1048,7 +1050,9 @@ describe('CategoryManagementModal', () => {
       fireEvent.click(secondPlusButton)
 
       await waitFor(() => {
-        expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
+        expect(toastErrorSpy).toHaveBeenCalledWith(
+          'カテゴリの設定に失敗しました',
+        )
       })
     }
   })
@@ -1232,7 +1236,9 @@ describe('CategoryManagementModal', () => {
       }
       fireEvent.click(plusButton)
       await waitFor(() => {
-        expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
+        expect(toastErrorSpy).toHaveBeenCalledWith(
+          'カテゴリの設定に失敗しました',
+        )
       })
 
       cleanup()
@@ -1287,7 +1293,9 @@ describe('CategoryManagementModal', () => {
 
       fireEvent.click(plusButton)
       await waitFor(() => {
-        expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの設定に失敗しました')
+        expect(toastErrorSpy).toHaveBeenCalledWith(
+          'カテゴリの設定に失敗しました',
+        )
       })
     }
   })

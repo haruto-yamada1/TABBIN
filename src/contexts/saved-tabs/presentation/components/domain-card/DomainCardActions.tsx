@@ -186,9 +186,9 @@ export const DomainCardActions = () => {
               parentCategories.handleUpdateParentCategories
             }
             storageChangePort={useCases.deps.storageChangePort}
+            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TODO(#502-followup): category management deps の memo 化または context 化で解消予定
             deps={{
-              parentCategoryRepository:
-                useCases.deps.parentCategoryRepository,
+              parentCategoryRepository: useCases.deps.parentCategoryRepository,
               tabGroupRepository: useCases.deps.tabGroupRepository,
             }}
           />

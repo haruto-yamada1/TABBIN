@@ -317,8 +317,8 @@ const useTabData = ({
             parentCategoryRepositoryRef.current.findAll(),
           ])
         // domain entity (branded 型) を storage shape へキャストして扱う。
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         const parentCategories =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
           parentCategoriesFromRepo as unknown as ParentCategory[]
 
         // URLストレージの内容を確認

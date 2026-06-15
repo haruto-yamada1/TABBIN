@@ -210,6 +210,7 @@ export const useCategoryKeywordModal = ({
       // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
       // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
       const stored =
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 ParentCategory と domain 層 ParentCategory の branded 差異
         (await parentCategoryRepository.findAll()) as unknown as readonly ParentCategory[]
       const storedCategories = [...stored]
       setInternalParentCategories(storedCategories)
@@ -309,6 +310,7 @@ export const useCategoryKeywordModal = ({
       updateCategoryEditState({ keywords: updatedKeywords })
       try {
         const savedTabs =
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
           (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
         const updatedGroups = savedTabs.map((g) =>
           g.id === group.id
@@ -334,6 +336,7 @@ export const useCategoryKeywordModal = ({
             : g,
         )
         await tabGroupRepository.saveAll(
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
           updatedGroups as unknown as Parameters<
             typeof tabGroupRepository.saveAll
           >[0],
@@ -389,6 +392,7 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newSubCategory.trim()
       const savedTabs =
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
         (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
       const updatedTabs = savedTabs.map((tab: TabGroup) => {
         if (tab.id === group.id) {
@@ -400,6 +404,7 @@ export const useCategoryKeywordModal = ({
         return tab
       })
       await tabGroupRepository.saveAll(
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
         updatedTabs as unknown as Parameters<
           typeof tabGroupRepository.saveAll
         >[0],
@@ -526,11 +531,13 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newCategoryName.trim()
       const savedTabs =
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
         (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
       const updatedTabs = savedTabs.map((tab: TabGroup) =>
         renameCategoryInTab(tab, group.id, activeCategory, validName),
       )
       await tabGroupRepository.saveAll(
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
         updatedTabs as unknown as Parameters<
           typeof tabGroupRepository.saveAll
         >[0],

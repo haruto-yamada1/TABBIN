@@ -23,6 +23,11 @@ import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import {
   categoryNameSchema,
   createCategoryNameSchema,
@@ -32,11 +37,6 @@ import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
-import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -233,10 +233,12 @@ const useCategoryManagementModalView = ({
           return
         }
 
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異は mock factory 化で解消予定
         setSavedTabGroups([...savedTabs] as unknown as TabGroup[])
-        setParentCategories(
-          [...loadedParentCategories] as unknown as ParentCategory[],
-        )
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 ParentCategory と domain 層 ParentCategory の branded 差異は mock factory 化で解消予定
+        setParentCategories([
+          ...loadedParentCategories,
+        ] as unknown as ParentCategory[])
       } catch (error) {
         console.error('利用可能なドメインの取得に失敗しました:', error)
       }
@@ -247,12 +249,7 @@ const useCategoryManagementModalView = ({
     return () => {
       isMounted = false
     }
-  }, [
-    category.id,
-    isOpen,
-    parentCategoryRepository,
-    tabGroupRepository,
-  ])
+  }, [category.id, isOpen, parentCategoryRepository, tabGroupRepository])
 
   // カテゴリのリネーム処理を開始
   const handleStartRenaming = useCallback(() => {
@@ -438,6 +435,7 @@ const useCategoryManagementModalView = ({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
         domainName: selectedDomainInfo.domain as unknown as DomainName,
       })
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
       setParentCategories([...updatedCategories] as unknown as ParentCategory[])
       setSelectedDomain('')
       toast.success(
@@ -500,6 +498,7 @@ const useCategoryManagementModalView = ({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
         domainName: domainInfo.domain as unknown as DomainName,
       })
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
       setParentCategories([...updatedCategories] as unknown as ParentCategory[])
       toast.success(
         t('savedTabs.categoryModal.domainRemoved', undefined, {

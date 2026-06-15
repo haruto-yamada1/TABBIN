@@ -128,7 +128,9 @@ const showCustomProjectDeleteUndoToast = ({
             await customProjectRepository.saveOrder(
               payload.customProjectOrder ?? [],
             )
-            setCustomProjects(payload.customProjects.map(toStorageCustomProject))
+            setCustomProjects(
+              payload.customProjects.map(toStorageCustomProject),
+            )
             toast.success(t('savedTabs.undo.restored'))
           } catch (error) {
             console.error(
@@ -500,8 +502,9 @@ const useProjectManagement = (
   const handleDeleteUrlFromProject = useCallback(
     async (projectId: string, url: string): Promise<void> => {
       try {
-        const undoSnapshot =
-          await getCustomProjectUndoSnapshot(customProjectRepository)
+        const undoSnapshot = await getCustomProjectUndoSnapshot(
+          customProjectRepository,
+        )
         const updatedProjects = await Promise.resolve(
           removeUrlFromCustomProject(projectId, url),
         ).then(() => getCustomProjects())
@@ -526,8 +529,9 @@ const useProjectManagement = (
   const handleDeleteUrlsFromProject = useCallback(
     async (projectId: string, urls: string[]): Promise<void> => {
       try {
-        const undoSnapshot =
-          await getCustomProjectUndoSnapshot(customProjectRepository)
+        const undoSnapshot = await getCustomProjectUndoSnapshot(
+          customProjectRepository,
+        )
         const updatedProjects = await Promise.resolve(
           removeUrlsFromCustomProject(projectId, urls),
         ).then(() => getCustomProjects())
