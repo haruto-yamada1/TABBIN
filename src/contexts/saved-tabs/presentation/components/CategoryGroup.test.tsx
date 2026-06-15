@@ -6,9 +6,10 @@ import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/app
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
-import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const { categoryGroupRootSpy } = vi.hoisted(() => ({
   categoryGroupRootSpy: vi.fn(),
@@ -58,7 +59,7 @@ vi.mock('./category-group/CategoryGroupContent', () => ({
 
 import { CategoryGroup } from './CategoryGroup'
 
-const defaultSettings: UserSettings = {
+const defaultSettings: UserSettingsDto = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
   excludePatterns: [],
@@ -130,7 +131,7 @@ describe('CategoryGroup', () => {
             Promise.resolve({
               tabGroups: [],
               parentCategories: [],
-              userSettings: {} as UserSettings,
+              userSettings: {} as UserSettingsDto,
             }),
           ),
           parentCategoryRepository: {} as unknown as ParentCategoryRepository,
@@ -196,7 +197,7 @@ describe('CategoryGroup', () => {
             Promise.resolve({
               tabGroups: [],
               parentCategories: [],
-              userSettings: {} as UserSettings,
+              userSettings: {} as UserSettingsDto,
             }),
           ),
           parentCategoryRepository: {} as unknown as ParentCategoryRepository,

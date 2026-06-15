@@ -15,10 +15,11 @@ import { useCallback } from 'react'
 
 import { CardContent } from '@/components/ui/card'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { SortableCategorySection } from '@/contexts/saved-tabs/presentation/components/SortableCategorySection'
 import { CategorySection } from '@/contexts/saved-tabs/presentation/components/TimeRemaining'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { TabGroup, UserSettings } from '@/types/storage'
+import type { TabGroup } from '@/types/storage'
 
 import { useDomainCard } from './DomainCardContext'
 
@@ -37,7 +38,7 @@ interface CategorySectionItemProps {
     categoryName: string,
     urls: { url: string }[],
   ) => void
-  settings: UserSettings
+  settings: UserSettingsDto
   stickyTop: string
   isCategoryReorderMode: boolean
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase

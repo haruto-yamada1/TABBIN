@@ -2,9 +2,9 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { ProjectDragHandlers } from '@/contexts/saved-tabs/presentation/components/DragHandlersContext'
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
-import type { UserSettings } from '@/types/storage'
 
 const { dndContextPropsRef, projectHandlerSpies } = vi.hoisted(() => ({
   dndContextPropsRef: {

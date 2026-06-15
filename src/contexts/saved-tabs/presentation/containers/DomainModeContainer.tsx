@@ -11,6 +11,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
 import { CategoryGroup } from '@/contexts/saved-tabs/presentation/components/CategoryGroup'
 import type {
@@ -25,7 +26,7 @@ import {
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const BULK_OPEN_THRESHOLD = 10
 
@@ -40,7 +41,7 @@ interface DomainModeContainerProps {
     shouldShowUncategorizedList: boolean
     shouldShowUncategorizedSectionHeader: boolean
   }
-  settings: UserSettings
+  settings: UserSettingsDto
   categories: ParentCategory[]
   categorized: Record<string, TabGroup[]>
   categoryOrderForDisplay: string[]

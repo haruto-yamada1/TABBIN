@@ -23,6 +23,7 @@ import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tab
 import { createRemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import { createRenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
@@ -33,7 +34,7 @@ import type {
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { categoryNameSchema } from '@/contexts/saved-tabs/presentation/components/categoryNameSchema'
-import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const categoryManagementModalI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -326,7 +327,7 @@ const setupMocks = (options: SetupMocksOptions = {}) => {
       Promise.resolve({
         tabGroups: [...mockStateRef.current.savedTabs],
         parentCategories: [...mockStateRef.current.parentCategories],
-        userSettings: {} as UserSettings,
+        userSettings: {} as UserSettingsDto,
         // domain entity (branded readonly) を storage shape へ投影する
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any,

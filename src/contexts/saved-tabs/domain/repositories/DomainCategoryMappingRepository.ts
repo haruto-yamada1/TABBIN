@@ -1,7 +1,7 @@
-import type { DomainParentCategoryMapping } from '@/types/storage'
+import type { DomainCategoryMappingDto } from '../dto/DomainCategoryMappingDto'
 
 /**
- * `DomainParentCategoryMapping` の永続化責務だけを抽出した repository
+ * `DomainCategoryMappingDto` の永続化責務だけを抽出した repository
  * interface。
  *
  * 旧 `src/lib/storage/categories.getDomainCategoryMappings` /
@@ -13,6 +13,9 @@ import type { DomainParentCategoryMapping } from '@/types/storage'
  * presentation 層から `@/lib/storage/categories` を import しない
  * 方針 (issue #509) に揃える。
  *
+ * `@/types/storage` には依存せず、domain DTO `DomainCategoryMappingDto`
+ * だけを返す/受け取る (issue #511)。
+ *
  * @example
  * ```ts
  * const mappings = await mappingRepository.findAll()
@@ -22,6 +25,6 @@ import type { DomainParentCategoryMapping } from '@/types/storage'
  * ```
  */
 export interface DomainCategoryMappingRepository {
-  findAll: () => Promise<readonly DomainParentCategoryMapping[]>
-  saveAll: (mappings: readonly DomainParentCategoryMapping[]) => Promise<void>
+  findAll: () => Promise<readonly DomainCategoryMappingDto[]>
+  saveAll: (mappings: readonly DomainCategoryMappingDto[]) => Promise<void>
 }

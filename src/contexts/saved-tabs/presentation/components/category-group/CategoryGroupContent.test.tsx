@@ -2,7 +2,8 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { TabGroup, UserSettings } from '@/types/storage'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { TabGroup } from '@/types/storage'
 
 const {
   sortableDomainCardSpy,
@@ -57,7 +58,7 @@ vi.mock('./CategoryGroupContext', () => ({
 
 import { CategoryGroupContent } from './CategoryGroupContent'
 
-const settings: UserSettings = {
+const settings: UserSettingsDto = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
   excludePatterns: [],

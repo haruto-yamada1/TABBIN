@@ -1,26 +1,27 @@
-import type { TabGroup } from '@/types/storage'
-
+import type { TabGroupDto } from '../dto/TabGroupDto'
 import type { UrlRecord } from '../entities/UrlRecord'
 
 /**
- * 単一 `TabGroup` の `urlIds` 並び替えに関する pure ドメインサービス。
+ * 単一 `TabGroupDto` の `urlIds` 並び替えに関する pure ドメインサービス。
  *
  * 旧 `src/lib/storage/tabs.reorderTabGroupUrls` 内の URL 並び替え
  * ロジックを domain 等価物として抽出したもの。
  * `chrome.storage.local` を知らず、永続化は use-case / repository
  * 側に委ねる。
  *
- * 戻り値の `urlIds` は `string[]` のまま返す。domain `TabGroup` の
- * `urlIds` は branded `UrlRecordId[]` だが、use-case 側で
- * `createUrlRecordId` をかけて再ラップする（既存の
- * `TabGroupRepository.saveAll` も branded 型を受け取れる）。
+ * 戻り値の `urlIds` は `string[]` のまま返す。`TabGroupDto` は
+ * branded ではなく plain string の urlIds を持つため、use-case 側で
+ * 必要なら `createUrlRecordId` を掛けて再ラップする。
+ *
+ * `@/types/storage` には依存せず、domain DTO `TabGroupDto` だけで
+ * 動作する (issue #511)。
  *
  * issue #501 で presentation 層から `@/lib/storage/tabs` への
  * 直接依存を撤去するために新設。
  */
 
 /**
- * `newUrlOrder`（URL 文字列配列）に基づいて、対象 `TabGroup` の
+ * `newUrlOrder`（URL 文字列配列）に基づいて、対象 `TabGroupDto` の
  * `urlIds` の新しい並び順を計算して返す。
  *
  * - 入力 `group` の `urlIds` が空、または `newUrlOrder` が空なら
@@ -35,7 +36,7 @@ export const reorderTabGroupUrlIds = ({
   newUrlOrder,
   urlRecords,
 }: {
-  group: TabGroup
+  group: TabGroupDto
   newUrlOrder: readonly string[]
   urlRecords: readonly UrlRecord[]
 }): readonly string[] => {
@@ -70,6 +71,3 @@ export const reorderTabGroupUrlIds = ({
   }
   return reorderedUrlIds
 }
-
-// `UrlRecordId` factory への参照を保持し、unused import を避ける。
-export const _reorderTabGroupUrlIdsMarker = true

@@ -1,6 +1,7 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { z } from 'zod'
 
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import {
   CustomProjectSchema,
   ParentCategorySchema,
@@ -12,7 +13,6 @@ import type {
   CustomProject,
   ParentCategory,
   TabGroup,
-  UserSettings,
   ViewMode,
 } from '@/types/storage'
 
@@ -24,7 +24,7 @@ interface SyncStorageChangesParams {
   viewModeRef: RefObject<ViewMode>
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>
   syncDomainDataToCustomProjects: () => Promise<CustomProject[]>
-  setSettings: Dispatch<SetStateAction<UserSettings>>
+  setSettings: Dispatch<SetStateAction<UserSettingsDto>>
   setCategories: Dispatch<SetStateAction<ParentCategory[]>>
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
 }
@@ -74,7 +74,7 @@ const resolveSyncEvents = (
 
 const applyUserSettingsChange = (
   changes: readonly SavedTabsStorageChange[],
-  setSettings: Dispatch<SetStateAction<UserSettings>>,
+  setSettings: Dispatch<SetStateAction<UserSettingsDto>>,
 ): void => {
   const change = findChange(changes, 'userSettings')
   if (!change) {

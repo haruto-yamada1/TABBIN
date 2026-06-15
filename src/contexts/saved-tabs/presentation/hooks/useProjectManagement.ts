@@ -12,6 +12,7 @@ import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/applica
 import type { CreateCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase'
 import type { DeleteCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteCustomProjectUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/domain/entities/UncategorizedProject'
 import type {
@@ -24,7 +25,6 @@ import type {
   CustomProject,
   ProjectKeywordSettings,
   TabGroup,
-  UserSettings,
   ViewMode,
 } from '@/types/storage'
 
@@ -329,7 +329,7 @@ const useProjectManagement = (
   // eslint-disable-line eslint/max-lines-per-function
   customProjectRepository: CustomProjectRepository,
   _tabGroups: TabGroup[],
-  _settings: UserSettings,
+  _settings: UserSettingsDto,
   initialViewMode?: ViewMode,
   customProjectsCommandService: CustomProjectsCommandService = createNoopCommandService(),
   createCustomProjectUseCase: CreateCustomProjectUseCase = asyncNoopCreate,

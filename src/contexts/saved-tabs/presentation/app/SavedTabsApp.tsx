@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Toaster } from '@/components/ui/sonner'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import {
   buildPresentationCategoryLookup,
@@ -35,12 +36,7 @@ import { handleTabGroupRemoval } from '@/contexts/saved-tabs/presentation/lib/ta
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type {
-  ParentCategory,
-  TabGroup,
-  UserSettings,
-  ViewMode,
-} from '@/types/storage'
+import type { ParentCategory, TabGroup, ViewMode } from '@/types/storage'
 
 import {
   countTabGroupUrls,
@@ -101,7 +97,7 @@ const useSavedTabsAppView = ({
   useCases: savedTabsUseCases,
 }: SavedTabsAppProps) => {
   const { t } = useI18n()
-  const [settings, setSettings] = useState<UserSettings>(defaultUserSettings)
+  const [settings, setSettings] = useState<UserSettingsDto>(defaultUserSettings)
   const hasResolvedInitialViewModeRef = useRef(!initialViewMode)
   const previousInitialViewModeRef = useRef(initialViewMode)
 

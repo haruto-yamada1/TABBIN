@@ -9,9 +9,10 @@ import type {
   SavedTabsStorageChange,
   StorageChangePort,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
+import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import {
   renameCategoryInTab,
@@ -205,7 +206,7 @@ const setupChromeStorage = (state: StorageState = {}) => {
     return {
       tabGroups,
       parentCategories,
-      userSettings: {} as UserSettings,
+      userSettings: {} as UserSettingsDto,
     }
   })
   // domain.ParentCategory (branded readonly) は storage 層 ParentCategory
@@ -336,7 +337,7 @@ describe('useCategoryKeywordModal', () => {
             Promise.resolve({
               tabGroups: [],
               parentCategories: [],
-              userSettings: {} as UserSettings,
+              userSettings: {} as UserSettingsDto,
             }),
           ),
         },
@@ -468,7 +469,7 @@ describe('useCategoryKeywordModal', () => {
             Promise.resolve({
               tabGroups: [],
               parentCategories: [],
-              userSettings: {} as UserSettings,
+              userSettings: {} as UserSettingsDto,
             }),
           ),
         },

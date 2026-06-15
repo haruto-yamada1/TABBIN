@@ -2,8 +2,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { SortableUrlItemProps } from '@/types/saved-tabs'
-import type { UserSettings } from '@/types/storage'
 
 const sortableUrlItemAdditionalI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',

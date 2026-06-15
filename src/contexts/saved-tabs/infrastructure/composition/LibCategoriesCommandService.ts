@@ -1,7 +1,8 @@
 import { updateDomainCategorySettings } from '@/lib/storage/categories'
-import type { SubCategoryKeyword } from '@/types/storage'
 
+import { toStorageDomainCategorySettings } from '../../application/mappers/SavedTabsDtosMapper'
 import type { CategoriesCommandService } from '../../application/ports/CategoriesCommandService'
+import type { SubCategoryKeywordDto } from '../../domain/dto/DomainCategorySettingsDto'
 
 /**
  * `CategoriesCommandService` の `lib/storage` delegate 実装。
@@ -11,6 +12,10 @@ import type { CategoriesCommandService } from '../../application/ports/Categorie
  * `handleTabGroupRemoval`) がこの port を呼ぶことで、
  * `@/lib/storage/categories` の直接 import を避ける
  * (issue #509)。
+ *
+ * domain DTO `SubCategoryKeywordDto` を受け取り、mapper 経由で
+ * storage 形 `SubCategoryKeyword[]` へ逆変換して lib/storage 関数
+ * へ渡す (issue #511)。
  *
  * `getParentCategories` / `saveParentCategories` /
  * `createParentCategory` / `deleteParentCategory` /
@@ -27,12 +32,23 @@ export const createLibCategoriesCommandService =
     updateDomainCategorySettings: async (
       domain: string,
       subCategories: string[],
-      categoryKeywords: SubCategoryKeyword[],
+      categoryKeywords: SubCategoryKeywordDto[],
     ) => {
+      const storage = toStorageDomainCategorySettings([
+        {
+          categoryKeywords,
+          domain,
+          subCategories,
+        },
+      ])
+      const first = storage[0]
+      if (!first) {
+        return
+      }
       await updateDomainCategorySettings(
-        domain,
-        subCategories,
-        categoryKeywords,
+        first.domain,
+        [...first.subCategories],
+        [...first.categoryKeywords],
       )
     },
   })

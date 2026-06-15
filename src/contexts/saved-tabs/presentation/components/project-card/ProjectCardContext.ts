@@ -1,5 +1,6 @@
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
-import type { CustomProject, UserSettings } from '@/types/storage'
+import type { CustomProject } from '@/types/storage'
 
 import type { useCustomProjectCard } from '../../hooks/useCustomProjectCard'
 import type { CustomProjectCardProps } from '../../types/CustomProjectCard.types'
@@ -11,7 +12,7 @@ export interface ProjectCardContextType {
   /** プロジェクトデータ */
   project: CustomProject
   /** 設定 */
-  settings: UserSettings
+  settings: UserSettingsDto
   /** 未分類エリアがドロップオーバー中か */
   isUncategorizedOver: boolean
   /** 外部アイテムがドロップオーバー中か */

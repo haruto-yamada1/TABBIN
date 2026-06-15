@@ -1,5 +1,3 @@
-import type { TabGroup } from '@/types/storage'
-
 import type { RemoveUrlsFromCustomProjectsCommand } from '../commands/RemoveUrlsFromCustomProjectsCommand'
 import type { RemovedUrlsFromCustomProjectsDto } from '../dto/RemovedUrlsFromCustomProjectsDto'
 import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
@@ -44,6 +42,9 @@ export type RemoveUrlsFromCustomProjectsUseCase = (
  *    一括同期削除する。
  * 4. URL 解決 / 削除で例外が発生した場合は `console.error` を残し、
  *    他のグループの削除処理は継続する (旧 `helpers.ts` の挙動を踏襲)。
+ *
+ * `@/types/storage` には依存せず、domain DTO `TabGroupDto` のみを
+ * 契約とする (issue #511)。
  */
 export const createRemoveUrlsFromCustomProjectsUseCase = (
   deps: RemoveUrlsFromCustomProjectsUseCaseDeps,
@@ -95,6 +96,3 @@ export const createRemoveUrlsFromCustomProjectsUseCase = (
     }
   }
 }
-
-// `TabGroup` 型が unused 警告で落ちないようにするための marker。
-export type _RemoveUrlsFromCustomProjectsTabGroupMarker = TabGroup

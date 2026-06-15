@@ -1,9 +1,9 @@
 import type { useSortable } from '@dnd-kit/sortable'
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
-import type { UserSettings } from '@/types/storage'
 
 import type { useDomainCardState } from '../../hooks/useDomainCardState'
 
@@ -14,7 +14,7 @@ export interface DomainCardContextType {
   /** タブグループデータ */
   group: SortableDomainCardProps['group']
   /** 設定 */
-  settings: UserSettings
+  settings: UserSettingsDto
   /** 親カテゴリID */
   categoryId?: string
   /** 検索クエリ */

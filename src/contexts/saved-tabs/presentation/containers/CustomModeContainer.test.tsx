@@ -2,7 +2,8 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { CustomProject, UserSettings } from '@/types/storage'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { CustomProject } from '@/types/storage'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
@@ -25,7 +26,7 @@ vi.mock(
 
 import { CustomModeContainer } from './CustomModeContainer'
 
-const defaultSettings: UserSettings = {
+const defaultSettings: UserSettingsDto = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
   excludePatterns: [],

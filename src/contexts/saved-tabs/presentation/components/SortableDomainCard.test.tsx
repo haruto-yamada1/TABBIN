@@ -3,8 +3,9 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
-import type { TabGroup, UserSettings } from '@/types/storage'
+import type { TabGroup } from '@/types/storage'
 
 const { domainCardRootSpy } = vi.hoisted(() => ({
   domainCardRootSpy: vi.fn(),
@@ -48,10 +49,10 @@ vi.mock('./domain-card/DomainCardContent', () => ({
 import { SortableDomainCard } from './SortableDomainCard'
 
 type SortableDomainCardComponentProps = SortableDomainCardProps & {
-  settings: UserSettings
+  settings: UserSettingsDto
 }
 
-const defaultSettings: UserSettings = {
+const defaultSettings: UserSettingsDto = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
   excludePatterns: [],
