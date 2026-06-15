@@ -1,4 +1,4 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises, vitest/no-disabled-tests */
+/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'

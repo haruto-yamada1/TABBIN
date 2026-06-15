@@ -205,39 +205,58 @@ export const useCategoryKeywordModal = ({
   }, [group.parentCategoryId])
 
   // --- 親カテゴリ読み込み ---
+  // 以下の値 (group, onUpdateParentCategories, parentCategoryRepository, t) は
+  // 呼び出しごとに新しい参照になるケース (テストモック / i18n オブジェクト等) でも
+  // loadParentCategories の再生成で useEffect が無限ループしないように ref 経由で
+  // 読み取る。`selectedParentCategory` も同様に最新値参照用 ref を使うことで
+  // コールバック本体を安定化し、`useEffect` の依存に入れても再実行を避ける。
+  const groupRef = useRef(group)
+  groupRef.current = group
+  const onUpdateParentCategoriesRef = useRef(onUpdateParentCategories)
+  onUpdateParentCategoriesRef.current = onUpdateParentCategories
+  const parentCategoryRepositoryRef = useRef(parentCategoryRepository)
+  parentCategoryRepositoryRef.current = parentCategoryRepository
+  const tRef = useRef(t)
+  tRef.current = t
+  const selectedParentCategoryRef = useRef(selectedParentCategory)
+  selectedParentCategoryRef.current = selectedParentCategory
+
   const loadParentCategories = useCallback(async () => {
     try {
       // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
       // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
       const stored =
         // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 ParentCategory と domain 層 ParentCategory の branded 差異
-        (await parentCategoryRepository.findAll()) as unknown as readonly ParentCategory[]
+        (await parentCategoryRepositoryRef.current.findAll()) as unknown as readonly ParentCategory[]
       const storedCategories = [...stored]
       setInternalParentCategories(storedCategories)
-      if (onUpdateParentCategories) {
+      const updateCallback = onUpdateParentCategoriesRef.current
+      if (updateCallback) {
         // eslint-disable-next-line typescript/no-confusing-void-expression
-        await onUpdateParentCategories(storedCategories) // eslint-disable-line typescript/await-thenable
+        await updateCallback(storedCategories) // eslint-disable-line typescript/await-thenable
       }
       const newParentId = resolveSelectedParentCategoryId(
         storedCategories,
-        group,
+        groupRef.current,
       )
-      if (selectedParentCategory !== newParentId) {
-        setSelectedParentCategory(newParentId)
-      }
+      // 関数型 setState を使うことで、ref 読み取りの最新値と setter を
+      // 同期させ、不要な state 変更を React に弾かせる。
+      setSelectedParentCategory((current) =>
+        current === newParentId ? current : newParentId,
+      )
     } catch (error) {
       console.error('親カテゴリの読み込みに失敗:', error)
-      toast.error(t('savedTabs.categoryModal.loadError'))
+      toast.error(tRef.current('savedTabs.categoryModal.loadError'))
     }
-  }, [
-    group,
-    onUpdateParentCategories,
-    parentCategoryRepository,
-    selectedParentCategory,
-    t,
-  ])
+  }, [])
 
   // --- モーダル開閉時の初期化 ---
+  // `loadParentCategories` / `storageChangePort` の参照が頻繁に変わっても
+  // useEffect が無限ループしないように、`storageChangePort` のみ ref 経由で
+  // 参照し、`loadParentCategories` は上記で安定化済み (deps 空) なので
+  // クリーンアップ用の参照だけ保持する。
+  const storageChangePortRef = useRef(storageChangePort)
+  storageChangePortRef.current = storageChangePort
   useEffect(() => {
     if (!isOpen) {
       return undefined
@@ -245,11 +264,12 @@ export const useCategoryKeywordModal = ({
 
     void loadParentCategories()
 
-    if (!storageChangePort) {
+    const port = storageChangePortRef.current
+    if (!port) {
       return undefined
     }
 
-    const unsubscribe = storageChangePort.subscribe((changes) => {
+    const unsubscribe = port.subscribe((changes) => {
       if (changes.some((change) => change.key === 'parentCategories')) {
         void loadParentCategories()
       }
@@ -258,7 +278,7 @@ export const useCategoryKeywordModal = ({
     return () => {
       unsubscribe()
     }
-  }, [isOpen, loadParentCategories, storageChangePort])
+  }, [isOpen, loadParentCategories])
 
   // --- カテゴリ変更時のキーワード読み込み ---
   useEffect(() => {
