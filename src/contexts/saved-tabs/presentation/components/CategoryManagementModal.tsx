@@ -20,11 +20,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
@@ -47,12 +48,18 @@ interface AvailableDomain {
 }
 
 /**
- * `CategoryManagementModal` が repository に直接アクセスするために受け取る
- * 依存バンドル。`chrome.storage.local` 直叩きを置換し、presentation 層から
- * chrome.* を撤去する（issue #502）。
+ * `CategoryManagementModal` が port / query にアクセスするために受け取る
+ * 依存バンドル (issue #510)。`chrome.storage.local` 直叩きと
+ * `tabGroupRepository` / `parentCategoryRepository` 直叩きを port / query
+ * へ統一する。
  */
 export interface CategoryManagementModalDeps {
-  readonly tabGroupRepository: TabGroupRepository
+  readonly categoryAssignmentPort: CategoryAssignmentPort
+  readonly getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
+  /**
+   * カテゴリ削除 (`removeByIds`) 専用に残す parent category repository。
+   * その他の find / save は query / port 経由へ置換済み。
+   */
   readonly parentCategoryRepository: ParentCategoryRepository
 }
 
@@ -131,7 +138,14 @@ const useCategoryManagementModalView = ({
   deps,
   useCases,
 }: CategoryManagementModalProps) => {
-  const { tabGroupRepository, parentCategoryRepository } = deps
+  const { getSavedTabsPageDataQuery, parentCategoryRepository } = deps
+  // `categoryAssignmentPort` is exposed by the deps bundle for callers that
+  // wire additional port-based mutations, but the modal currently routes
+  // its writes through the dedicated use-cases (rename / add / remove
+  // domain). The reference is kept so the dep type stays stable across
+  // components.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { categoryAssignmentPort: _categoryAssignmentPort } = deps
   const {
     renameParentCategory,
     addDomainToParentCategory,
@@ -224,21 +238,18 @@ const useCategoryManagementModalView = ({
 
     const loadDomainSources = async () => {
       try {
-        const [savedTabs, loadedParentCategories] = await Promise.all([
-          tabGroupRepository.findAll(),
-          parentCategoryRepository.findAll(),
-        ])
-
+        const pageData = await getSavedTabsPageDataQuery()
         if (!isMounted) {
           return
         }
-
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異は mock factory 化で解消予定
-        setSavedTabGroups([...savedTabs] as unknown as TabGroup[])
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 ParentCategory と domain 層 ParentCategory の branded 差異は mock factory 化で解消予定
-        setParentCategories([
-          ...loadedParentCategories,
-        ] as unknown as ParentCategory[])
+        setSavedTabGroups(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage 層 TabGroup へ投影
+          [...pageData.tabGroups] as unknown as TabGroup[],
+        )
+        setParentCategories(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
+          [...pageData.parentCategories] as unknown as ParentCategory[],
+        )
       } catch (error) {
         console.error('利用可能なドメインの取得に失敗しました:', error)
       }
@@ -249,7 +260,7 @@ const useCategoryManagementModalView = ({
     return () => {
       isMounted = false
     }
-  }, [category.id, isOpen, parentCategoryRepository, tabGroupRepository])
+  }, [category.id, getSavedTabsPageDataQuery, isOpen])
 
   // カテゴリのリネーム処理を開始
   const handleStartRenaming = useCallback(() => {

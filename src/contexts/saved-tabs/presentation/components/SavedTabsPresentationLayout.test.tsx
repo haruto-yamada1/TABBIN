@@ -175,6 +175,10 @@ const buildLayoutComposition = () => {
     categoriesCommandService: {
       updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
     },
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn().mockResolvedValue(undefined),
+      saveTabGroups: vi.fn().mockResolvedValue(undefined),
+    },
     customProjectsCommandService: {
       addCategoryToProject: vi.fn().mockResolvedValue(undefined),
       addUrlToCustomProject: vi.fn().mockResolvedValue(undefined),

@@ -50,11 +50,26 @@ describe('CategoryModal', () => {
       { id: 'group-2', domain: 'example.org', urls: [] },
     ]
 
-    render(<CategoryModal onClose={onClose} tabGroups={tabGroups} />)
+    const getSavedTabsPageDataQuery = vi.fn(() =>
+      Promise.resolve({
+        tabGroups: [],
+        parentCategories: [],
+        userSettings: {} as never,
+      }),
+    )
+
+    render(
+      <CategoryModal
+        getSavedTabsPageDataQuery={getSavedTabsPageDataQuery}
+        onClose={onClose}
+        tabGroups={tabGroups}
+      />,
+    )
 
     expect(categoryModalRootSpy).toHaveBeenCalledTimes(1)
     expect(categoryModalRootSpy).toHaveBeenCalledWith(
       expect.objectContaining({
+        getSavedTabsPageDataQuery,
         onClose,
         tabGroups,
       }),

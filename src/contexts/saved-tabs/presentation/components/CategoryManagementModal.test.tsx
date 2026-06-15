@@ -33,7 +33,7 @@ import type {
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { categoryNameSchema } from '@/contexts/saved-tabs/presentation/components/categoryNameSchema'
-import type { ParentCategory, TabGroup } from '@/types/storage'
+import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 const categoryManagementModalI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -316,11 +316,33 @@ const setupMocks = (options: SetupMocksOptions = {}) => {
     ...createUseCases(parentCategoryRepository),
     ...options.useCases,
   }
+  const categoryAssignmentPort = {
+    saveParentCategories: vi.fn().mockResolvedValue(undefined),
+    saveTabGroups: vi.fn().mockResolvedValue(undefined),
+  }
+  const getSavedTabsPageDataQuery = vi.fn(
+    () =>
+      Promise.resolve({
+        tabGroups: [...mockStateRef.current.savedTabs],
+        parentCategories: [...mockStateRef.current.parentCategories],
+        userSettings: {} as UserSettings,
+        // domain entity (branded readonly) を storage shape へ投影する
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any,
+  )
   const deps: CategoryManagementModalDeps = {
-    tabGroupRepository,
+    categoryAssignmentPort,
+    getSavedTabsPageDataQuery,
     parentCategoryRepository,
   }
-  return { deps, useCases, tabGroupRepository, parentCategoryRepository }
+  return {
+    categoryAssignmentPort,
+    deps,
+    getSavedTabsPageDataQuery,
+    parentCategoryRepository,
+    tabGroupRepository,
+    useCases,
+  }
 }
 
 const createCategory = () => ({
@@ -380,8 +402,7 @@ describe('CategoryManagementModal', () => {
 
   it('開いたときに初期化して利用可能ドメインを読み込み、通常時は閉じられる', async () => {
     const onClose = vi.fn()
-    const { deps, useCases, tabGroupRepository, parentCategoryRepository } =
-      setupMocks()
+    const { deps, useCases, getSavedTabsPageDataQuery } = setupMocks()
     render(
       <CategoryManagementModal
         isOpen
@@ -398,8 +419,7 @@ describe('CategoryManagementModal', () => {
     ).resolves.toBeTruthy()
     expect(screen.getByText('a.com')).toBeTruthy()
     expect(screen.getByTestId('select-item-g2')).toBeTruthy()
-    expect(tabGroupRepository.findAll).toHaveBeenCalled()
-    expect(parentCategoryRepository.findAll).toHaveBeenCalled()
+    expect(getSavedTabsPageDataQuery).toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
@@ -1518,10 +1538,8 @@ describe('CategoryManagementModal', () => {
   })
 
   it('利用可能ドメインの読み込み失敗をハンドリングする', async () => {
-    const { deps, useCases, tabGroupRepository } = setupMocks()
-    vi.mocked(tabGroupRepository.findAll).mockRejectedValueOnce(
-      new Error('load failed'),
-    )
+    const { deps, useCases, getSavedTabsPageDataQuery } = setupMocks()
+    getSavedTabsPageDataQuery.mockRejectedValueOnce(new Error('load failed'))
 
     render(
       <CategoryManagementModal

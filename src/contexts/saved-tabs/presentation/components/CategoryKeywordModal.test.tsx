@@ -23,8 +23,8 @@ vi.mock('./keyword-modal/KeywordModalRoot', () => ({
     initialParentCategories: ParentCategory[]
     onUpdateParentCategories?: CategoryKeywordModalProps['onUpdateParentCategories']
     deps: {
-      tabGroupRepository: unknown
-      parentCategoryRepository: unknown
+      categoryAssignmentPort: unknown
+      getSavedTabsPageDataQuery: unknown
     }
   }) => {
     keywordModalRootSpy(props)
@@ -47,8 +47,8 @@ vi.mock('./keyword-modal/KeywordEditor', () => ({
 import { CategoryKeywordModal } from './CategoryKeywordModal'
 
 const createMockDeps = () => ({
-  parentCategoryRepository: {} as never,
-  tabGroupRepository: {} as never,
+  categoryAssignmentPort: {} as never,
+  getSavedTabsPageDataQuery: {} as never,
 })
 
 const createProps = (

@@ -1,3 +1,4 @@
+import { createGetSavedTabsPageDataQuery } from '../../application/queries/GetSavedTabsPageDataQuery'
 import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
 import { createAddDomainToParentCategoryUseCase } from '../../application/use-cases/AddDomainToParentCategoryUseCase'
 import { createAssignDomainToCategoryUseCase } from '../../application/use-cases/AssignDomainToCategoryUseCase'
@@ -114,6 +115,11 @@ export const createSavedTabsUseCases = (
   getProjectUrls: createGetProjectUrlsUseCase({
     customProjectRepository: deps.customProjectRepository,
     urlRecordRepository: deps.urlRecordRepository,
+  }),
+  getSavedTabsPageData: createGetSavedTabsPageDataQuery({
+    parentCategoryRepository: deps.parentCategoryRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    userSettingsRepository: deps.userSettingsRepository,
   }),
   loadTabGroupUrls: createLoadTabGroupUrlsUseCase({
     urlRecordRepository: deps.urlRecordRepository,

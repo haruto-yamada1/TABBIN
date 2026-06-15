@@ -125,6 +125,10 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     categoriesCommandService: {
       updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
     },
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn().mockResolvedValue(undefined),
+      saveTabGroups: vi.fn().mockResolvedValue(undefined),
+    },
     customProjectRepository: createChromeCustomProjectRepository(port),
     customProjectsCommandService: {
       addCategoryToProject: vi.fn().mockResolvedValue(undefined),
@@ -377,6 +381,10 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         browserWindowPort,
         categoriesCommandService: {
           updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+        },
+        categoryAssignmentPort: {
+          saveParentCategories: vi.fn().mockResolvedValue(undefined),
+          saveTabGroups: vi.fn().mockResolvedValue(undefined),
         },
         customProjectRepository: createChromeCustomProjectRepository(port),
         customProjectsCommandService: {

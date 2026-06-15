@@ -8,12 +8,12 @@ import { useTabData } from './useTabData'
 
 const {
   loadTabGroupsWithUrlsUseCaseMock,
-  userSettingsFindAllMock,
+  getSavedTabsPageDataQueryMock,
   migrateParentCategoriesToDomainNamesMock,
   migrateToUrlsStorageMock,
 } = vi.hoisted(() => ({
   loadTabGroupsWithUrlsUseCaseMock: vi.fn(),
-  userSettingsFindAllMock: vi.fn().mockResolvedValue({} as UserSettings),
+  getSavedTabsPageDataQueryMock: vi.fn(),
   migrateParentCategoriesToDomainNamesMock: vi
     .fn()
     .mockResolvedValue(undefined),
@@ -27,25 +27,6 @@ const createTabGroupRepositoryMock = () => ({
   saveAll: vi.fn().mockResolvedValue(undefined),
 })
 
-const createUrlRecordRepositoryMock = () => ({
-  findAll: vi.fn().mockResolvedValue([]),
-  findById: vi.fn().mockResolvedValue(null),
-  removeByIds: vi.fn().mockResolvedValue(undefined),
-  saveAll: vi.fn().mockResolvedValue(undefined),
-})
-
-const createParentCategoryRepositoryMock = () => ({
-  findAll: vi.fn().mockResolvedValue([]),
-  findById: vi.fn().mockResolvedValue(null),
-  removeByIds: vi.fn().mockResolvedValue(undefined),
-  saveAll: vi.fn().mockResolvedValue(undefined),
-})
-
-const createUserSettingsRepositoryMock = () => ({
-  findAll: userSettingsFindAllMock,
-  save: vi.fn().mockResolvedValue(undefined),
-})
-
 const createMigrationPortMock = () => ({
   migrateParentCategoriesToDomainNames:
     migrateParentCategoriesToDomainNamesMock,
@@ -53,11 +34,6 @@ const createMigrationPortMock = () => ({
 })
 
 let tabGroupRepository: ReturnType<typeof createTabGroupRepositoryMock>
-let urlRecordRepository: ReturnType<typeof createUrlRecordRepositoryMock>
-let parentCategoryRepository: ReturnType<
-  typeof createParentCategoryRepositoryMock
->
-let userSettingsRepository: ReturnType<typeof createUserSettingsRepositoryMock>
 let migrationPort: ReturnType<typeof createMigrationPortMock>
 
 const renderUseTabData = (
@@ -67,15 +43,23 @@ const renderUseTabData = (
   renderHook(() =>
     useTabData({
       loadTabGroupsWithUrlsUseCase: loadTabGroupsWithUrlsUseCaseMock as never,
+      getSavedTabsPageDataQuery: getSavedTabsPageDataQueryMock,
       tabGroupRepository,
-      urlRecordRepository,
-      parentCategoryRepository,
-      userSettingsRepository,
       migrationPort,
       onCategoriesLoaded,
       onSettingsLoaded,
     }),
   )
+
+const buildPageData = (params: {
+  tabGroups?: readonly TabGroup[]
+  parentCategories?: readonly ParentCategory[]
+  userSettings?: UserSettings
+}) => ({
+  tabGroups: params.tabGroups ?? [],
+  parentCategories: params.parentCategories ?? [],
+  userSettings: params.userSettings ?? ({} as UserSettings),
+})
 
 describe('useTabData', () => {
   beforeEach(() => {
@@ -89,16 +73,13 @@ describe('useTabData', () => {
         tabGroups: command.tabGroups,
       }),
     )
-    userSettingsFindAllMock.mockReset()
-    userSettingsFindAllMock.mockResolvedValue({} as UserSettings)
+    getSavedTabsPageDataQueryMock.mockReset()
+    getSavedTabsPageDataQueryMock.mockResolvedValue(buildPageData({}))
     migrateParentCategoriesToDomainNamesMock.mockReset()
     migrateParentCategoriesToDomainNamesMock.mockResolvedValue(undefined)
     migrateToUrlsStorageMock.mockReset()
     migrateToUrlsStorageMock.mockResolvedValue(undefined)
     tabGroupRepository = createTabGroupRepositoryMock()
-    urlRecordRepository = createUrlRecordRepositoryMock()
-    parentCategoryRepository = createParentCategoryRepositoryMock()
-    userSettingsRepository = createUserSettingsRepositoryMock()
     migrationPort = createMigrationPortMock()
   })
 
@@ -149,25 +130,28 @@ describe('useTabData', () => {
         name: 'Legacy',
       } as ParentCategory,
     ]
-    userSettingsFindAllMock.mockResolvedValue(settings)
-    parentCategoryRepository.findAll
-      .mockResolvedValueOnce([
-        {
-          id: 'invalid',
-          name: 'Invalid',
-          domains: ['group-by-id'],
-        },
-      ])
-      .mockResolvedValueOnce(repairedCategories)
-    tabGroupRepository.findAll.mockResolvedValue(savedTabs)
-    urlRecordRepository.findAll.mockResolvedValue([
-      {
-        id: 'url-1',
-        savedAt: 1,
-        title: 'One',
-        url: 'https://id.example.com/one',
-      },
-    ])
+    getSavedTabsPageDataQueryMock
+      .mockResolvedValueOnce(
+        buildPageData({
+          tabGroups: savedTabs,
+          parentCategories: [
+            {
+              id: 'invalid',
+              name: 'Invalid',
+              domains: ['group-by-id'],
+              domainNames: undefined as unknown as string[],
+            },
+          ],
+          userSettings: settings,
+        }),
+      )
+      .mockResolvedValueOnce(
+        buildPageData({
+          tabGroups: savedTabs,
+          parentCategories: repairedCategories,
+          userSettings: settings,
+        }),
+      )
 
     const onCategoriesLoaded = vi.fn()
     const onSettingsLoaded = vi.fn()
@@ -211,7 +195,7 @@ describe('useTabData', () => {
     migrateToUrlsStorageMock.mockRejectedValueOnce(
       new Error('url migration failed'),
     )
-    tabGroupRepository.findAll.mockRejectedValueOnce(
+    getSavedTabsPageDataQueryMock.mockRejectedValueOnce(
       new Error('storage failed'),
     )
 
@@ -235,10 +219,7 @@ describe('useTabData', () => {
     )
   })
 
-  it('repository から空配列が返った場合はそのまま空状態として扱う', async () => {
-    tabGroupRepository.findAll.mockResolvedValue([])
-    urlRecordRepository.findAll.mockResolvedValue([])
-
+  it('query から空配列が返った場合はそのまま空状態として扱う', async () => {
     const { result } = renderUseTabData()
 
     await waitFor(() => {
@@ -246,11 +227,10 @@ describe('useTabData', () => {
     })
 
     expect(result.current.tabGroups).toStrictEqual([])
-    expect(console.log).toHaveBeenCalledWith('URLレコード数:', 0)
   })
 
   it('親カテゴリが有効な場合は再マイグレーションせずそのまま読み込む', async () => {
-    const validCategories = [
+    const validCategories: ParentCategory[] = [
       {
         id: 'category-1',
         name: 'Valid',
@@ -258,7 +238,9 @@ describe('useTabData', () => {
         domainNames: ['example.com'],
       },
     ]
-    parentCategoryRepository.findAll.mockResolvedValue(validCategories)
+    getSavedTabsPageDataQueryMock.mockResolvedValue(
+      buildPageData({ parentCategories: validCategories }),
+    )
 
     const { result } = renderUseTabData()
 
@@ -267,7 +249,7 @@ describe('useTabData', () => {
     })
 
     expect(migrateParentCategoriesToDomainNamesMock).toHaveBeenCalledTimes(1)
-    expect(parentCategoryRepository.findAll).toHaveBeenCalledTimes(1)
+    expect(getSavedTabsPageDataQueryMock).toHaveBeenCalledTimes(1)
   })
 
   it('refreshTabGroupsWithUrls で URL 解決を一度だけ実行し、tabGroups effect と二重化しない', async () => {
@@ -406,6 +388,9 @@ describe('useTabData', () => {
       id: 'appended',
       domain: 'appended.example.com',
     }
+    getSavedTabsPageDataQueryMock.mockResolvedValue(
+      buildPageData({ tabGroups: storedGroups }),
+    )
     tabGroupRepository.findAll.mockResolvedValue(storedGroups)
 
     const { result } = renderUseTabData()

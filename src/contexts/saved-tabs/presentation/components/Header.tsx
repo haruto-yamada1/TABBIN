@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
 
@@ -43,8 +43,10 @@ interface HeaderProps {
    * `CategoryModal` 配下の `useCategoryModal` が
    * `lib/storage/categories` / `lib/storage/migration` の直叩きを
    * 避けるために必要とする依存 (issue #509)。
+   * issue #510 で `parentCategoryRepository` は page data query に
+   * 統合されたため、query 1 つへ集約。
    */
-  parentCategoryRepository?: ParentCategoryRepository
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
   createParentCategoryUseCase?: CreateParentCategoryUseCase
   deleteParentCategoryUseCase?: DeleteParentCategoryUseCase
   assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
@@ -62,7 +64,7 @@ export const Header = ({
   customProjects = EMPTY_CUSTOM_PROJECTS,
   filteredCustomProjects,
   onCreateProject = noopCreateProject,
-  parentCategoryRepository,
+  getSavedTabsPageDataQuery,
   createParentCategoryUseCase,
   deleteParentCategoryUseCase,
   assignDomainToCategoryUseCase,
@@ -260,7 +262,7 @@ export const Header = ({
           assignDomainToCategoryUseCase={assignDomainToCategoryUseCase}
           createParentCategoryUseCase={createParentCategoryUseCase}
           deleteParentCategoryUseCase={deleteParentCategoryUseCase}
-          parentCategoryRepository={parentCategoryRepository}
+          getSavedTabsPageDataQuery={getSavedTabsPageDataQuery}
         />
       )}
       {currentMode === 'custom' && isCustomProjectModalOpen && (

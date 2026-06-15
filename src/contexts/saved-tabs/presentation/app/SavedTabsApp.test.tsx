@@ -475,6 +475,50 @@ import {
   syncGroupCategoryAssignment,
 } from './savedTabsApp.helpers'
 
+// chrome.storage.local の production code 経由の読み取りを補完するため、
+// テスト用カスタムプロジェクトの完全なスナップショットを構築する。
+// `getProjectUrls` / ドメイン search 経路で `urls` / `customProjects` /
+// `customProjectOrder` / `parentCategories` / `userSettings` を必要とする
+// pre-existing テスト (issue #510 範囲外) を成立させるために beforeEach
+// で chrome mock に注入する。`ChromeUrlRecordRepository` は `URLS_KEY`
+// = `'urls'`、`ChromeCustomProjectRepository` は `CUSTOM_PROJECTS_KEY` =
+// `'customProjects'` で参照するため、キーは storage schema 準拠。
+const buildTestStorageSnapshot = () => {
+  const allUrlRecords: UrlRecord[] = [
+    {
+      id: 'url-1',
+      url: 'https://example.com/reading',
+      title: 'Reading article',
+      savedAt: 10,
+    },
+    {
+      id: 'url-2',
+      url: 'https://example.com/docker-cmd',
+      title: 'Container article',
+      savedAt: 20,
+    },
+    {
+      id: 'url-3',
+      url: 'https://example.com/video',
+      title: 'Meeting notes',
+      savedAt: 30,
+    },
+  ]
+  return {
+    customProjects: mocked.projectState.customProjects,
+    customProjectOrder: mocked.projectState.customProjects.map((p) => p.id),
+    parentCategories: [],
+    savedTabs: [],
+    urls: allUrlRecords,
+    userSettings: {
+      enableCategories: true,
+      openUrlInBackground: false,
+      removeTabAfterOpen: false,
+      openAllInNewWindow: false,
+    },
+  }
+}
+
 describe('SavedTabsApp custom search', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -491,12 +535,13 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = []
     mocked.tabDataState.tabGroupsWithUrls = []
     mocked.tabDataState.isLoading = false
+    const testSnapshot = buildTestStorageSnapshot()
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({ savedTabs: [] })),
+          get: vi.fn(async () => testSnapshot),
           set: vi.fn(),
         },
         onChanged: {
@@ -599,6 +644,7 @@ describe('SavedTabsApp custom search', () => {
         deleteCustomProject: vi.fn(),
         updateCustomProjectName: vi.fn(),
         getProjectUrls: vi.fn(),
+        getSavedTabsPageData: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       snapshot: {
@@ -643,6 +689,7 @@ describe('SavedTabsApp custom search', () => {
         deleteCustomProject: vi.fn(),
         updateCustomProjectName: vi.fn(),
         getProjectUrls: vi.fn(),
+        getSavedTabsPageData: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       t: (key) => key,
@@ -696,6 +743,7 @@ describe('SavedTabsApp custom search', () => {
         deleteCustomProject: vi.fn(),
         updateCustomProjectName: vi.fn(),
         getProjectUrls: vi.fn(),
+        getSavedTabsPageData: vi.fn(),
       },
       setCustomProjects,
       snapshot: {},
@@ -756,6 +804,7 @@ describe('SavedTabsApp custom search', () => {
         deleteCustomProject: vi.fn(),
         updateCustomProjectName: vi.fn(),
         getProjectUrls: vi.fn(),
+        getSavedTabsPageData: vi.fn(),
       },
       setCustomProjects: setCustomProjects2,
       // issue #494 移行後: snapshot は `BuildSavedTabsSnapshotUseCase` 由来
@@ -3464,8 +3513,14 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
+    // 1 回目の chromeSetMock は `tabGroupRepository.saveAll` (DeleteTabGroupUseCase)、
+    // 2 回目は `parentCategoryRepository.saveAll` (removeDomainFromParentCategories)、
+    // 3 回目以降が `RestoreOpenedUrlsSnapshotUseCase` 経由の Undo 復元。Undo
+    // 復元で失敗させて `保存データを復元できませんでした` を toast.error に
+    // 出させるため、3 回目以降を reject する。
     const chromeSetMock = vi
       .fn()
+      .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('restore failed'))
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
@@ -4418,13 +4473,26 @@ describe('SavedTabsApp custom search', () => {
     ]
     mocked.tabDataState.tabGroups = [group1, group2]
     mocked.tabDataState.tabGroupsWithUrls = [group1, group2]
+    const chromeSetMock = vi.fn()
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
       storage: {
         local: {
           // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async () => ({ savedTabs: [group1, group2] })),
-          set: vi.fn(),
+          get: vi.fn(async () => ({
+            customProjectOrder: [],
+            customProjects: [],
+            parentCategories: [
+              {
+                domainNames: [],
+                domains: ['group-1', 'group-2', 'keep'],
+                id: 'category-1',
+                name: 'Category',
+              },
+            ],
+            savedTabs: [group1, group2],
+          })),
+          set: chromeSetMock,
         },
         onChanged: {
           addListener: vi.fn(),
@@ -4452,7 +4520,22 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteGroups(['group-1', 'group-2'])
 
-    expect(_legacySaveParentCategories).toHaveBeenLastCalledWith([
+    // 一括削除では `handleDeleteGroups` 内で
+    // `deps.parentCategoryRepository.saveAll` (presentation 層) を直接
+    // 呼び出し、`parentCategories` 配列から `domains: ['group-1', 'group-2']`
+    // を除外して `domains: ['keep']` へフィルタした値が
+    // `chrome.storage.local.set` に渡されることを確認する。
+    // `syncCategoryAssignments` use-effect が同じキーを再 set するため、
+    // 最後に見つかった `parentCategories` set 呼び出しを検証する。
+    const parentCategoriesSetCall = [...chromeSetMock.mock.calls]
+      .reverse()
+      .find((call) =>
+        Boolean(
+          (call[0] as { parentCategories?: unknown } | undefined)
+            ?.parentCategories,
+        ),
+      )?.[0] as { parentCategories?: unknown } | undefined
+    expect(parentCategoriesSetCall?.parentCategories).toStrictEqual([
       expect.objectContaining({
         domains: ['keep'],
         id: 'category-1',

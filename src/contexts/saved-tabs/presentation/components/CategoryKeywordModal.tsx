@@ -1,6 +1,6 @@
+import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
 import type { ParentCategory } from '@/types/storage'
 
@@ -18,10 +18,11 @@ const EMPTY_PARENT_CATEGORIES: ParentCategory[] = []
  */
 interface CategoryKeywordModalExtraProps {
   readonly storageChangePort?: StorageChangePort
-  /** 永続化依存（Repository 群） */
+  /** 永続化依存 (issue #510)。`CategoryAssignmentPort` +
+   * `GetSavedTabsPageDataQuery` の 2 つへ集約する。 */
   readonly deps: {
-    tabGroupRepository: TabGroupRepository
-    parentCategoryRepository: ParentCategoryRepository
+    categoryAssignmentPort: CategoryAssignmentPort
+    getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
   }
 }
 

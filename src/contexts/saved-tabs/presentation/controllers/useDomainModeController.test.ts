@@ -159,6 +159,10 @@ const createEmptyDeps = (
       categoriesCommandService: {
         updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
       },
+      categoryAssignmentPort: {
+        saveParentCategories: vi.fn().mockResolvedValue(undefined),
+        saveTabGroups: vi.fn().mockResolvedValue(undefined),
+      },
       customProjectRepository:
         createInMemoryRepositories().customProjectRepository,
       customProjectsCommandService: {

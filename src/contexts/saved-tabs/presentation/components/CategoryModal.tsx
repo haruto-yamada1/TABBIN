@@ -1,7 +1,7 @@
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroup } from '@/types/storage'
 
 import { CategoryCreateSection } from './category-modal/CategoryCreateSection'
@@ -15,8 +15,8 @@ interface CategoryModalProps {
   onClose: () => void
   /** タブグループ一覧 */
   tabGroups: TabGroup[]
-  /** 親カテゴリ永続化先。`useCategoryModal` へ伝搬する。*/
-  parentCategoryRepository?: ParentCategoryRepository
+  /** 保存タブページ全体 query (issue #510)。`useCategoryModal` へ伝搬する。*/
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
   /** 親カテゴリ作成 use-case。`useCategoryModal` へ伝搬する。*/
   createParentCategoryUseCase?: CreateParentCategoryUseCase
   /** 親カテゴリ削除 use-case。`useCategoryModal` へ伝搬する。*/
@@ -33,7 +33,7 @@ interface CategoryModalProps {
 export const CategoryModal = ({
   onClose,
   tabGroups,
-  parentCategoryRepository,
+  getSavedTabsPageDataQuery,
   createParentCategoryUseCase,
   deleteParentCategoryUseCase,
   assignDomainToCategoryUseCase,
@@ -45,9 +45,8 @@ export const CategoryModal = ({
     createParentCategoryUseCase={createParentCategoryUseCase as never}
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     deleteParentCategoryUseCase={deleteParentCategoryUseCase as never}
+    getSavedTabsPageDataQuery={getSavedTabsPageDataQuery}
     onClose={onClose}
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-    parentCategoryRepository={parentCategoryRepository as never}
     tabGroups={tabGroups}
   >
     <CategoryCreateSection />

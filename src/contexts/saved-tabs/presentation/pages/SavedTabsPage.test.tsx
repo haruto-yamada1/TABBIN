@@ -139,6 +139,10 @@ const createInMemoryDeps = (input: {
     categoriesCommandService: {
       updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
     },
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn().mockResolvedValue(undefined),
+      saveTabGroups: vi.fn().mockResolvedValue(undefined),
+    },
     customProjectRepository,
     customProjectsCommandService: {
       addCategoryToProject: vi.fn().mockResolvedValue(undefined),
