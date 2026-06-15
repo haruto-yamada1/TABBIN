@@ -8,7 +8,12 @@ import {
 } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
+import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
+import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 const domainModeI18nState = vi.hoisted(() => ({
@@ -153,6 +158,26 @@ const createProps = () => ({
   handleUncategorizedDragEnd: vi.fn(),
   hasContentTabGroupsCount: 0,
   reorderTabGroupUrlsUseCase: vi.fn<ReorderTabGroupUrlsUseCase>(),
+  renameParentCategoryUseCase: vi.fn<RenameParentCategoryUseCase>(),
+  tabGroupRepository: {
+    findAll: vi.fn(),
+    findById: vi.fn(),
+    removeByIds: vi.fn(),
+    saveAll: vi.fn(),
+  } as unknown as TabGroupRepository,
+  addDomainToParentCategory: vi.fn<AddDomainToParentCategoryUseCase>(),
+  removeDomainFromParentCategory:
+    vi.fn<RemoveDomainFromParentCategoryUseCase>(),
+  categoryManagementModalDeps: {
+    parentCategoryRepository: {} as unknown as ParentCategoryRepository,
+    tabGroupRepository: {} as unknown as TabGroupRepository,
+  },
+  categoryManagementModalUseCases: {
+    addDomainToParentCategory: vi.fn<AddDomainToParentCategoryUseCase>(),
+    removeDomainFromParentCategory:
+      vi.fn<RemoveDomainFromParentCategoryUseCase>(),
+    renameParentCategory: vi.fn<RenameParentCategoryUseCase>(),
+  },
 })
 
 const uncategorizedGroups: TabGroup[] = [

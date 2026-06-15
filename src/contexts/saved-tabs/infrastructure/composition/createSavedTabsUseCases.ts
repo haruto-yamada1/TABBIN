@@ -1,4 +1,5 @@
 import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
+import { createAddDomainToParentCategoryUseCase } from '../../application/use-cases/AddDomainToParentCategoryUseCase'
 import { createBuildSavedTabsSnapshotUseCase } from '../../application/use-cases/BuildSavedTabsSnapshotUseCase'
 import { createDeleteSavedUrlsUseCase } from '../../application/use-cases/DeleteSavedUrlsUseCase'
 import { createDeleteSavedUrlUseCase } from '../../application/use-cases/DeleteSavedUrlUseCase'
@@ -9,7 +10,9 @@ import { createLoadTabGroupsWithUrlsUseCase } from '../../application/use-cases/
 import { createLoadTabGroupUrlsUseCase } from '../../application/use-cases/LoadTabGroupUrlsUseCase'
 import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
+import { createRemoveDomainFromParentCategoryUseCase } from '../../application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import { createRenameParentCategoryUseCase } from '../../application/use-cases/RenameParentCategoryUseCase'
 import { createReorderTabGroupsUseCase } from '../../application/use-cases/ReorderTabGroupsUseCase'
 import { createReorderTabGroupUrlsUseCase } from '../../application/use-cases/ReorderTabGroupUrlsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
@@ -45,6 +48,9 @@ export type { SavedTabsUseCases }
 export const createSavedTabsUseCases = (
   deps: SavedTabsUseCasesDeps,
 ): SavedTabsUseCases => ({
+  addDomainToParentCategory: createAddDomainToParentCategoryUseCase({
+    parentCategoryRepository: deps.parentCategoryRepository,
+  }),
   buildSavedTabsSnapshot: createBuildSavedTabsSnapshotUseCase({
     customProjectRepository: deps.customProjectRepository,
     parentCategoryRepository: deps.parentCategoryRepository,
@@ -93,10 +99,16 @@ export const createSavedTabsUseCases = (
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
   }),
+  removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase({
+    parentCategoryRepository: deps.parentCategoryRepository,
+  }),
   removeUnreferencedUrlRecords: createRemoveUnreferencedUrlRecordsUseCase({
     customProjectRepository: deps.customProjectRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
+  }),
+  renameParentCategory: createRenameParentCategoryUseCase({
+    parentCategoryRepository: deps.parentCategoryRepository,
   }),
   reorderTabGroupUrls: createReorderTabGroupUrlsUseCase({
     tabGroupRepository: deps.tabGroupRepository,

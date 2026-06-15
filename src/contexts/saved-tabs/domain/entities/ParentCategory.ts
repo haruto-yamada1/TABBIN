@@ -97,3 +97,25 @@ export const parentCategoryContainsDomainName = (
   category: ParentCategory,
   domainName: DomainName,
 ): boolean => category.domainNames.includes(domainName)
+
+/**
+ * ID で `ParentCategory` を検索する。見つからない場合は `undefined`。
+ *
+ * use-case 側 (RenameParentCategoryUseCase /
+ * AddDomainToParentCategoryUseCase / RemoveDomainFromParentCategoryUseCase)
+ * の共通ヘルパー。`equalsParentCategoryId` と同じく
+ * branded `ParentCategoryId` をキー比較する。
+ *
+ * @example
+ * ```ts
+ * const category = parentCategoryById(allCategories, targetId)
+ * if (!category) {
+ *   throw new SavedTabsDomainError(...)
+ * }
+ * ```
+ */
+export const parentCategoryById = (
+  categories: readonly ParentCategory[],
+  categoryId: ParentCategoryId,
+): ParentCategory | undefined =>
+  categories.find((category) => category.id === categoryId)

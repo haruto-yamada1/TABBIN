@@ -2,6 +2,7 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   createParentCategory,
@@ -26,6 +27,12 @@ interface UseDomainCardStateParams {
    * 未指定なら `handleDeleteUrls` 必須の挙動のみになる。
    */
   deleteSingleUrl?: (groupId: string, url: string) => Promise<void>
+  /**
+   * タブグループ永続化 repository (issue #502)。
+   * `handleUpdateCategoryOrder` 内のサブカテゴリ並び替え保存で
+   * `chrome.storage.local` 直叩きを置換するために使用。
+   */
+  tabGroupRepository?: TabGroupRepository
 }
 interface CategorizedUrlItem {
   id?: string
@@ -120,6 +127,7 @@ export const useDomainCardState = ({
   handleDeleteCategory,
   isReorderMode,
   deleteSingleUrl,
+  tabGroupRepository,
 }: UseDomainCardStateParams) => {
   const { t } = useI18n()
   // --- 基本状態 ---
@@ -216,11 +224,12 @@ export const useDomainCardState = ({
     async (updatedOrder: string[], updatedAllOrder: string[]) => {
       try {
         setAllCategoryIds(updatedAllOrder)
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        const { savedTabs = [] } = await chrome.storage.local.get<{
-          savedTabs?: TabGroup[]
-        }>('savedTabs')
+        if (!tabGroupRepository) {
+          return
+        }
+        const savedTabs =
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
+          (await tabGroupRepository.findAll()) as unknown as readonly TabGroup[]
         const updatedTabs = savedTabs.map((tab: TabGroup) => {
           if (tab.id === group.id) {
             const updatedTab = {
@@ -228,26 +237,21 @@ export const useDomainCardState = ({
               subCategoryOrder: updatedOrder,
               subCategoryOrderWithUncategorized: updatedAllOrder,
             }
-            console.log(
-              '保存するカテゴリ順序:',
-              updatedTab.subCategoryOrderWithUncategorized,
-            )
             return updatedTab
           }
           return tab
         })
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        await chrome.storage.local.set({
-          savedTabs: updatedTabs,
-        })
-        console.log('カテゴリ順序を更新しました:', updatedOrder)
-        console.log('未分類含む順序も更新:', updatedAllOrder)
+        await tabGroupRepository.saveAll(
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 TabGroup と domain 層 TabGroup の branded 差異
+          updatedTabs as unknown as Parameters<
+            TabGroupRepository['saveAll']
+          >[0],
+        )
       } catch (error) {
         console.error('カテゴリ順序の更新に失敗しました:', error)
       }
     },
-    [group.id],
+    [group.id, tabGroupRepository],
   )
 
   // --- 新規カテゴリ順序の自動保存 ---

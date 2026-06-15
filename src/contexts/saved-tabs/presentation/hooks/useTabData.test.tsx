@@ -7,23 +7,17 @@ import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 import { useTabData } from './useTabData'
 
 const {
-  getParentCategoriesMock,
   loadTabGroupsWithUrlsUseCaseMock,
   getUserSettingsMock,
   migrateParentCategoriesToDomainNamesMock,
   migrateToUrlsStorageMock,
 } = vi.hoisted(() => ({
-  getParentCategoriesMock: vi.fn().mockResolvedValue([]),
   loadTabGroupsWithUrlsUseCaseMock: vi.fn(),
   getUserSettingsMock: vi.fn().mockResolvedValue({} as UserSettings),
   migrateParentCategoriesToDomainNamesMock: vi
     .fn()
     .mockResolvedValue(undefined),
   migrateToUrlsStorageMock: vi.fn().mockResolvedValue(undefined),
-}))
-
-vi.mock('@/lib/storage/categories', () => ({
-  getParentCategories: getParentCategoriesMock,
 }))
 
 vi.mock('@/lib/storage/migration', () => ({
@@ -36,6 +30,33 @@ vi.mock('@/lib/storage/settings', () => ({
   getUserSettings: getUserSettingsMock,
 }))
 
+const createTabGroupRepositoryMock = () => ({
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  removeByIds: vi.fn().mockResolvedValue(undefined),
+  saveAll: vi.fn().mockResolvedValue(undefined),
+})
+
+const createUrlRecordRepositoryMock = () => ({
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  removeByIds: vi.fn().mockResolvedValue(undefined),
+  saveAll: vi.fn().mockResolvedValue(undefined),
+})
+
+const createParentCategoryRepositoryMock = () => ({
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  removeByIds: vi.fn().mockResolvedValue(undefined),
+  saveAll: vi.fn().mockResolvedValue(undefined),
+})
+
+let tabGroupRepository: ReturnType<typeof createTabGroupRepositoryMock>
+let urlRecordRepository: ReturnType<typeof createUrlRecordRepositoryMock>
+let parentCategoryRepository: ReturnType<
+  typeof createParentCategoryRepositoryMock
+>
+
 const renderUseTabData = (
   onCategoriesLoaded: (categories: ParentCategory[]) => void = vi.fn(),
   onSettingsLoaded: (settings: UserSettings) => void = vi.fn(),
@@ -43,6 +64,9 @@ const renderUseTabData = (
   renderHook(() =>
     useTabData({
       loadTabGroupsWithUrlsUseCase: loadTabGroupsWithUrlsUseCaseMock as never,
+      tabGroupRepository,
+      urlRecordRepository,
+      parentCategoryRepository,
       onCategoriesLoaded,
       onSettingsLoaded,
     }),
@@ -53,8 +77,6 @@ describe('useTabData', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
-    getParentCategoriesMock.mockReset()
-    getParentCategoriesMock.mockResolvedValue([])
     loadTabGroupsWithUrlsUseCaseMock.mockReset()
     loadTabGroupsWithUrlsUseCaseMock.mockImplementation(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,24 +90,9 @@ describe('useTabData', () => {
     migrateParentCategoriesToDomainNamesMock.mockResolvedValue(undefined)
     migrateToUrlsStorageMock.mockReset()
     migrateToUrlsStorageMock.mockResolvedValue(undefined)
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async (key?: string) => {
-            if (key === 'savedTabs') {
-              return { savedTabs: [] }
-            }
-            if (key === 'urls') {
-              return { urls: [] }
-            }
-            return {}
-          }),
-          set: vi.fn(),
-        },
-      },
-    } as unknown as typeof chrome
+    tabGroupRepository = createTabGroupRepositoryMock()
+    urlRecordRepository = createUrlRecordRepositoryMock()
+    parentCategoryRepository = createParentCategoryRepositoryMock()
   })
 
   it('初期ロードで親カテゴリと保存タブを修復して通知する', async () => {
@@ -136,7 +143,7 @@ describe('useTabData', () => {
       } as ParentCategory,
     ]
     getUserSettingsMock.mockResolvedValue(settings)
-    getParentCategoriesMock
+    parentCategoryRepository.findAll
       .mockResolvedValueOnce([
         {
           id: 'invalid',
@@ -145,37 +152,16 @@ describe('useTabData', () => {
         },
       ])
       .mockResolvedValueOnce(repairedCategories)
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
-      mockImplementation: (
-        implementation: (key?: string) => Promise<unknown>,
-      ) => void
-      mockResolvedValueOnce: (value: unknown) => void
-    }
-    // eslint-disable-next-line typescript/require-await
-    storageGet.mockImplementation(async (key?: string) => {
-      if (key === 'savedTabs') {
-        return { savedTabs }
-      }
-      if (key === 'urls') {
-        return {
-          urls: [
-            {
-              id: 'url-1',
-              savedAt: 1,
-              title: 'One',
-              url: 'https://id.example.com/one',
-            },
-          ],
-        }
-      }
-      return {
-        savedTabs,
-        urls: [],
-      }
-    })
+    tabGroupRepository.findAll.mockResolvedValue(savedTabs)
+    urlRecordRepository.findAll.mockResolvedValue([
+      {
+        id: 'url-1',
+        savedAt: 1,
+        title: 'One',
+        url: 'https://id.example.com/one',
+      },
+    ])
+
     const onCategoriesLoaded = vi.fn()
     const onSettingsLoaded = vi.fn()
 
@@ -187,22 +173,17 @@ describe('useTabData', () => {
 
     expect(onSettingsLoaded).toHaveBeenCalledWith(settings)
     expect(onCategoriesLoaded).toHaveBeenCalledWith(repairedCategories)
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({
-      savedTabs: [
-        {
-          ...savedTabs[0],
-          parentCategoryId: 'category-by-id',
-        },
-        {
-          ...savedTabs[1],
-          parentCategoryId: 'category-by-name',
-        },
-        savedTabs[2],
-      ],
-    })
+    expect(tabGroupRepository.saveAll).toHaveBeenCalledWith([
+      {
+        ...savedTabs[0],
+        parentCategoryId: 'category-by-id',
+      },
+      {
+        ...savedTabs[1],
+        parentCategoryId: 'category-by-name',
+      },
+      savedTabs[2],
+    ])
     expect(result.current.tabGroups).toStrictEqual([
       {
         ...savedTabs[0],
@@ -223,10 +204,7 @@ describe('useTabData', () => {
     migrateToUrlsStorageMock.mockRejectedValueOnce(
       new Error('url migration failed'),
     )
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    vi.mocked(chrome.storage.local.get).mockRejectedValueOnce(
+    tabGroupRepository.findAll.mockRejectedValueOnce(
       new Error('storage failed'),
     )
 
@@ -250,25 +228,9 @@ describe('useTabData', () => {
     )
   })
 
-  it('初期ロードで savedTabs と urls が配列でない場合は空配列として扱う', async () => {
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
-      mockImplementation: (
-        implementation: (key?: string) => Promise<unknown>,
-      ) => void
-    }
-    // eslint-disable-next-line typescript/require-await
-    storageGet.mockImplementation(async (key?: string) => {
-      if (key === 'savedTabs') {
-        return { savedTabs: 'invalid' }
-      }
-      if (key === 'urls') {
-        return { urls: 'invalid' }
-      }
-      return {}
-    })
+  it('repository から空配列が返った場合はそのまま空状態として扱う', async () => {
+    tabGroupRepository.findAll.mockResolvedValue([])
+    urlRecordRepository.findAll.mockResolvedValue([])
 
     const { result } = renderUseTabData()
 
@@ -289,7 +251,7 @@ describe('useTabData', () => {
         domainNames: ['example.com'],
       },
     ]
-    getParentCategoriesMock.mockResolvedValue(validCategories)
+    parentCategoryRepository.findAll.mockResolvedValue(validCategories)
 
     const { result } = renderUseTabData()
 
@@ -298,7 +260,7 @@ describe('useTabData', () => {
     })
 
     expect(migrateParentCategoriesToDomainNamesMock).toHaveBeenCalledTimes(1)
-    expect(getParentCategoriesMock).toHaveBeenCalledTimes(1)
+    expect(parentCategoryRepository.findAll).toHaveBeenCalledTimes(1)
   })
 
   it('refreshTabGroupsWithUrls で URL 解決を一度だけ実行し、tabGroups effect と二重化しない', async () => {
@@ -437,25 +399,7 @@ describe('useTabData', () => {
       id: 'appended',
       domain: 'appended.example.com',
     }
-    // eslint-disable-next-line typescript/unbound-method
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    const storageGet = vi.mocked(chrome.storage.local.get) as unknown as {
-      mockImplementation: (
-        implementation: (key?: string) => Promise<unknown>,
-      ) => void
-      mockResolvedValueOnce: (value: unknown) => void
-    }
-    // eslint-disable-next-line typescript/require-await
-    storageGet.mockImplementation(async (key?: string) => {
-      if (key === 'savedTabs') {
-        return { savedTabs: storedGroups }
-      }
-      if (key === 'urls') {
-        return { urls: [] }
-      }
-      return {}
-    })
+    tabGroupRepository.findAll.mockResolvedValue(storedGroups)
 
     const { result } = renderUseTabData()
 
@@ -485,17 +429,7 @@ describe('useTabData', () => {
 
     expect(result.current.tabGroups).toStrictEqual(storedGroups)
 
-    storageGet.mockResolvedValueOnce({})
-
-    await act(async () => {
-      await result.current.refreshTabGroupsWithUrls()
-    })
-
-    expect(result.current.tabGroups).toStrictEqual([])
-
-    storageGet.mockResolvedValueOnce({
-      savedTabs: 'invalid',
-    })
+    tabGroupRepository.findAll.mockResolvedValueOnce([])
 
     await act(async () => {
       await result.current.refreshTabGroupsWithUrls()

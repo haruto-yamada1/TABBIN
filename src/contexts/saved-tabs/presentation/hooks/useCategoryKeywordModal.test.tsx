@@ -9,6 +9,8 @@ import type {
   SavedTabsStorageChange,
   StorageChangePort,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import {
@@ -108,10 +110,100 @@ const setupChromeStorage = (state: StorageState = {}) => {
     },
   } as unknown as typeof chrome
 
-  return {
+  // chrome.storage.local 直叩きを撤去した production code に合わせて
+  // repository モックも `local` shim 経由で読み書きする。`local.get` /
+  // `local.set` への既存アサーションが引き続き機能する。
+  const tabGroupRepository: TabGroupRepository = {
+    findAll: vi.fn(
+      async () =>
+        (((await local.get('savedTabs')) as { savedTabs?: TabGroup[] })
+          .savedTabs ?? []) as unknown as ReturnType<
+          TabGroupRepository['findAll']
+        >,
+    ),
+    findById: vi.fn(
+      async (id) =>
+        ((
+          (await local.get('savedTabs')) as { savedTabs?: TabGroup[] }
+        ).savedTabs?.find((tab) => tab.id === id) ??
+          null) as unknown as ReturnType<TabGroupRepository['findById']>,
+    ),
+    saveAll: vi.fn(
+      async (_next: Parameters<TabGroupRepository['saveAll']>[0]) => {
+        await local.set({
+          savedTabs: [
+            ..._next,
+          ] as unknown as Partial<StorageState>['savedTabs'],
+        })
+      },
+    ),
+    removeByIds: vi.fn(
+      async (ids: Parameters<TabGroupRepository['removeByIds']>[0]) => {
+        const current =
+          ((await local.get('savedTabs')) as { savedTabs?: TabGroup[] })
+            .savedTabs ?? []
+        const idSet = new Set(ids as readonly string[])
+        await local.set({
+          savedTabs: current.filter((tab) => !idSet.has(tab.id)),
+        })
+      },
+    ),
+  }
+  const parentCategoryRepository: ParentCategoryRepository = {
+    findAll: vi.fn(
+      async () =>
+        ((
+          (await local.get('parentCategories')) as {
+            parentCategories?: ParentCategory[]
+          }
+        ).parentCategories ?? []) as unknown as ReturnType<
+          ParentCategoryRepository['findAll']
+        >,
+    ),
+    findById: vi.fn(
+      async (id) =>
+        ((
+          (await local.get('parentCategories')) as {
+            parentCategories?: ParentCategory[]
+          }
+        ).parentCategories?.find((category) => category.id === id) ??
+          null) as unknown as ReturnType<ParentCategoryRepository['findById']>,
+    ),
+    saveAll: vi.fn(
+      async (_next: Parameters<ParentCategoryRepository['saveAll']>[0]) => {
+        await local.set({
+          parentCategories: [
+            ..._next,
+          ] as unknown as Partial<StorageState>['parentCategories'],
+        })
+      },
+    ),
+    removeByIds: vi.fn(
+      async (ids: Parameters<ParentCategoryRepository['removeByIds']>[0]) => {
+        const current =
+          (
+            (await local.get('parentCategories')) as {
+              parentCategories?: ParentCategory[]
+            }
+          ).parentCategories ?? []
+        const idSet = new Set(ids as readonly string[])
+        await local.set({
+          parentCategories: current.filter(
+            (category) => !idSet.has(category.id),
+          ),
+        })
+      },
+    ),
+  }
+
+  const result = {
     local,
     state,
+    parentCategoryRepository,
+    tabGroupRepository,
   }
+  lastStorage = result
+  return result
 }
 
 const createMockStorageChangePort = () => {
@@ -138,10 +230,26 @@ const createMockStorageChangePort = () => {
   }
 }
 
+let lastStorage: ReturnType<typeof setupChromeStorage> | undefined
+
 const renderModalHook = (
   overrides: Partial<Parameters<typeof useCategoryKeywordModal>[0]> = {},
 ) => {
+  // 既存テストは `setupChromeStorage()` で個別 state を組み立てて
+  // `renderModalHook()` を引数なしで呼ぶパターンが多かったため、
+  // 直前の `setupChromeStorage` の戻り値を再利用する。
+  const setup =
+    lastStorage ??
+    setupChromeStorage({
+      parentCategories: createParentCategories(),
+      savedTabs: [createGroup()],
+    })
+  lastStorage = setup
   const props = {
+    deps: {
+      parentCategoryRepository: setup.parentCategoryRepository,
+      tabGroupRepository: setup.tabGroupRepository,
+    },
     group: createGroup(),
     initialParentCategories: createParentCategories(),
     isOpen: true,
@@ -155,11 +263,13 @@ const renderModalHook = (
   return {
     ...hook,
     props,
+    storage: setup,
   }
 }
 
 describe('useCategoryKeywordModal', () => {
   beforeEach(() => {
+    lastStorage = undefined
     setupChromeStorage({
       parentCategories: createParentCategories(),
       savedTabs: [createGroup()],
@@ -183,6 +293,10 @@ describe('useCategoryKeywordModal', () => {
 
     const { result } = renderHook(() =>
       useCategoryKeywordModal({
+        deps: {
+          parentCategoryRepository: {} as unknown as ParentCategoryRepository,
+          tabGroupRepository: {} as unknown as TabGroupRepository,
+        },
         group: createGroup(),
         initialParentCategories: createParentCategories(),
         isOpen: false,
@@ -302,6 +416,10 @@ describe('useCategoryKeywordModal', () => {
 
     const { result } = renderHook(() =>
       useCategoryKeywordModal({
+        deps: {
+          parentCategoryRepository: {} as unknown as ParentCategoryRepository,
+          tabGroupRepository: {} as unknown as TabGroupRepository,
+        },
         group: createGroup(),
         initialParentCategories: createParentCategories(),
         isOpen: false,

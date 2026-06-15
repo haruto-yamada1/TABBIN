@@ -244,8 +244,28 @@ const toParentCategoryRaw = (
   // original 側の schemeful 形式を持ち越さないと、既存 parent
   // category と新規割当の `domainNames` 比較でミスマッチが起きる
   // （issue #501 review P1 と同根の問題）。
+  //
+  // 一方、entity 側の `domainNames` は use-case
+  // （AddDomainTo / RemoveDomainFromParentCategory）が更新した結果
+  // を反映している。`original.domainNames` をそのままコピーすると
+  // 追加・削除が無視されてしまうため、entity の順序と内容を採用
+  // しつつ、original に schemeful 形式で残っている既存エントリは
+  // hostname 比較で引き継ぐ。
+  let domainNames: string[]
+  if (original) {
+    const originalByHostname = new Map<string, string>()
+    for (const name of original.domainNames) {
+      originalByHostname.set(normalizeDomainField(name), name)
+    }
+    domainNames = entity.domainNames.map((name) => {
+      const hostname = normalizeDomainField(name)
+      return originalByHostname.get(hostname) ?? name
+    })
+  } else {
+    domainNames = [...entity.domainNames]
+  }
   const base: ParentCategoryRaw = {
-    domainNames: original ? [...original.domainNames] : [...entity.domainNames],
+    domainNames,
     domains: [...entity.domains],
     id: entity.id,
     name: entity.name,

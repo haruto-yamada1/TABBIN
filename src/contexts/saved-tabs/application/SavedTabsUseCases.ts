@@ -1,3 +1,4 @@
+import type { AddDomainToParentCategoryUseCase } from './use-cases/AddDomainToParentCategoryUseCase'
 import type { BuildSavedTabsSnapshotUseCase } from './use-cases/BuildSavedTabsSnapshotUseCase'
 import type { DeleteSavedUrlsUseCase } from './use-cases/DeleteSavedUrlsUseCase'
 import type { DeleteSavedUrlUseCase } from './use-cases/DeleteSavedUrlUseCase'
@@ -8,7 +9,9 @@ import type { LoadTabGroupsWithUrlsUseCase } from './use-cases/LoadTabGroupsWith
 import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCase'
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
+import type { RemoveDomainFromParentCategoryUseCase } from './use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import type { RenameParentCategoryUseCase } from './use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
 import type { ReorderTabGroupUrlsUseCase } from './use-cases/ReorderTabGroupUrlsUseCase'
 import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
@@ -51,4 +54,7 @@ export interface SavedTabsUseCases {
   readonly loadTabGroupUrls: LoadTabGroupUrlsUseCase
   readonly findUrlRecordByUrl: FindUrlRecordByUrlUseCase
   readonly setCategoryKeywords: SetCategoryKeywordsUseCase
+  readonly renameParentCategory: RenameParentCategoryUseCase
+  readonly addDomainToParentCategory: AddDomainToParentCategoryUseCase
+  readonly removeDomainFromParentCategory: RemoveDomainFromParentCategoryUseCase
 }

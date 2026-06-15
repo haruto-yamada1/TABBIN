@@ -9,8 +9,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { CategoryGroup } from '@/contexts/saved-tabs/presentation/components/CategoryGroup'
+import type {
+  CategoryManagementModalDeps,
+  CategoryManagementModalUseCases,
+} from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import {
   SavedTabsResponsiveLabel,
@@ -70,6 +75,20 @@ interface DomainModeContainerProps {
   handleUncategorizedDragEnd: (event: DragEndEvent) => void
   hasContentTabGroupsCount: number
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
+  /**
+   * 親カテゴリリネーム use-case（issue #502）。
+   */
+  renameParentCategoryUseCase: RenameParentCategoryUseCase
+  /**
+   * `CategoryManagementModal` の repository 群。`chrome.storage.local`
+   * 直叩きを置換（issue #502）。
+   */
+  categoryManagementModalDeps: CategoryManagementModalDeps
+  /**
+   * `CategoryManagementModal` が直接実行する use-case 群。
+   * 旧 `onCategoryUpdate` コールバックを置換（issue #502）。
+   */
+  categoryManagementModalUseCases: CategoryManagementModalUseCases
 }
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
@@ -383,6 +402,9 @@ export const DomainModeContainer = ({
   handleUncategorizedDragEnd,
   hasContentTabGroupsCount,
   reorderTabGroupUrlsUseCase,
+  renameParentCategoryUseCase,
+  categoryManagementModalDeps,
+  categoryManagementModalUseCases,
 }: DomainModeContainerProps) => {
   const {
     hasVisibleCategoryGroups,
@@ -517,6 +539,11 @@ export const DomainModeContainer = ({
                     isCategoryReorderMode={isCategoryReorderMode}
                     searchQuery={searchQuery}
                     reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
+                    renameParentCategoryUseCase={renameParentCategoryUseCase}
+                    categoryManagementModalDeps={categoryManagementModalDeps}
+                    categoryManagementModalUseCases={
+                      categoryManagementModalUseCases
+                    }
                   />
                 )
               })}

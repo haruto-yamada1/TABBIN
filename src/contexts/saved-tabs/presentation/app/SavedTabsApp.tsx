@@ -151,13 +151,19 @@ const useSavedTabsAppView = ({
     TabGroup[]
   >([])
 
-  const categoryState = useCategoryManagement()
+  const categoryState = useCategoryManagement({
+    tabGroupRepository: deps.tabGroupRepository,
+  })
   const tabDataState = useTabData({
     loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
     onCategoriesLoaded: categoryState.setCategories,
     onSettingsLoaded: setSettings,
   })
   const projectState = useProjectManagement(
+    deps.customProjectRepository,
     tabDataState.tabGroups,
     settings,
     initialViewMode,
@@ -995,6 +1001,20 @@ const useSavedTabsAppView = ({
         handleUncategorizedDragEnd={handleUncategorizedDragEnd}
         hasContentTabGroupsCount={hasContentTabGroups.length}
         reorderTabGroupUrlsUseCase={savedTabsUseCases.reorderTabGroupUrls}
+        renameParentCategoryUseCase={savedTabsUseCases.renameParentCategory}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TODO(#502-followup): category management deps の memo 化または context 化で解消予定
+        categoryManagementModalDeps={{
+          tabGroupRepository: deps.tabGroupRepository,
+          parentCategoryRepository: deps.parentCategoryRepository,
+        }}
+        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TODO(#502-followup): category management use-cases の memo 化または context 化で解消予定
+        categoryManagementModalUseCases={{
+          renameParentCategory: savedTabsUseCases.renameParentCategory,
+          addDomainToParentCategory:
+            savedTabsUseCases.addDomainToParentCategory,
+          removeDomainFromParentCategory:
+            savedTabsUseCases.removeDomainFromParentCategory,
+        }}
       />
     ) : (
       <CustomModeContainer

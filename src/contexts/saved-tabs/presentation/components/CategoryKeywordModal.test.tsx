@@ -22,6 +22,10 @@ vi.mock('./keyword-modal/KeywordModalRoot', () => ({
     onDeleteCategory: CategoryKeywordModalProps['onDeleteCategory']
     initialParentCategories: ParentCategory[]
     onUpdateParentCategories?: CategoryKeywordModalProps['onUpdateParentCategories']
+    deps: {
+      tabGroupRepository: unknown
+      parentCategoryRepository: unknown
+    }
   }) => {
     keywordModalRootSpy(props)
     return <div data-testid='keyword-modal-root'>{children}</div>
@@ -42,9 +46,17 @@ vi.mock('./keyword-modal/KeywordEditor', () => ({
 
 import { CategoryKeywordModal } from './CategoryKeywordModal'
 
+const createMockDeps = () => ({
+  parentCategoryRepository: {} as never,
+  tabGroupRepository: {} as never,
+})
+
 const createProps = (
   overrides: Partial<CategoryKeywordModalProps> = {},
-): CategoryKeywordModalProps => ({
+): CategoryKeywordModalProps & {
+  deps: ReturnType<typeof createMockDeps>
+} => ({
+  deps: createMockDeps(),
   group: { id: 'group-1', domain: 'example.com', urls: [] },
   isOpen: true,
   onClose: vi.fn(),

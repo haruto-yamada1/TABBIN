@@ -3,6 +3,8 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -23,83 +25,12 @@ interface UseCategoryGroupStateParams {
   handleDeleteGroup: (id: string) => void
   /** 親カテゴリ並び替えモード状態 */
   isCategoryReorderMode: boolean
-}
-const ensureCategoryPresence = (
-  categoryGroups: ParentCategory[],
-  categoryId: string,
-  newName: string,
-): ParentCategory[] => {
-  const existingCategory = categoryGroups.find((cat) => cat.id === categoryId)
-  if (existingCategory) {
-    return categoryGroups
-  }
-  return [
-    ...categoryGroups,
-    {
-      domainNames: [],
-      domains: [],
-      id: categoryId,
-      name: newName,
-    },
-  ]
-}
-const renameCategoryInGroups = (
-  categoryGroups: ParentCategory[],
-  categoryId: string,
-  newName: string,
-): ParentCategory[] =>
-  categoryGroups.map((cat) => {
-    if (cat.id !== categoryId) {
-      return cat
-    }
-    return {
-      ...cat,
-      name: newName,
-      domainNames: [...(cat.domainNames || [])],
-    }
-  })
-const confirmCategorySaved = async (
-  categoryId: string,
-  newName: string,
-  updatedGroups: ParentCategory[],
-): Promise<void> => {
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  const checkResult = await chrome.storage.local.get<{
-    parentCategories?: ParentCategory[]
-  }>('parentCategories')
-  const categoryById = new Map(
-    (checkResult.parentCategories ?? []).map((cat: ParentCategory) => [
-      cat.id,
-      cat,
-    ]),
-  )
-  const savedCategory = categoryById.get(categoryId)
-  if (savedCategory?.name === newName) {
-    console.log('CategoryGroup - 保存の確認に成功:', savedCategory)
-  } else {
-    console.log('CategoryGroup - 保存の確認に失敗したため再保存します')
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    await chrome.storage.local.set({
-      parentCategories: updatedGroups,
-    })
-  }
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  const finalCheck = await chrome.storage.local.get<{
-    parentCategories?: ParentCategory[]
-  }>('parentCategories')
-  const finalCategory = new Map(
-    (finalCheck.parentCategories ?? []).map((cat: ParentCategory) => [
-      cat.id,
-      cat,
-    ]),
-  ).get(categoryId)
-  if (finalCategory?.name !== newName) {
-    throw new Error('カテゴリ名の更新が反映されていません')
-  }
-  console.log('CategoryGroup - カテゴリ更新が完了しました:', finalCategory)
+  /**
+   * 親カテゴリ名リネーム use-case (issue #502)。
+   * presentation 層から `chrome.storage.local` を直叩きせず
+   * application 層へ委譲する。
+   */
+  renameParentCategoryUseCase: RenameParentCategoryUseCase
 }
 /**
  * CategoryGroup の状態ロジックを管理するカスタムフック
@@ -113,6 +44,7 @@ export const useCategoryGroupState = ({
   handleUpdateDomainsOrder,
   handleDeleteGroup,
   isCategoryReorderMode,
+  renameParentCategoryUseCase,
 }: UseCategoryGroupStateParams) => {
   const { t } = useI18n()
   // --- 基本状態 ---
@@ -164,34 +96,17 @@ export const useCategoryGroupState = ({
           currentCategory: category,
           newName,
         })
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        const result = await chrome.storage.local.get<{
-          parentCategories?: ParentCategory[]
-        }>(['parentCategories'])
-        const baseGroups: ParentCategory[] = result.parentCategories ?? []
-        const categoryGroups = ensureCategoryPresence(
-          baseGroups,
-          categoryId,
+        await renameParentCategoryUseCase({
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): storage 層 categoryId と domain 層 ParentCategoryId の branded 差異
+          categoryId: categoryId as unknown as ParentCategoryId,
           newName,
-        )
-        const updatedGroups = renameCategoryInGroups(
-          categoryGroups,
-          categoryId,
-          newName,
-        )
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        await chrome.storage.local.set({
-          parentCategories: updatedGroups,
         })
-        await confirmCategorySaved(categoryId, newName, updatedGroups)
       } catch (error) {
         console.error('CategoryGroup - カテゴリ名の更新に失敗:', error)
         toast.error(t('savedTabs.categoryManagement.renameError'))
       }
     },
-    [category, t],
+    [category, renameParentCategoryUseCase, t],
   )
 
   // --- グローバルドラッグ監視 ---

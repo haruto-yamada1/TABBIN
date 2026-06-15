@@ -8,6 +8,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type {
+  CustomProjectRawSnapshot,
+  CustomProjectRepository,
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProjectId as DomainCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   addCategoryToProject,
@@ -35,26 +41,52 @@ import type {
 } from '@/types/storage'
 
 interface CustomProjectUndoSnapshot {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
+  customProjectOrder?: readonly DomainCustomProjectId[]
+  customProjects?: readonly DomainCustomProject[]
+  customProjectsRaw?: readonly CustomProjectRawSnapshot[]
 }
 
 interface CustomProjectUndoPayload {
-  customProjectOrder?: string[]
-  customProjects: CustomProject[]
+  customProjectOrder?: readonly DomainCustomProjectId[]
+  customProjects: readonly DomainCustomProject[]
+  customProjectsRaw?: readonly CustomProjectRawSnapshot[]
 }
 
-const getArraySnapshot = <T>(value: T[] | undefined): T[] | undefined =>
-  Array.isArray(value) ? value : undefined
+const getArraySnapshot = <T>(
+  value: readonly T[] | undefined,
+): readonly T[] | undefined => (Array.isArray(value) ? value : undefined)
 
-const getCustomProjectUndoSnapshot =
-  async (): Promise<CustomProjectUndoSnapshot> =>
-    // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-    chrome.storage.local.get<CustomProjectUndoSnapshot>([
-      'customProjects',
-      'customProjectOrder',
-    ])
+/** domain entity (`CustomProject`) を presentation 層 state の storage 形へ投影する */
+const toStorageCustomProject = (
+  project: DomainCustomProject,
+): CustomProject => {
+  const result: CustomProject = {
+    categories: [...project.categories],
+    createdAt: project.createdAt,
+    id: project.id,
+    name: project.name,
+    updatedAt: project.updatedAt,
+  }
+  if (project.urlIds.length > 0) {
+    result.urlIds = [...project.urlIds]
+  }
+  return result
+}
+
+const getCustomProjectUndoSnapshot = async (
+  customProjectRepository: CustomProjectRepository,
+): Promise<CustomProjectUndoSnapshot> => {
+  const [projects, order, raws] = await Promise.all([
+    customProjectRepository.findAll(),
+    customProjectRepository.findOrder(),
+    customProjectRepository.findAllRaw?.() ?? Promise.resolve([]),
+  ])
+  return {
+    ...(order.length > 0 ? { customProjectOrder: order } : {}),
+    ...(projects.length > 0 ? { customProjects: projects } : {}),
+    ...(raws.length > 0 ? { customProjectsRaw: raws } : {}),
+  }
+}
 
 const createCustomProjectUndoPayload = (
   snapshot: CustomProjectUndoSnapshot,
@@ -65,19 +97,23 @@ const createCustomProjectUndoPayload = (
   }
 
   const customProjectOrder = getArraySnapshot(snapshot.customProjectOrder)
+  const customProjectsRaw = getArraySnapshot(snapshot.customProjectsRaw)
   return {
     ...(customProjectOrder ? { customProjectOrder } : {}),
     customProjects,
+    ...(customProjectsRaw ? { customProjectsRaw } : {}),
   }
 }
 
 const showCustomProjectDeleteUndoToast = ({
   count,
+  customProjectRepository,
   setCustomProjects,
   snapshot,
   t,
 }: {
   count: number
+  customProjectRepository: CustomProjectRepository
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
   snapshot: CustomProjectUndoSnapshot
   t: (key: string, fallback?: string, values?: Record<string, string>) => string
@@ -97,10 +133,27 @@ const showCustomProjectDeleteUndoToast = ({
               return
             }
 
-            // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-            await chrome.storage.local.set(payload)
-            setCustomProjects(payload.customProjects)
+            // 削除した URL の `urls` / `urlMetadata` / `projectKeywords` のような
+            // domain entity 化されない rich フィールドを保持するため、生 snapshot
+            // があれば merge を介さず `restoreAllRaw` で書き戻す（PR #506 review
+            // P2 対応）。モック等で `restoreAllRaw` が未実装の場合は
+            // フォールバックとして `saveAll` を使う。
+            if (
+              payload.customProjectsRaw &&
+              customProjectRepository.restoreAllRaw
+            ) {
+              await customProjectRepository.restoreAllRaw(
+                payload.customProjectsRaw,
+              )
+            } else {
+              await customProjectRepository.saveAll(payload.customProjects)
+            }
+            await customProjectRepository.saveOrder(
+              payload.customProjectOrder ?? [],
+            )
+            setCustomProjects(
+              payload.customProjects.map(toStorageCustomProject),
+            )
             toast.success(t('savedTabs.undo.restored'))
           } catch (error) {
             console.error(
@@ -252,12 +305,14 @@ interface UseProjectManagementReturn {
  * カスタムプロジェクト管理フック。
  * ビューモード切替・CRUD・URL管理・プロジェクト内カテゴリ管理を担う。
  *
- * @param tabGroups - 現在のタブグループ一覧（ドメインモードのデータ）
+ * @param customProjectRepository - カスタムプロジェクトの永続化 port
+ * @param _tabGroups - 現在のタブグループ一覧（ドメインモードのデータ）
  * @param _settings - ユーザー設定（将来の拡張用）
  * @returns UseProjectManagementReturn
  */
 const useProjectManagement = (
   // eslint-disable-line eslint/max-lines-per-function
+  customProjectRepository: CustomProjectRepository,
   _tabGroups: TabGroup[],
   _settings: UserSettings,
   initialViewMode?: ViewMode,
@@ -470,13 +525,16 @@ const useProjectManagement = (
   const handleDeleteUrlFromProject = useCallback(
     async (projectId: string, url: string): Promise<void> => {
       try {
-        const undoSnapshot = await getCustomProjectUndoSnapshot()
+        const undoSnapshot = await getCustomProjectUndoSnapshot(
+          customProjectRepository,
+        )
         const updatedProjects = await Promise.resolve(
           removeUrlFromCustomProject(projectId, url),
         ).then(() => getCustomProjects())
         setCustomProjects(updatedProjects)
         showCustomProjectDeleteUndoToast({
           count: 1,
+          customProjectRepository,
           setCustomProjects,
           snapshot: undoSnapshot,
           t,
@@ -487,20 +545,23 @@ const useProjectManagement = (
         toast.error(t('savedTabs.tab.deleteError'))
       }
     },
-    [t],
+    [customProjectRepository, t],
   )
 
   /** プロジェクトから 複数のURL を削除する */
   const handleDeleteUrlsFromProject = useCallback(
     async (projectId: string, urls: string[]): Promise<void> => {
       try {
-        const undoSnapshot = await getCustomProjectUndoSnapshot()
+        const undoSnapshot = await getCustomProjectUndoSnapshot(
+          customProjectRepository,
+        )
         const updatedProjects = await Promise.resolve(
           removeUrlsFromCustomProject(projectId, urls),
         ).then(() => getCustomProjects())
         setCustomProjects(updatedProjects)
         showCustomProjectDeleteUndoToast({
           count: urls.length,
+          customProjectRepository,
           setCustomProjects,
           snapshot: undoSnapshot,
           t,
@@ -515,7 +576,7 @@ const useProjectManagement = (
         toast.error(t('savedTabs.tab.deleteError'))
       }
     },
-    [t],
+    [customProjectRepository, t],
   )
 
   /** プロジェクトにカテゴリを追加する */
