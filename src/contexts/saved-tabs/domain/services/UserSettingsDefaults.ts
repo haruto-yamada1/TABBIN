@@ -110,7 +110,9 @@ export const normalizeUserSettings = (
   if (isStrippableSettings(stored) && stored.userSettings) {
     const raw = stored.userSettings
     const sanitizedStoredSettings = stripLegacyUserSettings(raw)
-    const mergedStoredSettings = mergeStoredUserSettings(sanitizedStoredSettings)
+    const mergedStoredSettings = mergeStoredUserSettings(
+      sanitizedStoredSettings,
+    )
     const normalized = normalizeAiSystemPromptSettings({
       ...defaultUserSettings,
       ...mergedStoredSettings,

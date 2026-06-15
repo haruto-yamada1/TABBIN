@@ -1,7 +1,7 @@
+import { updateDomainCategorySettings } from '@/lib/storage/categories'
 import type { SubCategoryKeyword } from '@/types/storage'
 
 import type { CategoriesCommandService } from '../../application/ports/CategoriesCommandService'
-import { updateDomainCategorySettings } from '@/lib/storage/categories'
 
 /**
  * `CategoriesCommandService` の `lib/storage` delegate 実装。
@@ -29,6 +29,10 @@ export const createLibCategoriesCommandService =
       subCategories: string[],
       categoryKeywords: SubCategoryKeyword[],
     ) => {
-      await updateDomainCategorySettings(domain, subCategories, categoryKeywords)
+      await updateDomainCategorySettings(
+        domain,
+        subCategories,
+        categoryKeywords,
+      )
     },
   })

@@ -7,6 +7,7 @@ import type { CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useCustomProjectCard } from '../../hooks/useCustomProjectCard'
@@ -68,7 +69,7 @@ interface ProjectCardRootProps {
     handleReorderUrls: CustomProjectCardProps['handleReorderUrls']
   }
   /** プロジェクト URL 取得 use-case。useCustomProjectCard へ伝搬。*/
-  getProjectUrlsUseCase?: import('@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase').GetProjectUrlsUseCase
+  getProjectUrlsUseCase?: GetProjectUrlsUseCase
   /** 子コンポーネント */
   children: React.ReactNode
 }

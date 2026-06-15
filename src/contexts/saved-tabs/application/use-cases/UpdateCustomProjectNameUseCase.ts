@@ -8,7 +8,7 @@ export interface UpdateCustomProjectNameCommand {
   readonly newName: string
 }
 
-export type UpdateCustomProjectNameResult = {
+export interface UpdateCustomProjectNameResult {
   readonly all: readonly CustomProject[]
   readonly project: CustomProject
 }
@@ -54,7 +54,12 @@ export const createUpdateCustomProjectNameUseCase = (
     let updated: CustomProject | null = null
     for (const project of all) {
       if (project.id === targetId) {
-        const next: CustomProject = { ...project, name: newName as never, updatedAt: now }
+        const next: CustomProject = {
+          ...project,
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+          name: newName as never,
+          updatedAt: now,
+        }
         updatedAll.push(next)
         updated = next
       } else {

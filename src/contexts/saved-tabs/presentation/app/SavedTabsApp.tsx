@@ -10,14 +10,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Toaster } from '@/components/ui/sonner'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
 } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
+import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
-import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
 import { Header } from '@/contexts/saved-tabs/presentation/components/Header' // ヘッダーコンポーネントをインポート
 import { CustomModeContainer } from '@/contexts/saved-tabs/presentation/containers/CustomModeContainer'
@@ -73,7 +74,7 @@ const removeDomainFromParentCategories = async (
   id: string,
   categories: ParentCategory[],
   setCategories: (cats: ParentCategory[]) => void,
-  parentCategoryRepository: import('@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository').ParentCategoryRepository,
+  parentCategoryRepository: ParentCategoryRepository,
 ) => {
   const updatedCategories = categories.map((category) => ({
     ...category,
@@ -169,6 +170,10 @@ const useSavedTabsAppView = ({
     tabDataState.tabGroups,
     settings,
     initialViewMode,
+    deps.customProjectsCommandService,
+    savedTabsUseCases.createCustomProject,
+    savedTabsUseCases.deleteCustomProject,
+    savedTabsUseCases.updateCustomProjectName,
   )
   const {
     categories,
@@ -393,7 +398,7 @@ const useSavedTabsAppView = ({
         // グループを SavedTabsDomainError で通知するため、UI 側は
         // 事前に savedTabs から対象グループの存在を保証しておく。
         await savedTabsUseCases.deleteTabGroup({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
           tabGroupId: id as unknown as TabGroupId,
         })
 
@@ -448,6 +453,7 @@ const useSavedTabsAppView = ({
         })
       }
     },
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- deps.* 配下は composition 安定参照
     [
       isUncategorizedReorderMode,
       categories,
@@ -460,6 +466,7 @@ const useSavedTabsAppView = ({
   )
 
   const handleDeleteGroups = useCallback(
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps.* 配下は composition 安定参照
     async (ids: string[]) => {
       if (ids.length === 0) {
         return
@@ -504,7 +511,7 @@ const useSavedTabsAppView = ({
         // 未参照になった UrlRecord の掃除と savedTabs の書き戻しは
         // use-case が一括で行う。
         await savedTabsUseCases.deleteTabGroups({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
           tabGroupIds: ids as unknown as Parameters<
             typeof savedTabsUseCases.deleteTabGroups
           >[0]['tabGroupIds'],
@@ -565,6 +572,7 @@ const useSavedTabsAppView = ({
         })
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps.* 配下は composition 安定参照
     [
       isUncategorizedReorderMode,
       categories,
@@ -590,7 +598,7 @@ const useSavedTabsAppView = ({
         // customProject 側の URL 同期削除は他 storage key を触るため
         // issue 範囲外として従来通り UI 側で実行する。
         await savedTabsUseCases.deleteSavedUrl({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
           tabGroupId: groupId as unknown as Parameters<
             typeof savedTabsUseCases.deleteSavedUrl
           >[0]['tabGroupId'],
@@ -638,7 +646,7 @@ const useSavedTabsAppView = ({
         })
         // 複数 URL 削除は DeleteSavedUrlsUseCase 経由に置き換える。
         await savedTabsUseCases.deleteSavedUrls({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
           tabGroupId: groupId as unknown as Parameters<
             typeof savedTabsUseCases.deleteSavedUrls
           >[0]['tabGroupId'],
@@ -742,30 +750,34 @@ const useSavedTabsAppView = ({
   // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
   // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
   // `chrome.storage.local.get/set` の直接呼び出しを削減する。
-  useEffect(() => {
-    if (!settings.enableCategories) {
-      return
-    }
-    if (tabGroupsWithUrls.length === 0 || categories.length === 0) {
-      return
-    }
-    const syncCategoryAssignments = async () => {
-      try {
-        await savedTabsUseCases.syncCategoryAssignments({})
-        console.log('[カテゴリ同期] use-case 経由で同期しました')
-      } catch (error) {
-        console.error('[カテゴリ同期] ストレージ同期エラー:', error)
+  useEffect(
+    () => {
+      if (!settings.enableCategories) {
+        return
       }
-    }
-    // eslint-disable-next-line typescript/no-floating-promises
-    syncCategoryAssignments()
-  }, [
-    tabGroupsWithUrls,
-    categories,
-    categoryLookup,
-    settings.enableCategories,
-    savedTabsUseCases,
-  ])
+      if (tabGroupsWithUrls.length === 0 || categories.length === 0) {
+        return
+      }
+      const syncCategoryAssignments = async () => {
+        try {
+          await savedTabsUseCases.syncCategoryAssignments({})
+          console.log('[カテゴリ同期] use-case 経由で同期しました')
+        } catch (error) {
+          console.error('[カテゴリ同期] ストレージ同期エラー:', error)
+        }
+      }
+      // eslint-disable-next-line typescript/no-floating-promises
+      syncCategoryAssignments()
+    },
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- syncCategoryAssignments は クロージャ内 helper
+    [
+      tabGroupsWithUrls,
+      categories,
+      categoryLookup,
+      settings.enableCategories,
+      savedTabsUseCases,
+    ],
+  )
 
   // 検索・フィルタ適用後のグループを整理（メモ化）
   const { categorized, uncategorized } = useMemo(
@@ -802,41 +814,45 @@ const useSavedTabsAppView = ({
   )
 
   // 未分類ドメインの並び替えを確定する
-  const handleConfirmUncategorizedReorder = useCallback(async () => {
-    if (!isUncategorizedReorderMode) {
-      return
-    }
-    try {
-      const categorizedDomains = Object.values(categorized).flat()
+  const handleConfirmUncategorizedReorder = useCallback(
+    async () => {
+      if (!isUncategorizedReorderMode) {
+        return
+      }
+      try {
+        const categorizedDomains = Object.values(categorized).flat()
 
-      // 新しい順序：カテゴリ分類されたドメイン + 並び替えた未分類ドメイン
-      const newTabGroups = [...categorizedDomains, ...tempUncategorizedOrder]
+        // 新しい順序：カテゴリ分類されたドメイン + 並び替えた未分類ドメイン
+        const newTabGroups = [...categorizedDomains, ...tempUncategorizedOrder]
 
-      // 並び替え保存は `ReorderTabGroupsUseCase` 経由で
-      // `TabGroupRepository.saveAll` に委譲し、`chrome.storage.local.set`
-      // の直叩きを撤去する（issue #494）。Repository 実装側の mapper が
-      // `urls` / `urlSubCategories` などのリッチ補助フィールドを持ち越す。
-      await savedTabsUseCases.reorderTabGroups({
-        tabGroups: toDomainTabGroupsForReorder(newTabGroups),
-      })
-      await refreshTabGroupsWithUrls(newTabGroups)
+        // 並び替え保存は `ReorderTabGroupsUseCase` 経由で
+        // `TabGroupRepository.saveAll` に委譲し、`chrome.storage.local.set`
+        // の直叩きを撤去する（issue #494）。Repository 実装側の mapper が
+        // `urls` / `urlSubCategories` などのリッチ補助フィールドを持ち越す。
+        await savedTabsUseCases.reorderTabGroups({
+          tabGroups: toDomainTabGroupsForReorder(newTabGroups),
+        })
+        await refreshTabGroupsWithUrls(newTabGroups)
 
-      // 並び替えモードを終了
-      setIsUncategorizedReorderMode(false)
-      setTempUncategorizedOrder([])
-      toast.success(t('savedTabs.domainOrder.updated'))
-    } catch (error) {
-      console.error('未分類ドメイン順序の更新に失敗しました:', error)
-      toast.error(t('savedTabs.domainOrder.updateError'))
-    }
-  }, [
-    isUncategorizedReorderMode,
-    categorized,
-    tempUncategorizedOrder,
-    refreshTabGroupsWithUrls,
-    savedTabsUseCases,
-    t,
-  ])
+        // 並び替えモードを終了
+        setIsUncategorizedReorderMode(false)
+        setTempUncategorizedOrder([])
+        toast.success(t('savedTabs.domainOrder.updated'))
+      } catch (error) {
+        console.error('未分類ドメイン順序の更新に失敗しました:', error)
+        toast.error(t('savedTabs.domainOrder.updateError'))
+      }
+    },
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- stable deps
+    [
+      isUncategorizedReorderMode,
+      categorized,
+      tempUncategorizedOrder,
+      refreshTabGroupsWithUrls,
+      savedTabsUseCases,
+      t,
+    ],
+  )
   console.log('表示判定デバッグ:')
   console.log('- categorized:', categorized)
   console.log('- uncategorized:', uncategorized)
@@ -913,36 +929,41 @@ const useSavedTabsAppView = ({
     return () => {
       isCancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- savedTabsUseCases.getProjectUrls は composition 安定参照
   }, [customProjects, searchQuery])
 
   // ストレージ変更検出時のリスナー。`StorageChangePort` 経由で chrome API 実装
   // (infrastructure 層) と疎結合にし、port 境界をまたいだ購読 / 解除として
   // 扱う（issue #503）。React 側は購読開始 / 解除と state 反映のみに責務を絞り、
   // Chrome ストレージ変更通知の詳細は port 実装側に閉じ込めている。
-  useEffect(() => {
-    const unsubscribe = deps.storageChangePort.subscribe((changes) => {
-      console.log('ストレージ変更を検出:', changes)
-      void syncStorageChanges({
-        changes,
-        refreshTabGroupsWithUrls,
-        setCategories,
-        setCustomProjects,
-        setSettings,
-        syncDomainDataToCustomProjects,
-        viewModeRef,
+  useEffect(
+    () => {
+      const unsubscribe = deps.storageChangePort.subscribe((changes) => {
+        console.log('ストレージ変更を検出:', changes)
+        void syncStorageChanges({
+          changes,
+          refreshTabGroupsWithUrls,
+          setCategories,
+          setCustomProjects,
+          setSettings,
+          syncDomainDataToCustomProjects,
+          viewModeRef,
+        })
       })
-    })
-    return () => {
-      unsubscribe()
-    }
-  }, [
-    deps.storageChangePort,
-    refreshTabGroupsWithUrls,
-    syncDomainDataToCustomProjects,
-    setCategories,
-    setCustomProjects,
-    viewModeRef,
-  ]) // 必要な依存関係を追加
+      return () => {
+        unsubscribe()
+      }
+    },
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- `deps` 配下は composition 安定参照
+    [
+      deps.storageChangePort,
+      refreshTabGroupsWithUrls,
+      syncDomainDataToCustomProjects,
+      setCategories,
+      setCustomProjects,
+      viewModeRef,
+    ],
+  )
 
   useEffect(() => {
     if (
@@ -996,7 +1017,12 @@ const useSavedTabsAppView = ({
         return null
       }
     },
-    [deps.customProjectRepository, deps.customProjectsCommandService, setCustomProjects, t],
+    [
+      deps.customProjectRepository,
+      deps.customProjectsCommandService,
+      setCustomProjects,
+      t,
+    ],
   )
 
   // カテゴリ間でURLを移動するハンドラ

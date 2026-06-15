@@ -1,7 +1,4 @@
-import type {
-  DomainCategorySettings,
-  DomainParentCategoryMapping,
-} from '@/types/storage'
+import type { DomainParentCategoryMapping } from '@/types/storage'
 
 /**
  * `DomainParentCategoryMapping` の永続化責務だけを抽出した repository

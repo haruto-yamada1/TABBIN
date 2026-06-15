@@ -6,9 +6,9 @@ import type { UserSettings } from '@/types/storage'
 
 import type { UserSettingsRepository } from '../../../domain/repositories/UserSettingsRepository'
 import { normalizeUserSettings } from '../../../domain/services/UserSettingsDefaults'
-import { USER_SETTINGS_KEY } from './savedTabsStorageKeys'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
+import { USER_SETTINGS_KEY } from './savedTabsStorageKeys'
 
 const getDefaultPort = (): ChromeStorageLocalPort | null => {
   const local = getChromeStorageLocal()
@@ -31,7 +31,9 @@ const createChromeUserSettingsRepositoryImpl = (
   }
 
   const save = async (settings: UserSettings): Promise<void> => {
-    const normalized = normalizeUserSettings({ userSettings: settings }).normalized
+    const normalized = normalizeUserSettings({
+      userSettings: settings,
+    }).normalized
     await port.set({ [USER_SETTINGS_KEY]: normalized })
   }
 

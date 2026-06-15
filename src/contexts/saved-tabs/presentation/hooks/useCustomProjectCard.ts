@@ -298,7 +298,7 @@ const processUrlToUrlDrop = (params: {
  * @param params フックの引数
  * @returns プロジェクトURL・DnD・衝突検出関連の状態と操作
  */
-const noopGetProjectUrls: GetProjectUrlsUseCase = async () => []
+const noopGetProjectUrls: GetProjectUrlsUseCase = () => Promise.resolve([])
 
 export const useCustomProjectCard = ({
   project,

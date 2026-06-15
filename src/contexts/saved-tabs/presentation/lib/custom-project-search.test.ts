@@ -5,9 +5,8 @@ import type { CustomProject } from '@/types/storage'
 
 import { filterCustomProjectsByQuery } from './custom-project-search'
 
-const asUseCase = (
-  fn: ReturnType<typeof vi.fn>,
-): GetProjectUrlsUseCase => fn as unknown as GetProjectUrlsUseCase
+const asUseCase = (fn: ReturnType<typeof vi.fn>): GetProjectUrlsUseCase =>
+  fn as unknown as GetProjectUrlsUseCase
 
 const createProjects = (): CustomProject[] => [
   {

@@ -6,6 +6,7 @@ import type { ParentCategoryRepository } from '../../domain/repositories/ParentC
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
 import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
 import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
 
 /**
  * `AssignDomainToCategoryUseCase` の入力。
@@ -26,7 +27,7 @@ export interface AssignDomainToCategoryCommand {
  */
 export const UNCATEGORIZED_SENTINEL = 'none' as const
 
-export type AssignDomainToCategoryResult = {
+export interface AssignDomainToCategoryResult {
   readonly all: readonly ParentCategory[]
   readonly mappings: readonly { domain: string; categoryId: string }[]
 }
@@ -45,6 +46,20 @@ export interface AssignDomainToCategoryUseCaseDeps {
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly domainCategoryMappingRepository: DomainCategoryMappingRepository
   readonly tabGroupRepository: TabGroupRepository
+}
+
+const isMappingsEqual = (
+  a: readonly { domain: string; categoryId: string }[],
+  b: readonly { domain: string; categoryId: string }[],
+): boolean => {
+  if (a.length !== b.length) {
+    return false
+  }
+  return a.every(
+    (mapping, index) =>
+      mapping.domain === b[index]?.domain &&
+      mapping.categoryId === b[index]?.categoryId,
+  )
 }
 
 /**
@@ -72,13 +87,10 @@ export const createAssignDomainToCategoryUseCase = (
   return async (command) => {
     const all = await deps.parentCategoryRepository.findAll()
     const tabGroup = await deps.tabGroupRepository.findById(
-      command.domainId as Parameters<typeof deps.tabGroupRepository.findById>[0],
+      createTabGroupId(command.domainId),
     )
 
-    let targetDomain: string | null = null
-    if (tabGroup && tabGroup.domain) {
-      targetDomain = tabGroup.domain
-    }
+    const targetDomain = tabGroup?.domain ?? null
 
     // 1) ドメイン-親カテゴリマッピング更新
     let nextMappings: { domain: string; categoryId: string }[]
@@ -98,14 +110,7 @@ export const createAssignDomainToCategoryUseCase = (
     } else {
       nextMappings = [...currentMappings]
     }
-    if (
-      nextMappings.length !== currentMappings.length ||
-      nextMappings.some(
-        (mapping, index) =>
-          mapping.domain !== currentMappings[index]?.domain ||
-          mapping.categoryId !== currentMappings[index]?.categoryId,
-      )
-    ) {
+    if (!isMappingsEqual(nextMappings, currentMappings)) {
       await deps.domainCategoryMappingRepository.saveAll(nextMappings)
     }
 
@@ -117,21 +122,24 @@ export const createAssignDomainToCategoryUseCase = (
 
     if (!targetCategoryId) {
       // 未分類へ戻す: 他カテゴリから domainId / domain 名を取り除く
-      const target = parentCategoryById(all, targetCategoryId ?? ('' as never))
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      const target = parentCategoryById(all, '' as never)
       void target
     }
 
-    const updatedCategories: ParentCategory[] = all.map((category) => {
+    const commandDomainId = command.domainId
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const updatedCategories = all.map((category) => {
       if (targetCategoryId && category.id === targetCategoryId) {
         if (!targetDomain) {
           return category
         }
         const hasDomainId = (category.domains as readonly string[]).includes(
-          command.domainId,
+          commandDomainId,
         )
-        const hasDomainName = (category.domainNames as readonly string[]).includes(
-          targetDomain,
-        )
+        const hasDomainName = (
+          category.domainNames as readonly string[]
+        ).includes(targetDomain)
         if (hasDomainId && hasDomainName) {
           return category
         }
@@ -139,10 +147,10 @@ export const createAssignDomainToCategoryUseCase = (
           ...category,
           domainNames: hasDomainName
             ? category.domainNames
-            : [...category.domainNames, targetDomain as never],
+            : [...category.domainNames, targetDomain],
           domains: hasDomainId
             ? category.domains
-            : [...category.domains, command.domainId as never],
+            : [...(category.domains as readonly string[]), commandDomainId],
         }
       }
       // 他のカテゴリからは除く
@@ -150,27 +158,26 @@ export const createAssignDomainToCategoryUseCase = (
         return {
           ...category,
           domains: (category.domains as readonly string[]).filter(
-            (id) => id !== command.domainId,
-          ) as never,
+            (id) => id !== commandDomainId,
+          ),
         }
       }
       return {
         ...category,
         domainNames: (category.domainNames as readonly string[]).filter(
           (name) => name !== targetDomain,
-        ) as never,
+        ),
         domains: (category.domains as readonly string[]).filter(
-          (id) => id !== command.domainId,
-        ) as never,
+          (id) => id !== commandDomainId,
+        ),
       }
     })
 
-    if (
-      updatedCategories.some(
-        (category, index) => category !== all[index],
+    if (updatedCategories.some((category, index) => category !== all[index])) {
+      await deps.parentCategoryRepository.saveAll(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        updatedCategories as readonly ParentCategory[],
       )
-    ) {
-      await deps.parentCategoryRepository.saveAll(updatedCategories)
     } else {
       // no-op
     }
@@ -183,7 +190,8 @@ export const createAssignDomainToCategoryUseCase = (
     }
 
     return {
-      all: updatedCategories,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      all: updatedCategories as readonly ParentCategory[],
       mappings: nextMappings,
     }
   }

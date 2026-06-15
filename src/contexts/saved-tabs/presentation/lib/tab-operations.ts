@@ -53,8 +53,7 @@ const updateDomainCategoryMappingIfNeeded = async (
   if (!groupToRemove.parentCategoryId) {
     return
   }
-  const currentMappings =
-    await domainCategoryMappingRepository.findAll()
+  const currentMappings = await domainCategoryMappingRepository.findAll()
   const filtered = currentMappings.filter(
     (m) => m.domain !== groupToRemove.domain,
   )

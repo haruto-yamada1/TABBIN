@@ -385,7 +385,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
           moveUrlBetweenCustomProjects: vi.fn().mockResolvedValue(undefined),
           removeCategoryFromProject: vi.fn().mockResolvedValue(undefined),
           removeUrlFromCustomProject: vi.fn().mockResolvedValue(undefined),
-          removeUrlIdsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
+          removeUrlIdsFromAllCustomProjects: vi
+            .fn()
+            .mockResolvedValue(undefined),
           removeUrlsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
           removeUrlsFromCustomProject: vi.fn().mockResolvedValue(undefined),
           renameCategoryInProject: vi.fn().mockResolvedValue(undefined),

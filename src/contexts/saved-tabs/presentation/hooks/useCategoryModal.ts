@@ -270,8 +270,7 @@ export const useCategoryModal = ({
         setCategoryData({
           categories: fromRepo,
           domainCategories: buildDomainCategoriesMap(tabGroups, fromRepo),
-          selectedCategoryId:
-            fromRepo.length > 0 ? fromRepo[0].id : null,
+          selectedCategoryId: fromRepo.length > 0 ? fromRepo[0].id : null,
         })
       } catch (error) {
         console.error('カテゴリの取得に失敗しました', error)
@@ -323,14 +322,16 @@ export const useCategoryModal = ({
 
     try {
       setIsCategoryUpdating(true)
-      const { category: newCategory, all } =
-        await createParentCategoryUseCase({ name: newCategoryName })
+      const { category: newCategory, all } = await createParentCategoryUseCase({
+        name: newCategoryName,
+      })
       // eslint-disable-next-line typescript/no-unsafe-type-assertion
       const updatedAll = all as unknown as ParentCategory[]
       setCategories(updatedAll)
       setSelectedCategoryId(newCategory.id)
       setNewCategoryName('')
       toast.success(t('savedTabs.categoryModal.created'))
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       updateSelectedDomains(newCategory as never)
     } catch (error) {
       console.error('カテゴリの作成に失敗しました', error)
@@ -418,9 +419,7 @@ export const useCategoryModal = ({
       )
       setDomainCategories(updatedDomainCategories)
       if (selectedCategoryId === categoryToDelete.id) {
-        setSelectedCategoryId(
-          updatedAll.length > 0 ? updatedAll[0].id : null,
-        )
+        setSelectedCategoryId(updatedAll.length > 0 ? updatedAll[0].id : null)
         if (updatedAll.length > 0) {
           updateSelectedDomains(updatedAll[0])
         } else {

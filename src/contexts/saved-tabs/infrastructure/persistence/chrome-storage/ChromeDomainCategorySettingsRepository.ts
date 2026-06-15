@@ -8,10 +8,10 @@ import type {
 } from '@/types/storage'
 
 import type { DomainCategorySettingsRepository } from '../../../domain/repositories/DomainCategorySettingsRepository'
-import { DOMAIN_CATEGORY_SETTINGS_KEY } from './savedTabsStorageKeys'
-import { DomainCategorySettingsRawSchema } from './savedTabsStorageSchema'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
+import { DOMAIN_CATEGORY_SETTINGS_KEY } from './savedTabsStorageKeys'
+import { DomainCategorySettingsRawSchema } from './savedTabsStorageSchema'
 
 const getDefaultPort = (): ChromeStorageLocalPort | null => {
   const local = getChromeStorageLocal()
@@ -25,9 +25,7 @@ const getDefaultPort = (): ChromeStorageLocalPort | null => {
   }
 }
 
-const parseSettings = (
-  raw: unknown,
-): readonly DomainCategorySettings[] => {
+const parseSettings = (raw: unknown): readonly DomainCategorySettings[] => {
   if (!Array.isArray(raw)) {
     return []
   }

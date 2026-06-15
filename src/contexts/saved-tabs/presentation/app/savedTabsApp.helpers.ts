@@ -464,12 +464,9 @@ const removeUrlsFromCustomProjectsForGroups = async (
     (group) => group.urlIds ?? [],
   )
   if (allUrlIdsToDelete.length > 0) {
-    await commandService.removeUrlIdsFromAllCustomProjects(
-      allUrlIdsToDelete,
-      {
-        throwOnError: true,
-      },
-    )
+    await commandService.removeUrlIdsFromAllCustomProjects(allUrlIdsToDelete, {
+      throwOnError: true,
+    })
   }
 
   let urlsByGroup: { url: string }[][]

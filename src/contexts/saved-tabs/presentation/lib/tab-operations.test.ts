@@ -22,23 +22,25 @@ const createTabGroupRepositoryMock = (
     saveAll: async () => undefined,
   }) as unknown as TabGroupRepository
 
-const createParentCategoryRepositoryMock = () => ({
-  // eslint-disable-next-line typescript/require-await
-  findAll: async () => [],
-  // eslint-disable-next-line typescript/require-await
-  findById: async () => null,
-  // eslint-disable-next-line typescript/require-await
-  removeByIds: async () => undefined,
-  // eslint-disable-next-line typescript/require-await
-  saveAll: vi.fn().mockResolvedValue(undefined),
-}) as unknown as ParentCategoryRepository
+const createParentCategoryRepositoryMock = () =>
+  ({
+    // eslint-disable-next-line typescript/require-await
+    findAll: async () => [],
+    // eslint-disable-next-line typescript/require-await
+    findById: async () => null,
+    // eslint-disable-next-line typescript/require-await
+    removeByIds: async () => undefined,
+    // eslint-disable-next-line typescript/require-await
+    saveAll: vi.fn().mockResolvedValue(undefined),
+  }) as unknown as ParentCategoryRepository
 
-const createDomainCategoryMappingRepositoryMock = () => ({
-  // eslint-disable-next-line typescript/require-await
-  findAll: async () => [],
-  // eslint-disable-next-line typescript/require-await
-  saveAll: vi.fn().mockResolvedValue(undefined),
-}) as unknown as DomainCategoryMappingRepository
+const createDomainCategoryMappingRepositoryMock = () =>
+  ({
+    // eslint-disable-next-line typescript/require-await
+    findAll: async () => [],
+    // eslint-disable-next-line typescript/require-await
+    saveAll: vi.fn().mockResolvedValue(undefined),
+  }) as unknown as DomainCategoryMappingRepository
 
 const createCategoriesCommandServiceMock = (): CategoriesCommandService => ({
   updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
@@ -91,9 +93,11 @@ describe('handleTabGroupRemoval', () => {
     await handleTabGroupRemoval('group-1', deps)
     expect(
       deps.categoriesCommandService.updateDomainCategorySettings,
-    ).toHaveBeenCalledWith('example.com', ['Docs'], [
-      { categoryName: 'Docs', keywords: ['guide'] },
-    ])
+    ).toHaveBeenCalledWith(
+      'example.com',
+      ['Docs'],
+      [{ categoryName: 'Docs', keywords: ['guide'] }],
+    )
   })
 
   it('対象グループが存在しない場合は no-op', async () => {
@@ -110,16 +114,11 @@ describe('handleTabGroupRemoval', () => {
         .fn()
         .mockRejectedValueOnce(new Error('storage failed')),
     } as unknown as CategoriesCommandService
-    const { deps } = createBundle([
-      { id: 'group-1', domain: 'example.com' },
-    ])
-    await handleTabGroupRemoval(
-      'group-1',
-      {
-        ...deps,
-        categoriesCommandService,
-      },
-    )
+    const { deps } = createBundle([{ id: 'group-1', domain: 'example.com' }])
+    await handleTabGroupRemoval('group-1', {
+      ...deps,
+      categoriesCommandService,
+    })
     expect(console.error).toHaveBeenCalledWith(
       'タブグループ削除前処理エラー:',
       expect.any(Error),

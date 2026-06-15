@@ -13,7 +13,7 @@ export interface CreateParentCategoryCommand {
   readonly name: string
 }
 
-export type CreateParentCategoryResult = {
+export interface CreateParentCategoryResult {
   readonly category: ParentCategory
   readonly all: readonly ParentCategory[]
 }
@@ -71,6 +71,7 @@ export const createCreateParentCategoryUseCase = (
     if (duplicate) {
       throw new Error(`DUPLICATE_CATEGORY_NAME:${name}`)
     }
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
     const newId = deps.generateId() as ParentCategoryId
     const newCategory: ParentCategory = {
       domainNames: [],
@@ -79,6 +80,7 @@ export const createCreateParentCategoryUseCase = (
       // OK: name は use-case 入口で trim 済みかつ同名重複チェック済みの
       // 素の文字列。domain entity 側の `CategoryName` ブランド型への
       // タグ付けは factory (`createCategoryName`) 側に閉じている。
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       name: name as ParentCategory['name'],
     }
     const updatedAll: readonly ParentCategory[] = [...all, newCategory]

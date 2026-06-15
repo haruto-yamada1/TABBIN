@@ -5,10 +5,10 @@ import {
 import type { DomainParentCategoryMapping } from '@/types/storage'
 
 import type { DomainCategoryMappingRepository } from '../../../domain/repositories/DomainCategoryMappingRepository'
-import { DOMAIN_CATEGORY_MAPPINGS_KEY } from './savedTabsStorageKeys'
-import { DomainCategoryMappingRawSchema } from './savedTabsStorageSchema'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
+import { DOMAIN_CATEGORY_MAPPINGS_KEY } from './savedTabsStorageKeys'
+import { DomainCategoryMappingRawSchema } from './savedTabsStorageSchema'
 
 const getDefaultPort = (): ChromeStorageLocalPort | null => {
   const local = getChromeStorageLocal()

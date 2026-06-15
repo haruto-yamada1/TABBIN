@@ -12,7 +12,7 @@ export interface CreateCustomProjectCommand {
   readonly name: string
 }
 
-export type CreateCustomProjectResult = {
+export interface CreateCustomProjectResult {
   readonly all: readonly CustomProject[]
   readonly project: CustomProject
 }
@@ -54,12 +54,11 @@ export const createCreateCustomProjectUseCase = (
     }
     const all = await deps.customProjectRepository.findAll()
     if (
-      all.some(
-        (project) => project.name.toLowerCase() === name.toLowerCase(),
-      )
+      all.some((project) => project.name.toLowerCase() === name.toLowerCase())
     ) {
       throw new Error(`DUPLICATE_PROJECT_NAME:${name}`)
     }
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion
     const id = (deps.generateId ?? defaultGenerateId)() as CustomProjectId
     const now = (deps.now ?? defaultNow)()
     const newProject = createCustomProject({

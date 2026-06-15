@@ -1,5 +1,4 @@
-import type { CustomProject } from '@/types/storage'
-import type { ProjectKeywordSettings } from '@/types/storage'
+import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
 /**
  * 旧 `src/lib/storage/projects` の高レベル操作を port として再公開する
@@ -27,7 +26,10 @@ export interface CustomProjectsCommandService {
    * 旧 `addCategoryToProject` の port 版。カテゴリが既に存在する場合は
    * no-op。`categoryOrder` 末尾に追加する。
    */
-  addCategoryToProject: (projectId: string, categoryName: string) => Promise<void>
+  addCategoryToProject: (
+    projectId: string,
+    categoryName: string,
+  ) => Promise<void>
 
   /**
    * 旧 `removeCategoryFromProject` の port 版。`urlMetadata` 内の
@@ -50,10 +52,7 @@ export interface CustomProjectsCommandService {
   /**
    * 旧 `updateCategoryOrder` の port 版。
    */
-  updateCategoryOrder: (
-    projectId: string,
-    newOrder: string[],
-  ) => Promise<void>
+  updateCategoryOrder: (projectId: string, newOrder: string[]) => Promise<void>
 
   /**
    * 旧 `reorderProjectUrls` の port 版。`urlIds` 順序を引数の `urls`
@@ -100,10 +99,7 @@ export interface CustomProjectsCommandService {
    * 旧 `removeUrlFromCustomProject` の port 版。プロジェクトから URL を
    * 削除し、ドメイン側 (TabGroup) からも同期削除する。
    */
-  removeUrlFromCustomProject: (
-    projectId: string,
-    url: string,
-  ) => Promise<void>
+  removeUrlFromCustomProject: (projectId: string, url: string) => Promise<void>
 
   /**
    * 旧 `removeUrlsFromCustomProject` の port 版。

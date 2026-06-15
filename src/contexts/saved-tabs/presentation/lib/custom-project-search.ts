@@ -1,6 +1,9 @@
 import Fuse from 'fuse.js'
 
-import type { GetProjectUrlsUseCase, ProjectUrlEntry } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
+import type {
+  GetProjectUrlsUseCase,
+  ProjectUrlEntry,
+} from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type { CustomProject } from '@/types/storage'
 
 type ProjectUrlItem = ProjectUrlEntry

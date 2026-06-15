@@ -74,7 +74,9 @@ export const DomainCategorySettingsRawSchema = z.object({
 })
 
 export const UserSettingsRawSchema = z.object({
-  language: z.union([z.literal('system'), z.literal('ja'), z.literal('en')]).optional(),
+  language: z
+    .union([z.literal('system'), z.literal('ja'), z.literal('en')])
+    .optional(),
   removeTabAfterOpen: z.boolean(),
   removeTabAfterExternalDrop: z.boolean(),
   excludePatterns: z.array(z.string()),

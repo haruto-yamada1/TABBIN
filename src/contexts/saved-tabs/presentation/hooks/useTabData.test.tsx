@@ -13,9 +13,7 @@ const {
   migrateToUrlsStorageMock,
 } = vi.hoisted(() => ({
   loadTabGroupsWithUrlsUseCaseMock: vi.fn(),
-  userSettingsFindAllMock: vi
-    .fn()
-    .mockResolvedValue({} as UserSettings),
+  userSettingsFindAllMock: vi.fn().mockResolvedValue({} as UserSettings),
   migrateParentCategoriesToDomainNamesMock: vi
     .fn()
     .mockResolvedValue(undefined),
@@ -49,7 +47,8 @@ const createUserSettingsRepositoryMock = () => ({
 })
 
 const createMigrationPortMock = () => ({
-  migrateParentCategoriesToDomainNames: migrateParentCategoriesToDomainNamesMock,
+  migrateParentCategoriesToDomainNames:
+    migrateParentCategoriesToDomainNamesMock,
   migrateToUrlsStorage: migrateToUrlsStorageMock,
 })
 
@@ -58,9 +57,7 @@ let urlRecordRepository: ReturnType<typeof createUrlRecordRepositoryMock>
 let parentCategoryRepository: ReturnType<
   typeof createParentCategoryRepositoryMock
 >
-let userSettingsRepository: ReturnType<
-  typeof createUserSettingsRepositoryMock
->
+let userSettingsRepository: ReturnType<typeof createUserSettingsRepositoryMock>
 let migrationPort: ReturnType<typeof createMigrationPortMock>
 
 const renderUseTabData = (

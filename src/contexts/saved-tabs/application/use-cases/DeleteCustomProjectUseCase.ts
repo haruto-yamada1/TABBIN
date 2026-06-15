@@ -14,7 +14,7 @@ export interface DeleteCustomProjectCommand {
   readonly projectId: string
 }
 
-export type DeleteCustomProjectResult = {
+export interface DeleteCustomProjectResult {
   readonly all: readonly CustomProject[]
 }
 
@@ -70,13 +70,15 @@ export const createDeleteCustomProjectUseCase = (
         target,
         uncategorized,
       )
-      nextAll = all.map((project, index) =>
-        index === targetIndex
-          ? project
-          : project.id === uncategorized.id
-            ? merged
-            : project,
-      )
+      nextAll = all.map((project, index) => {
+        if (index === targetIndex) {
+          return project
+        }
+        if (project.id === uncategorized.id) {
+          return merged
+        }
+        return project
+      })
     } else {
       nextAll = [...all]
     }

@@ -17,7 +17,7 @@ export interface DeleteParentCategoryCommand {
   readonly categoryId: string
 }
 
-export type DeleteParentCategoryResult = {
+export interface DeleteParentCategoryResult {
   readonly all: readonly ParentCategory[]
   readonly removedCategory: ParentCategory
 }
@@ -66,9 +66,7 @@ export const createDeleteParentCategoryUseCase = (
         'PARENT_CATEGORY_NOT_FOUND',
       )
     }
-    const remaining = all.filter(
-      (category) => category.id !== targetCategoryId,
-    )
+    const remaining = all.filter((category) => category.id !== targetCategoryId)
     await deps.parentCategoryRepository.saveAll(remaining)
 
     const mappings = await deps.domainCategoryMappingRepository.findAll()

@@ -70,15 +70,10 @@ import { toast } from 'sonner'
 // は presentation 層から撤去済み (issue #509)。
 // 後方互換のため `expect(_legacyGetParentCategories)` 等の
 // no-op プレースホルダをローカルに保持する。
-const _legacyGetParentCategories: (
-  ...args: never[]
-) => Promise<unknown[]> = async () => []
-const _legacyCreateParentCategory: (
-  ...args: never[]
-) => Promise<unknown> = async () => ({} as never)
-const _legacyAssignDomainToCategory: (
-  ...args: never[]
-) => Promise<void> = async () => undefined
+const _legacyGetParentCategories = (): Promise<unknown[]> => Promise.resolve([])
+const _legacyCreateParentCategory = (): Promise<unknown> =>
+  Promise.resolve({} as never)
+const _legacyAssignDomainToCategory = (): Promise<void> => Promise.resolve()
 
 const createGroup = (): TabGroup => ({
   id: 'group-1',
@@ -808,7 +803,10 @@ describe('useDomainCardState', () => {
         'parent-1',
       )
     })
-    expect(_legacyAssignDomainToCategory).toHaveBeenCalledWith('group-1', 'parent-1')
+    expect(_legacyAssignDomainToCategory).toHaveBeenCalledWith(
+      'group-1',
+      'parent-1',
+    )
 
     act(() => {
       result.current.parentCategories.handleUpdateParentCategories([

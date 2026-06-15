@@ -412,7 +412,8 @@ vi.mock('@/lib/storage/projects', () => ({
   removeUrlFromAllCustomProjects: vi.fn(),
   removeUrlIdsFromAllCustomProjects:
     commandServiceMock.removeUrlIdsFromAllCustomProjects,
-  removeUrlsFromAllCustomProjects: commandServiceMock.removeUrlsFromAllCustomProjects,
+  removeUrlsFromAllCustomProjects:
+    commandServiceMock.removeUrlsFromAllCustomProjects,
 }))
 
 vi.mock('@/lib/storage/tabs', () => ({
@@ -436,9 +437,8 @@ import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/
 const _legacySaveParentCategories: (
   ...args: never[]
 ) => Promise<void> = async () => undefined
-const _legacyRemoveUrlFromAll: (
-  ...args: never[]
-) => Promise<void> = async () => undefined
+const _legacyRemoveUrlFromAll: (...args: never[]) => Promise<void> = async () =>
+  undefined
 const _legacyRemoveUrlIdsFromAll: (
   ...args: never[]
 ) => Promise<void> = async () => undefined
@@ -1056,16 +1056,20 @@ describe('SavedTabsApp custom search', () => {
           id: 'legacy-group',
         },
       ],
-      useCases as never, commandServiceMock as never,
+      useCases as never,
+      commandServiceMock as never,
     )
 
-    expect(commandServiceMock.removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(['url-a'], {
+    expect(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).toHaveBeenCalledWith(['url-a'], {
       throwOnError: true,
     })
-    expect(commandServiceMock.removeUrlsFromAllCustomProjects).toHaveBeenCalledWith(
-      ['https://legacy.example.com/a'],
-      { throwOnError: true },
-    )
+    expect(
+      commandServiceMock.removeUrlsFromAllCustomProjects,
+    ).toHaveBeenCalledWith(['https://legacy.example.com/a'], {
+      throwOnError: true,
+    })
   })
 
   it('helper は legacy URL 取得が undefined を返しても同期削除をスキップする', async () => {
@@ -1080,10 +1084,13 @@ describe('SavedTabsApp custom search', () => {
           id: 'legacy-group',
         },
       ],
-      useCases as never, commandServiceMock as never,
+      useCases as never,
+      commandServiceMock as never,
     )
 
-    expect(commandServiceMock.removeUrlsFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(
+      commandServiceMock.removeUrlsFromAllCustomProjects,
+    ).not.toHaveBeenCalled()
   })
 
   it('helper は legacy URL 取得が空配列なら同期削除をスキップする', async () => {
@@ -1096,10 +1103,13 @@ describe('SavedTabsApp custom search', () => {
         domain: 'empty.example.com',
         id: 'empty-group',
       },
-      useCases as never, commandServiceMock as never,
+      useCases as never,
+      commandServiceMock as never,
     )
 
-    expect(commandServiceMock.removeUrlsFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(
+      commandServiceMock.removeUrlsFromAllCustomProjects,
+    ).not.toHaveBeenCalled()
   })
 
   it('helper はカテゴリ順序に合わせてグループを並べる', () => {
@@ -1606,11 +1616,13 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteGroup('group-1')
 
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-1', expect.any(Object))
-    expect(commandServiceMock.removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
-      ['url-a', 'url-b'],
-      { throwOnError: true },
+    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
+      'group-1',
+      expect.any(Object),
     )
+    expect(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).toHaveBeenCalledWith(['url-a', 'url-b'], { throwOnError: true })
     expect(toast.info).toHaveBeenCalledWith(
       '削除した2件のタブを保存データに戻せます',
       expect.objectContaining({
@@ -1644,7 +1656,9 @@ describe('SavedTabsApp custom search', () => {
       mocked.categoryState.categories,
     )
     expect(toast.success).toHaveBeenCalledWith('保存データを復元しました')
-    expect(commandServiceMock.removeUrlsFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(
+      commandServiceMock.removeUrlsFromAllCustomProjects,
+    ).not.toHaveBeenCalled()
     expect(_legacyRemoveUrlFromAll).not.toHaveBeenCalled()
   })
 
@@ -2242,7 +2256,9 @@ describe('SavedTabsApp custom search', () => {
     // 一括オープン時の customProject 側 URL ID 同期削除は、
     // OpenAllSavedUrlsUseCase が customProjectRepository 経由で
     // 行うため、lib/storage/projects のヘルパは呼ばれない。
-    expect(commandServiceMock.removeUrlIdsFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).not.toHaveBeenCalled()
     expect(getTabGroupUrls).not.toHaveBeenCalled()
     expect(_legacyRemoveUrlFromAll).not.toHaveBeenCalled()
   })
@@ -2542,9 +2558,9 @@ describe('SavedTabsApp custom search', () => {
         getURL: vi.fn(),
       },
     } as unknown as typeof chrome
-    vi.mocked(commandServiceMock.removeUrlIdsFromAllCustomProjects).mockRejectedValueOnce(
-      new Error('sync failed'),
-    )
+    vi.mocked(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).mockRejectedValueOnce(new Error('sync failed'))
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -2557,15 +2573,20 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleDeleteGroups([])
     await domainProps.handleDeleteGroups(['group-1', 'group-2'])
 
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-1', expect.any(Object))
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-2', expect.any(Object))
+    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
+      'group-1',
+      expect.any(Object),
+    )
+    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
+      'group-2',
+      expect.any(Object),
+    )
     // 両グループとも `urlIds` 経由の削除に揃えられるため、
     // 1 回目の `commandServiceMock.removeUrlIdsFromAllCustomProjects` 呼び出しで
     // `['url-a', 'legacy-url-id']` がまとめられる（旧形式のみ別ルートは廃止）。
-    expect(commandServiceMock.removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
-      ['url-a', 'legacy-url-id'],
-      { throwOnError: true },
-    )
+    expect(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).toHaveBeenCalledWith(['url-a', 'legacy-url-id'], { throwOnError: true })
     expect(chromeSetMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
@@ -3347,11 +3368,15 @@ describe('SavedTabsApp custom search', () => {
         savedTabs: [other],
       }),
     )
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-target', expect.any(Object))
-    expect(commandServiceMock.removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
-      ['url-target-1', 'url-target-2'],
-      { throwOnError: true },
+    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
+      'group-target',
+      expect.any(Object),
     )
+    expect(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).toHaveBeenCalledWith(['url-target-1', 'url-target-2'], {
+      throwOnError: true,
+    })
     expect(toast.info).toHaveBeenCalledWith(
       '削除した2件のタブを保存データに戻せます',
       expect.objectContaining({
@@ -3421,10 +3446,11 @@ describe('SavedTabsApp custom search', () => {
     // 残ったまま、TabGroup だけが削除される。DeleteTabGroupUseCase は
     // 未参照 URL のみを urls から取り除くので、customProject 同期時に
     // commandServiceMock.removeUrlIdsFromAllCustomProjects には url-shared は渡されない。
-    expect(commandServiceMock.removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
-      ['url-shared', 'url-only-target'],
-      { throwOnError: true },
-    )
+    expect(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).toHaveBeenCalledWith(['url-shared', 'url-only-target'], {
+      throwOnError: true,
+    })
     // savedTabs は other だけが残る。url-shared の TabGroup 内
     // 参照は他グループ側 (`group-other`) に維持される。
     expect(chromeSetMock).toHaveBeenCalledWith(
@@ -3535,9 +3561,9 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
-    vi.mocked(commandServiceMock.removeUrlIdsFromAllCustomProjects).mockRejectedValueOnce(
-      new Error('custom sync failed'),
-    )
+    vi.mocked(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).mockRejectedValueOnce(new Error('custom sync failed'))
     // chromeSetMock の呼び出し回数 (issue #494 で use-case 経由の set 経路に整理):
     //   1. DeleteTabGroupUseCase の `tabGroupRepository.removeByIds` 内
     //      `saveAll` による savedTabs 書き戻し
@@ -4021,9 +4047,9 @@ describe('SavedTabsApp custom search', () => {
         getURL: vi.fn(),
       },
     } as unknown as typeof chrome
-    vi.mocked(commandServiceMock.removeUrlIdsFromAllCustomProjects).mockRejectedValueOnce(
-      new Error('custom sync failed'),
-    )
+    vi.mocked(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).mockRejectedValueOnce(new Error('custom sync failed'))
 
     render(<SavedTabsApp />)
 
@@ -4101,7 +4127,9 @@ describe('SavedTabsApp custom search', () => {
     expect(chromeSetMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
-    expect(commandServiceMock.removeUrlsFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(
+      commandServiceMock.removeUrlsFromAllCustomProjects,
+    ).not.toHaveBeenCalled()
   })
 
   it('旧URL形式のドメイン削除では URL 文字列でカスタムプロジェクト同期削除する', async () => {
@@ -4171,10 +4199,9 @@ describe('SavedTabsApp custom search', () => {
     // 新形式では `commandServiceMock.removeUrlIdsFromAllCustomProjects` 経由で ID 同期削除される。
     // 旧形式（`urls: []`）を期待するテストは issue #501 のスコープ外（`urls` は
     // domain マイグレーションで `urlIds` へ移されるため）。
-    expect(commandServiceMock.removeUrlIdsFromAllCustomProjects).toHaveBeenCalledWith(
-      ['legacy-url-id'],
-      { throwOnError: true },
-    )
+    expect(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).toHaveBeenCalledWith(['legacy-url-id'], { throwOnError: true })
   })
 
   it('複数ドメイン削除の同期削除エラーでは snapshot を復元して通知する', async () => {
@@ -4237,9 +4264,9 @@ describe('SavedTabsApp custom search', () => {
         getURL: vi.fn(),
       },
     } as unknown as typeof chrome
-    vi.mocked(commandServiceMock.removeUrlIdsFromAllCustomProjects).mockRejectedValueOnce(
-      new Error('sync failed'),
-    )
+    vi.mocked(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).mockRejectedValueOnce(new Error('sync failed'))
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -4365,8 +4392,14 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleDeleteGroup('group-1')
     await domainProps.handleDeleteGroups(['group-2'])
 
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-1', expect.any(Object))
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith('group-2', expect.any(Object))
+    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
+      'group-1',
+      expect.any(Object),
+    )
+    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
+      'group-2',
+      expect.any(Object),
+    )
   })
 
   it('一括削除は親カテゴリの domains から削除対象 ID を落とす', async () => {

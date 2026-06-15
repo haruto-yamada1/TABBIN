@@ -494,6 +494,7 @@ export const useDomainCardState = ({
         // eslint-disable-next-line typescript/no-unsafe-type-assertion
         const updatedAll = all as unknown as ParentCategory[]
         setParentCategories(updatedAll)
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
         return category as unknown as ParentCategory
       } catch (error) {
         console.error('親カテゴリ作成エラー:', error)

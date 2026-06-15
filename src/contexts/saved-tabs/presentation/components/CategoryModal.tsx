@@ -39,10 +39,14 @@ export const CategoryModal = ({
   assignDomainToCategoryUseCase,
 }: CategoryModalProps) => (
   <CategoryModalRoot
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     assignDomainToCategoryUseCase={assignDomainToCategoryUseCase as never}
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     createParentCategoryUseCase={createParentCategoryUseCase as never}
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     deleteParentCategoryUseCase={deleteParentCategoryUseCase as never}
     onClose={onClose}
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     parentCategoryRepository={parentCategoryRepository as never}
     tabGroups={tabGroups}
   >

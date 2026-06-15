@@ -1,9 +1,9 @@
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
 import { createSavedTabsUseCases as createContextsSavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
-import {
-  createSavedTabsUseCasesDeps,
-  type CreateSavedTabsUseCasesDepsOptions,
-  type SavedTabsUseCasesDeps,
+import { createSavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import type {
+  CreateSavedTabsUseCasesDepsOptions,
+  SavedTabsUseCasesDeps,
 } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
 
 /**
