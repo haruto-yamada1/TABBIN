@@ -884,13 +884,42 @@ const useProjectManagement = (
         console.log(`ビューモード: ${mode}`)
 
         // カスタムプロジェクトを読み込む
-        const projects =
-          (await customProjectRepositoryRef.current.findAll()) as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
-        console.log(`カスタムプロジェクト数: ${projects.length}`)
+        const [projects, order] = await Promise.all([
+          customProjectRepositoryRef.current.findAll(),
+          customProjectRepositoryRef.current.findOrder(),
+        ])
+        const projectsAsCust = projects as unknown as CustomProject[] // oxlint-disable-line typescript/no-unsafe-type-assertion
+        // PR #514 review P1: 保存済みの `customProjectOrder` を反映し、
+        // 並び順が巻き戻らないようにする。order 未保存時は findAll 順を採用。
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        const orderKeys = order as unknown as readonly string[]
+        const ordered =
+          orderKeys.length > 0
+            ? [
+                ...orderKeys
+                  .map((id) =>
+                    projectsAsCust.find(
+                      (project) =>
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+                        (project.id as unknown as string) === id,
+                    ),
+                  )
+                  .filter(
+                    (project): project is CustomProject =>
+                      project !== undefined,
+                  ),
+                ...projectsAsCust.filter(
+                  (project) =>
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+                    !orderKeys.includes(project.id as unknown as string),
+                ),
+              ]
+            : projectsAsCust
+        console.log(`カスタムプロジェクト数: ${ordered.length}`)
 
         // UIを更新
         if (isActive) {
-          setCustomProjects(projects)
+          setCustomProjects(ordered)
         }
         console.log('初回ロード完了')
       } catch (error) {

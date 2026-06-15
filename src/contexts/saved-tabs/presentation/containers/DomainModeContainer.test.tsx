@@ -169,8 +169,12 @@ const createProps = () => ({
   removeDomainFromParentCategory:
     vi.fn<RemoveDomainFromParentCategoryUseCase>(),
   categoryManagementModalDeps: {
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn(),
+      saveTabGroups: vi.fn(),
+    },
+    getSavedTabsPageDataQuery: vi.fn(),
     parentCategoryRepository: {} as unknown as ParentCategoryRepository,
-    tabGroupRepository: {} as unknown as TabGroupRepository,
   },
   categoryManagementModalUseCases: {
     addDomainToParentCategory: vi.fn<AddDomainToParentCategoryUseCase>(),

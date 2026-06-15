@@ -1,3 +1,4 @@
+import type { GetSavedTabsPageDataQuery } from './queries/GetSavedTabsPageDataQuery'
 import type { AddDomainToParentCategoryUseCase } from './use-cases/AddDomainToParentCategoryUseCase'
 import type { AssignDomainToCategoryUseCase } from './use-cases/AssignDomainToCategoryUseCase'
 import type { BuildSavedTabsSnapshotUseCase } from './use-cases/BuildSavedTabsSnapshotUseCase'
@@ -71,4 +72,5 @@ export interface SavedTabsUseCases {
   readonly deleteCustomProject: DeleteCustomProjectUseCase
   readonly updateCustomProjectName: UpdateCustomProjectNameUseCase
   readonly getProjectUrls: GetProjectUrlsUseCase
+  readonly getSavedTabsPageData: GetSavedTabsPageDataQuery
 }

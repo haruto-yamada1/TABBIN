@@ -152,15 +152,13 @@ const useSavedTabsAppView = ({
   >([])
 
   const categoryState = useCategoryManagement({
-    tabGroupRepository: deps.tabGroupRepository,
-    parentCategoryRepository: deps.parentCategoryRepository,
+    getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
+    categoryAssignmentPort: deps.categoryAssignmentPort,
   })
   const tabDataState = useTabData({
     loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,
+    getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
     tabGroupRepository: deps.tabGroupRepository,
-    urlRecordRepository: deps.urlRecordRepository,
-    parentCategoryRepository: deps.parentCategoryRepository,
-    userSettingsRepository: deps.userSettingsRepository,
     migrationPort: deps.migrationPort,
     onCategoriesLoaded: categoryState.setCategories,
     onSettingsLoaded: setSettings,
@@ -1072,7 +1070,8 @@ const useSavedTabsAppView = ({
         renameParentCategoryUseCase={savedTabsUseCases.renameParentCategory}
         // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TODO(#502-followup): category management deps の memo 化または context 化で解消予定
         categoryManagementModalDeps={{
-          tabGroupRepository: deps.tabGroupRepository,
+          categoryAssignmentPort: deps.categoryAssignmentPort,
+          getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
           parentCategoryRepository: deps.parentCategoryRepository,
         }}
         // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TODO(#502-followup): category management use-cases の memo 化または context 化で解消予定
@@ -1131,7 +1130,7 @@ const useSavedTabsAppView = ({
           onModeChange={handleViewModeChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          parentCategoryRepository={deps.parentCategoryRepository}
+          getSavedTabsPageDataQuery={savedTabsUseCases.getSavedTabsPageData}
           createParentCategoryUseCase={savedTabsUseCases.createParentCategory}
           deleteParentCategoryUseCase={savedTabsUseCases.deleteParentCategory}
           assignDomainToCategoryUseCase={

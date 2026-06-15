@@ -184,7 +184,7 @@ describe('useProjectManagement', () => {
       customProjectRepository.findOrder as unknown as {
         mockResolvedValue: (value: unknown) => void
       }
-    ).mockResolvedValue(['project-1'])
+    ).mockResolvedValue([])
     ;(
       customProjectRepository.saveAll as unknown as {
         mockResolvedValue: (value: unknown) => void
@@ -935,6 +935,13 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(projectSnapshot)
       .mockResolvedValueOnce(projectSnapshot)
       .mockResolvedValueOnce(updatedProjects)
+    // PR #514 review P1: 初期 load 時に customProjectOrder を取り込み、
+    // undo snapshot にも order を含める。
+    ;(
+      customProjectRepository.findOrder as unknown as {
+        mockResolvedValue: (value: unknown) => void
+      }
+    ).mockResolvedValue(['project-1'])
 
     const { result } = renderHook(() =>
       useProjectManagement(

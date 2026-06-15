@@ -8,11 +8,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { LoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupsWithUrlsUseCase'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
-import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
 import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 /** UseTabData フックの引数 */
@@ -20,23 +18,17 @@ interface UseTabDataParams {
   /** URL 解決用 use-case。presentation 層が `loadTabGroupsWithUrls` 相当の操作で `@/lib/storage/tabs` を直接呼ばないようにするための依存注入ポイント。 */
   readonly loadTabGroupsWithUrlsUseCase: LoadTabGroupsWithUrlsUseCase
   /**
-   * タブグループ永続化先。presentation 層から直接 `chrome.storage.local`
-   * を触らず、repository 経由で読み書きする（issue #502）。
+   * 保存タブページ全体の読み取り専用スナップショット query。
+   * `tabGroupRepository` / `parentCategoryRepository` /
+   * `userSettingsRepository` の直叩きを統合し、presentation 層からは
+   * 1 つの関数で受け取る形に集約する（issue #510）。
+   */
+  readonly getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
+  /**
+   * タブグループ永続化先。`repairSavedTabParentCategoryIds` の修復保存で
+   * `tabGroupRepository.saveAll` を引き続き使う（issue #510 範囲外）。
    */
   readonly tabGroupRepository: TabGroupRepository
-  /**
-   * URL レコード永続化先。初回ロード時の件数ログのために `findAll` を使う。
-   */
-  readonly urlRecordRepository: UrlRecordRepository
-  /**
-   * 親カテゴリ永続化先。`getParentCategories` の直接呼び出しを置き換える。
-   */
-  readonly parentCategoryRepository: ParentCategoryRepository
-  /**
-   * ユーザー設定永続化先。旧 `getUserSettings` / `saveUserSettings` の
-   * DDD repository 化（issue #509）。
-   */
-  readonly userSettingsRepository: UserSettingsRepository
   /**
    * migration port。旧 `migrateParentCategoriesToDomainNames` /
    * `migrateToUrlsStorage` の DDD port 化（issue #509）。
@@ -106,7 +98,7 @@ const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
 }
 const ensureValidParentCategories = async (
   parentCategories: ParentCategory[],
-  parentCategoryRepository: ParentCategoryRepository,
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery,
   migrationPort: MigrationPort,
 ): Promise<ParentCategory[]> => {
   const hasInvalidCategory = parentCategories.some(
@@ -117,12 +109,10 @@ const ensureValidParentCategories = async (
   }
   console.log('無効なカテゴリを検出、再マイグレーションを実行')
   await migrationPort.migrateParentCategoriesToDomainNames()
-  const refreshed = await parentCategoryRepository.findAll()
-  // domain `ParentCategory` は branded 型を持つが、storage shape (`@/types/storage`)
-  // とは構造的に互換 (`id`/`name`/`domains`/`domainNames` が string ベース)。
-  // presentation 層は storage shape で扱うため `unknown` 経由でキャストする。
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return refreshed as unknown as ParentCategory[]
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
+  const refreshed = (await getSavedTabsPageDataQuery())
+    .parentCategories as unknown as ParentCategory[]
+  return [...refreshed]
 }
 const repairSavedTabParentCategoryIds = (
   savedTabs: TabGroup[],
@@ -183,19 +173,18 @@ const repairSavedTabParentCategoryIds = (
  * （旧 `@/lib/storage/tabs.resolveTabGroupsWithUrls` 直叩きを置換、
  * issue #501）。
  *
- * `tabGroupRepository` / `urlRecordRepository` / `parentCategoryRepository`
- * 経由で永続化層へアクセスし、`chrome.storage.local` の直接呼び出しと
- * `getParentCategories()` 直叩きを撤去する（issue #502）。
+ * 初回ロード時の `tabGroups` / `parentCategories` / `userSettings` は
+ * `getSavedTabsPageDataQuery` で 1 度に取得し、presentation 層から
+ * `chrome.storage.local` の直叩きと repository 個別の read を撤去する
+ * （issue #510）。
  *
- * @param params - フック引数（use-case / repository / ロード完了コールバック）
+ * @param params - フック引数（use-case / query / repository / コールバック）
  * @returns UseTabDataReturn
  */
 const useTabData = ({
   loadTabGroupsWithUrlsUseCase,
+  getSavedTabsPageDataQuery,
   tabGroupRepository,
-  urlRecordRepository,
-  parentCategoryRepository,
-  userSettingsRepository,
   migrationPort,
   onCategoriesLoaded,
   onSettingsLoaded,
@@ -235,24 +224,17 @@ const useTabData = ({
     loadTabGroupsWithUrlsUseCaseRef.current = loadTabGroupsWithUrlsUseCase
   }, [loadTabGroupsWithUrlsUseCase])
 
-  // repository 参照も ref で保持（useEffect / useCallback の依存安定性のため）
+  // query / repository 参照も ref で保持
+  // （useEffect / useCallback の依存安定性のため）
+  const getSavedTabsPageDataQueryRef = useRef(getSavedTabsPageDataQuery)
   const tabGroupRepositoryRef = useRef(tabGroupRepository)
-  const urlRecordRepositoryRef = useRef(urlRecordRepository)
-  const parentCategoryRepositoryRef = useRef(parentCategoryRepository)
-  const userSettingsRepositoryRef = useRef(userSettingsRepository)
   const migrationPortRef = useRef(migrationPort)
+  useEffect(() => {
+    getSavedTabsPageDataQueryRef.current = getSavedTabsPageDataQuery
+  }, [getSavedTabsPageDataQuery])
   useEffect(() => {
     tabGroupRepositoryRef.current = tabGroupRepository
   }, [tabGroupRepository])
-  useEffect(() => {
-    urlRecordRepositoryRef.current = urlRecordRepository
-  }, [urlRecordRepository])
-  useEffect(() => {
-    parentCategoryRepositoryRef.current = parentCategoryRepository
-  }, [parentCategoryRepository])
-  useEffect(() => {
-    userSettingsRepositoryRef.current = userSettingsRepository
-  }, [userSettingsRepository])
   useEffect(() => {
     migrationPortRef.current = migrationPort
   }, [migrationPort])
@@ -324,25 +306,16 @@ const useTabData = ({
       try {
         await runInitialMigrations(migrationPortRef.current)
 
-        // データ読み込み: repository 経由 (issue #502)
-        const savedTabsFromRepo = await tabGroupRepositoryRef.current.findAll()
-        // domain `TabGroup` (branded 型) を storage shape へキャストして扱う。
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const savedTabs = savedTabsFromRepo as unknown as TabGroup[]
+        // データ読み込み: page data query 経由 (issue #510)
+        const pageData = await getSavedTabsPageDataQueryRef.current()
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain entity (branded readonly) を storage shape (mutable plain) へ投影
+        const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain entity (branded readonly) を storage shape (mutable plain) へ投影
+        const parentCategories = [
+          ...pageData.parentCategories,
+        ] as unknown as ParentCategory[]
+        const userSettings = pageData.userSettings
         logSavedTabsSummary(savedTabs)
-        const [urlRecords, userSettings, parentCategoriesFromRepo] =
-          await Promise.all([
-            urlRecordRepositoryRef.current.findAll(),
-            userSettingsRepositoryRef.current.findAll(),
-            parentCategoryRepositoryRef.current.findAll(),
-          ])
-        // domain entity (branded 型) を storage shape へキャストして扱う。
-        const parentCategories =
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
-          parentCategoriesFromRepo as unknown as ParentCategory[]
-
-        // URLストレージの内容を確認
-        console.log('URLレコード数:', urlRecords.length)
 
         // ユーザー設定を親コンポーネントに通知
         onSettingsLoadedRef.current(userSettings)
@@ -351,7 +324,7 @@ const useTabData = ({
         console.log('読み込まれた親カテゴリ:', parentCategories)
         const finalCategories = await ensureValidParentCategories(
           parentCategories,
-          parentCategoryRepositoryRef.current,
+          getSavedTabsPageDataQueryRef.current,
           migrationPortRef.current,
         )
         onCategoriesLoadedRef.current(finalCategories)
@@ -361,11 +334,7 @@ const useTabData = ({
         // 修復が必要な場合はストレージを更新
         if (needsUpdate) {
           await tabGroupRepositoryRef.current.saveAll(
-            // storage shape の `TabGroup[]` を domain repository の
-            // `readonly TabGroup[]` 引数へ渡す。値オブジェクトの factory は
-            // infrastructure 層 (`ChromeTabGroupRepository.saveAll`) 内の
-            // mapper で適用されるため、ここでは `unknown` 経由でキャストする。
-            // eslint-disable-next-line typescript/no-unsafe-type-assertion
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion
             updatedTabGroups as unknown as Parameters<
               typeof tabGroupRepositoryRef.current.saveAll
             >[0],

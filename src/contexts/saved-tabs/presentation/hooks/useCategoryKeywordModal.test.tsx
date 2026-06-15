@@ -11,7 +11,7 @@ import type {
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { ParentCategory, TabGroup } from '@/types/storage'
+import type { ParentCategory, TabGroup, UserSettings } from '@/types/storage'
 
 import {
   renameCategoryInTab,
@@ -128,6 +128,7 @@ const setupChromeStorage = (state: StorageState = {}) => {
         ).savedTabs?.find((tab) => tab.id === id) ??
           null) as unknown as ReturnType<TabGroupRepository['findById']>,
     ),
+    findRawDomainById: vi.fn(() => Promise.resolve(null)),
     saveAll: vi.fn(
       async (_next: Parameters<TabGroupRepository['saveAll']>[0]) => {
         await local.set({
@@ -196,10 +197,43 @@ const setupChromeStorage = (state: StorageState = {}) => {
     ),
   }
 
+  const getSavedTabsPageDataQuery = vi.fn(async () => {
+    const [tabGroups, parentCategories] = await Promise.all([
+      tabGroupRepository.findAll(),
+      parentCategoryRepository.findAll(),
+    ])
+    return {
+      tabGroups,
+      parentCategories,
+      userSettings: {} as UserSettings,
+    }
+  })
+  // domain.ParentCategory (branded readonly) は storage 層 ParentCategory
+  // (mutable plain) と構造互換のため、`unknown` 経由で委譲する。
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const categoryAssignmentPort: any = {
+    saveParentCategories: vi.fn(async (next: readonly ParentCategory[]) =>
+      parentCategoryRepository.saveAll(
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+        next as unknown as Parameters<
+          typeof parentCategoryRepository.saveAll
+        >[0],
+      ),
+    ),
+    saveTabGroups: vi.fn(async (next: readonly TabGroup[]) =>
+      tabGroupRepository.saveAll(
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+        next as unknown as Parameters<typeof tabGroupRepository.saveAll>[0],
+      ),
+    ),
+  }
+
   const result = {
+    categoryAssignmentPort,
+    getSavedTabsPageDataQuery,
     local,
-    state,
     parentCategoryRepository,
+    state,
     tabGroupRepository,
   }
   lastStorage = result
@@ -247,8 +281,8 @@ const renderModalHook = (
   lastStorage = setup
   const props = {
     deps: {
-      parentCategoryRepository: setup.parentCategoryRepository,
-      tabGroupRepository: setup.tabGroupRepository,
+      categoryAssignmentPort: setup.categoryAssignmentPort,
+      getSavedTabsPageDataQuery: setup.getSavedTabsPageDataQuery,
     },
     group: createGroup(),
     initialParentCategories: createParentCategories(),
@@ -294,8 +328,17 @@ describe('useCategoryKeywordModal', () => {
     const { result } = renderHook(() =>
       useCategoryKeywordModal({
         deps: {
-          parentCategoryRepository: {} as unknown as ParentCategoryRepository,
-          tabGroupRepository: {} as unknown as TabGroupRepository,
+          categoryAssignmentPort: {
+            saveParentCategories: vi.fn(),
+            saveTabGroups: vi.fn(),
+          },
+          getSavedTabsPageDataQuery: vi.fn(() =>
+            Promise.resolve({
+              tabGroups: [],
+              parentCategories: [],
+              userSettings: {} as UserSettings,
+            }),
+          ),
         },
         group: createGroup(),
         initialParentCategories: createParentCategories(),
@@ -417,8 +460,17 @@ describe('useCategoryKeywordModal', () => {
     const { result } = renderHook(() =>
       useCategoryKeywordModal({
         deps: {
-          parentCategoryRepository: {} as unknown as ParentCategoryRepository,
-          tabGroupRepository: {} as unknown as TabGroupRepository,
+          categoryAssignmentPort: {
+            saveParentCategories: vi.fn(),
+            saveTabGroups: vi.fn(),
+          },
+          getSavedTabsPageDataQuery: vi.fn(() =>
+            Promise.resolve({
+              tabGroups: [],
+              parentCategories: [],
+              userSettings: {} as UserSettings,
+            }),
+          ),
         },
         group: createGroup(),
         initialParentCategories: createParentCategories(),

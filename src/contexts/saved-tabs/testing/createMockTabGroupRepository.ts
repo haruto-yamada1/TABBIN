@@ -59,6 +59,12 @@ export const createMockTabGroupRepository = (
       return state.savedTabs.find((tab) => tab.id === idString) ?? null
     }),
     // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+    findRawDomainById: vi.fn(async (id) => {
+      const idString = id as unknown as string
+      const tab = state.savedTabs.find((entry) => entry.id === idString)
+      return (tab?.domain as unknown as string | undefined) ?? null
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
     saveAll: vi.fn(async (next) => {
       state.savedTabs = next
     }),

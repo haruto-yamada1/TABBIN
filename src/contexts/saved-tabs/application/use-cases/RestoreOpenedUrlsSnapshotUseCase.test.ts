@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { createCustomProject } from '../../domain/entities/CustomProject'
 import { createParentCategory } from '../../domain/entities/ParentCategory'
@@ -49,6 +49,7 @@ const createInMemoryRepositories = (
     findAll: async () => [...tabGroups],
     // eslint-disable-next-line typescript/require-await
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
+    findRawDomainById: vi.fn(() => Promise.resolve(null)),
     // eslint-disable-next-line typescript/require-await
     removeByIds: async (ids) => {
       const idSet = new Set(ids.map((id) => id))

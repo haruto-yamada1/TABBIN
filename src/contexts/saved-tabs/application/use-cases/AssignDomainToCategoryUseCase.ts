@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import type { ParentCategory } from '../../domain/entities/ParentCategory'
 import { parentCategoryById } from '../../domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
@@ -86,11 +87,19 @@ export const createAssignDomainToCategoryUseCase = (
 ): AssignDomainToCategoryUseCase => {
   return async (command) => {
     const all = await deps.parentCategoryRepository.findAll()
-    const tabGroup = await deps.tabGroupRepository.findById(
-      createTabGroupId(command.domainId),
-    )
+    const tabGroupId = createTabGroupId(command.domainId)
+    const tabGroup = await deps.tabGroupRepository.findById(tabGroupId)
+    // PR #514 review P1: `domainCategoryMappings` / `parentCategory.domainNames`
+    // の lookup キーは schemeful 形式（`https://example.com`）を期待するため、
+    // entity 化された `DomainName`（hostname 形式に正規化済み）ではなく
+    // storage に書かれている生の domain 文字列を使う。
+    const rawDomain = tabGroup
+      ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        ((await deps.tabGroupRepository.findRawDomainById(tabGroupId)) ??
+        (tabGroup.domain as unknown as string))
+      : null
 
-    const targetDomain = tabGroup?.domain ?? null
+    const targetDomain = rawDomain
 
     // 1) ドメイン-親カテゴリマッピング更新
     let nextMappings: { domain: string; categoryId: string }[]

@@ -6,6 +6,7 @@ import {
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { CategoriesCommandService } from '../../application/ports/CategoriesCommandService'
+import type { CategoryAssignmentPort } from '../../application/ports/CategoryAssignmentPort'
 import type { CustomProjectsCommandService } from '../../application/ports/CustomProjectsCommandService'
 import type { MigrationPort } from '../../application/ports/MigrationPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
@@ -32,6 +33,7 @@ import { createChromeTabGroupRepository } from '../persistence/chrome-storage/Ch
 import { createChromeUrlRecordRepository } from '../persistence/chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUserSettingsRepository } from '../persistence/chrome-storage/ChromeUserSettingsRepository'
 import { createLibCategoriesCommandService } from './LibCategoriesCommandService'
+import { createLibCategoryAssignmentPort } from './LibCategoryAssignmentPort'
 import { createLibCustomProjectsCommandService } from './LibCustomProjectsCommandService'
 
 /**
@@ -58,6 +60,7 @@ export interface SavedTabsUseCasesDeps {
   readonly migrationPort: MigrationPort
   readonly categoriesCommandService: CategoriesCommandService
   readonly customProjectsCommandService: CustomProjectsCommandService
+  readonly categoryAssignmentPort: CategoryAssignmentPort
 }
 
 /**
@@ -147,6 +150,10 @@ export const createSavedTabsUseCasesDeps = (
       getApi: () => getChromeApi(),
     }),
     categoriesCommandService: createLibCategoriesCommandService(),
+    categoryAssignmentPort: createLibCategoryAssignmentPort({
+      parentCategoryRepository: createChromeParentCategoryRepository(port),
+      tabGroupRepository: createChromeTabGroupRepository(port),
+    }),
     customProjectRepository: createChromeCustomProjectRepository(port),
     customProjectsCommandService: createLibCustomProjectsCommandService(),
     domainCategoryMappingRepository:

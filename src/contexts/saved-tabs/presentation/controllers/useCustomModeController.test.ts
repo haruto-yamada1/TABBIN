@@ -111,6 +111,8 @@ const createEmptyDeps = (
     // eslint-disable-next-line typescript/require-await
     findById: async () => null,
     // eslint-disable-next-line typescript/require-await
+    findRawDomainById: async () => null,
+    // eslint-disable-next-line typescript/require-await
     removeByIds: async () => undefined,
     // eslint-disable-next-line typescript/require-await
     saveAll: async () => undefined,
@@ -139,6 +141,10 @@ const createEmptyDeps = (
       browserWindowPort,
       categoriesCommandService: {
         updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+      },
+      categoryAssignmentPort: {
+        saveParentCategories: vi.fn().mockResolvedValue(undefined),
+        saveTabGroups: vi.fn().mockResolvedValue(undefined),
       },
       customProjectRepository:
         createInMemoryRepositories().customProjectRepository,

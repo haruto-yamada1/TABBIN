@@ -134,6 +134,8 @@ const buildLayoutComposition = () => {
       // eslint-disable-next-line typescript/require-await
       findById: async () => null,
       // eslint-disable-next-line typescript/require-await
+      findRawDomainById: async () => null,
+      // eslint-disable-next-line typescript/require-await
       removeByIds: async () => undefined,
       // eslint-disable-next-line typescript/require-await
       saveAll: async () => undefined,
@@ -174,6 +176,10 @@ const buildLayoutComposition = () => {
     },
     categoriesCommandService: {
       updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+    },
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn().mockResolvedValue(undefined),
+      saveTabGroups: vi.fn().mockResolvedValue(undefined),
     },
     customProjectsCommandService: {
       addCategoryToProject: vi.fn().mockResolvedValue(undefined),

@@ -32,6 +32,7 @@ const createInMemoryDeps = (): SavedTabsUseCasesDeps => {
     findAll: async () => [],
     // eslint-disable-next-line typescript/require-await
     findById: async () => null,
+    findRawDomainById: vi.fn(() => Promise.resolve(null)),
     // eslint-disable-next-line typescript/require-await
     removeByIds: async () => undefined,
     // eslint-disable-next-line typescript/require-await
@@ -94,6 +95,10 @@ const createInMemoryDeps = (): SavedTabsUseCasesDeps => {
     browserWindowPort,
     categoriesCommandService: {
       updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+    },
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn().mockResolvedValue(undefined),
+      saveTabGroups: vi.fn().mockResolvedValue(undefined),
     },
     customProjectRepository,
     customProjectsCommandService: {
