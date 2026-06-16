@@ -10,8 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Toaster } from '@/components/ui/sonner'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
