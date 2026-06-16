@@ -275,12 +275,15 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(override).toBeDefined()
     })
 
-    it('chrome.storage / chrome.tabs / chrome.contextMenus / chrome.alarms の直叩きを禁止している', () => {
+    it('chrome.storage / chrome.tabs / chrome.contextMenus / chrome.alarms / chrome.runtime の直叩きを禁止している', () => {
       const names = getRestrictedProperties(override)
       expect(names).toContain('chrome.storage')
       expect(names).toContain('chrome.tabs')
       expect(names).toContain('chrome.contextMenus')
       expect(names).toContain('chrome.alarms')
+      // issue #531: `chrome.runtime.sendMessage` などの background 通信
+      // 直叩きも presentation 層ガードで再発防止する。
+      expect(names).toContain('chrome.runtime')
     })
   })
 
@@ -543,6 +546,99 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         ).not.toMatch(/from\s+['"]@\/lib\/storage\//)
       })
     }
+  })
+
+  describe('issue #531: presentation 配下は chrome.runtime.sendMessage を直叩きしない', () => {
+    const presentationRoot = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/presentation',
+    )
+    const presentationSourceFiles = collectSourceFiles(presentationRoot)
+
+    it('presentation 配下に .ts / .tsx ソースファイルが存在する', () => {
+      expect(presentationSourceFiles.length).toBeGreaterThan(0)
+    })
+
+    for (const absolutePath of presentationSourceFiles) {
+      const relativePath = relative(repoRoot, absolutePath).split(sep).join('/')
+      it(`${relativePath} は chrome.runtime.sendMessage 文字列を含まない`, () => {
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not reference chrome.runtime.sendMessage`,
+        ).not.toMatch(/chrome\.runtime\.sendMessage/)
+      })
+
+      it(`${relativePath} は chrome.runtime.* プロパティを直接参照しない`, () => {
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not call chrome.runtime.* directly`,
+        ).not.toMatch(/chrome\.runtime\.\w+\(/)
+      })
+    }
+  })
+
+  describe('issue #531: MessagingPort / ChromeMessagingAdapter ファイルが追加されている', () => {
+    const expectedFiles = [
+      'src/contexts/saved-tabs/application/ports/MessagingPort.ts',
+      'src/contexts/saved-tabs/infrastructure/browser/ChromeMessagingAdapter.ts',
+    ]
+
+    for (const file of expectedFiles) {
+      it(`${file} が存在する`, () => {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source.length).toBeGreaterThan(0)
+      })
+    }
+
+    it('MessagingPort は chrome API を import / 利用しない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/ports/MessagingPort.ts',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(/from\s+['"]chrome['"]/)
+      // JSDoc 内の言及は除外するため、import / プロパティアクセスを厳密検出
+      expect(source).not.toMatch(/chrome\.runtime\.\w+\(/)
+    })
+
+    it('ChromeMessagingAdapter は MessagingPort を実装し chrome.runtime.sendMessage を含む', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/browser/ChromeMessagingAdapter.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('MessagingPort')
+      expect(source).toContain('chrome.runtime.sendMessage')
+      expect(source).not.toMatch(/from\s+['"]@\/components/)
+      expect(source).not.toMatch(/from\s+['"]@\/features\//)
+    })
+
+    it('createSavedTabsUseCasesDeps は messagingPort を組み立てる', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('messagingPort')
+      expect(source).toContain('createChromeMessagingAdapter')
+    })
+
+    it('createSavedTabsPorts は messagingPort を組み立てる', () => {
+      const source = readFileSync(
+        resolve(repoRoot, 'src/app/composition/createSavedTabsPorts.ts'),
+        'utf8',
+      )
+      expect(source).toContain('messagingPort')
+      expect(source).toContain('createChromeMessagingAdapter')
+    })
   })
 
   describe('domain/repositories/ の純度 (issue #457)', () => {

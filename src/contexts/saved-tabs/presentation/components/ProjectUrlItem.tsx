@@ -9,6 +9,7 @@ import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSetti
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject } from '@/types/storage'
 
+import { useSavedTabsUseCases } from '../controllers/SavedTabsUseCasesContext'
 import {
   getCategoryDisplayName,
   getCategoryLevel,
@@ -60,6 +61,13 @@ const ProjectUrlItemComponent = ({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const isDraggingRef = useRef(false)
   const windowBlurredDuringDragRef = useRef(false)
+  // 外部ウィンドウへの D&D 通知に使う `MessagingPort` (issue #531)。
+  // `SavedTabsPage` 配下では `SavedTabsUseCasesProvider` が
+  // `useCases.deps.messagingPort` を提供するため、`useSavedTabsUseCases()`
+  // から取り出してそのまま使う。Provider 外 (Storybook / 一部テスト) では
+  // `null` になるので、その場合は通知を no-op とする。
+  const savedTabsUseCases = useSavedTabsUseCases()
+  const messagingPort = savedTabsUseCases?.deps.messagingPort
 
   // ドラッグアンドドロップの設定を強化
   const {
@@ -99,18 +107,16 @@ const ProjectUrlItemComponent = ({
   }
 
   const handleExternalDrop = useCallback(() => {
-    chrome.runtime.sendMessage(
-      {
-        action: 'urlDropped',
-        fromExternal: true,
-        groupId: projectId,
-        url: originalUrl,
-      },
-      (response) => {
-        console.log('外部ドロップ後の応答:', response)
-      },
-    )
-  }, [originalUrl, projectId])
+    if (!messagingPort) {
+      return
+    }
+    void messagingPort.send({
+      action: 'urlDropped',
+      fromExternal: true,
+      groupId: projectId,
+      url: originalUrl,
+    })
+  }, [messagingPort, originalUrl, projectId])
 
   const handleWindowBlur = useCallback(() => {
     if (isDraggingRef.current) {
@@ -128,16 +134,13 @@ const ProjectUrlItemComponent = ({
     e.dataTransfer.setData('text/uri-list', originalUrl)
     window.addEventListener('blur', handleWindowBlur)
 
-    chrome.runtime.sendMessage(
-      {
+    if (messagingPort) {
+      void messagingPort.send({
         action: 'urlDragStarted',
         groupId: projectId,
         url: originalUrl,
-      },
-      (response) => {
-        console.log('ドラッグ開始通知の応答:', response)
-      },
-    )
+      })
+    }
   }
 
   const handleDragEnd = useCallback(

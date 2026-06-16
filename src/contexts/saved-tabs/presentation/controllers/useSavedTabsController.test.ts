@@ -211,6 +211,9 @@ const createEmptyDeps = (
       storageChangePort: {
         subscribe: () => () => {},
       },
+      messagingPort: {
+        send: vi.fn().mockResolvedValue(undefined),
+      },
       tabGroupRepository: createInMemoryRepositories().tabGroupRepository,
       urlRecordRepository,
       userSettingsRepository: {

@@ -1,10 +1,13 @@
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
+import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type { NotificationPort } from '@/contexts/saved-tabs/application/ports/NotificationPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import { createChromeBrowserTabAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import type { ChromeApiLike } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import { createChromeBrowserWindowAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserWindowAdapter'
+import { createChromeMessagingAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeMessagingAdapter'
+import type { ChromeApiLike as ChromeMessagingApiLike } from '@/contexts/saved-tabs/infrastructure/browser/ChromeMessagingAdapter'
 import { createChromeStorageChangeAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeStorageChangeAdapter'
 import { createSonnerNotificationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter'
 
@@ -23,6 +26,13 @@ export interface SavedTabsPorts {
   readonly browserWindowPort: BrowserWindowPort
   readonly notificationPort: NotificationPort
   readonly storageChangePort: StorageChangePort
+  /**
+   * background 通信 port (issue #531)。
+   * presentation 層 (`ProjectUrlItem` / `SortableUrlItem`) の
+   * 外部ウィンドウ D&D 通知を `chrome.runtime.sendMessage` 直叩きせず
+   * port 経由で行うため、ports 経由で配下に注入する。
+   */
+  readonly messagingPort: MessagingPort
 }
 
 /**
@@ -49,6 +59,13 @@ interface ChromeApi extends ChromeApiLike {
           { readonly tabs?: readonly { readonly url?: string }[] } | undefined
         >
       | undefined
+  }
+  readonly runtime?: {
+    readonly sendMessage?: (
+      message: unknown,
+      callback?: (response: unknown) => void,
+    ) => void
+    readonly lastError?: { readonly message?: string } | undefined
   }
   readonly storage?: {
     readonly onChanged?: {
@@ -98,6 +115,17 @@ export const createSavedTabsPorts = (
   ),
   browserWindowPort: createChromeBrowserWindowAdapter({
     getApi: () => getChromeApi(),
+  }),
+  messagingPort: createChromeMessagingAdapter({
+    // `getChromeApi()` の戻り値 `ChromeApi` は `BrowserTabPort` 由来の
+    // `ChromeApiLike` (`{ tabs?: ... }`) に対し `runtime` / `storage` を
+    // 追加で持つ拡張型。`createChromeMessagingAdapter` は
+    // 拡張後の `ChromeApiLike` (`{ runtime?: ... }`) を要求するため、
+    // `ChromeMessagingApiLike` への構造的部分型キャストで境界を超える。
+    getApi: () => {
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion
+      return getChromeApi() as unknown as ChromeMessagingApiLike | undefined
+    },
   }),
   notificationPort: createSonnerNotificationAdapter(),
   storageChangePort: createChromeStorageChangeAdapter({

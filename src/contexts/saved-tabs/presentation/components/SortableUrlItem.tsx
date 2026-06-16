@@ -9,6 +9,7 @@ import type { SortableUrlItemProps } from '@/types/saved-tabs'
 import { TimeRemaining } from '@/utils/datetime'
 import { formatFixedDatetime as formatDatetime } from '@/utils/localDateTime'
 
+import { useSavedTabsUseCases } from '../controllers/SavedTabsUseCasesContext'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
@@ -44,6 +45,13 @@ export const SortableUrlItem = ({
   const isDraggingRef = useRef(false)
   const windowBlurredDuringDragRef = useRef(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  // 外部ウィンドウへの D&D 通知に使う `MessagingPort` (issue #531)。
+  // `SavedTabsPage` 配下では `SavedTabsUseCasesProvider` が
+  // `useCases.deps.messagingPort` を提供するため、`useSavedTabsUseCases()`
+  // から取り出してそのまま使う。Provider 外 (Storybook / 一部テスト) では
+  // `null` になるので、その場合は通知を no-op とする。
+  const savedTabsUseCases = useSavedTabsUseCases()
+  const messagingPort = savedTabsUseCases?.deps.messagingPort
 
   const handleWindowBlur = useCallback(() => {
     if (isDraggingRef.current) {
@@ -61,39 +69,32 @@ export const SortableUrlItem = ({
     // URI-listとしても設定（多くのブラウザやアプリがこのフォーマットを認識）
     e.dataTransfer.setData('text/uri-list', url)
 
-    console.log('ドラッグ開始:', url)
-
     // 外部ブラウザへのドラッグ判定のため、ウィンドウのblurを監視
     window.addEventListener('blur', handleWindowBlur)
 
     // ドラッグ開始をバックグラウンドに通知
-    chrome.runtime.sendMessage(
-      {
+    if (messagingPort) {
+      void messagingPort.send({
         action: 'urlDragStarted',
         groupId,
         url,
-      },
-      (response) => {
-        console.log('ドラッグ開始通知の応答:', response)
-      },
-    )
+      })
+    }
   }
 
   // 外部ウィンドウへのドロップ処理
   const handleExternalDrop = useCallback(() => {
+    if (!messagingPort) {
+      return
+    }
     // 外部へのドロップ時にタブを削除するよう通知
-    chrome.runtime.sendMessage(
-      {
-        action: 'urlDropped',
-        fromExternal: true,
-        groupId,
-        url,
-      },
-      (response) => {
-        console.log('外部ドロップ後の応答:', response)
-      },
-    )
-  }, [url, groupId])
+    void messagingPort.send({
+      action: 'urlDropped',
+      fromExternal: true,
+      groupId,
+      url,
+    })
+  }, [messagingPort, url, groupId])
 
   // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDragEnd = (e: React.DragEvent<HTMLElement>) => {
@@ -113,7 +114,6 @@ export const SortableUrlItem = ({
 
     isDraggingRef.current = false
     windowBlurredDuringDragRef.current = false
-    console.log('ドラッグ終了:', e.dataTransfer.dropEffect)
   }
 
   // コンポーネントのアンマウント時にクリーンアップ
