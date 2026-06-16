@@ -30,6 +30,7 @@ const createInMemoryRepositories = (
     // eslint-disable-next-line typescript/require-await
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
     findRawDomainById: () => Promise.resolve(null),
+    findRawTabGroupById: () => Promise.resolve(null),
     // eslint-disable-next-line typescript/require-await
     removeByIds: async () => undefined,
     // eslint-disable-next-line typescript/require-await

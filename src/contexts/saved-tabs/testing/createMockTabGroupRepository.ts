@@ -65,6 +65,35 @@ export const createMockTabGroupRepository = (
       return (tab?.domain as unknown as string | undefined) ?? null
     }),
     // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+    findRawTabGroupById: vi.fn(async (id) => {
+      const idString = id as unknown as string
+      const tab = state.savedTabs.find((entry) => entry.id === idString)
+      if (!tab) {
+        return null
+      }
+      // entity 化された `TabGroup` には `subCategories` /
+      // `categoryKeywords` がないが、mock helper は
+      // `toMockTabGroup` 経由で `as unknown as TabGroup` に
+      // キャストした拡張フィールドを持つ object を保持する。
+      const extra = tab as unknown as {
+        readonly categoryKeywords?: readonly {
+          readonly categoryName: string
+          readonly keywords: readonly string[]
+        }[]
+        readonly subCategories?: readonly string[]
+      }
+      return {
+        categoryKeywords: (extra.categoryKeywords ?? []).map((keyword) => ({
+          categoryName: keyword.categoryName,
+          keywords: [...keyword.keywords],
+        })),
+        domain: tab.domain as unknown as string,
+        id: tab.id as unknown as string,
+        parentCategoryId: tab.parentCategoryId as unknown as string | undefined,
+        subCategories: [...(extra.subCategories ?? [])],
+      }
+    }),
+    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
     saveAll: vi.fn(async (next) => {
       state.savedTabs = next
     }),

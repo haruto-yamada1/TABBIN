@@ -32,7 +32,6 @@ import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
 import { createCategorizedDisplayState } from '@/contexts/saved-tabs/presentation/lib/categorized-display'
 import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
 import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
-import { handleTabGroupRemoval } from '@/contexts/saved-tabs/presentation/lib/tab-operations'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -338,9 +337,10 @@ const useSavedTabsAppView = ({
   // - Undo snapshot は `BuildSavedTabsSnapshotUseCase` 経由で repository
   //   群から組み立て、`chrome.storage.local.get` の直叩きを撤去する
   //   （issue #494）。
-  // - `handleTabGroupRemoval` /
-  //   `removeDomainFromParentCategories` などは他 storage key を触る
-  //   副作用なので、issue 範囲外として従来通り UI 側で実行する。
+  // - 削除前処理 (`handleTabGroupRemoval`) は issue #524 で
+  //   `PrepareTabGroupDeletionUseCase` へ移設済み。UI 側は
+  //   `categoriesCommandService` / `domainCategoryMappingRepository` /
+  //   `parentCategoryRepository` / `tabGroupRepository` を直接束ねない。
   // - `removeUrlsFromCustomProjectsForGroup` は issue #512 で
   //   `savedTabsUseCases.removeUrlsFromCustomProjects` use-case へ
   //   移設済み。
@@ -359,12 +359,13 @@ const useSavedTabsAppView = ({
         }
         console.log(`グループを削除: ${groupToDelete.domain}`)
 
-        // 専用の削除前処理関数を呼び出し（インポートした関数を使用）
-        await handleTabGroupRemoval(id, {
-          categoriesCommandService: deps.categoriesCommandService,
-          domainCategoryMappingRepository: deps.domainCategoryMappingRepository,
-          parentCategoryRepository: deps.parentCategoryRepository,
-          tabGroupRepository: deps.tabGroupRepository,
+        // 削除前処理は `PrepareTabGroupDeletionUseCase` 経由 (issue #524)。
+        // `categoriesCommandService` / `domainCategoryMappingRepository` /
+        // `parentCategoryRepository` / `tabGroupRepository` を UI 側で
+        // 束ねず、application use-case へ委譲する。
+        await savedTabsUseCases.prepareTabGroupDeletion({
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
+          tabGroupId: id as unknown as TabGroupId,
         })
 
         // 削除判断・未参照 UrlRecord 掃除・savedTabs の書き戻しは
@@ -474,18 +475,15 @@ const useSavedTabsAppView = ({
         // 旧 `features/saved-tabs/lib/tab-operations` のドメイン設定
         // 保存処理は、他 storage key（domainCategorySettings /
         // parentCategories.domainNames）を触る副作用のため、issue 範囲外
-        // として従来通り UI 側で実行する。
-        await Promise.all(
-          ids.map((id) =>
-            handleTabGroupRemoval(id, {
-              categoriesCommandService: deps.categoriesCommandService,
-              domainCategoryMappingRepository:
-                deps.domainCategoryMappingRepository,
-              parentCategoryRepository: deps.parentCategoryRepository,
-              tabGroupRepository: deps.tabGroupRepository,
-            }),
-          ),
-        )
+        // として従来通り UI 側で実行していたが、issue #524 で
+        // `PrepareTabGroupsDeletionUseCase` へ移設済み。UI 側は
+        // `categoriesCommandService` / `domainCategoryMappingRepository` /
+        // `parentCategoryRepository` / `tabGroupRepository` を直接
+        // 束ねず、application use-case へ委譲する。
+        await savedTabsUseCases.prepareTabGroupsDeletion({
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
+          tabGroupIds: ids as unknown as TabGroupId[],
+        })
 
         // 複数 TabGroup 削除本体は DeleteTabGroupsUseCase 経由に置き換える。
         // 未参照になった UrlRecord の掃除と savedTabs の書き戻しは

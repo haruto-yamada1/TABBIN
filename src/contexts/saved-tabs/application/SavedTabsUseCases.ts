@@ -17,6 +17,8 @@ import type { LoadTabGroupsWithUrlsUseCase } from './use-cases/LoadTabGroupsWith
 import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCase'
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
+import type { PrepareTabGroupDeletionUseCase } from './use-cases/PrepareTabGroupDeletionUseCase'
+import type { PrepareTabGroupsDeletionUseCase } from './use-cases/PrepareTabGroupsDeletionUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from './use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RemoveDomainsFromParentCategoriesUseCase } from './use-cases/RemoveDomainsFromParentCategoriesUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCase } from './use-cases/RemoveSubCategoryFromTabGroupsUseCase'
@@ -57,6 +59,21 @@ export interface SavedTabsUseCases {
   readonly openAllSavedUrls: OpenAllSavedUrlsUseCase
   readonly deleteTabGroup: DeleteTabGroupUseCase
   readonly deleteTabGroups: DeleteTabGroupsUseCase
+  /**
+   * 単一 TabGroup 削除前に走る application 側副作用 use-case (issue #524)。
+   * 旧 `presentation/lib/tab-operations.handleTabGroupRemoval` の
+   * 責務 (`CategoriesCommandService.updateDomainCategorySettings` /
+   * 親カテゴリ `domainNames` への `domain` 追加 /
+   * `DomainCategoryMapping` の差し替え) を application 層へ移設する。
+   * 削除本体 (`savedTabs` / `urlRecords` 削除) は
+   * `DeleteTabGroupUseCase` 側に残す。
+   */
+  readonly prepareTabGroupDeletion: PrepareTabGroupDeletionUseCase
+  /**
+   * 複数 TabGroup 削除前に走る application 側副作用 use-case (issue #524)。
+   * 単数版 `prepareTabGroupDeletion` を bulk で orchestration する。
+   */
+  readonly prepareTabGroupsDeletion: PrepareTabGroupsDeletionUseCase
   readonly deleteSavedUrl: DeleteSavedUrlUseCase
   readonly deleteSavedUrls: DeleteSavedUrlsUseCase
   readonly restoreOpenedUrlsSnapshot: RestoreOpenedUrlsSnapshotUseCase

@@ -33,6 +33,7 @@ const createInMemoryRepositories = (
     // eslint-disable-next-line typescript/require-await
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
     findRawDomainById: vi.fn(() => Promise.resolve(null)),
+    findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
     // eslint-disable-next-line typescript/require-await
     removeByIds: async (ids) => {
       const idSet = new Set(ids.map((id) => id))

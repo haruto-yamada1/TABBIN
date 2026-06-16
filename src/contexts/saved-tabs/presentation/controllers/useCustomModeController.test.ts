@@ -113,6 +113,8 @@ const createEmptyDeps = (
     // eslint-disable-next-line typescript/require-await
     findRawDomainById: async () => null,
     // eslint-disable-next-line typescript/require-await
+    findRawTabGroupById: async () => null,
+    // eslint-disable-next-line typescript/require-await
     removeByIds: async () => undefined,
     // eslint-disable-next-line typescript/require-await
     saveAll: async () => undefined,
