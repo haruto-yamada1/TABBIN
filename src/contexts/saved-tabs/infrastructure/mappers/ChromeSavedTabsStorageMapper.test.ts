@@ -635,6 +635,87 @@ describe('ChromeSavedTabsStorageMapper', () => {
     })
   })
 
+  describe('toStorageCustomProject', () => {
+    it('raw snapshot を presentation 層 storage 形に投影し rich フィールドを保持する (issue #535 P1)', () => {
+      const raw = {
+        categories: ['research'],
+        categoryOrder: ['research', 'news'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        projectKeywords: {
+          domainKeywords: ['example.com'],
+          titleKeywords: ['design'],
+          urlKeywords: ['plan'],
+        },
+        updatedAt: 2,
+        urlIds: ['url-1', 'url-2'],
+        urlMetadata: {
+          'url-1': { category: 'research', notes: 'note-1' },
+        },
+        urls: [{ title: 'A', url: 'https://example.com/a' }],
+      }
+      const result = ChromeSavedTabsStorageMapper.toStorageCustomProject(raw)
+      expect(result).toStrictEqual({
+        categories: ['research'],
+        categoryOrder: ['research', 'news'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        projectKeywords: {
+          domainKeywords: ['example.com'],
+          titleKeywords: ['design'],
+          urlKeywords: ['plan'],
+        },
+        updatedAt: 2,
+        urlIds: ['url-1', 'url-2'],
+        urlMetadata: {
+          'url-1': { category: 'research', notes: 'note-1' },
+        },
+        urls: [{ title: 'A', url: 'https://example.com/a' }],
+      })
+    })
+
+    it('rich フィールドが undefined なら storage 形でも省略する', () => {
+      const result = ChromeSavedTabsStorageMapper.toStorageCustomProject({
+        categories: [],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        updatedAt: 2,
+        urlIds: ['url-1'],
+      })
+      expect(result).toStrictEqual({
+        categories: [],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        updatedAt: 2,
+        urlIds: ['url-1'],
+      })
+      expect(result).not.toHaveProperty('urlMetadata')
+      expect(result).not.toHaveProperty('projectKeywords')
+      expect(result).not.toHaveProperty('categoryOrder')
+      expect(result).not.toHaveProperty('urls')
+    })
+
+    it('空配列の rich フィールドは storage 形で省略する (toStrictEqual 安定化)', () => {
+      const result = ChromeSavedTabsStorageMapper.toStorageCustomProject({
+        categories: [],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        updatedAt: 2,
+        urlIds: [],
+        urlMetadata: {},
+        urls: [],
+      })
+      expect(result).not.toHaveProperty('urlIds')
+      expect(result).not.toHaveProperty('urlMetadata')
+      expect(result).not.toHaveProperty('urls')
+    })
+  })
+
   describe('id toString helpers', () => {
     it('各 ID は素の string に変換できる', () => {
       expect(
