@@ -82,7 +82,7 @@ src/contexts/saved-tabs/
 - `application/ports/` には `BrowserTabPort` / `NotificationPort` / `ClockPort` / `IdGeneratorPort` / `StorageChangePort` / `MessagingPort` などの interface を置き、`chrome.tabs` や `chrome.notifications` / `chrome.storage.onChanged` / `chrome.runtime.sendMessage` への直接依存を排除します。
 - `application/dto/` は presentation 層へ返す読み取り専用モデルです。domain entity を直接 UI へ渡さないでください。
 - `application/commands/` と `application/queries/` はそれぞれ状態変更リクエスト・読み取りリクエストの型定義置き場です。
-- `application/mappers/` は application 層内の DTO / snapshot 相互変換（`@/types/storage` 形 ↔ domain DTO ↔ snapshot）を集約する pure な変換層です。`chrome.*` API には触れません。storage ↔ domain entity の変換は `infrastructure/mappers/` の責務です。
+- `application/mappers/` は application 層内の DTO / snapshot 相互変換（`@/types/storage` 形 ↔ domain DTO / domain entity）を集約する pure な変換層です。`chrome.*` API には触れません。`SavedTabsDtosMapper` は DTO ↔ storage 形、`SavedTabsSnapshotMapper` は undo / snapshot 用に domain entity ↔ storage 形を双方向で持ち替えます（chrome.storage への I/O 自体は行わない）。一方、`infrastructure/mappers/` の `ChromeSavedTabsStorageMapper` は `chrome.storage.local` の生データ (`unknown` → Zod parse) ↔ domain entity の I/O 変換を担います。
 
 ### infrastructure
 

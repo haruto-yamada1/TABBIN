@@ -873,28 +873,23 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
   })
 
   describe('issue #526 followup: application/mappers/ は DTO / snapshot 変換の責務だけに閉じる', () => {
-    const expectedMapperFiles = [
-      'src/contexts/saved-tabs/application/mappers/SavedTabsDtosMapper.ts',
-      'src/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper.ts',
-    ]
-
-    for (const file of expectedMapperFiles) {
-      it(`${file} が存在する`, () => {
-        const source = readFileSync(resolve(repoRoot, file), 'utf8')
-        expect(source.length).toBeGreaterThan(0)
-      })
-    }
-
-    const mapperSourceFiles = expectedMapperFiles.map((file) =>
-      resolve(repoRoot, file),
+    const mappersRoot = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/application/mappers',
     )
+    // 追加された mapper も同じガードで再帰検出するため、ディレクトリ列挙で
+    // 取得する (test ファイルは collectSourceFiles 側で除外される)。
+    const mapperSourceFiles = collectSourceFiles(mappersRoot)
 
-    it('application/mappers/ 配下の .ts は React / chrome モジュールを import しない', () => {
-      for (const absolutePath of mapperSourceFiles) {
+    it('application/mappers/ 配下に production ソースファイルが存在する', () => {
+      expect(mapperSourceFiles.length).toBeGreaterThan(0)
+    })
+
+    for (const absolutePath of mapperSourceFiles) {
+      const relativePath = relative(repoRoot, absolutePath).split(sep).join('/')
+
+      it(`${relativePath} は React / chrome モジュールを import しない`, () => {
         const source = readFileSync(absolutePath, 'utf8')
-        const relativePath = relative(repoRoot, absolutePath)
-          .split(sep)
-          .join('/')
         expect(source, `${relativePath} should not import react`).not.toMatch(
           /from\s+['"]react['"]/,
         )
@@ -915,33 +910,23 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
           source,
           `${relativePath} should not call chrome.runtime`,
         ).not.toMatch(/chrome\.runtime\.\w+\(/)
-      }
-    })
+      })
 
-    it('application/mappers/ 配下の .ts は presentation 層に依存しない', () => {
-      for (const absolutePath of mapperSourceFiles) {
+      it(`${relativePath} は presentation 層に依存しない`, () => {
         const source = readFileSync(absolutePath, 'utf8')
-        const relativePath = relative(repoRoot, absolutePath)
-          .split(sep)
-          .join('/')
         expect(
           source,
           `${relativePath} should not import presentation layer`,
         ).not.toMatch(/from\s+['"]@\/contexts\/[^/]+\/presentation/)
-      }
-    })
+      })
 
-    it('application/mappers/ 配下の .ts は infrastructure 層に依存しない', () => {
-      for (const absolutePath of mapperSourceFiles) {
+      it(`${relativePath} は infrastructure 層に依存しない`, () => {
         const source = readFileSync(absolutePath, 'utf8')
-        const relativePath = relative(repoRoot, absolutePath)
-          .split(sep)
-          .join('/')
         expect(
           source,
           `${relativePath} should not import infrastructure layer`,
         ).not.toMatch(/from\s+['"]@\/contexts\/[^/]+\/infrastructure/)
-      }
-    })
+      })
+    }
   })
 })

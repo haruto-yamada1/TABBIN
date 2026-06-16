@@ -13,7 +13,7 @@
 | `mappers/`   | application 層内の DTO / snapshot 相互変換（`SavedTabsDtosMapper` / `SavedTabsSnapshotMapper`）                               |
 | `ports/`     | `BrowserTabPort` / `NotificationPort` / `StorageChangePort` / `MessagingPort` などの interface（chrome / toast 副作用の抽象） |
 
-`mappers/` は `@/types/storage` 形 ↔ domain DTO / snapshot の pure 変換専用で、`chrome.*` API には触れません。storage ↔ domain entity 変換は `infrastructure/mappers/` の責務です。
+`mappers/` は `@/types/storage` 形 ↔ domain DTO / domain entity の pure な構造変換専用で、`chrome.*` API には触れません。`SavedTabsDtosMapper` は DTO ↔ storage 形、`SavedTabsSnapshotMapper` は undo / snapshot 用に domain entity ↔ storage 形を双方向で持ち替えます（chrome.storage への I/O 自体は行わず、純関数として use-case / command の入出力整形に専念）。一方、`infrastructure/mappers/ChromeSavedTabsStorageMapper` は `chrome.storage.local` の生データ (`unknown` → Zod parse) ↔ domain entity の I/O 変換を担い、Zod 検証と entity 化失敗時の `null` フォールバックを持ちます。
 
 ## 禁止
 
