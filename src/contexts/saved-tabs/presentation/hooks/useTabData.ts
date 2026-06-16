@@ -8,8 +8,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
-import type { GetSavedTabsQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsQuery'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
+import type { GetSavedTabsQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsQuery'
 import type { LoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupsWithUrlsUseCase'
 import type {
   RepairTabGroupParentCategoryIdsCommand,
@@ -308,13 +308,9 @@ const useTabData = ({
           parentCategories: finalCategories as never,
         }
         const { tabGroups: repairedTabGroups } =
-          await repairTabGroupParentCategoryIdsUseCaseRef.current(
-            repairCommand,
-          )
+          await repairTabGroupParentCategoryIdsUseCaseRef.current(repairCommand)
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain entity (branded readonly) を storage shape (mutable plain) へ投影
-        const finalTabGroups = [
-          ...repairedTabGroups,
-        ] as unknown as TabGroup[]
+        const finalTabGroups = [...repairedTabGroups] as unknown as TabGroup[]
         setTabData((prev) => ({
           ...prev,
           isLoading: false,
