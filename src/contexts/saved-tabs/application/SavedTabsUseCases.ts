@@ -15,6 +15,7 @@ import type { FindUrlRecordByUrlUseCase } from './use-cases/FindUrlRecordByUrlUs
 import type { GetProjectUrlsUseCase } from './use-cases/GetProjectUrlsUseCase'
 import type { LoadTabGroupsWithUrlsUseCase } from './use-cases/LoadTabGroupsWithUrlsUseCase'
 import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCase'
+import type { MoveDomainBetweenCategoriesUseCase } from './use-cases/MoveDomainBetweenCategoriesUseCase'
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
 import type { PrepareTabGroupDeletionUseCase } from './use-cases/PrepareTabGroupDeletionUseCase'
@@ -25,6 +26,7 @@ import type { RemoveSubCategoryFromTabGroupsUseCase } from './use-cases/RemoveSu
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import type { RemoveUrlsFromCustomProjectsUseCase } from './use-cases/RemoveUrlsFromCustomProjectsUseCase'
 import type { RenameParentCategoryUseCase } from './use-cases/RenameParentCategoryUseCase'
+import type { ReorderDomainsInCategoryUseCase } from './use-cases/ReorderDomainsInCategoryUseCase'
 import type { ReorderParentCategoriesUseCase } from './use-cases/ReorderParentCategoriesUseCase'
 import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
 import type { ReorderTabGroupUrlsUseCase } from './use-cases/ReorderTabGroupUrlsUseCase'
@@ -104,6 +106,21 @@ export interface SavedTabsUseCases {
   readonly renameParentCategory: RenameParentCategoryUseCase
   readonly addDomainToParentCategory: AddDomainToParentCategoryUseCase
   readonly removeDomainFromParentCategory: RemoveDomainFromParentCategoryUseCase
+  /**
+   * カテゴリ間のドメイン移動 use-case (issue #525)。
+   * 旧 `useCategoryManagement.handleMoveDomainToCategory` 内の
+   * `tabGroups` 引き当て / `domains` / `domainNames` 移動 /
+   * `reorderParentCategoriesUseCase` 直叩きを 1 つの application
+   * use-case に統合する。
+   */
+  readonly moveDomainBetweenCategories: MoveDomainBetweenCategoriesUseCase
+  /**
+   * カテゴリ内ドメイン順序更新 use-case (issue #525)。
+   * 旧 `useCategoryManagement.handleUpdateDomainsOrder` 内の
+   * 並び替え / `reorderParentCategoriesUseCase` 直叩きを
+   * application use-case へ統合する。
+   */
+  readonly reorderDomainsInCategory: ReorderDomainsInCategoryUseCase
   /**
    * 親カテゴリの `domains` (TabGroupId 配列) から指定 ID を横断削除する
    * use-case (issue #523)。

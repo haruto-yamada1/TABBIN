@@ -7,7 +7,10 @@ import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+import type { MoveDomainBetweenCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/MoveDomainBetweenCategoriesUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
+import type { ReorderDomainsInCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderDomainsInCategoryUseCase'
 import type { ReorderParentCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderParentCategoriesUseCase'
 import { buildReorderedCategoryOrder } from '@/contexts/saved-tabs/domain/services/ParentCategoryReorderService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -97,6 +100,21 @@ interface UseCategoryManagementParams {
    * rich フィールドを保持してしまう既存問題に対応)。
    */
   removeSubCategoryFromTabGroupsUseCase: RemoveSubCategoryFromTabGroupsUseCase
+  /**
+   * カテゴリ間ドメイン移動 use-case (issue #525)。
+   * 旧 `useCategoryManagement.handleMoveDomainToCategory` 内の
+   * `tabGroups` 引き当て / `domains` / `domainNames` 移動 /
+   * `reorderParentCategoriesUseCase` 直叩きを 1 つの application
+   * use-case に統合する。
+   */
+  moveDomainBetweenCategoriesUseCase: MoveDomainBetweenCategoriesUseCase
+  /**
+   * カテゴリ内ドメイン順序更新 use-case (issue #525)。
+   * 旧 `useCategoryManagement.handleUpdateDomainsOrder` 内の
+   * 並び替え / `reorderParentCategoriesUseCase` 直叩きを
+   * application use-case へ統合する。
+   */
+  reorderDomainsInCategoryUseCase: ReorderDomainsInCategoryUseCase
 }
 
 /**
@@ -118,6 +136,8 @@ const useCategoryManagement = (
   const {
     reorderParentCategoriesUseCase,
     removeSubCategoryFromTabGroupsUseCase,
+    moveDomainBetweenCategoriesUseCase,
+    reorderDomainsInCategoryUseCase,
   } = params
   const { t } = useI18n()
   const [categories, setCategoriesState] = useState<ParentCategory[]>([])
@@ -253,11 +273,11 @@ const useCategoryManagement = (
   /**
    * カテゴリ内のドメイン順序を更新する。
    *
-   * 並び順検証 / 永続化は use-case 化候補だが、本 issue (#519) の
-   * スコープ外（pure logic 移設対象ではない）ため、 presentation
-   * 側で完結させる。挙動は旧実装と同じ
-   * `categoryAssignmentPort.saveParentCategories` 直叩き相当を
-   * `reorderParentCategoriesUseCase` 経由で保存する形に置き換える。
+   * 並び順検証 / 永続化は `ReorderDomainsInCategoryUseCase` 経由
+   * (issue #525) で実行し、 presentation 層はイベントハンドラと
+   * use-case 呼び出しのオーケストレーションに専念する。
+   * 旧実装と同じく、対象カテゴリが見つからない場合は use-case 側で
+   * no-op として処理される（エラーログは presentation 側で記録）。
    */
   const handleUpdateDomainsOrder = useCallback(
     async (categoryId: string, updatedDomains: TabGroup[]): Promise<void> => {
@@ -267,28 +287,27 @@ const useCategoryManagement = (
           console.error('更新対象のカテゴリが見つかりません:', categoryId)
           return
         }
-        const updatedDomainIds = updatedDomains.map((domain) => domain.id)
-        const updatedCategories = categories.map((category) =>
-          category.id === categoryId
-            ? { ...category, domains: updatedDomainIds }
-            : category,
-        )
-        await reorderParentCategoriesUseCase({ categories: updatedCategories })
-        setCategories(updatedCategories)
+        const updatedDomainCategories = await reorderDomainsInCategoryUseCase({
+          categoryId,
+          updatedDomains,
+        })
+        setCategories(updatedDomainCategories.map(toStorageParentCategory))
       } catch (error) {
         console.error('カテゴリ内ドメイン順序更新エラー:', error)
       }
     },
-    [categories, reorderParentCategoriesUseCase, setCategories],
+    [categories, reorderDomainsInCategoryUseCase, setCategories],
   )
 
   /**
    * ドメインを別のカテゴリに移動する。
    * tabGroups は main.tsx から渡す（useTabData に依存するため引数として受け取る）。
    *
-   * 永続化は本 issue (#519) で導入した `reorderParentCategoriesUseCase`
-   * 経由へ寄せる（旧 `categoryAssignmentPort.saveParentCategories` 直叩き
-   * と同等）。
+   * ドメイン引き当て / 移動元 `domains` / `domainNames` 削除 /
+   * 移動先 `domains` / `domainNames` 追加 / 永続化は
+   * `MoveDomainBetweenCategoriesUseCase` 経由 (issue #525) で実行し、
+   * presentation 層はイベントハンドラと use-case 呼び出しの
+   * オーケストレーションに専念する。
    */
   const handleMoveDomainToCategory = useCallback(
     async (
@@ -302,35 +321,14 @@ const useCategoryManagement = (
         if (!domainGroup) {
           return
         }
-        let updatedCategories = [...categories]
-        if (fromCategoryId) {
-          updatedCategories = updatedCategories.map((cat) =>
-            cat.id === fromCategoryId
-              ? {
-                  ...cat,
-                  domainNames: cat.domainNames
-                    ? cat.domainNames.filter((d) => d !== domainGroup.domain)
-                    : [],
-                  domains: cat.domains.filter((d) => d !== domainId),
-                }
-              : cat,
-          )
-        }
-        updatedCategories = updatedCategories.map((cat) =>
-          cat.id === toCategoryId
-            ? {
-                ...cat,
-                domainNames: cat.domainNames?.includes(domainGroup.domain)
-                  ? cat.domainNames
-                  : [...(cat.domainNames || []), domainGroup.domain],
-                domains: cat.domains.includes(domainId)
-                  ? cat.domains
-                  : [...cat.domains, domainId],
-              }
-            : cat,
-        )
-        await reorderParentCategoriesUseCase({ categories: updatedCategories })
-        setCategories(updatedCategories)
+        const updatedDomainCategories =
+          await moveDomainBetweenCategoriesUseCase({
+            domainId,
+            fromCategoryId,
+            tabGroups,
+            toCategoryId,
+          })
+        setCategories(updatedDomainCategories.map(toStorageParentCategory))
         console.log(
           `ドメイン ${domainGroup.domain} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`, // eslint-disable-line typescript/prefer-nullish-coalescing -- fromCategoryId could be empty string
         )
@@ -338,7 +336,7 @@ const useCategoryManagement = (
         console.error('カテゴリ間ドメイン移動エラー:', error)
       }
     },
-    [categories, reorderParentCategoriesUseCase, setCategories],
+    [moveDomainBetweenCategoriesUseCase, setCategories],
   )
   return {
     categories,

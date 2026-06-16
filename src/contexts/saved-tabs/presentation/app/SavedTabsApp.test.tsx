@@ -663,6 +663,8 @@ describe('SavedTabsApp custom search', () => {
         setCategoryKeywords: vi.fn(),
         syncCategoryAssignments: vi.fn(),
         updateCustomProjectName: vi.fn(),
+        moveDomainBetweenCategories: vi.fn(),
+        reorderDomainsInCategory: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       snapshot: {
@@ -717,6 +719,8 @@ describe('SavedTabsApp custom search', () => {
         setCategoryKeywords: vi.fn(),
         syncCategoryAssignments: vi.fn(),
         updateCustomProjectName: vi.fn(),
+        moveDomainBetweenCategories: vi.fn(),
+        reorderDomainsInCategory: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       t: (key) => key,
