@@ -10,6 +10,7 @@ import type { CategoryAssignmentPort } from '../../application/ports/CategoryAss
 import type { CustomProjectsCommandService } from '../../application/ports/CustomProjectsCommandService'
 import type { MigrationPort } from '../../application/ports/MigrationPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
+import type { RemoveSubCategoryFromTabGroupPort } from '../../application/ports/RemoveSubCategoryFromTabGroupPort'
 import type { SetCategoryKeywordsPort } from '../../application/ports/SetCategoryKeywordsPort'
 import type { StorageChangePort } from '../../application/ports/StorageChangePort'
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
@@ -28,6 +29,7 @@ import { createChromeDomainCategoryMappingRepository } from '../persistence/chro
 import { createChromeDomainCategorySettingsRepository } from '../persistence/chrome-storage/ChromeDomainCategorySettingsRepository'
 import { createChromeMigrationAdapter } from '../persistence/chrome-storage/ChromeMigrationAdapter'
 import { createChromeParentCategoryRepository } from '../persistence/chrome-storage/ChromeParentCategoryRepository'
+import { createLibRemoveSubCategoryFromTabGroupAdapter } from '../persistence/chrome-storage/ChromeRemoveSubCategoryFromTabGroupAdapter'
 import { createLibSetCategoryKeywordsAdapter } from '../persistence/chrome-storage/ChromeSetCategoryKeywordsAdapter'
 import { createChromeTabGroupRepository } from '../persistence/chrome-storage/ChromeTabGroupRepository'
 import { createChromeUrlRecordRepository } from '../persistence/chrome-storage/ChromeUrlRecordRepository'
@@ -61,6 +63,13 @@ export interface SavedTabsUseCasesDeps {
   readonly categoriesCommandService: CategoriesCommandService
   readonly customProjectsCommandService: CustomProjectsCommandService
   readonly categoryAssignmentPort: CategoryAssignmentPort
+  /**
+   * カテゴリ削除時の `TabGroup` 更新 port (issue #519)。
+   * domain `TabGroup` エンティティが表現しない rich 補助フィールド
+   * (`subCategories` / `urlSubCategories` / `categoryKeywords`) の
+   * 永続化を port に閉じ込めるための依存。
+   */
+  readonly removeSubCategoryFromTabGroupPort: RemoveSubCategoryFromTabGroupPort
 }
 
 /**
@@ -163,6 +172,8 @@ export const createSavedTabsUseCasesDeps = (
     migrationPort: createChromeMigrationAdapter(),
     notificationPort: createSonnerNotificationAdapter(),
     parentCategoryRepository: createChromeParentCategoryRepository(port),
+    removeSubCategoryFromTabGroupPort:
+      createLibRemoveSubCategoryFromTabGroupAdapter(),
     setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
     storageChangePort: createChromeStorageChangeAdapter({
       getApi: () => getChromeApi(),

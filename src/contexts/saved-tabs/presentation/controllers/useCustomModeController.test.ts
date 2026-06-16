@@ -183,6 +183,9 @@ const createEmptyDeps = (
       },
       notificationPort,
       parentCategoryRepository,
+      removeSubCategoryFromTabGroupPort: {
+        removeSubCategoryFromTabGroup: vi.fn().mockResolvedValue([]),
+      },
       setCategoryKeywordsPort,
       storageChangePort: {
         subscribe: () => () => {},

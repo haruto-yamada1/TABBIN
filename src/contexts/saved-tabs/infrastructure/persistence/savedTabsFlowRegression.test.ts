@@ -10,6 +10,7 @@ import { createChromeCustomProjectRepository } from './chrome-storage/ChromeCust
 import { createChromeDomainCategoryMappingRepository } from './chrome-storage/ChromeDomainCategoryMappingRepository'
 import { createChromeDomainCategorySettingsRepository } from './chrome-storage/ChromeDomainCategorySettingsRepository'
 import { createChromeParentCategoryRepository } from './chrome-storage/ChromeParentCategoryRepository'
+import { createLibRemoveSubCategoryFromTabGroupAdapter } from './chrome-storage/ChromeRemoveSubCategoryFromTabGroupAdapter'
 import { createLibSetCategoryKeywordsAdapter } from './chrome-storage/ChromeSetCategoryKeywordsAdapter'
 import { createChromeTabGroupRepository } from './chrome-storage/ChromeTabGroupRepository'
 import type { ChromeStorageLocalPort } from './chrome-storage/ChromeUrlRecordRepository'
@@ -157,6 +158,8 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     },
     notificationPort: notification.notificationPort,
     parentCategoryRepository: createChromeParentCategoryRepository(port),
+    removeSubCategoryFromTabGroupPort:
+      createLibRemoveSubCategoryFromTabGroupAdapter(),
     setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
     storageChangePort: {
       subscribe: () => () => {},
@@ -416,6 +419,8 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         },
         notificationPort: notification.notificationPort,
         parentCategoryRepository: createChromeParentCategoryRepository(port),
+        removeSubCategoryFromTabGroupPort:
+          createLibRemoveSubCategoryFromTabGroupAdapter(),
         setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
         storageChangePort: {
           subscribe: () => () => {},

@@ -7,7 +7,6 @@ import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { RemoveSubCategoryFromTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import type { ReorderParentCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderParentCategoriesUseCase'
 import { buildReorderedCategoryOrder } from '@/contexts/saved-tabs/domain/services/ParentCategoryReorderService'
@@ -84,13 +83,6 @@ const resolveStateValue = <T>(
 /** UseCategoryManagement フックの引数 */
 interface UseCategoryManagementParams {
   /**
-   * 保存タブページ全体の読み取り専用スナップショット query。旧
-   * `tabGroupRepository.findAll` / `parentCategoryRepository.findAll`
-   * 直叩きを置換し、presentation 層から repository 個別の read を
-   * 撤去する（issue #510）。
-   */
-  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
-  /**
    * 親カテゴリの並び替え保存 use-case (issue #519)。
    * 旧 `categoryAssignmentPort.saveParentCategories` 直叩きを
    * use-case 経由へ移す。
@@ -99,8 +91,10 @@ interface UseCategoryManagementParams {
   /**
    * カテゴリ削除時の `TabGroup` 更新 use-case (issue #519)。
    * 旧 `categoryAssignmentPort.saveTabGroups` 直叩きを use-case 経由
-   * へ移し、pure な `removeSubCategoryFromGroup` ロジックは
-   * domain service に移設済み。
+   * へ移し、 port 実装側で `chrome.storage.local` の raw レベル
+   * 永続化を集約して rich 補助フィールド欠落問題を回避する
+   * (`tabGroupRepository.saveAll` 経由では mapper が original の
+   * rich フィールドを保持してしまう既存問題に対応)。
    */
   removeSubCategoryFromTabGroupsUseCase: RemoveSubCategoryFromTabGroupsUseCase
 }
@@ -122,7 +116,6 @@ const useCategoryManagement = (
 ): UseCategoryManagementReturn => {
   // eslint-disable-line eslint/max-lines-per-function
   const {
-    getSavedTabsPageDataQuery,
     reorderParentCategoriesUseCase,
     removeSubCategoryFromTabGroupsUseCase,
   } = params
@@ -152,6 +145,14 @@ const useCategoryManagement = (
   /**
    * 子カテゴリ（サブカテゴリ）を削除する。
    * refreshTabGroupsWithUrls は useTabData から受け取る。
+   *
+   * 永続化は `removeSubCategoryFromTabGroupsUseCase` 経由 (port 実装
+   * は `chrome.storage.local` の raw レベルで rich 補助フィールドを
+   * 更新する)。 page ロード時の query 結果 (domain entity で rich
+   * 補助フィールド欠落) を widening キャストで流用する旧実装は
+   * マッパーで rich フィールドが破棄される既存問題を抱えていたため、
+   * use-case 側で port に生 groupId / categoryName を渡し、 port
+   * 側で storage raw を直接更新する方式に統一した (issue #519)。
    */
   const handleDeleteCategory = useCallback(
     async (
@@ -162,33 +163,17 @@ const useCategoryManagement = (
       ) => Promise<TabGroup[]>,
     ): Promise<void> => {
       try {
-        const { tabGroups: savedTabs } = await getSavedTabsPageDataQuery()
-        // `getSavedTabsPageDataQuery` は domain entity の `TabGroup[]` を
-        // 返すが、実体は chrome-storage から fetch された storage 層
-        // `TabGroup` と同じ構造を持つ。use-case 境界 (storage 入力 /
-        // domain service widening) で widening キャストを吸収する。
-        const savedTabsAsStorage =
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain TabGroup と storage TabGroup は構造互換
-          savedTabs as unknown as readonly TabGroup[]
-        const targetGroup = savedTabsAsStorage.find(
-          (group) => group.id === groupId,
-        )
-        if (!targetGroup) {
-          console.error('カテゴリ削除対象のグループが見つかりません:', groupId)
-          return
-        }
         const { tabGroups: updatedGroups } =
           await removeSubCategoryFromTabGroupsUseCase({
             categoryName,
             groupId,
-            tabGroups: savedTabsAsStorage,
           })
         await refreshTabGroupsWithUrls([...updatedGroups])
       } catch (error) {
         console.error('カテゴリ削除エラー:', error)
       }
     },
-    [getSavedTabsPageDataQuery, removeSubCategoryFromTabGroupsUseCase],
+    [removeSubCategoryFromTabGroupsUseCase],
   )
 
   /** 親カテゴリのドラッグエンド処理（並び替えモード開始または更新） */

@@ -182,7 +182,7 @@ export const createSavedTabsUseCases = (
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
   removeSubCategoryFromTabGroups: createRemoveSubCategoryFromTabGroupsUseCase({
-    tabGroupRepository: deps.tabGroupRepository,
+    removeSubCategoryFromTabGroupPort: deps.removeSubCategoryFromTabGroupPort,
   }),
   restoreOpenedUrlsSnapshot: createRestoreOpenedUrlsSnapshotUseCase({
     customProjectRepository: deps.customProjectRepository,

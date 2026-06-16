@@ -3,31 +3,29 @@ import type { TabGroup } from '@/types/storage'
 /**
  * `RemoveSubCategoryFromTabGroupsUseCase` の入力 (issue #519)。
  *
- * UI 側で削除対象として確定した子カテゴリ名と、それが紐づく
- * `TabGroup` の ID を受け取る。`tabGroups` には presentation 層が
- * 直前に `getSavedTabsPageDataQuery` 等で取得したスナップショットを
- * そのまま渡し、use-case 側で pure に `subCategories` /
- * `urlSubCategories` / `categoryKeywords` を更新した配列を
- * `tabGroupRepository.saveAll` に保存する。
+ * 削除対象カテゴリの groupId と削除する子カテゴリ名のみを受け取る。
+ * 永続化と更新後 `TabGroup[]` の取得は port 側に委譲し、 port 実装
+ * は `chrome.storage.local` の raw レベル更新と domain `TabGroup`
+ * への正規化を 1 操作で実行する。
  *
- * presentation 層が扱う `tabGroups` は `getSavedTabsPageDataQuery`
- * 由来 (domain entity 由来) だが、実体は chrome-storage から
- * fetch された storage 層 `TabGroup` と同じ構造を持つ。
- * `removeSubCategoryFromGroup` (domain service) は widening
- * interface 経由でこの構造を受け取り、 rich 補助フィールドを
- * 更新する。use-case 境界で structural な widening キャストを
- * 吸収する設計 (issue #511/#519)。
+ * port 経由にすることで、 domain `TabGroup` エンティティが表現
+ * しない rich 補助フィールド (`subCategories` /
+ * `urlSubCategories` / `categoryKeywords`) の更新を
+ * `tabGroupRepository.saveAll` 経由では書き込めない (mapper が
+ * original の rich フィールドを保持してしまう) 既存問題を回避する
+ * (issue #519 Codex レビュー P1)。
  */
 export interface RemoveSubCategoryFromTabGroupsCommand {
   readonly groupId: string
   readonly categoryName: string
-  readonly tabGroups: readonly TabGroup[]
 }
 
 /**
  * `RemoveSubCategoryFromTabGroupsUseCase` の戻り値。
  *
- * `tabGroups` を返して、presentation 層が state へ反映できるようにする。
+ * `tabGroups` を返して、 presentation 層が
+ * `refreshTabGroupsWithUrls(updatedGroups)` で UI state へ反映できる
+ * ようにする。
  */
 export interface RemoveSubCategoryFromTabGroupsResult {
   readonly tabGroups: readonly TabGroup[]
