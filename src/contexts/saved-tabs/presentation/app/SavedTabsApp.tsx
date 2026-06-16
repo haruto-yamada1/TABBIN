@@ -1065,7 +1065,6 @@ const useSavedTabsAppView = ({
         categoryManagementModalDeps={{
           categoryAssignmentPort: deps.categoryAssignmentPort,
           getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
-          parentCategoryRepository: deps.parentCategoryRepository,
         }}
         // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TODO(#502-followup): category management use-cases の memo 化または context 化で解消予定
         categoryManagementModalUseCases={{
@@ -1074,6 +1073,7 @@ const useSavedTabsAppView = ({
             savedTabsUseCases.addDomainToParentCategory,
           removeDomainFromParentCategory:
             savedTabsUseCases.removeDomainFromParentCategory,
+          deleteParentCategory: savedTabsUseCases.deleteParentCategory,
         }}
       />
     ) : (

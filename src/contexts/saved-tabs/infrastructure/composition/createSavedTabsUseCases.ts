@@ -90,7 +90,6 @@ export const createSavedTabsUseCases = (
       'custom-uncategorized',
   }),
   deleteParentCategory: createDeleteParentCategoryUseCase({
-    domainCategoryMappingRepository: deps.domainCategoryMappingRepository,
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
   deleteSavedUrl: createDeleteSavedUrlUseCase({

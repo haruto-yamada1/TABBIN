@@ -1,7 +1,6 @@
 import { parentCategoryById } from '../../domain/entities/ParentCategory'
 import type { ParentCategory } from '../../domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { DomainCategoryMappingRepository } from '../../domain/repositories/DomainCategoryMappingRepository'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
 import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
@@ -9,9 +8,7 @@ import type { ParentCategoryId } from '../../domain/value-objects/ParentCategory
 /**
  * `DeleteParentCategoryUseCase` の入力。
  *
- * 削除対象カテゴリの ID のみを受け取る。影響を受けるドメイン-親カテゴリ
- * マッピングは use-case 内で `DomainCategoryMappingRepository` から
- * 自動削除する。
+ * 削除対象カテゴリの ID のみを受け取る。
  */
 export interface DeleteParentCategoryCommand {
   readonly categoryId: string
@@ -32,10 +29,14 @@ export type DeleteParentCategoryUseCase = (
 
 /**
  * `DeleteParentCategoryUseCase` が必要とする依存。
+ *
+ * `ParentCategoryRepository` のみを必要とする最小形 (issue #518)。
+ * 旧 `DomainCategoryMappingRepository` の cleanup は行わず、
+ * `parentCategoryRepository.removeByIds` と同じ最小削除挙動を維持する
+ * （presentation 側の既存挙動との互換性確保）。
  */
 export interface DeleteParentCategoryUseCaseDeps {
   readonly parentCategoryRepository: ParentCategoryRepository
-  readonly domainCategoryMappingRepository: DomainCategoryMappingRepository
 }
 
 /**
@@ -44,12 +45,12 @@ export interface DeleteParentCategoryUseCaseDeps {
  * 責務:
  * 1. 既存カテゴリ一覧を `parentCategoryRepository.findAll` で取得する
  * 2. 対象カテゴリが見つからない場合は `SavedTabsDomainError` を投げる
- * 3. 対象を除外したカテゴリ配列で `parentCategoryRepository.saveAll`
- * 4. `DomainCategoryMappingRepository.findAll` で対象 `categoryId` を
- *    参照しているマッピングを取り除き `saveAll`
+ * 3. 対象を除外したカテゴリ配列で `parentCategoryRepository.saveAll` する
  *
- * 旧 `src/lib/storage/categories.deleteParentCategory` の DDD use-case 化
- * (issue #509)。
+ * 旧 `src/contexts/saved-tabs/presentation/components/CategoryManagementModal.tsx`
+ * の `parentCategoryRepository.removeByIds` 直叩きを use-case 経由へ置換する
+ * (issue #518)。`DomainCategoryMappingRepository` の cleanup は行わない
+ * （既存挙動の維持）。
  */
 export const createDeleteParentCategoryUseCase = (
   deps: DeleteParentCategoryUseCaseDeps,
@@ -68,14 +69,6 @@ export const createDeleteParentCategoryUseCase = (
     }
     const remaining = all.filter((category) => category.id !== targetCategoryId)
     await deps.parentCategoryRepository.saveAll(remaining)
-
-    const mappings = await deps.domainCategoryMappingRepository.findAll()
-    const filteredMappings = mappings.filter(
-      (mapping) => mapping.categoryId !== command.categoryId,
-    )
-    if (filteredMappings.length !== mappings.length) {
-      await deps.domainCategoryMappingRepository.saveAll(filteredMappings)
-    }
 
     return {
       all: remaining,
