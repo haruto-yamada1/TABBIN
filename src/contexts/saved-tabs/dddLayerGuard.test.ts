@@ -895,14 +895,12 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         const relativePath = relative(repoRoot, absolutePath)
           .split(sep)
           .join('/')
-        expect(
-          source,
-          `${relativePath} should not import react`,
-        ).not.toMatch(/from\s+['"]react['"]/)
-        expect(
-          source,
-          `${relativePath} should not import chrome`,
-        ).not.toMatch(/from\s+['"]chrome['"]/)
+        expect(source, `${relativePath} should not import react`).not.toMatch(
+          /from\s+['"]react['"]/,
+        )
+        expect(source, `${relativePath} should not import chrome`).not.toMatch(
+          /from\s+['"]chrome['"]/,
+        )
         // `chrome.storage` への直接関数呼び出しがないことを確認する
         // (JSDoc 内テキストの言及は除外するため、`(local|onChanged|sync)(` で関数呼び出しのみ検出)
         expect(

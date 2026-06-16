@@ -4,12 +4,12 @@
 
 ## サブディレクトリ
 
-| サブディレクトリ              | 役割                                                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `persistence/chrome-storage/` | `Chrome*Repository` 実装 / `savedTabsStorageKeys.ts` / `savedTabsStorageSchema.ts` / `ChromeStorageLocalPort` |
+| サブディレクトリ              | 役割                                                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `persistence/chrome-storage/` | `Chrome*Repository` 実装 / `savedTabsStorageKeys.ts` / `savedTabsStorageSchema.ts` / `ChromeStorageLocalPort`          |
 | `browser/`                    | `chrome.tabs` / `chrome.contextMenus` / `chrome.alarms` / `chrome.storage.onChanged` / `chrome.runtime` などの adapter |
-| `mappers/`                    | storage の生データ ↔ domain entity / DTO の相互変換（`ChromeSavedTabsStorageMapper` など）                    |
-| `composition/`                | use-case / port を組み立てる composition root（`createSavedTabsUseCases` / `createSavedTabsUseCasesDeps`）   |
+| `mappers/`                    | storage の生データ ↔ domain entity / DTO の相互変換（`ChromeSavedTabsStorageMapper` など）                             |
+| `composition/`                | use-case / port を組み立てる composition root（`createSavedTabsUseCases` / `createSavedTabsUseCasesDeps`）             |
 
 `persistence/migrations/` は `savedTabsStorageSchema.ts` のコメントで将来の配置先として言及されていますが、現時点で実装ファイルはありません。新規の legacy 移行が必要になったタイミングで追加します。
 
