@@ -50,10 +50,25 @@ export interface BaseMessage {
 
 /**
  * URLドラッグ開始メッセージ
+ *
+ * 旧 `ProjectUrlItem` / `SortableUrlItem` からは `groupId` (savedTabs の
+ * グループ id) も同時に送られていたが、background handler
+ * (`message-handler.ts` の `handleUrlDragStarted`) は現状 `url` だけを
+ * 利用し、`groupId` は log 用途に留めていた。presentation 層との
+ * typed envelope 整合のため `groupId` も必須フィールドとして公開し、
+ * 既存 background handler はそのまま optional 扱いする方針
+ * (issue #531)。
  */
 export interface UrlDragStartedMessage extends BaseMessage {
   action: 'urlDragStarted'
   url: string
+  /**
+   * ドラッグされた URL が属する savedTabs グループ id。
+   * 旧 presentation 実装 (`ProjectUrlItem` / `SortableUrlItem`) と
+   * 同じ形を維持するため optional とし、background handler 側でも
+   * 未指定でも動作する。
+   */
+  readonly groupId?: string
 }
 
 /**
@@ -63,6 +78,12 @@ export interface UrlDroppedMessage extends BaseMessage {
   action: 'urlDropped'
   url: string
   fromExternal?: boolean
+  /**
+   * ドロップされた URL が属する savedTabs グループ id。
+   * 旧 presentation 実装 (`ProjectUrlItem` / `SortableUrlItem`) と
+   * 同じ形を維持するため optional。
+   */
+  readonly groupId?: string
 }
 
 /**

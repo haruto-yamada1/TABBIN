@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 
 import type { ProjectUrlItemProps } from './ProjectUrlItem'
@@ -51,6 +52,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
   }
 })
 
+import { SavedTabsUseCasesProvider } from '../controllers/SavedTabsUseCasesContext'
 import { ProjectUrlItem } from './ProjectUrlItem'
 
 const defaultSettings: UserSettings = {
@@ -80,21 +82,64 @@ const createProps = (): ProjectUrlItemProps => ({
   settings: defaultSettings,
 })
 
+const renderWithMessagingPort = (
+  ui: React.ReactElement,
+  messagingPort?: MessagingPort,
+) => {
+  if (!messagingPort) {
+    return render(ui)
+  }
+  const deps = {
+    browserTabPort: { open: vi.fn() },
+    browserWindowPort: { openWithUrls: vi.fn() },
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn(),
+      saveTabGroups: vi.fn(),
+    },
+    categoriesCommandService: { updateDomainCategorySettings: vi.fn() },
+    customProjectsCommandService: {
+      addCategoryToProject: vi.fn(),
+      addUrlToCustomProject: vi.fn(),
+      moveUrlBetweenCustomProjects: vi.fn(),
+      removeCategoryFromProject: vi.fn(),
+      removeUrlFromCustomProject: vi.fn(),
+      removeUrlIdsFromAllCustomProjects: vi.fn(),
+      removeUrlsFromAllCustomProjects: vi.fn(),
+      removeUrlsFromCustomProject: vi.fn(),
+      renameCategoryInProject: vi.fn(),
+      reorderProjectUrls: vi.fn(),
+      setUrlCategory: vi.fn(),
+      updateCategoryOrder: vi.fn(),
+      updateProjectKeywords: vi.fn(),
+    },
+    customProjectRepository: {} as never,
+    domainCategoryMappingRepository: {} as never,
+    domainCategorySettingsRepository: {} as never,
+    migrationPort: {} as never,
+    messagingPort,
+    notificationPort: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+    parentCategoryRepository: {} as never,
+    removeSubCategoryFromTabGroupPort: {
+      removeSubCategoryFromTabGroup: vi.fn(),
+    },
+    setCategoryKeywordsPort: { setCategoryKeywords: vi.fn() },
+    storageChangePort: { subscribe: () => () => {} },
+    tabGroupRepository: {} as never,
+    urlRecordRepository: {} as never,
+    userSettingsRepository: {} as never,
+  } as never
+  return render(
+    <SavedTabsUseCasesProvider value={{ deps, useCases: {} as never }}>
+      {ui}
+    </SavedTabsUseCasesProvider>,
+  )
+}
+
 describe('ProjectUrlItem additional', () => {
   const sendMessageMock = vi.fn()
 
   beforeEach(() => {
-    sendMessageMock.mockImplementation(
-      (_message: unknown, callback?: (response: { ok: boolean }) => void) => {
-        callback?.({ ok: true })
-      },
-    )
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      runtime: {
-        sendMessage: sendMessageMock,
-      },
-    } as unknown as typeof chrome
+    sendMessageMock.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -102,8 +147,10 @@ describe('ProjectUrlItem additional', () => {
     vi.clearAllMocks()
   })
 
-  it('window 内 drop 済みなら urlDropped を送らない', () => {
-    render(<ProjectUrlItem {...createProps()} />)
+  it('window 内 drop 済みなら MessagingPort.send を urlDropped で呼ばない', () => {
+    renderWithMessagingPort(<ProjectUrlItem {...createProps()} />, {
+      send: sendMessageMock,
+    })
 
     const link = screen.getByRole('button', { name: 'Doc' })
     const dataTransfer = {
@@ -119,7 +166,6 @@ describe('ProjectUrlItem additional', () => {
       expect.objectContaining({
         action: 'urlDropped',
       }),
-      expect.any(Function),
     )
   })
 })

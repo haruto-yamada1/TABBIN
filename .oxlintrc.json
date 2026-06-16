@@ -667,6 +667,11 @@
             "object": "chrome",
             "property": "alarms",
             "message": "presentation 層は chrome.alarms を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "runtime",
+            "message": "presentation 層は chrome.runtime を直接利用できません（MessagingPort 経由）"
           }
         ]
       }

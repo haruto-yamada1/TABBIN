@@ -188,6 +188,9 @@ const createInMemoryDeps = (input: {
     storageChangePort: {
       subscribe: () => () => {},
     },
+    messagingPort: {
+      send: vi.fn().mockResolvedValue(undefined),
+    },
     tabGroupRepository,
     urlRecordRepository,
     userSettingsRepository: {

@@ -104,6 +104,9 @@ const buildLayoutComposition = () => {
     storageChangePort: {
       subscribe: () => () => {},
     },
+    messagingPort: {
+      send: vi.fn().mockResolvedValue(undefined),
+    },
     customProjectRepository: {
       // eslint-disable-next-line typescript/require-await
       findAll: async () => [],

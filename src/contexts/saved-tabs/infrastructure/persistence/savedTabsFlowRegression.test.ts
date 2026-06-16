@@ -164,6 +164,9 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     storageChangePort: {
       subscribe: () => () => {},
     },
+    messagingPort: {
+      send: vi.fn().mockResolvedValue(undefined),
+    },
     tabGroupRepository: createChromeTabGroupRepository(port),
     urlRecordRepository: createChromeUrlRecordRepository(port),
     userSettingsRepository: createChromeUserSettingsRepository(port),
@@ -424,6 +427,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
         storageChangePort: {
           subscribe: () => () => {},
+        },
+        messagingPort: {
+          send: vi.fn().mockResolvedValue(undefined),
         },
         tabGroupRepository: createChromeTabGroupRepository(port),
         urlRecordRepository: createChromeUrlRecordRepository(port),

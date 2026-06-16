@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 
 import type { ProjectUrlItemProps } from './ProjectUrlItem'
@@ -48,6 +49,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
   }
 })
 
+import { SavedTabsUseCasesProvider } from '../controllers/SavedTabsUseCasesContext'
 import { ProjectUrlItem } from './ProjectUrlItem'
 import { getCategoryDisplayName } from './projectUrlItemHelpers'
 
@@ -88,21 +90,69 @@ const createProps = (
   ...overrides,
 })
 
+/**
+ * `ProjectUrlItem` は `useSavedTabsUseCases()` 経由で `messagingPort` を
+ * 取り出す (issue #531)。テストではモック port を context 経由で注入する。
+ * 渡さない (provider なし) のときは messagingPort が undefined になり、
+ * 内部で `void port.send(...)` を呼ぶ経路が no-op になる。
+ */
+const renderWithMessagingPort = (
+  ui: React.ReactElement,
+  messagingPort?: MessagingPort,
+) => {
+  if (!messagingPort) {
+    return render(ui)
+  }
+  const deps = {
+    browserTabPort: { open: vi.fn() },
+    browserWindowPort: { openWithUrls: vi.fn() },
+    categoryAssignmentPort: {
+      saveParentCategories: vi.fn(),
+      saveTabGroups: vi.fn(),
+    },
+    categoriesCommandService: { updateDomainCategorySettings: vi.fn() },
+    customProjectsCommandService: {
+      addCategoryToProject: vi.fn(),
+      addUrlToCustomProject: vi.fn(),
+      moveUrlBetweenCustomProjects: vi.fn(),
+      removeCategoryFromProject: vi.fn(),
+      removeUrlFromCustomProject: vi.fn(),
+      removeUrlIdsFromAllCustomProjects: vi.fn(),
+      removeUrlsFromAllCustomProjects: vi.fn(),
+      removeUrlsFromCustomProject: vi.fn(),
+      renameCategoryInProject: vi.fn(),
+      reorderProjectUrls: vi.fn(),
+      setUrlCategory: vi.fn(),
+      updateCategoryOrder: vi.fn(),
+      updateProjectKeywords: vi.fn(),
+    },
+    customProjectRepository: {} as never,
+    domainCategoryMappingRepository: {} as never,
+    domainCategorySettingsRepository: {} as never,
+    migrationPort: {} as never,
+    messagingPort,
+    notificationPort: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+    parentCategoryRepository: {} as never,
+    removeSubCategoryFromTabGroupPort: {
+      removeSubCategoryFromTabGroup: vi.fn(),
+    },
+    setCategoryKeywordsPort: { setCategoryKeywords: vi.fn() },
+    storageChangePort: { subscribe: () => () => {} },
+    tabGroupRepository: {} as never,
+    urlRecordRepository: {} as never,
+    userSettingsRepository: {} as never,
+  } as never
+  return render(
+    <SavedTabsUseCasesProvider value={{ deps, useCases: {} as never }}>
+      {ui}
+    </SavedTabsUseCasesProvider>,
+  )
+}
+
 describe('ProjectUrlItem', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    sendMessageMock.mockImplementation(
-      (_message: unknown, callback?: (response: { ok: boolean }) => void) => {
-        callback?.({ ok: true })
-      },
-    )
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      runtime: {
-        sendMessage: sendMessageMock,
-      },
-    } as unknown as typeof chrome
-
+    sendMessageMock.mockResolvedValue(undefined)
     useSortableMock.mockReturnValue({
       attributes: {},
       listeners: {},
@@ -127,7 +177,7 @@ describe('ProjectUrlItem', () => {
       notes: 'memo',
     }
 
-    render(
+    renderWithMessagingPort(
       <ProjectUrlItem
         {...createProps({
           item,
@@ -206,7 +256,7 @@ describe('ProjectUrlItem', () => {
       category: 'Parent/Child',
     }
 
-    render(
+    renderWithMessagingPort(
       <ProjectUrlItem
         {...createProps({
           item,
@@ -256,7 +306,7 @@ describe('ProjectUrlItem', () => {
     expect(getCategoryDisplayName()).toBe('')
   })
 
-  it('外部D&D成立時にurlDroppedメッセージを送る', () => {
+  it('外部D&D成立時に MessagingPort.send を urlDropped メッセージで呼ぶ', () => {
     using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const item = {
       url: 'https://example.com/doc',
@@ -264,7 +314,9 @@ describe('ProjectUrlItem', () => {
       category: undefined,
     }
 
-    render(<ProjectUrlItem {...createProps({ item })} />)
+    renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
+      send: sendMessageMock,
+    })
 
     const link = screen.getByRole('button', { name: 'Doc' })
     const dataTransfer = {
@@ -289,11 +341,10 @@ describe('ProjectUrlItem', () => {
         groupId: 'project-1',
         fromExternal: true,
       }),
-      expect.any(Function),
     )
   })
 
-  it('dropEffectがlink以外ならurlDroppedメッセージを送らない', () => {
+  it('dropEffectがlink以外なら MessagingPort.send を urlDropped で呼ばない', () => {
     using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const item = {
       url: 'https://example.com/doc',
@@ -301,7 +352,9 @@ describe('ProjectUrlItem', () => {
       category: undefined,
     }
 
-    render(<ProjectUrlItem {...createProps({ item })} />)
+    renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
+      send: sendMessageMock,
+    })
 
     const link = screen.getByRole('button', { name: 'Doc' })
     const dataTransfer = {
@@ -321,11 +374,10 @@ describe('ProjectUrlItem', () => {
 
     expect(sendMessageMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ action: 'urlDropped' }),
-      expect.any(Function),
     )
   })
 
-  it('ドラッグ終了後にblurが発生してもurlDroppedメッセージを送らない', () => {
+  it('ドラッグ終了後にblurが発生しても MessagingPort.send を urlDropped で呼ばない', () => {
     using addEventListenerSpy = vi.spyOn(window, 'addEventListener')
     const item = {
       url: 'https://example.com/doc',
@@ -333,7 +385,9 @@ describe('ProjectUrlItem', () => {
       category: undefined,
     }
 
-    render(<ProjectUrlItem {...createProps({ item })} />)
+    renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
+      send: sendMessageMock,
+    })
 
     const link = screen.getByRole('button', { name: 'Doc' })
     const dataTransfer = {
@@ -353,18 +407,19 @@ describe('ProjectUrlItem', () => {
 
     expect(sendMessageMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ action: 'urlDropped' }),
-      expect.any(Function),
     )
   })
 
-  it('dropEffectがcopyならblurなしでもurlDroppedメッセージを送る', () => {
+  it('dropEffectがcopyならblurなしでも MessagingPort.send を urlDropped で呼ぶ', () => {
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',
       category: undefined,
     }
 
-    render(<ProjectUrlItem {...createProps({ item })} />)
+    renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
+      send: sendMessageMock,
+    })
 
     const link = screen.getByRole('button', { name: 'Doc' })
     const dataTransfer = {
@@ -382,7 +437,34 @@ describe('ProjectUrlItem', () => {
         groupId: 'project-1',
         fromExternal: true,
       }),
-      expect.any(Function),
+    )
+  })
+
+  it('dragStart で MessagingPort.send を urlDragStarted メッセージで呼ぶ', () => {
+    const item = {
+      url: 'https://example.com/doc',
+      title: 'Doc',
+      category: undefined,
+    }
+
+    renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
+      send: sendMessageMock,
+    })
+
+    const link = screen.getByRole('button', { name: 'Doc' })
+    const dataTransfer = {
+      setData: vi.fn(),
+      dropEffect: 'none',
+    }
+
+    fireEvent.dragStart(link, { dataTransfer })
+
+    expect(sendMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'urlDragStarted',
+        url: item.url,
+        groupId: 'project-1',
+      }),
     )
   })
 })

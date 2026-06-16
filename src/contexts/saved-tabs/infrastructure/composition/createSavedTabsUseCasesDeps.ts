@@ -8,6 +8,7 @@ import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPor
 import type { CategoriesCommandService } from '../../application/ports/CategoriesCommandService'
 import type { CategoryAssignmentPort } from '../../application/ports/CategoryAssignmentPort'
 import type { CustomProjectsCommandService } from '../../application/ports/CustomProjectsCommandService'
+import type { MessagingPort } from '../../application/ports/MessagingPort'
 import type { MigrationPort } from '../../application/ports/MigrationPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
 import type { RemoveSubCategoryFromTabGroupPort } from '../../application/ports/RemoveSubCategoryFromTabGroupPort'
@@ -21,7 +22,10 @@ import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepos
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import type { UserSettingsRepository } from '../../domain/repositories/UserSettingsRepository'
 import { createChromeBrowserTabAdapter } from '../browser/ChromeBrowserTabAdapter'
+import type { ChromeApiLike as ChromeApiLikeBase } from '../browser/ChromeBrowserTabAdapter'
 import { createChromeBrowserWindowAdapter } from '../browser/ChromeBrowserWindowAdapter'
+import { createChromeMessagingAdapter } from '../browser/ChromeMessagingAdapter'
+import type { ChromeApiLike as ChromeMessagingApiLike } from '../browser/ChromeMessagingAdapter'
 import { createChromeStorageChangeAdapter } from '../browser/ChromeStorageChangeAdapter'
 import { createSonnerNotificationAdapter } from '../browser/SonnerNotificationAdapter'
 import { createChromeCustomProjectRepository } from '../persistence/chrome-storage/ChromeCustomProjectRepository'
@@ -59,6 +63,13 @@ export interface SavedTabsUseCasesDeps {
   readonly browserWindowPort: BrowserWindowPort
   readonly notificationPort: NotificationPort
   readonly storageChangePort: StorageChangePort
+  /**
+   * background 通信 port (issue #531)。
+   * presentation 層 (`ProjectUrlItem` / `SortableUrlItem`) の
+   * 外部ウィンドウ D&D 通知を `chrome.runtime.sendMessage` 直叩きせず
+   * port 経由で行うため、deps 経由で配下に注入する。
+   */
+  readonly messagingPort: MessagingPort
   readonly migrationPort: MigrationPort
   readonly categoriesCommandService: CategoriesCommandService
   readonly customProjectsCommandService: CustomProjectsCommandService
@@ -83,7 +94,7 @@ export interface CreateSavedTabsUseCasesDepsOptions {
   readonly resolveActive?: () => boolean
 }
 
-interface ChromeLike {
+interface ChromeLike extends ChromeApiLikeBase {
   readonly tabs?: {
     readonly create?: (createProperties: {
       readonly active?: boolean
@@ -99,6 +110,13 @@ interface ChromeLike {
           { readonly tabs?: readonly { readonly url?: string }[] } | undefined
         >
       | undefined
+  }
+  readonly runtime?: {
+    readonly sendMessage?: (
+      message: unknown,
+      callback?: (response: unknown) => void,
+    ) => void
+    readonly lastError?: { readonly message?: string } | undefined
   }
   readonly storage?: {
     readonly onChanged?: {
@@ -170,6 +188,17 @@ export const createSavedTabsUseCasesDeps = (
     domainCategorySettingsRepository:
       createChromeDomainCategorySettingsRepository(port),
     migrationPort: createChromeMigrationAdapter(),
+    messagingPort: createChromeMessagingAdapter({
+      // `ChromeLike` は `BrowserTabPort` 由来の `ChromeApiLike` に対し
+      // `runtime` / `storage` を追加で持つ拡張型。
+      // `createChromeMessagingAdapter` は `runtime` を持つ別系統の
+      // `ChromeApiLike` を要求するため、構造的部分型の境界を
+      // unsafe cast で超える。
+      getApi: () => {
+        // eslint-disable-next-line typescript/no-unsafe-type-assertion
+        return getChromeApi() as unknown as ChromeMessagingApiLike | undefined
+      },
+    }),
     notificationPort: createSonnerNotificationAdapter(),
     parentCategoryRepository: createChromeParentCategoryRepository(port),
     removeSubCategoryFromTabGroupPort:
