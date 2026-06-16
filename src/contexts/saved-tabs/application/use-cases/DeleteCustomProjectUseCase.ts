@@ -241,26 +241,62 @@ const mergeRawSnapshots = (
   const baseUrlIds = base.urlIds ?? []
   const existing = new Set<string>(baseUrlIds)
   const nextUrlIds: string[] = [...baseUrlIds]
+  // `addedUrlIds` は target から実際に追加された urlId 集合。
+  // urlMetadata の上書き判定と urlIds の和集合計算で同じ集合を使い、
+  // 「移動しなかった urlId には触らない」セマンティクスを保つ。
+  const addedUrlIds: string[] = []
   for (const urlId of target.urlIds ?? []) {
     if (!existing.has(urlId)) {
       existing.add(urlId)
       nextUrlIds.push(urlId)
+      addedUrlIds.push(urlId)
     }
   }
   const baseUrlMetadata = base.urlMetadata ?? {}
   const targetUrlMetadata = target.urlMetadata ?? {}
+  // issue #535 P2 review (Codex): `urlId` が両方のプロジェクトに既に
+  // 存在する場合 (= 移動しなかった URL) は base の metadata を保持する。
+  // target の metadata は `addedUrlIds` に含まれる urlId のみ反映し、
+  // 衝突で uncategorized 側の notes / category を上書きしないようにする。
+  const targetMetadataForAdded: Record<
+    string,
+    { notes?: string; category?: string }
+  > = {}
+  for (const urlId of addedUrlIds) {
+    const meta = targetUrlMetadata[urlId]
+    if (meta) {
+      targetMetadataForAdded[urlId] = { ...meta }
+    }
+  }
   const mergedUrlMetadata: Record<
     string,
     { notes?: string; category?: string }
   > = {
     ...baseUrlMetadata,
-    ...targetUrlMetadata,
+    ...targetMetadataForAdded,
   }
+  const baseUrls = base.urls ?? []
+  const targetUrls = target.urls ?? []
   let urlsField: CustomProjectRawSnapshot['urls']
-  if (target.urls) {
-    urlsField = target.urls.map((entry) => ({ ...entry }))
-  } else if (base.urls) {
-    urlsField = base.urls.map((entry) => ({ ...entry }))
+  if (baseUrls.length > 0 || targetUrls.length > 0) {
+    // issue #535 P2 review (Codex): base.urls と target.urls を union で
+    // マージし、`url` 文字列で dedupe する。base 側を先に登録してから
+    // target の未収載エントリを追加することで、衝突時は base (uncategorized)
+    // の display data を保持する。URL が消えることを防ぐのが目的で、
+    // 衝突時の title / savedAt 解決は UrlRecordRepository 側が canonical。
+    const urlMap = new Map<
+      string,
+      { url: string; title: string; id?: string; savedAt?: number }
+    >()
+    for (const entry of baseUrls) {
+      urlMap.set(entry.url, { ...entry })
+    }
+    for (const entry of targetUrls) {
+      if (!urlMap.has(entry.url)) {
+        urlMap.set(entry.url, { ...entry })
+      }
+    }
+    urlsField = Array.from(urlMap.values())
   }
   return {
     ...base,

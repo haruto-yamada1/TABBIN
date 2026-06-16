@@ -232,6 +232,77 @@ describe('createDeleteCustomProjectUseCase', () => {
     expect(rawAfter.find((raw) => raw.id === 'project-1')).toBeUndefined()
   })
 
+  it('urlId が両方のプロジェクトに既に存在する場合、base の urlMetadata を保持する (issue #535 P2 review)', async () => {
+    // issue #535 P2 Codex review: 旧実装は `{ ...baseUrlMetadata,
+    // ...targetUrlMetadata }` で衝突時も target の metadata を上書き
+    // していた。`addedUrlIds` のみ target metadata を反映するように
+    // 修正し、移動しなかった urlId では uncategorized 側の
+    // notes / category を保持する。
+    const baseTimestamp = 1_700_000_000_000
+    repo = createInMemoryRepository(
+      [
+        createCustomProject({
+          categories: [],
+          createdAt: baseTimestamp,
+          id: 'project-1',
+          name: 'Project 1',
+          updatedAt: baseTimestamp,
+          urlIds: ['shared-url', 'new-url'],
+        }),
+        createCustomProject({
+          categories: [],
+          createdAt: baseTimestamp,
+          id: 'custom-uncategorized',
+          name: '未分類',
+          updatedAt: baseTimestamp,
+          urlIds: ['shared-url'],
+        }),
+      ],
+      [
+        {
+          categories: [],
+          createdAt: baseTimestamp,
+          id: 'project-1',
+          name: 'Project 1',
+          updatedAt: baseTimestamp,
+          urlIds: ['shared-url', 'new-url'],
+          urlMetadata: {
+            'new-url': { category: 'project-cat', notes: 'project-note' },
+            'shared-url': { category: 'project-cat', notes: 'project-note' },
+          },
+        },
+        {
+          categories: [],
+          createdAt: baseTimestamp,
+          id: 'custom-uncategorized',
+          name: '未分類',
+          updatedAt: baseTimestamp,
+          urlIds: ['shared-url'],
+          urlMetadata: {
+            'shared-url': { category: 'uncat-cat', notes: 'uncat-note' },
+          },
+        },
+      ],
+    )
+
+    const useCase = createDeleteCustomProjectUseCase(createDeps(repo))
+    await useCase({ projectId: createCustomProjectId('project-1') })
+
+    if (!repo.findAllRaw) {
+      throw new Error('findAllRaw is not implemented')
+    }
+    const rawAfter = await repo.findAllRaw()
+    const uncategorizedRaw = rawAfter.find(
+      (raw) => raw.id === 'custom-uncategorized',
+    )
+    // shared-url は base (uncategorized) の metadata を保持
+    // new-url は target の metadata が新規追加される
+    expect(uncategorizedRaw?.urlMetadata).toStrictEqual({
+      'new-url': { category: 'project-cat', notes: 'project-note' },
+      'shared-url': { category: 'uncat-cat', notes: 'uncat-note' },
+    })
+  })
+
   it('target の urlIds が空のときは uncategorized をそのまま返す (entity 経路の空マージパス)', async () => {
     // raw 経路を通してもよいが、entity 経路 (`saveAll`) でマージロジックの
     // 早期 return 分岐 (target urlIds 空) を踏むケースを別途検証する。
@@ -543,9 +614,12 @@ describe('createDeleteCustomProjectUseCase', () => {
     expect(result.all[0]?.urlIds).toStrictEqual(['existing-url', 'url-1'])
   })
 
-  it('target に urls がある場合は target.urls を mergedRaw に採用する (mergeRawSnapshots の target.urls 分岐)', async () => {
-    // target.urls あり + base.urls あり → `if (target.urls)` 分岐で
-    // target.urls 側が mergedRaw に採用される。
+  it('target.urls と base.urls を union でマージし、url 文字列で dedupe する (issue #535 P2 review)', async () => {
+    // issue #535 P2 Codex review: 旧実装は `if (target.urls)` 分岐で
+    // target.urls を mergedRaw にそのまま採用しており、base.urls を
+    // 完全に捨てていた。両者を union でマージし、url 文字列で dedupe
+    // する (base 側が collision で勝つ)。URL 文字列が異なるエントリは
+    // すべて mergedRaw に残る。
     const baseTimestamp = 1_700_000_000_000
     repo = createInMemoryRepository(
       [
@@ -610,12 +684,94 @@ describe('createDeleteCustomProjectUseCase', () => {
     const uncategorizedRaw = rawAfter.find(
       (raw) => raw.id === 'custom-uncategorized',
     )
-    // target.urls 側が mergedRaw に採用される
+    // base と target の url 文字列が異なるので両方が mergedRaw に残る
     expect(uncategorizedRaw?.urls).toStrictEqual([
+      {
+        savedAt: baseTimestamp,
+        title: 'Base',
+        url: 'https://base.example.com',
+      },
       {
         savedAt: baseTimestamp,
         title: 'Target',
         url: 'https://target.example.com',
+      },
+    ])
+  })
+
+  it('target.urls と base.urls で同じ url 文字列が重複する場合は base を保持する (issue #535 P2 review)', async () => {
+    // 同じ url 文字列が両方に存在する場合、base (uncategorized) の
+    // エントリを保持し、target のエントリでは上書きしない。
+    const baseTimestamp = 1_700_000_000_000
+    repo = createInMemoryRepository(
+      [
+        createCustomProject({
+          categories: [],
+          createdAt: baseTimestamp,
+          id: 'project-1',
+          name: 'Project 1',
+          updatedAt: baseTimestamp,
+          urlIds: ['url-1'],
+        }),
+        createCustomProject({
+          categories: [],
+          createdAt: baseTimestamp,
+          id: 'custom-uncategorized',
+          name: '未分類',
+          updatedAt: baseTimestamp,
+          urlIds: ['existing-url'],
+        }),
+      ],
+      [
+        {
+          categories: [],
+          createdAt: baseTimestamp,
+          id: 'project-1',
+          name: 'Project 1',
+          updatedAt: baseTimestamp,
+          urlIds: ['url-1'],
+          urls: [
+            {
+              savedAt: baseTimestamp,
+              title: 'Target Title',
+              url: 'https://shared.example.com',
+            },
+          ],
+        },
+        {
+          categories: [],
+          createdAt: baseTimestamp,
+          id: 'custom-uncategorized',
+          name: '未分類',
+          updatedAt: baseTimestamp,
+          urlIds: ['existing-url'],
+          urls: [
+            {
+              savedAt: baseTimestamp - 1,
+              title: 'Base Title',
+              url: 'https://shared.example.com',
+            },
+          ],
+        },
+      ],
+    )
+
+    const useCase = createDeleteCustomProjectUseCase(createDeps(repo))
+    await useCase({ projectId: createCustomProjectId('project-1') })
+
+    if (!repo.findAllRaw) {
+      throw new Error('findAllRaw is not implemented')
+    }
+    const rawAfter = await repo.findAllRaw()
+    const uncategorizedRaw = rawAfter.find(
+      (raw) => raw.id === 'custom-uncategorized',
+    )
+    // 同じ url 文字列は base 側を保持
+    expect(uncategorizedRaw?.urls).toStrictEqual([
+      {
+        savedAt: baseTimestamp - 1,
+        title: 'Base Title',
+        url: 'https://shared.example.com',
       },
     ])
   })
