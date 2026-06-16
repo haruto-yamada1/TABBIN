@@ -96,11 +96,9 @@ export const createDeleteCustomProjectUseCase = (
     // ので、ここでもその挙動を再現する。
     let merged: CustomProject
     let nextAll: CustomProject[]
+    let mergedRawBase: CustomProjectRawSnapshot | undefined
     if (uncategorized) {
-      merged = mergeIntoUncategorized(target, uncategorized, {
-        targetRaw: targetRaw ?? undefined,
-        uncategorizedRaw: uncategorizedRaw ?? undefined,
-      })
+      merged = mergeEntityUncategorized(target, uncategorized)
       nextAll = all.map((project, index) => {
         if (index === targetIndex) {
           return project
@@ -110,6 +108,13 @@ export const createDeleteCustomProjectUseCase = (
         }
         return project
       })
+      if (uncategorizedRaw) {
+        mergedRawBase = uncategorizedRaw
+      } else {
+        // issue #535 P2: uncategorized の raw が `findAllRaw` 結果に
+        // 含まれない場合は entity を widen して mergedRawBase を作る。
+        mergedRawBase = entityToRawSnapshot(merged)
+      }
     } else {
       const timestamp = now()
       const createdUncategorized: CustomProject = {
@@ -120,17 +125,7 @@ export const createDeleteCustomProjectUseCase = (
         updatedAt: timestamp as never,
         urlIds: [],
       }
-      const createdUncategorizedRaw: CustomProjectRawSnapshot = {
-        categories: [],
-        createdAt: timestamp,
-        id: deps.uncategorizedProjectId,
-        name: '未分類',
-        updatedAt: timestamp,
-      }
-      merged = mergeIntoUncategorized(target, createdUncategorized, {
-        targetRaw: targetRaw ?? undefined,
-        uncategorizedRaw: createdUncategorizedRaw,
-      })
+      merged = mergeEntityUncategorized(target, createdUncategorized)
       // PR #514 / Codex review: 旧 `findOrCreateUncategorizedProject` 経路を
       // 踏襲し、新規作成した uncategorized プロジェクトを `all` へ明示的に
       // push してから保存する (`all.map` だと createdUncategorized.id が
@@ -138,21 +133,46 @@ export const createDeleteCustomProjectUseCase = (
       nextAll = all
         .map((project, index) => (index === targetIndex ? project : project))
         .concat(merged)
+      mergedRawBase = entityToRawSnapshot(createdUncategorized)
     }
     const remaining = nextAll.filter(
       (project) => project.id !== command.projectId,
     )
-    await deps.customProjectRepository.saveAll(remaining)
-    if (targetRaw) {
-      const removedSnapshot: CustomProjectRawSnapshot = {
-        ...targetRaw,
-        urlIds: target.urlIds as unknown as readonly string[],
-        urls: targetRaw.urls,
-        urlMetadata: targetRaw.urlMetadata,
-        projectKeywords: targetRaw.projectKeywords,
-        categoryOrder: targetRaw.categoryOrder,
+    if (
+      targetRaw &&
+      mergedRawBase &&
+      deps.customProjectRepository.findAllRaw &&
+      deps.customProjectRepository.restoreAllRaw
+    ) {
+      // issue #535 P2: rich フィールド（`urlMetadata` / `projectKeywords` /
+      // `categoryOrder` / `urls`）は domain entity 境界で表現されないため、
+      // `saveAll` 経路だと target の metadata が uncategorized 側に
+      // 引き継がれずに消える。`restoreAllRaw` で merged raw を
+      // そのまま書き戻し、entity 経由の save とは別経路で永続化する。
+      const allRaws = await deps.customProjectRepository.findAllRaw()
+      const otherRaws = allRaws.filter((raw) => raw.id !== command.projectId)
+      const mergedRaw: CustomProjectRawSnapshot = mergeRawSnapshots(
+        mergedRawBase,
+        targetRaw,
+      )
+      const nextRaws: CustomProjectRawSnapshot[] = [
+        ...otherRaws.filter((raw) => raw.id !== mergedRaw.id),
+        mergedRaw,
+      ]
+      await deps.customProjectRepository.restoreAllRaw(nextRaws)
+    } else {
+      await deps.customProjectRepository.saveAll(remaining)
+      if (targetRaw) {
+        const removedSnapshot: CustomProjectRawSnapshot = {
+          ...targetRaw,
+          urlIds: target.urlIds as unknown as readonly string[],
+          urls: targetRaw.urls,
+          urlMetadata: targetRaw.urlMetadata,
+          projectKeywords: targetRaw.projectKeywords,
+          categoryOrder: targetRaw.categoryOrder,
+        }
+        void removedSnapshot
       }
-      void removedSnapshot
     }
     return {
       all: remaining,
@@ -171,16 +191,30 @@ const findRawForId = async (
   return raws.find((raw) => raw.id === id) ?? null
 }
 
-const mergeIntoUncategorized = (
+const entityToRawSnapshot = (
+  project: CustomProject,
+): CustomProjectRawSnapshot => ({
+  categories: [...project.categories],
+  createdAt: project.createdAt,
+  id: project.id,
+  name: project.name,
+  updatedAt: project.updatedAt,
+  ...(project.urlIds.length > 0 ? { urlIds: [...project.urlIds] } : {}),
+})
+
+/**
+ * entity 同士の `CustomProject` URL マージ。rich フィールド
+ * （`urlMetadata` / `projectKeywords` / `categoryOrder`）は entity
+ * 境界で表現されないため、ここでは `urlIds` の和集合のみを更新する。
+ * rich フィールドの引き継ぎは `mergeRawSnapshots` を併用して raw
+ * 経路で永続化する (issue #535 P2)。
+ */
+const mergeEntityUncategorized = (
   target: CustomProject,
   uncategorized: CustomProject,
-  raws: {
-    targetRaw: CustomProjectRawSnapshot | undefined
-    uncategorizedRaw: CustomProjectRawSnapshot | undefined
-  },
 ): CustomProject => {
   const targetUrlIds = target.urlIds as unknown as readonly string[]
-  if (targetUrlIds.length === 0 && !raws.targetRaw?.urlMetadata) {
+  if (targetUrlIds.length === 0) {
     return uncategorized
   }
   const existing = new Set(uncategorized.urlIds as unknown as readonly string[])
@@ -193,22 +227,84 @@ const mergeIntoUncategorized = (
       nextUrlIds.push(urlId)
     }
   }
-  // PR #514 review P2: 旧 `mergeUrlsIntoUncategorized` は
-  // `urlMetadata` まで持ち越していたが、本 use-case の entity には
-  // `urlMetadata` フィールドがない。raw snapshot から補完する。
-  const targetUrlMetadata = raws.targetRaw?.urlMetadata
-  const uncategorizedUrlMetadata = raws.uncategorizedRaw?.urlMetadata
-  const mergedUrlMetadata: CustomProjectRawSnapshot['urlMetadata'] = {
-    ...uncategorizedUrlMetadata,
-    ...targetUrlMetadata,
-  }
   return {
     ...uncategorized,
     urlIds: nextUrlIds as never,
     updatedAt: target.updatedAt,
-    ...(Object.keys(mergedUrlMetadata).length > 0
-      ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        ({ urlMetadata: mergedUrlMetadata } as never)
-      : {}),
+  }
+}
+
+const mergeRawSnapshots = (
+  base: CustomProjectRawSnapshot,
+  target: CustomProjectRawSnapshot,
+): CustomProjectRawSnapshot => {
+  const baseUrlIds = base.urlIds ?? []
+  const existing = new Set<string>(baseUrlIds)
+  const nextUrlIds: string[] = [...baseUrlIds]
+  // `addedUrlIds` は target から実際に追加された urlId 集合。
+  // urlMetadata の上書き判定と urlIds の和集合計算で同じ集合を使い、
+  // 「移動しなかった urlId には触らない」セマンティクスを保つ。
+  const addedUrlIds: string[] = []
+  for (const urlId of target.urlIds ?? []) {
+    if (!existing.has(urlId)) {
+      existing.add(urlId)
+      nextUrlIds.push(urlId)
+      addedUrlIds.push(urlId)
+    }
+  }
+  const baseUrlMetadata = base.urlMetadata ?? {}
+  const targetUrlMetadata = target.urlMetadata ?? {}
+  // issue #535 P2 review (Codex): `urlId` が両方のプロジェクトに既に
+  // 存在する場合 (= 移動しなかった URL) は base の metadata を保持する。
+  // target の metadata は `addedUrlIds` に含まれる urlId のみ反映し、
+  // 衝突で uncategorized 側の notes / category を上書きしないようにする。
+  const targetMetadataForAdded: Record<
+    string,
+    { notes?: string; category?: string }
+  > = {}
+  for (const urlId of addedUrlIds) {
+    const meta = targetUrlMetadata[urlId]
+    if (meta) {
+      targetMetadataForAdded[urlId] = { ...meta }
+    }
+  }
+  const mergedUrlMetadata: Record<
+    string,
+    { notes?: string; category?: string }
+  > = {
+    ...baseUrlMetadata,
+    ...targetMetadataForAdded,
+  }
+  const baseUrls = base.urls ?? []
+  const targetUrls = target.urls ?? []
+  let urlsField: CustomProjectRawSnapshot['urls']
+  if (baseUrls.length > 0 || targetUrls.length > 0) {
+    // issue #535 P2 review (Codex): base.urls と target.urls を union で
+    // マージし、`url` 文字列で dedupe する。base 側を先に登録してから
+    // target の未収載エントリを追加することで、衝突時は base (uncategorized)
+    // の display data を保持する。URL が消えることを防ぐのが目的で、
+    // 衝突時の title / savedAt 解決は UrlRecordRepository 側が canonical。
+    const urlMap = new Map<
+      string,
+      { url: string; title: string; id?: string; savedAt?: number }
+    >()
+    for (const entry of baseUrls) {
+      urlMap.set(entry.url, { ...entry })
+    }
+    for (const entry of targetUrls) {
+      if (!urlMap.has(entry.url)) {
+        urlMap.set(entry.url, { ...entry })
+      }
+    }
+    urlsField = Array.from(urlMap.values())
+  }
+  return {
+    ...base,
+    categoryOrder: base.categoryOrder ?? target.categoryOrder,
+    projectKeywords: base.projectKeywords ?? target.projectKeywords,
+    updatedAt: target.updatedAt,
+    urlIds: nextUrlIds,
+    urlMetadata: mergedUrlMetadata,
+    ...(urlsField ? { urls: urlsField } : {}),
   }
 }

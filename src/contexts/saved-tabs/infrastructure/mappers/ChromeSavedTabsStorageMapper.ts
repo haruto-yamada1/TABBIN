@@ -1,3 +1,5 @@
+import type { CustomProject as StorageCustomProject } from '@/types/storage'
+
 import { createCustomProject } from '../../domain/entities/CustomProject'
 import type { CustomProject } from '../../domain/entities/CustomProject'
 import { createParentCategory } from '../../domain/entities/ParentCategory'
@@ -7,6 +9,7 @@ import type { TabGroup } from '../../domain/entities/TabGroup'
 import { createUrlRecord } from '../../domain/entities/UrlRecord'
 import type { UrlRecord } from '../../domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
+import type { CustomProjectRawSnapshot } from '../../domain/repositories/CustomProjectRepository'
 import type { CustomProjectId } from '../../domain/value-objects/CustomProjectId'
 import type { DomainName } from '../../domain/value-objects/DomainName'
 import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
@@ -334,6 +337,57 @@ const toCustomProjectRaw = (
 }
 
 /**
+ * `CustomProjectRawSnapshot` を presentation 層 (`src/types/storage`) の
+ * `CustomProject` 形へ投影する。
+ *
+ * domain `CustomProject` entity は `projectKeywords` / `categoryOrder` /
+ * `urlMetadata` / `urls` などの rich 補助フィールドを保持しないため、
+ * そのまま `findAll()` 戻り値を UI state に流すと初回ロード時にこれらの
+ * フィールドが落ちる (issue #535 P1)。raw snapshot を直接 projection
+ * することで、entity 境界を通さずに UI state を組み立てる。
+ *
+ * `urlIds` / `urls` / `urlMetadata` / `projectKeywords` / `categoryOrder`
+ * は rich snapshot 側に存在する場合のみ引き継ぎ、存在しない場合は
+ * storage 形の `?` optional として省略する (`toStrictEqual` 安定化のため)。
+ */
+const toStorageCustomProject = (
+  raw: CustomProjectRawSnapshot,
+): StorageCustomProject => {
+  const result: StorageCustomProject = {
+    categories: [...raw.categories],
+    createdAt: raw.createdAt,
+    id: raw.id,
+    name: raw.name,
+    updatedAt: raw.updatedAt,
+  }
+  if (raw.urlIds && raw.urlIds.length > 0) {
+    result.urlIds = [...raw.urlIds]
+  }
+  if (raw.urls && raw.urls.length > 0) {
+    result.urls = raw.urls.map((entry) => ({ ...entry }))
+  }
+  if (raw.urlMetadata && Object.keys(raw.urlMetadata).length > 0) {
+    result.urlMetadata = Object.fromEntries(
+      Object.entries(raw.urlMetadata).map(([urlId, metadata]) => [
+        urlId,
+        { ...metadata },
+      ]),
+    )
+  }
+  if (raw.projectKeywords) {
+    result.projectKeywords = {
+      domainKeywords: [...raw.projectKeywords.domainKeywords],
+      titleKeywords: [...raw.projectKeywords.titleKeywords],
+      urlKeywords: [...raw.projectKeywords.urlKeywords],
+    }
+  }
+  if (raw.categoryOrder && raw.categoryOrder.length > 0) {
+    result.categoryOrder = [...raw.categoryOrder]
+  }
+  return result
+}
+
+/**
  * `unknown` な生データをパースし、有効な `TabGroup` だけを返す。
  *
  * Zod parse 失敗 / entity 化失敗 / `null` / `undefined` の場合は `null` を返す。
@@ -498,6 +552,7 @@ export const ChromeSavedTabsStorageMapper = {
   toParentCategoryFromRaw,
   toParentCategoryRaw,
   toSavedTabRaw,
+  toStorageCustomProject,
   toTabGroupFromRaw,
   toUrlRecordFromRaw,
   toUrlRecordRaw,

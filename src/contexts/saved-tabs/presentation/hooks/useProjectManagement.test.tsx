@@ -5,7 +5,10 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type {
+  CustomProjectRawSnapshot,
+  CustomProjectRepository,
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { CustomProject } from '@/types/storage'
 
 import { useProjectManagement } from './useProjectManagement'
@@ -132,6 +135,32 @@ const waitForLoadedProjects = async (
   })
 }
 
+const toRawSnapshot = (project: CustomProject): CustomProjectRawSnapshot => {
+  const result: CustomProjectRawSnapshot = {
+    categories: project.categories,
+    createdAt: project.createdAt,
+    id: project.id,
+    name: project.name,
+    updatedAt: project.updatedAt,
+  }
+  if (project.urlIds) {
+    result.urlIds = project.urlIds
+  }
+  if (project.urls) {
+    result.urls = project.urls
+  }
+  if (project.urlMetadata) {
+    result.urlMetadata = project.urlMetadata
+  }
+  if (project.projectKeywords) {
+    result.projectKeywords = project.projectKeywords
+  }
+  if (project.categoryOrder) {
+    result.categoryOrder = project.categoryOrder
+  }
+  return result
+}
+
 describe('useProjectManagement', () => {
   let customProjectRepository: CustomProjectRepository
   /**
@@ -158,17 +187,29 @@ describe('useProjectManagement', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     vi.setSystemTime(new Date('2026-01-02T03:04:05.000Z'))
-    // `customProjectRepository.findAll` は `getCustomProjects` の mock
-    // 値を通じて後方互換を維持する。テスト本体は
+    // issue #535 P1: 実装は `findAllRaw` を介して rich フィールド
+    // （`projectKeywords` / `categoryOrder` / `urlMetadata` / `urls`）を
+    // 保持した raw snapshot を取得する。テストでは
     // `projectManagementMocks.getCustomProjects.mockResolvedValue(...)` で
-    // 戻り値を制御できる。
+    // 設定した `CustomProject` (storage 形) を raw snapshot 形に widen
+    // して `findAllRaw` の戻り値にする。`findAllRaw` mock は
+    // `mockImplementation` で `getCustomProjects` ベースの widening を
+    // 担当し、テストケースで `mockResolvedValueOnce` /
+    // `mockImplementationOnce` で一時的に上書きできる。
     const findAllMock = vi
       .fn()
       .mockImplementation(() => projectManagementMocks.getCustomProjects())
+    const findAllRawMock = vi
+      .fn()
+      .mockImplementation(() =>
+        projectManagementMocks
+          .getCustomProjects()
+          .then((projects: CustomProject[]) => projects.map(toRawSnapshot)),
+      )
 
     customProjectRepository = {
       findAll: findAllMock,
-      findAllRaw: vi.fn(),
+      findAllRaw: findAllRawMock,
       findById: vi.fn(),
       removeByIds: vi.fn(),
       restoreAllRaw: vi.fn(),
@@ -176,11 +217,6 @@ describe('useProjectManagement', () => {
       findOrder: vi.fn(),
       saveOrder: vi.fn(),
     } as unknown as CustomProjectRepository
-    ;(
-      customProjectRepository.findAllRaw as unknown as {
-        mockResolvedValue: (value: unknown) => void
-      }
-    ).mockResolvedValue([])
     ;(
       customProjectRepository.findOrder as unknown as {
         mockResolvedValue: (value: unknown) => void
@@ -990,8 +1026,10 @@ describe('useProjectManagement', () => {
       await undoOptions?.action?.onClick?.()
     })
 
-    expect(customProjectRepository.saveAll).toHaveBeenLastCalledWith(
-      projectSnapshot,
+    expect(customProjectRepository.restoreAllRaw).toHaveBeenLastCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'project-1', name: 'Project A' }),
+      ]),
     )
     expect(customProjectRepository.saveOrder).toHaveBeenLastCalledWith([
       'project-1',
@@ -1022,16 +1060,14 @@ describe('useProjectManagement', () => {
         urls: [{ title: 'A', url: 'https://example.com/a' }],
       },
     ]
+    // 1 回目: 初回 load, 2 回目: undo snapshot, 3 回目: 削除後
+    // 初期 load / undo snapshot で rich な `projectSnapshotRaw` を返し、
+    // 削除後の再取得は `getCustomProjects` (= []) ベースでよい。
     ;(
       customProjectRepository.findAllRaw as unknown as {
-        mockResolvedValueOnce: (value: unknown) => void
+        mockResolvedValue: (value: unknown) => void
       }
-    ).mockResolvedValueOnce(projectSnapshotRaw)
-    // 1 回目: 初回 load, 2 回目: undo snapshot (projectSnapshot), 3 回目: 削除後
-    projectManagementMocks.getCustomProjects
-      .mockResolvedValueOnce(projectSnapshot)
-      .mockResolvedValueOnce(projectSnapshot)
-      .mockResolvedValueOnce([])
+    ).mockResolvedValue(projectSnapshotRaw)
 
     const { result } = renderHook(() =>
       useProjectManagement(
@@ -1046,7 +1082,15 @@ describe('useProjectManagement', () => {
       ),
     )
 
-    await waitForLoadedProjects(result)
+    // 初期ロード時に `findAllRaw` 経由で rich な snapshot が反映される
+    // (issue #535 P1: projectKeywords / urlMetadata / urls が保持される)
+    await waitFor(() => {
+      expect(result.current.customProjects[0]?.projectKeywords).toStrictEqual({
+        domainKeywords: ['example.com'],
+        titleKeywords: ['design'],
+        urlKeywords: ['plan'],
+      })
+    })
 
     await act(async () => {
       await result.current.handleDeleteUrlFromProject(
@@ -1173,16 +1217,30 @@ describe('useProjectManagement', () => {
 
   it('Undo の保存データがない場合は復元処理を行わず、復元失敗は通知する', async () => {
     // 1st delete: snapshot = []  → 復元スキップ
-    // 2nd delete: snapshot = projectSnapshot → 復元は saveAll (reject) → 失敗通知
+    // 2nd delete: snapshot = projectSnapshot → 復元は restoreAllRaw (reject) → 失敗通知
+    // queue 設計:
+    //  - 1st widening (useEffect): projectSnapshot
+    //  - 2nd widening (1st delete snapshot): mockImplementationOnce で
+    //    widening スキップ → queue 消費なし
+    //  - 3rd widening (1st delete 削除後): []
+    //  - 4th widening (2nd delete snapshot): projectSnapshot
+    //  - 5th widening (2nd delete 削除後): projectSnapshot
     projectManagementMocks.getCustomProjects
-      .mockResolvedValueOnce(projectSnapshot) // useEffect mount
-      .mockResolvedValueOnce([]) // 1st delete: snapshot
-      .mockResolvedValueOnce([]) // 1st delete: get updated (削除後)
-      .mockResolvedValueOnce(projectSnapshot) // 2nd delete: snapshot
-      .mockResolvedValueOnce(projectSnapshot) // 2nd delete: get updated
+      .mockResolvedValueOnce(projectSnapshot) // 1st: useEffect
+      .mockResolvedValueOnce([]) // 3rd: 1st delete 削除後
+      .mockResolvedValueOnce(projectSnapshot) // 4th: 2nd delete snapshot
+      .mockResolvedValueOnce(projectSnapshot) // 5th: 2nd delete 削除後
 
+    // issue #535 P1: `findAllRaw` を 1st delete の snapshot 取得タイミングで
+    // 空にしておくと、undo snapshot に `customProjectsRaw` が含まれず
+    // `restoreAllRaw` 経路をスキップする。`findAll` も空を返すため、
+    // UI 復元も `payload.customProjects` 経由で `saveAll` 経由になる。
+    // 2nd delete は通常経路 (snapshot = projectSnapshot) で `restoreAllRaw` を
+    // 通すが、mock で reject させて「restoreAllRaw 失敗 → error toast」を
+    // 検証する (issue #535 で raw 経路が主軸になったため `saveAll` 失敗
+    // ではなく `restoreAllRaw` 失敗で検証する)。
     ;(
-      customProjectRepository.saveAll as unknown as {
+      customProjectRepository.restoreAllRaw as unknown as {
         mockRejectedValueOnce: (value: unknown) => void
       }
     ).mockRejectedValueOnce(new Error('restore failed'))
@@ -1201,6 +1259,15 @@ describe('useProjectManagement', () => {
     )
 
     await waitForLoadedProjects(result)
+
+    // 1st delete の `getCustomProjectUndoSnapshot` 内の `findAllRaw` を
+    // 空配列にしておく。これで undo snapshot に `customProjectsRaw` が
+    // 含まれず `restoreAllRaw` 経路をスキップし、`saveAll` も呼ばれない。
+    ;(
+      customProjectRepository.findAllRaw as unknown as {
+        mockImplementationOnce: (impl: () => unknown) => void
+      }
+    ).mockImplementationOnce(() => Promise.resolve([]))
 
     await act(async () => {
       await result.current.handleDeleteUrlFromProject(
@@ -1221,7 +1288,7 @@ describe('useProjectManagement', () => {
       await missingUndoOptions?.action?.onClick?.()
     })
 
-    expect(customProjectRepository.saveAll).not.toHaveBeenCalled()
+    expect(customProjectRepository.restoreAllRaw).not.toHaveBeenCalled()
 
     await act(async () => {
       await result.current.handleDeleteUrlFromProject(
@@ -1242,7 +1309,7 @@ describe('useProjectManagement', () => {
       await failingUndoOptions?.action?.onClick?.()
     })
 
-    expect(customProjectRepository.saveAll).toHaveBeenCalledWith(
+    expect(customProjectRepository.restoreAllRaw).toHaveBeenCalledWith(
       projectSnapshot,
     )
     expect(toast.error).toHaveBeenCalledWith('保存データを復元できませんでした')
