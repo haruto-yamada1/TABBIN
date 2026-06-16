@@ -9,11 +9,11 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -175,13 +175,13 @@ const createProps = () => ({
       saveTabGroups: vi.fn(),
     },
     getSavedTabsPageDataQuery: vi.fn(),
-    parentCategoryRepository: {} as unknown as ParentCategoryRepository,
   },
   categoryManagementModalUseCases: {
     addDomainToParentCategory: vi.fn<AddDomainToParentCategoryUseCase>(),
     removeDomainFromParentCategory:
       vi.fn<RemoveDomainFromParentCategoryUseCase>(),
     renameParentCategory: vi.fn<RenameParentCategoryUseCase>(),
+    deleteParentCategory: vi.fn<DeleteParentCategoryUseCase>(),
   },
 })
 

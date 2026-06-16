@@ -23,9 +23,9 @@ import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
@@ -49,29 +49,27 @@ interface AvailableDomain {
 
 /**
  * `CategoryManagementModal` が port / query にアクセスするために受け取る
- * 依存バンドル (issue #510)。`chrome.storage.local` 直叩きと
+ * 依存バンドル (issue #510, #518)。`chrome.storage.local` 直叩きと
  * `tabGroupRepository` / `parentCategoryRepository` 直叩きを port / query
- * へ統一する。
+ * / use-case へ統一する。`parentCategoryRepository` は issue #518 で
+ * 撤去され、削除・更新は `CategoryManagementModalUseCases` 経由で
+ * 実行する。
  */
 export interface CategoryManagementModalDeps {
   readonly categoryAssignmentPort: CategoryAssignmentPort
   readonly getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
-  /**
-   * カテゴリ削除 (`removeByIds`) 専用に残す parent category repository。
-   * その他の find / save は query / port 経由へ置換済み。
-   */
-  readonly parentCategoryRepository: ParentCategoryRepository
 }
 
 /**
  * `CategoryManagementModal` が直接実行する use-case 群。
  * 旧 `onCategoryUpdate` コールバックを置換し、storage 直叩きを撤去する
- * （issue #502）。
+ * （issue #502, #518）。
  */
 export interface CategoryManagementModalUseCases {
   readonly renameParentCategory: RenameParentCategoryUseCase
   readonly addDomainToParentCategory: AddDomainToParentCategoryUseCase
   readonly removeDomainFromParentCategory: RemoveDomainFromParentCategoryUseCase
+  readonly deleteParentCategory: DeleteParentCategoryUseCase
 }
 
 // 親カテゴリ管理モーダルの型定義
@@ -138,18 +136,19 @@ const useCategoryManagementModalView = ({
   deps,
   useCases,
 }: CategoryManagementModalProps) => {
-  const { getSavedTabsPageDataQuery, parentCategoryRepository } = deps
+  const { getSavedTabsPageDataQuery } = deps
   // `categoryAssignmentPort` is exposed by the deps bundle for callers that
   // wire additional port-based mutations, but the modal currently routes
   // its writes through the dedicated use-cases (rename / add / remove
-  // domain). The reference is kept so the dep type stays stable across
-  // components.
+  // domain / delete category). The reference is kept so the dep type stays
+  // stable across components.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { categoryAssignmentPort: _categoryAssignmentPort } = deps
   const {
     renameParentCategory,
     addDomainToParentCategory,
     removeDomainFromParentCategory,
+    deleteParentCategory,
   } = useCases
   const { t } = useI18n()
   const localizedCategoryNameSchema = useMemo(
@@ -349,20 +348,6 @@ const useCategoryManagementModalView = ({
         console.log('Modal - 保存状態をリセット')
       }
 
-      // 最終確認: Repository.findById で永続化された値を読み直し、リネーム結果を
-      // 改めて検証する。use-case の戻り値と永続層の差分を検知する目的。
-      console.log('Modal - 最終確認開始')
-      const finalCategory = await parentCategoryRepository.findById(
-        createParentCategoryId(category.id),
-      )
-      if (finalCategory?.name !== trimmedName) {
-        console.error('Modal - 最終確認でカテゴリ名が一致しません:', {
-          actual: finalCategory?.name,
-          expected: trimmedName,
-        })
-        throw new Error('カテゴリ名の更新が完了していません')
-      }
-
       // すべての更新が確認できたら親コンポーネントに通知
       console.log('Modal - カテゴリ更新が完了しました')
       toast.success(
@@ -400,11 +385,15 @@ const useCategoryManagementModalView = ({
     }
     setIsProcessing(true)
     try {
-      // Repository.removeByIds 経由で該当カテゴリを永続化層から削除する
-      // （`chrome.storage.local.set` の直叩きを置換、issue #502）。
-      await parentCategoryRepository.removeByIds([
-        createParentCategoryId(category.id),
-      ])
+      // カテゴリ削除は `deleteParentCategory` use-case 経由で行い、
+      // presentation 層から `parentCategoryRepository.removeByIds` /
+      // `chrome.storage.local` の直叩きを撤去する (issue #518)。
+      // use-case は削除後カテゴリ一覧を返すので state へ反映する。
+      const { all } = await deleteParentCategory({
+        categoryId: createParentCategoryId(category.id),
+      })
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
+      setParentCategories([...all] as unknown as ParentCategory[])
       toast.success(
         t('savedTabs.categoryModal.deleted', undefined, {
           name: category.name,
@@ -420,9 +409,9 @@ const useCategoryManagementModalView = ({
   }, [
     category.id,
     category.name,
+    deleteParentCategory,
     isProcessing,
     onClose,
-    parentCategoryRepository,
     t,
   ])
 

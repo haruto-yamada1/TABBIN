@@ -317,9 +317,14 @@ const useSavedTabsAppView = ({
           preDeleteSnapshot &&
           result.snapshot
         ) {
-          await refreshTabGroupsWithUrls(
-            getSnapshotSavedTabs(preDeleteSnapshot),
-          )
+          // Codex review (PR #521): 旧実装は `preDeleteSnapshot` を
+          // `refreshTabGroupsWithUrls` に渡していたが、use-case 側で
+          // 既に `UrlRecordRepository.removeByIds` が走っているため、
+          // pre-delete snapshot で UI を塗り替えると storage change
+          // 通知が無いときに「削除済み URL が見えたまま」になる。
+          // ここでは storage から最新を取得して UI を同期し、
+          // `preDeleteSnapshot` は Undo 用にだけ保持する。
+          await refreshTabGroupsWithUrls()
           showOpenedUrlsUndoToast({
             count: result.removedUrlRecordIds.length,
             refreshTabGroupsWithUrls,
@@ -1065,7 +1070,6 @@ const useSavedTabsAppView = ({
         categoryManagementModalDeps={{
           categoryAssignmentPort: deps.categoryAssignmentPort,
           getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
-          parentCategoryRepository: deps.parentCategoryRepository,
         }}
         // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TODO(#502-followup): category management use-cases の memo 化または context 化で解消予定
         categoryManagementModalUseCases={{
@@ -1074,6 +1078,7 @@ const useSavedTabsAppView = ({
             savedTabsUseCases.addDomainToParentCategory,
           removeDomainFromParentCategory:
             savedTabsUseCases.removeDomainFromParentCategory,
+          deleteParentCategory: savedTabsUseCases.deleteParentCategory,
         }}
       />
     ) : (

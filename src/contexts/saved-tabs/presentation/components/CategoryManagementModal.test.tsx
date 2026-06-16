@@ -19,6 +19,8 @@ import { z } from 'zod'
 
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import { createAddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
+import { createDeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import { createRemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
@@ -300,6 +302,9 @@ const createUseCases = (
   removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase({
     parentCategoryRepository,
   }),
+  deleteParentCategory: createDeleteParentCategoryUseCase({
+    parentCategoryRepository,
+  }),
 })
 
 interface SetupMocksOptions {
@@ -335,7 +340,6 @@ const setupMocks = (options: SetupMocksOptions = {}) => {
   const deps: CategoryManagementModalDeps = {
     categoryAssignmentPort,
     getSavedTabsPageDataQuery,
-    parentCategoryRepository,
   }
   return {
     categoryAssignmentPort,
@@ -727,41 +731,28 @@ describe('CategoryManagementModal', () => {
     }
   })
 
-  it('リネーム保存後の最終確認不一致をエラーとして処理する', async () => {
-    // use-case は state を正しく更新するが、Repository.findById の最終確認が
-    // 不一致を返すシナリオを再現する（use-case 戻り値検証は通過しつつ、
-    // 永続層との差分を検知）。
+  it('リネーム use-case 戻り値が更新を反映しない場合にエラーとして処理する', async () => {
+    // issue #518 で `parentCategoryRepository.findById` による最終確認は
+    // 撤廃され、use-case 戻り値検証 (1次検証) のみが残る。use-case が
+    // 状態 (mockStateRef) を更新しない (古い name のまま返す) シナリオで
+    // 1次検証が失敗することを検証する。
     const renameParentCategory = vi.fn(
       // eslint-disable-next-line typescript/require-await
       async (command: { categoryId: ParentCategoryId; newName: string }) => {
-        mockStateRef.current.parentCategories =
-          mockStateRef.current.parentCategories.map((cat) =>
+        // 意図的に state を更新せず、元の name のまま返す
+        return mockStateRef.current.parentCategories.map((cat) => ({
+          ...cat,
+          name:
             cat.id === (command.categoryId as unknown as string)
-              ? { ...cat, name: command.newName }
-              : cat,
-          )
-        return mockStateRef.current.parentCategories
+              ? cat.name
+              : cat.name,
+        }))
       },
     ) as unknown as RenameParentCategoryUseCase
 
-    const { deps, useCases, parentCategoryRepository } = setupMocks({
+    const { deps, useCases } = setupMocks({
       useCases: { renameParentCategory },
     })
-    // 最終確認時の `findById` 呼び出しのみ古い名前を返すよう上書きする。
-    // use-case 内部の `findAll` は別メソッドなので影響を受けない。
-    const originalFindById = parentCategoryRepository.findById
-    // eslint-disable-next-line typescript/require-await
-    vi.mocked(parentCategoryRepository.findById).mockImplementation(
-      // eslint-disable-next-line typescript/require-await
-      async () => {
-        return {
-          id: 'cat-1',
-          name: '最終確認で不一致',
-          domains: ['g1'],
-          domainNames: ['a.com'],
-        } as unknown as Awaited<ReturnType<typeof originalFindById>>
-      },
-    )
 
     render(
       <CategoryManagementModal
@@ -782,6 +773,7 @@ describe('CategoryManagementModal', () => {
     fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => {
+      expect(renameParentCategory).toHaveBeenCalled()
       expect(toastErrorSpy).toHaveBeenCalledWith(
         '親カテゴリ名の更新に失敗しました',
       )
@@ -896,15 +888,19 @@ describe('CategoryManagementModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /^削除$/ }))
 
     await waitFor(() => {
-      expect(parentCategoryRepository.removeByIds).toHaveBeenCalled()
+      // `deleteParentCategory` use-case 経由で削除される (issue #518)。
+      // `parentCategoryRepository.saveAll` が呼ばれ、`removeByIds` は
+      // 呼ばれないことを確認して DDD 依存方向を担保する。
+      expect(parentCategoryRepository.saveAll).toHaveBeenCalled()
+      expect(parentCategoryRepository.removeByIds).not.toHaveBeenCalled()
       expect(toastSuccessSpy).toHaveBeenCalledWith(
         'カテゴリ「仕事」を削除しました',
       )
       expect(onClose).toHaveBeenCalled()
     })
 
-    // 失敗ケース: removeByIds を reject させ、toast.error が表示されることを確認
-    vi.mocked(parentCategoryRepository.removeByIds).mockRejectedValueOnce(
+    // 失敗ケース: saveAll を reject させ、toast.error が表示されることを確認
+    vi.mocked(parentCategoryRepository.saveAll).mockRejectedValueOnce(
       new Error('boom'),
     )
     // 失敗ケース用に state を再投入して再描画する
@@ -932,15 +928,27 @@ describe('CategoryManagementModal', () => {
   it('親カテゴリ削除確認のキャンセル・関連ドメインなし表示・処理中の再入防止を処理する', async () => {
     // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredRemove = createDeferred<void>()
-    const removeByIdsMock = vi.fn(async (ids: readonly ParentCategoryId[]) => {
-      const idSet = new Set(ids as unknown as string[])
-      mockStateRef.current.parentCategories =
-        mockStateRef.current.parentCategories.filter((c) => !idSet.has(c.id))
-      await deferredRemove.promise
+    const deleteParentCategory = vi.fn(
+      // eslint-disable-next-line typescript/require-await
+      async (command: { categoryId: string }) => {
+        const idSet = new Set([command.categoryId as unknown as string])
+        mockStateRef.current.parentCategories =
+          mockStateRef.current.parentCategories.filter((c) => !idSet.has(c.id))
+        const removed = mockStateRef.current.parentCategories.find(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (c) => c.id === (command.categoryId as unknown as string),
+        )
+        await deferredRemove.promise
+        return {
+          all: [...mockStateRef.current.parentCategories] as never,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          removedCategory: (removed ?? { id: command.categoryId }) as any,
+        }
+      },
+    ) as unknown as DeleteParentCategoryUseCase
+    const { deps, useCases } = setupMocks({
+      useCases: { deleteParentCategory },
     })
-    const { deps, useCases, parentCategoryRepository } = setupMocks()
-    parentCategoryRepository.removeByIds =
-      removeByIdsMock as unknown as typeof parentCategoryRepository.removeByIds
 
     render(
       <CategoryManagementModal
@@ -963,7 +971,7 @@ describe('CategoryManagementModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /^削除$/ }))
 
     await waitFor(() => {
-      expect(removeByIdsMock).toHaveBeenCalledTimes(1)
+      expect(deleteParentCategory).toHaveBeenCalledTimes(1)
     })
 
     const deleteConfirmButtonProps = getLatestButtonProps(
@@ -973,7 +981,7 @@ describe('CategoryManagementModal', () => {
         props.onClick instanceof Function,
     ) as { onClick?: () => Promise<void> | void } | undefined
     await deleteConfirmButtonProps?.onClick?.()
-    expect(removeByIdsMock).toHaveBeenCalledTimes(1)
+    expect(deleteParentCategory).toHaveBeenCalledTimes(1)
 
     // eslint-disable-next-line typescript/require-await
     await act(async () => {

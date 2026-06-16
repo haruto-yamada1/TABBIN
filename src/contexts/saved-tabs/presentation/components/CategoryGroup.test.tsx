@@ -3,11 +3,11 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -134,12 +134,12 @@ describe('CategoryGroup', () => {
               userSettings: {} as UserSettingsDto,
             }),
           ),
-          parentCategoryRepository: {} as unknown as ParentCategoryRepository,
         }}
         categoryManagementModalUseCases={{
           addDomainToParentCategory,
           removeDomainFromParentCategory,
           renameParentCategory: renameParentCategoryUseCase,
+          deleteParentCategory: vi.fn<DeleteParentCategoryUseCase>(),
         }}
       />,
     )
@@ -200,12 +200,12 @@ describe('CategoryGroup', () => {
               userSettings: {} as UserSettingsDto,
             }),
           ),
-          parentCategoryRepository: {} as unknown as ParentCategoryRepository,
         }}
         categoryManagementModalUseCases={{
           addDomainToParentCategory,
           removeDomainFromParentCategory,
           renameParentCategory: renameParentCategoryUseCase,
+          deleteParentCategory: vi.fn<DeleteParentCategoryUseCase>(),
         }}
       />,
     )
