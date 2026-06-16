@@ -10,8 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Toaster } from '@/components/ui/sonner'
+import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
@@ -36,7 +36,7 @@ import { handleTabGroupRemoval } from '@/contexts/saved-tabs/presentation/lib/ta
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { ParentCategory, TabGroup, ViewMode } from '@/types/storage'
+import type { TabGroup, ViewMode } from '@/types/storage'
 
 import {
   countTabGroupUrls,
@@ -53,28 +53,6 @@ import type { OpenedUrlsStorageSnapshot } from './savedTabsApp.helpers'
 
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
-
-/**
- * 親カテゴリから指定されたドメインIDを削除して保存します。
- */
-const removeDomainFromParentCategories = async (
-  id: string,
-  categories: ParentCategory[],
-  setCategories: (cats: ParentCategory[]) => void,
-  parentCategoryRepository: ParentCategoryRepository,
-) => {
-  const updatedCategories = categories.map((category) => ({
-    ...category,
-    domains: category.domains.filter((domainId) => domainId !== id),
-  }))
-  await parentCategoryRepository.saveAll(
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    updatedCategories as unknown as Parameters<
-      typeof parentCategoryRepository.saveAll
-    >[0],
-  )
-  setCategories(updatedCategories)
-}
 
 interface SavedTabsAppProps {
   readonly controller: UseSavedTabsControllerReturn
@@ -419,13 +397,19 @@ const useSavedTabsAppView = ({
           )
         }
 
-        // 親カテゴリからはドメインIDのみを削除（ドメイン名は保持）
-        await removeDomainFromParentCategories(
-          id,
-          categories,
-          setCategories,
-          deps.parentCategoryRepository,
-        )
+        // 親カテゴリからはドメインIDのみを削除（ドメイン名は保持）。
+        // 旧 `removeDomainFromParentCategories` ヘルパーを
+        // `removeDomainsFromParentCategories` use-case 経由へ置換 (issue #523)。
+        // domainNames は変更しない挙動を維持し、storage 書戻しは
+        // use-case 内の `parentCategoryRepository.saveAll` に委譲する。
+        // setCategories には storage 形 `ParentCategory[]` が必要なため、
+        // 共通 mapper (issue #511) で widening する。
+        const updatedDomainCategories =
+          await savedTabsUseCases.removeDomainsFromParentCategories({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion, typescript/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
+            domainIds: [id as unknown as TabGroupId],
+          })
+        setCategories(updatedDomainCategories.map(toStorageParentCategory))
         showOpenedUrlsUndoToast({
           count: countTabGroupUrls(groupToDelete),
           messageKey: 'savedTabs.undo.deletedTabs',
@@ -532,17 +516,19 @@ const useSavedTabsAppView = ({
           )
         }
 
-        const updatedCategories = categories.map((category) => ({
-          ...category,
-          domains: category.domains.filter((domainId) => !idSet.has(domainId)),
-        }))
-        await deps.parentCategoryRepository.saveAll(
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion
-          updatedCategories as unknown as Parameters<
-            typeof deps.parentCategoryRepository.saveAll
-          >[0],
-        )
-        setCategories(updatedCategories)
+        // 親カテゴリからは削除 ID を一括で取り除く。旧
+        // `deps.parentCategoryRepository.saveAll` 直叩きを
+        // `removeDomainsFromParentCategories` use-case 経由へ
+        // 置換する (issue #523)。domainNames は変更しない挙動を維持し、
+        // storage 書戻しは use-case 内の `parentCategoryRepository.saveAll`
+        // に委譲する。setCategories には storage 形 `ParentCategory[]` が
+        // 必要なので、共通 mapper (issue #511) で widening する。
+        const updatedDomainCategories =
+          await savedTabsUseCases.removeDomainsFromParentCategories({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion, typescript/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
+            domainIds: ids as unknown as TabGroupId[],
+          })
+        setCategories(updatedDomainCategories.map(toStorageParentCategory))
         showOpenedUrlsUndoToast({
           count: groupsToDelete.reduce(
             (total, group) => total + countTabGroupUrls(group),
