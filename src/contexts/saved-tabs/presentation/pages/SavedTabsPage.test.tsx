@@ -180,6 +180,9 @@ const createInMemoryDeps = (input: {
     },
     notificationPort,
     parentCategoryRepository,
+    removeSubCategoryFromTabGroupPort: {
+      removeSubCategoryFromTabGroup: vi.fn().mockResolvedValue([]),
+    },
     setCategoryKeywordsPort,
     storageChangePort: {
       subscribe: () => () => {},

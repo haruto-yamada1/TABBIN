@@ -18,9 +18,11 @@ import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCas
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from './use-cases/RemoveDomainFromParentCategoryUseCase'
+import type { RemoveSubCategoryFromTabGroupsUseCase } from './use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import type { RemoveUrlsFromCustomProjectsUseCase } from './use-cases/RemoveUrlsFromCustomProjectsUseCase'
 import type { RenameParentCategoryUseCase } from './use-cases/RenameParentCategoryUseCase'
+import type { ReorderParentCategoriesUseCase } from './use-cases/ReorderParentCategoriesUseCase'
 import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
 import type { ReorderTabGroupUrlsUseCase } from './use-cases/ReorderTabGroupUrlsUseCase'
 import type { RepairTabGroupParentCategoryIdsUseCase } from './use-cases/RepairTabGroupParentCategoryIdsUseCase'
@@ -63,6 +65,19 @@ export interface SavedTabsUseCases {
   readonly removeUrlsFromCustomProjects: RemoveUrlsFromCustomProjectsUseCase
   readonly buildSavedTabsSnapshot: BuildSavedTabsSnapshotUseCase
   readonly reorderTabGroups: ReorderTabGroupsUseCase
+  /**
+   * 親カテゴリの並び替え保存 use-case (issue #519)。
+   * 旧 `useCategoryManagement.handleConfirmCategoryReorder` 内の
+   * `categoryAssignmentPort.saveParentCategories` 直叩きを置換する。
+   */
+  readonly reorderParentCategories: ReorderParentCategoriesUseCase
+  /**
+   * カテゴリ削除時の `TabGroup` 更新 use-case (issue #519)。
+   * 旧 `useCategoryManagement.handleDeleteCategory` 内の
+   * `removeSubCategoryFromGroup` pure logic と
+   * `categoryAssignmentPort.saveTabGroups` 直叩きを置換する。
+   */
+  readonly removeSubCategoryFromTabGroups: RemoveSubCategoryFromTabGroupsUseCase
   readonly reorderTabGroupUrls: ReorderTabGroupUrlsUseCase
   readonly loadTabGroupsWithUrls: LoadTabGroupsWithUrlsUseCase
   readonly loadTabGroupUrls: LoadTabGroupUrlsUseCase

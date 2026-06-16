@@ -139,8 +139,9 @@ const useSavedTabsAppView = ({
   >([])
 
   const categoryState = useCategoryManagement({
-    getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
-    categoryAssignmentPort: deps.categoryAssignmentPort,
+    reorderParentCategoriesUseCase: savedTabsUseCases.reorderParentCategories,
+    removeSubCategoryFromTabGroupsUseCase:
+      savedTabsUseCases.removeSubCategoryFromTabGroups,
   })
   const tabDataState = useTabData({
     loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,

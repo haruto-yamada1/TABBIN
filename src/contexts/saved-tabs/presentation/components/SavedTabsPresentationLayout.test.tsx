@@ -196,6 +196,9 @@ const buildLayoutComposition = () => {
       updateCategoryOrder: vi.fn().mockResolvedValue(undefined),
       updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
     },
+    removeSubCategoryFromTabGroupPort: {
+      removeSubCategoryFromTabGroup: vi.fn().mockResolvedValue([]),
+    },
   }
   const useCases: SavedTabsUseCases = createSavedTabsUseCases(deps)
   const resolveActiveRef: ResolveActiveRef = { current: () => true }

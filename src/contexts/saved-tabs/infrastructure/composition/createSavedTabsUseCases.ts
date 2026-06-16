@@ -19,9 +19,11 @@ import { createLoadTabGroupUrlsUseCase } from '../../application/use-cases/LoadT
 import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveDomainFromParentCategoryUseCase } from '../../application/use-cases/RemoveDomainFromParentCategoryUseCase'
+import { createRemoveSubCategoryFromTabGroupsUseCase } from '../../application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import { createRemoveUrlsFromCustomProjectsUseCase } from '../../application/use-cases/RemoveUrlsFromCustomProjectsUseCase'
 import { createRenameParentCategoryUseCase } from '../../application/use-cases/RenameParentCategoryUseCase'
+import { createReorderParentCategoriesUseCase } from '../../application/use-cases/ReorderParentCategoriesUseCase'
 import { createReorderTabGroupsUseCase } from '../../application/use-cases/ReorderTabGroupsUseCase'
 import { createReorderTabGroupUrlsUseCase } from '../../application/use-cases/ReorderTabGroupUrlsUseCase'
 import { createRepairTabGroupParentCategoryIdsUseCase } from '../../application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
@@ -175,6 +177,12 @@ export const createSavedTabsUseCases = (
   }),
   reorderTabGroups: createReorderTabGroupsUseCase({
     tabGroupRepository: deps.tabGroupRepository,
+  }),
+  reorderParentCategories: createReorderParentCategoriesUseCase({
+    parentCategoryRepository: deps.parentCategoryRepository,
+  }),
+  removeSubCategoryFromTabGroups: createRemoveSubCategoryFromTabGroupsUseCase({
+    removeSubCategoryFromTabGroupPort: deps.removeSubCategoryFromTabGroupPort,
   }),
   restoreOpenedUrlsSnapshot: createRestoreOpenedUrlsSnapshotUseCase({
     customProjectRepository: deps.customProjectRepository,

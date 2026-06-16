@@ -324,6 +324,62 @@ const setCategoryKeywords = async (
   // キーワードが更新されたら、既存の全タブに対して自動的に再カテゴライズを実行
   await autoCategorizeTabs(groupId)
 }
+
+/**
+ * 指定 `groupId` の `TabGroup` から `categoryName` を 1 件削除し、
+ * rich 補助フィールド (`subCategories` / `urlSubCategories` /
+ * `categoryKeywords`) を更新して `chrome.storage.local` へ書き戻す
+ * (issue #519)。
+ *
+ * 旧 `src/contexts/saved-tabs/presentation/hooks/useCategoryManagement.ts`
+ * の `removeSubCategoryFromGroup` + `categoryAssignmentPort.saveTabGroups`
+ * 直叩きを port 経由へ移設するために新設。 domain `TabGroup` エンティティ
+ * は rich 補助フィールドを持たないため、 `tabGroupRepository.saveAll`
+ * 経由では更新できない既存問題に対応する。
+ *
+ * 戻り値は更新後の `savedTabs` 全体 (storage 層 `TabGroup` shape)。
+ * presentation 層が `refreshTabGroupsWithUrls(updatedGroups)` で
+ * UI state へ反映できる。
+ */
+const removeSubCategoryFromTabGroup = async (
+  groupId: string,
+  categoryName: string,
+): Promise<TabGroup[]> => {
+  const { savedTabs = [] } = await chrome.storage.local.get<{
+    savedTabs?: TabGroup[]
+  }>('savedTabs')
+  const updatedGroups = savedTabs.map((currentGroup: TabGroup) => {
+    if (currentGroup.id !== groupId) {
+      return currentGroup
+    }
+    const nextSubCategories = (currentGroup.subCategories ?? []).filter(
+      (cat) => cat !== categoryName,
+    )
+    const nextUrlSubCategories: Record<string, string> =
+      currentGroup.urlSubCategories ? { ...currentGroup.urlSubCategories } : {}
+    let urlSubCategoriesChanged = false
+    for (const [urlId, cat] of Object.entries(nextUrlSubCategories)) {
+      if (cat === categoryName) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete nextUrlSubCategories[urlId]
+        urlSubCategoriesChanged = true
+      }
+    }
+    const nextCategoryKeywords = (currentGroup.categoryKeywords ?? []).filter(
+      (ck) => ck.categoryName !== categoryName,
+    )
+    return {
+      ...currentGroup,
+      categoryKeywords: nextCategoryKeywords,
+      subCategories: nextSubCategories,
+      urlSubCategories: urlSubCategoriesChanged
+        ? nextUrlSubCategories
+        : currentGroup.urlSubCategories,
+    }
+  })
+  await chrome.storage.local.set({ savedTabs: updatedGroups })
+  return updatedGroups
+}
 const dedupeTabGroups = (savedTabs: TabGroup[]): TabGroup[] => {
   const uniqueIds = new Set<string>()
   const uniqueGroups: TabGroup[] = []
@@ -729,6 +785,7 @@ export {
   categorizeUrlIdsByKeywords,
   getTabGroupUrls,
   processTabGroupForBulkDelete,
+  removeSubCategoryFromTabGroup,
   removeUrlFromTabGroup,
   removeUrlIdsFromTabGroup,
   removeUrlsFromTabGroup,
