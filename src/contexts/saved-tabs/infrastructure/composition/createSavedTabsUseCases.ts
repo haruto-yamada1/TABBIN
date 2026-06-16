@@ -16,6 +16,7 @@ import { createFindUrlRecordByUrlUseCase } from '../../application/use-cases/Fin
 import { createGetProjectUrlsUseCase } from '../../application/use-cases/GetProjectUrlsUseCase'
 import { createLoadTabGroupsWithUrlsUseCase } from '../../application/use-cases/LoadTabGroupsWithUrlsUseCase'
 import { createLoadTabGroupUrlsUseCase } from '../../application/use-cases/LoadTabGroupUrlsUseCase'
+import { createMoveDomainBetweenCategoriesUseCase } from '../../application/use-cases/MoveDomainBetweenCategoriesUseCase'
 import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
 import { createPrepareTabGroupDeletionUseCase } from '../../application/use-cases/PrepareTabGroupDeletionUseCase'
@@ -26,6 +27,7 @@ import { createRemoveSubCategoryFromTabGroupsUseCase } from '../../application/u
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import { createRemoveUrlsFromCustomProjectsUseCase } from '../../application/use-cases/RemoveUrlsFromCustomProjectsUseCase'
 import { createRenameParentCategoryUseCase } from '../../application/use-cases/RenameParentCategoryUseCase'
+import { createReorderDomainsInCategoryUseCase } from '../../application/use-cases/ReorderDomainsInCategoryUseCase'
 import { createReorderParentCategoriesUseCase } from '../../application/use-cases/ReorderParentCategoriesUseCase'
 import { createReorderTabGroupsUseCase } from '../../application/use-cases/ReorderTabGroupsUseCase'
 import { createReorderTabGroupUrlsUseCase } from '../../application/use-cases/ReorderTabGroupUrlsUseCase'
@@ -188,6 +190,12 @@ export const createSavedTabsUseCases = (
     }),
   }),
   renameParentCategory: createRenameParentCategoryUseCase({
+    parentCategoryRepository: deps.parentCategoryRepository,
+  }),
+  moveDomainBetweenCategories: createMoveDomainBetweenCategoriesUseCase({
+    parentCategoryRepository: deps.parentCategoryRepository,
+  }),
+  reorderDomainsInCategory: createReorderDomainsInCategoryUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
   reorderTabGroupUrls: createReorderTabGroupUrlsUseCase({

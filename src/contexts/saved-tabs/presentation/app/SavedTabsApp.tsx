@@ -119,6 +119,9 @@ const useSavedTabsAppView = ({
     reorderParentCategoriesUseCase: savedTabsUseCases.reorderParentCategories,
     removeSubCategoryFromTabGroupsUseCase:
       savedTabsUseCases.removeSubCategoryFromTabGroups,
+    moveDomainBetweenCategoriesUseCase:
+      savedTabsUseCases.moveDomainBetweenCategories,
+    reorderDomainsInCategoryUseCase: savedTabsUseCases.reorderDomainsInCategory,
   })
   const tabDataState = useTabData({
     loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,
