@@ -10,24 +10,20 @@ import { useTabData } from './useTabData'
 const {
   loadTabGroupsWithUrlsUseCaseMock,
   getSavedTabsPageDataQueryMock,
+  getSavedTabsQueryMock,
+  repairTabGroupParentCategoryIdsUseCaseMock,
   migrateParentCategoriesToDomainNamesMock,
   migrateToUrlsStorageMock,
 } = vi.hoisted(() => ({
   loadTabGroupsWithUrlsUseCaseMock: vi.fn(),
   getSavedTabsPageDataQueryMock: vi.fn(),
+  getSavedTabsQueryMock: vi.fn(),
+  repairTabGroupParentCategoryIdsUseCaseMock: vi.fn(),
   migrateParentCategoriesToDomainNamesMock: vi
     .fn()
     .mockResolvedValue(undefined),
   migrateToUrlsStorageMock: vi.fn().mockResolvedValue(undefined),
 }))
-
-const createTabGroupRepositoryMock = () => ({
-  findAll: vi.fn().mockResolvedValue([]),
-  findById: vi.fn().mockResolvedValue(null),
-  findRawDomainById: vi.fn(() => Promise.resolve(null)),
-  removeByIds: vi.fn().mockResolvedValue(undefined),
-  saveAll: vi.fn().mockResolvedValue(undefined),
-})
 
 const createMigrationPortMock = () => ({
   migrateParentCategoriesToDomainNames:
@@ -35,7 +31,6 @@ const createMigrationPortMock = () => ({
   migrateToUrlsStorage: migrateToUrlsStorageMock,
 })
 
-let tabGroupRepository: ReturnType<typeof createTabGroupRepositoryMock>
 let migrationPort: ReturnType<typeof createMigrationPortMock>
 
 const renderUseTabData = (
@@ -46,7 +41,9 @@ const renderUseTabData = (
     useTabData({
       loadTabGroupsWithUrlsUseCase: loadTabGroupsWithUrlsUseCaseMock as never,
       getSavedTabsPageDataQuery: getSavedTabsPageDataQueryMock,
-      tabGroupRepository,
+      getSavedTabsQuery: getSavedTabsQueryMock,
+      repairTabGroupParentCategoryIdsUseCase:
+        repairTabGroupParentCategoryIdsUseCaseMock as never,
       migrationPort,
       onCategoriesLoaded,
       onSettingsLoaded,
@@ -77,11 +74,21 @@ describe('useTabData', () => {
     )
     getSavedTabsPageDataQueryMock.mockReset()
     getSavedTabsPageDataQueryMock.mockResolvedValue(buildPageData({}))
+    getSavedTabsQueryMock.mockReset()
+    getSavedTabsQueryMock.mockResolvedValue([])
+    repairTabGroupParentCategoryIdsUseCaseMock.mockReset()
+    // 既定では入力をそのまま返す（修復なし）
+    repairTabGroupParentCategoryIdsUseCaseMock.mockImplementation(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (command: any) => ({
+        tabGroups: command?.tabGroups ?? [],
+        updated: false,
+      }),
+    )
     migrateParentCategoriesToDomainNamesMock.mockReset()
     migrateParentCategoriesToDomainNamesMock.mockResolvedValue(undefined)
     migrateToUrlsStorageMock.mockReset()
     migrateToUrlsStorageMock.mockResolvedValue(undefined)
-    tabGroupRepository = createTabGroupRepositoryMock()
     migrationPort = createMigrationPortMock()
   })
 
@@ -155,6 +162,24 @@ describe('useTabData', () => {
         }),
       )
 
+    // repair use-case は categoryById 修復と categoryByName 修復を行い、
+    // `updated: true` を返す
+    const expectedRepaired: TabGroup[] = [
+      {
+        ...savedTabs[0],
+        parentCategoryId: 'category-by-id',
+      },
+      {
+        ...savedTabs[1],
+        parentCategoryId: 'category-by-name',
+      },
+      savedTabs[2],
+    ]
+    repairTabGroupParentCategoryIdsUseCaseMock.mockImplementationOnce(() => ({
+      tabGroups: expectedRepaired,
+      updated: true,
+    }))
+
     const onCategoriesLoaded = vi.fn()
     const onSettingsLoaded = vi.fn()
 
@@ -166,28 +191,11 @@ describe('useTabData', () => {
 
     expect(onSettingsLoaded).toHaveBeenCalledWith(settings)
     expect(onCategoriesLoaded).toHaveBeenCalledWith(repairedCategories)
-    expect(tabGroupRepository.saveAll).toHaveBeenCalledWith([
-      {
-        ...savedTabs[0],
-        parentCategoryId: 'category-by-id',
-      },
-      {
-        ...savedTabs[1],
-        parentCategoryId: 'category-by-name',
-      },
-      savedTabs[2],
-    ])
-    expect(result.current.tabGroups).toStrictEqual([
-      {
-        ...savedTabs[0],
-        parentCategoryId: 'category-by-id',
-      },
-      {
-        ...savedTabs[1],
-        parentCategoryId: 'category-by-name',
-      },
-      savedTabs[2],
-    ])
+    expect(repairTabGroupParentCategoryIdsUseCaseMock).toHaveBeenCalledWith({
+      parentCategories: repairedCategories,
+      tabGroups: savedTabs,
+    })
+    expect(result.current.tabGroups).toStrictEqual(expectedRepaired)
   })
 
   it('マイグレーションや保存タブ読み込みの失敗時もロードを終了する', async () => {
@@ -254,7 +262,65 @@ describe('useTabData', () => {
     expect(getSavedTabsPageDataQueryMock).toHaveBeenCalledTimes(1)
   })
 
-  it('refreshTabGroupsWithUrls で URL 解決を一度だけ実行し、tabGroups effect と二重化しない', async () => {
+  it('refreshTabGroupsWithUrls は引数なしの場合 getSavedTabsQuery で storage から取得する', async () => {
+    const group: TabGroup = {
+      id: 'group-1',
+      domain: 'example.com',
+      urlIds: ['url-1'],
+    }
+
+    loadTabGroupsWithUrlsUseCaseMock.mockResolvedValue({
+      tabGroups: [
+        {
+          ...group,
+          urls: [
+            {
+              id: 'url-1',
+              url: 'https://example.com/a',
+              title: 'A',
+            },
+          ],
+        },
+      ],
+    })
+    getSavedTabsQueryMock.mockResolvedValueOnce([group])
+
+    const { result } = renderUseTabData()
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    loadTabGroupsWithUrlsUseCaseMock.mockClear()
+    getSavedTabsQueryMock.mockClear()
+
+    await act(async () => {
+      await result.current.refreshTabGroupsWithUrls()
+    })
+
+    await waitFor(() => {
+      expect(result.current.tabGroupsWithUrls).toStrictEqual([
+        {
+          ...group,
+          urls: [
+            {
+              id: 'url-1',
+              url: 'https://example.com/a',
+              title: 'A',
+            },
+          ],
+        },
+      ])
+    })
+
+    expect(getSavedTabsQueryMock).toHaveBeenCalledTimes(1)
+    expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledTimes(1)
+    expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledWith({
+      tabGroups: [group],
+    })
+  })
+
+  it('refreshTabGroupsWithUrls は引数ありの場合は storage 取得をスキップする', async () => {
     const group: TabGroup = {
       id: 'group-1',
       domain: 'example.com',
@@ -283,6 +349,7 @@ describe('useTabData', () => {
     })
 
     loadTabGroupsWithUrlsUseCaseMock.mockClear()
+    getSavedTabsQueryMock.mockClear()
 
     await act(async () => {
       await result.current.refreshTabGroupsWithUrls([group])
@@ -303,6 +370,7 @@ describe('useTabData', () => {
       ])
     })
 
+    expect(getSavedTabsQueryMock).not.toHaveBeenCalled()
     expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledTimes(1)
     expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledWith({
       tabGroups: [group],
@@ -393,7 +461,7 @@ describe('useTabData', () => {
     getSavedTabsPageDataQueryMock.mockResolvedValue(
       buildPageData({ tabGroups: storedGroups }),
     )
-    tabGroupRepository.findAll.mockResolvedValue(storedGroups)
+    getSavedTabsQueryMock.mockResolvedValueOnce(storedGroups)
 
     const { result } = renderUseTabData()
 
@@ -423,7 +491,7 @@ describe('useTabData', () => {
 
     expect(result.current.tabGroups).toStrictEqual(storedGroups)
 
-    tabGroupRepository.findAll.mockResolvedValueOnce([])
+    getSavedTabsQueryMock.mockResolvedValueOnce([])
 
     await act(async () => {
       await result.current.refreshTabGroupsWithUrls()

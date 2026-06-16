@@ -145,7 +145,9 @@ const useSavedTabsAppView = ({
   const tabDataState = useTabData({
     loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,
     getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
-    tabGroupRepository: deps.tabGroupRepository,
+    getSavedTabsQuery: savedTabsUseCases.getSavedTabs,
+    repairTabGroupParentCategoryIdsUseCase:
+      savedTabsUseCases.repairTabGroupParentCategoryIds,
     migrationPort: deps.migrationPort,
     onCategoriesLoaded: categoryState.setCategories,
     onSettingsLoaded: setSettings,
