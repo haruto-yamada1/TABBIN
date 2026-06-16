@@ -871,4 +871,79 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(source).toContain('SavedTabsPresentationLayout')
     })
   })
+
+  describe('issue #526 followup: application/mappers/ は DTO / snapshot 変換の責務だけに閉じる', () => {
+    const expectedMapperFiles = [
+      'src/contexts/saved-tabs/application/mappers/SavedTabsDtosMapper.ts',
+      'src/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper.ts',
+    ]
+
+    for (const file of expectedMapperFiles) {
+      it(`${file} が存在する`, () => {
+        const source = readFileSync(resolve(repoRoot, file), 'utf8')
+        expect(source.length).toBeGreaterThan(0)
+      })
+    }
+
+    const mapperSourceFiles = expectedMapperFiles.map((file) =>
+      resolve(repoRoot, file),
+    )
+
+    it('application/mappers/ 配下の .ts は React / chrome モジュールを import しない', () => {
+      for (const absolutePath of mapperSourceFiles) {
+        const source = readFileSync(absolutePath, 'utf8')
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        expect(
+          source,
+          `${relativePath} should not import react`,
+        ).not.toMatch(/from\s+['"]react['"]/)
+        expect(
+          source,
+          `${relativePath} should not import chrome`,
+        ).not.toMatch(/from\s+['"]chrome['"]/)
+        // `chrome.storage` への直接関数呼び出しがないことを確認する
+        // (JSDoc 内テキストの言及は除外するため、`(local|onChanged|sync)(` で関数呼び出しのみ検出)
+        expect(
+          source,
+          `${relativePath} should not call chrome.storage directly`,
+        ).not.toMatch(/chrome\.storage\.(local|onChanged|sync)\(/)
+        expect(
+          source,
+          `${relativePath} should not call chrome.tabs`,
+        ).not.toMatch(/chrome\.tabs\.\w+\(/)
+        expect(
+          source,
+          `${relativePath} should not call chrome.runtime`,
+        ).not.toMatch(/chrome\.runtime\.\w+\(/)
+      }
+    })
+
+    it('application/mappers/ 配下の .ts は presentation 層に依存しない', () => {
+      for (const absolutePath of mapperSourceFiles) {
+        const source = readFileSync(absolutePath, 'utf8')
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        expect(
+          source,
+          `${relativePath} should not import presentation layer`,
+        ).not.toMatch(/from\s+['"]@\/contexts\/[^/]+\/presentation/)
+      }
+    })
+
+    it('application/mappers/ 配下の .ts は infrastructure 層に依存しない', () => {
+      for (const absolutePath of mapperSourceFiles) {
+        const source = readFileSync(absolutePath, 'utf8')
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        expect(
+          source,
+          `${relativePath} should not import infrastructure layer`,
+        ).not.toMatch(/from\s+['"]@\/contexts\/[^/]+\/infrastructure/)
+      }
+    })
+  })
 })
