@@ -20,27 +20,34 @@ describe('reorderDomainsInCategory', () => {
       domainIds: [createTabGroupId('tab-3'), createTabGroupId('tab-1')],
     })
     expect(result.targetFound).toBe(true)
-    expect(result.domainIdOrder).toStrictEqual(['tab-3', 'tab-1', 'tab-2'])
+    expect(result.domainIdOrder).toStrictEqual(['tab-3', 'tab-1'])
     const docs = result.updatedCategories.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-3', 'tab-1', 'tab-2'])
+    expect(docs?.domains).toStrictEqual(['tab-3', 'tab-1'])
   })
 
-  it('domainIds に存在しない既存 ID は末尾に保持される', () => {
+  it('既存 domainIds にない ID もそのまま保存する (Codex レビュー対応 / issue #525)', () => {
+    // `domainNames` 経由でのみ表示されるエントリが `updatedDomains` に
+    // 含まれているケース。旧 `handleUpdateDomainsOrder` の挙動と一致
+    // させ、 `targetCategory.domains` に存在しない ID も保存する。
     const result = reorderDomainsInCategory({
       categories: [buildDocs()],
       categoryId: 'cat-docs',
       domainIds: [createTabGroupId('tab-3')],
     })
-    expect(result.domainIdOrder).toStrictEqual(['tab-3', 'tab-1', 'tab-2'])
+    expect(result.domainIdOrder).toStrictEqual(['tab-3'])
+    const docs = result.updatedCategories.find((c) => c.id === 'cat-docs')
+    expect(docs?.domains).toStrictEqual(['tab-3'])
   })
 
-  it('domainIds が空の場合、既存順序をそのまま返す', () => {
+  it('domainIds が空の場合、domains も空になる (旧挙動と一致)', () => {
     const result = reorderDomainsInCategory({
       categories: [buildDocs()],
       categoryId: 'cat-docs',
       domainIds: [],
     })
-    expect(result.domainIdOrder).toStrictEqual(['tab-1', 'tab-2', 'tab-3'])
+    expect(result.domainIdOrder).toStrictEqual([])
+    const docs = result.updatedCategories.find((c) => c.id === 'cat-docs')
+    expect(docs?.domains).toStrictEqual([])
   })
 
   it('対象カテゴリが見つからない場合は targetFound=false', () => {

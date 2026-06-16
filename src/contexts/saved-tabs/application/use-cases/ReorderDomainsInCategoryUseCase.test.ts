@@ -69,7 +69,7 @@ describe('createReorderDomainsInCategoryUseCase', () => {
     expect(saveAllSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('updatedDomains が空の場合は no-op として現在値を返す', async () => {
+  it('updatedDomains が空の場合、domains も空にして saveAll する (旧挙動と一致)', async () => {
     const useCase = createReorderDomainsInCategoryUseCase(createDeps(repo))
     const saveAllSpy = vi.spyOn(repo, 'saveAll')
     const result = await useCase({
@@ -77,8 +77,22 @@ describe('createReorderDomainsInCategoryUseCase', () => {
       updatedDomains: [],
     })
     const docs = result.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-1', 'tab-2', 'tab-3'])
+    expect(docs?.domains).toStrictEqual([])
     expect(saveAllSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('domainNames 経由の表示エントリを domains へ昇格させる (Codex レビュー対応 / issue #525)', async () => {
+    // 旧 `handleUpdateDomainsOrder` は `updatedDomains.map((d) => d.id)`
+    // をそのまま保存していたため、 `domainNames` 経由でのみ表示されて
+    // いたエントリも並び替え時に explicit な `domains` へ昇格していた。
+    // 新実装も同じ挙動を保つ。
+    const useCase = createReorderDomainsInCategoryUseCase(createDeps(repo))
+    const result = await useCase({
+      categoryId: 'cat-docs',
+      updatedDomains: [buildTabGroup('tab-extra'), buildTabGroup('tab-1')],
+    })
+    const docs = result.find((c) => c.id === 'cat-docs')
+    expect(docs?.domains).toStrictEqual(['tab-extra', 'tab-1'])
   })
 
   it('対象カテゴリが見つからない場合は no-op として現在値を返す', async () => {

@@ -7,7 +7,7 @@ import type { TabGroupId } from '../value-objects/TabGroupId'
  * 旧
  * `src/contexts/saved-tabs/presentation/hooks/useCategoryManagement.ts`
  * の `handleUpdateDomainsOrder` 内の
- * - 対象カテゴリの `domains` を新しい順序へ組み替える
+ * - 対象カテゴリの `domains` を UI から渡された順序へ組み替える
  *
  * ロジックを domain 等価物として抽出したもの。
  *
@@ -18,6 +18,17 @@ import type { TabGroupId } from '../value-objects/TabGroupId'
  * domain 層ガード (React 依存禁止、`chrome.*` 依存禁止、`toast` 依存
  * 禁止、`@dnd-kit/sortable` 依存禁止) を満たすため、副作用・永続化・
  * ロギングは含めず、純粋な配列変換のみを公開する。
+ *
+ * 旧実装との互換性:
+ * - `updatedDomains` (=`command.domainIds`) の順序をそのまま
+ *   `domains` に保存する（旧 `handleUpdateDomainsOrder` の
+ *   `updatedDomains.map((d) => d.id)` 上書き挙動と一致）。
+ * - `domainNames` 経由でのみ表示されるエントリ（`domains` に
+ *   存在しないが `domainNames` に存在するもの）も `updatedDomains`
+ *   経由で `domains` へ追加される（Codex レビュー対応 / issue #525）。
+ *   これにより、UI 並び替え確定時に「`domainNames` だけ残っていた
+ *   ドメイン」が explicit な `domains` 順序へ昇格する。
+ * - 対象カテゴリが見つからない場合は no-op として現在値を返す。
  */
 export interface ReorderDomainsInCategoryParams {
   readonly categories: readonly ParentCategory[]
@@ -25,8 +36,10 @@ export interface ReorderDomainsInCategoryParams {
   readonly categoryId: string
   /**
    * 新しいドメイン順序（`TabGroupId` の配列）。
-   * UI 側で並び替えたあとの順序をそのまま渡す。既存 `domains` に
-   * 存在しない ID（新規追加されたものなど）は末尾へ保持される。
+   *
+   * UI 側で並び替えたあとの順序をそのまま保存する。既存 `domains` に
+   * 存在しない ID（`domainNames` 経由の表示エントリ等）もそのまま
+   * 順序に組み込まれる。
    */
   readonly domainIds: readonly TabGroupId[]
 }
@@ -51,21 +64,13 @@ export const reorderDomainsInCategory = (
       updatedCategories: categories.map((category) => ({ ...category })),
     }
   }
-  const existingDomainIds = new Set<TabGroupId>(targetCategory.domains)
-  const orderedExisting = domainIds.filter((id) => existingDomainIds.has(id))
-  const inputIdSet = new Set<TabGroupId>(domainIds)
-  const trailingIds = targetCategory.domains.filter((id) => !inputIdSet.has(id))
-  const nextDomainIds: readonly TabGroupId[] = [
-    ...orderedExisting,
-    ...trailingIds,
-  ]
   const updatedCategories = categories.map((category) =>
     category.id === categoryId
-      ? { ...category, domains: nextDomainIds }
+      ? { ...category, domains: domainIds }
       : { ...category },
   )
   return {
-    domainIdOrder: nextDomainIds,
+    domainIdOrder: domainIds,
     targetFound: true,
     updatedCategories,
   }
