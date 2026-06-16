@@ -1,4 +1,5 @@
 import { createGetSavedTabsPageDataQuery } from '../../application/queries/GetSavedTabsPageDataQuery'
+import { createGetSavedTabsQuery } from '../../application/queries/GetSavedTabsQuery'
 import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
 import { createAddDomainToParentCategoryUseCase } from '../../application/use-cases/AddDomainToParentCategoryUseCase'
 import { createAssignDomainToCategoryUseCase } from '../../application/use-cases/AssignDomainToCategoryUseCase'
@@ -23,6 +24,7 @@ import { createRemoveUrlsFromCustomProjectsUseCase } from '../../application/use
 import { createRenameParentCategoryUseCase } from '../../application/use-cases/RenameParentCategoryUseCase'
 import { createReorderTabGroupsUseCase } from '../../application/use-cases/ReorderTabGroupsUseCase'
 import { createReorderTabGroupUrlsUseCase } from '../../application/use-cases/ReorderTabGroupUrlsUseCase'
+import { createRepairTabGroupParentCategoryIdsUseCase } from '../../application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import { createRestoreOpenedUrlsSnapshotViewUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
 import { createSetCategoryKeywordsUseCase } from '../../application/use-cases/SetCategoryKeywordsUseCase'
@@ -123,6 +125,15 @@ export const createSavedTabsUseCases = (
     tabGroupRepository: deps.tabGroupRepository,
     userSettingsRepository: deps.userSettingsRepository,
   }),
+  getSavedTabs: createGetSavedTabsQuery({
+    tabGroupRepository: deps.tabGroupRepository,
+  }),
+  repairTabGroupParentCategoryIds: createRepairTabGroupParentCategoryIdsUseCase(
+    {
+      parentCategoryRepository: deps.parentCategoryRepository,
+      tabGroupRepository: deps.tabGroupRepository,
+    },
+  ),
   loadTabGroupUrls: createLoadTabGroupUrlsUseCase({
     urlRecordRepository: deps.urlRecordRepository,
   }),

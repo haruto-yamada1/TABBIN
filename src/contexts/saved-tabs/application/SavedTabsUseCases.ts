@@ -1,4 +1,5 @@
 import type { GetSavedTabsPageDataQuery } from './queries/GetSavedTabsPageDataQuery'
+import type { GetSavedTabsQuery } from './queries/GetSavedTabsQuery'
 import type { AddDomainToParentCategoryUseCase } from './use-cases/AddDomainToParentCategoryUseCase'
 import type { AssignDomainToCategoryUseCase } from './use-cases/AssignDomainToCategoryUseCase'
 import type { BuildSavedTabsSnapshotUseCase } from './use-cases/BuildSavedTabsSnapshotUseCase'
@@ -22,6 +23,7 @@ import type { RemoveUrlsFromCustomProjectsUseCase } from './use-cases/RemoveUrls
 import type { RenameParentCategoryUseCase } from './use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
 import type { ReorderTabGroupUrlsUseCase } from './use-cases/ReorderTabGroupUrlsUseCase'
+import type { RepairTabGroupParentCategoryIdsUseCase } from './use-cases/RepairTabGroupParentCategoryIdsUseCase'
 import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import type { RestoreOpenedUrlsSnapshotViewUseCase } from './use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
 import type { SetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
@@ -77,4 +79,16 @@ export interface SavedTabsUseCases {
   readonly updateCustomProjectName: UpdateCustomProjectNameUseCase
   readonly getProjectUrls: GetProjectUrlsUseCase
   readonly getSavedTabsPageData: GetSavedTabsPageDataQuery
+  /**
+   * 保存タブ一覧の軽量 query。`tabGroupRepository.findAll` の
+   * application 側ラッパ (issue #517)。`useTabData` の
+   * `refreshTabGroupsWithUrls()` 引数なし経路から利用される。
+   */
+  readonly getSavedTabs: GetSavedTabsQuery
+  /**
+   * `parentCategoryId` 未設定の `TabGroup` を `ParentCategory` 側の
+   * `domains` / `domainNames` から修復する use-case (issue #517)。
+   * 旧 `useTabData.repairSavedTabParentCategoryIds` の application 移植。
+   */
+  readonly repairTabGroupParentCategoryIds: RepairTabGroupParentCategoryIdsUseCase
 }

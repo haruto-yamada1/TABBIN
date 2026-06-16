@@ -9,9 +9,13 @@ import type { Dispatch, SetStateAction } from 'react'
 
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
+import type { GetSavedTabsQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsQuery'
 import type { LoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupsWithUrlsUseCase'
+import type {
+  RepairTabGroupParentCategoryIdsCommand,
+  RepairTabGroupParentCategoryIdsUseCase,
+} from '@/contexts/saved-tabs/application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseTabData フックの引数 */
@@ -26,10 +30,17 @@ interface UseTabDataParams {
    */
   readonly getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
   /**
-   * タブグループ永続化先。`repairSavedTabParentCategoryIds` の修復保存で
-   * `tabGroupRepository.saveAll` を引き続き使う（issue #510 範囲外）。
+   * 保存タブ一覧の軽量 query。`tabGroupRepository.findAll` の
+   * application 側ラッパ (issue #517)。`refreshTabGroupsWithUrls` の
+   * 引数なし経路で利用する。
    */
-  readonly tabGroupRepository: TabGroupRepository
+  readonly getSavedTabsQuery: GetSavedTabsQuery
+  /**
+   * `parentCategoryId` 未設定の `TabGroup` を `ParentCategory` 側の
+   * `domains` / `domainNames` から修復する use-case (issue #517)。
+   * 初回ロード時の修復保存を担う。
+   */
+  readonly repairTabGroupParentCategoryIdsUseCase: RepairTabGroupParentCategoryIdsUseCase
   /**
    * migration port。旧 `migrateParentCategoriesToDomainNames` /
    * `migrateToUrlsStorage` の DDD port 化（issue #509）。
@@ -115,57 +126,6 @@ const ensureValidParentCategories = async (
     .parentCategories as unknown as ParentCategory[]
   return [...refreshed]
 }
-const repairSavedTabParentCategoryIds = (
-  savedTabs: TabGroup[],
-  parentCategories: ParentCategory[],
-): {
-  updatedTabGroups: TabGroup[]
-  needsUpdate: boolean
-} => {
-  let needsUpdate = false
-  const categoryByDomainId = new Map<string, ParentCategory>()
-  const categoryByDomainName = new Map<string, ParentCategory>()
-  for (const category of parentCategories) {
-    for (const domainId of category.domains ?? []) {
-      categoryByDomainId.set(domainId, category)
-    }
-    for (const domainName of category.domainNames ?? []) {
-      categoryByDomainName.set(domainName, category)
-    }
-  }
-  const updatedTabGroups = savedTabs.map((group: TabGroup) => {
-    if (group.parentCategoryId) {
-      return group
-    }
-    const categoryById = categoryByDomainId.get(group.id)
-    if (categoryById) {
-      console.log(
-        `TabGroup ${group.domain} のparentCategoryIdを ${categoryById.id} に修復しました (IDベース)`,
-      )
-      needsUpdate = true
-      return {
-        ...group,
-        parentCategoryId: categoryById.id,
-      }
-    }
-    const categoryByName = categoryByDomainName.get(group.domain)
-    if (categoryByName) {
-      console.log(
-        `TabGroup ${group.domain} のparentCategoryIdを ${categoryByName.id} に修復しました (ドメイン名ベース)`,
-      )
-      needsUpdate = true
-      return {
-        ...group,
-        parentCategoryId: categoryByName.id,
-      }
-    }
-    return group
-  })
-  return {
-    needsUpdate,
-    updatedTabGroups,
-  }
-}
 /**
  * タブグループデータの管理フック。
  * マイグレーション実行・初回ロード・URL解決・ストレージ変更連携を担う。
@@ -179,13 +139,19 @@ const repairSavedTabParentCategoryIds = (
  * `chrome.storage.local` の直叩きと repository 個別の read を撤去する
  * （issue #510）。
  *
- * @param params - フック引数（use-case / query / repository / コールバック）
+ * `tabGroupRepository` の直接依存は撤去済みで、`refreshTabGroupsWithUrls()`
+ * の引数なし経路は `getSavedTabsQuery`、初回ロード時の
+ * `parentCategoryId` 修復は `repairTabGroupParentCategoryIdsUseCase`
+ * 経由に委譲する（issue #517）。
+ *
+ * @param params - フック引数（use-case / query / port / コールバック）
  * @returns UseTabDataReturn
  */
 const useTabData = ({
   loadTabGroupsWithUrlsUseCase,
   getSavedTabsPageDataQuery,
-  tabGroupRepository,
+  getSavedTabsQuery,
+  repairTabGroupParentCategoryIdsUseCase,
   migrationPort,
   onCategoriesLoaded,
   onSettingsLoaded,
@@ -225,17 +191,24 @@ const useTabData = ({
     loadTabGroupsWithUrlsUseCaseRef.current = loadTabGroupsWithUrlsUseCase
   }, [loadTabGroupsWithUrlsUseCase])
 
-  // query / repository 参照も ref で保持
+  // query / use-case 参照も ref で保持
   // （useEffect / useCallback の依存安定性のため）
   const getSavedTabsPageDataQueryRef = useRef(getSavedTabsPageDataQuery)
-  const tabGroupRepositoryRef = useRef(tabGroupRepository)
+  const getSavedTabsQueryRef = useRef(getSavedTabsQuery)
+  const repairTabGroupParentCategoryIdsUseCaseRef = useRef(
+    repairTabGroupParentCategoryIdsUseCase,
+  )
   const migrationPortRef = useRef(migrationPort)
   useEffect(() => {
     getSavedTabsPageDataQueryRef.current = getSavedTabsPageDataQuery
   }, [getSavedTabsPageDataQuery])
   useEffect(() => {
-    tabGroupRepositoryRef.current = tabGroupRepository
-  }, [tabGroupRepository])
+    getSavedTabsQueryRef.current = getSavedTabsQuery
+  }, [getSavedTabsQuery])
+  useEffect(() => {
+    repairTabGroupParentCategoryIdsUseCaseRef.current =
+      repairTabGroupParentCategoryIdsUseCase
+  }, [repairTabGroupParentCategoryIdsUseCase])
   useEffect(() => {
     migrationPortRef.current = migrationPort
   }, [migrationPort])
@@ -278,16 +251,11 @@ const useTabData = ({
    */
   const refreshTabGroupsWithUrls = useCallback(
     async (nextGroups?: TabGroup[]): Promise<TabGroup[]> => {
-      let storedSavedTabs: TabGroup[] | undefined
-      if (!nextGroups) {
-        const fromRepository = await tabGroupRepositoryRef.current.findAll()
-        // domain `TabGroup` は branded 型を含むが、storage shape (`@/types/storage`)
-        // と構造的に互換。presentation 層は storage shape で扱うため
-        // `unknown` 経由でキャストする。
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        storedSavedTabs = fromRepository as unknown as TabGroup[]
-      }
-      const groups = nextGroups ?? storedSavedTabs ?? []
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- query は branded domain entity を返し、presentation 層は storage shape で扱う
+      const groups =
+        nextGroups ??
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        ((await getSavedTabsQueryRef.current()) as unknown as TabGroup[])
       const normalizedGroups = Array.isArray(groups) ? groups : []
       const groupsWithUrls = await loadTabGroupsWithUrls(normalizedGroups)
       skipNextTabGroupsSyncRef.current = true
@@ -329,23 +297,24 @@ const useTabData = ({
           migrationPortRef.current,
         )
         onCategoriesLoadedRef.current(finalCategories)
-        const { updatedTabGroups, needsUpdate } =
-          repairSavedTabParentCategoryIds(savedTabs, finalCategories)
 
-        // 修復が必要な場合はストレージを更新
-        if (needsUpdate) {
-          await tabGroupRepositoryRef.current.saveAll(
-            // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-            updatedTabGroups as unknown as Parameters<
-              typeof tabGroupRepositoryRef.current.saveAll
-            >[0],
-          )
-          console.log('TabGroupのparentCategoryId修復処理が完了しました')
+        // parentCategoryId 修復は application use-case 経由 (issue #517)。
+        // 修復があった場合のみ use-case 内で `tabGroupRepository.saveAll` が
+        // 走り、storage への副作用は use-case 側に閉じている。
+        const repairCommand: RepairTabGroupParentCategoryIdsCommand = {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage shape から branded domain entity へ投影
+          tabGroups: savedTabs as never,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage shape から branded domain entity へ投影
+          parentCategories: finalCategories as never,
         }
+        const { tabGroups: repairedTabGroups } =
+          await repairTabGroupParentCategoryIdsUseCaseRef.current(repairCommand)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain entity (branded readonly) を storage shape (mutable plain) へ投影
+        const finalTabGroups = [...repairedTabGroups] as unknown as TabGroup[]
         setTabData((prev) => ({
           ...prev,
           isLoading: false,
-          tabGroups: needsUpdate ? updatedTabGroups : savedTabs,
+          tabGroups: finalTabGroups,
         }))
       } catch (error) {
         console.error('保存されたタブの読み込みエラー:', error)
