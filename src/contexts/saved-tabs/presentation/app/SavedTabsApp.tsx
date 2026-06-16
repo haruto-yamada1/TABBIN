@@ -278,13 +278,9 @@ const useSavedTabsAppView = ({
             })
           : undefined
 
-        // 一括オープンは OpenAllSavedUrlsUseCase に委譲し、
-        // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-        // `chrome.tabs.create` / `chrome.windows.create` の直接呼び出しを
-        // presentation 層から撤去する。`active` 制御は composition 層の
-        // `BrowserTabPort.resolveActive` が `settings.openUrlInBackground` を
-        // 反映する。
+        // 一括オープンは OpenAllSavedUrlsUseCase に委譲する。
+        // `active` 制御は composition 層の `BrowserTabPort.resolveActive` が
+        // `settings.openUrlInBackground` を反映する。
         const result = await savedTabsUseCases.openAllSavedUrls({
           mode: settings.openAllInNewWindow ? 'newWindow' : 'backgroundTabs',
           removeTabAfterOpen: settings.removeTabAfterOpen,
@@ -730,10 +726,7 @@ const useSavedTabsAppView = ({
 
   // TabGroupsWithUrls と categories が変わったとき、カテゴリ割り当ての不一致を
   // ストレージに反映するための副作用（organizeTabGroups から分離した副作用）。
-  // 同期本体は SyncCategoryAssignmentsUseCase 経由で実行し、
-  // eslint-disable-next-line eslint/no-restricted-properties -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // eslint-disable-next-line eslint/no-restricted-properties, typescript/unbound-method -- TODO(#488-followup): presentation 層から chrome.* を撤去し Repository / Port 経由へ移行
-  // `chrome.storage.local.get/set` の直接呼び出しを削減する。
+  // 同期本体は SyncCategoryAssignmentsUseCase 経由で実行する。
   useEffect(
     () => {
       if (!settings.enableCategories) {
