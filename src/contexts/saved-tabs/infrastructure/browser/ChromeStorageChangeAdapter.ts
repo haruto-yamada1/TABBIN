@@ -40,6 +40,7 @@
 import { z } from 'zod'
 
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
+import type { CustomProject } from '@/types/storage'
 
 import { CHROME_STORAGE_CHANGE_ADAPTER_MARKER } from '../../application/ports/StorageChangePort'
 import type {
@@ -215,11 +216,24 @@ export const createChromeStorageChangeAdapter = (
       }
     }
     if (key === 'customProjects') {
+      // raw 段階では `categories` / `createdAt` / `updatedAt` が
+      // optional（legacy データ対応、issue #530 review P1）。DTO 形
+      // (`@/types/storage` の `CustomProject`) では必須のため、
+      // port 境界で default を入れてから payload として流す。
+      // `categories` 未設定時は `[]`、`createdAt` / `updatedAt` 未設定時
+      // は `0`（mapper の entity 化と整合する default）。
+      const raws = safeParseArrayPayload(CustomProjectRawSchema, newValue)
+      const payload: CustomProject[] = raws.map((raw) => ({
+        ...raw,
+        categories: raw.categories ?? [],
+        createdAt: raw.createdAt ?? 0,
+        updatedAt: raw.updatedAt ?? 0,
+      }))
       return {
         key,
         kind: 'parsed',
         oldValue,
-        payload: safeParseArrayPayload(CustomProjectRawSchema, newValue),
+        payload,
       }
     }
     if (key === 'customProjectOrder') {

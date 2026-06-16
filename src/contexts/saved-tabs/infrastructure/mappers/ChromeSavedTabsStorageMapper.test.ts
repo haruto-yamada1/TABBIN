@@ -169,15 +169,26 @@ describe('ChromeSavedTabsStorageMapper', () => {
       expect(entity?.urlIds).toStrictEqual(['url-1', 'url-2'])
     })
 
-    it('必須欠けは null を返す', () => {
-      expect(
-        ChromeSavedTabsStorageMapper.parseCustomProject({
-          createdAt: 1,
-          id: 'project-1',
-          name: 'Q4',
-          updatedAt: 1,
-        }),
-      ).toBeNull()
+    it('categories 欠けは legacy データとして default で entity 化する (issue #530 review P1)', () => {
+      const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Q4',
+        updatedAt: 1,
+      })
+      expect(entity).not.toBeNull()
+      expect(entity?.categories).toStrictEqual([])
+    })
+
+    it('createdAt / updatedAt 欠けは legacy データとして default で entity 化する', () => {
+      const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
+        categories: ['research'],
+        id: 'project-1',
+        name: 'Q4',
+      })
+      expect(entity).not.toBeNull()
+      expect(entity?.createdAt).toBe(0)
+      expect(entity?.updatedAt).toBe(0)
     })
   })
 

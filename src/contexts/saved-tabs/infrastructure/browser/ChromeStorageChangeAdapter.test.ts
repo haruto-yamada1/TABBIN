@@ -308,6 +308,63 @@ describe('createChromeStorageChangeAdapter', () => {
     expect(warnSpy).toHaveBeenCalled()
   })
 
+  it('issue #530 review P1: customProjects の legacy データに default を入れて payload 化する', () => {
+    const onChanged = createMockOnChanged()
+    const adapter = createChromeStorageChangeAdapter({
+      getOnChanged: () => onChanged,
+    })
+    const listener = vi.fn()
+
+    adapter.subscribe(listener)
+    onChanged.emit(
+      {
+        customProjects: {
+          newValue: [
+            // legacy: categories / createdAt / updatedAt 無し
+            { id: 'legacy-1', name: 'Legacy' },
+            // 有効データ
+            {
+              categories: ['research'],
+              createdAt: 1,
+              id: 'project-1',
+              name: 'Q4',
+              updatedAt: 2,
+              urlIds: ['url-1'],
+            },
+          ],
+          oldValue: [],
+        },
+      },
+      'local',
+    )
+
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledWith([
+      {
+        key: 'customProjects',
+        kind: 'parsed',
+        oldValue: [],
+        payload: [
+          {
+            categories: [],
+            createdAt: 0,
+            id: 'legacy-1',
+            name: 'Legacy',
+            updatedAt: 0,
+          },
+          {
+            categories: ['research'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Q4',
+            updatedAt: 2,
+            urlIds: ['url-1'],
+          },
+        ],
+      },
+    ])
+  })
+
   it('issue #530: userSettings は partial 適用としてパースされる', () => {
     const onChanged = createMockOnChanged()
     const adapter = createChromeStorageChangeAdapter({
