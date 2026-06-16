@@ -44,7 +44,8 @@ src/contexts/saved-tabs/
     queries/          # 読み取り専用リクエスト型
     use-cases/        # 1 操作 1 ファイル
     dto/              # presentation へ返す読み取り専用モデル
-    ports/            # BrowserTabPort / NotificationPort / ClockPort / IdGeneratorPort
+    mappers/          # application 層内の DTO / snapshot 相互変換（chrome 非依存）
+    ports/            # BrowserTabPort / NotificationPort / ClockPort / IdGeneratorPort / StorageChangePort / MessagingPort
   infrastructure/
     persistence/
       chrome-storage/ # Chrome*Repository 実装 / storage key / schema
@@ -78,9 +79,10 @@ src/contexts/saved-tabs/
 - React に依存しません。`presentation` 層を参照しません。`chrome.*` API を直接呼ばず、Repository interface / port interface 経由で外部依存に触れます。
 - Repository は `domain/repositories/` の interface だけを import し、`infrastructure/` 配下は import しません（依存性注入は composition 層で配線）。
 - 1 つの use-case は 1 つのユーザー操作または background 操作を表し、複数の操作をまとめないでください。
-- `application/ports/` には `BrowserTabPort` / `NotificationPort` / `ClockPort` / `IdGeneratorPort` などの interface を置き、`chrome.tabs` や `chrome.notifications` への直接依存を排除します。
+- `application/ports/` には `BrowserTabPort` / `NotificationPort` / `ClockPort` / `IdGeneratorPort` / `StorageChangePort` / `MessagingPort` などの interface を置き、`chrome.tabs` や `chrome.notifications` / `chrome.storage.onChanged` / `chrome.runtime.sendMessage` への直接依存を排除します。
 - `application/dto/` は presentation 層へ返す読み取り専用モデルです。domain entity を直接 UI へ渡さないでください。
 - `application/commands/` と `application/queries/` はそれぞれ状態変更リクエスト・読み取りリクエストの型定義置き場です。
+- `application/mappers/` は application 層内の DTO / snapshot 相互変換（`@/types/storage` 形 ↔ domain DTO / domain entity）を集約する pure な変換層です。`chrome.*` API には触れません。`SavedTabsDtosMapper` は DTO ↔ storage 形、`SavedTabsSnapshotMapper` は undo / snapshot 用に domain entity ↔ storage 形を双方向で持ち替えます（chrome.storage への I/O 自体は行わない）。一方、`infrastructure/mappers/` の `ChromeSavedTabsStorageMapper` は `chrome.storage.local` の生データ (`unknown` → Zod parse) ↔ domain entity の I/O 変換を担います。
 
 ### infrastructure
 

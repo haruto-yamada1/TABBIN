@@ -9,7 +9,7 @@
 ```
 contexts/saved-tabs/
   domain/             # ビジネスルール・値オブジェクト・repository interface・domain service・domain DTO
-  application/        # use-case / command / query / dto / port / mapper
+  application/        # use-case / command / query / dto / mapper / port
   infrastructure/     # chrome-storage / browser adapter / mapper / composition root
   presentation/       # route / page / app / controller / hook / container / view-model / service
   testing/            # テスト用 mock factory
@@ -17,7 +17,7 @@ contexts/saved-tabs/
   README.md
 ```
 
-旧 `src/features/saved-tabs/` 配下の UI / hooks / lib は DDD 移行完了に伴い撤去済みです（Issue #488）。`SavedTabsPage` / `SavedTabsRoute` などの組み立ては `presentation/` 配下にあり、`src/entrypoints/saved-tabs/main.tsx` から呼び出されます。
+旧 `src/features/saved-tabs/` 配下の UI / hooks / lib は DDD 移行完了に伴い撤去済みです（Issue #488）。`SavedTabsPage` / `SavedTabsRoute` などの組み立ては `presentation/` 配下にあり、`src/features/navigation/app/AppRouter.tsx`（`src/entrypoints/app/main.tsx` から lazy import される）から `SavedTabsRoute` 経由で読み込まれます。`src/entrypoints/saved-tabs/main.tsx` はレガシー URL のリダイレクト専用エントリです。
 
 ## 開発時の参照順序
 

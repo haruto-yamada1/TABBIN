@@ -4,12 +4,14 @@
 
 ## サブディレクトリ
 
-| サブディレクトリ              | 役割                                                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `persistence/chrome-storage/` | `Chrome*Repository` 実装 / `savedTabsStorageKeys.ts` / `savedTabsStorageSchema.ts` / `ChromeStorageLocalPort` |
-| `persistence/migrations/`     | 既存保存データを壊さない migration（`migrateLegacySavedTabs.ts` など）                                        |
-| `browser/`                    | `chrome.tabs` / `chrome.contextMenus` / `chrome.alarms` などの adapter                                        |
-| `mappers/`                    | storage の生データ ↔ domain entity / DTO の相互変換                                                           |
+| サブディレクトリ              | 役割                                                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `persistence/chrome-storage/` | `Chrome*Repository` 実装 / `savedTabsStorageKeys.ts` / `savedTabsStorageSchema.ts` / `ChromeStorageLocalPort`          |
+| `browser/`                    | `chrome.tabs` / `chrome.contextMenus` / `chrome.alarms` / `chrome.storage.onChanged` / `chrome.runtime` などの adapter |
+| `mappers/`                    | storage の生データ ↔ domain entity / DTO の相互変換（`ChromeSavedTabsStorageMapper` など）                             |
+| `composition/`                | use-case / port を組み立てる composition root（`createSavedTabsUseCases` / `createSavedTabsUseCasesDeps`）             |
+
+`persistence/migrations/` は `savedTabsStorageSchema.ts` のコメントで将来の配置先として言及されていますが、現時点で実装ファイルはありません。新規の legacy 移行が必要になったタイミングで追加します。
 
 ## 禁止
 
@@ -25,5 +27,4 @@
   use-case へ注入する。
 - `ChromeStorageLocalPort` 経由で `chrome.storage.local` を抽象化し、テスト時は
   in-memory モックを注入する。
-- 旧 `src/lib/storage/*` の `chrome.storage.local` 直叩きは並行稼働させる。
-  段階的にこの repository へ移行する（use-case 化と併せて別 issue で進める）。
+- 旧 `src/lib/storage/*` の `chrome.storage.local` 直叩きは saved-tabs 関連で撤去済み（Issue #488 / #509）。他 feature での段階移行は別 issue で進める。

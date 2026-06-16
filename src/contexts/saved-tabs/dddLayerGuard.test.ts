@@ -871,4 +871,62 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(source).toContain('SavedTabsPresentationLayout')
     })
   })
+
+  describe('issue #526 followup: application/mappers/ は DTO / snapshot 変換の責務だけに閉じる', () => {
+    const mappersRoot = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/application/mappers',
+    )
+    // 追加された mapper も同じガードで再帰検出するため、ディレクトリ列挙で
+    // 取得する (test ファイルは collectSourceFiles 側で除外される)。
+    const mapperSourceFiles = collectSourceFiles(mappersRoot)
+
+    it('application/mappers/ 配下に production ソースファイルが存在する', () => {
+      expect(mapperSourceFiles.length).toBeGreaterThan(0)
+    })
+
+    for (const absolutePath of mapperSourceFiles) {
+      const relativePath = relative(repoRoot, absolutePath).split(sep).join('/')
+
+      it(`${relativePath} は React / chrome モジュールを import しない`, () => {
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(source, `${relativePath} should not import react`).not.toMatch(
+          /from\s+['"]react['"]/,
+        )
+        expect(source, `${relativePath} should not import chrome`).not.toMatch(
+          /from\s+['"]chrome['"]/,
+        )
+        // `chrome.storage` への直接関数呼び出しがないことを確認する
+        // (JSDoc 内テキストの言及は除外するため、`(local|onChanged|sync)(` で関数呼び出しのみ検出)
+        expect(
+          source,
+          `${relativePath} should not call chrome.storage directly`,
+        ).not.toMatch(/chrome\.storage\.(local|onChanged|sync)\(/)
+        expect(
+          source,
+          `${relativePath} should not call chrome.tabs`,
+        ).not.toMatch(/chrome\.tabs\.\w+\(/)
+        expect(
+          source,
+          `${relativePath} should not call chrome.runtime`,
+        ).not.toMatch(/chrome\.runtime\.\w+\(/)
+      })
+
+      it(`${relativePath} は presentation 層に依存しない`, () => {
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not import presentation layer`,
+        ).not.toMatch(/from\s+['"]@\/contexts\/[^/]+\/presentation/)
+      })
+
+      it(`${relativePath} は infrastructure 層に依存しない`, () => {
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not import infrastructure layer`,
+        ).not.toMatch(/from\s+['"]@\/contexts\/[^/]+\/infrastructure/)
+      })
+    }
+  })
 })
