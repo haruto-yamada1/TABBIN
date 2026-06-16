@@ -317,9 +317,14 @@ const useSavedTabsAppView = ({
           preDeleteSnapshot &&
           result.snapshot
         ) {
-          await refreshTabGroupsWithUrls(
-            getSnapshotSavedTabs(preDeleteSnapshot),
-          )
+          // Codex review (PR #521): 旧実装は `preDeleteSnapshot` を
+          // `refreshTabGroupsWithUrls` に渡していたが、use-case 側で
+          // 既に `UrlRecordRepository.removeByIds` が走っているため、
+          // pre-delete snapshot で UI を塗り替えると storage change
+          // 通知が無いときに「削除済み URL が見えたまま」になる。
+          // ここでは storage から最新を取得して UI を同期し、
+          // `preDeleteSnapshot` は Undo 用にだけ保持する。
+          await refreshTabGroupsWithUrls()
           showOpenedUrlsUndoToast({
             count: result.removedUrlRecordIds.length,
             refreshTabGroupsWithUrls,

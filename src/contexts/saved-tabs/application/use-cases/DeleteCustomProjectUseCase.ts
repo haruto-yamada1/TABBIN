@@ -131,15 +131,13 @@ export const createDeleteCustomProjectUseCase = (
         targetRaw: targetRaw ?? undefined,
         uncategorizedRaw: createdUncategorizedRaw,
       })
-      nextAll = all.map((project, index) => {
-        if (index === targetIndex) {
-          return project
-        }
-        if (project.id === createdUncategorized.id) {
-          return merged
-        }
-        return project
-      })
+      // PR #514 / Codex review: 旧 `findOrCreateUncategorizedProject` 経路を
+      // 踏襲し、新規作成した uncategorized プロジェクトを `all` へ明示的に
+      // push してから保存する (`all.map` だと createdUncategorized.id が
+      // 一致しないため merged が保存されず target の URL が消える)。
+      nextAll = all
+        .map((project, index) => (index === targetIndex ? project : project))
+        .concat(merged)
     }
     const remaining = nextAll.filter(
       (project) => project.id !== command.projectId,
