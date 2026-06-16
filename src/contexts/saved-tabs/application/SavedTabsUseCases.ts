@@ -18,6 +18,7 @@ import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCas
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from './use-cases/RemoveDomainFromParentCategoryUseCase'
+import type { RemoveDomainsFromParentCategoriesUseCase } from './use-cases/RemoveDomainsFromParentCategoriesUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCase } from './use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import type { RemoveUrlsFromCustomProjectsUseCase } from './use-cases/RemoveUrlsFromCustomProjectsUseCase'
@@ -86,6 +87,14 @@ export interface SavedTabsUseCases {
   readonly renameParentCategory: RenameParentCategoryUseCase
   readonly addDomainToParentCategory: AddDomainToParentCategoryUseCase
   readonly removeDomainFromParentCategory: RemoveDomainFromParentCategoryUseCase
+  /**
+   * 親カテゴリの `domains` (TabGroupId 配列) から指定 ID を横断削除する
+   * use-case (issue #523)。
+   * 旧 `SavedTabsApp.removeDomainFromParentCategories` ヘルパーと
+   * `handleDeleteGroups` 内の `parentCategoryRepository.saveAll` 直叩きを
+   * 1 つの bulk use-case に統一する。
+   */
+  readonly removeDomainsFromParentCategories: RemoveDomainsFromParentCategoriesUseCase
   readonly createParentCategory: CreateParentCategoryUseCase
   readonly deleteParentCategory: DeleteParentCategoryUseCase
   readonly assignDomainToCategory: AssignDomainToCategoryUseCase

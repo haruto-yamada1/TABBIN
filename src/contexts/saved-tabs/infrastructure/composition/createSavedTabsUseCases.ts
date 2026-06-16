@@ -19,6 +19,7 @@ import { createLoadTabGroupUrlsUseCase } from '../../application/use-cases/LoadT
 import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
 import { createRemoveDomainFromParentCategoryUseCase } from '../../application/use-cases/RemoveDomainFromParentCategoryUseCase'
+import { createRemoveDomainsFromParentCategoriesUseCase } from '../../application/use-cases/RemoveDomainsFromParentCategoriesUseCase'
 import { createRemoveSubCategoryFromTabGroupsUseCase } from '../../application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
 import { createRemoveUrlsFromCustomProjectsUseCase } from '../../application/use-cases/RemoveUrlsFromCustomProjectsUseCase'
@@ -157,6 +158,11 @@ export const createSavedTabsUseCases = (
   removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
+  removeDomainsFromParentCategories: createRemoveDomainsFromParentCategoriesUseCase(
+    {
+      parentCategoryRepository: deps.parentCategoryRepository,
+    },
+  ),
   removeUnreferencedUrlRecords: createRemoveUnreferencedUrlRecordsUseCase({
     customProjectRepository: deps.customProjectRepository,
     tabGroupRepository: deps.tabGroupRepository,
