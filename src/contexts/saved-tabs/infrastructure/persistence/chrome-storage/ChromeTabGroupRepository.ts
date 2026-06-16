@@ -3,6 +3,7 @@ import {
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
+import type { SavedTabRawSummaryDto } from '../../../domain/dto/SavedTabRawSummaryDto'
 import type { TabGroup } from '../../../domain/entities/TabGroup'
 import type { TabGroupRepository } from '../../../domain/repositories/TabGroupRepository'
 import type { TabGroupId } from '../../../domain/value-objects/TabGroupId'
@@ -69,6 +70,27 @@ const createChromeTabGroupRepositoryImpl = (
     return raw?.domain ?? null
   }
 
+  const findRawTabGroupById = async (
+    id: TabGroupId,
+  ): Promise<SavedTabRawSummaryDto | null> => {
+    const idString = ChromeSavedTabsStorageMapper.tabGroupIdToString(id)
+    const raws = await findAllRawTabGroups(port)
+    const raw = raws.find((entry) => entry.id === idString)
+    if (!raw) {
+      return null
+    }
+    return {
+      categoryKeywords: (raw.categoryKeywords ?? []).map((keyword) => ({
+        categoryName: keyword.categoryName,
+        keywords: [...keyword.keywords],
+      })),
+      domain: raw.domain,
+      id: raw.id,
+      parentCategoryId: raw.parentCategoryId,
+      subCategories: [...(raw.subCategories ?? [])],
+    }
+  }
+
   const saveAll = async (groups: readonly TabGroup[]): Promise<void> => {
     // 既存ユーザーデータ（`urls`, `urlSubCategories`, `subCategories`,
     // `categoryKeywords`, `subCategoryOrder`, `subCategoryOrderWithUncategorized`）
@@ -100,7 +122,14 @@ const createChromeTabGroupRepositoryImpl = (
     await saveAll(remaining)
   }
 
-  return { findAll, findById, findRawDomainById, removeByIds, saveAll }
+  return {
+    findAll,
+    findById,
+    findRawDomainById,
+    findRawTabGroupById,
+    removeByIds,
+    saveAll,
+  }
 }
 
 /**

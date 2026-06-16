@@ -15,13 +15,13 @@ import type { SubCategoryKeywordDto } from '../../domain/dto/DomainCategorySetti
  *   十分（本 port には含めない）。
  *
  * したがって本 port は 旧 `lib/storage/categories` に対する薄い
- * facade ではなく、互換用に `handleTabGroupRemoval` が必要とする
- * 「ドメイン削除時に子カテゴリ設定を永続化する」用途に限定する。
- * `lib/storage/categories` の他の関数 (`getParentCategories` /
- * `saveParentCategories` / `createParentCategory` /
- * `deleteParentCategory` / `getDomainCategoryMappings` /
- * `getDomainCategorySettings`) は repository / use-case 経由で
- * 扱う方針 (issue #509)。
+ * facade ではなく、`PrepareTabGroupDeletionUseCase` (issue #524) が
+ * 「ドメイン削除時に子カテゴリ設定を永続化する」用途に限定して
+ * 呼び出す操作だけを公開する。`lib/storage/categories` の他の関数
+ * (`getParentCategories` / `saveParentCategories` /
+ * `createParentCategory` / `deleteParentCategory` /
+ * `getDomainCategoryMappings` / `getDomainCategorySettings`) は
+ * repository / use-case 経由で扱う方針 (issue #509)。
  *
  * `@/types/storage.SubCategoryKeyword` ではなく domain DTO
  * `SubCategoryKeywordDto` を使う (issue #511)。

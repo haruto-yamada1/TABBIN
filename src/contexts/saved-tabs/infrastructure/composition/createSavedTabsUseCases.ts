@@ -18,6 +18,8 @@ import { createLoadTabGroupsWithUrlsUseCase } from '../../application/use-cases/
 import { createLoadTabGroupUrlsUseCase } from '../../application/use-cases/LoadTabGroupUrlsUseCase'
 import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
+import { createPrepareTabGroupDeletionUseCase } from '../../application/use-cases/PrepareTabGroupDeletionUseCase'
+import { createPrepareTabGroupsDeletionUseCase } from '../../application/use-cases/PrepareTabGroupsDeletionUseCase'
 import { createRemoveDomainFromParentCategoryUseCase } from '../../application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import { createRemoveDomainsFromParentCategoriesUseCase } from '../../application/use-cases/RemoveDomainsFromParentCategoriesUseCase'
 import { createRemoveSubCategoryFromTabGroupsUseCase } from '../../application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
@@ -154,6 +156,18 @@ export const createSavedTabsUseCases = (
     customProjectRepository: deps.customProjectRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
+  }),
+  prepareTabGroupDeletion: createPrepareTabGroupDeletionUseCase({
+    categoriesCommandService: deps.categoriesCommandService,
+    domainCategoryMappingRepository: deps.domainCategoryMappingRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+  }),
+  prepareTabGroupsDeletion: createPrepareTabGroupsDeletionUseCase({
+    categoriesCommandService: deps.categoriesCommandService,
+    domainCategoryMappingRepository: deps.domainCategoryMappingRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
+    tabGroupRepository: deps.tabGroupRepository,
   }),
   removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,

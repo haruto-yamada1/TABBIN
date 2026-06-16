@@ -308,9 +308,22 @@ vi.mock('@/contexts/saved-tabs/presentation/lib/custom-project-move', () => ({
   moveCustomProjectUrlAndSyncState: vi.fn(),
 }))
 
-vi.mock('@/contexts/saved-tabs/presentation/lib/tab-operations', () => ({
-  handleTabGroupRemoval: vi.fn(),
-}))
+vi.mock(
+  '@/contexts/saved-tabs/application/use-cases/PrepareTabGroupDeletionUseCase',
+  () => ({
+    createPrepareTabGroupDeletionUseCase: vi.fn(() =>
+      vi.fn(async () => undefined),
+    ),
+  }),
+)
+vi.mock(
+  '@/contexts/saved-tabs/application/use-cases/PrepareTabGroupsDeletionUseCase',
+  () => ({
+    createPrepareTabGroupsDeletionUseCase: vi.fn(() =>
+      vi.fn(async () => undefined),
+    ),
+  }),
+)
 
 vi.mock('@/contexts/saved-tabs/presentation/lib/uncategorized-display', () => ({
   shouldShowUncategorizedHeader: vi.fn(() => false),
@@ -424,8 +437,9 @@ vi.mock('@/lib/storage/tabs', () => ({
   removeUrlsFromTabGroup: vi.fn(),
 }))
 
+import { createPrepareTabGroupDeletionUseCase } from '@/contexts/saved-tabs/application/use-cases/PrepareTabGroupDeletionUseCase'
+import { createPrepareTabGroupsDeletionUseCase } from '@/contexts/saved-tabs/application/use-cases/PrepareTabGroupsDeletionUseCase'
 import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
-import { handleTabGroupRemoval } from '@/contexts/saved-tabs/presentation/lib/tab-operations'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 
 // 旧 `@/lib/storage/categories` / `@/lib/storage/projects` 由来の
@@ -628,6 +642,8 @@ describe('SavedTabsApp custom search', () => {
         getProjectUrls: vi.fn(),
         getSavedTabsPageData: vi.fn(),
         getSavedTabs: vi.fn(),
+        prepareTabGroupDeletion: vi.fn(),
+        prepareTabGroupsDeletion: vi.fn(),
         repairTabGroupParentCategoryIds: vi.fn(),
         loadTabGroupUrls: vi.fn(),
         loadTabGroupsWithUrls: vi.fn(),
@@ -676,6 +692,8 @@ describe('SavedTabsApp custom search', () => {
         deleteSavedUrls: vi.fn(),
         deleteTabGroup: vi.fn(),
         deleteTabGroups: vi.fn(),
+        prepareTabGroupDeletion: vi.fn(),
+        prepareTabGroupsDeletion: vi.fn(),
         findUrlRecordByUrl: vi.fn(),
         getProjectUrls: vi.fn(),
         getSavedTabsPageData: vi.fn(),
@@ -1362,10 +1380,18 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteGroup('group-1')
 
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
-      'group-1',
-      expect.any(Object),
-    )
+    // `PrepareTabGroupDeletionUseCase` 経由で削除前処理が走る
+    // (issue #524)。factory mock が返す vi.fn (= prepareTabGroupDeletion)
+    // に対する呼び出し引数を検証する。
+    const prepareSingleMock = vi.mocked(createPrepareTabGroupDeletionUseCase)
+    const lastSingleCall = prepareSingleMock.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: readonly unknown[][] } } }
+      | undefined
+    const prepareSingleFn = lastSingleCall?.value
+    expect(prepareSingleFn).toBeDefined()
+    expect(prepareSingleFn?.mock.calls.at(-1)?.[0]).toStrictEqual({
+      tabGroupId: 'group-1',
+    })
     expect(
       commandServiceMock.removeUrlIdsFromAllCustomProjects,
     ).toHaveBeenCalledWith(['url-a', 'url-b'], { throwOnError: true })
@@ -2319,14 +2345,22 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleDeleteGroups([])
     await domainProps.handleDeleteGroups(['group-1', 'group-2'])
 
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
-      'group-1',
-      expect.any(Object),
-    )
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
-      'group-2',
-      expect.any(Object),
-    )
+    // 一括削除前処理は `PrepareTabGroupsDeletionUseCase` 経由で走る
+    // (issue #524)。factory mock が返す vi.fn (= prepareTabGroupsDeletion)
+    // に対する呼び出し引数を検証する。`SavedTabsApp.handleDeleteGroups`
+    // 側で空配列は早期 return するため、use-case 自体には 1 回だけ
+    // `['group-1', 'group-2']` が渡される。
+    const prepareBulkMock = vi.mocked(createPrepareTabGroupsDeletionUseCase)
+    const lastBulkCall = prepareBulkMock.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: readonly unknown[][] } } }
+      | undefined
+    const prepareBulkFn = lastBulkCall?.value
+    expect(prepareBulkFn).toBeDefined()
+    const bulkCallArgs = prepareBulkFn?.mock.calls.map((call) => call[0]) ?? []
+    expect(bulkCallArgs).toContainEqual({
+      tabGroupIds: ['group-1', 'group-2'],
+    })
+    expect(bulkCallArgs).not.toContainEqual({ tabGroupIds: [] })
     // 両グループとも `urlIds` 経由の削除に揃えられるため、
     // 1 回目の `commandServiceMock.removeUrlIdsFromAllCustomProjects` 呼び出しで
     // `['url-a', 'legacy-url-id']` がまとめられる（旧形式のみ別ルートは廃止）。
@@ -3114,10 +3148,19 @@ describe('SavedTabsApp custom search', () => {
         savedTabs: [other],
       }),
     )
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
-      'group-target',
-      expect.any(Object),
+    // 削除前処理は `PrepareTabGroupDeletionUseCase` 経由で走る
+    // (issue #524)。factory mock の戻り値 vi.fn
+    // (= savedTabsUseCases.prepareTabGroupDeletion) に対する
+    // 呼び出し履歴を検証する。
+    const prepareSingleMock3117 = vi.mocked(
+      createPrepareTabGroupDeletionUseCase,
     )
+    const lastSingleResult3117 = prepareSingleMock3117.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: readonly unknown[][] } } }
+      | undefined
+    expect(lastSingleResult3117?.value.mock.calls.at(-1)?.[0]).toStrictEqual({
+      tabGroupId: 'group-target',
+    })
     expect(
       commandServiceMock.removeUrlIdsFromAllCustomProjects,
     ).toHaveBeenCalledWith(['url-target-1', 'url-target-2'], {
@@ -3300,7 +3343,32 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleDeleteGroups(['missing'])
     await domainProps.handleUpdateUrls('missing', [])
 
-    expect(handleTabGroupRemoval).not.toHaveBeenCalled()
+    // 対象グループが storage 上に存在しない場合は、
+    // `SavedTabsApp.handleDeleteGroup` 側の
+    // `savedTabs.find(...)` 早期 return で
+    // `PrepareTabGroupDeletionUseCase` 自体も呼ばれない
+    // (issue #524)。`PrepareTabGroupsDeletionUseCase` も
+    // `SavedTabsApp.handleDeleteGroups` 側の空配列 / 該当なし判定で
+    // 呼ばれない。
+    // factory mock の戻り値 vi.fn
+    // (= savedTabsUseCases.prepareTabGroupDeletion) には
+    // 'missing' 由来の呼び出しが積まれないことを検証する。
+    const prepareSingleMock3341 = vi.mocked(
+      createPrepareTabGroupDeletionUseCase,
+    )
+    const prepareBulkMock3341 = vi.mocked(createPrepareTabGroupsDeletionUseCase)
+    const lastSingleResult3341 = prepareSingleMock3341.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: readonly unknown[][] } } }
+      | undefined
+    const lastBulkResult3341 = prepareBulkMock3341.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: readonly unknown[][] } } }
+      | undefined
+    const singleCallArgs =
+      lastSingleResult3341?.value.mock.calls.map((call) => call[0]) ?? []
+    const bulkCallArgs =
+      lastBulkResult3341?.value.mock.calls.map((call) => call[0]) ?? []
+    expect(singleCallArgs).not.toContainEqual({ tabGroupId: 'missing' })
+    expect(bulkCallArgs).not.toContainEqual({ tabGroupIds: ['missing'] })
   })
 
   it('同期削除と未分類順序保存のエラーを握りつぶして通知する', async () => {
@@ -4144,14 +4212,27 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleDeleteGroup('group-1')
     await domainProps.handleDeleteGroups(['group-2'])
 
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
-      'group-1',
-      expect.any(Object),
+    // 削除前処理は application use-case 経由 (issue #524)。
+    // `PrepareTabGroupDeletionUseCase` factory mock の戻り値
+    // vi.fn (= savedTabsUseCases.prepareTabGroupDeletion) には
+    // 'group-1'、`PrepareTabGroupsDeletionUseCase` 側には ['group-2']
+    // が渡される。
+    const prepareSingleMock4185 = vi.mocked(
+      createPrepareTabGroupDeletionUseCase,
     )
-    expect(handleTabGroupRemoval).toHaveBeenCalledWith(
-      'group-2',
-      expect.any(Object),
-    )
+    const prepareBulkMock4185 = vi.mocked(createPrepareTabGroupsDeletionUseCase)
+    const lastSingle4185 = prepareSingleMock4185.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: readonly unknown[][] } } }
+      | undefined
+    const lastBulk4185 = prepareBulkMock4185.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: readonly unknown[][] } } }
+      | undefined
+    expect(lastSingle4185?.value.mock.calls.at(-1)?.[0]).toStrictEqual({
+      tabGroupId: 'group-1',
+    })
+    expect(lastBulk4185?.value.mock.calls.at(-1)?.[0]).toStrictEqual({
+      tabGroupIds: ['group-2'],
+    })
   })
 
   it('一括削除は親カテゴリの domains から削除対象 ID を落とす', async () => {

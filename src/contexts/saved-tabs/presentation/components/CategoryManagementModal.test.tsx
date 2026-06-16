@@ -245,6 +245,7 @@ const createMockRepositories = (): {
         ) ?? null) as unknown as ReturnType<TabGroupRepository['findById']>,
     ),
     findRawDomainById: vi.fn(() => Promise.resolve(null)),
+    findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
     // eslint-disable-next-line typescript/require-await
     saveAll: vi.fn(async (groups) => {
       mockStateRef.current.savedTabs = [

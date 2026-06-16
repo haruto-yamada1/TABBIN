@@ -8,10 +8,9 @@ import type { SubCategoryKeywordDto } from '../../domain/dto/DomainCategorySetti
  * `CategoriesCommandService` の `lib/storage` delegate 実装。
  *
  * 旧 `src/lib/storage/categories.updateDomainCategorySettings` 互換の
- * port 実装。presentation 層 (`tab-operations.ts` の
- * `handleTabGroupRemoval`) がこの port を呼ぶことで、
- * `@/lib/storage/categories` の直接 import を避ける
- * (issue #509)。
+ * port 実装。`PrepareTabGroupDeletionUseCase` (issue #524) が
+ * この port を呼ぶことで、`@/lib/storage/categories` の
+ * 直接 import を application 層から避ける (issue #509)。
  *
  * domain DTO `SubCategoryKeywordDto` を受け取り、mapper 経由で
  * storage 形 `SubCategoryKeyword[]` へ逆変換して lib/storage 関数

@@ -1,3 +1,4 @@
+import type { SavedTabRawSummaryDto } from '../dto/SavedTabRawSummaryDto'
 import type { TabGroup } from '../entities/TabGroup'
 import type { TabGroupId } from '../value-objects/TabGroupId'
 
@@ -44,4 +45,24 @@ export interface TabGroupRepository {
    * 見つからない場合は `null` を返す。
    */
   findRawDomainById: (id: TabGroupId) => Promise<string | null>
+  /**
+   * storage 形 (`SavedTabRaw` 由来) の rich 補助フィールドを
+   * `SavedTabRawSummaryDto` として ID で 1 件取得する。
+   *
+   * domain entity `TabGroup` には載らない `subCategories` /
+   * `categoryKeywords` / 旧 `urls` / `urlSubCategories` /
+   * `subCategoryOrder` などのうち、削除前処理 use-case
+   * (`PrepareTabGroupDeletionUseCase`, issue #524) で必要になる
+   * `subCategories` / `categoryKeywords` / `parentCategoryId` /
+   * `domain` を DTO として返す。
+   *
+   * 通常の entity 比較は `findById` の戻り値 (`TabGroup` entity)
+   * を使い、storage の生文字列 domain を必要とするケースは
+   * `findRawDomainById` を使う。本メソッドは
+   * 「entity には載らないが application 層から storage に
+   * アクセスしたい rich フィールド」のための補助 API。
+   *
+   * 見つからない場合は `null` を返す。
+   */
+  findRawTabGroupById: (id: TabGroupId) => Promise<SavedTabRawSummaryDto | null>
 }
