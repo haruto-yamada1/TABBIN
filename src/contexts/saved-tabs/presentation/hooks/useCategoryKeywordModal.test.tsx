@@ -6,8 +6,8 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
-  SavedTabsStorageChange,
   StorageChangePort,
+  TypedSavedTabsStorageChange,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
@@ -244,7 +244,7 @@ const setupChromeStorage = (state: StorageState = {}) => {
 
 const createMockStorageChangePort = () => {
   const listeners = new Set<
-    (changes: readonly SavedTabsStorageChange[]) => void
+    (changes: readonly TypedSavedTabsStorageChange[]) => void
   >()
   const port: StorageChangePort = {
     subscribe: (listener) => {
@@ -255,7 +255,7 @@ const createMockStorageChangePort = () => {
     },
   }
   return {
-    emit: (changes: readonly SavedTabsStorageChange[]) => {
+    emit: (changes: readonly TypedSavedTabsStorageChange[]) => {
       for (const listener of listeners) {
         listener(changes)
       }
@@ -528,11 +528,17 @@ describe('useCategoryKeywordModal', () => {
     // eslint-disable-next-line typescript/require-await
     await act(async () => {
       changePort.emit([
-        { key: 'customProjects', oldValue: [], newValue: [] },
+        {
+          key: 'customProjects',
+          kind: 'parsed',
+          oldValue: [],
+          payload: [],
+        },
         {
           key: 'parentCategories',
+          kind: 'parsed',
           oldValue: createParentCategories(),
-          newValue: storage.state.parentCategories,
+          payload: storage.state.parentCategories ?? [],
         },
       ])
     })

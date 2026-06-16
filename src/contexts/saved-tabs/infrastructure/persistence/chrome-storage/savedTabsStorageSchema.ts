@@ -137,10 +137,15 @@ export const CustomProjectRawSchema = z.object({
   urlIds: z.array(z.string()).optional(),
   urls: z.array(customProjectUrlEntrySchema).optional(),
   urlMetadata: z.record(z.string(), urlMetadataEntrySchema).optional(),
-  categories: z.array(z.string()),
+  // 旧バージョンの chrome.storage では `categories` / `createdAt` /
+  // `updatedAt` が未保存のままのエントリが残っている可能性があるため、
+  // raw 境界では optional として受け付け、entity 化段階で default を
+  // 入れる。必須化すると旧ユーザーデータがスキップされ、次の save で
+  // 該当プロジェクトが消失する（issue #530 review P1 指摘）。
+  categories: z.array(z.string()).optional(),
   categoryOrder: z.array(z.string()).optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
+  createdAt: z.number().optional(),
+  updatedAt: z.number().optional(),
 })
 
 export const SavedTabRawArraySchema = z.array(SavedTabRawSchema)

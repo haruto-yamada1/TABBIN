@@ -1,14 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
-import { z } from 'zod'
 
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import {
-  CustomProjectSchema,
-  ParentCategorySchema,
-  safeParseArrayFromStorage,
-  TabGroupSchema,
-  UserSettingsSchema,
-} from '@/lib/storage/zod-storage'
 import type {
   CustomProject,
   ParentCategory,
@@ -16,11 +8,11 @@ import type {
   ViewMode,
 } from '@/types/storage'
 
-import type { SavedTabsStorageChange } from '../../application/ports/StorageChangePort'
+import type { TypedSavedTabsStorageChange } from '../../application/ports/StorageChangePort'
 import type { ModeSyncEvent } from '../types/mode'
 
 interface SyncStorageChangesParams {
-  changes: readonly SavedTabsStorageChange[]
+  changes: readonly TypedSavedTabsStorageChange[]
   viewModeRef: RefObject<ViewMode>
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>
   syncDomainDataToCustomProjects: () => Promise<CustomProject[]>
@@ -29,42 +21,53 @@ interface SyncStorageChangesParams {
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
 }
 
-const findChange = (
-  changes: readonly SavedTabsStorageChange[],
-  key: SavedTabsStorageChange['key'],
-): SavedTabsStorageChange | undefined =>
-  changes.find((change) => change.key === key)
+const findParsedChange = <
+  K extends Exclude<TypedSavedTabsStorageChange['key'], 'urls'>,
+>(
+  changes: readonly TypedSavedTabsStorageChange[],
+  key: K,
+):
+  | Extract<TypedSavedTabsStorageChange, { key: K; kind: 'parsed' }>
+  | undefined =>
+  changes.find(
+    (
+      change,
+    ): change is Extract<
+      TypedSavedTabsStorageChange,
+      { key: K; kind: 'parsed' }
+    > => change.key === key && change.kind === 'parsed',
+  )
 
 const resolveSyncEvents = (
-  changes: readonly SavedTabsStorageChange[],
+  changes: readonly TypedSavedTabsStorageChange[],
 ): ModeSyncEvent[] => {
   const events: ModeSyncEvent[] = []
-  if (findChange(changes, 'savedTabs')) {
+  if (changes.some((change) => change.key === 'savedTabs')) {
     events.push({
       type: 'savedTabsUpdated',
     })
   }
-  if (findChange(changes, 'customProjects')) {
+  if (changes.some((change) => change.key === 'customProjects')) {
     events.push({
       type: 'customProjectsUpdated',
     })
   }
-  if (findChange(changes, 'customProjectOrder')) {
+  if (changes.some((change) => change.key === 'customProjectOrder')) {
     events.push({
       type: 'customProjectsUpdated',
     })
   }
-  if (findChange(changes, 'urls')) {
+  if (changes.some((change) => change.key === 'urls')) {
     events.push({
       type: 'urlsUpdated',
     })
   }
-  if (findChange(changes, 'userSettings')) {
+  if (changes.some((change) => change.key === 'userSettings')) {
     events.push({
       type: 'settingsUpdated',
     })
   }
-  if (findChange(changes, 'parentCategories')) {
+  if (changes.some((change) => change.key === 'parentCategories')) {
     events.push({
       type: 'categoriesUpdated',
     })
@@ -73,76 +76,56 @@ const resolveSyncEvents = (
 }
 
 const applyUserSettingsChange = (
-  changes: readonly SavedTabsStorageChange[],
+  changes: readonly TypedSavedTabsStorageChange[],
   setSettings: Dispatch<SetStateAction<UserSettingsDto>>,
 ): void => {
-  const change = findChange(changes, 'userSettings')
+  const change = findParsedChange(changes, 'userSettings')
   if (!change) {
     return
   }
-  const result = UserSettingsSchema.partial().safeParse(change.newValue)
-  if (!result.success) {
+  const partial = change.payload[0]
+  if (!partial) {
     return
   }
   setSettings((prev) => ({
     ...prev,
-    ...result.data,
+    ...partial,
   }))
 }
 
 const applyCategoryChange = (
-  changes: readonly SavedTabsStorageChange[],
+  changes: readonly TypedSavedTabsStorageChange[],
   setCategories: Dispatch<SetStateAction<ParentCategory[]>>,
 ): void => {
-  const change = findChange(changes, 'parentCategories')
+  const change = findParsedChange(changes, 'parentCategories')
   if (!change) {
     return
   }
-  const nextCategories = Array.isArray(change.newValue)
-    ? safeParseArrayFromStorage(ParentCategorySchema, change.newValue)
-    : []
-  setCategories(nextCategories)
+  // port 段階で `safeParseArrayFromStorage` 相当のパースと
+  // domain factory 化まで適用済みのため、payload をそのまま反映する。
+  setCategories(change.payload)
 }
 
-const toCustomProject = (
-  p: z.output<typeof CustomProjectSchema>,
-): CustomProject => ({
-  ...p,
-  categories: p.categories ?? [],
-  createdAt: p.createdAt ?? 0,
-  updatedAt: p.updatedAt ?? 0,
-})
-
 const applyProjectChange = (
-  changes: readonly SavedTabsStorageChange[],
+  changes: readonly TypedSavedTabsStorageChange[],
   viewModeRef: RefObject<ViewMode>,
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>,
 ): void => {
   if (viewModeRef.current !== 'custom') {
     return
   }
-  const projectsChange = findChange(changes, 'customProjects')
-  const orderChange = findChange(changes, 'customProjectOrder')
+  const projectsChange = findParsedChange(changes, 'customProjects')
+  const orderChange = findParsedChange(changes, 'customProjectOrder')
   if (!projectsChange && !orderChange) {
     return
   }
 
   // `customProjects` キーが change に含まれていれば、
-  // newValue が配列かどうかに関わらず同期対象として扱う
-  // （配列以外なら空配列で反映する旧挙動を維持する）。
-  let nextCustomProjects: CustomProject[] | null = null
-  if (projectsChange) {
-    nextCustomProjects = Array.isArray(projectsChange.newValue)
-      ? safeParseArrayFromStorage(
-          CustomProjectSchema,
-          projectsChange.newValue,
-        ).map(toCustomProject)
-      : []
-  }
-  const nextProjectOrder =
-    orderChange && Array.isArray(orderChange.newValue)
-      ? safeParseArrayFromStorage(z.string(), orderChange.newValue)
-      : null
+  // payload が空配列 / 壊れた要素だけだった場合でも空配列として
+  // 同期する（旧 `modeSyncService` の挙動を維持するため、port 段階
+  // で「配列以外なら空配列」と「壊れた要素をスキップ」が保証される）。
+  const nextCustomProjects = projectsChange ? projectsChange.payload : null
+  const nextProjectOrder = orderChange ? orderChange.payload : null
 
   setCustomProjects((prevProjects) => {
     const mergedProjects = nextCustomProjects
@@ -268,18 +251,18 @@ const areProjectArraysReferenceEqual = (
 }
 
 const applyTabsAndUrlsChanges = async (
-  changes: readonly SavedTabsStorageChange[],
+  changes: readonly TypedSavedTabsStorageChange[],
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>,
   syncDomainDataToCustomProjects: () => Promise<CustomProject[]>,
 ): Promise<void> => {
-  const savedTabsChange = findChange(changes, 'savedTabs')
-  const urlsChange = findChange(changes, 'urls')
+  const savedTabsChange = findParsedChange(changes, 'savedTabs')
+  const urlsChange = changes.find(
+    (change): change is Extract<TypedSavedTabsStorageChange, { key: 'urls' }> =>
+      change.key === 'urls',
+  )
 
   if (savedTabsChange) {
-    const nextSavedTabs = Array.isArray(savedTabsChange.newValue)
-      ? safeParseArrayFromStorage(TabGroupSchema, savedTabsChange.newValue)
-      : []
-    await refreshTabGroupsWithUrls(nextSavedTabs)
+    await refreshTabGroupsWithUrls(savedTabsChange.payload)
     await syncDomainDataToCustomProjects()
     return
   }

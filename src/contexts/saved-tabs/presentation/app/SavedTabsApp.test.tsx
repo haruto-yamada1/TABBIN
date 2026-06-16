@@ -2663,8 +2663,9 @@ describe('SavedTabsApp custom search', () => {
         changes: [
           {
             key: 'savedTabs',
-            newValue: [],
+            kind: 'parsed',
             oldValue: [],
+            payload: [],
           },
         ],
       }),

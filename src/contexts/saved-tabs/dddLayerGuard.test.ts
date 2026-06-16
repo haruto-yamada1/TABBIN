@@ -522,6 +522,29 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     }
   })
 
+  describe('issue #530: presentation 配下は @/lib/storage/* を production code で import しない', () => {
+    const presentationRoot = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/presentation',
+    )
+    const presentationSourceFiles = collectSourceFiles(presentationRoot)
+
+    it('presentation 配下に .ts / .tsx ソースファイルが存在する', () => {
+      expect(presentationSourceFiles.length).toBeGreaterThan(0)
+    })
+
+    for (const absolutePath of presentationSourceFiles) {
+      const relativePath = relative(repoRoot, absolutePath).split(sep).join('/')
+      it(`${relativePath} は @/lib/storage/* を import しない`, () => {
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not import @/lib/storage/*`,
+        ).not.toMatch(/from\s+['"]@\/lib\/storage\//)
+      })
+    }
+  })
+
   describe('domain/repositories/ の純度 (issue #457)', () => {
     const repositoryInterfaceFiles = [
       'src/contexts/saved-tabs/domain/repositories/TabGroupRepository.ts',

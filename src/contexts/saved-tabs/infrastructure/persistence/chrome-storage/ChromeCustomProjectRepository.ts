@@ -53,6 +53,22 @@ const findAllRawCustomProjects = async (
 }
 
 /**
+ * `findAllRawCustomProjects` の結果を `CustomProjectRawSnapshot` 形に
+ * widen する。raw 段階では optional な `categories` / `createdAt` /
+ * `updatedAt` を default で補完し、domain interface の snapshot 形
+ * （必須フィールド）と整合させる（issue #530 review P1）。
+ */
+const toRawSnapshots = (
+  raws: readonly CustomProjectRaw[],
+): CustomProjectRawSnapshot[] =>
+  raws.map((raw) => ({
+    ...raw,
+    categories: raw.categories ?? [],
+    createdAt: raw.createdAt ?? 0,
+    updatedAt: raw.updatedAt ?? 0,
+  }))
+
+/**
  * `CUSTOM_PROJECT_ORDER_KEY` の生値を `CustomProjectId[]` へ詰め替える。
  *
  * - 非配列 / 配列でも要素が文字列以外 / 空文字はスキップする。
@@ -147,7 +163,8 @@ const createChromeCustomProjectRepositoryImpl = (
   }
 
   const findAllRaw = async (): Promise<readonly CustomProjectRawSnapshot[]> => {
-    return findAllRawCustomProjects(port)
+    const raws = await findAllRawCustomProjects(port)
+    return toRawSnapshots(raws)
   }
 
   const restoreAllRaw = async (

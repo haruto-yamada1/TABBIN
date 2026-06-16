@@ -102,7 +102,7 @@ describe('ChromeCustomProjectRepository', () => {
       expect(result[1]?.urlIds).toStrictEqual(['url-1', 'url-2'])
     })
 
-    it('不正な要素をスキップして有効要素だけ返す', async () => {
+    it('不正な要素をスキップして有効要素だけ返す (categories 欠損は legacy データとして通す, issue #530 review P1)', async () => {
       const state: StorageState = {
         [CUSTOM_PROJECTS_KEY]: [
           {
@@ -125,7 +125,15 @@ describe('ChromeCustomProjectRepository', () => {
       }
       const repo = createChromeCustomProjectRepository(createPort(state))
       const result = await repo.findAll()
-      expect(result.map((p) => p.id)).toStrictEqual(['project-1', 'project-3'])
+      // `categories` 欠損の project-2 は legacy データとして default 反映される。
+      // null 要素は依然としてスキップされる。
+      expect(result.map((p) => p.id)).toStrictEqual([
+        'project-1',
+        'project-2',
+        'project-3',
+      ])
+      const noCategories = result.find((p) => p.id === 'project-2')
+      expect(noCategories?.categories).toStrictEqual([])
     })
   })
 
@@ -248,9 +256,10 @@ describe('ChromeCustomProjectRepository', () => {
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
         -1,
       )?.[0] as Record<string, unknown>
-      const savedRaw = (
-        lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[]
-      )[0] as Record<string, unknown>
+      const savedRaws = lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[]
+      const savedRaw = savedRaws.find(
+        (raw) => (raw as Record<string, unknown>)?.id === 'project-1',
+      ) as Record<string, unknown>
       expect(savedRaw).toMatchObject({
         categories: ['research'],
         categoryOrder: ['research', 'news'],
@@ -269,10 +278,10 @@ describe('ChromeCustomProjectRepository', () => {
       })
     })
 
-    it('既存 raw に不正な要素が混じっていても有効要素のリッチフィールドを保持する', async () => {
+    it('既存 raw に不正な要素が混じっていても有効要素のリッチフィールドを保持する (issue #530 review P1: categories 欠損は許容)', async () => {
       const state: StorageState = {
         [CUSTOM_PROJECTS_KEY]: [
-          // 不正要素（categories 無し）
+          // legacy データ: categories 無しだが raw parse は通る
           { createdAt: 1, id: 'broken', name: 'Broken', updatedAt: 1 },
           // 有効要素 + リッチフィールド
           {
@@ -301,9 +310,10 @@ describe('ChromeCustomProjectRepository', () => {
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
         -1,
       )?.[0] as Record<string, unknown>
-      const savedRaw = (
-        lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[]
-      )[0] as Record<string, unknown>
+      const savedRaws = lastSetArg[CUSTOM_PROJECTS_KEY] as unknown[]
+      const savedRaw = savedRaws.find(
+        (raw) => (raw as Record<string, unknown>)?.id === 'project-1',
+      ) as Record<string, unknown>
       // 不正要素混入下でも、有効要素の projectKeywords が merge で持ち越される
       expect(savedRaw).toMatchObject({
         id: 'project-1',

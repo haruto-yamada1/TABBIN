@@ -119,12 +119,15 @@ const toCustomProjectFromRaw = (
   raw: CustomProjectRaw,
 ): CustomProject | null => {
   try {
+    // `categories` / `createdAt` / `updatedAt` は raw 段階では optional
+    // （旧バージョン互換、issue #530 review P1）。entity 化段階で
+    // default を入れて domain 不変条件を満たす。
     return createCustomProject({
-      categories: raw.categories,
-      createdAt: raw.createdAt,
+      categories: raw.categories ?? [],
+      createdAt: raw.createdAt ?? 0,
       id: raw.id,
       name: raw.name,
-      updatedAt: raw.updatedAt,
+      updatedAt: raw.updatedAt ?? 0,
       urlIds: raw.urlIds ?? [],
     })
   } catch (error) {

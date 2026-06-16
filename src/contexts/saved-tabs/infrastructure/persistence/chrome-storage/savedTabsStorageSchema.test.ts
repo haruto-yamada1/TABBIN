@@ -136,7 +136,10 @@ describe('savedTabsStorageSchema', () => {
       expect(result.success).toBe(true)
     })
 
-    it('categories が無い project を弾く', () => {
+    it('categories が無い project は legacy データとして通す (issue #530 review P1)', () => {
+      // 旧バージョンの chrome.storage では `categories` が未保存のままの
+      // エントリが残っている可能性がある。raw 境界では optional として
+      // 受け付け、entity 化段階で default を入れる。
       expect(
         CustomProjectRawSchema.safeParse({
           createdAt: 1,
@@ -144,7 +147,7 @@ describe('savedTabsStorageSchema', () => {
           name: 'Q4',
           updatedAt: 1,
         }).success,
-      ).toBe(false)
+      ).toBe(true)
     })
 
     it('rich なオプションフィールドを持つ project を通す', () => {
@@ -177,7 +180,9 @@ describe('savedTabsStorageSchema', () => {
       expect(result.success).toBe(true)
     })
 
-    it('配列パースで必須欠けを弾く', () => {
+    it('配列パースで必須欠けを弾く (issue #530 review P1: categories 欠損は許容)', () => {
+      // `categories` 欠損は legacy データ対応で許容するが、`id` / `name` が
+      // 抜けた要素は依然として弾く。
       const result = CustomProjectRawArraySchema.safeParse([
         {
           categories: ['research'],
@@ -193,7 +198,20 @@ describe('savedTabsStorageSchema', () => {
           updatedAt: 1,
         },
       ])
-      expect(result.success).toBe(false)
+      expect(result.success).toBe(true)
+
+      const invalidResult = CustomProjectRawArraySchema.safeParse([
+        {
+          categories: ['research'],
+          createdAt: 1,
+          id: 'project-1',
+          name: 'Q4',
+          updatedAt: 1,
+        },
+        // id / name 欠損
+        { createdAt: 1, updatedAt: 1 },
+      ])
+      expect(invalidResult.success).toBe(false)
     })
   })
 })
