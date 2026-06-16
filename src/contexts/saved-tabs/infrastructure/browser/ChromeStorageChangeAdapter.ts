@@ -16,25 +16,43 @@
  * `options.areaName` で絞り込み、saved-tabs は `local` のみを
  * 対象とする既定とする。
  *
+ * 加えて、issue #530 の DDD 境界整理に従い、`unknown` の生データに対する
+ * zod schema パースと `safeParseArrayFromStorage` 相当の配列パースまでを
+ * 本 adapter 内に閉じ込める。listener には `TypedSavedTabsStorageChange`
+ * discriminated union として検証済み typed payload だけが流れる。
+ * 旧 `src/lib/storage/zod-storage` への依存は presentation 層から排除し、
+ * 永続化 schema は本 adapter 配下（`savedTabsStorageSchema`）に
+ * 統一する。port 段階では domain entity 化（branded id 付与）を
+ * 敢えて行わず、`@/types/storage` の DTO 相当の plain object を
+ * payload として流す（entity 化が必要なのは repository 実装側の責務）。
+ *
  * @example
  * ```ts
  * const port: StorageChangePort = createChromeStorageChangeAdapter()
  * const unsubscribe = port.subscribe((changes) => {
- *   // changes は port DTO の配列
+ *   // changes は TypedSavedTabsStorageChange の配列
  * })
  * // unmount 時に呼ぶ
  * unsubscribe()
  * ```
  */
 
+import { z } from 'zod'
+
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
 
 import { CHROME_STORAGE_CHANGE_ADAPTER_MARKER } from '../../application/ports/StorageChangePort'
 import type {
-  SavedTabsStorageChange,
   SavedTabsStorageChangeKey,
   StorageChangePort,
+  TypedSavedTabsStorageChange,
 } from '../../application/ports/StorageChangePort'
+import {
+  CustomProjectRawSchema,
+  ParentCategoryRawSchema,
+  SavedTabRawSchema,
+  UserSettingsRawSchema,
+} from '../persistence/chrome-storage/savedTabsStorageSchema'
 
 export interface ChromeStorageOnChangedLike {
   readonly addListener: (callback: ChromeOnChangedListener) => void
@@ -94,6 +112,53 @@ const isSavedTabsStorageChangeKey = (
 }
 
 /**
+ * `unknown` の生データから `TypedSavedTabsStorageChange` を組み立てる。
+ *
+ * `chrome.storage.onChanged` の payload は `unknown` なので、port 境界で
+ * 必ず zod schema 検証 + domain factory での entity 化を行ってから
+ * typed payload として emit する。
+ * 配列要素単位のスキップは `safeParseArrayFromStorage` 相当の挙動で
+ * 取り扱い、1 件壊れた要素で配列全体が破棄されないよう保つ
+ * （issue #530 / 旧 `modeSyncService` の P2 修正を port 側へ移動）。
+ */
+const safeParseArrayPayload = <T extends z.ZodType>(
+  schema: T,
+  value: unknown,
+): z.output<T>[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  const results: z.output<T>[] = []
+  for (let i = 0; i < value.length; i += 1) {
+    const item: unknown = value[i]
+    const parsed = schema.safeParse(item)
+    if (parsed.success) {
+      results.push(parsed.data)
+      continue
+    }
+    console.warn(
+      `[storage] 配列要素 ${i} のパースに失敗したためスキップしました`,
+      parsed.error.issues,
+    )
+  }
+  return results
+}
+
+/**
+ * `userSettings` は partial 適用が許されているため、`unknown` 値を
+ * `Partial<UserSettings>` 相当にパースし、失敗時は空 payload を返す。
+ */
+const parseUserSettingsPayload = (
+  value: unknown,
+): Partial<z.infer<typeof UserSettingsRawSchema>>[] => {
+  const parsed = UserSettingsRawSchema.partial().safeParse(value)
+  if (!parsed.success) {
+    return []
+  }
+  return [parsed.data]
+}
+
+/**
  * `chrome.storage.onChanged` を利用する `StorageChangePort` 実装を生成する。
  *
  * `chrome` API が見つからない環境（テスト / Storybook など）では
@@ -119,6 +184,63 @@ export const createChromeStorageChangeAdapter = (
     return getChromeStorageOnChanged() as ChromeStorageOnChangedLike | null
   }
 
+  const buildTypedChange = (
+    key: SavedTabsStorageChangeKey,
+    change: { newValue?: unknown; oldValue?: unknown },
+  ): TypedSavedTabsStorageChange | null => {
+    const oldValue = change.oldValue
+    const newValue = change.newValue
+    if (key === 'urls') {
+      return {
+        key,
+        kind: 'noPayload',
+        newValue,
+        oldValue,
+      }
+    }
+    if (key === 'savedTabs') {
+      return {
+        key,
+        kind: 'parsed',
+        oldValue,
+        payload: safeParseArrayPayload(SavedTabRawSchema, newValue),
+      }
+    }
+    if (key === 'parentCategories') {
+      return {
+        key,
+        kind: 'parsed',
+        oldValue,
+        payload: safeParseArrayPayload(ParentCategoryRawSchema, newValue),
+      }
+    }
+    if (key === 'customProjects') {
+      return {
+        key,
+        kind: 'parsed',
+        oldValue,
+        payload: safeParseArrayPayload(CustomProjectRawSchema, newValue),
+      }
+    }
+    if (key === 'customProjectOrder') {
+      return {
+        key,
+        kind: 'parsed',
+        oldValue,
+        payload: safeParseArrayPayload(z.string(), newValue),
+      }
+    }
+    if (key === 'userSettings') {
+      return {
+        key,
+        kind: 'parsed',
+        oldValue,
+        payload: parseUserSettingsPayload(newValue),
+      }
+    }
+    return null
+  }
+
   return {
     [CHROME_STORAGE_CHANGE_ADAPTER_MARKER]: true,
     subscribe: (listener) => {
@@ -130,16 +252,15 @@ export const createChromeStorageChangeAdapter = (
         if (area !== areaName) {
           return
         }
-        const events: SavedTabsStorageChange[] = []
+        const events: TypedSavedTabsStorageChange[] = []
         for (const [key, change] of Object.entries(changes)) {
           if (!isSavedTabsStorageChangeKey(key)) {
             continue
           }
-          events.push({
-            key,
-            oldValue: change.oldValue,
-            newValue: change.newValue,
-          })
+          const event = buildTypedChange(key, change)
+          if (event) {
+            events.push(event)
+          }
         }
         listener(events)
       }

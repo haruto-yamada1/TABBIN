@@ -1,7 +1,7 @@
 import type { RefObject, SetStateAction } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type {
   CustomProject,
@@ -21,12 +21,18 @@ const createProject = (overrides: Partial<CustomProject>): CustomProject => ({
   ...overrides,
 })
 
-const createChange = (
-  key: SavedTabsStorageChange['key'],
+// テストヘルパー: port DTO を直接組み立てるための薄いラッパー。
+// ポート仕様 (`TypedSavedTabsStorageChange`) を満たす値だけを渡し、
+// service 側ロジックのシナリオ検証に集中する。
+// 各テストで `TypedSavedTabsStorageChange` 型の `change` 変数を直接
+// 組み立てて `changes: [change]` の形で渡す。
+
+const createUrlsChange = (
   newValue: unknown,
   oldValue?: unknown,
-): SavedTabsStorageChange => ({
-  key,
+): TypedSavedTabsStorageChange => ({
+  key: 'urls',
+  kind: 'noPayload',
   newValue,
   oldValue,
 })
@@ -105,16 +111,16 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       projects: prevProjects,
     })
+    const orderChange: TypedSavedTabsStorageChange = {
+      key: 'customProjectOrder',
+      kind: 'parsed',
+      oldValue: ['project-1', 'project-2', 'project-3'],
+      payload: ['project-3', 'project-1'],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange(
-          'customProjectOrder',
-          ['project-3', 'project-1'],
-          ['project-1', 'project-2', 'project-3'],
-        ),
-      ],
+      changes: [orderChange],
     })
 
     expect(ctx.state.getProjects().map((project) => project.id)).toStrictEqual([
@@ -146,31 +152,35 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       projects: [prevP1, prevP2],
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [
+        createProject({
+          id: 'project-1',
+          name: 'P1',
+          urlIds: ['url-1'],
+          urlMetadata: {
+            'url-1': {
+              category: 'Work',
+            },
+          },
+          urls: [
+            {
+              url: 'https://a.example.com',
+              title: 'A',
+              category: 'Work',
+            },
+          ],
+        }),
+        createProject({ id: 'project-2', name: 'P2 updated' }),
+      ],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', [
-          createProject({
-            id: 'project-1',
-            name: 'P1',
-            urlIds: ['url-1'],
-            urlMetadata: {
-              'url-1': {
-                category: 'Work',
-              },
-            },
-            urls: [
-              {
-                url: 'https://a.example.com',
-                title: 'A',
-                category: 'Work',
-              },
-            ],
-          }),
-          createProject({ id: 'project-2', name: 'P2 updated' }),
-        ]),
-      ],
+      changes: [projectsChange],
     })
 
     const nextProjects = ctx.state.getProjects()
@@ -188,13 +198,16 @@ describe('syncStorageChanges', () => {
         urlIds: ['url-1'],
       },
     ]
+    const savedTabsChange: TypedSavedTabsStorageChange = {
+      key: 'savedTabs',
+      kind: 'parsed',
+      oldValue: [],
+      payload: nextSavedTabs,
+    }
 
     const events = await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('savedTabs', nextSavedTabs),
-        createChange('urls', []),
-      ],
+      changes: [savedTabsChange, createUrlsChange([])],
     })
 
     // 旧 `invalidateUrlCache()` の呼び出しは DDD 移行で撤去済み。
@@ -237,16 +250,22 @@ describe('syncStorageChanges', () => {
         domainNames: [],
       },
     ]
+    const settingsChange: TypedSavedTabsStorageChange = {
+      key: 'userSettings',
+      kind: 'parsed',
+      oldValue: {},
+      payload: [{ removeTabAfterOpen: true }],
+    }
+    const categoriesChange: TypedSavedTabsStorageChange = {
+      key: 'parentCategories',
+      kind: 'parsed',
+      oldValue: [],
+      payload: nextCategories,
+    }
 
     const events = await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('urls', []),
-        createChange('userSettings', {
-          removeTabAfterOpen: true,
-        }),
-        createChange('parentCategories', nextCategories),
-      ],
+      changes: [createUrlsChange([]), settingsChange, categoriesChange],
     })
 
     // 旧 `invalidateUrlCache()` の呼び出しは DDD 移行で撤去済み。
@@ -272,9 +291,16 @@ describe('syncStorageChanges', () => {
       projects: initialProjects,
     })
 
+    const orderChange: TypedSavedTabsStorageChange = {
+      key: 'customProjectOrder',
+      kind: 'parsed',
+      oldValue: undefined,
+      payload: ['missing-project'],
+    }
+
     await syncStorageChanges({
       ...ctx.args,
-      changes: [createChange('customProjectOrder', ['missing-project'])],
+      changes: [orderChange],
     })
 
     expect(ctx.state.getProjects()).toBe(initialProjects)
@@ -286,32 +312,36 @@ describe('syncStorageChanges', () => {
       mode: 'domain',
       projects: initialProjects,
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [createProject({ id: 'project-1', name: 'P1 updated' })],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', [
-          createProject({ id: 'project-1', name: 'P1 updated' }),
-        ]),
-      ],
+      changes: [projectsChange],
     })
 
     expect(ctx.spies.setCustomProjects).not.toHaveBeenCalled()
     expect(ctx.state.getProjects()).toBe(initialProjects)
   })
 
-  it('customProjects が配列以外の場合は空配列で反映する', async () => {
+  it('customProjects payload が空配列の場合は空配列で反映する (port 段階でスキップ済)', async () => {
     const ctx = createSyncContext({
       projects: [createProject({ id: 'project-1' })],
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', {
-          invalid: true,
-        }),
-      ],
+      changes: [projectsChange],
     })
 
     expect(ctx.state.getProjects()).toStrictEqual([])
@@ -329,17 +359,21 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       projects: [prev],
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [
+        createProject({
+          id: 'project-1',
+          urlMetadata: {},
+        }),
+      ],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', [
-          createProject({
-            id: 'project-1',
-            urlMetadata: {},
-          }),
-        ]),
-      ],
+      changes: [projectsChange],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -357,21 +391,25 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       projects: [prev],
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [
+        createProject({
+          id: 'project-1',
+          urlMetadata: {
+            'url-b': {
+              category: 'Work',
+            },
+          },
+        }),
+      ],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', [
-          createProject({
-            id: 'project-1',
-            urlMetadata: {
-              'url-b': {
-                category: 'Work',
-              },
-            },
-          }),
-        ]),
-      ],
+      changes: [projectsChange],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -389,21 +427,25 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       projects: [prev],
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [
+        createProject({
+          id: 'project-1',
+          urlMetadata: {
+            'url-1': {
+              category: 'Private',
+            },
+          },
+        }),
+      ],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', [
-          createProject({
-            id: 'project-1',
-            urlMetadata: {
-              'url-1': {
-                category: 'Private',
-              },
-            },
-          }),
-        ]),
-      ],
+      changes: [projectsChange],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -417,17 +459,21 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       projects: [prev],
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [
+        createProject({
+          id: 'project-1',
+          categories: [],
+        }),
+      ],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', [
-          createProject({
-            id: 'project-1',
-            categories: [],
-          }),
-        ]),
-      ],
+      changes: [projectsChange],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
@@ -441,39 +487,45 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       projects: [prev],
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [
+        createProject({
+          id: 'project-1',
+          categories: ['Private'],
+        }),
+      ],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', [
-          createProject({
-            id: 'project-1',
-            categories: ['Private'],
-          }),
-        ]),
-      ],
+      changes: [projectsChange],
     })
 
     expect(ctx.state.getProjects()[0]).not.toBe(prev)
   })
 
-  it('savedTabs が配列以外の場合は空配列で同期する', async () => {
+  it('savedTabs payload が空配列の場合は空配列で同期する (port 段階で空配列化済)', async () => {
     const ctx = createSyncContext()
+    const savedTabsChange: TypedSavedTabsStorageChange = {
+      key: 'savedTabs',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('savedTabs', {
-          invalid: true,
-        }),
-      ],
+      changes: [savedTabsChange],
     })
 
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith([])
     expect(ctx.spies.syncDomainDataToCustomProjects).toHaveBeenCalledTimes(1)
   })
 
-  it('userSettings が undefined の場合は既存設定を維持する', async () => {
+  it('userSettings payload が空配列の場合は既存設定を維持する (port 段階で undefined→空配列化済)', async () => {
     const initialSettings = {
       removeTabAfterOpen: false,
       colors: {},
@@ -481,16 +533,22 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       settings: initialSettings,
     })
+    const settingsChange: TypedSavedTabsStorageChange = {
+      key: 'userSettings',
+      kind: 'parsed',
+      oldValue: undefined,
+      payload: [],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [createChange('userSettings', undefined)],
+      changes: [settingsChange],
     })
 
     expect(ctx.state.getSettings()).toStrictEqual(initialSettings)
   })
 
-  it('parentCategories が配列以外の場合は空配列を設定する', async () => {
+  it('parentCategories payload が空配列の場合は空配列を設定する (port 段階で配列外→空配列化済)', async () => {
     const ctx = createSyncContext({
       categories: [
         {
@@ -501,14 +559,16 @@ describe('syncStorageChanges', () => {
         },
       ],
     })
+    const categoriesChange: TypedSavedTabsStorageChange = {
+      key: 'parentCategories',
+      kind: 'parsed',
+      oldValue: undefined,
+      payload: [],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('parentCategories', {
-          invalid: true,
-        }),
-      ],
+      changes: [categoriesChange],
     })
 
     expect(ctx.state.getCategories()).toStrictEqual([])
@@ -522,17 +582,21 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext({
       projects: [prev],
     })
+    const projectsChange: TypedSavedTabsStorageChange = {
+      key: 'customProjects',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [
+        createProject({
+          id: 'project-1',
+          name: 'Same',
+        }),
+      ],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('customProjects', [
-          createProject({
-            id: 'project-1',
-            name: 'Same',
-          }),
-        ]),
-      ],
+      changes: [projectsChange],
     })
 
     expect(ctx.state.getProjects()[0]).toBe(prev)
@@ -553,36 +617,35 @@ describe('syncStorageChanges', () => {
     expect(ctx.spies.setCustomProjects).not.toHaveBeenCalled()
   })
 
-  it('savedTabs に壊れた要素が混ざっても他要素を反映し同期を止めない', async () => {
-    // Codex P2 修正: 1 件の壊れたレコードで refreshTabGroupsWithUrls / syncDomainDataToCustomProjects が落ちない
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  it('savedTabs payload に valid のみが port 段階で残ったケースを反映する', async () => {
+    // port 段階 (`ChromeStorageChangeAdapter`) で壊れた要素は除外済みという
+    // 前提で、service 側はその payload をそのまま同期する。
     const ctx = createSyncContext()
     const validGroup: TabGroup = {
       id: 'group-1',
       domain: 'https://example.com',
       urlIds: ['url-1'],
     }
+    const savedTabsChange: TypedSavedTabsStorageChange = {
+      key: 'savedTabs',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [validGroup],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [
-        createChange('savedTabs', [
-          validGroup,
-          { id: 'broken' } as unknown as TabGroup, // domain 欠損
-        ]),
-      ],
+      changes: [savedTabsChange],
     })
 
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith([
       validGroup,
     ])
     expect(ctx.spies.syncDomainDataToCustomProjects).toHaveBeenCalledTimes(1)
-    expect(warnSpy).toHaveBeenCalled()
   })
 
-  it('parentCategories に旧形式の壊れた要素が混ざっても他要素を反映する', async () => {
-    // Codex P2 修正: domainNames 欠損の旧レコードをスキップしつつ、正常分は反映する
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  it('parentCategories payload に valid のみが port 段階で残ったケースを反映する', async () => {
+    // port 段階で壊れた要素は除外済み、service 側は valid だけを反映する。
     const ctx = createSyncContext()
     const valid: ParentCategory = {
       id: 'parent-1',
@@ -590,18 +653,18 @@ describe('syncStorageChanges', () => {
       domains: [],
       domainNames: [],
     }
-    const broken = {
-      id: 'parent-old',
-      name: 'Legacy',
-      domains: [],
-    } as unknown as ParentCategory
+    const categoriesChange: TypedSavedTabsStorageChange = {
+      key: 'parentCategories',
+      kind: 'parsed',
+      oldValue: [],
+      payload: [valid],
+    }
 
     await syncStorageChanges({
       ...ctx.args,
-      changes: [createChange('parentCategories', [valid, broken])],
+      changes: [categoriesChange],
     })
 
     expect(ctx.state.getCategories()).toStrictEqual([valid])
-    expect(warnSpy).toHaveBeenCalled()
   })
 })
