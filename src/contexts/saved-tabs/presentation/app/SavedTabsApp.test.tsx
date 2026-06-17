@@ -683,6 +683,11 @@ describe('SavedTabsApp custom search', () => {
         reorderCustomProjectUrls: vi.fn(),
         renameCustomProjectCategory: vi.fn(),
         updateCustomProjectKeywords: vi.fn(),
+        // issue #540: `useProjectManagement` deps と
+        // `handleMoveUrlBetweenProjects` 用に増えた use-case モック。
+        addCategoryToCustomProject: vi.fn(),
+        removeCategoryFromCustomProject: vi.fn(),
+        moveUrlBetweenCustomProjects: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       snapshot: {
@@ -757,6 +762,11 @@ describe('SavedTabsApp custom search', () => {
         reorderCustomProjectUrls: vi.fn(),
         renameCustomProjectCategory: vi.fn(),
         updateCustomProjectKeywords: vi.fn(),
+        // issue #540: `useProjectManagement` deps と
+        // `handleMoveUrlBetweenProjects` 用に増えた use-case モック。
+        addCategoryToCustomProject: vi.fn(),
+        removeCategoryFromCustomProject: vi.fn(),
+        moveUrlBetweenCustomProjects: vi.fn(),
       },
       setCustomProjects: vi.fn(),
       t: (key) => key,

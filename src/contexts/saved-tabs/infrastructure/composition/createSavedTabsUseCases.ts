@@ -5,6 +5,7 @@ import { createGetCustomProjectUndoSnapshotQuery } from '../../application/queri
 import { createGetSavedTabsPageDataQuery } from '../../application/queries/GetSavedTabsPageDataQuery'
 import { createGetSavedTabsQuery } from '../../application/queries/GetSavedTabsQuery'
 import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
+import { createAddCategoryToCustomProjectUseCase } from '../../application/use-cases/AddCategoryToCustomProjectUseCase'
 import { createAddDomainToParentCategoryUseCase } from '../../application/use-cases/AddDomainToParentCategoryUseCase'
 import { createAddUrlToCustomProjectUseCase } from '../../application/use-cases/AddUrlToCustomProjectUseCase'
 import { createAssignDomainToCategoryUseCase } from '../../application/use-cases/AssignDomainToCategoryUseCase'
@@ -22,10 +23,12 @@ import { createGetProjectUrlsUseCase } from '../../application/use-cases/GetProj
 import { createLoadTabGroupsWithUrlsUseCase } from '../../application/use-cases/LoadTabGroupsWithUrlsUseCase'
 import { createLoadTabGroupUrlsUseCase } from '../../application/use-cases/LoadTabGroupUrlsUseCase'
 import { createMoveDomainBetweenCategoriesUseCase } from '../../application/use-cases/MoveDomainBetweenCategoriesUseCase'
+import { createMoveUrlBetweenCustomProjectsUseCase } from '../../application/use-cases/MoveUrlBetweenCustomProjectsUseCase'
 import { createOpenAllSavedUrlsUseCase } from '../../application/use-cases/OpenAllSavedUrlsUseCase'
 import { createOpenSavedUrlUseCase } from '../../application/use-cases/OpenSavedUrlUseCase'
 import { createPrepareTabGroupDeletionUseCase } from '../../application/use-cases/PrepareTabGroupDeletionUseCase'
 import { createPrepareTabGroupsDeletionUseCase } from '../../application/use-cases/PrepareTabGroupsDeletionUseCase'
+import { createRemoveCategoryFromCustomProjectUseCase } from '../../application/use-cases/RemoveCategoryFromCustomProjectUseCase'
 import { createRemoveDomainFromParentCategoryUseCase } from '../../application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import { createRemoveDomainsFromParentCategoriesUseCase } from '../../application/use-cases/RemoveDomainsFromParentCategoriesUseCase'
 import { createRemoveSubCategoryFromTabGroupsUseCase } from '../../application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
@@ -252,6 +255,27 @@ export const createSavedTabsUseCases = (
     customProjectsCommandService: deps.customProjectsCommandService,
   }),
   updateCustomProjectKeywords: createUpdateCustomProjectKeywordsUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+  }),
+  // issue #540: 旧 `useProjectManagement` 配下に残っていた
+  // `CustomProjectsCommandService` 直叩き 2 操作
+  // (`addCategoryToProject` / `removeCategoryFromProject`) を
+  // application use-case へ移設し、presentation 層が port
+  // (`CustomProjectsCommandService`) を直接 import しない形へ
+  // 統一する。
+  addCategoryToCustomProject: createAddCategoryToCustomProjectUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+  }),
+  removeCategoryFromCustomProject: createRemoveCategoryFromCustomProjectUseCase(
+    {
+      customProjectsCommandService: deps.customProjectsCommandService,
+    },
+  ),
+  // issue #540: 旧 `SavedTabsApp.handleMoveUrlBetweenProjects` 内
+  // の `customProjectsCommandService.moveUrlBetweenCustomProjects`
+  // 直叩きを application use-case へ移設し、`SavedTabsApp` が port
+  // を直接扱わない構成に寄せる。
+  moveUrlBetweenCustomProjects: createMoveUrlBetweenCustomProjectsUseCase({
     customProjectsCommandService: deps.customProjectsCommandService,
   }),
   renameParentCategory: createRenameParentCategoryUseCase({

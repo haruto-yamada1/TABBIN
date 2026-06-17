@@ -4,6 +4,7 @@ import type { GetCustomProjectsQuery } from './queries/GetCustomProjectsQuery'
 import type { GetCustomProjectUndoSnapshotQuery } from './queries/GetCustomProjectUndoSnapshotQuery'
 import type { GetSavedTabsPageDataQuery } from './queries/GetSavedTabsPageDataQuery'
 import type { GetSavedTabsQuery } from './queries/GetSavedTabsQuery'
+import type { AddCategoryToCustomProjectUseCase } from './use-cases/AddCategoryToCustomProjectUseCase'
 import type { AddDomainToParentCategoryUseCase } from './use-cases/AddDomainToParentCategoryUseCase'
 import type { AddUrlToCustomProjectUseCase } from './use-cases/AddUrlToCustomProjectUseCase'
 import type { AssignDomainToCategoryUseCase } from './use-cases/AssignDomainToCategoryUseCase'
@@ -21,10 +22,12 @@ import type { GetProjectUrlsUseCase } from './use-cases/GetProjectUrlsUseCase'
 import type { LoadTabGroupsWithUrlsUseCase } from './use-cases/LoadTabGroupsWithUrlsUseCase'
 import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCase'
 import type { MoveDomainBetweenCategoriesUseCase } from './use-cases/MoveDomainBetweenCategoriesUseCase'
+import type { MoveUrlBetweenCustomProjectsUseCase } from './use-cases/MoveUrlBetweenCustomProjectsUseCase'
 import type { OpenAllSavedUrlsUseCase } from './use-cases/OpenAllSavedUrlsUseCase'
 import type { OpenSavedUrlUseCase } from './use-cases/OpenSavedUrlUseCase'
 import type { PrepareTabGroupDeletionUseCase } from './use-cases/PrepareTabGroupDeletionUseCase'
 import type { PrepareTabGroupsDeletionUseCase } from './use-cases/PrepareTabGroupsDeletionUseCase'
+import type { RemoveCategoryFromCustomProjectUseCase } from './use-cases/RemoveCategoryFromCustomProjectUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from './use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RemoveDomainsFromParentCategoriesUseCase } from './use-cases/RemoveDomainsFromParentCategoriesUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCase } from './use-cases/RemoveSubCategoryFromTabGroupsUseCase'
@@ -200,6 +203,30 @@ export interface SavedTabsUseCases {
    * `customProjectsCommandService.updateProjectKeywords` 直叩きを置換。
    */
   readonly updateCustomProjectKeywords: UpdateCustomProjectKeywordsUseCase
+  /**
+   * プロジェクトにカテゴリを追加する use-case (issue #540)。
+   * 旧 `useProjectManagement.handleAddCategory` 内の
+   * `customProjectsCommandService.addCategoryToProject` 直叩きを置換し、
+   * `useProjectManagement` 側の `CustomProjectsCommandService` 依存を
+   * 撤去する。
+   */
+  readonly addCategoryToCustomProject: AddCategoryToCustomProjectUseCase
+  /**
+   * プロジェクトからカテゴリを削除する use-case (issue #540)。
+   * 旧 `useProjectManagement.handleDeleteProjectCategory` 内の
+   * `customProjectsCommandService.removeCategoryFromProject` 直叩きを
+   * 置換し、`useProjectManagement` 側の `CustomProjectsCommandService`
+   * 依存を撤去する。
+   */
+  readonly removeCategoryFromCustomProject: RemoveCategoryFromCustomProjectUseCase
+  /**
+   * プロジェクト間で URL を移動する use-case (issue #540)。
+   * 旧 `SavedTabsApp.handleMoveUrlBetweenProjects` 内の
+   * `customProjectsCommandService.moveUrlBetweenCustomProjects` 直叩き
+   * を application 層へ移設し、`SavedTabsApp` が port を直接扱わない
+   * 構成に寄せる。
+   */
+  readonly moveUrlBetweenCustomProjects: MoveUrlBetweenCustomProjectsUseCase
   /**
    * `CustomProject` ドメイン entity 一覧の読み取り query (issue #538)。
    * 旧 `useProjectManagement` 内の `customProjectRepository.findAll`

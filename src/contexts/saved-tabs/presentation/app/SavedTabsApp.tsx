@@ -141,12 +141,10 @@ const useSavedTabsAppView = ({
     tabDataState.tabGroups,
     settings,
     initialViewMode,
-    // issue #539 範囲外: `addCategoryToProject` /
-    // `removeCategoryFromProject` のみ port 直叩きするため
-    // `customProjectsCommandService` を渡し、URL / カテゴリ
-    // 操作 8 メソッドは SavedTabsUseCases 経由の use-case
-    // 関数だけを deps に渡す。
-    deps.customProjectsCommandService,
+    // issue #540 範囲: `customProjectsCommandService` パラメータ
+    // を撤去し、`addCategoryToProject` /
+    // `removeCategoryFromProject` を含むすべての操作を
+    // SavedTabsUseCases 経由の use-case 関数として渡す形へ統一。
     savedTabsUseCases.createCustomProject,
     savedTabsUseCases.deleteCustomProject,
     savedTabsUseCases.updateCustomProjectName,
@@ -160,6 +158,8 @@ const useSavedTabsAppView = ({
     savedTabsUseCases.reorderCustomProjectUrls,
     savedTabsUseCases.renameCustomProjectCategory,
     savedTabsUseCases.updateCustomProjectKeywords,
+    savedTabsUseCases.addCategoryToCustomProject,
+    savedTabsUseCases.removeCategoryFromCustomProject,
   )
   const {
     categories,
@@ -515,8 +515,7 @@ const useSavedTabsAppView = ({
         // customProject 側の URL ID 同期削除は他 storage key を触る
         // ため、issue 範囲外として従来通り UI 側で実行していたが、
         // issue #512 で `removeUrlsFromCustomProjects` use-case へ
-        // 移設済み。`deps.customProjectsCommandService` 直叩きは
-        // 必要なくなった。
+        // 移設済み (issue #540 範囲)。
         await savedTabsUseCases.removeUrlsFromCustomProjects({
           tabGroups: groupsToDelete,
         })
@@ -979,6 +978,12 @@ const useSavedTabsAppView = ({
   }, [initialViewMode, onViewModeNavigate, viewMode])
 
   // カスタムプロジェクト間でURLを移動するハンドラ
+  // issue #540: `customProjectRepository` /
+  // `customProjectsCommandService` 直叩きを撤去し、
+  // `getCustomProjects` query (読み取り) と
+  // `moveUrlBetweenCustomProjects` use-case (更新) 経由で
+  // 移動と state 同期を行う。`SavedTabsApp` は port / repository
+  // モジュールを import しない構成に統一する。
   const handleMoveUrlBetweenProjects = useCallback(
     async (sourceProjectId: string, targetProjectId: string, url: string) => {
       try {
@@ -986,19 +991,27 @@ const useSavedTabsAppView = ({
           `URL移動: ${sourceProjectId} → ${targetProjectId}, URL: ${url}`,
         )
         await moveCustomProjectUrlAndSyncState({
+          // application query `getCustomProjects` は
+          // domain entity `CustomProject` を返すが、state 同期先で
+          // 必要なのは storage 形 (`@/types/storage` の `CustomProject`)
+          // のため、mapper 経由で projection する。
           getCustomProjects: async () => {
-            const projects = await deps.customProjectRepository.findAll()
+            const projects = await savedTabsUseCases.getCustomProjects()
             return projects.map((project) => ({
               categories: [...project.categories],
               createdAt: project.createdAt,
-              id: project.id,
+              // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain CustomProjectId と storage 側の string 差 (issue #511 と同系統)
+              id: project.id as unknown as string,
               name: project.name,
               updatedAt: project.updatedAt,
-              urlIds: [...project.urlIds],
+              ...(project.urlIds.length > 0
+                ? // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain UrlRecordId と storage 側の string 差 (issue #511 と同系統)
+                  { urlIds: [...project.urlIds] as unknown as string[] }
+                : {}),
             }))
           },
           moveUrlBetweenCustomProjects:
-            deps.customProjectsCommandService.moveUrlBetweenCustomProjects,
+            savedTabsUseCases.moveUrlBetweenCustomProjects,
           setCustomProjects,
           sourceProjectId,
           targetProjectId,
@@ -1012,12 +1025,7 @@ const useSavedTabsAppView = ({
         return null
       }
     },
-    [
-      deps.customProjectRepository,
-      deps.customProjectsCommandService,
-      setCustomProjects,
-      t,
-    ],
+    [savedTabsUseCases, setCustomProjects, t],
   )
 
   // カテゴリ間でURLを移動するハンドラ

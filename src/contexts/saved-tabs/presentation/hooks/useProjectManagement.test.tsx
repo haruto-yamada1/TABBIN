@@ -14,13 +14,14 @@ import type { CustomProject } from '@/types/storage'
 import { useProjectManagement } from './useProjectManagement'
 
 const projectManagementMocks = vi.hoisted(() => ({
-  // issue #539 範囲外: 旧 `customProjectsCommandService` 経由で
-  // 残る 2 操作 (`addCategoryToProject` / `removeCategoryFromProject`)
-  // の port mock。
-  addCategoryToProject: vi.fn(),
-  removeCategoryFromProject: vi.fn(),
-  // issue #539 で application use-case 化した 8 操作の use-case
-  // mock。`useProjectManagement` には use-case 関数として渡される。
+  // issue #539 / #540 で application use-case へ移設した 10 操作の
+  // use-case mock。`useProjectManagement` には use-case 関数として
+  // 渡される。issue #540 で `addCategoryToProject` /
+  // `removeCategoryFromProject` も use-case 化されたため、`addCategoryToCustomProject`
+  // / `removeCategoryFromCustomProject` mock として独立した
+  // deps に並ぶ。
+  addCategoryToCustomProject: vi.fn(),
+  removeCategoryFromCustomProject: vi.fn(),
   addUrlToCustomProject: vi.fn(),
   removeUrlFromCustomProject: vi.fn(),
   removeUrlsFromCustomProject: vi.fn(),
@@ -183,13 +184,13 @@ describe('useProjectManagement', () => {
    * 同名 mock 関数をそのまま参照する形に統一しつつ、presentation
    * 側で未使用の `removeUrlIdsFromAllCustomProjects` /
    * `removeUrlsFromAllCustomProjects` は no-op vi.fn で補完する。
+   *
+   * issue #540 で `useProjectManagement` から
+   * `customProjectsCommandService` パラメータも完全に撤去された
+   * (port 直接依存の 2 操作 `addCategoryToProject` /
+   * `removeCategoryFromProject` も use-case 化された) ため、
+   * `customProjectsCommandService` 変数は存在しない。
    */
-  // `customProjectsCommandService` は `useProjectManagement` の
-  // `CustomProjectsCommandService` として渡される。テストでは
-  // `projectManagementMocks` の同名関数をそのまま参照する形に統一しつつ、
-  // presentation 側で未使用のメソッドは no-op vi.fn で補完する。
-  // eslint-disable-next-line typescript/no-explicit-any
-  let customProjectsCommandService: any
 
   beforeEach(() => {
     for (const mock of Object.values(projectManagementMocks)) {
@@ -360,66 +361,6 @@ describe('useProjectManagement', () => {
       },
     )
 
-    customProjectsCommandService = {
-      // issue #539 で use-case 化されていない 2 操作 (
-      // `addCategoryToProject` / `removeCategoryFromProject`) のみ
-      // 旧 `CustomProjectsCommandService` port 経由で呼ばれる。
-      addCategoryToProject: projectManagementMocks.addCategoryToProject,
-      moveUrlBetweenCustomProjects: vi.fn(),
-      removeCategoryFromProject:
-        projectManagementMocks.removeCategoryFromProject,
-      // `removeUrlIdsFromAllCustomProjects` /
-      // `removeUrlsFromAllCustomProjects` は presentation 配下では
-      // use-case 経由 (`RemoveUrlsFromCustomProjectsUseCase`) の API
-      // として参照されるため、後方互換のため no-op vi.fn を
-      // 用意する。
-      removeUrlIdsFromAllCustomProjects: vi.fn(),
-      removeUrlsFromAllCustomProjects: vi.fn(),
-      // issue #539 で application use-case 化された 8 メソッドは
-      // `useProjectManagement` から port 経由で呼ばれないため、
-      // port mock には no-op を割り当てる (誤って port 経由で
-      // 呼ばれた場合はここで fail する)。
-      addUrlToCustomProject: vi.fn(() => {
-        throw new Error(
-          'addUrlToCustomProject port should not be called; use addUrlToCustomProjectUseCase',
-        )
-      }),
-      removeUrlFromCustomProject: vi.fn(() => {
-        throw new Error(
-          'removeUrlFromCustomProject port should not be called; use removeUrlFromCustomProjectUseCase',
-        )
-      }),
-      removeUrlsFromCustomProject: vi.fn(() => {
-        throw new Error(
-          'removeUrlsFromCustomProject port should not be called; use removeUrlsFromCustomProjectUseCase',
-        )
-      }),
-      renameCategoryInProject: vi.fn(() => {
-        throw new Error(
-          'renameCategoryInProject port should not be called; use renameCustomProjectCategoryUseCase',
-        )
-      }),
-      reorderProjectUrls: vi.fn(() => {
-        throw new Error(
-          'reorderProjectUrls port should not be called; use reorderCustomProjectUrlsUseCase',
-        )
-      }),
-      setUrlCategory: vi.fn(() => {
-        throw new Error(
-          'setUrlCategory port should not be called; use setCustomProjectUrlCategoryUseCase',
-        )
-      }),
-      updateCategoryOrder: vi.fn(() => {
-        throw new Error(
-          'updateCategoryOrder port should not be called; use updateCustomProjectCategoryOrderUseCase',
-        )
-      }),
-      updateProjectKeywords: vi.fn(() => {
-        throw new Error(
-          'updateProjectKeywords port should not be called; use updateCustomProjectKeywordsUseCase',
-        )
-      }),
-    } as never
     projectManagementMocks.createCustomProject.mockResolvedValue({
       category: projectSnapshot[0],
       project: projectSnapshot[0],
@@ -429,6 +370,15 @@ describe('useProjectManagement', () => {
       all: [projectSnapshot[0]],
       project: projectSnapshot[0],
     })
+    // issue #540: `addCategoryToCustomProject` /
+    // `removeCategoryFromCustomProject` は独立した use-case
+    // deps として `useProjectManagement` に渡される。
+    projectManagementMocks.addCategoryToCustomProject.mockResolvedValue(
+      undefined,
+    )
+    projectManagementMocks.removeCategoryFromCustomProject.mockResolvedValue(
+      undefined,
+    )
   })
 
   afterEach(() => {
@@ -452,7 +402,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'domain',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -467,6 +416,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -497,7 +449,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -512,6 +463,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -540,7 +494,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -555,6 +508,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
     unmount()
@@ -582,7 +538,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'domain',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -597,6 +552,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -626,7 +584,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'domain',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -641,6 +598,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -671,7 +631,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         undefined,
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -686,6 +645,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -721,7 +683,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -736,6 +697,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -781,7 +745,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -796,6 +759,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -839,7 +805,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -854,6 +819,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -919,7 +887,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -934,6 +901,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -959,8 +929,8 @@ describe('useProjectManagement', () => {
     })
 
     expect(
-      projectManagementMocks.removeCategoryFromProject,
-    ).toHaveBeenCalledWith('project-1', 'Inbox')
+      projectManagementMocks.removeCategoryFromCustomProject,
+    ).toHaveBeenCalledWith({ categoryName: 'Inbox', projectId: 'project-1' })
     expect(result.current.customProjects).toStrictEqual([])
 
     await act(async () => {
@@ -1025,7 +995,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -1040,6 +1009,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -1065,10 +1037,9 @@ describe('useProjectManagement', () => {
       await result.current.handleRenameCategory('project-4', 'Old', 'New')
     })
 
-    expect(projectManagementMocks.addCategoryToProject).toHaveBeenCalledWith(
-      'project-2',
-      'Review',
-    )
+    expect(
+      projectManagementMocks.addCategoryToCustomProject,
+    ).toHaveBeenCalledWith({ categoryName: 'Review', projectId: 'project-2' })
     expect(projectManagementMocks.updateCategoryOrder).toHaveBeenCalledWith({
       newOrder: ['Review', 'Inbox'],
       projectId: 'project-2',
@@ -1135,7 +1106,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -1150,6 +1120,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -1193,10 +1166,10 @@ describe('useProjectManagement', () => {
     projectManagementMocks.removeUrlsFromCustomProject.mockRejectedValue(
       new Error('delete urls failed'),
     )
-    projectManagementMocks.addCategoryToProject.mockRejectedValue(
+    projectManagementMocks.addCategoryToCustomProject.mockRejectedValue(
       new Error('add category failed'),
     )
-    projectManagementMocks.removeCategoryFromProject.mockRejectedValue(
+    projectManagementMocks.removeCategoryFromCustomProject.mockRejectedValue(
       new Error('delete category failed'),
     )
     projectManagementMocks.setUrlCategory.mockRejectedValue(
@@ -1227,7 +1200,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -1242,6 +1214,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -1322,7 +1297,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -1337,6 +1311,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -1437,7 +1414,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -1452,6 +1428,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -1510,7 +1489,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -1525,6 +1503,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
@@ -1584,7 +1565,6 @@ describe('useProjectManagement', () => {
         [],
         defaultSettings,
         'custom',
-        customProjectsCommandService,
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
@@ -1599,6 +1579,9 @@ describe('useProjectManagement', () => {
         projectManagementMocks.reorderProjectUrls,
         projectManagementMocks.renameCategoryInProject,
         projectManagementMocks.updateProjectKeywords,
+        // issue #540: 2 つの use-case を独立した deps として渡す。
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
       ),
     )
 
