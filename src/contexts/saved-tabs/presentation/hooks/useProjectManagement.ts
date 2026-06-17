@@ -3,12 +3,13 @@
  * @description カスタムプロジェクトの CRUD・ビューモード切替・URL管理・
  * プロジェクト内カテゴリ管理を担うカスタムフック。
  *
- * 旧 `customProjectRepository` 直接依存 (issue #538) を撤去し、
- * 読み取り系は application query (`getCustomProjectsQuery` /
- * `getCustomProjectOrderQuery` / `getCustomProjectUndoSnapshotQuery` /
- * `getCustomProjectRawsQuery`)、更新・復元系は application use-case
- * (`saveCustomProjectOrderUseCase` /
- * `restoreCustomProjectsSnapshotUseCase`) 経由に寄せた。
+ * 旧 `customProjectRepository` 直接依存 (issue #538) と
+ * 旧 `CustomProjectsCommandService` 直接依存 (issue #539) を撤去し、
+ * 読み取り系は application query、更新・復元系は application use-case
+ * 経由のみに寄せた。presentation 層は port モジュール
+ * (`CustomProjectsCommandService`) も repository モジュール
+ * (`CustomProjectRepository`) も import せず、deps は query 関数と
+ * use-case 関数だけを受け取る。
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -23,13 +24,21 @@ import type {
   CustomProjectUndoSnapshot,
   GetCustomProjectUndoSnapshotQuery,
 } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
+import type { AddUrlToCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/AddUrlToCustomProjectUseCase'
 import type { CreateCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase'
 import type { DeleteCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteCustomProjectUseCase'
+import type { RemoveUrlFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUrlFromCustomProjectUseCase'
+import type { RemoveUrlsFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUrlsFromCustomProjectUseCase'
+import type { RenameCustomProjectCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameCustomProjectCategoryUseCase'
+import type { ReorderCustomProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderCustomProjectUrlsUseCase'
 import type {
   RestoreCustomProjectsSnapshotPayload,
   RestoreCustomProjectsSnapshotUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RestoreCustomProjectsSnapshotUseCase'
 import type { SaveCustomProjectOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/SaveCustomProjectOrderUseCase'
+import type { SetCustomProjectUrlCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/SetCustomProjectUrlCategoryUseCase'
+import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
+import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/domain/entities/UncategorizedProject'
@@ -42,7 +51,33 @@ import type {
   ViewMode,
 } from '@/types/storage'
 
-const createNoopCommandService = (): CustomProjectsCommandService => ({
+/**
+ * issue #539 で useProjectManagement から application use-case へ
+ * 移設した 8 操作 (`addUrlToCustomProject` / `removeUrlFromCustomProject` /
+ * `removeUrlsFromCustomProject` / `setUrlCategory` /
+ * `updateCategoryOrder` / `reorderProjectUrls` /
+ * `renameCategoryInProject` / `updateProjectKeywords`) の port
+ * メソッド名一覧。
+ *
+ * `addCategoryToProject` / `removeCategoryFromProject` は issue #539
+ * 範囲外のため `customProjectsCommandServiceRef` 経由の port 直叩き
+ * が残る (受け入れ条件「直接呼び出しが消えている、または最小化
+ * されている」の「最小化」に該当)。
+ */
+const ISSUE_539_TARGET_PORT_METHODS = [
+  'addUrlToCustomProject',
+  'removeUrlFromCustomProject',
+  'removeUrlsFromCustomProject',
+  'setUrlCategory',
+  'updateCategoryOrder',
+  'reorderProjectUrls',
+  'renameCategoryInProject',
+  'updateProjectKeywords',
+] as const satisfies readonly (keyof CustomProjectsCommandService)[]
+const createMinimalCommandService = (): CustomProjectsCommandService => ({
+  // issue #539 で use-case 化した 8 メソッドは `useProjectManagement`
+  // から直接呼ばれない (dddLayerGuard で担保) ため no-op とし、
+  // port 仕様としての shape 維持だけを目的とする。
   addCategoryToProject: () => Promise.resolve(undefined),
   addUrlToCustomProject: () => Promise.resolve(undefined),
   moveUrlBetweenCustomProjects: () => Promise.resolve(undefined),
@@ -57,6 +92,13 @@ const createNoopCommandService = (): CustomProjectsCommandService => ({
   updateCategoryOrder: () => Promise.resolve(undefined),
   updateProjectKeywords: () => Promise.resolve(undefined),
 })
+// `ISSUE_539_TARGET_PORT_METHODS` の利用フック。lint 向けに空参照を
+// 維持しつつ、port の JSDoc コメントで列挙した 8 メソッドの整合性を
+// コンパイル時に検証する。
+const _ensureIssue539TargetsKnown: ReadonlySet<string> = new Set(
+  ISSUE_539_TARGET_PORT_METHODS,
+)
+void _ensureIssue539TargetsKnown
 
 const asyncNoopCreate: CreateCustomProjectUseCase = () => {
   throw new Error('createCustomProjectUseCase is not provided')
@@ -86,6 +128,37 @@ const asyncNoopGetCustomProjectUndoSnapshot: GetCustomProjectUndoSnapshotQuery =
 const asyncNoopGetCustomProjectRaws: GetCustomProjectRawsQuery = () => {
   throw new Error('getCustomProjectRawsQuery is not provided')
 }
+const asyncNoopAddUrlToCustomProject: AddUrlToCustomProjectUseCase = () => {
+  throw new Error('addUrlToCustomProjectUseCase is not provided')
+}
+const asyncNoopRemoveUrlFromCustomProject: RemoveUrlFromCustomProjectUseCase =
+  () => {
+    throw new Error('removeUrlFromCustomProjectUseCase is not provided')
+  }
+const asyncNoopRemoveUrlsFromCustomProject: RemoveUrlsFromCustomProjectUseCase =
+  () => {
+    throw new Error('removeUrlsFromCustomProjectUseCase is not provided')
+  }
+const asyncNoopSetCustomProjectUrlCategory: SetCustomProjectUrlCategoryUseCase =
+  () => {
+    throw new Error('setCustomProjectUrlCategoryUseCase is not provided')
+  }
+const asyncNoopUpdateCustomProjectCategoryOrder: UpdateCustomProjectCategoryOrderUseCase =
+  () => {
+    throw new Error('updateCustomProjectCategoryOrderUseCase is not provided')
+  }
+const asyncNoopReorderCustomProjectUrls: ReorderCustomProjectUrlsUseCase =
+  () => {
+    throw new Error('reorderCustomProjectUrlsUseCase is not provided')
+  }
+const asyncNoopRenameCustomProjectCategory: RenameCustomProjectCategoryUseCase =
+  () => {
+    throw new Error('renameCustomProjectCategoryUseCase is not provided')
+  }
+const asyncNoopUpdateCustomProjectKeywords: UpdateCustomProjectKeywordsUseCase =
+  () => {
+    throw new Error('updateCustomProjectKeywordsUseCase is not provided')
+  }
 
 const getArraySnapshot = <T>(
   value: readonly T[] | undefined,
@@ -329,9 +402,16 @@ interface UseProjectManagementReturn {
  * ビューモード切替・CRUD・URL管理・プロジェクト内カテゴリ管理を担う。
  *
  * 旧 `customProjectRepository` 直接依存 (issue #538) は application
- * query / use-case 経由へ移行済み。presentation 層は
- * `CustomProjectRepository` を import せず、deps は query 関数と
- * use-case 関数だけを受け取る。
+ * query / use-case 経由へ移行済み。さらに issue #539 で issue 対象
+ * 8 操作 (`addUrlToCustomProject` / `removeUrlFromCustomProject` /
+ * `removeUrlsFromCustomProject` / `setUrlCategory` /
+ * `updateCategoryOrder` / `reorderProjectUrls` /
+ * `renameCategoryInProject` / `updateProjectKeywords`) を
+ * `CustomProjectsCommandService` 直叩きから application use-case 経由
+ * へ移設した。`addCategoryToProject` / `removeCategoryFromProject`
+ * は issue #539 範囲外のため `customProjectsCommandService` port
+ * 経由の直接呼び出しが最小化されて残る (受け入れ条件「直接呼び出しが
+ * 消えている、または最小化されている」を満たす)。
  *
  * @param getCustomProjectsQuery - `CustomProject` 一覧 query
  * @param getCustomProjectOrderQuery - 表示順 query
@@ -340,15 +420,24 @@ interface UseProjectManagementReturn {
  * @param _tabGroups - 現在のタブグループ一覧（ドメインモードのデータ）
  * @param _settings - ユーザー設定（将来の拡張用）
  * @param initialViewMode - 初期表示モード
- * @param customProjectsCommandService - URL/カテゴリ/keyword 更新 port
+ * @param customProjectsCommandService - `addCategoryToProject` /
+ *   `removeCategoryFromProject` のみが呼ばれる port (issue #539 範囲外)
  * @param createCustomProjectUseCase - プロジェクト作成 use-case
  * @param deleteCustomProjectUseCase - プロジェクト削除 use-case
  * @param updateCustomProjectNameUseCase - プロジェクト名変更 use-case
  * @param saveCustomProjectOrderUseCase - 表示順保存 use-case
  * @param restoreCustomProjectsSnapshotUseCase - undo 復元 use-case
+ * @param addUrlToCustomProjectUseCase - プロジェクト URL 追加 use-case
+ * @param removeUrlFromCustomProjectUseCase - プロジェクト URL 削除 use-case
+ * @param removeUrlsFromCustomProjectUseCase - プロジェクト URL 一括削除 use-case
+ * @param setCustomProjectUrlCategoryUseCase - プロジェクト URL カテゴリ設定 use-case
+ * @param updateCustomProjectCategoryOrderUseCase - カテゴリ順序更新 use-case
+ * @param reorderCustomProjectUrlsUseCase - URL 順序更新 use-case
+ * @param renameCustomProjectCategoryUseCase - カテゴリ名変更 use-case
+ * @param updateCustomProjectKeywordsUseCase - キーワード更新 use-case
  * @returns UseProjectManagementReturn
  */
-// eslint-disable-next-line eslint/max-params -- presentation 入口でフック引数を束ねるため
+// eslint-disable-next-line eslint/max-params, eslint/complexity -- presentation 入口でフック引数を束ねるため
 const useProjectManagement = (
   // eslint-disable-line eslint/max-lines-per-function
   getCustomProjectsQuery: GetCustomProjectsQuery = asyncNoopGetCustomProjects,
@@ -358,12 +447,20 @@ const useProjectManagement = (
   _tabGroups: TabGroup[] = [],
   _settings?: UserSettingsDto,
   initialViewMode?: ViewMode,
-  customProjectsCommandService: CustomProjectsCommandService = createNoopCommandService(),
+  customProjectsCommandService: CustomProjectsCommandService = createMinimalCommandService(),
   createCustomProjectUseCase: CreateCustomProjectUseCase = asyncNoopCreate,
   deleteCustomProjectUseCase: DeleteCustomProjectUseCase = asyncNoopDelete,
   updateCustomProjectNameUseCase: UpdateCustomProjectNameUseCase = asyncNoopRename,
   saveCustomProjectOrderUseCase: SaveCustomProjectOrderUseCase = asyncNoopSaveOrder,
   restoreCustomProjectsSnapshotUseCase: RestoreCustomProjectsSnapshotUseCase = asyncNoopRestore,
+  addUrlToCustomProjectUseCase: AddUrlToCustomProjectUseCase = asyncNoopAddUrlToCustomProject,
+  removeUrlFromCustomProjectUseCase: RemoveUrlFromCustomProjectUseCase = asyncNoopRemoveUrlFromCustomProject,
+  removeUrlsFromCustomProjectUseCase: RemoveUrlsFromCustomProjectUseCase = asyncNoopRemoveUrlsFromCustomProject,
+  setCustomProjectUrlCategoryUseCase: SetCustomProjectUrlCategoryUseCase = asyncNoopSetCustomProjectUrlCategory,
+  updateCustomProjectCategoryOrderUseCase: UpdateCustomProjectCategoryOrderUseCase = asyncNoopUpdateCustomProjectCategoryOrder,
+  reorderCustomProjectUrlsUseCase: ReorderCustomProjectUrlsUseCase = asyncNoopReorderCustomProjectUrls,
+  renameCustomProjectCategoryUseCase: RenameCustomProjectCategoryUseCase = asyncNoopRenameCustomProjectCategory,
+  updateCustomProjectKeywordsUseCase: UpdateCustomProjectKeywordsUseCase = asyncNoopUpdateCustomProjectKeywords,
 ): UseProjectManagementReturn => {
   const { t } = useI18n()
   const [customProjects, setCustomProjects] = useState<CustomProject[]>([])
@@ -392,6 +489,28 @@ const useProjectManagement = (
   const saveCustomProjectOrderUseCaseRef = useRef(saveCustomProjectOrderUseCase)
   const restoreCustomProjectsSnapshotUseCaseRef = useRef(
     restoreCustomProjectsSnapshotUseCase,
+  )
+  const addUrlToCustomProjectUseCaseRef = useRef(addUrlToCustomProjectUseCase)
+  const removeUrlFromCustomProjectUseCaseRef = useRef(
+    removeUrlFromCustomProjectUseCase,
+  )
+  const removeUrlsFromCustomProjectUseCaseRef = useRef(
+    removeUrlsFromCustomProjectUseCase,
+  )
+  const setCustomProjectUrlCategoryUseCaseRef = useRef(
+    setCustomProjectUrlCategoryUseCase,
+  )
+  const updateCustomProjectCategoryOrderUseCaseRef = useRef(
+    updateCustomProjectCategoryOrderUseCase,
+  )
+  const reorderCustomProjectUrlsUseCaseRef = useRef(
+    reorderCustomProjectUrlsUseCase,
+  )
+  const renameCustomProjectCategoryUseCaseRef = useRef(
+    renameCustomProjectCategoryUseCase,
+  )
+  const updateCustomProjectKeywordsUseCaseRef = useRef(
+    updateCustomProjectKeywordsUseCase,
   )
 
   // Ref を最新の state に同期する
@@ -568,10 +687,10 @@ const useProjectManagement = (
       projectKeywords: ProjectKeywordSettings,
     ): Promise<void> => {
       try {
-        await customProjectsCommandServiceRef.current.updateProjectKeywords(
+        await updateCustomProjectKeywordsUseCaseRef.current({
           projectId,
           projectKeywords,
-        )
+        })
         setCustomProjects((prev) =>
           prev.map((project) =>
             project.id === projectId
@@ -596,11 +715,11 @@ const useProjectManagement = (
   const handleAddUrlToProject = useCallback(
     async (projectId: string, url: string, title: string): Promise<void> => {
       try {
-        await customProjectsCommandServiceRef.current.addUrlToCustomProject(
+        await addUrlToCustomProjectUseCaseRef.current({
           projectId,
-          url,
           title,
-        )
+          url,
+        })
         const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         toast.success(t('savedTabs.tab.added'))
@@ -618,10 +737,10 @@ const useProjectManagement = (
       try {
         const undoSnapshot =
           await getCustomProjectUndoSnapshotQueryRef.current()
-        await customProjectsCommandServiceRef.current.removeUrlFromCustomProject(
+        await removeUrlFromCustomProjectUseCaseRef.current({
           projectId,
           url,
-        )
+        })
         const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         showCustomProjectDeleteUndoToast({
@@ -647,10 +766,10 @@ const useProjectManagement = (
       try {
         const undoSnapshot =
           await getCustomProjectUndoSnapshotQueryRef.current()
-        await customProjectsCommandServiceRef.current.removeUrlsFromCustomProject(
+        await removeUrlsFromCustomProjectUseCaseRef.current({
           projectId,
           urls,
-        )
+        })
         const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         showCustomProjectDeleteUndoToast({
@@ -747,11 +866,11 @@ const useProjectManagement = (
       category?: string,
     ): Promise<void> => {
       try {
-        await customProjectsCommandServiceRef.current.setUrlCategory(
+        await setCustomProjectUrlCategoryUseCaseRef.current({
+          category,
           projectId,
           url,
-          category,
-        )
+        })
         const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
       } catch (error) {
@@ -767,10 +886,10 @@ const useProjectManagement = (
     async (projectId: string, newOrder: string[]): Promise<void> => {
       try {
         console.log(`カテゴリ順序を更新: ${projectId}`, newOrder)
-        await customProjectsCommandServiceRef.current.updateCategoryOrder(
-          projectId,
+        await updateCustomProjectCategoryOrderUseCaseRef.current({
           newOrder,
-        )
+          projectId,
+        })
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -794,10 +913,10 @@ const useProjectManagement = (
   const handleReorderUrls = useCallback(
     async (projectId: string, urls: CustomProject['urls']): Promise<void> => {
       try {
-        await customProjectsCommandServiceRef.current.reorderProjectUrls(
+        await reorderCustomProjectUrlsUseCaseRef.current({
           projectId,
           urls,
-        )
+        })
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -853,11 +972,11 @@ const useProjectManagement = (
       newCategoryName: string,
     ): Promise<void> => {
       try {
-        await customProjectsCommandServiceRef.current.renameCategoryInProject(
-          projectId,
-          oldCategoryName,
+        await renameCustomProjectCategoryUseCaseRef.current({
           newCategoryName,
-        )
+          oldCategoryName,
+          projectId,
+        })
         setCustomProjects((prev) =>
           prev.map((project) =>
             project.id === projectId

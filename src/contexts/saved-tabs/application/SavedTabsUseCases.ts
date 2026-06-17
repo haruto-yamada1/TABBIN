@@ -5,6 +5,7 @@ import type { GetCustomProjectUndoSnapshotQuery } from './queries/GetCustomProje
 import type { GetSavedTabsPageDataQuery } from './queries/GetSavedTabsPageDataQuery'
 import type { GetSavedTabsQuery } from './queries/GetSavedTabsQuery'
 import type { AddDomainToParentCategoryUseCase } from './use-cases/AddDomainToParentCategoryUseCase'
+import type { AddUrlToCustomProjectUseCase } from './use-cases/AddUrlToCustomProjectUseCase'
 import type { AssignDomainToCategoryUseCase } from './use-cases/AssignDomainToCategoryUseCase'
 import type { BuildSavedTabsSnapshotUseCase } from './use-cases/BuildSavedTabsSnapshotUseCase'
 import type { CreateCustomProjectUseCase } from './use-cases/CreateCustomProjectUseCase'
@@ -28,8 +29,12 @@ import type { RemoveDomainFromParentCategoryUseCase } from './use-cases/RemoveDo
 import type { RemoveDomainsFromParentCategoriesUseCase } from './use-cases/RemoveDomainsFromParentCategoriesUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCase } from './use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import type { RemoveUnreferencedUrlRecordsUseCase } from './use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import type { RemoveUrlFromCustomProjectUseCase } from './use-cases/RemoveUrlFromCustomProjectUseCase'
 import type { RemoveUrlsFromCustomProjectsUseCase } from './use-cases/RemoveUrlsFromCustomProjectsUseCase'
+import type { RemoveUrlsFromCustomProjectUseCase } from './use-cases/RemoveUrlsFromCustomProjectUseCase'
+import type { RenameCustomProjectCategoryUseCase } from './use-cases/RenameCustomProjectCategoryUseCase'
 import type { RenameParentCategoryUseCase } from './use-cases/RenameParentCategoryUseCase'
+import type { ReorderCustomProjectUrlsUseCase } from './use-cases/ReorderCustomProjectUrlsUseCase'
 import type { ReorderDomainsInCategoryUseCase } from './use-cases/ReorderDomainsInCategoryUseCase'
 import type { ReorderParentCategoriesUseCase } from './use-cases/ReorderParentCategoriesUseCase'
 import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
@@ -41,7 +46,10 @@ import type { RestoreOpenedUrlsSnapshotViewUseCase } from './use-cases/RestoreOp
 import type { SaveCustomProjectOrderUseCase } from './use-cases/SaveCustomProjectOrderUseCase'
 import type { SaveCustomProjectsUseCase } from './use-cases/SaveCustomProjectsUseCase'
 import type { SetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
+import type { SetCustomProjectUrlCategoryUseCase } from './use-cases/SetCustomProjectUrlCategoryUseCase'
 import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
+import type { UpdateCustomProjectCategoryOrderUseCase } from './use-cases/UpdateCustomProjectCategoryOrderUseCase'
+import type { UpdateCustomProjectKeywordsUseCase } from './use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from './use-cases/UpdateCustomProjectNameUseCase'
 
 /**
@@ -142,6 +150,56 @@ export interface SavedTabsUseCases {
   readonly createCustomProject: CreateCustomProjectUseCase
   readonly deleteCustomProject: DeleteCustomProjectUseCase
   readonly updateCustomProjectName: UpdateCustomProjectNameUseCase
+  /**
+   * プロジェクトに URL を追加する use-case (issue #539)。
+   * 旧 `useProjectManagement.handleAddUrlToProject` 内の
+   * `customProjectsCommandService.addUrlToCustomProject` 直叩きを置換。
+   */
+  readonly addUrlToCustomProject: AddUrlToCustomProjectUseCase
+  /**
+   * プロジェクトから URL を 1 件削除する use-case (issue #539)。
+   * 旧 `useProjectManagement.handleDeleteUrlFromProject` 内の
+   * `customProjectsCommandService.removeUrlFromCustomProject` 直叩きを置換。
+   */
+  readonly removeUrlFromCustomProject: RemoveUrlFromCustomProjectUseCase
+  /**
+   * プロジェクトから URL を複数件削除する use-case (issue #539)。
+   * 旧 `useProjectManagement.handleDeleteUrlsFromProject` 内の
+   * `customProjectsCommandService.removeUrlsFromCustomProject` 直叩きを置換。
+   * 別 use-case `removeUrlsFromCustomProjects` (全 project 横断) とは
+   * 責務が異なる。
+   */
+  readonly removeUrlsFromCustomProject: RemoveUrlsFromCustomProjectUseCase
+  /**
+   * プロジェクト内 URL にカテゴリを設定する use-case (issue #539)。
+   * 旧 `useProjectManagement.handleSetUrlCategory` 内の
+   * `customProjectsCommandService.setUrlCategory` 直叩きを置換。
+   */
+  readonly setCustomProjectUrlCategory: SetCustomProjectUrlCategoryUseCase
+  /**
+   * プロジェクトのカテゴリ順序を更新する use-case (issue #539)。
+   * 旧 `useProjectManagement.handleUpdateCategoryOrder` 内の
+   * `customProjectsCommandService.updateCategoryOrder` 直叩きを置換。
+   */
+  readonly updateCustomProjectCategoryOrder: UpdateCustomProjectCategoryOrderUseCase
+  /**
+   * プロジェクト内 URL 順序を更新する use-case (issue #539)。
+   * 旧 `useProjectManagement.handleReorderUrls` 内の
+   * `customProjectsCommandService.reorderProjectUrls` 直叩きを置換。
+   */
+  readonly reorderCustomProjectUrls: ReorderCustomProjectUrlsUseCase
+  /**
+   * プロジェクト内カテゴリ名を変更する use-case (issue #539)。
+   * 旧 `useProjectManagement.handleRenameCategory` 内の
+   * `customProjectsCommandService.renameCategoryInProject` 直叩きを置換。
+   */
+  readonly renameCustomProjectCategory: RenameCustomProjectCategoryUseCase
+  /**
+   * プロジェクトの自動振り分けキーワードを更新する use-case (issue #539)。
+   * 旧 `useProjectManagement.handleUpdateProjectKeywords` 内の
+   * `customProjectsCommandService.updateProjectKeywords` 直叩きを置換。
+   */
+  readonly updateCustomProjectKeywords: UpdateCustomProjectKeywordsUseCase
   /**
    * `CustomProject` ドメイン entity 一覧の読み取り query (issue #538)。
    * 旧 `useProjectManagement` 内の `customProjectRepository.findAll`
