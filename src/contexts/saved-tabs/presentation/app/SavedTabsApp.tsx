@@ -202,14 +202,14 @@ const useSavedTabsAppView = ({
     () => buildPresentationCategoryLookup(categories),
     [categories],
   )
-  // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え。
+  // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え済み。
   // - URL → urlRecordId は `findUrlRecordByUrlUseCase` から逆引きし、
   //   見つからない旧データは `browserTabPort` で開くだけのフォールバックを取る。
   // - `removeTabAfterOpen` が true のときは、`BuildSavedTabsSnapshotUseCase`
   //   経由で削除前 snapshot を取得して既存の Undo トースト経路と接続する
-  //   （issue #494 で `chrome.storage.local.get` 直叩きを撤去）。
+  //   （旧 storage 直叩きは use-case 経由へ移行済み、issue #494）。
   // - post-open の UI 更新は `TabGroupRepository.findAll` を使い、
-  //   `chrome.storage.local.get` を残さない（`refreshTabGroupsWithUrls` 内で
+  //   storage 直叩きは残さない（`refreshTabGroupsWithUrls` 内で
   //   urlRecords から `urls` を再解決する）。
   const handleOpenTab = useCallback(
     async (url: string) => {
@@ -289,7 +289,7 @@ const useSavedTabsAppView = ({
         // use-case 実行後は storage が post-delete 状態になっているため、
         // その snapshot を渡しても Undo が no-op 相当になり復元できない。
         // `BuildSavedTabsSnapshotUseCase` 経由で取得し、
-        // `chrome.storage.local.get` の直叩きを撤去する（issue #494）。
+        // storage 直叩きは use-case 経由へ移行済み（issue #494）。
         const preDeleteSnapshot = settings.removeTabAfterOpen
           ? await savedTabsUseCases.buildSavedTabsSnapshot({
               parentCategories: toDomainParentCategories(categories),
@@ -349,10 +349,9 @@ const useSavedTabsAppView = ({
 
   // 単一 TabGroup 削除を DeleteTabGroupUseCase 経由に置き換える。
   // - 削除判断・未参照 URL 削除・対象 TabGroup の storage 書き戻しは
-  //   use-case に委譲し、UI 側は `chrome.storage.local` の
-  //   `savedTabs` 直接 set を持たない。
+  //   use-case に委譲し、UI 側は storage 直叩きを持たない。
   // - Undo snapshot は `BuildSavedTabsSnapshotUseCase` 経由で repository
-  //   群から組み立て、`chrome.storage.local.get` の直叩きを撤去する
+  //   群から組み立て、storage 直叩きは use-case 経由へ移行済み
   //   （issue #494）。
   // - 削除前処理 (`handleTabGroupRemoval`) は issue #524 で
   //   `PrepareTabGroupDeletionUseCase` へ移設済み。UI 側は
@@ -585,8 +584,8 @@ const useSavedTabsAppView = ({
       let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
       try {
         // Undo 用 snapshot は `BuildSavedTabsSnapshotUseCase` 経由で
-        // repository 群から組み立て、`chrome.storage.local.get` の
-        // 直叩きを撤去する（issue #494）。
+        // repository 群から組み立て、storage 直叩きは use-case 経由へ
+        // 移行済み（issue #494）。
         deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
           parentCategories: toDomainParentCategories(categories),
         })
@@ -802,8 +801,9 @@ const useSavedTabsAppView = ({
         const newTabGroups = [...categorizedDomains, ...tempUncategorizedOrder]
 
         // 並び替え保存は `ReorderTabGroupsUseCase` 経由で
-        // `TabGroupRepository.saveAll` に委譲し、`chrome.storage.local.set`
-        // の直叩きを撤去する（issue #494）。Repository 実装側の mapper が
+        // `TabGroupRepository.saveAll` に委譲する
+        // （旧 storage 直叩きは use-case 経由へ移行済み、issue #494）。
+        // Repository 実装側の mapper が
         // `urls` / `urlSubCategories` などのリッチ補助フィールドを持ち越す。
         await savedTabsUseCases.reorderTabGroups({
           tabGroups: toDomainTabGroupsForReorder(newTabGroups),
