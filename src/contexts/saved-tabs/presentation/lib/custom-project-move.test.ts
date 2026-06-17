@@ -37,11 +37,11 @@ describe('moveCustomProjectUrlAndSyncState', () => {
       setCustomProjects,
     })
 
-    expect(moveUrlBetweenCustomProjects).toHaveBeenCalledWith(
-      'project-a',
-      'project-b',
-      'https://example.com',
-    )
+    expect(moveUrlBetweenCustomProjects).toHaveBeenCalledWith({
+      sourceProjectId: 'project-a',
+      targetProjectId: 'project-b',
+      url: 'https://example.com',
+    })
     expect(getCustomProjects).toHaveBeenCalledTimes(1)
     expect(setCustomProjects).toHaveBeenCalledWith(updatedProjects)
   })

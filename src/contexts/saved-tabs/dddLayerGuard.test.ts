@@ -1044,4 +1044,71 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       ).toBe(false)
     })
   })
+
+  describe('issue #540: SavedTabsApp は customProjectRepository / customProjectsCommandService を deps 経由で利用しない', () => {
+    const savedTabsAppPath = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/presentation/app/SavedTabsApp.tsx',
+    )
+    const savedTabsAppSource = readFileSync(savedTabsAppPath, 'utf8')
+    const useProjectManagementPath = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/presentation/hooks/useProjectManagement.ts',
+    )
+    const useProjectManagementSource = readFileSync(
+      useProjectManagementPath,
+      'utf8',
+    )
+
+    it('SavedTabsApp は CustomProjectRepository を import していない', () => {
+      expect(savedTabsAppSource).not.toMatch(
+        /from\s+['"]@\/contexts\/saved-tabs\/domain\/repositories\/CustomProjectRepository['"]/,
+      )
+    })
+
+    it('SavedTabsApp は CustomProjectsCommandService を import していない', () => {
+      expect(savedTabsAppSource).not.toMatch(
+        /from\s+['"]@\/contexts\/saved-tabs\/application\/ports\/CustomProjectsCommandService['"]/,
+      )
+    })
+
+    it('SavedTabsApp の deps から customProjectRepository が消えている', () => {
+      // `deps.customProjectRepository.*` 形式のアクセスがないこと。
+      // 旧 `handleMoveUrlBetweenProjects` の `deps.customProjectRepository.findAll()`
+      // 直叩きを撤去した (issue #540 受け入れ条件) ことを担保する。
+      expect(savedTabsAppSource).not.toMatch(/deps\.customProjectRepository\b/)
+    })
+
+    it('SavedTabsApp の deps から customProjectsCommandService が消えている', () => {
+      // `deps.customProjectsCommandService.*` 形式のアクセスがないこと。
+      // 旧 `handleMoveUrlBetweenProjects` の `deps.customProjectsCommandService.moveUrlBetweenCustomProjects`
+      // 直叩きを撤去した (issue #540 受け入れ条件) ことを担保する。
+      expect(savedTabsAppSource).not.toMatch(
+        /deps\.customProjectsCommandService\b/,
+      )
+    })
+
+    it('useProjectManagement の deps は customProjectsCommandService を受け取らない', () => {
+      // issue #540 で `customProjectsCommandService` パラメータを
+      // 完全に撤去し、`addCategoryToProject` /
+      // `removeCategoryFromProject` も application use-case
+      // (`addCategoryToCustomProject` /
+      // `removeCategoryFromCustomProject`) へ移設した。
+      expect(useProjectManagementSource).not.toMatch(
+        /customProjectsCommandService/,
+      )
+    })
+
+    it('useProjectManagement は CustomProjectsCommandService を import していない', () => {
+      expect(useProjectManagementSource).not.toMatch(
+        /from\s+['"]@\/contexts\/saved-tabs\/application\/ports\/CustomProjectsCommandService['"]/,
+      )
+    })
+
+    it('useProjectManagement は CustomProjectRepository を import していない (issue #538 からの継続)', () => {
+      expect(useProjectManagementSource).not.toMatch(
+        /from\s+['"]@\/contexts\/saved-tabs\/domain\/repositories\/CustomProjectRepository['"]/,
+      )
+    })
+  })
 })

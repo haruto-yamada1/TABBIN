@@ -4,9 +4,9 @@
  * プロジェクト内カテゴリ管理を担うカスタムフック。
  *
  * 旧 `customProjectRepository` 直接依存 (issue #538) と
- * 旧 `CustomProjectsCommandService` 直接依存 (issue #539) を撤去し、
- * 読み取り系は application query、更新・復元系は application use-case
- * 経由のみに寄せた。presentation 層は port モジュール
+ * 旧 `CustomProjectsCommandService` 直接依存 (issue #539 / #540) を
+ * 撤去し、読み取り系は application query、更新・復元系は application
+ * use-case 経由のみに寄せた。presentation 層は port モジュール
  * (`CustomProjectsCommandService`) も repository モジュール
  * (`CustomProjectRepository`) も import せず、deps は query 関数と
  * use-case 関数だけを受け取る。
@@ -16,7 +16,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
 import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
 import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
@@ -24,9 +23,11 @@ import type {
   CustomProjectUndoSnapshot,
   GetCustomProjectUndoSnapshotQuery,
 } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
+import type { AddCategoryToCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/AddCategoryToCustomProjectUseCase'
 import type { AddUrlToCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/AddUrlToCustomProjectUseCase'
 import type { CreateCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase'
 import type { DeleteCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteCustomProjectUseCase'
+import type { RemoveCategoryFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveCategoryFromCustomProjectUseCase'
 import type { RemoveUrlFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUrlFromCustomProjectUseCase'
 import type { RemoveUrlsFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUrlsFromCustomProjectUseCase'
 import type { RenameCustomProjectCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameCustomProjectCategoryUseCase'
@@ -52,53 +53,22 @@ import type {
 } from '@/types/storage'
 
 /**
- * issue #539 で useProjectManagement から application use-case へ
- * 移設した 8 操作 (`addUrlToCustomProject` / `removeUrlFromCustomProject` /
- * `removeUrlsFromCustomProject` / `setUrlCategory` /
- * `updateCategoryOrder` / `reorderProjectUrls` /
- * `renameCategoryInProject` / `updateProjectKeywords`) の port
- * メソッド名一覧。
+ * issue #539 / #540 で `useProjectManagement` から application
+ * use-case へ移設した 10 操作。
  *
- * `addCategoryToProject` / `removeCategoryFromProject` は issue #539
- * 範囲外のため `customProjectsCommandServiceRef` 経由の port 直叩き
- * が残る (受け入れ条件「直接呼び出しが消えている、または最小化
- * されている」の「最小化」に該当)。
+ * - issue #539 範囲 (8 操作): `addUrlToCustomProject` /
+ *   `removeUrlFromCustomProject` / `removeUrlsFromCustomProject` /
+ *   `setUrlCategory` / `updateCategoryOrder` / `reorderProjectUrls` /
+ *   `renameCategoryInProject` / `updateProjectKeywords`
+ * - issue #540 範囲 (2 操作): `addCategoryToProject` /
+ *   `removeCategoryFromProject`
+ *
+ * 旧 `CustomProjectsCommandService` パラメータは issue #540 で完全
+ * に撤去され、port (`CustomProjectsCommandService`) 自体を
+ * presentation 層から import しない形に統一した (受け入れ条件
+ * 「useProjectManagement へ渡す CustomProject 依存が use-case /
+ * query 中心になっている」)。
  */
-const ISSUE_539_TARGET_PORT_METHODS = [
-  'addUrlToCustomProject',
-  'removeUrlFromCustomProject',
-  'removeUrlsFromCustomProject',
-  'setUrlCategory',
-  'updateCategoryOrder',
-  'reorderProjectUrls',
-  'renameCategoryInProject',
-  'updateProjectKeywords',
-] as const satisfies readonly (keyof CustomProjectsCommandService)[]
-const createMinimalCommandService = (): CustomProjectsCommandService => ({
-  // issue #539 で use-case 化した 8 メソッドは `useProjectManagement`
-  // から直接呼ばれない (dddLayerGuard で担保) ため no-op とし、
-  // port 仕様としての shape 維持だけを目的とする。
-  addCategoryToProject: () => Promise.resolve(undefined),
-  addUrlToCustomProject: () => Promise.resolve(undefined),
-  moveUrlBetweenCustomProjects: () => Promise.resolve(undefined),
-  removeCategoryFromProject: () => Promise.resolve(undefined),
-  removeUrlFromCustomProject: () => Promise.resolve(undefined),
-  removeUrlIdsFromAllCustomProjects: () => Promise.resolve(undefined),
-  removeUrlsFromAllCustomProjects: () => Promise.resolve(undefined),
-  removeUrlsFromCustomProject: () => Promise.resolve(undefined),
-  renameCategoryInProject: () => Promise.resolve(undefined),
-  reorderProjectUrls: () => Promise.resolve(undefined),
-  setUrlCategory: () => Promise.resolve(undefined),
-  updateCategoryOrder: () => Promise.resolve(undefined),
-  updateProjectKeywords: () => Promise.resolve(undefined),
-})
-// `ISSUE_539_TARGET_PORT_METHODS` の利用フック。lint 向けに空参照を
-// 維持しつつ、port の JSDoc コメントで列挙した 8 メソッドの整合性を
-// コンパイル時に検証する。
-const _ensureIssue539TargetsKnown: ReadonlySet<string> = new Set(
-  ISSUE_539_TARGET_PORT_METHODS,
-)
-void _ensureIssue539TargetsKnown
 
 const asyncNoopCreate: CreateCustomProjectUseCase = () => {
   throw new Error('createCustomProjectUseCase is not provided')
@@ -158,6 +128,14 @@ const asyncNoopRenameCustomProjectCategory: RenameCustomProjectCategoryUseCase =
 const asyncNoopUpdateCustomProjectKeywords: UpdateCustomProjectKeywordsUseCase =
   () => {
     throw new Error('updateCustomProjectKeywordsUseCase is not provided')
+  }
+const asyncNoopAddCategoryToCustomProject: AddCategoryToCustomProjectUseCase =
+  () => {
+    throw new Error('addCategoryToCustomProjectUseCase is not provided')
+  }
+const asyncNoopRemoveCategoryFromCustomProject: RemoveCategoryFromCustomProjectUseCase =
+  () => {
+    throw new Error('removeCategoryFromCustomProjectUseCase is not provided')
   }
 
 const getArraySnapshot = <T>(
@@ -402,16 +380,13 @@ interface UseProjectManagementReturn {
  * ビューモード切替・CRUD・URL管理・プロジェクト内カテゴリ管理を担う。
  *
  * 旧 `customProjectRepository` 直接依存 (issue #538) は application
- * query / use-case 経由へ移行済み。さらに issue #539 で issue 対象
- * 8 操作 (`addUrlToCustomProject` / `removeUrlFromCustomProject` /
- * `removeUrlsFromCustomProject` / `setUrlCategory` /
- * `updateCategoryOrder` / `reorderProjectUrls` /
- * `renameCategoryInProject` / `updateProjectKeywords`) を
+ * query / use-case 経由へ移行済み。issue #539 で 8 操作を
  * `CustomProjectsCommandService` 直叩きから application use-case 経由
- * へ移設した。`addCategoryToProject` / `removeCategoryFromProject`
- * は issue #539 範囲外のため `customProjectsCommandService` port
- * 経由の直接呼び出しが最小化されて残る (受け入れ条件「直接呼び出しが
- * 消えている、または最小化されている」を満たす)。
+ * へ移設し、issue #540 で残っていた `addCategoryToProject` /
+ * `removeCategoryFromProject` も application use-case へ移設する
+ * ことで、port (`CustomProjectsCommandService`) 自体を presentation
+ * 層から完全に撤去した (受け入れ条件「useProjectManagement へ渡す
+ * CustomProject 依存が use-case / query 中心になっている」)。
  *
  * @param getCustomProjectsQuery - `CustomProject` 一覧 query
  * @param getCustomProjectOrderQuery - 表示順 query
@@ -420,8 +395,6 @@ interface UseProjectManagementReturn {
  * @param _tabGroups - 現在のタブグループ一覧（ドメインモードのデータ）
  * @param _settings - ユーザー設定（将来の拡張用）
  * @param initialViewMode - 初期表示モード
- * @param customProjectsCommandService - `addCategoryToProject` /
- *   `removeCategoryFromProject` のみが呼ばれる port (issue #539 範囲外)
  * @param createCustomProjectUseCase - プロジェクト作成 use-case
  * @param deleteCustomProjectUseCase - プロジェクト削除 use-case
  * @param updateCustomProjectNameUseCase - プロジェクト名変更 use-case
@@ -435,6 +408,8 @@ interface UseProjectManagementReturn {
  * @param reorderCustomProjectUrlsUseCase - URL 順序更新 use-case
  * @param renameCustomProjectCategoryUseCase - カテゴリ名変更 use-case
  * @param updateCustomProjectKeywordsUseCase - キーワード更新 use-case
+ * @param addCategoryToCustomProjectUseCase - カテゴリ追加 use-case (issue #540)
+ * @param removeCategoryFromCustomProjectUseCase - カテゴリ削除 use-case (issue #540)
  * @returns UseProjectManagementReturn
  */
 // eslint-disable-next-line eslint/max-params, eslint/complexity -- presentation 入口でフック引数を束ねるため
@@ -447,7 +422,6 @@ const useProjectManagement = (
   _tabGroups: TabGroup[] = [],
   _settings?: UserSettingsDto,
   initialViewMode?: ViewMode,
-  customProjectsCommandService: CustomProjectsCommandService = createMinimalCommandService(),
   createCustomProjectUseCase: CreateCustomProjectUseCase = asyncNoopCreate,
   deleteCustomProjectUseCase: DeleteCustomProjectUseCase = asyncNoopDelete,
   updateCustomProjectNameUseCase: UpdateCustomProjectNameUseCase = asyncNoopRename,
@@ -461,6 +435,8 @@ const useProjectManagement = (
   reorderCustomProjectUrlsUseCase: ReorderCustomProjectUrlsUseCase = asyncNoopReorderCustomProjectUrls,
   renameCustomProjectCategoryUseCase: RenameCustomProjectCategoryUseCase = asyncNoopRenameCustomProjectCategory,
   updateCustomProjectKeywordsUseCase: UpdateCustomProjectKeywordsUseCase = asyncNoopUpdateCustomProjectKeywords,
+  addCategoryToCustomProjectUseCase: AddCategoryToCustomProjectUseCase = asyncNoopAddCategoryToCustomProject,
+  removeCategoryFromCustomProjectUseCase: RemoveCategoryFromCustomProjectUseCase = asyncNoopRemoveCategoryFromCustomProject,
 ): UseProjectManagementReturn => {
   const { t } = useI18n()
   const [customProjects, setCustomProjects] = useState<CustomProject[]>([])
@@ -480,7 +456,6 @@ const useProjectManagement = (
     getCustomProjectUndoSnapshotQuery,
   )
   const getCustomProjectRawsQueryRef = useRef(getCustomProjectRawsQuery)
-  const customProjectsCommandServiceRef = useRef(customProjectsCommandService)
   const createCustomProjectUseCaseRef = useRef(createCustomProjectUseCase)
   const deleteCustomProjectUseCaseRef = useRef(deleteCustomProjectUseCase)
   const updateCustomProjectNameUseCaseRef = useRef(
@@ -511,6 +486,12 @@ const useProjectManagement = (
   )
   const updateCustomProjectKeywordsUseCaseRef = useRef(
     updateCustomProjectKeywordsUseCase,
+  )
+  const addCategoryToCustomProjectUseCaseRef = useRef(
+    addCategoryToCustomProjectUseCase,
+  )
+  const removeCategoryFromCustomProjectUseCaseRef = useRef(
+    removeCategoryFromCustomProjectUseCase,
   )
 
   // Ref を最新の state に同期する
@@ -797,10 +778,10 @@ const useProjectManagement = (
   const handleAddCategory = useCallback(
     async (projectId: string, categoryName: string): Promise<void> => {
       try {
-        await customProjectsCommandServiceRef.current.addCategoryToProject(
-          projectId,
+        await addCategoryToCustomProjectUseCaseRef.current({
           categoryName,
-        )
+          projectId,
+        })
         setCustomProjects((prev) =>
           prev.map((p) => {
             if (p.id !== projectId) {
@@ -839,10 +820,10 @@ const useProjectManagement = (
   const handleDeleteProjectCategory = useCallback(
     async (projectId: string, categoryName: string): Promise<void> => {
       try {
-        await customProjectsCommandServiceRef.current.removeCategoryFromProject(
-          projectId,
+        await removeCategoryFromCustomProjectUseCaseRef.current({
           categoryName,
-        )
+          projectId,
+        })
         const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         toast.success(
