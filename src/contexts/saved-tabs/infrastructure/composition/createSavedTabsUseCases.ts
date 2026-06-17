@@ -6,6 +6,7 @@ import { createGetSavedTabsPageDataQuery } from '../../application/queries/GetSa
 import { createGetSavedTabsQuery } from '../../application/queries/GetSavedTabsQuery'
 import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
 import { createAddDomainToParentCategoryUseCase } from '../../application/use-cases/AddDomainToParentCategoryUseCase'
+import { createAddUrlToCustomProjectUseCase } from '../../application/use-cases/AddUrlToCustomProjectUseCase'
 import { createAssignDomainToCategoryUseCase } from '../../application/use-cases/AssignDomainToCategoryUseCase'
 import { createBuildSavedTabsSnapshotUseCase } from '../../application/use-cases/BuildSavedTabsSnapshotUseCase'
 import { createCreateCustomProjectUseCase } from '../../application/use-cases/CreateCustomProjectUseCase'
@@ -29,8 +30,12 @@ import { createRemoveDomainFromParentCategoryUseCase } from '../../application/u
 import { createRemoveDomainsFromParentCategoriesUseCase } from '../../application/use-cases/RemoveDomainsFromParentCategoriesUseCase'
 import { createRemoveSubCategoryFromTabGroupsUseCase } from '../../application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from '../../application/use-cases/RemoveUnreferencedUrlRecordsUseCase'
+import { createRemoveUrlFromCustomProjectUseCase } from '../../application/use-cases/RemoveUrlFromCustomProjectUseCase'
 import { createRemoveUrlsFromCustomProjectsUseCase } from '../../application/use-cases/RemoveUrlsFromCustomProjectsUseCase'
+import { createRemoveUrlsFromCustomProjectUseCase } from '../../application/use-cases/RemoveUrlsFromCustomProjectUseCase'
+import { createRenameCustomProjectCategoryUseCase } from '../../application/use-cases/RenameCustomProjectCategoryUseCase'
 import { createRenameParentCategoryUseCase } from '../../application/use-cases/RenameParentCategoryUseCase'
+import { createReorderCustomProjectUrlsUseCase } from '../../application/use-cases/ReorderCustomProjectUrlsUseCase'
 import { createReorderDomainsInCategoryUseCase } from '../../application/use-cases/ReorderDomainsInCategoryUseCase'
 import { createReorderParentCategoriesUseCase } from '../../application/use-cases/ReorderParentCategoriesUseCase'
 import { createReorderTabGroupsUseCase } from '../../application/use-cases/ReorderTabGroupsUseCase'
@@ -42,7 +47,10 @@ import { createRestoreOpenedUrlsSnapshotViewUseCase } from '../../application/us
 import { createSaveCustomProjectOrderUseCase } from '../../application/use-cases/SaveCustomProjectOrderUseCase'
 import { createSaveCustomProjectsUseCase } from '../../application/use-cases/SaveCustomProjectsUseCase'
 import { createSetCategoryKeywordsUseCase } from '../../application/use-cases/SetCategoryKeywordsUseCase'
+import { createSetCustomProjectUrlCategoryUseCase } from '../../application/use-cases/SetCustomProjectUrlCategoryUseCase'
 import { createSyncCategoryAssignmentsUseCase } from '../../application/use-cases/SyncCategoryAssignmentsUseCase'
+import { createUpdateCustomProjectCategoryOrderUseCase } from '../../application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
+import { createUpdateCustomProjectKeywordsUseCase } from '../../application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import { createUpdateCustomProjectNameUseCase } from '../../application/use-cases/UpdateCustomProjectNameUseCase'
 import type { SavedTabsUseCasesDeps } from './createSavedTabsUseCasesDeps'
 
@@ -216,6 +224,35 @@ export const createSavedTabsUseCases = (
     loadTabGroupUrls: createLoadTabGroupUrlsUseCase({
       urlRecordRepository: deps.urlRecordRepository,
     }),
+  }),
+  // issue #539: CustomProject URL / カテゴリ操作 use-case 群。port
+  // (customProjectsCommandService) 経由の呼び出しを application
+  // use-case へ移設し、presentation 層は use-case 関数だけを受ける形
+  // に統一する。
+  addUrlToCustomProject: createAddUrlToCustomProjectUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+  }),
+  removeUrlFromCustomProject: createRemoveUrlFromCustomProjectUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+  }),
+  removeUrlsFromCustomProject: createRemoveUrlsFromCustomProjectUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+  }),
+  setCustomProjectUrlCategory: createSetCustomProjectUrlCategoryUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+  }),
+  updateCustomProjectCategoryOrder:
+    createUpdateCustomProjectCategoryOrderUseCase({
+      customProjectsCommandService: deps.customProjectsCommandService,
+    }),
+  reorderCustomProjectUrls: createReorderCustomProjectUrlsUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+  }),
+  renameCustomProjectCategory: createRenameCustomProjectCategoryUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
+  }),
+  updateCustomProjectKeywords: createUpdateCustomProjectKeywordsUseCase({
+    customProjectsCommandService: deps.customProjectsCommandService,
   }),
   renameParentCategory: createRenameParentCategoryUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,

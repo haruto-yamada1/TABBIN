@@ -141,12 +141,25 @@ const useSavedTabsAppView = ({
     tabDataState.tabGroups,
     settings,
     initialViewMode,
+    // issue #539 範囲外: `addCategoryToProject` /
+    // `removeCategoryFromProject` のみ port 直叩きするため
+    // `customProjectsCommandService` を渡し、URL / カテゴリ
+    // 操作 8 メソッドは SavedTabsUseCases 経由の use-case
+    // 関数だけを deps に渡す。
     deps.customProjectsCommandService,
     savedTabsUseCases.createCustomProject,
     savedTabsUseCases.deleteCustomProject,
     savedTabsUseCases.updateCustomProjectName,
     savedTabsUseCases.saveCustomProjectOrder,
     savedTabsUseCases.restoreCustomProjectsSnapshot,
+    savedTabsUseCases.addUrlToCustomProject,
+    savedTabsUseCases.removeUrlFromCustomProject,
+    savedTabsUseCases.removeUrlsFromCustomProject,
+    savedTabsUseCases.setCustomProjectUrlCategory,
+    savedTabsUseCases.updateCustomProjectCategoryOrder,
+    savedTabsUseCases.reorderCustomProjectUrls,
+    savedTabsUseCases.renameCustomProjectCategory,
+    savedTabsUseCases.updateCustomProjectKeywords,
   )
   const {
     categories,

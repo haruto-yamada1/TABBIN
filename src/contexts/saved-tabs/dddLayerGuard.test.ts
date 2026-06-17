@@ -989,4 +989,59 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       )
     })
   })
+
+  describe('issue #539: useProjectManagement は issue 対象 8 操作を CustomProjectsCommandService 経由で直接呼ばない', () => {
+    const useProjectManagementPath = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/presentation/hooks/useProjectManagement.ts',
+    )
+    const useProjectManagementSource = readFileSync(
+      useProjectManagementPath,
+      'utf8',
+    )
+
+    // issue #539 で application use-case へ移設した 8 メソッド。
+    // 受け入れ条件「CustomProjectsCommandService の直接呼び出しが消えて
+    // いる、または最小化されている」の「消えている」経路を担保する。
+    const targetPortMethods = [
+      'addUrlToCustomProject',
+      'removeUrlFromCustomProject',
+      'removeUrlsFromCustomProject',
+      'setUrlCategory',
+      'updateCategoryOrder',
+      'reorderProjectUrls',
+      'renameCategoryInProject',
+      'updateProjectKeywords',
+    ] as const
+
+    for (const method of targetPortMethods) {
+      it(`useProjectManagement は customProjectsCommandServiceRef.current.${method}(...) を直接呼ばない`, () => {
+        const callPattern = new RegExp(
+          `customProjectsCommandServiceRef\\.current\\.${method}\\(`,
+        )
+        expect(
+          useProjectManagementSource,
+          `useProjectManagement should not call customProjectsCommandServiceRef.current.${method}() directly; use the corresponding application use-case instead`,
+        ).not.toMatch(callPattern)
+      })
+    }
+
+    it('useProjectManagement の deps は customProjectsCommandService 経由で issue #539 対象 8 メソッドを露出しない (signature にメソッド名が登場しない)', () => {
+      // `customProjectsCommandService` パラメータ自体は
+      // `addCategoryToProject` / `removeCategoryFromProject` のみが
+      // 呼ばれる経路で残るので (受け入れ条件「最小化」)、port 依存
+      // 自体は維持する。ただし issue #539 対象 8 メソッドが
+      // signature に露出しない (deps 経由で利用者に公開されない) こと
+      // を担保する。
+      const exposesTargetMethod = targetPortMethods.some((method) =>
+        new RegExp(`customProjectsCommandService[^,)]*\\b${method}\\b`).test(
+          useProjectManagementSource,
+        ),
+      )
+      expect(
+        exposesTargetMethod,
+        'useProjectManagement deps / body should not expose issue #539 target port methods',
+      ).toBe(false)
+    })
+  })
 })
