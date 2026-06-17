@@ -1,3 +1,7 @@
+import type { GetCustomProjectOrderQuery } from './queries/GetCustomProjectOrderQuery'
+import type { GetCustomProjectRawsQuery } from './queries/GetCustomProjectRawsQuery'
+import type { GetCustomProjectsQuery } from './queries/GetCustomProjectsQuery'
+import type { GetCustomProjectUndoSnapshotQuery } from './queries/GetCustomProjectUndoSnapshotQuery'
 import type { GetSavedTabsPageDataQuery } from './queries/GetSavedTabsPageDataQuery'
 import type { GetSavedTabsQuery } from './queries/GetSavedTabsQuery'
 import type { AddDomainToParentCategoryUseCase } from './use-cases/AddDomainToParentCategoryUseCase'
@@ -31,8 +35,11 @@ import type { ReorderParentCategoriesUseCase } from './use-cases/ReorderParentCa
 import type { ReorderTabGroupsUseCase } from './use-cases/ReorderTabGroupsUseCase'
 import type { ReorderTabGroupUrlsUseCase } from './use-cases/ReorderTabGroupUrlsUseCase'
 import type { RepairTabGroupParentCategoryIdsUseCase } from './use-cases/RepairTabGroupParentCategoryIdsUseCase'
+import type { RestoreCustomProjectsSnapshotUseCase } from './use-cases/RestoreCustomProjectsSnapshotUseCase'
 import type { RestoreOpenedUrlsSnapshotUseCase } from './use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import type { RestoreOpenedUrlsSnapshotViewUseCase } from './use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
+import type { SaveCustomProjectOrderUseCase } from './use-cases/SaveCustomProjectOrderUseCase'
+import type { SaveCustomProjectsUseCase } from './use-cases/SaveCustomProjectsUseCase'
 import type { SetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
 import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
 import type { UpdateCustomProjectNameUseCase } from './use-cases/UpdateCustomProjectNameUseCase'
@@ -135,6 +142,50 @@ export interface SavedTabsUseCases {
   readonly createCustomProject: CreateCustomProjectUseCase
   readonly deleteCustomProject: DeleteCustomProjectUseCase
   readonly updateCustomProjectName: UpdateCustomProjectNameUseCase
+  /**
+   * `CustomProject` ドメイン entity 一覧の読み取り query (issue #538)。
+   * 旧 `useProjectManagement` 内の `customProjectRepository.findAll`
+   * 直叩きを置換する application query 経由の読み取り口。
+   */
+  readonly getCustomProjects: GetCustomProjectsQuery
+  /**
+   * `CustomProject` の表示順 (`customProjectOrder`) 読み取り query
+   * (issue #538)。旧 `customProjectRepository.findOrder` 直叩きを置換。
+   */
+  readonly getCustomProjectOrder: GetCustomProjectOrderQuery
+  /**
+   * undo 用途の `CustomProject` snapshot 読み取り query (issue #538)。
+   * `customProjectOrder` + `customProjects` (entity) + `customProjectsRaw`
+   * を 1 関数で束ねる。旧 `useProjectManagement` 内の
+   * `getCustomProjectUndoSnapshot` private helper 責務を application
+   * 層へ移設。
+   */
+  readonly getCustomProjectUndoSnapshot: GetCustomProjectUndoSnapshotQuery
+  /**
+   * rich フィールド付き `CustomProject` raw snapshot 読み取り query
+   * (issue #538)。undo 復元 / sync で raw 経路を保ったまま storage
+   * 形へ投影したい場面で利用。
+   */
+  readonly getCustomProjectRaws: GetCustomProjectRawsQuery
+  /**
+   * `CustomProject` 表示順保存 use-case (issue #538)。
+   * 旧 `useProjectManagement.handleReorderProjects` 内の
+   * `customProjectRepository.saveOrder` 直叩きを置換。
+   */
+  readonly saveCustomProjectOrder: SaveCustomProjectOrderUseCase
+  /**
+   * `CustomProject` entity 保存 use-case (issue #538)。
+   * undo 復元で `restoreAllRaw` が無い / 無い時の entity 経由
+   * フォールバックのラッパ。
+   */
+  readonly saveCustomProjects: SaveCustomProjectsUseCase
+  /**
+   * undo 復元 use-case (issue #538)。
+   * 旧 `useProjectManagement.showCustomProjectDeleteUndoToast` 内の
+   * `restoreAllRaw` / `saveAll` / `saveOrder` 3 段呼び出しを
+   * 1 つの use-case に統合。
+   */
+  readonly restoreCustomProjectsSnapshot: RestoreCustomProjectsSnapshotUseCase
   readonly getProjectUrls: GetProjectUrlsUseCase
   readonly getSavedTabsPageData: GetSavedTabsPageDataQuery
   /**

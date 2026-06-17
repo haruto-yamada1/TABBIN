@@ -2,6 +2,13 @@
  * @file useProjectManagement.ts
  * @description カスタムプロジェクトの CRUD・ビューモード切替・URL管理・
  * プロジェクト内カテゴリ管理を担うカスタムフック。
+ *
+ * 旧 `customProjectRepository` 直接依存 (issue #538) を撤去し、
+ * 読み取り系は application query (`getCustomProjectsQuery` /
+ * `getCustomProjectOrderQuery` / `getCustomProjectUndoSnapshotQuery` /
+ * `getCustomProjectRawsQuery`)、更新・復元系は application use-case
+ * (`saveCustomProjectOrderUseCase` /
+ * `restoreCustomProjectsSnapshotUseCase`) 経由に寄せた。
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -9,18 +16,23 @@ import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
 import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
+import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
+import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
+import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
+import type {
+  CustomProjectUndoSnapshot,
+  GetCustomProjectUndoSnapshotQuery,
+} from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
 import type { CreateCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase'
 import type { DeleteCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteCustomProjectUseCase'
+import type {
+  RestoreCustomProjectsSnapshotPayload,
+  RestoreCustomProjectsSnapshotUseCase,
+} from '@/contexts/saved-tabs/application/use-cases/RestoreCustomProjectsSnapshotUseCase'
+import type { SaveCustomProjectOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/SaveCustomProjectOrderUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/domain/entities/UncategorizedProject'
-import type {
-  CustomProjectRawSnapshot,
-  CustomProjectRepository,
-} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
-import type { CustomProjectId as DomainCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type {
@@ -29,12 +41,6 @@ import type {
   TabGroup,
   ViewMode,
 } from '@/types/storage'
-
-interface CustomProjectUndoSnapshot {
-  customProjectOrder?: readonly DomainCustomProjectId[]
-  customProjects?: readonly DomainCustomProject[]
-  customProjectsRaw?: readonly CustomProjectRawSnapshot[]
-}
 
 const createNoopCommandService = (): CustomProjectsCommandService => ({
   addCategoryToProject: () => Promise.resolve(undefined),
@@ -61,106 +67,50 @@ const asyncNoopDelete: DeleteCustomProjectUseCase = () => {
 const asyncNoopRename: UpdateCustomProjectNameUseCase = () => {
   throw new Error('updateCustomProjectNameUseCase is not provided')
 }
-
-interface CustomProjectUndoPayload {
-  customProjectOrder?: readonly DomainCustomProjectId[]
-  customProjects: readonly DomainCustomProject[]
-  customProjectsRaw?: readonly CustomProjectRawSnapshot[]
+const asyncNoopSaveOrder: SaveCustomProjectOrderUseCase = () => {
+  throw new Error('saveCustomProjectOrderUseCase is not provided')
+}
+const asyncNoopRestore: RestoreCustomProjectsSnapshotUseCase = () => {
+  throw new Error('restoreCustomProjectsSnapshotUseCase is not provided')
+}
+const asyncNoopGetCustomProjects: GetCustomProjectsQuery = () => {
+  throw new Error('getCustomProjectsQuery is not provided')
+}
+const asyncNoopGetCustomProjectOrder: GetCustomProjectOrderQuery = () => {
+  throw new Error('getCustomProjectOrderQuery is not provided')
+}
+const asyncNoopGetCustomProjectUndoSnapshot: GetCustomProjectUndoSnapshotQuery =
+  () => {
+    throw new Error('getCustomProjectUndoSnapshotQuery is not provided')
+  }
+const asyncNoopGetCustomProjectRaws: GetCustomProjectRawsQuery = () => {
+  throw new Error('getCustomProjectRawsQuery is not provided')
 }
 
 const getArraySnapshot = <T>(
   value: readonly T[] | undefined,
 ): readonly T[] | undefined => (Array.isArray(value) ? value : undefined)
 
-/** domain entity (`CustomProject`) を presentation 層 state の storage 形へ投影する */
-const toEntityStorageCustomProject = (
-  project: DomainCustomProject,
-): CustomProject => {
-  const result: CustomProject = {
-    categories: [...project.categories],
-    createdAt: project.createdAt,
-    id: project.id,
-    name: project.name,
-    updatedAt: project.updatedAt,
-  }
-  if (project.urlIds.length > 0) {
-    result.urlIds = [...project.urlIds]
-  }
-  return result
-}
+/**
+ * `getCustomProjectRawsQuery` 戻り値の要素 shape (issue #538)。
+ *
+ * `CustomProjectRepository.findAllRaw()` 由来の `CustomProjectRawSnapshot`
+ * を domain repository モジュールから直接 import するのを避け、
+ * `GetCustomProjectRawsQuery` 戻り値から派生させたローカル alias を
+ * 使う。presentation 層が `CustomProjectRepository` 型を import しない
+ * ことを保証する目的 (issue 受け入れ条件)。
+ */
+type RawCustomProjectEntry = Awaited<
+  ReturnType<GetCustomProjectRawsQuery>
+>[number]
 
 /** rich フィールド込みの `CustomProject` へ raw snapshot を投影する */
-const toRawStorageCustomProject = (
-  raw: CustomProjectRawSnapshot,
-): CustomProject => ChromeSavedTabsStorageMapper.toStorageCustomProject(raw)
-
-/**
- * repository 実装から rich フィールドを保持した raw snapshot を取得する。
- *
- * `findAllRaw` がモックで未実装のケースに備え、`findAll` (entity) を
- * フォールバックとして用意する。`findAll` 経由だと rich フィールドは
- * 取得できないため、storage 形投影時に空になる (issue #535 P1 の本質)。
- * テスト/本番実装では `findAllRaw` を必ず実装し、こちらを使う。
- */
-const loadCustomProjectRaws = async (
-  repo: CustomProjectRepository,
-): Promise<readonly CustomProjectRawSnapshot[]> => {
-  if (repo.findAllRaw) {
-    return repo.findAllRaw()
-  }
-  // フォールバック: entity を取得し、各 entity の id/name/urlIds 等
-  // のみ取り出して raw snapshot 形へ widen する。rich フィールド
-  // (`projectKeywords` / `urlMetadata` / `categoryOrder` / `urls`) は
-  // 取得できないため storage 形 projection で省略される。
-  const projects = await repo.findAll()
-  return projects.map((project) => ({
-    categories: [...project.categories],
-    createdAt: project.createdAt,
-    id: project.id,
-    name: project.name,
-    updatedAt: project.updatedAt,
-    ...(project.urlIds.length > 0 ? { urlIds: [...project.urlIds] } : {}),
-  }))
-}
-
-const getCustomProjectUndoSnapshot = async (
-  customProjectRepository: CustomProjectRepository,
-): Promise<CustomProjectUndoSnapshot> => {
-  // issue #535 P1: undo snapshot 取得時に `findAll` (entity 経路) と
-  // `findAllRaw` (raw 経路) の両方を呼ぶと、テスト/本番で repository
-  // 実装を共有している場合に queue 消費が想定より多くなり、raw snapshot
-  // が「削除後」の値で上書きされる問題があった。raw 経路で 1 度だけ
-  // 取得し、entity 形が必要なら widen する。`findAllRaw` が未実装の
-  // レガシー repository 向けには `findAll` をフォールバックとする。
-  const order = await customProjectRepository.findOrder()
-  if (customProjectRepository.findAllRaw) {
-    const raws = await customProjectRepository.findAllRaw()
-    const projects: DomainCustomProject[] = raws.map((raw) =>
-      createCustomProject({
-        categories: raw.categories,
-        createdAt: raw.createdAt,
-        id: raw.id,
-        name: raw.name,
-        updatedAt: raw.updatedAt,
-        urlIds: raw.urlIds ?? [],
-      }),
-    )
-    return {
-      ...(order.length > 0 ? { customProjectOrder: order } : {}),
-      ...(projects.length > 0 ? { customProjects: projects } : {}),
-      ...(raws.length > 0 ? { customProjectsRaw: raws } : {}),
-    }
-  }
-  const projects = await customProjectRepository.findAll()
-  return {
-    ...(order.length > 0 ? { customProjectOrder: order } : {}),
-    ...(projects.length > 0 ? { customProjects: projects } : {}),
-  }
-}
+const toRawStorageCustomProject = (raw: RawCustomProjectEntry): CustomProject =>
+  ChromeSavedTabsStorageMapper.toStorageCustomProject(raw)
 
 const createCustomProjectUndoPayload = (
   snapshot: CustomProjectUndoSnapshot,
-): CustomProjectUndoPayload | null => {
+): RestoreCustomProjectsSnapshotPayload | null => {
   const customProjects = getArraySnapshot(snapshot.customProjects)
   if (!customProjects) {
     return null
@@ -177,13 +127,13 @@ const createCustomProjectUndoPayload = (
 
 const showCustomProjectDeleteUndoToast = ({
   count,
-  customProjectRepository,
+  restoreCustomProjectsSnapshotUseCase,
   setCustomProjects,
   snapshot,
   t,
 }: {
   count: number
-  customProjectRepository: CustomProjectRepository
+  restoreCustomProjectsSnapshotUseCase: RestoreCustomProjectsSnapshotUseCase
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
   snapshot: CustomProjectUndoSnapshot
   t: (key: string, fallback?: string, values?: Record<string, string>) => string
@@ -204,27 +154,28 @@ const showCustomProjectDeleteUndoToast = ({
             }
 
             // 削除した URL の `urls` / `urlMetadata` / `projectKeywords` のような
-            // domain entity 化されない rich フィールドを保持するため、生 snapshot
-            // があれば merge を介さず `restoreAllRaw` で書き戻す（PR #506 review
-            // P2 対応）。モック等で `restoreAllRaw` が未実装の場合は
-            // フォールバックとして `saveAll` を使う。
-            if (
-              payload.customProjectsRaw &&
-              customProjectRepository.restoreAllRaw
-            ) {
-              await customProjectRepository.restoreAllRaw(
-                payload.customProjectsRaw,
-              )
-            } else {
-              await customProjectRepository.saveAll(payload.customProjects)
-            }
-            await customProjectRepository.saveOrder(
-              payload.customProjectOrder ?? [],
-            )
+            // domain entity 化されない rich フィールドを保持するため、payload に
+            // raw snapshot があれば `restoreCustomProjectsSnapshotUseCase` 内で
+            // `restoreAllRaw` 経路 (rich 保持) が走り、無ければ entity 経由
+            // `saveAll` へフォールバックする (issue #535 P1 / PR #506 review
+            // P2 対応の責務を application 層へ移設)。
+            await restoreCustomProjectsSnapshotUseCase({ payload })
             setCustomProjects(
               payload.customProjectsRaw
                 ? payload.customProjectsRaw.map(toRawStorageCustomProject)
-                : payload.customProjects.map(toEntityStorageCustomProject),
+                : payload.customProjects.map((project) => {
+                    const result: CustomProject = {
+                      categories: [...project.categories],
+                      createdAt: project.createdAt,
+                      id: project.id,
+                      name: project.name,
+                      updatedAt: project.updatedAt,
+                    }
+                    if (project.urlIds.length > 0) {
+                      result.urlIds = [...project.urlIds]
+                    }
+                    return result
+                  }),
             )
             toast.success(t('savedTabs.undo.restored'))
           } catch (error) {
@@ -377,22 +328,42 @@ interface UseProjectManagementReturn {
  * カスタムプロジェクト管理フック。
  * ビューモード切替・CRUD・URL管理・プロジェクト内カテゴリ管理を担う。
  *
- * @param customProjectRepository - カスタムプロジェクトの永続化 port
+ * 旧 `customProjectRepository` 直接依存 (issue #538) は application
+ * query / use-case 経由へ移行済み。presentation 層は
+ * `CustomProjectRepository` を import せず、deps は query 関数と
+ * use-case 関数だけを受け取る。
+ *
+ * @param getCustomProjectsQuery - `CustomProject` 一覧 query
+ * @param getCustomProjectOrderQuery - 表示順 query
+ * @param getCustomProjectUndoSnapshotQuery - undo 用途 snapshot query
+ * @param getCustomProjectRawsQuery - rich フィールド付き raw snapshot query
  * @param _tabGroups - 現在のタブグループ一覧（ドメインモードのデータ）
  * @param _settings - ユーザー設定（将来の拡張用）
+ * @param initialViewMode - 初期表示モード
+ * @param customProjectsCommandService - URL/カテゴリ/keyword 更新 port
+ * @param createCustomProjectUseCase - プロジェクト作成 use-case
+ * @param deleteCustomProjectUseCase - プロジェクト削除 use-case
+ * @param updateCustomProjectNameUseCase - プロジェクト名変更 use-case
+ * @param saveCustomProjectOrderUseCase - 表示順保存 use-case
+ * @param restoreCustomProjectsSnapshotUseCase - undo 復元 use-case
  * @returns UseProjectManagementReturn
  */
 // eslint-disable-next-line eslint/max-params -- presentation 入口でフック引数を束ねるため
 const useProjectManagement = (
   // eslint-disable-line eslint/max-lines-per-function
-  customProjectRepository: CustomProjectRepository,
-  _tabGroups: TabGroup[],
-  _settings: UserSettingsDto,
+  getCustomProjectsQuery: GetCustomProjectsQuery = asyncNoopGetCustomProjects,
+  getCustomProjectOrderQuery: GetCustomProjectOrderQuery = asyncNoopGetCustomProjectOrder,
+  getCustomProjectUndoSnapshotQuery: GetCustomProjectUndoSnapshotQuery = asyncNoopGetCustomProjectUndoSnapshot,
+  getCustomProjectRawsQuery: GetCustomProjectRawsQuery = asyncNoopGetCustomProjectRaws,
+  _tabGroups: TabGroup[] = [],
+  _settings?: UserSettingsDto,
   initialViewMode?: ViewMode,
   customProjectsCommandService: CustomProjectsCommandService = createNoopCommandService(),
   createCustomProjectUseCase: CreateCustomProjectUseCase = asyncNoopCreate,
   deleteCustomProjectUseCase: DeleteCustomProjectUseCase = asyncNoopDelete,
   updateCustomProjectNameUseCase: UpdateCustomProjectNameUseCase = asyncNoopRename,
+  saveCustomProjectOrderUseCase: SaveCustomProjectOrderUseCase = asyncNoopSaveOrder,
+  restoreCustomProjectsSnapshotUseCase: RestoreCustomProjectsSnapshotUseCase = asyncNoopRestore,
 ): UseProjectManagementReturn => {
   const { t } = useI18n()
   const [customProjects, setCustomProjects] = useState<CustomProject[]>([])
@@ -407,12 +378,20 @@ const useProjectManagement = (
   // 全 useCallback ハンドラから参照する。`exhaustive-deps` を
   // 個別 disable せず、ref 経由で最新値を読むことで hooks の
   // 再生成サイクルを最小化する。
-  const customProjectRepositoryRef = useRef(customProjectRepository)
+  const getCustomProjectOrderQueryRef = useRef(getCustomProjectOrderQuery)
+  const getCustomProjectUndoSnapshotQueryRef = useRef(
+    getCustomProjectUndoSnapshotQuery,
+  )
+  const getCustomProjectRawsQueryRef = useRef(getCustomProjectRawsQuery)
   const customProjectsCommandServiceRef = useRef(customProjectsCommandService)
   const createCustomProjectUseCaseRef = useRef(createCustomProjectUseCase)
   const deleteCustomProjectUseCaseRef = useRef(deleteCustomProjectUseCase)
   const updateCustomProjectNameUseCaseRef = useRef(
     updateCustomProjectNameUseCase,
+  )
+  const saveCustomProjectOrderUseCaseRef = useRef(saveCustomProjectOrderUseCase)
+  const restoreCustomProjectsSnapshotUseCaseRef = useRef(
+    restoreCustomProjectsSnapshotUseCase,
   )
 
   // Ref を最新の state に同期する
@@ -428,18 +407,14 @@ const useProjectManagement = (
     CustomProject[]
   > => {
     try {
-      const raws = await loadCustomProjectRaws(
-        customProjectRepositoryRef.current,
-      )
+      const raws = await getCustomProjectRawsQueryRef.current()
       const projects = raws.map(toRawStorageCustomProject)
       setCustomProjects(projects)
       return projects
     } catch (error) {
       console.error('データ同期エラー:', error)
       try {
-        const latestRaws = await loadCustomProjectRaws(
-          customProjectRepositoryRef.current,
-        )
+        const latestRaws = await getCustomProjectRawsQueryRef.current()
         const latestProjects = latestRaws.map(toRawStorageCustomProject)
         setCustomProjects(latestProjects)
         return latestProjects
@@ -626,9 +601,7 @@ const useProjectManagement = (
           url,
           title,
         )
-        const updatedRaws = await loadCustomProjectRaws(
-          customProjectRepositoryRef.current,
-        )
+        const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         toast.success(t('savedTabs.tab.added'))
       } catch (error) {
@@ -643,20 +616,18 @@ const useProjectManagement = (
   const handleDeleteUrlFromProject = useCallback(
     async (projectId: string, url: string): Promise<void> => {
       try {
-        const undoSnapshot = await getCustomProjectUndoSnapshot(
-          customProjectRepository,
-        )
+        const undoSnapshot =
+          await getCustomProjectUndoSnapshotQueryRef.current()
         await customProjectsCommandServiceRef.current.removeUrlFromCustomProject(
           projectId,
           url,
         )
-        const updatedRaws = await loadCustomProjectRaws(
-          customProjectRepositoryRef.current,
-        )
+        const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         showCustomProjectDeleteUndoToast({
           count: 1,
-          customProjectRepository,
+          restoreCustomProjectsSnapshotUseCase:
+            restoreCustomProjectsSnapshotUseCaseRef.current,
           setCustomProjects,
           snapshot: undoSnapshot,
           t,
@@ -667,27 +638,25 @@ const useProjectManagement = (
         toast.error(t('savedTabs.tab.deleteError'))
       }
     },
-    [customProjectRepository, t],
+    [t],
   )
 
   /** プロジェクトから 複数のURL を削除する */
   const handleDeleteUrlsFromProject = useCallback(
     async (projectId: string, urls: string[]): Promise<void> => {
       try {
-        const undoSnapshot = await getCustomProjectUndoSnapshot(
-          customProjectRepository,
-        )
+        const undoSnapshot =
+          await getCustomProjectUndoSnapshotQueryRef.current()
         await customProjectsCommandServiceRef.current.removeUrlsFromCustomProject(
           projectId,
           urls,
         )
-        const updatedRaws = await loadCustomProjectRaws(
-          customProjectRepositoryRef.current,
-        )
+        const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         showCustomProjectDeleteUndoToast({
           count: urls.length,
-          customProjectRepository,
+          restoreCustomProjectsSnapshotUseCase:
+            restoreCustomProjectsSnapshotUseCaseRef.current,
           setCustomProjects,
           snapshot: undoSnapshot,
           t,
@@ -702,7 +671,7 @@ const useProjectManagement = (
         toast.error(t('savedTabs.tab.deleteError'))
       }
     },
-    [customProjectRepository, t],
+    [t],
   )
 
   /** プロジェクトにカテゴリを追加する */
@@ -755,9 +724,7 @@ const useProjectManagement = (
           projectId,
           categoryName,
         )
-        const updatedRaws = await loadCustomProjectRaws(
-          customProjectRepositoryRef.current,
-        )
+        const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         toast.success(
           t('savedTabs.projectCategory.deleted', undefined, {
@@ -785,9 +752,7 @@ const useProjectManagement = (
           url,
           category,
         )
-        const updatedRaws = await loadCustomProjectRaws(
-          customProjectRepositoryRef.current,
-        )
+        const updatedRaws = await getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
       } catch (error) {
         console.error('URL分類エラー:', error)
@@ -857,9 +822,7 @@ const useProjectManagement = (
     async (newOrder: string[]): Promise<void> => {
       try {
         console.log('プロジェクト順序を更新:', newOrder)
-        await customProjectRepositoryRef.current.saveOrder(
-          newOrder as unknown as DomainCustomProjectId[], // oxlint-disable-line typescript/no-unsafe-type-assertion
-        )
+        await saveCustomProjectOrderUseCaseRef.current({ newOrder })
         setCustomProjects((prev) =>
           prev.toSorted((a, b) => {
             const indexA = newOrder.indexOf(a.id)
@@ -949,8 +912,8 @@ const useProjectManagement = (
         // (`projectKeywords` / `categoryOrder` / `urls` / `urlMetadata`)
         // が落ちないように、raw snapshot を直接 storage 形へ投影する。
         const [raws, order] = await Promise.all([
-          loadCustomProjectRaws(customProjectRepositoryRef.current),
-          customProjectRepositoryRef.current.findOrder(),
+          getCustomProjectRawsQueryRef.current(),
+          getCustomProjectOrderQueryRef.current(),
         ])
         const projectsAsCust = raws.map(toRawStorageCustomProject)
         // PR #514 review P1: 保存済みの `customProjectOrder` を反映し、

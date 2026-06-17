@@ -660,6 +660,15 @@ describe('SavedTabsApp custom search', () => {
         removeSubCategoryFromTabGroups: vi.fn(),
         restoreOpenedUrlsSnapshot: vi.fn(),
         restoreOpenedUrlsSnapshotView,
+        // issue #538: `useProjectManagement` の deps に追加された
+        // application query / use-case モック。
+        getCustomProjects: vi.fn(),
+        getCustomProjectOrder: vi.fn(),
+        getCustomProjectUndoSnapshot: vi.fn(),
+        getCustomProjectRaws: vi.fn(),
+        saveCustomProjectOrder: vi.fn(),
+        saveCustomProjects: vi.fn(),
+        restoreCustomProjectsSnapshot: vi.fn(),
         setCategoryKeywords: vi.fn(),
         syncCategoryAssignments: vi.fn(),
         updateCustomProjectName: vi.fn(),
@@ -716,6 +725,15 @@ describe('SavedTabsApp custom search', () => {
         removeSubCategoryFromTabGroups: vi.fn(),
         restoreOpenedUrlsSnapshot: vi.fn(),
         restoreOpenedUrlsSnapshotView,
+        // issue #538: `useProjectManagement` の deps に追加された
+        // application query / use-case モック。
+        getCustomProjects: vi.fn(),
+        getCustomProjectOrder: vi.fn(),
+        getCustomProjectUndoSnapshot: vi.fn(),
+        getCustomProjectRaws: vi.fn(),
+        saveCustomProjectOrder: vi.fn(),
+        saveCustomProjects: vi.fn(),
+        restoreCustomProjectsSnapshot: vi.fn(),
         setCategoryKeywords: vi.fn(),
         syncCategoryAssignments: vi.fn(),
         updateCustomProjectName: vi.fn(),
