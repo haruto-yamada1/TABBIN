@@ -134,7 +134,10 @@ const useSavedTabsAppView = ({
     onSettingsLoaded: setSettings,
   })
   const projectState = useProjectManagement(
-    deps.customProjectRepository,
+    savedTabsUseCases.getCustomProjects,
+    savedTabsUseCases.getCustomProjectOrder,
+    savedTabsUseCases.getCustomProjectUndoSnapshot,
+    savedTabsUseCases.getCustomProjectRaws,
     tabDataState.tabGroups,
     settings,
     initialViewMode,
@@ -142,6 +145,8 @@ const useSavedTabsAppView = ({
     savedTabsUseCases.createCustomProject,
     savedTabsUseCases.deleteCustomProject,
     savedTabsUseCases.updateCustomProjectName,
+    savedTabsUseCases.saveCustomProjectOrder,
+    savedTabsUseCases.restoreCustomProjectsSnapshot,
   )
   const {
     categories,

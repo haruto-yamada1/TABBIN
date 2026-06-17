@@ -929,4 +929,64 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       })
     }
   })
+
+  describe('issue #538: useProjectManagement は CustomProjectRepository を import しない', () => {
+    const useProjectManagementPath = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/presentation/hooks/useProjectManagement.ts',
+    )
+    const useProjectManagementSource = readFileSync(
+      useProjectManagementPath,
+      'utf8',
+    )
+
+    it('useProjectManagement は CustomProjectRepository を import していない', () => {
+      expect(useProjectManagementSource).not.toMatch(
+        /from\s+['"]@\/contexts\/saved-tabs\/domain\/repositories\/CustomProjectRepository['"]/,
+      )
+    })
+
+    it('useProjectManagement の deps は customProjectRepository を受け取らない', () => {
+      // 第 1 引数が `customProjectRepository` でなく、application
+      // query / use-case 関数のみ受け取る形に更新されていること。
+      // まず deps 引数 (関数シグネチャ) の型注釈レベルを検証し、
+      // import 自体が repository モジュールを直接引いていないかを
+      // 別途検証する。
+      expect(useProjectManagementSource).not.toMatch(
+        /customProjectRepository\s*:\s*CustomProjectRepository/,
+      )
+      // import 文での repository モジュール直接依存を検証する。
+      // JSDoc 中の言及は許容するため、`from '...repository'` 形式
+      // の import のみ検出する。
+      expect(useProjectManagementSource).not.toMatch(
+        /from\s+['"]@\/contexts\/saved-tabs\/domain\/repositories\/CustomProjectRepository['"]/,
+      )
+    })
+
+    it('useProjectManagement は CustomProjectRepository.findOrder / saveOrder / findAll / findAllRaw / restoreAllRaw / saveAll を直接呼ばない', () => {
+      // JSDoc 内の言及は除外し、関数呼び出し形式のみ検出。
+      // `repo.findAll` のようなメソッド呼び出しを許容するため、
+      // 識別子単体 (`.findOrder` / `.saveOrder` ...) を
+      // `customProjectRepositoryRef` 系が保有している経路に限定して
+      // 検出する。
+      expect(useProjectManagementSource).not.toMatch(
+        /customProjectRepositoryRef\.current\.findOrder\(/,
+      )
+      expect(useProjectManagementSource).not.toMatch(
+        /customProjectRepositoryRef\.current\.saveOrder\(/,
+      )
+      expect(useProjectManagementSource).not.toMatch(
+        /customProjectRepositoryRef\.current\.findAll\(/,
+      )
+      expect(useProjectManagementSource).not.toMatch(
+        /customProjectRepositoryRef\.current\.findAllRaw\(/,
+      )
+      expect(useProjectManagementSource).not.toMatch(
+        /customProjectRepositoryRef\.current\.restoreAllRaw\(/,
+      )
+      expect(useProjectManagementSource).not.toMatch(
+        /customProjectRepositoryRef\.current\.saveAll\(/,
+      )
+    })
+  })
 })

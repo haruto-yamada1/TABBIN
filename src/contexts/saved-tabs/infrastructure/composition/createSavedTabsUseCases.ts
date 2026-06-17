@@ -1,3 +1,7 @@
+import { createGetCustomProjectOrderQuery } from '../../application/queries/GetCustomProjectOrderQuery'
+import { createGetCustomProjectRawsQuery } from '../../application/queries/GetCustomProjectRawsQuery'
+import { createGetCustomProjectsQuery } from '../../application/queries/GetCustomProjectsQuery'
+import { createGetCustomProjectUndoSnapshotQuery } from '../../application/queries/GetCustomProjectUndoSnapshotQuery'
 import { createGetSavedTabsPageDataQuery } from '../../application/queries/GetSavedTabsPageDataQuery'
 import { createGetSavedTabsQuery } from '../../application/queries/GetSavedTabsQuery'
 import type { SavedTabsUseCases } from '../../application/SavedTabsUseCases'
@@ -32,8 +36,11 @@ import { createReorderParentCategoriesUseCase } from '../../application/use-case
 import { createReorderTabGroupsUseCase } from '../../application/use-cases/ReorderTabGroupsUseCase'
 import { createReorderTabGroupUrlsUseCase } from '../../application/use-cases/ReorderTabGroupUrlsUseCase'
 import { createRepairTabGroupParentCategoryIdsUseCase } from '../../application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
+import { createRestoreCustomProjectsSnapshotUseCase } from '../../application/use-cases/RestoreCustomProjectsSnapshotUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotUseCase'
 import { createRestoreOpenedUrlsSnapshotViewUseCase } from '../../application/use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
+import { createSaveCustomProjectOrderUseCase } from '../../application/use-cases/SaveCustomProjectOrderUseCase'
+import { createSaveCustomProjectsUseCase } from '../../application/use-cases/SaveCustomProjectsUseCase'
 import { createSetCategoryKeywordsUseCase } from '../../application/use-cases/SetCategoryKeywordsUseCase'
 import { createSyncCategoryAssignmentsUseCase } from '../../application/use-cases/SyncCategoryAssignmentsUseCase'
 import { createUpdateCustomProjectNameUseCase } from '../../application/use-cases/UpdateCustomProjectNameUseCase'
@@ -125,6 +132,27 @@ export const createSavedTabsUseCases = (
   getProjectUrls: createGetProjectUrlsUseCase({
     customProjectRepository: deps.customProjectRepository,
     urlRecordRepository: deps.urlRecordRepository,
+  }),
+  getCustomProjects: createGetCustomProjectsQuery({
+    customProjectRepository: deps.customProjectRepository,
+  }),
+  getCustomProjectOrder: createGetCustomProjectOrderQuery({
+    customProjectRepository: deps.customProjectRepository,
+  }),
+  getCustomProjectUndoSnapshot: createGetCustomProjectUndoSnapshotQuery({
+    customProjectRepository: deps.customProjectRepository,
+  }),
+  getCustomProjectRaws: createGetCustomProjectRawsQuery({
+    customProjectRepository: deps.customProjectRepository,
+  }),
+  saveCustomProjectOrder: createSaveCustomProjectOrderUseCase({
+    customProjectRepository: deps.customProjectRepository,
+  }),
+  saveCustomProjects: createSaveCustomProjectsUseCase({
+    customProjectRepository: deps.customProjectRepository,
+  }),
+  restoreCustomProjectsSnapshot: createRestoreCustomProjectsSnapshotUseCase({
+    customProjectRepository: deps.customProjectRepository,
   }),
   getSavedTabsPageData: createGetSavedTabsPageDataQuery({
     parentCategoryRepository: deps.parentCategoryRepository,

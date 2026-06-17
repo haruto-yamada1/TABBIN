@@ -16,12 +16,12 @@ import { useProjectManagement } from './useProjectManagement'
 const projectManagementMocks = vi.hoisted(() => ({
   addCategoryToProject: vi.fn(),
   addUrlToCustomProject: vi.fn(),
+  // 旧テスト互換: 実装は `getCustomProjectsQuery` (= `findAll`) を使う。
+  // `getCustomProjects` というキー名で mock しても、
+  // `findAll` の戻り値を `getCustomProjects` の戻り値に同期する実装で
+  // そのまま動く。
   createCustomProject: vi.fn().mockResolvedValue({}),
   deleteCustomProject: vi.fn().mockResolvedValue({}),
-  // 後方互換: 旧テストが `getCustomProjects` を mock していた名残。
-  // 実装は `customProjectRepository.findAll` を使うが、テストでは
-  // customProjectRepository の `findAll` 実装を `getCustomProjects` の
-  // 戻り値で書き換えるだけで動かせる。
   getCustomProjects: vi.fn(),
   removeCategoryFromProject: vi.fn(),
   removeUrlFromCustomProject: vi.fn(),
@@ -32,8 +32,17 @@ const projectManagementMocks = vi.hoisted(() => ({
   updateCategoryOrder: vi.fn(),
   updateCustomProjectName: vi.fn().mockResolvedValue({}),
   updateProjectKeywords: vi.fn(),
-  // 旧テスト互換: 実装は `customProjectRepository.saveOrder` を使う。
-  updateProjectOrder: vi.fn(),
+  // 旧テスト互換: 実装は `saveCustomProjectOrderUseCase` (= `saveOrder`) を使う。
+  // `getCustomProjectOrder` の戻り値も `findOrder` mock と同期して
+  // 初期 load / undo snapshot で同じ order を返す。
+  saveCustomProjectOrder: vi.fn(),
+  getCustomProjectOrder: vi.fn(),
+  getCustomProjectUndoSnapshot: vi.fn(),
+  // 旧テスト互換: 旧 `customProjectRepository.restoreAllRaw` /
+  // `saveOrder` を直接 mock していた検証を新 use-case 経由でも
+  // 検証できるよう、use-case mock を expose する。
+  restoreCustomProjectsSnapshot: vi.fn(),
+  getCustomProjectRaws: vi.fn(),
 }))
 
 vi.mock('sonner', () => ({
@@ -162,20 +171,18 @@ const toRawSnapshot = (project: CustomProject): CustomProjectRawSnapshot => {
 }
 
 describe('useProjectManagement', () => {
-  let customProjectRepository: CustomProjectRepository
   /**
-   * issue #509 で `useProjectManagement` の引数として
-   * `customProjectsCommandService` と 3 つの use-case
-   * (`createCustomProject` / `deleteCustomProject` /
-   * `updateCustomProjectName`) を port として注入する形に
-   * なった。これらは `projectManagementMocks` 内の同名 mock 関数
-   * をそのまま参照する。
+   * issue #538 で `useProjectManagement` の deps から
+   * `customProjectRepository` を撤去し、application query / use-case
+   * 経由の依存に統一した。これらは `projectManagementMocks` 内の
+   * 同名 mock 関数をそのまま参照する形に統一しつつ、presentation
+   * 側で未使用の `removeUrlIdsFromAllCustomProjects` /
+   * `removeUrlsFromAllCustomProjects` は no-op vi.fn で補完する。
    */
-  // `customProjectsCommandService` は `useProjectManagement` の第 5 引数
+  // `customProjectsCommandService` は `useProjectManagement` の
   // `CustomProjectsCommandService` として渡される。テストでは
   // `projectManagementMocks` の同名関数をそのまま参照する形に統一しつつ、
-  // presentation 側で未使用の `removeUrlIdsFromAllCustomProjects` /
-  // `removeUrlsFromAllCustomProjects` は no-op vi.fn で補完する。
+  // presentation 側で未使用のメソッドは no-op vi.fn で補完する。
   // eslint-disable-next-line typescript/no-explicit-any
   let customProjectsCommandService: any
 
@@ -192,10 +199,10 @@ describe('useProjectManagement', () => {
     // 保持した raw snapshot を取得する。テストでは
     // `projectManagementMocks.getCustomProjects.mockResolvedValue(...)` で
     // 設定した `CustomProject` (storage 形) を raw snapshot 形に widen
-    // して `findAllRaw` の戻り値にする。`findAllRaw` mock は
-    // `mockImplementation` で `getCustomProjects` ベースの widening を
-    // 担当し、テストケースで `mockResolvedValueOnce` /
-    // `mockImplementationOnce` で一時的に上書きできる。
+    // して `getCustomProjectRaws` の戻り値にする。
+    // issue #538 で `getCustomProjectRaws` (= `findAllRaw` 相当) は
+    // application query 経由になったため、mock 関数 `getCustomProjectRaws`
+    // を widening 担当として `getCustomProjects` ベースの結果を返す。
     const findAllMock = vi
       .fn()
       .mockImplementation(() => projectManagementMocks.getCustomProjects())
@@ -207,7 +214,7 @@ describe('useProjectManagement', () => {
           .then((projects: CustomProject[]) => projects.map(toRawSnapshot)),
       )
 
-    customProjectRepository = {
+    const customProjectRepository = {
       findAll: findAllMock,
       findAllRaw: findAllRawMock,
       findById: vi.fn(),
@@ -244,11 +251,113 @@ describe('useProjectManagement', () => {
     ).mockResolvedValue(undefined)
     projectManagementMocks.getCustomProjects.mockResolvedValue(projectSnapshot)
 
+    // `getCustomProjectOrder` (= `findOrder` 相当) は
+    // `projectManagementMocks.getCustomProjectOrder` を widening として
+    // 委譲する。テストで `getCustomProjectOrder.mockResolvedValueOnce` /
+    // `mockImplementationOnce` で一時的に上書きできる。
+    projectManagementMocks.getCustomProjectOrder.mockImplementation(
+      () =>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        customProjectRepository.findOrder() as unknown as ReturnType<
+          typeof projectManagementMocks.getCustomProjectOrder
+        >,
+    )
+    // `saveCustomProjectOrder` (= `saveOrder` 相当) は
+    // `customProjectRepository.saveOrder` を widening として委譲する。
+    projectManagementMocks.saveCustomProjectOrder.mockImplementation(
+      (command: { newOrder: readonly string[] }) =>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        customProjectRepository.saveOrder(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          command.newOrder as unknown as Parameters<
+            CustomProjectRepository['saveOrder']
+          >[0],
+        ),
+    )
+    // `getCustomProjectRaws` は `customProjectRepository.findAllRaw` を
+    // widening として委譲する。
+    projectManagementMocks.getCustomProjectRaws.mockImplementation(() =>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      (
+        customProjectRepository.findAllRaw as () => Promise<
+          readonly CustomProjectRawSnapshot[]
+        >
+      )(),
+    )
+    // `getCustomProjectUndoSnapshot` は `getCustomProjectRaws` /
+    // `getCustomProjectOrder` 経由で取得する。これにより、テストで
+    // `getCustomProjectRaws.mockImplementationOnce(...)` 等で
+    // snapshot 取得タイミングの値を一時的に上書きできる。
+    projectManagementMocks.getCustomProjectUndoSnapshot.mockImplementation(
+      async () => {
+        const order = await projectManagementMocks.getCustomProjectOrder()
+        const base: { customProjectOrder?: readonly unknown[] } = {}
+        if (order.length > 0) {
+          base.customProjectOrder = order
+        }
+        const raws = await projectManagementMocks.getCustomProjectRaws()
+        const projects: {
+          categories: readonly string[]
+          createdAt: number
+          id: string
+          name: string
+          updatedAt: number
+          urlIds: readonly string[]
+        }[] = raws.map((raw: CustomProjectRawSnapshot) => ({
+          categories: [...raw.categories],
+          createdAt: raw.createdAt,
+          id: raw.id,
+          name: raw.name,
+          updatedAt: raw.updatedAt,
+          urlIds: [...(raw.urlIds ?? [])],
+        }))
+        return {
+          ...base,
+          ...(projects.length > 0 ? { customProjects: projects } : {}),
+          ...(raws.length > 0 ? { customProjectsRaw: raws } : {}),
+        }
+      },
+    )
+    // `restoreCustomProjectsSnapshot` は payload を見て
+    // `restoreAllRaw` / `saveAll` / `saveOrder` を委譲する。
+    // 旧 `customProjectRepository.restoreAllRaw` / `saveAll` /
+    // `saveOrder` を直接 mock していた検証を新 use-case mock 経由でも
+    // 検証できるよう、repository mock と同期する。
+    // `saveOrder` 部分は `saveCustomProjectOrder` use-case mock 経由で
+    // 委譲し、presentation hook の `handleReorderProjects` 経路と
+    // 同じ use-case を通る形に統一する。
+    projectManagementMocks.restoreCustomProjectsSnapshot.mockImplementation(
+      async (command: {
+        payload: {
+          customProjects?: readonly unknown[]
+          customProjectsRaw?: readonly CustomProjectRawSnapshot[]
+          customProjectOrder?: readonly unknown[]
+        }
+      }) => {
+        const { payload } = command
+        if (
+          payload.customProjectsRaw &&
+          customProjectRepository.restoreAllRaw
+        ) {
+          await customProjectRepository.restoreAllRaw(payload.customProjectsRaw)
+        } else if (payload.customProjects) {
+          await customProjectRepository.saveAll(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+            payload.customProjects as unknown as Parameters<
+              CustomProjectRepository['saveAll']
+            >[0],
+          )
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        const order = (payload.customProjectOrder ??
+          []) as unknown as readonly string[]
+        await projectManagementMocks.saveCustomProjectOrder({ newOrder: order })
+      },
+    )
+
     customProjectsCommandService = {
       addCategoryToProject: projectManagementMocks.addCategoryToProject,
       addUrlToCustomProject: projectManagementMocks.addUrlToCustomProject,
-      // 旧 `updateProjectOrder` テスト互換: 実装は
-      // `customProjectRepository.saveOrder` を使うため、空の no-op。
       moveUrlBetweenCustomProjects: vi.fn(),
       removeCategoryFromProject:
         projectManagementMocks.removeCategoryFromProject,
@@ -292,7 +401,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'domain',
@@ -300,6 +412,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -323,7 +437,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -331,6 +448,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -352,7 +471,10 @@ describe('useProjectManagement', () => {
 
     const { result: pendingResult, unmount } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -360,6 +482,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
     unmount()
@@ -380,7 +504,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'domain',
@@ -388,6 +515,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -410,7 +539,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'domain',
@@ -418,6 +550,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -441,7 +575,10 @@ describe('useProjectManagement', () => {
   it('initialViewMode 未指定なら domain モードで初期化する', async () => {
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         undefined,
@@ -449,6 +586,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -477,7 +616,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -485,6 +627,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -523,7 +667,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -531,6 +678,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -567,7 +716,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -575,6 +727,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -633,7 +787,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -641,6 +798,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -725,7 +884,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -733,6 +895,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -770,10 +934,9 @@ describe('useProjectManagement', () => {
       'project-2',
       reorderedUrls,
     )
-    expect(customProjectRepository.saveOrder).toHaveBeenCalledWith([
-      'project-1',
-      'project-2',
-    ])
+    expect(projectManagementMocks.saveCustomProjectOrder).toHaveBeenCalledWith({
+      newOrder: ['project-1', 'project-2'],
+    })
     expect(projectManagementMocks.renameCategoryInProject).toHaveBeenCalledWith(
       'project-2',
       'Inbox',
@@ -820,7 +983,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -828,6 +994,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -887,19 +1055,21 @@ describe('useProjectManagement', () => {
       new Error('url order failed'),
     )
     // 旧 `updateProjectOrder` テスト互換: 実装は
-    // `customProjectRepository.saveOrder` を使うため、ここで reject。
-    ;(
-      customProjectRepository.saveOrder as unknown as {
-        mockRejectedValue: (e: unknown) => void
-      }
-    ).mockRejectedValue(new Error('project order failed'))
+    // `saveCustomProjectOrderUseCase` (= `customProjectRepository.saveOrder`)
+    // を使うため、ここで reject。
+    projectManagementMocks.saveCustomProjectOrder.mockRejectedValue(
+      new Error('project order failed'),
+    )
     projectManagementMocks.renameCategoryInProject.mockRejectedValue(
       new Error('category rename failed'),
     )
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -907,6 +1077,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -974,15 +1146,16 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(updatedProjects)
     // PR #514 review P1: 初期 load 時に customProjectOrder を取り込み、
     // undo snapshot にも order を含める。
-    ;(
-      customProjectRepository.findOrder as unknown as {
-        mockResolvedValue: (value: unknown) => void
-      }
-    ).mockResolvedValue(['project-1'])
+    projectManagementMocks.getCustomProjectOrder.mockResolvedValue([
+      'project-1',
+    ])
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -990,6 +1163,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -1026,21 +1201,32 @@ describe('useProjectManagement', () => {
       await undoOptions?.action?.onClick?.()
     })
 
-    expect(customProjectRepository.restoreAllRaw).toHaveBeenLastCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 'project-1', name: 'Project A' }),
-      ]),
+    expect(
+      projectManagementMocks.restoreCustomProjectsSnapshot,
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          customProjects: expect.arrayContaining([
+            expect.objectContaining({ id: 'project-1', name: 'Project A' }),
+          ]),
+          customProjectOrder: ['project-1'],
+        }),
+      }),
     )
-    expect(customProjectRepository.saveOrder).toHaveBeenLastCalledWith([
-      'project-1',
-    ])
+    // `restoreCustomProjectsSnapshot` mock は `saveCustomProjectOrder` 経由
+    // で `customProjectRepository.saveOrder` を委譲する実装なので、
+    // payload 内の order が use-case 経由で `saveCustomProjectOrder` へ
+    // 伝搬したことを検証する。
+    expect(
+      projectManagementMocks.saveCustomProjectOrder,
+    ).toHaveBeenLastCalledWith({ newOrder: ['project-1'] })
     expect(result.current.customProjects).toStrictEqual(projectSnapshot)
   })
 
-  it('Undo は生 snapshot があれば restoreAllRaw 経由で urls / urlMetadata を含めて復元する（PR #506 review P2 対応）', async () => {
+  it('Undo は生 snapshot があれば restoreCustomProjectsSnapshot 経由で urls / urlMetadata を含めて復元する（PR #506 review P2 対応）', async () => {
     // 生 snapshot にだけ存在する urls / urlMetadata / projectKeywords は
     // entity snapshot には載らないため、saveAll 経由だと merge で脱落する。
-    // restoreAllRaw 経由で書けば全フィールドを保存できる。
+    // restoreCustomProjectsSnapshot 経由で書けば全フィールドを保存できる。
     const projectSnapshotRaw = [
       {
         categories: ['research'],
@@ -1063,15 +1249,16 @@ describe('useProjectManagement', () => {
     // 1 回目: 初回 load, 2 回目: undo snapshot, 3 回目: 削除後
     // 初期 load / undo snapshot で rich な `projectSnapshotRaw` を返し、
     // 削除後の再取得は `getCustomProjects` (= []) ベースでよい。
-    ;(
-      customProjectRepository.findAllRaw as unknown as {
-        mockResolvedValue: (value: unknown) => void
-      }
-    ).mockResolvedValue(projectSnapshotRaw)
+    projectManagementMocks.getCustomProjectRaws.mockResolvedValue(
+      projectSnapshotRaw,
+    )
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -1079,10 +1266,13 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
-    // 初期ロード時に `findAllRaw` 経由で rich な snapshot が反映される
+    // 初期ロード時に `getCustomProjectRaws` (= `findAllRaw`) 経由で rich な
+    // snapshot が反映される
     // (issue #535 P1: projectKeywords / urlMetadata / urls が保持される)
     await waitFor(() => {
       expect(result.current.customProjects[0]?.projectKeywords).toStrictEqual({
@@ -1111,64 +1301,14 @@ describe('useProjectManagement', () => {
       await undoOptions?.action?.onClick?.()
     })
 
-    expect(customProjectRepository.restoreAllRaw).toHaveBeenCalledWith(
-      projectSnapshotRaw,
-    )
-    expect(customProjectRepository.saveAll).not.toHaveBeenCalled()
-  })
-
-  it('restoreAllRaw が未実装の repository では saveAll にフォールバックする', async () => {
-    // テストモック等で restoreAllRaw / findAllRaw が省略されているケースを
-    // 想定し、entity 経由の saveAll へ安全側に倒れることを確認する。
-    const repoWithoutRaw = {
-      findAll: customProjectRepository.findAll,
-      findById: customProjectRepository.findById,
-      removeByIds: customProjectRepository.removeByIds,
-      saveAll: customProjectRepository.saveAll,
-      findOrder: customProjectRepository.findOrder,
-      saveOrder: customProjectRepository.saveOrder,
-    } as unknown as CustomProjectRepository
-    projectManagementMocks.getCustomProjects
-      .mockResolvedValueOnce(projectSnapshot)
-      .mockResolvedValueOnce(projectSnapshot)
-      .mockResolvedValueOnce([])
-
-    const { result } = renderHook(() =>
-      useProjectManagement(
-        repoWithoutRaw,
-        [],
-        defaultSettings,
-        'custom',
-        customProjectsCommandService,
-        projectManagementMocks.createCustomProject,
-        projectManagementMocks.deleteCustomProject,
-        projectManagementMocks.updateCustomProjectName,
-      ),
-    )
-
-    await waitForLoadedProjects(result)
-
-    await act(async () => {
-      await result.current.handleDeleteUrlFromProject(
-        'project-1',
-        'https://example.com/a',
-      )
-    })
-
-    const undoOptions = vi.mocked(toast.info).mock.calls.at(-1)?.[1] as
-      | {
-          action?: {
-            onClick?: () => Promise<void>
-          }
-        }
-      | undefined
-
-    await act(async () => {
-      await undoOptions?.action?.onClick?.()
-    })
-
-    expect(customProjectRepository.saveAll).toHaveBeenLastCalledWith(
-      projectSnapshot,
+    expect(
+      projectManagementMocks.restoreCustomProjectsSnapshot,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          customProjectsRaw: projectSnapshotRaw,
+        }),
+      }),
     )
   })
 
@@ -1179,7 +1319,10 @@ describe('useProjectManagement', () => {
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -1187,6 +1330,8 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
@@ -1217,7 +1362,7 @@ describe('useProjectManagement', () => {
 
   it('Undo の保存データがない場合は復元処理を行わず、復元失敗は通知する', async () => {
     // 1st delete: snapshot = []  → 復元スキップ
-    // 2nd delete: snapshot = projectSnapshot → 復元は restoreAllRaw (reject) → 失敗通知
+    // 2nd delete: snapshot = projectSnapshot → 復元は失敗 → error toast
     // queue 設計:
     //  - 1st widening (useEffect): projectSnapshot
     //  - 2nd widening (1st delete snapshot): mockImplementationOnce で
@@ -1231,23 +1376,18 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(projectSnapshot) // 4th: 2nd delete snapshot
       .mockResolvedValueOnce(projectSnapshot) // 5th: 2nd delete 削除後
 
-    // issue #535 P1: `findAllRaw` を 1st delete の snapshot 取得タイミングで
-    // 空にしておくと、undo snapshot に `customProjectsRaw` が含まれず
-    // `restoreAllRaw` 経路をスキップする。`findAll` も空を返すため、
-    // UI 復元も `payload.customProjects` 経由で `saveAll` 経由になる。
-    // 2nd delete は通常経路 (snapshot = projectSnapshot) で `restoreAllRaw` を
-    // 通すが、mock で reject させて「restoreAllRaw 失敗 → error toast」を
-    // 検証する (issue #535 で raw 経路が主軸になったため `saveAll` 失敗
-    // ではなく `restoreAllRaw` 失敗で検証する)。
-    ;(
-      customProjectRepository.restoreAllRaw as unknown as {
-        mockRejectedValueOnce: (value: unknown) => void
-      }
-    ).mockRejectedValueOnce(new Error('restore failed'))
+    // issue #538: `restoreCustomProjectsSnapshot` use-case を 1 度だけ
+    // reject させ、undo 復元の失敗 error toast を検証する。
+    projectManagementMocks.restoreCustomProjectsSnapshot.mockImplementationOnce(
+      () => Promise.reject(new Error('restore failed')),
+    )
 
     const { result } = renderHook(() =>
       useProjectManagement(
-        customProjectRepository,
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
         [],
         defaultSettings,
         'custom',
@@ -1255,19 +1395,23 @@ describe('useProjectManagement', () => {
         projectManagementMocks.createCustomProject,
         projectManagementMocks.deleteCustomProject,
         projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
       ),
     )
 
     await waitForLoadedProjects(result)
 
-    // 1st delete の `getCustomProjectUndoSnapshot` 内の `findAllRaw` を
-    // 空配列にしておく。これで undo snapshot に `customProjectsRaw` が
-    // 含まれず `restoreAllRaw` 経路をスキップし、`saveAll` も呼ばれない。
-    ;(
-      customProjectRepository.findAllRaw as unknown as {
-        mockImplementationOnce: (impl: () => unknown) => void
-      }
-    ).mockImplementationOnce(() => Promise.resolve([]))
+    // 1st delete の `getCustomProjectUndoSnapshot` 内の
+    // `getCustomProjects` を空にしておくと、undo snapshot に
+    // `customProjectsRaw` / `customProjects` が含まれず、payload 化
+    // で `null` が返り `restoreCustomProjectsSnapshot` 経路をスキップする。
+    projectManagementMocks.getCustomProjectRaws.mockImplementationOnce(() =>
+      Promise.resolve([] as CustomProjectRawSnapshot[]),
+    )
+    projectManagementMocks.getCustomProjects.mockImplementationOnce(() =>
+      Promise.resolve([] as CustomProject[]),
+    )
 
     await act(async () => {
       await result.current.handleDeleteUrlFromProject(
@@ -1288,7 +1432,9 @@ describe('useProjectManagement', () => {
       await missingUndoOptions?.action?.onClick?.()
     })
 
-    expect(customProjectRepository.restoreAllRaw).not.toHaveBeenCalled()
+    expect(
+      projectManagementMocks.restoreCustomProjectsSnapshot,
+    ).not.toHaveBeenCalled()
 
     await act(async () => {
       await result.current.handleDeleteUrlFromProject(
@@ -1309,9 +1455,9 @@ describe('useProjectManagement', () => {
       await failingUndoOptions?.action?.onClick?.()
     })
 
-    expect(customProjectRepository.restoreAllRaw).toHaveBeenCalledWith(
-      projectSnapshot,
-    )
+    expect(
+      projectManagementMocks.restoreCustomProjectsSnapshot,
+    ).toHaveBeenCalled()
     expect(toast.error).toHaveBeenCalledWith('保存データを復元できませんでした')
   })
 })
