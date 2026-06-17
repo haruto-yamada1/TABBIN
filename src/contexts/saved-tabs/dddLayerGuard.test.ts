@@ -1111,4 +1111,27 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       )
     })
   })
+
+  describe('issue #544: SavedTabsApp に旧コメントアウトの chrome.storage 直叩きコードを残さない', () => {
+    const savedTabsAppPath = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/presentation/app/SavedTabsApp.tsx',
+    )
+    const savedTabsAppSource = readFileSync(savedTabsAppPath, 'utf8')
+
+    it('SavedTabsApp は旧コメントアウト handleDragEnd ブロックを残さない', () => {
+      // DDD 移行前に残っていた `Chrome.storage.local.set({ savedTabs: ... })`
+      // を含むコメントアウト済み handleDragEnd (大文字始まりの keyword
+      // 表記 = 旧実装のメモ書き) の再発を防ぐ。
+      expect(savedTabsAppSource).not.toMatch(/Chrome\.storage\.local\.set\(/)
+      expect(savedTabsAppSource).not.toMatch(/savedTabs:\s*newGroups/)
+      // `Const` / `Set` / `If` / `Return` のような旧コードの keyword 表記。
+      // `const` / `set` / `if` / `return` の通常コードは影響しないよう、
+      // 旧 handleDragEnd ブロック固有の context を含めて厳密検出する。
+      expect(savedTabsAppSource).not.toMatch(/^.*Const handleDragEnd/m)
+      expect(savedTabsAppSource).not.toMatch(
+        /Chrome\.storage\.local\.set\(\{\s*savedTabs:\s*newGroups/,
+      )
+    })
+  })
 })

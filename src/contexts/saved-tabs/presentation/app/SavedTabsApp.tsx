@@ -694,24 +694,6 @@ const useSavedTabsAppView = ({
     }),
   )
 
-  // Const handleDragEnd = (event: DragEndEvent) => {
-  //   Const { active, over } = event
-
-  //   If (over && active.id !== over.id) {
-  //     SetTabGroups((groups: TabGroup[]) => {
-  //       Const oldIndex = groups.findIndex(group => group.id === active.id)
-  //       Const newIndex = groups.findIndex(group => group.id === over.id)
-
-  //       Const newGroups = arrayMove(groups, oldIndex, newIndex)
-
-  //       // ストレージに保存
-  //       Chrome.storage.local.set({ savedTabs: newGroups })
-
-  //       Return newGroups
-  //     })
-  //   }
-  // }
-
   // 未分類ドメインの並び替えをキャンセルする
   const handleCancelUncategorizedReorder = useCallback(() => {
     if (!isUncategorizedReorderMode) {
