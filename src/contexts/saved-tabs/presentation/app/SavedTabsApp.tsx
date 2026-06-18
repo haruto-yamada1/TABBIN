@@ -383,31 +383,32 @@ const useSavedTabsAppView = ({
         // `parentCategoryRepository` / `tabGroupRepository` を UI 側で
         // 束ねず、application use-case へ委譲する。
         //
-        // 3 つの use-case は互いに独立した storage key
-        // （`parentCategories.domainNames` / `savedTabs` / `customProjects`）
-        // に対する副作用で、入力依存（`savedTabs` の存在保証）は呼び出し前の
-        // `buildSavedTabsSnapshot` で完結しているため、`Promise.all` で
-        // 並列実行できる。`react-doctor/async-parallel` への対応。
-        await Promise.all([
-          savedTabsUseCases.prepareTabGroupDeletion({
-            // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
-            tabGroupId: id as unknown as TabGroupId,
-          }),
-          // 削除判断・未参照 UrlRecord 掃除・savedTabs の書き戻しは
-          // DeleteTabGroupUseCase に委譲する。use-case が見つからない
-          // グループを SavedTabsDomainError で通知するため、UI 側は
-          // 事前に savedTabs から対象グループの存在を保証しておく。
-          savedTabsUseCases.deleteTabGroup({
-            // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-            tabGroupId: id as unknown as TabGroupId,
-          }),
-          // グループに属するすべてのURLをカスタムプロジェクトからも削除
-          // (issue #512: presentation helper から application use-case
-          //  `removeUrlsFromCustomProjects` へ移設済み)。
-          savedTabsUseCases.removeUrlsFromCustomProjects({
-            tabGroups: [groupToDelete],
-          }),
-        ])
+        // **逐次実行にする理由**:
+        // `PrepareTabGroupDeletionUseCase` は内部で
+        // `tabGroupRepository.findRawTabGroupById` を呼び、
+        // `deleteTabGroup` が先に storage から `savedTabs` を消すと
+        // preflight が `null` を見て silent skip する
+        // (Codex review P2)。`removeUrlsFromCustomProjects` は
+        // customProjects 側なので、削除本体 (`deleteTabGroup`) 完了後に
+        // 実行しても整合性は保たれる。
+        await savedTabsUseCases.prepareTabGroupDeletion({
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
+          tabGroupId: id as unknown as TabGroupId,
+        })
+        // 削除判断・未参照 UrlRecord 掃除・savedTabs の書き戻しは
+        // DeleteTabGroupUseCase に委譲する。use-case が見つからない
+        // グループを SavedTabsDomainError で通知するため、UI 側は
+        // 事前に savedTabs から対象グループの存在を保証しておく。
+        await savedTabsUseCases.deleteTabGroup({
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
+          tabGroupId: id as unknown as TabGroupId,
+        })
+        // グループに属するすべてのURLをカスタムプロジェクトからも削除
+        // (issue #512: presentation helper から application use-case
+        //  `removeUrlsFromCustomProjects` へ移設済み)。
+        await savedTabsUseCases.removeUrlsFromCustomProjects({
+          tabGroups: [groupToDelete],
+        })
 
         // 以降は従来通りの処理
         const updatedGroups = savedTabs.filter((group) => group.id !== id)
@@ -505,33 +506,34 @@ const useSavedTabsAppView = ({
         // `parentCategoryRepository` / `tabGroupRepository` を直接
         // 束ねず、application use-case へ委譲する。
         //
-        // 3 つの use-case は互いに独立した storage key
-        // （`parentCategories.domainNames` / `savedTabs` / `customProjects`）
-        // に対する副作用で、入力依存（`savedTabs` の存在保証）は呼び出し前の
-        // `buildSavedTabsSnapshot` で完結しているため、`Promise.all` で
-        // 並列実行できる。`react-doctor/async-parallel` への対応。
-        await Promise.all([
-          savedTabsUseCases.prepareTabGroupsDeletion({
-            // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
-            tabGroupIds: ids as unknown as TabGroupId[],
-          }),
-          // 複数 TabGroup 削除本体は DeleteTabGroupsUseCase 経由に置き換える。
-          // 未参照になった UrlRecord の掃除と savedTabs の書き戻しは
-          // use-case が一括で行う。
-          savedTabsUseCases.deleteTabGroups({
-            // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-            tabGroupIds: ids as unknown as Parameters<
-              typeof savedTabsUseCases.deleteTabGroups
-            >[0]['tabGroupIds'],
-          }),
-          // customProject 側の URL ID 同期削除は他 storage key を触る
-          // ため、issue 範囲外として従来通り UI 側で実行していたが、
-          // issue #512 で `removeUrlsFromCustomProjects` use-case へ
-          // 移設済み (issue #540 範囲)。
-          savedTabsUseCases.removeUrlsFromCustomProjects({
-            tabGroups: groupsToDelete,
-          }),
-        ])
+        // **逐次実行にする理由**:
+        // `PrepareTabGroupsDeletionUseCase` は内部で各 group の
+        // `tabGroupRepository.findRawTabGroupById` を呼び、
+        // `deleteTabGroups` が先に storage から `savedTabs` を消すと
+        // preflight が `null` を見て silent skip する
+        // (Codex review P2)。`removeUrlsFromCustomProjects` は
+        // customProjects 側なので、削除本体完了後に実行しても整合性は
+        // 保たれる。
+        await savedTabsUseCases.prepareTabGroupsDeletion({
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
+          tabGroupIds: ids as unknown as TabGroupId[],
+        })
+        // 複数 TabGroup 削除本体は DeleteTabGroupsUseCase 経由に置き換える。
+        // 未参照になった UrlRecord の掃除と savedTabs の書き戻しは
+        // use-case が一括で行う。
+        await savedTabsUseCases.deleteTabGroups({
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
+          tabGroupIds: ids as unknown as Parameters<
+            typeof savedTabsUseCases.deleteTabGroups
+          >[0]['tabGroupIds'],
+        })
+        // customProject 側の URL ID 同期削除は他 storage key を触る
+        // ため、issue 範囲外として従来通り UI 側で実行していたが、
+        // issue #512 で `removeUrlsFromCustomProjects` use-case へ
+        // 移設済み (issue #540 範囲)。
+        await savedTabsUseCases.removeUrlsFromCustomProjects({
+          tabGroups: groupsToDelete,
+        })
 
         const idSet = new Set(ids)
         const updatedGroups = savedTabs.filter((group) => !idSet.has(group.id))

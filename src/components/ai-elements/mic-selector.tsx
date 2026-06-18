@@ -86,12 +86,20 @@ export const MicSelector = ({
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
       onOpenChange(nextOpen)
-      if (nextOpen && !hasPermission && !loading) {
-        void void loadDevices()
-      }
     },
-    [onOpenChange, hasPermission, loading, loadDevices],
+    [onOpenChange],
   )
+
+  // popover が `open` になったとき (制御モード / `defaultOpen` 含む)、
+  // 初回マウント時 `loading=true` の場合でも `loading` が `false` に
+  // 切り替わったタイミングで `loadDevices()` を実行する。
+  // 旧 `useEffect` 実装と同等の reactive 挙動を維持する
+  // (Codex review P2)。
+  useEffect(() => {
+    if (open && !hasPermission && !loading) {
+      void loadDevices()
+    }
+  }, [open, hasPermission, loading, loadDevices])
 
   const contextValue = useMemo(
     () => ({

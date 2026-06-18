@@ -1507,6 +1507,92 @@ describe('SavedTabsApp custom search', () => {
     expect(_legacyRemoveUrlFromAll).not.toHaveBeenCalled()
   })
 
+  // Codex P2 review 対応: preflight (`prepareTabGroupDeletion`) は
+  // delete よりも **必ず先に** 完了させる必要がある。`PrepareTabGroupDeletionUseCase`
+  // は内部で `tabGroupRepository.findRawTabGroupById` を呼ぶため、
+  // `deleteTabGroup` が先に `savedTabs` から対象を消すと preflight が
+  // `null` を見て silent skip し、category/mapping の永続化が抜ける。
+  //
+  // 検証方法: 既存の `'ドメイン全削除ではカスタムプロジェクト同期を URL ごと
+  // ではなく一括で実行する'` テストでは `prepareTabGroupDeletion` の呼び出し
+  // 引数のみ検証している (mock.results.at(-1).value.mock.calls)。本テスト
+  // はそれに加え、use-case が呼ばれたこと (mock.results が空でない) を確認し、
+  // race で skip されていないことを担保する。
+  it('グループ削除時 preflight use-case が必ず呼ばれる (race で skip されない)', async () => {
+    const group: TabGroup = {
+      id: 'group-1',
+      domain: 'example.com',
+      urls: [
+        { id: 'url-a', url: 'https://example.com/a', title: 'A' },
+        { id: 'url-b', url: 'https://example.com/b', title: 'B' },
+      ],
+      urlIds: ['url-a', 'url-b'],
+    }
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.categoryState.categories = []
+    mocked.tabDataState.tabGroups = [group]
+    mocked.tabDataState.tabGroupsWithUrls = [group]
+    const customProjectsSnapshot: CustomProject[] = [
+      {
+        id: 'project-1',
+        name: 'Project A',
+        urlIds: ['url-a', 'url-b'],
+        categories: [],
+        createdAt: 1,
+        updatedAt: 2,
+      },
+    ]
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => ({
+            customProjectOrder: ['project-1'],
+            customProjects: customProjectsSnapshot,
+            savedTabs: [group],
+          })),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: { create: vi.fn() },
+      windows: { create: vi.fn() },
+      runtime: { getURL: vi.fn() },
+    } as unknown as typeof chrome
+
+    vi.mocked(getTabGroupUrls).mockResolvedValue([
+      { url: 'https://example.com/a', title: 'A', id: 'url-a', savedAt: 1 },
+      { url: 'https://example.com/b', title: 'B', id: 'url-b', savedAt: 2 },
+    ])
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleDeleteGroup: (id: string) => Promise<void>
+    }
+
+    await domainProps.handleDeleteGroup('group-1')
+
+    // `PrepareTabGroupDeletionUseCase` factory が呼ばれ、戻り値 (mock fn) も
+    // 呼ばれていることを確認。`Promise.all` で並列化した結果 delete が先に
+    // 完了し preflight が `null` で skip された場合はこの呼び出しが消える。
+    const prepareFactory = vi.mocked(createPrepareTabGroupDeletionUseCase)
+    expect(prepareFactory).toHaveBeenCalled()
+    const prepareCall = prepareFactory.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: unknown[][] } } }
+      | undefined
+    const prepareFn = prepareCall?.value
+    expect(prepareFn).toBeDefined()
+    expect(prepareFn?.mock.calls.length).toBeGreaterThan(0)
+  })
+
   it('ドメイン子カテゴリ一括削除では URL 文字列ではなく URL ID ベースの削除を優先する', async () => {
     const group: TabGroup = {
       id: 'group-1',
