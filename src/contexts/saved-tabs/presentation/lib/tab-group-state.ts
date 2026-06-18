@@ -1,3 +1,4 @@
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { TabGroup, UrlRecord } from '@/types/storage'
 
 import type { ParentCategoryDto } from '../../domain/dto/ParentCategoryDto'
@@ -188,7 +189,7 @@ export const syncGroupCategoryAssignment = (
     )
     state.savedTabsChanged = true
     console.log(
-      `[カテゴリ同期] ドメイン ${group.domain} のparentCategoryIdをIDベースで ${idBasedCategory.id} に更新しました`,
+      `[カテゴリ同期] ドメイン ${redactUrlForLog(group.domain)} のparentCategoryIdをIDベースで ${idBasedCategory.id} に更新しました`,
     )
   }
   const foundByDomainName = categoryLookup.byDomainName.get(group.domain)
@@ -217,7 +218,7 @@ export const syncGroupCategoryAssignment = (
   )
   state.savedTabsChanged = true
   console.log(
-    `[カテゴリ同期] ドメイン ${group.domain} のIDを親カテゴリ ${foundByDomainName.id} に同期しました`,
+    `[カテゴリ同期] ドメイン ${redactUrlForLog(group.domain)} のIDを親カテゴリ ${foundByDomainName.id} に同期しました`,
   )
   return state
 }

@@ -32,6 +32,7 @@ const CustomProjectCard = memo(
     isDropTarget = false,
     isProjectReorderMode = false,
     isCrossProjectUrlDragActive = false,
+    getProjectUrlsUseCase,
   }: CustomProjectCardProps) => (
     <ProjectCardRoot
       project={project}
@@ -40,6 +41,7 @@ const CustomProjectCard = memo(
       isDropTarget={isDropTarget}
       isProjectReorderMode={isProjectReorderMode}
       isCrossProjectUrlDragActive={isCrossProjectUrlDragActive}
+      getProjectUrlsUseCase={getProjectUrlsUseCase}
       // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       handlers={{
         handleAddCategory,

@@ -363,6 +363,7 @@ const useCustomProjectSectionView = ({
   handleOpenAllUrls,
   handleMoveUrlBetweenProjects, // 新しいプロパティを受け取る
   handleMoveUrlsBetweenCategories, // カテゴリ間移動
+  getProjectUrlsUseCase,
   settings,
 }: CustomProjectSectionProps) => {
   const { t } = useI18n()
@@ -717,6 +718,7 @@ const useCustomProjectSectionView = ({
                     isDropTarget={draggedOverProjectId === project.id}
                     isProjectReorderMode={isProjectReorderMode}
                     isCrossProjectUrlDragActive={isCrossProjectUrlDragActive}
+                    getProjectUrlsUseCase={getProjectUrlsUseCase}
                     handleMoveUrlsBetweenCategories={
                       handleMoveUrlsBetweenCategories
                     }

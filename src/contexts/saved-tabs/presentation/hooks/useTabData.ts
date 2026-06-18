@@ -16,6 +16,7 @@ import type {
   RepairTabGroupParentCategoryIdsUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseTabData フックの引数 */
@@ -92,10 +93,9 @@ const runInitialMigrations = async (
   }
 }
 const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
-  console.log('読み込まれたタブ:', savedTabs)
   console.log('タブグループ数:', savedTabs.length)
   for (const group of savedTabs) {
-    console.log(`グループ ${group.domain}:`, {
+    console.log(`グループ ${redactUrlForLog(group.domain)}:`, {
       id: group.id,
       urlIds: group.urlIds?.length ?? 0,
       urlSubCategories: group.urlSubCategories
@@ -229,15 +229,17 @@ const useTabData = ({
       for (const group of groupsWithUrls) {
         if (group.urlIds && group.urlIds.length > 0) {
           console.log(
-            `グループ ${group.domain}: ${group.urls?.length ?? 0}個のURLを取得`,
+            `グループ ${redactUrlForLog(group.domain)}: ${group.urls?.length ?? 0}個のURLを取得`,
           )
           continue
         }
         if (group.urls && group.urls.length > 0) {
-          console.log(`グループ ${group.domain}: 旧形式のまま使用`)
+          console.log(
+            `グループ ${redactUrlForLog(group.domain)}: 旧形式のまま使用`,
+          )
           continue
         }
-        console.log(`グループ ${group.domain}: URLなし`)
+        console.log(`グループ ${redactUrlForLog(group.domain)}: URLなし`)
       }
       return [...groupsWithUrls]
     },

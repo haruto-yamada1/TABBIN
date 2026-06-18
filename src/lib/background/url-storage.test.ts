@@ -76,6 +76,7 @@ interface StorageState {
 }
 
 interface ChromeMockOptions {
+  cloneReads?: boolean
   rejectGet?: boolean
   rejectSet?: boolean
 }
@@ -83,6 +84,9 @@ interface ChromeMockOptions {
 let storageState: StorageState
 
 const setupChromeMock = (options: ChromeMockOptions = {}) => {
+  const readValue = <T>(value: T): T =>
+    options.cloneReads ? structuredClone(value) : value
+
   // eslint-disable-next-line typescript/require-await
   const getMock = vi.fn(async (keys?: unknown) => {
     if (options.rejectGet) {
@@ -90,12 +94,17 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
     }
 
     if (typeof (keys as unknown as string) === 'string') {
-      return { [keys as string]: storageState[keys as keyof StorageState] }
+      return {
+        [keys as string]: readValue(storageState[keys as keyof StorageState]),
+      }
     }
 
     if (Array.isArray(keys)) {
       return Object.fromEntries(
-        keys.map((key) => [key, storageState[key as keyof StorageState]]),
+        keys.map((key) => [
+          key,
+          readValue(storageState[key as keyof StorageState]),
+        ]),
       )
     }
 
@@ -105,13 +114,13 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
         Object.entries(defaults).map(([key, fallback]) => [
           key,
           key in storageState
-            ? storageState[key as keyof StorageState]
-            : fallback,
+            ? readValue(storageState[key as keyof StorageState])
+            : readValue(fallback),
         ]),
       )
     }
 
-    return { ...storageState }
+    return readValue({ ...storageState })
   })
 
   // eslint-disable-next-line typescript/require-await
@@ -175,6 +184,22 @@ describe('url-storage', () => {
     expect(result).toBe('skipped')
     // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
+  })
+
+  it('ユーザーURLのhost・path・queryをログへ出力しない', async () => {
+    vi.mocked(getUserSettings).mockResolvedValue(
+      createSettings({ removeTabAfterExternalDrop: false }),
+    )
+    const privateUrl =
+      'https://private.example.com/account/settings?token=top-secret'
+
+    await handleUrlDropped(privateUrl, true)
+
+    const loggedValues = JSON.stringify(vi.mocked(console.log).mock.calls)
+    expect(loggedValues).toContain('[redacted-url]')
+    expect(loggedValues).not.toContain('private.example.com')
+    expect(loggedValues).not.toContain('/account/settings')
+    expect(loggedValues).not.toContain('top-secret')
   })
 
   it('外部ドロップかつ専用設定がONならURLを削除する', async () => {
@@ -357,6 +382,44 @@ describe('url-storage', () => {
         },
       ],
     })
+  })
+
+  it('同じURLで複数グループが空になっても全IDを親カテゴリから外す', async () => {
+    storageState = {
+      savedTabs: [
+        {
+          id: 'group-empty-1',
+          domain: 'first.example.com',
+          urls: [{ url: 'https://shared.example.com', title: 'Shared' }],
+        },
+        {
+          id: 'group-empty-2',
+          domain: 'second.example.com',
+          urls: [{ url: 'https://shared.example.com', title: 'Shared' }],
+        },
+      ],
+      parentCategories: [
+        {
+          id: 'cat-1',
+          name: 'Category 1',
+          domains: ['group-empty-1', 'group-empty-2', 'group-keep'],
+          domainNames: ['first.example.com', 'second.example.com'],
+        },
+      ],
+    }
+    setupChromeMock({ cloneReads: true })
+
+    await removeUrlFromStorage('https://shared.example.com')
+
+    expect(storageState.savedTabs).toStrictEqual([])
+    expect(storageState.parentCategories).toStrictEqual([
+      {
+        id: 'cat-1',
+        name: 'Category 1',
+        domains: ['group-keep'],
+        domainNames: ['first.example.com', 'second.example.com'],
+      },
+    ])
   })
 
   it('グループのドメイン情報が欠損しているときカテゴリ更新をスキップする', async () => {

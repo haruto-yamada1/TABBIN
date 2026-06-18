@@ -116,6 +116,27 @@ describe('urls storage', () => {
     await expect(getUrlRecords()).resolves.toStrictEqual([updated])
   })
 
+  it('同時に複数 URL を upsert しても全レコードを保持する', async () => {
+    const state: StorageState = {
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { createOrUpdateUrlRecord } = await loadUrlsModule()
+
+    const [first, second, third] = await Promise.all([
+      createOrUpdateUrlRecord('https://example.com/a', 'A'),
+      createOrUpdateUrlRecord('https://example.com/b', 'B'),
+      createOrUpdateUrlRecord('https://other.example.com/c', 'C'),
+    ])
+
+    expect(state.urls).toStrictEqual([first, second, third])
+  })
+
   it('一括 upsert で空URLを除外しながら新規作成と更新を行う', async () => {
     const state: StorageState = {
       urls: [
@@ -715,6 +736,18 @@ describe('urls storage', () => {
           name: 'Project 2',
           updatedAt: 1,
           urlIds: ['duplicate-id', 'unmapped-duplicate-id', 'keep-id'],
+          urlMetadata: {
+            'duplicate-id': {
+              category: 'Reading',
+              notes: 'duplicate memo',
+            },
+            'keep-id': {
+              category: 'Keep',
+            },
+            'unmapped-duplicate-id': {
+              category: 'Unmapped',
+            },
+          },
         },
       ],
       savedTabs: [
@@ -726,6 +759,11 @@ describe('urls storage', () => {
           domain: 'news.example.com',
           id: 'group-2',
           urlIds: ['duplicate-id', 'unmapped-duplicate-id', 'keep-id'],
+          urlSubCategories: {
+            'duplicate-id': 'News',
+            'keep-id': 'Keep',
+            'unmapped-duplicate-id': 'Unmapped',
+          },
         },
       ],
       urls: [],
@@ -756,6 +794,11 @@ describe('urls storage', () => {
       'unmapped-duplicate-id',
       'keep-id',
     ])
+    expect(state.savedTabs?.[1]?.urlSubCategories).toStrictEqual({
+      'keep-id': 'Keep',
+      'replacement-id': 'News',
+      'unmapped-duplicate-id': 'Unmapped',
+    })
     expect(state.customProjects?.[0]).toStrictEqual(
       expect.objectContaining({
         id: 'project-1',
@@ -766,6 +809,18 @@ describe('urls storage', () => {
       'unmapped-duplicate-id',
       'keep-id',
     ])
+    expect(state.customProjects?.[1]?.urlMetadata).toStrictEqual({
+      'keep-id': {
+        category: 'Keep',
+      },
+      'replacement-id': {
+        category: 'Reading',
+        notes: 'duplicate memo',
+      },
+      'unmapped-duplicate-id': {
+        category: 'Unmapped',
+      },
+    })
   })
 
   it('ストレージエラー時は安全側に倒す', async () => {

@@ -39,9 +39,10 @@ import type {
  *   `null` を返し、repository 実装側で警告ログを出せるようにする。
  * - 既存 `src/lib/storage/*` と同じ chrome.storage 形式を読み書きする。
  *
- * Rich な補助フィールド（`urlSubCategories` / `subCategories` /
- * `categoryKeywords` / `subCategoryOrder` など）は domain entity には存在しない
- * ため、現時点では mapper で読み捨てる（次 issue で use-case 化と併せて再設計）。
+ * 子カテゴリ表示と再保存に必要な rich フィールド
+ * （`urlSubCategories` / `subCategories` / `categoryKeywords` /
+ * `subCategoryOrder` など）も domain entity に投影し、repository の
+ * read → write や画面再読込で失われないようにする。
  */
 
 const isSavedTabsDomainError = (
@@ -73,7 +74,12 @@ const toTabGroupFromRaw = (raw: SavedTabRaw): TabGroup | null => {
       id: raw.id,
       parentCategoryId: raw.parentCategoryId,
       savedAt: raw.savedAt,
+      categoryKeywords: raw.categoryKeywords,
+      subCategories: raw.subCategories,
+      subCategoryOrder: raw.subCategoryOrder,
+      subCategoryOrderWithUncategorized: raw.subCategoryOrderWithUncategorized,
       urlIds: raw.urlIds ?? [],
+      urlSubCategories: raw.urlSubCategories,
     })
   } catch (error) {
     if (isSavedTabsDomainError(error)) {
@@ -156,6 +162,57 @@ const toUrlRecordRaw = (entity: UrlRecord): UrlRecordRaw => {
   return base
 }
 
+const copySavedTabRichFields = (
+  base: SavedTabRaw,
+  entity: TabGroup,
+  original: SavedTabRaw,
+): void => {
+  const preservedUrlIds = new Set<string>(entity.urlIds)
+  if (original.urls) {
+    const filteredUrls = original.urls.filter((item) =>
+      item.id === undefined ? true : preservedUrlIds.has(item.id),
+    )
+    if (filteredUrls.length > 0) {
+      base.urls = filteredUrls
+    }
+  }
+  const urlSubCategories = entity.urlSubCategories ?? original.urlSubCategories
+  if (urlSubCategories) {
+    const filteredSubCategories: Record<string, string> = {}
+    for (const [urlId, subCategory] of Object.entries(urlSubCategories)) {
+      if (preservedUrlIds.has(urlId)) {
+        filteredSubCategories[urlId] = subCategory
+      }
+    }
+    if (Object.keys(filteredSubCategories).length > 0) {
+      base.urlSubCategories = filteredSubCategories
+    }
+  }
+  const subCategories = entity.subCategories ?? original.subCategories
+  if (subCategories) {
+    base.subCategories = [...subCategories]
+  }
+  const categoryKeywords = entity.categoryKeywords ?? original.categoryKeywords
+  if (categoryKeywords) {
+    base.categoryKeywords = categoryKeywords.map((keyword) => ({
+      categoryName: keyword.categoryName,
+      keywords: [...keyword.keywords],
+    }))
+  }
+  const subCategoryOrder = entity.subCategoryOrder ?? original.subCategoryOrder
+  if (subCategoryOrder) {
+    base.subCategoryOrder = [...subCategoryOrder]
+  }
+  const subCategoryOrderWithUncategorized =
+    entity.subCategoryOrderWithUncategorized ??
+    original.subCategoryOrderWithUncategorized
+  if (subCategoryOrderWithUncategorized) {
+    base.subCategoryOrderWithUncategorized = [
+      ...subCategoryOrderWithUncategorized,
+    ]
+  }
+}
+
 const toSavedTabRaw = (
   entity: TabGroup,
   original?: SavedTabRaw,
@@ -190,51 +247,9 @@ const toSavedTabRaw = (
   if (!original) {
     return base
   }
-  // domain entity が表現しないリッチ補助フィールドは original から持ち越す。
-  // 既存ユーザーデータ（`urls`, `urlSubCategories`, `subCategories`,
-  // `categoryKeywords`, `subCategoryOrder`, `subCategoryOrderWithUncategorized`）
-  // を破壊しないため、entity.urlIds に揃えて整合性を取りつつ保持する。
-  // entity.urlIds は branded `UrlRecordId[]` だが、original.urls.id /
-  // urlSubCategories のキーは raw 文字列なので Set<string> に揃える。
-  const preservedUrlIds = new Set<string>(entity.urlIds)
-  if (original.urls) {
-    const filteredUrls = original.urls.filter((item) =>
-      item.id === undefined ? true : preservedUrlIds.has(item.id),
-    )
-    if (filteredUrls.length > 0) {
-      base.urls = filteredUrls
-    }
-  }
-  if (original.urlSubCategories) {
-    const filteredSubCategories: Record<string, string> = {}
-    for (const [urlId, subCategory] of Object.entries(
-      original.urlSubCategories,
-    )) {
-      if (preservedUrlIds.has(urlId)) {
-        filteredSubCategories[urlId] = subCategory
-      }
-    }
-    if (Object.keys(filteredSubCategories).length > 0) {
-      base.urlSubCategories = filteredSubCategories
-    }
-  }
-  if (original.subCategories) {
-    base.subCategories = [...original.subCategories]
-  }
-  if (original.categoryKeywords) {
-    base.categoryKeywords = original.categoryKeywords.map((keyword) => ({
-      categoryName: keyword.categoryName,
-      keywords: [...keyword.keywords],
-    }))
-  }
-  if (original.subCategoryOrder) {
-    base.subCategoryOrder = [...original.subCategoryOrder]
-  }
-  if (original.subCategoryOrderWithUncategorized) {
-    base.subCategoryOrderWithUncategorized = [
-      ...original.subCategoryOrderWithUncategorized,
-    ]
-  }
+  // entity が持つ分類情報を優先し、legacy `urls` は original から補完する。
+  // URL 単位の補助データは entity.urlIds に揃えて孤立参照を除く。
+  copySavedTabRichFields(base, entity, original)
   return base
 }
 

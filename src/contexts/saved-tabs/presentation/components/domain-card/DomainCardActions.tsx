@@ -22,6 +22,7 @@ import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/control
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { handleSaveKeywords } from '@/contexts/saved-tabs/presentation/lib/category-keywords'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 
 import { useDomainCard } from './DomainCardContext'
 
@@ -113,7 +114,7 @@ export const DomainCardActions = () => {
                 handlers.handleOpenAllTabs(group.urls ?? [])
                 if (isReorderMode) {
                   console.log(
-                    `並び替えモード中にドメイン ${group.domain} のタブをすべて開きました`,
+                    `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} のタブをすべて開きました`,
                   )
                 }
               }}
@@ -147,7 +148,7 @@ export const DomainCardActions = () => {
                   executeDeleteAll()
                   if (isReorderMode) {
                     console.log(
-                      `並び替えモード中にドメイン ${group.domain} を削除しました`,
+                      `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} を削除しました`,
                     )
                   }
                 }
@@ -220,7 +221,7 @@ export const DomainCardActions = () => {
                 handlers.handleOpenAllTabs(group.urls ?? [])
                 if (isReorderMode) {
                   console.log(
-                    `並び替えモード中にドメイン ${group.domain} のタブをすべて開きました`,
+                    `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} のタブをすべて開きました`,
                   )
                 }
               }}
@@ -257,7 +258,7 @@ export const DomainCardActions = () => {
                 executeDeleteAll()
                 if (isReorderMode) {
                   console.log(
-                    `並び替えモード中にドメイン ${group.domain} を削除しました`,
+                    `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} を削除しました`,
                   )
                 }
               }}

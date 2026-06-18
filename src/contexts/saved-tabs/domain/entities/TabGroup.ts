@@ -34,6 +34,14 @@ export interface TabGroup {
   readonly id: TabGroupId
   readonly domain: DomainName
   readonly urlIds: readonly UrlRecordId[]
+  readonly urlSubCategories?: Readonly<Record<string, string>>
+  readonly subCategories?: readonly string[]
+  readonly categoryKeywords?: readonly {
+    readonly categoryName: string
+    readonly keywords: readonly string[]
+  }[]
+  readonly subCategoryOrder?: readonly string[]
+  readonly subCategoryOrderWithUncategorized?: readonly string[]
   readonly parentCategoryId?: ParentCategoryId
   readonly savedAt?: SavedAt
 }
@@ -42,6 +50,14 @@ interface CreateTabGroupInput {
   id: string
   domain: string
   urlIds: readonly string[]
+  urlSubCategories?: Readonly<Record<string, string>>
+  subCategories?: readonly string[]
+  categoryKeywords?: readonly {
+    readonly categoryName: string
+    readonly keywords: readonly string[]
+  }[]
+  subCategoryOrder?: readonly string[]
+  subCategoryOrderWithUncategorized?: readonly string[]
   parentCategoryId?: string
   savedAt?: number
 }
@@ -75,6 +91,28 @@ export const createTabGroup = (input: CreateTabGroupInput): TabGroup => {
     id: createTabGroupId(input.id),
     domain: createDomainName(input.domain),
     urlIds,
+    ...(input.urlSubCategories
+      ? { urlSubCategories: { ...input.urlSubCategories } }
+      : {}),
+    ...(input.subCategories ? { subCategories: [...input.subCategories] } : {}),
+    ...(input.categoryKeywords
+      ? {
+          categoryKeywords: input.categoryKeywords.map((entry) => ({
+            categoryName: entry.categoryName,
+            keywords: [...entry.keywords],
+          })),
+        }
+      : {}),
+    ...(input.subCategoryOrder
+      ? { subCategoryOrder: [...input.subCategoryOrder] }
+      : {}),
+    ...(input.subCategoryOrderWithUncategorized
+      ? {
+          subCategoryOrderWithUncategorized: [
+            ...input.subCategoryOrderWithUncategorized,
+          ],
+        }
+      : {}),
     parentCategoryId:
       input.parentCategoryId === undefined
         ? undefined

@@ -1,3 +1,4 @@
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
@@ -43,6 +44,7 @@ export interface CustomProjectCardProps {
   ) => void
   isProjectReorderMode?: boolean
   isCrossProjectUrlDragActive?: boolean
+  getProjectUrlsUseCase?: GetProjectUrlsUseCase
   handleRenameCategory?: (
     projectId: string,
     oldCategoryName: string,

@@ -479,6 +479,233 @@ describe('projects storage', () => {
     ])
   })
 
+  it('saveUrlsToCustomProjects は同一プロジェクトへ複数URLを保存しても全て保持する (issue #548)', async () => {
+    // 同一ドメインの複数 URL をまとめて保存したときに
+    // `addUrlIdToDomainMode` の read-modify-write 競合で
+    // `savedTabs` の urlIds が 1 件に縮む現象の回帰テスト。
+    mocks.reset()
+    const state: StorageState = {
+      customProjectOrder: ['matched-project'],
+      customProjects: [
+        createProject({
+          id: 'matched-project',
+          name: 'Matched',
+          projectKeywords: {
+            titleKeywords: [],
+            urlKeywords: [],
+            domainKeywords: ['docs.example.com'],
+          },
+        }),
+      ],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { saveUrlsToCustomProjects } = await loadModule()
+
+    await saveUrlsToCustomProjects([
+      { title: 'A', url: 'https://docs.example.com/a' },
+      { title: 'B', url: 'https://docs.example.com/b' },
+      { title: 'C', url: 'https://docs.example.com/c' },
+    ])
+
+    // 3 件すべてが customProjects に urlId として保持される
+    // eslint-disable-next-line vitest/prefer-strict-equal
+    expect(state.customProjects?.[0]?.urlIds).toHaveLength(3)
+    // 3 件すべてが urls ストレージへ書き戻される
+    // eslint-disable-next-line vitest/prefer-strict-equal
+    expect(state.urls).toEqual([
+      expect.objectContaining({ url: 'https://docs.example.com/a' }),
+      expect.objectContaining({ url: 'https://docs.example.com/b' }),
+      expect.objectContaining({ url: 'https://docs.example.com/c' }),
+    ])
+    // savedTabs の同一ドメイン group に 3 件の urlIds が保持される
+    // eslint-disable-next-line vitest/prefer-strict-equal
+    expect(state.savedTabs).toEqual([
+      expect.objectContaining({
+        domain: 'https://docs.example.com',
+        urlIds: expect.arrayContaining([
+          state.urls?.[0]?.id,
+          state.urls?.[1]?.id,
+          state.urls?.[2]?.id,
+        ]),
+      }),
+    ])
+    expect(state.savedTabs?.[0]?.urlIds).toHaveLength(3)
+  })
+
+  it('saveUrlsToCustomProjects は複数ドメインの URL をそれぞれ正しいグループへ保存する (issue #548)', async () => {
+    // 異なるドメインを同時に保存したときに、ドメインモードの savedTabs に
+    // ドメインごとにグループが作成/更新されることを保証する回帰テスト。
+    mocks.reset()
+    const state: StorageState = {
+      customProjectOrder: ['project-docs', 'project-news'],
+      customProjects: [
+        createProject({
+          id: 'project-docs',
+          name: 'Docs',
+          projectKeywords: {
+            titleKeywords: [],
+            urlKeywords: [],
+            domainKeywords: ['docs.example.com'],
+          },
+        }),
+        createProject({
+          id: 'project-news',
+          name: 'News',
+          projectKeywords: {
+            titleKeywords: [],
+            urlKeywords: [],
+            domainKeywords: ['news.example.com'],
+          },
+        }),
+      ],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { saveUrlsToCustomProjects } = await loadModule()
+
+    await saveUrlsToCustomProjects([
+      { title: 'Doc', url: 'https://docs.example.com/a' },
+      { title: 'News', url: 'https://news.example.com/x' },
+      { title: 'Doc2', url: 'https://docs.example.com/b' },
+    ])
+
+    // eslint-disable-next-line vitest/prefer-strict-equal
+    expect(state.savedTabs).toEqual([
+      expect.objectContaining({
+        domain: 'https://docs.example.com',
+        urlIds: expect.arrayContaining([
+          state.urls?.find(
+            (record) => record.url === 'https://docs.example.com/a',
+          )?.id,
+          state.urls?.find(
+            (record) => record.url === 'https://docs.example.com/b',
+          )?.id,
+        ]),
+      }),
+      expect.objectContaining({
+        domain: 'https://news.example.com',
+        urlIds: [
+          state.urls?.find(
+            (record) => record.url === 'https://news.example.com/x',
+          )?.id,
+        ],
+      }),
+    ])
+    expect(state.savedTabs?.[0]?.urlIds).toHaveLength(2)
+    expect(state.savedTabs?.[1]?.urlIds).toHaveLength(1)
+  })
+
+  it('saveUrlsToCustomProjects は異なる保存イベントが同時に走っても全URLと参照を保持する', async () => {
+    const state: StorageState = {
+      customProjectOrder: [],
+      customProjects: [],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          // eslint-disable-next-line typescript/require-await
+          get: vi.fn(async (keys?: string | string[]) => {
+            const snapshot = structuredClone(state)
+            if (!keys) {
+              return snapshot
+            }
+            if (Array.isArray(keys)) {
+              return Object.fromEntries(
+                keys.map((key) => [key, snapshot[key as keyof StorageState]]),
+              )
+            }
+            return {
+              [keys]: snapshot[keys as keyof StorageState],
+            }
+          }),
+          // eslint-disable-next-line typescript/require-await
+          set: vi.fn(async (value: Record<string, unknown>) => {
+            Object.assign(state, structuredClone(value))
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+
+    const { saveUrlsToCustomProjects } = await loadModule()
+
+    await Promise.all([
+      saveUrlsToCustomProjects([
+        { title: 'Docs', url: 'https://docs.example.com/a' },
+      ]),
+      saveUrlsToCustomProjects([
+        { title: 'Issues', url: 'https://issues.example.com/b' },
+      ]),
+    ])
+
+    expect(state.urls?.map((record) => record.url)).toStrictEqual([
+      'https://docs.example.com/a',
+      'https://issues.example.com/b',
+    ])
+    const uncategorized = state.customProjects?.find(
+      (project) => project.id === 'custom-uncategorized',
+    )
+    expect(uncategorized?.urlIds).toStrictEqual(
+      state.urls?.map((record) => record.id),
+    )
+    expect(state.savedTabs).toStrictEqual([
+      expect.objectContaining({
+        domain: 'https://docs.example.com',
+        urlIds: [state.urls?.[0]?.id],
+      }),
+      expect.objectContaining({
+        domain: 'https://issues.example.com',
+        urlIds: [state.urls?.[1]?.id],
+      }),
+    ])
+  })
+
+  it('addUrlIdToDomainMode は連続呼び出しで urlIds を全て保持する (issue #548)', async () => {
+    // `addUrlIdToDomainMode` 単体の read-modify-write 直列化キュー
+    // 保険が機能していることを保証する。
+    mocks.reset()
+    const state: StorageState = {
+      customProjects: [createProject({ id: 'project', name: 'Project' })],
+      savedTabs: [
+        {
+          domain: 'https://docs.example.com',
+          id: 'group-1',
+        } as TabGroup,
+      ],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { addUrlToCustomProject } = await loadModule()
+
+    await Promise.all([
+      addUrlToCustomProject('project', 'https://docs.example.com/a', 'A'),
+      addUrlToCustomProject('project', 'https://docs.example.com/b', 'B'),
+      addUrlToCustomProject('project', 'https://docs.example.com/c', 'C'),
+    ])
+
+    // 3 件すべてが savedTabs の同一ドメイン group に保持される
+    expect(state.savedTabs?.[0]?.urlIds).toHaveLength(3)
+  })
+
   it('addUrlToCustomProject は同じURLを他プロジェクトへ重複所属させない', async () => {
     const state: StorageState = {
       customProjects: [
@@ -959,14 +1186,16 @@ describe('projects storage', () => {
     // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls).toEqual([
       {
+        favIconUrl: undefined,
         id: 'url-1',
         savedAt: 1000,
         title: 'Updated',
         url: 'https://example.test/a',
       },
       {
+        favIconUrl: undefined,
         id: 'uuid-1',
-        savedAt: 1000,
+        savedAt: 1001,
         title: 'New',
         url: 'https://example.test/b',
       },

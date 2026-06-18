@@ -1,4 +1,5 @@
 import type { AiChatConversation } from '@/features/ai-chat/types'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { getUserSettings } from '@/lib/storage/settings'
 import { createOrUpdateUrlRecordsBatch } from '@/lib/storage/urls'
@@ -105,6 +106,13 @@ const mergeSubCategories = (
 
 /**
  * URL参照情報（urlIds/urlSubCategories）をマージする
+ *
+ * `urlSubCategories` のキーは `mergedUrlIds` に含まれていない場合、
+ * 後続の `tabGroupRepository.saveAll` 経路で
+ * `ChromeSavedTabsStorageMapper.toSavedTabRaw` が `preservedUrlIds`
+ * 基準で捨てる孤立エントリになる。インポート時にここでフィルタする
+ * ことで、保存経路の差異に関わらず `urlSubCategories` が
+ * `urlIds` と整合した状態になる（issue #548）。
  */
 const mergeUrlData = (
   existingTab: TabGroup,
@@ -114,9 +122,14 @@ const mergeUrlData = (
   for (const urlId of importedUrlData.urlIds) {
     urlIdSet.add(urlId)
   }
-  const mergedUrlSubCategories = {
+  const mergedUrlSubCategories: Record<string, string> = {}
+  for (const [urlId, subCategory] of Object.entries({
     ...existingTab.urlSubCategories,
     ...importedUrlData.urlSubCategories,
+  })) {
+    if (urlIdSet.has(urlId)) {
+      mergedUrlSubCategories[urlId] = subCategory
+    }
   }
   return {
     urlIds: [...urlIdSet],
@@ -310,7 +323,9 @@ const mergeTabsByDomain = async (
     normalizedImportedTabs.map(async (importedTab) => {
       const existingTab = tabMapByDomain.get(importedTab.domain)
       if (existingTab) {
-        console.log(`マージ処理: 既存ドメイン ${importedTab.domain}`)
+        console.log(
+          `マージ処理: 既存ドメイン ${redactUrlForLog(importedTab.domain)}`,
+        )
         return {
           domain: importedTab.domain,
           tab: await buildMergedExistingDomainTab(
@@ -320,7 +335,9 @@ const mergeTabsByDomain = async (
           ),
         }
       }
-      console.log(`マージ処理: 新規ドメイン ${importedTab.domain}`)
+      console.log(
+        `マージ処理: 新規ドメイン ${redactUrlForLog(importedTab.domain)}`,
+      )
       return {
         domain: importedTab.domain,
         tab: await buildMergedNewDomainTab(importedTab, urlRecordMapByUrl),
@@ -339,7 +356,9 @@ const buildOverwriteTabs = async (
 ): Promise<TabGroup[]> =>
   Promise.all(
     normalizedImportedTabs.map(async (importedTab) => {
-      console.log(`上書きモード: ${importedTab.domain} を新形式に変換中...`)
+      console.log(
+        `上書きモード: ${redactUrlForLog(importedTab.domain)} を新形式に変換中...`,
+      )
       return buildMergedNewDomainTab(importedTab, urlRecordMapByUrl)
     }),
   )

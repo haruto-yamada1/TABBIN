@@ -1,6 +1,10 @@
 import type { CustomProject } from '@/types/storage'
 
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
+import type { UrlRecord } from '../../domain/entities/UrlRecord'
+import type {
+  CustomProjectRawSnapshot,
+  CustomProjectRepository,
+} from '../../domain/repositories/CustomProjectRepository'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
 import { createUrlRecordId } from '../../domain/value-objects/UrlRecordId'
 
@@ -50,6 +54,64 @@ export interface GetProjectUrlsUseCaseDeps {
   readonly customProjectRepository: CustomProjectRepository
 }
 
+type RawProjectUrl = NonNullable<CustomProjectRawSnapshot['urls']>[number]
+type ProjectUrlMetadata = NonNullable<
+  CustomProjectRawSnapshot['urlMetadata']
+>[string]
+
+const buildRawUrlsById = (
+  urls: readonly RawProjectUrl[] | undefined,
+): ReadonlyMap<string, RawProjectUrl> => {
+  const rawUrlsById = new Map<string, RawProjectUrl>()
+  for (const url of urls ?? []) {
+    if (url.id !== undefined) {
+      rawUrlsById.set(url.id, url)
+    }
+  }
+  return rawUrlsById
+}
+
+const withMetadata = (
+  entry: ProjectUrlEntry,
+  metadata: ProjectUrlMetadata | undefined,
+): ProjectUrlEntry => ({
+  ...entry,
+  ...(metadata?.notes !== undefined ? { notes: metadata.notes } : {}),
+  ...(metadata?.category !== undefined ? { category: metadata.category } : {}),
+})
+
+const toEntryFromRaw = (
+  id: string,
+  rawUrl: RawProjectUrl,
+  metadata: ProjectUrlMetadata | undefined,
+): ProjectUrlEntry =>
+  withMetadata(
+    {
+      id,
+      savedAt: rawUrl.savedAt ?? 0,
+      title: rawUrl.title,
+      url: rawUrl.url,
+    },
+    metadata,
+  )
+
+const toEntryFromRecord = (
+  record: UrlRecord,
+  metadata: ProjectUrlMetadata | undefined,
+): ProjectUrlEntry =>
+  withMetadata(
+    {
+      id: record.id,
+      savedAt: record.savedAt,
+      title: record.title,
+      url: record.url,
+      ...(record.favIconUrl !== undefined
+        ? { favIconUrl: record.favIconUrl }
+        : {}),
+    },
+    metadata,
+  )
+
 /**
  * `GetProjectUrlsUseCase` を生成する。
  *
@@ -72,31 +134,22 @@ export const createGetProjectUrlsUseCase = (
     const raws = (await deps.customProjectRepository.findAllRaw?.()) ?? []
     const targetRaw = raws.find((raw) => raw.id === project.id)
     const urlMetadata = targetRaw?.urlMetadata
+    const rawUrlsById = buildRawUrlsById(targetRaw?.urls)
     const urlRecords = await Promise.all(
       urlIds.map((id) =>
         deps.urlRecordRepository.findById(createUrlRecordId(id)),
       ),
     )
     const entries: ProjectUrlEntry[] = []
-    for (const record of urlRecords) {
-      if (!record) {
-        continue
+    for (const [index, urlId] of urlIds.entries()) {
+      const record = urlRecords[index]
+      const rawUrl = rawUrlsById.get(urlId)
+      const metadata = urlMetadata?.[urlId]
+      if (record) {
+        entries.push(toEntryFromRecord(record, metadata))
+      } else if (rawUrl) {
+        entries.push(toEntryFromRaw(urlId, rawUrl, metadata))
       }
-      const metadata = urlMetadata?.[record.id]
-      const entry: ProjectUrlEntry = {
-        id: record.id,
-        savedAt: record.savedAt,
-        title: record.title,
-        url: record.url,
-        ...(record.favIconUrl !== undefined
-          ? { favIconUrl: record.favIconUrl }
-          : {}),
-        ...(metadata?.notes !== undefined ? { notes: metadata.notes } : {}),
-        ...(metadata?.category !== undefined
-          ? { category: metadata.category }
-          : {}),
-      }
-      entries.push(entry)
     }
     return entries
   }

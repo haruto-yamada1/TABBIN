@@ -201,13 +201,13 @@ const useSubCategoryKeywordManagerView = ({
       const { savedTabs = [] } = await chrome.storage.local.get<{
         savedTabs?: TabGroup[]
       }>('savedTabs')
-      console.log('取得したsavedTabs:', savedTabs)
+      console.log('取得したsavedTabs件数:', savedTabs.length)
 
       // 対象のタブグループを探す
       const groupToUpdate = savedTabs.find(
         (g: TabGroup) => g.id === tabGroup.id,
       )
-      console.log('更新対象のグループ:', groupToUpdate)
+      console.log('更新対象のグループ有無:', Boolean(groupToUpdate))
 
       if (!groupToUpdate) {
         console.error('タブグループが見つかりません')

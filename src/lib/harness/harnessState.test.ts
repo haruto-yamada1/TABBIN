@@ -55,6 +55,23 @@ function harnessCliPath() {
   return path.join(process.cwd(), 'tools/scripts/harness.ts')
 }
 
+function runHarnessCli(
+  projectRoot: string,
+  command: string,
+  args: string[] = [],
+) {
+  execFileSync('bun', [harnessCliPath(), command, ...args], {
+    cwd: projectRoot,
+  })
+}
+
+function readHarnessCli(projectRoot: string, command: string): string {
+  return execFileSync('bun', [harnessCliPath(), command], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+  })
+}
+
 function writeJson(filePath: string, value: unknown) {
   writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`)
 }
@@ -1379,66 +1396,35 @@ describe('high fidelity harness commands', () => {
   // eslint-disable-next-line vitest/consistent-test-it
   test('CLI は追加 command surface を実行できる', () => {
     const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
-    const cli = harnessCliPath()
 
-    execFileSync(
-      'bun',
-      [
-        cli,
-        'start',
-        '--run',
-        'run-cli',
-        '--task',
-        'ECC 高忠実度ハーネスへ移行する',
-      ],
-      { cwd: projectRoot },
-    )
-    execFileSync(
-      'bun',
-      [
-        cli,
-        'plan',
-        '--summary',
-        'CLI から Planner を更新した',
-        '--task',
-        'schema を追加する',
-        '--task',
-        'surface audit を追加する',
-      ],
-      { cwd: projectRoot },
-    )
-    execFileSync(
-      'bun',
-      [
-        cli,
-        'checkpoint',
-        '--command',
-        'bun run test -- src/lib/harness/harnessState.test.ts',
-        '--status',
-        'passed',
-        '--notes',
-        '対象テストが通過した',
-      ],
-      { cwd: projectRoot },
-    )
-    execFileSync('bun', [cli, 'evaluate'], { cwd: projectRoot })
-    execFileSync('bun', [cli, 'learn'], { cwd: projectRoot })
-    const audit = execFileSync('bun', [cli, 'surface-audit'], {
-      cwd: projectRoot,
-      encoding: 'utf8',
-    })
-    const securityAudit = execFileSync('bun', [cli, 'security-audit'], {
-      cwd: projectRoot,
-      encoding: 'utf8',
-    })
-    const repoStatus = execFileSync('bun', [cli, 'repo-status'], {
-      cwd: projectRoot,
-      encoding: 'utf8',
-    })
-    const profile = execFileSync('bun', [cli, 'profile'], {
-      cwd: projectRoot,
-      encoding: 'utf8',
-    })
+    runHarnessCli(projectRoot, 'start', [
+      '--run',
+      'run-cli',
+      '--task',
+      'ECC 高忠実度ハーネスへ移行する',
+    ])
+    runHarnessCli(projectRoot, 'plan', [
+      '--summary',
+      'CLI から Planner を更新した',
+      '--task',
+      'schema を追加する',
+      '--task',
+      'surface audit を追加する',
+    ])
+    runHarnessCli(projectRoot, 'checkpoint', [
+      '--command',
+      'bun run test -- src/lib/harness/harnessState.test.ts',
+      '--status',
+      'passed',
+      '--notes',
+      '対象テストが通過した',
+    ])
+    runHarnessCli(projectRoot, 'evaluate')
+    runHarnessCli(projectRoot, 'learn')
+    const audit = readHarnessCli(projectRoot, 'surface-audit')
+    const securityAudit = readHarnessCli(projectRoot, 'security-audit')
+    const repoStatus = readHarnessCli(projectRoot, 'repo-status')
+    const profile = readHarnessCli(projectRoot, 'profile')
 
     expect(audit).toContain('deterministic scorecard')
     expect(securityAudit).toContain('Security Audit')

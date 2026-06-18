@@ -142,4 +142,20 @@ describe('CustomProjectCard', () => {
       }),
     )
   })
+
+  it('getProjectUrlsUseCase を ProjectCardRoot に渡す (issue #548)', () => {
+    const getProjectUrlsUseCase = vi.fn(() => Promise.resolve([]))
+    const props = {
+      ...createProps(),
+      getProjectUrlsUseCase,
+    } as CustomProjectCardProps
+
+    render(<CustomProjectCard {...props} />)
+
+    expect(projectCardRootSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        getProjectUrlsUseCase,
+      }),
+    )
+  })
 })

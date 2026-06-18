@@ -1,3 +1,4 @@
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { SubCategoryKeyword, TabGroup, UrlRecord } from '@/types/storage'
 
 import {
@@ -22,6 +23,8 @@ type ResolvedTabGroupUrl = UrlRecord & {
 interface DeleteSyncOptions {
   throwOnSyncError?: boolean
 }
+
+let autoCategorizeTabsQueue: Promise<void> = Promise.resolve()
 
 const resolveTabGroupUrlsFromMap = (
   tabGroup: TabGroup,
@@ -386,7 +389,7 @@ const dedupeTabGroups = (savedTabs: TabGroup[]): TabGroup[] => {
   for (const group of savedTabs) {
     if (uniqueIds.has(group.id)) {
       console.warn(
-        `自動カテゴリ実行前に重複検出: ${group.id} (${group.domain})`,
+        `自動カテゴリ実行前に重複検出: ${group.id} (${redactUrlForLog(group.domain)})`,
       )
       continue
     }
@@ -435,7 +438,7 @@ const applySubCategoryMapping = (
     groups[groupIndex].urlSubCategories = mapping
   }
 } // キーワードに基づいて自動的にURLを分類する（新形式対応）
-const autoCategorizeTabs = async (groupId: string): Promise<void> => {
+const autoCategorizeTabsUnsafe = async (groupId: string): Promise<void> => {
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
   const { savedTabs = [] } = await chrome.storage.local.get<{
@@ -464,6 +467,16 @@ const autoCategorizeTabs = async (groupId: string): Promise<void> => {
   await chrome.storage.local.set({
     savedTabs: uniqueGroups,
   })
+}
+
+const autoCategorizeTabs = (groupId: string): Promise<void> => {
+  const next = autoCategorizeTabsQueue.then(() =>
+    autoCategorizeTabsUnsafe(groupId),
+  )
+  autoCategorizeTabsQueue = next.catch(() => {
+    // A failed classification must not block later groups in the queue.
+  })
+  return next
 } // 新しい子カテゴリを追加時、キーワード設定も初期化する拡張版関数
 const addSubCategoryWithKeywords = async (
   groupId: string,
@@ -583,7 +596,9 @@ const removeUrlFromTabGroup = async (
       await chrome.storage.local.set({
         savedTabs,
       })
-      console.log(`URL ${url} をグループ ${groupId} から削除しました`)
+      console.log(
+        `URL ${redactUrlForLog(url)} をグループ ${groupId} から削除しました`,
+      )
 
       // 同期してカスタムプロジェクトからも削除
       try {

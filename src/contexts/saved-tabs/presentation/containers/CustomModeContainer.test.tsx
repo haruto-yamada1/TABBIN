@@ -43,6 +43,7 @@ const defaultSettings: UserSettingsDto = {
 }
 
 const createProps = () => ({
+  getProjectUrlsUseCase: vi.fn(() => Promise.resolve([])),
   isLoading: false,
   projects: [] as CustomProject[],
   settings: defaultSettings,

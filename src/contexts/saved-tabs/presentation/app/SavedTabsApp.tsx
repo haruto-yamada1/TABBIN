@@ -35,6 +35,7 @@ import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { TabGroup, ViewMode } from '@/types/storage'
 
 import {
@@ -249,9 +250,8 @@ const useSavedTabsAppView = ({
           // に委譲し、\`useTabData\` 側の storage 読み取り経路 (\`urls\` /
           // \`urlSubCategories\` / \`subCategories\` / \`categoryKeywords\` /
           // \`subCategoryOrder\` などのリッチ補助フィールド付き) を
-          // そのまま使う。repository の \`findAll\` 戻り値は domain entity
-          // (リッチ補助フィールドを持たない) なので、ここでは渡さない
-          // (Codex レビュー対応: P2 / issue #494)。
+          // そのまま使う。repository の \`findAll\` 戻り値にも分類用の
+          // rich 補助フィールドが含まれるため、再読込後も子カテゴリを維持する。
           await refreshTabGroupsWithUrls()
           showOpenedUrlsUndoToast({
             count: 1,
@@ -261,7 +261,9 @@ const useSavedTabsAppView = ({
             snapshot,
             t,
           })
-          console.log(`URL ${url} を開いた後、保存データから削除しました`)
+          console.log(
+            `URL ${redactUrlForLog(url)} を開いた後、保存データから削除しました`,
+          )
         }
       } catch (error) {
         console.error('タブを開く処理エラー:', error)
@@ -373,7 +375,7 @@ const useSavedTabsAppView = ({
         if (!groupToDelete) {
           return
         }
-        console.log(`グループを削除: ${groupToDelete.domain}`)
+        console.log(`グループを削除: ${redactUrlForLog(groupToDelete.domain)}`)
 
         // 削除前処理は `PrepareTabGroupDeletionUseCase` 経由 (issue #524)。
         // `categoriesCommandService` / `domainCategoryMappingRepository` /
@@ -410,7 +412,7 @@ const useSavedTabsAppView = ({
             prev.filter((group) => group.id !== id),
           )
           console.log(
-            `並び替えモード中にドメイン ${groupToDelete.domain} を一時順序からも削除しました`,
+            `並び替えモード中にドメイン ${redactUrlForLog(groupToDelete.domain)} を一時順序からも削除しました`,
           )
         }
 
@@ -609,7 +611,9 @@ const useSavedTabsAppView = ({
           snapshot: deleteSnapshot,
           t,
         })
-        console.log(`URL ${url} をグループ ${groupId} から削除しました`)
+        console.log(
+          `URL ${redactUrlForLog(url)} をグループ ${groupId} から削除しました`,
+        )
       } catch {
         await notifyDeleteFailure({
           refreshTabGroupsWithUrls,
@@ -970,7 +974,7 @@ const useSavedTabsAppView = ({
     async (sourceProjectId: string, targetProjectId: string, url: string) => {
       try {
         console.log(
-          `URL移動: ${sourceProjectId} → ${targetProjectId}, URL: ${url}`,
+          `URL移動: ${sourceProjectId} → ${targetProjectId}, URL: ${redactUrlForLog(url)}`,
         )
         await moveCustomProjectUrlAndSyncState({
           // application query `getCustomProjects` は
@@ -1093,6 +1097,7 @@ const useSavedTabsAppView = ({
         handleMoveUrlsBetweenCategories={handleMoveUrlsBetweenCategories}
         handleReorderProjects={handleReorderProjects}
         handleRenameCategory={handleRenameCategory}
+        getProjectUrlsUseCase={savedTabsUseCases.getProjectUrls}
       />
     )
   return (
