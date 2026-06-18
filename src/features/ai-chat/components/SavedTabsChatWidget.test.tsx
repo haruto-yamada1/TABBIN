@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-misused-promises, @typescript-eslint/unbound-method, typescript/TS2367, typescript/TS2352, typescript/only-throw-error */
+/* eslint-disable typescript/no-misused-promises, typescript/unbound-method, typescript/only-throw-error -- mock interface で sync callback を使う test idiom */
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 // eslint-disable-next-line eslint/no-unused-vars
@@ -119,7 +119,6 @@ vi.mock('@/components/ai-elements/conversation', async () => {
           aria-label={ariaLabel}
           className={className}
           data-testid='conversation-scroll-button'
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClick={() => {
             mocked.conversationScrollButtonClick()
           }}
@@ -585,7 +584,6 @@ describe('SavedTabsChatWidget', () => {
     render(
       <SavedTabsChatWidget
         defaultOpen
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         historyItems={[
           {
             id: 'conversation-1',
@@ -653,7 +651,6 @@ describe('SavedTabsChatWidget', () => {
     render(
       <SavedTabsChatWidget
         defaultOpen
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         historyItems={[
           {
             id: 'conversation-1',
@@ -747,7 +744,6 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-1'
         defaultOpen
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content: 'First conversation',
@@ -768,7 +764,6 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-2'
         defaultOpen
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content: 'Another conversation',
@@ -797,7 +792,6 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget
         conversationId='conversation-1'
         defaultOpen
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         initialMessages={[
           {
             content:
@@ -1315,7 +1309,6 @@ describe('SavedTabsChatWidget', () => {
 
     expect(screen.queryByText('First response')).toBeNull()
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
-    // eslint-disable-next-line typescript/TS2339
     expect((screen.getByLabelText('Ask AI') as HTMLInputElement).value).toBe('')
   })
 
@@ -1847,8 +1840,6 @@ describe('SavedTabsChatWidget', () => {
         prompt: 'Show me the tabs I added this month',
       })
     })
-
-    // eslint-disable-next-line typescript/TS2339
     expect((screen.getByLabelText('Ask AI') as HTMLInputElement).value).toBe('')
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
@@ -2202,8 +2193,6 @@ describe('SavedTabsChatWidget', () => {
         name: 'Open AI chat',
       }),
     )
-
-    // eslint-disable-next-line typescript/TS2339
     expect(
       (screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled,
     ).toBe(true)
@@ -2231,7 +2220,6 @@ describe('SavedTabsChatWidget', () => {
     })
 
     await waitFor(() => {
-      // eslint-disable-next-line typescript/TS2339
       expect(
         (screen.getByLabelText('Ask AI') as HTMLButtonElement).disabled,
       ).toBe(false)

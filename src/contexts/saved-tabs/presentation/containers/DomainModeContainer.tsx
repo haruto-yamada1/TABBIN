@@ -328,7 +328,6 @@ const UncategorizedDomainSection = ({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
             items={uncategorizedForDisplay.map((group) => group.id)}
             strategy={verticalListSortingStrategy}
           >
@@ -505,7 +504,6 @@ export const DomainModeContainer = ({
                 if (!category) {
                   return null
                 }
-                // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
                 const domainGroups = categorized[categoryId] || []
                 if (domainGroups.length === 0) {
                   return null

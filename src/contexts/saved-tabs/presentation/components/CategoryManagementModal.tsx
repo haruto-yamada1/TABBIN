@@ -519,7 +519,6 @@ const useCategoryManagementModalView = ({
   return (
     <Dialog
       open={isOpen}
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onOpenChange={() => {
         // 処理中またはリネームモード中は閉じない
         if (isProcessing || isRenaming || isSaving) {
@@ -607,7 +606,6 @@ const useCategoryManagementModalView = ({
                     'savedTabs.categoryManagement.renamePlaceholder',
                   )}
                   className={`w-full flex-1 rounded border p-2 ${categoryNameError ? 'border-red-500' : ''}`}
-                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onBlur={() => {
                     if (isProcessing) {
                       return // 処理中は何もしない
@@ -618,8 +616,7 @@ const useCategoryManagementModalView = ({
                       trimmedName !== localCategoryName &&
                       !categoryNameError
                     ) {
-                      // eslint-disable-next-line typescript/no-floating-promises
-                      handleSaveRenaming()
+                      void handleSaveRenaming()
                     } else if (categoryNameError) {
                       // エラーがある場合はフォーカスを維持
                       inputRef.current?.focus()
@@ -627,7 +624,6 @@ const useCategoryManagementModalView = ({
                       handleCancelRenaming()
                     }
                   }}
-                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -638,8 +634,7 @@ const useCategoryManagementModalView = ({
                         !categoryNameError &&
                         !isProcessing
                       ) {
-                        // eslint-disable-next-line typescript/no-floating-promises
-                        handleSaveRenaming()
+                        void handleSaveRenaming()
                       }
                     } else if (e.key === 'Escape') {
                       e.preventDefault()

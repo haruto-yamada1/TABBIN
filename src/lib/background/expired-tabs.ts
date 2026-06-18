@@ -249,8 +249,7 @@ export const updateTabTimestamps = async (
     )
 
     // 即座に確認
-    // eslint-disable-next-line typescript/no-floating-promises
-    checkAndRemoveExpiredTabs()
+    void checkAndRemoveExpiredTabs()
     return {
       success: true,
       timestamp,

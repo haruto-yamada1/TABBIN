@@ -11,14 +11,8 @@ const createCommandServiceMock = (): {
   removeUrlIdsFromAllCustomProjects: ReturnType<typeof vi.fn>
   removeUrlsFromAllCustomProjects: ReturnType<typeof vi.fn>
 } => {
-  const removeUrlIdsFromAllCustomProjects = vi.fn(
-    // eslint-disable-next-line typescript/require-await
-    async () => undefined,
-  )
-  const removeUrlsFromAllCustomProjects = vi.fn(
-    // eslint-disable-next-line typescript/require-await
-    async () => undefined,
-  )
+  const removeUrlIdsFromAllCustomProjects = vi.fn(async () => undefined)
+  const removeUrlsFromAllCustomProjects = vi.fn(async () => undefined)
   const commandService = {
     addCategoryToProject: vi.fn(),
     addUrlToCustomProject: vi.fn(),
@@ -46,7 +40,6 @@ const createLoadTabGroupUrlsMock = (
   // eslint-disable-next-line typescript/consistent-type-imports
   resolveUrls: (group: TabGroupDto) => Promise<{ url: string }[] | undefined>,
 ): LoadTabGroupUrlsUseCase => {
-  // eslint-disable-next-line typescript/require-await
   return (async (command: { tabGroup: TabGroupDto }) => {
     return { urls: (await resolveUrls(command.tabGroup)) ?? [] }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,9 +56,7 @@ const buildDeps = (options: {
     commandServiceMock,
     customProjectsCommandService: commandServiceMock.commandService,
     loadTabGroupUrls: createLoadTabGroupUrlsMock(
-      options.resolveUrls ??
-        // eslint-disable-next-line typescript/require-await
-        (async () => undefined),
+      options.resolveUrls ?? (async () => undefined),
     ),
   }
 }
@@ -108,7 +99,6 @@ describe('RemoveUrlsFromCustomProjectsUseCase', () => {
 
   it('legacy 形式グループ (urlIds 無し) だけを含む場合、URL 文字列で同期削除する', async () => {
     const deps = buildDeps({
-      // eslint-disable-next-line typescript/require-await
       resolveUrls: async (group) => {
         if (group.id === 'group-a') {
           return [{ url: 'https://legacy.example.com/a' }]
@@ -157,7 +147,6 @@ describe('RemoveUrlsFromCustomProjectsUseCase', () => {
 
   it('modern / legacy 混在でも両方とも同期削除する', async () => {
     const deps = buildDeps({
-      // eslint-disable-next-line typescript/require-await
       resolveUrls: async (group) => {
         if (group.id === 'group-legacy') {
           return [{ url: 'https://legacy.example.com/a' }]
@@ -196,7 +185,6 @@ describe('RemoveUrlsFromCustomProjectsUseCase', () => {
   it('legacy グループの URL 取得が失敗した場合、エラーログを残し他グループの削除は継続する', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const deps = buildDeps({
-      // eslint-disable-next-line typescript/require-await
       resolveUrls: async () => {
         throw new Error('load failed')
       },
@@ -235,7 +223,6 @@ describe('RemoveUrlsFromCustomProjectsUseCase', () => {
 
   it('legacy グループが空配列を返した場合、URL 同期削除をスキップする', async () => {
     const deps = buildDeps({
-      // eslint-disable-next-line typescript/require-await
       resolveUrls: async () => [],
     })
     const useCase = createRemoveUrlsFromCustomProjectsUseCase(deps)

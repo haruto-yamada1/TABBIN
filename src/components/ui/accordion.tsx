@@ -18,7 +18,6 @@ const AccordionItem = ({
   />
 )
 AccordionItem.displayName = 'AccordionItem'
-
 const AccordionTrigger = ({
   children,
   className,
@@ -40,7 +39,6 @@ const AccordionTrigger = ({
   </AccordionPrimitive.Header>
 )
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
-
 const AccordionContent = ({
   children,
   className,

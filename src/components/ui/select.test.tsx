@@ -5,15 +5,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const { createPrimitive } = vi.hoisted(() => ({
   createPrimitive:
-    // eslint-disable-next-line typescript/no-deprecated
     (tag: keyof JSX.IntrinsicElements) =>
-      ({
-        children,
-        ...props
-      }: {
-        children?: React.ReactNode
-      } & Record<string, unknown>) =>
-        createElement(tag, props, children),
+    ({
+      children,
+      ...props
+    }: {
+      children?: React.ReactNode
+    } & Record<string, unknown>) =>
+      createElement(tag, props, children),
 }))
 
 vi.mock('@radix-ui/react-select', () => ({
@@ -21,9 +20,7 @@ vi.mock('@radix-ui/react-select', () => ({
   Group: createPrimitive('div'),
   Value: createPrimitive('span'),
   Trigger: createPrimitive('button'),
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Icon: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Portal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Content: createPrimitive('div'),
   Viewport: createPrimitive('div'),

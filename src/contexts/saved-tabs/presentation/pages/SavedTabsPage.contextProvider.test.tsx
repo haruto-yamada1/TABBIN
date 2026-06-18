@@ -16,7 +16,6 @@ import { useSavedTabsUseCases } from '../controllers/SavedTabsUseCasesContext'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   useI18n: () => ({
@@ -28,57 +27,51 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 
 const createInMemoryDeps = (): SavedTabsUseCasesDeps => {
   const tabGroupRepository: TabGroupRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async () => null,
     findRawDomainById: vi.fn(() => Promise.resolve(null)),
     findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async () => undefined,
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async () => undefined,
   }
   const customProjectRepository: CustomProjectRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async () => undefined,
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async () => undefined,
-    // eslint-disable-next-line typescript/require-await
+
     findOrder: async () => [],
-    // eslint-disable-next-line typescript/require-await
+
     saveOrder: async () => undefined,
   }
   const urlRecordRepository: UrlRecordRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async () => undefined,
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async () => undefined,
   }
   const parentCategoryRepository: ParentCategoryRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async () => undefined,
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async () => undefined,
   }
   const browserTabPort: BrowserTabPort = {
-    // eslint-disable-next-line typescript/require-await
     open: async (input: { url: string }) => ({ url: input.url }),
   }
   const browserWindowPort: BrowserWindowPort = {
-    // eslint-disable-next-line typescript/require-await
     openWithUrls: async (input: { urls: readonly string[] }) => ({
       urls: [...input.urls],
     }),
@@ -118,15 +111,13 @@ const createInMemoryDeps = (): SavedTabsUseCasesDeps => {
       updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
     },
     domainCategoryMappingRepository: {
-      // eslint-disable-next-line typescript/require-await
       findAll: async () => [],
-      // eslint-disable-next-line typescript/require-await
+
       saveAll: async () => undefined,
     },
     domainCategorySettingsRepository: {
-      // eslint-disable-next-line typescript/require-await
       findAll: async () => [],
-      // eslint-disable-next-line typescript/require-await
+
       saveAll: async () => undefined,
     },
     migrationPort: {
@@ -150,9 +141,8 @@ const createInMemoryDeps = (): SavedTabsUseCasesDeps => {
     tabGroupRepository,
     urlRecordRepository,
     userSettingsRepository: {
-      // eslint-disable-next-line typescript/require-await
       findAll: async () => ({}) as never,
-      // eslint-disable-next-line typescript/require-await
+
       save: async () => undefined,
     },
   }

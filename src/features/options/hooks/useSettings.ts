@@ -108,8 +108,7 @@ export const useSettings = () => {
       }
     }
 
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadSettings()
+    void loadSettings()
   }, [])
 
   useEffect(() => {
@@ -218,8 +217,7 @@ export const useSettings = () => {
   }
 
   const handleExcludePatternsBlur = () => {
-    // eslint-disable-next-line typescript/no-floating-promises
-    handleSaveSettings()
+    void handleSaveSettings()
   }
 
   const handleExcludePatternInputChange = (

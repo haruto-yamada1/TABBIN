@@ -7,10 +7,7 @@ const buildCommandService = (): {
   commandService: CustomProjectsCommandService
   addCategoryToProject: ReturnType<typeof vi.fn>
 } => {
-  const addCategoryToProject = vi.fn(
-    // eslint-disable-next-line typescript/require-await
-    async () => undefined,
-  )
+  const addCategoryToProject = vi.fn(async () => undefined)
   const commandService = {
     addCategoryToProject,
     addUrlToCustomProject: vi.fn(),

@@ -143,7 +143,6 @@ describe('useCategories の追加分岐', () => {
       result.current.setNewCategoryName('Created by Enter')
     })
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.handleCategoryKeyDown({
         key: 'Enter',

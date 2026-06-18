@@ -17,14 +17,12 @@ vi.mock('react-dom/client', () => ({
 
 vi.mock('@/components/theme-provider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   useI18n: () => ({

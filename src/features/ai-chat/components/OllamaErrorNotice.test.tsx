@@ -92,7 +92,6 @@ describe('OllamaErrorNotice', () => {
   it('shows the Windows user-environment-variable setup steps', () => {
     render(
       <OllamaErrorNotice
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'notInstalledOrNotRunning',
@@ -119,7 +118,6 @@ describe('OllamaErrorNotice', () => {
   it('has wrapping and scroll classes for long content', () => {
     render(
       <OllamaErrorNotice
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'forbidden',
@@ -142,7 +140,6 @@ describe('OllamaErrorNotice', () => {
   it('can copy the macOS command row', async () => {
     render(
       <OllamaErrorNotice
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'forbidden',
@@ -178,7 +175,6 @@ describe('OllamaErrorNotice', () => {
   it('can copy the Windows value row', async () => {
     render(
       <OllamaErrorNotice
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'notInstalledOrNotRunning',
@@ -199,7 +195,6 @@ describe('OllamaErrorNotice', () => {
   it('can copy the check command row', async () => {
     render(
       <OllamaErrorNotice
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'forbidden',
@@ -220,7 +215,6 @@ describe('OllamaErrorNotice', () => {
   it('shows an error toast when the clipboard API is unavailable', async () => {
     render(
       <OllamaErrorNotice
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'notInstalledOrNotRunning',
@@ -248,7 +242,6 @@ describe('OllamaErrorNotice', () => {
 
     render(
       <OllamaErrorNotice
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         error={{
           ...baseError,
           kind: 'forbidden',

@@ -36,7 +36,7 @@ interface JSXPreviewErrorState {
 
 const TAG_REGEX = /<\/?([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*?)(\/)?>/
 
-export const useJSXPreview = () => {
+const useJSXPreview = () => {
   const context = use(JSXPreviewContext)
   if (!context) {
     throw new Error('JSXPreview components must be used within JSXPreview')
@@ -180,7 +180,6 @@ export const JSXPreview = memo(
 JSXPreview.displayName = 'JSXPreview'
 
 export type JSXPreviewContentProps = Omit<ComponentProps<'div'>, 'children'>
-
 export const JSXPreviewContent = memo(
   ({ className, ...props }: JSXPreviewContentProps) => {
     const { processedJsx, components, bindings, setError, onErrorProp } =
@@ -233,7 +232,6 @@ const renderChildren = (
   }
   return children
 }
-
 export const JSXPreviewError = memo(
   ({ className, children, ...props }: JSXPreviewErrorProps) => {
     const { error } = useJSXPreview()

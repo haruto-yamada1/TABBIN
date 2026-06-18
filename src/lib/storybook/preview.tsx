@@ -137,5 +137,4 @@ export {
   previewDecorators,
   previewGlobalTypes,
   previewParameters,
-  withAppShell,
 }

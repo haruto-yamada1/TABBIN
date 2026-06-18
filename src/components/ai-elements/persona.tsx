@@ -102,7 +102,6 @@ const useTheme = (enabled: boolean) => {
     const observer = new MutationObserver(() => {
       setTheme(getCurrentTheme())
     })
-
     observer.observe(document.documentElement, {
       attributeFilter: ['class'],
       attributes: true,
@@ -119,7 +118,6 @@ const useTheme = (enabled: boolean) => {
       mql.addEventListener('change', handleMediaChange)
     }
 
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
       observer.disconnect()
       if (mql) {

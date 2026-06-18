@@ -66,7 +66,6 @@ export const CustomProjectCategoryBulkConfirmDialogs = ({
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 onConfirmDeleteAll()
               }}

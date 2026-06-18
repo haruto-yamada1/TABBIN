@@ -47,7 +47,6 @@ vi.mock('@/components/ui/select', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='select-root' data-value={value}>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onValueChange?.('custom')} type='button'>
         emit-custom
       </button>

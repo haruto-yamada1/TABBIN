@@ -80,11 +80,10 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(true)} type='button'>
         dialog-open
       </button>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
+
       <button onClick={() => onOpenChange?.(false)} type='button'>
         dialog-close
       </button>
@@ -272,7 +271,6 @@ describe('CustomProjectSection additional', () => {
     vi.clearAllMocks()
     dndContextPropsRef.current = {}
     for (const key of Object.keys(projectHandlerSpies)) {
-      // eslint-disable-next-line typescript/no-dynamic-delete
       delete projectHandlerSpies[key]
     }
   })
@@ -319,7 +317,6 @@ describe('CustomProjectSection additional', () => {
     })
     expect(projectHandlerSpies['project-1']?.handleDragStart).toHaveBeenCalled()
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: {
@@ -429,7 +426,6 @@ describe('CustomProjectSection additional', () => {
     )
     expect(projectHandlerSpies['project-1']?.clearDragState).toHaveBeenCalled()
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragStart?.({
         active: {

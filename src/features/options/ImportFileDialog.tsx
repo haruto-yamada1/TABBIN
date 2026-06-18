@@ -54,7 +54,6 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
         <Checkbox
           id='merge-data'
           checked={mergeData}
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onCheckedChange={(checked) => {
             onMergeChange(checked === true)
           }}
@@ -189,12 +188,10 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   )
   const selectedFileRef = useRef<File | null>(null)
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleOpenImportDialog = () => {
     dispatchImportDialog({ type: 'OPEN' })
   }
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) {
@@ -288,7 +285,6 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     resetImportFileInput(fileInputRef.current)
   }
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleConfirmImport = () => {
     setIsImporting(true)
     try {
@@ -392,7 +388,6 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
               {importDialog.step === 'select' && (
                 <ImportSelectStep
                   mergeData={importDialog.mergeData}
-                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                   onMergeChange={(mergeData) => {
                     dispatchImportDialog({ type: 'SET_MERGE', mergeData })
                   }}
@@ -415,7 +410,6 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             {importDialog.step === 'preview' && (
               <Button
                 variant='outline'
-                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   dispatchImportDialog({ type: 'RESET' })
                   resetFileInput()

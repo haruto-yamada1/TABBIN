@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
@@ -900,7 +899,6 @@ describe('setupMessageListener', () => {
             toolTraces: unknown[]
           }) => void
         },
-        // eslint-disable-next-line typescript/require-await
       ) => {
         options?.onStepUpdate?.({
           reasoning: '- 使用ツール: 保存済み URL 一覧',
@@ -1021,7 +1019,7 @@ describe('setupMessageListener', () => {
     } as unknown as chrome.runtime.Port
 
     portListener(ignoredPort)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(ignoredPort.onMessage.addListener).not.toHaveBeenCalled()
 
     let onPortMessage: ((message: unknown) => void) | undefined

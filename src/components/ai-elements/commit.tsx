@@ -3,7 +3,6 @@
 import {
   CheckIcon,
   CopyIcon,
-  FileIcon,
   GitCommitIcon,
   MinusIcon,
   PlusIcon,
@@ -196,7 +195,6 @@ export const CommitActions = ({
   children,
   ...props
 }: CommitActionsProps) => (
-  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
   <fieldset
     className={cn(
       'm-0 flex min-w-0 items-center gap-1 border-0 p-0',
@@ -334,18 +332,6 @@ export const CommitFileStatus = ({
   >
     {children ?? fileStatusLabels[status]}
   </span>
-)
-
-export type CommitFileIconProps = ComponentProps<typeof FileIcon>
-
-export const CommitFileIcon = ({
-  className,
-  ...props
-}: CommitFileIconProps) => (
-  <FileIcon
-    className={cn('size-3.5 shrink-0 text-muted-foreground', className)}
-    {...props}
-  />
 )
 
 export type CommitFilePathProps = HTMLAttributes<HTMLSpanElement>

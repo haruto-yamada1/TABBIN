@@ -58,7 +58,6 @@ export const CategoryGroupContent = () => {
         onDragEnd={reorder.handleDragEnd}
       >
         <SortableContext
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           items={displayDomains.map((domain) => domain.id)}
           strategy={verticalListSortingStrategy}
         >

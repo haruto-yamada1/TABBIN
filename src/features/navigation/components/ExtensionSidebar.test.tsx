@@ -78,14 +78,11 @@ vi.mock('@/components/ui/sidebar', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -132,7 +129,6 @@ describe('ExtensionSidebar', () => {
   it('タブ一覧を先頭に表示し、オプションをフッター最下部の内部ナビとして表示する', () => {
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -157,7 +153,6 @@ describe('ExtensionSidebar', () => {
   it('options が active のときオプションだけを current page にする', () => {
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'options',
@@ -178,7 +173,6 @@ describe('ExtensionSidebar', () => {
   it('タブ一覧の親アイコンは共通入口へ飛ぶ', () => {
     const { container } = render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-custom',
@@ -194,7 +188,6 @@ describe('ExtensionSidebar', () => {
   it('saved tabs submenu labels also come from i18n keys', () => {
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -211,7 +204,6 @@ describe('ExtensionSidebar', () => {
 
     const { container } = render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -267,7 +259,6 @@ describe('ExtensionSidebar', () => {
 
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -290,7 +281,6 @@ describe('ExtensionSidebar', () => {
 
     const { container } = render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -314,7 +304,6 @@ describe('ExtensionSidebar', () => {
 
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -336,7 +325,6 @@ describe('ExtensionSidebar', () => {
 
     const { container, rerender } = render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'analytics',
@@ -361,7 +349,6 @@ describe('ExtensionSidebar', () => {
 
     rerender(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'periodic-execution',

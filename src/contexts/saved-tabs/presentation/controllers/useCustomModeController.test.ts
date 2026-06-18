@@ -37,26 +37,25 @@ const createInMemoryRepositories = (initial: Partial<InMemoryState> = {}) => {
     customProjects: [...(initial.customProjects ?? [])],
   }
   const customProjectRepository: CustomProjectRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () =>
       state.customProjects.map((project) => ({ ...project })),
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) =>
       state.customProjects.find((project) => project.id === id) ?? null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
       state.customProjects = state.customProjects.filter(
         (project) => !idSet.has(project.id),
       )
     },
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async (projects) => {
       state.customProjects = projects.map((project) => ({ ...project }))
     },
-    // eslint-disable-next-line typescript/require-await
+
     findOrder: async () => [],
-    // eslint-disable-next-line typescript/require-await
+
     saveOrder: async () => undefined,
   }
   return { customProjectRepository, state }
@@ -72,12 +71,11 @@ const createEmptyDeps = (
     ...initialUrlRecords,
   ]
   const urlRecordRepository: UrlRecordRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => urlRecords.map((record) => ({ ...record })),
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) =>
       urlRecords.find((record) => record.id === id) ?? null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
       for (let i = urlRecords.length - 1; i >= 0; i--) {
@@ -86,7 +84,7 @@ const createEmptyDeps = (
         }
       }
     },
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async (records) => {
       urlRecords.splice(
         0,
@@ -96,27 +94,25 @@ const createEmptyDeps = (
     },
   }
   const parentCategoryRepository: ParentCategoryRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async () => undefined,
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async () => undefined,
   }
   const tabGroupRepository: TabGroupRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     findRawDomainById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     findRawTabGroupById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async () => undefined,
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async () => undefined,
   }
   const openSpy = vi.fn((input: { url: string }) =>
@@ -124,7 +120,6 @@ const createEmptyDeps = (
   )
   const browserTabPort: BrowserTabPort = { open: openSpy }
   const browserWindowPort: BrowserWindowPort = {
-    // eslint-disable-next-line typescript/require-await
     openWithUrls: vi.fn(async (input) => ({
       urls: [...input.urls],
     })),
@@ -166,15 +161,13 @@ const createEmptyDeps = (
         updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
       },
       domainCategoryMappingRepository: {
-        // eslint-disable-next-line typescript/require-await
         findAll: async () => [],
-        // eslint-disable-next-line typescript/require-await
+
         saveAll: async () => undefined,
       },
       domainCategorySettingsRepository: {
-        // eslint-disable-next-line typescript/require-await
         findAll: async () => [],
-        // eslint-disable-next-line typescript/require-await
+
         saveAll: async () => undefined,
       },
       migrationPort: {
@@ -198,9 +191,8 @@ const createEmptyDeps = (
       tabGroupRepository,
       urlRecordRepository,
       userSettingsRepository: {
-        // eslint-disable-next-line typescript/require-await
         findAll: async () => ({}) as never,
-        // eslint-disable-next-line typescript/require-await
+
         save: async () => undefined,
       },
     },

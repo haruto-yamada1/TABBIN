@@ -24,16 +24,16 @@ const createTabGroupRepositoryMock = (
     },
   )
   const repository = {
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は TabGroupRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は TabGroupRepository 側で必須
     findAll: vi.fn(async () => []),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は TabGroupRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は TabGroupRepository 側で必須
     findById: vi.fn(async () => null),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は TabGroupRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は TabGroupRepository 側で必須
     findRawDomainById: vi.fn(async () => null),
     findRawTabGroupById,
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は TabGroupRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は TabGroupRepository 側で必須
     removeByIds: vi.fn(async () => undefined),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は TabGroupRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は TabGroupRepository 側で必須
     saveAll: vi.fn(async () => undefined),
   } as unknown as TabGroupRepository
   return { repository, findRawTabGroupById }
@@ -51,13 +51,13 @@ const createParentCategoryRepositoryMock = (
 } => {
   let store = initial.map((category) => ({ ...category }))
   const saveAll = vi.fn(
-    // eslint-disable-next-line typescript/require-await, @typescript-eslint/no-unused-vars -- mock 副作用テストのため
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- mock 副作用テストのため
     async (_next: Parameters<ParentCategoryRepository['saveAll']>[0]) => {
       store = initial.map((category) => ({ ...category }))
     },
   )
   const repository = {
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     findAll: vi.fn(async () =>
       store.map((category) => ({
         domainNames: [...category.domainNames],
@@ -66,10 +66,10 @@ const createParentCategoryRepositoryMock = (
         name: '',
       })),
     ),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     findById: vi.fn(async () => null),
     saveAll,
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     removeByIds: vi.fn(async () => undefined),
   } as unknown as ParentCategoryRepository
   return { repository, saveAll }
@@ -83,7 +83,7 @@ const createDomainCategoryMappingRepositoryMock = (
 } => {
   // eslint-disable-next-line typescript/require-await -- Promise contract は DomainCategoryMappingRepository 側で必須
   const saveAll = vi.fn(
-    // eslint-disable-next-line typescript/require-await, @typescript-eslint/no-unused-vars -- mock 副作用テストのため
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- mock 副作用テストのため
     async (
       _next: Parameters<DomainCategoryMappingRepository['saveAll']>[0],
     ) => {
@@ -91,7 +91,7 @@ const createDomainCategoryMappingRepositoryMock = (
     },
   )
   const repository = {
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は DomainCategoryMappingRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は DomainCategoryMappingRepository 側で必須
     findAll: vi.fn(async () => initial),
     saveAll,
   } as unknown as DomainCategoryMappingRepository

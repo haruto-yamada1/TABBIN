@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import {
   act,
@@ -130,11 +129,10 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='dialog-root'>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(true)} type='button'>
         dialog-open
       </button>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
+
       <button onClick={() => onOpenChange?.(false)} type='button'>
         dialog-close
       </button>
@@ -384,7 +382,6 @@ describe('CustomProjectSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
 
     await waitFor(() => {
-      // eslint-disable-next-line typescript/TS2339
       expect(
         (screen.getByLabelText('プロジェクト名 *') as HTMLInputElement).value,
       ).toBe('')
@@ -401,7 +398,6 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragStart?.({
         active: {
@@ -430,7 +426,6 @@ describe('CustomProjectSection', () => {
         .getAttribute('data-cross-project-url-drag-active'),
     ).toBe('false')
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: { data: { current: { type: 'url', projectId: 'project-1' } } },
@@ -448,7 +443,6 @@ describe('CustomProjectSection', () => {
         .getAttribute('data-cross-project-url-drag-active'),
     ).toBe('false')
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: { data: { current: { type: 'url', projectId: 'project-1' } } },
@@ -471,7 +465,6 @@ describe('CustomProjectSection', () => {
         .getAttribute('data-cross-project-url-drag-active'),
     ).toBe('true')
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: { data: { current: { type: 'url', projectId: 'project-1' } } },
@@ -484,7 +477,6 @@ describe('CustomProjectSection', () => {
         .getAttribute('data-cross-project-url-drag-active'),
     ).toBe('true')
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {
@@ -524,7 +516,6 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {
@@ -556,7 +547,6 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {
@@ -570,7 +560,6 @@ describe('CustomProjectSection', () => {
       })
     })
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {
@@ -608,7 +597,6 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {
@@ -639,7 +627,6 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragStart?.({
         active: {
@@ -656,7 +643,6 @@ describe('CustomProjectSection', () => {
       })
     })
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: {
@@ -670,7 +656,6 @@ describe('CustomProjectSection', () => {
       })
     })
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {
@@ -701,7 +686,6 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragStart?.({
         active: {
@@ -718,7 +702,6 @@ describe('CustomProjectSection', () => {
       })
     })
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragOver?.({
         active: {
@@ -732,7 +715,6 @@ describe('CustomProjectSection', () => {
       })
     })
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {
@@ -763,7 +745,6 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {
@@ -777,7 +758,6 @@ describe('CustomProjectSection', () => {
       })
     })
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       dndContextPropsRef.current.onDragEnd?.({
         active: {

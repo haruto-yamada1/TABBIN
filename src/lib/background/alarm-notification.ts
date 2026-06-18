@@ -17,8 +17,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
         'chrome.alarms APIが利用できません。Manifest.jsonで権限を確認してください。',
       )
       // アラーム処理が使えない場合でも、初回のチェックは実行
-      // eslint-disable-next-line typescript/no-floating-promises
-      checkAndRemoveExpiredTabs()
+      void checkAndRemoveExpiredTabs()
       return
     }
 
@@ -26,8 +25,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
     const createAlarm = () => {
       try {
         console.log('アラームを作成します')
-        // eslint-disable-next-line typescript/no-floating-promises
-        chrome.alarms.create('checkExpiredTabs', {
+        void chrome.alarms.create('checkExpiredTabs', {
           periodInMinutes: 0.5, // 30秒間隔（30sec設定にも追従）
         })
         console.log('アラームが作成されました')
@@ -63,8 +61,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
         `アラームが発火しました: ${alarm.name} (${new Date().toLocaleString()})`,
       )
       if (alarm.name === 'checkExpiredTabs') {
-        // eslint-disable-next-line typescript/no-floating-promises
-        checkAndRemoveExpiredTabs()
+        void checkAndRemoveExpiredTabs()
       }
     })
 
@@ -91,8 +88,7 @@ const scheduleInitialCheck = (): void => {
       await new Promise((resolve) =>
         setTimeout(resolve, INITIAL_CHECK_DELAY_MS),
       )
-      // eslint-disable-next-line typescript/no-floating-promises
-      checkAndRemoveExpiredTabs()
+      void checkAndRemoveExpiredTabs()
     })
     .catch(() => {})
 }
@@ -103,8 +99,7 @@ const showNotification = (title: string, message: string): Promise<void> => {
   try {
     const iconUrl = chrome.runtime.getURL('icon/128.png')
     console.log('通知アイコンURL:', iconUrl)
-    // eslint-disable-next-line typescript/no-floating-promises
-    chrome.notifications.create({
+    void chrome.notifications.create({
       iconUrl,
       message,
       title,

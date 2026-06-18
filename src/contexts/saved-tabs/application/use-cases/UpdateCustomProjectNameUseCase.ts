@@ -1,5 +1,6 @@
 import type { CustomProject } from '../../domain/entities/CustomProject'
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
+import { createCategoryName } from '../../domain/value-objects/CategoryName'
 import { createCustomProjectId } from '../../domain/value-objects/CustomProjectId'
 import { createSavedAt } from '../../domain/value-objects/SavedAt'
 
@@ -56,8 +57,7 @@ export const createUpdateCustomProjectNameUseCase = (
       if (project.id === targetId) {
         const next: CustomProject = {
           ...project,
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-          name: newName as never,
+          name: createCategoryName(newName),
           updatedAt: now,
         }
         updatedAll.push(next)

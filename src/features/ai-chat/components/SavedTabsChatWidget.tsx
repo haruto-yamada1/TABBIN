@@ -1,4 +1,4 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop, react-perf/jsx-no-new-object-as-prop */
+/* eslint-disable react-perf/jsx-no-new-function-as-prop, react-perf/jsx-no-new-object-as-prop -- 14箇所の JSX 内 inline function/object があり、refactor の範囲が広いため。一旦 disable して別 issue で対応 */
 import {
   Check,
   ChevronDown,
@@ -137,7 +137,6 @@ import {
   getSourcesLabel,
   insertLineBreakAtCursor,
   requestPromptSubmit,
-  tryGetItemsArray,
 } from './savedTabsChat/messages'
 import type { ChatMessage, TranslateFn } from './savedTabsChat/messages'
 import {
@@ -2275,7 +2274,3 @@ const SavedTabsChatWidget = (props: SavedTabsChatWidgetProps = {}) =>
   useSavedTabsChatWidgetView(props)
 
 export { SavedTabsChatWidget }
-
-// re-exports for tests / consumers that may import internals
-export { areMessagesEquivalent, tryGetItemsArray }
-export type { ChatMessage }

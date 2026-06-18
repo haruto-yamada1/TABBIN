@@ -176,7 +176,11 @@ export const useDomainModeController = (
         error: parentViewModel.error,
         loading: parentViewModel.loading,
         searchQuery,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        // VM 形 (TabGroup のサブセット) を storage 形 TabGroup へ投影する
+        // ための disable。`urls` / `subCategories` 等の optional 拡張
+        // フィールド差分は mapper (`toTabGroupFromViewModel`) 経由で
+        // 吸収する構造的キャスト。
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- VM → storage TabGroup 投影
         tabGroups: tabGroupsForView.map((vm) => ({
           domain: vm.domain,
           id: vm.id,

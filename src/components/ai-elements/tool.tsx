@@ -75,7 +75,6 @@ const statusIcons: Record<ToolPart['state'], ReactNode> = {
   'output-denied': <XCircleIcon className='size-4 text-orange-600' />,
   'output-error': <XCircleIcon className='size-4 text-red-600' />,
 }
-
 export const getStatusBadge = (
   status: ToolPart['state'],
   t: Translate = getFallbackText,
@@ -131,7 +130,6 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
 export type ToolInputProps = ComponentProps<'div'> & {
   input: ToolPart['input']
 }
-
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
   const t = useI18nText()
 
@@ -155,7 +153,6 @@ export type ToolOutputProps = ComponentProps<'div'> & {
   output: ToolPart['output']
   errorText: ToolPart['errorText']
 }
-
 export const ToolOutput = ({
   className,
   output,

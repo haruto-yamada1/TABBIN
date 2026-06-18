@@ -18,7 +18,6 @@ const createPort = (state: StorageState): ChromeStorageLocalPort => {
   return {
     get: vi.fn((key: string) => Promise.resolve({ [key]: state[key] })),
     remove: vi.fn((key: string) => {
-      // eslint-disable-next-line typescript/no-dynamic-delete
       delete state[key]
       return Promise.resolve()
     }),

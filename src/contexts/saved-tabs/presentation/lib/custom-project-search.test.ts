@@ -61,7 +61,7 @@ describe('filterCustomProjectsByQuery', () => {
 
   it('urlIds ベースの URL タイトル一致で対象プロジェクトと一致 URL だけを返す', async () => {
     const projects = createProjects()
-    // eslint-disable-next-line typescript/require-await
+
     const loadProjectUrls = vi.fn(async (project: CustomProject) => {
       if (project.id === 'project-1') {
         return [
@@ -130,7 +130,7 @@ describe('filterCustomProjectsByQuery', () => {
     const result = await filterCustomProjectsByQuery({
       customProjects: [project],
       searchQuery: 'react',
-      // eslint-disable-next-line typescript/require-await
+
       loadProjectUrls: vi.fn(async () => [
         {
           id: 'url-1',

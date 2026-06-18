@@ -12,7 +12,6 @@ const ThemeConsumer = () => {
     <div className='flex items-center gap-3'>
       <span className='rounded-md border px-3 py-2 text-sm'>{theme}</span>
       <Button
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('light')
         }}
@@ -21,7 +20,6 @@ const ThemeConsumer = () => {
         Light
       </Button>
       <Button
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('dark')
         }}
@@ -30,7 +28,6 @@ const ThemeConsumer = () => {
         Dark
       </Button>
       <Button
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('user')
         }}

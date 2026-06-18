@@ -32,32 +32,29 @@ const createBundle = (
       updateDomainCategorySettings,
     } as unknown as CategoriesCommandService,
     domainCategoryMappingRepository: {
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
       findAll: vi.fn(async () => []),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
       saveAll: vi.fn(async () => undefined),
     } as unknown as DomainCategoryMappingRepository,
     parentCategoryRepository: {
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
       findAll: vi.fn(async () => []),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
       findById: vi.fn(async () => null),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
       removeByIds: vi.fn(async () => undefined),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
       saveAll: vi.fn(async () => undefined),
     } as unknown as ParentCategoryRepository,
     tabGroupRepository: {
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
       findAll: vi.fn(async () => []),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
       findById: vi.fn(async () => null),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
       findRawDomainById: vi.fn(async () => null),
       findRawTabGroupById,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
       removeByIds: vi.fn(async () => undefined),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
       saveAll: vi.fn(async () => undefined),
     } as unknown as TabGroupRepository,
   }

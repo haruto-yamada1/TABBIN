@@ -73,7 +73,6 @@ export const AutoDeleteSettingsCard = ({
               />
             </SelectTrigger>
             <SelectContent
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onPointerDownOutside={(event) => {
                 event.preventDefault()
               }}

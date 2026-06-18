@@ -87,7 +87,6 @@ export const CategoryGroupRoot = ({
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: category.id })
 
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -157,7 +156,6 @@ export const CategoryGroupRoot = ({
         })}
         onDragOver={state.nativeDnD.handleDragOver}
         onDragLeave={state.nativeDnD.handleDragLeave}
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onDrop={(e) => {
           state.nativeDnD.handleDrop(e, handlers.handleMoveDomainToCategory)
         }}
@@ -168,7 +166,6 @@ export const CategoryGroupRoot = ({
       {/* カテゴリ管理モーダル */}
       <CategoryManagementModal
         isOpen={state.modal.isModalOpen}
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClose={() => {
           state.modal.setIsModalOpen(false)
         }}

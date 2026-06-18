@@ -18,4 +18,3 @@ export const UNCATEGORIZED_PROJECT_ID = createCustomProjectId(
  * 旧 `src/lib/storage/projects.CUSTOM_UNCATEGORIZED_PROJECT_NAME` を
  * domain 層に再配置した定数。「未分類」のローカライズ前の素の値。
  */
-export const UNCATEGORIZED_PROJECT_NAME = '未分類'

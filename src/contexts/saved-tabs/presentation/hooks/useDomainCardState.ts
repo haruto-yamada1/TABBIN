@@ -2,6 +2,11 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  toDomainTabGroupFromStorage,
+  toPresentationTabGroups,
+  toStorageParentCategory,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
@@ -245,7 +250,7 @@ export const useDomainCardState = ({
           return
         }
         const { tabGroups: savedTabs } = await getSavedTabsPageDataQuery()
-        const updatedTabs = [...savedTabs].map((tab) => {
+        const updatedTabs = toPresentationTabGroups(savedTabs).map((tab) => {
           if (tab.id === group.id) {
             const updatedTab = {
               ...tab,
@@ -257,10 +262,7 @@ export const useDomainCardState = ({
           return tab
         })
         await categoryAssignmentPort.saveTabGroups(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage 層 TabGroup へ投影
-          updatedTabs as unknown as Parameters<
-            CategoryAssignmentPort['saveTabGroups']
-          >[0],
+          updatedTabs.map(toDomainTabGroupFromStorage),
         )
       } catch (error) {
         console.error('カテゴリ順序の更新に失敗しました:', error)
@@ -279,8 +281,7 @@ export const useDomainCardState = ({
       const regularOrder = allCategoryIds.filter(
         (id) => id !== '__uncategorized',
       )
-      // eslint-disable-next-line typescript/no-floating-promises
-      handleUpdateCategoryOrder(regularOrder, allCategoryIds)
+      void handleUpdateCategoryOrder(regularOrder, allCategoryIds)
     }
   }, [
     allCategoryIds,
@@ -469,17 +470,15 @@ export const useDomainCardState = ({
         return
       }
       try {
-        const fromQuery =
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
-          (await getSavedTabsPageDataQuery())
-            .parentCategories as unknown as ParentCategory[]
+        const fromQuery = (
+          await getSavedTabsPageDataQuery()
+        ).parentCategories.map(toStorageParentCategory)
         setParentCategories(fromQuery)
       } catch (error) {
         console.error('親カテゴリの読み込みに失敗しました:', error)
       }
     }
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadParentCategories()
+    void loadParentCategories()
   }, [getSavedTabsPageDataQuery])
 
   // --- 親カテゴリ作成ハンドラ ---
@@ -490,11 +489,9 @@ export const useDomainCardState = ({
       }
       try {
         const { category, all } = await createParentCategoryUseCase({ name })
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        const updatedAll = all as unknown as ParentCategory[]
+        const updatedAll = all.map(toStorageParentCategory)
         setParentCategories(updatedAll)
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        return category as unknown as ParentCategory
+        return toStorageParentCategory(category)
       } catch (error) {
         console.error('親カテゴリ作成エラー:', error)
         throw error

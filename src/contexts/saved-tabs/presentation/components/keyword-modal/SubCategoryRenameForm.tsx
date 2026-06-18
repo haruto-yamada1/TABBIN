@@ -46,7 +46,6 @@ export const SubCategoryRenameForm = () => {
         data-rename-input='true'
         // eslint-disable-next-line typescript/no-misused-promises
         onBlur={rename.handleSaveRenaming}
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()

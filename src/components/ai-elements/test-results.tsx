@@ -186,12 +186,10 @@ export const TestResultsProgress = ({
           <div className='flex h-2 overflow-hidden rounded-full bg-muted'>
             <div
               className='bg-green-500 transition-all'
-              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               style={{ width: `${passedPercent}%` }}
             />
             <div
               className='bg-red-500 transition-all'
-              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               style={{ width: `${failedPercent}%` }}
             />
           </div>

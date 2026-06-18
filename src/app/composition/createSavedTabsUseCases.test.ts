@@ -28,7 +28,6 @@ const buildChromeStorageLocal = (state: Record<string, unknown>) =>
   ({
     get: (key: string) => Promise.resolve({ [key]: state[key] }),
     remove: (key: string) => {
-      // eslint-disable-next-line typescript/no-dynamic-delete
       delete state[key]
       return Promise.resolve()
     },

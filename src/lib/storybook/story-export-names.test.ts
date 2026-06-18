@@ -2,7 +2,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it } from 'vitest'
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const storyRoots = [

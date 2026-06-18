@@ -52,7 +52,6 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
   }
 })
 
-// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()

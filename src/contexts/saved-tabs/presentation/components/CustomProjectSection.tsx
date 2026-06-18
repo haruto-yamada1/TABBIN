@@ -331,8 +331,7 @@ const handleDragEndByType = ({
   const newIndex = projects.findIndex((project) => project.id === over.id)
 
   if (oldIndex !== -1 && newIndex !== -1 && handleReorderProjects) {
-    // eslint-disable-next-line typescript/no-floating-promises
-    handleReorderProjects(
+    void handleReorderProjects(
       arrayMove(
         projects.map((project) => project.id),
         oldIndex,
@@ -428,8 +427,8 @@ const useCustomProjectSectionView = ({
       },
       unregisterHandlers: (projectId: string) => {
         const newHandlers = { ...projectDragHandlersRef.current }
-        // eslint-disable-next-line typescript/no-dynamic-delete
-        delete newHandlers[projectId]
+
+        Reflect.deleteProperty(newHandlers, projectId)
         projectDragHandlersRef.current = newHandlers
       },
     }),
@@ -586,7 +585,6 @@ const useCustomProjectSectionView = ({
   )
 
   // ドラッグ終了時の処理
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     const activeData = resolveActiveDragData(
@@ -688,7 +686,6 @@ const useCustomProjectSectionView = ({
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
               items={projects.map((project) => project.id)}
               strategy={verticalListSortingStrategy}
             >

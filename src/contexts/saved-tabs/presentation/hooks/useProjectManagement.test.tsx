@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
@@ -515,7 +514,6 @@ describe('useProjectManagement', () => {
     )
     unmount()
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveProjects(projectSnapshot)
     })
@@ -664,6 +662,7 @@ describe('useProjectManagement', () => {
       categories: [],
       createdAt: 30,
       updatedAt: 30,
+      urlIds: [],
     }
     let resolveCreate: (value: { project: CustomProject }) => void = () =>
       undefined

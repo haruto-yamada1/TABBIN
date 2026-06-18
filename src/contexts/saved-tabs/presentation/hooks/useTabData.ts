@@ -7,6 +7,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
+import {
+  toDomainParentCategoriesFromStorage,
+  toDomainTabGroupsFromStorage,
+  toPresentationTabGroups,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { GetSavedTabsQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsQuery'
@@ -121,7 +126,11 @@ const ensureValidParentCategories = async (
   }
   console.log('無効なカテゴリを検出、再マイグレーションを実行')
   await migrationPort.migrateParentCategoriesToDomainNames()
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
+  // `ensureValidParentCategories` の判定は `domainNames` 未定義/
+  // 配列非互換を invalid として検出する。mapper 側で `?? []` 化すると
+  // 検出ロジックが破壊されるため、query 戻り値 (branded domain) を
+  // そのまま cast して下流判定へ流す。
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- branded ParentCategory → storage 投影 (判定用)
   const refreshed = (await getSavedTabsPageDataQuery())
     .parentCategories as unknown as ParentCategory[]
   return [...refreshed]
@@ -279,9 +288,13 @@ const useTabData = ({
 
         // データ読み込み: page data query 経由 (issue #510)
         const pageData = await getSavedTabsPageDataQueryRef.current()
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain entity (branded readonly) を storage shape (mutable plain) へ投影
+        // query 戻り値 (branded domain) は presentation 編集前の参照を
+        // 保持するため mapper ではなく直接 cast。`ensureValidParentCategories`
+        // 側の判定 (`domainNames` 未定義検出) は未定義のまま流す必要がある
+        // ため、`?? []` 等で正規化しない。
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- branded → storage 投影 (初期ロード)
         const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain entity (branded readonly) を storage shape (mutable plain) へ投影
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- branded → storage 投影 (初期ロード)
         const parentCategories = [
           ...pageData.parentCategories,
         ] as unknown as ParentCategory[]
@@ -303,16 +316,16 @@ const useTabData = ({
         // parentCategoryId 修復は application use-case 経由 (issue #517)。
         // 修復があった場合のみ use-case 内で `tabGroupRepository.saveAll` が
         // 走り、storage への副作用は use-case 側に閉じている。
+        // storage → domain 投影は mapper 内に閉じ、`as never` を排除する。
         const repairCommand: RepairTabGroupParentCategoryIdsCommand = {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage shape から branded domain entity へ投影
-          tabGroups: savedTabs as never,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage shape から branded domain entity へ投影
-          parentCategories: finalCategories as never,
+          tabGroups: toDomainTabGroupsFromStorage(savedTabs),
+          parentCategories:
+            toDomainParentCategoriesFromStorage(finalCategories),
         }
         const { tabGroups: repairedTabGroups } =
           await repairTabGroupParentCategoryIdsUseCaseRef.current(repairCommand)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain entity (branded readonly) を storage shape (mutable plain) へ投影
-        const finalTabGroups = [...repairedTabGroups] as unknown as TabGroup[]
+        // domain → presentation 投影は mapper 内に閉じ、`as unknown as` を排除する。
+        const finalTabGroups = toPresentationTabGroups(repairedTabGroups)
         setTabData((prev) => ({
           ...prev,
           isLoading: false,
@@ -326,8 +339,7 @@ const useTabData = ({
         }))
       }
     }
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadSavedTabs()
+    void loadSavedTabs()
   }, [])
 
   // タブグループが更新されたらURLデータを取得する
@@ -347,8 +359,7 @@ const useTabData = ({
         }))
       }
     }
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadUrlsForTabGroups()
+    void loadUrlsForTabGroups()
     return () => {
       cancelled = true
     }

@@ -38,7 +38,6 @@ const SavedTabsChatWidgetWithHistory = lazy(async () => {
       updateMessages,
     } = useSharedAiChatHistory()
 
-    // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
     const handleMessagesChange = (messages: AiChatConversationMessage[]) => {
       updateMessages(messages)
       onMessagesChange?.(messages)
@@ -90,7 +89,6 @@ export const LazySavedTabsChatWidget = ({
     <Button
       aria-label={t('aiChat.open')}
       className='fixed right-4 bottom-4 z-50 size-10 cursor-pointer rounded-full shadow-lg'
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onClick={() => {
         setOpenOnLoad(true)
         setShouldLoad(true)

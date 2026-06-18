@@ -68,7 +68,6 @@ export const SubCategorySelector = () => {
               <Button
                 variant='secondary'
                 size='sm'
-                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => {
                   deletion.setShowDeleteConfirm(true)
                 }}

@@ -1,8 +1,5 @@
 import type { CustomProject } from '../../domain/entities/CustomProject'
-import type {
-  CustomProjectRawSnapshot,
-  CustomProjectRepository,
-} from '../../domain/repositories/CustomProjectRepository'
+import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
 
 /**
  * `SaveCustomProjectsUseCase` の入力。
@@ -68,13 +65,3 @@ export const createSaveCustomProjectsUseCase = (
  * `RestoreCustomProjectsSnapshotUseCase` 経由で `restoreAllRaw` を
  * 使うこと。
  */
-export const toCustomProjectRawFromEntity = (
-  project: CustomProject,
-): CustomProjectRawSnapshot => ({
-  categories: [...project.categories],
-  createdAt: project.createdAt,
-  id: project.id,
-  name: project.name,
-  updatedAt: project.updatedAt,
-  ...(project.urlIds.length > 0 ? { urlIds: [...project.urlIds] } : {}),
-})

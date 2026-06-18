@@ -2,11 +2,12 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { useI18nText } from '@/features/i18n/lib/useI18nText'
+
 import {
   I18nProvider,
   getFallbackText,
   useI18n,
-  useI18nText,
   useOptionalI18n,
 } from './I18nProvider'
 
@@ -50,7 +51,6 @@ const Consumer = () => {
       </span>
       <button
         type='button'
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           void setLanguageSetting('en')
         }}
@@ -109,7 +109,6 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('message').textContent).toContain('キャンセル')
     expect(screen.getByTestId('message').textContent).toContain('Hello Taro')
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       screen.getByText('set-en').click()
     })
@@ -217,7 +216,6 @@ describe('I18nProvider', () => {
 
     unmount()
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveSettings?.({ language: 'en' })
     })

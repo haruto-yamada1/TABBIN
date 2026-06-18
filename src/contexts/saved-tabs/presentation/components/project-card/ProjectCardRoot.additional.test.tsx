@@ -52,10 +52,8 @@ vi.mock('@/components/ui/card', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -93,7 +91,6 @@ vi.mock('../../hooks/useCustomProjectCard', () => ({
 
 vi.mock('./ProjectCardContext', () => ({
   ProjectCardContext: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -332,7 +329,7 @@ describe('ProjectCardRoot additional', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
-    // eslint-disable-next-line typescript/require-await
+
     await act(async () => {
       vi.runAllTimers()
     })

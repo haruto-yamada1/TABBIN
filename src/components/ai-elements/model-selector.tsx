@@ -2,7 +2,6 @@ import type { ComponentProps, ReactNode } from 'react'
 
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -54,12 +53,6 @@ export const ModelSelectorContent = ({
       {children}
     </Command>
   </DialogContent>
-)
-
-export type ModelSelectorDialogProps = ComponentProps<typeof CommandDialog>
-
-export const ModelSelectorDialog = (props: ModelSelectorDialogProps) => (
-  <CommandDialog {...props} />
 )
 
 export type ModelSelectorInputProps = ComponentProps<typeof CommandInput>
@@ -170,8 +163,6 @@ export type ModelSelectorLogoProps = Omit<
     | 'scaleway'
     | 'amazon-bedrock'
     | 'cerebras'
-    // oxlint-disable-next-line typescript-eslint(ban-types) -- intentional pattern for autocomplete-friendly string union
-    // eslint-disable-next-line typescript/ban-types
     | (string & {})
 }
 

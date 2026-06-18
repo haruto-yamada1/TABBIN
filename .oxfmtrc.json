@@ -42,6 +42,7 @@
     "playwright-report/**",
     "blob-report/**",
     "storybook-static/**",
-    "tmp-profile-saved-tabs.cjs"
+    "*.log",
+    "logs/**"
   ]
 }

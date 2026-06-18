@@ -33,7 +33,7 @@ interface ReasoningContextValue {
 
 const ReasoningContext = createContext<ReasoningContextValue | null>(null)
 
-export const useReasoning = () => {
+const useReasoning = () => {
   const context = use(ReasoningContext)
   if (!context) {
     throw new Error('Reasoning components must be used within Reasoning')
@@ -65,7 +65,6 @@ const updateReasoningStreamTiming = ({
 }) => {
   if (isStreaming) {
     hasEverStreamedRef.current = true
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (startTimeRef.current === null) {
       startTimeRef.current = Date.now()
     }
@@ -83,7 +82,6 @@ export const Reasoning = memo(
     isStreaming = false,
     open,
     defaultOpen,
-    // eslint-disable-next-line typescript/unbound-method
     onOpenChange,
     duration: durationProp,
     children,
@@ -116,7 +114,6 @@ export const Reasoning = memo(
         startTimeRef,
       })
     }, [isStreaming, setDuration])
-
     // Auto-open when streaming starts (unless explicitly closed)
     useEffect(() => {
       if (isStreaming && !isOpen && !isExplicitlyClosed) {
@@ -125,7 +122,6 @@ export const Reasoning = memo(
     }, [isStreaming, isOpen, setIsOpen, isExplicitlyClosed])
 
     // Auto-close when streaming ends (once only, and only if it ever streamed)
-    // eslint-disable-next-line typescript/consistent-return
     useEffect(() => {
       if (
         hasEverStreamedRef.current &&
@@ -198,7 +194,6 @@ const renderDefaultThinkingMessage = (
     </p>
   )
 }
-
 export const ReasoningTrigger = memo(
   ({
     className,
@@ -241,7 +236,6 @@ export type ReasoningContentProps = ComponentProps<
 > & {
   children: string
 }
-
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
     <CollapsibleContent

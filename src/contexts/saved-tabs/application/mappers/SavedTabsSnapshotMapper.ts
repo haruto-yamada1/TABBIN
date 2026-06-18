@@ -41,7 +41,7 @@ export const toStorageCustomProject = (
   id: project.id,
   name: project.name,
   updatedAt: project.updatedAt,
-  urlIds: [...project.urlIds],
+  urlIds: [...(project.urlIds ?? [])],
 })
 
 /**
@@ -53,8 +53,8 @@ export const toStorageCustomProject = (
 export const toStorageParentCategory = (
   category: DomainParentCategory,
 ): ParentCategory => ({
-  domains: [...category.domains],
-  domainNames: [...category.domainNames],
+  domains: [...(category.domains ?? [])],
+  domainNames: [...(category.domainNames ?? [])],
   id: category.id,
   name: category.name,
 })
@@ -73,6 +73,37 @@ export const toStorageTabGroup = (group: DomainTabGroup): TabGroup => ({
   parentCategoryId: group.parentCategoryId,
   savedAt: group.savedAt,
 })
+
+/**
+ * domain entity の `TabGroup` 配列を、presentation 専用フィールド
+ * (`urls` を含む storage shape) へ投影する。
+ *
+ * `GetSavedTabsPageDataQuery` の戻り値 (branded readonly domain
+ * `TabGroup[]`) を presentation 層で編集できるよう storage shape に
+ * 持ち替える。`urls` 等の presentation 拡張フィールドは mapper 呼び出し
+ * 側で `.urls` アクセス可能なよう spread する。
+ *
+ * branded 型と構造差分 (domain ⊂ storage) の吸収は `unknown` 経由の
+ * キャストに限定し、呼び出し側の disable を排除する。
+ */
+export const toPresentationTabGroups = (
+  groups: readonly DomainTabGroup[],
+): TabGroup[] =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  groups as unknown as TabGroup[]
+
+/**
+ * storage 形 `TabGroup` (presentation 編集結果を含む) を domain 形
+ * `TabGroup` へ持ち替える。`CategoryAssignmentPort.saveTabGroups` 入口で
+ * の branded 型差分を吸収する橋渡し用。
+ *
+ * branded 型の差分は port 実装側の factory で吸収される前提で
+ * キャストする（`toDomainParentCategories` /
+ * `toDomainTabGroupsForReorder` と同パターン）。
+ */
+export const toDomainTabGroupFromStorage = (group: TabGroup): DomainTabGroup =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  group as unknown as DomainTabGroup
 
 /**
  * snapshot 内の readonly 配列を immutable copy に正規化する。
@@ -160,3 +191,33 @@ export const toStorageParentCategories = (
   snapshot: OpenedUrlsRestoreSnapshot,
 ): ParentCategory[] | undefined =>
   snapshot.parentCategories?.map(toStorageParentCategory)
+
+/**
+ * storage 形 `TabGroup[]` を domain 形 `TabGroup[]` へ持ち替える
+ * 複数要素版。`toDomainTabGroupFromStorage` を配列に適用する sugar。
+ */
+export const toDomainTabGroupsFromStorage = (
+  groups: readonly TabGroup[],
+): readonly DomainTabGroup[] => groups.map(toDomainTabGroupFromStorage)
+
+/**
+ * storage 形 `ParentCategory` を domain 形 `ParentCategory` へ持ち替える。
+ * `RepairTabGroupParentCategoryIdsUseCase` 等の branded 入力 port
+ * への橋渡し用。構造がほぼ一致するため、branded 差分のみ
+ * `as unknown` 経由で吸収する。
+ */
+const toDomainParentCategory = (
+  category: ParentCategory,
+): DomainParentCategory => {
+  const { domains, domainNames, id, name } = category
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  return { domains, domainNames, id, name } as unknown as DomainParentCategory
+}
+
+/**
+ * storage 形 `ParentCategory[]` を domain 形 `ParentCategory[]` へ
+ * 持ち替える複数要素版。`toDomainParentCategory` を配列に適用する sugar。
+ */
+export const toDomainParentCategoriesFromStorage = (
+  categories: readonly ParentCategory[],
+): readonly DomainParentCategory[] => categories.map(toDomainParentCategory)

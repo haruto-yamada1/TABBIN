@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 
 import { createSavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
@@ -39,7 +39,7 @@ export const SavedTabsUseCasesProvider = ({
  * `SavedTabsUseCasesContext` の値を取り出す。Provider 外で呼ぶと `null`。
  */
 export const useSavedTabsUseCases = (): SavedTabsUseCasesContextValue | null =>
-  useContext(SavedTabsUseCasesContext)
+  use(SavedTabsUseCasesContext)
 
 /**
  * 渡された `deps` から `SavedTabsUseCasesContextValue` を組み立てる。

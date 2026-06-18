@@ -17,13 +17,12 @@ const createUrlRecord = (overrides: Partial<UrlRecord>): UrlRecord => ({
 const createInMemoryUrlRecordRepository = (
   records: readonly UrlRecord[],
 ): UrlRecordRepository => ({
-  // eslint-disable-next-line typescript/require-await
   findAll: async () => records,
-  // eslint-disable-next-line typescript/require-await
+
   findById: async (id) => records.find((record) => record.id === id) ?? null,
-  // eslint-disable-next-line typescript/require-await
+
   saveAll: async () => undefined,
-  // eslint-disable-next-line typescript/require-await
+
   removeByIds: async () => undefined,
 })
 

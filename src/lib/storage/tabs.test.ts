@@ -47,7 +47,6 @@ describe('tabs storage', () => {
     mocks.migrateToUrlsStorageMock.mockResolvedValue(undefined)
     mocks.getDomainCategorySettingsMock.mockResolvedValue([])
     mocks.createOrUpdateUrlRecordMock.mockImplementation(
-      // eslint-disable-next-line typescript/require-await
       async (url, title) => ({
         // eslint-disable-line
         id: `id:${url}`,
@@ -305,9 +304,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -351,9 +349,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -394,9 +391,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -479,9 +475,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -551,9 +546,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -591,9 +585,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -639,9 +632,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -708,35 +700,33 @@ describe('tabs storage', () => {
       storage: {
         local: {
           // Chrome storage returns a fresh structured clone for each read.
-          // eslint-disable-next-line typescript/require-await
+
           get: vi.fn(async () => structuredClone(state)),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
         },
       },
     } as unknown as typeof chrome
-    mocks.getUrlRecordsByIdsMock.mockImplementation(
-      // eslint-disable-next-line typescript/require-await
-      async (ids) =>
-        ids.includes('url-1')
-          ? [
-              {
-                id: 'url-1',
-                savedAt: 1,
-                title: 'Install Guide',
-                url: 'https://docs.example.com/guide',
-              },
-            ]
-          : [
-              {
-                id: 'url-2',
-                savedAt: 2,
-                title: 'Bug Report',
-                url: 'https://issues.example.com/bug',
-              },
-            ],
+    mocks.getUrlRecordsByIdsMock.mockImplementation(async (ids) =>
+      ids.includes('url-1')
+        ? [
+            {
+              id: 'url-1',
+              savedAt: 1,
+              title: 'Install Guide',
+              url: 'https://docs.example.com/guide',
+            },
+          ]
+        : [
+            {
+              id: 'url-2',
+              savedAt: 2,
+              title: 'Bug Report',
+              url: 'https://issues.example.com/bug',
+            },
+          ],
     )
 
     const { autoCategorizeTabs } = await loadTabsModule()
@@ -774,9 +764,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -824,9 +813,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -897,9 +885,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -960,9 +947,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1046,9 +1032,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1099,9 +1084,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1134,9 +1118,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1183,9 +1166,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1261,9 +1243,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1315,9 +1296,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1361,9 +1341,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1414,9 +1393,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1457,9 +1435,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),
@@ -1522,9 +1499,8 @@ describe('tabs storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async (value: typeof state) => {
             Object.assign(state, value)
           }),

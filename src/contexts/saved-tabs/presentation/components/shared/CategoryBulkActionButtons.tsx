@@ -43,7 +43,6 @@ export const CategoryBulkActionButtons = ({
           size='sm'
           onClick={onOpenAll}
           className='pointer-events-auto z-20 flex cursor-pointer items-center gap-1'
-          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           style={{ position: 'relative' }}
           aria-label={openAriaLabel}
         >
@@ -64,7 +63,6 @@ export const CategoryBulkActionButtons = ({
             size='sm'
             onClick={onDeleteAll}
             className='pointer-events-auto z-20 flex cursor-pointer items-center gap-1'
-            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             style={{ position: 'relative' }}
             aria-label={deleteAriaLabel}
             disabled={isDeleting}

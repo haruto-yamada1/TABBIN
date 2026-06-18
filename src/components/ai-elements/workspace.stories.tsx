@@ -119,7 +119,6 @@ const Workspace = () => (
             </Sources>
           </ConversationContent>
           <ConversationDownload
-            // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
             messages={[
               {
                 content:
@@ -135,7 +134,6 @@ const Workspace = () => (
       <div className='rounded-lg border bg-muted/30 p-4'>
         <ConversationEmptyState
           description='Try one of the suggestion chips above to seed the next batch.'
-          // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           icon={<Lightbulb className='size-5' />}
           title='No active draft'
         />
@@ -170,7 +168,6 @@ const Workspace = () => (
           <QueueSectionTrigger>
             <QueueSectionLabel
               count={2}
-              // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
               icon={<Search className='size-4' />}
               label='queued tasks'
             />
@@ -244,7 +241,6 @@ const Workspace = () => (
         </WebPreviewNavigation>
         <WebPreviewBody />
         <WebPreviewConsole
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           logs={[
             {
               level: 'log',

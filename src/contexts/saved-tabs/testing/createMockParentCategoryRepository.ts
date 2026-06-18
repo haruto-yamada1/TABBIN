@@ -25,9 +25,8 @@ export const createMockParentCategoryRepository = (
     parentCategories: [...initial.parentCategories],
   }
   return {
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
     findAll: vi.fn(async () => state.parentCategories),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
     findById: vi.fn(async (id) => {
       const idString = id as unknown as string
       return (
@@ -35,11 +34,11 @@ export const createMockParentCategoryRepository = (
         null
       )
     }),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
     saveAll: vi.fn(async (next) => {
       state.parentCategories = next
     }),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
     removeByIds: vi.fn(async (ids) => {
       const idSet = new Set<string>(ids as unknown as readonly string[])
       state.parentCategories = state.parentCategories.filter(

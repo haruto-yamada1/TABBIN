@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
+import { getChromeGlobal } from '@/lib/browser/chrome-global'
 import type { ViewMode } from '@/types/storage'
 
 import type { CustomProject } from '../../domain/entities/CustomProject'
@@ -87,8 +88,7 @@ export interface SavedTabsPageState {
 }
 
 const getChromeApiFromGlobalThis = (): ChromeApiLike | undefined =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  (globalThis as typeof globalThis & { chrome?: ChromeApiLike }).chrome
+  getChromeGlobal<ChromeApiLike>()
 
 const isChromeBrowserTabPort = (
   port: SavedTabsUseCasesDeps['browserTabPort'],
@@ -115,9 +115,7 @@ const isChromeBrowserTabPort = (
  * `SavedTabsPage` コンポーネントから分離してテスト可能にしている。
  * コンポーネント側は view-model と controller を layout へ流すだけ。
  */
-export const useSavedTabsPage = (
-  input: SavedTabsPageProps,
-): SavedTabsPageState => {
+const useSavedTabsPage = (input: SavedTabsPageProps): SavedTabsPageState => {
   const { deps: inputDeps, useCases: inputUseCases } = input
   if (!inputDeps) {
     throw new Error(
@@ -182,7 +180,6 @@ export const useSavedTabsPage = (
     // refresh は deps.customProjectRepository / deps.tabGroupRepository が
     // 変わったときだけ新しくなる。初回 mount 時に 1 回だけ走ればよいため、
     // ここでは依存配列を空にして再実行を抑止する。
-    // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   }, [])
   return {
     controller,

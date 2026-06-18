@@ -202,7 +202,6 @@ export const MessageBranchContent = ({
 }: MessageBranchContentProps) => {
   const { currentBranch, setBranches, branches } = useMessageBranch()
   const childrenArray = useMemo(
-    // eslint-disable-next-line typescript/no-unsafe-return
     () => (Array.isArray(children) ? children : [children]),
     [children],
   )
@@ -210,7 +209,6 @@ export const MessageBranchContent = ({
   // Use useEffect to update branches when they change
   useEffect(() => {
     if (branches.length !== childrenArray.length) {
-      // eslint-disable-next-line typescript/no-unsafe-argument
       setBranches(childrenArray)
     }
   }, [childrenArray, branches, setBranches])
@@ -221,8 +219,7 @@ export const MessageBranchContent = ({
         'grid gap-2 overflow-hidden [&>div]:pb-0',
         index === currentBranch ? 'block' : 'hidden',
       )}
-      // eslint-disable-next-line typescript/no-unsafe-assignment
-      key={branch.key} // eslint-disable-line typescript/no-unsafe-member-access
+      key={branch.key}
       {...props}
     >
       {branch}
@@ -344,21 +341,3 @@ export const MessageResponse = memo(
 )
 
 MessageResponse.displayName = 'MessageResponse'
-
-export type MessageToolbarProps = ComponentProps<'div'>
-
-export const MessageToolbar = ({
-  className,
-  children,
-  ...props
-}: MessageToolbarProps) => (
-  <div
-    className={cn(
-      'mt-4 flex w-full items-center justify-between gap-4',
-      className,
-    )}
-    {...props}
-  >
-    {children}
-  </div>
-)

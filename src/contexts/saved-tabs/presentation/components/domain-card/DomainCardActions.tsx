@@ -80,7 +80,6 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 keywordModal.setShowKeywordModal(!keywordModal.showKeywordModal)
               }}
@@ -104,7 +103,6 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
                 if ((group.urls?.length ?? 0) >= BULK_OPEN_THRESHOLD) {
                   setIsOpenAllConfirmOpen(true)
@@ -138,7 +136,6 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={(e) => {
                 e.stopPropagation()
                 e.preventDefault()
@@ -173,7 +170,7 @@ export const DomainCardActions = () => {
             group={group}
             isOpen={keywordModal.showKeywordModal}
             onClose={keywordModal.handleCloseKeywordModal}
-            // eslint-disable-next-line typescript/no-misused-promises, react-perf/jsx-no-new-function-as-prop
+            // eslint-disable-next-line typescript/no-misused-promises
             onSave={(...args: [string, string, string[]]) =>
               handleSaveKeywords(useCases.useCases, ...args)
             }
@@ -187,7 +184,6 @@ export const DomainCardActions = () => {
               parentCategories.handleUpdateParentCategories
             }
             storageChangePort={useCases.deps.storageChangePort}
-            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TODO(#502-followup): category management deps の memo 化または context 化で解消予定
             deps={{
               categoryAssignmentPort: useCases.deps.categoryAssignmentPort,
               getSavedTabsPageDataQuery: useCases.useCases.getSavedTabsPageData,
@@ -216,7 +212,6 @@ export const DomainCardActions = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 handlers.handleOpenAllTabs(group.urls ?? [])
                 if (isReorderMode) {
@@ -253,7 +248,6 @@ export const DomainCardActions = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 executeDeleteAll()
                 if (isReorderMode) {

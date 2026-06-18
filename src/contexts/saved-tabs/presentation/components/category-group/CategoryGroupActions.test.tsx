@@ -57,7 +57,6 @@ vi.mock('../shared/CardGroupActions', () => ({
     cardGroupActionsSpy(props)
     return (
       <button
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           ;(props.onDeleteAll as (() => void) | undefined)?.()
         }}

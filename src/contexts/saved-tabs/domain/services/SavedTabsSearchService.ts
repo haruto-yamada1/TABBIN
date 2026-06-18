@@ -49,7 +49,7 @@ const includesQuery = (value: string, query: string): boolean =>
  *
  * `SavedTabsApp.tsx` の `matchesParentCategoryQuery` を domain 等価物にしたもの。
  */
-export const matchesCategoryQuery = (
+const matchesCategoryQuery = (
   group: TabGroup,
   lookup: CategoryLookup,
   normalizedQuery: string,

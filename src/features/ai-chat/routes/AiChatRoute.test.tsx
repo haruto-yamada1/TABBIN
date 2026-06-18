@@ -62,7 +62,7 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
     <div data-testid='saved-tabs-chat-widget'>
       <div>{`history-variant:${historyVariant ?? 'none'}`}</div>
       <div>{`active-title:${title ?? ''}`}</div>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
+
       <button onClick={() => onToggleHistory?.()} type='button'>
         toggle-history
       </button>

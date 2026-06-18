@@ -83,7 +83,6 @@ function Field({
 }: React.ComponentProps<'div'> & VariantProps<typeof fieldVariants>) {
   return (
     <div
-      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='group'
       data-slot='field'
       data-orientation={orientation}

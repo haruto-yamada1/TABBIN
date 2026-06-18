@@ -105,7 +105,6 @@ vi.mock('@/components/ui/checkbox', () => ({
       id={id}
       type='checkbox'
       checked={checked}
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onChange={(event) => onCheckedChange?.(event.target.checked)}
     />
   ),
@@ -146,7 +145,6 @@ vi.mock('@/components/ui/select', () => ({
     <div>
       <button
         data-testid='mock-select-change'
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() =>
           onValueChange?.(value === 'never' ? '30days' : 'saveWindowTabs')
         }
@@ -495,7 +493,6 @@ describe('options route behavior', () => {
       target: { value: '125' },
     })
     expect(mocked.updateSetting).toHaveBeenCalledTimes(updateSettingCallCount)
-    // eslint-disable-next-line typescript/TS2339
     expect(
       (screen.getByLabelText('Font size percentage') as HTMLInputElement).value,
     ).toBe('125')

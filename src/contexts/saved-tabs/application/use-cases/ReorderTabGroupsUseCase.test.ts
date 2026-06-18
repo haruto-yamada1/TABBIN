@@ -19,19 +19,17 @@ const createInMemoryRepositories = (
     ...(initial.tabGroups ?? []),
   ]
   const saveAllSpy = vi.fn(
-    // eslint-disable-next-line typescript/require-await
     async (groups: readonly ReturnType<typeof createTabGroup>[]) => {
       tabGroups.splice(0, tabGroups.length, ...groups)
     },
   )
   const tabGroupRepository: TabGroupRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [...tabGroups],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
     findRawDomainById: vi.fn(() => Promise.resolve(null)),
     findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async () => undefined,
     saveAll: saveAllSpy,
   }

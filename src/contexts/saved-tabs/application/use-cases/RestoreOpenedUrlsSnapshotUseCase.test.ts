@@ -45,70 +45,66 @@ const createInMemoryRepositories = (
     ...(initial.parentCategories ?? []),
   ]
   const tabGroupRepository: TabGroupRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [...tabGroups],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
     findRawDomainById: vi.fn(() => Promise.resolve(null)),
     findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async (ids) => {
       const idSet = new Set(ids.map((id) => id))
       const next = tabGroups.filter((group) => !idSet.has(group.id))
       tabGroups.splice(0, tabGroups.length, ...next)
     },
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async (groups) => {
       tabGroups.splice(0, tabGroups.length, ...groups)
     },
   }
   const urlRecordRepository: UrlRecordRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [...urlRecords],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) =>
       urlRecords.find((record) => record.id === id) ?? null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async (ids) => {
       const idSet = new Set(ids.map((id) => id))
       const next = urlRecords.filter((record) => !idSet.has(record.id))
       urlRecords.splice(0, urlRecords.length, ...next)
     },
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async (records) => {
       urlRecords.splice(0, urlRecords.length, ...records)
     },
   }
   const customProjectRepository: CustomProjectRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [...customProjects],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) =>
       customProjects.find((project) => project.id === id) ?? null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async (ids) => {
       const idSet = new Set(ids.map((id) => id))
       const next = customProjects.filter((project) => !idSet.has(project.id))
       customProjects.splice(0, customProjects.length, ...next)
     },
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async (projects) => {
       customProjects.splice(0, customProjects.length, ...projects)
     },
-    // eslint-disable-next-line typescript/require-await
+
     findOrder: async () => [...customProjectOrder],
-    // eslint-disable-next-line typescript/require-await
+
     saveOrder: async (order) => {
       customProjectOrder.splice(0, customProjectOrder.length, ...order)
     },
   }
   const parentCategoryRepository: ParentCategoryRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => [...parentCategories],
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) =>
       parentCategories.find((category) => category.id === id) ?? null,
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async (ids) => {
       const idSet = new Set(ids.map((id) => id))
       const next = parentCategories.filter(
@@ -116,7 +112,7 @@ const createInMemoryRepositories = (
       )
       parentCategories.splice(0, parentCategories.length, ...next)
     },
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async (categories) => {
       parentCategories.splice(0, parentCategories.length, ...categories)
     },

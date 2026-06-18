@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
@@ -132,10 +133,9 @@ const applyDomainSelectionChange = async (params: {
     selectedCategory,
     selectedCategoryId,
   })
-  const updatedCategories =
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
-    (await getSavedTabsPageDataQuery())
-      .parentCategories as unknown as ParentCategory[]
+  const updatedCategories = (
+    await getSavedTabsPageDataQuery()
+  ).parentCategories.map(toStorageParentCategory)
   setCategories(updatedCategories)
   setDomainCategories(nextDomainCategories)
   toast.success(
@@ -262,10 +262,9 @@ export const useCategoryModal = ({
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const fromRepo =
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
-          (await getSavedTabsPageDataQuery())
-            .parentCategories as unknown as ParentCategory[]
+        const fromRepo = (
+          await getSavedTabsPageDataQuery()
+        ).parentCategories.map(toStorageParentCategory)
         setCategoryData({
           categories: fromRepo,
           domainCategories: buildDomainCategoriesMap(tabGroups, fromRepo),
@@ -276,8 +275,7 @@ export const useCategoryModal = ({
         toast.error(t('savedTabs.categoryModal.loadError'))
       }
     }
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadCategories()
+    void loadCategories()
   }, [getSavedTabsPageDataQuery, t, tabGroups])
 
   // --- 選択カテゴリ変更時のドメイン選択更新 ---
@@ -324,14 +322,14 @@ export const useCategoryModal = ({
       const { category: newCategory, all } = await createParentCategoryUseCase({
         name: newCategoryName,
       })
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      const updatedAll = all as unknown as ParentCategory[]
+      // domain.ParentCategory → storage shape 投影は mapper 内に閉じ、
+      // 呼び出し側の `as unknown as` / `as never` disable を排除する。
+      const updatedAll = all.map(toStorageParentCategory)
       setCategories(updatedAll)
       setSelectedCategoryId(newCategory.id)
       setNewCategoryName('')
       toast.success(t('savedTabs.categoryModal.created'))
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      updateSelectedDomains(newCategory as never)
+      updateSelectedDomains(toStorageParentCategory(newCategory))
     } catch (error) {
       console.error('カテゴリの作成に失敗しました', error)
       if (
@@ -383,8 +381,7 @@ export const useCategoryModal = ({
       if (e.key === 'Enter') {
         e.preventDefault()
         if (newCategoryName.trim() && !nameError && !isLoading) {
-          // eslint-disable-next-line typescript/no-floating-promises
-          handleCreateCategory()
+          void handleCreateCategory()
         }
       }
     },
@@ -394,8 +391,7 @@ export const useCategoryModal = ({
   // --- フォーカスアウトハンドラ ---
   const handleBlur = useCallback(() => {
     if (newCategoryName.trim() && !nameError && !isLoading) {
-      // eslint-disable-next-line typescript/no-floating-promises
-      handleCreateCategory()
+      void handleCreateCategory()
     }
   }, [newCategoryName, nameError, isLoading, handleCreateCategory])
 
@@ -409,8 +405,7 @@ export const useCategoryModal = ({
       const { all } = await deleteParentCategoryUseCase({
         categoryId: categoryToDelete.id,
       })
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      const updatedAll = all as unknown as ParentCategory[]
+      const updatedAll = all.map(toStorageParentCategory)
       setCategories(updatedAll)
       const updatedDomainCategories = clearCategoryFromDomainMap(
         domainCategories,

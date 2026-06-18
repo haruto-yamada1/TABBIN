@@ -134,7 +134,6 @@ const SidebarProvider = ({
       }
 
       // This sets the cookie to keep the sidebar state.
-      // oxlint-disable-next-line unicorn/no-document-cookie -- shadcn sidebar persists open state with a cookie
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
     [setOpenProp, open],
@@ -229,7 +228,6 @@ const SidebarProvider = ({
 }
 SidebarProvider.displayName = 'SidebarProvider'
 
-// eslint-disable-next-line eslint/complexity
 const Sidebar = ({
   children,
   className,
