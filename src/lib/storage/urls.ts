@@ -4,6 +4,7 @@ import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 /** セッション中のインメモリキャッシュ */
 let urlRecordsCache: UrlRecord[] | null = null
+let urlRecordMutationQueue: Promise<void> = Promise.resolve()
 
 interface UrlRecordInput {
   url: string
@@ -87,7 +88,7 @@ const findUrlRecordByUrl = async (url: string): Promise<UrlRecord | null> => {
 /**
  * 新しいURLレコードを作成または既存のものを更新する
  */
-const createOrUpdateUrlRecord = async (
+const createOrUpdateUrlRecordUnsafe = async (
   url: string,
   title: string,
   favIconUrl?: string,
@@ -130,7 +131,7 @@ const createOrUpdateUrlRecord = async (
 /**
  * 複数URLレコードを一括で作成または更新する
  */
-const createOrUpdateUrlRecordsBatch = async (
+const createOrUpdateUrlRecordsBatchUnsafe = async (
   inputs: UrlRecordInput[],
   options: CreateOrUpdateUrlRecordOptions = {},
 ): Promise<Map<string, UrlRecord>> => {
@@ -195,6 +196,35 @@ const createOrUpdateUrlRecordsBatch = async (
   await saveUrlRecords(records)
   return resolvedRecordByUrl
 }
+
+const enqueueUrlRecordMutation = <T>(
+  operation: () => Promise<T>,
+): Promise<T> => {
+  const result = urlRecordMutationQueue.then(operation)
+  urlRecordMutationQueue = result.then(
+    () => undefined,
+    () => undefined,
+  )
+  return result
+}
+
+const createOrUpdateUrlRecord = (
+  url: string,
+  title: string,
+  favIconUrl?: string,
+  options: CreateOrUpdateUrlRecordOptions = {},
+): Promise<UrlRecord> =>
+  enqueueUrlRecordMutation(() =>
+    createOrUpdateUrlRecordUnsafe(url, title, favIconUrl, options),
+  )
+
+const createOrUpdateUrlRecordsBatch = (
+  inputs: UrlRecordInput[],
+  options: CreateOrUpdateUrlRecordOptions = {},
+): Promise<Map<string, UrlRecord>> =>
+  enqueueUrlRecordMutation(() =>
+    createOrUpdateUrlRecordsBatchUnsafe(inputs, options),
+  )
 /**
  * URLレコードを削除する（参照されていない場合のみ）
  */
@@ -337,6 +367,36 @@ const deduplicateUrlRecords = async (): Promise<number> => {
     return 0
   }
 }
+
+const remapReferenceKeys = <T>(
+  values: Record<string, T> | undefined,
+  duplicateIdSet: ReadonlySet<string>,
+  replacementIdMap: ReadonlyMap<string, string>,
+): Record<string, T> | undefined => {
+  if (!values) {
+    return values
+  }
+
+  let changed = false
+  const remapped = new Map(Object.entries(values))
+  for (const [id, value] of Object.entries(values)) {
+    if (!duplicateIdSet.has(id)) {
+      continue
+    }
+    const replacementId = replacementIdMap.get(id)
+    if (!replacementId || replacementId === id) {
+      continue
+    }
+    const hasReplacement = remapped.has(replacementId)
+    remapped.delete(id)
+    if (!hasReplacement) {
+      remapped.set(replacementId, value)
+    }
+    changed = true
+  }
+  return changed ? Object.fromEntries(remapped) : values
+}
+
 /**
  * URLの参照を更新する（重複統合時に使用）
  */
@@ -364,6 +424,15 @@ const updateUrlReferences = async (
           tabsUpdated = true
         }
       }
+      const updatedSubCategories = remapReferenceKeys(
+        tabGroup.urlSubCategories,
+        duplicateIdSet,
+        replacementIdMap,
+      )
+      if (updatedSubCategories !== tabGroup.urlSubCategories) {
+        tabGroup.urlSubCategories = updatedSubCategories
+        tabsUpdated = true
+      }
     }
     if (tabsUpdated) {
       await chrome.storage.local.set({
@@ -390,6 +459,15 @@ const updateUrlReferences = async (
           project.urlIds = updatedIds
           projectsUpdated = true
         }
+      }
+      const updatedMetadata = remapReferenceKeys(
+        project.urlMetadata,
+        duplicateIdSet,
+        replacementIdMap,
+      )
+      if (updatedMetadata !== project.urlMetadata) {
+        project.urlMetadata = updatedMetadata
+        projectsUpdated = true
       }
     }
     if (projectsUpdated) {

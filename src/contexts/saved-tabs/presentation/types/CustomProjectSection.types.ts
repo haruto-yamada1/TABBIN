@@ -1,4 +1,5 @@
 // Filepath: contexts/saved-tabs/presentation/types/CustomProjectSection.types.ts
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
@@ -46,5 +47,6 @@ export interface CustomProjectSectionProps {
     sourceCategoryName: string,
     targetCategoryName: string,
   ) => void
+  getProjectUrlsUseCase?: GetProjectUrlsUseCase
   settings: UserSettingsDto
 }

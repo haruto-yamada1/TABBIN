@@ -2,6 +2,7 @@
  * URL・ストレージ操作モジュール
  */
 
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { removeUrlFromAllCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
 import { deleteUrlRecord, invalidateUrlCache } from '@/lib/storage/urls'
@@ -326,10 +327,8 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
       updateGroupAfterUrlRemoval(group, url, matchedUrlId, removedGroupIds),
     )
 
-    // 空になったグループに紐づくカテゴリ更新を先に実行する
-    await Promise.all(
-      removedGroupIds.map((groupId) => handleTabGroupRemoval(groupId)),
-    )
+    // 複数グループを単一の read-modify-write で外し、カテゴリ更新の競合を防ぐ。
+    await removeFromParentCategories(removedGroupIds, savedTabs)
 
     // 更新したグループをストレージに保存
     await chrome.storage.local.set({
@@ -341,7 +340,7 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
       await deleteUrlRecord(matchedUrlId)
     }
 
-    console.log(`ストレージからURL ${url} を削除しました`)
+    console.log(`ストレージからURL ${redactUrlForLog(url)} を削除しました`)
   } catch (error) {
     console.error('URLの削除中にエラーが発生しました:', error)
     throw error
@@ -411,77 +410,43 @@ const removeUrlRecordsFromStorage = async (
   }
 }
 /**
- * TabGroupが空になった時の処理関数
+ * 空になったグループを親カテゴリから一括削除する。
  */
-const handleTabGroupRemoval = async (groupId: string): Promise<void> => {
-  console.log(`空になったグループの処理を開始: ${groupId}`)
-  await removeFromParentCategories(groupId)
-  console.log(`グループ ${groupId} の処理が完了しました`)
-}
-/**
- * グループを親カテゴリから削除する関数を更新
- */
-const removeFromParentCategories = async (groupId: string): Promise<void> => {
+const removeFromParentCategories = async (
+  groupIds: string[],
+  savedTabs: TabGroup[],
+): Promise<void> => {
+  if (groupIds.length === 0) {
+    return
+  }
+
   try {
-    const [categoriesStorage, tabsStorage] = await Promise.all([
-      chrome.storage.local.get<{
-        parentCategories?: ParentCategory[]
-      }>('parentCategories'),
-      chrome.storage.local.get<{
-        savedTabs?: TabGroup[]
-      }>('savedTabs'),
-    ])
-    const parentCategories: ParentCategory[] =
-      categoriesStorage.parentCategories ?? []
-    const savedTabs: TabGroup[] = tabsStorage.savedTabs ?? []
-    const groupToRemove = savedTabs.find(
-      (group: TabGroup) => group.id === groupId,
+    const groupIdsToRemove = new Set(groupIds)
+    const groupsToRemove = savedTabs.filter(
+      (group) => groupIdsToRemove.has(group.id) && Boolean(group.domain),
     )
-    const domainName = groupToRemove?.domain
-    if (!(groupToRemove && domainName)) {
-      console.log(
-        `削除対象のグループID ${groupId} が見つからないか、ドメイン名がありません`,
-      )
+    if (groupsToRemove.length === 0) {
+      console.log('削除対象のグループが見つからないか、ドメイン名がありません')
       return
     }
-    console.log(
-      `カテゴリから削除: グループID ${groupId}, ドメイン ${domainName}`,
+
+    const categoriesStorage = await chrome.storage.local.get<{
+      parentCategories?: ParentCategory[]
+    }>('parentCategories')
+    const parentCategories: ParentCategory[] =
+      categoriesStorage.parentCategories ?? []
+    const removalResult = removeGroupsFromParentCategories(
+      parentCategories,
+      groupsToRemove.map((group) => group.id),
     )
-
-    // ドメイン名を保持したままドメインIDのみを削除
-    const updatedCategories = parentCategories.map(
-      (category: ParentCategory) => {
-        // DomainNamesは変更せず、domainsからIDのみを削除
-        const updated = {
-          ...category,
-          domains: category.domains.filter((id: string) => id !== groupId),
-        }
-
-        // ドメイン名がdomainNamesにあるか確認してログ出力
-        if (
-          category.domainNames &&
-          Array.isArray(category.domainNames) &&
-          category.domainNames.includes(domainName)
-        ) {
-          console.log(
-            `ドメイン名 ${domainName} は ${category.name} のdomainNamesに保持されます`,
-          )
-        }
-        return updated
-      },
-    )
-    await chrome.storage.local.set({
-      parentCategories: updatedCategories,
-    })
-
-    // 必要ならドメイン-カテゴリのマッピングを更新（削除しない）
-    if (groupToRemove.parentCategoryId) {
-      console.log(
-        `ドメイン ${domainName} のマッピングを親カテゴリ ${groupToRemove.parentCategoryId} に保持します`,
-      )
+    if (!removalResult.hasChanges) {
+      return
     }
+    await chrome.storage.local.set({
+      parentCategories: removalResult.parentCategories,
+    })
     console.log(
-      `カテゴリからグループID ${groupId} を削除しました（ドメイン名を保持）`,
+      `${groupsToRemove.length}個のグループIDをカテゴリから削除しました（ドメイン名を保持）`,
     )
   } catch (error: unknown) {
     console.error(
@@ -494,7 +459,7 @@ const removeFromParentCategories = async (groupId: string): Promise<void> => {
  * ドラッグ開始処理
  */
 const handleUrlDragStarted = (url: string): void => {
-  console.log('ドラッグ開始を検知:', url)
+  console.log('ドラッグ開始を検知:', redactUrlForLog(url))
 
   // ドラッグ情報を一時保存
   draggedUrlInfo = {
@@ -508,7 +473,10 @@ const handleUrlDragStarted = (url: string): void => {
   // ドラッグ情報の自動タイムアウト（10秒）
   const dragTimeout = setTimeout(() => {
     if (draggedUrlInfo && !draggedUrlInfo.processed) {
-      console.log('ドラッグ情報のタイムアウト:', draggedUrlInfo.url)
+      console.log(
+        'ドラッグ情報のタイムアウト:',
+        redactUrlForLog(draggedUrlInfo.url),
+      )
       draggedUrlInfo = null
     }
   }, DRAG_TIMEOUT_MS)
@@ -525,7 +493,7 @@ const handleUrlDropped = async (
   url: string,
   fromExternal?: boolean,
 ): Promise<string> => {
-  console.log('URLドロップを検知:', url)
+  console.log('URLドロップを検知:', redactUrlForLog(url))
 
   // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (fromExternal === true) {
@@ -533,7 +501,7 @@ const handleUrlDropped = async (
       const settings = await getUserSettings()
       if (settings.removeTabAfterExternalDrop) {
         await removeUrlFromStorage(url)
-        console.log('外部ドロップ後にURLを削除しました:', url)
+        console.log('外部ドロップ後にURLを削除しました:', redactUrlForLog(url))
         return 'removed'
       }
       console.log('設定により削除をスキップ')
@@ -550,18 +518,24 @@ const handleUrlDropped = async (
  * 新しいタブ作成時の処理
  */
 const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
-  console.log('新しいタブが作成されました:', tab.url)
+  console.log('新しいタブが作成されました:', redactUrlForLog(tab.url))
 
   // ドラッグされた情報が存在するか確認
   if (draggedUrlInfo && !draggedUrlInfo.processed) {
-    console.log('ドラッグ情報が存在します:', draggedUrlInfo.url)
-    console.log('新しいタブのURL:', tab.url)
+    console.log(
+      'ドラッグ情報が存在します:',
+      redactUrlForLog(draggedUrlInfo.url),
+    )
+    console.log('新しいタブのURL:', redactUrlForLog(tab.url))
 
     // URLを正規化して比較
     const normalizedDraggedUrl = normalizeUrl(draggedUrlInfo.url)
     const normalizedTabUrl = normalizeUrl(tab.url ?? '')
-    console.log('正規化されたドラッグURL:', normalizedDraggedUrl)
-    console.log('正規化された新タブURL:', normalizedTabUrl)
+    console.log(
+      '正規化されたドラッグURL:',
+      redactUrlForLog(normalizedDraggedUrl),
+    )
+    console.log('正規化された新タブURL:', redactUrlForLog(normalizedTabUrl))
 
     // URLが類似していれば処理
     if (
@@ -577,7 +551,10 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
         draggedUrlInfo.processed = true
         const settings = await getUserSettings()
         if (settings.removeTabAfterOpen) {
-          console.log('設定に基づきURLを削除します:', draggedUrlInfo.url)
+          console.log(
+            '設定に基づきURLを削除します:',
+            redactUrlForLog(draggedUrlInfo.url),
+          )
           await removeUrlFromStorage(draggedUrlInfo.url)
         } else {
           console.log('設定により削除をスキップします')

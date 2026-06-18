@@ -321,11 +321,91 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         'url-shared',
         'url-example-only',
       ])
+      expect(exampleGroup?.subCategories).toStrictEqual(['docs'])
+      expect(exampleGroup?.categoryKeywords).toStrictEqual([
+        { categoryName: 'docs', keywords: ['doc', 'spec'] },
+      ])
+      expect(exampleGroup?.subCategoryOrder).toStrictEqual(['docs'])
+      expect(exampleGroup?.subCategoryOrderWithUncategorized).toStrictEqual([
+        'docs',
+        'uncategorized',
+      ])
+      expect(exampleGroup?.urlSubCategories).toStrictEqual({
+        'url-example-only': 'docs',
+        'url-shared': 'docs',
+      })
       expect(tabGroups).toHaveLength(2)
       expect(urlRecords).toHaveLength(3)
       expect(parentCategories).toHaveLength(2)
       expect(customProjects).toHaveLength(1)
       expect(customProjects[0]?.urlIds).toStrictEqual(['url-shared'])
+    })
+
+    it('インポート済みの子カテゴリは D&D 並び替えとタブ open 後の再読込で維持される', async () => {
+      const bundle = createBundle(buildLegacyFixture())
+
+      const loadExampleGroup = async () => {
+        const pageData = await bundle.useCases.getSavedTabsPageData()
+        const exampleGroup = pageData.tabGroups.find(
+          (group) => group.id === 'group-example',
+        )
+        expect(exampleGroup?.subCategories).toStrictEqual(['docs'])
+        expect(exampleGroup?.urlSubCategories).toStrictEqual({
+          'url-example-only': 'docs',
+          'url-shared': 'docs',
+        })
+
+        const { tabGroups } = await bundle.useCases.loadTabGroupsWithUrls({
+          tabGroups: pageData.tabGroups as never,
+        })
+        return tabGroups.find((group) => group.id === 'group-example')
+      }
+
+      const initialGroup = await loadExampleGroup()
+      expect(initialGroup?.urls).toStrictEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'url-example-only',
+            subCategory: 'docs',
+          }),
+        ]),
+      )
+
+      await bundle.useCases.reorderTabGroupUrls({
+        newUrlOrder: ['https://example.com/only', 'https://example.com/shared'],
+        tabGroupId: 'group-example' as never,
+      })
+
+      const reorderedGroup = await loadExampleGroup()
+      expect(reorderedGroup?.urls).toStrictEqual([
+        expect.objectContaining({
+          id: 'url-example-only',
+          subCategory: 'docs',
+        }),
+        expect.objectContaining({
+          id: 'url-shared',
+          subCategory: 'docs',
+        }),
+      ])
+
+      await bundle.useCases.openSavedUrl({
+        origin: 'click',
+        settings: {
+          removeTabAfterExternalDrop: false,
+          removeTabAfterOpen: false,
+        },
+        urlRecordId: 'url-example-only' as never,
+      })
+
+      const reloadedGroup = await loadExampleGroup()
+      expect(reloadedGroup?.urls).toStrictEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'url-example-only',
+            subCategory: 'docs',
+          }),
+        ]),
+      )
     })
 
     it('不正なレコードを混在させた storage でも有効 entity だけを返す', async () => {

@@ -60,9 +60,7 @@ const ensureDomainNameInParentCategory = async (
       cat.id === group.parentCategoryId ? updatedCategory : cat,
     ),
   )
-  console.log(
-    `ドメイン ${group.domain} を親カテゴリのdomainNamesに追加しました`,
-  )
+  console.log('ドメインを親カテゴリのdomainNamesに追加しました')
 }
 
 const updateDomainCategoryMappingIfNeeded = async (
@@ -84,7 +82,7 @@ const updateDomainCategoryMappingIfNeeded = async (
       domain: group.domain,
     },
   ])
-  console.log(`ドメイン ${group.domain} のマッピングを更新しました`)
+  console.log('ドメインのマッピングを更新しました')
 }
 
 /**
@@ -119,7 +117,7 @@ export const createPrepareTabGroupDeletionUseCase = (
       if (!groupToRemove?.domain) {
         return
       }
-      console.log(`グループ削除前の処理: ${groupToRemove.domain}`)
+      console.log('グループ削除前の処理を開始します')
       await Promise.all([
         deps.categoriesCommandService.updateDomainCategorySettings(
           groupToRemove.domain,

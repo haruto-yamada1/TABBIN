@@ -107,7 +107,7 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
       const categoryById = byDomainId.get(group.id)
       if (categoryById) {
         console.log(
-          `TabGroup ${group.domain} のparentCategoryIdを ${categoryById.id} に修復しました (IDベース)`,
+          `TabGroupのparentCategoryIdを ${categoryById.id} に修復しました (IDベース)`,
         )
         needsUpdate = true
         return {
@@ -118,7 +118,7 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
       const categoryByName = byDomainName.get(group.domain)
       if (categoryByName) {
         console.log(
-          `TabGroup ${group.domain} のparentCategoryIdを ${categoryByName.id} に修復しました (ドメイン名ベース)`,
+          `TabGroupのparentCategoryIdを ${categoryByName.id} に修復しました (ドメイン名ベース)`,
         )
         needsUpdate = true
         return {

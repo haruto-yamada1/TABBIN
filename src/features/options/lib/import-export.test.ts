@@ -3446,6 +3446,84 @@ describe('import-export ユーティリティ', () => {
     )
   })
 
+  it('importSettings は merge 時に urlSubCategories の孤児 urlId を urlIds でフィルタする (issue #548)', async () => {
+    // 既存タブの urlSubCategories に urlIds に存在しない孤児エントリが
+    // 含まれているケースをカバーする。孤児を残すと
+    // `tabGroupRepository.saveAll` 経路で mapper が `preservedUrlIds`
+    // 基準で再保存する際に subCategory が落ちるため、インポート時に
+    // filter しておく必要がある (issue #548)。
+    const currentSettings = buildFullUserSettings()
+    const currentTabs = [
+      {
+        id: 'group-1',
+        domain: 'https://existing.example.com',
+        urlIds: ['url-existing'],
+        // 孤児 urlId (url-existing-orphan) を含む
+        urlSubCategories: {
+          'url-existing': 'OldSub',
+          'url-existing-orphan': 'ShouldBeRemoved',
+        },
+        subCategories: ['old'],
+        savedAt: 100,
+      },
+    ]
+
+    const { set } = createChromeMock({
+      parentCategories: [],
+      savedTabs: currentTabs,
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(currentSettings)
+    vi.mocked(createOrUpdateUrlRecord).mockResolvedValueOnce({
+      id: 'url-imported-existing',
+      url: 'https://existing.example.com/new',
+      title: 'Existing New',
+      savedAt: 1,
+    })
+
+    const imported = {
+      version: '2.0.0',
+      timestamp: '2026-02-16T00:00:00.000Z',
+      userSettings: currentSettings,
+      parentCategories: [],
+      savedTabs: [
+        {
+          id: 'imported-existing-group',
+          domain: 'https://existing.example.com',
+          urls: [
+            {
+              url: 'https://existing.example.com/new',
+              title: 'Existing New',
+              subCategory: 'ImportedSub',
+            },
+          ],
+        },
+      ],
+    }
+
+    const result = await importSettings(JSON.stringify(imported), true)
+
+    expect(result.success).toBe(true)
+
+    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
+      string,
+      unknown
+    >[]
+    const mergedExisting = savedTabsArg.find(
+      (tab) => tab.domain === 'https://existing.example.com',
+    )
+    // eslint-disable-next-line vitest/prefer-strict-equal
+    expect(mergedExisting?.urlIds).toEqual([
+      'url-existing',
+      'url-imported-existing',
+    ])
+    // urlIds に含まれる urlId の subCategory だけが残る
+    // eslint-disable-next-line vitest/prefer-strict-equal
+    expect(mergedExisting?.urlSubCategories).toEqual({
+      'url-existing': 'OldSub',
+      'url-imported-existing': 'ImportedSub',
+    })
+  })
+
   it('importSettings は merge モードで customProjects を既存順維持で追加する', async () => {
     const { store } = createChromeMock({
       customProjectOrder: ['current-project'],

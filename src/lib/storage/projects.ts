@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type {
   CustomProject,
   ProjectKeywordSettings,
@@ -14,14 +15,16 @@ import {
 import { migrateToUrlsStorage } from './url-migration'
 import {
   createOrUpdateUrlRecord,
+  createOrUpdateUrlRecordsBatch,
   getUrlRecords,
   getUrlRecordsByIds,
-  saveUrlRecords,
 } from './urls'
 import { CustomProjectSchema } from './zod-storage'
 
 const CUSTOM_UNCATEGORIZED_PROJECT_ID = 'custom-uncategorized'
 const CUSTOM_UNCATEGORIZED_PROJECT_NAME = '未分類'
+
+let saveUrlsToCustomProjectsQueue: Promise<void> = Promise.resolve()
 
 interface SavedTabItem {
   url: string
@@ -276,36 +279,19 @@ const addUrlsToUncategorizedProject = async (
   const targetUrlIds = targetProject.urlIds ?? []
   const urlIdSet = new Set(targetUrlIds)
   const now = Date.now()
-  const urlRecords = await getUrlRecords()
-  const updatedUrlRecords = [...urlRecords]
-  const recordIndexByUrl = new Map(
-    updatedUrlRecords.map((record, index) => [record.url, index]),
+  const urlRecordByUrl = await createOrUpdateUrlRecordsBatch(
+    normalizedItems.map((item) => ({
+      title: item.title,
+      url: item.url,
+    })),
   )
 
   for (const item of normalizedItems) {
-    const recordIndex = recordIndexByUrl.get(item.url)
-    let urlId: string
-
-    if (recordIndex == null) {
-      const newRecord: UrlRecord = {
-        id: uuidv4(),
-        savedAt: now,
-        title: item.title || '',
-        url: item.url,
-      }
-      updatedUrlRecords.push(newRecord)
-      recordIndexByUrl.set(item.url, updatedUrlRecords.length - 1)
-      urlId = newRecord.id
-    } else {
-      const existingRecord = updatedUrlRecords[recordIndex]
-      const nextTitle = item.title || existingRecord.title || ''
-      updatedUrlRecords[recordIndex] = {
-        ...existingRecord,
-        savedAt: now,
-        title: nextTitle,
-      }
-      urlId = existingRecord.id
+    const urlRecord = urlRecordByUrl.get(item.url)
+    if (!urlRecord) {
+      throw new Error('URL record was not created for a normalized URL')
     }
+    const urlId = urlRecord.id
 
     removeUrlIdFromOtherProjects(
       projects,
@@ -314,14 +300,13 @@ const addUrlsToUncategorizedProject = async (
       now,
     )
 
-    if (urlIdSet.has(urlId)) {
-      continue
+    if (!urlIdSet.has(urlId)) {
+      urlIdSet.add(urlId)
+      targetUrlIds.push(urlId)
+      // eslint-disable-next-line no-await-in-loop -- savedTabs の RMW を直列化する
+      await addUrlIdToDomainMode(item.url, urlId)
     }
-    urlIdSet.add(urlId)
-    targetUrlIds.push(urlId)
   }
-
-  await saveUrlRecords(updatedUrlRecords)
 
   targetProject.updatedAt = Date.now()
   projects[targetIndex] = targetProject
@@ -411,31 +396,46 @@ const ensureUrlIdInGroup = (group: TabGroup, urlId: string): TabGroup => {
   }
   return group
 }
+// `addUrlIdToDomainMode` の `chrome.storage.local` read-modify-write を
+// 直列化するためのインメモリキュー（issue #548）。同一プロセス内で複数
+// の保存経路が並行に走った場合でも、`savedTabs` の競合で urlId が
+// 落ちないようにする。エラーはキューに伝播させない（後続の保存を止めない
+// ため）。`saveUrlsToCustomProjects` 側でも直列化しているが、ここでも
+// 保険をかけて二重に防御する。
+let addUrlIdToDomainModeQueue: Promise<void> = Promise.resolve()
 const addUrlIdToDomainMode = async (
   url: string,
   urlId: string,
 ): Promise<void> => {
-  const { savedTabs = [] } = await chrome.storage.local.get<{
-    savedTabs?: TabGroup[]
-  }>('savedTabs')
-  const domain = getDomainFromUrl(url)
-  const domainGroup = savedTabs.find(
-    (group: TabGroup) => group.domain === domain,
-  )
-  if (domainGroup) {
-    ensureUrlIdInGroup(domainGroup, urlId)
-  } else {
-    savedTabs.push({
-      domain,
-      id: uuidv4(),
-      savedAt: Date.now(),
-      urlIds: [urlId],
+  const next = addUrlIdToDomainModeQueue.then(async () => {
+    const { savedTabs = [] } = await chrome.storage.local.get<{
+      savedTabs?: TabGroup[]
+    }>('savedTabs')
+    const domain = getDomainFromUrl(url)
+    const domainGroup = savedTabs.find(
+      (group: TabGroup) => group.domain === domain,
+    )
+    if (domainGroup) {
+      ensureUrlIdInGroup(domainGroup, urlId)
+    } else {
+      savedTabs.push({
+        domain,
+        id: uuidv4(),
+        savedAt: Date.now(),
+        urlIds: [urlId],
+      })
+    }
+    await chrome.storage.local.set({
+      savedTabs,
     })
-  }
-  await chrome.storage.local.set({
-    savedTabs,
+    console.log(
+      `URL ${redactUrlForLog(url)} をドメインモードのデータにも追加しました`,
+    )
   })
-  console.log(`URL ${url} をドメインモードのデータにも追加しました`)
+  addUrlIdToDomainModeQueue = next.catch(() => {
+    // 後続の保存を止めないよう、エラーは握りつぶしてキューに伝播させない
+  })
+  return next
 } // URLをカスタムプロジェクトに追加する関数（新形式対応）
 const addUrlToCustomProject = async (
   projectId: string,
@@ -473,7 +473,7 @@ const addUrlToCustomProject = async (
     projects[projectIndex] = project
     await saveCustomProjects(projects)
     console.log(
-      `${isNewUrl ? '新しい' : '既存の'}URLをプロジェクトに${isNewUrl ? '追加' : '更新'}しました: ${url}`,
+      `${isNewUrl ? '新しい' : '既存の'}URLをプロジェクトに${isNewUrl ? '追加' : '更新'}しました: ${redactUrlForLog(url)}`,
     )
   } catch (error) {
     console.error('URLをプロジェクトに追加中にエラーが発生しました:', error)
@@ -481,7 +481,7 @@ const addUrlToCustomProject = async (
   }
 } // URLをカスタムプロジェクトから削除する関数（新形式対応）
 
-const saveUrlsToCustomProjects = async (
+const saveUrlsToCustomProjectsUnsafe = async (
   urls: SavedTabItem[],
 ): Promise<void> => {
   const normalizedItems = uniqueSavedTabItems(urls)
@@ -516,13 +516,26 @@ const saveUrlsToCustomProjects = async (
     return items
   }, [])
 
-  await Promise.all(
-    matchedItems.map(({ item, projectId }) =>
-      addUrlToCustomProject(projectId, item.url, item.title),
-    ),
-  )
+  // 直列実行にすることで `addUrlIdToDomainMode` / `saveCustomProjects` /
+  // `createOrUpdateUrlRecord` 内の `chrome.storage.local` read-modify-write
+  // 競合を防ぐ（issue #548）。同一ドメインの複数 URL をまとめて保存した
+  // 場合に最後の 1 件しか残らない現象の主因となっていた。
+  for (const { item, projectId } of matchedItems) {
+    // eslint-disable-next-line no-await-in-loop -- storage RMW の直列実行が必須
+    await addUrlToCustomProject(projectId, item.url, item.title)
+  }
 
   await addUrlsToUncategorizedProject(uncategorizedItems)
+}
+
+const saveUrlsToCustomProjects = (urls: SavedTabItem[]): Promise<void> => {
+  const savePromise = saveUrlsToCustomProjectsQueue.then(() =>
+    saveUrlsToCustomProjectsUnsafe(urls),
+  )
+  saveUrlsToCustomProjectsQueue = savePromise.catch(() => {
+    // 失敗した保存が後続の保存を止めないようにキューだけ回復させる。
+  })
+  return savePromise
 }
 const removeUrlFromCustomProject = async (
   projectId: string,
@@ -585,7 +598,9 @@ const removeUrlFromCustomProject = async (
       await chrome.storage.local.set({
         savedTabs: updatedGroups,
       })
-      console.log(`URL ${url} はドメインモードからも削除されました`)
+      console.log(
+        `URL ${redactUrlForLog(url)} はドメインモードからも削除されました`,
+      )
     }
   } catch (syncError) {
     console.error('ドメインモードの同期中にエラーが発生しました:', syncError)
@@ -741,7 +756,9 @@ const removeUrlFromAllCustomProjects = async (
 
     if (hasChanges) {
       await saveCustomProjects(projects)
-      console.log(`URL ${url} をすべてのカスタムプロジェクトから削除しました`)
+      console.log(
+        `URL ${redactUrlForLog(url)} をすべてのカスタムプロジェクトから削除しました`,
+      )
     }
   } catch (error) {
     console.error(

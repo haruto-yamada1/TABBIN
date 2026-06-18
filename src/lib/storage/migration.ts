@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { filterItemsBySavableUrl } from '@/lib/url-filter'
 import type {
   DomainParentCategoryMapping,
@@ -15,7 +16,7 @@ import {
 } from './categories'
 import { getUserSettings } from './settings'
 import { autoCategorizeTabs, restoreCategorySettings } from './tabs'
-import { createOrUpdateUrlRecord } from './urls'
+import { createOrUpdateUrlRecordsBatch } from './urls'
 
 // ドメインを親カテゴリに割り当てる関数
 const assignDomainToCategory = async (
@@ -98,7 +99,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
         (m: DomainParentCategoryMapping) => m.categoryId === category.id,
       )
       console.log(
-        `  マッピングから見つかったドメイン: ${mappingsForCategory.map((m: DomainParentCategoryMapping) => m.domain).join(', ')}`,
+        `  マッピングから見つかったドメイン: ${mappingsForCategory.length}件`,
       )
 
       // SavedTabsからドメイン名を検索
@@ -218,7 +219,7 @@ const findCategoryByDomainMapping = (
     return null
   }
   console.log(
-    `ドメイン ${domain} は親カテゴリ「${category.name}」のマッピングに見つかりました`,
+    `ドメイン ${redactUrlForLog(domain)} は親カテゴリ「${category.name}」のマッピングに見つかりました`,
   )
   return {
     category,
@@ -235,12 +236,12 @@ const findCategoryByDomainNames = (
       continue
     }
     console.log(`カテゴリ「${category.name}」のdomainNamesで検索:`, {
-      domainNames: category.domainNames,
-      searchDomain: domain,
+      domainCount: category.domainNames.length,
+      searchDomain: redactUrlForLog(domain),
     })
     if (category.domainNames.some((d) => d === domain)) {
       console.log(
-        `ドメイン ${domain} は親カテゴリ「${category.name}」のdomainNamesに見つかりました`,
+        `ドメイン ${redactUrlForLog(domain)} は親カテゴリ「${category.name}」のdomainNamesに見つかりました`,
       )
       return {
         category,
@@ -266,7 +267,7 @@ const assignGroupToCategory = async (
   match: DomainCategoryMatch,
 ): Promise<void> => {
   console.log(
-    `ドメイン ${domain} を親カテゴリ「${match.category.name}」に割り当てます (検出方法: ${match.method})`,
+    `ドメイン ${redactUrlForLog(domain)} を親カテゴリ「${match.category.name}」に割り当てます (検出方法: ${match.method})`,
   )
   group.parentCategoryId = match.category.id
   const domainNames = Array.isArray(match.category.domainNames)
@@ -283,7 +284,9 @@ const assignGroupToCategory = async (
     updateCategoryDomains(updatedCategory),
     updateDomainCategoryMapping(domain, match.category.id),
   ])
-  console.log(`ドメイン ${domain} と親カテゴリのマッピングを更新しました`)
+  console.log(
+    `ドメイン ${redactUrlForLog(domain)} と親カテゴリのマッピングを更新しました`,
+  )
 }
 const createGroupForDomain = async (
   domain: string,
@@ -304,7 +307,9 @@ const createGroupForDomain = async (
     parentCategories,
   )
   if (!match) {
-    console.log(`ドメイン ${domain} の親カテゴリが見つからないため未分類です`)
+    console.log(
+      `ドメイン ${redactUrlForLog(domain)} の親カテゴリが見つからないため未分類です`,
+    )
     return restoredGroup
   }
   await assignGroupToCategory(restoredGroup, domain, match)
@@ -314,7 +319,7 @@ const dedupeGroupsById = (groupArray: TabGroup[]): TabGroup[] => {
   const idSet = new Set<string>()
   return groupArray.filter((group) => {
     if (idSet.has(group.id)) {
-      console.warn(`重複ID検出: ${group.id} (${group.domain})`)
+      console.warn(`重複ID検出: ${group.id} (${redactUrlForLog(group.domain)})`)
       return false
     }
     idSet.add(group.id)
@@ -326,7 +331,7 @@ const getTabDomain = (tabUrl: string): string | null => {
     const parsedUrl = new URL(tabUrl)
     return `${parsedUrl.protocol}//${parsedUrl.hostname}`
   } catch (error) {
-    console.error(`Invalid URL: ${tabUrl}`, error)
+    console.error(`Invalid URL: ${redactUrlForLog(tabUrl)}`, error)
     return null
   }
 }
@@ -400,35 +405,48 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     new Set(),
   )
   const missingDomains = [...missingDomainSet]
-  const createdGroups = await Promise.all(
-    missingDomains.map(async (domain) => {
-      console.log(`新しいドメインを処理: ${domain}`)
-      const group = await createGroupForDomain(
-        domain,
-        domainCategoryMappings,
-        parentCategories,
-      )
-      return { domain, group }
-    }),
-  )
+  const createdGroups: { domain: string; group: TabGroup }[] = []
+  let currentParentCategories = parentCategories
+  for (const domain of missingDomains) {
+    console.log(`新しいドメインを処理: ${redactUrlForLog(domain)}`)
+    // Parent category assignment updates `domains` and `domainNames` through
+    // storage read-modify-write. Process classified domains sequentially and
+    // feed the latest category state into the next assignment.
+    // eslint-disable-next-line no-await-in-loop
+    const group = await createGroupForDomain(
+      domain,
+      domainCategoryMappings,
+      currentParentCategories,
+    )
+    createdGroups.push({ domain, group })
+    if (group.parentCategoryId) {
+      // eslint-disable-next-line no-await-in-loop
+      currentParentCategories = await getParentCategories()
+    }
+  }
   for (const { domain, group } of createdGroups) {
     groupedTabs.set(domain, group)
   }
-  const urlRecords = await Promise.all(
-    tabsWithDomains.map(async ({ domain, tab, url }) => {
-      const group = groupedTabs.get(domain)
-      if (!group) {
-        throw new Error(`Domain group not found: ${domain}`)
-      }
-      if (!missingDomainSet.has(domain)) {
-        console.log(`既存のドメインに追加: ${domain}`)
-      }
-      const urlRecord = await createOrUpdateUrlRecord(url, tab.title ?? '')
-      return { group, urlRecord }
-    }),
+  const urlRecordByUrl = await createOrUpdateUrlRecordsBatch(
+    tabsWithDomains.map(({ tab, url }) => ({
+      title: tab.title ?? '',
+      url,
+    })),
   )
-  for (const item of urlRecords) {
-    const { group, urlRecord } = item
+  for (const { domain, url } of tabsWithDomains) {
+    const group = groupedTabs.get(domain)
+    if (!group) {
+      throw new Error(`Domain group not found: ${redactUrlForLog(domain)}`)
+    }
+    if (!missingDomainSet.has(domain)) {
+      console.log(`既存のドメインに追加: ${redactUrlForLog(domain)}`)
+    }
+    const urlRecord = urlRecordByUrl.get(url)
+    if (!urlRecord) {
+      throw new Error(
+        `URL record not found after batch update: ${redactUrlForLog(url)}`,
+      )
+    }
     // eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (!group.urlIds) {
       group.urlIds = []

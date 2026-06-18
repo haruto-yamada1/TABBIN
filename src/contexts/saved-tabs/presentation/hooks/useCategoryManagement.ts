@@ -14,6 +14,7 @@ import type { ReorderDomainsInCategoryUseCase } from '@/contexts/saved-tabs/appl
 import type { ReorderParentCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderParentCategoriesUseCase'
 import { buildReorderedCategoryOrder } from '@/contexts/saved-tabs/domain/services/ParentCategoryReorderService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseCategoryManagement フックの戻り値型 */
@@ -330,7 +331,7 @@ const useCategoryManagement = (
           })
         setCategories(updatedDomainCategories.map(toStorageParentCategory))
         console.log(
-          `ドメイン ${domainGroup.domain} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`, // eslint-disable-line typescript/prefer-nullish-coalescing -- fromCategoryId could be empty string
+          `ドメイン ${redactUrlForLog(domainGroup.domain)} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`, // eslint-disable-line typescript/prefer-nullish-coalescing -- fromCategoryId could be empty string
         )
       } catch (error) {
         console.error('カテゴリ間ドメイン移動エラー:', error)

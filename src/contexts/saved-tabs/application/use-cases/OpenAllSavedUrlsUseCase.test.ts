@@ -273,6 +273,46 @@ describe('OpenAllSavedUrlsUseCase', () => {
     await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual([])
   })
 
+  it('ブラウザが URL を正規化して返しても要求元の保存 URL を削除する', async () => {
+    const url = createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com',
+    })
+    const group = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1'],
+    })
+    const repos = createInMemoryRepositories({
+      tabGroups: [group],
+      urlRecords: [url],
+    })
+    const browserTabPort: BrowserTabPort = {
+      // Chrome は origin のみの URL に末尾スラッシュを付けて返す。
+      // eslint-disable-next-line typescript/require-await
+      open: vi.fn(async () => ({ url: 'https://example.com/' })),
+    }
+    const win = createSpyBrowserWindowPort()
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...repos,
+      browserTabPort,
+      browserWindowPort: win.port,
+    })
+
+    const result = await useCase({
+      mode: 'backgroundTabs',
+      removeTabAfterOpen: true,
+      urls: ['https://example.com'],
+    })
+
+    expect(result.openedUrls).toStrictEqual(['https://example.com/'])
+    expect(result.removedUrlRecordIds).toStrictEqual(['url-1'])
+    await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
+    await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual([])
+  })
+
   it('他で参照されている UrlRecord は削除せず残す', async () => {
     const url1 = createUrlRecord({
       id: 'url-1',

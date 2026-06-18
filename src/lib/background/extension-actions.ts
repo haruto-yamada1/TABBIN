@@ -3,6 +3,7 @@
  */
 
 import { getMessage } from '@/features/i18n/lib/language'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { saveTabsWithAutoCategory } from '@/lib/storage/migration'
 import { saveUrlsToCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
@@ -109,6 +110,13 @@ const syncSavedTabsToCustomMode = async (
   }
 }
 
+const saveTabsInBothModes = async (tabs: chrome.tabs.Tab[]): Promise<void> => {
+  // Both paths upsert the shared `urls` collection. Keep them sequential so
+  // their read-modify-write cycles cannot create divergent IDs or lose URLs.
+  await saveTabsWithAutoCategory(tabs)
+  await syncSavedTabsToCustomMode(tabs)
+}
+
 const notifyAndCloseTabs = async (
   notificationTitle: string,
   notificationMessage: string,
@@ -194,12 +202,11 @@ export const handleSaveCurrentTab = async (): Promise<
     return []
   }
   const activeTab = filteredTabs[0]
-  console.log(`現在のタブを保存: ${activeTab.url}`)
+  console.log(`現在のタブを保存: ${redactUrlForLog(activeTab.url)}`)
 
   // タブを保存
-  const [, , notificationTitle, notificationMessage] = await Promise.all([
-    saveTabsWithAutoCategory([activeTab]),
-    syncSavedTabsToCustomMode([activeTab]),
+  const [, notificationTitle, notificationMessage] = await Promise.all([
+    saveTabsInBothModes([activeTab]),
     getBackgroundText('background.saveTabs.notificationTitle'),
     getBackgroundText('background.saveTabs.currentTabSaved'),
   ])
@@ -268,10 +275,9 @@ export const handleSaveSameDomainTabs = async (): Promise<
     console.log(`同じドメインのタブ数: ${filteredTabs.length}`)
 
     // タブを保存
-    const [, , settings, notificationTitle, notificationMessage] =
+    const [, settings, notificationTitle, notificationMessage] =
       await Promise.all([
-        saveTabsWithAutoCategory(filteredTabs),
-        syncSavedTabsToCustomMode(filteredTabs),
+        saveTabsInBothModes(filteredTabs),
         getUserSettings(),
         getBackgroundText('background.saveTabs.notificationTitle'),
         getBackgroundText('background.saveTabs.sameDomainSaved', undefined, {
@@ -330,10 +336,9 @@ export const handleSaveAllWindowsTabs = async (): Promise<
     console.log(`保存対象タブ数: ${filteredTabs.length}`)
 
     // タブを保存
-    const [, , notificationTitle, notificationMessage, savedTabsTabId] =
+    const [, notificationTitle, notificationMessage, savedTabsTabId] =
       await Promise.all([
-        saveTabsWithAutoCategory(filteredTabs),
-        syncSavedTabsToCustomMode(filteredTabs),
+        saveTabsInBothModes(filteredTabs),
         getBackgroundText('background.saveTabs.notificationTitle'),
         getBackgroundText('background.saveTabs.allWindowsSaved', undefined, {
           count: String(filteredTabs.length),
@@ -384,8 +389,7 @@ export const handleSaveWindowTabs = async (): Promise<
   console.log(`保存対象タブ: ${filteredTabs.length}個`)
 
   // タブを保存して自動カテゴライズする
-  await saveTabsWithAutoCategory(filteredTabs)
-  await syncSavedTabsToCustomMode(filteredTabs)
+  await saveTabsInBothModes(filteredTabs)
   console.log('タブの保存と自動カテゴライズが完了しました')
   const [savedTabsTabId, settings, notificationTitle, notificationMessage] =
     await Promise.all([

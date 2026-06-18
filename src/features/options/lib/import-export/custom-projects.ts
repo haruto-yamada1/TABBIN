@@ -1,3 +1,4 @@
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { createOrUpdateUrlRecord } from '@/lib/storage/urls'
 import type {
   CustomProject,
@@ -636,7 +637,7 @@ const convertImportedCustomProjectUrlsToStorage = async (
         }
       } catch (error) {
         console.error(
-          `カスタムプロジェクトURL変換エラー: ${urlData.url}`,
+          `カスタムプロジェクトURL変換エラー: ${redactUrlForLog(urlData.url)}`,
           error,
         )
         return null

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => {
   return {
     autoCategorizeTabs: vi.fn().mockResolvedValue(undefined),
     createOrUpdateUrlRecord: vi.fn(),
+    createOrUpdateUrlRecordsBatch: vi.fn(),
     getDomainCategoryMappings: vi.fn(),
     getParentCategories: vi.fn(),
     getUserSettings: vi.fn(),
@@ -25,6 +26,7 @@ const mocks = vi.hoisted(() => {
       uuidIndex = 0
       mocks.autoCategorizeTabs.mockClear()
       mocks.createOrUpdateUrlRecord.mockClear()
+      mocks.createOrUpdateUrlRecordsBatch.mockClear()
       mocks.getDomainCategoryMappings.mockClear()
       mocks.getParentCategories.mockClear()
       mocks.getUserSettings.mockClear()
@@ -59,6 +61,7 @@ vi.mock('./tabs', () => ({
 
 vi.mock('./urls', () => ({
   createOrUpdateUrlRecord: mocks.createOrUpdateUrlRecord,
+  createOrUpdateUrlRecordsBatch: mocks.createOrUpdateUrlRecordsBatch,
 }))
 
 interface StorageState {
@@ -120,6 +123,21 @@ describe('migration storage facade', () => {
         title,
         url,
       }),
+    )
+    mocks.createOrUpdateUrlRecordsBatch.mockImplementation(
+      // eslint-disable-next-line typescript/require-await
+      async (inputs: { title: string; url: string }[]) =>
+        new Map(
+          inputs.map(({ title, url }) => [
+            url,
+            {
+              id: `id:${url}`,
+              savedAt: 1000,
+              title,
+              url,
+            },
+          ]),
+        ),
     )
   })
 
@@ -865,14 +883,141 @@ describe('migration storage facade', () => {
       },
     ] as chrome.tabs.Tab[])
 
-    expect(mocks.createOrUpdateUrlRecord).toHaveBeenCalledWith(
-      'https://untitled.example.com/path',
-      '',
-    )
+    expect(mocks.createOrUpdateUrlRecordsBatch).toHaveBeenCalledWith([
+      {
+        title: '',
+        url: 'https://untitled.example.com/path',
+      },
+    ])
     expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
         domain: 'https://untitled.example.com',
         urlIds: ['id:https://untitled.example.com/path'],
+      }),
+    ])
+  })
+
+  it('saveTabs は複数タブの URL レコードを 1 回の一括更新で作成する', async () => {
+    const state: StorageState = {
+      savedTabs: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { saveTabs } = await loadModule()
+    const tabs = [
+      {
+        title: 'A',
+        url: 'https://same.example.com/a',
+      },
+      {
+        title: 'B',
+        url: 'https://same.example.com/b',
+      },
+      {
+        title: 'C',
+        url: 'https://other.example.com/c',
+      },
+    ] as chrome.tabs.Tab[]
+
+    await saveTabs(tabs)
+
+    expect(mocks.createOrUpdateUrlRecordsBatch).toHaveBeenCalledOnce()
+    expect(mocks.createOrUpdateUrlRecordsBatch).toHaveBeenCalledWith([
+      { title: 'A', url: 'https://same.example.com/a' },
+      { title: 'B', url: 'https://same.example.com/b' },
+      { title: 'C', url: 'https://other.example.com/c' },
+    ])
+    expect(mocks.createOrUpdateUrlRecord).not.toHaveBeenCalled()
+    expect(state.savedTabs).toStrictEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          domain: 'https://same.example.com',
+          urlIds: [
+            'id:https://same.example.com/a',
+            'id:https://same.example.com/b',
+          ],
+        }),
+        expect.objectContaining({
+          domain: 'https://other.example.com',
+          urlIds: ['id:https://other.example.com/c'],
+        }),
+      ]),
+    )
+  })
+
+  it('saveTabs は異なる新規ドメインを同じ親カテゴリへまとめて割り当てる', async () => {
+    const state: StorageState = {
+      parentCategories: [
+        createCategory({
+          domainNames: ['https://seed.example.com'],
+          id: 'category-1',
+          name: 'Work',
+        }),
+      ],
+      savedTabs: [],
+    }
+    mocks.getDomainCategoryMappings.mockResolvedValue([
+      {
+        categoryId: 'category-1',
+        domain: 'https://docs.example.com',
+      },
+      {
+        categoryId: 'category-1',
+        domain: 'https://issues.example.com',
+      },
+    ])
+    mocks.getParentCategories.mockImplementation(
+      // eslint-disable-next-line typescript/require-await
+      async () => state.parentCategories ?? [],
+    )
+    mocks.saveParentCategories.mockImplementation(
+      // eslint-disable-next-line typescript/require-await
+      async (categories: ParentCategory[]) => {
+        state.parentCategories = categories
+      },
+    )
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { saveTabs } = await loadModule()
+
+    await saveTabs([
+      {
+        title: 'Docs',
+        url: 'https://docs.example.com/a',
+      },
+      {
+        title: 'Issues',
+        url: 'https://issues.example.com/b',
+      },
+    ] as chrome.tabs.Tab[])
+
+    expect(state.parentCategories).toStrictEqual([
+      expect.objectContaining({
+        domainNames: [
+          'https://seed.example.com',
+          'https://docs.example.com',
+          'https://issues.example.com',
+        ],
+        domains: ['uuid-1', 'uuid-2'],
+        id: 'category-1',
+      }),
+    ])
+    expect(state.savedTabs).toStrictEqual([
+      expect.objectContaining({
+        domain: 'https://docs.example.com',
+        parentCategoryId: 'category-1',
+      }),
+      expect.objectContaining({
+        domain: 'https://issues.example.com',
+        parentCategoryId: 'category-1',
       }),
     ])
   })

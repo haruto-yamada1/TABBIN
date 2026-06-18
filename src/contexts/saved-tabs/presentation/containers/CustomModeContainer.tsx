@@ -1,4 +1,5 @@
 import { LoadingState } from '@/components/ui/loading-state'
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { CustomProjectSection } from '@/contexts/saved-tabs/presentation/components/CustomProjectSection'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
@@ -56,6 +57,7 @@ interface CustomModeContainerProps {
     oldCategoryName: string,
     newCategoryName: string,
   ) => Promise<void>
+  getProjectUrlsUseCase: GetProjectUrlsUseCase
 }
 
 export const CustomModeContainer = ({
@@ -80,6 +82,7 @@ export const CustomModeContainer = ({
   handleMoveUrlsBetweenCategories,
   handleReorderProjects,
   handleRenameCategory,
+  getProjectUrlsUseCase,
 }: CustomModeContainerProps) => {
   if (isLoading) {
     return <LoadingState />
@@ -124,6 +127,7 @@ export const CustomModeContainer = ({
       handleReorderProjects={handleReorderProjects}
       // eslint-disable-next-line typescript/no-misused-promises
       handleRenameCategory={handleRenameCategory}
+      getProjectUrlsUseCase={getProjectUrlsUseCase}
       settings={settings}
     />
   )

@@ -3,6 +3,7 @@ import {
   AI_CHAT_CONVERSATIONS_KEY,
 } from '@/features/ai-chat/lib/conversation-history'
 import type { AiChatConversation } from '@/features/ai-chat/types'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { saveParentCategories } from '@/lib/storage/categories'
 import { migrateToUrlsStorage } from '@/lib/storage/migration'
@@ -537,7 +538,7 @@ const importSettings = async (
     if (unresolvedTabs.length > 0) {
       console.warn(
         'URLデータ未解決ドメイン（代替URLを生成して継続）:',
-        unresolvedTabs.map((tab) => tab.domain).join(', '),
+        unresolvedTabs.map((tab) => redactUrlForLog(tab.domain)).join(', '),
       )
     }
     if (mergeData) {

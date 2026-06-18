@@ -2,6 +2,7 @@
  * 期限切れタブ管理モジュール
  */
 
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { AutoDeletePeriod } from '@/types/background'
 import type { TabGroup, UserSettings } from '@/types/storage'
 
@@ -146,14 +147,16 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
         const urlSavedAt = urlEntry.savedAt ?? group.savedAt ?? currentTime
         const isUrlExpired = urlSavedAt < cutoffTime
         if (isUrlExpired) {
-          console.log(`削除: URL ${urlEntry.url} (ドメイン: ${group.domain})`)
+          console.log(
+            `削除: URL ${redactUrlForLog(urlEntry.url)} (ドメイン: ${redactUrlForLog(group.domain)})`,
+          )
           return false
         }
         return true
       })
       if (filteredUrls.length !== originalUrlCount) {
         console.log(
-          `グループ ${group.domain}: ${originalUrlCount - filteredUrls.length} 件のURLを削除`,
+          `グループ ${redactUrlForLog(group.domain)}: ${originalUrlCount - filteredUrls.length} 件のURLを削除`,
         )
       }
       if (filteredUrls.length > 0) {

@@ -677,6 +677,87 @@ describe('tabs storage', () => {
     ])
   })
 
+  it('autoCategorizeTabs は異なるグループを同時分類しても両方の結果を保持する', async () => {
+    const state = {
+      savedTabs: [
+        {
+          categoryKeywords: [
+            {
+              categoryName: 'docs',
+              keywords: ['guide'],
+            },
+          ],
+          domain: 'docs.example.com',
+          id: 'group-1',
+          urlIds: ['url-1'],
+        } as TabGroup,
+        {
+          categoryKeywords: [
+            {
+              categoryName: 'issues',
+              keywords: ['bug'],
+            },
+          ],
+          domain: 'issues.example.com',
+          id: 'group-2',
+          urlIds: ['url-2'],
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          // Chrome storage returns a fresh structured clone for each read.
+          // eslint-disable-next-line typescript/require-await
+          get: vi.fn(async () => structuredClone(state)),
+          // eslint-disable-next-line typescript/require-await
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    mocks.getUrlRecordsByIdsMock.mockImplementation(
+      // eslint-disable-next-line typescript/require-await
+      async (ids) =>
+        ids.includes('url-1')
+          ? [
+              {
+                id: 'url-1',
+                savedAt: 1,
+                title: 'Install Guide',
+                url: 'https://docs.example.com/guide',
+              },
+            ]
+          : [
+              {
+                id: 'url-2',
+                savedAt: 2,
+                title: 'Bug Report',
+                url: 'https://issues.example.com/bug',
+              },
+            ],
+    )
+
+    const { autoCategorizeTabs } = await loadTabsModule()
+
+    await Promise.all([
+      autoCategorizeTabs('group-1'),
+      autoCategorizeTabs('group-2'),
+    ])
+
+    expect(state.savedTabs).toStrictEqual([
+      expect.objectContaining({
+        id: 'group-1',
+        urlSubCategories: { 'url-1': 'docs' },
+      }),
+      expect.objectContaining({
+        id: 'group-2',
+        urlSubCategories: { 'url-2': 'issues' },
+      }),
+    ])
+  })
+
   it('autoCategorizeTabs はキーワード未設定なら既存マッピングだけを維持する', async () => {
     const state = {
       savedTabs: [

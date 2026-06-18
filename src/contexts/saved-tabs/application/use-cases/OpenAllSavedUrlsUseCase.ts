@@ -169,7 +169,10 @@ export const createOpenAllSavedUrlsUseCase = (
 
     const plan = computeRemovalPlan({
       customProjects: allCustomProjects,
-      openedUrls,
+      // Browser API may canonicalize the returned URL (for example, adding a
+      // trailing slash). The requested URLs identify the saved records that
+      // were successfully opened, so use them for removal matching.
+      openedUrls: command.urls,
       removeTabAfterOpen: command.removeTabAfterOpen,
       tabGroups: allTabGroups,
       urlRecords: allUrlRecords,

@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 import { invalidateUrlCache } from './urls'
@@ -135,15 +136,21 @@ const migrateTabGroupUrls = (tabGroup: TabGroup, urlMap: UrlMap): void => {
     return
   }
 
+  const existingUrlIds = tabGroup.urlIds ?? []
+  const existingSubCategories = tabGroup.urlSubCategories ?? {}
   const urlIds: string[] = []
   const urlSubCategories: Record<string, string> = {}
 
-  for (const urlItem of tabGroup.urls) {
+  for (const [index, urlItem] of tabGroup.urls.entries()) {
     const urlEntry = upsertUrlEntry(urlMap, urlItem)
     urlIds.push(urlEntry.id)
 
-    if (urlItem.subCategory) {
-      urlSubCategories[urlEntry.id] = urlItem.subCategory
+    const existingId = existingUrlIds[index]
+    const subCategory =
+      urlItem.subCategory ??
+      (existingId ? existingSubCategories[existingId] : undefined)
+    if (subCategory) {
+      urlSubCategories[urlEntry.id] = subCategory
     }
   }
 
@@ -154,7 +161,9 @@ const migrateTabGroupUrls = (tabGroup: TabGroup, urlMap: UrlMap): void => {
   }
 
   tabGroup.urls = undefined
-  console.log(`TabGroup ${tabGroup.domain}: ${urlIds.length}個のURLを移行`)
+  console.log(
+    `TabGroup ${redactUrlForLog(tabGroup.domain)}: ${urlIds.length}個のURLを移行`,
+  )
 }
 
 const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
@@ -164,6 +173,8 @@ const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
     return
   }
 
+  const existingUrlIds = project.urlIds ?? []
+  const existingMetadata = project.urlMetadata ?? {}
   const urlIds: string[] = []
   const urlMetadata: Record<
     string,
@@ -173,14 +184,15 @@ const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
     }
   > = {}
 
-  for (const urlItem of project.urls) {
+  for (const [index, urlItem] of project.urls.entries()) {
     const urlEntry = upsertUrlEntry(urlMap, urlItem)
     urlIds.push(urlEntry.id)
 
+    const existingId = existingUrlIds[index]
     const metadata: {
       notes?: string
       category?: string
-    } = {}
+    } = existingId ? { ...existingMetadata[existingId] } : {}
 
     if (urlItem.notes) {
       metadata.notes = urlItem.notes

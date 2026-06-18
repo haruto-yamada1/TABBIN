@@ -3,6 +3,7 @@
  */
 
 import type { AiChatAttachment } from '@/features/ai-chat/types'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type {
   AiChatResponse,
   AiChatStreamClientMessage,
@@ -150,7 +151,7 @@ const handleUrlDroppedMessage = (
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  console.log('URLドロップを検知:', message.url)
+  console.log('URLドロップを検知:', redactUrlForLog(message.url))
 
   // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (message.fromExternal === true) {

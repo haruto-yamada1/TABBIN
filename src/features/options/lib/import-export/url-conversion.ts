@@ -1,4 +1,5 @@
 import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { createOrUpdateUrlRecord } from '@/lib/storage/urls'
 import type { TabGroup, UrlRecord, UserSettings } from '@/types/storage'
 
@@ -88,10 +89,12 @@ const convertImportedUrlsToNewFormat = async (
           urlData.favIconUrl,
           IMPORT_URL_RECORD_OPTIONS,
         )
-        console.log(`URL変換完了: ${urlData.url} -> ${urlRecord.id}`)
+        console.log(
+          `URL変換完了: ${redactUrlForLog(urlData.url)} -> ${urlRecord.id}`,
+        )
         return [normalizeUrlKey(urlData.url), urlRecord] as const
       } catch (error) {
-        console.error(`URL変換エラー: ${urlData.url}`, error)
+        console.error(`URL変換エラー: ${redactUrlForLog(urlData.url)}`, error)
         return null
       }
     }),
