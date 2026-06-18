@@ -123,14 +123,12 @@ describe('DomainCardRoot', () => {
 
     render(
       <DomainCardRoot
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         group={{
           id: 'group-1',
           domain: 'example.com',
           urls: [{ url: 'https://example.com', title: 'Example' }],
           subCategories: ['news', 'tech', 'empty'],
         }}
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         settings={{
           removeTabAfterOpen: true,
           removeTabAfterExternalDrop: true,
@@ -174,14 +172,12 @@ describe('DomainCardRoot', () => {
 
     render(
       <DomainCardRoot
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         group={{
           id: 'group-1',
           domain: 'example.com',
           urls: [{ url: 'https://example.com', title: 'Example' }],
           subCategories: ['news', 'tech', 'empty'],
         }}
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         settings={{
           removeTabAfterOpen: true,
           removeTabAfterExternalDrop: true,

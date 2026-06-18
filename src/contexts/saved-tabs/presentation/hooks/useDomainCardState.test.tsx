@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
@@ -76,7 +75,7 @@ const createUseDomainCardStateParams = (
     saveParentCategories: vi.fn().mockResolvedValue(undefined),
     saveTabGroups: vi.fn().mockResolvedValue(undefined),
   }
-  // eslint-disable-next-line typescript/require-await
+
   const createParentCategoryUseCase = vi.fn(
     () =>
       Promise.resolve({
@@ -84,7 +83,7 @@ const createUseDomainCardStateParams = (
         category: { id: '', name: '', domains: [], domainNames: [] } as never,
       }) as unknown as ReturnType<CreateParentCategoryUseCase>,
   ) as unknown as CreateParentCategoryUseCase
-  // eslint-disable-next-line typescript/require-await
+
   const assignDomainToCategoryUseCase = vi.fn(
     () =>
       Promise.resolve({
@@ -132,7 +131,6 @@ describe('useDomainCardState', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: [createGroup()],
           })),

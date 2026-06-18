@@ -1,3 +1,4 @@
+import { getChromeGlobal } from '@/lib/browser/chrome-global'
 import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
@@ -131,9 +132,7 @@ type ChromeOnChangedListener = (
   areaName: string,
 ) => void
 
-const getChromeApi = (): ChromeLike | undefined =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  (globalThis as typeof globalThis & { chrome?: ChromeLike }).chrome
+const getChromeApi = (): ChromeLike | undefined => getChromeGlobal<ChromeLike>()
 
 /**
  * chrome 実環境向けに SavedTabsUseCasesDeps を構築する。

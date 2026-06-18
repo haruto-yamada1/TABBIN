@@ -65,7 +65,7 @@ const createProps = (
   parentCategories: [
     { id: 'parent-1', name: 'Work', domains: [], domainNames: [] },
   ],
-  // eslint-disable-next-line typescript/require-await
+
   onCreateParentCategory: vi.fn(async (name: string) => ({
     id: 'created',
     name,

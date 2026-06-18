@@ -11,10 +11,8 @@ describe('Transcription', () => {
     render(
       <Transcription
         currentTime={1}
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onSeek={() => undefined}
         segments={
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           [
             { endSecond: 1, startSecond: 0, text: 'First segment' },
             { endSecond: 2, startSecond: 1, text: 'Second segment' },

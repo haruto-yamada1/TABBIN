@@ -74,7 +74,6 @@ vi.mock('@/components/ui/select', () => ({
     <div>
       <button
         data-testid='mock-select-change'
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => onValueChange?.(value === 'never' ? '30days' : 'never')}
         type='button'
       >
@@ -111,18 +110,14 @@ vi.mock('@/components/ui/select', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))

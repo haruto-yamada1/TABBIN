@@ -135,7 +135,6 @@ export const ProjectCardRoot = ({
 
   const DRAGGING_OPACITY = 0.5
 
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const style: CSSProperties = {
     containIntrinsicSize: '360px',
     contentVisibility: 'auto',
@@ -177,7 +176,6 @@ export const ProjectCardRoot = ({
     })
 
   // 両方のrefを組み合わせる
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const setCombinedRefs = (node: HTMLElement | null) => {
     setNodeRef(node)
     setProjectDroppableRef(node)
@@ -313,7 +311,6 @@ export const ProjectCardRoot = ({
                   }
                 : undefined
             }
-            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onManage={() => {
               setIsManagementModalOpen(true)
             }}
@@ -355,7 +352,6 @@ export const ProjectCardRoot = ({
       </Card>
       <ProjectManagementModal
         isOpen={isManagementModalOpen}
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClose={() => {
           setIsManagementModalOpen(false)
         }}

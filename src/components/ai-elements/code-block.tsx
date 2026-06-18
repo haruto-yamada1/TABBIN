@@ -60,7 +60,6 @@ const addKeysToTokens = (lines: ThemedToken[][]): KeyedLine[] =>
 
 // Token rendering component
 const TokenSpan = ({ token }: { token: ThemedToken }) => {
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const tokenStyle: CSSProperties = {
     backgroundColor: token.bgColor,
     color: token.color,
@@ -171,7 +170,6 @@ const codeLanguageAliases: Record<string, SupportedCodeLanguage> = {
   yaml: 'yaml',
   zsh: 'bash',
 }
-
 export const getSupportedCodeLanguage = (
   language: string,
 ): SupportedCodeLanguage => {
@@ -259,7 +257,6 @@ const createRawTokens = (code: string): TokenizedCode => ({
         ],
   ),
 })
-
 // Synchronous highlight with callback for async results
 export const highlightCode = (
   code: string,
@@ -403,13 +400,12 @@ const CodeBlockBody = memo(
 
 CodeBlockBody.displayName = 'CodeBlockBody'
 
-export const CodeBlockContainer = ({
+const CodeBlockContainer = ({
   className,
   language,
   style,
   ...props
 }: HTMLAttributes<HTMLDivElement> & { language: string }) => {
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const containerStyle: CSSProperties = {
     containIntrinsicSize: 'auto 200px',
     contentVisibility: 'auto',
@@ -478,7 +474,7 @@ export const CodeBlockActions = ({
   </div>
 )
 
-export const CodeBlockContent = ({
+const CodeBlockContent = ({
   code,
   language,
   showLineNumbers = false,

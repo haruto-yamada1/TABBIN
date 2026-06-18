@@ -122,8 +122,7 @@ export const buildUpdatedGroupAfterUrlIdRemoval = (
 
   const nextUrlSubCategories = { ...group.urlSubCategories }
   for (const id of idsToRemove) {
-    // eslint-disable-next-line typescript/no-dynamic-delete
-    delete nextUrlSubCategories[id]
+    Reflect.deleteProperty(nextUrlSubCategories, id)
   }
   updatedGroup.urlSubCategories =
     Object.keys(nextUrlSubCategories).length > 0

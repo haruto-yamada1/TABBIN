@@ -1,6 +1,7 @@
 import type { ParentCategory } from '../../domain/entities/ParentCategory'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import { createCategoryName } from '../../domain/value-objects/CategoryName'
+import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
 
 /**
  * `CreateParentCategoryUseCase` の入力。
@@ -71,17 +72,12 @@ export const createCreateParentCategoryUseCase = (
     if (duplicate) {
       throw new Error(`DUPLICATE_CATEGORY_NAME:${name}`)
     }
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const newId = deps.generateId() as ParentCategoryId
+    const newId = createParentCategoryId(deps.generateId())
     const newCategory: ParentCategory = {
       domainNames: [],
       domains: [],
       id: newId,
-      // OK: name は use-case 入口で trim 済みかつ同名重複チェック済みの
-      // 素の文字列。domain entity 側の `CategoryName` ブランド型への
-      // タグ付けは factory (`createCategoryName`) 側に閉じている。
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      name: name as ParentCategory['name'],
+      name: createCategoryName(name),
     }
     const updatedAll: readonly ParentCategory[] = [...all, newCategory]
     await deps.parentCategoryRepository.saveAll(updatedAll)

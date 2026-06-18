@@ -434,7 +434,6 @@ describe('useTabData', () => {
 
     unmount()
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveGroups?.([
         {
@@ -469,7 +468,6 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       result.current.setTabGroups((previous) => [...previous, appendedGroup])
     })

@@ -343,8 +343,7 @@ const removeUrlIdFromProject = (
 
   project.urlIds = project.urlIds.filter((id) => id !== urlId)
   if (project.urlMetadata?.[urlId]) {
-    // eslint-disable-next-line typescript/no-dynamic-delete
-    delete project.urlMetadata[urlId]
+    Reflect.deleteProperty(project.urlMetadata, urlId)
   }
   project.updatedAt = updatedAt
   return true
@@ -559,8 +558,7 @@ const removeUrlFromCustomProject = async (
 
       // メタデータも削除
       if (project.urlMetadata?.[urlRecord.id]) {
-        // eslint-disable-next-line typescript/no-dynamic-delete
-        delete project.urlMetadata[urlRecord.id]
+        Reflect.deleteProperty(project.urlMetadata, urlRecord.id)
       }
     }
   }
@@ -674,8 +672,7 @@ const updateProjectUrlIdsAndMetadata = (
     if (project.urlMetadata) {
       for (const id of idsToDelete) {
         if (project.urlMetadata[id]) {
-          // eslint-disable-next-line typescript/no-dynamic-delete
-          delete project.urlMetadata[id]
+          Reflect.deleteProperty(project.urlMetadata, id)
         }
       }
     }
@@ -1173,8 +1170,7 @@ const moveUrlBetweenCustomProjects = async (
 
   const sourceMetadata = sourceProject.urlMetadata?.[urlId]
   if (sourceProject.urlMetadata?.[urlId]) {
-    // eslint-disable-next-line typescript/no-dynamic-delete
-    delete sourceProject.urlMetadata[urlId]
+    Reflect.deleteProperty(sourceProject.urlMetadata, urlId)
   }
   if (sourceMetadata?.notes) {
     targetProject.urlMetadata ??= {}

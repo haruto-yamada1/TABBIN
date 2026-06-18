@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { toStorageCustomProject } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
 import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
 import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
@@ -43,6 +44,7 @@ import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/a
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/domain/entities/UncategorizedProject'
+import { customProjectIdToString } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type {
@@ -557,7 +559,9 @@ const useProjectManagement = (
           await createCustomProjectUseCaseRef.current({
             name: normalizedName,
           })
-        const storageProject = newProject as unknown as CustomProject // oxlint-disable-line typescript/no-unsafe-type-assertion
+        // domain.CustomProject → storage shape 投影は
+        // `toStorageCustomProject` mapper 内に閉じ、disable を排除する。
+        const storageProject = toStorageCustomProject(newProject)
         setCustomProjects((prev) => {
           const withoutCreated = prev.filter(
             (project) => project.id !== newProject.id,
@@ -602,7 +606,7 @@ const useProjectManagement = (
         }
         await deleteCustomProjectUseCaseRef
           .current({
-            projectId: UNCATEGORIZED_PROJECT_ID as unknown as string, // oxlint-disable-line typescript/no-unsafe-type-assertion
+            projectId: customProjectIdToString(UNCATEGORIZED_PROJECT_ID),
           })
           .catch(async () => {
             // noop for type narrowing
@@ -1018,27 +1022,23 @@ const useProjectManagement = (
         const projectsAsCust = raws.map(toRawStorageCustomProject)
         // PR #514 review P1: 保存済みの `customProjectOrder` を反映し、
         // 並び順が巻き戻らないようにする。order 未保存時は findAllRaw 順を採用。
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        const orderKeys = order as unknown as readonly string[]
+        // `order` は branded `CustomProjectId[]`、
+        // `projectsAsCust[].id` は plain `string` のため、
+        // `customProjectIdToString` で bridge して widen cast を排除する。
+        const orderKeys = order.map(customProjectIdToString)
         const ordered =
           orderKeys.length > 0
             ? [
                 ...orderKeys
                   .map((id) =>
-                    projectsAsCust.find(
-                      (project) =>
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-                        (project.id as unknown as string) === id,
-                    ),
+                    projectsAsCust.find((project) => project.id === id),
                   )
                   .filter(
                     (project): project is CustomProject =>
                       project !== undefined,
                   ),
                 ...projectsAsCust.filter(
-                  (project) =>
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-                    !orderKeys.includes(project.id as unknown as string),
+                  (project) => !orderKeys.includes(project.id),
                 ),
               ]
             : projectsAsCust

@@ -94,12 +94,10 @@ const createConsoleGuard =
 console.error = createConsoleGuard('error')
 console.warn = createConsoleGuard('warn')
 
-// eslint-disable-next-line vitest/require-top-level-describe
 beforeEach(() => {
   unexpectedConsoleMessages = []
 })
 
-// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   console.error = createConsoleGuard('error')
   console.warn = createConsoleGuard('warn')

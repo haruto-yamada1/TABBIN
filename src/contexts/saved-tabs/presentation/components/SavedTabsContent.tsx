@@ -147,7 +147,6 @@ export const SortableCategorySection = ({
               categoryDisplayName,
               t('savedTabs.deleteAllTabs'),
             )}
-            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
             onOpenAll={(e) => {
               if (urlCount >= BULK_OPEN_THRESHOLD) {
                 e.stopPropagation()
@@ -173,7 +172,6 @@ export const SortableCategorySection = ({
         })}
         cancelLabel={t('common.cancel')}
         openLabel={t('common.open')}
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onConfirm={() => handleOpenAllTabs(urls)} // eslint-disable-line typescript/no-confusing-void-expression
       />
 
@@ -197,7 +195,6 @@ export const SortableCategorySection = ({
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => void executeDeleteAllTabs()}
             >
               {t('common.delete')}

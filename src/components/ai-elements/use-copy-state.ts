@@ -17,7 +17,6 @@ export const useCopyState = ({
   const timeoutRef = useRef<number>(0)
 
   const copyText = useCallback(
-    // eslint-disable-next-line eslint/complexity
     async (text: string, { skipIfCopied = false } = {}) => {
       if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
         onError?.(new Error('Clipboard API not available'))

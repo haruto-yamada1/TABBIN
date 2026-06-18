@@ -86,16 +86,11 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     const response = await fetch(url)
     const blob = await response.blob()
     // FileReader uses callback-based API, wrapping in Promise is necessary
-    // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
-    // eslint-disable-next-line typescript/return-await
     return new Promise((resolve) => {
       const reader = new FileReader()
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
       reader.onloadend = () => {
         resolve(typeof reader.result === 'string' ? reader.result : '')
       }
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
         resolve(null)
       }
@@ -193,7 +188,6 @@ export const PromptInputProvider = ({
     (FileUIPart & { id: string })[]
   >([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  // oxlint-disable-next-line eslint(no-empty-function)
   const openRef = useRef<() => void>(() => {})
 
   const add = useCallback((files: File[] | FileList) => {
@@ -329,7 +323,6 @@ export interface ReferencedSourcesContext {
   remove: (id: string) => void
   clear: () => void
 }
-
 export const LocalReferencedSourcesContext =
   createContext<ReferencedSourcesContext | null>(null)
 
@@ -396,13 +389,11 @@ export type PromptInputProps = Omit<
   }) => void
   onSubmit: (
     message: PromptInputMessage,
-    // eslint-disable-next-line typescript/no-deprecated
     event: FormEvent<HTMLFormElement>,
   ) => void | Promise<void>
 }
 
 const usePromptInputView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   className,
   accept,
   multiple,
@@ -533,7 +524,6 @@ const usePromptInputView = ({
 
   // Wrapper that validates files before calling provider's add
   const addWithProviderValidation = useCallback(
-    // eslint-disable-next-line eslint/complexity
     (fileList: File[] | FileList) => {
       const incoming = [...fileList]
       const accepted = incoming.filter((f) => matchesAccept(f))
@@ -577,7 +567,6 @@ const usePromptInputView = ({
   )
 
   const clearAttachments = useCallback(() => {
-    // eslint-disable-next-line eslint/no-unused-expressions
     usingProvider
       ? controller?.attachments.clear()
       : setItems((prev) => {
@@ -646,7 +635,6 @@ const usePromptInputView = ({
     }
     form.addEventListener('dragover', onDragOver)
     form.addEventListener('drop', onDrop)
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
       form.removeEventListener('dragover', onDragOver)
       form.removeEventListener('drop', onDrop)
@@ -673,7 +661,6 @@ const usePromptInputView = ({
     }
     document.addEventListener('dragover', onDragOver)
     document.addEventListener('drop', onDrop)
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
       document.removeEventListener('dragover', onDragOver)
       document.removeEventListener('drop', onDrop)
@@ -690,7 +677,6 @@ const usePromptInputView = ({
         }
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup only on unmount; filesRef always current
     [usingProvider],
   )
 
@@ -735,9 +721,7 @@ const usePromptInputView = ({
     [referencedSources, clearReferencedSources],
   )
 
-  // eslint-disable-next-line typescript/no-misused-promises
   const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
-    // eslint-disable-line typescript/no-deprecated
     async (event) => {
       event.preventDefault()
 
@@ -863,7 +847,6 @@ export const PromptInputTextarea = ({
   const isComposingRef = useRef(false)
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
-    // eslint-disable-next-line eslint/complexity
     (e) => {
       // Call the external onKeyDown handler first
       onKeyDown?.(e)

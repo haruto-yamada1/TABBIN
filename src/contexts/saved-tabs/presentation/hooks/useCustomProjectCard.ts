@@ -345,26 +345,29 @@ export const useCustomProjectCard = ({
   } = useCategoryDnD()
 
   // --- プロジェクトURL読み込み ---
+  // use case は `project.id` / `project.urlIds` / `project.urls` /
+  // `project.updatedAt` のみ参照する。親が project フィールド変更時に
+  // 新しい参照で再レンダリングする前提で、`project` 参照自体を deps に
+  // 置く。`void run()` で `no-floating-promises` を満たし、
+  // `isCancelled` flag で unmount 後の state 書き込みを防ぐ。
   useEffect(() => {
-    const loadProjectUrls = async () => {
+    let isCancelled = false
+    const run = async () => {
       let nextProjectUrls: ProjectUrlItem[] = []
       try {
         nextProjectUrls = await getProjectUrlsUseCase(project)
       } catch (error) {
         console.error('プロジェクトURLの取得エラー:', error)
       }
-      setUrlState({ isLoadingUrls: false, projectUrls: nextProjectUrls })
+      if (!isCancelled) {
+        setUrlState({ isLoadingUrls: false, projectUrls: nextProjectUrls })
+      }
     }
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadProjectUrls()
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- URL loading intentionally tracks the project fields that affect stored URLs.
-  }, [
-    getProjectUrlsUseCase,
-    project.id,
-    project.updatedAt,
-    project.urlIds,
-    project.urls,
-  ])
+    void run()
+    return () => {
+      isCancelled = true
+    }
+  }, [getProjectUrlsUseCase, project])
 
   // --- 衝突検出ストラテジー ---
   const collisionDetectionStrategy: CollisionDetection = useCallback(

@@ -60,7 +60,6 @@ export type SnippetInputProps = Omit<
   ComponentProps<typeof InputGroupInput>,
   'readOnly' | 'value'
 >
-
 export const SnippetInput = ({ className, ...props }: SnippetInputProps) => {
   const { code } = use(SnippetContext)
 
@@ -79,7 +78,6 @@ export type SnippetCopyButtonProps = ComponentProps<typeof InputGroupButton> & {
   onError?: (error: Error) => void
   timeout?: number
 }
-
 export const SnippetCopyButton = ({
   onCopy,
   onError,

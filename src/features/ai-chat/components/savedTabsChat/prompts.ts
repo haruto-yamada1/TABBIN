@@ -1,5 +1,4 @@
 import {
-  createAiSystemPromptPreset,
   MAX_AI_SYSTEM_PROMPT_NAME_LENGTH,
   MAX_AI_SYSTEM_PROMPT_PRESETS,
 } from '@/features/ai-chat/lib/systemPromptPresets'
@@ -122,7 +121,6 @@ const getPromptManagerValidationError = (
 export {
   buildPromptNameCandidate,
   clampPromptName,
-  createAiSystemPromptPreset,
   createSystemPromptId,
   getPromptManagerValidationError,
   getSelectedPrompt,

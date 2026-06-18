@@ -46,13 +46,11 @@ const streamdownCodePlugin: CodeHighlighterPlugin = {
 
 const baseStreamdownPlugins = { cjk, code: streamdownCodePlugin, math }
 const mermaidFencePattern = /(^|\n)\s*```(?:mermaid|mmd)(?:\s|\n|$)/i
-
 export const hasMermaidBlock = (markdown: string) =>
   mermaidFencePattern.test(markdown)
 
 const MermaidStreamdown = lazy(async () => {
   const { mermaid } = await import('@streamdown/mermaid')
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const plugins = { ...baseStreamdownPlugins, mermaid }
   const MermaidStreamdownRenderer = (props: StreamdownMarkdownProps) => (
     <Streamdown plugins={plugins} {...props} />
@@ -76,7 +74,6 @@ export const StreamdownMarkdown = memo(
     return (
       <Suspense
         fallback={
-          // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           <Streamdown plugins={baseStreamdownPlugins} {...props}>
             {children}
           </Streamdown>

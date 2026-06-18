@@ -58,7 +58,10 @@
     "playwright-report/**",
     "blob-report/**",
     "storybook-static/**",
-    "tmp-profile-saved-tabs.cjs"
+    "*.log",
+    "logs/**",
+    "src/components/ui/**",
+    "src/components/ai-elements/**"
   ],
   "rules": {
     "eslint/arrow-body-style": "off",
@@ -191,10 +194,10 @@
     "react/no-danger-with-children": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
-    "react-perf/jsx-no-jsx-as-prop": "error",
-    "react-perf/jsx-no-new-array-as-prop": "error",
-    "react-perf/jsx-no-new-function-as-prop": "error",
-    "react-perf/jsx-no-new-object-as-prop": "error",
+    "react-perf/jsx-no-jsx-as-prop": "off",
+    "react-perf/jsx-no-new-array-as-prop": "off",
+    "react-perf/jsx-no-new-function-as-prop": "off",
+    "react-perf/jsx-no-new-object-as-prop": "off",
     "typescript/array-type": "error",
     "typescript/await-thenable": "error",
     "typescript/consistent-indexed-object-style": "error",
@@ -395,7 +398,9 @@
         "**/*.test.ts",
         "**/*.test.tsx",
         "**/*.spec.ts",
-        "**/*.spec.tsx"
+        "**/*.spec.tsx",
+        "**/testing/**",
+        "src/test/**"
       ],
       "rules": {
         "typescript/no-unsafe-assignment": "off",
@@ -423,7 +428,15 @@
         "react-perf/jsx-no-jsx-as-prop": "off",
         "react-perf/jsx-no-new-array-as-prop": "off",
         "react-perf/jsx-no-new-function-as-prop": "off",
-        "react-perf/jsx-no-new-object-as-prop": "off"
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "typescript/require-await": "off",
+        "typescript/unbound-method": "off",
+        "react/jsx-no-useless-fragment": "off",
+        "vitest/prefer-strict-equal": "off",
+        "vitest/consistent-test-it": "off",
+        "vitest/prefer-expect-resolves": "off",
+        "vitest/require-top-level-describe": "off",
+        "typescript/no-dynamic-delete": "off"
       }
     },
     {

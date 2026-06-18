@@ -49,11 +49,9 @@ const createSyncContext = (params?: {
   const mode = params?.mode ?? 'custom'
 
   const refreshTabGroupsWithUrls = vi.fn(
-    // eslint-disable-next-line typescript/require-await
     async (_nextGroups?: TabGroup[]) => [] as TabGroup[],
   )
   const syncDomainDataToCustomProjects = vi.fn(
-    // eslint-disable-next-line typescript/require-await
     async () => [] as CustomProject[],
   )
   const setSettings = vi.fn((updater: SetStateAction<UserSettingsDto>) => {

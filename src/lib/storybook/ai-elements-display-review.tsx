@@ -186,7 +186,6 @@ const ReviewArtifacts = () => (
     <Section title='Attachments + Snippet'>
       <div className='gap-y-4'>
         <Attachments variant='grid'>
-          {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
           <Attachment data={sampleAttachment} onRemove={() => undefined}>
             <AttachmentHoverCard>
               <AttachmentHoverCardTrigger asChild>
@@ -230,7 +229,6 @@ const ReviewArtifacts = () => (
         <Transcription
           className='rounded-lg border p-3'
           currentTime={4}
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onSeek={() => undefined}
           segments={[
             { endSecond: 2, startSecond: 0, text: 'Pinned tabs grouped.' },

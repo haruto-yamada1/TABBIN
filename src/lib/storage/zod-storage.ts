@@ -8,12 +8,6 @@ const AiSystemPromptPresetSchema = z.object({
   updatedAt: z.number(),
 })
 
-export function fromStorage<T extends z.ZodType>(schema: T, key: string) {
-  return chrome.storage.local
-    .get(key)
-    .then((r) => schema.parse(r[key])) as Promise<z.output<T>>
-}
-
 export function fromStorageChange<T extends z.ZodType>(
   schema: T,
   value: unknown,

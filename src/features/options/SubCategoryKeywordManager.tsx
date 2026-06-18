@@ -455,7 +455,6 @@ const useSubCategoryKeywordManagerView = ({
           <div key={category} className='flex max-w-full items-center'>
             <Button
               type='button'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
               onClick={() => {
                 handleCategorySelect(category)
               }}

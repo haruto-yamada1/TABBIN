@@ -32,8 +32,6 @@ export const DOMAIN_CATEGORY_MAPPINGS_KEY = 'domainCategoryMappings' as const
 
 export const DOMAIN_CATEGORY_SETTINGS_KEY = 'domainCategorySettings' as const
 
-export const URLS_MIGRATION_COMPLETED_KEY = 'urlsMigrationCompleted' as const
-
 export const SAVED_TABS_STORAGE_KEYS = [
   SAVED_TABS_KEY,
   URLS_KEY,

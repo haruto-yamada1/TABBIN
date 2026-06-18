@@ -50,7 +50,6 @@ export const LanguageSelect = ({
       </Label>
       <Select
         value={languageSetting}
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onValueChange={(value) => {
           if (isValidLanguage(value)) {
             void setLanguageSetting(value)

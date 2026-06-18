@@ -28,7 +28,7 @@ import type {
   ScrollDirection,
   ScrollTargetType,
 } from '@/contexts/saved-tabs/presentation/lib/scroll-controls'
-import { useI18nText } from '@/features/i18n/context/I18nProvider'
+import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import type { ViewMode } from '@/types/storage'
 
 const HIGHLIGHT_CLASS_NAME = 'saved-tabs-scroll-highlight'
@@ -116,7 +116,6 @@ const SavedTabsScrollControlButton = ({
 
   useEffect(() => stopRepeating, [stopRepeating])
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const startRepeating = () => {
     if (disabled) {
       return

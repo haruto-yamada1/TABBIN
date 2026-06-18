@@ -51,20 +51,19 @@ export const createMockTabGroupRepository = (
   // branded 境界の吸収。テストデータの plain な `id: string` を
   // `TabGroupId` として流し込む。
   return {
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
     findAll: vi.fn(async () => state.savedTabs),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
     findById: vi.fn(async (id) => {
       const idString = id as unknown as string
       return state.savedTabs.find((tab) => tab.id === idString) ?? null
     }),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
     findRawDomainById: vi.fn(async (id) => {
       const idString = id as unknown as string
       const tab = state.savedTabs.find((entry) => entry.id === idString)
       return (tab?.domain as unknown as string | undefined) ?? null
     }),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
     findRawTabGroupById: vi.fn(async (id) => {
       const idString = id as unknown as string
       const tab = state.savedTabs.find((entry) => entry.id === idString)
@@ -93,11 +92,11 @@ export const createMockTabGroupRepository = (
         subCategories: [...(extra.subCategories ?? [])],
       }
     }),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
     saveAll: vi.fn(async (next) => {
       state.savedTabs = next
     }),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
+
     removeByIds: vi.fn(async (ids) => {
       const idSet = new Set<string>(ids as unknown as readonly string[])
       state.savedTabs = state.savedTabs.filter(

@@ -150,7 +150,6 @@ const chromeMock = {
       runtimeMessages.push(message)
       if (typeof maybeCallback === 'function') {
         maybeCallback({
-          // eslint-disable-line typescript/no-unsafe-call
           ok: true,
         })
       }
@@ -160,8 +159,7 @@ const chromeMock = {
     local: {
       clear: () => {
         for (const key of Object.keys(storageState)) {
-          // eslint-disable-next-line typescript/no-dynamic-delete
-          delete storageState[key]
+          Reflect.deleteProperty(storageState, key)
         }
         return Promise.resolve()
       },
@@ -187,8 +185,7 @@ const chromeMock = {
         const requestedKeys = resolveRequestedKeys(keys) ?? []
 
         for (const key of requestedKeys) {
-          // eslint-disable-next-line typescript/no-dynamic-delete
-          delete storageState[key]
+          Reflect.deleteProperty(storageState, key)
         }
         return Promise.resolve()
       },
@@ -322,8 +319,7 @@ export const primeStorybookBrowserMocks = (
   createStorybookChromeMock()
 
   for (const key of Object.keys(storageState)) {
-    // eslint-disable-next-line typescript/no-dynamic-delete
-    delete storageState[key]
+    Reflect.deleteProperty(storageState, key)
   }
 
   for (const [key, value] of Object.entries(nextState)) {
@@ -339,10 +335,7 @@ export const setStorybookStorage = (nextState: StorybookStorageState) => {
 
 export const resetStorybookBrowserMocks = () => {
   for (const key of Object.keys(storageState)) {
-    // eslint-disable-next-line typescript/no-dynamic-delete
-    delete storageState[key]
+    Reflect.deleteProperty(storageState, key)
   }
   runtimeMessages.length = 0
 }
-
-export const getStorybookRuntimeMessages = () => [...runtimeMessages]

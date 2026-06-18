@@ -9,16 +9,13 @@ import { createRestoreOpenedUrlsSnapshotViewUseCase } from './RestoreOpenedUrlsS
 
 describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
   it('use-case に snapshot を渡し、storage 形 payload へ変換して返す', async () => {
-    const restoreOpenedUrlsSnapshot = vi.fn(
-      // eslint-disable-next-line typescript/require-await
-      async () => ({
-        restoredCustomProjectOrder: undefined,
-        restoredCustomProjects: [],
-        restoredParentCategories: [],
-        restoredTabGroups: [],
-        restoredUrlRecords: [],
-      }),
-    )
+    const restoreOpenedUrlsSnapshot = vi.fn(async () => ({
+      restoredCustomProjectOrder: undefined,
+      restoredCustomProjects: [],
+      restoredParentCategories: [],
+      restoredTabGroups: [],
+      restoredUrlRecords: [],
+    }))
     const useCase = createRestoreOpenedUrlsSnapshotViewUseCase({
       restoreOpenedUrlsSnapshot:
         restoreOpenedUrlsSnapshot as unknown as RestoreOpenedUrlsSnapshotUseCase,
@@ -91,15 +88,12 @@ describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
   })
 
   it('snapshot の customProjects / parentCategories が undefined のとき payload も undefined のまま', async () => {
-    const restoreOpenedUrlsSnapshot = vi.fn(
-      // eslint-disable-next-line typescript/require-await
-      async () => ({
-        restoredCustomProjects: [],
-        restoredParentCategories: [],
-        restoredTabGroups: [],
-        restoredUrlRecords: [],
-      }),
-    )
+    const restoreOpenedUrlsSnapshot = vi.fn(async () => ({
+      restoredCustomProjects: [],
+      restoredParentCategories: [],
+      restoredTabGroups: [],
+      restoredUrlRecords: [],
+    }))
     const useCase = createRestoreOpenedUrlsSnapshotViewUseCase({
       restoreOpenedUrlsSnapshot:
         restoreOpenedUrlsSnapshot as unknown as RestoreOpenedUrlsSnapshotUseCase,

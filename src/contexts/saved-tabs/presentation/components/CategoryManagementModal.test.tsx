@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-misused-promises, @typescript-eslint/unbound-method, typescript/TS2367, typescript/TS2352, typescript/only-throw-error */
+/* eslint-disable typescript/no-misused-promises, typescript/unbound-method, typescript/only-throw-error -- mock interface で sync callback を使う test idiom */
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 // eslint-disable-next-line eslint/no-unused-vars
@@ -66,10 +66,8 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
@@ -88,7 +86,6 @@ vi.mock('@/components/ui/dialog', () => ({
     children: React.ReactNode
   }) => (
     <div data-testid='dialog-root'>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.()} type='button'>
         dialog-close
       </button>
@@ -230,14 +227,13 @@ const createMockRepositories = (): {
   parentCategoryRepository: ParentCategoryRepository
 } => {
   const tabGroupRepository: TabGroupRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: vi.fn(
       async () =>
         [...mockStateRef.current.savedTabs] as unknown as ReturnType<
           TabGroupRepository['findAll']
         >,
     ),
-    // eslint-disable-next-line typescript/require-await
+
     findById: vi.fn(
       async (id) =>
         (mockStateRef.current.savedTabs.find(
@@ -246,13 +242,13 @@ const createMockRepositories = (): {
     ),
     findRawDomainById: vi.fn(() => Promise.resolve(null)),
     findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: vi.fn(async (groups) => {
       mockStateRef.current.savedTabs = [
         ...groups,
       ] as unknown as typeof mockStateRef.current.savedTabs
     }),
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: vi.fn(async (ids) => {
       const idSet = new Set(ids as unknown as string[])
       mockStateRef.current.savedTabs = mockStateRef.current.savedTabs.filter(
@@ -261,14 +257,13 @@ const createMockRepositories = (): {
     }),
   }
   const parentCategoryRepository: ParentCategoryRepository = {
-    // eslint-disable-next-line typescript/require-await
     findAll: vi.fn(
       async () =>
         [...mockStateRef.current.parentCategories] as unknown as ReturnType<
           ParentCategoryRepository['findAll']
         >,
     ),
-    // eslint-disable-next-line typescript/require-await
+
     findById: vi.fn(
       async (id) =>
         (mockStateRef.current.parentCategories.find(
@@ -277,11 +272,11 @@ const createMockRepositories = (): {
           ParentCategoryRepository['findById']
         >,
     ),
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: vi.fn(async (cats) => {
       mockStateRef.current.parentCategories = [...cats]
     }),
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: vi.fn(async (ids) => {
       const idSet = new Set(ids as unknown as string[])
       mockStateRef.current.parentCategories =
@@ -442,7 +437,6 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
         deps={deps}
         useCases={useCases}
@@ -572,7 +566,6 @@ describe('CategoryManagementModal', () => {
     fireEvent.keyDown(input, { key: 'Enter' })
     fireEvent.blur(input)
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       deferredRename.resolve()
     })
@@ -594,7 +587,6 @@ describe('CategoryManagementModal', () => {
   it('リネーム開始/バリデーション/成功保存/closeガード（isRenaming）を処理する', async () => {
     const onClose = vi.fn()
     const renameParentCategory = vi.fn(
-      // eslint-disable-next-line typescript/require-await
       async (command: { categoryId: ParentCategoryId; newName: string }) => {
         mockStateRef.current.parentCategories =
           mockStateRef.current.parentCategories.map((cat) =>
@@ -658,7 +650,6 @@ describe('CategoryManagementModal', () => {
   it('リネーム失敗時（use-case throw / 確認失敗）に toast.error を出す', async () => {
     // Sub-test 1: renameParentCategory use-case が throw する
     {
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
       const renameParentCategory = vi.fn(async () => {
         throw new Error('use-case failed')
       }) as unknown as RenameParentCategoryUseCase
@@ -698,7 +689,6 @@ describe('CategoryManagementModal', () => {
     toastErrorSpy.mockClear()
     {
       const renameParentCategory = vi.fn(
-        // eslint-disable-next-line typescript/require-await
         async () => mockStateRef.current.parentCategories,
       ) as unknown as RenameParentCategoryUseCase
       const { deps, useCases } = setupMocks({
@@ -738,7 +728,6 @@ describe('CategoryManagementModal', () => {
     // 状態 (mockStateRef) を更新しない (古い name のまま返す) シナリオで
     // 1次検証が失敗することを検証する。
     const renameParentCategory = vi.fn(
-      // eslint-disable-next-line typescript/require-await
       async (command: { categoryId: ParentCategoryId; newName: string }) => {
         // 意図的に state を更新せず、元の name のまま返す
         return mockStateRef.current.parentCategories.map((cat) => ({
@@ -782,7 +771,6 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム保存で non-Error を投げた場合も stack なしでハンドリングする', async () => {
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await
     const renameParentCategory = vi.fn(async () => {
       // eslint-disable-next-line eslint/no-throw-literal
       throw 'string-error'
@@ -930,7 +918,6 @@ describe('CategoryManagementModal', () => {
     // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredRemove = createDeferred<void>()
     const deleteParentCategory = vi.fn(
-      // eslint-disable-next-line typescript/require-await
       async (command: { categoryId: string }) => {
         const idSet = new Set([command.categoryId as unknown as string])
         mockStateRef.current.parentCategories =
@@ -956,7 +943,6 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[]}
         deps={deps}
         useCases={useCases}
@@ -984,7 +970,6 @@ describe('CategoryManagementModal', () => {
     await deleteConfirmButtonProps?.onClick?.()
     expect(deleteParentCategory).toHaveBeenCalledTimes(1)
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       deferredRemove.resolve()
     })
@@ -1005,7 +990,6 @@ describe('CategoryManagementModal', () => {
           isOpen
           onClose={vi.fn()}
           category={createCategory()}
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           domains={[currentDomain]}
           deps={deps}
           useCases={useCases}
@@ -1063,7 +1047,6 @@ describe('CategoryManagementModal', () => {
           isOpen
           onClose={vi.fn()}
           category={createCategory()}
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           domains={[]}
           deps={deps}
           useCases={useCases}
@@ -1148,7 +1131,6 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         domains={[domains3[0]]}
         deps={deps}
         useCases={useCases}
@@ -1188,7 +1170,6 @@ describe('CategoryManagementModal', () => {
     })
     expect(addDomainToParentCategory).toHaveBeenCalledTimes(1)
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       deferredAdd.resolve()
     })
@@ -1251,7 +1232,6 @@ describe('CategoryManagementModal', () => {
           isOpen
           onClose={vi.fn()}
           category={createCategory()}
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           domains={[currentDomain]}
           deps={deps}
           useCases={useCases}
@@ -1285,7 +1265,6 @@ describe('CategoryManagementModal', () => {
           isOpen
           onClose={vi.fn()}
           category={createCategory()}
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           domains={[currentDomain]}
           deps={deps}
           useCases={useCases}
@@ -1334,7 +1313,6 @@ describe('CategoryManagementModal', () => {
   it('ドメイン削除の成功/失敗と closeガード（loading中）を処理する', async () => {
     const originalReadyState = document.readyState
     const removeDomainFromParentCategory = vi.fn(
-      // eslint-disable-next-line typescript/require-await
       async () => mockStateRef.current.parentCategories,
     ) as unknown as RemoveDomainFromParentCategoryUseCase
     const { deps, useCases } = setupMocks({
@@ -1369,7 +1347,6 @@ describe('CategoryManagementModal', () => {
 
     // 失敗ケース: 2 回目の削除は use-case が throw する
     vi.mocked(removeDomainFromParentCategory).mockImplementationOnce(
-      // eslint-disable-next-line typescript/require-await
       async () => {
         throw new Error('boom')
       },
@@ -1480,7 +1457,6 @@ describe('CategoryManagementModal', () => {
     removeButtonProps?.onClick?.()
     expect(removeDomainFromParentCategory).toHaveBeenCalledTimes(1)
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       deferredRemove.resolve()
     })

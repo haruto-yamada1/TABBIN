@@ -137,14 +137,3 @@ export const useI18n = () => {
 }
 
 export const useOptionalI18n = () => use(I18nContext)
-
-export const useI18nText = () => {
-  const context = useOptionalI18n()
-
-  return useMemo(
-    () => (key: string, fallback?: string, values?: Record<string, string>) =>
-      context?.t(key, fallback, values) ??
-      getFallbackText(key, fallback, values),
-    [context],
-  )
-}

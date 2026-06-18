@@ -43,7 +43,7 @@ export const ProjectCardCategoryList = () => {
           <CustomProjectCategory
             projectId={project.id}
             category={categoryName}
-            urls={categoryUrlsByName.get(categoryName) ?? []} // eslint-disable-line react-perf/jsx-no-new-array-as-prop
+            urls={categoryUrlsByName.get(categoryName) ?? []}
             // eslint-disable-next-line react/jsx-handler-names
             handleOpenUrl={handlers.handleOpenUrl}
             // eslint-disable-next-line react/jsx-handler-names
@@ -61,7 +61,6 @@ export const ProjectCardCategoryList = () => {
             settings={settings}
             // eslint-disable-next-line react/jsx-handler-names
             handleOpenAllUrls={handlers.handleOpenAllUrls}
-            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             dragData={{ type: 'category' }}
             isHighlighted={dnd.draggedOverCategory === categoryName}
             isDraggingCategory={dnd.isDraggingCategory}

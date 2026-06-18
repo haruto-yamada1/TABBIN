@@ -12,7 +12,6 @@ interface TabsHarness {
 
 const createChromeHarness = (): TabsHarness => {
   const create = vi.fn(
-    // eslint-disable-next-line typescript/require-await
     async (createProperties: chrome.tabs.CreateProperties) =>
       ({
         id: 900,
@@ -21,12 +20,11 @@ const createChromeHarness = (): TabsHarness => {
       }) as chrome.tabs.Tab,
   )
   const get = vi.fn()
-  // eslint-disable-next-line typescript/require-await
+
   const query = vi.fn(async () => [])
-  // eslint-disable-next-line typescript/require-await
+
   const remove = vi.fn(async () => undefined)
   const update = vi.fn(
-    // eslint-disable-next-line typescript/require-await
     async (tabId: number, updateProperties: chrome.tabs.UpdateProperties) =>
       ({
         id: tabId,

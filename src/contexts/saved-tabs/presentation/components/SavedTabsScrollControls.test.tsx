@@ -11,7 +11,7 @@ const scrollControlState = vi.hoisted(() => ({
   scrollContainerToTarget: vi.fn(),
 }))
 
-vi.mock('@/features/i18n/context/I18nProvider', () => ({
+vi.mock('@/features/i18n/lib/useI18nText', () => ({
   useI18nText: () => (key: string, fallback?: string) => fallback ?? key,
 }))
 
@@ -158,7 +158,6 @@ describe('contexts/SavedTabsScrollControls', () => {
     renderWithContainer('domain')
     const buttons = screen.getAllByRole('button')
     for (const button of buttons) {
-      // eslint-disable-next-line typescript/TS2339
       expect((button as HTMLButtonElement).disabled).toBe(false)
     }
   })

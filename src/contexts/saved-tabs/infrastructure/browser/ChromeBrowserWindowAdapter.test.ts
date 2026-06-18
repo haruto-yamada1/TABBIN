@@ -12,7 +12,6 @@ const createSpyWindows = (
   readonly api: ChromeWindowsApiLike
   readonly create: ReturnType<typeof vi.fn>
 } => {
-  // eslint-disable-next-line typescript/require-await
   const create = vi.fn(async () => ({ tabs: resolvedTabs }))
   const api: ChromeWindowsApiLike = {
     windows: {

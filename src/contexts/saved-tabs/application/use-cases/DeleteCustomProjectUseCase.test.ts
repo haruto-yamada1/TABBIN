@@ -18,26 +18,26 @@ const createInMemoryRepository = (
   let store: CustomProject[] = [...initial]
   const rawStore: CustomProjectRawSnapshot[] = [...initialRaw]
   return {
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
     findAll: async () => store.map((project) => ({ ...project })),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
     findById: async (id) => store.find((project) => project.id === id) ?? null,
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
     saveAll: async (projects) => {
       store = projects.map((project) => ({ ...project }))
     },
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
       store = store.filter((project) => !idSet.has(project.id))
     },
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
     findOrder: async () => store.map((project) => project.id),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
     saveOrder: async () => undefined,
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
     findAllRaw: async () => rawStore.map((raw) => ({ ...raw })),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
     restoreAllRaw: async (raws) => {
       rawStore.length = 0
       rawStore.push(...raws.map((raw) => ({ ...raw })))
@@ -310,7 +310,7 @@ describe('createDeleteCustomProjectUseCase', () => {
     // 強制的に落とす。
     const baseTimestamp = 1_700_000_000_000
     const noRestoreRepo: CustomProjectRepository = {
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findAll: async () => [
         createCustomProject({
           categories: [],
@@ -329,15 +329,15 @@ describe('createDeleteCustomProjectUseCase', () => {
           urlIds: ['existing-url'],
         }),
       ],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findById: async () => null,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       saveAll: async () => undefined,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       removeByIds: async () => undefined,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findOrder: async () => [],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       saveOrder: async () => undefined,
     }
 
@@ -355,7 +355,7 @@ describe('createDeleteCustomProjectUseCase', () => {
     // raw 経路が `findAll` (entity) にフォールバックすることを検証する。
     const baseTimestamp = 1_700_000_000_000
     const noRawRepo: CustomProjectRepository = {
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findAll: async () => [
         createCustomProject({
           categories: [],
@@ -374,14 +374,14 @@ describe('createDeleteCustomProjectUseCase', () => {
           urlIds: ['existing-url'],
         }),
       ],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findById: async () => null,
       saveAll: vi.fn().mockResolvedValue(undefined),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       removeByIds: async () => undefined,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findOrder: async () => [],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       saveOrder: async () => undefined,
     }
 
@@ -406,7 +406,7 @@ describe('createDeleteCustomProjectUseCase', () => {
     // (Line 162-170) を踏む。
     const baseTimestamp = 1_700_000_000_000
     const repoNoRestore: CustomProjectRepository = {
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findAll: async () => [
         createCustomProject({
           categories: [],
@@ -425,18 +425,18 @@ describe('createDeleteCustomProjectUseCase', () => {
           urlIds: ['existing-url'],
         }),
       ],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findById: async () => null,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       saveAll: vi.fn().mockResolvedValue(undefined),
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       removeByIds: async () => undefined,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findOrder: async () => [],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       saveOrder: async () => undefined,
       // findAllRaw は実装するが restoreAllRaw は省略
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findAllRaw: async () => [
         {
           categories: [],
@@ -546,7 +546,7 @@ describe('createDeleteCustomProjectUseCase', () => {
     // `all` に含める。
     const baseTimestamp = 1_700_000_000_000
     const repo: CustomProjectRepository = {
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findAll: async () => [
         createCustomProject({
           categories: [],
@@ -573,18 +573,18 @@ describe('createDeleteCustomProjectUseCase', () => {
           urlIds: [],
         }),
       ],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findById: async () => null,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       saveAll: async () => undefined,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       removeByIds: async () => undefined,
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findOrder: async () => [],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       saveOrder: async () => undefined,
       // findAllRaw に uncategorized を含めない (Line 109 ?? の右辺を踏ませる)
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       findAllRaw: async () => [
         {
           categories: [],
@@ -595,7 +595,7 @@ describe('createDeleteCustomProjectUseCase', () => {
           urlIds: ['url-1'],
         },
       ],
-      // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
+      // eslint-disable-next-line typescript/require-await -- Promise contract は CustomProjectRepository 側で必須
       restoreAllRaw: vi.fn().mockResolvedValue(undefined),
     }
 

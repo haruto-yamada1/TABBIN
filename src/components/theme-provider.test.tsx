@@ -75,7 +75,6 @@ const HookConsumer = () => {
     <div>
       <span data-testid='theme'>{theme}</span>
       <button
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('user')
         }}
@@ -84,7 +83,6 @@ const HookConsumer = () => {
         set-user
       </button>
       <button
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           setTheme('dark')
         }}
@@ -105,7 +103,6 @@ describe('ThemeProvider', () => {
     prefersDark = false
     setMatchMediaMock()
 
-    // eslint-disable-next-line typescript/require-await
     storageLocalMock.get.mockImplementation(async (key: string) => ({
       [key]: storageValues[key],
     }))

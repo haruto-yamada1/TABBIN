@@ -31,15 +31,14 @@ const createInMemoryUrlRecordRepository = (
 ): UrlRecordRepository => {
   let stored = [...records]
   return {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => stored,
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) => stored.find((record) => record.id === id) ?? null,
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async (next) => {
       stored = [...next]
     },
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async () => undefined,
   }
 }
@@ -54,20 +53,19 @@ const createInMemoryTabGroupRepository = (
   const repo: TabGroupRepository & {
     saveAllCalls: readonly DomainTabGroup[][]
   } = {
-    // eslint-disable-next-line typescript/require-await
     findAll: async () => stored,
-    // eslint-disable-next-line typescript/require-await
+
     findById: async (id) => stored.find((group) => group.id === id) ?? null,
-    // eslint-disable-next-line typescript/require-await
+
     findRawDomainById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     findRawTabGroupById: async () => null,
-    // eslint-disable-next-line typescript/require-await
+
     saveAll: async (next) => {
       stored = [...next]
       saveAllCalls.push([...next])
     },
-    // eslint-disable-next-line typescript/require-await
+
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
       stored = stored.filter((group) => !idSet.has(group.id))

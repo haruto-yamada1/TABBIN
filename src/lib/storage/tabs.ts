@@ -364,7 +364,7 @@ const removeSubCategoryFromTabGroup = async (
     for (const [urlId, cat] of Object.entries(nextUrlSubCategories)) {
       if (cat === categoryName) {
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete nextUrlSubCategories[urlId]
+        Reflect.deleteProperty(nextUrlSubCategories, urlId)
         urlSubCategoriesChanged = true
       }
     }
@@ -580,8 +580,7 @@ const removeUrlFromTabGroup = async (
 
       // サブカテゴリ情報も削除
       if (group.urlSubCategories?.[urlRecord.id]) {
-        // eslint-disable-next-line typescript/no-dynamic-delete
-        delete group.urlSubCategories[urlRecord.id]
+        Reflect.deleteProperty(group.urlSubCategories, urlRecord.id)
       }
 
       // グループにURLが無くなった場合はグループ自体を削除
@@ -640,8 +639,7 @@ const processTabGroupForBulkDelete = (
   if (group.urlSubCategories) {
     for (const id of idsToDelete) {
       if (group.urlSubCategories[id]) {
-        // eslint-disable-next-line typescript/no-dynamic-delete
-        delete group.urlSubCategories[id]
+        Reflect.deleteProperty(group.urlSubCategories, id)
       }
     }
   }

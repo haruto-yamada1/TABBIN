@@ -12,17 +12,17 @@ const createInMemoryRepository = (
 ): ParentCategoryRepository => {
   let store: ReturnType<typeof createParentCategory>[] = [...initial]
   return {
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     findAll: async () => store.map((category) => ({ ...category })),
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     findById: async (id) =>
       store.find((category) => category.id === id) ?? null,
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     removeByIds: async (ids) => {
       const idSet = new Set(ids)
       store = store.filter((category) => !idSet.has(category.id))
     },
-    // eslint-disable-next-line @typescript-eslint/require-await, typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
+    // eslint-disable-next-line typescript/require-await -- Promise contract は ParentCategoryRepository 側で必須
     saveAll: async (categories) => {
       store = categories.map((category) => ({ ...category }))
     },

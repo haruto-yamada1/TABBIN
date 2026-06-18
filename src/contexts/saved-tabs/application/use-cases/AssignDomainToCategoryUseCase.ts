@@ -26,7 +26,7 @@ export interface AssignDomainToCategoryCommand {
  * 未分類を表すセンチネル値。presentation 層から `'none'` 文字列で
  * 渡されるケースと互換。`createParentCategoryId` の対象にもならない。
  */
-export const UNCATEGORIZED_SENTINEL = 'none' as const
+const UNCATEGORIZED_SENTINEL = 'none' as const
 
 export interface AssignDomainToCategoryResult {
   readonly all: readonly ParentCategory[]

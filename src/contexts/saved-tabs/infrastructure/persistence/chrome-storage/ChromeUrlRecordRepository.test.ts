@@ -32,7 +32,7 @@ const createPort = (state: StorageState): ChromeStorageLocalPort => {
     get: vi.fn((key: string) => Promise.resolve({ [key]: state[key] })),
     remove: vi.fn((key: string) => {
       // dynamic key 削除は storage エミュレーション上不可避免
-      // eslint-disable-next-line typescript/no-dynamic-delete
+
       delete state[key]
       return Promise.resolve()
     }),
@@ -86,7 +86,6 @@ describe('ChromeUrlRecordRepository', () => {
       vi.mocked(getChromeStorageLocal).mockReturnValue({
         get: (key: string) => Promise.resolve({ [key]: state[key] }),
         remove: (key: string) => {
-          // eslint-disable-next-line typescript/no-dynamic-delete
           delete state[key]
           return Promise.resolve()
         },

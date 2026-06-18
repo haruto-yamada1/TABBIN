@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* eslint-disable typescript/no-misused-promises, typescript/require-await, typescript/unbound-method -- chrome.storage.local.get の mock 実装が interface シグネチャに async を要求し、かつ同期分岐を持つテスト idiom */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/lib/storage/settings', () => ({
@@ -87,7 +87,6 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
   const readValue = <T>(value: T): T =>
     options.cloneReads ? structuredClone(value) : value
 
-  // eslint-disable-next-line typescript/require-await
   const getMock = vi.fn(async (keys?: unknown) => {
     if (options.rejectGet) {
       throw new Error('storage get failed')
@@ -123,7 +122,6 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
     return readValue({ ...storageState })
   })
 
-  // eslint-disable-next-line typescript/require-await
   const setMock = vi.fn(async (next: Record<string, unknown>) => {
     if (options.rejectSet) {
       throw new Error('storage set failed')
@@ -182,7 +180,7 @@ describe('url-storage', () => {
     const result = await handleUrlDropped('https://example.com', true)
 
     expect(result).toBe('skipped')
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
   })
 
@@ -208,7 +206,7 @@ describe('url-storage', () => {
     const result = await handleUrlDropped('https://example.com', true)
 
     expect(result).toBe('removed')
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -261,7 +259,6 @@ describe('url-storage', () => {
       url: 'https://example.com#hash',
     } as chrome.tabs.Tab)
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -284,7 +281,6 @@ describe('url-storage', () => {
       url: 'https://example.com/path',
     } as chrome.tabs.Tab)
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
     expect(getDraggedUrlInfo()).toBeNull()
   })
@@ -369,9 +365,8 @@ describe('url-storage', () => {
     await Promise.resolve()
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       parentCategories: [
         {
@@ -445,7 +440,6 @@ describe('url-storage', () => {
     await removeUrlFromStorage('https://single.example.com')
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).not.toHaveBeenCalledWith({
       parentCategories: expect.anything(),
     })
@@ -464,7 +458,6 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
       // eslint-disable-line
       // eslint-disable-line
@@ -495,7 +488,6 @@ describe('url-storage', () => {
     ).resolves.toBeUndefined()
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
     expect(console.error).toHaveBeenCalledWith(
       '親カテゴリからの削除中にエラーが発生しました:',
@@ -529,7 +521,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://example.com')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
   })
 
@@ -554,7 +545,6 @@ describe('url-storage', () => {
     await removeUrlFromStorage('https://does-not-exist.example.com')
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -563,7 +553,7 @@ describe('url-storage', () => {
         },
       ],
     })
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).not.toHaveBeenCalledWith({
       parentCategories: expect.anything(),
     })
@@ -592,7 +582,6 @@ describe('url-storage', () => {
     await removeUrlFromStorage('https://target.example.com')
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       parentCategories: [
         {
@@ -619,7 +608,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
     let callCount = 0
-    // eslint-disable-next-line typescript/require-await
+
     vi.mocked(chrome.storage.local.get).mockImplementation(
       // eslint-disable-line
       // eslint-disable-line
@@ -655,7 +644,6 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
       // eslint-disable-line
       // eslint-disable-line
@@ -778,7 +766,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -854,7 +841,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -901,7 +887,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -943,7 +928,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -980,7 +964,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -1007,7 +990,6 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
       // eslint-disable-line
       // eslint-disable-line
@@ -1034,7 +1016,7 @@ describe('url-storage', () => {
     )
 
     await removeUrlFromStorage('https://fallback.example.com')
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
   })
 
@@ -1063,7 +1045,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://domainnames.example.com')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       parentCategories: [
         {
@@ -1147,18 +1128,18 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['url-1', 'url-2'])
 
     expect(removedCount).toBe(2)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.get).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.get).toHaveBeenCalledWith([
       'savedTabs',
       'urls',
       'customProjects',
       'parentCategories',
     ])
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       customProjects: [
         {
@@ -1207,7 +1188,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage([''])
 
     expect(removedCount).toBe(0)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.get).not.toHaveBeenCalled()
   })
 
@@ -1224,7 +1205,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['url-1'])
 
     expect(removedCount).toBe(0)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
   })
 
@@ -1271,7 +1252,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['url-1'])
 
     expect(removedCount).toBe(1)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -1355,7 +1336,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['url-1'])
 
     expect(removedCount).toBe(1)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       customProjects: [
         {
@@ -1419,7 +1400,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['missing-url'])
 
     expect(removedCount).toBe(0)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
     expect(invalidateUrlCache).not.toHaveBeenCalled()
   })
@@ -1449,7 +1430,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['stale-url'])
 
     expect(removedCount).toBe(0)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {

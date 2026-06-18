@@ -1,5 +1,4 @@
-/* eslint-disable */
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
+/* eslint-disable max-lines-per-function, typescript/consistent-type-imports, typescript/no-misused-promises, typescript/require-await -- vi.importActual の typeof import および mock interface の sync 実装 */
 // @vitest-environment jsdom
 import {
   act,
@@ -108,7 +107,6 @@ const mocked = vi.hoisted(() => {
     ],
   }
 
-  // eslint-disable-next-line typescript/require-await
   const getProjectUrls = vi.fn(async (project: CustomProject) => {
     return projectUrlsById[project.id] ?? []
   })
@@ -260,7 +258,6 @@ vi.mock('@/contexts/saved-tabs/presentation/components/Header', () => ({
         search
         <input
           aria-label='search'
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onChange={(event) => {
             onSearchChange(event.target.value)
           }}
@@ -418,7 +415,6 @@ vi.mock('@/lib/storage/categories', () => ({
 }))
 
 vi.mock('@/lib/storage/projects', () => ({
-  // eslint-disable-next-line typescript/require-await
   getCustomProjects: vi.fn(async () => mocked.projectState.customProjects),
   getProjectUrls: mocked.getProjectUrls,
   moveUrlBetweenCustomProjects: vi.fn(),
@@ -431,7 +427,7 @@ vi.mock('@/lib/storage/projects', () => ({
 
 vi.mock('@/lib/storage/tabs', () => ({
   addSubCategoryToGroup: vi.fn(),
-  // eslint-disable-next-line typescript/require-await
+
   getTabGroupUrls: vi.fn(async () => []),
   removeUrlIdsFromTabGroup: vi.fn(),
   removeUrlsFromTabGroup: vi.fn(),
@@ -452,6 +448,37 @@ const _legacySaveParentCategories = vi.fn(async (): Promise<void> => undefined)
 const _legacyRemoveUrlFromAll = vi.fn(async (): Promise<void> => undefined)
 const _legacyRemoveUrlIdsFromAll = vi.fn(async (): Promise<void> => undefined)
 const _legacyRemoveUrlsFromAll = vi.fn(async (): Promise<void> => undefined)
+
+// chrome.storage.local.get 風の mock を生成する。同期実装でモック interface の
+// シグネチャに合わせるため async だが await は不要。
+const createStorageGetMock = (
+  values: Record<string, unknown>,
+): ReturnType<typeof vi.fn> =>
+  // eslint-disable-next-line typescript/require-await -- mock interface 同期実装
+  vi.fn(async (key: string | string[]) => {
+    const keys = Array.isArray(key) ? key : [key]
+    const result: Record<string, unknown> = {}
+    for (const k of keys) {
+      if (k in values) {
+        result[k] = values[k]
+      }
+    }
+    return result
+  })
+
+interface MockSpy {
+  mock: { calls: unknown[][] }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- 呼び出し側で `getLastCallFirstArg<{...}>(spy)` のように型指定する。明示的な型指定の方がテスト・lint での追跡性が高い
+const getLastCallFirstArg = <T,>(spy: MockSpy): T => {
+  const lastCall = spy.mock.calls.at(-1)
+  if (lastCall === undefined) {
+    throw new Error('Expected at least one call to the spy')
+  }
+  return lastCall[0] as T
+}
+
 import {
   getTabGroupUrls,
   removeUrlIdsFromTabGroup,
@@ -550,7 +577,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => testSnapshot),
           set: vi.fn(),
         },
@@ -613,11 +639,11 @@ describe('SavedTabsApp custom search', () => {
     ).toStrictEqual(['group-ordered', 'group-extra'])
 
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    // eslint-disable-next-line typescript/require-await
+
     const refreshTabGroupsWithUrls = vi.fn(async () => {
       throw new Error('restore failed')
     })
-    // eslint-disable-next-line typescript/require-await
+
     const restoreOpenedUrlsSnapshotView = vi.fn(async () => ({
       customProjects: undefined,
       parentCategories: undefined,
@@ -1219,7 +1245,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: mocked.tabDataState.tabGroups,
           })),
@@ -1240,7 +1265,7 @@ describe('SavedTabsApp custom search', () => {
         getURL: vi.fn(),
       },
     } as unknown as typeof chrome
-    // eslint-disable-next-line typescript/require-await
+
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       // eslint-disable-line
       options.setSettings({
@@ -1315,7 +1340,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key: string) => {
             if (key === 'parentCategories') {
               return { parentCategories: [category] }
@@ -1391,7 +1415,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
             customProjects: customProjectsSnapshot,
@@ -1484,6 +1507,92 @@ describe('SavedTabsApp custom search', () => {
     expect(_legacyRemoveUrlFromAll).not.toHaveBeenCalled()
   })
 
+  // Codex P2 review 対応: preflight (`prepareTabGroupDeletion`) は
+  // delete よりも **必ず先に** 完了させる必要がある。`PrepareTabGroupDeletionUseCase`
+  // は内部で `tabGroupRepository.findRawTabGroupById` を呼ぶため、
+  // `deleteTabGroup` が先に `savedTabs` から対象を消すと preflight が
+  // `null` を見て silent skip し、category/mapping の永続化が抜ける。
+  //
+  // 検証方法: 既存の `'ドメイン全削除ではカスタムプロジェクト同期を URL ごと
+  // ではなく一括で実行する'` テストでは `prepareTabGroupDeletion` の呼び出し
+  // 引数のみ検証している (mock.results.at(-1).value.mock.calls)。本テスト
+  // はそれに加え、use-case が呼ばれたこと (mock.results が空でない) を確認し、
+  // race で skip されていないことを担保する。
+  it('グループ削除時 preflight use-case が必ず呼ばれる (race で skip されない)', async () => {
+    const group: TabGroup = {
+      id: 'group-1',
+      domain: 'example.com',
+      urls: [
+        { id: 'url-a', url: 'https://example.com/a', title: 'A' },
+        { id: 'url-b', url: 'https://example.com/b', title: 'B' },
+      ],
+      urlIds: ['url-a', 'url-b'],
+    }
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef = { current: 'domain' }
+    mocked.categoryState.categories = []
+    mocked.tabDataState.tabGroups = [group]
+    mocked.tabDataState.tabGroupsWithUrls = [group]
+    const customProjectsSnapshot: CustomProject[] = [
+      {
+        id: 'project-1',
+        name: 'Project A',
+        urlIds: ['url-a', 'url-b'],
+        categories: [],
+        createdAt: 1,
+        updatedAt: 2,
+      },
+    ]
+    const chromeSetMock = vi.fn()
+    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    chromeGlobal.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => ({
+            customProjectOrder: ['project-1'],
+            customProjects: customProjectsSnapshot,
+            savedTabs: [group],
+          })),
+          set: chromeSetMock,
+        },
+        onChanged: {
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+        },
+      },
+      tabs: { create: vi.fn() },
+      windows: { create: vi.fn() },
+      runtime: { getURL: vi.fn() },
+    } as unknown as typeof chrome
+
+    vi.mocked(getTabGroupUrls).mockResolvedValue([
+      { url: 'https://example.com/a', title: 'A', id: 'url-a', savedAt: 1 },
+      { url: 'https://example.com/b', title: 'B', id: 'url-b', savedAt: 2 },
+    ])
+
+    render(<SavedTabsApp initialViewMode='domain' />)
+
+    const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
+      -1,
+    )?.[0] as {
+      handleDeleteGroup: (id: string) => Promise<void>
+    }
+
+    await domainProps.handleDeleteGroup('group-1')
+
+    // `PrepareTabGroupDeletionUseCase` factory が呼ばれ、戻り値 (mock fn) も
+    // 呼ばれていることを確認。`Promise.all` で並列化した結果 delete が先に
+    // 完了し preflight が `null` で skip された場合はこの呼び出しが消える。
+    const prepareFactory = vi.mocked(createPrepareTabGroupDeletionUseCase)
+    expect(prepareFactory).toHaveBeenCalled()
+    const prepareCall = prepareFactory.mock.results.at(-1) as
+      | { readonly value: { mock: { calls: unknown[][] } } }
+      | undefined
+    const prepareFn = prepareCall?.value
+    expect(prepareFn).toBeDefined()
+    expect(prepareFn?.mock.calls.length).toBeGreaterThan(0)
+  })
+
   it('ドメイン子カテゴリ一括削除では URL 文字列ではなく URL ID ベースの削除を優先する', async () => {
     const group: TabGroup = {
       id: 'group-1',
@@ -1529,7 +1638,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key: string) => {
             if (key === 'savedTabs') {
               return { savedTabs: [group] }
@@ -1597,7 +1705,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [] })),
           set: chromeSetMock,
         },
@@ -1672,14 +1779,8 @@ describe('SavedTabsApp custom search', () => {
 
     await waitFor(() => {
       expect(
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-            // eslint-disable-line
-            // eslint-disable-line
-            // eslint-disable-line
-            uncategorizedForDisplay: TabGroup[]
-          }
+        getLastCallFirstArg<{ uncategorizedForDisplay: TabGroup[] }>(
+          mocked.domainModeContainerSpy,
         ).uncategorizedForDisplay.map((group) => group.id),
       ).toStrictEqual(['second', 'first'])
     })
@@ -1701,14 +1802,8 @@ describe('SavedTabsApp custom search', () => {
 
     await waitFor(() => {
       expect(
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-            // eslint-disable-line
-            // eslint-disable-line
-            // eslint-disable-line
-            uncategorizedForDisplay: TabGroup[]
-          }
+        getLastCallFirstArg<{ uncategorizedForDisplay: TabGroup[] }>(
+          mocked.domainModeContainerSpy,
         ).uncategorizedForDisplay.map((group) => group.id),
       ).toStrictEqual(['first', 'second'])
     })
@@ -1721,14 +1816,8 @@ describe('SavedTabsApp custom search', () => {
     })
 
     expect(
-      // eslint-disable-next-line typescript/no-non-null-assertion
-      (
-        mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-          // eslint-disable-line
-          // eslint-disable-line
-          // eslint-disable-line
-          uncategorizedForDisplay: TabGroup[]
-        }
+      getLastCallFirstArg<{ uncategorizedForDisplay: TabGroup[] }>(
+        mocked.domainModeContainerSpy,
       ).uncategorizedForDisplay.map((group) => group.id),
     ).toStrictEqual(['first', 'second'])
   })
@@ -1766,7 +1855,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key: string | string[]) => {
             const keys = Array.isArray(key) ? key : [key]
             const result: Record<string, unknown> = {}
@@ -1874,7 +1962,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
             customProjects: customProjectsSnapshot,
@@ -1969,7 +2056,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key: string | string[]) => {
             const keys = Array.isArray(key) ? key : [key]
             const result: Record<string, unknown> = {}
@@ -2142,7 +2228,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key: string) => {
             if (key === 'savedTabs') {
               return {
@@ -2214,7 +2299,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [] })),
           set: vi.fn(),
         },
@@ -2343,7 +2427,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key?: string) => {
             if (key === 'urls') {
               return {
@@ -2492,7 +2575,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [group] })),
           set: chromeSetMock,
         },
@@ -2556,7 +2638,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [group1, group2] })),
           set: chromeSetMock,
         },
@@ -2599,14 +2680,8 @@ describe('SavedTabsApp custom search', () => {
     })
     await waitFor(() => {
       expect(
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-            // eslint-disable-line
-            // eslint-disable-line
-            // eslint-disable-line
-            state: { isUncategorizedReorderMode: boolean }
-          }
+        getLastCallFirstArg<{ state: { isUncategorizedReorderMode: boolean } }>(
+          mocked.domainModeContainerSpy,
         ).state.isUncategorizedReorderMode,
       ).toBe(true)
     })
@@ -2620,14 +2695,8 @@ describe('SavedTabsApp custom search', () => {
     })
     await waitFor(() => {
       expect(
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-            // eslint-disable-line
-            // eslint-disable-line
-            // eslint-disable-line
-            state: { isUncategorizedReorderMode: boolean }
-          }
+        getLastCallFirstArg<{ state: { isUncategorizedReorderMode: boolean } }>(
+          mocked.domainModeContainerSpy,
         ).state.isUncategorizedReorderMode,
       ).toBe(false)
     })
@@ -2643,14 +2712,8 @@ describe('SavedTabsApp custom search', () => {
     })
     await waitFor(() => {
       expect(
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-            // eslint-disable-line
-            // eslint-disable-line
-            // eslint-disable-line
-            state: { isUncategorizedReorderMode: boolean }
-          }
+        getLastCallFirstArg<{ state: { isUncategorizedReorderMode: boolean } }>(
+          mocked.domainModeContainerSpy,
         ).state.isUncategorizedReorderMode,
       ).toBe(true)
     })
@@ -2667,7 +2730,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [] })),
           set: vi.fn(),
         },
@@ -2806,7 +2868,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key: string | string[]) => {
             const keys = Array.isArray(key) ? key : [key]
             const result: Record<string, unknown> = {}
@@ -2898,7 +2959,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => {
             throw new Error('sync read failed')
           }),
@@ -3012,7 +3072,6 @@ describe('SavedTabsApp custom search', () => {
     })
   })
 
-  // eslint-disable-next-line typescript/require-await
   it('initialViewMode prop の変更で viewMode 解決状態を更新する', async () => {
     mocked.projectState.viewMode = 'custom'
     mocked.projectState.viewModeRef = { current: 'custom' }
@@ -3045,7 +3104,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [group] })),
           set: vi.fn(),
         },
@@ -3065,7 +3123,6 @@ describe('SavedTabsApp custom search', () => {
       },
     } as unknown as typeof chrome
 
-    // eslint-disable-next-line typescript/require-await
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       // eslint-disable-line
       options.setSettings({
@@ -3097,14 +3154,8 @@ describe('SavedTabsApp custom search', () => {
 
     await waitFor(() => {
       expect(
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-            // eslint-disable-line
-            // eslint-disable-line
-            // eslint-disable-line
-            settings: UserSettingsDto
-          }
+        getLastCallFirstArg<{ settings: UserSettingsDto }>(
+          mocked.domainModeContainerSpy,
         ).settings.openAllInNewWindow,
       ).toBe(true)
     })
@@ -3157,7 +3208,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
@@ -3243,7 +3293,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
@@ -3325,7 +3374,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
@@ -3458,7 +3506,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [group] })),
           set: chromeSetMock,
         },
@@ -3525,14 +3572,8 @@ describe('SavedTabsApp custom search', () => {
     })
     await waitFor(() => {
       expect(
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-            // eslint-disable-line
-            // eslint-disable-line
-            // eslint-disable-line
-            state: { isUncategorizedReorderMode: boolean }
-          }
+        getLastCallFirstArg<{ state: { isUncategorizedReorderMode: boolean } }>(
+          mocked.domainModeContainerSpy,
         ).state.isUncategorizedReorderMode,
       ).toBe(true)
     })
@@ -3554,7 +3595,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [] })),
           set: vi.fn(),
         },
@@ -3613,7 +3653,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: storedGroups })),
           set: vi.fn(),
         },
@@ -3701,21 +3740,11 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async (key: unknown) => {
-            const keys = Array.isArray(key)
-              ? (key as string[])
-              : typeof key === 'string'
-                ? [key]
-                : []
-            const result: Record<string, unknown> = {}
-            for (const k of keys) {
-              if (k === 'savedTabs') result.savedTabs = [group]
-              if (k === 'urls') result.urls = urlRecords
-              if (k === 'customProjects') result.customProjects = []
-              if (k === 'customProjectOrder') result.customProjectOrder = []
-            }
-            return result
+          get: createStorageGetMock({
+            customProjectOrder: [],
+            customProjects: [],
+            savedTabs: [group],
+            urls: urlRecords,
           }),
           set: chromeSetMock,
         },
@@ -3782,7 +3811,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [] })),
           set: chromeSetMock,
         },
@@ -3801,7 +3829,7 @@ describe('SavedTabsApp custom search', () => {
         getURL: vi.fn(),
       },
     } as unknown as typeof chrome
-    // eslint-disable-next-line typescript/require-await
+
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       // eslint-disable-line
       options.setSettings({
@@ -3884,22 +3912,11 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async (key: unknown) => {
-            const keys = Array.isArray(key)
-              ? (key as string[])
-              : typeof key === 'string'
-                ? [key]
-                : []
-            const result: Record<string, unknown> = {}
-            for (const k of keys) {
-              if (k === 'savedTabs') result.savedTabs = [group]
-              if (k === 'urls') result.urls = urlRecords
-              if (k === 'customProjects')
-                result.customProjects = customProjectsSnapshot
-              if (k === 'customProjectOrder') result.customProjectOrder = []
-            }
-            return result
+          get: createStorageGetMock({
+            customProjectOrder: [],
+            customProjects: customProjectsSnapshot,
+            savedTabs: [group],
+            urls: urlRecords,
           }),
           set: chromeSetMock,
         },
@@ -3962,7 +3979,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [group] })),
           set: chromeSetMock,
         },
@@ -4023,7 +4039,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key?: string) => {
             if (key === 'urls') {
               return {
@@ -4100,7 +4115,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key?: string) => {
             if (key === 'urls') {
               return {
@@ -4206,7 +4220,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [group1, group2] })),
           set: vi.fn(),
         },
@@ -4245,14 +4258,8 @@ describe('SavedTabsApp custom search', () => {
     })
     await waitFor(() => {
       expect(
-        // eslint-disable-next-line typescript/no-non-null-assertion
-        (
-          mocked.domainModeContainerSpy.mock.calls.at(-1)![0] as {
-            // eslint-disable-line
-            // eslint-disable-line
-            // eslint-disable-line
-            state: { isUncategorizedReorderMode: boolean }
-          }
+        getLastCallFirstArg<{ state: { isUncategorizedReorderMode: boolean } }>(
+          mocked.domainModeContainerSpy,
         ).state.isUncategorizedReorderMode,
       ).toBe(true)
     })
@@ -4314,7 +4321,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
@@ -4364,7 +4370,7 @@ describe('SavedTabsApp custom search', () => {
     // `syncCategoryAssignments` use-effect が同じキーを再 set するため、
     // 最後に見つかった `parentCategories` set 呼び出しを検証する。
     const parentCategoriesSetCall = [...chromeSetMock.mock.calls]
-      .reverse()
+      .toReversed()
       .find((call) =>
         Boolean(
           (call[0] as { parentCategories?: unknown } | undefined)
@@ -4402,7 +4408,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [], urls: [] })),
           set: vi.fn(),
         },
@@ -4481,22 +4486,11 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async (key: unknown) => {
-            const keys = Array.isArray(key)
-              ? (key as string[])
-              : typeof key === 'string'
-                ? [key]
-                : []
-            const result: Record<string, unknown> = {}
-            for (const k of keys) {
-              if (k === 'savedTabs') result.savedTabs = [group]
-              if (k === 'urls') result.urls = urlRecords
-              if (k === 'customProjects')
-                result.customProjects = customProjectsSnapshot
-              if (k === 'customProjectOrder') result.customProjectOrder = []
-            }
-            return result
+          get: createStorageGetMock({
+            customProjectOrder: [],
+            customProjects: customProjectsSnapshot,
+            savedTabs: [group],
+            urls: urlRecords,
           }),
           set: chromeSetMock,
         },
@@ -4596,21 +4590,11 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
-          get: vi.fn(async (key: unknown) => {
-            const keys = Array.isArray(key)
-              ? (key as string[])
-              : typeof key === 'string'
-                ? [key]
-                : []
-            const result: Record<string, unknown> = {}
-            for (const k of keys) {
-              if (k === 'savedTabs') result.savedTabs = [group1, group2]
-              if (k === 'urls') result.urls = urlRecords
-              if (k === 'customProjects') result.customProjects = []
-              if (k === 'customProjectOrder') result.customProjectOrder = []
-            }
-            return result
+          get: createStorageGetMock({
+            customProjectOrder: [],
+            customProjects: [],
+            savedTabs: [group1, group2],
+            urls: urlRecords,
           }),
           set: chromeSetMock,
         },
@@ -4662,7 +4646,6 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({ savedTabs: [], urls: [] })),
           set: vi.fn(),
         },
@@ -4684,7 +4667,7 @@ describe('SavedTabsApp custom search', () => {
 
     // 初期 settings は openUrlInBackground=true（defaultSettings 由来）。
     // 設定変更を syncStorageChanges 経由で false に切り替えてから再度開く。
-    // eslint-disable-next-line typescript/require-await
+
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       options.setSettings({
         ...mocked.settings,

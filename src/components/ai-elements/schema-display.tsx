@@ -362,16 +362,6 @@ export const SchemaDisplayResponse = ({
 
 export type SchemaDisplayBodyProps = HTMLAttributes<HTMLDivElement>
 
-export const SchemaDisplayBody = ({
-  className,
-  children,
-  ...props
-}: SchemaDisplayBodyProps) => (
-  <div className={cn('divide-y', className)} {...props}>
-    {children}
-  </div>
-)
-
 export type SchemaDisplayPropertyProps = HTMLAttributes<HTMLDivElement> &
   SchemaProperty & {
     depth?: number
@@ -477,19 +467,3 @@ export const SchemaDisplayProperty = ({
 }
 
 export type SchemaDisplayExampleProps = HTMLAttributes<HTMLPreElement>
-
-export const SchemaDisplayExample = ({
-  className,
-  children,
-  ...props
-}: SchemaDisplayExampleProps) => (
-  <pre
-    className={cn(
-      'mx-4 mb-4 overflow-auto rounded-md bg-muted p-4 font-mono text-sm',
-      className,
-    )}
-    {...props}
-  >
-    {children}
-  </pre>
-)

@@ -34,7 +34,6 @@ const Alert = ({
   />
 )
 Alert.displayName = 'Alert'
-
 const AlertTitle = ({
   children,
   className,
@@ -50,7 +49,6 @@ const AlertTitle = ({
   </h5>
 )
 AlertTitle.displayName = 'AlertTitle'
-
 const AlertDescription = ({
   className,
   ref,

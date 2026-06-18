@@ -3,10 +3,7 @@ import {
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import {
-  toDomainCategoryMappingDtoArray,
-  toStorageDomainCategoryMappings,
-} from '../../../application/mappers/SavedTabsDtosMapper'
+import { toStorageDomainCategoryMappings } from '../../../application/mappers/SavedTabsDtosMapper'
 import type { DomainCategoryMappingDto } from '../../../domain/dto/DomainCategoryMappingDto'
 import type { DomainCategoryMappingRepository } from '../../../domain/repositories/DomainCategoryMappingRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
@@ -91,4 +88,3 @@ export const createChromeDomainCategoryMappingRepository = (
 
 // re-export して他モジュールが `toDomainCategoryMappingDtoArray` を
 // 利用できるよう公開する。
-export { toDomainCategoryMappingDtoArray }

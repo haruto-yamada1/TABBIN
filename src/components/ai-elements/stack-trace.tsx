@@ -68,7 +68,6 @@ const useStackTrace = () => {
   return context
 }
 
-// eslint-disable-next-line eslint/complexity
 const parseStackFrame = (line: string): StackFrame => {
   const trimmed = line.trim()
 
@@ -307,7 +306,6 @@ const handleActionsKeyDown = (e: React.KeyboardEvent) => {
 
 export const StackTraceActions = memo(
   ({ className, children, ...props }: StackTraceActionsProps) => (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <fieldset
       className={cn(
         'm-0 flex min-w-0 shrink-0 items-center gap-1 border-0 p-0',
@@ -371,7 +369,6 @@ export const StackTraceCopyButton = memo(
     return (
       <Button
         className={cn('size-7', className)}
-        // eslint-disable-next-line typescript/no-misused-promises
         onClick={copyToClipboard}
         size='icon'
         variant='ghost'
@@ -428,7 +425,6 @@ export const StackTraceContent = memo(
             'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
             className,
           )}
-          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           style={{ maxHeight }}
           {...props}
         >

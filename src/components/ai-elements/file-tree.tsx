@@ -28,11 +28,9 @@ interface FileTreeContextType {
 }
 
 // Default noop for context default value
-// oxlint-disable-next-line eslint(no-empty-function)
 const noop = () => {}
 
 const FileTreeContext = createContext<FileTreeContextType>({
-  // oxlint-disable-next-line eslint-plugin-unicorn(no-new-builtin)
   expandedPaths: new Set(),
   togglePath: noop,
 })
@@ -254,11 +252,7 @@ export const FileTreeFile = ({
 
 export type FileTreeIconProps = HTMLAttributes<HTMLSpanElement>
 
-export const FileTreeIcon = ({
-  className,
-  children,
-  ...props
-}: FileTreeIconProps) => (
+const FileTreeIcon = ({ className, children, ...props }: FileTreeIconProps) => (
   <span className={cn('shrink-0', className)} {...props}>
     {children}
   </span>
@@ -287,7 +281,6 @@ export const FileTreeActions = ({
   children,
   ...props
 }: FileTreeActionsProps) => (
-  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
   <fieldset
     className={cn(
       'm-0 ml-auto flex min-w-0 items-center gap-1 border-0 p-0',

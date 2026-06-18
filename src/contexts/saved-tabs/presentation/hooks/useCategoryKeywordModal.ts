@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import {
+  toDomainTabGroupFromStorage,
+  toPresentationTabGroups,
+  toStorageParentCategory,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
@@ -225,11 +230,10 @@ export const useCategoryKeywordModal = ({
 
   const loadParentCategories = useCallback(async () => {
     try {
-      const stored =
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded readonly) を storage 層 ParentCategory へ投影
-        (await getSavedTabsPageDataQueryRef.current())
-          .parentCategories as unknown as readonly ParentCategory[]
-      const storedCategories = [...stored]
+      // domain → storage 投影は mapper 内に閉じ、`as unknown as` を排除する。
+      const stored = (await getSavedTabsPageDataQueryRef.current())
+        .parentCategories
+      const storedCategories = stored.map(toStorageParentCategory)
       setInternalParentCategories(storedCategories)
       const updateCallback = onUpdateParentCategoriesRef.current
       if (updateCallback) {
@@ -331,11 +335,11 @@ export const useCategoryKeywordModal = ({
       updateCategoryEditState({ keywords: updatedKeywords })
       try {
         const pageData = await getSavedTabsPageDataQuery()
-        // domain.TabGroup (branded readonly) を storage shape へ投影してから
-        // presentation 専用フィールド (`categoryKeywords` / `urls` /
-        // `subCategory` 付き url) を編集する。
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
+        // domain.TabGroup → presentation shape 投影と port 入口の
+        // domain 復帰は mapper (`toPresentationTabGroups` /
+        // `toDomainTabGroupFromStorage`) 内に閉じ、呼び出し側からは
+        // `as unknown as ...` disable を排除する。
+        const savedTabs = toPresentationTabGroups(pageData.tabGroups)
         const updatedGroups = savedTabs.map((g) =>
           g.id === group.id
             ? {
@@ -360,10 +364,7 @@ export const useCategoryKeywordModal = ({
             : g,
         )
         await categoryAssignmentPort.saveTabGroups(
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-          updatedGroups as unknown as Parameters<
-            CategoryAssignmentPort['saveTabGroups']
-          >[0],
+          updatedGroups.map(toDomainTabGroupFromStorage),
         )
       } catch (error) {
         console.error('キーワード削除に伴う保存処理に失敗しました:', error)
@@ -417,8 +418,9 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newSubCategory.trim()
       const pageData = await getSavedTabsPageDataQuery()
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage shape へ投影
-      const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
+      // domain → presentation 投影は mapper に閉じ、呼び出し側の
+      // `as unknown as ...` disable を排除する。
+      const savedTabs = toPresentationTabGroups(pageData.tabGroups)
       const updatedTabs = savedTabs.map((tab) => {
         if (tab.id === group.id) {
           return {
@@ -429,10 +431,7 @@ export const useCategoryKeywordModal = ({
         return tab
       })
       await categoryAssignmentPort.saveTabGroups(
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-        updatedTabs as unknown as Parameters<
-          CategoryAssignmentPort['saveTabGroups']
-        >[0],
+        updatedTabs.map(toDomainTabGroupFromStorage),
       )
       setActiveCategory(validName)
       setNewSubCategory('')
@@ -557,16 +556,14 @@ export const useCategoryKeywordModal = ({
     try {
       const validName = newCategoryName.trim()
       const pageData = await getSavedTabsPageDataQuery()
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage shape へ投影
-      const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
+      // domain → presentation 投影は mapper に閉じ、呼び出し側の
+      // `as unknown as ...` disable を排除する。
+      const savedTabs = toPresentationTabGroups(pageData.tabGroups)
       const updatedTabs = savedTabs.map((tab) =>
         renameCategoryInTab(tab, group.id, activeCategory, validName),
       )
       await categoryAssignmentPort.saveTabGroups(
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-        updatedTabs as unknown as Parameters<
-          CategoryAssignmentPort['saveTabGroups']
-        >[0],
+        updatedTabs.map(toDomainTabGroupFromStorage),
       )
       setActiveCategory(validName)
       updateCategoryEditState({

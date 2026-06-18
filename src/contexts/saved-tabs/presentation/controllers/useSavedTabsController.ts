@@ -1,13 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import type { CustomProject } from '../../domain/entities/CustomProject'
+import type { ParentCategory } from '../../domain/entities/ParentCategory'
 import type { TabGroup } from '../../domain/entities/TabGroup'
-import type { DomainName } from '../../domain/value-objects/DomainName'
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import type { SavedAt } from '../../domain/value-objects/SavedAt'
-import type { TabGroupId } from '../../domain/value-objects/TabGroupId'
-import type { Url } from '../../domain/value-objects/Url'
-import type { UrlRecordId } from '../../domain/value-objects/UrlRecordId'
+import { createDomainName } from '../../domain/value-objects/DomainName'
+import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import { createSavedAt } from '../../domain/value-objects/SavedAt'
+import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
+import { createUrl } from '../../domain/value-objects/Url'
+import { createUrlRecordId } from '../../domain/value-objects/UrlRecordId'
 import type { SavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
 import type { CustomProjectViewModel } from '../view-models/CustomProjectViewModel'
@@ -110,6 +111,26 @@ export interface RestoreSnapshotControllerResult {
   readonly restoredUrlRecordCount: number
 }
 
+/**
+ * `RestoreSnapshotControllerInput.snapshot.parentCategories` 形式
+ * (plain `string` フィールド) を domain `ParentCategory` へ
+ * 持ち替える。`useSavedTabsController` 専用。
+ */
+const toDomainParentCategoryFromControllerInput = (category: {
+  readonly id: string
+  readonly name: string
+  readonly domains: readonly string[]
+  readonly domainNames: readonly string[]
+}): ParentCategory => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- plain string → branded domain 投影 (controller 入口)
+  return {
+    domains: [...category.domains],
+    domainNames: [...category.domainNames],
+    id: category.id,
+    name: category.name,
+  } as unknown as ParentCategory
+}
+
 export interface SyncCategoryControllerInput {
   readonly command?: {
     readonly domain: string
@@ -150,26 +171,17 @@ const toTabGroupViewModelFromEntity = (group: TabGroup): TabGroupViewModel =>
     urlIds: [...group.urlIds],
   })
 
-type BrandedString =
-  | UrlRecordId
-  | TabGroupId
-  | DomainName
-  | ParentCategoryId
-  | SavedAt
-  | Url
+// 旧 `castToBranded` ユーティリティは domain value-object の
+// factory (`createUrlRecordId` / `createTabGroupId` / `createDomainName` /
+// `createParentCategoryId` / `createSavedAt` / `createUrl`) へ
+// 置換済み (issue #512 follow-up)。branded 値はすべて factory 経由
+// で生成し、`as unknown as T` の構造的キャストを排除する。
 
-/**
- * branded ドメイン型へ安全側に倒してキャストする。
- *
- * presentation 層で受け取るのは `string` だが、use-case / command 層は
- * branded 値を要求する。presentation はドメイン層と独立した存在で
- * 値の検証は持たないため、`unknown` を経由した構造的キャストで受け渡す。
- * runtime で型チェックが壊れる経路は domain layer の factory で防護する。
- */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-const castToBranded = <T extends BrandedString>(value: string): T =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  value as unknown as T
+// 旧 `castToBranded` ユーティリティは domain value-object の
+// factory (`createUrlRecordId` / `createTabGroupId` / `createDomainName` /
+// `createParentCategoryId` / `createSavedAt` / `createUrl`) へ
+// 置換済み (issue #512 follow-up)。branded 値はすべて factory 経由
+// で生成し、`as unknown as T` の構造的キャストを排除する。
 
 /**
  * presentation 層の中心 controller hook。
@@ -238,7 +250,7 @@ export const useSavedTabsController = (
         const dto = await openSavedUrlUseCase({
           origin: openInput.origin,
           settings: openInput.settings,
-          urlRecordId: castToBranded<UrlRecordId>(openInput.urlRecordId),
+          urlRecordId: createUrlRecordId(openInput.urlRecordId),
         })
         if (dto.snapshot) {
           lastSnapshotRef.current = {
@@ -283,7 +295,7 @@ export const useSavedTabsController = (
     async (deleteInput: DeleteTabGroupControllerInput) => {
       try {
         const dto = await deleteTabGroupUseCase({
-          tabGroupId: castToBranded<TabGroupId>(deleteInput.tabGroupId),
+          tabGroupId: createTabGroupId(deleteInput.tabGroupId),
         })
         if (dto.snapshot) {
           lastSnapshotRef.current = {
@@ -335,19 +347,11 @@ export const useSavedTabsController = (
               : {}),
             ...(snapshot.parentCategories
               ? {
+                  // presentation (plain string) → domain (branded) 投影は
+                  // mapper (`toDomainParentCategoryFromControllerInput`)
+                  // 内に閉じ、disable を排除する。
                   parentCategories: snapshot.parentCategories.map(
-                    (category) => ({
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-                      domainNames: [
-                        ...category.domainNames,
-                      ] as unknown as readonly DomainName[],
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-                      domains: [
-                        ...category.domains,
-                      ] as unknown as readonly TabGroupId[],
-                      id: castToBranded<ParentCategoryId>(category.id),
-                      name: castToBranded<never>(category.name),
-                    }),
+                    toDomainParentCategoryFromControllerInput,
                   ),
                 }
               : {}),
@@ -355,10 +359,10 @@ export const useSavedTabsController = (
             ...(snapshot.urlRecords
               ? {
                   urlRecords: snapshot.urlRecords.map((record) => ({
-                    id: castToBranded<UrlRecordId>(record.id),
-                    savedAt: castToBranded<SavedAt>(String(record.savedAt)),
+                    id: createUrlRecordId(record.id),
+                    savedAt: createSavedAt(record.savedAt),
                     title: record.title,
-                    url: castToBranded<Url>(record.url),
+                    url: createUrl(record.url),
                   })),
                 }
               : {}),
@@ -385,14 +389,13 @@ export const useSavedTabsController = (
           syncInput.command
             ? {
                 command: {
-                  domain: castToBranded<DomainName>(syncInput.command.domain),
-                  parentCategoryId: castToBranded<ParentCategoryId>(
+                  domain: createDomainName(syncInput.command.domain),
+                  parentCategoryId: createParentCategoryId(
                     syncInput.command.parentCategoryId,
                   ),
                 },
               }
-            : // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-              ({} as never),
+            : {},
         )
         await refresh()
         return {

@@ -61,7 +61,6 @@ const SavedTabsRoutePage = () => {
   const navigate = useNavigate()
   const hasModeQuery = new URLSearchParams(routerLocation.search).has('mode')
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
   const handleViewModeNavigate = (mode: 'custom' | 'domain') => {
     const nextRoute = getSavedTabsHrefForMode(mode)
     const currentRoute = `${routerLocation.pathname}${routerLocation.search}`
@@ -70,8 +69,7 @@ const SavedTabsRoutePage = () => {
       return
     }
 
-    // eslint-disable-next-line typescript/no-floating-promises
-    navigate(nextRoute, { replace: true })
+    void navigate(nextRoute, { replace: true })
   }
 
   useEffect(() => {
@@ -79,8 +77,7 @@ const SavedTabsRoutePage = () => {
       return
     }
     const nextRoute = getSavedTabsHrefForMode('domain')
-    // eslint-disable-next-line typescript/no-floating-promises
-    navigate(nextRoute, { replace: true })
+    void navigate(nextRoute, { replace: true })
   }, [hasModeQuery, routerLocation.pathname, routerLocation.search, navigate])
 
   useEffect(() => {
@@ -106,19 +103,16 @@ const SavedTabsRoutePage = () => {
 
 const AppRoutes = () => (
   <Routes>
-    {/* eslint-disable-next-line react-perf/jsx-no-jsx-as-prop */}
     <Route element={<AppLayout />}>
       <Route
         index
-        // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         element={<Navigate to={getSavedTabsEntryRoute()} replace />}
       />
-      {/* eslint-disable-next-line react-perf/jsx-no-jsx-as-prop */}
+
       <Route path='/saved-tabs' element={<SavedTabsRoutePage />} />
       <Route
         path='/ai-chat'
         element={
-          // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           <Suspense fallback={null}>
             <AiChatRoutePage />
           </Suspense>
@@ -127,7 +121,6 @@ const AppRoutes = () => (
       <Route
         path='/analytics'
         element={
-          // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           <Suspense fallback={null}>
             <AnalyticsRoutePage />
           </Suspense>
@@ -136,7 +129,6 @@ const AppRoutes = () => (
       <Route
         path='/options'
         element={
-          // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           <Suspense fallback={null}>
             <OptionsRoutePage />
           </Suspense>
@@ -145,7 +137,6 @@ const AppRoutes = () => (
       <Route
         path='/periodic-execution'
         element={
-          // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           <Suspense fallback={null}>
             <PeriodicExecutionRoutePage />
           </Suspense>
@@ -153,7 +144,6 @@ const AppRoutes = () => (
       />
       <Route
         path='*'
-        // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
         element={<Navigate to={getSavedTabsEntryRoute()} replace />}
       />
     </Route>

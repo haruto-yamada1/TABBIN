@@ -20,7 +20,6 @@ const Avatar = ({
   />
 )
 Avatar.displayName = AvatarPrimitive.Root.displayName
-
 const AvatarImage = ({
   className,
   ref,
@@ -33,7 +32,6 @@ const AvatarImage = ({
   />
 )
 AvatarImage.displayName = AvatarPrimitive.Image.displayName
-
 const AvatarFallback = ({
   className,
   ref,

@@ -83,29 +83,40 @@ export const MicSelector = ({
   const [width, setWidth] = useState(DEFAULT_MIC_SELECTOR_WIDTH)
   const { devices, loading, hasPermission, loadDevices } = useAudioDevices()
 
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      onOpenChange(nextOpen)
+    },
+    [onOpenChange],
+  )
+
+  // popover が `open` になったとき (制御モード / `defaultOpen` 含む)、
+  // 初回マウント時 `loading=true` の場合でも `loading` が `false` に
+  // 切り替わったタイミングで `loadDevices()` を実行する。
+  // 旧 `useEffect` 実装と同等の reactive 挙動を維持する
+  // (Codex review P2)。
   useEffect(() => {
     if (open && !hasPermission && !loading) {
-      // eslint-disable-next-line typescript/no-floating-promises
-      loadDevices()
+      void loadDevices()
     }
   }, [open, hasPermission, loading, loadDevices])
 
   const contextValue = useMemo(
     () => ({
       data: devices,
-      onOpenChange,
+      onOpenChange: handleOpenChange,
       onValueChange,
       open,
       setWidth,
       value,
       width,
     }),
-    [devices, onOpenChange, onValueChange, open, setWidth, value, width],
+    [devices, handleOpenChange, onValueChange, open, setWidth, value, width],
   )
 
   return (
     <MicSelectorContext.Provider value={contextValue}>
-      <Popover {...props} onOpenChange={onOpenChange} open={open} />
+      <Popover {...props} onOpenChange={handleOpenChange} open={open} />
     </MicSelectorContext.Provider>
   )
 }
@@ -170,7 +181,6 @@ export const MicSelectorContent = ({
   return (
     <PopoverContent
       className={cn('p-0', className)}
-      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       style={{ width }}
       {...popoverOptions}
     >
@@ -286,7 +296,7 @@ export const MicSelectorValue = ({
   )
 }
 
-export const useAudioDevices = () => {
+const useAudioDevices = () => {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -350,18 +360,15 @@ export const useAudioDevices = () => {
   }, [loading])
 
   useEffect(() => {
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadDevicesWithoutPermission()
+    void loadDevicesWithoutPermission()
   }, [loadDevicesWithoutPermission])
 
   useEffect(() => {
     const handleDeviceChange = () => {
       if (hasPermission) {
-        // eslint-disable-next-line typescript/no-floating-promises
-        loadDevicesWithPermission()
+        void loadDevicesWithPermission()
       } else {
-        // eslint-disable-next-line typescript/no-floating-promises
-        loadDevicesWithoutPermission()
+        void loadDevicesWithoutPermission()
       }
     }
 

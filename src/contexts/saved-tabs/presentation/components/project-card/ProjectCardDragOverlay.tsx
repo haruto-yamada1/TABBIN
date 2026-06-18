@@ -27,7 +27,6 @@ export const ProjectCardDragOverlay = () => {
   }
 
   return (
-    // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
     <DragOverlay style={{ pointerEvents: 'none' }}>
       <div className='rounded border bg-secondary p-2'>
         {activeUrl.title || t('sidebar.tabList')}

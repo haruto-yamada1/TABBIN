@@ -24,13 +24,26 @@ interface CategoryModalRootProps {
   /** 保存タブページ全体 query (issue #510)。useCategoryModal へ伝搬。*/
   getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
   /** 親カテゴリ作成 use-case。useCategoryModal 経由で利用。*/
-  createParentCategoryUseCase: CreateParentCategoryUseCase
+  createParentCategoryUseCase?: CreateParentCategoryUseCase
   /** 親カテゴリ削除 use-case。useCategoryModal 経由で利用。*/
-  deleteParentCategoryUseCase: DeleteParentCategoryUseCase
+  deleteParentCategoryUseCase?: DeleteParentCategoryUseCase
   /** ドメイン割当 use-case。useCategoryModal 経由で利用。*/
-  assignDomainToCategoryUseCase: AssignDomainToCategoryUseCase
+  assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
   /** 子コンポーネント */
   children: React.ReactNode
+}
+
+/** 未指定時の noop 親カテゴリ作成 use-case */
+const asyncNoopCreate: CreateParentCategoryUseCase = () => {
+  throw new Error('createParentCategoryUseCase is not provided')
+}
+/** 未指定時の noop 親カテゴリ削除 use-case */
+const asyncNoopDelete: DeleteParentCategoryUseCase = () => {
+  throw new Error('deleteParentCategoryUseCase is not provided')
+}
+/** 未指定時の noop ドメイン割当 use-case */
+const asyncNoopAssign: AssignDomainToCategoryUseCase = () => {
+  throw new Error('assignDomainToCategoryUseCase is not provided')
 }
 
 /**
@@ -42,9 +55,9 @@ export const CategoryModalRoot = ({
   onClose,
   tabGroups,
   getSavedTabsPageDataQuery,
-  createParentCategoryUseCase,
-  deleteParentCategoryUseCase,
-  assignDomainToCategoryUseCase,
+  createParentCategoryUseCase = asyncNoopCreate,
+  deleteParentCategoryUseCase = asyncNoopDelete,
+  assignDomainToCategoryUseCase = asyncNoopAssign,
   children,
 }: CategoryModalRootProps) => {
   const { t } = useI18n()
@@ -56,7 +69,6 @@ export const CategoryModalRoot = ({
     tabGroups,
   })
 
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const contextValue: CategoryModalContextType = {
     state,
     tabGroups,
@@ -66,7 +78,6 @@ export const CategoryModalRoot = ({
     <CategoryModalContext value={contextValue}>
       <Dialog
         open
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onOpenChange={() => {
           onClose()
         }}

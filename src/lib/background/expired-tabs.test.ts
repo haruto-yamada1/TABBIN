@@ -18,7 +18,6 @@ interface Store {
 const createChromeStorageMock = (initialStore: Store = {}) => {
   const store: Store = structuredClone(initialStore)
   const get = vi.fn(
-    // eslint-disable-next-line typescript/require-await
     async (keys?: string | string[] | Record<string, unknown>) => {
       if (keys == null) {
         return structuredClone(store)
@@ -44,7 +43,7 @@ const createChromeStorageMock = (initialStore: Store = {}) => {
       return result
     },
   )
-  // eslint-disable-next-line typescript/require-await
+
   const set = vi.fn(async (next: Partial<Store>) => {
     Object.assign(store, structuredClone(next))
   })

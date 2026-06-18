@@ -99,8 +99,7 @@ export default defineBackground(() => {
     console.error('コンテキストメニュー初期化エラー:', error)
   }
   // バックグラウンド初期化時に一度だけマイグレーションを実行
-  // eslint-disable-next-line typescript/no-floating-promises
-  ;(async () => {
+  void (async () => {
     try {
       console.log('バックグラウンド起動時のデータ構造チェックを開始...')
 

@@ -150,7 +150,6 @@ export const CustomProjectRawSchema = z.object({
 
 export const SavedTabRawArraySchema = z.array(SavedTabRawSchema)
 export const UrlRecordRawArraySchema = z.array(UrlRecordRawSchema)
-export const ParentCategoryRawArraySchema = z.array(ParentCategoryRawSchema)
 export const CustomProjectRawArraySchema = z.array(CustomProjectRawSchema)
 
 export type SavedTabRaw = z.infer<typeof SavedTabRawSchema>
