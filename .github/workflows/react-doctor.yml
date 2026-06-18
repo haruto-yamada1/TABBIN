@@ -32,16 +32,15 @@ jobs:
       - uses: actions/checkout@v5
 
       - uses: millionco/react-doctor@v2
-        # Advisory rollout: React Doctor reports findings on every PR — a
-        # sticky summary comment, inline review comments, and a commit status
-        # with the health score — but never fails the check, so it won't red-X
-        # a teammate's PR on day one. `blocking: none` pins this explicitly
-        # (the action's default is `error`, which would break PRs). When the
-        # team trusts the signal, switch to `blocking: warning` (fail on any
-        # finding) or `blocking: error` (fail on error-severity findings).
+        # Strict gate: any new error-severity finding fails the check and
+        # red-Xes the PR. The action also posts a sticky summary comment,
+        # inline review comments on changed lines, and a commit status with
+        # the health score so reviewers can see the full picture.
+        # Loosen to `blocking: warning` (fail on any finding) or
+        # `blocking: none` (comment-only) when the team needs breathing room.
         # Full reference: https://www.react.doctor/ci
         with:
-          blocking: none
+          blocking: error
         #   scope: full              # On PRs, scan the whole project instead of just changed files
         #   comment: false           # Disable the sticky PR summary comment
         #   review-comments: false   # Disable inline review comments on changed lines
