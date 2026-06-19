@@ -12,7 +12,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsgo --noEmit",
-    "secretlint": "secretlint \"**/*.{js,ts,jsx,tsx,json,yaml,yml,md,env*}\"",
+    "secretlint": "secretlint \"**/*\"",
     "postinstall": "wxt prepare",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
