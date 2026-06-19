@@ -1201,16 +1201,28 @@ describe('AnalyticsRoute', () => {
         encoding: 'utf8',
       },
     )
+    const sidebarSource = readFileSync(
+      resolve(import.meta.dirname, './AnalyticsSidebar.tsx'),
+      {
+        encoding: 'utf8',
+      },
+    )
+    const drilldownSource = readFileSync(
+      resolve(import.meta.dirname, './AnalyticsDrilldownPanel.tsx'),
+      {
+        encoding: 'utf8',
+      },
+    )
 
-    expect(source).toContain("from '@/components/ui/button'")
     expect(source).toContain("from '@/components/ui/card'")
-    expect(source).toContain("from '@/components/ui/input'")
-    expect(source).toContain("from '@/components/ui/label'")
-    expect(source).toContain("from '@/components/ui/select'")
     expect(source).toContain("from '@/components/ui/scroll-area'")
-    expect(source).toContain("from '@/components/ui/badge'")
-    expect(source).toContain("contentVisibility: 'auto'")
-    expect(source).toContain("containIntrinsicSize: '96px'")
+    expect(sidebarSource).toContain("from '@/components/ui/button'")
+    expect(sidebarSource).toContain("from '@/components/ui/input'")
+    expect(sidebarSource).toContain("from '@/components/ui/label'")
+    expect(sidebarSource).toContain("from '@/components/ui/select'")
+    expect(drilldownSource).toContain("from '@/components/ui/badge'")
+    expect(drilldownSource).toContain("contentVisibility: 'auto'")
+    expect(drilldownSource).toContain("containIntrinsicSize: '96px'")
   })
 
   it('Undo トーストを表示するための Toaster を配置する', async () => {
@@ -1752,10 +1764,16 @@ describe('AnalyticsRoute', () => {
     expect(openLink).toBeTruthy()
     expect(openLink.className.includes('size-8')).toBe(true)
     expect(deleteButton.className.includes('size-8')).toBe(true)
+    const drilldownSource = readFileSync(
+      resolve(import.meta.dirname, './AnalyticsDrilldownPanel.tsx'),
+      {
+        encoding: 'utf8',
+      },
+    )
     expect(actionButtonsSource).toContain("from '@/components/ui/tooltip'")
     expect(actionButtonsSource).toContain("t('analytics.open')")
     expect(actionButtonsSource).toContain("t('common.delete')")
-    expect(source).toContain('<AnalyticsRecordActionButtons')
+    expect(drilldownSource).toContain('<AnalyticsRecordActionButtons')
     expect(
       openLink.closest('div')?.parentElement?.className.includes('shrink-0'),
     ).toBe(true)

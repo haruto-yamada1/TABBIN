@@ -1,23 +1,19 @@
-import type { DragEndEvent } from '@dnd-kit/core'
 import {
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import { Toaster } from '@/components/ui/sonner'
-import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
 } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
 import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
@@ -32,25 +28,20 @@ import { useFilteredCustomProjects } from '@/contexts/saved-tabs/presentation/ho
 import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
 import { createCategorizedDisplayState } from '@/contexts/saved-tabs/presentation/lib/categorized-display'
-import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { TabGroup, ViewMode } from '@/types/storage'
 
 import {
-  countTabGroupUrls,
-  createFilterGroupsByExcludedIdsUpdater,
-  getSnapshotSavedTabs,
-  notifyDeleteFailure,
   shouldWaitForInitialViewMode,
-  showOpenedUrlsUndoToast,
   syncSavedTabsViewModeLocation,
-  toDomainParentCategories,
-  toDomainTabGroupsForReorder,
 } from './savedTabsApp.helpers'
-import type { OpenedUrlsStorageSnapshot } from './savedTabsApp.helpers'
+
+import { useTabOpeningHandlers } from './handlers/useTabOpeningHandlers'
+import { useTabGroupDeletionHandlers } from './handlers/useTabGroupDeletionHandlers'
+import { useUncategorizedReorderHandlers } from './handlers/useUncategorizedReorderHandlers'
+import { useProjectMoveHandlers } from './handlers/useProjectMoveHandlers'
 
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
@@ -66,7 +57,6 @@ interface SavedTabsAppProps {
 }
 
 const useSavedTabsAppView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   controller,
   deps,
   initialViewMode,
@@ -204,505 +194,32 @@ const useSavedTabsAppView = ({
     () => buildPresentationCategoryLookup(categories),
     [categories],
   )
-  // 既存のタブ開く処理を OpenSavedUrlUseCase 経由に置き換え済み。
-  // - URL → urlRecordId は `findUrlRecordByUrlUseCase` から逆引きし、
-  //   見つからない旧データは `browserTabPort` で開くだけのフォールバックを取る。
-  // - `removeTabAfterOpen` が true のときは、`BuildSavedTabsSnapshotUseCase`
-  //   経由で削除前 snapshot を取得して既存の Undo トースト経路と接続する
-  //   （旧 storage 直叩きは use-case 経由へ移行済み、issue #494）。
-  // - post-open の UI 更新は `TabGroupRepository.findAll` を使い、
-  //   storage 直叩きは残さない（`refreshTabGroupsWithUrls` 内で
-  //   urlRecords から `urls` を再解決する）。
-  const handleOpenTab = useCallback(
-    async (url: string) => {
-      try {
-        const lookup = await savedTabsUseCases.findUrlRecordByUrl({ url })
+  const { handleOpenTab, handleOpenAllTabs } = useTabOpeningHandlers({
+    savedTabsUseCases,
+    deps,
+    settings,
+    categories,
+    refreshTabGroupsWithUrls,
+    setCustomProjects,
+    t,
+  })
 
-        if (!lookup.record) {
-          // urlRecord に登録されていない URL（旧データなど）は
-          // browserTabPort 経由で開くだけにとどめ、削除処理はスキップする。
-          await deps.browserTabPort.open({ url })
-          return
-        }
-
-        const snapshot = settings.removeTabAfterOpen
-          ? await savedTabsUseCases.buildSavedTabsSnapshot({
-              parentCategories: toDomainParentCategories(categories),
-            })
-          : undefined
-
-        const urlRecordId = lookup.record.id
-        const result = await savedTabsUseCases.openSavedUrl({
-          origin: 'click',
-          settings: {
-            removeTabAfterExternalDrop: false,
-            removeTabAfterOpen: settings.removeTabAfterOpen,
-          },
-          urlRecordId,
-        })
-
-        // use-case が `snapshot` を返すのは「TabGroup / CustomProject の
-        // urlIds から実際に削除が走った」ケース。urlRecord 自体が他で
-        // 参照されていて削除されない場合でも、TabGroup から URL ID が
-        // 取り除かれているなら Undo 対象として扱う必要がある。よって
-        // `removedUrlRecordId` ではなく `snapshot` の有無を判定基準にする。
-        if (snapshot && result.snapshot) {
-          // post-open の UI 更新は \`refreshTabGroupsWithUrls()\` (引数なし)
-          // に委譲し、\`useTabData\` 側の storage 読み取り経路 (\`urls\` /
-          // \`urlSubCategories\` / \`subCategories\` / \`categoryKeywords\` /
-          // \`subCategoryOrder\` などのリッチ補助フィールド付き) を
-          // そのまま使う。repository の \`findAll\` 戻り値にも分類用の
-          // rich 補助フィールドが含まれるため、再読込後も子カテゴリを維持する。
-          await refreshTabGroupsWithUrls()
-          showOpenedUrlsUndoToast({
-            count: 1,
-            refreshTabGroupsWithUrls,
-            savedTabsUseCases,
-            setCustomProjects,
-            snapshot,
-            t,
-          })
-          console.log(
-            `URL ${redactUrlForLog(url)} を開いた後、保存データから削除しました`,
-          )
-        }
-      } catch (error) {
-        console.error('タブを開く処理エラー:', error)
-      }
-    },
-    [
-      categories,
-      deps,
-      savedTabsUseCases,
-      settings.removeTabAfterOpen,
-      refreshTabGroupsWithUrls,
-      setCustomProjects,
-      t,
-    ],
-  )
-  const handleOpenAllTabs = useCallback(
-    async (
-      urls: {
-        url: string
-        title: string
-      }[],
-    ) => {
-      try {
-        // Undo 用 snapshot は use-case 呼び出し**前**に取得する。
-        // use-case 実行後は storage が post-delete 状態になっているため、
-        // その snapshot を渡しても Undo が no-op 相当になり復元できない。
-        // `BuildSavedTabsSnapshotUseCase` 経由で取得し、
-        // storage 直叩きは use-case 経由へ移行済み（issue #494）。
-        const preDeleteSnapshot = settings.removeTabAfterOpen
-          ? await savedTabsUseCases.buildSavedTabsSnapshot({
-              parentCategories: toDomainParentCategories(categories),
-            })
-          : undefined
-
-        // 一括オープンは OpenAllSavedUrlsUseCase に委譲する。
-        // `active` 制御は composition 層の `BrowserTabPort.resolveActive` が
-        // `settings.openUrlInBackground` を反映する。
-        const result = await savedTabsUseCases.openAllSavedUrls({
-          mode: settings.openAllInNewWindow ? 'newWindow' : 'backgroundTabs',
-          removeTabAfterOpen: settings.removeTabAfterOpen,
-          urls: urls.map((u) => u.url),
-        })
-
-        // 開いたあとに保存データから削除する設定のときは、Undo 用 toast を
-        // 出して pre-delete snapshot から復元できるようにする。
-        if (
-          settings.removeTabAfterOpen &&
-          preDeleteSnapshot &&
-          result.snapshot
-        ) {
-          // Codex review (PR #521): 旧実装は `preDeleteSnapshot` を
-          // `refreshTabGroupsWithUrls` に渡していたが、use-case 側で
-          // 既に `UrlRecordRepository.removeByIds` が走っているため、
-          // pre-delete snapshot で UI を塗り替えると storage change
-          // 通知が無いときに「削除済み URL が見えたまま」になる。
-          // ここでは storage から最新を取得して UI を同期し、
-          // `preDeleteSnapshot` は Undo 用にだけ保持する。
-          await refreshTabGroupsWithUrls()
-          showOpenedUrlsUndoToast({
-            count: result.removedUrlRecordIds.length,
-            refreshTabGroupsWithUrls,
-            savedTabsUseCases,
-            setCustomProjects,
-            snapshot: preDeleteSnapshot,
-            t,
-          })
-          console.log(
-            `${urls.length}個のURLを開いた後、保存データから削除しました`,
-          )
-        }
-      } catch (error) {
-        console.error('タブ一括オープンエラー:', error)
-      }
-    },
-    [
-      categories,
-      settings.openAllInNewWindow,
-      settings.removeTabAfterOpen,
-      savedTabsUseCases,
-      refreshTabGroupsWithUrls,
-      setCustomProjects,
-      t,
-    ],
-  )
-
-  // 単一 TabGroup 削除を DeleteTabGroupUseCase 経由に置き換える。
-  // - 削除判断・未参照 URL 削除・対象 TabGroup の storage 書き戻しは
-  //   use-case に委譲し、UI 側は storage 直叩きを持たない。
-  // - Undo snapshot は `BuildSavedTabsSnapshotUseCase` 経由で repository
-  //   群から組み立て、storage 直叩きは use-case 経由へ移行済み
-  //   （issue #494）。
-  // - 削除前処理 (`handleTabGroupRemoval`) は issue #524 で
-  //   `PrepareTabGroupDeletionUseCase` へ移設済み。UI 側は
-  //   `categoriesCommandService` / `domainCategoryMappingRepository` /
-  //   `parentCategoryRepository` / `tabGroupRepository` を直接束ねない。
-  // - `removeUrlsFromCustomProjectsForGroup` は issue #512 で
-  //   `savedTabsUseCases.removeUrlsFromCustomProjects` use-case へ
-  //   移設済み。
-  const handleDeleteGroup = useCallback(
-    async (id: string) => {
-      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
-      try {
-        // 削除前にカテゴリ設定と親カテゴリ情報を含めた snapshot を取得
-        deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
-          parentCategories: toDomainParentCategories(categories),
-        })
-        const savedTabs = getSnapshotSavedTabs(deleteSnapshot)
-        const groupToDelete = savedTabs.find((group) => group.id === id)
-        if (!groupToDelete) {
-          return
-        }
-        console.log(`グループを削除: ${redactUrlForLog(groupToDelete.domain)}`)
-
-        // 削除前処理は `PrepareTabGroupDeletionUseCase` 経由 (issue #524)。
-        // `categoriesCommandService` / `domainCategoryMappingRepository` /
-        // `parentCategoryRepository` / `tabGroupRepository` を UI 側で
-        // 束ねず、application use-case へ委譲する。
-        //
-        // **逐次実行にする理由**:
-        // `PrepareTabGroupDeletionUseCase` は内部で
-        // `tabGroupRepository.findRawTabGroupById` を呼び、
-        // `deleteTabGroup` が先に storage から `savedTabs` を消すと
-        // preflight が `null` を見て silent skip する
-        // (Codex review P2)。`removeUrlsFromCustomProjects` は
-        // customProjects 側なので、削除本体 (`deleteTabGroup`) 完了後に
-        // 実行しても整合性は保たれる。
-        await savedTabsUseCases.prepareTabGroupDeletion({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
-          tabGroupId: id as unknown as TabGroupId,
-        })
-        // 削除判断・未参照 UrlRecord 掃除・savedTabs の書き戻しは
-        // DeleteTabGroupUseCase に委譲する。use-case が見つからない
-        // グループを SavedTabsDomainError で通知するため、UI 側は
-        // 事前に savedTabs から対象グループの存在を保証しておく。
-        await savedTabsUseCases.deleteTabGroup({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-          tabGroupId: id as unknown as TabGroupId,
-        })
-        // グループに属するすべてのURLをカスタムプロジェクトからも削除
-        // (issue #512: presentation helper から application use-case
-        //  `removeUrlsFromCustomProjects` へ移設済み)。
-        await savedTabsUseCases.removeUrlsFromCustomProjects({
-          tabGroups: [groupToDelete],
-        })
-
-        // 以降は従来通りの処理
-        const updatedGroups = savedTabs.filter((group) => group.id !== id)
-        await refreshTabGroupsWithUrls(updatedGroups)
-
-        // 並び替えモード中の削除処理：一時的な順序からも削除
-        if (isUncategorizedReorderMode) {
-          setTempUncategorizedOrder((prev) =>
-            prev.filter((group) => group.id !== id),
-          )
-          console.log(
-            `並び替えモード中にドメイン ${redactUrlForLog(groupToDelete.domain)} を一時順序からも削除しました`,
-          )
-        }
-
-        // 親カテゴリからはドメインIDのみを削除（ドメイン名は保持）。
-        // 旧 `removeDomainFromParentCategories` ヘルパーを
-        // `removeDomainsFromParentCategories` use-case 経由へ置換 (issue #523)。
-        // domainNames は変更しない挙動を維持し、storage 書戻しは
-        // use-case 内の `parentCategoryRepository.saveAll` に委譲する。
-        // setCategories には storage 形 `ParentCategory[]` が必要なため、
-        // 共通 mapper (issue #511) で widening する。
-        const updatedDomainCategories =
-          await savedTabsUseCases.removeDomainsFromParentCategories({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion, typescript/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
-            domainIds: [id as unknown as TabGroupId],
-          })
-        setCategories(updatedDomainCategories.map(toStorageParentCategory))
-        showOpenedUrlsUndoToast({
-          count: countTabGroupUrls(groupToDelete),
-          messageKey: 'savedTabs.undo.deletedTabs',
-          refreshTabGroupsWithUrls,
-          savedTabsUseCases,
-          setCategories,
-          setCustomProjects,
-          snapshot: deleteSnapshot,
-          t,
-        })
-
-        console.log('グループ削除処理が完了しました')
-      } catch {
-        await notifyDeleteFailure({
-          refreshTabGroupsWithUrls,
-          savedTabsUseCases,
-          setCategories,
-          setCustomProjects,
-          snapshot: deleteSnapshot,
-          t,
-        })
-      }
-    },
-    [
-      isUncategorizedReorderMode,
-      categories,
-      refreshTabGroupsWithUrls,
-      savedTabsUseCases,
-      setCustomProjects,
-      setCategories,
-      t,
-    ],
-  )
-
-  const handleDeleteGroups = useCallback(
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps.* 配下は composition 安定参照
-    async (ids: string[]) => {
-      if (ids.length === 0) {
-        return
-      }
-      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
-      try {
-        // 削除前のスナップショットは `BuildSavedTabsSnapshotUseCase` 経由で
-        // repository 群から組み立て、Undo 時の storage 全体復元
-        // （`customProjects` / `customProjectOrder` を含む）で使う
-        // （issue #494）。`savedTabs` 側の削除本体は use-case 側に委譲する。
-        deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
-          parentCategories: toDomainParentCategories(categories),
-        })
-        const savedTabs = getSnapshotSavedTabs(deleteSnapshot)
-
-        const groupsToDelete = savedTabs.filter((group) =>
-          ids.includes(group.id),
-        )
-        if (groupsToDelete.length === 0) {
-          return
-        }
-
-        console.log(`${groupsToDelete.length}件のグループを一括削除します`)
-
-        // 旧 `features/saved-tabs/lib/tab-operations` のドメイン設定
-        // 保存処理は、他 storage key（domainCategorySettings /
-        // parentCategories.domainNames）を触る副作用のため、issue 範囲外
-        // として従来通り UI 側で実行していたが、issue #524 で
-        // `PrepareTabGroupsDeletionUseCase` へ移設済み。UI 側は
-        // `categoriesCommandService` / `domainCategoryMappingRepository` /
-        // `parentCategoryRepository` / `tabGroupRepository` を直接
-        // 束ねず、application use-case へ委譲する。
-        //
-        // **逐次実行にする理由**:
-        // `PrepareTabGroupsDeletionUseCase` は内部で各 group の
-        // `tabGroupRepository.findRawTabGroupById` を呼び、
-        // `deleteTabGroups` が先に storage から `savedTabs` を消すと
-        // preflight が `null` を見て silent skip する
-        // (Codex review P2)。`removeUrlsFromCustomProjects` は
-        // customProjects 側なので、削除本体完了後に実行しても整合性は
-        // 保たれる。
-        await savedTabsUseCases.prepareTabGroupsDeletion({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
-          tabGroupIds: ids as unknown as TabGroupId[],
-        })
-        // 複数 TabGroup 削除本体は DeleteTabGroupsUseCase 経由に置き換える。
-        // 未参照になった UrlRecord の掃除と savedTabs の書き戻しは
-        // use-case が一括で行う。
-        await savedTabsUseCases.deleteTabGroups({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-          tabGroupIds: ids as unknown as Parameters<
-            typeof savedTabsUseCases.deleteTabGroups
-          >[0]['tabGroupIds'],
-        })
-        // customProject 側の URL ID 同期削除は他 storage key を触る
-        // ため、issue 範囲外として従来通り UI 側で実行していたが、
-        // issue #512 で `removeUrlsFromCustomProjects` use-case へ
-        // 移設済み (issue #540 範囲)。
-        await savedTabsUseCases.removeUrlsFromCustomProjects({
-          tabGroups: groupsToDelete,
-        })
-
-        const idSet = new Set(ids)
-        const updatedGroups = savedTabs.filter((group) => !idSet.has(group.id))
-        await refreshTabGroupsWithUrls(updatedGroups)
-
-        if (isUncategorizedReorderMode) {
-          setTempUncategorizedOrder(
-            createFilterGroupsByExcludedIdsUpdater(idSet),
-          )
-        }
-
-        // 親カテゴリからは削除 ID を一括で取り除く。旧
-        // `deps.parentCategoryRepository.saveAll` 直叩きを
-        // `removeDomainsFromParentCategories` use-case 経由へ
-        // 置換する (issue #523)。domainNames は変更しない挙動を維持し、
-        // storage 書戻しは use-case 内の `parentCategoryRepository.saveAll`
-        // に委譲する。setCategories には storage 形 `ParentCategory[]` が
-        // 必要なので、共通 mapper (issue #511) で widening する。
-        const updatedDomainCategories =
-          await savedTabsUseCases.removeDomainsFromParentCategories({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion, typescript/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
-            domainIds: ids as unknown as TabGroupId[],
-          })
-        setCategories(updatedDomainCategories.map(toStorageParentCategory))
-        showOpenedUrlsUndoToast({
-          count: groupsToDelete.reduce(
-            (total, group) => total + countTabGroupUrls(group),
-            0,
-          ),
-          messageKey: 'savedTabs.undo.deletedTabs',
-          refreshTabGroupsWithUrls,
-          savedTabsUseCases,
-          setCategories,
-          setCustomProjects,
-          snapshot: deleteSnapshot,
-          t,
-        })
-
-        console.log('一括グループ削除処理が完了しました')
-      } catch {
-        await notifyDeleteFailure({
-          refreshTabGroupsWithUrls,
-          savedTabsUseCases,
-          setCategories,
-          setCustomProjects,
-          snapshot: deleteSnapshot,
-          t,
-        })
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps.* 配下は composition 安定参照
-    [
-      isUncategorizedReorderMode,
-      categories,
-      refreshTabGroupsWithUrls,
-      savedTabsUseCases,
-      setCustomProjects,
-      setCategories,
-      t,
-    ],
-  )
-  const handleDeleteUrl = useCallback(
-    async (groupId: string, url: string) => {
-      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
-      try {
-        // Undo 用 snapshot は `BuildSavedTabsSnapshotUseCase` 経由で
-        // repository 群から組み立て、storage 直叩きは use-case 経由へ
-        // 移行済み（issue #494）。
-        deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
-          parentCategories: toDomainParentCategories(categories),
-        })
-        // 単体 URL 削除は DeleteSavedUrlUseCase 経由に置き換える。
-        // TabGroup と未参照 UrlRecord の削除は use-case に委譲し、
-        // customProject 側の URL 同期削除は他 storage key を触るため
-        // issue 範囲外として従来通り UI 側で実行する。
-        await savedTabsUseCases.deleteSavedUrl({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-          tabGroupId: groupId as unknown as Parameters<
-            typeof savedTabsUseCases.deleteSavedUrl
-          >[0]['tabGroupId'],
-          url,
-        })
-        showOpenedUrlsUndoToast({
-          count: 1,
-          messageKey: 'savedTabs.undo.deletedTabs',
-          refreshTabGroupsWithUrls,
-          savedTabsUseCases,
-          setCustomProjects,
-          snapshot: deleteSnapshot,
-          t,
-        })
-        console.log(
-          `URL ${redactUrlForLog(url)} をグループ ${groupId} から削除しました`,
-        )
-      } catch {
-        await notifyDeleteFailure({
-          refreshTabGroupsWithUrls,
-          savedTabsUseCases,
-          setCustomProjects,
-          snapshot: deleteSnapshot,
-          t,
-        })
-      }
-    },
-    [
-      categories,
-      refreshTabGroupsWithUrls,
-      savedTabsUseCases,
-      setCustomProjects,
-      t,
-    ],
-  )
-  const handleDeleteUrls = useCallback(
-    async (groupId: string, urls: string[]) => {
-      if (urls.length === 0) {
-        return
-      }
-      let deleteSnapshot: OpenedUrlsStorageSnapshot | undefined
-      try {
-        // Undo 用 snapshot は `BuildSavedTabsSnapshotUseCase` 経由で取得
-        // （issue #494）。
-        deleteSnapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
-          parentCategories: toDomainParentCategories(categories),
-        })
-        // 複数 URL 削除は DeleteSavedUrlsUseCase 経由に置き換える。
-        await savedTabsUseCases.deleteSavedUrls({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-          tabGroupId: groupId as unknown as Parameters<
-            typeof savedTabsUseCases.deleteSavedUrls
-          >[0]['tabGroupId'],
-          urls,
-        })
-        console.log(
-          `${urls.length}件のURLをグループ ${groupId} から削除しました`,
-        )
-        showOpenedUrlsUndoToast({
-          count: urls.length,
-          messageKey: 'savedTabs.undo.deletedTabs',
-          refreshTabGroupsWithUrls,
-          savedTabsUseCases,
-          setCustomProjects,
-          snapshot: deleteSnapshot,
-          t,
-        })
-      } catch {
-        await notifyDeleteFailure({
-          refreshTabGroupsWithUrls,
-          savedTabsUseCases,
-          setCustomProjects,
-          snapshot: deleteSnapshot,
-          t,
-        })
-      }
-    },
-    [
-      categories,
-      refreshTabGroupsWithUrls,
-      savedTabsUseCases,
-      setCustomProjects,
-      t,
-    ],
-  )
-  const handleUpdateUrls = useCallback(
-    (groupId: string, _updatedUrls: TabGroup['urls']) => {
-      console.log(`グループ ${groupId} のURL更新はストレージ同期に委譲しました`)
-      return Promise.resolve()
-    },
-    [],
-  )
+  const {
+    handleDeleteGroup,
+    handleDeleteGroups,
+    handleDeleteUrl,
+    handleDeleteUrls,
+    handleUpdateUrls,
+  } = useTabGroupDeletionHandlers({
+    isUncategorizedReorderMode,
+    setTempUncategorizedOrder,
+    categories,
+    refreshTabGroupsWithUrls,
+    savedTabsUseCases,
+    setCustomProjects,
+    setCategories,
+    t,
+  })
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -710,20 +227,6 @@ const useSavedTabsAppView = ({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
-
-  // 未分類ドメインの並び替えをキャンセルする
-  const handleCancelUncategorizedReorder = useCallback(() => {
-    if (!isUncategorizedReorderMode) {
-      return
-    }
-
-    // 元の順序に戻す
-    setTempUncategorizedOrder([])
-
-    // 並び替えモードを終了
-    setIsUncategorizedReorderMode(false)
-    toast.info(t('savedTabs.domainOrder.canceled'))
-  }, [isUncategorizedReorderMode, t])
 
   // タブグループをカテゴリごとに整理する関数を強化
   const organizeTabGroups = useCallback(
@@ -768,71 +271,21 @@ const useSavedTabsAppView = ({
     [organizeTabGroups],
   )
 
-  // 未分類ドメインのドラッグエンド処理（並び替えモード対応）
-  const handleUncategorizedDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event
-      if (over && active.id !== over.id) {
-        const currentOrder = isUncategorizedReorderMode
-          ? tempUncategorizedOrder
-          : uncategorized
-        const oldIndex = currentOrder.findIndex(
-          (group) => group.id === active.id,
-        )
-        const newIndex = currentOrder.findIndex((group) => group.id === over.id)
-        if (oldIndex !== -1 && newIndex !== -1) {
-          const updatedOrder = arrayMove(currentOrder, oldIndex, newIndex)
-          if (isUncategorizedReorderMode) {
-            // 既に並び替えモード中：一時的な順序を更新
-            setTempUncategorizedOrder(updatedOrder)
-          } else {
-            // 初回の並び替え時：並び替えモードを開始
-            setIsUncategorizedReorderMode(true)
-            setTempUncategorizedOrder(updatedOrder)
-          }
-        }
-      }
-    },
-    [isUncategorizedReorderMode, tempUncategorizedOrder, uncategorized],
-  )
-
-  // 未分類ドメインの並び替えを確定する
-  const handleConfirmUncategorizedReorder = useCallback(async () => {
-    if (!isUncategorizedReorderMode) {
-      return
-    }
-    try {
-      const categorizedDomains = Object.values(categorized).flat()
-
-      // 新しい順序：カテゴリ分類されたドメイン + 並び替えた未分類ドメイン
-      const newTabGroups = [...categorizedDomains, ...tempUncategorizedOrder]
-
-      // 並び替え保存は `ReorderTabGroupsUseCase` 経由で
-      // `TabGroupRepository.saveAll` に委譲する
-      // （旧 storage 直叩きは use-case 経由へ移行済み、issue #494）。
-      // Repository 実装側の mapper が
-      // `urls` / `urlSubCategories` などのリッチ補助フィールドを持ち越す。
-      await savedTabsUseCases.reorderTabGroups({
-        tabGroups: toDomainTabGroupsForReorder(newTabGroups),
-      })
-      await refreshTabGroupsWithUrls(newTabGroups)
-
-      // 並び替えモードを終了
-      setIsUncategorizedReorderMode(false)
-      setTempUncategorizedOrder([])
-      toast.success(t('savedTabs.domainOrder.updated'))
-    } catch (error) {
-      console.error('未分類ドメイン順序の更新に失敗しました:', error)
-      toast.error(t('savedTabs.domainOrder.updateError'))
-    }
-  }, [
+  const {
+    handleCancelUncategorizedReorder,
+    handleUncategorizedDragEnd,
+    handleConfirmUncategorizedReorder,
+  } = useUncategorizedReorderHandlers({
     isUncategorizedReorderMode,
-    categorized,
+    setIsUncategorizedReorderMode,
     tempUncategorizedOrder,
+    setTempUncategorizedOrder,
+    uncategorized,
+    categorized,
     refreshTabGroupsWithUrls,
     savedTabsUseCases,
     t,
-  ])
+  })
   console.log('表示判定デバッグ:')
   console.log('- categorized:', categorized)
   console.log('- uncategorized:', uncategorized)
@@ -940,56 +393,11 @@ const useSavedTabsAppView = ({
     syncSavedTabsViewModeLocation({ onViewModeNavigate, viewMode })
   }, [initialViewMode, onViewModeNavigate, viewMode])
 
-  // カスタムプロジェクト間でURLを移動するハンドラ
-  // issue #540: `customProjectRepository` /
-  // `customProjectsCommandService` 直叩きを撤去し、
-  // `getCustomProjects` query (読み取り) と
-  // `moveUrlBetweenCustomProjects` use-case (更新) 経由で
-  // 移動と state 同期を行う。`SavedTabsApp` は port / repository
-  // モジュールを import しない構成に統一する。
-  const handleMoveUrlBetweenProjects = useCallback(
-    async (sourceProjectId: string, targetProjectId: string, url: string) => {
-      try {
-        console.log(
-          `URL移動: ${sourceProjectId} → ${targetProjectId}, URL: ${redactUrlForLog(url)}`,
-        )
-        await moveCustomProjectUrlAndSyncState({
-          // application query `getCustomProjects` は
-          // domain entity `CustomProject` を返すが、state 同期先で
-          // 必要なのは storage 形 (`@/types/storage` の `CustomProject`)
-          // のため、mapper 経由で projection する。
-          getCustomProjects: async () => {
-            const projects = await savedTabsUseCases.getCustomProjects()
-            return projects.map((project) => ({
-              categories: [...project.categories],
-              createdAt: project.createdAt,
-              // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain CustomProjectId と storage 側の string 差 (issue #511 と同系統)
-              id: project.id as unknown as string,
-              name: project.name,
-              updatedAt: project.updatedAt,
-              ...(project.urlIds.length > 0
-                ? // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain UrlRecordId と storage 側の string 差 (issue #511 と同系統)
-                  { urlIds: [...project.urlIds] as unknown as string[] }
-                : {}),
-            }))
-          },
-          moveUrlBetweenCustomProjects:
-            savedTabsUseCases.moveUrlBetweenCustomProjects,
-          setCustomProjects,
-          sourceProjectId,
-          targetProjectId,
-          url,
-        })
-        toast.success(t('savedTabs.tab.movedBetweenProjects'))
-        return null
-      } catch (error) {
-        console.error('URL移動エラー:', error)
-        toast.error(t('savedTabs.tab.moveBetweenProjectsError'))
-        return null
-      }
-    },
-    [savedTabsUseCases, setCustomProjects, t],
-  )
+  const { handleMoveUrlBetweenProjects } = useProjectMoveHandlers({
+    savedTabsUseCases,
+    setCustomProjects,
+    t,
+  })
 
   // カテゴリ間でURLを移動するハンドラ
   const handleMoveUrlsBetweenCategories = useCallback(async () => {}, [])

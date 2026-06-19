@@ -1,6 +1,5 @@
 import { Edit, Trash2, X } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
-import { z } from 'zod'
+import { useMemo } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,6 +21,9 @@ import {
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
+import { createProjectNameSchema } from './useProjectNameSchema'
+import { useProjectModalState } from './useProjectModalState'
+
 interface ProjectManagementModalProps {
   isOpen: boolean
   onClose: () => void
@@ -33,33 +35,6 @@ interface ProjectManagementModalProps {
   ) => Promise<void> | void
   onDeleteProject?: (projectId: string) => Promise<void> | void
 }
-
-const MAX_PROJECT_NAME_LENGTH = 50
-
-const createProjectNameSchema = (
-  validationMessages: { empty: string; maxLength: string } = {
-    empty: 'プロジェクト名を入力してください',
-    maxLength: 'プロジェクト名は50文字以下で入力してください',
-  },
-) =>
-  z
-    .string()
-    .trim()
-    .min(1, {
-      message: validationMessages.empty,
-    })
-    .max(MAX_PROJECT_NAME_LENGTH, {
-      message: validationMessages.maxLength,
-    })
-
-const projectNameSchema = {
-  safeParse(value: string) {
-    return this.schema.safeParse(value)
-  },
-  schema: createProjectNameSchema(),
-}
-
-const normalizeKeyword = (value: string): string => value.trim()
 
 interface ProjectKeywordSectionProps {
   label: string
@@ -74,48 +49,6 @@ interface ProjectKeywordSectionProps {
   onBlurKeyword: () => void
   onRemoveKeyword: (keyword: string) => void
 }
-
-interface KeywordUpdateParams {
-  keyword: string
-  keywords: string[]
-  section: keyof ProjectKeywordSettings
-  setKeywords: (keywords: string[]) => void
-  clearInput: () => void
-}
-
-interface ProjectManagementModalState {
-  isRenaming: boolean
-  newProjectName: string
-  isProcessing: boolean
-  isSaving: boolean
-  localProjectName: string
-  projectNameError: string | null
-  showDeleteConfirm: boolean
-  titleKeywords: string[]
-  urlKeywords: string[]
-  domainKeywords: string[]
-  newTitleKeyword: string
-  newUrlKeyword: string
-  newDomainKeyword: string
-}
-
-const createProjectManagementModalState = (
-  project: CustomProject,
-): ProjectManagementModalState => ({
-  domainKeywords: project.projectKeywords?.domainKeywords ?? [],
-  isProcessing: false,
-  isRenaming: false,
-  isSaving: false,
-  localProjectName: project.name,
-  newDomainKeyword: '',
-  newProjectName: project.name,
-  newTitleKeyword: '',
-  newUrlKeyword: '',
-  projectNameError: null,
-  showDeleteConfirm: false,
-  titleKeywords: project.projectKeywords?.titleKeywords ?? [],
-  urlKeywords: project.projectKeywords?.urlKeywords ?? [],
-})
 
 const ProjectKeywordSection = ({
   label,
@@ -193,7 +126,6 @@ const ProjectKeywordSection = ({
 }
 
 const useProjectManagementModalView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   isOpen,
   onClose,
   project,
@@ -211,201 +143,34 @@ const useProjectManagementModalView = ({
     [t],
   )
   const isUncategorizedProject = project.id === UNCATEGORIZED_PROJECT_ID
-  const [modalState, setModalState] = useState(() =>
-    createProjectManagementModalState(project),
-  )
   const {
-    isRenaming,
-    newProjectName,
+    addKeyword,
+    domainKeywords,
+    handleCancelRenaming,
+    handleDeleteProject,
+    handleProjectNameChange,
+    handleSaveRenaming,
+    handleStartRenaming,
+    inputRef,
     isProcessing,
+    isRenaming,
     isSaving,
     localProjectName,
-    projectNameError,
-    showDeleteConfirm,
-    titleKeywords,
-    urlKeywords,
-    domainKeywords,
+    newDomainKeyword,
+    newProjectName,
     newTitleKeyword,
     newUrlKeyword,
-    newDomainKeyword,
-  } = modalState
-  const updateModalState = (updates: Partial<ProjectManagementModalState>) => {
-    setModalState((current) => ({ ...current, ...updates }))
-  }
-
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // 入力値バリデーション関数
-  const validateProjectName = (name: string) => {
-    projectNameSchema.schema = localizedProjectNameSchema
-    const result = projectNameSchema.safeParse(name)
-    if (!result.success) {
-      const issue = result.error.issues[0]
-      if (issue?.code === 'too_small') {
-        updateModalState({
-          projectNameError: t('savedTabs.projectNameRequired'),
-        })
-      } else if (issue?.code === 'too_big') {
-        updateModalState({
-          projectNameError: t('savedTabs.projectNameMaxLength'),
-        })
-      } else {
-        updateModalState({
-          projectNameError: t('savedTabs.projectNameRequired'),
-        })
-      }
-      return false
-    }
-    updateModalState({ projectNameError: null })
-    return true
-  }
-
-  // リネーム処理を開始
-  const handleStartRenaming = () => {
-    updateModalState({
-      isRenaming: true,
-      newProjectName: localProjectName,
-      projectNameError: null,
-    })
-    requestAnimationFrame(() => {
-      if (inputRef.current) {
-        inputRef.current.focus()
-        inputRef.current.select()
-      }
-    })
-  }
-
-  // リネームをキャンセル
-  const handleCancelRenaming = () => {
-    updateModalState({
-      isRenaming: false,
-      newProjectName: localProjectName,
-      projectNameError: null,
-    })
-  }
-
-  // 入力変更時の処理
-  const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target
-    updateModalState({ newProjectName: value })
-    validateProjectName(value)
-  }
-
-  // 名前変更の保存処理
-  const handleSaveRenaming = async (trimmedName: string) => {
-    updateModalState({ isProcessing: true, isSaving: true })
-
-    try {
-      if (!onRenameProject) {
-        throw new Error('プロジェクト名変更機能が利用できません')
-      }
-
-      await onRenameProject(project.id, trimmedName)
-
-      updateModalState({
-        isRenaming: false,
-        localProjectName: trimmedName,
-      })
-    } catch (error) {
-      console.error('プロジェクト名の更新に失敗:', error)
-      // エラー表示は useProjectManagement 側で行われることが多いため、ここでは最小限に
-    } finally {
-      updateModalState({ isProcessing: false, isSaving: false })
-    }
-  }
-
-  // プロジェクト削除処理
-  const handleDeleteProject = async () => {
-    if (isProcessing) {
-      return
-    }
-
-    updateModalState({ isProcessing: true })
-    try {
-      if (!onDeleteProject) {
-        throw new Error('プロジェクト削除機能が利用できません')
-      }
-
-      await onDeleteProject(project.id)
-      onClose()
-    } catch (error) {
-      console.error('プロジェクトの削除に失敗しました:', error)
-    } finally {
-      updateModalState({ isProcessing: false })
-    }
-  }
-
-  const handleSaveProjectKeywords = async (
-    nextProjectKeywords: ProjectKeywordSettings = {
-      domainKeywords,
-      titleKeywords,
-      urlKeywords,
-    },
-  ) => {
-    try {
-      if (!onUpdateProjectKeywords) {
-        throw new Error('プロジェクトキーワード更新機能が利用できません')
-      }
-
-      await onUpdateProjectKeywords(project.id, {
-        domainKeywords: nextProjectKeywords.domainKeywords,
-        titleKeywords: nextProjectKeywords.titleKeywords,
-        urlKeywords: nextProjectKeywords.urlKeywords,
-      })
-    } catch (error) {
-      console.error('プロジェクトキーワードの更新に失敗:', error)
-    }
-  }
-
-  const addKeyword = ({
-    keyword,
-    keywords,
-    section,
-    setKeywords,
-    clearInput,
-  }: KeywordUpdateParams) => {
-    const normalizedKeyword = normalizeKeyword(keyword)
-    if (!normalizedKeyword) {
-      return
-    }
-    const isDuplicate = keywords.some(
-      (currentKeyword) =>
-        currentKeyword.toLowerCase() === normalizedKeyword.toLowerCase(),
-    )
-    if (isDuplicate) {
-      clearInput()
-      return
-    }
-    const updatedKeywords = [...keywords, normalizedKeyword]
-    setKeywords(updatedKeywords)
-    clearInput()
-    void handleSaveProjectKeywords({
-      domainKeywords:
-        section === 'domainKeywords' ? updatedKeywords : domainKeywords,
-      titleKeywords:
-        section === 'titleKeywords' ? updatedKeywords : titleKeywords,
-      urlKeywords: section === 'urlKeywords' ? updatedKeywords : urlKeywords,
-    })
-  }
-
-  const removeKeyword = (
-    keywordToRemove: string,
-    section: keyof ProjectKeywordSettings,
-    setKeywords: (keywords: string[]) => void,
-    keywords: string[],
-  ) => {
-    const updatedKeywords = keywords.filter(
-      (keyword) => keyword !== keywordToRemove,
-    )
-    setKeywords(updatedKeywords)
-    void handleSaveProjectKeywords({
-      domainKeywords:
-        section === 'domainKeywords' ? updatedKeywords : domainKeywords,
-      titleKeywords:
-        section === 'titleKeywords' ? updatedKeywords : titleKeywords,
-      urlKeywords: section === 'urlKeywords' ? updatedKeywords : urlKeywords,
-    })
-  }
+    projectNameError,
+    removeKeyword,
+    showDeleteConfirm,
+    titleKeywords,
+    updateModalState,
+    urlKeywords,
+  } = useProjectModalState(
+    project,
+    { onRenameProject, onUpdateProjectKeywords, onDeleteProject, onClose },
+    localizedProjectNameSchema,
+  )
 
   if (!isOpen) {
     return null
