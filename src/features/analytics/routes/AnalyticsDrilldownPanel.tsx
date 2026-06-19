@@ -1,6 +1,5 @@
-import type { CSSProperties } from 'react'
-
 import { ExternalLink, Trash2 } from 'lucide-react'
+import type { CSSProperties } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,9 +11,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
+import { AnalyticsRecordActionButtons } from '@/features/analytics/routes/AnalyticsRecordActionButtons'
 import type { AnalyticsDrilldownSelection } from '@/features/analytics/routes/analyticsRoute.helpers'
 import { getAnalyticsDateLocale } from '@/features/analytics/routes/analyticsRoute.helpers'
-import { AnalyticsRecordActionButtons } from '@/features/analytics/routes/AnalyticsRecordActionButtons'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { formatLocaleDateTime } from '@/utils/localDateTime'
 
@@ -116,14 +115,9 @@ export const AnalyticsDrilldownPanel = ({
             >
               <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'>
                 <div className='min-w-0 flex-1'>
-                  <p className='truncate text-sm font-medium'>
-                    {record.title}
-                  </p>
+                  <p className='truncate text-sm font-medium'>{record.title}</p>
                   <div className='mt-2 flex flex-wrap gap-2 text-xs'>
-                    <Badge
-                      className='rounded-full'
-                      variant='secondary'
-                    >
+                    <Badge className='rounded-full' variant='secondary'>
                       {record.domain}
                     </Badge>
                     {record.parentCategories.map((category) => (

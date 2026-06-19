@@ -21,8 +21,8 @@ import {
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
-import { createProjectNameSchema } from './useProjectNameSchema'
 import { useProjectModalState } from './useProjectModalState'
+import { createProjectNameSchema } from './useProjectNameSchema'
 
 interface ProjectManagementModalProps {
   isOpen: boolean

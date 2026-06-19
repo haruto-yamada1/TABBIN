@@ -3,8 +3,8 @@ import { useRef, useState } from 'react'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
-import { projectNameSchema } from './useProjectNameSchema';
-import type { ProjectNameSchema } from './useProjectNameSchema';
+import { projectNameSchema } from './useProjectNameSchema'
+import type { ProjectNameSchema } from './useProjectNameSchema'
 
 const normalizeKeyword = (value: string): string => value.trim()
 
@@ -58,7 +58,10 @@ export const useProjectModalState = (
     onDeleteProject,
     onClose,
   }: {
-    onRenameProject?: (projectId: string, newName: string) => Promise<void> | void
+    onRenameProject?: (
+      projectId: string,
+      newName: string,
+    ) => Promise<void> | void
     onUpdateProjectKeywords?: (
       projectId: string,
       projectKeywords: ProjectKeywordSettings,

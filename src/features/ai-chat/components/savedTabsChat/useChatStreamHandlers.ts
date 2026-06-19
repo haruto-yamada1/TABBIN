@@ -8,7 +8,10 @@ import { convertPromptInputFilesToAiChatAttachments } from '@/features/ai-chat/l
 import type { AiChatAttachment } from '@/features/ai-chat/types'
 import type { AppLanguage } from '@/features/i18n/messages'
 import { connectRuntimePort } from '@/lib/browser/runtime'
-import type { AiChatStreamServerMessage, OllamaErrorDetails } from '@/types/background'
+import type {
+  AiChatStreamServerMessage,
+  OllamaErrorDetails,
+} from '@/types/background'
 import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
 
 import type { ChatMessage, TranslateFn } from './messages'
@@ -23,9 +26,11 @@ import {
 
 interface UseChatStreamHandlersParams {
   messages: ChatMessage[]
-  activePortRef: { current: {
-    disconnect: () => void
-  } | null }
+  activePortRef: {
+    current: {
+      disconnect: () => void
+    } | null
+  }
   conversationGenerationRef: { current: number }
   ignoreNextDisconnectRef: { current: boolean }
   disconnectActivePort: (suppressDisconnectError?: boolean) => void
@@ -100,9 +105,7 @@ const useChatStreamHandlers = ({
     setIsSubmitting(false)
   }
 
-  const disconnectStreamPort = (streamPort: {
-    disconnect: () => void
-  }) => {
+  const disconnectStreamPort = (streamPort: { disconnect: () => void }) => {
     if (activePortRef.current === streamPort) {
       activePortRef.current = null
     }

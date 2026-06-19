@@ -42,9 +42,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from '@/components/ai-elements/prompt-input'
-import type {
-  PromptInputProps,
-} from '@/components/ai-elements/prompt-input'
+import type { PromptInputProps } from '@/components/ai-elements/prompt-input'
 import {
   Reasoning,
   ReasoningContent,
@@ -118,9 +116,7 @@ import {
   fromStorageChange,
 } from '@/lib/storage/zod-storage'
 import { cn } from '@/lib/utils'
-import type {
-  OllamaErrorDetails,
-} from '@/types/background'
+import type { OllamaErrorDetails } from '@/types/background'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
 import {

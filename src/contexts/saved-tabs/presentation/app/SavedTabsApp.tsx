@@ -33,15 +33,14 @@ import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { TabGroup, ViewMode } from '@/types/storage'
 
+import { useProjectMoveHandlers } from './handlers/useProjectMoveHandlers'
+import { useTabGroupDeletionHandlers } from './handlers/useTabGroupDeletionHandlers'
+import { useTabOpeningHandlers } from './handlers/useTabOpeningHandlers'
+import { useUncategorizedReorderHandlers } from './handlers/useUncategorizedReorderHandlers'
 import {
   shouldWaitForInitialViewMode,
   syncSavedTabsViewModeLocation,
 } from './savedTabsApp.helpers'
-
-import { useTabOpeningHandlers } from './handlers/useTabOpeningHandlers'
-import { useTabGroupDeletionHandlers } from './handlers/useTabGroupDeletionHandlers'
-import { useUncategorizedReorderHandlers } from './handlers/useUncategorizedReorderHandlers'
-import { useProjectMoveHandlers } from './handlers/useProjectMoveHandlers'
 
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'

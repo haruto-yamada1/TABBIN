@@ -1,9 +1,8 @@
+import type { DragEndEvent } from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
 import type { Dispatch, SetStateAction } from 'react'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
-
-import { arrayMove } from '@dnd-kit/sortable'
-import type { DragEndEvent } from '@dnd-kit/core'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
@@ -46,7 +45,12 @@ export const useUncategorizedReorderHandlers = ({
     // 並び替えモードを終了
     setIsUncategorizedReorderMode(false)
     toast.info(t('savedTabs.domainOrder.canceled'))
-  }, [isUncategorizedReorderMode, setIsUncategorizedReorderMode, setTempUncategorizedOrder, t])
+  }, [
+    isUncategorizedReorderMode,
+    setIsUncategorizedReorderMode,
+    setTempUncategorizedOrder,
+    t,
+  ])
 
   // 未分類ドメインのドラッグエンド処理（並び替えモード対応）
   const handleUncategorizedDragEnd = useCallback(
@@ -73,7 +77,13 @@ export const useUncategorizedReorderHandlers = ({
         }
       }
     },
-    [isUncategorizedReorderMode, setIsUncategorizedReorderMode, setTempUncategorizedOrder, tempUncategorizedOrder, uncategorized],
+    [
+      isUncategorizedReorderMode,
+      setIsUncategorizedReorderMode,
+      setTempUncategorizedOrder,
+      tempUncategorizedOrder,
+      uncategorized,
+    ],
   )
 
   // 未分類ドメインの並び替えを確定する

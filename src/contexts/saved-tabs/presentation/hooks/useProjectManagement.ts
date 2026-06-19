@@ -35,11 +35,7 @@ import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/a
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type {
-  CustomProject,
-  TabGroup,
-  ViewMode,
-} from '@/types/storage'
+import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
 
 import type { UseProjectManagementReturn } from './projectManagementDefaults'
 import {
@@ -63,9 +59,9 @@ import {
   asyncNoopUpdateCustomProjectCategoryOrder,
   asyncNoopUpdateCustomProjectKeywords,
 } from './projectManagementDefaults'
-import { useProjectManagementRefs } from './useProjectManagementRefs'
 import { useProjectCategoryHandlers } from './useProjectCategoryHandlers'
 import { useProjectCrudHandlers } from './useProjectCrudHandlers'
+import { useProjectManagementRefs } from './useProjectManagementRefs'
 
 /**
  * issue #539 / #540 で `useProjectManagement` から application
@@ -84,7 +80,6 @@ import { useProjectCrudHandlers } from './useProjectCrudHandlers'
  * 「useProjectManagement へ渡す CustomProject 依存が use-case /
  * query 中心になっている」)。
  */
-
 
 /**
  * カスタムプロジェクト管理フック。

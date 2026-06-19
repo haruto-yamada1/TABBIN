@@ -5,9 +5,7 @@ import { toast } from 'sonner'
 import { customProjectIdToString } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import type { CustomProject, ViewMode } from '@/types/storage'
 
-import {
-  toRawStorageCustomProject,
-} from './projectManagementDefaults'
+import { toRawStorageCustomProject } from './projectManagementDefaults'
 import type { ProjectManagementRefs } from './useProjectManagementRefs'
 
 interface ProjectCategoryHandlerDeps {
@@ -85,7 +83,12 @@ const useProjectCategoryHandlers = ({
         toast.error(t('savedTabs.subCategory.deleteError'))
       }
     },
-    [refs.removeCategoryFromCustomProjectUseCaseRef, refs.getCustomProjectRawsQueryRef, setCustomProjects, t],
+    [
+      refs.removeCategoryFromCustomProjectUseCaseRef,
+      refs.getCustomProjectRawsQueryRef,
+      setCustomProjects,
+      t,
+    ],
   )
 
   const handleSetUrlCategory = useCallback(
@@ -107,7 +110,12 @@ const useProjectCategoryHandlers = ({
         toast.error(t('savedTabs.tab.moveError'))
       }
     },
-    [refs.setCustomProjectUrlCategoryUseCaseRef, refs.getCustomProjectRawsQueryRef, setCustomProjects, t],
+    [
+      refs.setCustomProjectUrlCategoryUseCaseRef,
+      refs.getCustomProjectRawsQueryRef,
+      setCustomProjects,
+      t,
+    ],
   )
 
   const handleUpdateCategoryOrder = useCallback(
@@ -286,7 +294,13 @@ const useProjectCategoryHandlers = ({
     return () => {
       isActive = false
     }
-  }, [initialViewMode, refs.getCustomProjectOrderQueryRef, refs.getCustomProjectRawsQueryRef, setCustomProjects, setViewMode])
+  }, [
+    initialViewMode,
+    refs.getCustomProjectOrderQueryRef,
+    refs.getCustomProjectRawsQueryRef,
+    setCustomProjects,
+    setViewMode,
+  ])
 
   return {
     handleAddCategory,

@@ -10,8 +10,13 @@ import type { AppLanguage } from '@/features/i18n/messages'
 import { saveUserSettings } from '@/lib/storage/settings'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
-import { createSystemPromptId, getPromptManagerValidationError, getSelectedPrompt, getUniquePromptName } from './prompts'
 import type { TranslateFn } from './messages'
+import {
+  createSystemPromptId,
+  getPromptManagerValidationError,
+  getSelectedPrompt,
+  getUniquePromptName,
+} from './prompts'
 
 const useChatPromptManager = ({
   resolvedSettings,

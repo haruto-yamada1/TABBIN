@@ -25,24 +25,58 @@ import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/a
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
 
 interface ProjectManagementRefs {
-  getCustomProjectOrderQueryRef: { readonly current: GetCustomProjectOrderQuery }
-  getCustomProjectUndoSnapshotQueryRef: { readonly current: GetCustomProjectUndoSnapshotQuery }
+  getCustomProjectOrderQueryRef: {
+    readonly current: GetCustomProjectOrderQuery
+  }
+  getCustomProjectUndoSnapshotQueryRef: {
+    readonly current: GetCustomProjectUndoSnapshotQuery
+  }
   getCustomProjectRawsQueryRef: { readonly current: GetCustomProjectRawsQuery }
-  createCustomProjectUseCaseRef: { readonly current: CreateCustomProjectUseCase }
-  deleteCustomProjectUseCaseRef: { readonly current: DeleteCustomProjectUseCase }
-  updateCustomProjectNameUseCaseRef: { readonly current: UpdateCustomProjectNameUseCase }
-  saveCustomProjectOrderUseCaseRef: { readonly current: SaveCustomProjectOrderUseCase }
-  restoreCustomProjectsSnapshotUseCaseRef: { readonly current: RestoreCustomProjectsSnapshotUseCase }
-  addUrlToCustomProjectUseCaseRef: { readonly current: AddUrlToCustomProjectUseCase }
-  removeUrlFromCustomProjectUseCaseRef: { readonly current: RemoveUrlFromCustomProjectUseCase }
-  removeUrlsFromCustomProjectUseCaseRef: { readonly current: RemoveUrlsFromCustomProjectUseCase }
-  setCustomProjectUrlCategoryUseCaseRef: { readonly current: SetCustomProjectUrlCategoryUseCase }
-  updateCustomProjectCategoryOrderUseCaseRef: { readonly current: UpdateCustomProjectCategoryOrderUseCase }
-  reorderCustomProjectUrlsUseCaseRef: { readonly current: ReorderCustomProjectUrlsUseCase }
-  renameCustomProjectCategoryUseCaseRef: { readonly current: RenameCustomProjectCategoryUseCase }
-  updateCustomProjectKeywordsUseCaseRef: { readonly current: UpdateCustomProjectKeywordsUseCase }
-  addCategoryToCustomProjectUseCaseRef: { readonly current: AddCategoryToCustomProjectUseCase }
-  removeCategoryFromCustomProjectUseCaseRef: { readonly current: RemoveCategoryFromCustomProjectUseCase }
+  createCustomProjectUseCaseRef: {
+    readonly current: CreateCustomProjectUseCase
+  }
+  deleteCustomProjectUseCaseRef: {
+    readonly current: DeleteCustomProjectUseCase
+  }
+  updateCustomProjectNameUseCaseRef: {
+    readonly current: UpdateCustomProjectNameUseCase
+  }
+  saveCustomProjectOrderUseCaseRef: {
+    readonly current: SaveCustomProjectOrderUseCase
+  }
+  restoreCustomProjectsSnapshotUseCaseRef: {
+    readonly current: RestoreCustomProjectsSnapshotUseCase
+  }
+  addUrlToCustomProjectUseCaseRef: {
+    readonly current: AddUrlToCustomProjectUseCase
+  }
+  removeUrlFromCustomProjectUseCaseRef: {
+    readonly current: RemoveUrlFromCustomProjectUseCase
+  }
+  removeUrlsFromCustomProjectUseCaseRef: {
+    readonly current: RemoveUrlsFromCustomProjectUseCase
+  }
+  setCustomProjectUrlCategoryUseCaseRef: {
+    readonly current: SetCustomProjectUrlCategoryUseCase
+  }
+  updateCustomProjectCategoryOrderUseCaseRef: {
+    readonly current: UpdateCustomProjectCategoryOrderUseCase
+  }
+  reorderCustomProjectUrlsUseCaseRef: {
+    readonly current: ReorderCustomProjectUrlsUseCase
+  }
+  renameCustomProjectCategoryUseCaseRef: {
+    readonly current: RenameCustomProjectCategoryUseCase
+  }
+  updateCustomProjectKeywordsUseCaseRef: {
+    readonly current: UpdateCustomProjectKeywordsUseCase
+  }
+  addCategoryToCustomProjectUseCaseRef: {
+    readonly current: AddCategoryToCustomProjectUseCase
+  }
+  removeCategoryFromCustomProjectUseCaseRef: {
+    readonly current: RemoveCategoryFromCustomProjectUseCase
+  }
 }
 
 // eslint-disable-next-line eslint/max-params -- composition root bundles 18 deps

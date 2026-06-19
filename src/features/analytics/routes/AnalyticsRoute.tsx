@@ -21,7 +21,6 @@ import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
 import { AnalyticsDrilldownPanel } from '@/features/analytics/routes/AnalyticsDrilldownPanel'
-import { AnalyticsSidebar } from '@/features/analytics/routes/AnalyticsSidebar'
 import type {
   AnalyticsChartMessages,
   AnalyticsDeleteUndoSnapshot,
@@ -53,6 +52,7 @@ import {
   runConfirmedDelete,
   runSingleDeleteWhenAllowed,
 } from '@/features/analytics/routes/analyticsRoute.helpers'
+import { AnalyticsSidebar } from '@/features/analytics/routes/AnalyticsSidebar'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   createSavedAnalyticsView,
@@ -489,7 +489,9 @@ const useAnalyticsRouteView = () => {
               onApplyQuery={applyQuery}
               // eslint-disable-next-line typescript/no-misused-promises
               onDeleteView={handleDeleteView}
-              onResetQuery={() =>{  applyQuery(defaultAnalyticsQuery); }}
+              onResetQuery={() => {
+                applyQuery(defaultAnalyticsQuery)
+              }}
               // eslint-disable-next-line typescript/no-misused-promises
               onSaveView={handleSaveView}
               onViewNameChange={handleViewNameChange}

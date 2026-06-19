@@ -116,7 +116,12 @@ const useProjectCrudHandlers = ({
         creatingProjectNamesRef.current.delete(projectKey)
       }
     },
-    [creatingProjectNamesRef, refs.createCustomProjectUseCaseRef, setCustomProjects, t],
+    [
+      creatingProjectNamesRef,
+      refs.createCustomProjectUseCaseRef,
+      setCustomProjects,
+      t,
+    ],
   )
 
   const handleDeleteProject = useCallback(
@@ -147,13 +152,21 @@ const useProjectCrudHandlers = ({
         toast.error(t('savedTabs.projects.deleteError'))
       }
     },
-    [customProjectsRef, refs.deleteCustomProjectUseCaseRef, setCustomProjects, t],
+    [
+      customProjectsRef,
+      refs.deleteCustomProjectUseCaseRef,
+      setCustomProjects,
+      t,
+    ],
   )
 
   const handleRenameProject = useCallback(
     async (projectId: string, newName: string): Promise<void> => {
       try {
-        await refs.updateCustomProjectNameUseCaseRef.current({ newName, projectId })
+        await refs.updateCustomProjectNameUseCaseRef.current({
+          newName,
+          projectId,
+        })
         setCustomProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -231,7 +244,12 @@ const useProjectCrudHandlers = ({
         toast.error(t('savedTabs.tab.addError'))
       }
     },
-    [refs.addUrlToCustomProjectUseCaseRef, refs.getCustomProjectRawsQueryRef, setCustomProjects, t],
+    [
+      refs.addUrlToCustomProjectUseCaseRef,
+      refs.getCustomProjectRawsQueryRef,
+      setCustomProjects,
+      t,
+    ],
   )
 
   const handleDeleteUrlFromProject = useCallback(

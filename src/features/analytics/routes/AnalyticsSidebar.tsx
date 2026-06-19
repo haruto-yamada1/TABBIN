@@ -78,22 +78,14 @@ export const AnalyticsSidebar = ({
               </CardTitle>
             </CardHeader>
             <CardContent className='mt-4 grid gap-3 p-0'>
-              <Field
-                className='gap-1.5'
-                data-invalid={viewNameError !== null}
-              >
-                <FieldLabel
-                  className='text-sm'
-                  htmlFor='analytics-view-name'
-                >
+              <Field className='gap-1.5' data-invalid={viewNameError !== null}>
+                <FieldLabel className='text-sm' htmlFor='analytics-view-name'>
                   {t('analytics.viewName')}
                 </FieldLabel>
                 <Input
                   aria-label={t('analytics.viewName')}
                   aria-describedby={
-                    viewNameError
-                      ? 'analytics-view-name-error'
-                      : undefined
+                    viewNameError ? 'analytics-view-name-error' : undefined
                   }
                   aria-invalid={viewNameError !== null}
                   className='rounded-xl bg-background'
@@ -133,10 +125,7 @@ export const AnalyticsSidebar = ({
                   </SelectTrigger>
                   <SelectContent>
                     {analyticsGroupByOptions.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                      >
+                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
                     ))}
@@ -144,10 +133,7 @@ export const AnalyticsSidebar = ({
                 </Select>
               </div>
               <div className='grid gap-1.5'>
-                <Label
-                  className='text-sm'
-                  htmlFor='analytics-chart-type'
-                >
+                <Label className='text-sm' htmlFor='analytics-chart-type'>
                   {t('analytics.chartTypeLabel')}
                 </Label>
                 <Select
@@ -168,10 +154,7 @@ export const AnalyticsSidebar = ({
                   </SelectTrigger>
                   <SelectContent>
                     {analyticsChartTypeOptions.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                      >
+                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
                     ))}
@@ -190,10 +173,7 @@ export const AnalyticsSidebar = ({
                   onChange={(event) => {
                     onApplyQuery({
                       ...query,
-                      limit: Math.max(
-                        1,
-                        Number(event.target.value) || 1,
-                      ),
+                      limit: Math.max(1, Number(event.target.value) || 1),
                     })
                   }}
                   type='number'
@@ -256,12 +236,12 @@ export const AnalyticsSidebar = ({
                           </span>
                         </Button>
                         <Button
-                          aria-label={t(
-                            'analytics.deleteViewAria',
-                            undefined,
-                            { name: view.name },
-                          )}
-                          onClick={() =>{   onDeleteView(view.id); }}
+                          aria-label={t('analytics.deleteViewAria', undefined, {
+                            name: view.name,
+                          })}
+                          onClick={() => {
+                            onDeleteView(view.id)
+                          }}
                           size='sm'
                           type='button'
                           variant='outline'
