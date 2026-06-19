@@ -74,14 +74,12 @@ export const CategorySection = ({
         setOptimisticOrder({ sourceKey: urlsKey, urls: newUrls })
 
         try {
-          if (reorderTabGroupUrlsUseCase) {
-            // 新形式のURL並び替え use-case を呼び出し
-            await reorderTabGroupUrlsUseCase({
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-              tabGroupId: groupId as never,
-              newUrlOrder: newUrls.map((item) => item.url),
-            })
-          }
+          // 新形式のURL並び替え use-case を呼び出し
+          await reorderTabGroupUrlsUseCase?.({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+            tabGroupId: groupId as never,
+            newUrlOrder: newUrls.map((item) => item.url),
+          })
 
           // 親コンポーネントに通知してUIを更新
           handleUpdateUrls(groupId, newUrls)

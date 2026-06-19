@@ -49,6 +49,8 @@ export type DeleteSavedUrlUseCase = (
 export const createDeleteSavedUrlUseCase = (
   deps: DeleteSavedUrlUseCaseDeps,
 ): DeleteSavedUrlUseCase => {
+  // TODO(#557): バリデーション・副作用・snapshot 構築の責務を分割して複雑度を削減する。
+  // eslint-disable-next-line eslint/complexity
   return async (command) => {
     const [allTabGroups, allUrlRecords, allCustomProjects] = await Promise.all([
       deps.tabGroupRepository.findAll(),

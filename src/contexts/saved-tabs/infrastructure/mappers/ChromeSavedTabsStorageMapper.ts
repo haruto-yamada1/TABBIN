@@ -162,6 +162,31 @@ const toUrlRecordRaw = (entity: UrlRecord): UrlRecordRaw => {
   return base
 }
 
+const copyArrayField = (
+  base: SavedTabRaw,
+  field:
+    | 'subCategories'
+    | 'subCategoryOrder'
+    | 'subCategoryOrderWithUncategorized',
+  value: readonly string[] | undefined,
+): void => {
+  if (value) {
+    base[field] = [...value]
+  }
+}
+
+const copyKeywordsField = (
+  base: SavedTabRaw,
+  value: TabGroup['categoryKeywords'],
+): void => {
+  if (value) {
+    base.categoryKeywords = value.map((keyword) => ({
+      categoryName: keyword.categoryName,
+      keywords: [...keyword.keywords],
+    }))
+  }
+}
+
 const copySavedTabRichFields = (
   base: SavedTabRaw,
   entity: TabGroup,
@@ -189,28 +214,19 @@ const copySavedTabRichFields = (
     }
   }
   const subCategories = entity.subCategories ?? original.subCategories
-  if (subCategories) {
-    base.subCategories = [...subCategories]
-  }
+  copyArrayField(base, 'subCategories', subCategories)
   const categoryKeywords = entity.categoryKeywords ?? original.categoryKeywords
-  if (categoryKeywords) {
-    base.categoryKeywords = categoryKeywords.map((keyword) => ({
-      categoryName: keyword.categoryName,
-      keywords: [...keyword.keywords],
-    }))
-  }
+  copyKeywordsField(base, categoryKeywords)
   const subCategoryOrder = entity.subCategoryOrder ?? original.subCategoryOrder
-  if (subCategoryOrder) {
-    base.subCategoryOrder = [...subCategoryOrder]
-  }
+  copyArrayField(base, 'subCategoryOrder', subCategoryOrder)
   const subCategoryOrderWithUncategorized =
     entity.subCategoryOrderWithUncategorized ??
     original.subCategoryOrderWithUncategorized
-  if (subCategoryOrderWithUncategorized) {
-    base.subCategoryOrderWithUncategorized = [
-      ...subCategoryOrderWithUncategorized,
-    ]
-  }
+  copyArrayField(
+    base,
+    'subCategoryOrderWithUncategorized',
+    subCategoryOrderWithUncategorized,
+  )
 }
 
 const toSavedTabRaw = (

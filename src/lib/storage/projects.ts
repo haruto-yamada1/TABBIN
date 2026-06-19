@@ -671,9 +671,7 @@ const updateProjectUrlIdsAndMetadata = (
 
     if (project.urlMetadata) {
       for (const id of idsToDelete) {
-        if (project.urlMetadata[id]) {
-          Reflect.deleteProperty(project.urlMetadata, id)
-        }
+        Reflect.deleteProperty(project.urlMetadata, id)
       }
     }
     project.updatedAt = Date.now()

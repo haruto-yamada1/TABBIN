@@ -69,8 +69,16 @@
     "eslint/func-style": "off",
     "eslint/id-length": "off",
     "eslint/init-declarations": "off",
-    "eslint/complexity": ["error", 20],
-    "eslint/max-depth": ["error", 4],
+    "eslint/complexity": ["error", 15],
+    "eslint/max-depth": ["error", 3],
+    "eslint/max-lines": [
+      "error",
+      {
+        "max": 2000,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
     "eslint/max-lines-per-function": [
       "error",
       {
@@ -81,7 +89,7 @@
     ],
     "eslint/max-nested-callbacks": ["error", 3],
     "eslint/max-params": ["error", 4],
-    "eslint/max-statements": "off",
+    "eslint/max-statements": ["error", 60],
     "eslint/new-cap": "off",
     "eslint/no-continue": "off",
     "eslint/no-duplicate-imports": "off",
@@ -98,6 +106,7 @@
     "eslint/no-use-before-define": "off",
     "eslint/require-unicode-regexp": "off",
     "eslint/no-inline-comments": "off",
+    "eslint/no-warning-comments": "off",
     "eslint/no-magic-numbers": [
       "error",
       {
@@ -119,7 +128,6 @@
     "eslint/no-bitwise": "off",
     "eslint/no-param-reassign": "off",
     "eslint/no-promise-executor-return": "off",
-    "eslint/max-lines": "off",
     "eslint/default-case-last": "error",
     "eslint/default-param-last": "error",
     "eslint/eqeqeq": ["error", "always"],
@@ -390,7 +398,17 @@
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
         "eslint/no-magic-numbers": "off",
-        "unicorn/no-abusive-eslint-disable": "off"
+        "unicorn/no-abusive-eslint-disable": "off",
+        "eslint/max-lines": [
+          "error",
+          { "max": 800, "skipBlankLines": true, "skipComments": true }
+        ],
+        "eslint/max-lines-per-function": [
+          "error",
+          { "max": 250, "skipBlankLines": true, "skipComments": true }
+        ],
+        "eslint/max-statements": ["error", 100],
+        "eslint/max-params": "off"
       }
     },
     {
@@ -410,11 +428,18 @@
         "typescript/no-unsafe-return": "off",
         "typescript/no-unsafe-type-assertion": "off",
         "eslint/no-magic-numbers": "off",
+        "eslint/max-lines": [
+          "error",
+          { "max": 5000, "skipBlankLines": true, "skipComments": true }
+        ],
         "eslint/max-lines-per-function": [
           "error",
           { "max": 2000, "skipBlankLines": true, "skipComments": true }
         ],
+        "eslint/max-statements": ["error", 200],
         "eslint/complexity": ["error", 20],
+        "eslint/max-depth": ["error", 5],
+        "eslint/max-params": "off",
         "import/first": "off",
         "eslint/max-nested-callbacks": "off",
         "typescript/await-thenable": "off",
@@ -450,6 +475,16 @@
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
         "eslint/no-magic-numbers": "off",
+        "eslint/max-lines": [
+          "error",
+          { "max": 800, "skipBlankLines": true, "skipComments": true }
+        ],
+        "eslint/max-lines-per-function": [
+          "error",
+          { "max": 300, "skipBlankLines": true, "skipComments": true }
+        ],
+        "eslint/max-statements": ["error", 100],
+        "eslint/complexity": ["error", 20],
         "react-perf/jsx-no-jsx-as-prop": "off",
         "react-perf/jsx-no-new-function-as-prop": "off",
         "react-perf/jsx-no-new-object-as-prop": "off",
