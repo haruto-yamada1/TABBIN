@@ -33,6 +33,9 @@ jobs:
       - name: Run formatter check
         run: bun run check
 
+      - name: Run secretlint
+        run: bun run secretlint
+
   verify-build:
     name: Verify Build
     runs-on: ubuntu-latest
