@@ -161,7 +161,7 @@ const createOrUpdateUrlRecordsBatchUnsafe = async (
 
   for (const input of normalizedInputs) {
     const recordIndex = recordIndexByUrl.get(input.url)
-    if (recordIndex == null) {
+    if (recordIndex === undefined) {
       const newRecord: UrlRecord = {
         favIconUrl: input.favIconUrl,
         id: uuidv4(),

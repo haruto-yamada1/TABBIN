@@ -95,7 +95,7 @@ const readStorageByKeys = (
   store: StorageStore,
   keys?: string | string[] | Record<string, unknown>,
 ) => {
-  if (keys == null) {
+  if (keys === undefined) {
     return clone(store)
   }
 
@@ -2589,7 +2589,7 @@ describe('import-export ユーティリティ', () => {
     const buildUndefinedResponse = (
       keys?: string | string[] | Record<string, unknown>,
     ) => {
-      if (keys == null) {
+      if (keys === undefined) {
         return {}
       }
       if (typeof keys === 'string') {

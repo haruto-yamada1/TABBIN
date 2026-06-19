@@ -19,7 +19,7 @@ const createChromeStorageMock = (initialStore: Store = {}) => {
   const store: Store = structuredClone(initialStore)
   const get = vi.fn(
     async (keys?: string | string[] | Record<string, unknown>) => {
-      if (keys == null) {
+      if (keys === undefined) {
         return structuredClone(store)
       }
       if (typeof keys === 'string') {
