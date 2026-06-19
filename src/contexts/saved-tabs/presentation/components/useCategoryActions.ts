@@ -56,7 +56,6 @@ export interface UseCategoryActionsReturn {
 }
 
 export const useCategoryActions = ({
-  categoryNameError,
   isProcessing,
   isRenaming,
   localCategoryName,
@@ -75,7 +74,6 @@ export const useCategoryActions = ({
   availableDomains,
   setParentCategories,
   setSelectedDomain,
-  isSaving,
   setIsSaving,
   inputRef,
   setShowDeleteConfirm,
@@ -101,14 +99,25 @@ export const useCategoryActions = ({
         inputRef.current.select()
       }
     })
-  }, [localCategoryName])
+  }, [
+    localCategoryName,
+    setNewCategoryName,
+    setIsRenaming,
+    setCategoryNameError,
+    inputRef,
+  ])
 
   // リネームをキャンセル
   const handleCancelRenaming = useCallback(() => {
     setIsRenaming(false)
     setNewCategoryName(localCategoryName)
     setCategoryNameError(null) // エラー状態をリセット
-  }, [localCategoryName])
+  }, [
+    localCategoryName,
+    setNewCategoryName,
+    setIsRenaming,
+    setCategoryNameError,
+  ])
 
   // 入力変更時の処理
   const handleCategoryNameChange = useCallback(
@@ -117,7 +126,7 @@ export const useCategoryActions = ({
       setNewCategoryName(value)
       validateCategoryName(value) // リアルタイムバリデーション
     },
-    [validateCategoryName],
+    [validateCategoryName, setNewCategoryName],
   )
 
   // カテゴリ名の変更処理
@@ -238,6 +247,8 @@ export const useCategoryActions = ({
     category.name,
     deleteParentCategory,
     isProcessing,
+    setIsProcessing,
+    setParentCategories,
     onClose,
     t,
   ])
@@ -284,16 +295,19 @@ export const useCategoryActions = ({
     category.id,
     category.name,
     isProcessing,
+    setIsProcessing,
+    setSelectedDomain,
+    setParentCategories,
     t,
   ])
 
   const handleShowDeleteConfirm = useCallback(() => {
     setShowDeleteConfirm(true)
-  }, [])
+  }, [setShowDeleteConfirm])
 
   const handleHideDeleteConfirm = useCallback(() => {
     setShowDeleteConfirm(false)
-  }, [])
+  }, [setShowDeleteConfirm])
 
   const handleAddDomainClick = useCallback(
     (e: React.MouseEvent) => {
