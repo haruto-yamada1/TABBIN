@@ -1,45 +1,9 @@
-import { ExternalLink, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { toast } from 'sonner'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Toaster } from '@/components/ui/sonner'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { AiChartRenderer } from '@/features/ai-chat/components/AiChartRenderer'
 import type { AiChartPointSelection } from '@/features/ai-chat/components/AiChartRenderer'
 import { LazySavedTabsChatWidget } from '@/features/ai-chat/components/LazySavedTabsChatWidget'
@@ -55,7 +19,8 @@ import {
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
-import { AnalyticsRecordActionButtons } from '@/features/analytics/routes/AnalyticsRecordActionButtons'
+import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
+import { AnalyticsDrilldownPanel } from '@/features/analytics/routes/AnalyticsDrilldownPanel'
 import type {
   AnalyticsChartMessages,
   AnalyticsDeleteUndoSnapshot,
@@ -68,7 +33,6 @@ import type {
 import {
   awaitableEmptyRecords,
   createAnalyticsDeleteUndoPayload,
-  getAnalyticsDateLocale,
   getAnalyticsDeleteUndoSnapshot,
   getDeleteAllAction,
   getDeleteClickAction,
@@ -81,8 +45,6 @@ import {
   matchesDrilldownLabel,
   noop,
   normalizeAnalyticsRouteQuery,
-  parseChartType,
-  parseGroupBy,
   rebuildAnalyticsDrilldownSelection,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,
@@ -90,6 +52,7 @@ import {
   runConfirmedDelete,
   runSingleDeleteWhenAllowed,
 } from '@/features/analytics/routes/analyticsRoute.helpers'
+import { AnalyticsSidebar } from '@/features/analytics/routes/AnalyticsSidebar'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   createSavedAnalyticsView,
@@ -99,16 +62,10 @@ import {
 } from '@/lib/storage/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
-import { formatLocaleDateTime } from '@/utils/localDateTime'
 
 const defaultAnalyticsQuery = getDefaultAnalyticsQuery()
-const deferredDrilldownCardStyle: CSSProperties = {
-  containIntrinsicSize: '96px',
-  contentVisibility: 'auto',
-}
 
 const useAnalyticsRouteView = () => {
-  // eslint-disable-line eslint/max-lines-per-function
   const { language, t } = useI18n()
   const [analyticsData, setAnalyticsData] = useState(() => ({
     records: awaitableEmptyRecords,
@@ -482,6 +439,39 @@ const useAnalyticsRouteView = () => {
 
   const isDeleteActionDisabled = deletingUrl !== null || isBulkDeleting
 
+  const handleViewNameChange = (value: string) => {
+    setViewName(value)
+    setViewNameError((currentError) =>
+      currentError
+        ? getViewNameValidationError({ savedViews, viewName: value })
+        : currentError,
+    )
+  }
+
+  const handleBulkDeleteConfirmOpenChange = (isOpen: boolean) => {
+    setIsBulkDeleteConfirmOpen((currentOpen) =>
+      getNextBulkDeleteDialogOpen({
+        currentOpen,
+        isBulkDeleting,
+        isOpen,
+      }),
+    )
+  }
+
+  const handleDeleteTargetChange = (isOpen: boolean) => {
+    setDeleteTarget((currentTarget) =>
+      getNextDeleteTargetAfterDialogOpenChange({
+        currentTarget,
+        deletingUrl,
+        isOpen,
+      }),
+    )
+  }
+
+  const handleRunConfirmedDelete = () => {
+    runConfirmedDelete(deleteTarget, performDelete)
+  }
+
   return (
     <div
       className='flex h-screen min-h-0 min-w-0 items-stretch overflow-hidden bg-background'
@@ -493,234 +483,23 @@ const useAnalyticsRouteView = () => {
             className='grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[240px_minmax(0,1fr)]'
             data-testid='analytics-layout-grid'
           >
-            <aside
-              className='min-h-0 min-w-0'
-              data-testid='analytics-sidebar-pane-container'
-            >
-              <ScrollArea
-                className='h-full overflow-y-auto overscroll-contain'
-                data-testid='analytics-sidebar-pane'
-              >
-                <div className='space-y-4 pr-3'>
-                  <Card className='rounded-3xl border-border p-5 shadow-none'>
-                    <CardHeader className='gap-1 p-0'>
-                      <CardTitle className='text-lg'>
-                        {t('analytics.conditionsTitle')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className='mt-4 grid gap-3 p-0'>
-                      <Field
-                        className='gap-1.5'
-                        data-invalid={viewNameError !== null}
-                      >
-                        <FieldLabel
-                          className='text-sm'
-                          htmlFor='analytics-view-name'
-                        >
-                          {t('analytics.viewName')}
-                        </FieldLabel>
-                        <Input
-                          aria-label={t('analytics.viewName')}
-                          aria-describedby={
-                            viewNameError
-                              ? 'analytics-view-name-error'
-                              : undefined
-                          }
-                          aria-invalid={viewNameError !== null}
-                          className='rounded-xl bg-background'
-                          id='analytics-view-name'
-                          onChange={(event) => {
-                            const nextValue = event.target.value
-                            setViewName(nextValue)
-                            setViewNameError((currentError) =>
-                              currentError
-                                ? getViewNameValidationError({
-                                    savedViews,
-                                    viewName: nextValue,
-                                  })
-                                : currentError,
-                            )
-                          }}
-                          value={viewName}
-                        />
-                        {viewNameError ? (
-                          <FieldError id='analytics-view-name-error'>
-                            {viewNameError === 'required'
-                              ? t('analytics.viewNameRequired')
-                              : t('analytics.viewNameDuplicate')}
-                          </FieldError>
-                        ) : null}
-                      </Field>
-                      <div className='grid gap-1.5'>
-                        <Label className='text-sm' htmlFor='analytics-group-by'>
-                          {t('analytics.groupByLabel')}
-                        </Label>
-                        <Select
-                          onValueChange={(value) => {
-                            applyQuery({
-                              ...query,
-                              groupBy: parseGroupBy(value),
-                            })
-                          }}
-                          value={query.groupBy}
-                        >
-                          <SelectTrigger
-                            aria-label={t('analytics.groupByLabel')}
-                            className='rounded-xl bg-background'
-                            id='analytics-group-by'
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {analyticsGroupByOptions.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className='grid gap-1.5'>
-                        <Label
-                          className='text-sm'
-                          htmlFor='analytics-chart-type'
-                        >
-                          {t('analytics.chartTypeLabel')}
-                        </Label>
-                        <Select
-                          onValueChange={(value) => {
-                            applyQuery({
-                              ...query,
-                              chartType: parseChartType(value),
-                            })
-                          }}
-                          value={query.chartType}
-                        >
-                          <SelectTrigger
-                            aria-label={t('analytics.chartTypeLabel')}
-                            className='rounded-xl bg-background'
-                            id='analytics-chart-type'
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {analyticsChartTypeOptions.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className='grid gap-1.5'>
-                        <Label className='text-sm' htmlFor='analytics-limit'>
-                          {t('analytics.limitLabel')}
-                        </Label>
-                        <Input
-                          aria-label={t('analytics.limitLabel')}
-                          className='rounded-xl bg-background'
-                          id='analytics-limit'
-                          min={1}
-                          onChange={(event) => {
-                            applyQuery({
-                              ...query,
-                              limit: Math.max(
-                                1,
-                                Number(event.target.value) || 1,
-                              ),
-                            })
-                          }}
-                          type='number'
-                          value={query.limit}
-                        />
-                      </div>
-                    </CardContent>
-                    <div className='mt-4 grid grid-cols-2 gap-2'>
-                      <Button
-                        className='w-full cursor-pointer rounded-xl'
-                        // eslint-disable-next-line typescript/no-misused-promises
-                        onClick={handleSaveView}
-                        type='button'
-                      >
-                        {t('analytics.saveView')}
-                      </Button>
-                      <Button
-                        className='w-full cursor-pointer rounded-xl'
-                        onClick={() => {
-                          applyQuery(defaultAnalyticsQuery)
-                        }}
-                        type='button'
-                        variant='outline'
-                      >
-                        {t('common.reset')}
-                      </Button>
-                    </div>
-                  </Card>
-
-                  <Card className='rounded-3xl border-border p-5 shadow-none'>
-                    <CardHeader className='gap-1 p-0'>
-                      <CardTitle className='text-lg'>
-                        {t('analytics.savedViewsTitle')}
-                      </CardTitle>
-                      <CardDescription>
-                        {t('analytics.savedViewsDescription')}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className='mt-4 p-0'>
-                      {savedViews.length === 0 ? (
-                        <p className='text-sm text-muted-foreground'>
-                          {t('analytics.savedViewsEmpty')}
-                        </p>
-                      ) : (
-                        <div className='space-y-2'>
-                          {savedViews.map((view) => (
-                            <Card
-                              className='rounded-2xl border-border p-3 shadow-none'
-                              key={view.id}
-                            >
-                              <div className='flex items-center justify-between gap-2'>
-                                <Button
-                                  className='min-w-0 flex-1 justify-start px-0 text-left hover:bg-transparent'
-                                  onClick={() => {
-                                    applyQuery(view.query, view.name)
-                                  }}
-                                  type='button'
-                                  variant='ghost'
-                                >
-                                  <span className='truncate text-sm font-medium'>
-                                    {view.name}
-                                  </span>
-                                </Button>
-                                <Button
-                                  aria-label={t(
-                                    'analytics.deleteViewAria',
-                                    undefined,
-                                    { name: view.name },
-                                  )}
-                                  onClick={() => void handleDeleteView(view.id)}
-                                  size='sm'
-                                  type='button'
-                                  variant='outline'
-                                  className='cursor-pointer rounded-lg'
-                                >
-                                  {t('common.delete')}
-                                </Button>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </ScrollArea>
-            </aside>
+            <AnalyticsSidebar
+              analyticsChartTypeOptions={analyticsChartTypeOptions}
+              analyticsGroupByOptions={analyticsGroupByOptions}
+              onApplyQuery={applyQuery}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onDeleteView={handleDeleteView}
+              onResetQuery={() => {
+                applyQuery(defaultAnalyticsQuery)
+              }}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onSaveView={handleSaveView}
+              onViewNameChange={handleViewNameChange}
+              query={query}
+              savedViews={savedViews}
+              viewName={viewName}
+              viewNameError={viewNameError}
+            />
 
             <ScrollArea
               className='min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card shadow-none'
@@ -752,130 +531,15 @@ const useAnalyticsRouteView = () => {
                     />
                   </Card>
                 </div>
-                {drilldownSelection ? (
-                  <Card className='mt-4 rounded-3xl bg-background p-4 shadow-none'>
-                    <div className='flex flex-wrap items-start justify-between gap-3'>
-                      <div>
-                        <h3 className='text-base font-semibold'>
-                          {t('analytics.drilldownTitle')}
-                        </h3>
-                        <p className='mt-1 text-sm text-muted-foreground'>
-                          {drilldownSelection.specTitle} /{' '}
-                          {drilldownSelection.label} /{' '}
-                          {t('analytics.drilldownCount', undefined, {
-                            count: String(
-                              drilldownSelection.matchingRecords.length,
-                            ),
-                          })}
-                        </p>
-                      </div>
-                      {drilldownSelection.matchingRecords.length > 0 ? (
-                        <TooltipProvider delayDuration={0}>
-                          <div className='flex shrink-0 items-center gap-1'>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  aria-label={t('analytics.openAllAria')}
-                                  onClick={handleOpenAllClick}
-                                  size='icon-sm'
-                                  type='button'
-                                  variant='ghost'
-                                >
-                                  <ExternalLink className='size-4' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side='top'>
-                                {t('savedTabs.openAll')}
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  aria-label={t('analytics.deleteAllAria')}
-                                  disabled={isDeleteActionDisabled}
-                                  onClick={handleDeleteAllClick}
-                                  size='icon-sm'
-                                  type='button'
-                                  variant='ghost'
-                                >
-                                  <Trash2 className='size-4' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side='top'>
-                                {t('savedTabs.deleteAll')}
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TooltipProvider>
-                      ) : null}
-                    </div>
-                    <div className='mt-4 space-y-3'>
-                      {drilldownSelection.matchingRecords.length === 0 ? (
-                        <p className='text-sm text-muted-foreground'>
-                          {t('analytics.drilldownEmpty')}
-                        </p>
-                      ) : (
-                        drilldownSelection.matchingRecords.map((record) => (
-                          <Card
-                            className='rounded-2xl border-border bg-card p-3 shadow-none'
-                            key={record.id}
-                            style={deferredDrilldownCardStyle}
-                          >
-                            <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'>
-                              <div className='min-w-0 flex-1'>
-                                <p className='truncate text-sm font-medium'>
-                                  {record.title}
-                                </p>
-                                <div className='mt-2 flex flex-wrap gap-2 text-xs'>
-                                  <Badge
-                                    className='rounded-full'
-                                    variant='secondary'
-                                  >
-                                    {record.domain}
-                                  </Badge>
-                                  {record.parentCategories.map((category) => (
-                                    <Badge
-                                      className='rounded-full'
-                                      key={`${record.id}-${category}`}
-                                      variant='secondary'
-                                    >
-                                      {category}
-                                    </Badge>
-                                  ))}
-                                  {record.savedInProjects.map((project) => (
-                                    <Badge
-                                      className='rounded-full'
-                                      key={`${record.id}-${project}`}
-                                      variant='secondary'
-                                    >
-                                      {project}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className='flex shrink-0 flex-col gap-2 sm:items-end'>
-                                <time className='text-xs text-muted-foreground'>
-                                  {formatLocaleDateTime(
-                                    record.savedAt,
-                                    getAnalyticsDateLocale(language),
-                                  )}
-                                </time>
-                                <AnalyticsRecordActionButtons
-                                  deletingUrl={deletingUrl}
-                                  handleDeleteClick={handleDeleteClick}
-                                  isDeleteActionDisabled={
-                                    isDeleteActionDisabled
-                                  }
-                                  record={record}
-                                />
-                              </div>
-                            </div>
-                          </Card>
-                        ))
-                      )}
-                    </div>
-                  </Card>
-                ) : null}
+                <AnalyticsDrilldownPanel
+                  deletingUrl={deletingUrl}
+                  drilldownSelection={drilldownSelection}
+                  isDeleteActionDisabled={isDeleteActionDisabled}
+                  language={language}
+                  onDeleteAllClick={handleDeleteAllClick}
+                  onDeleteClick={handleDeleteClick}
+                  onOpenAllClick={handleOpenAllClick}
+                />
               </div>
             </ScrollArea>
           </section>
@@ -889,105 +553,18 @@ const useAnalyticsRouteView = () => {
 
       <Toaster />
 
-      <AlertDialog
-        onOpenChange={(isOpen) => {
-          setIsBulkDeleteConfirmOpen((currentOpen) =>
-            getNextBulkDeleteDialogOpen({
-              currentOpen,
-              isBulkDeleting,
-              isOpen,
-            }),
-          )
-        }}
-        open={isBulkDeleteConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.deleteAllConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.deleteAllDefaultWarning')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={(event) => {
-                event.preventDefault()
-                void performBulkDelete()
-              }}
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        onOpenChange={setIsOpenAllConfirmOpen}
-        open={isOpenAllConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.openAllConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.openAllConfirmDescription', undefined, {
-                count: '10',
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                handleOpenAllDrilldownRecords()
-              }}
-            >
-              {t('common.open')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        onOpenChange={(isOpen) => {
-          setDeleteTarget((currentTarget) =>
-            getNextDeleteTargetAfterDialogOpenChange({
-              currentTarget,
-              deletingUrl,
-              isOpen,
-            }),
-          )
-        }}
-        open={Boolean(deleteTarget)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.url.deleteConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.url.deleteConfirmDescription')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={(event) => {
-                event.preventDefault()
-                runConfirmedDelete(deleteTarget, performDelete)
-              }}
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AnalyticsDialogs
+        deleteTarget={deleteTarget}
+        isBulkDeleteConfirmOpen={isBulkDeleteConfirmOpen}
+        isOpenAllConfirmOpen={isOpenAllConfirmOpen}
+        onBulkDeleteConfirmOpenChange={handleBulkDeleteConfirmOpenChange}
+        onDeleteTargetChange={handleDeleteTargetChange}
+        onOpenAllConfirmOpenChange={setIsOpenAllConfirmOpen}
+        onOpenAllDrilldownRecords={handleOpenAllDrilldownRecords}
+        // eslint-disable-next-line typescript/no-misused-promises
+        onPerformBulkDelete={performBulkDelete}
+        onRunConfirmedDelete={handleRunConfirmedDelete}
+      />
     </div>
   )
 }

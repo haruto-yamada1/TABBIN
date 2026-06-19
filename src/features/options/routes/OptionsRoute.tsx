@@ -57,8 +57,8 @@ const applyFontSizePreview = (value: number) => {
   )
 }
 
+// eslint-disable-next-line eslint/max-lines-per-function -- JSX heavy settings page
 const useOptionsRouteView = () => {
-  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const {
     addExcludePattern,

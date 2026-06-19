@@ -136,4 +136,6 @@ export const useI18n = () => {
   return context
 }
 
+export type TranslateFn = I18nContextValue['t']
+
 export const useOptionalI18n = () => use(I18nContext)

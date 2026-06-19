@@ -42,10 +42,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from '@/components/ai-elements/prompt-input'
-import type {
-  PromptInputMessage,
-  PromptInputProps,
-} from '@/components/ai-elements/prompt-input'
+import type { PromptInputProps } from '@/components/ai-elements/prompt-input'
 import {
   Reasoning,
   ReasoningContent,
@@ -98,13 +95,10 @@ import type { SystemPromptManagerDialogProps } from '@/features/ai-chat/componen
 import {
   AI_CHAT_MAX_ATTACHMENTS,
   AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES,
-  convertPromptInputFilesToAiChatAttachments,
   getAiChatAttachmentInputAccept,
 } from '@/features/ai-chat/lib/attachments'
 import {
-  createAiSystemPromptPreset,
   getActiveAiSystemPrompt,
-  MAX_AI_SYSTEM_PROMPT_PRESETS,
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
 import type {
@@ -116,22 +110,16 @@ import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
-import { connectRuntimePort } from '@/lib/browser/runtime'
 import { defaultSettings, saveUserSettings } from '@/lib/storage/settings'
 import {
   UserSettingsSchema,
   fromStorageChange,
 } from '@/lib/storage/zod-storage'
 import { cn } from '@/lib/utils'
-import type {
-  AiChatStreamServerMessage,
-  OllamaErrorDetails,
-} from '@/types/background'
+import type { OllamaErrorDetails } from '@/types/background'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
 import {
-  createChatMessage,
-  createMessageId,
   getConversationCopyText,
   getMessageSources,
   getSourcesLabel,
@@ -140,10 +128,7 @@ import {
 } from './savedTabsChat/messages'
 import type { ChatMessage, TranslateFn } from './savedTabsChat/messages'
 import {
-  createSystemPromptId,
-  getPromptManagerValidationError,
   getSelectedPrompt,
-  getUniquePromptName,
   SYSTEM_PROMPT_SELECTOR_EMPTY_VALUE,
 } from './savedTabsChat/prompts'
 import {
@@ -162,16 +147,12 @@ import {
   syncExternalConversationState,
 } from './savedTabsChat/storage'
 import {
-  AI_CHAT_STREAM_PORT_NAME,
-  createInitialStreamingReasoning,
-  getAiChatErrorMessage,
-  getAiChatOllamaError,
   getAttachmentInputErrorMessage,
   getRuntimePlatform,
-  isAiChatStreamServerMessage,
-  requestAssistantAnswer,
   requestOllamaModels,
 } from './savedTabsChat/streaming'
+import { useChatPromptManager } from './savedTabsChat/useChatPromptManager'
+import { useChatStreamHandlers } from './savedTabsChat/useChatStreamHandlers'
 
 interface SavedTabsChatPanelProps {
   activeSystemPromptId: string
@@ -1246,7 +1227,6 @@ const useSavedTabsChatPanelView = ({
 }
 
 const useSavedTabsChatWidgetView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   conversationId,
   defaultOpen = false,
   historyItems = EMPTY_HISTORY_ITEMS,
@@ -1292,12 +1272,6 @@ const useSavedTabsChatWidgetView = ({
   >(undefined)
   const [platform, setPlatform] = useState<OllamaErrorPlatform>('unknown')
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_CHAT_SIDEBAR_WIDTH)
-  const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false)
-  const [promptDrafts, setPromptDrafts] = useState<AiSystemPromptPreset[]>([])
-  const [selectedPromptIdInModal, setSelectedPromptIdInModal] = useState('')
-  const [draftActivePromptId, setDraftActivePromptId] = useState('')
-  const [promptManagerError, setPromptManagerError] = useState('')
-  const [isSavingPrompts, setIsSavingPrompts] = useState(false)
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
   const activePortRef = useRef<{
     disconnect: () => void
@@ -1643,199 +1617,14 @@ const useSavedTabsChatWidgetView = ({
     }
   }
 
-  const handleOpenSystemPromptManager = () => {
-    setPromptDrafts(resolvedSettings.aiSystemPrompts ?? [])
-    setSelectedPromptIdInModal(activeSystemPrompt.id)
-    setDraftActivePromptId(resolvedSettings.activeAiSystemPromptId ?? '')
-    setPromptManagerError('')
-    setIsPromptManagerOpen(true)
-  }
-
-  const handleCancelSystemPromptManager = () => {
-    setIsPromptManagerOpen(false)
-    setPromptManagerError('')
-    setPromptDrafts([])
-    setSelectedPromptIdInModal('')
-    setDraftActivePromptId('')
-  }
-
-  const handlePromptManagerOpenChange = (nextOpen: boolean) => {
-    if (nextOpen) {
-      handleOpenSystemPromptManager()
-      return
-    }
-
-    handleCancelSystemPromptManager()
-  }
-
-  const updateSelectedPromptDraft = (
-    update: (prompt: AiSystemPromptPreset) => AiSystemPromptPreset,
-  ) => {
-    setPromptManagerError('')
-    setPromptDrafts((currentPrompts) =>
-      currentPrompts.map((prompt) =>
-        prompt.id === selectedPromptIdInModal ? update(prompt) : prompt,
-      ),
-    )
-  }
-
-  const handleChangePromptName = (value: string) => {
-    updateSelectedPromptDraft((prompt) => ({
-      ...prompt,
-      name: value,
-      updatedAt: Date.now(),
-    }))
-  }
-
-  const handleChangePromptTemplate = (value: string) => {
-    updateSelectedPromptDraft((prompt) => ({
-      ...prompt,
-      template: value,
-      updatedAt: Date.now(),
-    }))
-  }
-
-  const handleCreatePrompt = () => {
-    setPromptManagerError('')
-    setPromptDrafts((currentPrompts) => {
-      if (currentPrompts.length >= MAX_AI_SYSTEM_PROMPT_PRESETS) {
-        return currentPrompts
-      }
-
-      const nextPrompt = createAiSystemPromptPreset({
-        id: createSystemPromptId(),
-        language,
-        name: getUniquePromptName(
-          currentPrompts,
-          t('aiChat.systemPrompt.new'),
-          t,
-        ),
-        template: '',
-      })
-
-      setSelectedPromptIdInModal(nextPrompt.id)
-
-      return [...currentPrompts, nextPrompt]
-    })
-  }
-
-  const handleDuplicatePrompt = () => {
-    setPromptManagerError('')
-    setPromptDrafts((currentPrompts) => {
-      const selectedPrompt = getSelectedPrompt(
-        currentPrompts,
-        selectedPromptIdInModal,
-      )
-      if (
-        !selectedPrompt ||
-        currentPrompts.length >= MAX_AI_SYSTEM_PROMPT_PRESETS
-      ) {
-        return currentPrompts
-      }
-
-      const nextPrompt = createAiSystemPromptPreset({
-        id: createSystemPromptId(),
-        language,
-        name: getUniquePromptName(
-          currentPrompts,
-          selectedPrompt.name,
-          t,
-          t('aiChat.systemPrompt.copySuffix'),
-        ),
-        template: selectedPrompt.template,
-      })
-
-      setSelectedPromptIdInModal(nextPrompt.id)
-
-      return [...currentPrompts, nextPrompt]
-    })
-  }
-
-  const handleDeletePrompt = () => {
-    setPromptManagerError('')
-    setPromptDrafts((currentPrompts) => {
-      if (currentPrompts.length <= 1) {
-        return currentPrompts
-      }
-
-      const selectedIndex = currentPrompts.findIndex(
-        (prompt) => prompt.id === selectedPromptIdInModal,
-      )
-      if (selectedIndex === -1) {
-        return currentPrompts
-      }
-
-      const nextPrompts = currentPrompts.filter(
-        (prompt) => prompt.id !== selectedPromptIdInModal,
-      )
-      const fallbackPrompt =
-        nextPrompts[selectedIndex] ??
-        nextPrompts[selectedIndex - 1] ??
-        nextPrompts[0]
-
-      setSelectedPromptIdInModal(fallbackPrompt?.id ?? '')
-
-      if (draftActivePromptId === selectedPromptIdInModal) {
-        setDraftActivePromptId(fallbackPrompt?.id ?? '')
-      }
-
-      return nextPrompts
-    })
-  }
-
-  const handleSavePromptManager = async () => {
-    const validationError = getPromptManagerValidationError(promptDrafts, t)
-    if (validationError) {
-      return
-    }
-
-    const normalizedPrompts = promptDrafts.map((prompt) => ({
-      ...prompt,
-      name: prompt.name.trim(),
-      template: prompt.template.trim(),
-    }))
-
-    const nextSettings = normalizeAiSystemPromptSettings({
-      ...resolvedSettings,
-      activeAiSystemPromptId:
-        draftActivePromptId || normalizedPrompts[0]?.id || '',
-      aiSystemPrompts: normalizedPrompts,
-    })
-
-    setIsSavingPrompts(true)
-    setPromptManagerError('')
-
-    try {
-      await saveUserSettings(nextSettings)
-
-      const nextActivePrompt = getActiveAiSystemPrompt(nextSettings)
-      const shouldResetConversation =
-        nextActivePrompt.id !== activeSystemPrompt.id ||
-        nextActivePrompt.template !== activeSystemPrompt.template
-
-      setSettings(nextSettings)
-      handleCancelSystemPromptManager()
-
-      if (shouldResetConversation) {
-        handleResetConversation()
-      }
-    } catch {
-      setPromptManagerError(t('aiChat.systemPrompt.saveError'))
-    } finally {
-      setIsSavingPrompts(false)
-    }
-  }
-
   const handleSelectSystemPrompt = async (promptId: string) => {
     if (!promptId || promptId === resolvedSettings.activeAiSystemPromptId) {
       return
     }
-
     const nextSettings = normalizeAiSystemPromptSettings({
       ...resolvedSettings,
       activeAiSystemPromptId: promptId,
     })
-
     try {
       await saveUserSettings(nextSettings)
       setSettings(nextSettings)
@@ -1845,329 +1634,51 @@ const useSavedTabsChatWidgetView = ({
       setErrorMessage(t('aiChat.systemPrompt.switchSaveError'))
     }
   }
-
-  const promptManagerValidationError = getPromptManagerValidationError(
+  const {
+    isPromptManagerOpen,
     promptDrafts,
+    selectedPromptIdInModal,
+    setSelectedPromptIdInModal,
+    draftActivePromptId,
+    setPromptManagerError,
+    isSavingPrompts,
+    handleOpenSystemPromptManager,
+    handleCancelSystemPromptManager,
+    handlePromptManagerOpenChange,
+    handleChangePromptName,
+    handleChangePromptTemplate,
+    handleCreatePrompt,
+    handleDuplicatePrompt,
+    handleDeletePrompt,
+    handleSavePromptManager,
+    promptManagerDisplayError,
+    isPromptManagerSaveDisabled,
+  } = useChatPromptManager({
+    resolvedSettings,
+    activeSystemPrompt,
+    language,
     t,
-  )
-  const promptManagerDisplayError =
-    promptManagerValidationError || promptManagerError
-  const isPromptManagerSaveDisabled =
-    isSavingPrompts ||
-    promptDrafts.length === 0 ||
-    promptManagerValidationError.length > 0
-
-  const isCurrentRequest = (requestGeneration: number) =>
-    conversationGenerationRef.current === requestGeneration
-
-  const setAssistantErrorState = (
-    assistantMessageId: string,
-    nextError: string,
-    ollamaError?: OllamaErrorDetails,
-  ) => {
-    setErrorMessage(nextError)
-    setChatOllamaError(ollamaError)
-
-    if (ollamaError?.kind === 'forbidden') {
-      removeMessage(assistantMessageId, { commit: true })
-    } else {
-      replaceMessage(
-        assistantMessageId,
-        {
-          content: nextError,
-          isStreaming: false,
-          ollamaError,
-        },
-        { commit: true },
-      )
-    }
-
-    setIsSubmitting(false)
-  }
-
-  const disconnectStreamPort = (streamPort: { disconnect: () => void }) => {
-    if (activePortRef.current === streamPort) {
-      activePortRef.current = null
-    }
-
-    streamPort.disconnect()
-  }
-
-  const handleStreamStep = (
-    assistantMessageId: string,
-    streamMessage: Extract<AiChatStreamServerMessage, { type: 'step' }>,
-  ) => {
-    replaceMessage(assistantMessageId, {
-      isStreaming: true,
-      reasoning: streamMessage.reasoning,
-      toolTraces: streamMessage.toolTraces,
-    })
-  }
-
-  const handleStreamCompletion = (
-    assistantMessageId: string,
-    streamPort: { disconnect: () => void },
-    streamMessage: Extract<AiChatStreamServerMessage, { type: 'complete' }>,
-  ) => {
-    replaceMessage(
-      assistantMessageId,
-      {
-        charts: streamMessage.charts,
-        content: streamMessage.answer,
-        isStreaming: false,
-        ollamaError: undefined,
-        reasoning: streamMessage.reasoning,
-        toolTraces: streamMessage.toolTraces,
-      },
-      { commit: true },
-    )
-    setChatOllamaError(undefined)
-    setIsSubmitting(false)
-    disconnectStreamPort(streamPort)
-  }
-
-  const handleStreamFailure = (
-    assistantMessageId: string,
-    streamPort: { disconnect: () => void },
-    streamMessage: Extract<AiChatStreamServerMessage, { type: 'error' }>,
-  ) => {
-    setAssistantErrorState(
-      assistantMessageId,
-      streamMessage.error,
-      streamMessage.ollamaError,
-    )
-    disconnectStreamPort(streamPort)
-  }
-
-  const handleIncomingStreamMessage = ({
-    assistantMessageId,
-    message,
-    requestGeneration,
-    streamPort,
-  }: {
-    assistantMessageId: string
-    message: unknown
-    requestGeneration: number
-    streamPort: { disconnect: () => void }
-  }): boolean => {
-    if (!isCurrentRequest(requestGeneration)) {
-      return false
-    }
-
-    if (!isAiChatStreamServerMessage(message)) {
-      return false
-    }
-
-    const streamMessage: AiChatStreamServerMessage = message
-
-    if (streamMessage.type === 'step') {
-      handleStreamStep(assistantMessageId, streamMessage)
-      return false
-    }
-
-    if (streamMessage.type === 'complete') {
-      handleStreamCompletion(assistantMessageId, streamPort, streamMessage)
-      return true
-    }
-
-    if (streamMessage.type === 'error') {
-      handleStreamFailure(assistantMessageId, streamPort, streamMessage)
-      return true
-    }
-
-    return false
-  }
-
-  const handleStreamDisconnect = (
-    assistantMessageId: string,
-    requestGeneration: number,
-    streamPort: { disconnect: () => void },
-    isFinished: boolean,
-  ) => {
-    if (activePortRef.current === streamPort) {
-      activePortRef.current = null
-    }
-
-    if (ignoreNextDisconnectRef.current) {
-      ignoreNextDisconnectRef.current = false
-      return
-    }
-
-    if (!isCurrentRequest(requestGeneration) || isFinished) {
-      return
-    }
-
-    setAssistantErrorState(assistantMessageId, t('aiChat.responseError'))
-  }
-
-  const startStreamingResponse = async ({
-    assistantMessageId,
-    attachments,
-    history,
-    nextPrompt,
-    requestGeneration,
-  }: {
-    assistantMessageId: string
-    attachments: AiChatAttachment[]
-    history: Pick<ChatMessage, 'attachments' | 'content' | 'role'>[]
-    nextPrompt: string
-    requestGeneration: number
-  }) => {
-    try {
-      const streamPort = await connectRuntimePort(AI_CHAT_STREAM_PORT_NAME)
-      if (!streamPort) {
-        return false
-      }
-
-      activePortRef.current = streamPort
-      let isFinished = false
-
-      streamPort.onMessage.addListener((message: unknown) => {
-        isFinished =
-          handleIncomingStreamMessage({
-            assistantMessageId,
-            message,
-            requestGeneration,
-            streamPort,
-          }) || isFinished
-      })
-
-      streamPort.onDisconnect.addListener(() => {
-        handleStreamDisconnect(
-          assistantMessageId,
-          requestGeneration,
-          streamPort,
-          isFinished,
-        )
-      })
-
-      streamPort.postMessage({
-        history,
-        prompt: nextPrompt,
-        type: 'run',
-        ...(attachments.length > 0 ? { attachments } : {}),
-        // eslint-disable-next-line unicorn/require-post-message-target-origin
-      })
-      return true
-    } catch {
-      return false
-    }
-  }
-
-  const submitPrompt = async (
-    rawPrompt: string,
-    attachments: AiChatAttachment[] = [],
-  ) => {
-    const nextPrompt = rawPrompt.trim()
-    if (!nextPrompt || !isConfigured || isSubmitting) {
-      return
-    }
-
-    const history = messages.map((message) => ({
-      ...(message.role === 'user' && message.attachments?.length
-        ? { attachments: message.attachments }
-        : {}),
-      content: message.content,
-      role: message.role,
-    }))
-
-    const assistantMessageId = createMessageId()
-    const requestGeneration = conversationGenerationRef.current
-    updateMessageList(
-      (currentMessages) => [
-        ...currentMessages,
-        createChatMessage('user', nextPrompt, {
-          attachments,
-        }),
-        {
-          charts: [],
-          content: '',
-          id: assistantMessageId,
-          isStreaming: true,
-          reasoning: createInitialStreamingReasoning(nextPrompt, t),
-          role: 'assistant',
-          toolTraces: [],
-        },
-      ],
-      { commit: true },
-    )
-    setInput('')
-    setErrorMessage('')
-    setChatOllamaError(undefined)
-    setIsSubmitting(true)
-
-    disconnectActivePort()
-
-    const didStartStreaming = await startStreamingResponse({
-      assistantMessageId,
-      attachments,
-      history,
-      nextPrompt,
-      requestGeneration,
-    })
-
-    if (didStartStreaming) {
-      return
-    }
-
-    if (!isCurrentRequest(requestGeneration)) {
-      return
-    }
-
-    const response = await requestAssistantAnswer(
-      history,
-      nextPrompt,
-      attachments,
-    )
-    const shouldHandleResponse = isCurrentRequest(requestGeneration)
-
-    if (shouldHandleResponse && response?.status === 'ok' && response.answer) {
-      replaceMessage(
-        assistantMessageId,
-        {
-          charts: response.charts,
-          content: response.answer,
-          isStreaming: false,
-          ollamaError: undefined,
-          reasoning: response.reasoning,
-          toolTraces: response.toolTraces,
-        },
-        { commit: true },
-      )
-      setChatOllamaError(undefined)
-      setIsSubmitting(false)
-      return
-    }
-
-    if (shouldHandleResponse) {
-      const nextError = getAiChatErrorMessage(response, t)
-      setAssistantErrorState(
-        assistantMessageId,
-        nextError,
-        getAiChatOllamaError(response),
-      )
-    }
-  }
-
-  const handleSubmit: PromptInputProps['onSubmit'] = async ({
-    files,
-    text,
-  }: PromptInputMessage) => {
-    try {
-      const attachments = await convertPromptInputFilesToAiChatAttachments(
-        files,
-        language,
-      )
-      await submitPrompt(text, attachments)
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : t('aiChat.attachments.readError')
-      toast.error(errorMessage)
-      throw error
-    }
-  }
+    handleResetConversation,
+    onSettingsChange: setSettings,
+  })
+  const { submitPrompt, handleSubmit } = useChatStreamHandlers({
+    messages,
+    activePortRef,
+    conversationGenerationRef,
+    ignoreNextDisconnectRef,
+    disconnectActivePort,
+    replaceMessage,
+    removeMessage,
+    updateMessageList,
+    setInput,
+    setErrorMessage,
+    setChatOllamaError,
+    setIsSubmitting,
+    isConfigured,
+    isSubmitting,
+    t,
+    language,
+  })
   const chatPanel = useSavedTabsChatPanelView({
     activeSystemPromptId: resolvedSettings.activeAiSystemPromptId ?? '',
     chatErrorMessage: errorMessage,
