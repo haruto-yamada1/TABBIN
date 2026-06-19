@@ -48,6 +48,8 @@ export type DeleteSavedUrlsUseCase = (
 export const createDeleteSavedUrlsUseCase = (
   deps: DeleteSavedUrlsUseCaseDeps,
 ): DeleteSavedUrlsUseCase => {
+  // TODO(#557): バリデーション・副作用・snapshot 構築の責務を分割して複雑度を削減する。
+  // eslint-disable-next-line eslint/complexity
   return async (command) => {
     if (command.urls.length === 0) {
       return {

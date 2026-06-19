@@ -292,19 +292,21 @@ const cleanupUnreferencedUrls = async (): Promise<number> => {
 
     // SavedTabsから参照されているURLIDを収集
     for (const tabGroup of savedTabs) {
-      if (tabGroup.urlIds) {
-        for (const id of tabGroup.urlIds) {
-          referencedIds.add(id)
-        }
+      if (!tabGroup.urlIds) {
+        continue
+      }
+      for (const id of tabGroup.urlIds) {
+        referencedIds.add(id)
       }
     }
 
     // CustomProjectsから参照されているURLIDを収集
     for (const project of customProjects) {
-      if (project.urlIds) {
-        for (const id of project.urlIds) {
-          referencedIds.add(id)
-        }
+      if (!project.urlIds) {
+        continue
+      }
+      for (const id of project.urlIds) {
+        referencedIds.add(id)
       }
     }
 
@@ -338,18 +340,18 @@ const deduplicateUrlRecords = async (): Promise<number> => {
     // URLをキーとして重複をチェック
     for (const record of urlRecords) {
       const existingRecord = urlMap.get(record.url)
-      if (existingRecord) {
-        // 重複が見つかった場合、より新しいレコードを保持
-        if (record.savedAt > existingRecord.savedAt) {
-          duplicateIds.push(existingRecord.id)
-          replacementIdMap.set(existingRecord.id, record.id)
-          urlMap.set(record.url, record)
-        } else {
-          duplicateIds.push(record.id)
-          replacementIdMap.set(record.id, existingRecord.id)
-        }
-      } else {
+      if (!existingRecord) {
         urlMap.set(record.url, record)
+        continue
+      }
+      // 重複が見つかった場合、より新しいレコードを保持
+      if (record.savedAt > existingRecord.savedAt) {
+        duplicateIds.push(existingRecord.id)
+        replacementIdMap.set(existingRecord.id, record.id)
+        urlMap.set(record.url, record)
+      } else {
+        duplicateIds.push(record.id)
+        replacementIdMap.set(record.id, existingRecord.id)
       }
     }
     if (duplicateIds.length > 0) {
@@ -400,6 +402,8 @@ const remapReferenceKeys = <T>(
 /**
  * URLの参照を更新する（重複統合時に使用）
  */
+// TODO(#557): SavedTabs/CustomProjects の重複ロジックを共通化して複雑度を削減する。
+// eslint-disable-next-line eslint/complexity
 const updateUrlReferences = async (
   duplicateIds: string[],
   replacementIdMap: Map<string, string>,
@@ -412,17 +416,18 @@ const updateUrlReferences = async (
     let tabsUpdated = false
     const duplicateIdSet = new Set(duplicateIds)
     for (const tabGroup of savedTabs) {
-      if (tabGroup.urlIds) {
-        const updatedIds = tabGroup.urlIds.map((id: string) => {
-          if (duplicateIdSet.has(id)) {
-            return replacementIdMap.get(id) || id // eslint-disable-line typescript/prefer-nullish-coalescing -- replacementIdMap.get() could return empty string
-          }
-          return id
-        })
-        if (JSON.stringify(updatedIds) !== JSON.stringify(tabGroup.urlIds)) {
-          tabGroup.urlIds = updatedIds
-          tabsUpdated = true
+      const updatedIds = tabGroup.urlIds?.map((id: string) => {
+        if (duplicateIdSet.has(id)) {
+          return replacementIdMap.get(id) || id // eslint-disable-line typescript/prefer-nullish-coalescing -- replacementIdMap.get() could return empty string
         }
+        return id
+      })
+      if (
+        updatedIds &&
+        JSON.stringify(updatedIds) !== JSON.stringify(tabGroup.urlIds)
+      ) {
+        tabGroup.urlIds = updatedIds
+        tabsUpdated = true
       }
       const updatedSubCategories = remapReferenceKeys(
         tabGroup.urlSubCategories,
@@ -446,19 +451,20 @@ const updateUrlReferences = async (
     }>('customProjects')
     let projectsUpdated = false
     for (const project of customProjects) {
-      if (project.urlIds) {
-        const updatedIds = project.urlIds.map((id: string) => {
-          if (duplicateIdSet.has(id)) {
-            // `||` needed: replacementIdMap.get() could return empty string
-            // eslint-disable-next-line typescript/prefer-nullish-coalescing
-            return replacementIdMap.get(id) || id
-          }
-          return id
-        })
-        if (JSON.stringify(updatedIds) !== JSON.stringify(project.urlIds)) {
-          project.urlIds = updatedIds
-          projectsUpdated = true
+      const updatedIds = project.urlIds?.map((id: string) => {
+        if (duplicateIdSet.has(id)) {
+          // `||` needed: replacementIdMap.get() could return empty string
+          // eslint-disable-next-line typescript/prefer-nullish-coalescing
+          return replacementIdMap.get(id) || id
         }
+        return id
+      })
+      if (
+        updatedIds &&
+        JSON.stringify(updatedIds) !== JSON.stringify(project.urlIds)
+      ) {
+        project.urlIds = updatedIds
+        projectsUpdated = true
       }
       const updatedMetadata = remapReferenceKeys(
         project.urlMetadata,

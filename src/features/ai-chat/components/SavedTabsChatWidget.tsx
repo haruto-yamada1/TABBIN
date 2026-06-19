@@ -1017,8 +1017,9 @@ const useChatPromptComposerView = ({
   )
 }
 
+// TODO(#557): この関数の複雑度が高い。useMemo/useCallback の分割や早期 return で削減する。
+// eslint-disable-next-line eslint/complexity
 const useSavedTabsChatPanelView = ({
-  // eslint-disable-line eslint/complexity
   activeSystemPromptId,
   chatErrorMessage,
   chatOllamaError,

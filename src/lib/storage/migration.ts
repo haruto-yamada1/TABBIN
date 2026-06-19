@@ -103,13 +103,13 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       )
 
       // SavedTabsからドメイン名を検索
-      const domainsFromTabs = []
-      for (const domainId of category.domains) {
-        const tab = savedTabById.get(domainId)
-        if (tab) {
-          domainsFromTabs.push(tab.domain)
-        }
-      }
+      const domainsFromTabs = category.domains
+        .map((domainId) => {
+          // eslint-disable-next-line eslint/max-depth
+          const tab = savedTabById.get(domainId)
+          return tab?.domain
+        })
+        .filter((domain): domain is string => domain !== undefined)
       console.log(`  タブから見つかったドメイン: ${domainsFromTabs.join(', ')}`)
     }
 

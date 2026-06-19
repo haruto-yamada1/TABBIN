@@ -234,6 +234,8 @@ const mergeEntityUncategorized = (
   }
 }
 
+// TODO(#557): urlIds/metadata のマージロジックを分割して複雑度を削減する。
+// eslint-disable-next-line eslint/complexity
 const mergeRawSnapshots = (
   base: CustomProjectRawSnapshot,
   target: CustomProjectRawSnapshot,

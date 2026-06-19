@@ -556,6 +556,31 @@ const reorderTabGroupUrls = async (
   }
 }
 /**
+ * カスタムプロジェクトからURLを削除し、エラー時にロールバックする
+ */
+const syncRemoveFromCustomProjects = async (
+  url: string,
+  rollbackSavedTabs: TabGroup[],
+  options: DeleteSyncOptions,
+): Promise<void> => {
+  try {
+    if (options.throwOnSyncError) {
+      await removeUrlFromAllCustomProjects(url, { throwOnError: true })
+    } else {
+      await removeUrlFromAllCustomProjects(url)
+    }
+  } catch (error) {
+    if (!options.throwOnSyncError) {
+      return
+    }
+    await chrome.storage.local.set({
+      savedTabs: rollbackSavedTabs,
+    })
+    throw error
+  }
+}
+
+/**
  * TabGroupからURLを削除する（新形式対応）
  */
 const removeUrlFromTabGroup = async (
@@ -600,22 +625,7 @@ const removeUrlFromTabGroup = async (
       )
 
       // 同期してカスタムプロジェクトからも削除
-      try {
-        if (options.throwOnSyncError) {
-          await removeUrlFromAllCustomProjects(url, {
-            throwOnError: true,
-          })
-        } else {
-          await removeUrlFromAllCustomProjects(url)
-        }
-      } catch (error) {
-        if (options.throwOnSyncError) {
-          await chrome.storage.local.set({
-            savedTabs: rollbackSavedTabs,
-          })
-          throw error
-        }
-      }
+      await syncRemoveFromCustomProjects(url, rollbackSavedTabs, options)
     }
   }
 }

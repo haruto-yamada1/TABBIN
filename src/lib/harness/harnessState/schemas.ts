@@ -254,19 +254,20 @@ function validateJsonSchema(value: JsonValue, schema: JsonSchema, at = '/') {
 
     for (const [key, nestedValue] of Object.entries(value)) {
       const nestedSchema = schema.properties?.[key]
-      if (!nestedSchema) {
-        if (schema.additionalProperties === false) {
-          issues.push({
-            path: joinPointer(at, key),
-            message: '未定義のフィールドです。',
-          })
-        }
-        continue
+      if (nestedSchema) {
+        issues.push(
+          ...validateJsonSchema(
+            nestedValue,
+            nestedSchema,
+            joinPointer(at, key),
+          ),
+        )
+      } else if (schema.additionalProperties === false) {
+        issues.push({
+          path: joinPointer(at, key),
+          message: '未定義のフィールドです。',
+        })
       }
-
-      issues.push(
-        ...validateJsonSchema(nestedValue, nestedSchema, joinPointer(at, key)),
-      )
     }
   }
 

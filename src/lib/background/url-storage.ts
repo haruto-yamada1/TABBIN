@@ -537,36 +537,38 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
     )
     console.log('正規化された新タブURL:', redactUrlForLog(normalizedTabUrl))
 
-    // URLが類似していれば処理
+    // URLが一致しない場合は何もしない
     if (
-      normalizedTabUrl &&
-      normalizedDraggedUrl &&
-      (normalizedTabUrl === normalizedDraggedUrl ||
+      !normalizedTabUrl ||
+      !normalizedDraggedUrl ||
+      !(
+        normalizedTabUrl === normalizedDraggedUrl ||
         normalizedTabUrl.includes(normalizedDraggedUrl) ||
-        normalizedDraggedUrl.includes(normalizedTabUrl))
+        normalizedDraggedUrl.includes(normalizedTabUrl)
+      )
     ) {
-      console.log('URLが一致または類似しています')
-      try {
-        // 処理済みとマーク
-        draggedUrlInfo.processed = true
-        const settings = await getUserSettings()
-        if (settings.removeTabAfterOpen) {
-          console.log(
-            '設定に基づきURLを削除します:',
-            redactUrlForLog(draggedUrlInfo.url),
-          )
-          await removeUrlFromStorage(draggedUrlInfo.url)
-        } else {
-          console.log('設定により削除をスキップします')
-        }
-      } catch (error) {
-        console.error('タブ作成後の処理でエラー:', error)
-      } finally {
-        // 処理完了後、ドラッグ情報をクリア
-        draggedUrlInfo = null
-      }
-    } else {
       console.log('URLが一致しません。削除をスキップします')
+      return
+    }
+    console.log('URLが一致または類似しています')
+    try {
+      // 処理済みとマーク
+      draggedUrlInfo.processed = true
+      const settings = await getUserSettings()
+      if (!settings.removeTabAfterOpen) {
+        console.log('設定により削除をスキップします')
+        return
+      }
+      console.log(
+        '設定に基づきURLを削除します:',
+        redactUrlForLog(draggedUrlInfo.url),
+      )
+      await removeUrlFromStorage(draggedUrlInfo.url)
+    } catch (error) {
+      console.error('タブ作成後の処理でエラー:', error)
+    } finally {
+      // 処理完了後、ドラッグ情報をクリア
+      draggedUrlInfo = null
     }
   }
 }

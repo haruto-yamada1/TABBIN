@@ -48,7 +48,8 @@
     "@testing-library/jest-dom",
     "autoprefixer",
     "path",
-    "postcss"
+    "postcss",
+    "@secretlint/secretlint-rule-preset-recommend"
   ],
   "lefthook": true,
   "playwright": true,
