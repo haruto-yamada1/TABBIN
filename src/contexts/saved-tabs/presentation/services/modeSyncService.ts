@@ -222,13 +222,13 @@ const sortProjectsByOrder = (
   return projects.toSorted((a, b) => {
     const indexA = orderMap.get(a.id)
     const indexB = orderMap.get(b.id)
-    if (indexA == null && indexB == null) {
+    if (indexA === undefined && indexB === undefined) {
       return 0
     }
-    if (indexA == null) {
+    if (indexA === undefined) {
       return 1
     }
-    if (indexB == null) {
+    if (indexB === undefined) {
       return -1
     }
     return indexA - indexB

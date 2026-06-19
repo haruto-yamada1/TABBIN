@@ -64,7 +64,7 @@ const createChromeHarness = (
   const onStartupListeners: StartupListener[] = []
 
   const storageGet = vi.fn(async (keys?: unknown) => {
-    if (keys == null) {
+    if (keys === undefined) {
       return {
         ...storage,
       }

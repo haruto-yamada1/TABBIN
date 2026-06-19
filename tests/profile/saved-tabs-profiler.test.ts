@@ -56,7 +56,7 @@ const createChromeMock = () => {
 
   // eslint-disable-next-line typescript/require-await
   const get = async (keys?: string | string[] | Record<string, unknown>) => {
-    if (keys == null) {
+    if (keys === undefined) {
       return clone(store)
     }
 
