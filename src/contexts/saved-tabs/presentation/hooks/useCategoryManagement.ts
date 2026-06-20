@@ -141,16 +141,16 @@ const useCategoryManagement = (
     reorderDomainsInCategoryUseCase,
   } = params
   const { t } = useI18n()
-  const [categories, setCategoriesState] = useState<ParentCategory[]>([])
+  const [categories, setCategories] = useState<ParentCategory[]>([])
   const [categoryOrder, setCategoryOrder] = useState<string[]>([])
   const [isCategoryReorderMode, setIsCategoryReorderMode] = useState(false)
   const [originalCategoryOrder, setOriginalCategoryOrder] = useState<string[]>(
     [],
   )
   const [tempCategoryOrder, setTempCategoryOrder] = useState<string[]>([])
-  const setCategories: Dispatch<SetStateAction<ParentCategory[]>> = useCallback(
-    (nextCategories) => {
-      setCategoriesState((previousCategories) => {
+  const setCategoriesWithOrder: Dispatch<SetStateAction<ParentCategory[]>> =
+    useCallback((nextCategories) => {
+      setCategories((previousCategories) => {
         const resolvedCategories = resolveStateValue(
           nextCategories,
           previousCategories,
@@ -159,9 +159,7 @@ const useCategoryManagement = (
         setCategoryOrder(resolvedCategories.map((category) => category.id))
         return resolvedCategories
       })
-    },
-    [],
-  )
+    }, [])
 
   /**
    * 子カテゴリ（サブカテゴリ）を削除する。
@@ -242,7 +240,7 @@ const useCategoryManagement = (
       await reorderParentCategoriesUseCase({
         categories: orderedCategories,
       })
-      setCategories(orderedCategories)
+      setCategoriesWithOrder(orderedCategories)
       setIsCategoryReorderMode(false)
       setOriginalCategoryOrder([])
       setTempCategoryOrder([])
@@ -255,7 +253,7 @@ const useCategoryManagement = (
     categories,
     isCategoryReorderMode,
     reorderParentCategoriesUseCase,
-    setCategories,
+    setCategoriesWithOrder,
     t,
     tempCategoryOrder,
   ])
@@ -292,12 +290,14 @@ const useCategoryManagement = (
           categoryId,
           updatedDomains,
         })
-        setCategories(updatedDomainCategories.map(toStorageParentCategory))
+        setCategoriesWithOrder(
+          updatedDomainCategories.map(toStorageParentCategory),
+        )
       } catch (error) {
         console.error('カテゴリ内ドメイン順序更新エラー:', error)
       }
     },
-    [categories, reorderDomainsInCategoryUseCase, setCategories],
+    [categories, reorderDomainsInCategoryUseCase, setCategoriesWithOrder],
   )
 
   /**
@@ -329,7 +329,9 @@ const useCategoryManagement = (
             tabGroups,
             toCategoryId,
           })
-        setCategories(updatedDomainCategories.map(toStorageParentCategory))
+        setCategoriesWithOrder(
+          updatedDomainCategories.map(toStorageParentCategory),
+        )
         console.log(
           `ドメイン ${redactUrlForLog(domainGroup.domain)} を ${fromCategoryId || '未分類'} から ${toCategoryId} に移動しました`, // eslint-disable-line typescript/prefer-nullish-coalescing -- fromCategoryId could be empty string
         )
@@ -337,7 +339,7 @@ const useCategoryManagement = (
         console.error('カテゴリ間ドメイン移動エラー:', error)
       }
     },
-    [moveDomainBetweenCategoriesUseCase, setCategories],
+    [moveDomainBetweenCategoriesUseCase, setCategoriesWithOrder],
   )
   return {
     categories,
@@ -350,7 +352,7 @@ const useCategoryManagement = (
     handleUpdateDomainsOrder,
     isCategoryReorderMode,
     originalCategoryOrder,
-    setCategories,
+    setCategories: setCategoriesWithOrder,
     setCategoryOrder,
     tempCategoryOrder,
   }

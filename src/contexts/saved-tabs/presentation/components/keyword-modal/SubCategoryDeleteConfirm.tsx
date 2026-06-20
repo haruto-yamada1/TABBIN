@@ -1,4 +1,5 @@
 import { Trash } from 'lucide-react'
+import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -14,6 +15,10 @@ export const SubCategoryDeleteConfirm = () => {
   const { t } = useI18n()
   const { state } = useKeywordModal()
   const { subcategory, deletion } = state
+
+  const handleCancelClick = useCallback(() => {
+    deletion.setShowDeleteConfirm(false)
+  }, [deletion])
 
   if (!deletion.showDeleteConfirm) {
     return null
@@ -34,9 +39,7 @@ export const SubCategoryDeleteConfirm = () => {
         <Button
           variant='ghost'
           size='sm'
-          onClick={() => {
-            deletion.setShowDeleteConfirm(false)
-          }}
+          onClick={handleCancelClick}
           className='cursor-pointer rounded px-2 py-1'
         >
           {t('common.cancel')}

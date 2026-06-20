@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -15,11 +15,74 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
+import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { createPendingDeleteHistoryOpenChangeHandler } from './aiChatRoute.helpers'
 
 const AI_CHAT_HISTORY_BREAKPOINT = 1024
+
+const HistoryItemCard = ({
+  historyItem,
+  onDelete,
+  onSelect,
+  t,
+}: {
+  historyItem: AiChatHistoryItem
+  onDelete: (historyItem: AiChatHistoryItem) => void
+  onSelect: (id: string) => void
+  t: TranslateFn
+}) => {
+  const handleClick = useCallback(() => {
+    onSelect(historyItem.id)
+  }, [onSelect, historyItem.id])
+
+  const handleDeleteClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation()
+      onDelete(historyItem)
+    },
+    [onDelete, historyItem],
+  )
+
+  return (
+    <div
+      className={`w-full rounded-2xl border px-3.5 py-3 text-left transition ${
+        historyItem.isActive
+          ? 'border-border bg-background shadow-sm'
+          : 'border-transparent bg-transparent hover:bg-background/80'
+      }`}
+    >
+      <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
+        <Button
+          className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
+          onClick={handleClick}
+          type='button'
+          variant='ghost'
+        >
+          <p className='w-full min-w-0 truncate text-sm font-medium text-foreground'>
+            {historyItem.title}
+          </p>
+          <p className='mt-1 line-clamp-2 w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'>
+            {historyItem.preview}
+          </p>
+        </Button>
+        <Button
+          type='button'
+          variant='ghost'
+          size='icon-sm'
+          aria-label={t('aiChat.deleteConversationAria', undefined, {
+            title: historyItem.title,
+          })}
+          className='shrink-0 justify-self-end text-muted-foreground hover:text-destructive'
+          onClick={handleDeleteClick}
+        >
+          <Trash2 className='size-4' />
+        </Button>
+      </div>
+    </div>
+  )
+}
 
 export const AiChatRoute = () => {
   const { t } = useI18n()
@@ -58,6 +121,37 @@ export const AiChatRoute = () => {
     }
   }, [])
 
+  const handleToggleHistory = useCallback(() => {
+    setIsHistoryVisible((current) => !current)
+  }, [])
+
+  const handleSelectHistoryItem = useCallback(
+    (id: string) => {
+      selectConversation(id)
+    },
+    [selectConversation],
+  )
+
+  const handleDeleteHistoryItem = useCallback(
+    (historyItem: AiChatHistoryItem) => {
+      setPendingDeleteHistoryItem(historyItem)
+    },
+    [],
+  )
+
+  const handleCancelDelete = useCallback(() => {
+    setPendingDeleteHistoryItem(null)
+  }, [])
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!pendingDeleteHistoryItem) {
+      return
+    }
+
+    deleteConversation(pendingDeleteHistoryItem.id)
+    setPendingDeleteHistoryItem(null)
+  }, [deleteConversation, pendingDeleteHistoryItem])
+
   if (isLoading || !activeConversation) {
     return <LoadingState minHeightClassName='min-h-[300px]' />
   }
@@ -84,49 +178,13 @@ export const AiChatRoute = () => {
             <ScrollArea className='min-h-0 flex-1'>
               <div className='space-y-1.5 px-3 pb-3'>
                 {historyItems.map((historyItem) => (
-                  <div
+                  <HistoryItemCard
+                    historyItem={historyItem}
                     key={historyItem.id}
-                    className={`w-full rounded-2xl border px-3.5 py-3 text-left transition ${
-                      historyItem.isActive
-                        ? 'border-border bg-background shadow-sm'
-                        : 'border-transparent bg-transparent hover:bg-background/80'
-                    }`}
-                  >
-                    <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
-                      <Button
-                        className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
-                        onClick={() => {
-                          selectConversation(historyItem.id)
-                        }}
-                        type='button'
-                        variant='ghost'
-                      >
-                        <p className='w-full min-w-0 truncate text-sm font-medium text-foreground'>
-                          {historyItem.title}
-                        </p>
-                        <p className='mt-1 line-clamp-2 w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'>
-                          {historyItem.preview}
-                        </p>
-                      </Button>
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='icon-sm'
-                        aria-label={t(
-                          'aiChat.deleteConversationAria',
-                          undefined,
-                          { title: historyItem.title },
-                        )}
-                        className='shrink-0 justify-self-end text-muted-foreground hover:text-destructive'
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          setPendingDeleteHistoryItem(historyItem)
-                        }}
-                      >
-                        <Trash2 className='size-4' />
-                      </Button>
-                    </div>
-                  </div>
+                    onDelete={handleDeleteHistoryItem}
+                    onSelect={handleSelectHistoryItem}
+                    t={t}
+                  />
                 ))}
               </div>
             </ScrollArea>
@@ -147,9 +205,7 @@ export const AiChatRoute = () => {
                 title={activeConversation.title}
                 mode='page'
                 onMessagesChange={updateMessages}
-                onToggleHistory={() => {
-                  setIsHistoryVisible((current) => !current)
-                }}
+                onToggleHistory={handleToggleHistory}
               />
             </div>
           </div>
@@ -173,22 +229,14 @@ export const AiChatRoute = () => {
             <Button
               type='button'
               variant='outline'
-              onClick={() => {
-                setPendingDeleteHistoryItem(null)
-              }}
+              onClick={handleCancelDelete}
             >
               {t('common.cancel')}
             </Button>
             <Button
               type='button'
               variant='destructive'
-              onClick={() => {
-                if (!pendingDeleteHistoryItem) {
-                  return
-                }
-                deleteConversation(pendingDeleteHistoryItem.id)
-                setPendingDeleteHistoryItem(null)
-              }}
+              onClick={handleConfirmDelete}
             >
               {t('common.delete')}
             </Button>

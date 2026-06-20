@@ -51,18 +51,16 @@ export const useCategoryFormState = (
       }),
     [t],
   )
-  const [
-    {
-      categoryNameError,
-      isProcessing,
-      isRenaming,
-      localCategoryName,
-      newCategoryName,
-    },
-    setFormState,
-  ] = useState<CategoryManagementFormState>(() =>
+  const [formState, setFormState] = useState<CategoryManagementFormState>(() =>
     createCategoryManagementFormState(categoryName),
   )
+  const {
+    categoryNameError,
+    isProcessing,
+    isRenaming,
+    localCategoryName,
+    newCategoryName,
+  } = formState
   const setCategoryNameError = (categoryNameError: string | null) => {
     setFormState((prev) => ({ ...prev, categoryNameError }))
   }

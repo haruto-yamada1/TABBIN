@@ -4,6 +4,8 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useProjectCard } from './ProjectCardContext'
 
+const DRAG_OVERLAY_STYLE = { pointerEvents: 'none' } as const
+
 /**
  * ProjectCard のドラッグ中オーバーレイ
  * ドラッグ中のアイテムを半透明で表示する
@@ -27,7 +29,7 @@ export const ProjectCardDragOverlay = () => {
   }
 
   return (
-    <DragOverlay style={{ pointerEvents: 'none' }}>
+    <DragOverlay style={DRAG_OVERLAY_STYLE}>
       <div className='rounded border bg-secondary p-2'>
         {activeUrl.title || t('sidebar.tabList')}
       </div>

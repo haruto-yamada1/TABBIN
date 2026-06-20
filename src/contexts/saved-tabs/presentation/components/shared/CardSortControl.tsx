@@ -1,4 +1,5 @@
 import { ArrowUpDown, ArrowUpNarrowWide, ArrowUpWideNarrow } from 'lucide-react'
+import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
@@ -47,6 +48,22 @@ export const CardSortControl = ({
     icon = <ArrowUpNarrowWide size={14} />
   }
 
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      setSortOrder((o) => {
+        if (o === 'default') {
+          return 'asc'
+        }
+        if (o === 'asc') {
+          return 'desc'
+        }
+        return 'default'
+      })
+    },
+    [setSortOrder],
+  )
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -54,18 +71,7 @@ export const CardSortControl = ({
           variant='secondary'
           size='sm'
           onPointerDown={onPointerDown}
-          onClick={(e) => {
-            e.stopPropagation()
-            setSortOrder((o) => {
-              if (o === 'default') {
-                return 'asc'
-              }
-              if (o === 'asc') {
-                return 'desc'
-              }
-              return 'default'
-            })
-          }}
+          onClick={handleClick}
           className='flex cursor-pointer items-center gap-1'
           aria-label={label}
         >

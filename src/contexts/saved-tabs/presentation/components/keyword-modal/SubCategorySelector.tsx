@@ -1,4 +1,5 @@
 import { Edit, Trash2 } from 'lucide-react'
+import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -20,6 +21,72 @@ import { useKeywordModal } from './KeywordModalContext'
 import { SubCategoryDeleteConfirm } from './SubCategoryDeleteConfirm'
 import { SubCategoryRenameForm } from './SubCategoryRenameForm'
 
+/** Rename button — extracted to fix jsx-max-depth */
+const RenameSubCategoryButton = () => {
+  const { t } = useI18n()
+  const { state } = useKeywordModal()
+  const { subcategory, rename } = state
+
+  if (rename.isRenaming) {
+    return null
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant='secondary'
+          size='sm'
+          onClick={rename.handleStartRenaming}
+          className='flex cursor-pointer items-center gap-1 rounded px-2 py-1'
+          disabled={!subcategory.activeCategory}
+        >
+          <Edit size={14} />
+          <SavedTabsResponsiveLabel>
+            {t('savedTabs.subCategory.rename')}
+          </SavedTabsResponsiveLabel>
+        </Button>
+      </TooltipTrigger>
+      <SavedTabsResponsiveTooltipContent side='top'>
+        {t('savedTabs.subCategory.rename')}
+      </SavedTabsResponsiveTooltipContent>
+    </Tooltip>
+  )
+}
+
+/** Delete button — extracted to fix jsx-max-depth */
+const DeleteSubCategoryButton = () => {
+  const { t } = useI18n()
+  const { state } = useKeywordModal()
+  const { subcategory, deletion } = state
+
+  const handleShowDelete = useCallback(() => {
+    deletion.setShowDeleteConfirm(true)
+  }, [deletion])
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant='secondary'
+          size='sm'
+          onClick={handleShowDelete}
+          className='flex cursor-pointer items-center gap-1 rounded px-2 py-1'
+          disabled={!subcategory.activeCategory}
+        >
+          <Trash2 size={14} />
+          <SavedTabsResponsiveLabel>
+            {t('savedTabs.subCategory.deleteSelected')}
+          </SavedTabsResponsiveLabel>
+        </Button>
+      </TooltipTrigger>
+      <SavedTabsResponsiveTooltipContent side='top'>
+        {t('savedTabs.subCategory.deleteSelected')}
+      </SavedTabsResponsiveTooltipContent>
+    </Tooltip>
+  )
+}
+
 /**
  * 既存の子カテゴリを選択・管理するセクション
  * セレクタ、リネーム、削除確認を含む
@@ -27,7 +94,7 @@ import { SubCategoryRenameForm } from './SubCategoryRenameForm'
 export const SubCategorySelector = () => {
   const { t } = useI18n()
   const { state, group } = useKeywordModal()
-  const { subcategory, rename, deletion } = state
+  const { subcategory, rename } = state
 
   if (!group.subCategories || group.subCategories.length === 0) {
     return null
@@ -41,49 +108,8 @@ export const SubCategorySelector = () => {
         </Label>
 
         <div className='flex gap-2'>
-          {!rename.isRenaming && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant='secondary'
-                  size='sm'
-                  onClick={rename.handleStartRenaming}
-                  className='flex cursor-pointer items-center gap-1 rounded px-2 py-1'
-                  disabled={!subcategory.activeCategory}
-                >
-                  <Edit size={14} />
-                  <SavedTabsResponsiveLabel>
-                    {t('savedTabs.subCategory.rename')}
-                  </SavedTabsResponsiveLabel>
-                </Button>
-              </TooltipTrigger>
-              <SavedTabsResponsiveTooltipContent side='top'>
-                {t('savedTabs.subCategory.rename')}
-              </SavedTabsResponsiveTooltipContent>
-            </Tooltip>
-          )}
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={() => {
-                  deletion.setShowDeleteConfirm(true)
-                }}
-                className='flex cursor-pointer items-center gap-1 rounded px-2 py-1'
-                disabled={!subcategory.activeCategory}
-              >
-                <Trash2 size={14} />
-                <SavedTabsResponsiveLabel>
-                  {t('savedTabs.subCategory.deleteSelected')}
-                </SavedTabsResponsiveLabel>
-              </Button>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              {t('savedTabs.subCategory.deleteSelected')}
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
+          <RenameSubCategoryButton />
+          <DeleteSubCategoryButton />
         </div>
       </div>
 

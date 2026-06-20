@@ -65,12 +65,15 @@ export const DomainCardRoot = ({
   // グローバルドラッグ監視
   useDndMonitor(state.dndMonitorHandlers)
 
-  const style: CSSProperties = {
-    containIntrinsicSize: '360px',
-    contentVisibility: 'auto',
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const style: CSSProperties = useMemo(
+    () => ({
+      containIntrinsicSize: '360px',
+      contentVisibility: 'auto',
+      transform: CSS.Transform.toString(transform),
+      transition,
+    }),
+    [transform, transition],
+  )
 
   // 検索でヒットしない場合は非表示
   const hasSearchQuery = searchQuery.trim().length > 0

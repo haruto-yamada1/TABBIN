@@ -2,8 +2,13 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useMemo } from 'react'
 
 import { CustomProjectCategory } from '@/contexts/saved-tabs/presentation/components/CustomProjectCategory'
+import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
 
 import { useProjectCard } from './ProjectCardContext'
+
+const EMPTY_CATEGORY_URLS: NonNullable<CustomProjectCategoryProps['urls']> = []
+
+const CATEGORY_DRAG_DATA = { type: 'category' } as const
 
 /**
  * ProjectCard のカテゴリ表示部分
@@ -43,7 +48,7 @@ export const ProjectCardCategoryList = () => {
           <CustomProjectCategory
             projectId={project.id}
             category={categoryName}
-            urls={categoryUrlsByName.get(categoryName) ?? []}
+            urls={categoryUrlsByName.get(categoryName) ?? EMPTY_CATEGORY_URLS}
             // eslint-disable-next-line react/jsx-handler-names
             handleOpenUrl={handlers.handleOpenUrl}
             // eslint-disable-next-line react/jsx-handler-names
@@ -61,7 +66,7 @@ export const ProjectCardCategoryList = () => {
             settings={settings}
             // eslint-disable-next-line react/jsx-handler-names
             handleOpenAllUrls={handlers.handleOpenAllUrls}
-            dragData={{ type: 'category' }}
+            dragData={CATEGORY_DRAG_DATA}
             isHighlighted={dnd.draggedOverCategory === categoryName}
             isDraggingCategory={dnd.isDraggingCategory}
             draggedCategoryName={dnd.draggedCategoryName}

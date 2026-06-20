@@ -184,11 +184,11 @@
     "react/forbid-component-props": "off",
     "react/no-multi-comp": "off",
     "react/jsx-filename-extension": "off",
-    "react/only-export-components": "off",
+    "react/only-export-components": "error",
     "react/no-react-children": "off",
-    "react/hook-use-state": "off",
+    "react/hook-use-state": "error",
     "react/jsx-handler-names": "error",
-    "react/jsx-max-depth": "off",
+    "react/jsx-max-depth": ["error", { "max": 5 }],
     "react/jsx-no-constructed-context-values": "error",
     "react/jsx-props-no-spreading": "off",
     "react/react-in-jsx-scope": "off",
@@ -202,10 +202,10 @@
     "react/no-danger-with-children": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
-    "react-perf/jsx-no-jsx-as-prop": "off",
-    "react-perf/jsx-no-new-array-as-prop": "off",
-    "react-perf/jsx-no-new-function-as-prop": "off",
-    "react-perf/jsx-no-new-object-as-prop": "off",
+    "react-perf/jsx-no-jsx-as-prop": "error",
+    "react-perf/jsx-no-new-array-as-prop": "error",
+    "react-perf/jsx-no-new-function-as-prop": "error",
+    "react-perf/jsx-no-new-object-as-prop": "error",
     "typescript/array-type": "error",
     "typescript/await-thenable": "error",
     "typescript/consistent-indexed-object-style": "error",
@@ -454,6 +454,8 @@
         "react-perf/jsx-no-new-array-as-prop": "off",
         "react-perf/jsx-no-new-function-as-prop": "off",
         "react-perf/jsx-no-new-object-as-prop": "off",
+        "react/jsx-max-depth": "off",
+        "react/only-export-components": "off",
         "typescript/require-await": "off",
         "typescript/unbound-method": "off",
         "react/jsx-no-useless-fragment": "off",
@@ -489,8 +491,20 @@
         "react-perf/jsx-no-new-function-as-prop": "off",
         "react-perf/jsx-no-new-object-as-prop": "off",
         "react-perf/jsx-no-new-array-as-prop": "off",
+        "react/jsx-max-depth": "off",
+        "react/only-export-components": "off",
         "unicorn/no-abusive-eslint-disable": "off",
         "typescript/prefer-ts-expect-error": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*Context.{ts,tsx}",
+        "**/*Provider.{ts,tsx}",
+        "**/*-provider.{ts,tsx}"
+      ],
+      "rules": {
+        "react/only-export-components": "off"
       }
     },
     {

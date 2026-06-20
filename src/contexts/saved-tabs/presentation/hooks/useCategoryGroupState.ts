@@ -48,10 +48,11 @@ export const useCategoryGroupState = ({
 }: UseCategoryGroupStateParams) => {
   const { t } = useI18n()
   // --- 基本状態 ---
-  const [{ isCollapsed, userCollapsedState }, setCollapseState] = useState({
+  const [collapseState, setCollapseState] = useState({
     isCollapsed: false,
     userCollapsedState: false,
   })
+  const { isCollapsed, userCollapsedState } = collapseState
   const setIsCollapsed = useCallback((nextIsCollapsed: boolean) => {
     setCollapseState((prev) => ({
       ...prev,
@@ -67,16 +68,14 @@ export const useCategoryGroupState = ({
     },
     [],
   )
-  const [_isDraggingOver, setIsDraggingOver] = useState(false)
+  const [, setIsDraggingOver] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDraggingDomains, setIsDraggingDomains] = useState(false)
   const [isDraggingGlobal, setIsDraggingGlobal] = useState<boolean>(false)
 
   // --- 並び替え状態 ---
   const [isReorderMode, setIsReorderMode] = useState(false)
-  const [_originalDomainOrder, setOriginalDomainOrder] = useState<TabGroup[]>(
-    [],
-  )
+  const [, setOriginalDomainOrder] = useState<TabGroup[]>([])
   const [tempDomainOrder, setTempDomainOrder] = useState<typeof domains>([])
 
   // --- ドメイン状態とソート ---

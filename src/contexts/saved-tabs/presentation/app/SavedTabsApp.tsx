@@ -406,17 +406,50 @@ const useSavedTabsAppView = ({
   const categoryOrderForDisplay = isCategoryReorderMode
     ? tempCategoryOrder
     : categoryOrder
+  const domainState = useMemo(
+    () => ({
+      hasVisibleCategoryGroups,
+      isCategoryReorderMode,
+      isLoading,
+      isUncategorizedReorderMode,
+      shouldShowUncategorizedList,
+      shouldShowUncategorizedSectionHeader,
+    }),
+    [
+      hasVisibleCategoryGroups,
+      isCategoryReorderMode,
+      isLoading,
+      isUncategorizedReorderMode,
+      shouldShowUncategorizedList,
+      shouldShowUncategorizedSectionHeader,
+    ],
+  )
+  const categoryManagementModalDeps = useMemo(
+    () => ({
+      categoryAssignmentPort: deps.categoryAssignmentPort,
+      getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
+    }),
+    [deps.categoryAssignmentPort, savedTabsUseCases.getSavedTabsPageData],
+  )
+  const categoryManagementModalUseCases = useMemo(
+    () => ({
+      renameParentCategory: savedTabsUseCases.renameParentCategory,
+      addDomainToParentCategory: savedTabsUseCases.addDomainToParentCategory,
+      removeDomainFromParentCategory:
+        savedTabsUseCases.removeDomainFromParentCategory,
+      deleteParentCategory: savedTabsUseCases.deleteParentCategory,
+    }),
+    [
+      savedTabsUseCases.renameParentCategory,
+      savedTabsUseCases.addDomainToParentCategory,
+      savedTabsUseCases.removeDomainFromParentCategory,
+      savedTabsUseCases.deleteParentCategory,
+    ],
+  )
   const mainContent =
     viewMode === 'domain' ? (
       <DomainModeContainer
-        state={{
-          hasVisibleCategoryGroups,
-          isCategoryReorderMode,
-          isLoading,
-          isUncategorizedReorderMode,
-          shouldShowUncategorizedList,
-          shouldShowUncategorizedSectionHeader,
-        }}
+        state={domainState}
         settings={settings}
         categories={categories}
         categorized={categorized}
@@ -442,18 +475,8 @@ const useSavedTabsAppView = ({
         hasContentTabGroupsCount={hasContentTabGroups.length}
         reorderTabGroupUrlsUseCase={savedTabsUseCases.reorderTabGroupUrls}
         renameParentCategoryUseCase={savedTabsUseCases.renameParentCategory}
-        categoryManagementModalDeps={{
-          categoryAssignmentPort: deps.categoryAssignmentPort,
-          getSavedTabsPageDataQuery: savedTabsUseCases.getSavedTabsPageData,
-        }}
-        categoryManagementModalUseCases={{
-          renameParentCategory: savedTabsUseCases.renameParentCategory,
-          addDomainToParentCategory:
-            savedTabsUseCases.addDomainToParentCategory,
-          removeDomainFromParentCategory:
-            savedTabsUseCases.removeDomainFromParentCategory,
-          deleteParentCategory: savedTabsUseCases.deleteParentCategory,
-        }}
+        categoryManagementModalDeps={categoryManagementModalDeps}
+        categoryManagementModalUseCases={categoryManagementModalUseCases}
       />
     ) : (
       <CustomModeContainer
@@ -525,4 +548,5 @@ const useSavedTabsAppView = ({
 
 const SavedTabsApp = (props: SavedTabsAppProps) => useSavedTabsAppView(props)
 
+// eslint-disable-next-line react/only-export-components -- useSavedTabsAppView is exported for testing the view in isolation
 export { SavedTabsApp, useSavedTabsAppView }

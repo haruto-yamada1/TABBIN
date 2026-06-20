@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -11,6 +11,37 @@ import { formatFixedDatetime as formatDatetime } from '@/utils/localDateTime'
 
 import { useSavedTabsUseCases } from '../controllers/SavedTabsUseCasesContext'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
+
+const ButtonContent = ({
+  title,
+  savedAt,
+  autoDeletePeriod,
+  settings,
+}: {
+  title: string
+  savedAt?: number | undefined
+  autoDeletePeriod?: string | undefined
+  settings: { showSavedTime: boolean }
+}) => (
+  <div className='flex w-full min-w-0 flex-col overflow-hidden'>
+    <span className='block truncate text-left'>{title}</span>
+    {savedAt && (
+      <div className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
+        {settings.showSavedTime && (
+          <span className='truncate text-muted-foreground'>
+            {formatDatetime(savedAt)}
+          </span>
+        )}
+        {autoDeletePeriod && autoDeletePeriod !== 'never' && (
+          <TimeRemaining
+            savedAt={savedAt}
+            autoDeletePeriod={autoDeletePeriod}
+          />
+        )}
+      </div>
+    )}
+  </div>
+)
 
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
 let isGlobalInternalDrop = false
@@ -60,27 +91,30 @@ export const SortableUrlItem = ({
   }, [])
 
   // ドラッグが開始されたとき
-  const handleDragStart = (e: React.DragEvent<HTMLElement>, url: string) => {
-    isDraggingRef.current = true
-    windowBlurredDuringDragRef.current = false
-    isGlobalInternalDrop = false
-    // URLをテキストとして設定
-    e.dataTransfer.setData('text/plain', url)
-    // URI-listとしても設定（多くのブラウザやアプリがこのフォーマットを認識）
-    e.dataTransfer.setData('text/uri-list', url)
+  const handleDragStart = useCallback(
+    (e: React.DragEvent<HTMLElement>, url: string) => {
+      isDraggingRef.current = true
+      windowBlurredDuringDragRef.current = false
+      isGlobalInternalDrop = false
+      // URLをテキストとして設定
+      e.dataTransfer.setData('text/plain', url)
+      // URI-listとしても設定（多くのブラウザやアプリがこのフォーマットを認識）
+      e.dataTransfer.setData('text/uri-list', url)
 
-    // 外部ブラウザへのドラッグ判定のため、ウィンドウのblurを監視
-    window.addEventListener('blur', handleWindowBlur)
+      // 外部ブラウザへのドラッグ判定のため、ウィンドウのblurを監視
+      window.addEventListener('blur', handleWindowBlur)
 
-    // ドラッグ開始をバックグラウンドに通知
-    if (messagingPort) {
-      void messagingPort.send({
-        action: 'urlDragStarted',
-        groupId,
-        url,
-      })
-    }
-  }
+      // ドラッグ開始をバックグラウンドに通知
+      if (messagingPort) {
+        void messagingPort.send({
+          action: 'urlDragStarted',
+          groupId,
+          url,
+        })
+      }
+    },
+    [handleWindowBlur, messagingPort, groupId],
+  )
 
   // 外部ウィンドウへのドロップ処理
   const handleExternalDrop = useCallback(() => {
@@ -96,24 +130,27 @@ export const SortableUrlItem = ({
     })
   }, [messagingPort, url, groupId])
 
-  const handleDragEnd = (e: React.DragEvent<HTMLElement>) => {
-    // リスナーをクリーンアップ
-    window.removeEventListener('blur', handleWindowBlur)
+  const handleDragEnd = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      // リスナーをクリーンアップ
+      window.removeEventListener('blur', handleWindowBlur)
 
-    const shouldHandleAsExternalDrop =
-      !isGlobalInternalDrop &&
-      isDraggingRef.current &&
-      (e.dataTransfer.dropEffect === 'copy' ||
-        (windowBlurredDuringDragRef.current &&
-          e.dataTransfer.dropEffect === 'link'))
+      const shouldHandleAsExternalDrop =
+        !isGlobalInternalDrop &&
+        isDraggingRef.current &&
+        (e.dataTransfer.dropEffect === 'copy' ||
+          (windowBlurredDuringDragRef.current &&
+            e.dataTransfer.dropEffect === 'link'))
 
-    if (shouldHandleAsExternalDrop) {
-      handleExternalDrop()
-    }
+      if (shouldHandleAsExternalDrop) {
+        handleExternalDrop()
+      }
 
-    isDraggingRef.current = false
-    windowBlurredDuringDragRef.current = false
-  }
+      isDraggingRef.current = false
+      windowBlurredDuringDragRef.current = false
+    },
+    [handleWindowBlur, handleExternalDrop],
+  )
 
   // コンポーネントのアンマウント時にクリーンアップ
   useEffect(
@@ -125,20 +162,41 @@ export const SortableUrlItem = ({
     [handleWindowBlur],
   )
 
-  const handleDeleteButtonClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-    if (settings.confirmDeleteEach) {
-      setIsDeleteConfirmOpen(true)
-    } else {
-      handleDeleteUrl(groupId, url)
-    }
-  }
+  const handleDeleteButtonClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+      if (settings.confirmDeleteEach) {
+        setIsDeleteConfirmOpen(true)
+      } else {
+        handleDeleteUrl(groupId, url)
+      }
+    },
+    [settings.confirmDeleteEach, handleDeleteUrl, groupId, url],
+  )
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const handleItemDragStart = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      handleDragStart(e, url)
+    },
+    [handleDragStart, url],
+  )
+
+  const handleOpenTabClick = useCallback(() => {
+    handleOpenTab(url)
+  }, [handleOpenTab, url])
+
+  const handleDeleteConfirm = useCallback(() => {
+    handleDeleteUrl(groupId, url)
+  }, [handleDeleteUrl, groupId, url])
+
+  const style = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+    }),
+    [transform, transition],
+  )
 
   return (
     <>
@@ -146,7 +204,7 @@ export const SortableUrlItem = ({
         ref={setNodeRef}
         style={style}
         className='group relative flex min-w-0 items-center overflow-hidden pb-1 last:border-0 last:pb-0'
-        data-category-context={categoryContext} // カテゴリコンテキストをdata属性に追加
+        data-category-context={categoryContext}
       >
         <div
           className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
@@ -161,34 +219,17 @@ export const SortableUrlItem = ({
             variant='ghost'
             size='sm'
             draggable
-            onDragStart={(e) => {
-              handleDragStart(e, url)
-            }}
+            onDragStart={handleItemDragStart}
             onDragEnd={handleDragEnd}
-            onClick={() => {
-              handleOpenTab(url)
-            }}
+            onClick={handleOpenTabClick}
             className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
           >
-            <div className='flex w-full min-w-0 flex-col overflow-hidden'>
-              <span className='block truncate text-left'>{title}</span>
-              {/* 保存日時と残り時間を表示 - settings.showSavedTime に基づき条件分岐 */}
-              {savedAt && (
-                <div className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
-                  {settings.showSavedTime && (
-                    <span className='truncate text-muted-foreground'>
-                      {formatDatetime(savedAt)}
-                    </span>
-                  )}
-                  {autoDeletePeriod && autoDeletePeriod !== 'never' && (
-                    <TimeRemaining
-                      savedAt={savedAt}
-                      autoDeletePeriod={autoDeletePeriod}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
+            <ButtonContent
+              title={title}
+              savedAt={savedAt}
+              autoDeletePeriod={autoDeletePeriod}
+              settings={settings}
+            />
           </Button>
           <Button
             variant='ghost'
@@ -206,9 +247,7 @@ export const SortableUrlItem = ({
       <DeleteUrlConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => {
-          handleDeleteUrl(groupId, url)
-        }}
+        onConfirm={handleDeleteConfirm}
       />
     </>
   )

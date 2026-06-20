@@ -1,4 +1,5 @@
 import { Trash } from 'lucide-react'
+import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -14,6 +15,10 @@ export const CategoryDeleteConfirm = () => {
   const { t } = useI18n()
   const { state } = useCategoryModalContext()
   const { deletion, isLoading } = state
+
+  const handleCancelClick = useCallback(() => {
+    deletion.setShowDeleteConfirm(false)
+  }, [deletion])
 
   if (!(deletion.showDeleteConfirm && deletion.categoryToDelete)) {
     return null
@@ -37,9 +42,7 @@ export const CategoryDeleteConfirm = () => {
         <Button
           variant='ghost'
           size='sm'
-          onClick={() => {
-            deletion.setShowDeleteConfirm(false)
-          }}
+          onClick={handleCancelClick}
           disabled={isLoading}
         >
           {t('common.cancel')}

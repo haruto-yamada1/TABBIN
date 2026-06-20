@@ -29,6 +29,78 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const BULK_OPEN_THRESHOLD = 10
+const EMPTY_TAB_GROUPS: TabGroup[] = []
+
+const TabCountBadge = ({ count, label }: { count: number; label: string }) => (
+  <span className='text-sm text-muted-foreground'>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant='secondary'>{count}</Badge>
+      </TooltipTrigger>
+      <SavedTabsResponsiveTooltipContent side='top'>
+        {label}
+      </SavedTabsResponsiveTooltipContent>
+    </Tooltip>
+  </span>
+)
+
+const UncategorizedReorderActions = ({
+  handleCancelReorder,
+  handleConfirmReorder,
+  t,
+}: {
+  handleCancelReorder: () => void
+  handleConfirmReorder: () => void | Promise<void>
+  t: (key: string, fallback?: string, values?: Record<string, string>) => string
+}) => {
+  const handleConfirmClick = useCallback(() => {
+    void handleConfirmReorder()
+  }, [handleConfirmReorder])
+
+  return (
+    <div className='pointer-events-auto ml-2 flex shrink-0 gap-2'>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={handleCancelReorder}
+            className='flex cursor-pointer items-center gap-1'
+            aria-label={t('savedTabs.reorder.cancelAria')}
+          >
+            <X size={14} />
+            <SavedTabsResponsiveLabel>
+              {t('savedTabs.reorder.cancel')}
+            </SavedTabsResponsiveLabel>
+          </Button>
+        </TooltipTrigger>
+        <SavedTabsResponsiveTooltipContent side='top'>
+          {t('savedTabs.reorder.cancelAria')}
+        </SavedTabsResponsiveTooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant='default'
+            size='sm'
+            onClick={handleConfirmClick}
+            className='flex cursor-pointer items-center gap-1'
+            aria-label={t('savedTabs.reorder.confirmAria')}
+          >
+            <Check size={14} />
+            <SavedTabsResponsiveLabel>
+              {t('savedTabs.reorder.confirm')}
+            </SavedTabsResponsiveLabel>
+          </Button>
+        </TooltipTrigger>
+        <SavedTabsResponsiveTooltipContent side='top'>
+          {t('savedTabs.reorder.confirmAria')}
+        </SavedTabsResponsiveTooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
 
 type DndSensors = ComponentProps<typeof DndKitContext>['sensors']
 
@@ -185,6 +257,11 @@ const UncategorizedDomainSection = ({
     [confirmDeleteAll],
   )
 
+  const uncategorizedDomainIds = useMemo(
+    () => uncategorizedForDisplay.map((group) => group.id),
+    [uncategorizedForDisplay],
+  )
+
   return (
     <>
       {shouldShowSectionHeader && (
@@ -198,26 +275,11 @@ const UncategorizedDomainSection = ({
             </h2>
             {displayedDomainCount > 0 && (
               <div className='flex items-center gap-3 text-sm text-muted-foreground'>
-                <span className='text-sm text-muted-foreground'>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge variant='secondary'>{displayedTabCount}</Badge>
-                    </TooltipTrigger>
-                    <SavedTabsResponsiveTooltipContent side='top'>
-                      タブ数
-                    </SavedTabsResponsiveTooltipContent>
-                  </Tooltip>
-                </span>
-                <span className='text-sm text-muted-foreground'>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge variant='secondary'>{displayedDomainCount}</Badge>
-                    </TooltipTrigger>
-                    <SavedTabsResponsiveTooltipContent side='top'>
-                      ドメイン数
-                    </SavedTabsResponsiveTooltipContent>
-                  </Tooltip>
-                </span>
+                <TabCountBadge count={displayedTabCount} label='タブ数' />
+                <TabCountBadge
+                  count={displayedDomainCount}
+                  label='ドメイン数'
+                />
               </div>
             )}
           </div>
@@ -274,48 +336,11 @@ const UncategorizedDomainSection = ({
             )}
 
             {isReorderMode && (
-              <div className='pointer-events-auto ml-2 flex shrink-0 gap-2'>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={handleCancelReorder}
-                      className='flex cursor-pointer items-center gap-1'
-                      aria-label={t('savedTabs.reorder.cancelAria')}
-                    >
-                      <X size={14} />
-                      <SavedTabsResponsiveLabel>
-                        {t('savedTabs.reorder.cancel')}
-                      </SavedTabsResponsiveLabel>
-                    </Button>
-                  </TooltipTrigger>
-                  <SavedTabsResponsiveTooltipContent side='top'>
-                    {t('savedTabs.reorder.cancelAria')}
-                  </SavedTabsResponsiveTooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant='default'
-                      size='sm'
-                      // eslint-disable-next-line typescript/no-misused-promises
-                      onClick={handleConfirmReorder}
-                      className='flex cursor-pointer items-center gap-1'
-                      aria-label={t('savedTabs.reorder.confirmAria')}
-                    >
-                      <Check size={14} />
-                      <SavedTabsResponsiveLabel>
-                        {t('savedTabs.reorder.confirm')}
-                      </SavedTabsResponsiveLabel>
-                    </Button>
-                  </TooltipTrigger>
-                  <SavedTabsResponsiveTooltipContent side='top'>
-                    {t('savedTabs.reorder.confirmAria')}
-                  </SavedTabsResponsiveTooltipContent>
-                </Tooltip>
-              </div>
+              <UncategorizedReorderActions
+                handleCancelReorder={handleCancelReorder}
+                handleConfirmReorder={handleConfirmReorder}
+                t={t}
+              />
             )}
           </div>
         </div>
@@ -328,7 +353,7 @@ const UncategorizedDomainSection = ({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={uncategorizedForDisplay.map((group) => group.id)}
+            items={uncategorizedDomainIds}
             strategy={verticalListSortingStrategy}
           >
             <div className='mt-2 flex flex-col gap-1'>
@@ -504,7 +529,7 @@ export const DomainModeContainer = ({
                 if (!category) {
                   return null
                 }
-                const domainGroups = categorized[categoryId] || []
+                const domainGroups = categorized[categoryId] ?? EMPTY_TAB_GROUPS
                 if (domainGroups.length === 0) {
                   return null
                 }

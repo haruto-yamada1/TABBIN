@@ -1,3 +1,5 @@
+import { useCallback } from 'react'
+
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -11,6 +13,22 @@ export const SubCategoryAddSection = () => {
   const { state } = useKeywordModal()
   const { subcategory } = state
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        void subcategory.handleAddSubCategory()
+      }
+    },
+    [subcategory],
+  )
+
+  const handleBlur = useCallback(() => {
+    if (subcategory.newSubCategory.trim()) {
+      void subcategory.handleAddSubCategory()
+    }
+  }, [subcategory])
+
   return (
     <div className='mb-4'>
       <h4 className='text-md mb-2 font-medium text-zinc-300'>
@@ -22,17 +40,8 @@ export const SubCategoryAddSection = () => {
           onChange={subcategory.handleSubCategoryNameChange}
           placeholder={t('savedTabs.subCategory.addPlaceholder')}
           className={`grow rounded border p-2 ${subcategory.subCategoryNameError ? 'border-red-500' : ''}`}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              void subcategory.handleAddSubCategory()
-            }
-          }}
-          onBlur={() => {
-            if (subcategory.newSubCategory.trim()) {
-              void subcategory.handleAddSubCategory()
-            }
-          }}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
         />
         {subcategory.subCategoryNameError && (
           <p className='mt-1 text-xs text-red-500'>

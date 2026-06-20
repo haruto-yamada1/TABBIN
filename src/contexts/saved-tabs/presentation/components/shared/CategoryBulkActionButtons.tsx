@@ -8,6 +8,8 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from './SavedTabsResponsive'
 
+const RELATIVE_POSITION_STYLE = { position: 'relative' } as const
+
 interface CategoryBulkActionButtonsProps {
   isDeleting: boolean
   showDeleteAction: boolean
@@ -43,7 +45,7 @@ export const CategoryBulkActionButtons = ({
           size='sm'
           onClick={onOpenAll}
           className='pointer-events-auto z-20 flex cursor-pointer items-center gap-1'
-          style={{ position: 'relative' }}
+          style={RELATIVE_POSITION_STYLE}
           aria-label={openAriaLabel}
         >
           <ExternalLink size={14} />
@@ -63,7 +65,7 @@ export const CategoryBulkActionButtons = ({
             size='sm'
             onClick={onDeleteAll}
             className='pointer-events-auto z-20 flex cursor-pointer items-center gap-1'
-            style={{ position: 'relative' }}
+            style={RELATIVE_POSITION_STYLE}
             aria-label={deleteAriaLabel}
             disabled={isDeleting}
           >

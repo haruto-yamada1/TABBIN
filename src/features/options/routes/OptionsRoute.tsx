@@ -1,12 +1,10 @@
-import { Plus, RotateCcw, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { ModeToggle } from '@/components/mode-toggle'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingState } from '@/components/ui/loading-state'
 import {
@@ -32,6 +30,10 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { useColorSettings } from '@/features/options/hooks/useColorSettings'
 import { useSettings } from '@/features/options/hooks/useSettings'
 import { ImportExportSettings } from '@/features/options/ImportExportSettings'
+import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
+import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
+import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
+import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeInputColumn'
 import type { UserSettings } from '@/types/storage'
 
 import { resetFontSizeInputState } from './optionsRoute.helpers'
@@ -57,6 +59,46 @@ const applyFontSizePreview = (value: number) => {
   )
 }
 
+interface ClickBehaviorSelectProps {
+  value: string
+  onValueChange: (value: string) => void
+}
+
+const ClickBehaviorSelect: React.FC<ClickBehaviorSelectProps> = ({
+  value,
+  onValueChange,
+}) => {
+  const { t } = useI18n()
+
+  return (
+    <div className='mb-6'>
+      <Label
+        htmlFor='click-behavior'
+        className='mb-2 block font-medium text-foreground'
+      >
+        {t('options.clickBehaviorLabel')}
+      </Label>
+      <div className='gap-y-2'>
+        <Select value={value} onValueChange={onValueChange}>
+          <SelectTrigger
+            id='click-behavior'
+            className='w-full cursor-pointer bg-background'
+          >
+            <SelectValue placeholder={t('options.clickBehaviorPlaceholder')} />
+          </SelectTrigger>
+          <SelectContent>
+            {clickBehaviorOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {t(option.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  )
+}
+
 // eslint-disable-next-line eslint/max-lines-per-function -- JSX heavy settings page
 const useOptionsRouteView = () => {
   const { t } = useI18n()
@@ -76,11 +118,11 @@ const useOptionsRouteView = () => {
     setSettings,
   )
   const fontSizePercent = normalizeFontSizePercent(settings.fontSizePercent)
-  const [{ fontSizeInputValue, fontSizeSliderValue }, setFontSizeValues] =
-    useState({
-      fontSizeInputValue: String(fontSizePercent),
-      fontSizeSliderValue: String(fontSizePercent),
-    })
+  const [fontSizeValues, setFontSizeValues] = useState({
+    fontSizeInputValue: String(fontSizePercent),
+    fontSizeSliderValue: String(fontSizePercent),
+  })
+  const { fontSizeInputValue, fontSizeSliderValue } = fontSizeValues
 
   useEffect(() => {
     const nextFontSizeValue = String(fontSizePercent)
@@ -90,39 +132,44 @@ const useOptionsRouteView = () => {
     })
   }, [fontSizePercent])
 
-  const updateFontSizePercent = async (value: number) => {
-    const normalizedValue = normalizeFontSizePercent(value)
-    setFontSizeValues((prev) => ({
-      ...prev,
-      fontSizeInputValue: String(normalizedValue),
-    }))
-    applyFontSizePreview(normalizedValue)
-    await updateSetting('fontSizePercent', normalizedValue)
-  }
+  const updateFontSizePercent = useCallback(
+    async (value: number) => {
+      const normalizedValue = normalizeFontSizePercent(value)
+      setFontSizeValues((prev) => ({
+        ...prev,
+        fontSizeInputValue: String(normalizedValue),
+      }))
+      applyFontSizePreview(normalizedValue)
+      await updateSetting('fontSizePercent', normalizedValue)
+    },
+    [updateSetting],
+  )
 
-  const handleFontSizeSliderChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setFontSizeValues({
-      fontSizeInputValue: event.target.value,
-      fontSizeSliderValue: event.target.value,
-    })
-  }
+  const handleFontSizeSliderChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setFontSizeValues({
+        fontSizeInputValue: event.target.value,
+        fontSizeSliderValue: event.target.value,
+      })
+    },
+    [],
+  )
 
-  const commitFontSizeSliderValue = async () => {
+  const commitFontSizeSliderValue = useCallback(async () => {
     await updateFontSizePercent(Number(fontSizeSliderValue))
-  }
+  }, [fontSizeSliderValue, updateFontSizePercent])
 
-  const handleFontSizeInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setFontSizeValues((prev) => ({
-      ...prev,
-      fontSizeInputValue: event.target.value,
-    }))
-  }
+  const handleFontSizeInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setFontSizeValues((prev) => ({
+        ...prev,
+        fontSizeInputValue: event.target.value,
+      }))
+    },
+    [],
+  )
 
-  const commitFontSizeInputValue = async () => {
+  const commitFontSizeInputValue = useCallback(async () => {
     const trimmedValue = fontSizeInputValue.trim()
     if (!trimmedValue) {
       resetFontSizeInputState(setFontSizeValues, fontSizePercent)
@@ -131,68 +178,162 @@ const useOptionsRouteView = () => {
 
     const nextValue = Number(trimmedValue)
     await updateFontSizePercent(nextValue)
-  }
+  }, [fontSizeInputValue, fontSizePercent, updateFontSizePercent])
 
-  const handleResetFontSize = async () => {
+  const handleResetFontSize = useCallback(async () => {
     await updateFontSizePercent(DEFAULT_FONT_SIZE_PERCENT)
-  }
+  }, [updateFontSizePercent])
 
-  const handleClickBehaviorChange = async (value: string) => {
-    await updateSetting(
-      'clickBehavior',
-      z
-        .enum([
-          'saveCurrentTab',
-          'saveWindowTabs',
-          'saveSameDomainTabs',
-          'saveAllWindowsTabs',
-        ])
-        .parse(value),
+  const handleClickBehaviorChange = useCallback(
+    async (value: string) => {
+      await updateSetting(
+        'clickBehavior',
+        z
+          .enum([
+            'saveCurrentTab',
+            'saveWindowTabs',
+            'saveSameDomainTabs',
+            'saveAllWindowsTabs',
+          ])
+          .parse(value),
+      )
+    },
+    [updateSetting],
+  )
+
+  const handleToggleRemoveAfterOpen = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('removeTabAfterOpen', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleToggleRemoveAfterExternalDrop = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('removeTabAfterExternalDrop', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleToggleExcludePinnedTabs = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('excludePinnedTabs', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleToggleShowSavedTime = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('showSavedTime', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleToggleOpenUrlInBackground = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('openUrlInBackground', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleToggleOpenAllInNewWindow = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('openAllInNewWindow', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleToggleConfirmDeleteEach = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('confirmDeleteEach', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleToggleConfirmDeleteAll = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('confirmDeleteAll', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleExcludePatternKeyDown = useCallback(
+    async (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== 'Enter') {
+        return
+      }
+
+      event.preventDefault()
+      await addExcludePattern()
+    },
+    [addExcludePattern],
+  )
+
+  const handleBlurExcludePattern = useCallback(() => {
+    void addExcludePattern()
+  }, [addExcludePattern])
+
+  const handleClickAddExcludePattern = useCallback(() => {
+    void addExcludePattern()
+  }, [addExcludePattern])
+
+  const handleCommitFontSizeSlider = useCallback(() => {
+    void commitFontSizeSliderValue()
+  }, [commitFontSizeSliderValue])
+
+  const handleKeyUpFontSizeSlider = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (
+        ![
+          'ArrowLeft',
+          'ArrowRight',
+          'ArrowUp',
+          'ArrowDown',
+          'Home',
+          'End',
+          'PageUp',
+          'PageDown',
+        ].includes(event.key)
+      ) {
+        return
+      }
+
+      void commitFontSizeSliderValue()
+    },
+    [commitFontSizeSliderValue],
+  )
+
+  const handleBlurFontSizeInput = useCallback(() => {
+    void commitFontSizeInputValue()
+  }, [commitFontSizeInputValue])
+
+  const handleKeyDownFontSizeInput = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== 'Enter') {
+        return
+      }
+
+      event.preventDefault()
+      void commitFontSizeInputValue()
+    },
+    [commitFontSizeInputValue],
+  )
+
+  const handleClickContact = useCallback(() => {
+    window.open(
+      'https://forms.gle/c9gBiF2TmgXaeU7J6',
+      '_blank',
+      'noopener,noreferrer',
     )
-  }
+  }, [])
 
-  const handleToggleRemoveAfterOpen = async (checked: boolean) => {
-    await updateSetting('removeTabAfterOpen', checked)
-  }
-
-  const handleToggleRemoveAfterExternalDrop = async (checked: boolean) => {
-    await updateSetting('removeTabAfterExternalDrop', checked)
-  }
-
-  const handleToggleExcludePinnedTabs = async (checked: boolean) => {
-    await updateSetting('excludePinnedTabs', checked)
-  }
-
-  const handleToggleShowSavedTime = async (checked: boolean) => {
-    await updateSetting('showSavedTime', checked)
-  }
-
-  const handleToggleOpenUrlInBackground = async (checked: boolean) => {
-    await updateSetting('openUrlInBackground', checked)
-  }
-
-  const handleToggleOpenAllInNewWindow = async (checked: boolean) => {
-    await updateSetting('openAllInNewWindow', checked)
-  }
-
-  const handleToggleConfirmDeleteEach = async (checked: boolean) => {
-    await updateSetting('confirmDeleteEach', checked)
-  }
-
-  const handleToggleConfirmDeleteAll = async (checked: boolean) => {
-    await updateSetting('confirmDeleteAll', checked)
-  }
-
-  const handleExcludePatternKeyDown = async (
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    if (event.key !== 'Enter') {
-      return
-    }
-
-    event.preventDefault()
-    await addExcludePattern()
-  }
+  const handleClickReleaseNotes = useCallback(() => {
+    window.open(
+      chrome.runtime.getURL('changelog.html'),
+      '_blank',
+      'noopener,noreferrer',
+    )
+  }, [])
 
   if (isLoading) {
     return <LoadingState minHeightClassName='min-h-[300px]' />
@@ -228,37 +369,11 @@ const useOptionsRouteView = () => {
             {t('options.behaviorSettings')}
           </h2>
 
-          <div className='mb-6'>
-            <Label
-              htmlFor='click-behavior'
-              className='mb-2 block font-medium text-foreground'
-            >
-              {t('options.clickBehaviorLabel')}
-            </Label>
-            <div className='gap-y-2'>
-              <Select
-                value={settings.clickBehavior || 'saveWindowTabs'}
-                // eslint-disable-next-line typescript/no-misused-promises
-                onValueChange={handleClickBehaviorChange}
-              >
-                <SelectTrigger
-                  id='click-behavior'
-                  className='w-full cursor-pointer bg-background'
-                >
-                  <SelectValue
-                    placeholder={t('options.clickBehaviorPlaceholder')}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {clickBehaviorOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <ClickBehaviorSelect
+            value={settings.clickBehavior || 'saveWindowTabs'}
+            // eslint-disable-next-line typescript/no-misused-promises
+            onValueChange={handleClickBehaviorChange}
+          />
 
           <div className='mb-4 flex items-center gap-x-2'>
             <Checkbox
@@ -424,31 +539,14 @@ const useOptionsRouteView = () => {
             >
               {t('options.excludePatterns.label')}
             </Label>
-            <div className='flex gap-2'>
-              <Input
-                id='excludePatterns'
-                value={excludePatternInput}
-                onChange={handleExcludePatternInputChange}
-                onBlur={() => {
-                  void addExcludePattern()
-                }}
-                // eslint-disable-next-line typescript/no-misused-promises
-                onKeyDown={handleExcludePatternKeyDown}
-                className='bg-background text-foreground'
-                placeholder={t('options.excludePatterns.placeholder')}
-              />
-              <Button
-                type='button'
-                onClick={() => {
-                  void addExcludePattern()
-                }}
-                variant='secondary'
-                aria-label={t('options.excludePatterns.add')}
-              >
-                <Plus size={16} />
-                {t('options.excludePatterns.add')}
-              </Button>
-            </div>
+            <OptionsExcludePatternInputRow
+              excludePatternInput={excludePatternInput}
+              onInputChange={handleExcludePatternInputChange}
+              onBlur={handleBlurExcludePattern}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onKeyDown={handleExcludePatternKeyDown}
+              onAdd={handleClickAddExcludePattern}
+            />
             <div className='mt-3 flex flex-wrap gap-2 rounded-md border border-border bg-background/40 p-3'>
               {activeExcludePatterns.length === 0 ? (
                 <p className='text-sm text-muted-foreground'>
@@ -456,33 +554,12 @@ const useOptionsRouteView = () => {
                 </p>
               ) : (
                 activeExcludePatterns.map((pattern) => (
-                  <Badge
+                  <OptionsExcludePatternBadge
                     key={pattern}
-                    variant='outline'
-                    className='flex max-w-full items-center gap-1 pr-1'
-                  >
-                    <span className='max-w-[240px] truncate' title={pattern}>
-                      {pattern}
-                    </span>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon-sm'
-                      className='size-5 rounded-full'
-                      onClick={() => {
-                        void removeExcludePattern(pattern)
-                      }}
-                      aria-label={t(
-                        'options.excludePatterns.removeAria',
-                        undefined,
-                        {
-                          pattern,
-                        },
-                      )}
-                    >
-                      <X size={12} />
-                    </Button>
-                  </Badge>
+                    pattern={pattern}
+                    // eslint-disable-next-line typescript/no-misused-promises
+                    onRemove={removeExcludePattern}
+                  />
                 ))
               )}
             </div>
@@ -530,75 +607,21 @@ const useOptionsRouteView = () => {
                 max={MAX_FONT_SIZE_PERCENT}
                 step={FONT_SIZE_PERCENT_STEP}
                 value={fontSizeSliderValue}
-                onChange={(event) => {
-                  handleFontSizeSliderChange(event)
-                }}
-                onMouseUp={() => {
-                  void commitFontSizeSliderValue()
-                }}
-                onTouchEnd={() => {
-                  void commitFontSizeSliderValue()
-                }}
-                onBlur={() => {
-                  void commitFontSizeSliderValue()
-                }}
-                onKeyUp={(event) => {
-                  if (
-                    ![
-                      'ArrowLeft',
-                      'ArrowRight',
-                      'ArrowUp',
-                      'ArrowDown',
-                      'Home',
-                      'End',
-                      'PageUp',
-                      'PageDown',
-                    ].includes(event.key)
-                  ) {
-                    return
-                  }
-
-                  void commitFontSizeSliderValue()
-                }}
+                onChange={handleFontSizeSliderChange}
+                onMouseUp={handleCommitFontSizeSlider}
+                onTouchEnd={handleCommitFontSizeSlider}
+                onBlur={handleCommitFontSizeSlider}
+                onKeyUp={handleKeyUpFontSizeSlider}
                 className='h-9 w-full cursor-pointer accent-primary'
               />
             </div>
 
-            <div>
-              <Label
-                htmlFor='font-size-percent'
-                className='mb-2 block text-foreground'
-              >
-                {t('options.fontSize.inputLabel')}
-              </Label>
-              <div className='flex items-center gap-2'>
-                <Input
-                  id='font-size-percent'
-                  type='number'
-                  inputMode='numeric'
-                  min={MIN_FONT_SIZE_PERCENT}
-                  max={MAX_FONT_SIZE_PERCENT}
-                  step={FONT_SIZE_PERCENT_STEP}
-                  value={fontSizeInputValue}
-                  onChange={(event) => {
-                    handleFontSizeInputChange(event)
-                  }}
-                  onBlur={() => {
-                    void commitFontSizeInputValue()
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter') {
-                      return
-                    }
-
-                    event.preventDefault()
-                    void commitFontSizeInputValue()
-                  }}
-                  className='bg-background text-foreground'
-                />
-                <span className='text-sm text-muted-foreground'>%</span>
-              </div>
-            </div>
+            <OptionsFontSizeInputColumn
+              value={fontSizeInputValue}
+              onValueChange={handleFontSizeInputChange}
+              onBlur={handleBlurFontSizeInput}
+              onKeyDown={handleKeyDownFontSizeInput}
+            />
           </div>
         </div>
 
@@ -620,45 +643,22 @@ const useOptionsRouteView = () => {
           </div>
           <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
             {colorOptions.map(({ key, labelKey }) => {
-              const handleThemeColorChange = createThemeColorChangeHandler(
+              const changeHandler = createThemeColorChangeHandler(
                 key,
                 // eslint-disable-next-line typescript/no-misused-promises
                 handleColorChange,
               )
 
               return (
-                <div key={key} className='flex flex-col'>
-                  <Label
-                    htmlFor={`${key}-picker`}
-                    className='mb-2 block break-all whitespace-normal text-foreground'
-                  >
-                    {t(labelKey)}
-                  </Label>
-                  <div className='flex items-center gap-x-4'>
-                    <input
-                      aria-label={t(labelKey)}
-                      id={`${key}-picker`}
-                      type='color'
-                      // `||` needed: color could be empty string
-                      // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                      value={settings.colors?.[key] || getDefaultColor(key)}
-                      onChange={handleThemeColorChange}
-                      className='size-8 shrink-0 cursor-pointer border-0 p-0'
-                    />
-                    <div className='min-w-0 flex-1'>
-                      <Input
-                        id={`${key}-hex`}
-                        type='text'
-                        // `||` needed: color could be empty string
-                        // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                        value={settings.colors?.[key] || getDefaultColor(key)}
-                        onChange={handleThemeColorChange}
-                        className='w-full bg-background text-foreground'
-                        placeholder={t('options.color.hexPlaceholder')}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <OptionsColorPickerRow
+                  key={key}
+                  colorKey={key}
+                  // `||` needed: color could be empty string
+                  // eslint-disable-next-line typescript/prefer-nullish-coalescing
+                  color={settings.colors?.[key] || getDefaultColor(key)}
+                  label={t(labelKey)}
+                  onChange={changeHandler}
+                />
               )
             })}
           </div>
@@ -667,13 +667,7 @@ const useOptionsRouteView = () => {
         <div className='mt-4'>
           <Button
             type='button'
-            onClick={() =>
-              window.open(
-                'https://forms.gle/c9gBiF2TmgXaeU7J6',
-                '_blank',
-                'noopener,noreferrer',
-              )
-            }
+            onClick={handleClickContact}
             className='w-full cursor-pointer'
           >
             {t('options.contact')}
@@ -687,13 +681,7 @@ const useOptionsRouteView = () => {
           <Button
             type='button'
             className='w-full cursor-pointer'
-            onClick={() =>
-              window.open(
-                chrome.runtime.getURL('changelog.html'),
-                '_blank',
-                'noopener,noreferrer',
-              )
-            }
+            onClick={handleClickReleaseNotes}
           >
             {t('options.releaseNotes')}
           </Button>

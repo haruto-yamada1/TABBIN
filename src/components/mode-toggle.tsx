@@ -1,4 +1,5 @@
 import { Moon, Sun } from 'lucide-react'
+import { useCallback } from 'react'
 
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,19 @@ const getThemeMessage = (key: string) =>
 
 export const ModeToggle = () => {
   const { setTheme } = useTheme()
+  const handleLight = useCallback(() => {
+    setTheme('light')
+  }, [setTheme])
+  const handleDark = useCallback(() => {
+    setTheme('dark')
+  }, [setTheme])
+  const handleSystem = useCallback(() => {
+    setTheme('system')
+  }, [setTheme])
+  const handleUser = useCallback(() => {
+    setTheme('user')
+  }, [setTheme])
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -30,32 +44,16 @@ export const ModeToggle = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
-        <DropdownMenuItem
-          onClick={() => {
-            setTheme('light')
-          }}
-        >
+        <DropdownMenuItem onClick={handleLight}>
           {getThemeMessage('theme.light')}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            setTheme('dark')
-          }}
-        >
+        <DropdownMenuItem onClick={handleDark}>
           {getThemeMessage('theme.dark')}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            setTheme('system')
-          }}
-        >
+        <DropdownMenuItem onClick={handleSystem}>
           {getThemeMessage('theme.system')}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            setTheme('user')
-          }}
-        >
+        <DropdownMenuItem onClick={handleUser}>
           {getThemeMessage('theme.user')}
         </DropdownMenuItem>
       </DropdownMenuContent>

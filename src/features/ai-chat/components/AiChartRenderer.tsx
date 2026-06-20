@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useCallback } from 'react'
 
 import {
   ChartContainer,
@@ -107,7 +108,12 @@ const ChartLegendBlock = ({
   shouldShowLegend: boolean
 }) =>
   shouldShowLegend ? (
-    <ChartLegend content={<ChartLegendContent nameKey={nameKey} />} />
+    <ChartLegend
+      content={
+        /* eslint-disable react-perf/jsx-no-jsx-as-prop -- Recharts <ChartLegend content={...}> は function-as-child API */
+        <ChartLegendContent nameKey={nameKey} />
+      }
+    />
   ) : null
 
 const createChartPointClickHandler = ({
@@ -218,14 +224,7 @@ const renderPieChart = ({
   spec: AiChartSpec
 }) => (
   <PieChart>
-    <ChartTooltip
-      content={
-        <ChartTooltipContent
-          formatter={(value) => formatChartValue(value, spec.valueFormat)}
-        />
-      }
-      cursor={false}
-    />
+    <ChartTooltipWithFormat valueFormat={spec.valueFormat} />
     <Pie
       data={getPieChartData(spec)}
       dataKey={primarySeries.dataKey}
@@ -252,13 +251,13 @@ interface CartesianChartRenderProps {
 }
 
 interface CartesianChartContentProps {
-  series: ReactNode
+  children: ReactNode
   shouldShowLegend: boolean
   spec: AiChartSpec
 }
 
 const CartesianChartContent = ({
-  series,
+  children,
   shouldShowLegend,
   spec,
 }: CartesianChartContentProps) => (
@@ -266,21 +265,14 @@ const CartesianChartContent = ({
     <CartesianGrid vertical={false} />
     <XAxis axisLine={false} dataKey={spec.xKey} tickLine={false} />
     <YAxis axisLine={false} tickLine={false} />
-    <ChartTooltip
-      content={
-        <ChartTooltipContent
-          formatter={(value) => formatChartValue(value, spec.valueFormat)}
-        />
-      }
-      cursor={false}
-    />
+    <ChartTooltipWithFormat valueFormat={spec.valueFormat} />
     <ChartLegendBlock shouldShowLegend={shouldShowLegend} />
-    {series}
+    {children}
   </>
 )
 
-const renderBarChart = (props: CartesianChartRenderProps) =>
-  props.spec.xKey ? (
+const BarChartRenderer = (props: CartesianChartRenderProps) => {
+  return props.spec.xKey ? (
     <BarChart
       accessibilityLayer
       data={props.spec.data}
@@ -291,7 +283,10 @@ const renderBarChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map((series) => (
+        shouldShowLegend={props.shouldShowLegend}
+        spec={props.spec}
+      >
+        {props.spec.series.map((series) => (
           <Bar
             dataKey={series.dataKey}
             fill={getChartColor(series.colorToken)}
@@ -305,14 +300,13 @@ const renderBarChart = (props: CartesianChartRenderProps) =>
             stackId={props.spec.stacked ? 'stack' : undefined}
           />
         ))}
-        shouldShowLegend={props.shouldShowLegend}
-        spec={props.spec}
-      />
+      </CartesianChartContent>
     </BarChart>
   ) : null
+}
 
-const renderLineChart = (props: CartesianChartRenderProps) =>
-  props.spec.xKey ? (
+const LineChartRenderer = (props: CartesianChartRenderProps) => {
+  return props.spec.xKey ? (
     <LineChart
       accessibilityLayer
       data={props.spec.data}
@@ -323,7 +317,10 @@ const renderLineChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map((series) => (
+        shouldShowLegend={props.shouldShowLegend}
+        spec={props.spec}
+      >
+        {props.spec.series.map((series) => (
           <Line
             dataKey={series.dataKey}
             dot={false}
@@ -333,14 +330,13 @@ const renderLineChart = (props: CartesianChartRenderProps) =>
             type='monotone'
           />
         ))}
-        shouldShowLegend={props.shouldShowLegend}
-        spec={props.spec}
-      />
+      </CartesianChartContent>
     </LineChart>
   ) : null
+}
 
-const renderAreaChart = (props: CartesianChartRenderProps) =>
-  props.spec.xKey ? (
+const AreaChartRenderer = (props: CartesianChartRenderProps) => {
+  return props.spec.xKey ? (
     <AreaChart
       accessibilityLayer
       data={props.spec.data}
@@ -351,7 +347,10 @@ const renderAreaChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map((series) => (
+        shouldShowLegend={props.shouldShowLegend}
+        spec={props.spec}
+      >
+        {props.spec.series.map((series) => (
           <Area
             dataKey={series.dataKey}
             fill={getChartColor(series.colorToken)}
@@ -363,11 +362,10 @@ const renderAreaChart = (props: CartesianChartRenderProps) =>
             type='monotone'
           />
         ))}
-        shouldShowLegend={props.shouldShowLegend}
-        spec={props.spec}
-      />
+      </CartesianChartContent>
     </AreaChart>
   ) : null
+}
 
 const renderRadarChart = ({
   categoryKey,
@@ -391,14 +389,7 @@ const renderRadarChart = ({
       spec,
     })}
   >
-    <ChartTooltip
-      content={
-        <ChartTooltipContent
-          formatter={(value) => formatChartValue(value, spec.valueFormat)}
-        />
-      }
-      cursor={false}
-    />
+    <ChartTooltipWithFormat valueFormat={spec.valueFormat} />
     <ChartLegendBlock shouldShowLegend={shouldShowLegend} />
     <PolarGrid />
     <PolarAngleAxis dataKey={categoryKey} />
@@ -438,28 +429,34 @@ const renderChartContent = ({
       })
     }
     case 'bar': {
-      return renderBarChart({
-        onChartPointClick,
-        primarySeries,
-        shouldShowLegend,
-        spec,
-      })
+      return (
+        <BarChartRenderer
+          onChartPointClick={onChartPointClick}
+          primarySeries={primarySeries}
+          shouldShowLegend={shouldShowLegend}
+          spec={spec}
+        />
+      )
     }
     case 'line': {
-      return renderLineChart({
-        onChartPointClick,
-        primarySeries,
-        shouldShowLegend,
-        spec,
-      })
+      return (
+        <LineChartRenderer
+          onChartPointClick={onChartPointClick}
+          primarySeries={primarySeries}
+          shouldShowLegend={shouldShowLegend}
+          spec={spec}
+        />
+      )
     }
     case 'area': {
-      return renderAreaChart({
-        onChartPointClick,
-        primarySeries,
-        shouldShowLegend,
-        spec,
-      })
+      return (
+        <AreaChartRenderer
+          onChartPointClick={onChartPointClick}
+          primarySeries={primarySeries}
+          shouldShowLegend={shouldShowLegend}
+          spec={spec}
+        />
+      )
     }
     case 'radar': {
       return renderRadarChart({
@@ -474,6 +471,26 @@ const renderChartContent = ({
       return null
     }
   }
+}
+
+const ChartTooltipWithFormat = ({
+  valueFormat,
+}: {
+  valueFormat?: AiChartSpec['valueFormat']
+}) => {
+  const handleFormat = useCallback(
+    (value: unknown) => formatChartValue(value, valueFormat),
+    [valueFormat],
+  )
+  return (
+    <ChartTooltip
+      content={
+        /* eslint-disable react-perf/jsx-no-jsx-as-prop -- Recharts <ChartTooltip content={...}> は function-as-child API */
+        <ChartTooltipContent formatter={handleFormat} />
+      }
+      cursor={false}
+    />
+  )
 }
 
 const AiChart = ({

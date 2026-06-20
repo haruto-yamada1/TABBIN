@@ -1,3 +1,5 @@
+import { useCallback, useMemo } from 'react'
+
 import {
   Dialog,
   DialogContent,
@@ -80,13 +82,27 @@ export const KeywordModalRoot = ({
     storageChangePort,
   })
 
+  const contextValue: KeywordModalContextType = useMemo(
+    () => ({ group, state }),
+    [group, state],
+  )
+
+  const handleContentClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+  }, [])
+
+  const handleContentPointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation()
+  }, [])
+
+  const handleContentKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.stopPropagation()
+    }
+  }, [])
+
   if (!isOpen) {
     return null
-  }
-
-  const contextValue: KeywordModalContextType = {
-    group,
-    state,
   }
 
   return (
@@ -94,17 +110,9 @@ export const KeywordModalRoot = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           className='max-h-[90vh] overflow-y-auto'
-          onClick={(e) => {
-            e.stopPropagation()
-          }}
-          onPointerDown={(e) => {
-            e.stopPropagation()
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.stopPropagation()
-            }
-          }}
+          onClick={handleContentClick}
+          onPointerDown={handleContentPointerDown}
+          onKeyDown={handleContentKeyDown}
         >
           <DialogHeader className='text-left'>
             <DialogTitle>

@@ -11,6 +11,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { useMemo } from 'react'
 
 import { CardContent } from '@/components/ui/card'
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
@@ -41,13 +42,18 @@ export const CategoryGroupContent = () => {
     }),
   )
 
-  if (collapse.isCollapsed) {
-    return null
-  }
-
   const displayDomains = reorder.isReorderMode
     ? reorder.tempDomainOrder
     : sort.sortedDomains
+
+  const domainIds = useMemo(
+    () => displayDomains.map((domain) => domain.id),
+    [displayDomains],
+  )
+
+  if (collapse.isCollapsed) {
+    return null
+  }
 
   return (
     <CardContent>
@@ -58,7 +64,7 @@ export const CategoryGroupContent = () => {
         onDragEnd={reorder.handleDragEnd}
       >
         <SortableContext
-          items={displayDomains.map((domain) => domain.id)}
+          items={domainIds}
           strategy={verticalListSortingStrategy}
         >
           {displayDomains.map((group) => (

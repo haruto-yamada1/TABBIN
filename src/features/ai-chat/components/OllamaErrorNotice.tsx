@@ -1,5 +1,5 @@
 import { Check, Copy } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -44,7 +44,7 @@ const CopyableValueRow = ({
     [],
   )
 
-  const copyToClipboard = async () => {
+  const copyToClipboard = useCallback(async () => {
     if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
       toast.error(
         t('aiChat.ollama.copyError', undefined, {
@@ -76,7 +76,11 @@ const CopyableValueRow = ({
         }),
       )
     }
-  }
+  }, [buttonLabel, t, value])
+
+  const handleCopyClick = useCallback(() => {
+    void copyToClipboard()
+  }, [copyToClipboard])
 
   return (
     <div className='flex items-center gap-2'>
@@ -95,9 +99,7 @@ const CopyableValueRow = ({
             aria-label={buttonLabel}
             className='size-8 shrink-0'
             data-state={isCopied ? 'copied' : 'idle'}
-            onClick={() => {
-              void copyToClipboard()
-            }}
+            onClick={handleCopyClick}
             size='icon-sm'
             title={
               isCopied ? t('aiChat.ollama.copied') : t('aiChat.ollama.copy')

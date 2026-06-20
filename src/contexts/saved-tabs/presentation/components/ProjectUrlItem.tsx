@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronRight, GripVertical, X } from 'lucide-react'
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -100,10 +100,13 @@ const ProjectUrlItemComponent = ({
     id: originalUrl,
   })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const style = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+    }),
+    [transform, transition],
+  )
 
   const handleExternalDrop = useCallback(() => {
     if (!messagingPort) {
@@ -123,23 +126,26 @@ const ProjectUrlItemComponent = ({
     }
   }, [])
 
-  const handleDragStart = (e: React.DragEvent<HTMLElement>) => {
-    isDraggingRef.current = true
-    windowBlurredDuringDragRef.current = false
-    isGlobalInternalDrop = false
+  const handleDragStart = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      isDraggingRef.current = true
+      windowBlurredDuringDragRef.current = false
+      isGlobalInternalDrop = false
 
-    e.dataTransfer.setData('text/plain', originalUrl)
-    e.dataTransfer.setData('text/uri-list', originalUrl)
-    window.addEventListener('blur', handleWindowBlur)
+      e.dataTransfer.setData('text/plain', originalUrl)
+      e.dataTransfer.setData('text/uri-list', originalUrl)
+      window.addEventListener('blur', handleWindowBlur)
 
-    if (messagingPort) {
-      void messagingPort.send({
-        action: 'urlDragStarted',
-        groupId: projectId,
-        url: originalUrl,
-      })
-    }
-  }
+      if (messagingPort) {
+        void messagingPort.send({
+          action: 'urlDragStarted',
+          groupId: projectId,
+          url: originalUrl,
+        })
+      }
+    },
+    [originalUrl, messagingPort, projectId, handleWindowBlur],
+  )
 
   const handleDragEnd = useCallback(
     (e: React.DragEvent<HTMLElement>) => {
@@ -174,6 +180,27 @@ const ProjectUrlItemComponent = ({
   const categoryLevel = getCategoryLevel(item.category)
   const isInSubcategory = categoryLevel > 0
 
+  const handleUrlClick = useCallback(() => {
+    handleOpenUrl(item.url)
+  }, [handleOpenUrl, item.url])
+
+  const handleDeleteButtonClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (settings.confirmDeleteEach) {
+        setIsDeleteConfirmOpen(true)
+      } else {
+        handleDeleteUrl(projectId, item.url)
+      }
+    },
+    [settings.confirmDeleteEach, handleDeleteUrl, projectId, item.url],
+  )
+
+  const handleConfirmDelete = useCallback(() => {
+    handleDeleteUrl(projectId, item.url)
+  }, [handleDeleteUrl, projectId, item.url])
+
   return (
     <>
       <li
@@ -204,9 +231,7 @@ const ProjectUrlItemComponent = ({
             draggable
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            onClick={() => {
-              handleOpenUrl(item.url)
-            }}
+            onClick={handleUrlClick}
             className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
           >
             {/* サブカテゴリ付きのURLの場合はChevronRightを表示 */}
@@ -232,15 +257,7 @@ const ProjectUrlItemComponent = ({
           <Button
             variant='ghost'
             size='sm'
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (settings.confirmDeleteEach) {
-                setIsDeleteConfirmOpen(true)
-              } else {
-                handleDeleteUrl(projectId, item.url)
-              }
-            }}
+            onClick={handleDeleteButtonClick}
             className='size-8 cursor-pointer p-0'
             title={t('savedTabs.url.deleteAria')}
             aria-label={t('savedTabs.url.deleteAria')}
@@ -253,9 +270,7 @@ const ProjectUrlItemComponent = ({
       <DeleteUrlConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => {
-          handleDeleteUrl(projectId, item.url)
-        }}
+        onConfirm={handleConfirmDelete}
       />
     </>
   )

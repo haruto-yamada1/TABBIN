@@ -1,10 +1,6 @@
 import { createContext, use, useEffect, useMemo, useState } from 'react'
 
-import {
-  getMessage,
-  resolveLanguage,
-  resolveUiLanguage,
-} from '@/features/i18n/lib/language'
+import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
 import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
 import {
   getChromeStorageOnChanged,
@@ -33,20 +29,15 @@ const getUiLocale = () => {
   return navigator.language
 }
 
-export const getFallbackText = (
-  key: string,
-  fallback?: string,
-  values?: Record<string, string>,
-) => getMessage(resolveUiLanguage(getUiLocale()), key, fallback, values)
-
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
-  const [{ languageSetting, uiLocale }, setI18nState] = useState<{
+  const [i18nState, setI18nState] = useState<{
     languageSetting: LanguageSetting
     uiLocale: string | undefined
   }>(() => ({
     languageSetting: defaultSettings.language ?? 'system',
     uiLocale: getUiLocale(),
   }))
+  const { languageSetting, uiLocale } = i18nState
 
   useEffect(() => {
     let cancelled = false

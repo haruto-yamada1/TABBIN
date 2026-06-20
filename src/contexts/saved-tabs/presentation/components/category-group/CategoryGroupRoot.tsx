@@ -1,7 +1,7 @@
 import { useDndMonitor } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
@@ -87,10 +87,13 @@ export const CategoryGroupRoot = ({
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: category.id })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const style = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+    }),
+    [transform, transition],
+  )
 
   // グローバルドラッグ監視
   useDndMonitor(state.dndMonitorHandlers)
@@ -139,6 +142,17 @@ export const CategoryGroupRoot = ({
     ],
   )
 
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLFieldSetElement>) => {
+      state.nativeDnD.handleDrop(e, handlers.handleMoveDomainToCategory)
+    },
+    [state.nativeDnD, handlers.handleMoveDomainToCategory],
+  )
+
+  const handleCloseModal = useCallback(() => {
+    state.modal.setIsModalOpen(false)
+  }, [state.modal])
+
   // 検索クエリがあり、かつ表示可能なドメインがない場合は非表示
   if (hasSearchQuery && !hasVisibleDomains) {
     return null
@@ -156,9 +170,7 @@ export const CategoryGroupRoot = ({
         })}
         onDragOver={state.nativeDnD.handleDragOver}
         onDragLeave={state.nativeDnD.handleDragLeave}
-        onDrop={(e) => {
-          state.nativeDnD.handleDrop(e, handlers.handleMoveDomainToCategory)
-        }}
+        onDrop={handleDrop}
       >
         {children}
       </fieldset>
@@ -166,9 +178,7 @@ export const CategoryGroupRoot = ({
       {/* カテゴリ管理モーダル */}
       <CategoryManagementModal
         isOpen={state.modal.isModalOpen}
-        onClose={() => {
-          state.modal.setIsModalOpen(false)
-        }}
+        onClose={handleCloseModal}
         category={category}
         domains={state.localDomains}
         deps={categoryManagementModalDeps}

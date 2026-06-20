@@ -165,9 +165,7 @@ export const useDomainCardState = ({
 
   // --- カテゴリ並び替え状態 ---
   const [isCategoryReorderMode, setIsCategoryReorderMode] = useState(false)
-  const [_originalCategoryOrder, setOriginalCategoryOrder] = useState<string[]>(
-    [],
-  )
+  const [, setOriginalCategoryOrder] = useState<string[]>([])
   const [tempCategoryOrder, setTempCategoryOrder] = useState<string[]>([])
 
   // --- グローバルドラッグ状態 ---

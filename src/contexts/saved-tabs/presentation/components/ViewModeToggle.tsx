@@ -1,5 +1,5 @@
 import { Folder, Globe } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 
 import {
   Select,
@@ -21,6 +21,23 @@ interface ViewModeToggleProps {
   currentMode: ViewMode
   onChange: (mode: ViewMode) => void
 }
+
+const ViewModeSelectItem = ({
+  value,
+  icon: Icon,
+  label,
+}: {
+  value: string
+  icon: ComponentType<{ size: number }>
+  label: string
+}) => (
+  <SelectItem value={value}>
+    <div className='flex items-center gap-2'>
+      <Icon size={16} />
+      <span>{label}</span>
+    </div>
+  </SelectItem>
+)
 
 export const ViewModeToggle = ({
   currentMode,
@@ -66,18 +83,16 @@ export const ViewModeToggle = ({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='domain'>
-                <div className='flex items-center gap-2'>
-                  <Globe size={16} />
-                  <span>{t('savedTabs.viewMode.domain')}</span>
-                </div>
-              </SelectItem>
-              <SelectItem value='custom'>
-                <div className='flex items-center gap-2'>
-                  <Folder size={16} />
-                  <span>{t('savedTabs.viewMode.custom')}</span>
-                </div>
-              </SelectItem>
+              <ViewModeSelectItem
+                value='domain'
+                icon={Globe}
+                label={t('savedTabs.viewMode.domain')}
+              />
+              <ViewModeSelectItem
+                value='custom'
+                icon={Folder}
+                label={t('savedTabs.viewMode.custom')}
+              />
             </SelectContent>
           </Select>
         </div>

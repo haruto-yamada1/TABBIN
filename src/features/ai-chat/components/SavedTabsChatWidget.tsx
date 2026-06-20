@@ -1,4 +1,3 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop, react-perf/jsx-no-new-object-as-prop -- 14箇所の JSX 内 inline function/object があり、refactor の範囲が広いため。一旦 disable して別 issue で対応 */
 import {
   Check,
   ChevronDown,
@@ -7,19 +6,20 @@ import {
   MessageCircleMore,
   Plus,
   Settings2,
-  Trash2,
   X,
 } from 'lucide-react'
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { toast } from 'sonner'
 
-import {
-  Attachment,
-  AttachmentInfo,
-  AttachmentPreview,
-  Attachments,
-} from '@/components/ai-elements/attachments'
+import { Attachments } from '@/components/ai-elements/attachments'
 import {
   Conversation,
   ConversationContent,
@@ -90,6 +90,9 @@ import { ChatPromptAttachments } from '@/features/ai-chat/components/ChatPromptA
 import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
 import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
 import { OllamaModelSelector } from '@/features/ai-chat/components/OllamaModelSelector'
+import { SavedTabsChatAttachmentItem } from '@/features/ai-chat/components/SavedTabsChatAttachmentItem'
+import { SavedTabsChatHeaderTooltipButton } from '@/features/ai-chat/components/SavedTabsChatHeaderTooltipButton'
+import { SavedTabsChatHistoryItemCard } from '@/features/ai-chat/components/SavedTabsChatHistoryItemCard'
 import { SystemPromptManagerDialog } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import type { SystemPromptManagerDialogProps } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import {
@@ -153,6 +156,7 @@ import {
 } from './savedTabsChat/streaming'
 import { useChatPromptManager } from './savedTabsChat/useChatPromptManager'
 import { useChatStreamHandlers } from './savedTabsChat/useChatStreamHandlers'
+import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.helpers'
 
 interface SavedTabsChatPanelProps {
   activeSystemPromptId: string
@@ -226,6 +230,13 @@ const AssistantMessageDiagnostics = ({
   toolTraces = EMPTY_TOOL_TRACES,
 }: Pick<ChatMessage, 'isStreaming' | 'reasoning' | 'toolTraces'>) => {
   const { t } = useI18n()
+  const getThinkingMessage = useCallback(
+    () =>
+      `${t('aiChat.reasoning')}${
+        toolTraces.length > 0 ? ` / ${toolTraces.length}` : ''
+      }`,
+    [t, toolTraces.length],
+  )
 
   if (!reasoning && toolTraces.length === 0) {
     return null
@@ -238,13 +249,7 @@ const AssistantMessageDiagnostics = ({
           className='mb-0 rounded-md border border-border/70 bg-background/70 px-3 py-2'
           isStreaming={isStreaming}
         >
-          <ReasoningTrigger
-            getThinkingMessage={() =>
-              `${t('aiChat.reasoning')}${
-                toolTraces.length > 0 ? ` / ${toolTraces.length}` : ''
-              }`
-            }
-          />
+          <ReasoningTrigger getThinkingMessage={getThinkingMessage} />
           <ReasoningContent>{reasoning}</ReasoningContent>
         </Reasoning>
       ) : null}
@@ -434,6 +439,25 @@ const useChatHistoryDropdownView = ({
   const [pendingDeleteHistoryItem, setPendingDeleteHistoryItem] =
     useState<AiChatHistoryItem | null>(null)
 
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      setPendingDeleteHistoryItem(null)
+    }
+  }, [])
+
+  const handleCancelDelete = useCallback(() => {
+    setPendingDeleteHistoryItem(null)
+  }, [])
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!pendingDeleteHistoryItem) {
+      return
+    }
+
+    onDeleteHistoryItem?.(pendingDeleteHistoryItem.id)
+    setPendingDeleteHistoryItem(null)
+  }, [onDeleteHistoryItem, pendingDeleteHistoryItem])
+
   return (
     <>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -462,54 +486,16 @@ const useChatHistoryDropdownView = ({
           <div className='max-h-80 gap-y-1 overflow-y-auto'>
             {historyItems.length > 0 ? (
               historyItems.map((historyItem) => (
-                <div
+                <SavedTabsChatHistoryItemCard
+                  historyItem={historyItem}
+                  isActive={historyItem.isActive}
                   key={historyItem.id}
-                  className={cn(
-                    'rounded-xl border px-3 py-2.5 transition',
-                    historyItem.isActive
-                      ? 'border-border bg-muted/50'
-                      : 'border-transparent hover:bg-muted/40',
-                  )}
-                >
-                  <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
-                    <Button
-                      className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
-                      onClick={() => {
-                        onSelectHistoryItem?.(historyItem.id)
-                        setIsOpen(false)
-                      }}
-                      type='button'
-                      variant='ghost'
-                    >
-                      <p className='w-full min-w-0 truncate text-sm font-medium'>
-                        {historyItem.title}
-                      </p>
-                      <p className='mt-1 line-clamp-2 w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'>
-                        {historyItem.preview}
-                      </p>
-                    </Button>
-                    {onDeleteHistoryItem ? (
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='icon-sm'
-                        aria-label={t(
-                          'aiChat.deleteConversationAria',
-                          undefined,
-                          { title: historyItem.title },
-                        )}
-                        className='shrink-0 justify-self-end text-muted-foreground hover:text-destructive'
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          setIsOpen(false)
-                          setPendingDeleteHistoryItem(historyItem)
-                        }}
-                      >
-                        <Trash2 className='size-4' />
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
+                  onDeleteHistoryItem={onDeleteHistoryItem}
+                  onSelectHistoryItem={onSelectHistoryItem}
+                  setIsOpen={setIsOpen}
+                  setPendingDeleteHistoryItem={setPendingDeleteHistoryItem}
+                  t={t}
+                />
               ))
             ) : (
               <div className='rounded-xl px-3 py-4 text-sm text-muted-foreground'>
@@ -522,11 +508,7 @@ const useChatHistoryDropdownView = ({
 
       <Dialog
         open={pendingDeleteHistoryItem !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingDeleteHistoryItem(null)
-          }
-        }}
+        onOpenChange={handleDialogOpenChange}
       >
         <DialogContent>
           <DialogHeader>
@@ -539,23 +521,14 @@ const useChatHistoryDropdownView = ({
             <Button
               type='button'
               variant='outline'
-              onClick={() => {
-                setPendingDeleteHistoryItem(null)
-              }}
+              onClick={handleCancelDelete}
             >
               {t('common.cancel')}
             </Button>
             <Button
               type='button'
               variant='destructive'
-              onClick={() => {
-                if (!pendingDeleteHistoryItem) {
-                  return
-                }
-
-                onDeleteHistoryItem?.(pendingDeleteHistoryItem.id)
-                setPendingDeleteHistoryItem(null)
-              }}
+              onClick={handleConfirmDelete}
             >
               {t('common.delete')}
             </Button>
@@ -639,24 +612,13 @@ const useChatSidebarHeaderView = ({
         >
           {historyVariant === 'sidebar-toggle' ? historyButton : null}
           {historyVariant === 'dropdown' ? chatHistoryDropdown : null}
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon'
-                  aria-label={t('aiChat.systemPrompt.openSettings')}
-                  onClick={onOpenSystemPromptManager}
-                >
-                  <Settings2 className='size-4' />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side='bottom'>
-                {t('aiChat.systemPrompt.settingsTooltip')}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <SavedTabsChatHeaderTooltipButton
+            ariaLabel={t('aiChat.systemPrompt.openSettings')}
+            onClick={onOpenSystemPromptManager}
+            tooltipText={t('aiChat.systemPrompt.settingsTooltip')}
+          >
+            <Settings2 className='size-4' />
+          </SavedTabsChatHeaderTooltipButton>
           {systemPromptSelector}
         </div>
 
@@ -665,50 +627,30 @@ const useChatSidebarHeaderView = ({
         </CardTitle>
 
         <div className='z-10 flex items-center justify-end gap-1'>
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon'
-                  aria-label={t('aiChat.copyConversation')}
-                  data-state={isConversationCopied ? 'copied' : 'idle'}
-                  disabled={isCopyDisabled}
-                  onClick={onCopyConversation}
-                >
-                  {isConversationCopied ? (
-                    <Check className='size-4' />
-                  ) : (
-                    <Copy className='size-4' />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side='bottom'>
-                {isConversationCopied
-                  ? t('aiChat.ollama.copied')
-                  : t('aiChat.copyConversation')}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon'
-                  aria-label={t('aiChat.newConversation')}
-                  onClick={onResetConversation}
-                >
-                  <Plus className='size-4' />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side='bottom'>
-                {t('aiChat.newConversation')}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <SavedTabsChatHeaderTooltipButton
+            ariaLabel={t('aiChat.copyConversation')}
+            dataState={isConversationCopied ? 'copied' : 'idle'}
+            disabled={isCopyDisabled}
+            onClick={onCopyConversation}
+            tooltipText={
+              isConversationCopied
+                ? t('aiChat.ollama.copied')
+                : t('aiChat.copyConversation')
+            }
+          >
+            {isConversationCopied ? (
+              <Check className='size-4' />
+            ) : (
+              <Copy className='size-4' />
+            )}
+          </SavedTabsChatHeaderTooltipButton>
+          <SavedTabsChatHeaderTooltipButton
+            ariaLabel={t('aiChat.newConversation')}
+            onClick={onResetConversation}
+            tooltipText={t('aiChat.newConversation')}
+          >
+            <Plus className='size-4' />
+          </SavedTabsChatHeaderTooltipButton>
           {showCloseButton ? (
             <Button
               type='button'
@@ -726,17 +668,6 @@ const useChatSidebarHeaderView = ({
   )
 }
 
-const ATTACHMENT_PREVIEW_LENGTH = 32
-
-const getAttachmentId = (attachment: AiChatAttachment) =>
-  [
-    attachment.filename,
-    attachment.mediaType,
-    attachment.kind,
-    attachment.content.length,
-    attachment.content.slice(0, ATTACHMENT_PREVIEW_LENGTH),
-  ].join('-')
-
 const renderChatMessageAttachments = ({
   attachments,
 }: {
@@ -745,19 +676,10 @@ const renderChatMessageAttachments = ({
   return (
     <Attachments className='mb-2 w-full' variant='inline'>
       {attachments.map((attachment) => (
-        <Attachment
-          data={{
-            filename: attachment.filename,
-            id: getAttachmentId(attachment),
-            mediaType: attachment.mediaType,
-            type: 'file',
-            url: attachment.kind === 'image' ? attachment.content : '',
-          }}
-          key={getAttachmentId(attachment)}
-        >
-          <AttachmentPreview />
-          <AttachmentInfo />
-        </Attachment>
+        <SavedTabsChatAttachmentItem
+          attachment={attachment}
+          key={getSavedTabsChatAttachmentId(attachment)}
+        />
       ))}
     </Attachments>
   )
@@ -909,36 +831,64 @@ const useChatPromptComposerView = ({
     : t('aiChat.send')
   const isSubmitDisabled =
     !isConfigured || isSubmitting || isSavingModel || input.trim().length === 0
-  const handleTextareaKeyDown = (
-    event: ReactKeyboardEvent<HTMLTextAreaElement>,
-  ) => {
-    if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
-      return
-    }
+  const handleTextareaKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+        return
+      }
 
-    if (event.ctrlKey || event.metaKey) {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault()
+        requestPromptSubmit(event.currentTarget)
+        return
+      }
+
       event.preventDefault()
-      requestPromptSubmit(event.currentTarget)
-      return
-    }
 
-    event.preventDefault()
+      const textarea = event.currentTarget
+      const selectionStart = textarea.selectionStart ?? input.length
+      const selectionEnd = textarea.selectionEnd ?? selectionStart
+      const { cursorPosition, nextValue } = insertLineBreakAtCursor({
+        selectionEnd,
+        selectionStart,
+        value: input,
+      })
 
-    const textarea = event.currentTarget
-    const selectionStart = textarea.selectionStart ?? input.length
-    const selectionEnd = textarea.selectionEnd ?? selectionStart
-    const { cursorPosition, nextValue } = insertLineBreakAtCursor({
-      selectionEnd,
-      selectionStart,
-      value: input,
-    })
+      onInputChange(nextValue)
 
-    onInputChange(nextValue)
+      window.requestAnimationFrame(() => {
+        textarea.setSelectionRange(cursorPosition, cursorPosition)
+      })
+    },
+    [input, onInputChange],
+  )
 
-    window.requestAnimationFrame(() => {
-      textarea.setSelectionRange(cursorPosition, cursorPosition)
-    })
-  }
+  const handleError = useCallback(
+    (error: {
+      code: 'accept' | 'max_files' | 'max_file_size'
+      message: string
+    }) => {
+      toast.error(getAttachmentInputErrorMessage(error, t))
+    },
+    [t],
+  )
+
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onInputChange(event.target.value)
+    },
+    [onInputChange],
+  )
+
+  const behavior = useMemo(
+    () => ({ fetchOnOpen: true, hideFetchButton: true }),
+    [],
+  )
+
+  const selectorStatus = useMemo(
+    () => ({ isLoading: isLoadingModels, isSaving: isSavingModel }),
+    [isLoadingModels, isSavingModel],
+  )
 
   return (
     <PromptInput
@@ -947,18 +897,14 @@ const useChatPromptComposerView = ({
       maxFiles={AI_CHAT_MAX_ATTACHMENTS}
       maxFileSize={AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES}
       multiple
-      onError={(error) => {
-        toast.error(getAttachmentInputErrorMessage(error, t))
-      }}
+      onError={handleError}
       onSubmit={onSubmit}
     >
       <PromptInputTextarea
         aria-label={t('aiChat.inputLabel')}
         className={cn('min-h-16', isCompactLayout && 'min-h-24 text-sm')}
         value={input}
-        onChange={(event) => {
-          onInputChange(event.target.value)
-        }}
+        onChange={handleChange}
         onKeyDown={handleTextareaKeyDown}
         disabled={!isConfigured || isSavingModel}
         placeholder={
@@ -982,10 +928,7 @@ const useChatPromptComposerView = ({
         >
           <ChatPromptAttachmentButton />
           <OllamaModelSelector
-            behavior={{
-              fetchOnOpen: true,
-              hideFetchButton: true,
-            }}
+            behavior={behavior}
             errorMessage={setupErrorMessage}
             layout={isCompactLayout ? 'compact' : 'default'}
             models={modelOptions}
@@ -994,10 +937,7 @@ const useChatPromptComposerView = ({
             ollamaError={setupOllamaError}
             platform={platform}
             selectedModel={modelName}
-            status={{
-              isLoading: isLoadingModels,
-              isSaving: isSavingModel,
-            }}
+            status={selectorStatus}
           />
         </div>
         <PromptInputSubmit
@@ -1117,6 +1057,15 @@ const useSavedTabsChatPanelView = ({
     isVisible: isConfigured,
     t,
   })
+  const cardClassName =
+    mode === 'page'
+      ? 'flex h-full min-h-0 flex-1 flex-col rounded-[1.5rem] border-border shadow-lg'
+      : 'flex h-full min-h-0 flex-col rounded-none border-border border-y-0 border-r-0 border-l shadow-2xl'
+  const cardStyle = useMemo(
+    () => (mode === 'page' ? undefined : { width: `${sidebarWidth}px` }),
+    [mode, sidebarWidth],
+  )
+
   if (!isOpen) {
     return null
   }
@@ -1138,13 +1087,6 @@ const useSavedTabsChatPanelView = ({
       </p>
     )
   }
-
-  const cardClassName =
-    mode === 'page'
-      ? 'flex h-full min-h-0 flex-1 flex-col rounded-[1.5rem] border-border shadow-lg'
-      : 'flex h-full min-h-0 flex-col rounded-none border-border border-y-0 border-r-0 border-l shadow-2xl'
-
-  const cardStyle = mode === 'page' ? undefined : { width: `${sidebarWidth}px` }
 
   const card = (
     <Card
@@ -1227,6 +1169,7 @@ const useSavedTabsChatPanelView = ({
   )
 }
 
+// eslint-disable-next-line eslint/max-statements
 const useSavedTabsChatWidgetView = ({
   conversationId,
   defaultOpen = false,
@@ -1760,6 +1703,11 @@ const useSavedTabsChatWidgetView = ({
     selectedPromptId: selectedPromptIdInModal,
   }
 
+  const handleFloatingButtonClick = useCallback(() => {
+    setIsFloatingOpen(true)
+    onOpenChange?.(true)
+  }, [onOpenChange])
+
   return (
     <>
       {mode === 'floating' && !isOpen ? (
@@ -1767,10 +1715,7 @@ const useSavedTabsChatWidgetView = ({
           type='button'
           aria-label={t('aiChat.open')}
           className='fixed right-4 bottom-4 z-50 size-10 cursor-pointer rounded-full shadow-lg'
-          onClick={() => {
-            setIsFloatingOpen(true)
-            onOpenChange?.(true)
-          }}
+          onClick={handleFloatingButtonClick}
         >
           <MessageCircleMore className='size-5' />
         </Button>

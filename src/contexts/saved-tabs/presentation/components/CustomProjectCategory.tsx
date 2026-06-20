@@ -6,7 +6,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
-import { memo, useMemo, useReducer, useState } from 'react'
+import { memo, useCallback, useMemo, useReducer, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -78,107 +78,109 @@ const CategoryHeaderMain = ({
   setIsCollapsed,
   setUserCollapsedState,
   setSortOrder,
-}: CategoryHeaderMainProps) => (
-  <div
-    {...attributes}
-    {...listeners}
-    className='flex grow cursor-grab items-center gap-2 overflow-hidden hover:cursor-grab active:cursor-grabbing'
-  >
-    <CardCollapseControl
-      isCollapsed={isCollapsed}
-      setIsCollapsed={setIsCollapsed}
-      setUserCollapsedState={setUserCollapsedState}
-      isDisabled={isCollapseDisabled}
-      onPointerDown={(event) => {
-        event.stopPropagation()
-      }}
-    />
-    <CardSortControl
-      sortOrder={sortOrder}
-      setSortOrder={setSortOrder}
-      onPointerDown={(event) => {
-        event.stopPropagation()
-      }}
-    />
+}: CategoryHeaderMainProps) => {
+  const handleCollapsePointerDown = useCallback((event: React.PointerEvent) => {
+    event.stopPropagation()
+  }, [])
 
-    <div className='shrink-0 text-muted-foreground'>
-      <GripVertical size={16} aria-hidden='true' />
+  const handleSortPointerDown = useCallback((event: React.PointerEvent) => {
+    event.stopPropagation()
+  }, [])
+
+  return (
+    <div
+      {...attributes}
+      {...listeners}
+      className='flex grow cursor-grab items-center gap-2 overflow-hidden hover:cursor-grab active:cursor-grabbing'
+    >
+      <CardCollapseControl
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        setUserCollapsedState={setUserCollapsedState}
+        isDisabled={isCollapseDisabled}
+        onPointerDown={handleCollapsePointerDown}
+      />
+      <CardSortControl
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
+        onPointerDown={handleSortPointerDown}
+      />
+
+      <div className='shrink-0 text-muted-foreground'>
+        <GripVertical size={16} aria-hidden='true' />
+      </div>
+      <h3 className='m-0 border-none bg-transparent p-0 text-lg font-medium'>
+        {category}
+      </h3>
+      <Badge variant='secondary'>{urlCount}</Badge>
     </div>
-    <h3 className='m-0 border-none bg-transparent p-0 text-lg font-medium'>
-      {category}
-    </h3>
-    <Badge variant='secondary'>{urlCount}</Badge>
-  </div>
-)
+  )
+}
+
+const CATEGORY_SELECT_OPTIONS: string[] = ['undefined']
 
 interface CategoryContentProps {
   urls: CategoryUrl[]
+  urlIds: string[]
   isOver: boolean
   category: string
   projectId: string
   categoryDropId: string
   setDroppableRef: (node: HTMLElement | null) => void
-  handleOpenUrl: (url: string) => void
-  handleDeleteUrl: (projectId: string, url: string) => void
-  handleSetUrlCategory: (
-    projectId: string,
-    url: string,
-    category?: string,
-  ) => void
+  onOpenUrl: (url: string) => void
+  onDeleteUrl: (projectId: string, url: string) => void
+  onSetUrlCategory: (projectId: string, url: string, category?: string) => void
   settings: CustomProjectCategoryProps['settings']
 }
 
-const renderCategoryContent = ({
-  urls,
-  isOver,
-  category,
-  projectId,
-  categoryDropId,
-  setDroppableRef,
-  handleOpenUrl,
-  handleDeleteUrl,
-  handleSetUrlCategory,
-  settings,
-}: CategoryContentProps) => (
-  <CardContent
-    ref={setDroppableRef}
-    className='p-2'
-    data-is-drop-area='true'
-    data-category-name={category}
-    data-project-id={projectId}
-    data-is-category='true'
-    data-type='category'
-    data-category-drop-id={categoryDropId}
-  >
-    {urls.length > 0 ? (
-      <SortableContext
-        items={urls.map((item) => item.url)}
-        strategy={verticalListSortingStrategy}
-      >
-        <ul className={`gap-y-1 ${isOver ? 'rounded bg-primary/5 p-1' : ''}`}>
-          {urls.map((item) => (
-            <ProjectUrlItem
-              key={item.url}
-              item={item}
-              projectId={projectId}
-              handleOpenUrl={handleOpenUrl}
-              handleDeleteUrl={handleDeleteUrl}
-              handleSetCategory={handleSetUrlCategory}
-              availableCategories={['undefined']}
-              settings={settings}
-            />
-          ))}
-        </ul>
-      </SortableContext>
-    ) : (
-      <div
-        className={`rounded border-2 border-dashed p-4 py-2 text-center text-muted-foreground ${
-          isOver ? 'border-primary bg-primary/10' : ''
-        }`}
-      />
-    )}
-  </CardContent>
-)
+const CategoryContent = (props: CategoryContentProps) => {
+  const projectUrlItemProps = {
+    handleOpenUrl: props.onOpenUrl,
+    handleDeleteUrl: props.onDeleteUrl,
+    handleSetCategory: props.onSetUrlCategory,
+  }
+
+  return (
+    <CardContent
+      ref={props.setDroppableRef}
+      className='p-2'
+      data-is-drop-area='true'
+      data-category-name={props.category}
+      data-project-id={props.projectId}
+      data-is-category='true'
+      data-type='category'
+      data-category-drop-id={props.categoryDropId}
+    >
+      {props.urls.length > 0 ? (
+        <SortableContext
+          items={props.urlIds}
+          strategy={verticalListSortingStrategy}
+        >
+          <ul
+            className={`gap-y-1 ${props.isOver ? 'rounded bg-primary/5 p-1' : ''}`}
+          >
+            {props.urls.map((item) => (
+              <ProjectUrlItem
+                key={item.url}
+                item={item}
+                projectId={props.projectId}
+                {...projectUrlItemProps}
+                availableCategories={CATEGORY_SELECT_OPTIONS}
+                settings={props.settings}
+              />
+            ))}
+          </ul>
+        </SortableContext>
+      ) : (
+        <div
+          className={`rounded border-2 border-dashed p-4 py-2 text-center text-muted-foreground ${
+            props.isOver ? 'border-primary bg-primary/10' : ''
+          }`}
+        />
+      )}
+    </CardContent>
+  )
+}
 
 // eslint-disable-next-line eslint/complexity
 const useCustomProjectCategoryView = ({
@@ -229,6 +231,10 @@ const useCustomProjectCategoryView = ({
     () => sortCategoryUrls(urls ?? [], sortOrder),
     [urls, sortOrder],
   )
+  const sortedCategoryUrlIds = useMemo(
+    () => sortedCategoryUrls.map((item) => item.url),
+    [sortedCategoryUrls],
+  )
   const [userCollapsedState, setUserCollapsedState] = useState(false)
   const [showManageDialog, setShowManageDialog] = useState(false)
   const [newCategoryName, setNewCategoryName] = useReducer(
@@ -250,19 +256,25 @@ const useCustomProjectCategoryView = ({
   const isCollapsed =
     isDraggingCategory || isCategoryReorder || userCollapsedState
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
-  const cardStyle = {
-    ...style,
-    ...(isOver
-      ? {
-          backgroundColor: 'rgba(0, 255, 0, 0.05)',
-        }
-      : {}),
-    ...getReorderStyle(isReorderTarget),
-  }
+  const style = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+    }),
+    [transform, transition],
+  )
+  const cardStyle = useMemo(
+    () => ({
+      ...style,
+      ...(isOver
+        ? {
+            backgroundColor: 'rgba(0, 255, 0, 0.05)',
+          }
+        : {}),
+      ...getReorderStyle(isReorderTarget),
+    }),
+    [style, isOver, isReorderTarget],
+  )
   const cardClassName = `mb-2 overflow-x-hidden ${
     isDropTarget ? 'border-2 border-primary bg-primary/5' : ''
   } ${isSelfDragging ? 'opacity-50' : ''}`
@@ -276,7 +288,7 @@ const useCustomProjectCategoryView = ({
   const showBulkActions = sortedCategoryUrls.length > 0
   const isCollapseDisabled = isDraggingCategory || isCategoryReorder
 
-  const handleOpenAllUrlsConfirmed = () => {
+  const handleOpenAllUrlsConfirmed = useCallback(() => {
     if (handleOpenAllUrls) {
       handleOpenAllUrls(sortedCategoryUrls)
       return
@@ -284,9 +296,9 @@ const useCustomProjectCategoryView = ({
     for (const item of sortedCategoryUrls) {
       window.open(item.url, '_blank', 'noopener,noreferrer')
     }
-  }
+  }, [handleOpenAllUrls, sortedCategoryUrls])
 
-  const handleDeleteAllUrlsConfirmed = () => {
+  const handleDeleteAllUrlsConfirmed = useCallback(() => {
     if (handleDeleteUrlsFromProject) {
       handleDeleteUrlsFromProject(
         projectId,
@@ -297,25 +309,30 @@ const useCustomProjectCategoryView = ({
         handleDeleteUrl(projectId, item.url)
       })
     }
-  }
+  }, [
+    handleDeleteUrlsFromProject,
+    handleDeleteUrl,
+    projectId,
+    sortedCategoryUrls,
+  ])
 
-  const handleOpenAllClick = () => {
+  const handleOpenAllClick = useCallback(() => {
     if (shouldConfirmBulkOpen(sortedCategoryUrls.length)) {
       setIsOpenAllConfirmOpen(true)
       return
     }
     handleOpenAllUrlsConfirmed()
-  }
+  }, [sortedCategoryUrls.length, handleOpenAllUrlsConfirmed])
 
-  const handleDeleteAllClick = () => {
+  const handleDeleteAllClick = useCallback(() => {
     if (settings.confirmDeleteAll) {
       setIsDeleteAllConfirmOpen(true)
       return
     }
     handleDeleteAllUrlsConfirmed()
-  }
+  }, [settings.confirmDeleteAll, handleDeleteAllUrlsConfirmed])
 
-  const handleRename = () => {
+  const handleRename = useCallback(() => {
     if (!newCategoryName.trim()) {
       setRenameError(t('savedTabs.projectCategory.required'))
       return
@@ -326,21 +343,34 @@ const useCustomProjectCategoryView = ({
     if (handleRenameCategory) {
       handleRenameCategory(projectId, category, newCategoryName)
     }
-  }
+  }, [
+    newCategoryName,
+    category,
+    handleRenameCategory,
+    projectId,
+    t,
+    setRenameError,
+  ])
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = useCallback(() => {
     if (handleDeleteCategory) {
       handleDeleteCategory(projectId, category)
     }
     setShowManageDialog(false)
-  }
+  }, [handleDeleteCategory, projectId, category, setShowManageDialog])
 
-  const handleOpenManageDialog = () => {
+  const handleOpenManageDialog = useCallback(() => {
     setNewCategoryName(category)
     setRenameError(null)
     setShowDeleteConfirm(false)
     setShowManageDialog(true)
-  }
+  }, [
+    category,
+    setNewCategoryName,
+    setRenameError,
+    setShowDeleteConfirm,
+    setShowManageDialog,
+  ])
 
   return (
     <>
@@ -382,19 +412,21 @@ const useCustomProjectCategoryView = ({
           />
         </CardHeader>
 
-        {!isCollapsed &&
-          renderCategoryContent({
-            urls: sortedCategoryUrls,
-            isOver,
-            category,
-            projectId,
-            categoryDropId,
-            setDroppableRef,
-            handleOpenUrl,
-            handleDeleteUrl,
-            handleSetUrlCategory,
-            settings,
-          })}
+        {!isCollapsed && (
+          <CategoryContent
+            urls={sortedCategoryUrls}
+            urlIds={sortedCategoryUrlIds}
+            isOver={isOver}
+            category={category}
+            projectId={projectId}
+            categoryDropId={categoryDropId}
+            setDroppableRef={setDroppableRef}
+            onOpenUrl={handleOpenUrl}
+            onDeleteUrl={handleDeleteUrl}
+            onSetUrlCategory={handleSetUrlCategory}
+            settings={settings}
+          />
+        )}
 
         <CustomProjectCategoryManageDialog
           category={category}

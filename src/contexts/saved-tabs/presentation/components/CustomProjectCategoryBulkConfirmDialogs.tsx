@@ -1,3 +1,5 @@
+import { useCallback } from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +35,10 @@ export const CustomProjectCategoryBulkConfirmDialogs = ({
 }: CategoryBulkConfirmDialogsProps) => {
   const { t } = useI18n()
 
+  const handleConfirmDeleteAll = useCallback(() => {
+    onConfirmDeleteAll()
+  }, [onConfirmDeleteAll])
+
   return (
     <>
       <OpenAllTabsConfirmDialog
@@ -66,9 +72,7 @@ export const CustomProjectCategoryBulkConfirmDialogs = ({
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              onClick={() => {
-                onConfirmDeleteAll()
-              }}
+              onClick={handleConfirmDeleteAll}
             >
               {t('common.delete')}
             </AlertDialogAction>
