@@ -39,6 +39,53 @@ import { CategorySection } from './TimeRemaining'
 
 const BULK_OPEN_THRESHOLD = 10
 
+const TooltipIconButton = ({
+  icon: Icon,
+  onClick,
+  className,
+  ariaLabel,
+  disabled,
+  tooltip,
+}: {
+  icon: React.ComponentType<{ size: number }>
+  onClick: (event: React.MouseEvent) => void
+  className: string
+  ariaLabel: string
+  disabled?: boolean
+  tooltip: string
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button
+        variant='secondary'
+        size='sm'
+        onClick={onClick}
+        className={className}
+        aria-label={ariaLabel}
+        disabled={disabled}
+      >
+        <Icon size={14} />
+      </Button>
+    </TooltipTrigger>
+    <SavedTabsResponsiveTooltipContent side='top'>
+      {tooltip}
+    </SavedTabsResponsiveTooltipContent>
+  </Tooltip>
+)
+
+const TabCountBadge = ({ count, label }: { count: number; label: string }) => (
+  <span className='text-sm text-muted-foreground'>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant='secondary'>{count}</Badge>
+      </TooltipTrigger>
+      <SavedTabsResponsiveTooltipContent side='top'>
+        {label}
+      </SavedTabsResponsiveTooltipContent>
+    </Tooltip>
+  </span>
+)
+
 type SortOrder = 'default' | 'asc' | 'desc'
 
 const nextSortOrderMap: Record<SortOrder, SortOrder> = {
@@ -265,40 +312,22 @@ const useSortableCategorySectionView = ({
           className={`category-header sticky ${stickyTop} z-30 mb-0.5 flex items-center justify-between gap-2 bg-background pb-0.5`}
         >
           {/* 折りたたみ切り替えボタン */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={handleToggleCollapse}
-                className={collapseButtonClassName}
-                aria-label={collapseButtonLabel}
-                disabled={isReorderMode}
-              >
-                <CollapseIcon size={14} />
-              </Button>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              {collapseTooltipText}
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
+          <TooltipIconButton
+            icon={CollapseIcon}
+            onClick={handleToggleCollapse}
+            className={collapseButtonClassName}
+            ariaLabel={collapseButtonLabel}
+            disabled={isReorderMode}
+            tooltip={collapseTooltipText}
+          />
           {/* ソート順切り替え */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={handleToggleSort}
-                className='flex cursor-pointer items-center gap-1'
-                aria-label={sortLabel}
-              >
-                <SortIcon size={14} />
-              </Button>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              {sortLabel}
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
+          <TooltipIconButton
+            icon={SortIcon}
+            onClick={handleToggleSort}
+            className='flex cursor-pointer items-center gap-1'
+            ariaLabel={sortLabel}
+            tooltip={sortLabel}
+          />
           {/* ドラッグハンドル部分 */}
           <div
             className={`flex grow items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
@@ -311,16 +340,10 @@ const useSortableCategorySectionView = ({
             <h3 className='font-medium text-foreground'>
               {displayedCategoryName}
             </h3>
-            <span className='text-sm text-muted-foreground'>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant='secondary'>{urlCount}</Badge>
-                </TooltipTrigger>
-                <SavedTabsResponsiveTooltipContent side='top'>
-                  {t('savedTabs.sortableCategory.tabCountLabel')}
-                </SavedTabsResponsiveTooltipContent>
-              </Tooltip>
-            </span>
+            <TabCountBadge
+              count={urlCount}
+              label={t('savedTabs.sortableCategory.tabCountLabel')}
+            />
           </div>
 
           <CategoryBulkActionButtons

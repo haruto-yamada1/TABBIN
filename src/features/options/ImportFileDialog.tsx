@@ -47,6 +47,12 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
   getInputProps,
 }) => {
   const { t } = useI18n()
+  const handleMergeCheckedChange = useCallback(
+    (checked: boolean | 'indeterminate') => {
+      onMergeChange(checked === true)
+    },
+    [onMergeChange],
+  )
 
   return (
     <>
@@ -54,9 +60,7 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
         <Checkbox
           id='merge-data'
           checked={mergeData}
-          onCheckedChange={(checked) => {
-            onMergeChange(checked === true)
-          }}
+          onCheckedChange={handleMergeCheckedChange}
         />
         <Label htmlFor='merge-data' className='cursor-pointer'>
           {t('options.importExport.merge')}
@@ -188,18 +192,9 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   )
   const selectedFileRef = useRef<File | null>(null)
 
-  const handleOpenImportDialog = () => {
+  const handleOpenImportDialog = useCallback(() => {
     dispatchImportDialog({ type: 'OPEN' })
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) {
-      return
-    }
-
-    processFile(file)
-  }
+  }, [])
 
   const processFile = useCallback(
     (file: File) => {
@@ -262,6 +257,18 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     [t],
   )
 
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) {
+        return
+      }
+
+      processFile(file)
+    },
+    [processFile],
+  )
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
@@ -280,12 +287,24 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     onDrop,
   })
 
-  const resetFileInput = () => {
+  const resetFileInput = useCallback(() => {
     selectedFileRef.current = null
     resetImportFileInput(fileInputRef.current)
-  }
+  }, [])
 
-  const handleConfirmImport = () => {
+  const handleSetMerge = useCallback(
+    (mergeData: boolean) => {
+      dispatchImportDialog({ type: 'SET_MERGE', mergeData })
+    },
+    [dispatchImportDialog],
+  )
+
+  const handleResetAndBack = useCallback(() => {
+    dispatchImportDialog({ type: 'RESET' })
+    resetFileInput()
+  }, [dispatchImportDialog, resetFileInput])
+
+  const handleConfirmImport = useCallback(() => {
     setIsImporting(true)
     try {
       const reader = new FileReader()
@@ -337,7 +356,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       toast.error(t('options.importExport.importError'))
       setIsImporting(false)
     }
-  }
+  }, [importDialog.mergeData, onImportSuccess, t])
 
   return (
     <>
@@ -388,9 +407,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
               {importDialog.step === 'select' && (
                 <ImportSelectStep
                   mergeData={importDialog.mergeData}
-                  onMergeChange={(mergeData) => {
-                    dispatchImportDialog({ type: 'SET_MERGE', mergeData })
-                  }}
+                  onMergeChange={handleSetMerge}
                   isDragActive={isDragActive}
                   getRootProps={getRootProps}
                   getInputProps={getInputProps}
@@ -410,10 +427,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             {importDialog.step === 'preview' && (
               <Button
                 variant='outline'
-                onClick={() => {
-                  dispatchImportDialog({ type: 'RESET' })
-                  resetFileInput()
-                }}
+                onClick={handleResetAndBack}
                 disabled={isImporting}
                 className='w-full cursor-pointer sm:w-auto'
               >

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import {
   ChartContainer,
@@ -107,7 +108,12 @@ const ChartLegendBlock = ({
   shouldShowLegend: boolean
 }) =>
   shouldShowLegend ? (
-    <ChartLegend content={<ChartLegendContent nameKey={nameKey} />} />
+    <ChartLegend
+      content={
+        /* eslint-disable react-perf/jsx-no-jsx-as-prop -- Recharts <ChartLegend content={...}> は function-as-child API */
+        <ChartLegendContent nameKey={nameKey} />
+      }
+    />
   ) : null
 
 const createChartPointClickHandler = ({
@@ -218,14 +224,7 @@ const renderPieChart = ({
   spec: AiChartSpec
 }) => (
   <PieChart>
-    <ChartTooltip
-      content={
-        <ChartTooltipContent
-          formatter={(value) => formatChartValue(value, spec.valueFormat)}
-        />
-      }
-      cursor={false}
-    />
+    <ChartTooltipWithFormat valueFormat={spec.valueFormat} />
     <Pie
       data={getPieChartData(spec)}
       dataKey={primarySeries.dataKey}
@@ -266,21 +265,32 @@ const CartesianChartContent = ({
     <CartesianGrid vertical={false} />
     <XAxis axisLine={false} dataKey={spec.xKey} tickLine={false} />
     <YAxis axisLine={false} tickLine={false} />
-    <ChartTooltip
-      content={
-        <ChartTooltipContent
-          formatter={(value) => formatChartValue(value, spec.valueFormat)}
-        />
-      }
-      cursor={false}
-    />
+    <ChartTooltipWithFormat valueFormat={spec.valueFormat} />
     <ChartLegendBlock shouldShowLegend={shouldShowLegend} />
     {series}
   </>
 )
 
-const renderBarChart = (props: CartesianChartRenderProps) =>
-  props.spec.xKey ? (
+const BarChartRenderer = (props: CartesianChartRenderProps) => {
+  const series = useMemo(
+    () =>
+      props.spec.series.map((series) => (
+        <Bar
+          dataKey={series.dataKey}
+          fill={getChartColor(series.colorToken)}
+          key={series.dataKey}
+          onClick={createChartPointClickHandler({
+            onChartPointClick: props.onChartPointClick,
+            series,
+            spec: props.spec,
+          })}
+          radius={6}
+          stackId={props.spec.stacked ? 'stack' : undefined}
+        />
+      )),
+    [props.onChartPointClick, props.spec],
+  )
+  return props.spec.xKey ? (
     <BarChart
       accessibilityLayer
       data={props.spec.data}
@@ -291,28 +301,30 @@ const renderBarChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map((series) => (
-          <Bar
-            dataKey={series.dataKey}
-            fill={getChartColor(series.colorToken)}
-            key={series.dataKey}
-            onClick={createChartPointClickHandler({
-              onChartPointClick: props.onChartPointClick,
-              series,
-              spec: props.spec,
-            })}
-            radius={6}
-            stackId={props.spec.stacked ? 'stack' : undefined}
-          />
-        ))}
+        series={series}
         shouldShowLegend={props.shouldShowLegend}
         spec={props.spec}
       />
     </BarChart>
   ) : null
+}
 
-const renderLineChart = (props: CartesianChartRenderProps) =>
-  props.spec.xKey ? (
+const LineChartRenderer = (props: CartesianChartRenderProps) => {
+  const series = useMemo(
+    () =>
+      props.spec.series.map((series) => (
+        <Line
+          dataKey={series.dataKey}
+          dot={false}
+          key={series.dataKey}
+          stroke={getChartColor(series.colorToken)}
+          strokeWidth={2}
+          type='monotone'
+        />
+      )),
+    [props.spec],
+  )
+  return props.spec.xKey ? (
     <LineChart
       accessibilityLayer
       data={props.spec.data}
@@ -323,24 +335,32 @@ const renderLineChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map((series) => (
-          <Line
-            dataKey={series.dataKey}
-            dot={false}
-            key={series.dataKey}
-            stroke={getChartColor(series.colorToken)}
-            strokeWidth={2}
-            type='monotone'
-          />
-        ))}
+        series={series}
         shouldShowLegend={props.shouldShowLegend}
         spec={props.spec}
       />
     </LineChart>
   ) : null
+}
 
-const renderAreaChart = (props: CartesianChartRenderProps) =>
-  props.spec.xKey ? (
+const AreaChartRenderer = (props: CartesianChartRenderProps) => {
+  const series = useMemo(
+    () =>
+      props.spec.series.map((series) => (
+        <Area
+          dataKey={series.dataKey}
+          fill={getChartColor(series.colorToken)}
+          fillOpacity={0.3}
+          key={series.dataKey}
+          stackId={props.spec.stacked ? 'stack' : undefined}
+          stroke={getChartColor(series.colorToken)}
+          strokeWidth={2}
+          type='monotone'
+        />
+      )),
+    [props.spec],
+  )
+  return props.spec.xKey ? (
     <AreaChart
       accessibilityLayer
       data={props.spec.data}
@@ -351,23 +371,13 @@ const renderAreaChart = (props: CartesianChartRenderProps) =>
       })}
     >
       <CartesianChartContent
-        series={props.spec.series.map((series) => (
-          <Area
-            dataKey={series.dataKey}
-            fill={getChartColor(series.colorToken)}
-            fillOpacity={0.3}
-            key={series.dataKey}
-            stackId={props.spec.stacked ? 'stack' : undefined}
-            stroke={getChartColor(series.colorToken)}
-            strokeWidth={2}
-            type='monotone'
-          />
-        ))}
+        series={series}
         shouldShowLegend={props.shouldShowLegend}
         spec={props.spec}
       />
     </AreaChart>
   ) : null
+}
 
 const renderRadarChart = ({
   categoryKey,
@@ -391,14 +401,7 @@ const renderRadarChart = ({
       spec,
     })}
   >
-    <ChartTooltip
-      content={
-        <ChartTooltipContent
-          formatter={(value) => formatChartValue(value, spec.valueFormat)}
-        />
-      }
-      cursor={false}
-    />
+    <ChartTooltipWithFormat valueFormat={spec.valueFormat} />
     <ChartLegendBlock shouldShowLegend={shouldShowLegend} />
     <PolarGrid />
     <PolarAngleAxis dataKey={categoryKey} />
@@ -438,28 +441,34 @@ const renderChartContent = ({
       })
     }
     case 'bar': {
-      return renderBarChart({
-        onChartPointClick,
-        primarySeries,
-        shouldShowLegend,
-        spec,
-      })
+      return (
+        <BarChartRenderer
+          onChartPointClick={onChartPointClick}
+          primarySeries={primarySeries}
+          shouldShowLegend={shouldShowLegend}
+          spec={spec}
+        />
+      )
     }
     case 'line': {
-      return renderLineChart({
-        onChartPointClick,
-        primarySeries,
-        shouldShowLegend,
-        spec,
-      })
+      return (
+        <LineChartRenderer
+          onChartPointClick={onChartPointClick}
+          primarySeries={primarySeries}
+          shouldShowLegend={shouldShowLegend}
+          spec={spec}
+        />
+      )
     }
     case 'area': {
-      return renderAreaChart({
-        onChartPointClick,
-        primarySeries,
-        shouldShowLegend,
-        spec,
-      })
+      return (
+        <AreaChartRenderer
+          onChartPointClick={onChartPointClick}
+          primarySeries={primarySeries}
+          shouldShowLegend={shouldShowLegend}
+          spec={spec}
+        />
+      )
     }
     case 'radar': {
       return renderRadarChart({
@@ -474,6 +483,26 @@ const renderChartContent = ({
       return null
     }
   }
+}
+
+const ChartTooltipWithFormat = ({
+  valueFormat,
+}: {
+  valueFormat?: AiChartSpec['valueFormat']
+}) => {
+  const handleFormat = useCallback(
+    (value: unknown) => formatChartValue(value, valueFormat),
+    [valueFormat],
+  )
+  return (
+    <ChartTooltip
+      content={
+        /* eslint-disable react-perf/jsx-no-jsx-as-prop -- Recharts <ChartTooltip content={...}> は function-as-child API */
+        <ChartTooltipContent formatter={handleFormat} />
+      }
+      cursor={false}
+    />
+  )
 }
 
 const AiChart = ({

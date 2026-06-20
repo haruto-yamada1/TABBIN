@@ -1,3 +1,5 @@
+import { useCallback } from 'react'
+
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -40,6 +42,15 @@ export const LanguageSelect = ({
 }) => {
   const { languageSetting, setLanguageSetting, t } = useI18n()
 
+  const handleLanguageChange = useCallback(
+    (value: string) => {
+      if (isValidLanguage(value)) {
+        void setLanguageSetting(value)
+      }
+    },
+    [setLanguageSetting],
+  )
+
   return (
     <div className={cn('space-y-2', className)}>
       <Label
@@ -48,14 +59,7 @@ export const LanguageSelect = ({
       >
         {t('language.label')}
       </Label>
-      <Select
-        value={languageSetting}
-        onValueChange={(value) => {
-          if (isValidLanguage(value)) {
-            void setLanguageSetting(value)
-          }
-        }}
-      >
+      <Select value={languageSetting} onValueChange={handleLanguageChange}>
         <SelectTrigger
           id='language-select'
           aria-label={t('language.label')}

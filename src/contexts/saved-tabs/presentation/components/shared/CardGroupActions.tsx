@@ -1,5 +1,5 @@
 import { ExternalLink, Settings, Trash } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import {
   AlertDialog,
@@ -89,6 +89,31 @@ export const CardGroupActions = ({
   const resolvedDeleteAllConfirmDescription =
     deleteAllConfirmDescription ?? resolvedWarningMessage
 
+  const handleOpenAllClick = useCallback(() => {
+    if (onConfirmOpenAll) {
+      setIsOpenAllConfirmOpen(true)
+    } else {
+      onOpenAll?.()
+    }
+  }, [onConfirmOpenAll, onOpenAll])
+
+  const handleDeleteAllClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+      if (onConfirmDeleteAll) {
+        setIsDeleteAllConfirmOpen(true)
+      } else {
+        onDeleteAll?.()
+      }
+    },
+    [onConfirmDeleteAll, onDeleteAll],
+  )
+
+  const handleOpenAllConfirm = useCallback(() => {
+    onOpenAll?.()
+  }, [onOpenAll])
+
   return (
     <>
       <div className='pointer-events-auto ml-2 flex shrink-0 gap-2'>
@@ -122,13 +147,7 @@ export const CardGroupActions = ({
               <Button
                 variant='secondary'
                 size='sm'
-                onClick={() => {
-                  if (onConfirmOpenAll) {
-                    setIsOpenAllConfirmOpen(true)
-                  } else {
-                    onOpenAll()
-                  }
-                }}
+                onClick={handleOpenAllClick}
                 className='flex cursor-pointer items-center gap-1'
                 aria-label={resolvedOpenAllAriaLabel}
               >
@@ -151,15 +170,7 @@ export const CardGroupActions = ({
               <Button
                 variant='secondary'
                 size='sm'
-                onClick={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  if (onConfirmDeleteAll) {
-                    setIsDeleteAllConfirmOpen(true)
-                  } else {
-                    onDeleteAll()
-                  }
-                }}
+                onClick={handleDeleteAllClick}
                 className='flex cursor-pointer items-center gap-1'
                 aria-label={resolvedDeleteAllAriaLabel}
               >
@@ -193,11 +204,7 @@ export const CardGroupActions = ({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  onOpenAll()
-                }}
-              >
+              <AlertDialogAction onClick={handleOpenAllConfirm}>
                 {t('common.open')}
               </AlertDialogAction>
             </AlertDialogFooter>

@@ -1,3 +1,5 @@
+import { useCallback, useMemo } from 'react'
+
 import {
   Dialog,
   DialogContent,
@@ -69,19 +71,18 @@ export const CategoryModalRoot = ({
     tabGroups,
   })
 
-  const contextValue: CategoryModalContextType = {
-    state,
-    tabGroups,
-  }
+  const contextValue: CategoryModalContextType = useMemo(
+    () => ({ state, tabGroups }),
+    [state, tabGroups],
+  )
+
+  const handleOpenChange = useCallback(() => {
+    onClose()
+  }, [onClose])
 
   return (
     <CategoryModalContext value={contextValue}>
-      <Dialog
-        open
-        onOpenChange={() => {
-          onClose()
-        }}
-      >
+      <Dialog open onOpenChange={handleOpenChange}>
         <DialogContent className='flex max-h-[90vh] flex-col overflow-hidden sm:max-w-[500px]'>
           <DialogHeader>
             <DialogTitle>{t('savedTabs.categoryModal.title')}</DialogTitle>

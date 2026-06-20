@@ -1,5 +1,5 @@
 import { MessageCircleMore } from 'lucide-react'
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useCallback, useState } from 'react'
 import type { ComponentType } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -38,10 +38,13 @@ const SavedTabsChatWidgetWithHistory = lazy(async () => {
       updateMessages,
     } = useSharedAiChatHistory()
 
-    const handleMessagesChange = (messages: AiChatConversationMessage[]) => {
-      updateMessages(messages)
-      onMessagesChange?.(messages)
-    }
+    const handleMessagesChange = useCallback(
+      (messages: AiChatConversationMessage[]) => {
+        updateMessages(messages)
+        onMessagesChange?.(messages)
+      },
+      [updateMessages, onMessagesChange],
+    )
 
     return (
       <SavedTabsChatWidget
@@ -71,6 +74,11 @@ export const LazySavedTabsChatWidget = ({
   const shouldLoadImmediately = defaultOpen || mode === 'page'
   const [shouldLoad, setShouldLoad] = useState(shouldLoadImmediately)
   const [openOnLoad, setOpenOnLoad] = useState(defaultOpen)
+  const handleFloatingClick = useCallback(() => {
+    setOpenOnLoad(true)
+    setShouldLoad(true)
+    onOpenChange?.(true)
+  }, [onOpenChange])
 
   if (shouldLoad) {
     return (
@@ -89,11 +97,7 @@ export const LazySavedTabsChatWidget = ({
     <Button
       aria-label={t('aiChat.open')}
       className='fixed right-4 bottom-4 z-50 size-10 cursor-pointer rounded-full shadow-lg'
-      onClick={() => {
-        setOpenOnLoad(true)
-        setShouldLoad(true)
-        onOpenChange?.(true)
-      }}
+      onClick={handleFloatingClick}
       type='button'
     >
       <MessageCircleMore className='size-5' />

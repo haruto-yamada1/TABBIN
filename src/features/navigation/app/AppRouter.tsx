@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useCallback, useEffect } from 'react'
 import {
   HashRouter,
   MemoryRouter,
@@ -61,16 +61,19 @@ const SavedTabsRoutePage = () => {
   const navigate = useNavigate()
   const hasModeQuery = new URLSearchParams(routerLocation.search).has('mode')
 
-  const handleViewModeNavigate = (mode: 'custom' | 'domain') => {
-    const nextRoute = getSavedTabsHrefForMode(mode)
-    const currentRoute = `${routerLocation.pathname}${routerLocation.search}`
+  const handleViewModeNavigate = useCallback(
+    (mode: 'custom' | 'domain') => {
+      const nextRoute = getSavedTabsHrefForMode(mode)
+      const currentRoute = `${routerLocation.pathname}${routerLocation.search}`
 
-    if (currentRoute === nextRoute) {
-      return
-    }
+      if (currentRoute === nextRoute) {
+        return
+      }
 
-    void navigate(nextRoute, { replace: true })
-  }
+      void navigate(nextRoute, { replace: true })
+    },
+    [routerLocation.pathname, routerLocation.search, navigate],
+  )
 
   useEffect(() => {
     if (hasModeQuery) {
@@ -103,16 +106,21 @@ const SavedTabsRoutePage = () => {
 
 const AppRoutes = () => (
   <Routes>
+    {/* eslint-disable react-perf/jsx-no-jsx-as-prop -- React Router v6 <Route element={...}> は必須の JSX-as-prop API */}
     <Route element={<AppLayout />}>
       <Route
         index
-        element={<Navigate to={getSavedTabsEntryRoute()} replace />}
+        element={
+          /* eslint-disable react-perf/jsx-no-jsx-as-prop -- React Router <Navigate> element prop */
+          <Navigate to={getSavedTabsEntryRoute()} replace />
+        }
       />
 
       <Route path='/saved-tabs' element={<SavedTabsRoutePage />} />
       <Route
         path='/ai-chat'
         element={
+          /* eslint-disable react-perf/jsx-no-jsx-as-prop -- React Router <Suspense> element prop */
           <Suspense fallback={null}>
             <AiChatRoutePage />
           </Suspense>
@@ -121,6 +129,7 @@ const AppRoutes = () => (
       <Route
         path='/analytics'
         element={
+          /* eslint-disable react-perf/jsx-no-jsx-as-prop -- React Router <Suspense> element prop */
           <Suspense fallback={null}>
             <AnalyticsRoutePage />
           </Suspense>
@@ -129,6 +138,7 @@ const AppRoutes = () => (
       <Route
         path='/options'
         element={
+          /* eslint-disable react-perf/jsx-no-jsx-as-prop -- React Router <Suspense> element prop */
           <Suspense fallback={null}>
             <OptionsRoutePage />
           </Suspense>
@@ -137,6 +147,7 @@ const AppRoutes = () => (
       <Route
         path='/periodic-execution'
         element={
+          /* eslint-disable react-perf/jsx-no-jsx-as-prop -- React Router <Suspense> element prop */
           <Suspense fallback={null}>
             <PeriodicExecutionRoutePage />
           </Suspense>
@@ -144,7 +155,10 @@ const AppRoutes = () => (
       />
       <Route
         path='*'
-        element={<Navigate to={getSavedTabsEntryRoute()} replace />}
+        element={
+          /* eslint-disable react-perf/jsx-no-jsx-as-prop -- React Router <Navigate> element prop */
+          <Navigate to={getSavedTabsEntryRoute()} replace />
+        }
       />
     </Route>
   </Routes>

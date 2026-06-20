@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
 import {
   PromptInputSelect,
@@ -196,9 +196,14 @@ const OllamaModelSelector = ({
   const { t } = useI18n()
   const fetchOnOpen = behavior?.fetchOnOpen ?? false
   const hideFetchButton = behavior?.hideFetchButton ?? false
+  const fetchBehavior = useMemo(() => ({ hideFetchButton }), [hideFetchButton])
   const isCompactLayout = layout === 'compact'
   const { isLoading } = status
   const isSaving = status.isSaving ?? false
+  const fetchStatus = useMemo(
+    () => ({ isLoading, isSaving }),
+    [isLoading, isSaving],
+  )
   const selectableModels = useMemo(
     () => getSelectableModels(models, selectedModel),
     [models, selectedModel],
@@ -220,21 +225,27 @@ const OllamaModelSelector = ({
     }
   }
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    setIsOpen(nextOpen)
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      setIsOpen(nextOpen)
 
-    if (nextOpen && fetchOnOpen) {
-      onFetchModels()
-    }
-  }
+      if (nextOpen && fetchOnOpen) {
+        onFetchModels()
+      }
+    },
+    [fetchOnOpen, onFetchModels],
+  )
 
-  const handleValueChange = (nextValue: string) => {
-    if (nextValue === EMPTY_MODEL_VALUE) {
-      return
-    }
+  const handleValueChange = useCallback(
+    (nextValue: string) => {
+      if (nextValue === EMPTY_MODEL_VALUE) {
+        return
+      }
 
-    void onSelectModel(nextValue)
-  }
+      void onSelectModel(nextValue)
+    },
+    [onSelectModel],
+  )
 
   return (
     <div className='space-y-3'>
@@ -245,10 +256,10 @@ const OllamaModelSelector = ({
         )}
       >
         <FetchModelsButton
-          behavior={{ hideFetchButton }}
+          behavior={fetchBehavior}
           layout={layout}
           onFetchModels={onFetchModels}
-          status={{ isLoading, isSaving }}
+          status={fetchStatus}
           t={t}
         />
 

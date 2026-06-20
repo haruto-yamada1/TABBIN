@@ -24,13 +24,14 @@ const ERROR_TOAST_DURATION_MS = 3000
 const getUiLocale = () => chrome.i18n?.getUILanguage?.() ?? 'ja'
 
 export const useCategories = () => {
-  const [{ parentCategories, language }, setCategoryState] = useState<{
+  const [categoryState, setCategoryState] = useState<{
     language: AppLanguage
     parentCategories: ParentCategory[]
   }>({
     language: 'ja',
     parentCategories: [],
   })
+  const { parentCategories, language } = categoryState
   const [newCategoryName, setNewCategoryName] = useState('')
   const [categoryError, setCategoryError] = useState<string | null>(null) // エラーメッセージ用の状態変数
 

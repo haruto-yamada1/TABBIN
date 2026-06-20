@@ -82,7 +82,8 @@ describe('changelog bootstrap', () => {
 
   it('英語のリリースノート見出しと本文を描画できる', async () => {
     mocked.currentLanguage = 'en'
-    const { App, getChangelogFeatureClassName } = await importModule()
+    const { App } = await importModule()
+    const { getChangelogFeatureClassName } = await import('./main.styles')
 
     render(createElement(App))
 

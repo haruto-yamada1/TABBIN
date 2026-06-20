@@ -116,7 +116,7 @@ const SavedTabsScrollControlButton = ({
 
   useEffect(() => stopRepeating, [stopRepeating])
 
-  const startRepeating = () => {
+  const startRepeating = useCallback(() => {
     if (disabled) {
       return
     }
@@ -127,7 +127,7 @@ const SavedTabsScrollControlButton = ({
         REPEAT_SCROLL_INTERVAL_MS,
       )
     }, REPEAT_SCROLL_DELAY_MS)
-  }
+  }, [disabled, stopRepeating, onActivate])
 
   return (
     <Tooltip>

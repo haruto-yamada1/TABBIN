@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -145,9 +145,9 @@ const DomainRow = ({
     belongsToCategory?.id === selection.selectedCategoryId
   const disabled = isLoading || !selection.selectedCategoryId
   const checkboxId = `domain-${group.id}`
-  const onToggle = () => {
+  const onToggle = useCallback(() => {
     domains.toggleDomainSelection(group.id)
-  }
+  }, [domains, group.id])
 
   return (
     <div
@@ -172,6 +172,47 @@ const DomainRow = ({
           t={t}
         />
       </div>
+    </div>
+  )
+}
+
+const VirtualItemRow = ({
+  virtualItem,
+  group,
+  selection,
+  domains,
+  isLoading,
+  t,
+}: {
+  virtualItem: { start: number }
+  group: TabGroup
+  selection: DomainSelectionState
+  domains: DomainState & {
+    domainCategories: Record<string, DomainCategoryInfo | null>
+  }
+  isLoading: boolean
+  t: (key: string, fallback?: string, values?: Record<string, string>) => string
+}) => {
+  const virtualItemStyle = useMemo(
+    () => ({
+      left: 0,
+      position: 'absolute' as const,
+      top: 0,
+      transform: `translateY(${virtualItem.start}px)`,
+      width: '100%',
+    }),
+    [virtualItem.start],
+  )
+
+  return (
+    <div style={virtualItemStyle}>
+      <DomainRow
+        group={group}
+        selection={selection}
+        domains={domains}
+        isLoading={isLoading}
+        t={t}
+      />
     </div>
   )
 }
@@ -221,6 +262,15 @@ export const DomainSelectionList = () => {
     overscan: 8,
   })
 
+  const totalSize = rowVirtualizer.getTotalSize()
+  const containerStyle = useMemo(
+    () => ({
+      height: `${totalSize}px`,
+      position: 'relative' as const,
+    }),
+    [totalSize],
+  )
+
   if (selection.categories.length === 0) {
     return null
   }
@@ -240,34 +290,20 @@ export const DomainSelectionList = () => {
     )
   } else {
     listContent = (
-      <div
-        style={{
-          height: `${rowVirtualizer.getTotalSize()}px`,
-          position: 'relative',
-        }}
-      >
+      <div style={containerStyle}>
         {rowVirtualizer.getVirtualItems().map((virtualItem) => {
           const group = visibleTabGroups[virtualItem.index]
 
           return (
-            <div
+            <VirtualItemRow
               key={group.id}
-              style={{
-                left: 0,
-                position: 'absolute',
-                top: 0,
-                transform: `translateY(${virtualItem.start}px)`,
-                width: '100%',
-              }}
-            >
-              <DomainRow
-                group={group}
-                selection={selection}
-                domains={domains}
-                isLoading={isLoading}
-                t={t}
-              />
-            </div>
+              virtualItem={virtualItem}
+              group={group}
+              selection={selection}
+              domains={domains}
+              isLoading={isLoading}
+              t={t}
+            />
           )
         })}
       </div>

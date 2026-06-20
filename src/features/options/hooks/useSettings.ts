@@ -21,10 +21,11 @@ const SETTINGS_SAVE_ERROR_MESSAGE = '設定の保存に失敗しました'
 
 export const useSettings = () => {
   // eslint-disable-line eslint/max-lines-per-function
-  const [{ isLoading, settings }, setSettingsState] = useState({
+  const [settingsState, setSettingsState] = useState({
     isLoading: true,
     settings: defaultSettings,
   })
+  const { isLoading, settings } = settingsState
   const [excludePatternInput, setExcludePatternInput] = useState('')
   const settingsRef = useRef(settings)
   const persistedSettingsRef = useRef(settings)

@@ -92,6 +92,27 @@ export const SortableCategorySection = ({
     setIsDeleteAllConfirmOpen(true)
   }, [])
 
+  const handleOpenAllClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (urlCount >= BULK_OPEN_THRESHOLD) {
+        e.stopPropagation()
+        setIsOpenAllConfirmOpen(true)
+        return
+      }
+      e.stopPropagation()
+      handleOpenAllTabs(urls)
+    },
+    [urlCount, handleOpenAllTabs, urls],
+  )
+
+  const handleConfirmOpenAll = useCallback(() => {
+    handleOpenAllTabs(urls)
+  }, [handleOpenAllTabs, urls])
+
+  const handleDeleteAllClick = useCallback(() => {
+    void executeDeleteAllTabs()
+  }, [executeDeleteAllTabs])
+
   return (
     <>
       <div
@@ -147,15 +168,7 @@ export const SortableCategorySection = ({
               categoryDisplayName,
               t('savedTabs.deleteAllTabs'),
             )}
-            onOpenAll={(e) => {
-              if (urlCount >= BULK_OPEN_THRESHOLD) {
-                e.stopPropagation()
-                setIsOpenAllConfirmOpen(true)
-                return
-              }
-              e.stopPropagation()
-              handleOpenAllTabs(urls)
-            }}
+            onOpenAll={handleOpenAllClick}
             onDeleteAll={onDeleteAllTabs}
           />
         </div>
@@ -172,7 +185,7 @@ export const SortableCategorySection = ({
         })}
         cancelLabel={t('common.cancel')}
         openLabel={t('common.open')}
-        onConfirm={() => handleOpenAllTabs(urls)} // eslint-disable-line typescript/no-confusing-void-expression
+        onConfirm={handleConfirmOpenAll}
       />
 
       {/* カテゴリ全削除確認ダイアログ */}
@@ -195,7 +208,7 @@ export const SortableCategorySection = ({
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              onClick={() => void executeDeleteAllTabs()}
+              onClick={handleDeleteAllClick}
             >
               {t('common.delete')}
             </AlertDialogAction>

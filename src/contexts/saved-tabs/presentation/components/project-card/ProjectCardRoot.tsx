@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -106,6 +106,14 @@ export const ProjectCardRoot = ({
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
   const [userCollapsedState, setUserCollapsedState] = useState(false)
 
+  const handleOpenManagement = useCallback(() => {
+    setIsManagementModalOpen(true)
+  }, [])
+
+  const handleCloseManagement = useCallback(() => {
+    setIsManagementModalOpen(false)
+  }, [])
+
   const { urls, dnd, categoryOrder } = hookState
   const sortedProjectUrls = useMemo(
     () => sortProjectUrls(urls.projectUrls, sortOrder),
@@ -135,13 +143,16 @@ export const ProjectCardRoot = ({
 
   const DRAGGING_OPACITY = 0.5
 
-  const style: CSSProperties = {
-    containIntrinsicSize: '360px',
-    contentVisibility: 'auto',
-    opacity: isDragging ? DRAGGING_OPACITY : 1,
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const style: CSSProperties = useMemo(
+    () => ({
+      containIntrinsicSize: '360px',
+      contentVisibility: 'auto',
+      opacity: isDragging ? DRAGGING_OPACITY : 1,
+      transform: CSS.Transform.toString(transform),
+      transition,
+    }),
+    [isDragging, transform, transition],
+  )
 
   // このプロジェクトをドロップターゲットとして設定
   const { setNodeRef: setProjectDroppableRef, isOver: isProjectOver } =
@@ -176,10 +187,13 @@ export const ProjectCardRoot = ({
     })
 
   // 両方のrefを組み合わせる
-  const setCombinedRefs = (node: HTMLElement | null) => {
-    setNodeRef(node)
-    setProjectDroppableRef(node)
-  }
+  const setCombinedRefs = useCallback(
+    (node: HTMLElement | null) => {
+      setNodeRef(node)
+      setProjectDroppableRef(node)
+    },
+    [setNodeRef, setProjectDroppableRef],
+  )
 
   // ドラッグハンドラの登録
   const { registerHandlers, unregisterHandlers } = useDragHandlers()
@@ -206,6 +220,35 @@ export const ProjectCardRoot = ({
 
   const projectUrlCount =
     project.urlIds?.length ?? project.urls?.length ?? sortedProjectUrls.length
+
+  const handleOpenAllUrls = useCallback(() => {
+    if (projectUrlCount === 0) {
+      return
+    }
+    handlers.handleOpenAllUrls?.(
+      sortedProjectUrls.map((u) => ({
+        title: u.title || '',
+        url: u.url,
+      })),
+    )
+  }, [handlers, projectUrlCount, sortedProjectUrls])
+
+  const handleDeleteAllUrls = useCallback(() => {
+    if (projectUrlCount === 0) {
+      return
+    }
+    if (handlers.handleDeleteUrlsFromProject) {
+      handlers.handleDeleteUrlsFromProject(
+        project.id,
+        sortedProjectUrls.map((u) => u.url),
+      )
+    } else {
+      // プロジェクト内のすべてのURLを削除
+      for (const urlItem of sortedProjectUrls) {
+        hookHandlers.handleDeleteUrl(project.id, urlItem.url)
+      }
+    }
+  }, [handlers, hookHandlers, project.id, projectUrlCount, sortedProjectUrls])
 
   const contextValue: ProjectCardContextType = useMemo(
     () => ({
@@ -280,42 +323,11 @@ export const ProjectCardRoot = ({
             />
           </div>
           <CardGroupActions
-            onOpenAll={
-              projectUrlCount > 0
-                ? // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                  () => {
-                    handlers.handleOpenAllUrls?.(
-                      sortedProjectUrls.map((u) => ({
-                        title: u.title || '',
-                        url: u.url,
-                      })),
-                    )
-                  }
-                : undefined
-            }
-            onDeleteAll={
-              projectUrlCount > 0
-                ? // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                  () => {
-                    if (handlers.handleDeleteUrlsFromProject) {
-                      handlers.handleDeleteUrlsFromProject(
-                        project.id,
-                        sortedProjectUrls.map((u) => u.url),
-                      )
-                    } else {
-                      // プロジェクト内のすべてのURLを削除
-                      for (const urlItem of sortedProjectUrls) {
-                        hookHandlers.handleDeleteUrl(project.id, urlItem.url)
-                      }
-                    }
-                  }
-                : undefined
-            }
-            onManage={() => {
-              setIsManagementModalOpen(true)
-            }}
+            onOpenAll={projectUrlCount > 0 ? handleOpenAllUrls : undefined}
+            onDeleteAll={projectUrlCount > 0 ? handleDeleteAllUrls : undefined}
+            onManage={handleOpenManagement}
             onConfirmOpenAll={projectUrlCount >= BULK_OPEN_THRESHOLD}
-            // eslint-disable-next-line react/jsx-handler-names
+            // eslint-disable-next-line react/jsx-handler-names -- boolean toggle prop for CardGroupActions
             onConfirmDeleteAll={settings.confirmDeleteAll}
             openAllThreshold={10}
             itemName={t('savedTabs.project.deleteAllItemName')}
@@ -352,9 +364,7 @@ export const ProjectCardRoot = ({
       </Card>
       <ProjectManagementModal
         isOpen={isManagementModalOpen}
-        onClose={() => {
-          setIsManagementModalOpen(false)
-        }}
+        onClose={handleCloseManagement}
         project={project}
         onRenameProject={handlers.handleRenameProject}
         onUpdateProjectKeywords={handlers.handleUpdateProjectKeywords}

@@ -110,46 +110,77 @@ export const Header = ({
 
   const tabCount = currentMode === 'custom' ? customTabCount : domainTabCount
 
-  const handleCustomProjectEnter = (
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    if (event.key !== 'Enter') {
-      return
-    }
+  const handleCustomProjectEnter = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== 'Enter') {
+        return
+      }
 
-    const isComposing =
-      event.nativeEvent.isComposing ||
-      (typeof event === 'object' &&
-        event !== null &&
-        'isComposing' in event &&
-        Boolean((event as { isComposing?: unknown }).isComposing)) ||
-      false
-    if (isComposing) {
-      return
-    }
+      const isComposing =
+        event.nativeEvent.isComposing ||
+        (typeof event === 'object' &&
+          event !== null &&
+          'isComposing' in event &&
+          Boolean((event as { isComposing?: unknown }).isComposing)) ||
+        false
+      if (isComposing) {
+        return
+      }
 
-    event.preventDefault()
-    event.stopPropagation()
+      event.preventDefault()
+      event.stopPropagation()
 
-    const name = newProjectName.trim()
-    if (!name) {
-      toast.error(t('savedTabs.projectNameRequired'))
-      return
-    }
+      const name = newProjectName.trim()
+      if (!name) {
+        toast.error(t('savedTabs.projectNameRequired'))
+        return
+      }
 
-    const exists = customProjects.some(
-      (project) => project.name.toLowerCase() === name.toLowerCase(),
-    )
-    if (exists) {
-      toast.error(t('savedTabs.projectNameDuplicate'))
-      return
-    }
+      const exists = customProjects.some(
+        (project) => project.name.toLowerCase() === name.toLowerCase(),
+      )
+      if (exists) {
+        toast.error(t('savedTabs.projectNameDuplicate'))
+        return
+      }
 
-    onCreateProject(name)
-    toast.success(t('savedTabs.projectAdded', undefined, { name }))
-    setNewProjectName('')
-    setIsCustomProjectModalOpen(false)
-  }
+      onCreateProject(name)
+      toast.success(t('savedTabs.projectAdded', undefined, { name }))
+      setNewProjectName('')
+      setIsCustomProjectModalOpen(false)
+    },
+    [newProjectName, customProjects, onCreateProject, t],
+  )
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onSearchChange(e.target.value)
+    },
+    [onSearchChange],
+  )
+
+  const handleSearchClear = useCallback(() => {
+    onSearchChange('')
+  }, [onSearchChange])
+
+  const handleOpenModal = useCallback(() => {
+    setIsModalOpen(true)
+  }, [])
+
+  const handleOpenCustomProjectModal = useCallback(() => {
+    setIsCustomProjectModalOpen(true)
+  }, [])
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false)
+  }, [])
+
+  const handleNewProjectNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNewProjectName(e.target.value)
+    },
+    [],
+  )
 
   return (
     <div className='mb-4 flex items-center gap-4'>
@@ -160,9 +191,7 @@ export const Header = ({
             aria-label={t('savedTabs.searchPlaceholder')}
             placeholder={t('savedTabs.searchPlaceholder')}
             value={searchQuery}
-            onChange={(e) => {
-              onSearchChange(e.target.value)
-            }}
+            onChange={handleSearchChange}
             className='h-9 w-full pr-9'
           />
           {searchQuery && (
@@ -171,9 +200,7 @@ export const Header = ({
               variant='ghost'
               aria-label={t('savedTabs.searchClear')}
               title={t('savedTabs.searchClear')}
-              onClick={() => {
-                onSearchChange('')
-              }}
+              onClick={handleSearchClear}
               className='absolute top-1/2 right-0 mr-0.5 flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center'
             >
               <X size={16} />
@@ -188,9 +215,7 @@ export const Header = ({
               <Button
                 variant='outline'
                 size='sm'
-                onClick={() => {
-                  setIsModalOpen(true)
-                }}
+                onClick={handleOpenModal}
                 className='flex h-9 cursor-pointer items-center gap-2'
               >
                 <Plus size={16} />
@@ -210,9 +235,7 @@ export const Header = ({
               <Button
                 variant='outline'
                 size='sm'
-                onClick={() => {
-                  setIsCustomProjectModalOpen(true)
-                }}
+                onClick={handleOpenCustomProjectModal}
                 className='flex h-9 cursor-pointer items-center gap-2'
               >
                 <Plus size={16} />
@@ -249,9 +272,7 @@ export const Header = ({
 
       {currentMode === 'domain' && isModalOpen && (
         <CategoryModal
-          onClose={() => {
-            setIsModalOpen(false)
-          }}
+          onClose={handleCloseModal}
           tabGroups={tabGroups}
           assignDomainToCategoryUseCase={assignDomainToCategoryUseCase}
           createParentCategoryUseCase={createParentCategoryUseCase}
@@ -271,9 +292,7 @@ export const Header = ({
             <Input
               ref={handleNewProjectNameInputRef}
               value={newProjectName}
-              onChange={(e) => {
-                setNewProjectName(e.target.value)
-              }}
+              onChange={handleNewProjectNameChange}
               onKeyDown={handleCustomProjectEnter}
               placeholder={t('savedTabs.newProjectPlaceholder')}
               className='mb-2 w-full'

@@ -1,3 +1,5 @@
+import { useCallback } from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +38,26 @@ export const AnalyticsDialogs = ({
 }: AnalyticsDialogsProps) => {
   const { t } = useI18n()
 
+  const handleBulkDelete = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      onPerformBulkDelete()
+    },
+    [onPerformBulkDelete],
+  )
+
+  const handleOpenAll = useCallback(() => {
+    onOpenAllDrilldownRecords()
+  }, [onOpenAllDrilldownRecords])
+
+  const handleConfirmedDelete = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      onRunConfirmedDelete()
+    },
+    [onRunConfirmedDelete],
+  )
+
   return (
     <>
       <AlertDialog
@@ -53,13 +75,7 @@ export const AnalyticsDialogs = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={(event) => {
-                event.preventDefault()
-                onPerformBulkDelete()
-              }}
-            >
+            <AlertDialogAction variant='destructive' onClick={handleBulkDelete}>
               {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -83,11 +99,7 @@ export const AnalyticsDialogs = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                onOpenAllDrilldownRecords()
-              }}
-            >
+            <AlertDialogAction onClick={handleOpenAll}>
               {t('common.open')}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -111,10 +123,7 @@ export const AnalyticsDialogs = ({
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              onClick={(event) => {
-                event.preventDefault()
-                onRunConfirmedDelete()
-              }}
+              onClick={handleConfirmedDelete}
             >
               {t('common.delete')}
             </AlertDialogAction>

@@ -13,7 +13,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { CategorySectionProps } from '@/types/saved-tabs'
@@ -57,41 +57,53 @@ export const CategorySection = ({
   )
 
   // カテゴリ内でのドラッグ&ドロップハンドラ（新形式対応）
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event
 
-    if (over && active.id !== over.id) {
-      // 現在のURL配列から新しい順序を作成
-      const oldIndex = displayUrls.findIndex((item) => item.url === active.id)
-      const newIndex = displayUrls.findIndex((item) => item.url === over.id)
+      if (over && active.id !== over.id) {
+        // 現在のURL配列から新しい順序を作成
+        const oldIndex = displayUrls.findIndex((item) => item.url === active.id)
+        const newIndex = displayUrls.findIndex((item) => item.url === over.id)
 
-      if (oldIndex !== -1 && newIndex !== -1) {
-        // 並び替えた新しい配列を作成
-        const previousUrls = displayUrls
-        const newUrls = arrayMove(displayUrls, oldIndex, newIndex)
+        if (oldIndex !== -1 && newIndex !== -1) {
+          // 並び替えた新しい配列を作成
+          const previousUrls = displayUrls
+          const newUrls = arrayMove(displayUrls, oldIndex, newIndex)
 
-        // 保存完了を待たずに先に表示を更新し、スナップバックを防ぐ
-        setOptimisticOrder({ sourceKey: urlsKey, urls: newUrls })
+          // 保存完了を待たずに先に表示を更新し、スナップバックを防ぐ
+          setOptimisticOrder({ sourceKey: urlsKey, urls: newUrls })
 
-        try {
-          // 新形式のURL並び替え use-case を呼び出し
-          await reorderTabGroupUrlsUseCase?.({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-            tabGroupId: groupId as never,
-            newUrlOrder: newUrls.map((item) => item.url),
-          })
+          try {
+            // 新形式のURL並び替え use-case を呼び出し
+            await reorderTabGroupUrlsUseCase?.({
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+              tabGroupId: groupId as never,
+              newUrlOrder: newUrls.map((item) => item.url),
+            })
 
-          // 親コンポーネントに通知してUIを更新
-          handleUpdateUrls(groupId, newUrls)
-        } catch (error) {
-          console.error('URL順序の保存に失敗しました:', error)
-          setOptimisticOrder({ sourceKey: urlsKey, urls: previousUrls })
+            // 親コンポーネントに通知してUIを更新
+            handleUpdateUrls(groupId, newUrls)
+          } catch (error) {
+            console.error('URL順序の保存に失敗しました:', error)
+            setOptimisticOrder({ sourceKey: urlsKey, urls: previousUrls })
+          }
         }
       }
-    }
-  }
+    },
+    [
+      displayUrls,
+      urlsKey,
+      groupId,
+      reorderTabGroupUrlsUseCase,
+      handleUpdateUrls,
+    ],
+  )
 
-  // 表示名を設定
+  const urlIds = useMemo(
+    () => displayUrls.map((item) => item.url),
+    [displayUrls],
+  )
 
   return (
     <div
@@ -105,10 +117,7 @@ export const CategorySection = ({
         onDragEnd={handleDragEnd}
         id={`category-${categoryName}-${groupId}`}
       >
-        <SortableContext
-          items={displayUrls.map((item) => item.url)}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={urlIds} strategy={verticalListSortingStrategy}>
           <ul className='space-y-0.5'>
             {displayUrls.map((item) => (
               <SortableUrlItem

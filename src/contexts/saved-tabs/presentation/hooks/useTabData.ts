@@ -165,11 +165,12 @@ const useTabData = ({
   onCategoriesLoaded,
   onSettingsLoaded,
 }: UseTabDataParams): UseTabDataReturn => {
-  const [{ isLoading, tabGroups, tabGroupsWithUrls }, setTabData] = useState({
+  const [tabData, setTabData] = useState({
     isLoading: true,
     tabGroups: [] as TabGroup[],
     tabGroupsWithUrls: [] as TabGroup[],
   })
+  const { isLoading, tabGroups, tabGroupsWithUrls } = tabData
   const setTabGroups: Dispatch<SetStateAction<TabGroup[]>> = useCallback(
     (nextGroups) => {
       setTabData((prev) => ({

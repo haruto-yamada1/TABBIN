@@ -18,10 +18,8 @@ import {
   LEFT_PANE_COMPACT_BREAKPOINT_PX,
   useSavedTabsLeftPaneWidth,
 } from '../components/savedTabsPresentationLayout.helpers'
-import {
-  createSavedTabsUseCasesContextValueFromDeps,
-  SavedTabsUseCasesProvider,
-} from '../controllers/SavedTabsUseCasesContext'
+import { SavedTabsUseCasesProvider } from '../controllers/SavedTabsUseCasesContext'
+import { createSavedTabsUseCasesContextValueFromDeps } from '../controllers/SavedTabsUseCasesContext.utils'
 import { useSavedTabsController } from '../controllers/useSavedTabsController'
 import type { UseSavedTabsControllerReturn } from '../controllers/useSavedTabsController'
 import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'

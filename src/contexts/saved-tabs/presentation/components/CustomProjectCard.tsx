@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 
 import type { CustomProjectCardProps } from '../types/CustomProjectCard.types'
 import { ProjectCardCategoryList } from './project-card/ProjectCardCategoryList'
@@ -33,16 +33,9 @@ const CustomProjectCard = memo(
     isProjectReorderMode = false,
     isCrossProjectUrlDragActive = false,
     getProjectUrlsUseCase,
-  }: CustomProjectCardProps) => (
-    <ProjectCardRoot
-      project={project}
-      settings={settings}
-      draggedItem={draggedItem}
-      isDropTarget={isDropTarget}
-      isProjectReorderMode={isProjectReorderMode}
-      isCrossProjectUrlDragActive={isCrossProjectUrlDragActive}
-      getProjectUrlsUseCase={getProjectUrlsUseCase}
-      handlers={{
+  }: CustomProjectCardProps) => {
+    const handlers = useMemo(
+      () => ({
         handleAddCategory,
         handleDeleteCategory,
         handleDeleteProject,
@@ -54,19 +47,54 @@ const CustomProjectCard = memo(
         handleRenameProject,
         handleSetUrlCategory,
         handleUpdateProjectKeywords,
-      }}
-      hookHandlers={{
+      }),
+      [
+        handleAddCategory,
+        handleDeleteCategory,
+        handleDeleteProject,
+        handleDeleteUrl,
+        handleDeleteUrlsFromProject,
+        handleOpenAllUrls,
+        handleOpenUrl,
+        handleRenameCategory,
+        handleRenameProject,
+        handleSetUrlCategory,
+        handleUpdateProjectKeywords,
+      ],
+    )
+    const hookHandlers = useMemo(
+      () => ({
         handleDeleteUrl,
         handleReorderUrls,
         handleSetUrlCategory,
         handleUpdateCategoryOrder,
-      }}
-    >
-      <ProjectCardCategoryList />
-      <ProjectCardUncategorizedArea />
-      <ProjectCardDragOverlay />
-    </ProjectCardRoot>
-  ),
+      }),
+      [
+        handleDeleteUrl,
+        handleReorderUrls,
+        handleSetUrlCategory,
+        handleUpdateCategoryOrder,
+      ],
+    )
+
+    return (
+      <ProjectCardRoot
+        project={project}
+        settings={settings}
+        draggedItem={draggedItem}
+        isDropTarget={isDropTarget}
+        isProjectReorderMode={isProjectReorderMode}
+        isCrossProjectUrlDragActive={isCrossProjectUrlDragActive}
+        getProjectUrlsUseCase={getProjectUrlsUseCase}
+        handlers={handlers}
+        hookHandlers={hookHandlers}
+      >
+        <ProjectCardCategoryList />
+        <ProjectCardUncategorizedArea />
+        <ProjectCardDragOverlay />
+      </ProjectCardRoot>
+    )
+  },
 )
 
 CustomProjectCard.displayName = 'CustomProjectCard'

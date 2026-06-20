@@ -1,5 +1,5 @@
 import { ExternalLink, Settings, Trash } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import {
   AlertDialog,
@@ -71,6 +71,84 @@ export const DomainCardActions = () => {
     handlers.handleDeleteGroup(group.id)
   }, [group.id, group.urls, handlers, hasSearchQuery])
 
+  const categoryKeywordModalDeps = useMemo(
+    () =>
+      useCases
+        ? {
+            categoryAssignmentPort: useCases.deps.categoryAssignmentPort,
+            getSavedTabsPageDataQuery: useCases.useCases.getSavedTabsPageData,
+          }
+        : null,
+    [useCases],
+  )
+
+  const handleKeywordToggle = useCallback(() => {
+    keywordModal.setShowKeywordModal(!keywordModal.showKeywordModal)
+  }, [keywordModal])
+
+  const handleOpenAllClick = useCallback(
+    (e: React.MouseEvent) => {
+      if ((group.urls?.length ?? 0) >= BULK_OPEN_THRESHOLD) {
+        setIsOpenAllConfirmOpen(true)
+        return
+      }
+      e.stopPropagation()
+      handlers.handleOpenAllTabs(group.urls ?? [])
+      if (isReorderMode) {
+        console.log(
+          `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} のタブをすべて開きました`,
+        )
+      }
+    },
+    [group.urls, group.domain, handlers, isReorderMode],
+  )
+
+  const handleDeleteClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+      if (settings.confirmDeleteAll) {
+        setIsDeleteConfirmOpen(true)
+      } else {
+        executeDeleteAll()
+        if (isReorderMode) {
+          console.log(
+            `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} を削除しました`,
+          )
+        }
+      }
+    },
+    [settings.confirmDeleteAll, executeDeleteAll, isReorderMode, group.domain],
+  )
+
+  const handleConfirmOpenAll = useCallback(() => {
+    handlers.handleOpenAllTabs(group.urls ?? [])
+    if (isReorderMode) {
+      console.log(
+        `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} のタブをすべて開きました`,
+      )
+    }
+  }, [handlers, group.urls, group.domain, isReorderMode])
+
+  const handleConfirmDelete = useCallback(() => {
+    executeDeleteAll()
+    if (isReorderMode) {
+      console.log(
+        `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} を削除しました`,
+      )
+    }
+  }, [executeDeleteAll, isReorderMode, group.domain])
+
+  const handleModalSave = useCallback(
+    (...args: [string, string, string[]]) => {
+      if (!useCases) {
+        return
+      }
+      void handleSaveKeywords(useCases.useCases, ...args)
+    },
+    [useCases],
+  )
+
   return (
     <>
       <div className='flex shrink-0 items-center gap-2'>
@@ -80,9 +158,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-              onClick={() => {
-                keywordModal.setShowKeywordModal(!keywordModal.showKeywordModal)
-              }}
+              onClick={handleKeywordToggle}
               className='flex cursor-pointer items-center gap-1'
               aria-label={manageSubcategoriesLabel}
             >
@@ -103,19 +179,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-              onClick={(e) => {
-                if ((group.urls?.length ?? 0) >= BULK_OPEN_THRESHOLD) {
-                  setIsOpenAllConfirmOpen(true)
-                  return
-                }
-                e.stopPropagation()
-                handlers.handleOpenAllTabs(group.urls ?? [])
-                if (isReorderMode) {
-                  console.log(
-                    `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} のタブをすべて開きました`,
-                  )
-                }
-              }}
+              onClick={handleOpenAllClick}
               className='flex cursor-pointer items-center gap-1'
               aria-label={openAllTabsLabel}
             >
@@ -136,20 +200,7 @@ export const DomainCardActions = () => {
             <Button
               variant='secondary'
               size='sm'
-              onClick={(e) => {
-                e.stopPropagation()
-                e.preventDefault()
-                if (settings.confirmDeleteAll) {
-                  setIsDeleteConfirmOpen(true)
-                } else {
-                  executeDeleteAll()
-                  if (isReorderMode) {
-                    console.log(
-                      `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} を削除しました`,
-                    )
-                  }
-                }
-              }}
+              onClick={handleDeleteClick}
               className='flex cursor-pointer items-center gap-1'
               aria-label={deleteAllTabsLabel}
             >
@@ -165,31 +216,29 @@ export const DomainCardActions = () => {
         </Tooltip>
 
         {/* キーワードモーダル */}
-        {keywordModal.showKeywordModal && useCases && (
-          <CategoryKeywordModal
-            group={group}
-            isOpen={keywordModal.showKeywordModal}
-            onClose={keywordModal.handleCloseKeywordModal}
-            // eslint-disable-next-line typescript/no-misused-promises
-            onSave={(...args: [string, string, string[]]) =>
-              handleSaveKeywords(useCases.useCases, ...args)
-            }
-            onDeleteCategory={categoryActions.handleCategoryDelete}
-            parentCategories={parentCategories.categories}
-            onCreateParentCategory={parentCategories.handleCreateParentCategory}
-            onAssignToParentCategory={
-              parentCategories.handleAssignToParentCategory
-            }
-            onUpdateParentCategories={
-              parentCategories.handleUpdateParentCategories
-            }
-            storageChangePort={useCases.deps.storageChangePort}
-            deps={{
-              categoryAssignmentPort: useCases.deps.categoryAssignmentPort,
-              getSavedTabsPageDataQuery: useCases.useCases.getSavedTabsPageData,
-            }}
-          />
-        )}
+        {keywordModal.showKeywordModal &&
+          useCases &&
+          categoryKeywordModalDeps && (
+            <CategoryKeywordModal
+              group={group}
+              isOpen={keywordModal.showKeywordModal}
+              onClose={keywordModal.handleCloseKeywordModal}
+              onSave={handleModalSave}
+              onDeleteCategory={categoryActions.handleCategoryDelete}
+              parentCategories={parentCategories.categories}
+              onCreateParentCategory={
+                parentCategories.handleCreateParentCategory
+              }
+              onAssignToParentCategory={
+                parentCategories.handleAssignToParentCategory
+              }
+              onUpdateParentCategories={
+                parentCategories.handleUpdateParentCategories
+              }
+              storageChangePort={useCases.deps.storageChangePort}
+              deps={categoryKeywordModalDeps}
+            />
+          )}
       </div>
 
       {/* 10個以上タブを開く確認ダイアログ */}
@@ -211,16 +260,7 @@ export const DomainCardActions = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                handlers.handleOpenAllTabs(group.urls ?? [])
-                if (isReorderMode) {
-                  console.log(
-                    `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} のタブをすべて開きました`,
-                  )
-                }
-              }}
-            >
+            <AlertDialogAction onClick={handleConfirmOpenAll}>
               {t('common.open')}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -248,14 +288,7 @@ export const DomainCardActions = () => {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
-              onClick={() => {
-                executeDeleteAll()
-                if (isReorderMode) {
-                  console.log(
-                    `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} を削除しました`,
-                  )
-                }
-              }}
+              onClick={handleConfirmDelete}
             >
               {t('common.delete')}
             </AlertDialogAction>

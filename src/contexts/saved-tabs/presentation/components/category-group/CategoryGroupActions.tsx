@@ -1,3 +1,5 @@
+import { useCallback } from 'react'
+
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -82,9 +84,13 @@ export const CategoryGroupActions = () => {
     }
   }
 
+  const handleManage = useCallback(() => {
+    modal.setIsModalOpen(true)
+  }, [modal])
+
   return (
     <CardGroupActions
-      onManage={() => modal.setIsModalOpen(true)} // eslint-disable-line typescript/no-confusing-void-expression
+      onManage={handleManage}
       manageLabel={t('savedTabs.manageParentCategories')}
       manageAriaLabel={getScopedNounActionLabel(
         t,

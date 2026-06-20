@@ -1,5 +1,5 @@
 import { Edit, Trash2, X } from 'lucide-react'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -50,6 +50,41 @@ interface ProjectKeywordSectionProps {
   onRemoveKeyword: (keyword: string) => void
 }
 
+const KeywordBadge = ({
+  keyword,
+  disabled,
+  onRemove,
+}: {
+  keyword: string
+  disabled: boolean
+  onRemove: (keyword: string) => void
+}) => {
+  const { t } = useI18n()
+  const handleClick = useCallback(() => {
+    onRemove(keyword)
+  }, [keyword, onRemove])
+
+  return (
+    <Badge
+      variant='outline'
+      className='flex items-center gap-1 rounded px-2 py-1'
+    >
+      {keyword}
+      <Button
+        type='button'
+        variant='ghost'
+        size='sm'
+        onClick={handleClick}
+        className='h-5 px-1'
+        aria-label={t('savedTabs.keywords.deleteAria')}
+        disabled={disabled}
+      >
+        <X size={14} />
+      </Button>
+    </Badge>
+  )
+}
+
 const ProjectKeywordSection = ({
   label,
   description,
@@ -64,6 +99,26 @@ const ProjectKeywordSection = ({
   onRemoveKeyword,
 }: ProjectKeywordSectionProps) => {
   const { t } = useI18n()
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onKeywordChange(e.target.value)
+    },
+    [onKeywordChange],
+  )
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        onAddKeyword()
+      }
+    },
+    [onAddKeyword],
+  )
+  const handleBlur = useCallback(() => {
+    if (newKeyword.trim()) {
+      onBlurKeyword()
+    }
+  }, [newKeyword, onBlurKeyword])
 
   return (
     <div className='gap-y-2'>
@@ -73,24 +128,12 @@ const ProjectKeywordSection = ({
         id={inputId}
         aria-label={label}
         value={newKeyword}
-        onChange={(e) => {
-          onKeywordChange(e.target.value)
-        }}
+        onChange={handleChange}
         placeholder={placeholder}
         disabled={disabled}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            onAddKeyword()
-          }
-        }}
-        onBlur={() => {
-          if (newKeyword.trim()) {
-            onBlurKeyword()
-          }
-        }}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
       />
-
       <div className='flex min-h-12 flex-wrap gap-2 rounded border p-2'>
         {keywords.length === 0 ? (
           <p className='text-sm text-muted-foreground'>
@@ -98,29 +141,79 @@ const ProjectKeywordSection = ({
           </p>
         ) : (
           keywords.map((keyword) => (
-            <Badge
+            <KeywordBadge
               key={keyword}
-              variant='outline'
-              className='flex items-center gap-1 rounded px-2 py-1'
-            >
-              {keyword}
-              <Button
-                type='button'
-                variant='ghost'
-                size='sm'
-                onClick={() => {
-                  onRemoveKeyword(keyword)
-                }}
-                className='h-5 px-1'
-                aria-label={t('savedTabs.keywords.deleteAria')}
-                disabled={disabled}
-              >
-                <X size={14} />
-              </Button>
-            </Badge>
+              keyword={keyword}
+              disabled={disabled}
+              onRemove={onRemoveKeyword}
+            />
           ))
         )}
       </div>
+    </div>
+  )
+}
+
+const ProjectActions = ({
+  isRenaming,
+  isUncategorizedProject,
+  isProcessing,
+  handleStartRenaming,
+  handleShowDeleteConfirm,
+  renameActionLabel,
+  deleteActionLabel,
+}: {
+  isRenaming: boolean
+  isUncategorizedProject: boolean
+  isProcessing: boolean
+  handleStartRenaming: () => void
+  handleShowDeleteConfirm: () => void
+  renameActionLabel: string
+  deleteActionLabel: string
+}) => {
+  if (isRenaming || isUncategorizedProject) {
+    return null
+  }
+
+  return (
+    <div className='flex items-center gap-2'>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant='secondary'
+            size='sm'
+            onClick={handleStartRenaming}
+            className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
+          >
+            <Edit size={14} />
+            <SavedTabsResponsiveLabel>
+              {renameActionLabel}
+            </SavedTabsResponsiveLabel>
+          </Button>
+        </TooltipTrigger>
+        <SavedTabsResponsiveTooltipContent side='top'>
+          {renameActionLabel}
+        </SavedTabsResponsiveTooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant='secondary'
+            size='sm'
+            onClick={handleShowDeleteConfirm}
+            className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
+            disabled={isProcessing}
+          >
+            <Trash2 size={14} />
+            <SavedTabsResponsiveLabel>
+              {deleteActionLabel}
+            </SavedTabsResponsiveLabel>
+          </Button>
+        </TooltipTrigger>
+        <SavedTabsResponsiveTooltipContent side='top'>
+          {deleteActionLabel}
+        </SavedTabsResponsiveTooltipContent>
+      </Tooltip>
     </div>
   )
 }
@@ -172,23 +265,234 @@ const useProjectManagementModalView = ({
     localizedProjectNameSchema,
   )
 
+  const handleOpenChange = useCallback(() => {
+    if (isProcessing || isRenaming || isSaving) {
+      return
+    }
+    if (document.readyState === 'loading') {
+      return
+    }
+    onClose()
+  }, [isProcessing, isRenaming, isSaving, onClose])
+
+  const handleShowDeleteConfirm = useCallback(() => {
+    updateModalState({ showDeleteConfirm: true })
+  }, [updateModalState])
+
+  const handleCancelDelete = useCallback(() => {
+    updateModalState({ showDeleteConfirm: false })
+  }, [updateModalState])
+
+  const handleRenameBlur = useCallback(() => {
+    if (isProcessing) {
+      return
+    }
+    const trimmedName = newProjectName.trim()
+    if (trimmedName && trimmedName !== localProjectName && !projectNameError) {
+      void handleSaveRenaming(trimmedName)
+    } else if (projectNameError) {
+      inputRef.current?.focus()
+    } else {
+      handleCancelRenaming()
+    }
+  }, [
+    isProcessing,
+    newProjectName,
+    localProjectName,
+    projectNameError,
+    handleSaveRenaming,
+    inputRef,
+    handleCancelRenaming,
+  ])
+
+  const handleRenameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        const trimmedName = newProjectName.trim()
+        if (
+          trimmedName &&
+          trimmedName !== localProjectName &&
+          !projectNameError &&
+          !isProcessing
+        ) {
+          void handleSaveRenaming(trimmedName)
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        handleCancelRenaming()
+      }
+    },
+    [
+      newProjectName,
+      localProjectName,
+      projectNameError,
+      isProcessing,
+      handleSaveRenaming,
+      handleCancelRenaming,
+    ],
+  )
+
+  const handleNameClick = useCallback(() => {
+    if (isUncategorizedProject) {
+      return
+    }
+    handleStartRenaming()
+  }, [isUncategorizedProject, handleStartRenaming])
+
+  const handleTitleKeywordChange = useCallback(
+    (value: string) => {
+      updateModalState({ newTitleKeyword: value })
+    },
+    [updateModalState],
+  )
+
+  const handleTitleAddKeyword = useCallback(() => {
+    addKeyword({
+      clearInput: () => {
+        updateModalState({ newTitleKeyword: '' })
+      },
+      keyword: newTitleKeyword,
+      keywords: titleKeywords,
+      section: 'titleKeywords',
+      setKeywords: (keywords: string[]) => {
+        updateModalState({ titleKeywords: keywords })
+      },
+    })
+  }, [addKeyword, newTitleKeyword, titleKeywords, updateModalState])
+
+  const handleTitleBlurKeyword = useCallback(() => {
+    addKeyword({
+      clearInput: () => {
+        updateModalState({ newTitleKeyword: '' })
+      },
+      keyword: newTitleKeyword,
+      keywords: titleKeywords,
+      section: 'titleKeywords',
+      setKeywords: (keywords: string[]) => {
+        updateModalState({ titleKeywords: keywords })
+      },
+    })
+  }, [addKeyword, newTitleKeyword, titleKeywords, updateModalState])
+
+  const handleTitleRemoveKeyword = useCallback(
+    (keyword: string) => {
+      removeKeyword(
+        keyword,
+        'titleKeywords',
+        (keywords: string[]) => {
+          updateModalState({ titleKeywords: keywords })
+        },
+        titleKeywords,
+      )
+    },
+    [removeKeyword, titleKeywords, updateModalState],
+  )
+
+  const handleUrlKeywordChange = useCallback(
+    (value: string) => {
+      updateModalState({ newUrlKeyword: value })
+    },
+    [updateModalState],
+  )
+
+  const handleUrlAddKeyword = useCallback(() => {
+    addKeyword({
+      clearInput: () => {
+        updateModalState({ newUrlKeyword: '' })
+      },
+      keyword: newUrlKeyword,
+      keywords: urlKeywords,
+      section: 'urlKeywords',
+      setKeywords: (keywords: string[]) => {
+        updateModalState({ urlKeywords: keywords })
+      },
+    })
+  }, [addKeyword, newUrlKeyword, urlKeywords, updateModalState])
+
+  const handleUrlBlurKeyword = useCallback(() => {
+    addKeyword({
+      clearInput: () => {
+        updateModalState({ newUrlKeyword: '' })
+      },
+      keyword: newUrlKeyword,
+      keywords: urlKeywords,
+      section: 'urlKeywords',
+      setKeywords: (keywords: string[]) => {
+        updateModalState({ urlKeywords: keywords })
+      },
+    })
+  }, [addKeyword, newUrlKeyword, urlKeywords, updateModalState])
+
+  const handleUrlRemoveKeyword = useCallback(
+    (keyword: string) => {
+      removeKeyword(
+        keyword,
+        'urlKeywords',
+        (keywords: string[]) => {
+          updateModalState({ urlKeywords: keywords })
+        },
+        urlKeywords,
+      )
+    },
+    [removeKeyword, urlKeywords, updateModalState],
+  )
+
+  const handleDomainKeywordChange = useCallback(
+    (value: string) => {
+      updateModalState({ newDomainKeyword: value })
+    },
+    [updateModalState],
+  )
+
+  const handleDomainAddKeyword = useCallback(() => {
+    addKeyword({
+      clearInput: () => {
+        updateModalState({ newDomainKeyword: '' })
+      },
+      keyword: newDomainKeyword,
+      keywords: domainKeywords,
+      section: 'domainKeywords',
+      setKeywords: (keywords: string[]) => {
+        updateModalState({ domainKeywords: keywords })
+      },
+    })
+  }, [addKeyword, newDomainKeyword, domainKeywords, updateModalState])
+
+  const handleDomainBlurKeyword = useCallback(() => {
+    addKeyword({
+      clearInput: () => {
+        updateModalState({ newDomainKeyword: '' })
+      },
+      keyword: newDomainKeyword,
+      keywords: domainKeywords,
+      section: 'domainKeywords',
+      setKeywords: (keywords: string[]) => {
+        updateModalState({ domainKeywords: keywords })
+      },
+    })
+  }, [addKeyword, newDomainKeyword, domainKeywords, updateModalState])
+
+  const handleDomainRemoveKeyword = useCallback(
+    (keyword: string) => {
+      removeKeyword(
+        keyword,
+        'domainKeywords',
+        (keywords: string[]) => {
+          updateModalState({ domainKeywords: keywords })
+        },
+        domainKeywords,
+      )
+    },
+    [removeKeyword, domainKeywords, updateModalState],
+  )
+
   if (!isOpen) {
     return null
   }
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={() => {
-        if (isProcessing || isRenaming || isSaving) {
-          return
-        }
-        if (document.readyState === 'loading') {
-          return
-        }
-        onClose()
-      }}
-    >
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className='max-h-[90vh] overflow-y-auto'>
         <DialogHeader className='text-left'>
           <DialogTitle>
@@ -199,53 +503,22 @@ const useProjectManagementModalView = ({
         </DialogHeader>
 
         <div className='gap-y-4'>
-          {/* プロジェクト名変更セクション */}
           <div className='mb-4'>
             <div className='mb-2 flex items-center justify-between'>
               <Label>{t('savedTabs.projectManagement.nameLabel')}</Label>
-              {!isRenaming && !isUncategorizedProject && (
-                <div className='flex items-center gap-2'>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant='secondary'
-                        size='sm'
-                        onClick={handleStartRenaming}
-                        className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
-                      >
-                        <Edit size={14} />
-                        <SavedTabsResponsiveLabel>
-                          {t('savedTabs.projectManagement.renameAction')}
-                        </SavedTabsResponsiveLabel>
-                      </Button>
-                    </TooltipTrigger>
-                    <SavedTabsResponsiveTooltipContent side='top'>
-                      {t('savedTabs.projectManagement.renameAction')}
-                    </SavedTabsResponsiveTooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant='secondary'
-                        size='sm'
-                        onClick={() => {
-                          updateModalState({ showDeleteConfirm: true })
-                        }}
-                        className='flex cursor-pointer items-center gap-2 rounded px-2 py-1'
-                        disabled={isProcessing}
-                      >
-                        <Trash2 size={14} />
-                        <SavedTabsResponsiveLabel>
-                          {t('savedTabs.projectManagement.deleteAction')}
-                        </SavedTabsResponsiveLabel>
-                      </Button>
-                    </TooltipTrigger>
-                    <SavedTabsResponsiveTooltipContent side='top'>
-                      {t('savedTabs.projectManagement.deleteAction')}
-                    </SavedTabsResponsiveTooltipContent>
-                  </Tooltip>
-                </div>
-              )}
+              <ProjectActions
+                isRenaming={isRenaming}
+                isUncategorizedProject={isUncategorizedProject}
+                isProcessing={isProcessing}
+                handleStartRenaming={handleStartRenaming}
+                handleShowDeleteConfirm={handleShowDeleteConfirm}
+                renameActionLabel={t(
+                  'savedTabs.projectManagement.renameAction',
+                )}
+                deleteActionLabel={t(
+                  'savedTabs.projectManagement.deleteAction',
+                )}
+              />
             </div>
 
             {isRenaming ? (
@@ -261,40 +534,8 @@ const useProjectManagementModalView = ({
                     'savedTabs.projectManagement.renamePlaceholder',
                   )}
                   className={`w-full flex-1 rounded border p-2 ${projectNameError ? 'border-red-500' : ''}`}
-                  onBlur={() => {
-                    if (isProcessing) {
-                      return
-                    }
-                    const trimmedName = newProjectName.trim()
-                    if (
-                      trimmedName &&
-                      trimmedName !== localProjectName &&
-                      !projectNameError
-                    ) {
-                      void handleSaveRenaming(trimmedName)
-                    } else if (projectNameError) {
-                      inputRef.current?.focus()
-                    } else {
-                      handleCancelRenaming()
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      const trimmedName = newProjectName.trim()
-                      if (
-                        trimmedName &&
-                        trimmedName !== localProjectName &&
-                        !projectNameError &&
-                        !isProcessing
-                      ) {
-                        void handleSaveRenaming(trimmedName)
-                      }
-                    } else if (e.key === 'Escape') {
-                      e.preventDefault()
-                      handleCancelRenaming()
-                    }
-                  }}
+                  onBlur={handleRenameBlur}
+                  onKeyDown={handleRenameKeyDown}
                 />
                 {projectNameError && (
                   <p className='mt-1 text-xs text-red-500'>
@@ -304,12 +545,7 @@ const useProjectManagementModalView = ({
               </div>
             ) : (
               <Button
-                onClick={() => {
-                  if (isUncategorizedProject) {
-                    return
-                  }
-                  handleStartRenaming()
-                }}
+                onClick={handleNameClick}
                 className='w-full justify-start rounded border bg-secondary/20 p-2 hover:bg-secondary/30'
                 disabled={isUncategorizedProject}
                 type='button'
@@ -341,45 +577,10 @@ const useProjectManagementModalView = ({
                 keywords={titleKeywords}
                 newKeyword={newTitleKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) => {
-                  updateModalState({ newTitleKeyword: value })
-                }}
-                onAddKeyword={() => {
-                  addKeyword({
-                    clearInput: () => {
-                      updateModalState({ newTitleKeyword: '' })
-                    },
-                    keyword: newTitleKeyword,
-                    keywords: titleKeywords,
-                    section: 'titleKeywords',
-                    setKeywords: (keywords) => {
-                      updateModalState({ titleKeywords: keywords })
-                    },
-                  })
-                }}
-                onBlurKeyword={() => {
-                  addKeyword({
-                    clearInput: () => {
-                      updateModalState({ newTitleKeyword: '' })
-                    },
-                    keyword: newTitleKeyword,
-                    keywords: titleKeywords,
-                    section: 'titleKeywords',
-                    setKeywords: (keywords) => {
-                      updateModalState({ titleKeywords: keywords })
-                    },
-                  })
-                }}
-                onRemoveKeyword={(keyword) => {
-                  removeKeyword(
-                    keyword,
-                    'titleKeywords',
-                    (keywords) => {
-                      updateModalState({ titleKeywords: keywords })
-                    },
-                    titleKeywords,
-                  )
-                }}
+                onKeywordChange={handleTitleKeywordChange}
+                onAddKeyword={handleTitleAddKeyword}
+                onBlurKeyword={handleTitleBlurKeyword}
+                onRemoveKeyword={handleTitleRemoveKeyword}
               />
 
               <ProjectKeywordSection
@@ -394,45 +595,10 @@ const useProjectManagementModalView = ({
                 keywords={urlKeywords}
                 newKeyword={newUrlKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) => {
-                  updateModalState({ newUrlKeyword: value })
-                }}
-                onAddKeyword={() => {
-                  addKeyword({
-                    clearInput: () => {
-                      updateModalState({ newUrlKeyword: '' })
-                    },
-                    keyword: newUrlKeyword,
-                    keywords: urlKeywords,
-                    section: 'urlKeywords',
-                    setKeywords: (keywords) => {
-                      updateModalState({ urlKeywords: keywords })
-                    },
-                  })
-                }}
-                onBlurKeyword={() => {
-                  addKeyword({
-                    clearInput: () => {
-                      updateModalState({ newUrlKeyword: '' })
-                    },
-                    keyword: newUrlKeyword,
-                    keywords: urlKeywords,
-                    section: 'urlKeywords',
-                    setKeywords: (keywords) => {
-                      updateModalState({ urlKeywords: keywords })
-                    },
-                  })
-                }}
-                onRemoveKeyword={(keyword) => {
-                  removeKeyword(
-                    keyword,
-                    'urlKeywords',
-                    (keywords) => {
-                      updateModalState({ urlKeywords: keywords })
-                    },
-                    urlKeywords,
-                  )
-                }}
+                onKeywordChange={handleUrlKeywordChange}
+                onAddKeyword={handleUrlAddKeyword}
+                onBlurKeyword={handleUrlBlurKeyword}
+                onRemoveKeyword={handleUrlRemoveKeyword}
               />
 
               <ProjectKeywordSection
@@ -447,45 +613,10 @@ const useProjectManagementModalView = ({
                 keywords={domainKeywords}
                 newKeyword={newDomainKeyword}
                 disabled={isProcessing}
-                onKeywordChange={(value) => {
-                  updateModalState({ newDomainKeyword: value })
-                }}
-                onAddKeyword={() => {
-                  addKeyword({
-                    clearInput: () => {
-                      updateModalState({ newDomainKeyword: '' })
-                    },
-                    keyword: newDomainKeyword,
-                    keywords: domainKeywords,
-                    section: 'domainKeywords',
-                    setKeywords: (keywords) => {
-                      updateModalState({ domainKeywords: keywords })
-                    },
-                  })
-                }}
-                onBlurKeyword={() => {
-                  addKeyword({
-                    clearInput: () => {
-                      updateModalState({ newDomainKeyword: '' })
-                    },
-                    keyword: newDomainKeyword,
-                    keywords: domainKeywords,
-                    section: 'domainKeywords',
-                    setKeywords: (keywords) => {
-                      updateModalState({ domainKeywords: keywords })
-                    },
-                  })
-                }}
-                onRemoveKeyword={(keyword) => {
-                  removeKeyword(
-                    keyword,
-                    'domainKeywords',
-                    (keywords) => {
-                      updateModalState({ domainKeywords: keywords })
-                    },
-                    domainKeywords,
-                  )
-                }}
+                onKeywordChange={handleDomainKeywordChange}
+                onAddKeyword={handleDomainAddKeyword}
+                onBlurKeyword={handleDomainBlurKeyword}
+                onRemoveKeyword={handleDomainRemoveKeyword}
               />
             </div>
           </div>
@@ -510,9 +641,7 @@ const useProjectManagementModalView = ({
               deleteLabel={t('common.delete')}
               deleteTooltip={t('savedTabs.projectManagement.deleteAction')}
               isProcessing={isProcessing}
-              onCancel={() => {
-                updateModalState({ showDeleteConfirm: false })
-              }}
+              onCancel={handleCancelDelete}
               // eslint-disable-next-line typescript/no-misused-promises
               onDelete={handleDeleteProject}
             />

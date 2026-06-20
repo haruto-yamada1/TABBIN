@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
@@ -56,6 +57,16 @@ export const CardCollapseControl = ({
     tooltipLabel = isCollapsed ? expandLabel : collapseLabel
   }
 
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      const newState = !isCollapsed
+      setIsCollapsed(newState)
+      setUserCollapsedState(newState)
+    },
+    [isCollapsed, setIsCollapsed, setUserCollapsedState],
+  )
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -63,12 +74,7 @@ export const CardCollapseControl = ({
           variant='secondary'
           size='sm'
           onPointerDown={onPointerDown}
-          onClick={(e) => {
-            e.stopPropagation()
-            const newState = !isCollapsed
-            setIsCollapsed(newState)
-            setUserCollapsedState(newState)
-          }}
+          onClick={handleClick}
           className={`flex items-center gap-1 ${
             isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
           }`}

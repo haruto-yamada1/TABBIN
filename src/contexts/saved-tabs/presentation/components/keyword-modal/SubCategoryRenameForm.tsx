@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -21,6 +21,19 @@ export const SubCategoryRenameForm = () => {
       renameInputRef.current?.select()
     }
   }, [rename.isRenaming])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        e.currentTarget.blur()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        rename.handleCancelRenaming()
+      }
+    },
+    [rename],
+  )
 
   if (!rename.isRenaming) {
     return null
@@ -46,15 +59,7 @@ export const SubCategoryRenameForm = () => {
         data-rename-input='true'
         // eslint-disable-next-line typescript/no-misused-promises
         onBlur={rename.handleSaveRenaming}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            e.currentTarget.blur()
-          } else if (e.key === 'Escape') {
-            e.preventDefault()
-            rename.handleCancelRenaming()
-          }
-        }}
+        onKeyDown={handleKeyDown}
       />
       {rename.categoryRenameError && (
         <p className='mt-1 text-xs text-red-500'>

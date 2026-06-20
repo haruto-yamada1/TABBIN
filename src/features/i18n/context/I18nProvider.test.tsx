@@ -4,12 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // esli
 
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 
-import {
-  I18nProvider,
-  getFallbackText,
-  useI18n,
-  useOptionalI18n,
-} from './I18nProvider'
+import { I18nProvider, useI18n, useOptionalI18n } from './I18nProvider'
+import { getFallbackText } from './I18nProvider.utils'
 
 const mocks = vi.hoisted(() => ({
   getChromeStorageOnChanged: vi.fn(),

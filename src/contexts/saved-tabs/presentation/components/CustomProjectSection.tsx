@@ -18,6 +18,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { UseFormRegisterReturn } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Badge } from '@/components/ui/badge'
@@ -341,6 +342,59 @@ const handleDragEndByType = ({
   }
 }
 
+const CreateProjectDialogContent = ({
+  t,
+  handleFormSubmit,
+  nameField,
+  handleNameKeyDown,
+  nameError,
+  closeCreateDialog,
+  handleCreateButtonClick,
+}: {
+  t: (key: string, fallback?: string, values?: Record<string, string>) => string
+  handleFormSubmit: (e: React.SyntheticEvent<HTMLFormElement>) => void
+  nameField: UseFormRegisterReturn<'name'>
+  handleNameKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void
+  nameError: string | null
+  closeCreateDialog: () => void
+  handleCreateButtonClick: () => void
+}) => (
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>
+        {t('savedTabs.customProjects.createDialogTitle')}
+      </DialogTitle>
+    </DialogHeader>
+    <form onSubmit={handleFormSubmit}>
+      <div className='grid gap-4 py-4'>
+        <div>
+          <Label htmlFor='name'>
+            {t('savedTabs.customProjects.nameLabel')}
+          </Label>
+          <Input
+            id='name'
+            {...nameField}
+            onKeyDown={handleNameKeyDown}
+            placeholder={t('savedTabs.customProjects.createPlaceholder')}
+            className={`w-full ${nameError ? 'border-red-500' : ''}`}
+          />
+          {nameError && (
+            <p className='mt-1 text-xs text-red-500'>{nameError}</p>
+          )}
+        </div>
+      </div>
+      <DialogFooter>
+        <Button variant='ghost' type='button' onClick={closeCreateDialog}>
+          {t('common.cancel')}
+        </Button>
+        <Button type='button' onClick={handleCreateButtonClick}>
+          {t('savedTabs.customProjects.createAction')}
+        </Button>
+      </DialogFooter>
+    </form>
+  </DialogContent>
+)
+
 const useCustomProjectSectionView = ({
   // eslint-disable-line eslint/max-lines-per-function
   projects,
@@ -366,6 +420,10 @@ const useCustomProjectSectionView = ({
   settings,
 }: CustomProjectSectionProps) => {
   const { t } = useI18n()
+  const projectIds = useMemo(
+    () => projects.map((project) => project.id),
+    [projects],
+  )
   const createProjectSchema = useMemo(
     () =>
       z.object({
@@ -584,88 +642,103 @@ const useCustomProjectSectionView = ({
     [projects],
   )
 
-  // ドラッグ終了時の処理
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    const activeData = resolveActiveDragData(
-      active.data.current,
-      activeDragDataRef.current,
-    )
-    handleDragEndByType({
-      activeData,
-      activeId: String(active.id),
-      event,
-      handleReorderProjects,
-      handleUrlDragSequence,
-      over,
-      projectDragHandlersRef,
-      projects,
-    })
+  // プロジェクト間のURL移動
+  const handleUrlCrossProjectDragEnd = useCallback(
+    (event: DragEndEvent, targetProjectId: string, sourceProjectId: string) => {
+      const { active } = event
+      const activeData = resolveActiveDragData(
+        active.data.current,
+        activeDragDataRef.current,
+      )
+      const draggedUrl = activeData?.url ?? String(active.id)
 
-    resetSectionDragState({
-      activeDragDataRef,
-      lastDragOverDebugRef,
-      setDraggedItem,
-      setDraggedOverProjectId,
-      setDraggedProject,
-      setIsCrossProjectUrlDragActive,
-      setIsProjectReorderMode,
-    })
-  }
+      if (handleMoveUrlBetweenProjects) {
+        handleMoveUrlBetweenProjects(
+          sourceProjectId,
+          targetProjectId,
+          draggedUrl,
+        )
+      }
+    },
+    [handleMoveUrlBetweenProjects],
+  )
 
   // URLドラッグに関わるシーケンス制御
   // eslint-disable-next-line eslint/complexity
-  const handleUrlDragSequence = (event: DragEndEvent) => {
-    const { active, over } = event
-    const activeData = resolveActiveDragData(
-      active.data.current,
-      activeDragDataRef.current,
-    )
-    const sourceProjectId = activeData?.projectId ?? ''
-    const targetProjectId = resolveTargetProjectId(over)
+  const handleUrlDragSequence = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      const activeData = resolveActiveDragData(
+        active.data.current,
+        activeDragDataRef.current,
+      )
+      const sourceProjectId = activeData?.projectId ?? ''
+      const targetProjectId = resolveTargetProjectId(over)
 
-    if (
-      !targetProjectId ||
-      (sourceProjectId && sourceProjectId === targetProjectId)
-    ) {
-      // 同一プロジェクト内または無効なドロップエリア
-      if (sourceProjectId && projectDragHandlersRef.current[sourceProjectId]) {
-        const isUncategorizedOver =
-          over?.id === `uncategorized-${targetProjectId}` ||
-          over?.data?.current?.type === 'uncategorized'
-        projectDragHandlersRef.current[sourceProjectId].handleUrlDragEnd(
-          event,
-          isUncategorizedOver,
-        )
+      if (
+        !targetProjectId ||
+        (sourceProjectId && sourceProjectId === targetProjectId)
+      ) {
+        // 同一プロジェクト内または無効なドロップエリア
+        if (
+          sourceProjectId &&
+          projectDragHandlersRef.current[sourceProjectId]
+        ) {
+          const isUncategorizedOver =
+            over?.id === `uncategorized-${targetProjectId}` ||
+            over?.data?.current?.type === 'uncategorized'
+          projectDragHandlersRef.current[sourceProjectId].handleUrlDragEnd(
+            event,
+            isUncategorizedOver,
+          )
+        }
+      } else {
+        // クロスプロジェクトドロップ
+        handleUrlCrossProjectDragEnd(event, targetProjectId, sourceProjectId)
+
+        // 元プロジェクトの状態リセット
+        if (
+          sourceProjectId &&
+          projectDragHandlersRef.current[sourceProjectId]
+        ) {
+          projectDragHandlersRef.current[sourceProjectId].clearDragState()
+        }
       }
-    } else {
-      // クロスプロジェクトドロップ
-      handleUrlCrossProjectDragEnd(event, targetProjectId, sourceProjectId)
+    },
+    [handleUrlCrossProjectDragEnd],
+  )
 
-      // 元プロジェクトの状態リセット
-      if (sourceProjectId && projectDragHandlersRef.current[sourceProjectId]) {
-        projectDragHandlersRef.current[sourceProjectId].clearDragState()
-      }
-    }
-  }
+  // ドラッグ終了時の処理
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      const activeData = resolveActiveDragData(
+        active.data.current,
+        activeDragDataRef.current,
+      )
+      handleDragEndByType({
+        activeData,
+        activeId: String(active.id),
+        event,
+        handleReorderProjects,
+        handleUrlDragSequence,
+        over,
+        projectDragHandlersRef,
+        projects,
+      })
 
-  // プロジェクト間のURL移動
-  const handleUrlCrossProjectDragEnd = (
-    event: DragEndEvent,
-    targetProjectId: string,
-    sourceProjectId: string,
-  ) => {
-    const { active } = event
-    const activeData = resolveActiveDragData(
-      active.data.current,
-      activeDragDataRef.current,
-    )
-    const draggedUrl = activeData?.url ?? String(active.id)
-
-    if (handleMoveUrlBetweenProjects) {
-      handleMoveUrlBetweenProjects(sourceProjectId, targetProjectId, draggedUrl)
-    }
-  }
+      resetSectionDragState({
+        activeDragDataRef,
+        lastDragOverDebugRef,
+        setDraggedItem,
+        setDraggedOverProjectId,
+        setDraggedProject,
+        setIsCrossProjectUrlDragActive,
+        setIsProjectReorderMode,
+      })
+    },
+    [handleReorderProjects, handleUrlDragSequence, projects],
+  )
 
   const handleFormSubmit = useCallback(
     (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -686,7 +759,7 @@ const useCustomProjectSectionView = ({
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={projects.map((project) => project.id)}
+              items={projectIds}
               strategy={verticalListSortingStrategy}
             >
               <div>
@@ -757,40 +830,15 @@ const useCustomProjectSectionView = ({
       )}
 
       <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {t('savedTabs.customProjects.createDialogTitle')}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleFormSubmit}>
-            <div className='grid gap-4 py-4'>
-              <div>
-                <Label htmlFor='name'>
-                  {t('savedTabs.customProjects.nameLabel')}
-                </Label>
-                <Input
-                  id='name'
-                  {...nameField}
-                  onKeyDown={handleNameKeyDown}
-                  placeholder={t('savedTabs.customProjects.createPlaceholder')}
-                  className={`w-full ${nameError ? 'border-red-500' : ''}`}
-                />
-                {nameError && (
-                  <p className='mt-1 text-xs text-red-500'>{nameError}</p>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant='ghost' type='button' onClick={closeCreateDialog}>
-                {t('common.cancel')}
-              </Button>
-              <Button type='button' onClick={handleCreateButtonClick}>
-                {t('savedTabs.customProjects.createAction')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
+        <CreateProjectDialogContent
+          t={t}
+          handleFormSubmit={handleFormSubmit}
+          nameField={nameField}
+          handleNameKeyDown={handleNameKeyDown}
+          nameError={nameError}
+          closeCreateDialog={closeCreateDialog}
+          handleCreateButtonClick={handleCreateButtonClick}
+        />
       </Dialog>
     </div>
   )
