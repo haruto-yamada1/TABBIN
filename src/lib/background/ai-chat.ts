@@ -16,14 +16,18 @@ import type {
   AiChatAttachment,
   AiSavedUrlRecord,
 } from '@/features/ai-chat/types'
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 import { getParentCategories } from '@/lib/storage/categories'
 import { getCustomProjects } from '@/lib/storage/projects'
-import { getUserSettings } from '@/lib/storage/settings'
+import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
 import { getUrlRecords } from '@/lib/storage/urls'
 import type { AiChatToolTrace, OllamaErrorDetails } from '@/types/background'
-import type { TabGroup } from '@/types/storage'
+import type { TabGroup, UserSettings } from '@/types/storage'
 
 import { createAiChatTools } from './ai-chat-tools'
 
@@ -75,12 +79,11 @@ interface RunAiChatRequestOptions {
   onStepUpdate?: (update: AiChatStepUpdate) => void
 }
 
-const getAiChatUiLocale = () =>
-  typeof chrome !== 'undefined'
-    ? (chrome.i18n?.getUILanguage?.() ?? 'ja')
-    : 'ja'
+const getAiChatUiLocale = () => getBrowserUiLocale('ja')
+const normalizeLoadedAiChatSettings = (settings: UserSettings | undefined) =>
+  normalizeAiSystemPromptSettings(settings ?? defaultSettings)
 const getNormalizedAiChatSettings = async () =>
-  normalizeAiSystemPromptSettings((await getUserSettings()) ?? {})
+  normalizeLoadedAiChatSettings(await getUserSettings())
 
 const OLLAMA_BASE_URL = 'http://localhost:11434'
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`
@@ -94,7 +97,7 @@ type OllamaStructuredError = Error & {
 
 const getExtensionOrigin = (): string | null => {
   try {
-    const extensionUrl = chrome?.runtime?.getURL?.('')
+    const extensionUrl = chrome.runtime.getURL('')
     if (extensionUrl) {
       const parsedUrl = new URL(extensionUrl)
       if (parsedUrl.protocol && parsedUrl.host) {
@@ -105,7 +108,7 @@ const getExtensionOrigin = (): string | null => {
     // Fallback to runtime.id
   }
 
-  const extensionId = chrome?.runtime?.id
+  const extensionId = chrome.runtime.id
   return extensionId ? `chrome-extension://${extensionId}` : null
 }
 
@@ -365,14 +368,16 @@ const createToolTracesFromParts = ({
   toolCalls,
   toolResults,
 }: {
-  toolCalls: GenerateTextToolCallLike[]
-  toolResults: GenerateTextToolResultLike[]
+  toolCalls?: GenerateTextToolCallLike[]
+  toolResults?: GenerateTextToolResultLike[]
 }): AiChatToolTrace[] => {
+  const safeToolCalls = toolCalls ?? []
+  const safeToolResults = toolResults ?? []
   const toolResultsById = new Map(
-    toolResults.map((toolResult) => [toolResult.toolCallId, toolResult]),
+    safeToolResults.map((toolResult) => [toolResult.toolCallId, toolResult]),
   )
 
-  return toolCalls.map((toolCall) => {
+  return safeToolCalls.map((toolCall) => {
     const toolResult = toolResultsById.get(toolCall.toolCallId)
 
     return {
@@ -681,8 +686,8 @@ const runAiChatRequest = async (
         model: ollama(ollamaModel),
         onStepFinish: (stepResult) => {
           const stepToolTraces = createToolTracesFromParts({
-            toolCalls: stepResult.toolCalls ?? [],
-            toolResults: stepResult.toolResults ?? [],
+            toolCalls: stepResult.toolCalls,
+            toolResults: stepResult.toolResults,
           })
 
           streamedToolTraces = mergeToolTraces(

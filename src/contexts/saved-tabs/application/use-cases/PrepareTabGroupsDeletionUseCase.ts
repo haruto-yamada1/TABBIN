@@ -46,7 +46,7 @@ export const createPrepareTabGroupsDeletionUseCase = (
       return
     }
     await Promise.all(
-      command.tabGroupIds.map((id) => prepareSingle({ tabGroupId: id })),
+      command.tabGroupIds.map(async (id) => prepareSingle({ tabGroupId: id })),
     )
   }
 }

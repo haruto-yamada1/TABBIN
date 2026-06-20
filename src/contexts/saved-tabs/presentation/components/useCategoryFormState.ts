@@ -84,9 +84,9 @@ export const useCategoryFormState = (
       const result = categoryNameSchema.safeParse(name)
       if (!result.success) {
         const issue = result.error.issues[0]
-        if (issue?.code === 'too_small') {
+        if (issue.code === 'too_small') {
           setCategoryNameError(t('savedTabs.categoryModal.validation.empty'))
-        } else if (issue?.code === 'too_big') {
+        } else if (issue.code === 'too_big') {
           setCategoryNameError(
             t('savedTabs.categoryModal.validation.maxLength'),
           )

@@ -5,11 +5,9 @@ import { describe, expect, it } from 'vitest'
 
 import { DeferredStoryLoader } from './deferred-story'
 
-const HeavyStory = lazy(() =>
-  Promise.resolve({
-    default: () => <div>heavy story content</div>,
-  }),
-)
+const HeavyStory = lazy(async () => ({
+  default: () => <div>heavy story content</div>,
+}))
 
 describe('DeferredStoryLoader', () => {
   it('does not load the heavy story until requested', async () => {

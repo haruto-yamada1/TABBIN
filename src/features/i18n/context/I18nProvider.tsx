@@ -1,6 +1,10 @@
 import { createContext, use, useEffect, useMemo, useState } from 'react'
 
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
 import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
 import {
   getChromeStorageOnChanged,
@@ -21,13 +25,10 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null)
 
-const getUiLocale = () => {
-  if (typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage) {
-    return chrome.i18n.getUILanguage()
-  }
-
-  return navigator.language
-}
+const getUiLocale = () =>
+  getBrowserUiLocale(
+    typeof navigator === 'undefined' ? undefined : navigator.language,
+  )
 
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const [i18nState, setI18nState] = useState<{
@@ -67,7 +68,7 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const handleStorageChange = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Partial<Record<string, chrome.storage.StorageChange>>,
       areaName: string,
     ) => {
       if (areaName !== 'local' || !changes.userSettings?.newValue) {

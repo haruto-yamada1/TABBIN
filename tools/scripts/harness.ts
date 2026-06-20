@@ -97,7 +97,7 @@ if (command === 'start') {
 if (command === 'validate') {
   const result = validateHarnessRun({ projectRoot, runId })
   if (result.ok) {
-    console.log(`harness: valid (${result.runId})`)
+    console.log(`harness: valid (${result.runId ?? 'unknown'})`)
     process.exit(0)
   }
 

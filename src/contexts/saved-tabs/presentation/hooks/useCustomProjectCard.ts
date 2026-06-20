@@ -62,7 +62,7 @@ const isUncategorizedDropTarget = (
   if (!over) {
     return false
   }
-  if (over.data?.current?.type === 'uncategorized') {
+  if (over.data.current?.type === 'uncategorized') {
     return true
   }
   if (over.id === `uncategorized-${projectId}`) {
@@ -97,12 +97,12 @@ const resolveOverCategory = (
   if (!over) {
     return undefined
   }
-  if (over.data?.current?.type === 'category') {
+  if (over.data.current?.type === 'category') {
     // eslint-disable-next-line typescript/no-unsafe-return
     return over.data.current.categoryName
   }
   // eslint-disable-next-line typescript/no-unsafe-return
-  return over.data?.current?.category
+  return over.data.current?.category
 }
 type UrlToUrlDropResult =
   | {
@@ -231,7 +231,7 @@ const handleProcessedUrlDrop = (params: {
     clearDragState()
     return
   }
-  if (over?.data?.current?.type === 'category') {
+  if (over?.data.current?.type === 'category') {
     // eslint-disable-next-line typescript/no-unsafe-assignment
     const targetCategory = over.data.current.categoryName
     if (targetCategory && targetCategory !== dragSourceCategory) {
@@ -298,7 +298,10 @@ const processUrlToUrlDrop = (params: {
  * @param params フックの引数
  * @returns プロジェクトURL・DnD・衝突検出関連の状態と操作
  */
-const noopGetProjectUrls: GetProjectUrlsUseCase = () => Promise.resolve([])
+const noopGetProjectUrls: GetProjectUrlsUseCase = async () => {
+  await Promise.resolve()
+  return []
+}
 
 export const useCustomProjectCard = ({
   project,

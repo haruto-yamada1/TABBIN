@@ -35,7 +35,7 @@ const findParsedChange = <
     ): change is Extract<
       TypedSavedTabsStorageChange,
       { key: K; kind: 'parsed' }
-    > => change.key === key && change.kind === 'parsed',
+    > => change.key === key,
   )
 
 const resolveSyncEvents = (
@@ -83,10 +83,10 @@ const applyUserSettingsChange = (
   if (!change) {
     return
   }
-  const partial = change.payload[0]
-  if (!partial) {
+  if (change.payload.length === 0) {
     return
   }
+  const partial = change.payload[0]
   setSettings((prev) => ({
     ...prev,
     ...partial,

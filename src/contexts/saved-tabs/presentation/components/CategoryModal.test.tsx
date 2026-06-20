@@ -49,13 +49,11 @@ describe('CategoryModal', () => {
       { id: 'group-2', domain: 'example.org', urls: [] },
     ]
 
-    const getSavedTabsPageDataQuery = vi.fn(() =>
-      Promise.resolve({
-        tabGroups: [],
-        parentCategories: [],
-        userSettings: {} as never,
-      }),
-    )
+    const getSavedTabsPageDataQuery = vi.fn(async () => ({
+      tabGroups: [],
+      parentCategories: [],
+      userSettings: {} as never,
+    }))
 
     render(
       <CategoryModal

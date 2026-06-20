@@ -1026,7 +1026,7 @@ describe('extension-actions モジュール', () => {
       )
       let resolveDomainSave: (() => void) | undefined
       mocked.saveTabsWithAutoCategory.mockImplementationOnce(
-        () =>
+        async () =>
           new Promise<void>((resolve) => {
             resolveDomainSave = resolve
           }),

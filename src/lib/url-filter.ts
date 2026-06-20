@@ -1,5 +1,7 @@
-const normalizeExcludePatterns = (excludePatterns: string[]): string[] =>
-  excludePatterns.reduce<string[]>((patterns, pattern) => {
+const normalizeExcludePatterns = (
+  excludePatterns: readonly unknown[] | undefined,
+): string[] =>
+  (excludePatterns ?? []).reduce<string[]>((patterns, pattern) => {
     if (typeof pattern !== 'string') {
       return patterns
     }
@@ -37,7 +39,7 @@ const isValidUrl = (url: string | null | undefined): boolean => {
 
 const isUrlExcludedByPatterns = (
   url: string | null | undefined,
-  excludePatterns: string[],
+  excludePatterns: readonly unknown[] | undefined,
 ): boolean => {
   const normalizedUrl = normalizeUrlCandidate(url)
   if (!normalizedUrl) {
@@ -50,7 +52,7 @@ const isUrlExcludedByPatterns = (
 
 const isSavableUrl = (
   url: string | null | undefined,
-  excludePatterns: string[],
+  excludePatterns: readonly unknown[] | undefined,
 ): boolean => {
   const normalizedUrl = normalizeUrlCandidate(url)
   if (!normalizedUrl) {
@@ -65,7 +67,7 @@ const isSavableUrl = (
 
 const filterItemsBySavableUrl = <T extends { url?: string | null }>(
   items: T[],
-  excludePatterns: string[],
+  excludePatterns: readonly unknown[] | undefined,
 ): T[] => items.filter((item) => isSavableUrl(item.url, excludePatterns))
 
 export {

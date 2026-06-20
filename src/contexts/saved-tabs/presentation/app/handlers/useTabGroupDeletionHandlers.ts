@@ -387,9 +387,9 @@ export const useTabGroupDeletionHandlers = ({
     ],
   )
   const handleUpdateUrls = useCallback(
-    (groupId: string, _updatedUrls: TabGroup['urls']) => {
+    async (groupId: string, _updatedUrls: TabGroup['urls']) => {
+      await Promise.resolve()
       console.log(`グループ ${groupId} のURL更新はストレージ同期に委譲しました`)
-      return Promise.resolve()
     },
     [],
   )

@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 import {
   getChromeStorageOnChanged,
@@ -21,7 +25,7 @@ import type { ParentCategory } from '@/types/storage'
 const MAX_CATEGORY_NAME_LENGTH = 25
 const ERROR_TOAST_DURATION_MS = 3000
 
-const getUiLocale = () => chrome.i18n?.getUILanguage?.() ?? 'ja'
+const getUiLocale = () => getBrowserUiLocale('ja')
 
 export const useCategories = () => {
   const [categoryState, setCategoryState] = useState<{
@@ -62,7 +66,7 @@ export const useCategories = () => {
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Partial<Record<string, chrome.storage.StorageChange>>,
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.parentCategories) {

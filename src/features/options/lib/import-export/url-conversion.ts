@@ -1,4 +1,8 @@
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { createOrUpdateUrlRecord } from '@/lib/storage/urls'
 import type { TabGroup, UrlRecord, UserSettings } from '@/types/storage'
@@ -14,11 +18,20 @@ const IMPORT_URL_RECORD_OPTIONS = {
   preserveExistingOnDuplicate: true,
 } as const
 
+const getUrlRecordTitle = (record: Partial<Pick<UrlRecord, 'title'>>): string =>
+  record.title ?? ''
+
+const isExportTabUrl = (
+  value: unknown,
+): value is NonNullable<TabGroup['urls']>[number] =>
+  typeof value === 'object' &&
+  value !== null &&
+  'url' in value &&
+  typeof value.url === 'string' &&
+  value.url.length > 0
+
 const resolveCurrentLanguage = (settings: Pick<UserSettings, 'language'>) =>
-  resolveLanguage(
-    settings.language ?? 'system',
-    chrome.i18n?.getUILanguage?.() ?? 'ja',
-  )
+  resolveLanguage(settings.language ?? 'system', getBrowserUiLocale('ja'))
 
 const getPlaceholderUrlTitle = (
   language: UserSettings['language'] | undefined,
@@ -300,10 +313,8 @@ const convertTabGroupToExportUrls = (
   placeholderUrlTitle: string,
 ): NonNullable<TabGroup['urls']> => {
   if (Array.isArray(tab.urls) && tab.urls.length > 0) {
-    return tab.urls.filter(
-      (item): item is NonNullable<TabGroup['urls']>[number] =>
-        Boolean(item?.url),
-    )
+    const legacyUrls: unknown[] = tab.urls
+    return legacyUrls.filter(isExportTabUrl)
   }
   if (!Array.isArray(tab.urlIds) || tab.urlIds.length === 0) {
     return []
@@ -334,7 +345,7 @@ const convertTabGroupToExportUrls = (
     exportedUrls.push({
       savedAt: resolvedUrlRecord.savedAt,
       subCategory: tab.urlSubCategories?.[urlId],
-      title: resolvedUrlRecord.title ?? '',
+      title: getUrlRecordTitle(resolvedUrlRecord),
       url: resolvedUrlRecord.url,
     })
   }

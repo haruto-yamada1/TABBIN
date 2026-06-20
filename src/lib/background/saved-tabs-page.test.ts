@@ -282,7 +282,7 @@ describe('saved-tabs-page', () => {
     chromeTabs.get.mockRejectedValue(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
       // eslint-disable-next-line typescript/no-misused-promises
-      () =>
+      async () =>
         new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve
         }),
@@ -297,7 +297,7 @@ describe('saved-tabs-page', () => {
 
     chromeTabs.get.mockImplementationOnce(
       // eslint-disable-next-line typescript/no-misused-promises
-      () =>
+      async () =>
         new Promise<chrome.tabs.Tab>((resolve) => {
           resolveGet = resolve
         }),
@@ -318,7 +318,7 @@ describe('saved-tabs-page', () => {
     chromeTabs.get.mockRejectedValueOnce(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
       // eslint-disable-next-line typescript/no-misused-promises
-      () =>
+      async () =>
         new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve
         }),

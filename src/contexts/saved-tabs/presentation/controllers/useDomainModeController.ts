@@ -238,14 +238,14 @@ export const useDomainModeController = (
         // follow-up が必要。暫定で port の open を並列呼び出しする
         // フォールバックを採る。
         await Promise.all(
-          urls.map((item) =>
+          urls.map(async (item) =>
             controller.deps.browserTabPort.open({ url: item.url }),
           ),
         )
         return
       }
       await Promise.all(
-        urls.map((item) =>
+        urls.map(async (item) =>
           controller.deps.browserTabPort.open({ url: item.url }),
         ),
       )
@@ -263,7 +263,7 @@ export const useDomainModeController = (
   const deleteGroups = useCallback(
     async (tabGroupIds: readonly string[]) => {
       await Promise.all(
-        tabGroupIds.map((id) => deleteTabGroup({ tabGroupId: id })),
+        tabGroupIds.map(async (id) => deleteTabGroup({ tabGroupId: id })),
       )
     },
     [deleteTabGroup],

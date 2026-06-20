@@ -20,6 +20,9 @@ import {
   normalizeUrlKey,
 } from './url-conversion'
 
+const getUrlRecordTitle = (record: Partial<Pick<UrlRecord, 'title'>>): string =>
+  record.title ?? ''
+
 const normalizeStringArray = (items: unknown[] | undefined): string[] => {
   if (!Array.isArray(items)) {
     return []
@@ -206,20 +209,40 @@ const normalizeImportedCustomProject = (
   const urlIds = Array.isArray(project.urlIds)
     ? project.urlIds.filter((id): id is string => typeof id === 'string')
     : []
-  const urls = Array.isArray(project.urls)
-    ? project.urls.reduce<NonNullable<CustomProject['urls']>>((items, item) => {
-        if (item?.url) {
-          items.push({
-            url: item.url,
-            title: item.title ?? '',
-            notes: item.notes,
-            savedAt: item.savedAt,
-            category: item.category,
-          })
-        }
-        return items
-      }, [])
+  const projectUrls: unknown[] | undefined = Array.isArray(project.urls)
+    ? project.urls
     : undefined
+  const urls = projectUrls?.reduce<NonNullable<CustomProject['urls']>>(
+    (items, item) => {
+      if (
+        typeof item === 'object' &&
+        item !== null &&
+        'url' in item &&
+        typeof item.url === 'string' &&
+        item.url.length > 0
+      ) {
+        items.push({
+          url: item.url,
+          title:
+            'title' in item && typeof item.title === 'string' ? item.title : '',
+          notes:
+            'notes' in item && typeof item.notes === 'string'
+              ? item.notes
+              : undefined,
+          savedAt:
+            'savedAt' in item && typeof item.savedAt === 'number'
+              ? item.savedAt
+              : undefined,
+          category:
+            'category' in item && typeof item.category === 'string'
+              ? item.category
+              : undefined,
+        })
+      }
+      return items
+    },
+    [],
+  )
   const urlMetadata =
     project.urlMetadata &&
     typeof project.urlMetadata === 'object' &&
@@ -398,7 +421,7 @@ const convertCustomProjectToExportUrls = (
   if (Array.isArray(project.urls) && project.urls.length > 0) {
     return project.urls.filter(
       (item): item is NonNullable<CustomProject['urls']>[number] =>
-        Boolean(item?.url),
+        Boolean(item.url),
     )
   }
   if (!Array.isArray(project.urlIds) || project.urlIds.length === 0) {
@@ -430,7 +453,7 @@ const convertCustomProjectToExportUrls = (
     offset += 1
     exportedUrls.push({
       url: resolvedUrlRecord.url,
-      title: resolvedUrlRecord.title ?? '',
+      title: getUrlRecordTitle(resolvedUrlRecord),
       notes: project.urlMetadata?.[urlId]?.notes,
       savedAt: resolvedUrlRecord.savedAt,
       category: project.urlMetadata?.[urlId]?.category,
@@ -588,7 +611,7 @@ const normalizeImportedCustomProjectsForImport = (
       return {
         ...project,
         urls: project.urls.filter(
-          (item): item is ImportedCustomProjectUrlData => Boolean(item?.url),
+          (item): item is ImportedCustomProjectUrlData => Boolean(item.url),
         ),
       }
     }
@@ -706,7 +729,7 @@ const resolveImportedCustomProjects = async (
   urlRecordMapByUrl?: Map<string, UrlRecord>,
 ): Promise<CustomProject[]> =>
   Promise.all(
-    projects.map((project) =>
+    projects.map(async (project) =>
       resolveImportedCustomProject(project, urlRecordMapByUrl),
     ),
   )

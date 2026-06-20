@@ -34,8 +34,8 @@ const createInMemoryRepositories = (
     findAll: async () => [...tabGroups],
 
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
-    findRawDomainById: vi.fn(() => Promise.resolve(null)),
-    findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
+    findRawDomainById: vi.fn(async () => null),
+    findRawTabGroupById: vi.fn(async () => null),
 
     removeByIds: async (ids) => {
       const idSet = new Set(ids.map((id) => id))

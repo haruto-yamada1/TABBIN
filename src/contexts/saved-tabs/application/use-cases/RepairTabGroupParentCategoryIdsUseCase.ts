@@ -53,10 +53,10 @@ const buildCategoryLookups = (
   const byDomainId = new Map<string, ParentCategory>()
   const byDomainName = new Map<string, ParentCategory>()
   for (const category of parentCategories) {
-    for (const domainId of category.domains ?? []) {
+    for (const domainId of category.domains) {
       byDomainId.set(domainId, category)
     }
-    for (const domainName of category.domainNames ?? []) {
+    for (const domainName of category.domainNames) {
       byDomainName.set(domainName, category)
     }
   }
@@ -99,7 +99,6 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
     ])
 
     const { byDomainId, byDomainName } = buildCategoryLookups(parentCategories)
-    let needsUpdate = false
     const updatedTabGroups = tabGroups.map((group: TabGroup): TabGroup => {
       if (group.parentCategoryId) {
         return group
@@ -109,7 +108,6 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
         console.log(
           `TabGroupのparentCategoryIdを ${categoryById.id} に修復しました (IDベース)`,
         )
-        needsUpdate = true
         return {
           ...group,
           parentCategoryId: categoryById.id,
@@ -120,7 +118,6 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
         console.log(
           `TabGroupのparentCategoryIdを ${categoryByName.id} に修復しました (ドメイン名ベース)`,
         )
-        needsUpdate = true
         return {
           ...group,
           parentCategoryId: categoryByName.id,
@@ -129,6 +126,9 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
       return group
     })
 
+    const needsUpdate = updatedTabGroups.some(
+      (group, index) => group !== tabGroups[index],
+    )
     if (needsUpdate) {
       await deps.tabGroupRepository.saveAll(updatedTabGroups)
       console.log('TabGroupのparentCategoryId修復処理が完了しました')

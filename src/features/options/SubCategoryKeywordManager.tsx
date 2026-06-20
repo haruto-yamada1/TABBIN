@@ -122,7 +122,7 @@ const useSubCategoryKeywordManagerView = ({
         .then(() => {
           setNewKeyword('')
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           console.error('キーワード保存エラー:', error)
         })
     }

@@ -111,7 +111,7 @@ describe('CategorySection', () => {
   it('ドロップ後に先に表示順を更新し、保存完了後に親更新を通知する', async () => {
     let resolvePersist: (() => void) | null = null
     reorderTabGroupUrlsUseCaseMock.mockImplementation(
-      () =>
+      async () =>
         new Promise<void>((resolve) => {
           resolvePersist = resolve
         }),

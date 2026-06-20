@@ -13,24 +13,24 @@ import { createGetProjectUrlsUseCase } from './GetProjectUrlsUseCase'
 const createUrlRecordRepository = (
   records: readonly UrlRecord[],
 ): UrlRecordRepository => ({
-  findAll: vi.fn(() => Promise.resolve(records)),
-  findById: vi.fn((id) =>
-    Promise.resolve(records.find((record) => record.id === id) ?? null),
+  findAll: vi.fn(async () => records),
+  findById: vi.fn(
+    async (id) => records.find((record) => record.id === id) ?? null,
   ),
-  removeByIds: vi.fn(() => Promise.resolve()),
-  saveAll: vi.fn(() => Promise.resolve()),
+  removeByIds: vi.fn(async () => {}),
+  saveAll: vi.fn(async () => {}),
 })
 
 const createCustomProjectRepository = (
   raws: Awaited<ReturnType<NonNullable<CustomProjectRepository['findAllRaw']>>>,
 ): CustomProjectRepository => ({
-  findAll: vi.fn(() => Promise.resolve([])),
-  findAllRaw: vi.fn(() => Promise.resolve(raws)),
-  findById: vi.fn(() => Promise.resolve(null)),
-  findOrder: vi.fn(() => Promise.resolve([])),
-  removeByIds: vi.fn(() => Promise.resolve()),
-  saveAll: vi.fn(() => Promise.resolve()),
-  saveOrder: vi.fn(() => Promise.resolve()),
+  findAll: vi.fn(async () => []),
+  findAllRaw: vi.fn(async () => raws),
+  findById: vi.fn(async () => null),
+  findOrder: vi.fn(async () => []),
+  removeByIds: vi.fn(async () => {}),
+  saveAll: vi.fn(async () => {}),
+  saveOrder: vi.fn(async () => {}),
 })
 
 describe('GetProjectUrlsUseCase', () => {

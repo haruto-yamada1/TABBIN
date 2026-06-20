@@ -58,8 +58,8 @@ const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
     ])
 
   return {
-    existingUrls: Array.isArray(existingUrlsResult.urls)
-      ? existingUrlsResult.urls.filter(
+    existingUrls: Array.isArray(existingUrlsResult.urls as unknown)
+      ? (existingUrlsResult.urls as unknown[]).filter(
           (item): item is UrlRecord =>
             typeof item === 'object' &&
             item !== null &&

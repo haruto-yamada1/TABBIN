@@ -3,6 +3,26 @@ import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
 
 const DEFAULT_LANGUAGE: AppLanguage = 'en'
 
+const isRecord = (value: unknown): value is Record<PropertyKey, unknown> =>
+  typeof value === 'object' && value !== null
+
+export const getBrowserUiLocale = (fallback?: string): string | undefined => {
+  const chromeValue: unknown = Reflect.get(globalThis, 'chrome')
+  if (!isRecord(chromeValue)) {
+    return fallback
+  }
+  const i18nValue = chromeValue.i18n
+  if (!isRecord(i18nValue)) {
+    return fallback
+  }
+  const getUiLanguage = i18nValue.getUILanguage
+  if (typeof getUiLanguage !== 'function') {
+    return fallback
+  }
+  const locale: unknown = getUiLanguage.call(i18nValue)
+  return typeof locale === 'string' ? locale : fallback
+}
+
 export const resolveUiLanguage = (
   uiLocale: string | undefined,
 ): AppLanguage => {
@@ -36,8 +56,8 @@ export const getMessage = (
   fallback = key,
   values?: Record<string, string>,
 ): string => {
-  const currentMessages = getMessages(language) as Record<string, string>
-  const englishMessages = getMessages('en') as Record<string, string>
+  const currentMessages: Partial<Record<string, string>> = getMessages(language)
+  const englishMessages: Partial<Record<string, string>> = getMessages('en')
   const template = currentMessages[key] ?? englishMessages[key] ?? fallback
 
   return template.replaceAll(

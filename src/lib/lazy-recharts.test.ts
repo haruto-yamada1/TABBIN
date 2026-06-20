@@ -26,7 +26,7 @@ interface LazyPayload {
 
 describe('lazy recharts exports', () => {
   it('すべての lazy export が recharts の対応コンポーネントを解決する', async () => {
-    const lazyResults = componentNames.map((name) => {
+    const lazyResults = componentNames.map(async (name) => {
       const component = lazyRecharts[name] as unknown as {
         _payload: LazyPayload
       }

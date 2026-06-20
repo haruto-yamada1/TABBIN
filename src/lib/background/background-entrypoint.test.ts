@@ -195,7 +195,7 @@ const triggerInstalled = async (
 ): Promise<void> => {
   await Promise.all(
     // eslint-disable-next-line typescript/await-thenable
-    harness.onInstalledListeners.map((listener) =>
+    harness.onInstalledListeners.map(async (listener) =>
       listener({
         reason,
       }),
@@ -204,7 +204,9 @@ const triggerInstalled = async (
 }
 const triggerStartup = async (harness: ChromeHarness): Promise<void> => {
   // eslint-disable-next-line typescript/await-thenable
-  await Promise.all(harness.onStartupListeners.map((listener) => listener()))
+  await Promise.all(
+    harness.onStartupListeners.map(async (listener) => listener()),
+  )
 }
 
 beforeEach(() => {

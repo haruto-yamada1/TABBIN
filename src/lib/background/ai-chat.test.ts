@@ -22,6 +22,7 @@ vi.mock('ai', () => ({
 }))
 
 vi.mock('@/lib/storage/settings', () => ({
+  defaultSettings: {},
   getUserSettings: mocked.getUserSettings,
 }))
 
@@ -163,7 +164,7 @@ describe('listLocalOllamaModels', () => {
       'launchctl setenv OLLAMA_ORIGINS "chrome-extension://test-extension-id"',
     )
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as Error
     expect(error.message).not.toContain('ollama serve')
   })
@@ -175,7 +176,7 @@ describe('listLocalOllamaModels', () => {
     })
 
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
@@ -207,7 +208,7 @@ describe('listLocalOllamaModels', () => {
     } as unknown as typeof chrome
 
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as OllamaErrorLike
 
     expect(error.ollamaError).toStrictEqual(
@@ -235,7 +236,7 @@ describe('listLocalOllamaModels', () => {
     } as unknown as typeof chrome
 
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as OllamaErrorLike
 
     expect(error.ollamaError).toStrictEqual(
@@ -301,7 +302,7 @@ describe('listLocalOllamaModels', () => {
       .mockRejectedValue(new TypeError('Failed to fetch'))
 
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
@@ -1449,7 +1450,7 @@ describe('runAiChatRequest', () => {
     const error = (await runAiChatRequest({
       history: [],
       prompt: 'test',
-    }).catch((caughtError) => caughtError)) as OllamaErrorLike
+    }).catch((caughtError: unknown) => caughtError)) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
     expect(error.ollamaError).toStrictEqual({
@@ -1516,7 +1517,7 @@ describe('runAiChatRequest', () => {
     const error = (await runAiChatRequest({
       history: [],
       prompt: 'test',
-    }).catch((caughtError) => caughtError)) as Error
+    }).catch((caughtError: unknown) => caughtError)) as Error
     expect(error.message).not.toContain('ollama serve')
   })
 
@@ -1526,7 +1527,7 @@ describe('runAiChatRequest', () => {
     const error = (await runAiChatRequest({
       history: [],
       prompt: 'test',
-    }).catch((caughtError) => caughtError)) as OllamaErrorLike
+    }).catch((caughtError: unknown) => caughtError)) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
     expect(error.ollamaError).toStrictEqual({

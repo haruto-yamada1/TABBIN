@@ -200,7 +200,7 @@ export function buildHarnessAudit(
     '## deterministic scorecard',
     ...surfaceCategories.map(
       (category) =>
-        `- ${category.name}: ${category.status} - ${category.evidence}`,
+        `- ${String(category.name)}: ${String(category.status)} - ${String(category.evidence)}`,
     ),
     '',
     '## source-of-truth sync',
@@ -297,7 +297,7 @@ export function buildHarnessSurfaceAudit(options: HarnessRunOptions): string {
     '## deterministic scorecard',
     ...categories.map(
       (category) =>
-        `- ${category.name}: ${category.score}/${category.max_score} ${category.status} - ${category.evidence} (${category.notes})`,
+        `- ${String(category.name)}: ${String(category.score)}/${String(category.max_score)} ${String(category.status)} - ${String(category.evidence)} (${String(category.notes)})`,
     ),
     '',
     '## Top 3 actions',

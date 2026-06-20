@@ -29,10 +29,11 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
   }
   try {
     const { urls } = await chrome.storage.local.get('urls')
-    if (!Array.isArray(urls)) {
+    const storedUrls: unknown = urls
+    if (!Array.isArray(storedUrls)) {
       return []
     }
-    urlRecordsCache = urls.filter(
+    urlRecordsCache = storedUrls.filter(
       (item): item is UrlRecord =>
         typeof item === 'object' &&
         item !== null &&
@@ -197,7 +198,7 @@ const createOrUpdateUrlRecordsBatchUnsafe = async (
   return resolvedRecordByUrl
 }
 
-const enqueueUrlRecordMutation = <T>(
+const enqueueUrlRecordMutation = async <T>(
   operation: () => Promise<T>,
 ): Promise<T> => {
   const result = urlRecordMutationQueue.then(operation)
@@ -208,21 +209,21 @@ const enqueueUrlRecordMutation = <T>(
   return result
 }
 
-const createOrUpdateUrlRecord = (
+const createOrUpdateUrlRecord = async (
   url: string,
   title: string,
   favIconUrl?: string,
   options: CreateOrUpdateUrlRecordOptions = {},
 ): Promise<UrlRecord> =>
-  enqueueUrlRecordMutation(() =>
+  enqueueUrlRecordMutation(async () =>
     createOrUpdateUrlRecordUnsafe(url, title, favIconUrl, options),
   )
 
-const createOrUpdateUrlRecordsBatch = (
+const createOrUpdateUrlRecordsBatch = async (
   inputs: UrlRecordInput[],
   options: CreateOrUpdateUrlRecordOptions = {},
 ): Promise<Map<string, UrlRecord>> =>
-  enqueueUrlRecordMutation(() =>
+  enqueueUrlRecordMutation(async () =>
     createOrUpdateUrlRecordsBatchUnsafe(inputs, options),
   )
 /**

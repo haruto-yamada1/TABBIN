@@ -59,12 +59,6 @@ export const createReorderTabGroupUrlsUseCase = (
       )
     }
     const targetGroup = allTabGroups[targetIndex]
-    if (!targetGroup) {
-      throw new SavedTabsDomainError(
-        '並び替え対象の TabGroup が見つかりません',
-        'TAB_GROUP_NOT_FOUND',
-      )
-    }
     const dtoGroup: TabGroupDto = {
       id: targetGroup.id,
       domain: targetGroup.domain,

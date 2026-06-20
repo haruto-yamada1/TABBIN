@@ -86,15 +86,15 @@ export const createChromeMessagingAdapter = (
   }
   return {
     [CHROME_MESSAGING_ADAPTER_MARKER]: true,
-    send: (message) => {
+    send: async (message) => {
       const api = resolveApi()
       const sendMessage = api?.runtime?.sendMessage
       if (!sendMessage) {
-        return Promise.resolve(undefined)
+        return undefined
       }
       return new Promise<MessagingPortResponse | undefined>((resolve) => {
         sendMessage(message, (response) => {
-          const lastError = api?.runtime?.lastError
+          const lastError = api.runtime?.lastError
           if (lastError) {
             console.warn(
               '[messaging] chrome.runtime.sendMessage でエラー:',

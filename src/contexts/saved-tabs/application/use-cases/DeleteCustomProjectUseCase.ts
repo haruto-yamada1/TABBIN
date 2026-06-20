@@ -140,7 +140,6 @@ export const createDeleteCustomProjectUseCase = (
     )
     if (
       targetRaw &&
-      mergedRawBase &&
       deps.customProjectRepository.findAllRaw &&
       deps.customProjectRepository.restoreAllRaw
     ) {
@@ -265,9 +264,8 @@ const mergeRawSnapshots = (
     { notes?: string; category?: string }
   > = {}
   for (const urlId of addedUrlIds) {
-    const meta = targetUrlMetadata[urlId]
-    if (meta) {
-      targetMetadataForAdded[urlId] = { ...meta }
+    if (Object.hasOwn(targetUrlMetadata, urlId)) {
+      targetMetadataForAdded[urlId] = { ...targetUrlMetadata[urlId] }
     }
   }
   const mergedUrlMetadata: Record<

@@ -72,7 +72,7 @@ export const createRemoveUrlsFromCustomProjectsUseCase = (
       urlsByGroup = await Promise.all(
         groupsWithoutUrlIds.map(async (group) => {
           const { urls } = await deps.loadTabGroupUrls({ tabGroup: group })
-          return (urls ?? []).map((item) => ({ url: item.url }))
+          return urls.map((item) => ({ url: item.url }))
         }),
       )
     } catch (error) {
@@ -81,7 +81,7 @@ export const createRemoveUrlsFromCustomProjectsUseCase = (
     }
 
     const allUrlsToDelete: string[] = urlsByGroup.flatMap((urls) =>
-      (urls || []).map((item) => item.url),
+      urls.map((item) => item.url),
     )
     if (allUrlsToDelete.length > 0) {
       await deps.customProjectsCommandService.removeUrlsFromAllCustomProjects(

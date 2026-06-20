@@ -244,15 +244,12 @@ export const createChromeStorageChangeAdapter = (
         payload: safeParseArrayPayload(z.string(), newValue),
       }
     }
-    if (key === 'userSettings') {
-      return {
-        key,
-        kind: 'parsed',
-        oldValue,
-        payload: parseUserSettingsPayload(newValue),
-      }
+    return {
+      key,
+      kind: 'parsed',
+      oldValue,
+      payload: parseUserSettingsPayload(newValue),
     }
-    return null
   }
 
   return {

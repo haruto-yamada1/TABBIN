@@ -462,11 +462,12 @@ const handleUrlDragStarted = (url: string): void => {
   console.log('ドラッグ開始を検知:', redactUrlForLog(url))
 
   // ドラッグ情報を一時保存
-  draggedUrlInfo = {
+  const dragInfo: DraggedUrlInfo = {
     processed: false,
     timestamp: Date.now(),
     url,
   }
+  draggedUrlInfo = dragInfo
 
   const DRAG_TIMEOUT_MS = 10_000
 
@@ -482,9 +483,7 @@ const handleUrlDragStarted = (url: string): void => {
   }, DRAG_TIMEOUT_MS)
 
   // タイムアウトIDを保存しておくことで、必要に応じてキャンセル可能
-  if (draggedUrlInfo) {
-    draggedUrlInfo.timeoutId = dragTimeout
-  }
+  dragInfo.timeoutId = dragTimeout
 }
 /**
  * ドラッグドロップ処理

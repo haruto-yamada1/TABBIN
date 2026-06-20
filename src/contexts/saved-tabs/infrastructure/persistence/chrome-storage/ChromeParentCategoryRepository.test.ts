@@ -13,14 +13,12 @@ const createPort = (state: StorageState): ChromeStorageLocalPort => {
   // mock 内で await しない同期関数を async として書くため lint ルールを局所的に解除する
   /* eslint-disable typescript/require-await */
   return {
-    get: vi.fn((key: string) => Promise.resolve({ [key]: state[key] })),
-    remove: vi.fn((key: string) => {
+    get: vi.fn(async (key: string) => ({ [key]: state[key] })),
+    remove: vi.fn(async (key: string) => {
       delete state[key]
-      return Promise.resolve()
     }),
-    set: vi.fn((value: Record<string, unknown>) => {
+    set: vi.fn(async (value: Record<string, unknown>) => {
       Object.assign(state, value)
-      return Promise.resolve()
     }),
   }
   /* eslint-enable typescript/require-await */

@@ -445,7 +445,11 @@ export const DomainModeContainer = ({
     [categories],
   )
   const handleMoveDomainToCategoryWithTabGroups = useCallback(
-    (domainId: string, fromCategoryId: string | null, toCategoryId: string) =>
+    async (
+      domainId: string,
+      fromCategoryId: string | null,
+      toCategoryId: string,
+    ) =>
       handleMoveDomainToCategory(
         domainId,
         fromCategoryId,
@@ -478,7 +482,7 @@ export const DomainModeContainer = ({
       await handleDeleteGroups(uncategorizedIds)
       return
     }
-    await Promise.all(uncategorizedIds.map((id) => handleDeleteGroup(id)))
+    await Promise.all(uncategorizedIds.map(async (id) => handleDeleteGroup(id)))
   }, [
     handleDeleteGroup,
     handleDeleteGroups,

@@ -292,7 +292,7 @@ describe('ProjectManagementModal', () => {
     let resolveRename: (() => void) | undefined
     const onClose = vi.fn()
     const onRenameProject = vi.fn(
-      () =>
+      async () =>
         new Promise<void>((resolve) => {
           resolveRename = resolve
         }),
@@ -399,13 +399,13 @@ describe('ProjectManagementModal', () => {
     let resolveRename: (() => void) | undefined
     let resolveDelete: (() => void) | undefined
     const onRenameProject = vi.fn(
-      () =>
+      async () =>
         new Promise<void>((resolve) => {
           resolveRename = resolve
         }),
     )
     const onDeleteProject = vi.fn(
-      () =>
+      async () =>
         new Promise<void>((resolve) => {
           resolveDelete = resolve
         }),

@@ -43,7 +43,7 @@ const getAiChatOllamaError = (
 ): OllamaErrorDetails | undefined => response?.ollamaError
 
 const getRuntimePlatform = async (): Promise<OllamaErrorPlatform> => {
-  if (!chrome?.runtime?.getPlatformInfo) {
+  if (!('getPlatformInfo' in chrome.runtime)) {
     return 'unknown'
   }
 
@@ -51,7 +51,7 @@ const getRuntimePlatform = async (): Promise<OllamaErrorPlatform> => {
     const platformInfo = await new Promise<chrome.runtime.PlatformInfo | null>(
       (resolve) => {
         chrome.runtime.getPlatformInfo((info) => {
-          resolve(info ?? null)
+          resolve(info)
         })
       },
     )

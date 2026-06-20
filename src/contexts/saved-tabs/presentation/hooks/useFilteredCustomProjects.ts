@@ -24,7 +24,7 @@ export const useFilteredCustomProjects = (
   >([])
 
   const loadProjectUrls = useCallback(
-    (project: CustomProject) => savedTabsUseCases.getProjectUrls(project),
+    async (project: CustomProject) => savedTabsUseCases.getProjectUrls(project),
     [savedTabsUseCases],
   )
 

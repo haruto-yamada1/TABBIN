@@ -1,15 +1,16 @@
 import { useMemo } from 'react'
 
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { getMessage, resolveUiLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveUiLanguage,
+} from '@/features/i18n/lib/language'
 
-const getUiLocale = () => {
-  if (typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage) {
-    return chrome.i18n.getUILanguage()
-  }
-
-  return typeof navigator === 'undefined' ? undefined : navigator.language
-}
+const getUiLocale = () =>
+  getBrowserUiLocale(
+    typeof navigator === 'undefined' ? undefined : navigator.language,
+  )
 
 const readI18n = useI18n
 

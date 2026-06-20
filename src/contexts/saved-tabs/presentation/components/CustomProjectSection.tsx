@@ -99,7 +99,7 @@ const ProjectDragPreview = ({ project }: { project: CustomProject }) => {
 
 const resolveTargetProjectId = (over: DragEndEvent['over']): string | null => {
   // eslint-disable-next-line typescript/no-unsafe-assignment
-  const overProjectId = over?.data?.current?.projectId
+  const overProjectId = over?.data.current?.projectId
   if (typeof overProjectId === 'string' && overProjectId.length > 0) {
     return overProjectId
   }
@@ -151,11 +151,11 @@ const buildDragDebugPayload = (
   activeType: activeData?.type ?? null,
   overId: typeof over?.id === 'string' ? over.id : null,
   overProjectId:
-    typeof over?.data?.current?.projectId === 'string'
+    typeof over?.data.current?.projectId === 'string'
       ? over.data.current.projectId
       : null,
   // eslint-disable-next-line typescript/no-unsafe-assignment
-  overType: over?.data?.current?.type ?? null,
+  overType: over?.data.current?.type ?? null,
   sourceProjectId: activeData?.projectId ?? null,
   targetProjectId: resolveTargetProjectId(over),
 })
@@ -178,7 +178,7 @@ const updateCrossProjectDragState = ({
 
   const sourceProjectId = activeData.projectId
   // eslint-disable-next-line typescript/no-unsafe-assignment
-  const projectId = over.data?.current?.projectId
+  const projectId = over.data.current?.projectId
   if (projectId && sourceProjectId && projectId !== sourceProjectId) {
     // eslint-disable-next-line typescript/no-unsafe-return
     setDraggedOverProjectId((prev) => (prev === projectId ? prev : projectId))
@@ -305,7 +305,9 @@ const handleDragEndByType = ({
   event: DragEndEvent
   over: DragEndEvent['over']
   projects: CustomProject[]
-  projectDragHandlersRef: React.RefObject<Record<string, ProjectDragHandlers>>
+  projectDragHandlersRef: React.RefObject<
+    Partial<Record<string, ProjectDragHandlers>>
+  >
   handleReorderProjects?: (newOrder: string[]) => void | Promise<void>
   handleUrlDragSequence: (event: DragEndEvent) => void
 }) => {
@@ -474,7 +476,9 @@ const useCustomProjectSectionView = ({
     }),
   )
 
-  const projectDragHandlersRef = useRef<Record<string, ProjectDragHandlers>>({})
+  const projectDragHandlersRef = useRef<
+    Partial<Record<string, ProjectDragHandlers>>
+  >({})
   const activeDragDataRef = useRef<ActiveDragData | null>(null)
   const lastDragOverDebugRef = useRef<string | null>(null)
 
@@ -633,7 +637,7 @@ const useCustomProjectSectionView = ({
       Object.entries(projectDragHandlersRef.current).forEach(
         ([id, handlers]) => {
           const project = projects.find((p) => p.id === id)
-          if (project) {
+          if (project && handlers) {
             handlers.handleDragOver(event, project)
           }
         },
@@ -685,8 +689,8 @@ const useCustomProjectSectionView = ({
           projectDragHandlersRef.current[sourceProjectId]
         ) {
           const isUncategorizedOver =
-            over?.id === `uncategorized-${targetProjectId}` ||
-            over?.data?.current?.type === 'uncategorized'
+            over?.id === `uncategorized-${targetProjectId ?? ''}` ||
+            over?.data.current?.type === 'uncategorized'
           projectDragHandlersRef.current[sourceProjectId].handleUrlDragEnd(
             event,
             isUncategorizedOver,

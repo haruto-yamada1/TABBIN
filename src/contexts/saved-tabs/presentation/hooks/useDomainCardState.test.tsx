@@ -77,7 +77,7 @@ const createUseDomainCardStateParams = (
   }
 
   const createParentCategoryUseCase = vi.fn(
-    () =>
+    async () =>
       Promise.resolve({
         all: [],
         category: { id: '', name: '', domains: [], domainNames: [] } as never,
@@ -85,7 +85,7 @@ const createUseDomainCardStateParams = (
   ) as unknown as CreateParentCategoryUseCase
 
   const assignDomainToCategoryUseCase = vi.fn(
-    () =>
+    async () =>
       Promise.resolve({
         all: [],
         mapping: { categoryId: '', domainId: '' },

@@ -30,10 +30,7 @@ const loadAnalyticsRecords = async (): Promise<AiSavedUrlRecord[]> => {
     savedTabs: Array.isArray(savedTabsResult.savedTabs)
       ? savedTabsResult.savedTabs
       : [],
-    urlRecords: filterItemsBySavableUrl(
-      urlRecords,
-      settings.excludePatterns ?? [],
-    ),
+    urlRecords: filterItemsBySavableUrl(urlRecords, settings.excludePatterns),
   })
 }
 

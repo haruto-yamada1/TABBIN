@@ -144,7 +144,7 @@ describe('CustomProjectCard', () => {
   })
 
   it('getProjectUrlsUseCase を ProjectCardRoot に渡す (issue #548)', () => {
-    const getProjectUrlsUseCase = vi.fn(() => Promise.resolve([]))
+    const getProjectUrlsUseCase = vi.fn(async () => [])
     const props = {
       ...createProps(),
       getProjectUrlsUseCase,

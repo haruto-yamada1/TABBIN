@@ -28,8 +28,8 @@ const createInMemoryRepositories = (
     findAll: async () => [...tabGroups],
 
     findById: async (id) => tabGroups.find((group) => group.id === id) ?? null,
-    findRawDomainById: () => Promise.resolve(null),
-    findRawTabGroupById: () => Promise.resolve(null),
+    findRawDomainById: async () => null,
+    findRawTabGroupById: async () => null,
 
     removeByIds: async () => undefined,
 

@@ -127,13 +127,11 @@ describe('CategoryGroup', () => {
             saveParentCategories: vi.fn(),
             saveTabGroups: vi.fn(),
           },
-          getSavedTabsPageDataQuery: vi.fn(() =>
-            Promise.resolve({
-              tabGroups: [],
-              parentCategories: [],
-              userSettings: {} as UserSettingsDto,
-            }),
-          ),
+          getSavedTabsPageDataQuery: vi.fn(async () => ({
+            tabGroups: [],
+            parentCategories: [],
+            userSettings: {} as UserSettingsDto,
+          })),
         }}
         categoryManagementModalUseCases={{
           addDomainToParentCategory,
@@ -193,13 +191,11 @@ describe('CategoryGroup', () => {
             saveParentCategories: vi.fn(),
             saveTabGroups: vi.fn(),
           },
-          getSavedTabsPageDataQuery: vi.fn(() =>
-            Promise.resolve({
-              tabGroups: [],
-              parentCategories: [],
-              userSettings: {} as UserSettingsDto,
-            }),
-          ),
+          getSavedTabsPageDataQuery: vi.fn(async () => ({
+            tabGroups: [],
+            parentCategories: [],
+            userSettings: {} as UserSettingsDto,
+          })),
         }}
         categoryManagementModalUseCases={{
           addDomainToParentCategory,

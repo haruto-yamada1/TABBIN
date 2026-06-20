@@ -114,7 +114,7 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     }
     const data = await storageLocal.get(['userSettings'])
     console.log('取得した設定データ:', data)
-    if (data.userSettings) {
+    if (Object.hasOwn(data, 'userSettings')) {
       console.log('保存された設定を使用:', data.userSettings)
       const sanitizedStoredSettings = stripLegacyUserSettings(data.userSettings)
       const mergedStoredSettings = mergeStoredUserSettings(

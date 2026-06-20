@@ -297,31 +297,29 @@ export const useSavedTabsController = (
         const dto = await deleteTabGroupUseCase({
           tabGroupId: createTabGroupId(deleteInput.tabGroupId),
         })
-        if (dto.snapshot) {
-          lastSnapshotRef.current = {
-            customProjects: dto.snapshot.customProjects
-              ? [...dto.snapshot.customProjects]
-              : undefined,
-            parentCategories: dto.snapshot.parentCategories
-              ? dto.snapshot.parentCategories.map((category) => ({
-                  domainNames: [...category.domainNames],
-                  domains: [...category.domains],
-                  id: category.id,
-                  name: category.name,
-                }))
-              : undefined,
-            savedTabs: dto.snapshot.savedTabs
-              ? [...dto.snapshot.savedTabs]
-              : undefined,
-            urlRecords: dto.snapshot.urlRecords
-              ? dto.snapshot.urlRecords.map((record) => ({
-                  id: record.id,
-                  savedAt: record.savedAt,
-                  title: record.title,
-                  url: record.url,
-                }))
-              : undefined,
-          }
+        lastSnapshotRef.current = {
+          customProjects: dto.snapshot.customProjects
+            ? [...dto.snapshot.customProjects]
+            : undefined,
+          parentCategories: dto.snapshot.parentCategories
+            ? dto.snapshot.parentCategories.map((category) => ({
+                domainNames: [...category.domainNames],
+                domains: [...category.domains],
+                id: category.id,
+                name: category.name,
+              }))
+            : undefined,
+          savedTabs: dto.snapshot.savedTabs
+            ? [...dto.snapshot.savedTabs]
+            : undefined,
+          urlRecords: dto.snapshot.urlRecords
+            ? dto.snapshot.urlRecords.map((record) => ({
+                id: record.id,
+                savedAt: record.savedAt,
+                title: record.title,
+                url: record.url,
+              }))
+            : undefined,
         }
         await refresh()
         return {

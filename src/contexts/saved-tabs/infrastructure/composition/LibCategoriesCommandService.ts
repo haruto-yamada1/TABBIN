@@ -41,9 +41,6 @@ export const createLibCategoriesCommandService =
         },
       ])
       const first = storage[0]
-      if (!first) {
-        return
-      }
       await updateDomainCategorySettings(
         first.domain,
         [...first.subCategories],

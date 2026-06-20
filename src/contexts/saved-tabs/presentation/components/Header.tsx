@@ -118,9 +118,7 @@ export const Header = ({
 
       const isComposing =
         event.nativeEvent.isComposing ||
-        (typeof event === 'object' &&
-          event !== null &&
-          'isComposing' in event &&
+        ('isComposing' in event &&
           Boolean((event as { isComposing?: unknown }).isComposing)) ||
         false
       if (isComposing) {

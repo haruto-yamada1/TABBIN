@@ -102,7 +102,7 @@ export const ThemeProvider = ({
     ) => {
       if (
         areaName === 'local' &&
-        changes[storageKey] &&
+        Object.hasOwn(changes, storageKey) &&
         isTheme(changes[storageKey].newValue)
       ) {
         setThemeState(changes[storageKey].newValue)
@@ -168,7 +168,7 @@ export const ThemeProvider = ({
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
-      if (areaName === 'local' && changes.userSettings) {
+      if (areaName === 'local' && Object.hasOwn(changes, 'userSettings')) {
         const updated = isPartialUserSettings(changes.userSettings.newValue)
           ? changes.userSettings.newValue
           : undefined
@@ -219,8 +219,11 @@ export const ThemeProvider = ({
  * テーマコンテキストにアクセスするためのカスタムフック
  * @returns テーマ状態と設定関数
  */
+const useThemeContext = (): ThemeProviderState | undefined =>
+  use(ThemeProviderContext)
+
 export const useTheme = (): ThemeProviderState => {
-  const context = use(ThemeProviderContext)
+  const context = useThemeContext()
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider')
   }
