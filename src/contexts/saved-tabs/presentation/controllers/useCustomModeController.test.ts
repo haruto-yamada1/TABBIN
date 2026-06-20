@@ -115,9 +115,7 @@ const createEmptyDeps = (
 
     saveAll: async () => undefined,
   }
-  const openSpy = vi.fn((input: { url: string }) =>
-    Promise.resolve({ url: input.url }),
-  )
+  const openSpy = vi.fn(async (input: { url: string }) => ({ url: input.url }))
   const browserTabPort: BrowserTabPort = { open: openSpy }
   const browserWindowPort: BrowserWindowPort = {
     openWithUrls: vi.fn(async (input) => ({

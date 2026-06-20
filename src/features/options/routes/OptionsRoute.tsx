@@ -38,6 +38,10 @@ import type { UserSettings } from '@/types/storage'
 
 import { resetFontSizeInputState } from './optionsRoute.helpers'
 
+const resolveClickBehavior = (
+  value: UserSettings['clickBehavior'] | undefined,
+): UserSettings['clickBehavior'] => value ?? 'saveWindowTabs'
+
 const createThemeColorChangeHandler =
   (
     key: keyof NonNullable<UserSettings['colors']>,
@@ -370,7 +374,7 @@ const useOptionsRouteView = () => {
           </h2>
 
           <ClickBehaviorSelect
-            value={settings.clickBehavior || 'saveWindowTabs'}
+            value={resolveClickBehavior(settings.clickBehavior)}
             // eslint-disable-next-line typescript/no-misused-promises
             onValueChange={handleClickBehaviorChange}
           />

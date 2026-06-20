@@ -128,6 +128,7 @@ vi.mock('@/components/ai-elements/conversation', async () => {
   }
 })
 
+import { getRuntimePlatform } from './savedTabsChat/streaming'
 import { SavedTabsChatWidget } from './SavedTabsChatWidget'
 
 type StorageListener = (
@@ -258,6 +259,14 @@ describe('SavedTabsChatWidget', () => {
     )
 
     expect(source).not.toContain('<button')
+  })
+
+  it('Chrome runtime API がない場合は platform を unknown として扱う', async () => {
+    vi.stubGlobal('chrome', undefined)
+    await expect(getRuntimePlatform()).resolves.toBe('unknown')
+
+    vi.stubGlobal('chrome', { runtime: { getPlatformInfo: 'invalid' } })
+    await expect(getRuntimePlatform()).resolves.toBe('unknown')
   })
 
   it('opens the sidebar from the bottom-right launcher', async () => {
@@ -943,6 +952,29 @@ describe('SavedTabsChatWidget', () => {
     })
   })
 
+  it('最後の system prompt を削除したら直前の prompt を選択する', async () => {
+    mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
+
+    render(<SavedTabsChatWidget />)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open AI chat',
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open system prompt settings' }),
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Research' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(screen.getByLabelText<HTMLInputElement>('Prompt name').value).toBe(
+        'Default',
+      )
+    })
+  })
+
   it('shows the available tools list in the system prompt manager', async () => {
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
@@ -1278,6 +1310,38 @@ describe('SavedTabsChatWidget', () => {
     })
     expect(mocked.toastSuccess).toHaveBeenCalledWith('Copied the conversation')
     expect(copyButton.getAttribute('data-state')).toBe('copied')
+  })
+
+  it('clipboard API がない場合は copy error を表示する', async () => {
+    mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    })
+
+    render(
+      <SavedTabsChatWidget
+        defaultOpen
+        initialMessages={[
+          {
+            content: 'Question',
+            id: 'message-1',
+            role: 'user',
+          },
+        ]}
+      />,
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Copy conversation' }),
+    )
+
+    await waitFor(() => {
+      expect(mocked.toastError).toHaveBeenCalledWith(
+        'Could not copy the conversation',
+      )
+    })
+    expect(mocked.writeClipboardText).not.toHaveBeenCalled()
   })
 
   it('resets history and returns to the initial state when new conversation is clicked', async () => {

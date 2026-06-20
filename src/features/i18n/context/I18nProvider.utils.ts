@@ -1,12 +1,13 @@
-import { getMessage, resolveUiLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveUiLanguage,
+} from '@/features/i18n/lib/language'
 
-const getUiLocale = () => {
-  if (typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage) {
-    return chrome.i18n.getUILanguage()
-  }
-
-  return navigator.language
-}
+const getUiLocale = () =>
+  getBrowserUiLocale(
+    typeof navigator === 'undefined' ? undefined : navigator.language,
+  )
 
 export const getFallbackText = (
   key: string,

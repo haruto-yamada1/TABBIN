@@ -102,15 +102,10 @@ const normalizeConversationHistory = ({
   let hasChanges = false
 
   const normalizedConversations = conversations.map((conversation) => {
-    let conversationChanged = false
-
     const messages = conversation.messages.map((message) => {
       if (message.role !== 'assistant' || message.isStreaming !== true) {
         return message
       }
-
-      conversationChanged = true
-      hasChanges = true
 
       return {
         ...message,
@@ -121,10 +116,14 @@ const normalizeConversationHistory = ({
         isStreaming: false,
       }
     })
+    const conversationChanged = messages.some(
+      (message, index) => message !== conversation.messages[index],
+    )
 
     if (!conversationChanged) {
       return conversation
     }
+    hasChanges = true
 
     return {
       ...conversation,

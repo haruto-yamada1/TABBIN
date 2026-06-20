@@ -131,8 +131,8 @@ const setupChromeStorage = (state: StorageState = {}) => {
         ).savedTabs?.find((tab) => tab.id === id) ??
           null) as unknown as ReturnType<TabGroupRepository['findById']>,
     ),
-    findRawDomainById: vi.fn(() => Promise.resolve(null)),
-    findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
+    findRawDomainById: vi.fn(async () => null),
+    findRawTabGroupById: vi.fn(async () => null),
     saveAll: vi.fn(
       async (_next: Parameters<TabGroupRepository['saveAll']>[0]) => {
         await local.set({
@@ -332,13 +332,11 @@ describe('useCategoryKeywordModal', () => {
             saveParentCategories: vi.fn(),
             saveTabGroups: vi.fn(),
           },
-          getSavedTabsPageDataQuery: vi.fn(() =>
-            Promise.resolve({
-              tabGroups: [],
-              parentCategories: [],
-              userSettings: {} as UserSettingsDto,
-            }),
-          ),
+          getSavedTabsPageDataQuery: vi.fn(async () => ({
+            tabGroups: [],
+            parentCategories: [],
+            userSettings: {} as UserSettingsDto,
+          })),
         },
         group: createGroup(),
         initialParentCategories: createParentCategories(),
@@ -464,13 +462,11 @@ describe('useCategoryKeywordModal', () => {
             saveParentCategories: vi.fn(),
             saveTabGroups: vi.fn(),
           },
-          getSavedTabsPageDataQuery: vi.fn(() =>
-            Promise.resolve({
-              tabGroups: [],
-              parentCategories: [],
-              userSettings: {} as UserSettingsDto,
-            }),
-          ),
+          getSavedTabsPageDataQuery: vi.fn(async () => ({
+            tabGroups: [],
+            parentCategories: [],
+            userSettings: {} as UserSettingsDto,
+          })),
         },
         group: createGroup(),
         initialParentCategories: createParentCategories(),
@@ -1344,7 +1340,7 @@ describe('useCategoryKeywordModal', () => {
       savedTabs: [createGroup()],
     })
     storage.local.set.mockImplementationOnce(
-      () =>
+      async () =>
         new Promise<void>((resolve) => {
           resolveSet = resolve
         }),

@@ -20,7 +20,7 @@ const createContextMenus = (): void => {
   console.log('コンテキストメニュー作成開始')
 
   // 既存のメニューをすべて削除
-  if (chrome.contextMenus) {
+  if ('contextMenus' in chrome) {
     try {
       chrome.contextMenus.removeAll(() => {
         if (chrome.runtime.lastError) {
@@ -34,7 +34,7 @@ const createContextMenus = (): void => {
             setupMenuClickHandler()
             console.log('コンテキストメニューを作成しました')
           })
-          .catch((error) => {
+          .catch((error: unknown) => {
             console.error('メニュー作成エラー:', error)
           })
       })

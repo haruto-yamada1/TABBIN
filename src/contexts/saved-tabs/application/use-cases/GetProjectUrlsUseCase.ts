@@ -136,7 +136,7 @@ export const createGetProjectUrlsUseCase = (
     const urlMetadata = targetRaw?.urlMetadata
     const rawUrlsById = buildRawUrlsById(targetRaw?.urls)
     const urlRecords = await Promise.all(
-      urlIds.map((id) =>
+      urlIds.map(async (id) =>
         deps.urlRecordRepository.findById(createUrlRecordId(id)),
       ),
     )

@@ -168,7 +168,7 @@ const lowerCaseSet = (values: string[]): Set<string> =>
 
 const interpolate = (
   template: string,
-  values: Record<string, string>,
+  values: Partial<Record<string, string>>,
 ): string =>
   // eslint-disable-next-line typescript/no-unsafe-member-access
   template.replaceAll(/\{\{(\w+)\}\}/g, (_, token) => values[token] ?? '')

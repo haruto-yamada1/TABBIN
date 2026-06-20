@@ -113,7 +113,7 @@ import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
-import { defaultSettings, saveUserSettings } from '@/lib/storage/settings'
+import { saveUserSettings } from '@/lib/storage/settings'
 import {
   UserSettingsSchema,
   fromStorageChange,
@@ -157,6 +157,33 @@ import {
 import { useChatPromptManager } from './savedTabsChat/useChatPromptManager'
 import { useChatStreamHandlers } from './savedTabsChat/useChatStreamHandlers'
 import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.helpers'
+
+interface ClipboardWriter {
+  writeText: (text: string) => Promise<void>
+}
+
+const getClipboardWriter = (): ClipboardWriter | null => {
+  const navigatorValue: unknown = Reflect.get(globalThis, 'navigator')
+  if (typeof navigatorValue !== 'object' || navigatorValue === null) {
+    return null
+  }
+  const clipboardValue: unknown = Reflect.get(navigatorValue, 'clipboard')
+  if (typeof clipboardValue !== 'object' || clipboardValue === null) {
+    return null
+  }
+  const writeTextValue: unknown = Reflect.get(clipboardValue, 'writeText')
+  if (typeof writeTextValue !== 'function') {
+    return null
+  }
+  return {
+    writeText: async (text) => {
+      await Reflect.apply(writeTextValue, clipboardValue, [text])
+    },
+  }
+}
+
+const getConversationClipboard = (): ClipboardWriter | null =>
+  typeof window === 'undefined' ? null : getClipboardWriter()
 
 interface SavedTabsChatPanelProps {
   activeSystemPromptId: string
@@ -358,17 +385,19 @@ const renderSystemPromptSelector = ({
   t: TranslateFn
   onValueChange: (value: string) => void
 }) => {
-  const activePrompt =
-    getSelectedPrompt(prompts, selectedPromptId) ?? prompts[0] ?? null
+  const activePrompt = getSelectedPrompt(prompts, selectedPromptId)
+  if (!activePrompt) {
+    return null
+  }
 
   return (
     <PromptInputSelect
       key={selectedPromptId}
-      value={activePrompt?.id}
+      value={activePrompt.id}
       onValueChange={onValueChange}
     >
       <PromptInputSelectTrigger
-        aria-label={activePrompt?.name || t('aiChat.systemPrompt.select')}
+        aria-label={activePrompt.name || t('aiChat.systemPrompt.select')}
         className={cn(
           'h-8 w-[140px] shrink-0 justify-between rounded-md border border-border/70 bg-background px-2 text-xs shadow-none',
           isCompactLayout && 'w-[112px]',
@@ -846,8 +875,8 @@ const useChatPromptComposerView = ({
       event.preventDefault()
 
       const textarea = event.currentTarget
-      const selectionStart = textarea.selectionStart ?? input.length
-      const selectionEnd = textarea.selectionEnd ?? selectionStart
+      const selectionStart = textarea.selectionStart
+      const selectionEnd = textarea.selectionEnd
       const { cursorPosition, nextValue } = insertLineBreakAtCursor({
         selectionEnd,
         selectionStart,
@@ -1312,7 +1341,7 @@ const useSavedTabsChatWidgetView = ({
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Partial<Record<string, chrome.storage.StorageChange>>,
       areaName: string,
     ) => {
       if (areaName !== 'local' || !changes.userSettings) {
@@ -1320,8 +1349,7 @@ const useSavedTabsChatWidgetView = ({
       }
 
       setSettings(
-        fromStorageChange(UserSettingsSchema, changes.userSettings.newValue) ??
-          defaultSettings,
+        fromStorageChange(UserSettingsSchema, changes.userSettings.newValue),
       )
     }
 
@@ -1540,13 +1568,14 @@ const useSavedTabsChatWidgetView = ({
       return
     }
 
-    if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
+    const clipboard = getConversationClipboard()
+    if (!clipboard) {
       toast.error(t('aiChat.copyConversationError'))
       return
     }
 
     try {
-      await navigator.clipboard.writeText(conversationCopyText)
+      await clipboard.writeText(conversationCopyText)
       if (conversationCopiedTimeoutRef.current) {
         window.clearTimeout(conversationCopiedTimeoutRef.current)
       }

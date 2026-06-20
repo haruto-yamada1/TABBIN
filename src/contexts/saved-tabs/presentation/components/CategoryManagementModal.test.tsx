@@ -240,8 +240,8 @@ const createMockRepositories = (): {
           (g) => g.id === (id as unknown as string),
         ) ?? null) as unknown as ReturnType<TabGroupRepository['findById']>,
     ),
-    findRawDomainById: vi.fn(() => Promise.resolve(null)),
-    findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
+    findRawDomainById: vi.fn(async () => null),
+    findRawTabGroupById: vi.fn(async () => null),
 
     saveAll: vi.fn(async (groups) => {
       mockStateRef.current.savedTabs = [

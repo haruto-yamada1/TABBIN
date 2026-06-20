@@ -188,12 +188,10 @@ export const useDomainCardState = ({
     }
     console.log('使用されているカテゴリ:', [...usedCategories])
     const regularCategories = (group.subCategories ?? []).filter(
-      (categoryName) =>
-        categorizedUrls[categoryName] &&
-        categorizedUrls[categoryName].length > 0,
+      (categoryName) => categorizedUrls[categoryName].length > 0,
     )
     console.log('表示すべき通常カテゴリ:', regularCategories)
-    const hasUncategorized = (categorizedUrls.__uncategorized?.length || 0) > 0
+    const hasUncategorized = (categorizedUrls.__uncategorized.length || 0) > 0
     if (
       group.subCategoryOrderWithUncategorized &&
       group.subCategoryOrderWithUncategorized.length > 0
@@ -444,7 +442,7 @@ export const useDomainCardState = ({
           await handleDeleteUrls(group.id, urlsToRemove)
         } else if (deleteSingleUrl) {
           await Promise.all(
-            urlsToRemove.map((url) => deleteSingleUrl(group.id, url)),
+            urlsToRemove.map(async (url) => deleteSingleUrl(group.id, url)),
           )
         } else {
           // どちらも未指定なら何もしない（旧 `@/lib/storage/tabs.removeUrlFromTabGroup`

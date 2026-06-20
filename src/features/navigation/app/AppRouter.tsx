@@ -20,13 +20,41 @@ interface AppRouterProps {
   initialEntries?: string[]
 }
 
-const AiChatRoutePage = lazy(() =>
+interface StorageLocalRemove {
+  remove: (key: string) => Promise<void>
+}
+
+const getStorageLocalRemove = (): StorageLocalRemove | null => {
+  const chromeValue: unknown = Reflect.get(globalThis, 'chrome')
+  if (typeof chromeValue !== 'object' || chromeValue === null) {
+    return null
+  }
+  const storageValue: unknown = Reflect.get(chromeValue, 'storage')
+  if (typeof storageValue !== 'object' || storageValue === null) {
+    return null
+  }
+  const localValue: unknown = Reflect.get(storageValue, 'local')
+  if (typeof localValue !== 'object' || localValue === null) {
+    return null
+  }
+  const removeValue: unknown = Reflect.get(localValue, 'remove')
+  if (typeof removeValue !== 'function') {
+    return null
+  }
+  return {
+    remove: async (key) => {
+      await Reflect.apply(removeValue, localValue, [key])
+    },
+  }
+}
+
+const AiChatRoutePage = lazy(async () =>
   import('@/features/ai-chat/routes/AiChatRoute').then(({ AiChatRoute }) => ({
     default: AiChatRoute,
   })),
 )
 
-const AnalyticsRoutePage = lazy(() =>
+const AnalyticsRoutePage = lazy(async () =>
   import('@/features/analytics/routes/AnalyticsRoute').then(
     ({ AnalyticsRoute }) => ({
       default: AnalyticsRoute,
@@ -34,13 +62,13 @@ const AnalyticsRoutePage = lazy(() =>
   ),
 )
 
-const OptionsRoutePage = lazy(() =>
+const OptionsRoutePage = lazy(async () =>
   import('@/features/options/routes/OptionsRoute').then(({ OptionsRoute }) => ({
     default: OptionsRoute,
   })),
 )
 
-const PeriodicExecutionRoutePage = lazy(() =>
+const PeriodicExecutionRoutePage = lazy(async () =>
   import('@/features/periodic-execution/routes/PeriodicExecutionRoute').then(
     ({ PeriodicExecutionRoute }) => ({
       default: PeriodicExecutionRoute,
@@ -48,7 +76,7 @@ const PeriodicExecutionRoutePage = lazy(() =>
   ),
 )
 
-const SavedTabsRouteComponent = lazy(() =>
+const SavedTabsRouteComponent = lazy(async () =>
   import('@/contexts/saved-tabs/presentation/routes/SavedTabsRoute').then(
     ({ SavedTabsRoute }) => ({
       default: SavedTabsRoute,
@@ -84,10 +112,11 @@ const SavedTabsRoutePage = () => {
   }, [hasModeQuery, routerLocation.pathname, routerLocation.search, navigate])
 
   useEffect(() => {
-    if (typeof chrome === 'undefined' || !chrome.storage?.local?.remove) {
+    const storageLocal = getStorageLocalRemove()
+    if (!storageLocal) {
       return
     }
-    void chrome.storage.local.remove('viewMode')
+    void storageLocal.remove('viewMode')
   }, [])
 
   if (!hasModeQuery) {

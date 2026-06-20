@@ -63,7 +63,6 @@ const hasValidSeries = (spec: AiChartSpec): boolean =>
   spec.series.length > 0 &&
   spec.series.every(
     (item) =>
-      item &&
       typeof item.colorToken === 'string' &&
       item.colorToken.length > 0 &&
       typeof item.dataKey === 'string' &&

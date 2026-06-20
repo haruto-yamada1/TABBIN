@@ -7,11 +7,9 @@ const createMockTabs = (
   impl?: ChromeTabsLike['create'],
 ): ChromeTabsLike['create'] =>
   impl ??
-  vi.fn((createProperties) =>
-    Promise.resolve({
-      url: createProperties.url,
-    }),
-  )
+  vi.fn(async (createProperties) => ({
+    url: createProperties.url,
+  }))
 
 const createMockApi = (tabs?: ChromeTabsLike): ChromeApiLike => ({
   tabs: tabs ?? { create: createMockTabs() },
@@ -23,7 +21,7 @@ describe('createChromeBrowserTabAdapter', () => {
   })
 
   it('chrome.tabs.create に委譲して url を返す', async () => {
-    const create = vi.fn((props) => Promise.resolve({ url: props.url }))
+    const create = vi.fn(async (props) => ({ url: props.url }))
     const adapter = createChromeBrowserTabAdapter({
       getApi: () => createMockApi({ create }),
     })
@@ -36,7 +34,7 @@ describe('createChromeBrowserTabAdapter', () => {
   })
 
   it('resolveActive が false を返すときは active: false で開く', async () => {
-    const create = vi.fn((props) => Promise.resolve({ url: props.url }))
+    const create = vi.fn(async (props) => ({ url: props.url }))
     const adapter = createChromeBrowserTabAdapter(
       { getApi: () => createMockApi({ create }) },
       { resolveActive: () => false },
@@ -49,7 +47,7 @@ describe('createChromeBrowserTabAdapter', () => {
   })
 
   it('chrome.tabs.create の戻り url が undefined のとき入力 url を返す', async () => {
-    const create = vi.fn(() => Promise.resolve(undefined))
+    const create = vi.fn(async () => undefined)
     const adapter = createChromeBrowserTabAdapter({
       getApi: () => createMockApi({ create }),
     })

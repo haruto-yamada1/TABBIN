@@ -429,7 +429,7 @@ const useAnalyticsRouteView = () => {
             setDeletingUrl(record.url)
             const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
             const nextRecords = await removeUrlFromStorage(record.url).then(
-              () => refreshRecords(),
+              async () => refreshRecords(),
             )
             rebuildDrilldownSelection(nextRecords)
             showDeleteUndoToast({
@@ -510,7 +510,7 @@ const useAnalyticsRouteView = () => {
           const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
           const nextRecords = await removeUrlRecordsFromStorage(
             matchingRecords.map((record) => record.id),
-          ).then(() => refreshRecords())
+          ).then(async () => refreshRecords())
           rebuildDrilldownSelection(nextRecords)
           showDeleteUndoToast({
             count: matchingRecords.length,

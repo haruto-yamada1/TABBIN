@@ -10,22 +10,20 @@ const createInMemoryRepository = (
   initial: ReturnType<typeof createParentCategory>[] = [],
 ): ParentCategoryRepository => {
   let store: ReturnType<typeof createParentCategory>[] = [...initial]
-  const findAll = (): Promise<readonly ParentCategory[]> =>
-    Promise.resolve(store)
-  const findById = (
+  const findAll = async (): Promise<readonly ParentCategory[]> => store
+  const findById = async (
     id: ReturnType<typeof createParentCategory>['id'],
   ): Promise<ParentCategory | null> =>
-    Promise.resolve(store.find((category) => category.id === id) ?? null)
-  const saveAll = (
+    store.find((category) => category.id === id) ?? null
+  const saveAll = async (
     categories: readonly ReturnType<typeof createParentCategory>[],
   ): Promise<void> => {
     store = [...categories]
-    return Promise.resolve()
   }
   return {
     findAll,
     findById,
-    removeByIds: (): Promise<void> => Promise.resolve(),
+    removeByIds: async (): Promise<void> => {},
     saveAll,
   }
 }

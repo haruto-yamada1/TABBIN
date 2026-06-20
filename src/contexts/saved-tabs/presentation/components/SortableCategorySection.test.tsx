@@ -364,7 +364,7 @@ describe('SortableCategorySection', () => {
 
   it('削除ボタンは handler がある時のみ描画され、confirmDeleteAll=false では即時削除し二重実行を防ぐ', async () => {
     const handleDeleteAllTabs = vi.fn(
-      () =>
+      async () =>
         new Promise<void>((resolve) => {
           setTimeout(resolve, 0)
         }),

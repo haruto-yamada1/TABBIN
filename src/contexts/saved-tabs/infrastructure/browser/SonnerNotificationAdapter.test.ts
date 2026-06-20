@@ -99,7 +99,9 @@ describe('createSonnerNotificationAdapter', () => {
     port.info({
       action: {
         label: 'retry',
-        onClick: () => Promise.reject(new Error('async-boom')),
+        onClick: async () => {
+          throw new Error('async-boom')
+        },
       },
       message: 'failed',
     })

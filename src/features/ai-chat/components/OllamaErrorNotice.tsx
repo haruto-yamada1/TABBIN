@@ -17,6 +17,18 @@ import type { OllamaErrorDetails } from '@/types/background'
 type OllamaErrorPlatform = 'mac' | 'unknown' | 'win'
 const COPIED_ICON_TIMEOUT = 2000
 
+const hasClipboardWrite = (
+  value: unknown,
+): value is Pick<Clipboard, 'writeText'> =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'writeText') === 'function'
+
+const getClipboard = (): Pick<Clipboard, 'writeText'> | null => {
+  const clipboard: unknown = Reflect.get(navigator, 'clipboard')
+  return hasClipboardWrite(clipboard) ? clipboard : null
+}
+
 interface OllamaErrorNoticeProps {
   className?: string
   error: OllamaErrorDetails
@@ -45,7 +57,8 @@ const CopyableValueRow = ({
   )
 
   const copyToClipboard = useCallback(async () => {
-    if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
+    const clipboard = typeof window === 'undefined' ? null : getClipboard()
+    if (!clipboard) {
       toast.error(
         t('aiChat.ollama.copyError', undefined, {
           label: buttonLabel,
@@ -55,7 +68,7 @@ const CopyableValueRow = ({
     }
 
     try {
-      await navigator.clipboard.writeText(value)
+      await clipboard.writeText(value)
       if (copiedTimeoutRef.current) {
         window.clearTimeout(copiedTimeoutRef.current)
       }

@@ -38,7 +38,7 @@ const buildDomainCategoriesMap = (
   const domainCategoriesMap: DomainCategoryMap = {}
   const categoryByDomainName = new Map<string, ParentCategory>()
   for (const category of parentCategories) {
-    for (const domainName of category.domainNames ?? []) {
+    for (const domainName of category.domainNames) {
       categoryByDomainName.set(domainName, category)
     }
   }
@@ -243,7 +243,7 @@ export const useCategoryModal = ({
         category === 'uncategorized'
           ? null
           : // eslint-disable-next-line unicorn/no-useless-collection-argument
-            new Set(category.domainNames ?? [])
+            new Set(category.domainNames)
       for (const group of tabGroups) {
         if (category === 'uncategorized') {
           newSelectedDomains[group.id] = !domainCategories[group.id]
@@ -507,7 +507,7 @@ export const useCategoryModal = ({
         setDomainCategories,
         t,
       })
-        .catch((error) => {
+        .catch((error: unknown) => {
           console.error('カテゴリの設定に失敗しました:', error)
           toast.error(t('savedTabs.categoryModal.toggleError'))
           rollbackSelection()

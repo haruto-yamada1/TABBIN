@@ -13,8 +13,10 @@ const createPortMock = (
   spy: ReturnType<typeof vi.fn>
 } => {
   const spy = vi.fn(
-    (_groupId: string, _categoryName: string): Promise<readonly TabGroup[]> =>
-      Promise.resolve(result),
+    async (
+      _groupId: string,
+      _categoryName: string,
+    ): Promise<readonly TabGroup[]> => result,
   )
   return {
     port: {
@@ -72,8 +74,9 @@ describe('createRemoveSubCategoryFromTabGroupsUseCase', () => {
   it('port がエラーを投げると use-case からも伝播する', async () => {
     const port: RemoveSubCategoryFromTabGroupPort = {
       removeSubCategoryFromTabGroup: vi.fn(
-        (): Promise<readonly TabGroup[]> =>
-          Promise.reject(new Error('storage write failed')),
+        async (): Promise<readonly TabGroup[]> => {
+          throw new Error('storage write failed')
+        },
       ),
     }
     const useCase = createRemoveSubCategoryFromTabGroupsUseCase(

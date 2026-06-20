@@ -1,4 +1,8 @@
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
@@ -14,10 +18,7 @@ const DEFAULT_AI_SYSTEM_PROMPT_TEMPLATE = getMessage(
   'aiChat.systemPrompt.defaultTemplate',
 )
 
-const getCurrentUiLocale = () =>
-  typeof chrome !== 'undefined'
-    ? (chrome.i18n?.getUILanguage?.() ?? 'ja')
-    : 'ja'
+const getCurrentUiLocale = () => getBrowserUiLocale('ja')
 
 const getCurrentAppLanguage = (): AppLanguage =>
   resolveLanguage('system', getCurrentUiLocale())

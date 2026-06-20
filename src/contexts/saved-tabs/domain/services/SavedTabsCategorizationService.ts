@@ -70,7 +70,7 @@ const pushGroupToCategory = (
   categoryId: string,
   group: TabGroupDto,
 ): void => {
-  if (!categorizedGroups[categoryId]) {
+  if (!Object.hasOwn(categorizedGroups, categoryId)) {
     categorizedGroups[categoryId] = []
   }
   const categorizedGroup =

@@ -26,14 +26,12 @@ const restoreChromeApi = () => {
 
 const buildChromeStorageLocal = (state: Record<string, unknown>) =>
   ({
-    get: (key: string) => Promise.resolve({ [key]: state[key] }),
-    remove: (key: string) => {
+    get: async (key: string) => ({ [key]: state[key] }),
+    remove: async (key: string) => {
       delete state[key]
-      return Promise.resolve()
     },
-    set: (value: Record<string, unknown>) => {
+    set: async (value: Record<string, unknown>) => {
       Object.assign(state, value)
-      return Promise.resolve()
     },
     // eslint-disable-next-line typescript/no-explicit-any
   }) as any

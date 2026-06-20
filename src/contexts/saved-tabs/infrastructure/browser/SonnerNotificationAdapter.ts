@@ -22,7 +22,9 @@ export interface SonnerNotificationAdapterDeps {
    * テストや差し替えで `toast` 自体をモックしたい場合に注入する。
    * 未指定なら `sonner` から `toast` を直接 import したものを使う。
    */
-  readonly toastOverride?: Pick<typeof toast, 'info' | 'success' | 'error'>
+  readonly toastOverride?: Partial<
+    Pick<typeof toast, 'info' | 'success' | 'error'>
+  >
 }
 
 const resolveToast = (
@@ -75,7 +77,7 @@ export const createSonnerNotificationAdapter = (
     (level: 'info' | 'success' | 'error') => (input: NotificationMessage) => {
       const t = resolveToast(deps.toastOverride)
       const action = toSonnerAction(input.action)
-      if (!t?.[level]) {
+      if (!t[level]) {
         fallback(level, input.message)
         return
       }

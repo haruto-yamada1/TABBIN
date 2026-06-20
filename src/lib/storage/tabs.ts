@@ -469,8 +469,8 @@ const autoCategorizeTabsUnsafe = async (groupId: string): Promise<void> => {
   })
 }
 
-const autoCategorizeTabs = (groupId: string): Promise<void> => {
-  const next = autoCategorizeTabsQueue.then(() =>
+const autoCategorizeTabs = async (groupId: string): Promise<void> => {
+  const next = autoCategorizeTabsQueue.then(async () =>
     autoCategorizeTabsUnsafe(groupId),
   )
   autoCategorizeTabsQueue = next.catch(() => {

@@ -27,7 +27,7 @@ import type { RemoveSubCategoryFromTabGroupPort } from '../../../application/por
 export const createLibRemoveSubCategoryFromTabGroupAdapter =
   (): RemoveSubCategoryFromTabGroupPort => {
     return {
-      removeSubCategoryFromTabGroup: (groupId, categoryName) => {
+      removeSubCategoryFromTabGroup: async (groupId, categoryName) => {
         return removeSubCategoryFromTabGroup(groupId, categoryName)
       },
     }

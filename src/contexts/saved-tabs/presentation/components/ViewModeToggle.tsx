@@ -22,6 +22,9 @@ interface ViewModeToggleProps {
   onChange: (mode: ViewMode) => void
 }
 
+const isKnownViewMode = (mode: unknown): mode is ViewMode =>
+  mode === 'domain' || mode === 'custom'
+
 const ViewModeSelectItem = ({
   value,
   icon: Icon,
@@ -45,7 +48,9 @@ export const ViewModeToggle = ({
 }: ViewModeToggleProps) => {
   const { t } = useI18n()
   let selectedValue: ReactNode
-  if (currentMode === 'domain') {
+  if (!isKnownViewMode(currentMode)) {
+    selectedValue = t('savedTabs.viewMode.placeholder')
+  } else if (currentMode === 'domain') {
     selectedValue = (
       <div className='flex items-center gap-2'>
         <Globe size={16} />
@@ -54,7 +59,7 @@ export const ViewModeToggle = ({
         </SavedTabsResponsiveLabel>
       </div>
     )
-  } else if (currentMode === 'custom') {
+  } else {
     selectedValue = (
       <div className='flex items-center gap-2'>
         <Folder size={16} />
@@ -63,8 +68,6 @@ export const ViewModeToggle = ({
         </SavedTabsResponsiveLabel>
       </div>
     )
-  } else {
-    selectedValue = t('savedTabs.viewMode.placeholder')
   }
 
   return (

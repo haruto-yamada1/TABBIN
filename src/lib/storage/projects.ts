@@ -75,7 +75,6 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
     const validProjects = customProjects.flatMap((project: unknown) => {
       if (
         !(
-          project &&
           typeof project === 'object' &&
           project !== null &&
           'id' in project &&
@@ -240,7 +239,7 @@ const uniqueSavedTabItems = (items: SavedTabItem[]): SavedTabItem[] => {
   const seen = new Set<string>()
   const uniqueItems: SavedTabItem[] = []
   for (const item of items) {
-    const trimmedUrl = item.url?.trim()
+    const trimmedUrl = item.url.trim()
     if (!trimmedUrl) {
       continue
     }
@@ -527,8 +526,10 @@ const saveUrlsToCustomProjectsUnsafe = async (
   await addUrlsToUncategorizedProject(uncategorizedItems)
 }
 
-const saveUrlsToCustomProjects = (urls: SavedTabItem[]): Promise<void> => {
-  const savePromise = saveUrlsToCustomProjectsQueue.then(() =>
+const saveUrlsToCustomProjects = async (
+  urls: SavedTabItem[],
+): Promise<void> => {
+  const savePromise = saveUrlsToCustomProjectsQueue.then(async () =>
     saveUrlsToCustomProjectsUnsafe(urls),
   )
   saveUrlsToCustomProjectsQueue = savePromise.catch(() => {
@@ -1024,7 +1025,7 @@ const removeCategoryFromProject = async (
   // このカテゴリに所属するURLのカテゴリをnullに設定（新形式対応）
   if (project.urlMetadata) {
     for (const [urlId, meta] of Object.entries(project.urlMetadata)) {
-      if (meta?.category === categoryName) {
+      if (meta.category === categoryName) {
         project.urlMetadata[urlId].category = undefined
       }
     }
@@ -1053,7 +1054,7 @@ const setUrlCategory = async (
     const urlRecord = urlRecords.find((record) => record.url === url)
     if (urlRecord) {
       project.urlMetadata ??= {}
-      if (!project.urlMetadata[urlRecord.id]) {
+      if (!Object.hasOwn(project.urlMetadata, urlRecord.id)) {
         project.urlMetadata[urlRecord.id] = {}
       }
       project.urlMetadata[urlRecord.id].category = category
@@ -1223,7 +1224,7 @@ const renameCategoryInProject = async (
   // URLメタデータのカテゴリ名を更新（新形式対応）
   if (project.urlMetadata) {
     for (const [urlId, meta] of Object.entries(project.urlMetadata)) {
-      if (meta?.category === oldCategoryName) {
+      if (meta.category === oldCategoryName) {
         project.urlMetadata[urlId].category = newCategoryName
       }
     }

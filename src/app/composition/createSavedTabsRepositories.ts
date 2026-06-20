@@ -40,9 +40,9 @@ const createChromeStorageLocalPort = (): ChromeStorageLocalPort | null => {
     return null
   }
   return {
-    get: (key) => local.get(key),
-    remove: (key) => local.remove(key),
-    set: (value) => local.set(value),
+    get: async (key) => local.get(key),
+    remove: async (key) => local.remove(key),
+    set: async (value) => local.set(value),
   }
 }
 

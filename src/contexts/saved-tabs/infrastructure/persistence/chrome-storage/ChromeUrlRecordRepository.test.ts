@@ -29,16 +29,14 @@ const createPort = (state: StorageState): ChromeStorageLocalPort => {
   // mock 内で await しない同期関数を async として書くため lint ルールを局所的に解除する
   /* eslint-disable typescript/require-await */
   return {
-    get: vi.fn((key: string) => Promise.resolve({ [key]: state[key] })),
-    remove: vi.fn((key: string) => {
+    get: vi.fn(async (key: string) => ({ [key]: state[key] })),
+    remove: vi.fn(async (key: string) => {
       // dynamic key 削除は storage エミュレーション上不可避免
 
       delete state[key]
-      return Promise.resolve()
     }),
-    set: vi.fn((value: Record<string, unknown>) => {
+    set: vi.fn(async (value: Record<string, unknown>) => {
       Object.assign(state, value)
-      return Promise.resolve()
     }),
   }
   /* eslint-enable typescript/require-await */
@@ -84,14 +82,12 @@ describe('ChromeUrlRecordRepository', () => {
     it('port 未指定で getChromeStorageLocal が本物の storage を返す場合はそれを使う', async () => {
       const state: StorageState = {}
       vi.mocked(getChromeStorageLocal).mockReturnValue({
-        get: (key: string) => Promise.resolve({ [key]: state[key] }),
-        remove: (key: string) => {
+        get: async (key: string) => ({ [key]: state[key] }),
+        remove: async (key: string) => {
           delete state[key]
-          return Promise.resolve()
         },
-        set: (value: Record<string, unknown>) => {
+        set: async (value: Record<string, unknown>) => {
           Object.assign(state, value)
-          return Promise.resolve()
         },
         // eslint-disable-next-line typescript/no-explicit-any
       } as any)

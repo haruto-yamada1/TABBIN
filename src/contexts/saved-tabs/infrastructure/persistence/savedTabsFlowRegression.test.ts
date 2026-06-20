@@ -29,14 +29,12 @@ const createPort = (state: StorageState): ChromeStorageLocalPort => {
   // mock 内で await しない同期関数を async として書くため lint ルールを局所的に解除する
   /* eslint-disable typescript/require-await */
   return {
-    get: vi.fn((key: string) => Promise.resolve({ [key]: state[key] })),
-    remove: vi.fn((key: string) => {
+    get: vi.fn(async (key: string) => ({ [key]: state[key] })),
+    remove: vi.fn(async (key: string) => {
       delete state[key]
-      return Promise.resolve()
     }),
-    set: vi.fn((value: Record<string, unknown>) => {
+    set: vi.fn(async (value: Record<string, unknown>) => {
       Object.assign(state, value)
-      return Promise.resolve()
     }),
   }
   /* eslint-enable typescript/require-await */
@@ -52,9 +50,9 @@ const createSpyBrowserTabPort = (
   resolveActive: () => boolean,
 ): SpyBrowserTabPort => {
   const opened: { active: boolean; url: string }[] = []
-  const open = vi.fn((input: { url: string }) => {
+  const open = vi.fn(async (input: { url: string }) => {
     opened.push({ active: resolveActive(), url: input.url })
-    return Promise.resolve({ url: input.url })
+    return { url: input.url }
   })
   return {
     open,
@@ -72,9 +70,9 @@ interface SpyBrowserWindowPort {
 const createSpyBrowserWindowPort = (): SpyBrowserWindowPort => {
   const opened: { focused?: boolean; urls: readonly string[] }[] = []
   const openWithUrls = vi.fn(
-    (input: { urls: readonly string[]; focused?: boolean }) => {
+    async (input: { urls: readonly string[]; focused?: boolean }) => {
       opened.push({ focused: input.focused, urls: [...input.urls] })
-      return Promise.resolve({ urls: [...input.urls] })
+      return { urls: [...input.urls] }
     },
   )
   return {
@@ -445,9 +443,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       // chrome.tabs.create({ active, url }) の active が伝搬することを検証。
       const state = buildLegacyFixture()
       const port = createPort(state)
-      const openSpy = vi.fn((input: { url: string }) =>
-        Promise.resolve({ url: input.url }),
-      )
+      const openSpy = vi.fn(async (input: { url: string }) => ({
+        url: input.url,
+      }))
       const resolveActive = vi.fn(() => false)
       const { createChromeBrowserTabAdapter } =
         await import('../browser/ChromeBrowserTabAdapter')

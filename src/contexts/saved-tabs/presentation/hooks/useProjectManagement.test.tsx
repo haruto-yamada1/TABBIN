@@ -270,7 +270,7 @@ describe('useProjectManagement', () => {
     // `saveCustomProjectOrder` (= `saveOrder` 相当) は
     // `customProjectRepository.saveOrder` を widening として委譲する。
     projectManagementMocks.saveCustomProjectOrder.mockImplementation(
-      (command: { newOrder: readonly string[] }) =>
+      async (command: { newOrder: readonly string[] }) =>
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
         customProjectRepository.saveOrder(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
@@ -281,7 +281,7 @@ describe('useProjectManagement', () => {
     )
     // `getCustomProjectRaws` は `customProjectRepository.findAllRaw` を
     // widening として委譲する。
-    projectManagementMocks.getCustomProjectRaws.mockImplementation(() =>
+    projectManagementMocks.getCustomProjectRaws.mockImplementation(async () =>
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       (
         customProjectRepository.findAllRaw as () => Promise<
@@ -478,7 +478,7 @@ describe('useProjectManagement', () => {
 
     let resolveProjects: (projects: CustomProject[]) => void = () => undefined
     projectManagementMocks.getCustomProjects.mockImplementationOnce(
-      () =>
+      async () =>
         new Promise<CustomProject[]>((resolve) => {
           resolveProjects = resolve
         }),
@@ -667,7 +667,7 @@ describe('useProjectManagement', () => {
     let resolveCreate: (value: { project: CustomProject }) => void = () =>
       undefined
     projectManagementMocks.createCustomProject.mockImplementation(
-      () =>
+      async () =>
         new Promise<{ project: CustomProject }>((resolve) => {
           resolveCreate = resolve
         }),
@@ -1552,7 +1552,9 @@ describe('useProjectManagement', () => {
     // issue #538: `restoreCustomProjectsSnapshot` use-case を 1 度だけ
     // reject させ、undo 復元の失敗 error toast を検証する。
     projectManagementMocks.restoreCustomProjectsSnapshot.mockImplementationOnce(
-      () => Promise.reject(new Error('restore failed')),
+      async () => {
+        throw new Error('restore failed')
+      },
     )
 
     const { result } = renderHook(() =>
@@ -1590,11 +1592,11 @@ describe('useProjectManagement', () => {
     // `getCustomProjects` を空にしておくと、undo snapshot に
     // `customProjectsRaw` / `customProjects` が含まれず、payload 化
     // で `null` が返り `restoreCustomProjectsSnapshot` 経路をスキップする。
-    projectManagementMocks.getCustomProjectRaws.mockImplementationOnce(() =>
-      Promise.resolve([] as CustomProjectRawSnapshot[]),
+    projectManagementMocks.getCustomProjectRaws.mockImplementationOnce(
+      async () => [] as CustomProjectRawSnapshot[],
     )
-    projectManagementMocks.getCustomProjects.mockImplementationOnce(() =>
-      Promise.resolve([] as CustomProject[]),
+    projectManagementMocks.getCustomProjects.mockImplementationOnce(
+      async () => [] as CustomProject[],
     )
 
     await act(async () => {

@@ -157,39 +157,37 @@ const chromeMock = {
   },
   storage: {
     local: {
-      clear: () => {
+      clear: async () => {
         for (const key of Object.keys(storageState)) {
           Reflect.deleteProperty(storageState, key)
         }
-        return Promise.resolve()
       },
-      get: (keys: null | string | string[] | Record<string, unknown>) => {
+      get: async (keys: null | string | string[] | Record<string, unknown>) => {
         const requestedKeys = resolveRequestedKeys(keys)
 
         if (!requestedKeys) {
-          return Promise.resolve(cloneValue(storageState))
+          return cloneValue(storageState)
         }
 
-        return Promise.resolve(
-          Object.fromEntries(
-            requestedKeys.reduce<[string, unknown][]>((items, key) => {
-              if (key in storageState) {
-                items.push([key, cloneValue(storageState[key])])
-              }
-              return items
-            }, []),
-          ),
+        return Object.fromEntries(
+          requestedKeys.reduce<[string, unknown][]>((items, key) => {
+            if (key in storageState) {
+              items.push([key, cloneValue(storageState[key])])
+            }
+            return items
+          }, []),
         )
       },
-      remove: (keys: null | string | string[] | Record<string, unknown>) => {
+      remove: async (
+        keys: null | string | string[] | Record<string, unknown>,
+      ) => {
         const requestedKeys = resolveRequestedKeys(keys) ?? []
 
         for (const key of requestedKeys) {
           Reflect.deleteProperty(storageState, key)
         }
-        return Promise.resolve()
       },
-      set: (items: Record<string, unknown>) => {
+      set: async (items: Record<string, unknown>) => {
         const changes: StorybookStorageState = {}
 
         for (const [key, value] of Object.entries(items)) {
@@ -198,7 +196,6 @@ const chromeMock = {
         }
 
         emitStorageChanges(changes)
-        return Promise.resolve()
       },
     },
     onChanged: {
@@ -212,10 +209,10 @@ const chromeMock = {
       },
     },
     sync: {
-      clear: () => undefined,
-      get: () => ({}),
-      remove: () => undefined,
-      set: () => undefined,
+      clear: async () => undefined,
+      get: async () => ({}),
+      remove: async () => undefined,
+      set: async () => undefined,
     },
   },
 }
@@ -237,37 +234,36 @@ const ensureNavigatorMocks = () => {
     return
   }
 
-  if (!navigator.clipboard) {
+  if (!('clipboard' in navigator)) {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: {
-        writeText: () => Promise.resolve(undefined),
+        writeText: async () => undefined,
       },
     })
   }
 
-  if (!navigator.mediaDevices) {
+  if (!('mediaDevices' in navigator)) {
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
       value: {
         addEventListener: () => undefined,
-        enumerateDevices: () =>
-          Promise.resolve([
-            {
-              deviceId: 'mic-primary',
-              groupId: 'group-primary',
-              kind: 'audioinput',
-              label: 'Built-in Microphone (1234:5678)',
-              toJSON: () => ({}),
-            } satisfies MediaDeviceInfo,
-          ]),
-        getUserMedia: () => Promise.resolve(new StorybookMediaStream()),
+        enumerateDevices: async () => [
+          {
+            deviceId: 'mic-primary',
+            groupId: 'group-primary',
+            kind: 'audioinput',
+            label: 'Built-in Microphone (1234:5678)',
+            toJSON: () => ({}),
+          } satisfies MediaDeviceInfo,
+        ],
+        getUserMedia: async () => new StorybookMediaStream(),
         removeEventListener: () => undefined,
       },
     })
   }
 
-  if (!globalThis.ResizeObserver) {
+  if (!('ResizeObserver' in globalThis)) {
     globalThis.ResizeObserver = class ResizeObserver {
       disconnect() {
         return undefined
@@ -283,7 +279,7 @@ const ensureNavigatorMocks = () => {
     }
   }
 
-  if (!globalThis.MediaRecorder) {
+  if (!('MediaRecorder' in globalThis)) {
     Object.defineProperty(globalThis, 'MediaRecorder', {
       configurable: true,
       value: StorybookMediaRecorder,

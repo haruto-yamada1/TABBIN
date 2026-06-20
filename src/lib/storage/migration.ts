@@ -39,28 +39,27 @@ const assignDomainToCategory = async (
     }
   }
   const updatedCategories = categories.map((category: ParentCategory) => {
+    const domainNames = getCategoryDomainNames(category)
     if (category.id === categoryId) {
-      // すでに含まれていなければ追加
-      if (!category.domains.includes(domainId)) {
-        return {
-          ...category,
-          domains: [...category.domains, domainId],
-          domainNames: category.domainNames?.includes(tabGroup?.domain ?? '')
-            ? category.domainNames
-            : [...(category.domainNames || []), tabGroup?.domain ?? ''],
-        }
+      if (!tabGroup || category.domains.includes(domainId)) {
+        return category
       }
-    } else {
-      // 他のカテゴリからは削除（重複を避けるため）
       return {
         ...category,
-        domains: category.domains.filter((id) => id !== domainId),
-        domainNames: (category.domainNames || []).filter((domain) =>
-          tabGroup ? domain !== tabGroup.domain : true,
-        ),
+        domains: [...category.domains, domainId],
+        domainNames: domainNames.includes(tabGroup.domain)
+          ? domainNames
+          : [...domainNames, tabGroup.domain],
       }
     }
-    return category
+    // 他のカテゴリからは削除（重複を避けるため）
+    return {
+      ...category,
+      domains: category.domains.filter((id) => id !== domainId),
+      domainNames: domainNames.filter((domain) =>
+        tabGroup ? domain !== tabGroup.domain : true,
+      ),
+    }
   })
   await saveParentCategories(updatedCategories)
 } // 既存のデータを更新し、domainNamesプロパティを追加する移行関数
@@ -91,7 +90,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       console.log(`カテゴリ「${category.name}」の状態:`, {
         id: category.id,
         domains: category.domains,
-        domainNames: category.domainNames || [],
+        domainNames: category.domainNames,
       })
 
       // マッピングから検索
@@ -130,7 +129,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       // 既存のdomainNamesと結合して重複排除
       const allDomains = [
         ...new Set([
-          ...(category.domainNames || []),
+          ...getCategoryDomainNames(category),
           ...domainNames,
           ...mappingDomains,
         ]),
@@ -177,6 +176,14 @@ const buildGroupedTabsByDomain = (
   }
   return groupedTabs
 }
+const getCategoryDomainNames = (category: {
+  domainNames?: unknown
+}): string[] =>
+  Array.isArray(category.domainNames)
+    ? category.domainNames.filter(
+        (domainName): domainName is string => typeof domainName === 'string',
+      )
+    : []
 const logParentCategorySnapshot = (
   parentCategories: ParentCategory[],
 ): void => {
@@ -184,7 +191,7 @@ const logParentCategorySnapshot = (
   for (const category of parentCategories) {
     console.log(
       `カテゴリ「${category.name}」のドメイン名一覧:`,
-      category.domainNames || [],
+      getCategoryDomainNames(category),
     )
   }
 }
@@ -192,7 +199,7 @@ const normalizeParentCategoriesIfNeeded = async (
   parentCategories: ParentCategory[],
 ): Promise<ParentCategory[]> => {
   const hasEmptyDomainNames = parentCategories.some(
-    (cat) => !cat.domainNames || cat.domainNames.length === 0,
+    (cat) => getCategoryDomainNames(cat).length === 0,
   )
   if (!hasEmptyDomainNames) {
     return parentCategories
@@ -382,10 +389,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     getUserSettings(),
   ])
   const { savedTabs = [] } = savedTabsResult
-  const filteredTabs = filterItemsBySavableUrl(
-    tabs,
-    settings.excludePatterns ?? [],
-  )
+  const filteredTabs = filterItemsBySavableUrl(tabs, settings.excludePatterns)
   const groupedTabs = buildGroupedTabsByDomain(savedTabs)
   console.log('既存タブグループ数:', savedTabs.length)
   console.log('重複除外済みタブグループ数:', groupedTabs.size)
@@ -478,10 +482,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
 const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
   await saveTabs(tabs)
   const settings = await getUserSettings()
-  const filteredTabs = filterItemsBySavableUrl(
-    tabs,
-    settings.excludePatterns ?? [],
-  )
+  const filteredTabs = filterItemsBySavableUrl(tabs, settings.excludePatterns)
 
   // 保存したタブグループのIDを取得
   const { savedTabs = [] } = await chrome.storage.local.get<{

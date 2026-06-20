@@ -12,7 +12,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
     console.log('期限切れタブのチェックアラームを設定しています...')
 
     // Chrome.alarmsが利用可能か確認
-    if (!chrome.alarms) {
+    if (!('alarms' in chrome)) {
       console.error(
         'chrome.alarms APIが利用できません。Manifest.jsonで権限を確認してください。',
       )
@@ -95,20 +95,21 @@ const scheduleInitialCheck = (): void => {
 /**
  * 通知を表示する関数
  */
-const showNotification = (title: string, message: string): Promise<void> => {
+const showNotification = async (
+  title: string,
+  message: string,
+): Promise<void> => {
   try {
     const iconUrl = chrome.runtime.getURL('icon/128.png')
     console.log('通知アイコンURL:', iconUrl)
-    void chrome.notifications.create({
+    await chrome.notifications.create({
       iconUrl,
       message,
       title,
       type: 'basic',
     })
-    return Promise.resolve()
   } catch (notificationError) {
     console.error('通知表示エラー:', notificationError)
-    return Promise.resolve()
   }
 }
 

@@ -30,8 +30,8 @@ const createInMemoryDeps = (): SavedTabsUseCasesDeps => {
     findAll: async () => [],
 
     findById: async () => null,
-    findRawDomainById: vi.fn(() => Promise.resolve(null)),
-    findRawTabGroupById: vi.fn(() => Promise.resolve(null)),
+    findRawDomainById: vi.fn(async () => null),
+    findRawTabGroupById: vi.fn(async () => null),
 
     removeByIds: async () => undefined,
 

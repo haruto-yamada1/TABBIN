@@ -165,13 +165,11 @@ const createProps = (
   onSearchChange: vi.fn(),
   customProjects: createCustomProjects(),
   onCreateProject: vi.fn(),
-  getSavedTabsPageDataQuery: vi.fn(() =>
-    Promise.resolve({
-      tabGroups: [],
-      parentCategories: [],
-      userSettings: {} as UserSettingsDto,
-    }),
-  ),
+  getSavedTabsPageDataQuery: vi.fn(async () => ({
+    tabGroups: [],
+    parentCategories: [],
+    userSettings: {} as UserSettingsDto,
+  })),
   ...overrides,
 })
 

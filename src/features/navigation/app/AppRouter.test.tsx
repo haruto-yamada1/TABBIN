@@ -97,6 +97,7 @@ describe('AppRouter', () => {
 
   afterEach(() => {
     cleanup()
+    vi.unstubAllGlobals()
   })
 
   it('saved-tabs 初期表示では ai-chat route module を読み込まない', async () => {
@@ -217,6 +218,16 @@ describe('AppRouter', () => {
       screen.findByText('saved-tabs-route:?mode=domain'),
     ).resolves.toBeTruthy()
     expect(remove).toHaveBeenCalledWith('viewMode')
+  })
+
+  it('部分的な chrome API でも saved-tabs route を初期化できる', async () => {
+    vi.stubGlobal('chrome', { storage: {} })
+
+    render(<AppRouter initialEntries={['/saved-tabs']} />)
+
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=domain'),
+    ).resolves.toBeTruthy()
   })
 
   it('不明なルートは domain で開く', async () => {

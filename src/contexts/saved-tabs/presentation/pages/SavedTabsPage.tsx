@@ -89,7 +89,7 @@ const getChromeApiFromGlobalThis = (): ChromeApiLike | undefined =>
   getChromeGlobal<ChromeApiLike>()
 
 const isChromeBrowserTabPort = (
-  port: SavedTabsUseCasesDeps['browserTabPort'],
+  port: SavedTabsUseCasesDeps['browserTabPort'] | undefined,
 ): boolean => {
   // `createChromeBrowserTabAdapter` が生成した port には
   // `CHROME_BROWSER_TAB_ADAPTER_MARKER` をマーカーとして立てている。

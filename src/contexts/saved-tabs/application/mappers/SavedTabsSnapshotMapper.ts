@@ -41,7 +41,7 @@ export const toStorageCustomProject = (
   id: project.id,
   name: project.name,
   updatedAt: project.updatedAt,
-  urlIds: [...(project.urlIds ?? [])],
+  urlIds: [...project.urlIds],
 })
 
 /**
@@ -53,8 +53,8 @@ export const toStorageCustomProject = (
 export const toStorageParentCategory = (
   category: DomainParentCategory,
 ): ParentCategory => ({
-  domains: [...(category.domains ?? [])],
-  domainNames: [...(category.domainNames ?? [])],
+  domains: [...category.domains],
+  domainNames: [...category.domainNames],
   id: category.id,
   name: category.name,
 })

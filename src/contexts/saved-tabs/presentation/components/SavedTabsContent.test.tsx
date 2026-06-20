@@ -430,7 +430,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
   it('削除確認の二重実行を防ぐ', async () => {
     let resolveUpdate: (() => void) | undefined
     const handleDeleteAllTabs = vi.fn().mockImplementationOnce(
-      () =>
+      async () =>
         new Promise<void>((resolve) => {
           resolveUpdate = resolve
         }),

@@ -164,7 +164,7 @@ export const createOpenAllSavedUrlsUseCase = (
             })
           ).urls
         : await Promise.all(
-            command.urls.map((url) => deps.browserTabPort.open({ url })),
+            command.urls.map(async (url) => deps.browserTabPort.open({ url })),
           ).then((results) => results.map((result) => result.url))
 
     const plan = computeRemovalPlan({

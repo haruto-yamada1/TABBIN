@@ -32,6 +32,22 @@ interface BrowserModule {
 
 let browserApiPromise: Promise<BrowserApi | null> | null = null
 
+const isObject = (value: unknown): value is object =>
+  typeof value === 'object' && value !== null
+
+const hasFunctionProperty = (value: object, property: string): boolean =>
+  typeof Reflect.get(value, property) === 'function'
+
+const hasAddListener = (value: unknown): boolean =>
+  isObject(value) && hasFunctionProperty(value, 'addListener')
+
+const isRuntimePort = (value: unknown): value is RuntimePort =>
+  isObject(value) &&
+  hasFunctionProperty(value, 'disconnect') &&
+  hasAddListener(Reflect.get(value, 'onDisconnect')) &&
+  hasAddListener(Reflect.get(value, 'onMessage')) &&
+  hasFunctionProperty(value, 'postMessage')
+
 const getGlobalBrowserApi = (): BrowserApi | null => {
   const api = (globalThis as typeof globalThis & { browser?: BrowserApi })
     .browser
@@ -39,12 +55,23 @@ const getGlobalBrowserApi = (): BrowserApi | null => {
 }
 
 const getGlobalChromeRuntime = (): ChromeRuntime | null => {
-  const runtime = (
-    globalThis as typeof globalThis & {
-      chrome?: { runtime?: ChromeRuntime }
-    }
-  ).chrome?.runtime
-  return runtime ?? null
+  const chromeValue: unknown = Reflect.get(globalThis, 'chrome')
+  if (typeof chromeValue !== 'object' || chromeValue === null) {
+    return null
+  }
+  const runtimeValue: unknown = Reflect.get(chromeValue, 'runtime')
+  if (typeof runtimeValue !== 'object' || runtimeValue === null) {
+    return null
+  }
+  const connectValue: unknown = Reflect.get(runtimeValue, 'connect')
+  const sendMessageValue: unknown = Reflect.get(runtimeValue, 'sendMessage')
+  if (
+    (connectValue !== undefined && typeof connectValue !== 'function') ||
+    (sendMessageValue !== undefined && typeof sendMessageValue !== 'function')
+  ) {
+    return null
+  }
+  return runtimeValue
 }
 
 const loadWebExtensionBrowserApi = async (): Promise<BrowserApi | null> => {
@@ -119,10 +146,10 @@ export const connectRuntimePort = async (
 
   if (polyfillBrowserApi?.runtime?.connect) {
     try {
-      const port = polyfillBrowserApi.runtime.connect({
+      const port: unknown = polyfillBrowserApi.runtime.connect({
         name,
       })
-      if (port) {
+      if (isRuntimePort(port)) {
         return port
       }
     } catch {

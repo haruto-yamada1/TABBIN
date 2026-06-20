@@ -48,6 +48,22 @@ const getOllamaErrorDetails = (
   return maybeOllamaError
 }
 
+interface RuntimeOnConnect {
+  addListener: (listener: (port: chrome.runtime.Port) => void) => void
+}
+
+const isRuntimeOnConnect = (value: unknown): value is RuntimeOnConnect =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'addListener') === 'function'
+
+const isAiChatStreamRunMessage = (
+  message: unknown,
+): message is AiChatStreamClientMessage =>
+  typeof message === 'object' &&
+  message !== null &&
+  Reflect.get(message, 'type') === 'run'
+
 /**
  * メッセージリスナーを設定
  */
@@ -119,12 +135,17 @@ const setupMessageListener = (): void => {
     }
   })
 
-  chrome.runtime.onConnect?.addListener((port) => {
+  const onConnect: unknown = Reflect.get(chrome.runtime, 'onConnect')
+  if (!isRuntimeOnConnect(onConnect)) {
+    return
+  }
+
+  onConnect.addListener((port) => {
     if (port.name !== AI_CHAT_STREAM_PORT_NAME) {
       return
     }
 
-    port.onMessage.addListener((message: AiChatStreamClientMessage) => {
+    port.onMessage.addListener((message: unknown) => {
       handleAiChatStreamPortMessage(port, message)
     })
   })
@@ -161,11 +182,10 @@ const handleUrlDroppedMessage = (
           status,
         })
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error('URL削除エラー:', error)
         sendResponse({
-          // eslint-disable-next-line typescript/no-unsafe-assignment
-          error: error.toString(), // eslint-disable-line typescript/no-unsafe-call, typescript/no-unsafe-member-access
+          error: error instanceof Error ? error.message : String(error),
           status: 'error',
         })
       })
@@ -189,10 +209,9 @@ const handleRemoveUrlMessage = (
         status: 'removed',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       sendResponse({
-        // eslint-disable-next-line typescript/no-unsafe-assignment
-        error,
+        error: error instanceof Error ? error.message : String(error),
         status: 'error',
       })
     })
@@ -209,7 +228,7 @@ const handleRemoveUrlRecordsMessage = (
         status: 'removed',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       sendResponse({
         status: 'error',
         error: error instanceof Error ? error.message : String(error),
@@ -299,7 +318,7 @@ const handleCheckExpiredTabsMessage = (
               success: true,
             })
           })
-          .catch((error) => {
+          .catch((error: unknown) => {
             console.error('チェックエラー:', error)
             sendResponse({
               error: String(error),
@@ -307,7 +326,7 @@ const handleCheckExpiredTabsMessage = (
             })
           })
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error('タイムスタンプ更新エラー:', error)
         sendResponse({
           error: String(error),
@@ -323,7 +342,7 @@ const handleCheckExpiredTabsMessage = (
           status: 'completed',
         })
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         sendResponse({
           error: String(error),
           status: 'error',
@@ -348,7 +367,7 @@ const handleUpdateTabTimestampsMessage = (
         status: 'completed',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('時刻更新エラー:', error)
       sendResponse({
         error: String(error),
@@ -386,7 +405,7 @@ const handleListOllamaModelsMessage = (
         status: 'ok',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       sendResponse({
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),
@@ -422,7 +441,7 @@ const handleRunAiChatMessage = (
         toolTraces: result.toolTraces,
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       sendResponse({
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),
@@ -433,9 +452,9 @@ const handleRunAiChatMessage = (
 
 const handleAiChatStreamPortMessage = (
   port: chrome.runtime.Port,
-  message: AiChatStreamClientMessage,
+  message: unknown,
 ): void => {
-  if (message.type !== 'run') {
+  if (!isAiChatStreamRunMessage(message)) {
     return
   }
 
@@ -467,7 +486,7 @@ const handleAiChatStreamPortMessage = (
         type: 'complete',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       const errorMessage: AiChatStreamErrorMessage = {
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),

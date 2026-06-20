@@ -111,9 +111,9 @@ describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
   })
 
   it('use-case が例外を投げた場合は呼び出し元へそのまま伝搬する', async () => {
-    const restoreOpenedUrlsSnapshot = vi.fn(() =>
-      Promise.reject(new Error('restore failed')),
-    )
+    const restoreOpenedUrlsSnapshot = vi.fn(async () => {
+      throw new Error('restore failed')
+    })
     const useCase = createRestoreOpenedUrlsSnapshotViewUseCase({
       restoreOpenedUrlsSnapshot:
         restoreOpenedUrlsSnapshot as unknown as RestoreOpenedUrlsSnapshotUseCase,

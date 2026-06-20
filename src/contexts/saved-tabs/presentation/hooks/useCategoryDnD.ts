@@ -18,7 +18,7 @@ const isUncategorizedDrop = (
 ): boolean =>
   over?.id === `uncategorized-${projectId}` ||
   (typeof over?.id === 'string' && over.id.includes('uncategorized')) ||
-  over?.data?.current?.type === 'uncategorized'
+  over?.data.current?.type === 'uncategorized'
 const isCategoryOver = (
   overData: {
     type?: string
@@ -37,7 +37,7 @@ const isCategoryOver = (
 const resolveOverCategoryName = (
   over: DragOverEvent['over'],
 ): string | null => {
-  if (!over?.data?.current) {
+  if (!over?.data.current) {
     return null
   }
   const overData = over.data.current
@@ -108,7 +108,7 @@ export const useCategoryDnD = () => {
 
     // 他のプロジェクト上のドラッグであれば、ハイライトを解除する
     // eslint-disable-next-line typescript/no-unsafe-assignment
-    const overProjectId = over?.data?.current?.projectId
+    const overProjectId = over?.data.current?.projectId
     if (overProjectId && overProjectId !== project.id) {
       setDraggedOverCategory(null)
       return

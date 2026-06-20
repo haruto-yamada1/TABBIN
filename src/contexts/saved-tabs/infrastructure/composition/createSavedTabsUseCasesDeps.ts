@@ -161,9 +161,9 @@ export const createSavedTabsUseCasesDeps = (
   }
   const port = local
     ? {
-        get: (key: string) => local.get(key),
-        remove: (key: string) => local.remove(key),
-        set: (value: Record<string, unknown>) => local.set(value),
+        get: async (key: string) => local.get(key),
+        remove: async (key: string) => local.remove(key),
+        set: async (value: Record<string, unknown>) => local.set(value),
       }
     : null
 

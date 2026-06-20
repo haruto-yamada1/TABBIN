@@ -52,9 +52,7 @@ export const reorderTabGroupUrlIds = ({
     // 文字列比較で十分なため raw string へ寄せる。
     urlRecordsByUrl.set(record.url, record)
   }
-  const groupUrlIds: Set<string> = group.urlIds
-    ? new Set(group.urlIds)
-    : new Set()
+  const groupUrlIds = new Set(group.urlIds)
   const reorderedUrlIds: string[] = []
   for (const url of newUrlOrder) {
     const urlRecord = urlRecordsByUrl.get(url)

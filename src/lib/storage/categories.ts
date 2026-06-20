@@ -149,7 +149,9 @@ export const deleteParentCategory = async (
     }
 
     // このカテゴリに属しているドメイン名のリスト
-    const affectedDomainNames = categoryToDelete.domainNames || []
+    const categoryWithOptionalDomains: Partial<ParentCategory> =
+      categoryToDelete
+    const affectedDomainNames = categoryWithOptionalDomains.domainNames ?? []
 
     // カテゴリを除外したリストを作成
     const updatedCategories = categories.filter((cat) => cat.id !== categoryId)

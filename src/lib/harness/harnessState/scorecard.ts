@@ -144,7 +144,7 @@ function topActionLines(
     )
     .map(
       (category) =>
-        `[${category.name}] ${category.evidence} を確認し、source-of-truth から不足を補う。`,
+        `[${String(category.name)}] ${String(category.evidence)} を確認し、source-of-truth から不足を補う。`,
     )
   const extraActions = extraFindings.map((finding) => {
     if (typeof finding === 'string') {

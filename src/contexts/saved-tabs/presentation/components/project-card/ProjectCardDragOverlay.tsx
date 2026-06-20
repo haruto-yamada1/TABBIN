@@ -18,10 +18,10 @@ export const ProjectCardDragOverlay = () => {
   if (!dnd.activeId) {
     return null
   }
+  const activeId = dnd.activeId
 
   const activeUrl = urls.projectUrls.find(
-    (u) =>
-      u.url === dnd.activeId?.id || u.url === dnd.activeId?.data?.current?.url,
+    (u) => u.url === activeId.id || u.url === activeId.data.current?.url,
   )
 
   if (!activeUrl) {

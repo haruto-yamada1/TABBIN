@@ -73,7 +73,8 @@ export const useSettings = () => {
       action: {
         label: '再試行',
         // eslint-disable-next-line typescript/no-misused-promises
-        onClick: () => retrySaveSettings(failedSettings, rollbackSettings),
+        onClick: async () =>
+          retrySaveSettings(failedSettings, rollbackSettings),
       },
     })
   }
@@ -117,7 +118,7 @@ export const useSettings = () => {
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => {
-      if (areaName === 'local' && changes.userSettings) {
+      if (areaName === 'local' && Object.hasOwn(changes, 'userSettings')) {
         if (changes.userSettings.newValue) {
           // NewValue は完全な UserSettings オブジェクトであると期待
           const nextSettings = fromStorageChange(

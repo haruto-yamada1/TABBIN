@@ -119,7 +119,8 @@ const ensureValidParentCategories = async (
   migrationPort: MigrationPort,
 ): Promise<ParentCategory[]> => {
   const hasInvalidCategory = parentCategories.some(
-    (cat) => !(cat.domainNames && Array.isArray(cat.domainNames)),
+    (cat) =>
+      !Object.hasOwn(cat, 'domainNames') || !Array.isArray(cat.domainNames),
   )
   if (!(hasInvalidCategory || parentCategories.length === 0)) {
     return parentCategories

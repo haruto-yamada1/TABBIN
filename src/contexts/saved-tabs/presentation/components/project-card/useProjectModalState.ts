@@ -103,11 +103,11 @@ export const useProjectModalState = (
     const result = projectNameSchema.safeParse(name)
     if (!result.success) {
       const issue = result.error.issues[0]
-      if (issue?.code === 'too_small') {
+      if (issue.code === 'too_small') {
         updateModalState({
           projectNameError: t('savedTabs.projectNameRequired'),
         })
-      } else if (issue?.code === 'too_big') {
+      } else if (issue.code === 'too_big') {
         updateModalState({
           projectNameError: t('savedTabs.projectNameMaxLength'),
         })

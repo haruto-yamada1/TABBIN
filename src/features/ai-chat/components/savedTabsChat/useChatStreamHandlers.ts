@@ -190,12 +190,8 @@ const useChatStreamHandlers = ({
       return true
     }
 
-    if (streamMessage.type === 'error') {
-      handleStreamFailure(assistantMessageId, streamPort, streamMessage)
-      return true
-    }
-
-    return false
+    handleStreamFailure(assistantMessageId, streamPort, streamMessage)
+    return true
   }
 
   const handleStreamDisconnect = (

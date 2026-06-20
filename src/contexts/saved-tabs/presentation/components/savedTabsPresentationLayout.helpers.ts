@@ -44,7 +44,7 @@ const subscribeToElementWidth = (
 
   const observer = new ResizeObserver((entries) => {
     const nextWidth = entries[0]?.contentRect.width
-    const width = Math.round(nextWidth ?? Number.NaN)
+    const width = Math.round(nextWidth)
     if (Number.isFinite(width) && width > 0) {
       widthRef.current = width
     }
