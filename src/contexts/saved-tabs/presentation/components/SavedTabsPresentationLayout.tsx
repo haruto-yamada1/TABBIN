@@ -1,8 +1,8 @@
 import { Profiler } from 'react'
 import type { RefObject } from 'react'
 
-import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
 import { SavedTabsApp } from '@/contexts/saved-tabs/presentation/app/SavedTabsApp'
 import {
   handleSavedTabsRender,

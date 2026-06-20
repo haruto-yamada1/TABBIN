@@ -109,9 +109,9 @@ export const toDomainTabGroupFromStorage = (group: TabGroup): DomainTabGroup =>
  * snapshot 内の readonly 配列を immutable copy に正規化する。
  * `Array.isArray` でない場合は `undefined` 扱いにする。
  */
-const getSnapshotArray = <T>(
-  value: readonly T[] | undefined,
-): T[] | undefined => (Array.isArray(value) ? value.slice() : undefined)
+function getSnapshotArray<T>(value: readonly T[] | undefined): T[] | undefined {
+  return Array.isArray(value) ? value.slice() : undefined
+}
 
 /**
  * snapshot.savedTabs を storage 形 `TabGroup[]` へ変換して返す。

@@ -343,13 +343,11 @@ vi.mock('./SavedTabsApp', async () => {
     typeof import('@/contexts/saved-tabs/presentation/controllers/useSavedTabsController')
   >('@/contexts/saved-tabs/presentation/controllers/useSavedTabsController')
   const compositionMod = await vi.importActual<
-    typeof import('@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases')
-  >('@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases')
+    typeof import('@/contexts/saved-tabs/application/createSavedTabsUseCases')
+  >('@/contexts/saved-tabs/application/createSavedTabsUseCases')
   const depsMod = await vi.importActual<
-    typeof import('@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps')
-  >(
-    '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps',
-  )
+    typeof import('@/app/composition/createSavedTabsUseCases')
+  >('@/app/composition/createSavedTabsUseCases')
 
   const TestSavedTabsApp = (
     props: React.ComponentProps<typeof actual.SavedTabsApp>,

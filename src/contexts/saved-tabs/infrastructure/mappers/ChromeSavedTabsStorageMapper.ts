@@ -528,10 +528,10 @@ interface ParseResult<T> {
   skippedCount: number
 }
 
-const collectParseSkipped = <T>(
+function collectParseSkipped<T>(
   raw: unknown,
   parser: (item: unknown) => T | null,
-): ParseResult<T> => {
+): ParseResult<T> {
   if (!Array.isArray(raw)) {
     return { entities: [], skippedCount: 0 }
   }

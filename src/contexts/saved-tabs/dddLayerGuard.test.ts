@@ -17,6 +17,7 @@ interface OxlintConfig {
 const contextsRoot = import.meta.dirname
 const repoRoot = resolve(contextsRoot, '..', '..', '..')
 const oxlintrcPath = resolve(repoRoot, '.oxlintrc.json')
+const dependencyCruiserConfigPath = resolve(repoRoot, '.dependency-cruiser.cjs')
 
 const loadOxlintConfig = (): OxlintConfig => {
   const raw = readFileSync(oxlintrcPath, 'utf8')
@@ -31,46 +32,6 @@ const findOverride = (
   return config.overrides?.find((entry) =>
     entry.files?.some((file) => file.includes(pattern)),
   )
-}
-
-const collectRulePatterns = (entry: RuleEntry | undefined): string[] => {
-  if (!entry) {
-    return []
-  }
-  if (typeof entry === 'string') {
-    return [entry]
-  }
-  const [, options] = entry
-  if (!options || typeof options !== 'object') {
-    return []
-  }
-  const optionsObj = options as Record<string, unknown>
-  const pathEntries = Array.isArray(optionsObj.paths) ? optionsObj.paths : []
-  const patternEntries = Array.isArray(optionsObj.patterns)
-    ? optionsObj.patterns
-    : []
-  const names: string[] = []
-  for (const value of [...pathEntries, ...patternEntries]) {
-    if (value && typeof value === 'object') {
-      const record = value as Record<string, unknown>
-      if (typeof record.name === 'string') {
-        names.push(record.name)
-      }
-      if (typeof record.regex === 'string') {
-        names.push(record.regex)
-      }
-    }
-  }
-  return names
-}
-
-const getRestrictedImportNames = (
-  override: OxlintOverride | undefined,
-): string[] => {
-  if (!override?.rules) {
-    return []
-  }
-  return collectRulePatterns(override.rules['eslint/no-restricted-imports'])
 }
 
 const getRestrictedGlobals = (
@@ -154,6 +115,10 @@ const collectSourceFiles = (dir: string): string[] => {
 
 describe('src/contexts/saved-tabs DDD layer guard', () => {
   const config = loadOxlintConfig()
+  const dependencyCruiserSource = readFileSync(
+    dependencyCruiserConfigPath,
+    'utf8',
+  )
 
   it('.oxlintrc.json に overrides が定義されている', () => {
     expect(Array.isArray(config.overrides)).toBe(true)
@@ -168,23 +133,14 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('react / react-dom の import を禁止している', () => {
-      const names = getRestrictedImportNames(override)
-      expect(names).toContain('react')
-      expect(names).toContain('react-dom')
+      expect(dependencyCruiserSource).toContain("name: 'no-domain-to-react'")
     })
 
     it('@/components / @/features/*/components / @/contexts/*/{application,infrastructure,presentation} への依存を禁止している', () => {
-      const names = getRestrictedImportNames(override)
-      expect(names.some((name) => name.includes('@/components'))).toBe(true)
-      expect(
-        names.some(
-          (name) =>
-            name.includes('@/features/') && name.includes('/components'),
-        ),
-      ).toBe(true)
-      expect(names.some((name) => name.includes('/application'))).toBe(true)
-      expect(names.some((name) => name.includes('/infrastructure'))).toBe(true)
-      expect(names.some((name) => name.includes('/presentation'))).toBe(true)
+      expect(dependencyCruiserSource).toContain("name: 'no-domain-to-ui'")
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-domain-to-outer-layer'",
+      )
     })
 
     it('chrome / localStorage / sessionStorage / document / window の global 参照を禁止している', () => {
@@ -215,21 +171,16 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('react / react-dom の import を禁止している', () => {
-      const names = getRestrictedImportNames(override)
-      expect(names).toContain('react')
-      expect(names).toContain('react-dom')
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-application-to-react'",
+      )
     })
 
     it('@/components / @/features/*/components / @/contexts/*/presentation への依存を禁止している', () => {
-      const names = getRestrictedImportNames(override)
-      expect(names.some((name) => name.includes('@/components'))).toBe(true)
-      expect(
-        names.some(
-          (name) =>
-            name.includes('@/features/') && name.includes('/components'),
-        ),
-      ).toBe(true)
-      expect(names.some((name) => name.includes('/presentation'))).toBe(true)
+      expect(dependencyCruiserSource).toContain("name: 'no-application-to-ui'")
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-application-to-infrastructure-or-presentation'",
+      )
     })
 
     it('chrome.tabs / chrome.storage / chrome.contextMenus / chrome.alarms / chrome.notifications の直叩きを禁止している', () => {
@@ -243,28 +194,19 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
   })
 
   describe('infrastructure 層', () => {
-    const override = findOverride(config, 'infrastructure')
-
-    it('override が定義されている', () => {
-      expect(override).toBeDefined()
-    })
-
     it('react / react-dom の import を禁止している', () => {
-      const names = getRestrictedImportNames(override)
-      expect(names).toContain('react')
-      expect(names).toContain('react-dom')
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-infrastructure-to-react'",
+      )
     })
 
     it('@/components / @/features/*/components / @/contexts/*/presentation への依存を禁止している', () => {
-      const names = getRestrictedImportNames(override)
-      expect(names.some((name) => name.includes('@/components'))).toBe(true)
-      expect(
-        names.some(
-          (name) =>
-            name.includes('@/features/') && name.includes('/components'),
-        ),
-      ).toBe(true)
-      expect(names.some((name) => name.includes('/presentation'))).toBe(true)
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-infrastructure-to-ui'",
+      )
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-infrastructure-to-presentation'",
+      )
     })
   })
 
@@ -288,11 +230,10 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
   })
 
   describe('issue #511: domain 層は @/types/storage に依存しない', () => {
-    const override = findOverride(config, 'domain')
-
-    it('domain override に ^@/types/storage(/|$) の no-restricted-imports が定義されている', () => {
-      const names = getRestrictedImportNames(override)
-      expect(names.some((name) => name.includes('@/types/storage'))).toBe(true)
+    it('dependency-cruiser に storage type 依存禁止 rule が定義されている', () => {
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-domain-to-storage-types'",
+      )
     })
 
     it('domain 配下の全 .ts / .tsx ファイルが @/types/storage を import / 利用しない', () => {
@@ -360,12 +301,12 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
   })
 
-  describe('issue #459: infrastructure browser adapter / composition ファイルが追加されている', () => {
+  describe('issue #459: browser adapter / composition / application factory が追加されている', () => {
     const expectedFiles = [
       'src/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter.ts',
       'src/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter.ts',
       'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
-      'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases.ts',
+      'src/contexts/saved-tabs/application/createSavedTabsUseCases.ts',
     ]
 
     for (const file of expectedFiles) {
@@ -701,14 +642,14 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
 
     it('createSavedTabsUseCases は 5 つの use-case を返す', () => {
       // `src/app/composition/createSavedTabsUseCases.ts` は
-      // `src/contexts/saved-tabs/infrastructure/composition/` の
+      // `src/contexts/saved-tabs/application/` の
       // `createSavedTabsUseCases` に委譲する薄いラッパに
-      // なった (issue #509)。use-case 群は contexts 側で組み立てるため、
+      // なった。use-case 群は application 側で組み立てるため、
       // そちらのファイルソースを検証する。
       const source = readFileSync(
         resolve(
           repoRoot,
-          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases.ts',
+          'src/contexts/saved-tabs/application/createSavedTabsUseCases.ts',
         ),
         'utf8',
       )

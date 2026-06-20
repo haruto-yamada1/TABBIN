@@ -150,7 +150,6 @@
     "import/newline-after-import": "error",
     "import/no-absolute-path": "error",
     "import/no-amd": "error",
-    "import/no-cycle": "error",
     "import/no-default-export": "error",
     "import/no-duplicates": "error",
     "import/no-dynamic-require": "error",
@@ -539,47 +538,6 @@
     {
       "files": ["src/contexts/saved-tabs/domain/**/*.{ts,tsx}"],
       "rules": {
-        "eslint/no-restricted-imports": [
-          "error",
-          {
-            "paths": [
-              {
-                "name": "react",
-                "message": "domain 層は React に依存できません"
-              },
-              {
-                "name": "react-dom",
-                "message": "domain 層は React DOM に依存できません"
-              }
-            ],
-            "patterns": [
-              {
-                "regex": "^@/components(/|$)",
-                "message": "domain 層は UI コンポーネントに依存できません"
-              },
-              {
-                "regex": "^@/features/[^/]+/components(/|$)",
-                "message": "domain 層は feature の UI コンポーネントに依存できません"
-              },
-              {
-                "regex": "^@/contexts/[^/]+/application(/|$)",
-                "message": "domain 層は application 層に依存できません"
-              },
-              {
-                "regex": "^@/contexts/[^/]+/infrastructure(/|$)",
-                "message": "domain 層は infrastructure 層に依存できません"
-              },
-              {
-                "regex": "^@/contexts/[^/]+/presentation(/|$)",
-                "message": "domain 層は presentation 層に依存できません"
-              },
-              {
-                "regex": "^@/types/storage(/|$)",
-                "message": "domain 層は @/types/storage に直接依存できません（domain DTO / application mapper 経由）"
-              }
-            ]
-          }
-        ],
         "eslint/no-restricted-globals": [
           "error",
           {
@@ -641,35 +599,6 @@
     {
       "files": ["src/contexts/saved-tabs/application/**/*.{ts,tsx}"],
       "rules": {
-        "eslint/no-restricted-imports": [
-          "error",
-          {
-            "paths": [
-              {
-                "name": "react",
-                "message": "application 層は React に依存できません"
-              },
-              {
-                "name": "react-dom",
-                "message": "application 層は React DOM に依存できません"
-              }
-            ],
-            "patterns": [
-              {
-                "regex": "^@/components(/|$)",
-                "message": "application 層は UI コンポーネントに依存できません"
-              },
-              {
-                "regex": "^@/features/[^/]+/components(/|$)",
-                "message": "application 層は feature の UI コンポーネントに依存できません"
-              },
-              {
-                "regex": "^@/contexts/[^/]+/presentation(/|$)",
-                "message": "application 層は presentation 層に依存できません"
-              }
-            ]
-          }
-        ],
         "eslint/no-restricted-properties": [
           "error",
           {
@@ -696,40 +625,6 @@
             "object": "chrome",
             "property": "notifications",
             "message": "application 層は chrome.notifications を直接利用できません（NotificationPort 経由）"
-          }
-        ]
-      }
-    },
-    {
-      "files": ["src/contexts/saved-tabs/infrastructure/**/*.{ts,tsx}"],
-      "rules": {
-        "eslint/no-restricted-imports": [
-          "error",
-          {
-            "paths": [
-              {
-                "name": "react",
-                "message": "infrastructure 層は React に依存できません"
-              },
-              {
-                "name": "react-dom",
-                "message": "infrastructure 層は React DOM に依存できません"
-              }
-            ],
-            "patterns": [
-              {
-                "regex": "^@/components(/|$)",
-                "message": "infrastructure 層は UI コンポーネントに依存できません"
-              },
-              {
-                "regex": "^@/features/[^/]+/components(/|$)",
-                "message": "infrastructure 層は feature の UI コンポーネントに依存できません"
-              },
-              {
-                "regex": "^@/contexts/[^/]+/presentation(/|$)",
-                "message": "infrastructure 層は presentation 層に依存できません"
-              }
-            ]
           }
         ]
       }

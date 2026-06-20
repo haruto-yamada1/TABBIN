@@ -7,11 +7,11 @@ import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPor
 import type { NotificationPort } from '../../application/ports/NotificationPort'
 import type { SetCategoryKeywordsPort } from '../../application/ports/SetCategoryKeywordsPort'
 import type { StorageChangePort } from '../../application/ports/StorageChangePort'
+import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
 import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
 import { useSavedTabsUseCases } from '../controllers/SavedTabsUseCasesContext'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({

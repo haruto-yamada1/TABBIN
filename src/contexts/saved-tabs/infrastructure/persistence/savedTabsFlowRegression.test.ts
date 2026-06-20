@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { createSavedTabsUseCases } from '../../application/createSavedTabsUseCases'
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
+import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
 import { searchSavedTabs } from '../../domain/services/SavedTabsSearchService'
-import { createSavedTabsUseCases } from '../composition/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '../composition/createSavedTabsUseCasesDeps'
 import { createChromeCustomProjectRepository } from './chrome-storage/ChromeCustomProjectRepository'
 import { createChromeDomainCategoryMappingRepository } from './chrome-storage/ChromeDomainCategoryMappingRepository'
 import { createChromeDomainCategorySettingsRepository } from './chrome-storage/ChromeDomainCategorySettingsRepository'

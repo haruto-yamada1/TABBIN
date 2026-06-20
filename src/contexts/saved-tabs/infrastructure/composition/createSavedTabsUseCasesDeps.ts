@@ -4,24 +4,7 @@ import {
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
-import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
-import type { CategoriesCommandService } from '../../application/ports/CategoriesCommandService'
-import type { CategoryAssignmentPort } from '../../application/ports/CategoryAssignmentPort'
-import type { CustomProjectsCommandService } from '../../application/ports/CustomProjectsCommandService'
-import type { MessagingPort } from '../../application/ports/MessagingPort'
-import type { MigrationPort } from '../../application/ports/MigrationPort'
-import type { NotificationPort } from '../../application/ports/NotificationPort'
-import type { RemoveSubCategoryFromTabGroupPort } from '../../application/ports/RemoveSubCategoryFromTabGroupPort'
-import type { SetCategoryKeywordsPort } from '../../application/ports/SetCategoryKeywordsPort'
-import type { StorageChangePort } from '../../application/ports/StorageChangePort'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { DomainCategoryMappingRepository } from '../../domain/repositories/DomainCategoryMappingRepository'
-import type { DomainCategorySettingsRepository } from '../../domain/repositories/DomainCategorySettingsRepository'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import type { UserSettingsRepository } from '../../domain/repositories/UserSettingsRepository'
+import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
 import { createChromeBrowserTabAdapter } from '../browser/ChromeBrowserTabAdapter'
 import type { ChromeApiLike as ChromeApiLikeBase } from '../browser/ChromeBrowserTabAdapter'
 import { createChromeBrowserWindowAdapter } from '../browser/ChromeBrowserWindowAdapter'
@@ -43,46 +26,7 @@ import { createLibCategoriesCommandService } from './LibCategoriesCommandService
 import { createLibCategoryAssignmentPort } from './LibCategoryAssignmentPort'
 import { createLibCustomProjectsCommandService } from './LibCustomProjectsCommandService'
 
-/**
- * presentation / composition 層が repository と port を「テスト可能な形」で
- * 受け取るための依存バンドル。
- *
- * use-case ファクトリ (`create*UseCase`) へ直接このオブジェクトを分割して渡す。
- * ポートを `null` 許容にしないことで、未注入の依存で use-case が
- * 動作してしまう事故を防ぐ。
- */
-export interface SavedTabsUseCasesDeps {
-  readonly tabGroupRepository: TabGroupRepository
-  readonly urlRecordRepository: UrlRecordRepository
-  readonly customProjectRepository: CustomProjectRepository
-  readonly parentCategoryRepository: ParentCategoryRepository
-  readonly userSettingsRepository: UserSettingsRepository
-  readonly domainCategoryMappingRepository: DomainCategoryMappingRepository
-  readonly domainCategorySettingsRepository: DomainCategorySettingsRepository
-  readonly setCategoryKeywordsPort: SetCategoryKeywordsPort
-  readonly browserTabPort: BrowserTabPort
-  readonly browserWindowPort: BrowserWindowPort
-  readonly notificationPort: NotificationPort
-  readonly storageChangePort: StorageChangePort
-  /**
-   * background 通信 port (issue #531)。
-   * presentation 層 (`ProjectUrlItem` / `SortableUrlItem`) の
-   * 外部ウィンドウ D&D 通知を `chrome.runtime.sendMessage` 直叩きせず
-   * port 経由で行うため、deps 経由で配下に注入する。
-   */
-  readonly messagingPort: MessagingPort
-  readonly migrationPort: MigrationPort
-  readonly categoriesCommandService: CategoriesCommandService
-  readonly customProjectsCommandService: CustomProjectsCommandService
-  readonly categoryAssignmentPort: CategoryAssignmentPort
-  /**
-   * カテゴリ削除時の `TabGroup` 更新 port (issue #519)。
-   * domain `TabGroup` エンティティが表現しない rich 補助フィールド
-   * (`subCategories` / `urlSubCategories` / `categoryKeywords`) の
-   * 永続化を port に閉じ込めるための依存。
-   */
-  readonly removeSubCategoryFromTabGroupPort: RemoveSubCategoryFromTabGroupPort
-}
+export type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
 
 /**
  * `createSavedTabsUseCasesDeps` に渡せる任意設定。

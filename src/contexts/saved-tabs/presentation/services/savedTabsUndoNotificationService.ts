@@ -2,11 +2,11 @@ import type { Dispatch } from 'react'
 import { toast } from 'sonner'
 
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import type {
   RestoredSnapshotViewDto,
   RestoreOpenedUrlsSnapshotViewUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
-import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
 import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 /**

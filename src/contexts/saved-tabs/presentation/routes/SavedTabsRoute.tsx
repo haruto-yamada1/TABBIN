@@ -1,10 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
 import type { ViewMode } from '@/types/storage'
 
-import { createSavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
+import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
 import { SavedTabsPage } from '../pages/SavedTabsPage'
+import type { ResolveActiveRef } from '../pages/SavedTabsPage'
+
+export type SavedTabsDepsFactory = (options: {
+  readonly resolveActive: () => boolean
+}) => SavedTabsUseCasesDeps
 
 /**
  * `SavedTabsRoute` の props。
@@ -14,6 +19,7 @@ import { SavedTabsPage } from '../pages/SavedTabsPage'
  *   `initialViewMode` の解決に利用する
  */
 export interface SavedTabsRouteProps {
+  readonly createDeps: SavedTabsDepsFactory
   readonly onViewModeNavigate?: (mode: ViewMode) => void
   readonly search?: string
 }
@@ -34,10 +40,15 @@ export interface SavedTabsRouteProps {
  *   と等価
  */
 export const SavedTabsRoute = ({
+  createDeps,
   onViewModeNavigate,
   search,
 }: SavedTabsRouteProps) => {
-  const deps = useMemo(() => createSavedTabsUseCasesDeps(), [])
+  const resolveActiveRef = useRef<ResolveActiveRef['current']>(() => true)
+  const deps = useMemo(
+    () => createDeps({ resolveActive: () => resolveActiveRef.current() }),
+    [createDeps],
+  )
   const initialViewMode: ViewMode = getSavedTabsModeFromLocation(
     search ?? (typeof window !== 'undefined' ? window.location.search : ''),
   )
@@ -46,6 +57,7 @@ export const SavedTabsRoute = ({
       deps={deps}
       initialViewMode={initialViewMode}
       onViewModeNavigate={onViewModeNavigate}
+      resolveActiveRef={resolveActiveRef}
       search={search}
     />
   )

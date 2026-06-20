@@ -13,18 +13,14 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18nText: () => (key: string) => key,
 }))
 
-const depsMock = vi.hoisted(() => ({
-  callCount: 0,
-}))
+const createDepsMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    __test: 'deps',
+  })),
+)
 
-vi.mock('../../infrastructure/composition/createSavedTabsUseCasesDeps', () => ({
-  createSavedTabsUseCasesDeps: () => {
-    depsMock.callCount += 1
-    return {
-      __test: 'deps',
-      __instanceId: depsMock.callCount,
-    }
-  },
+vi.mock('@/app/composition/createSavedTabsUseCases', () => ({
+  createSavedTabsUseCasesDeps: createDepsMock,
 }))
 
 vi.mock('@/contexts/saved-tabs/presentation/app/SavedTabsApp', () => ({
@@ -42,39 +38,54 @@ vi.mock('@/contexts/saved-tabs/presentation/app/savedTabsProfiler', () => ({
   isDevProfileEnabled: false,
 }))
 
+import { createSavedTabsUseCasesDeps } from '@/app/composition/createSavedTabsUseCases'
+
 import { SavedTabsRoute } from './SavedTabsRoute'
+
+const renderRoute = (
+  props: {
+    readonly onViewModeNavigate?: (mode: 'custom' | 'domain') => void
+    readonly search?: string
+  } = {},
+) =>
+  render(
+    <SavedTabsRoute
+      createDeps={createSavedTabsUseCasesDeps}
+      onViewModeNavigate={props.onViewModeNavigate}
+      search={props.search}
+    />,
+  )
 
 describe('contexts/SavedTabsRoute', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
-    depsMock.callCount = 0
     window.history.replaceState({}, '', '/')
   })
 
   it('SavedTabsPage を直接描画する (旧 features route の再 export ではない)', () => {
     window.history.replaceState({}, '', '/saved-tabs.html?mode=domain')
-    render(<SavedTabsRoute />)
+    renderRoute()
     expect(screen.getByTestId('saved-tabs-page-layout')).toBeTruthy()
     expect(screen.getByTestId('saved-tabs-app-mock')).toBeTruthy()
   })
 
   it('createSavedTabsUseCasesDeps() で deps を組み立て SavedTabsPage へ渡す', () => {
     window.history.replaceState({}, '', '/saved-tabs.html?mode=custom')
-    render(<SavedTabsRoute />)
-    expect(depsMock.callCount).toBeGreaterThanOrEqual(1)
+    renderRoute()
+    expect(createSavedTabsUseCasesDeps).toHaveBeenCalledOnce()
   })
 
   it('search props を受け取り SavedTabsPage へそのまま伝える (initialViewMode は search の mode クエリで解決)', () => {
     window.history.replaceState({}, '', '/saved-tabs.html')
-    render(<SavedTabsRoute search='?mode=custom' />)
+    renderRoute({ search: '?mode=custom' })
     expect(screen.getByTestId('saved-tabs-page-layout')).toBeTruthy()
   })
 
   it('onViewModeNavigate を SavedTabsPage へ伝える', () => {
     window.history.replaceState({}, '', '/saved-tabs.html?mode=domain')
     const onViewModeNavigate = vi.fn()
-    render(<SavedTabsRoute onViewModeNavigate={onViewModeNavigate} />)
+    renderRoute({ onViewModeNavigate })
     // SavedTabsPresentationLayout 経由で onViewModeNavigate が
     // SavedTabsApp へ伝わることは SavedTabsPresentationLayout.test.tsx で
     // 確認済み。ここでは props が伝播することだけを確認する。

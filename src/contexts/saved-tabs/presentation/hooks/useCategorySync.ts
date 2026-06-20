@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 
-import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 
 /**
  * `SyncCategoryAssignmentsUseCase` を fire-and-forget で呼び出す stable callback を返す。
