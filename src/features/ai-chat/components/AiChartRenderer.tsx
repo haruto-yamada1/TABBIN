@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 
 import {
   ChartContainer,
@@ -251,13 +251,13 @@ interface CartesianChartRenderProps {
 }
 
 interface CartesianChartContentProps {
-  series: ReactNode
+  children: ReactNode
   shouldShowLegend: boolean
   spec: AiChartSpec
 }
 
 const CartesianChartContent = ({
-  series,
+  children,
   shouldShowLegend,
   spec,
 }: CartesianChartContentProps) => (
@@ -267,29 +267,11 @@ const CartesianChartContent = ({
     <YAxis axisLine={false} tickLine={false} />
     <ChartTooltipWithFormat valueFormat={spec.valueFormat} />
     <ChartLegendBlock shouldShowLegend={shouldShowLegend} />
-    {series}
+    {children}
   </>
 )
 
 const BarChartRenderer = (props: CartesianChartRenderProps) => {
-  const series = useMemo(
-    () =>
-      props.spec.series.map((series) => (
-        <Bar
-          dataKey={series.dataKey}
-          fill={getChartColor(series.colorToken)}
-          key={series.dataKey}
-          onClick={createChartPointClickHandler({
-            onChartPointClick: props.onChartPointClick,
-            series,
-            spec: props.spec,
-          })}
-          radius={6}
-          stackId={props.spec.stacked ? 'stack' : undefined}
-        />
-      )),
-    [props.onChartPointClick, props.spec],
-  )
   return props.spec.xKey ? (
     <BarChart
       accessibilityLayer
@@ -301,29 +283,29 @@ const BarChartRenderer = (props: CartesianChartRenderProps) => {
       })}
     >
       <CartesianChartContent
-        series={series}
         shouldShowLegend={props.shouldShowLegend}
         spec={props.spec}
-      />
+      >
+        {props.spec.series.map((series) => (
+          <Bar
+            dataKey={series.dataKey}
+            fill={getChartColor(series.colorToken)}
+            key={series.dataKey}
+            onClick={createChartPointClickHandler({
+              onChartPointClick: props.onChartPointClick,
+              series,
+              spec: props.spec,
+            })}
+            radius={6}
+            stackId={props.spec.stacked ? 'stack' : undefined}
+          />
+        ))}
+      </CartesianChartContent>
     </BarChart>
   ) : null
 }
 
 const LineChartRenderer = (props: CartesianChartRenderProps) => {
-  const series = useMemo(
-    () =>
-      props.spec.series.map((series) => (
-        <Line
-          dataKey={series.dataKey}
-          dot={false}
-          key={series.dataKey}
-          stroke={getChartColor(series.colorToken)}
-          strokeWidth={2}
-          type='monotone'
-        />
-      )),
-    [props.spec],
-  )
   return props.spec.xKey ? (
     <LineChart
       accessibilityLayer
@@ -335,31 +317,25 @@ const LineChartRenderer = (props: CartesianChartRenderProps) => {
       })}
     >
       <CartesianChartContent
-        series={series}
         shouldShowLegend={props.shouldShowLegend}
         spec={props.spec}
-      />
+      >
+        {props.spec.series.map((series) => (
+          <Line
+            dataKey={series.dataKey}
+            dot={false}
+            key={series.dataKey}
+            stroke={getChartColor(series.colorToken)}
+            strokeWidth={2}
+            type='monotone'
+          />
+        ))}
+      </CartesianChartContent>
     </LineChart>
   ) : null
 }
 
 const AreaChartRenderer = (props: CartesianChartRenderProps) => {
-  const series = useMemo(
-    () =>
-      props.spec.series.map((series) => (
-        <Area
-          dataKey={series.dataKey}
-          fill={getChartColor(series.colorToken)}
-          fillOpacity={0.3}
-          key={series.dataKey}
-          stackId={props.spec.stacked ? 'stack' : undefined}
-          stroke={getChartColor(series.colorToken)}
-          strokeWidth={2}
-          type='monotone'
-        />
-      )),
-    [props.spec],
-  )
   return props.spec.xKey ? (
     <AreaChart
       accessibilityLayer
@@ -371,10 +347,22 @@ const AreaChartRenderer = (props: CartesianChartRenderProps) => {
       })}
     >
       <CartesianChartContent
-        series={series}
         shouldShowLegend={props.shouldShowLegend}
         spec={props.spec}
-      />
+      >
+        {props.spec.series.map((series) => (
+          <Area
+            dataKey={series.dataKey}
+            fill={getChartColor(series.colorToken)}
+            fillOpacity={0.3}
+            key={series.dataKey}
+            stackId={props.spec.stacked ? 'stack' : undefined}
+            stroke={getChartColor(series.colorToken)}
+            strokeWidth={2}
+            type='monotone'
+          />
+        ))}
+      </CartesianChartContent>
     </AreaChart>
   ) : null
 }

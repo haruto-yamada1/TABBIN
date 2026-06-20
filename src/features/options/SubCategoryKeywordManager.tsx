@@ -1,4 +1,4 @@
-import { Check, Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { SubCategoryButton } from '@/features/options/SubCategoryButton'
+import { SubCategoryKeywordTag } from '@/features/options/SubCategoryKeywordTag'
+import { SubCategoryRenameSection } from '@/features/options/SubCategoryRenameSection'
 import { setCategoryKeywords } from '@/lib/storage/tabs'
 import type { TabGroup } from '@/types/storage'
 
@@ -66,156 +69,6 @@ const NewSubCategoryField = ({
         className='w-full rounded border border-border bg-input p-2 text-foreground focus:ring-2 focus:ring-ring'
         onKeyDown={handleKeyDown}
       />
-    </div>
-  )
-}
-
-const SubCategoryButton = ({
-  category,
-  activeCategory,
-  onSelect,
-  onRemove,
-  deleteAriaLabel,
-}: {
-  category: string
-  activeCategory: string | null
-  onSelect: (category: string) => void
-  onRemove: (category: string) => void | Promise<void>
-  deleteAriaLabel: string
-}) => {
-  const handleSelect = useCallback(() => {
-    onSelect(category)
-  }, [onSelect, category])
-
-  const handleRemove = useCallback(() => {
-    void onRemove(category)
-  }, [onRemove, category])
-
-  return (
-    <div className='flex max-w-full items-center'>
-      <Button
-        type='button'
-        onClick={handleSelect}
-        variant={activeCategory === category ? 'secondary' : 'outline'}
-        size='sm'
-        className={`max-w-[180px] cursor-pointer truncate rounded-r-none ${
-          activeCategory === category
-            ? 'bg-secondary text-secondary-foreground'
-            : 'bg-muted text-foreground hover:bg-secondary/80'
-        }`}
-      >
-        {category}
-      </Button>
-      <Button
-        type='button'
-        onClick={handleRemove}
-        variant='outline'
-        size='sm'
-        className='shrink-0 cursor-pointer rounded-l-none'
-        aria-label={deleteAriaLabel}
-      >
-        <X size={14} />
-      </Button>
-    </div>
-  )
-}
-
-const RenameSection = ({
-  renameInputRef,
-  newCategoryName,
-  onChange,
-  onKeyDown,
-  onCompleteRename,
-  onCancelRename,
-  renameLabel,
-  renameHint,
-}: {
-  renameInputRef: React.RefObject<HTMLInputElement | null>
-  newCategoryName: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
-  onCompleteRename: () => void | Promise<void>
-  onCancelRename: () => void
-  renameLabel: string
-  renameHint: string
-}) => {
-  const handleCompleteClick = useCallback(() => {
-    void onCompleteRename()
-  }, [onCompleteRename])
-
-  return (
-    <div className='relative mb-4'>
-      <Label
-        htmlFor='rename-category'
-        className='mb-1 block text-sm text-foreground'
-      >
-        {renameLabel}
-      </Label>
-      <div className='flex'>
-        <Input
-          id='rename-category'
-          ref={renameInputRef}
-          type='text'
-          value={newCategoryName}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          className='grow rounded-l border border-border bg-input p-2 text-foreground'
-        />
-        <div className='flex shrink-0'>
-          <Button
-            type='button'
-            onClick={handleCompleteClick}
-            variant='secondary'
-            size='icon'
-            className='rounded-none bg-secondary text-secondary-foreground hover:bg-secondary/80'
-          >
-            <Check size={16} />
-          </Button>
-          <Button
-            type='button'
-            onClick={onCancelRename}
-            variant='ghost'
-            size='icon'
-            className='rounded-l-none'
-          >
-            <X size={16} />
-          </Button>
-        </div>
-      </div>
-      <div className='mt-1 text-xs text-muted-foreground'>{renameHint}</div>
-    </div>
-  )
-}
-
-const KeywordTag = ({
-  keyword,
-  onRemove,
-  deleteAriaLabel,
-}: {
-  keyword: string
-  onRemove: (keyword: string) => void | Promise<void>
-  deleteAriaLabel: string
-}) => {
-  const handleRemove = useCallback(() => {
-    void onRemove(keyword)
-  }, [onRemove, keyword])
-
-  return (
-    <div
-      className='flex max-w-full items-center rounded bg-muted px-2 py-1 text-sm text-foreground'
-      title={keyword}
-    >
-      <span className='max-w-[150px] truncate'>{keyword}</span>
-      <Button
-        type='button'
-        onClick={handleRemove}
-        variant='ghost'
-        size='sm'
-        className='ml-1 shrink-0 cursor-pointer p-0 text-muted-foreground hover:bg-transparent hover:text-foreground'
-        aria-label={deleteAriaLabel}
-      >
-        <X size={14} />
-      </Button>
     </div>
   )
 }
@@ -629,7 +482,7 @@ const useSubCategoryKeywordManagerView = ({
         <div className='mt-2'>
           {/* カテゴリリネーム機能 - レスポンシブ対応を改善 */}
           {isRenamingSubCategory ? (
-            <RenameSection
+            <SubCategoryRenameSection
               renameInputRef={renameInputRef}
               newCategoryName={newCategoryName}
               onChange={handleRenameChange}
@@ -711,7 +564,7 @@ const useSubCategoryKeywordManagerView = ({
               </p>
             ) : (
               keywords.map((keyword) => (
-                <KeywordTag
+                <SubCategoryKeywordTag
                   key={keyword}
                   keyword={keyword}
                   onRemove={handleRemoveKeyword}

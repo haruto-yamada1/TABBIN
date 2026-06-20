@@ -6,7 +6,6 @@ import {
   MessageCircleMore,
   Plus,
   Settings2,
-  Trash2,
   X,
 } from 'lucide-react'
 import {
@@ -20,12 +19,7 @@ import {
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { toast } from 'sonner'
 
-import {
-  Attachment,
-  AttachmentInfo,
-  AttachmentPreview,
-  Attachments,
-} from '@/components/ai-elements/attachments'
+import { Attachments } from '@/components/ai-elements/attachments'
 import {
   Conversation,
   ConversationContent,
@@ -96,6 +90,9 @@ import { ChatPromptAttachments } from '@/features/ai-chat/components/ChatPromptA
 import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
 import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
 import { OllamaModelSelector } from '@/features/ai-chat/components/OllamaModelSelector'
+import { SavedTabsChatAttachmentItem } from '@/features/ai-chat/components/SavedTabsChatAttachmentItem'
+import { SavedTabsChatHeaderTooltipButton } from '@/features/ai-chat/components/SavedTabsChatHeaderTooltipButton'
+import { SavedTabsChatHistoryItemCard } from '@/features/ai-chat/components/SavedTabsChatHistoryItemCard'
 import { SystemPromptManagerDialog } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import type { SystemPromptManagerDialogProps } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import {
@@ -159,6 +156,7 @@ import {
 } from './savedTabsChat/streaming'
 import { useChatPromptManager } from './savedTabsChat/useChatPromptManager'
 import { useChatStreamHandlers } from './savedTabsChat/useChatStreamHandlers'
+import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.helpers'
 
 interface SavedTabsChatPanelProps {
   activeSystemPromptId: string
@@ -427,79 +425,6 @@ const renderChatHistoryButton = ({
   )
 }
 
-const HistoryItemCard = ({
-  historyItem,
-  isActive,
-  onDeleteHistoryItem,
-  onSelectHistoryItem,
-  setIsOpen,
-  setPendingDeleteHistoryItem,
-  t,
-}: {
-  historyItem: AiChatHistoryItem
-  isActive: boolean
-  onDeleteHistoryItem?: (conversationId: string) => void
-  onSelectHistoryItem?: (conversationId: string) => void
-  setIsOpen: (open: boolean) => void
-  setPendingDeleteHistoryItem: (item: AiChatHistoryItem | null) => void
-  t: TranslateFn
-}) => {
-  const handleSelect = useCallback(() => {
-    onSelectHistoryItem?.(historyItem.id)
-    setIsOpen(false)
-  }, [historyItem, onSelectHistoryItem, setIsOpen])
-
-  const handleDelete = useCallback(
-    (event: { stopPropagation: () => void }) => {
-      event.stopPropagation()
-      setIsOpen(false)
-      setPendingDeleteHistoryItem(historyItem)
-    },
-    [historyItem, setIsOpen, setPendingDeleteHistoryItem],
-  )
-
-  return (
-    <div
-      className={cn(
-        'rounded-xl border px-3 py-2.5 transition',
-        isActive
-          ? 'border-border bg-muted/50'
-          : 'border-transparent hover:bg-muted/40',
-      )}
-    >
-      <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
-        <Button
-          className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
-          onClick={handleSelect}
-          type='button'
-          variant='ghost'
-        >
-          <p className='w-full min-w-0 truncate text-sm font-medium'>
-            {historyItem.title}
-          </p>
-          <p className='mt-1 line-clamp-2 w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'>
-            {historyItem.preview}
-          </p>
-        </Button>
-        {onDeleteHistoryItem ? (
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon-sm'
-            aria-label={t('aiChat.deleteConversationAria', undefined, {
-              title: historyItem.title,
-            })}
-            className='shrink-0 justify-self-end text-muted-foreground hover:text-destructive'
-            onClick={handleDelete}
-          >
-            <Trash2 className='size-4' />
-          </Button>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
 const useChatHistoryDropdownView = ({
   historyItems,
   onDeleteHistoryItem,
@@ -561,7 +486,7 @@ const useChatHistoryDropdownView = ({
           <div className='max-h-80 gap-y-1 overflow-y-auto'>
             {historyItems.length > 0 ? (
               historyItems.map((historyItem) => (
-                <HistoryItemCard
+                <SavedTabsChatHistoryItemCard
                   historyItem={historyItem}
                   isActive={historyItem.isActive}
                   key={historyItem.id}
@@ -613,42 +538,6 @@ const useChatHistoryDropdownView = ({
     </>
   )
 }
-
-/** Header tooltip button — extracted to fix jsx-max-depth */
-const HeaderTooltipButton = ({
-  ariaLabel,
-  children,
-  dataState,
-  disabled,
-  onClick,
-  tooltipText,
-}: {
-  ariaLabel: string
-  children: ReactNode
-  dataState?: 'copied' | 'idle'
-  disabled?: boolean
-  onClick: () => void
-  tooltipText: string
-}) => (
-  <TooltipProvider delayDuration={0}>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          aria-label={ariaLabel}
-          data-state={dataState}
-          disabled={disabled}
-          onClick={onClick}
-          size='icon'
-          type='button'
-          variant='ghost'
-        >
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side='bottom'>{tooltipText}</TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-)
 
 const useChatSidebarHeaderView = ({
   activeSystemPromptId,
@@ -723,13 +612,13 @@ const useChatSidebarHeaderView = ({
         >
           {historyVariant === 'sidebar-toggle' ? historyButton : null}
           {historyVariant === 'dropdown' ? chatHistoryDropdown : null}
-          <HeaderTooltipButton
+          <SavedTabsChatHeaderTooltipButton
             ariaLabel={t('aiChat.systemPrompt.openSettings')}
             onClick={onOpenSystemPromptManager}
             tooltipText={t('aiChat.systemPrompt.settingsTooltip')}
           >
             <Settings2 className='size-4' />
-          </HeaderTooltipButton>
+          </SavedTabsChatHeaderTooltipButton>
           {systemPromptSelector}
         </div>
 
@@ -738,7 +627,7 @@ const useChatSidebarHeaderView = ({
         </CardTitle>
 
         <div className='z-10 flex items-center justify-end gap-1'>
-          <HeaderTooltipButton
+          <SavedTabsChatHeaderTooltipButton
             ariaLabel={t('aiChat.copyConversation')}
             dataState={isConversationCopied ? 'copied' : 'idle'}
             disabled={isCopyDisabled}
@@ -754,14 +643,14 @@ const useChatSidebarHeaderView = ({
             ) : (
               <Copy className='size-4' />
             )}
-          </HeaderTooltipButton>
-          <HeaderTooltipButton
+          </SavedTabsChatHeaderTooltipButton>
+          <SavedTabsChatHeaderTooltipButton
             ariaLabel={t('aiChat.newConversation')}
             onClick={onResetConversation}
             tooltipText={t('aiChat.newConversation')}
           >
             <Plus className='size-4' />
-          </HeaderTooltipButton>
+          </SavedTabsChatHeaderTooltipButton>
           {showCloseButton ? (
             <Button
               type='button'
@@ -779,36 +668,6 @@ const useChatSidebarHeaderView = ({
   )
 }
 
-const ATTACHMENT_PREVIEW_LENGTH = 32
-
-const getAttachmentId = (attachment: AiChatAttachment) =>
-  [
-    attachment.filename,
-    attachment.mediaType,
-    attachment.kind,
-    attachment.content.length,
-    attachment.content.slice(0, ATTACHMENT_PREVIEW_LENGTH),
-  ].join('-')
-
-const AttachmentItem = ({ attachment }: { attachment: AiChatAttachment }) => {
-  const data = useMemo(
-    () => ({
-      filename: attachment.filename,
-      id: getAttachmentId(attachment),
-      mediaType: attachment.mediaType,
-      type: 'file' as const,
-      url: attachment.kind === 'image' ? attachment.content : '',
-    }),
-    [attachment],
-  )
-  return (
-    <Attachment data={data}>
-      <AttachmentPreview />
-      <AttachmentInfo />
-    </Attachment>
-  )
-}
-
 const renderChatMessageAttachments = ({
   attachments,
 }: {
@@ -817,9 +676,9 @@ const renderChatMessageAttachments = ({
   return (
     <Attachments className='mb-2 w-full' variant='inline'>
       {attachments.map((attachment) => (
-        <AttachmentItem
+        <SavedTabsChatAttachmentItem
           attachment={attachment}
-          key={getAttachmentId(attachment)}
+          key={getSavedTabsChatAttachmentId(attachment)}
         />
       ))}
     </Attachments>

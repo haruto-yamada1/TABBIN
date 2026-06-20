@@ -1,12 +1,10 @@
-import { Plus, RotateCcw, X } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { ModeToggle } from '@/components/mode-toggle'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingState } from '@/components/ui/loading-state'
 import {
@@ -32,6 +30,10 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { useColorSettings } from '@/features/options/hooks/useColorSettings'
 import { useSettings } from '@/features/options/hooks/useSettings'
 import { ImportExportSettings } from '@/features/options/ImportExportSettings'
+import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
+import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
+import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
+import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeInputColumn'
 import type { UserSettings } from '@/types/storage'
 
 import { resetFontSizeInputState } from './optionsRoute.helpers'
@@ -93,172 +95,6 @@ const ClickBehaviorSelect: React.FC<ClickBehaviorSelectProps> = ({
           </SelectContent>
         </Select>
       </div>
-    </div>
-  )
-}
-
-interface ExcludePatternBadgeProps {
-  pattern: string
-  onRemove: (pattern: string) => void
-}
-
-const ExcludePatternBadge: React.FC<ExcludePatternBadgeProps> = ({
-  pattern,
-  onRemove,
-}) => {
-  const { t } = useI18n()
-  const handleRemove = useCallback(() => {
-    onRemove(pattern)
-  }, [onRemove, pattern])
-
-  return (
-    <Badge
-      variant='outline'
-      className='flex max-w-full items-center gap-1 pr-1'
-    >
-      <span className='max-w-[240px] truncate' title={pattern}>
-        {pattern}
-      </span>
-      <Button
-        type='button'
-        variant='ghost'
-        size='icon-sm'
-        className='size-5 rounded-full'
-        onClick={handleRemove}
-        aria-label={t('options.excludePatterns.removeAria', undefined, {
-          pattern,
-        })}
-      >
-        <X size={12} />
-      </Button>
-    </Badge>
-  )
-}
-
-interface ColorPickerRowProps {
-  colorKey: keyof NonNullable<UserSettings['colors']>
-  color: string
-  label: string
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-}
-
-const ColorPickerRow: React.FC<ColorPickerRowProps> = ({
-  colorKey,
-  color,
-  label,
-  onChange,
-}) => {
-  const { t } = useI18n()
-
-  return (
-    <div className='flex flex-col'>
-      <Label
-        htmlFor={`${colorKey}-picker`}
-        className='mb-2 block break-all whitespace-normal text-foreground'
-      >
-        {label}
-      </Label>
-      <div className='flex items-center gap-x-4'>
-        <input
-          aria-label={label}
-          id={`${colorKey}-picker`}
-          type='color'
-          value={color}
-          onChange={onChange}
-          className='size-8 shrink-0 cursor-pointer border-0 p-0'
-        />
-        <div className='min-w-0 flex-1'>
-          <Input
-            id={`${colorKey}-hex`}
-            type='text'
-            value={color}
-            onChange={onChange}
-            className='w-full bg-background text-foreground'
-            placeholder={t('options.color.hexPlaceholder')}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-interface FontSizeInputColumnProps {
-  value: string
-  onValueChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-  onBlur: () => void
-  onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void
-}
-
-const FontSizeInputColumn: React.FC<FontSizeInputColumnProps> = ({
-  value,
-  onValueChange,
-  onBlur,
-  onKeyDown,
-}) => {
-  const { t } = useI18n()
-
-  return (
-    <div>
-      <Label htmlFor='font-size-percent' className='mb-2 block text-foreground'>
-        {t('options.fontSize.inputLabel')}
-      </Label>
-      <div className='flex items-center gap-2'>
-        <Input
-          id='font-size-percent'
-          type='number'
-          inputMode='numeric'
-          min={MIN_FONT_SIZE_PERCENT}
-          max={MAX_FONT_SIZE_PERCENT}
-          step={FONT_SIZE_PERCENT_STEP}
-          value={value}
-          onChange={onValueChange}
-          onBlur={onBlur}
-          onKeyDown={onKeyDown}
-          className='bg-background text-foreground'
-        />
-        <span className='text-sm text-muted-foreground'>%</span>
-      </div>
-    </div>
-  )
-}
-
-interface ExcludePatternInputRowProps {
-  excludePatternInput: string
-  onInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-  onBlur: () => void
-  onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void
-  onAdd: () => void
-}
-
-const ExcludePatternInputRow: React.FC<ExcludePatternInputRowProps> = ({
-  excludePatternInput,
-  onInputChange,
-  onBlur,
-  onKeyDown,
-  onAdd,
-}) => {
-  const { t } = useI18n()
-
-  return (
-    <div className='flex gap-2'>
-      <Input
-        id='excludePatterns'
-        value={excludePatternInput}
-        onChange={onInputChange}
-        onBlur={onBlur}
-        onKeyDown={onKeyDown}
-        className='bg-background text-foreground'
-        placeholder={t('options.excludePatterns.placeholder')}
-      />
-      <Button
-        type='button'
-        onClick={onAdd}
-        variant='secondary'
-        aria-label={t('options.excludePatterns.add')}
-      >
-        <Plus size={16} />
-        {t('options.excludePatterns.add')}
-      </Button>
     </div>
   )
 }
@@ -703,7 +539,7 @@ const useOptionsRouteView = () => {
             >
               {t('options.excludePatterns.label')}
             </Label>
-            <ExcludePatternInputRow
+            <OptionsExcludePatternInputRow
               excludePatternInput={excludePatternInput}
               onInputChange={handleExcludePatternInputChange}
               onBlur={handleBlurExcludePattern}
@@ -718,7 +554,7 @@ const useOptionsRouteView = () => {
                 </p>
               ) : (
                 activeExcludePatterns.map((pattern) => (
-                  <ExcludePatternBadge
+                  <OptionsExcludePatternBadge
                     key={pattern}
                     pattern={pattern}
                     // eslint-disable-next-line typescript/no-misused-promises
@@ -780,7 +616,7 @@ const useOptionsRouteView = () => {
               />
             </div>
 
-            <FontSizeInputColumn
+            <OptionsFontSizeInputColumn
               value={fontSizeInputValue}
               onValueChange={handleFontSizeInputChange}
               onBlur={handleBlurFontSizeInput}
@@ -814,7 +650,7 @@ const useOptionsRouteView = () => {
               )
 
               return (
-                <ColorPickerRow
+                <OptionsColorPickerRow
                   key={key}
                   colorKey={key}
                   // `||` needed: color could be empty string
