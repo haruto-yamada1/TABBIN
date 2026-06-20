@@ -33,6 +33,9 @@ jobs:
       - name: Run formatter check
         run: bun run check
 
+      - name: Run architecture check
+        run: bun run arch:check
+
       - name: Run secretlint
         run: bun run secretlint
 

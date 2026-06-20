@@ -2,10 +2,12 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { createSavedTabsUseCases } from '../../application/createSavedTabsUseCases'
 import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
 import type { NotificationPort } from '../../application/ports/NotificationPort'
 import type { SetCategoryKeywordsPort } from '../../application/ports/SetCategoryKeywordsPort'
+import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
 import { createCustomProject } from '../../domain/entities/CustomProject'
 import type { CustomProject } from '../../domain/entities/CustomProject'
 import { createParentCategory } from '../../domain/entities/ParentCategory'
@@ -16,8 +18,6 @@ import type { CustomProjectRepository } from '../../domain/repositories/CustomPr
 import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import { createSavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
 import { useDomainModeController } from './useDomainModeController'
 import { useSavedTabsController } from './useSavedTabsController'
 

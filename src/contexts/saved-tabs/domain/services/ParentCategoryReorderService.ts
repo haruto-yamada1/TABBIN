@@ -35,7 +35,7 @@ export interface BuildReorderedCategoryOrderParams {
  * React import が漏れ、domain 層の React 依存禁止に抵触するため
  * ここで自前実装する。
  */
-const moveItem = <T>(array: readonly T[], from: number, to: number): T[] => {
+function moveItem<T>(array: readonly T[], from: number, to: number): T[] {
   const newArray = array.slice()
   const normalizedTo = to < 0 ? newArray.length + to : to
   const [moved] = newArray.splice(from, 1)

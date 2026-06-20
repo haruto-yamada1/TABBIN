@@ -1,18 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
-import { getChromeGlobal } from '@/lib/browser/chrome-global'
 import type { ViewMode } from '@/types/storage'
 
+import type { SavedTabsUseCases } from '../../application/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
 import type { CustomProject } from '../../domain/entities/CustomProject'
 import type { TabGroup } from '../../domain/entities/TabGroup'
-import {
-  CHROME_BROWSER_TAB_ADAPTER_MARKER,
-  createChromeBrowserTabAdapter,
-} from '../../infrastructure/browser/ChromeBrowserTabAdapter'
-import type { ChromeApiLike } from '../../infrastructure/browser/ChromeBrowserTabAdapter'
-import type { SavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
 import { SavedTabsPresentationLayout } from '../components/SavedTabsPresentationLayout'
 import {
   LEFT_PANE_COMPACT_BREAKPOINT_PX,
@@ -47,6 +41,7 @@ export interface SavedTabsPageProps {
   readonly initialTabGroups?: readonly TabGroup[]
   readonly initialViewMode?: ViewMode
   readonly onViewModeNavigate?: (mode: ViewMode) => void
+  readonly resolveActiveRef?: ResolveActiveRef
   readonly search?: string
   readonly useCases?: SavedTabsUseCases
 }
@@ -85,28 +80,6 @@ export interface SavedTabsPageState {
   readonly resolveActiveRef: ResolveActiveRef
 }
 
-const getChromeApiFromGlobalThis = (): ChromeApiLike | undefined =>
-  getChromeGlobal<ChromeApiLike>()
-
-const isChromeBrowserTabPort = (
-  port: SavedTabsUseCasesDeps['browserTabPort'] | undefined,
-): boolean => {
-  // `createChromeBrowserTabAdapter` が生成した port には
-  // `CHROME_BROWSER_TAB_ADAPTER_MARKER` をマーカーとして立てている。
-  // テスト / SSR / 個別 mock が注入した独自 port は本マーカーを持たないため
-  // そのまま保持する。`undefined` (route テストの mock 化された deps など)
-  // は Chrome adapter ではないと見なす。
-  if (!port) {
-    return false
-  }
-  // `Object.getOwnPropertySymbols` で port 自身の symbol プロパティを列挙し、
-  // マーカーが立っているかを確認する。`BrowserTabPort` interface は symbol
-  // index signature を持たないため unsafe cast を使わず、配列比較で判定する。
-  return Object.getOwnPropertySymbols(port).includes(
-    CHROME_BROWSER_TAB_ADAPTER_MARKER,
-  )
-}
-
 /**
  * `SavedTabsPage` のロジック hook。
  *
@@ -122,37 +95,14 @@ const useSavedTabsPage = (input: SavedTabsPageProps): SavedTabsPageState => {
   }
   // 初期値は `() => true` (active 固定)。`SavedTabsApp` 側の
   // useEffect が settings を読んで本関数を上書きする。
-  const resolveActiveRef = useRef<() => boolean>(() => true)
-  // 注入された deps の `browserTabPort` が Chrome adapter のときだけ、
-  // ref ベースの resolveActive を持つ port へ差し替える。独自 port
-  // (テスト / SSR) はそのまま保持する。
-  const inputBrowserTabPort = inputDeps.browserTabPort
-  const dynamicBrowserTabPort = useMemo(
-    () =>
-      isChromeBrowserTabPort(inputBrowserTabPort)
-        ? createChromeBrowserTabAdapter(
-            { getApi: getChromeApiFromGlobalThis },
-            { resolveActive: () => resolveActiveRef.current() },
-          )
-        : inputBrowserTabPort,
-    [inputBrowserTabPort, resolveActiveRef],
-  )
-  // 早期 return 後の inputDeps は `SavedTabsUseCasesDeps` で確定する。
-  // TypeScript の型 narrowing を確実にするため、別名に取り出して使う。
-  const stableDeps: SavedTabsUseCasesDeps = inputDeps
-  const composedDeps = useMemo<SavedTabsUseCasesDeps>(
-    () => ({
-      ...stableDeps,
-      browserTabPort: dynamicBrowserTabPort,
-    }),
-    [stableDeps, dynamicBrowserTabPort],
-  )
+  const fallbackResolveActiveRef = useRef<() => boolean>(() => true)
+  const resolveActiveRef = input.resolveActiveRef ?? fallbackResolveActiveRef
   const contextValue = useMemo(() => {
     if (inputUseCases) {
-      return { deps: composedDeps, useCases: inputUseCases }
+      return { deps: inputDeps, useCases: inputUseCases }
     }
-    return createSavedTabsUseCasesContextValueFromDeps(composedDeps)
-  }, [composedDeps, inputUseCases])
+    return createSavedTabsUseCasesContextValueFromDeps(inputDeps)
+  }, [inputDeps, inputUseCases])
   const controller = useSavedTabsController({
     deps: contextValue.deps,
     initialCustomProjects: input.initialCustomProjects,

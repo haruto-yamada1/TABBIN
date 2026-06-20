@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 
-import type { SavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { CustomProject } from '@/types/storage'

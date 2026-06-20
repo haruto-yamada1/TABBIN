@@ -1,10 +1,8 @@
+import { createSavedTabsUseCases as createApplicationSavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
-import { createSavedTabsUseCases as createContextsSavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases'
-import { createSavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
-import type {
-  CreateSavedTabsUseCasesDepsOptions,
-  SavedTabsUseCasesDeps,
-} from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+import { createSavedTabsUseCasesDeps as createInfrastructureSavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import type { CreateSavedTabsUseCasesDepsOptions } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
 
 /**
  * `createSavedTabsUseCases` 呼び出し時に渡せる任意設定。
@@ -14,6 +12,10 @@ import type {
  * 委譲される。`createSavedTabsPorts` の同名 option と同じ意味。
  */
 export type CreateSavedTabsUseCasesOptions = CreateSavedTabsUseCasesDepsOptions
+
+export const createSavedTabsUseCasesDeps = (
+  options: CreateSavedTabsUseCasesDepsOptions = {},
+): SavedTabsUseCasesDeps => createInfrastructureSavedTabsUseCasesDeps(options)
 
 /**
  * `src/app/composition/` レベルの composition root。
@@ -44,5 +46,5 @@ export const createSavedTabsUseCases = (
   options: CreateSavedTabsUseCasesOptions = {},
 ): SavedTabsUseCases => {
   const deps: SavedTabsUseCasesDeps = createSavedTabsUseCasesDeps(options)
-  return createContextsSavedTabsUseCases(deps)
+  return createApplicationSavedTabsUseCases(deps)
 }

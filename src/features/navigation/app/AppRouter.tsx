@@ -9,6 +9,7 @@ import {
   useNavigate,
 } from 'react-router-dom'
 
+import { createSavedTabsUseCasesDeps } from '@/app/composition/createSavedTabsUseCases'
 import {
   getSavedTabsEntryRoute,
   getSavedTabsHrefForMode,
@@ -126,6 +127,7 @@ const SavedTabsRoutePage = () => {
   return (
     <Suspense fallback={null}>
       <SavedTabsRouteComponent
+        createDeps={createSavedTabsUseCasesDeps}
         search={routerLocation.search}
         onViewModeNavigate={handleViewModeNavigate}
       />

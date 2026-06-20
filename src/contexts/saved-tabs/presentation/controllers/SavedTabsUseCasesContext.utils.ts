@@ -1,5 +1,5 @@
-import { createSavedTabsUseCases } from '../../infrastructure/composition/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '../../infrastructure/composition/createSavedTabsUseCasesDeps'
+import { createSavedTabsUseCases } from '../../application/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
 import type { SavedTabsUseCasesContextValue } from './SavedTabsUseCasesContext'
 
 /**
