@@ -165,8 +165,9 @@ const useChatPromptManager = ({
       const nextPrompts = currentPrompts.filter(
         (prompt) => prompt.id !== selectedPromptIdInModal,
       )
-      const fallbackIndex = selectedIndex >= nextPrompts.length ? selectedIndex - 1 : selectedIndex
-      const fallbackPrompt = nextPrompts[fallbackIndex]
+      const fallbackIndex =
+        selectedIndex >= nextPrompts.length ? selectedIndex - 1 : selectedIndex
+      const fallbackPrompt = nextPrompts.at(fallbackIndex)
 
       if (fallbackPrompt) {
         setSelectedPromptIdInModal(fallbackPrompt.id)

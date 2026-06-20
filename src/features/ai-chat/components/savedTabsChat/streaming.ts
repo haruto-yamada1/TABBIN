@@ -42,23 +42,45 @@ const getAiChatOllamaError = (
   response: AiChatResponse | undefined,
 ): OllamaErrorDetails | undefined => response?.ollamaError
 
-const getRuntimePlatform = async (): Promise<OllamaErrorPlatform> => {
-  const chromeValue: unknown = typeof globalThis === 'object' && globalThis !== null ? Reflect.get(globalThis, 'chrome') : undefined
+interface RuntimePlatformApi {
+  getPlatformInfo: (
+    callback: (info: chrome.runtime.PlatformInfo) => void,
+  ) => void
+}
+
+const getRuntimePlatformApi = (): RuntimePlatformApi | null => {
+  const chromeValue: unknown = Reflect.get(globalThis, 'chrome')
   if (typeof chromeValue !== 'object' || chromeValue === null) {
-    return 'unknown'
+    return null
   }
   const runtimeValue: unknown = Reflect.get(chromeValue, 'runtime')
   if (typeof runtimeValue !== 'object' || runtimeValue === null) {
-    return 'unknown'
+    return null
   }
-  if (!('getPlatformInfo' in runtimeValue)) {
+  const getPlatformInfoValue: unknown = Reflect.get(
+    runtimeValue,
+    'getPlatformInfo',
+  )
+  if (typeof getPlatformInfoValue !== 'function') {
+    return null
+  }
+  return {
+    getPlatformInfo: (callback) => {
+      Reflect.apply(getPlatformInfoValue, runtimeValue, [callback])
+    },
+  }
+}
+
+const getRuntimePlatform = async (): Promise<OllamaErrorPlatform> => {
+  const runtimeApi = getRuntimePlatformApi()
+  if (!runtimeApi) {
     return 'unknown'
   }
 
   try {
     const platformInfo = await new Promise<chrome.runtime.PlatformInfo | null>(
       (resolve) => {
-        chrome.runtime.getPlatformInfo((info) => {
+        runtimeApi.getPlatformInfo((info) => {
           resolve(info)
         })
       },

@@ -23,6 +23,15 @@ import {
 const getUrlRecordTitle = (record: Partial<Pick<UrlRecord, 'title'>>): string =>
   record.title ?? ''
 
+const isImportedCustomProjectUrlData = (
+  item: unknown,
+): item is ImportedCustomProjectUrlData =>
+  typeof item === 'object' &&
+  item !== null &&
+  'url' in item &&
+  typeof item.url === 'string' &&
+  item.url.length > 0
+
 const normalizeStringArray = (items: unknown[] | undefined): string[] => {
   if (!Array.isArray(items)) {
     return []
@@ -214,13 +223,7 @@ const normalizeImportedCustomProject = (
     : undefined
   const urls = projectUrls?.reduce<NonNullable<CustomProject['urls']>>(
     (items, item) => {
-      if (
-        item != null &&
-        typeof item === 'object' &&
-        'url' in item &&
-        typeof item.url === 'string' &&
-        item.url.length > 0
-      ) {
+      if (isImportedCustomProjectUrlData(item)) {
         items.push({
           url: item.url,
           title:
@@ -610,9 +613,7 @@ const normalizeImportedCustomProjectsForImport = (
     if (Array.isArray(project.urls)) {
       return {
         ...project,
-        urls: project.urls.filter(
-          (item): item is ImportedCustomProjectUrlData => item != null && Boolean(item.url),
-        ),
+        urls: project.urls.filter(isImportedCustomProjectUrlData),
       }
     }
 

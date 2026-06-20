@@ -158,11 +158,32 @@ import { useChatPromptManager } from './savedTabsChat/useChatPromptManager'
 import { useChatStreamHandlers } from './savedTabsChat/useChatStreamHandlers'
 import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.helpers'
 
-const canWriteToClipboard = (): boolean =>
-  typeof navigator !== 'undefined' &&
-  'clipboard' in navigator &&
-  navigator.clipboard != null &&
-  'writeText' in navigator.clipboard
+interface ClipboardWriter {
+  writeText: (text: string) => Promise<void>
+}
+
+const getClipboardWriter = (): ClipboardWriter | null => {
+  const navigatorValue: unknown = Reflect.get(globalThis, 'navigator')
+  if (typeof navigatorValue !== 'object' || navigatorValue === null) {
+    return null
+  }
+  const clipboardValue: unknown = Reflect.get(navigatorValue, 'clipboard')
+  if (typeof clipboardValue !== 'object' || clipboardValue === null) {
+    return null
+  }
+  const writeTextValue: unknown = Reflect.get(clipboardValue, 'writeText')
+  if (typeof writeTextValue !== 'function') {
+    return null
+  }
+  return {
+    writeText: async (text) => {
+      await Reflect.apply(writeTextValue, clipboardValue, [text])
+    },
+  }
+}
+
+const getConversationClipboard = (): ClipboardWriter | null =>
+  typeof window === 'undefined' ? null : getClipboardWriter()
 
 interface SavedTabsChatPanelProps {
   activeSystemPromptId: string
@@ -1547,13 +1568,14 @@ const useSavedTabsChatWidgetView = ({
       return
     }
 
-    if (typeof window === 'undefined' || !canWriteToClipboard()) {
+    const clipboard = getConversationClipboard()
+    if (!clipboard) {
       toast.error(t('aiChat.copyConversationError'))
       return
     }
 
     try {
-      await navigator.clipboard.writeText(conversationCopyText)
+      await clipboard.writeText(conversationCopyText)
       if (conversationCopiedTimeoutRef.current) {
         window.clearTimeout(conversationCopiedTimeoutRef.current)
       }

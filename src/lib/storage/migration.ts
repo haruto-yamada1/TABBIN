@@ -41,27 +41,25 @@ const assignDomainToCategory = async (
   const updatedCategories = categories.map((category: ParentCategory) => {
     const domainNames = getCategoryDomainNames(category)
     if (category.id === categoryId) {
-      // すでに含まれていなければ追加
-      if (!category.domains.includes(domainId)) {
-        return {
-          ...category,
-          domains: [...category.domains, domainId],
-          domainNames: tabGroup?.domain && !domainNames.includes(tabGroup.domain)
-            ? [...domainNames, tabGroup.domain]
-            : domainNames,
-        }
+      if (!tabGroup || category.domains.includes(domainId)) {
+        return category
       }
-    } else {
-      // 他のカテゴリからは削除（重複を避けるため）
       return {
         ...category,
-        domains: category.domains.filter((id) => id !== domainId),
-        domainNames: domainNames.filter((domain) =>
-          tabGroup ? domain !== tabGroup.domain : true,
-        ),
+        domains: [...category.domains, domainId],
+        domainNames: domainNames.includes(tabGroup.domain)
+          ? domainNames
+          : [...domainNames, tabGroup.domain],
       }
     }
-    return category
+    // 他のカテゴリからは削除（重複を避けるため）
+    return {
+      ...category,
+      domains: category.domains.filter((id) => id !== domainId),
+      domainNames: domainNames.filter((domain) =>
+        tabGroup ? domain !== tabGroup.domain : true,
+      ),
+    }
   })
   await saveParentCategories(updatedCategories)
 } // 既存のデータを更新し、domainNamesプロパティを追加する移行関数

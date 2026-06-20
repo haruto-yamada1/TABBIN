@@ -1050,7 +1050,7 @@ describe('migration storage facade', () => {
     expect(mocks.autoCategorizeTabs).not.toHaveBeenCalled()
   })
 
-  it('assignDomainToCategory は tabGroup が見つからない場合もカテゴリ配列を保存する', async () => {
+  it('assignDomainToCategory は tabGroup が見つからない ID をカテゴリへ追加しない', async () => {
     const state: StorageState = {
       savedTabs: [],
     }
@@ -1075,8 +1075,8 @@ describe('migration storage facade', () => {
     expect(mocks.updateDomainCategoryMapping).not.toHaveBeenCalled()
     expect(mocks.saveParentCategories).toHaveBeenCalledWith([
       expect.objectContaining({
-        domains: ['other-group', 'missing-group'],
-        domainNames: ['https://other.example.com', ''],
+        domains: ['other-group'],
+        domainNames: ['https://other.example.com'],
       }),
     ])
   })
@@ -1109,8 +1109,8 @@ describe('migration storage facade', () => {
 
     expect(mocks.saveParentCategories).toHaveBeenCalledWith([
       expect.objectContaining({
-        domains: ['missing-group'],
-        domainNames: [''],
+        domains: [],
+        domainNames: [],
         id: 'target-category',
       }),
       expect.objectContaining({

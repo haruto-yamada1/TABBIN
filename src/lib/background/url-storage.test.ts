@@ -249,6 +249,20 @@ describe('url-storage', () => {
     expect(getDraggedUrlInfo()).toBeNull()
   })
 
+  it('古いドラッグのタイムアウトで新しいドラッグ情報を消さない', () => {
+    vi.useFakeTimers()
+
+    handleUrlDragStarted('https://first.example.com')
+    vi.advanceTimersByTime(5_000)
+    handleUrlDragStarted('https://second.example.com')
+    vi.advanceTimersByTime(5_000)
+
+    expect(getDraggedUrlInfo()?.url).toBe('https://second.example.com')
+
+    vi.advanceTimersByTime(5_000)
+    expect(getDraggedUrlInfo()).toBeNull()
+  })
+
   it('新規タブURLが一致し removeTabAfterOpen=true ならURLを削除する', async () => {
     vi.mocked(getUserSettings).mockResolvedValue(
       createSettings({ removeTabAfterOpen: true }),

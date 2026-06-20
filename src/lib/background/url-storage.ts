@@ -473,11 +473,8 @@ const handleUrlDragStarted = (url: string): void => {
 
   // ドラッグ情報の自動タイムアウト（10秒）
   const dragTimeout = setTimeout(() => {
-    if (draggedUrlInfo && !draggedUrlInfo.processed) {
-      console.log(
-        'ドラッグ情報のタイムアウト:',
-        redactUrlForLog(draggedUrlInfo.url),
-      )
+    if (draggedUrlInfo === dragInfo && !dragInfo.processed) {
+      console.log('ドラッグ情報のタイムアウト:', redactUrlForLog(dragInfo.url))
       draggedUrlInfo = null
     }
   }, DRAG_TIMEOUT_MS)

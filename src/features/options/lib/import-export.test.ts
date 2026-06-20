@@ -427,6 +427,36 @@ describe('import-export ユーティリティ', () => {
         currentUrlMap,
       ),
     ).toEqual([])
+    expect(
+      normalizeImportedCustomProjectsForImport(
+        [
+          {
+            id: 'project-invalid-urls',
+            name: 'Project Invalid URLs',
+            urls: [
+              null,
+              undefined,
+              { url: '' },
+              { title: 'Missing URL' },
+              { title: 'Valid', url: 'https://valid.example.com' },
+            ],
+          },
+        ] as unknown as Parameters<
+          typeof normalizeImportedCustomProjectsForImport
+        >[0],
+        importedUrlMap,
+        currentUrlMap,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        urls: [
+          {
+            title: 'Valid',
+            url: 'https://valid.example.com',
+          },
+        ],
+      }),
+    ])
   })
 
   it('内部 helper は custom project の整列、追加、上書きを正規化する', () => {

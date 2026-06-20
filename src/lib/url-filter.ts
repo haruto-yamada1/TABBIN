@@ -68,7 +68,17 @@ const isSavableUrl = (
 const filterItemsBySavableUrl = <T extends { url?: string | null }>(
   items: T[],
   excludePatterns: readonly unknown[] | undefined,
-): T[] => items.filter((item) => isSavableUrl(item.url, excludePatterns))
+): T[] => {
+  const normalizedPatterns = normalizeExcludePatterns(excludePatterns)
+  return items.filter((item) => {
+    const normalizedUrl = normalizeUrlCandidate(item.url)
+    return (
+      normalizedUrl !== null &&
+      isValidUrl(normalizedUrl) &&
+      !normalizedPatterns.some((pattern) => normalizedUrl.includes(pattern))
+    )
+  })
+}
 
 export {
   filterItemsBySavableUrl,
