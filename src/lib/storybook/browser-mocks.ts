@@ -238,7 +238,7 @@ const ensureNavigatorMocks = () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: {
-        writeText: () => undefined,
+        writeText: async () => undefined,
       },
     })
   }
@@ -248,7 +248,7 @@ const ensureNavigatorMocks = () => {
       configurable: true,
       value: {
         addEventListener: () => undefined,
-        enumerateDevices: () => [
+        enumerateDevices: async () => [
           {
             deviceId: 'mic-primary',
             groupId: 'group-primary',
@@ -257,7 +257,7 @@ const ensureNavigatorMocks = () => {
             toJSON: () => ({}),
           } satisfies MediaDeviceInfo,
         ],
-        getUserMedia: () => new StorybookMediaStream(),
+        getUserMedia: async () => new StorybookMediaStream(),
         removeEventListener: () => undefined,
       },
     })

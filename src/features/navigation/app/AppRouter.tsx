@@ -84,7 +84,7 @@ const SavedTabsRoutePage = () => {
   }, [hasModeQuery, routerLocation.pathname, routerLocation.search, navigate])
 
   useEffect(() => {
-    if (typeof chrome === 'undefined' || !('remove' in chrome.storage.local)) {
+    if (typeof chrome === 'undefined' || typeof chrome.storage !== 'object' || chrome.storage === null || typeof chrome.storage.local !== 'object' || chrome.storage.local === null || !('remove' in chrome.storage.local)) {
       return
     }
     void chrome.storage.local.remove('viewMode')

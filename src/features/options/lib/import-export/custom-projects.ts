@@ -215,8 +215,8 @@ const normalizeImportedCustomProject = (
   const urls = projectUrls?.reduce<NonNullable<CustomProject['urls']>>(
     (items, item) => {
       if (
+        item != null &&
         typeof item === 'object' &&
-        item !== null &&
         'url' in item &&
         typeof item.url === 'string' &&
         item.url.length > 0
@@ -611,7 +611,7 @@ const normalizeImportedCustomProjectsForImport = (
       return {
         ...project,
         urls: project.urls.filter(
-          (item): item is ImportedCustomProjectUrlData => Boolean(item.url),
+          (item): item is ImportedCustomProjectUrlData => item != null && Boolean(item.url),
         ),
       }
     }

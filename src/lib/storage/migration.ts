@@ -46,9 +46,9 @@ const assignDomainToCategory = async (
         return {
           ...category,
           domains: [...category.domains, domainId],
-          domainNames: domainNames.includes(tabGroup?.domain ?? '')
-            ? domainNames
-            : [...domainNames, tabGroup?.domain ?? ''],
+          domainNames: tabGroup?.domain && !domainNames.includes(tabGroup.domain)
+            ? [...domainNames, tabGroup.domain]
+            : domainNames,
         }
       }
     } else {

@@ -43,7 +43,15 @@ const getAiChatOllamaError = (
 ): OllamaErrorDetails | undefined => response?.ollamaError
 
 const getRuntimePlatform = async (): Promise<OllamaErrorPlatform> => {
-  if (!('getPlatformInfo' in chrome.runtime)) {
+  const chromeValue: unknown = typeof globalThis === 'object' && globalThis !== null ? Reflect.get(globalThis, 'chrome') : undefined
+  if (typeof chromeValue !== 'object' || chromeValue === null) {
+    return 'unknown'
+  }
+  const runtimeValue: unknown = Reflect.get(chromeValue, 'runtime')
+  if (typeof runtimeValue !== 'object' || runtimeValue === null) {
+    return 'unknown'
+  }
+  if (!('getPlatformInfo' in runtimeValue)) {
     return 'unknown'
   }
 

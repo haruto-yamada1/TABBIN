@@ -161,6 +161,7 @@ import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.help
 const canWriteToClipboard = (): boolean =>
   typeof navigator !== 'undefined' &&
   'clipboard' in navigator &&
+  navigator.clipboard != null &&
   'writeText' in navigator.clipboard
 
 interface SavedTabsChatPanelProps {
