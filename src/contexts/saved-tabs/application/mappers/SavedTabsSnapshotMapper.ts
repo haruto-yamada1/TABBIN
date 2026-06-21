@@ -3,6 +3,7 @@ import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 import type { CustomProject as DomainCustomProject } from '../../domain/entities/CustomProject'
 import type { ParentCategory as DomainParentCategory } from '../../domain/entities/ParentCategory'
 import type { TabGroup as DomainTabGroup } from '../../domain/entities/TabGroup'
+import type { CustomProjectRawSnapshot } from '../../domain/repositories/CustomProjectRepository'
 import type { BuildSavedTabsSnapshotCommand } from '../commands/BuildSavedTabsSnapshotCommand'
 import type {
   OpenedUrlsRestoreSnapshot,
@@ -43,6 +44,44 @@ export const toStorageCustomProject = (
   updatedAt: project.updatedAt,
   urlIds: [...project.urlIds],
 })
+
+/** raw snapshot の rich 補助フィールドを保持したまま storage 形へ投影する。 */
+export const toStorageCustomProjectFromRaw = (
+  raw: CustomProjectRawSnapshot,
+): CustomProject => {
+  const result: CustomProject = {
+    categories: [...raw.categories],
+    createdAt: raw.createdAt,
+    id: raw.id,
+    name: raw.name,
+    updatedAt: raw.updatedAt,
+  }
+  if (raw.urlIds && raw.urlIds.length > 0) {
+    result.urlIds = [...raw.urlIds]
+  }
+  if (raw.urls && raw.urls.length > 0) {
+    result.urls = raw.urls.map((entry) => ({ ...entry }))
+  }
+  if (raw.urlMetadata && Object.keys(raw.urlMetadata).length > 0) {
+    result.urlMetadata = Object.fromEntries(
+      Object.entries(raw.urlMetadata).map(([urlId, metadata]) => [
+        urlId,
+        { ...metadata },
+      ]),
+    )
+  }
+  if (raw.projectKeywords) {
+    result.projectKeywords = {
+      domainKeywords: [...raw.projectKeywords.domainKeywords],
+      titleKeywords: [...raw.projectKeywords.titleKeywords],
+      urlKeywords: [...raw.projectKeywords.urlKeywords],
+    }
+  }
+  if (raw.categoryOrder && raw.categoryOrder.length > 0) {
+    result.categoryOrder = [...raw.categoryOrder]
+  }
+  return result
+}
 
 /**
  * domain entity の `ParentCategory` を storage 形 `ParentCategory` へ

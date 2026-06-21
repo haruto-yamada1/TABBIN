@@ -200,12 +200,32 @@ describe('dependency-cruiser architecture rules', () => {
       },
     },
     {
+      name: 'type-only presentation dependencies on infrastructure',
+      rule: 'no-presentation-to-infrastructure',
+      files: {
+        'src/contexts/foo/infrastructure/repository.ts':
+          'export interface Repository {}\n',
+        'src/contexts/foo/presentation/view.ts':
+          "import type { Repository } from '../infrastructure/repository'\nexport type ViewRepository = Repository\n",
+      },
+    },
+    {
       name: 'direct dependencies between contexts',
       rule: 'no-foo-to-other-context',
       files: {
         'src/contexts/bar/domain/entity.ts': 'export const entity = 1\n',
         'src/contexts/foo/domain/entity.ts':
           "import '../../bar/domain/entity'\n",
+      },
+    },
+    {
+      name: 'type-only direct dependencies between contexts',
+      rule: 'no-foo-to-other-context',
+      files: {
+        'src/contexts/bar/domain/entity.ts':
+          'export interface OtherContextEntity {}\n',
+        'src/contexts/foo/domain/entity.ts':
+          "import type { OtherContextEntity } from '../../bar/domain/entity'\nexport type FooEntity = OtherContextEntity\n",
       },
     },
   ])('rejects $name with $rule', ({ files, rule }) => {

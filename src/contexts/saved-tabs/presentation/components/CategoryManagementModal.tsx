@@ -19,12 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
-import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
-import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
-import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
-import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
-import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
-import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import { DeleteEntityConfirmPanel } from '@/contexts/saved-tabs/presentation/components/shared/DeleteEntityConfirmPanel'
 import {
   SavedTabsResponsiveLabel,
@@ -33,8 +27,17 @@ import {
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
+import type {
+  CategoryManagementModalDeps,
+  CategoryManagementModalUseCases,
+} from './CategoryManagementModal.types'
 import { useCategoryActions } from './useCategoryActions'
 import { useCategoryFormState } from './useCategoryFormState'
+
+export type {
+  CategoryManagementModalDeps,
+  CategoryManagementModalUseCases,
+} from './CategoryManagementModal.types'
 
 // 型定義
 interface AvailableDomain {
@@ -50,23 +53,6 @@ interface AvailableDomain {
  * 撤去され、削除・更新は `CategoryManagementModalUseCases` 経由で
  * 実行する。
  */
-export interface CategoryManagementModalDeps {
-  readonly categoryAssignmentPort: CategoryAssignmentPort
-  readonly getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
-}
-
-/**
- * `CategoryManagementModal` が直接実行する use-case 群。
- * 旧 `onCategoryUpdate` コールバックを置換し、storage 直叩きを撤去する
- * （issue #502, #518）。
- */
-export interface CategoryManagementModalUseCases {
-  readonly renameParentCategory: RenameParentCategoryUseCase
-  readonly addDomainToParentCategory: AddDomainToParentCategoryUseCase
-  readonly removeDomainFromParentCategory: RemoveDomainFromParentCategoryUseCase
-  readonly deleteParentCategory: DeleteParentCategoryUseCase
-}
-
 // 親カテゴリ管理モーダルの型定義
 interface CategoryManagementModalProps {
   isOpen: boolean

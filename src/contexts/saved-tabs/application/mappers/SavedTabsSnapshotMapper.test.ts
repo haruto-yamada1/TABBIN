@@ -10,6 +10,7 @@ import {
   toDomainTabGroupsForReorder,
   toRestoreOpenedUrlsSnapshotCommand,
   toStorageCustomProject,
+  toStorageCustomProjectFromRaw,
   toStorageCustomProjects,
   toStorageParentCategory,
   toStorageParentCategories,
@@ -60,6 +61,48 @@ describe('SavedTabsSnapshotMapper.toStorageCustomProject', () => {
       result.urlIds.push('url-3')
     }
     expect(result.urlIds).toStrictEqual(['url-1', 'url-2', 'url-3'])
+  })
+})
+
+describe('SavedTabsSnapshotMapper.toStorageCustomProjectFromRaw', () => {
+  it('raw snapshot の rich フィールドを storage 形へ複製する', () => {
+    const result = toStorageCustomProjectFromRaw({
+      categories: ['research'],
+      categoryOrder: ['research', 'news'],
+      createdAt: 1,
+      id: 'project-1',
+      name: 'Q4',
+      projectKeywords: {
+        domainKeywords: ['example.com'],
+        titleKeywords: ['design'],
+        urlKeywords: ['plan'],
+      },
+      updatedAt: 2,
+      urlIds: ['url-1'],
+      urlMetadata: {
+        'url-1': { category: 'research', notes: 'note-1' },
+      },
+      urls: [{ title: 'A', url: 'https://example.com/a' }],
+    })
+
+    expect(result).toStrictEqual({
+      categories: ['research'],
+      categoryOrder: ['research', 'news'],
+      createdAt: 1,
+      id: 'project-1',
+      name: 'Q4',
+      projectKeywords: {
+        domainKeywords: ['example.com'],
+        titleKeywords: ['design'],
+        urlKeywords: ['plan'],
+      },
+      updatedAt: 2,
+      urlIds: ['url-1'],
+      urlMetadata: {
+        'url-1': { category: 'research', notes: 'note-1' },
+      },
+      urls: [{ title: 'A', url: 'https://example.com/a' }],
+    })
   })
 })
 

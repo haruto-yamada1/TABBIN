@@ -28,8 +28,8 @@ import { useFilteredCustomProjects } from '@/contexts/saved-tabs/presentation/ho
 import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
 import { createCategorizedDisplayState } from '@/contexts/saved-tabs/presentation/lib/categorized-display'
-import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
+import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { TabGroup, ViewMode } from '@/types/storage'
 

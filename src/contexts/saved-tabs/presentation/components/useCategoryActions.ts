@@ -4,8 +4,9 @@ import { toast } from 'sonner'
 import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-import type { CategoryManagementModalUseCases } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import type { ParentCategory, TabGroup } from '@/types/storage'
+
+import type { CategoryManagementModalUseCases } from './CategoryManagementModal.types'
 
 interface AvailableDomain {
   id: string

@@ -11,7 +11,7 @@ import {
 import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import type { ViewMode } from '@/types/storage'
 
-import type { ResolveActiveRef } from '../pages/SavedTabsPage'
+import type { ResolveActiveRef } from '../types/ResolveActiveRef'
 import { SavedTabsChatWidgetBridge } from './SavedTabsChatWidgetBridge'
 import { SavedTabsResponsiveLayoutProvider } from './SavedTabsResponsiveLayoutContext'
 import { SavedTabsScrollControls } from './SavedTabsScrollControls'

@@ -6,6 +6,7 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { toStorageCustomProjectFromRaw } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
 import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
 import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
@@ -31,7 +32,6 @@ import type { SetCustomProjectUrlCategoryUseCase } from '@/contexts/saved-tabs/a
 import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
-import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import type {
   CustomProject,
   ProjectKeywordSettings,
@@ -125,7 +125,7 @@ type RawCustomProjectEntry = Awaited<
 
 /** rich フィールド込みの `CustomProject` へ raw snapshot を投影する */
 const toRawStorageCustomProject = (raw: RawCustomProjectEntry): CustomProject =>
-  ChromeSavedTabsStorageMapper.toStorageCustomProject(raw)
+  toStorageCustomProjectFromRaw(raw)
 
 const createCustomProjectUndoPayload = (
   snapshot: CustomProjectUndoSnapshot,
