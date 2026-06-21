@@ -1,10 +1,10 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { DomainCategoryMappingRepository } from '../../domain/repositories/DomainCategoryMappingRepository'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import { createDomainName } from '../../domain/value-objects/DomainName'
-import type { PrepareTabGroupDeletionCommand } from '../commands/PrepareTabGroupDeletionCommand'
-import type { CategoriesCommandService } from '../ports/CategoriesCommandService'
+import type { PrepareTabGroupDeletionCommand } from '@/contexts/saved-tabs/application/commands/PrepareTabGroupDeletionCommand'
+import type { CategoriesCommandService } from '@/contexts/saved-tabs/application/ports/CategoriesCommandService'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategoryMappingRepository'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 
 /**
  * `PrepareTabGroupDeletionUseCase` が依存する repository / port 群。

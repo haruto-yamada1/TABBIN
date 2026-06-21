@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCustomProject } from '../../domain/entities/CustomProject'
-import { createTabGroup } from '../../domain/entities/TabGroup'
-import { createUrlRecord } from '../../domain/entities/UrlRecord'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+
 import type { DeleteTabGroupsUseCaseDeps } from './DeleteTabGroupsUseCase'
 import { createDeleteTabGroupsUseCase } from './DeleteTabGroupsUseCase'
 

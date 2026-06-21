@@ -1,7 +1,7 @@
-import type { ResolvedTabGroupUrlDto } from '../dto/ResolvedTabGroupUrlDto'
-import type { TabGroupDto } from '../dto/TabGroupDto'
-import type { UrlRecord } from '../entities/UrlRecord'
-import { urlRecordIdToString } from '../value-objects/UrlRecordId'
+import type { ResolvedTabGroupUrlDto } from '@/contexts/saved-tabs/domain/dto/ResolvedTabGroupUrlDto'
+import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { urlRecordIdToString } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * ドメイン型として保持している `UrlRecord` に対して、

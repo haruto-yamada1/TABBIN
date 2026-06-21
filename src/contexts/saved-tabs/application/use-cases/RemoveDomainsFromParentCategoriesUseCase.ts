@@ -1,7 +1,7 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupId } from '../../domain/value-objects/TabGroupId'
-import type { RemoveDomainsFromParentCategoriesCommand } from '../commands/RemoveDomainsFromParentCategoriesCommand'
+import type { RemoveDomainsFromParentCategoriesCommand } from '@/contexts/saved-tabs/application/commands/RemoveDomainsFromParentCategoriesCommand'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `RemoveDomainsFromParentCategoriesUseCase` が依存する repository 群。

@@ -157,7 +157,7 @@
     "import/no-named-as-default": "error",
     "import/no-named-as-default-member": "error",
     "import/no-unassigned-import": "error",
-    "import/no-relative-parent-imports": "off",
+    "import/no-relative-parent-imports": "error",
     "import/max-dependencies": "off",
     "import/no-commonjs": "off",
     "import/unambiguous": "off",

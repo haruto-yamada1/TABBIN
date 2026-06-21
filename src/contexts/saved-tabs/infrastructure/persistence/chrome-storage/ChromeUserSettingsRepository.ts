@@ -1,11 +1,11 @@
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
+import { normalizeUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
 import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import type { UserSettingsDto } from '../../../domain/dto/UserSettingsDto'
-import type { UserSettingsRepository } from '../../../domain/repositories/UserSettingsRepository'
-import { normalizeUserSettings } from '../../../domain/services/UserSettingsDefaults'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import { USER_SETTINGS_KEY } from './savedTabsStorageKeys'

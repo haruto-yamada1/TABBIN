@@ -1,12 +1,12 @@
-import { SavedTabsDomainError } from '../errors/SavedTabsDomainError'
-import { createCategoryName } from '../value-objects/CategoryName'
-import type { CategoryName } from '../value-objects/CategoryName'
-import { createDomainName } from '../value-objects/DomainName'
-import type { DomainName } from '../value-objects/DomainName'
-import { createParentCategoryId } from '../value-objects/ParentCategoryId'
-import type { ParentCategoryId } from '../value-objects/ParentCategoryId'
-import { createTabGroupId } from '../value-objects/TabGroupId'
-import type { TabGroupId } from '../value-objects/TabGroupId'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
+import type { CategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * 親カテゴリを表すドメインエンティティ。

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCustomProject } from '../../domain/entities/CustomProject'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+
 import { createCustomModeViewModel } from './CustomModeViewModel'
 
 describe('CustomModeViewModel', () => {

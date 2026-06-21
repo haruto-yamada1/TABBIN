@@ -1,5 +1,5 @@
-import type { DomainName } from '../../domain/value-objects/DomainName'
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
 /**
  * `MoveDomainToCategoryCommand` の入力。

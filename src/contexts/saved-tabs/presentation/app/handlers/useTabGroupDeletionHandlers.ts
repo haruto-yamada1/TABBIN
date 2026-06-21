@@ -4,10 +4,6 @@ import { useCallback } from 'react'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
-
 import {
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
@@ -15,8 +11,11 @@ import {
   notifyDeleteFailure,
   showOpenedUrlsUndoToast,
   toDomainParentCategories,
-} from '../savedTabsApp.helpers'
-import type { OpenedUrlsStorageSnapshot } from '../savedTabsApp.helpers'
+} from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
+import type { OpenedUrlsStorageSnapshot } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
+import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
+import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 interface UseTabGroupDeletionHandlersDeps {
   isUncategorizedReorderMode: boolean

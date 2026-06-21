@@ -1,7 +1,6 @@
+import type { useCategoryKeywordModal } from '@/contexts/saved-tabs/presentation/hooks/useCategoryKeywordModal'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { TabGroup } from '@/types/storage'
-
-import type { useCategoryKeywordModal } from '../../hooks/useCategoryKeywordModal'
 
 /** KeywordModal のコンテキスト型 */
 export interface KeywordModalContextType {

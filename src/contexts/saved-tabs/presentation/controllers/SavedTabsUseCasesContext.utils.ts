@@ -1,5 +1,6 @@
-import { createSavedTabsUseCases } from '../../application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
+import { createSavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+
 import type { SavedTabsUseCasesContextValue } from './SavedTabsUseCasesContext'
 
 /**

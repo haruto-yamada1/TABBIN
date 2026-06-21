@@ -1,5 +1,5 @@
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
 /**
  * `SaveCustomProjectsUseCase` の入力。

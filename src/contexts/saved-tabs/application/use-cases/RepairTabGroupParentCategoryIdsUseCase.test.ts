@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import { createParentCategory } from '../../domain/entities/ParentCategory'
-import { createTabGroup } from '../../domain/entities/TabGroup'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+
 import { createRepairTabGroupParentCategoryIdsUseCase } from './RepairTabGroupParentCategoryIdsUseCase'
 import type { RepairTabGroupParentCategoryIdsUseCaseDeps } from './RepairTabGroupParentCategoryIdsUseCase'
 

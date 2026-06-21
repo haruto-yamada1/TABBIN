@@ -1,5 +1,5 @@
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '../../domain/value-objects/TabGroupId'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `SyncCategoryAssignmentsUseCase` の結果 DTO。

@@ -1,17 +1,17 @@
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
+import type { OpenSavedUrlCommand } from '@/contexts/saved-tabs/application/commands/OpenSavedUrlCommand'
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { OpenedUrlDto } from '@/contexts/saved-tabs/application/dto/OpenedUrlDto'
+import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import {
   decideUrlRecordIdsToRemoveAfterOpen,
   removeUrlRecordIdsFromTabGroups,
-} from '../../domain/services/OpenedUrlRemovalPolicy'
-import type { UrlReferenceOrigin } from '../../domain/services/UrlReferenceService'
-import { isUrlRecordReferencedElsewhere } from '../../domain/services/UrlReferenceService'
-import type { OpenSavedUrlCommand } from '../commands/OpenSavedUrlCommand'
-import type { OpenedUrlsRestoreSnapshot } from '../commands/RestoreOpenedUrlsSnapshotCommand'
-import type { OpenedUrlDto } from '../dto/OpenedUrlDto'
-import type { BrowserTabPort } from '../ports/BrowserTabPort'
+} from '@/contexts/saved-tabs/domain/services/OpenedUrlRemovalPolicy'
+import type { UrlReferenceOrigin } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
+import { isUrlRecordReferencedElsewhere } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
 
 /**
  * `OpenSavedUrlUseCase` が依存する repository / port 群。

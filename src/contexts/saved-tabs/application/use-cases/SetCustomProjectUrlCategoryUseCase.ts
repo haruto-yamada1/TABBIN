@@ -1,5 +1,5 @@
-import type { SetCustomProjectUrlCategoryCommand } from '../commands/SetCustomProjectUrlCategoryCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { SetCustomProjectUrlCategoryCommand } from '@/contexts/saved-tabs/application/commands/SetCustomProjectUrlCategoryCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `SetCustomProjectUrlCategoryUseCase` が依存する port。

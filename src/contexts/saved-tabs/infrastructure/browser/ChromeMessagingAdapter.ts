@@ -29,12 +29,12 @@
  * ```
  */
 
-import { CHROME_MESSAGING_ADAPTER_MARKER } from '../../application/ports/MessagingPort'
+import { CHROME_MESSAGING_ADAPTER_MARKER } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type {
   ExternalDragMessage,
   MessagingPort,
   MessagingPortResponse,
-} from '../../application/ports/MessagingPort'
+} from '@/contexts/saved-tabs/application/ports/MessagingPort'
 
 export interface ChromeRuntimeSendMessageLike {
   /**

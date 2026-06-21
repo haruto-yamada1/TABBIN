@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCustomProjectId } from '../../domain/value-objects/CustomProjectId'
-import { createDomainName } from '../../domain/value-objects/DomainName'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
-import { createUrlRecordId } from '../../domain/value-objects/UrlRecordId'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+
 import { ChromeSavedTabsStorageMapper } from './ChromeSavedTabsStorageMapper'
 
 describe('ChromeSavedTabsStorageMapper', () => {

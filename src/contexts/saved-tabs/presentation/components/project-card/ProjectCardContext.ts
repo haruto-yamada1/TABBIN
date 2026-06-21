@@ -1,9 +1,8 @@
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
+import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { CustomProject } from '@/types/storage'
-
-import type { useCustomProjectCard } from '../../hooks/useCustomProjectCard'
-import type { CustomProjectCardProps } from '../../types/CustomProjectCard.types'
 
 /** ProjectCard のコンテキスト型 */
 export interface ProjectCardContextType {

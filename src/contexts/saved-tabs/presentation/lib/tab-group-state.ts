@@ -1,8 +1,7 @@
+import type { ParentCategoryDto } from '@/contexts/saved-tabs/domain/dto/ParentCategoryDto'
+import type { PresentationCategoryLookup } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { TabGroup, UrlRecord } from '@/types/storage'
-
-import type { ParentCategoryDto } from '../../domain/dto/ParentCategoryDto'
-import type { PresentationCategoryLookup } from '../../domain/services/SavedTabsCategorizationService'
 
 /**
  * `tabGroup` 内の表示用 URL 件数を数える。

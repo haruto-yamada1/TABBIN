@@ -1,3 +1,9 @@
+import type { DomainCategoryMappingDto } from '@/contexts/saved-tabs/domain/dto/DomainCategoryMappingDto'
+import type { DomainCategorySettingsDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
+import type {
+  AiSystemPromptPresetDto,
+  UserSettingsDto,
+} from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type {
   AiSystemPromptPreset,
   DomainCategorySettings,
@@ -5,13 +11,6 @@ import type {
   SubCategoryKeyword,
   UserSettings,
 } from '@/types/storage'
-
-import type { DomainCategoryMappingDto } from '../../domain/dto/DomainCategoryMappingDto'
-import type { DomainCategorySettingsDto } from '../../domain/dto/DomainCategorySettingsDto'
-import type {
-  AiSystemPromptPresetDto,
-  UserSettingsDto,
-} from '../../domain/dto/UserSettingsDto'
 
 /**
  * `@/types/storage` 形 (chrome.storage 互換) と domain DTO 間の

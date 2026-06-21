@@ -1,7 +1,7 @@
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import { resolveTabGroupsWithUrls } from '../../domain/services/TabGroupUrlResolver'
-import type { LoadTabGroupsWithUrlsCommand } from '../commands/LoadTabGroupsWithUrlsCommand'
-import type { LoadTabGroupsWithUrlsDto } from '../dto/LoadTabGroupsWithUrlsDto'
+import type { LoadTabGroupsWithUrlsCommand } from '@/contexts/saved-tabs/application/commands/LoadTabGroupsWithUrlsCommand'
+import type { LoadTabGroupsWithUrlsDto } from '@/contexts/saved-tabs/application/dto/LoadTabGroupsWithUrlsDto'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { resolveTabGroupsWithUrls } from '@/contexts/saved-tabs/domain/services/TabGroupUrlResolver'
 
 /**
  * `LoadTabGroupsWithUrlsUseCase` が依存する repository 群。

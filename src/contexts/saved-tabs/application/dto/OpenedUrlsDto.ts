@@ -1,6 +1,6 @@
-import type { UrlRecord } from '../../domain/entities/UrlRecord'
-import type { UrlRecordId } from '../../domain/value-objects/UrlRecordId'
-import type { OpenedUrlsRestoreSnapshot } from '../commands/RestoreOpenedUrlsSnapshotCommand'
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `OpenAllSavedUrlsUseCase` の結果 DTO。

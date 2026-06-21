@@ -1,10 +1,10 @@
-import type { TabGroupDto } from '../../domain/dto/TabGroupDto'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import { reorderTabGroupUrlIds } from '../../domain/services/TabGroupUrlReorderer'
-import { createUrlRecordId } from '../../domain/value-objects/UrlRecordId'
-import type { ReorderTabGroupUrlsCommand } from '../commands/ReorderTabGroupUrlsCommand'
+import type { ReorderTabGroupUrlsCommand } from '@/contexts/saved-tabs/application/commands/ReorderTabGroupUrlsCommand'
+import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { reorderTabGroupUrlIds } from '@/contexts/saved-tabs/domain/services/TabGroupUrlReorderer'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `ReorderTabGroupUrlsUseCase` が依存する repository 群。

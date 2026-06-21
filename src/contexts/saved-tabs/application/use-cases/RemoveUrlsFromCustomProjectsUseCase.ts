@@ -1,6 +1,7 @@
-import type { RemoveUrlsFromCustomProjectsCommand } from '../commands/RemoveUrlsFromCustomProjectsCommand'
-import type { RemovedUrlsFromCustomProjectsDto } from '../dto/RemovedUrlsFromCustomProjectsDto'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { RemoveUrlsFromCustomProjectsCommand } from '@/contexts/saved-tabs/application/commands/RemoveUrlsFromCustomProjectsCommand'
+import type { RemovedUrlsFromCustomProjectsDto } from '@/contexts/saved-tabs/application/dto/RemovedUrlsFromCustomProjectsDto'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
+
 import type { LoadTabGroupUrlsUseCase } from './LoadTabGroupUrlsUseCase'
 
 /**

@@ -1,10 +1,10 @@
-import { createCustomProject } from '../../domain/entities/CustomProject'
-import type { CustomProject } from '../../domain/entities/CustomProject'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
-} from '../../domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '../../domain/value-objects/CustomProjectId'
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * undo 用途の `CustomProject` 読み取りスナップショット (issue #538)。

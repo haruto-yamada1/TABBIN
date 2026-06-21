@@ -2,10 +2,9 @@ import type { useSortable } from '@dnd-kit/sortable'
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { useCategoryGroupState } from '@/contexts/saved-tabs/presentation/hooks/useCategoryGroupState'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { CategoryGroupProps } from '@/types/saved-tabs'
-
-import type { useCategoryGroupState } from '../../hooks/useCategoryGroupState'
 
 /** CategoryGroup のコンテキスト型 */
 export interface CategoryGroupContextType {

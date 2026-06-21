@@ -1,5 +1,5 @@
-import type { UpdateCustomProjectKeywordsCommand } from '../commands/UpdateCustomProjectKeywordsCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { UpdateCustomProjectKeywordsCommand } from '@/contexts/saved-tabs/application/commands/UpdateCustomProjectKeywordsCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `UpdateCustomProjectKeywordsUseCase` が依存する port。

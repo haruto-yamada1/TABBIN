@@ -1,12 +1,12 @@
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import type { UrlRecord } from '../../../domain/entities/UrlRecord'
-import type { UrlRecordRepository } from '../../../domain/repositories/UrlRecordRepository'
-import type { UrlRecordId } from '../../../domain/value-objects/UrlRecordId'
-import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStorageMapper'
 import { URLS_KEY } from './savedTabsStorageKeys'
 import type { UrlRecordRaw } from './savedTabsStorageSchema'
 

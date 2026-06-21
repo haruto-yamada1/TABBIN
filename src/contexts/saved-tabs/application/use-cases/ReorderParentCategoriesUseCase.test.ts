@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createParentCategory } from '../../domain/entities/ParentCategory'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+
 import { createReorderParentCategoriesUseCase } from './ReorderParentCategoriesUseCase'
 import type { ReorderParentCategoriesUseCaseDeps } from './ReorderParentCategoriesUseCase'
 

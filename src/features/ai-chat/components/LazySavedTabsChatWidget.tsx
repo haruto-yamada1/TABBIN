@@ -3,9 +3,8 @@ import { Suspense, lazy, useCallback, useState } from 'react'
 import type { ComponentType } from 'react'
 
 import { Button } from '@/components/ui/button'
+import type { AiChatConversationMessage } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-
-import type { AiChatConversationMessage } from '../types'
 
 interface LazySavedTabsChatWidgetProps {
   defaultOpen?: boolean
@@ -23,7 +22,7 @@ const SavedTabsChatWidgetWithHistory = lazy(async () => {
   const [{ SavedTabsChatWidget }, { useSharedAiChatHistory }] =
     await Promise.all([
       import('./SavedTabsChatWidget'),
-      import('../hooks/useSharedAiChatHistory'),
+      import('@/features/ai-chat/hooks/useSharedAiChatHistory'),
     ])
 
   const LoadedSavedTabsChatWidget: ComponentType<

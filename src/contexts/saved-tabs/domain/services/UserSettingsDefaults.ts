@@ -1,11 +1,10 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import {
   DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
   DEFAULT_AI_SYSTEM_PROMPT_TEMPLATE,
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
-
-import type { UserSettingsDto } from '../dto/UserSettingsDto'
 
 const DEFAULT_EXCLUDE_PATTERNS = [
   'about:',

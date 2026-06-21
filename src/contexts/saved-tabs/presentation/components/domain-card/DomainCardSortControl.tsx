@@ -1,4 +1,5 @@
-import { CardSortControl } from '../shared/CardSortControl'
+import { CardSortControl } from '@/contexts/saved-tabs/presentation/components/shared/CardSortControl'
+
 import { useDomainCard } from './DomainCardContext'
 
 /** DomainCard のソート順切り替えボタン */

@@ -1,4 +1,4 @@
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
 /**
  * `RenameParentCategoryCommand` の入力。

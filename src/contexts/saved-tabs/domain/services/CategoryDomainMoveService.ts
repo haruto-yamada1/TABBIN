@@ -1,6 +1,6 @@
-import type { ParentCategory } from '../entities/ParentCategory'
-import type { DomainName } from '../value-objects/DomainName'
-import type { TabGroupId } from '../value-objects/TabGroupId'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * カテゴリ間ドメイン移動の pure domain service (issue #525)。

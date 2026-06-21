@@ -1,11 +1,10 @@
 import { useMemo, useRef } from 'react'
 
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+import { SavedTabsPage } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
+import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
 import type { ViewMode } from '@/types/storage'
-
-import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
-import { SavedTabsPage } from '../pages/SavedTabsPage'
-import type { ResolveActiveRef } from '../pages/SavedTabsPage'
 
 export type SavedTabsDepsFactory = (options: {
   readonly resolveActive: () => boolean

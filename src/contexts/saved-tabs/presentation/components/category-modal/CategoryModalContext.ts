@@ -1,7 +1,6 @@
+import type { useCategoryModal } from '@/contexts/saved-tabs/presentation/hooks/useCategoryModal'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { TabGroup } from '@/types/storage'
-
-import type { useCategoryModal } from '../../hooks/useCategoryModal'
 
 /** CategoryModal のコンテキスト型 */
 export interface CategoryModalContextType {

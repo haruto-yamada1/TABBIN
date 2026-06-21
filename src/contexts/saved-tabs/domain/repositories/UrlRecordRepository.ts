@@ -1,5 +1,5 @@
-import type { UrlRecord } from '../entities/UrlRecord'
-import type { UrlRecordId } from '../value-objects/UrlRecordId'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `UrlRecord` の永続化責務だけを抽出した repository interface。

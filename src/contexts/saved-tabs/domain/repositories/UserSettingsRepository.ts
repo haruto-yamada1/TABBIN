@@ -1,4 +1,4 @@
-import type { UserSettingsDto } from '../dto/UserSettingsDto'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 
 /**
  * `UserSettingsDto` の永続化責務だけを抽出した repository interface。

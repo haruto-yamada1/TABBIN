@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { createParentCategory } from '../entities/ParentCategory'
-import { createTabGroupId } from '../value-objects/TabGroupId'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+
 import { reorderDomainsInCategory } from './CategoryDomainOrderingService'
 
 const buildDocs = () =>

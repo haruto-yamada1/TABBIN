@@ -1,5 +1,5 @@
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '../../domain/value-objects/CustomProjectId'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * presentation 層が「`CustomProject` の表示順 (ID 配列)」を必要とするときの

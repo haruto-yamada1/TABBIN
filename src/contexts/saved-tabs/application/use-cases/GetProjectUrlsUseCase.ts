@@ -1,12 +1,11 @@
-import type { CustomProject } from '@/types/storage'
-
-import type { UrlRecord } from '../../domain/entities/UrlRecord'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
-} from '../../domain/repositories/CustomProjectRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import { createUrlRecordId } from '../../domain/value-objects/UrlRecordId'
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import type { CustomProject } from '@/types/storage'
 
 /**
  * `GetProjectUrlsUseCase` の戻り値要素型。

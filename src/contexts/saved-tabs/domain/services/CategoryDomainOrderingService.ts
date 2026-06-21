@@ -1,5 +1,5 @@
-import type { ParentCategory } from '../entities/ParentCategory'
-import type { TabGroupId } from '../value-objects/TabGroupId'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * カテゴリ内ドメイン順序更新の pure domain service (issue #525)。

@@ -1,4 +1,4 @@
-import { SavedTabsDomainError } from '../errors/SavedTabsDomainError'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 
 declare const categoryNameBrand: unique symbol
 

@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCustomProject } from '../../domain/entities/CustomProject'
-import { createTabGroup } from '../../domain/entities/TabGroup'
-import { createUrlRecord } from '../../domain/entities/UrlRecord'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import type { BrowserTabPort } from '../ports/BrowserTabPort'
-import type { BrowserWindowPort } from '../ports/BrowserWindowPort'
+import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
+import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+
 import { createOpenAllSavedUrlsUseCase } from './OpenAllSavedUrlsUseCase'
 
 interface Repositories {

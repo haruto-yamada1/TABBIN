@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createTabGroup } from '../../domain/entities/TabGroup'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+
 import type { ReorderTabGroupsUseCaseDeps } from './ReorderTabGroupsUseCase'
 import { createReorderTabGroupsUseCase } from './ReorderTabGroupsUseCase'
 

@@ -1,6 +1,6 @@
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import type { FindUrlRecordByUrlCommand } from '../commands/FindUrlRecordByUrlCommand'
-import type { FindUrlRecordByUrlDto } from '../dto/FindUrlRecordByUrlDto'
+import type { FindUrlRecordByUrlCommand } from '@/contexts/saved-tabs/application/commands/FindUrlRecordByUrlCommand'
+import type { FindUrlRecordByUrlDto } from '@/contexts/saved-tabs/application/dto/FindUrlRecordByUrlDto'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 
 /**
  * `FindUrlRecordByUrlUseCase` が依存する repository 群。

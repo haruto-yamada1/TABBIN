@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { TabGroupDto } from '../../domain/dto/TabGroupDto'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
+import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+
 import type { LoadTabGroupUrlsUseCase } from './LoadTabGroupUrlsUseCase'
 import { createRemoveUrlsFromCustomProjectsUseCase } from './RemoveUrlsFromCustomProjectsUseCase'
 import type { RemoveUrlsFromCustomProjectsUseCaseDeps } from './RemoveUrlsFromCustomProjectsUseCase'

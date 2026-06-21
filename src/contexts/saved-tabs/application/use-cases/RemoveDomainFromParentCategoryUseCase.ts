@@ -1,10 +1,10 @@
-import { parentCategoryById } from '../../domain/entities/ParentCategory'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import type { RemoveDomainFromParentCategoryCommand } from '../commands/RemoveDomainFromParentCategoryCommand'
+import type { RemoveDomainFromParentCategoryCommand } from '@/contexts/saved-tabs/application/commands/RemoveDomainFromParentCategoryCommand'
+import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
 /**
  * `RemoveDomainFromParentCategoryUseCase` が依存する repository 群。

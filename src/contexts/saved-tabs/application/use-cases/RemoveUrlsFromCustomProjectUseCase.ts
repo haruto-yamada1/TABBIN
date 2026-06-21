@@ -1,5 +1,5 @@
-import type { RemoveUrlsFromCustomProjectCommand } from '../commands/RemoveUrlsFromCustomProjectCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { RemoveUrlsFromCustomProjectCommand } from '@/contexts/saved-tabs/application/commands/RemoveUrlsFromCustomProjectCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `RemoveUrlsFromCustomProjectUseCase` が依存する port。

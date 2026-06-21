@@ -4,12 +4,12 @@ import { GripVertical, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { SortableUrlItemProps } from '@/types/saved-tabs'
 import { TimeRemaining } from '@/utils/datetime'
 import { formatFixedDatetime as formatDatetime } from '@/utils/localDateTime'
 
-import { useSavedTabsUseCases } from '../controllers/SavedTabsUseCasesContext'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 
 const ButtonContent = ({

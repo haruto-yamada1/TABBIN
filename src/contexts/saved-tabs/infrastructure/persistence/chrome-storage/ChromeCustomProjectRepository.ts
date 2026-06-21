@@ -1,15 +1,15 @@
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type {
+  CustomProjectRawSnapshot,
+  CustomProjectRepository,
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import type { CustomProject } from '../../../domain/entities/CustomProject'
-import type {
-  CustomProjectRawSnapshot,
-  CustomProjectRepository,
-} from '../../../domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '../../../domain/value-objects/CustomProjectId'
-import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStorageMapper'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import {

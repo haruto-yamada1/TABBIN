@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import type { TabGroupDto } from '../dto/TabGroupDto'
+import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+
 import { hasDisplayableUrls } from './SavedTabsDisplayPolicy'
 
 const makeGroup = (overrides: Partial<TabGroupDto> = {}): TabGroupDto => ({

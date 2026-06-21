@@ -1,7 +1,7 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import { createCategoryName } from '../../domain/value-objects/CategoryName'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
 /**
  * `CreateParentCategoryUseCase` の入力。

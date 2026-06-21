@@ -1,18 +1,19 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import type { CustomProjectViewModel } from '../view-models/CustomProjectViewModel'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
 import type {
   DomainModeViewModel,
   ParentCategoryViewModel,
-} from '../view-models/DomainModeViewModel'
+} from '@/contexts/saved-tabs/presentation/view-models/DomainModeViewModel'
 import {
   createDomainModeViewModel,
   toParentCategoryViewModel,
-} from '../view-models/DomainModeViewModel'
-import type { TabGroupViewModel } from '../view-models/TabGroupViewModel'
+} from '@/contexts/saved-tabs/presentation/view-models/DomainModeViewModel'
+import type { TabGroupViewModel } from '@/contexts/saved-tabs/presentation/view-models/TabGroupViewModel'
+
 import type { UseSavedTabsControllerReturn } from './useSavedTabsController'
 
 /**

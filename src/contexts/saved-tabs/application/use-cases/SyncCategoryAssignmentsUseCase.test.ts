@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createParentCategory } from '../../domain/entities/ParentCategory'
-import { createTabGroup } from '../../domain/entities/TabGroup'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import { createDomainName } from '../../domain/value-objects/DomainName'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+
 import type { SyncCategoryAssignmentsUseCaseDeps } from './SyncCategoryAssignmentsUseCase'
 import { createSyncCategoryAssignmentsUseCase } from './SyncCategoryAssignmentsUseCase'
 

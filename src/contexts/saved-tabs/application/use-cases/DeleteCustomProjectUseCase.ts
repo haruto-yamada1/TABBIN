@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
-} from '../../domain/repositories/CustomProjectRepository'
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
 /**
  * `DeleteCustomProjectUseCase` の入力。

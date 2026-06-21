@@ -1,4 +1,4 @@
-import type { SubCategoryKeywordDto } from '../../domain/dto/DomainCategorySettingsDto'
+import type { SubCategoryKeywordDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
 
 /**
  * 旧 `src/lib/storage/categories` の高レベル操作のうち entity 化

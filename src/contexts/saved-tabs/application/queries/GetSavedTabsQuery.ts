@@ -1,5 +1,5 @@
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 
 /**
  * presentation 層が「保存タブ一覧の生データ」を必要とするときの

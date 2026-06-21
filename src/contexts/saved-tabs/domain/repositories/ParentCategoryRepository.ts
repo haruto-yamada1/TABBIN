@@ -1,5 +1,5 @@
-import type { ParentCategory } from '../entities/ParentCategory'
-import type { ParentCategoryId } from '../value-objects/ParentCategoryId'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
 /**
  * `ParentCategory` の永続化責務だけを抽出した repository interface。

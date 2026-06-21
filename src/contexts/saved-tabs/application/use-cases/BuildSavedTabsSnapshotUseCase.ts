@@ -1,9 +1,9 @@
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import type { BuildSavedTabsSnapshotCommand } from '../commands/BuildSavedTabsSnapshotCommand'
-import type { OpenedUrlsRestoreSnapshot } from '../commands/RestoreOpenedUrlsSnapshotCommand'
+import type { BuildSavedTabsSnapshotCommand } from '@/contexts/saved-tabs/application/commands/BuildSavedTabsSnapshotCommand'
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 
 /**
  * `BuildSavedTabsSnapshotUseCase` が依存する repository 群。

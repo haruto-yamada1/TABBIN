@@ -1,11 +1,11 @@
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import { createCustomProjectId } from '../../domain/value-objects/CustomProjectId'
-import type { CustomProjectId } from '../../domain/value-objects/CustomProjectId'
-import type { RestoreOpenedUrlsSnapshotCommand } from '../commands/RestoreOpenedUrlsSnapshotCommand'
-import type { RestoredSnapshotDto } from '../dto/RestoredSnapshotDto'
+import type { RestoreOpenedUrlsSnapshotCommand } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { RestoredSnapshotDto } from '@/contexts/saved-tabs/application/dto/RestoredSnapshotDto'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * `RestoreOpenedUrlsSnapshotUseCase` が依存する repository 群。

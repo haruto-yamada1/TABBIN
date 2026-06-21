@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import type { CustomModeViewModel } from '../view-models/CustomModeViewModel'
-import { createCustomModeViewModel } from '../view-models/CustomModeViewModel'
-import type { CustomProjectViewModel } from '../view-models/CustomProjectViewModel'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomModeViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomModeViewModel'
+import { createCustomModeViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomModeViewModel'
+import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
+
 import type { UseSavedTabsControllerReturn } from './useSavedTabsController'
 
 /**

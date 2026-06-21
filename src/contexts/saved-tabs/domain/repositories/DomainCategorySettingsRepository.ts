@@ -1,4 +1,4 @@
-import type { DomainCategorySettingsDto } from '../dto/DomainCategorySettingsDto'
+import type { DomainCategorySettingsDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
 
 /**
  * `DomainCategorySettingsDto` の永続化責務だけを抽出した repository

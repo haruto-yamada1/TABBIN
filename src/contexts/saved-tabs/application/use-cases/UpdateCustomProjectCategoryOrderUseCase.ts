@@ -1,5 +1,5 @@
-import type { UpdateCustomProjectCategoryOrderCommand } from '../commands/UpdateCustomProjectCategoryOrderCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { UpdateCustomProjectCategoryOrderCommand } from '@/contexts/saved-tabs/application/commands/UpdateCustomProjectCategoryOrderCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `UpdateCustomProjectCategoryOrderUseCase` が依存する port。

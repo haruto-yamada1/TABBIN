@@ -1,5 +1,5 @@
-import type { TabGroupDto } from '../dto/TabGroupDto'
-import type { UrlRecord } from '../entities/UrlRecord'
+import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
 /**
  * 単一 `TabGroupDto` の `urlIds` 並び替えに関する pure ドメインサービス。

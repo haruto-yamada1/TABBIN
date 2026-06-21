@@ -1,5 +1,5 @@
-import type { MoveUrlBetweenCustomProjectsCommand } from '../commands/MoveUrlBetweenCustomProjectsCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { MoveUrlBetweenCustomProjectsCommand } from '@/contexts/saved-tabs/application/commands/MoveUrlBetweenCustomProjectsCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `MoveUrlBetweenCustomProjectsUseCase` が依存する port。

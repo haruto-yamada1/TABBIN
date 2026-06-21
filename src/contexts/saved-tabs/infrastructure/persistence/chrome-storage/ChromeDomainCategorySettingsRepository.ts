@@ -1,11 +1,11 @@
+import { toStorageDomainCategorySettings } from '@/contexts/saved-tabs/application/mappers/SavedTabsDtosMapper'
+import type { DomainCategorySettingsDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
+import type { DomainCategorySettingsRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategorySettingsRepository'
 import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import { toStorageDomainCategorySettings } from '../../../application/mappers/SavedTabsDtosMapper'
-import type { DomainCategorySettingsDto } from '../../../domain/dto/DomainCategorySettingsDto'
-import type { DomainCategorySettingsRepository } from '../../../domain/repositories/DomainCategorySettingsRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import { DOMAIN_CATEGORY_SETTINGS_KEY } from './savedTabsStorageKeys'

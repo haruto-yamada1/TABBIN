@@ -3,10 +3,10 @@ import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
 import { getScopedSortLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import type { SortOrder } from '../../hooks/useSortOrder'
 import { SavedTabsResponsiveTooltipContent } from './SavedTabsResponsive'
 
 /** CardSortControl の props */

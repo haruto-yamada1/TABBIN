@@ -1,4 +1,4 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 
 /**
  * `BuildSavedTabsSnapshotUseCase` の入力。

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { SavedTabRawSummaryDto } from '../../domain/dto/SavedTabRawSummaryDto'
-import type { DomainCategoryMappingRepository } from '../../domain/repositories/DomainCategoryMappingRepository'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
-import type { CategoriesCommandService } from '../ports/CategoriesCommandService'
+import type { CategoriesCommandService } from '@/contexts/saved-tabs/application/ports/CategoriesCommandService'
+import type { SavedTabRawSummaryDto } from '@/contexts/saved-tabs/domain/dto/SavedTabRawSummaryDto'
+import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategoryMappingRepository'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+
 import { createPrepareTabGroupsDeletionUseCase } from './PrepareTabGroupsDeletionUseCase'
 import type { PrepareTabGroupsDeletionUseCaseDeps } from './PrepareTabGroupsDeletionUseCase'
 

@@ -9,10 +9,10 @@ import {
 import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
+import { useCategoryKeywordModal } from '@/contexts/saved-tabs/presentation/hooks/useCategoryKeywordModal'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
 
-import { useCategoryKeywordModal } from '../../hooks/useCategoryKeywordModal'
 import { KeywordModalContext } from './KeywordModalContext'
 import type { KeywordModalContextType } from './KeywordModalContext'
 

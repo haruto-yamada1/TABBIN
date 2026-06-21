@@ -1,12 +1,12 @@
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
-
-import type { OpenedUrlsRestoreSnapshot } from '../commands/RestoreOpenedUrlsSnapshotCommand'
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import {
   getSnapshotSavedTabs,
   toStorageCustomProjects,
   toStorageParentCategories,
   toRestoreOpenedUrlsSnapshotCommand,
-} from '../mappers/SavedTabsSnapshotMapper'
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
+
 import type { RestoreOpenedUrlsSnapshotUseCase } from './RestoreOpenedUrlsSnapshotUseCase'
 
 /**

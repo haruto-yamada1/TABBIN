@@ -2,10 +2,9 @@ import type { useSortable } from '@dnd-kit/sortable'
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { useDomainCardState } from '@/contexts/saved-tabs/presentation/hooks/useDomainCardState'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
-
-import type { useDomainCardState } from '../../hooks/useDomainCardState'
 
 /** DomainCard のコンテキスト型 */
 export interface DomainCardContextType {

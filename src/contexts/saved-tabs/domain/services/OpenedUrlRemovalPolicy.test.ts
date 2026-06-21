@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { createTabGroup } from '../entities/TabGroup'
-import { createUrlRecord } from '../entities/UrlRecord'
-import { createUrlRecordId } from '../value-objects/UrlRecordId'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+
 import {
   decideUrlRecordIdsToRemoveAfterOpen,
   lookupUrlRecordIdsByUrl,

@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
 
+import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import { CardGroupActions } from '../shared/CardGroupActions'
 import { useCategoryGroup } from './CategoryGroupContext'
 
 const BULK_OPEN_THRESHOLD = 10

@@ -1,7 +1,7 @@
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import type { UrlRecord } from '../../domain/entities/UrlRecord'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
 /**
  * `RestoreOpenedUrlsSnapshotUseCase` の入力。

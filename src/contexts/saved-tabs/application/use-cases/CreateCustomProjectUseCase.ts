@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import { createCustomProject } from '../../domain/entities/CustomProject'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '../../domain/value-objects/CustomProjectId'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * `CreateCustomProjectUseCase` の入力。

@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 
-import type { CustomProjectCardProps } from '../types/CustomProjectCard.types'
+import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
+
 import { ProjectCardCategoryList } from './project-card/ProjectCardCategoryList'
 import { ProjectCardDragOverlay } from './project-card/ProjectCardDragOverlay'
 import { ProjectCardRoot } from './project-card/ProjectCardRoot'

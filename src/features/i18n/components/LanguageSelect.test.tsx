@@ -2,9 +2,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { I18nProvider, useI18n } from '@/features/i18n/context/I18nProvider'
 import { defaultSettings } from '@/lib/storage/settings'
 
-import { I18nProvider, useI18n } from '../context/I18nProvider'
 import { LanguageSelect } from './LanguageSelect'
 
 const mockedSettings = vi.hoisted(() => ({

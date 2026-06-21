@@ -2,9 +2,9 @@ import { Trash } from 'lucide-react'
 import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { SavedTabsResponsiveLabel } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import { SavedTabsResponsiveLabel } from '../shared/SavedTabsResponsive'
 import { useKeywordModal } from './KeywordModalContext'
 
 /**

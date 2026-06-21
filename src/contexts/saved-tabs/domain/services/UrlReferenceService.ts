@@ -1,7 +1,7 @@
-import type { CustomProject } from '../entities/CustomProject'
-import type { TabGroup } from '../entities/TabGroup'
-import type { UrlRecord } from '../entities/UrlRecord'
-import type { UrlRecordId } from '../value-objects/UrlRecordId'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `UrlRecord` 参照関係を扱う pure ドメインサービス。

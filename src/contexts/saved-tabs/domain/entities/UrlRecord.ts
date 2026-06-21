@@ -1,10 +1,10 @@
-import { SavedTabsDomainError } from '../errors/SavedTabsDomainError'
-import { createSavedAt } from '../value-objects/SavedAt'
-import type { SavedAt } from '../value-objects/SavedAt'
-import { createUrl } from '../value-objects/Url'
-import type { Url } from '../value-objects/Url'
-import { createUrlRecordId } from '../value-objects/UrlRecordId'
-import type { UrlRecordId } from '../value-objects/UrlRecordId'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
+import type { SavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
+import { createUrl } from '@/contexts/saved-tabs/domain/value-objects/Url'
+import type { Url } from '@/contexts/saved-tabs/domain/value-objects/Url'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * 共通 URL レコードを表すドメインエンティティ。
