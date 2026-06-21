@@ -1,12 +1,14 @@
-import type { DraggableAttributes } from '@dnd-kit/core'
-import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
+import type {
+  DraggableAttributes,
+  DraggableSyntheticListeners,
+} from '@dnd-kit/core'
 import { GripVertical } from 'lucide-react'
 
 interface CardGroupTitleProps {
   title: string
   badges?: React.ReactNode
   sortableAttributes?: DraggableAttributes
-  sortableListeners?: SyntheticListenerMap
+  sortableListeners?: DraggableSyntheticListeners
   className?: string
 }
 

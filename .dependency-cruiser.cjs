@@ -144,8 +144,10 @@ module.exports = {
     ...noCrossContextRules,
   ],
   options: {
+    builtInModules: { add: ['chrome'] },
     doNotFollow: { path: 'node_modules' },
     parser: 'swc',
+    tsPreCompilationDeps: true,
     tsConfig: { fileName: 'tsconfig.json' },
     enhancedResolveOptions: {
       exportsFields: ['exports'],

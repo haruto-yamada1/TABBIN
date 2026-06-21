@@ -16,7 +16,10 @@ import { SavedTabsUseCasesProvider } from '../controllers/SavedTabsUseCasesConte
 import { createSavedTabsUseCasesContextValueFromDeps } from '../controllers/SavedTabsUseCasesContext.utils'
 import { useSavedTabsController } from '../controllers/useSavedTabsController'
 import type { UseSavedTabsControllerReturn } from '../controllers/useSavedTabsController'
+import type { ResolveActiveRef } from '../types/ResolveActiveRef'
 import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'
+
+export type { ResolveActiveRef } from '../types/ResolveActiveRef'
 
 /**
  * `SavedTabsPage` の props。
@@ -61,10 +64,6 @@ export interface SavedTabsPageProps {
  * ref を介すことで use-case 自体は mount 時に 1 度だけ組み立てればよく、
  * 設定変更のたびに use-case / port を作り直す必要がない。
  */
-export interface ResolveActiveRef {
-  current: () => boolean
-}
-
 /**
  * `SavedTabsPage` 内部の controller 状態。
  *
