@@ -1,5 +1,5 @@
-import type { CustomProject } from '../entities/CustomProject'
-import type { CustomProjectId } from '../value-objects/CustomProjectId'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * undo 用途の生 snapshot shape。

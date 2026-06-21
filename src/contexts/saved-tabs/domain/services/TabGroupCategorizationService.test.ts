@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { createParentCategory } from '../entities/ParentCategory'
-import { createTabGroup } from '../entities/TabGroup'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+
 import {
   categorizeTabGroups,
   sortGroupsByCategoryDomainOrder,

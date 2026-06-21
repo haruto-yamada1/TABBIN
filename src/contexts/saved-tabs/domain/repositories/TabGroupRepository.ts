@@ -1,6 +1,6 @@
-import type { SavedTabRawSummaryDto } from '../dto/SavedTabRawSummaryDto'
-import type { TabGroup } from '../entities/TabGroup'
-import type { TabGroupId } from '../value-objects/TabGroupId'
+import type { SavedTabRawSummaryDto } from '@/contexts/saved-tabs/domain/dto/SavedTabRawSummaryDto'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `TabGroup` の永続化責務だけを抽出した repository interface。

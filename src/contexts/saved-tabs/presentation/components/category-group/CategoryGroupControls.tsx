@@ -1,6 +1,6 @@
+import { CardCollapseControl } from '@/contexts/saved-tabs/presentation/components/shared/CardCollapseControl'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import { CardCollapseControl } from '../shared/CardCollapseControl'
 import { useCategoryGroup } from './CategoryGroupContext'
 
 export { CategoryGroupReorderControl } from './CategoryGroupReorderControl'

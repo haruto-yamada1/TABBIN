@@ -1,5 +1,5 @@
-import type { SetCategoryKeywordsCommand } from '../commands/SetCategoryKeywordsCommand'
-import type { SetCategoryKeywordsPort } from '../ports/SetCategoryKeywordsPort'
+import type { SetCategoryKeywordsCommand } from '@/contexts/saved-tabs/application/commands/SetCategoryKeywordsCommand'
+import type { SetCategoryKeywordsPort } from '@/contexts/saved-tabs/application/ports/SetCategoryKeywordsPort'
 
 /**
  * `SetCategoryKeywordsUseCase` が依存する port 群。

@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import { parentCategoryById } from '../../domain/entities/ParentCategory'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { DomainCategoryMappingRepository } from '../../domain/repositories/DomainCategoryMappingRepository'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategoryMappingRepository'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `AssignDomainToCategoryUseCase` の入力。

@@ -1,9 +1,9 @@
-import type { UserSettingsDto } from '../../domain/dto/UserSettingsDto'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UserSettingsRepository } from '../../domain/repositories/UserSettingsRepository'
+import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
 
 /**
  * presentation 層が page 表示 / フォーム初期化で必要とする

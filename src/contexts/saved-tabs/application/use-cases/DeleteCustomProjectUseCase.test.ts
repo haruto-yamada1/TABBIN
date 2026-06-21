@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createCustomProject } from '../../domain/entities/CustomProject'
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
-} from '../../domain/repositories/CustomProjectRepository'
-import { createCustomProjectId } from '../../domain/value-objects/CustomProjectId'
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+
 import { createDeleteCustomProjectUseCase } from './DeleteCustomProjectUseCase'
 import type { DeleteCustomProjectUseCaseDeps } from './DeleteCustomProjectUseCase'
 

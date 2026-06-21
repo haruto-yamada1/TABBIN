@@ -1,10 +1,10 @@
-import { parentCategoryById } from '../../domain/entities/ParentCategory'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import { createCategoryName } from '../../domain/value-objects/CategoryName'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import type { RenameParentCategoryCommand } from '../commands/RenameParentCategoryCommand'
+import type { RenameParentCategoryCommand } from '@/contexts/saved-tabs/application/commands/RenameParentCategoryCommand'
+import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
 /**
  * `RenameParentCategoryUseCase` が依存する repository 群。

@@ -1,6 +1,5 @@
+import type { RemoveSubCategoryFromTabGroupPort } from '@/contexts/saved-tabs/application/ports/RemoveSubCategoryFromTabGroupPort'
 import { removeSubCategoryFromTabGroup } from '@/lib/storage/tabs'
-
-import type { RemoveSubCategoryFromTabGroupPort } from '../../../application/ports/RemoveSubCategoryFromTabGroupPort'
 
 /**
  * `removeSubCategoryFromTabGroupPort` の lib/storage 経由 adapter

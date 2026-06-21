@@ -10,12 +10,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
-import { useI18n } from '@/features/i18n/context/I18nProvider'
-
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
-} from '../shared/SavedTabsResponsive'
+} from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
+import { useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { CategoryDeleteConfirm } from './CategoryDeleteConfirm'
 import { useCategoryModalContext } from './CategoryModalContext'
 

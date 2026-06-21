@@ -1,4 +1,5 @@
-import { CardReorderControls } from '../shared/CardReorderControls'
+import { CardReorderControls } from '@/contexts/saved-tabs/presentation/components/shared/CardReorderControls'
+
 import { useCategoryGroup } from './CategoryGroupContext'
 
 /** CategoryGroup のドメイン並び替え確定・キャンセルボタン */

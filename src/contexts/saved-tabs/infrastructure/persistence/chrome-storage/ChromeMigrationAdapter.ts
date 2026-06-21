@@ -1,9 +1,8 @@
+import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import {
   migrateParentCategoriesToDomainNames,
   migrateToUrlsStorage,
 } from '@/lib/storage/migration'
-
-import type { MigrationPort } from '../../../application/ports/MigrationPort'
 
 /**
  * `MigrationPort` の chrome 実装。実体は `src/lib/storage/migration` の

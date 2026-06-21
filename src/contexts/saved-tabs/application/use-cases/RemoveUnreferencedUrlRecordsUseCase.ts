@@ -1,8 +1,8 @@
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import { filterUnreferencedUrlRecords } from '../../domain/services/UrlReferenceService'
-import type { RemovedUrlRecordsDto } from '../dto/RemovedUrlRecordsDto'
+import type { RemovedUrlRecordsDto } from '@/contexts/saved-tabs/application/dto/RemovedUrlRecordsDto'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { filterUnreferencedUrlRecords } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
 
 /**
  * `RemoveUnreferencedUrlRecordsUseCase` が依存する repository 群。

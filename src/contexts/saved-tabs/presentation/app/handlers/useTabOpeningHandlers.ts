@@ -4,14 +4,13 @@ import { useCallback } from 'react'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
-
 import {
   showOpenedUrlsUndoToast,
   toDomainParentCategories,
-} from '../savedTabsApp.helpers'
+} from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
+import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
+import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 interface UseTabOpeningHandlersDeps {
   savedTabsUseCases: SavedTabsUseCases

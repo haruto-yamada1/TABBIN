@@ -1,8 +1,8 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import { reorderDomainsInCategory } from '../../domain/services/CategoryDomainOrderingService'
-import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
-import type { ReorderDomainsInCategoryCommand } from '../commands/ReorderDomainsInCategoryCommand'
+import type { ReorderDomainsInCategoryCommand } from '@/contexts/saved-tabs/application/commands/ReorderDomainsInCategoryCommand'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { reorderDomainsInCategory } from '@/contexts/saved-tabs/domain/services/CategoryDomainOrderingService'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `ReorderDomainsInCategoryUseCase` が依存する repository 群。

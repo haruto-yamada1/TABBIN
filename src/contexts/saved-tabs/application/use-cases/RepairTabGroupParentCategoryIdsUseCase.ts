@@ -1,7 +1,7 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 
 /**
  * `RepairTabGroupParentCategoryIdsUseCase` の入力。

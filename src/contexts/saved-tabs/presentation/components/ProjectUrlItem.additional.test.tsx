@@ -52,7 +52,8 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
   }
 })
 
-import { SavedTabsUseCasesProvider } from '../controllers/SavedTabsUseCasesContext'
+import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+
 import { ProjectUrlItem } from './ProjectUrlItem'
 
 const defaultSettings: UserSettings = {

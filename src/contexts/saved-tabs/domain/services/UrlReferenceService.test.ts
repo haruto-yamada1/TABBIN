@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCustomProject } from '../entities/CustomProject'
-import { createTabGroup } from '../entities/TabGroup'
-import { createUrlRecord } from '../entities/UrlRecord'
-import { createCustomProjectId } from '../value-objects/CustomProjectId'
-import { createTabGroupId } from '../value-objects/TabGroupId'
-import { createUrlRecordId } from '../value-objects/UrlRecordId'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+
 import {
   collectReferencedUrlRecordIds,
   filterUnreferencedUrlRecords,

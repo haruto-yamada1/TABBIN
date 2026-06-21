@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import * as chromeStorageModule from '@/lib/browser/chrome-storage'
 
-import { createUrlRecordId } from '../../../domain/value-objects/UrlRecordId'
-import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStorageMapper'
 import {
   SavedTabsRepositoryUnavailableError,
   createChromeUrlRecordRepository,

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { createParentCategory } from '../../domain/entities/ParentCategory'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import { createDomainName } from '../../domain/value-objects/DomainName'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+
 import { createRemoveDomainFromParentCategoryUseCase } from './RemoveDomainFromParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCaseDeps } from './RemoveDomainFromParentCategoryUseCase'
 

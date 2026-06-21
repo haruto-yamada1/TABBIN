@@ -1,5 +1,6 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { TabGroup } from '../../domain/entities/TabGroup'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+
 import type { CustomProjectViewModel } from './CustomProjectViewModel'
 import type { TabGroupViewModel } from './TabGroupViewModel'
 import { toTabGroupViewModel } from './TabGroupViewModel'

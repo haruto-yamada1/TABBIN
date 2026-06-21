@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { createParentCategory } from '../entities/ParentCategory'
-import { createTabGroup } from '../entities/TabGroup'
-import { createUrlRecord } from '../entities/UrlRecord'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+
 import { searchSavedTabs } from './SavedTabsSearchService'
 
 const docs = createParentCategory({

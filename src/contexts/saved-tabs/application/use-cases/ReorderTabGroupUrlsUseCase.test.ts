@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { TabGroup as DomainTabGroup } from '../../domain/entities/TabGroup'
-import type { UrlRecord } from '../../domain/entities/UrlRecord'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
+import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+
 import { createReorderTabGroupUrlsUseCase } from './ReorderTabGroupUrlsUseCase'
 import type { ReorderTabGroupUrlsUseCaseDeps } from './ReorderTabGroupUrlsUseCase'
 

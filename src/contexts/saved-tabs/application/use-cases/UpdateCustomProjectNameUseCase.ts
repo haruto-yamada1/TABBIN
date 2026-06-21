@@ -1,8 +1,8 @@
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import { createCategoryName } from '../../domain/value-objects/CategoryName'
-import { createCustomProjectId } from '../../domain/value-objects/CustomProjectId'
-import { createSavedAt } from '../../domain/value-objects/SavedAt'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
 
 export interface UpdateCustomProjectNameCommand {
   readonly projectId: string

@@ -1,5 +1,5 @@
-import type { RenameCustomProjectCategoryCommand } from '../commands/RenameCustomProjectCategoryCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { RenameCustomProjectCategoryCommand } from '@/contexts/saved-tabs/application/commands/RenameCustomProjectCategoryCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `RenameCustomProjectCategoryUseCase` が依存する port。

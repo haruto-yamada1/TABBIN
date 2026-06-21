@@ -1,9 +1,9 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import { moveDomainBetweenCategories } from '../../domain/services/CategoryDomainMoveService'
-import { createDomainName } from '../../domain/value-objects/DomainName'
-import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
-import type { MoveDomainBetweenCategoriesCommand } from '../commands/MoveDomainBetweenCategoriesCommand'
+import type { MoveDomainBetweenCategoriesCommand } from '@/contexts/saved-tabs/application/commands/MoveDomainBetweenCategoriesCommand'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { moveDomainBetweenCategories } from '@/contexts/saved-tabs/domain/services/CategoryDomainMoveService'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `MoveDomainBetweenCategoriesUseCase` が依存する repository 群。

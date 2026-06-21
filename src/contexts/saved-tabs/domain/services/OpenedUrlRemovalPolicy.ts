@@ -1,6 +1,6 @@
-import type { TabGroup } from '../entities/TabGroup'
-import type { UrlRecord } from '../entities/UrlRecord'
-import type { UrlRecordId } from '../value-objects/UrlRecordId'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * 「URL を開いたあと、保存リストから削除するか」を決める pure ポリシー。

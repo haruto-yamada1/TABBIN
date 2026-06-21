@@ -1,4 +1,4 @@
-import type { ResolvedTabGroupUrlDto } from '../../domain/dto/ResolvedTabGroupUrlDto'
+import type { ResolvedTabGroupUrlDto } from '@/contexts/saved-tabs/domain/dto/ResolvedTabGroupUrlDto'
 
 /**
  * `LoadTabGroupUrlsUseCase` の戻り値 DTO。

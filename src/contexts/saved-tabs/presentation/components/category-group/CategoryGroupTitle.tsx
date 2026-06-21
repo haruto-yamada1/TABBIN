@@ -2,9 +2,9 @@ import { useMemo } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import { CardGroupTitle } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupTitle'
+import { SavedTabsResponsiveTooltipContent } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 
-import { CardGroupTitle } from '../shared/CardGroupTitle'
-import { SavedTabsResponsiveTooltipContent } from '../shared/SavedTabsResponsive'
 import { useCategoryGroup } from './CategoryGroupContext'
 
 /**

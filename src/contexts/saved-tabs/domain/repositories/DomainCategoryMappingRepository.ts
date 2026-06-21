@@ -1,4 +1,4 @@
-import type { DomainCategoryMappingDto } from '../dto/DomainCategoryMappingDto'
+import type { DomainCategoryMappingDto } from '@/contexts/saved-tabs/domain/dto/DomainCategoryMappingDto'
 
 /**
  * `DomainCategoryMappingDto` の永続化責務だけを抽出した repository

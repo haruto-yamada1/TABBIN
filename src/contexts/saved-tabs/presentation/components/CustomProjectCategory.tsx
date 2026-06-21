@@ -10,10 +10,10 @@ import { memo, useCallback, useMemo, useReducer, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
+import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import type { SortOrder } from '../hooks/useSortOrder'
-import type { CustomProjectCategoryProps } from '../types/CustomProjectCategory.types'
 import { CustomProjectCategoryBulkConfirmDialogs } from './CustomProjectCategoryBulkConfirmDialogs'
 import { CustomProjectCategoryHeaderActions } from './CustomProjectCategoryHeaderActions'
 import { CustomProjectCategoryManageDialog } from './CustomProjectCategoryManageDialog'

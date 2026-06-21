@@ -1,4 +1,5 @@
-import type { PrepareTabGroupsDeletionCommand } from '../commands/PrepareTabGroupsDeletionCommand'
+import type { PrepareTabGroupsDeletionCommand } from '@/contexts/saved-tabs/application/commands/PrepareTabGroupsDeletionCommand'
+
 import { createPrepareTabGroupDeletionUseCase } from './PrepareTabGroupDeletionUseCase'
 import type { PrepareTabGroupDeletionUseCaseDeps } from './PrepareTabGroupDeletionUseCase'
 

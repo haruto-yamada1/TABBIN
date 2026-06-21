@@ -1,4 +1,4 @@
-import type { TabGroup } from '../../domain/entities/TabGroup'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 
 /**
  * `ReorderTabGroupsUseCase` の入力。

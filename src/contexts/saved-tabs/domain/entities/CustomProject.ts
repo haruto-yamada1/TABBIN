@@ -1,12 +1,12 @@
-import { SavedTabsDomainError } from '../errors/SavedTabsDomainError'
-import { createCategoryName } from '../value-objects/CategoryName'
-import type { CategoryName } from '../value-objects/CategoryName'
-import { createCustomProjectId } from '../value-objects/CustomProjectId'
-import type { CustomProjectId } from '../value-objects/CustomProjectId'
-import { createSavedAt } from '../value-objects/SavedAt'
-import type { SavedAt } from '../value-objects/SavedAt'
-import { createUrlRecordId } from '../value-objects/UrlRecordId'
-import type { UrlRecordId } from '../value-objects/UrlRecordId'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
+import type { CategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
+import type { SavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * カスタムプロジェクト（PJ 単位）を表すドメインエンティティ。

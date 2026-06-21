@@ -2,7 +2,7 @@ import {
   initializeLegacyRedirect,
   redirectToApp,
   syncDocumentTitle,
-} from '../shared/legacyRedirect'
+} from '@/entrypoints/shared/legacyRedirect'
 
 initializeLegacyRedirect()
 

@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createSavedTabsUseCases } from '../../application/createSavedTabsUseCases'
-import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
-import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
-import type { NotificationPort } from '../../application/ports/NotificationPort'
-import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
-import { searchSavedTabs } from '../../domain/services/SavedTabsSearchService'
+import { createSavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
+import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
+import type { NotificationPort } from '@/contexts/saved-tabs/application/ports/NotificationPort'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+import { searchSavedTabs } from '@/contexts/saved-tabs/domain/services/SavedTabsSearchService'
+
 import { createChromeCustomProjectRepository } from './chrome-storage/ChromeCustomProjectRepository'
 import { createChromeDomainCategoryMappingRepository } from './chrome-storage/ChromeDomainCategoryMappingRepository'
 import { createChromeDomainCategorySettingsRepository } from './chrome-storage/ChromeDomainCategorySettingsRepository'
@@ -448,9 +449,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       }))
       const resolveActive = vi.fn(() => false)
       const { createChromeBrowserTabAdapter } =
-        await import('../browser/ChromeBrowserTabAdapter')
+        await import('@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter')
       const { createChromeBrowserWindowAdapter } =
-        await import('../browser/ChromeBrowserWindowAdapter')
+        await import('@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserWindowAdapter')
       const browserTabPort = createChromeBrowserTabAdapter(
         { getApi: () => ({ tabs: { create: openSpy } }) },
         { resolveActive },

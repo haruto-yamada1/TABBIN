@@ -1,15 +1,14 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 
+import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { ModeSyncEvent } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   CustomProject,
   ParentCategory,
   TabGroup,
   ViewMode,
 } from '@/types/storage'
-
-import type { TypedSavedTabsStorageChange } from '../../application/ports/StorageChangePort'
-import type { ModeSyncEvent } from '../types/mode'
 
 interface SyncStorageChangesParams {
   changes: readonly TypedSavedTabsStorageChange[]

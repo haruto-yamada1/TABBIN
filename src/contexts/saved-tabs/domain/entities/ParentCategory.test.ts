@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { SavedTabsDomainError } from '../errors/SavedTabsDomainError'
-import { createDomainName } from '../value-objects/DomainName'
-import { createTabGroupId } from '../value-objects/TabGroupId'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+
 import {
   createParentCategory,
   isSameParentCategory,

@@ -1,8 +1,8 @@
 import type {
   RemoveSubCategoryFromTabGroupsCommand,
   RemoveSubCategoryFromTabGroupsResult,
-} from '../commands/RemoveSubCategoryFromTabGroupsCommand'
-import type { RemoveSubCategoryFromTabGroupPort } from '../ports/RemoveSubCategoryFromTabGroupPort'
+} from '@/contexts/saved-tabs/application/commands/RemoveSubCategoryFromTabGroupsCommand'
+import type { RemoveSubCategoryFromTabGroupPort } from '@/contexts/saved-tabs/application/ports/RemoveSubCategoryFromTabGroupPort'
 
 /**
  * `RemoveSubCategoryFromTabGroupsUseCase` が依存する port 群。

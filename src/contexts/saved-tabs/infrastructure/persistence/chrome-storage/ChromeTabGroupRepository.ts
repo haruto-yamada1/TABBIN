@@ -1,13 +1,13 @@
+import type { SavedTabRawSummaryDto } from '@/contexts/saved-tabs/domain/dto/SavedTabRawSummaryDto'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import type { SavedTabRawSummaryDto } from '../../../domain/dto/SavedTabRawSummaryDto'
-import type { TabGroup } from '../../../domain/entities/TabGroup'
-import type { TabGroupRepository } from '../../../domain/repositories/TabGroupRepository'
-import type { TabGroupId } from '../../../domain/value-objects/TabGroupId'
-import { ChromeSavedTabsStorageMapper } from '../../mappers/ChromeSavedTabsStorageMapper'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SAVED_TABS_KEY } from './savedTabsStorageKeys'

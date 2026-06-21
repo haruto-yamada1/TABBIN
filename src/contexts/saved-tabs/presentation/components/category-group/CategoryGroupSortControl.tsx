@@ -1,4 +1,5 @@
-import { CardSortControl } from '../shared/CardSortControl'
+import { CardSortControl } from '@/contexts/saved-tabs/presentation/components/shared/CardSortControl'
+
 import { useCategoryGroup } from './CategoryGroupContext'
 
 /** CategoryGroup のソート順切り替えボタン */

@@ -1,4 +1,4 @@
-import { createCustomProjectId } from '../value-objects/CustomProjectId'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * 旧 `src/lib/storage/projects.CUSTOM_UNCATEGORIZED_PROJECT_ID` を

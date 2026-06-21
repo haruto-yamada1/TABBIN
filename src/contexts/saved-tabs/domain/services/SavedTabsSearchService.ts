@@ -1,6 +1,7 @@
-import type { ParentCategory } from '../entities/ParentCategory'
-import type { TabGroup } from '../entities/TabGroup'
-import type { UrlRecord } from '../entities/UrlRecord'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+
 import {
   buildCategoryLookup,
   resolveCategoryForTabGroup,

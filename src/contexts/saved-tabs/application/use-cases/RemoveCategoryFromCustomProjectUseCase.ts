@@ -1,5 +1,5 @@
-import type { RemoveCategoryFromCustomProjectCommand } from '../commands/RemoveCategoryFromCustomProjectCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { RemoveCategoryFromCustomProjectCommand } from '@/contexts/saved-tabs/application/commands/RemoveCategoryFromCustomProjectCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `RemoveCategoryFromCustomProjectUseCase` が依存する port。

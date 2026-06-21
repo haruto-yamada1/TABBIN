@@ -5,9 +5,9 @@ import { useMemo } from 'react'
 import type { CSSProperties } from 'react'
 
 import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import { useDomainCardState } from '@/contexts/saved-tabs/presentation/hooks/useDomainCardState'
 import type { SortableDomainCardProps } from '@/types/saved-tabs'
 
-import { useDomainCardState } from '../../hooks/useDomainCardState'
 import { DomainCardContext } from './DomainCardContext'
 import type { DomainCardContextType } from './DomainCardContext'
 

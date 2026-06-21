@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { CustomProject } from '../../domain/entities/CustomProject'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
-} from '../../domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '../../domain/value-objects/CustomProjectId'
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+
 import { createRestoreCustomProjectsSnapshotUseCase } from './RestoreCustomProjectsSnapshotUseCase'
 
 const makeRepository = (options: {

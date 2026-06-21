@@ -1,25 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
-import type { ViewMode } from '@/types/storage'
-
-import type { SavedTabsUseCases } from '../../application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import { SavedTabsPresentationLayout } from '../components/SavedTabsPresentationLayout'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { SavedTabsPresentationLayout } from '@/contexts/saved-tabs/presentation/components/SavedTabsPresentationLayout'
 import {
   LEFT_PANE_COMPACT_BREAKPOINT_PX,
   useSavedTabsLeftPaneWidth,
-} from '../components/savedTabsPresentationLayout.helpers'
-import { SavedTabsUseCasesProvider } from '../controllers/SavedTabsUseCasesContext'
-import { createSavedTabsUseCasesContextValueFromDeps } from '../controllers/SavedTabsUseCasesContext.utils'
-import { useSavedTabsController } from '../controllers/useSavedTabsController'
-import type { UseSavedTabsControllerReturn } from '../controllers/useSavedTabsController'
-import type { ResolveActiveRef } from '../types/ResolveActiveRef'
-import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'
+} from '@/contexts/saved-tabs/presentation/components/savedTabsPresentationLayout.helpers'
+import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { createSavedTabsUseCasesContextValueFromDeps } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext.utils'
+import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
+import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
+import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
+import type { SavedTabsViewModel } from '@/contexts/saved-tabs/presentation/view-models/SavedTabsViewModel'
+import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
+import type { ViewMode } from '@/types/storage'
 
-export type { ResolveActiveRef } from '../types/ResolveActiveRef'
+export type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
 
 /**
  * `SavedTabsPage` の props。

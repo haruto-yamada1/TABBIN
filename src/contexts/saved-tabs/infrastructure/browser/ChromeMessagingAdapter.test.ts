@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { CHROME_MESSAGING_ADAPTER_MARKER } from '../../application/ports/MessagingPort'
-import type { ExternalDragMessage } from '../../application/ports/MessagingPort'
+import { CHROME_MESSAGING_ADAPTER_MARKER } from '@/contexts/saved-tabs/application/ports/MessagingPort'
+import type { ExternalDragMessage } from '@/contexts/saved-tabs/application/ports/MessagingPort'
+
 import type { ChromeApiLike } from './ChromeMessagingAdapter'
 import { createChromeMessagingAdapter } from './ChromeMessagingAdapter'
 

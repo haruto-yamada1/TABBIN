@@ -2,8 +2,8 @@ import { GripVertical } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import { SavedTabsResponsiveTooltipContent } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 
-import { SavedTabsResponsiveTooltipContent } from '../shared/SavedTabsResponsive'
 import { useDomainCard } from './DomainCardContext'
 
 /**

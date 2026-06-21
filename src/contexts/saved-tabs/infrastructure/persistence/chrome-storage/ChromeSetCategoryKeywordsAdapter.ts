@@ -1,6 +1,5 @@
+import type { SetCategoryKeywordsPort } from '@/contexts/saved-tabs/application/ports/SetCategoryKeywordsPort'
 import { setCategoryKeywords } from '@/lib/storage/tabs'
-
-import type { SetCategoryKeywordsPort } from '../../../application/ports/SetCategoryKeywordsPort'
 
 /**
  * `setCategoryKeywordsPort` の chrome / lib/storage ハイブリッド adapter。

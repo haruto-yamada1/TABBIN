@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { createParentCategory } from '../entities/ParentCategory'
-import { createTabGroup } from '../entities/TabGroup'
-import { createDomainName } from '../value-objects/DomainName'
-import { createParentCategoryId } from '../value-objects/ParentCategoryId'
-import { createTabGroupId } from '../value-objects/TabGroupId'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+
 import {
   buildCategoryLookup,
   isUncategorizedTabGroup,

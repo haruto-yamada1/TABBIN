@@ -1,4 +1,4 @@
-import type { TabGroupId } from '../../domain/value-objects/TabGroupId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `ReorderTabGroupUrlsUseCase` の入力。

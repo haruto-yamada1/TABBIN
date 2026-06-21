@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SetCategoryKeywordsPort } from '../ports/SetCategoryKeywordsPort'
+import type { SetCategoryKeywordsPort } from '@/contexts/saved-tabs/application/ports/SetCategoryKeywordsPort'
+
 import { createSetCategoryKeywordsUseCase } from './SetCategoryKeywordsUseCase'
 import type { SetCategoryKeywordsUseCaseDeps } from './SetCategoryKeywordsUseCase'
 

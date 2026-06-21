@@ -1,6 +1,6 @@
-import type { DomainName } from '../../domain/value-objects/DomainName'
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '../../domain/value-objects/TabGroupId'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `RemoveDomainFromParentCategoryCommand` の入力。

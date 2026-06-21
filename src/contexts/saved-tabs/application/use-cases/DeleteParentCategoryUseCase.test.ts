@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createParentCategory } from '../../domain/entities/ParentCategory'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+
 import { createDeleteParentCategoryUseCase } from './DeleteParentCategoryUseCase'
 import type { DeleteParentCategoryUseCaseDeps } from './DeleteParentCategoryUseCase'
 

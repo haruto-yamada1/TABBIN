@@ -1,6 +1,7 @@
-import type { ParentCategory } from '../entities/ParentCategory'
-import type { TabGroup } from '../entities/TabGroup'
-import type { ParentCategoryId } from '../value-objects/ParentCategoryId'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+
 import {
   buildCategoryLookup,
   resolveCategoryForTabGroup,

@@ -39,21 +39,20 @@
 
 import { z } from 'zod'
 
-import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
-import type { CustomProject } from '@/types/storage'
-
-import { CHROME_STORAGE_CHANGE_ADAPTER_MARKER } from '../../application/ports/StorageChangePort'
+import { CHROME_STORAGE_CHANGE_ADAPTER_MARKER } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type {
   SavedTabsStorageChangeKey,
   StorageChangePort,
   TypedSavedTabsStorageChange,
-} from '../../application/ports/StorageChangePort'
+} from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import {
   CustomProjectRawSchema,
   ParentCategoryRawSchema,
   SavedTabRawSchema,
   UserSettingsRawSchema,
-} from '../persistence/chrome-storage/savedTabsStorageSchema'
+} from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/savedTabsStorageSchema'
+import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
+import type { CustomProject } from '@/types/storage'
 
 export interface ChromeStorageOnChangedLike {
   readonly addListener: (callback: ChromeOnChangedListener) => void

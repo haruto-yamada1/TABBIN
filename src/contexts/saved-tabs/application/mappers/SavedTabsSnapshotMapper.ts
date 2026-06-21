@@ -1,14 +1,13 @@
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
-
-import type { CustomProject as DomainCustomProject } from '../../domain/entities/CustomProject'
-import type { ParentCategory as DomainParentCategory } from '../../domain/entities/ParentCategory'
-import type { TabGroup as DomainTabGroup } from '../../domain/entities/TabGroup'
-import type { CustomProjectRawSnapshot } from '../../domain/repositories/CustomProjectRepository'
-import type { BuildSavedTabsSnapshotCommand } from '../commands/BuildSavedTabsSnapshotCommand'
+import type { BuildSavedTabsSnapshotCommand } from '@/contexts/saved-tabs/application/commands/BuildSavedTabsSnapshotCommand'
 import type {
   OpenedUrlsRestoreSnapshot,
   RestoreOpenedUrlsSnapshotCommand,
-} from '../commands/RestoreOpenedUrlsSnapshotCommand'
+} from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { ParentCategory as DomainParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { CustomProjectRawSnapshot } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 /**
  * `BuildSavedTabsSnapshotUseCase` / `RestoreOpenedUrlsSnapshotUseCase` 由来の

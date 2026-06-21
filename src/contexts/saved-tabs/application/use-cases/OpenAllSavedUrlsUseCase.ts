@@ -1,20 +1,20 @@
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import type { UrlRecord } from '../../domain/entities/UrlRecord'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
+import type { OpenAllSavedUrlsCommand } from '@/contexts/saved-tabs/application/commands/OpenAllSavedUrlsCommand'
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { OpenedUrlsDto } from '@/contexts/saved-tabs/application/dto/OpenedUrlsDto'
+import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
+import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import {
   lookupUrlRecordIdsByUrl,
   removeUrlRecordIdsFromTabGroups,
-} from '../../domain/services/OpenedUrlRemovalPolicy'
-import { filterUnreferencedUrlRecords } from '../../domain/services/UrlReferenceService'
-import type { UrlRecordId } from '../../domain/value-objects/UrlRecordId'
-import type { OpenAllSavedUrlsCommand } from '../commands/OpenAllSavedUrlsCommand'
-import type { OpenedUrlsRestoreSnapshot } from '../commands/RestoreOpenedUrlsSnapshotCommand'
-import type { OpenedUrlsDto } from '../dto/OpenedUrlsDto'
-import type { BrowserTabPort } from '../ports/BrowserTabPort'
-import type { BrowserWindowPort } from '../ports/BrowserWindowPort'
+} from '@/contexts/saved-tabs/domain/services/OpenedUrlRemovalPolicy'
+import { filterUnreferencedUrlRecords } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `OpenAllSavedUrlsUseCase` が依存する repository / port 群。

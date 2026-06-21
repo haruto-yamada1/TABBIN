@@ -2,17 +2,17 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { BrowserTabPort } from '../../application/ports/BrowserTabPort'
-import type { BrowserWindowPort } from '../../application/ports/BrowserWindowPort'
-import type { NotificationPort } from '../../application/ports/NotificationPort'
-import type { SetCategoryKeywordsPort } from '../../application/ports/SetCategoryKeywordsPort'
-import type { StorageChangePort } from '../../application/ports/StorageChangePort'
-import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import { useSavedTabsUseCases } from '../controllers/SavedTabsUseCasesContext'
+import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
+import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
+import type { NotificationPort } from '@/contexts/saved-tabs/application/ports/NotificationPort'
+import type { SetCategoryKeywordsPort } from '@/contexts/saved-tabs/application/ports/SetCategoryKeywordsPort'
+import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => (

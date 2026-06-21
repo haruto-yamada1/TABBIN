@@ -5,10 +5,9 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import { toDomainTabGroupsForReorder } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import type { TabGroup } from '@/types/storage'
-
-import { toDomainTabGroupsForReorder } from '../savedTabsApp.helpers'
 
 interface UseUncategorizedReorderHandlersDeps {
   isUncategorizedReorderMode: boolean

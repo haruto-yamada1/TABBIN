@@ -1,16 +1,16 @@
-import { parentCategoryContainsDomainName } from '../../domain/entities/ParentCategory'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
+import type { MoveDomainToCategoryCommand } from '@/contexts/saved-tabs/application/commands/MoveDomainToCategoryCommand'
+import type { CategorySyncDto } from '@/contexts/saved-tabs/application/dto/CategorySyncDto'
+import { parentCategoryContainsDomainName } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import {
   buildCategoryLookup,
   resolveCategoryForTabGroup,
-} from '../../domain/services/CategoryAssignmentPolicy'
-import { createDomainName } from '../../domain/value-objects/DomainName'
-import type { MoveDomainToCategoryCommand } from '../commands/MoveDomainToCategoryCommand'
-import type { CategorySyncDto } from '../dto/CategorySyncDto'
+} from '@/contexts/saved-tabs/domain/services/CategoryAssignmentPolicy'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 
 /**
  * `SyncCategoryAssignmentsUseCase` の入力。

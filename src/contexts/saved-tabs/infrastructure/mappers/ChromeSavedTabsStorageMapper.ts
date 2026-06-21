@@ -1,30 +1,30 @@
-import { toStorageCustomProjectFromRaw } from '../../application/mappers/SavedTabsSnapshotMapper'
-import { createCustomProject } from '../../domain/entities/CustomProject'
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import { createParentCategory } from '../../domain/entities/ParentCategory'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import { createTabGroup } from '../../domain/entities/TabGroup'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import { createUrlRecord } from '../../domain/entities/UrlRecord'
-import type { UrlRecord } from '../../domain/entities/UrlRecord'
-import { SavedTabsDomainError } from '../../domain/errors/SavedTabsDomainError'
-import type { CustomProjectId } from '../../domain/value-objects/CustomProjectId'
-import type { DomainName } from '../../domain/value-objects/DomainName'
-import type { ParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '../../domain/value-objects/TabGroupId'
-import type { UrlRecordId } from '../../domain/value-objects/UrlRecordId'
+import { toStorageCustomProjectFromRaw } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 import {
   CustomProjectRawSchema,
   ParentCategoryRawSchema,
   SavedTabRawSchema,
   UrlRecordRawSchema,
-} from '../persistence/chrome-storage/savedTabsStorageSchema'
+} from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/savedTabsStorageSchema'
 import type {
   CustomProjectRaw,
   ParentCategoryRaw,
   SavedTabRaw,
   UrlRecordRaw,
-} from '../persistence/chrome-storage/savedTabsStorageSchema'
+} from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/savedTabsStorageSchema'
 
 /**
  * `chrome.storage.local` の生データ ↔ `saved-tabs` domain entity の変換口。

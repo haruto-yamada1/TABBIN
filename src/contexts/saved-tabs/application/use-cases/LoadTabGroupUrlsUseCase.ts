@@ -1,8 +1,8 @@
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
-import { resolveGroupUrls } from '../../domain/services/TabGroupUrlResolver'
-import { urlRecordIdToString } from '../../domain/value-objects/UrlRecordId'
-import type { LoadTabGroupUrlsCommand } from '../commands/LoadTabGroupUrlsCommand'
-import type { LoadTabGroupUrlsDto } from '../dto/LoadTabGroupUrlsDto'
+import type { LoadTabGroupUrlsCommand } from '@/contexts/saved-tabs/application/commands/LoadTabGroupUrlsCommand'
+import type { LoadTabGroupUrlsDto } from '@/contexts/saved-tabs/application/dto/LoadTabGroupUrlsDto'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { resolveGroupUrls } from '@/contexts/saved-tabs/domain/services/TabGroupUrlResolver'
+import { urlRecordIdToString } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `LoadTabGroupUrlsUseCase` が依存する repository 群。

@@ -1,5 +1,5 @@
-import type { OpenedUrlOrigin } from '../../domain/services/OpenedUrlRemovalPolicy'
-import type { UrlRecordId } from '../../domain/value-objects/UrlRecordId'
+import type { OpenedUrlOrigin } from '@/contexts/saved-tabs/domain/services/OpenedUrlRemovalPolicy'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `OpenSavedUrlUseCase` の入力。

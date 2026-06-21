@@ -1,5 +1,5 @@
-import type { AddUrlToCustomProjectCommand } from '../commands/AddUrlToCustomProjectCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { AddUrlToCustomProjectCommand } from '@/contexts/saved-tabs/application/commands/AddUrlToCustomProjectCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `AddUrlToCustomProjectUseCase` が依存する port。

@@ -1,8 +1,7 @@
+import { toStorageDomainCategorySettings } from '@/contexts/saved-tabs/application/mappers/SavedTabsDtosMapper'
+import type { CategoriesCommandService } from '@/contexts/saved-tabs/application/ports/CategoriesCommandService'
+import type { SubCategoryKeywordDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
 import { updateDomainCategorySettings } from '@/lib/storage/categories'
-
-import { toStorageDomainCategorySettings } from '../../application/mappers/SavedTabsDtosMapper'
-import type { CategoriesCommandService } from '../../application/ports/CategoriesCommandService'
-import type { SubCategoryKeywordDto } from '../../domain/dto/DomainCategorySettingsDto'
 
 /**
  * `CategoriesCommandService` の `lib/storage` delegate 実装。

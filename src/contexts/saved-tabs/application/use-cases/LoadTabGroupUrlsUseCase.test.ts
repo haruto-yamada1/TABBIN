@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest' // eslint-disable-line
 
-import type { TabGroupDto } from '../../domain/dto/TabGroupDto'
-import type { UrlRecord } from '../../domain/entities/UrlRecord'
-import type { UrlRecordRepository } from '../../domain/repositories/UrlRecordRepository'
+import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+
 import { createLoadTabGroupUrlsUseCase } from './LoadTabGroupUrlsUseCase'
 import type { LoadTabGroupUrlsUseCaseDeps } from './LoadTabGroupUrlsUseCase'
 

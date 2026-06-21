@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { SavedTabsDomainError } from '../errors/SavedTabsDomainError'
-import { createUrlRecordId } from '../value-objects/UrlRecordId'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+
 import {
   createTabGroup,
   isSameTabGroup,

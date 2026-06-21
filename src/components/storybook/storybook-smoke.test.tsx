@@ -11,8 +11,7 @@ import * as viewModeStories from '@/contexts/saved-tabs/presentation/components/
 import * as ollamaStories from '@/features/ai-chat/components/OllamaErrorNotice.stories'
 import * as headerStories from '@/features/navigation/components/ExtensionPageHeader.stories'
 import * as importExportStories from '@/features/options/ImportExportSettings.stories'
-
-import preview from '../../../.storybook/preview'
+import { createPreview } from '@/lib/storybook/preview'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
@@ -32,6 +31,8 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
       )[key] ?? key,
   }),
 }))
+
+const preview = createPreview()
 
 const { Primary } = composeStories(buttonStories, preview)
 const { Conversation } = composeStories(messageStories, preview)

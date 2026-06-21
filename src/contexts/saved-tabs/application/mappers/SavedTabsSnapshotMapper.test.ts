@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest' // eslint-disable-line
 
-import { createCustomProject } from '../../domain/entities/CustomProject'
-import { createParentCategory } from '../../domain/entities/ParentCategory'
-import { createTabGroup } from '../../domain/entities/TabGroup'
-import type { OpenedUrlsRestoreSnapshot } from '../commands/RestoreOpenedUrlsSnapshotCommand'
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+
 import {
   getSnapshotSavedTabs,
   toDomainParentCategories,

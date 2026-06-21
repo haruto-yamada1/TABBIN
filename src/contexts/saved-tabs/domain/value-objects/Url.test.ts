@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { SavedTabsDomainError } from '../errors/SavedTabsDomainError'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+
 import { createUrl, equalsUrl, urlToString } from './Url'
 
 describe('Url 値オブジェクト', () => {

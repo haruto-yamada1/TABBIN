@@ -1,4 +1,4 @@
-import type { TabGroupDto } from '../dto/TabGroupDto'
+import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
 
 /**
  * `SavedTabsApp` 内の pure な表示判定ロジックを domain 側へ集約した

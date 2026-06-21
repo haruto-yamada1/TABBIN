@@ -1,5 +1,5 @@
-import type { TabGroupRepository } from '../../domain/repositories/TabGroupRepository'
-import type { ReorderTabGroupsCommand } from '../commands/ReorderTabGroupsCommand'
+import type { ReorderTabGroupsCommand } from '@/contexts/saved-tabs/application/commands/ReorderTabGroupsCommand'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 
 /**
  * `ReorderTabGroupsUseCase` が依存する repository 群。

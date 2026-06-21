@@ -1,3 +1,4 @@
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 import {
   addCategoryToProject,
   addUrlToCustomProject,
@@ -14,8 +15,6 @@ import {
   updateProjectKeywords,
 } from '@/lib/storage/projects'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
-
-import type { CustomProjectsCommandService } from '../../application/ports/CustomProjectsCommandService'
 
 /**
  * `CustomProjectsCommandService` の `lib/storage` delegate 実装。

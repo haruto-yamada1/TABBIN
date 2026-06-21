@@ -1,4 +1,4 @@
-import type { CustomProjectRepository } from '../../domain/repositories/CustomProjectRepository'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
 /**
  * `SaveCustomProjectOrderUseCase` の入力。

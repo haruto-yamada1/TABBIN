@@ -1,8 +1,8 @@
-import type { CustomProject } from '../../domain/entities/CustomProject'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
-} from '../../domain/repositories/CustomProjectRepository'
+} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
 /**
  * presentation 層が「rich フィールド付き `CustomProject` の生

@@ -1,25 +1,25 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 
-import type { SavedTabsUseCases } from '../../application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
-import type { CustomProject } from '../../domain/entities/CustomProject'
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { TabGroup } from '../../domain/entities/TabGroup'
-import { createDomainName } from '../../domain/value-objects/DomainName'
-import { createParentCategoryId } from '../../domain/value-objects/ParentCategoryId'
-import { createSavedAt } from '../../domain/value-objects/SavedAt'
-import { createTabGroupId } from '../../domain/value-objects/TabGroupId'
-import { createUrl } from '../../domain/value-objects/Url'
-import { createUrlRecordId } from '../../domain/value-objects/UrlRecordId'
-import type { CustomProjectViewModel } from '../view-models/CustomProjectViewModel'
-import { toCustomProjectViewModel } from '../view-models/CustomProjectViewModel'
-import type { SavedTabsViewModel } from '../view-models/SavedTabsViewModel'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import { createUrl } from '@/contexts/saved-tabs/domain/value-objects/Url'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
+import { toCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
+import type { SavedTabsViewModel } from '@/contexts/saved-tabs/presentation/view-models/SavedTabsViewModel'
 import {
   createSavedTabsViewModel,
   createEmptySavedTabsViewModel,
-} from '../view-models/SavedTabsViewModel'
-import type { TabGroupViewModel } from '../view-models/TabGroupViewModel'
-import { toTabGroupViewModel } from '../view-models/TabGroupViewModel'
+} from '@/contexts/saved-tabs/presentation/view-models/SavedTabsViewModel'
+import type { TabGroupViewModel } from '@/contexts/saved-tabs/presentation/view-models/TabGroupViewModel'
+import { toTabGroupViewModel } from '@/contexts/saved-tabs/presentation/view-models/TabGroupViewModel'
 
 /**
  * `useSavedTabsController` が UI に公開する入力。

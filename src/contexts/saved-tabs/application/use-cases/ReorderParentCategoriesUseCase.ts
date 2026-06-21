@@ -1,6 +1,6 @@
-import type { ParentCategory } from '../../domain/entities/ParentCategory'
-import type { ParentCategoryRepository } from '../../domain/repositories/ParentCategoryRepository'
-import type { ReorderParentCategoriesCommand } from '../commands/ReorderParentCategoriesCommand'
+import type { ReorderParentCategoriesCommand } from '@/contexts/saved-tabs/application/commands/ReorderParentCategoriesCommand'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 
 /**
  * `ReorderParentCategoriesUseCase` が依存する repository 群。

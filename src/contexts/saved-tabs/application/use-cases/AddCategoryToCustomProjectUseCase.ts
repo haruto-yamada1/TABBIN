@@ -1,5 +1,5 @@
-import type { AddCategoryToCustomProjectCommand } from '../commands/AddCategoryToCustomProjectCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { AddCategoryToCustomProjectCommand } from '@/contexts/saved-tabs/application/commands/AddCategoryToCustomProjectCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `AddCategoryToCustomProjectUseCase` が依存する port。

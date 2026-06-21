@@ -1,4 +1,4 @@
-import type { TabGroupDto } from '../../domain/dto/TabGroupDto'
+import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
 
 /**
  * `RemoveUrlsFromCustomProjectsUseCase` の入力。

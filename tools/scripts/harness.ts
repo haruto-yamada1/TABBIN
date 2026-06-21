@@ -16,7 +16,7 @@ import {
   validateHarnessRun,
   writeHarnessStatusSnapshot,
   writeHarnessSchemaFiles,
-} from '../../src/lib/harness/harnessState'
+} from '#harness-state'
 
 type CommandName =
   | 'audit'

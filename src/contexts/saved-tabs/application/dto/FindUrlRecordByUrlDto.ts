@@ -1,4 +1,4 @@
-import type { UrlRecordId } from '../../domain/value-objects/UrlRecordId'
+import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `FindUrlRecordByUrlUseCase` の結果 DTO。

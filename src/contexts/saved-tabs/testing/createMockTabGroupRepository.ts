@@ -26,9 +26,9 @@
 
 import { vi } from 'vitest'
 
-import type { TabGroup } from '../domain/entities/TabGroup'
-import type { TabGroupRepository } from '../domain/repositories/TabGroupRepository'
-import type { TabGroupId } from '../domain/value-objects/TabGroupId'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 export interface MockTabGroupRepositoryState {
   readonly savedTabs: readonly TabGroup[]

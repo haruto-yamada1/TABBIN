@@ -1,8 +1,8 @@
-import type { ParentCategory } from '../entities/ParentCategory'
-import type { TabGroup } from '../entities/TabGroup'
-import type { DomainName } from '../value-objects/DomainName'
-import type { ParentCategoryId } from '../value-objects/ParentCategoryId'
-import type { TabGroupId } from '../value-objects/TabGroupId'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * 親カテゴリの高速検索用マップ。

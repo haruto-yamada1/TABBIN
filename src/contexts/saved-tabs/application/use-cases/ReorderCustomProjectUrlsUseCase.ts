@@ -1,5 +1,5 @@
-import type { ReorderCustomProjectUrlsCommand } from '../commands/ReorderCustomProjectUrlsCommand'
-import type { CustomProjectsCommandService } from '../ports/CustomProjectsCommandService'
+import type { ReorderCustomProjectUrlsCommand } from '@/contexts/saved-tabs/application/commands/ReorderCustomProjectUrlsCommand'
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 
 /**
  * `ReorderCustomProjectUrlsUseCase` が依存する port。

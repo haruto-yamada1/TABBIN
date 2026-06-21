@@ -1,4 +1,5 @@
-import type { CustomProject } from '../../domain/entities/CustomProject'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+
 import type { CustomProjectViewModel } from './CustomProjectViewModel'
 import { toCustomProjectViewModel } from './CustomProjectViewModel'
 

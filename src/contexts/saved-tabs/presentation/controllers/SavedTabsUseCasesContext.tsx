@@ -1,7 +1,7 @@
 import { createContext, use } from 'react'
 
-import type { SavedTabsUseCases } from '../../application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '../../application/SavedTabsUseCasesDeps'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
 
 /**
  * `SavedTabsPage` 配下に use-case ハンドルと deps を配布する Context。
