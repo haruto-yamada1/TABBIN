@@ -24,7 +24,7 @@ entrypoints → app/composition → contexts/*/presentation
 `src/contexts/saved-tabs/` の DDD レイヤ構成と各層の責務は `docs/architecture/ddd.md` を参照してください。AI / Codex / Claude Code は `saved-tabs` 周りの実装や修正を依頼されたとき、まず `docs/architecture/ddd.md` と既存の `src/features/saved-tabs/` を比較し、移行先と既存コードの責務境界を確認してから編集してください。
 
 ## ビルド、テスト、開発コマンド
-- `bun install`: 依存関係をインストールします（CI は Node `22` と Bun `1.2.8` を使用）。
+- `bun install`: 依存関係をインストールします（CI は Node `22` と Bun `1.3.14` を使用）。
 - `bun run dev` / `bun run dev:firefox`: Chrome / Firefox 向けに WXT dev mode を起動します。
 - `bun run build` / `bun run build:firefox`: 本番用の拡張機能をビルドします。
 - `bun run zip` / `bun run zip:firefox`: 拡張機能の zip 成果物を作成します。
