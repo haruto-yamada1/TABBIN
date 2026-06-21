@@ -111,15 +111,29 @@ src/contexts/saved-tabs/
 | infrastructure | presentation への依存 / domain interface を通さない直接アクセス                                                                                    |
 | presentation   | `chrome.storage.local` / `chrome.*` API の直接利用 / ドメインルールの埋め込み                                                                      |
 
-## oxlint による機械的ガード
+## oxlint と dependency-cruiser による機械的ガード
 
-上記の禁止ルールは `.oxlintrc.json` の `overrides` で機械的にチェックされます。`bun run lint` を実行すると、`src/contexts/saved-tabs/{domain,application,infrastructure,presentation}/**` 配下で禁止された import / global 参照 / プロパティアクセスを即座に検出します。
+DDD の機械的ガードは 1 つの lint ルールへ寄せず、`dependency-cruiser` と `oxlint`
+で責務を分担します。
 
-- `eslint/no-restricted-imports` — layer を越えた依存（`@/components/*` / `@/features/**/components/**` / `@/contexts/**/application/**` など）をブロック
-- `eslint/no-restricted-globals` — domain 層での `chrome` / `localStorage` / `sessionStorage` / `document` / `window` 利用をブロック
-- `eslint/no-restricted-properties` — `chrome.tabs` / `chrome.storage` / `chrome.contextMenus` / `chrome.alarms` / `chrome.notifications` / `chrome.runtime` の直叩きを layer 別にブロック
+- `dependency-cruiser` (`bun run arch:check`)
+  - import graph を検査し、context 境界・layer 境界・依存方向をチェックします。
+  - domain から application / infrastructure / presentation への逆流、
+    context 間の禁止依存、circular dependency、unresolvable import を検出します。
+  - layer / context の import 制御はここが source of truth です。`oxlint` 側へ
+    `eslint/no-restricted-imports` や `import/no-cycle` を追加して代用しません。
+- `oxlint` (`bun run lint`)
+  - TypeScript / React / Promise / a11y / perf などのコード品質ルールを担当します。
+  - `eslint/no-restricted-globals` で domain 層の `chrome` / `localStorage` /
+    `sessionStorage` / `document` / `window` 利用をブロックします。
+  - `eslint/no-restricted-properties` で `chrome.tabs` / `chrome.storage` /
+    `chrome.contextMenus` / `chrome.alarms` / `chrome.notifications` /
+    `chrome.runtime` の直叩きを layer 別にブロックします。
 
-false positive が出たら `// oxlint-disable-next-line` ではなく、ルール側（許可リストや `allowImportNames`）で解決することを優先してください。Issue #462 がガード設定の source of truth です。
+false positive が出たら `// oxlint-disable-next-line` のような局所回避より、
+責務に応じて `dependency-cruiser` または `oxlint` の設定・wrapper・adapter
+設計を見直すことを優先してください。Issue #462 がガード設定の source of truth
+です。
 
 ## composition ルール
 
