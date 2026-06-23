@@ -9,6 +9,7 @@ import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
@@ -47,28 +48,10 @@ const isSavedTabsDomainError = (
   error: unknown,
 ): error is SavedTabsDomainError => error instanceof SavedTabsDomainError
 
-/**
- * 既存 chrome.storage では `domain` フィールドに `https://example.com` の
- * ような URL 形式が入っていた。新しい domain `DomainName` は hostname
- * のみを受け付けるので、URL 形式なら hostname を取り出して渡す。
- *
- * パース失敗時は入力をそのまま返す（後段の `createDomainName` で再度弾く）。
- */
-const normalizeDomainField = (value: string): string => {
-  if (!value.includes('://')) {
-    return value
-  }
-  try {
-    return new URL(value).hostname
-  } catch {
-    return value
-  }
-}
-
 const toTabGroupFromRaw = (raw: SavedTabRaw): TabGroup | null => {
   try {
     return createTabGroup({
-      domain: normalizeDomainField(raw.domain),
+      domain: normalizeDomainString(raw.domain),
       id: raw.id,
       parentCategoryId: raw.parentCategoryId,
       savedAt: raw.savedAt,
@@ -109,7 +92,7 @@ const toParentCategoryFromRaw = (
 ): ParentCategory | null => {
   try {
     return createParentCategory({
-      domainNames: raw.domainNames.map((name) => normalizeDomainField(name)),
+      domainNames: raw.domainNames.map((name) => normalizeDomainString(name)),
       domains: raw.domains,
       id: raw.id,
       name: raw.name,
@@ -290,10 +273,10 @@ const toParentCategoryRaw = (
   if (original) {
     const originalByHostname = new Map<string, string>()
     for (const name of original.domainNames) {
-      originalByHostname.set(normalizeDomainField(name), name)
+      originalByHostname.set(normalizeDomainString(name), name)
     }
     domainNames = entity.domainNames.map((name) => {
-      const hostname = normalizeDomainField(name)
+      const hostname = normalizeDomainString(name)
       return originalByHostname.get(hostname) ?? name
     })
   } else {

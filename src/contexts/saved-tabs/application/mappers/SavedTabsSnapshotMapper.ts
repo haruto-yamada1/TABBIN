@@ -15,6 +15,7 @@ import type { ParentCategory as DomainParentCategory } from '@/contexts/saved-ta
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { CustomProjectRawSnapshot } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 import { toSavedTabsTabGroupDto } from './SavedTabsPresentationMapper'
@@ -180,7 +181,7 @@ export const toPresentationTabGroups = (
 export const toDomainTabGroupFromStorage = (group: TabGroup): DomainTabGroup =>
   createTabGroup({
     categoryKeywords: group.categoryKeywords,
-    domain: group.domain,
+    domain: normalizeDomainString(group.domain),
     id: group.id,
     parentCategoryId: group.parentCategoryId,
     savedAt: group.savedAt,

@@ -20,6 +20,26 @@ export type DomainName = string & { readonly [domainNameBrand]: 'DomainName' }
 const SCHEME_SEPARATOR = '://'
 
 /**
+ * スキーム付き URL 文字列から hostname を取り出し、
+ * `createDomainName` に渡せる形へ正規化する。
+ *
+ * 旧 chrome.storage やインポートデータの `domain` フィールドに
+ * `https://example.com` のような URL 形式が入っていたケースの互換用。
+ * スキームが無い場合は入力をそのまま返し、パース失敗時も入力をそのまま返す
+ *（後段の `createDomainName` で再度弾く）。
+ */
+export const normalizeDomainString = (value: string): string => {
+  if (!value.includes(SCHEME_SEPARATOR)) {
+    return value
+  }
+  try {
+    return new URL(value).hostname
+  } catch {
+    return value
+  }
+}
+
+/**
  * `DomainName` 値オブジェクトを生成する。
  *
  * 入力は trim と小文字化のみを行い、`hostname` 抽出のような

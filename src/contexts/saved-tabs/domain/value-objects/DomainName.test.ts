@@ -6,6 +6,7 @@ import {
   createDomainName,
   domainNameToString,
   equalsDomainName,
+  normalizeDomainString,
 } from './DomainName'
 
 describe('DomainName 値オブジェクト', () => {
@@ -33,5 +34,29 @@ describe('DomainName 値オブジェクト', () => {
     expect(
       equalsDomainName(createDomainName('a.com'), createDomainName('A.com')),
     ).toBe(true)
+  })
+})
+
+describe('normalizeDomainString', () => {
+  it('スキームが無い場合は入力をそのまま返す', () => {
+    expect(normalizeDomainString('example.com')).toBe('example.com')
+  })
+
+  it('https スキーム付き文字列から hostname を取り出す', () => {
+    expect(normalizeDomainString('https://example.com')).toBe('example.com')
+  })
+
+  it('http スキーム付き文字列から hostname を取り出す', () => {
+    expect(normalizeDomainString('http://example.com/path')).toBe('example.com')
+  })
+
+  it('パース失敗時は入力をそのまま返す', () => {
+    expect(normalizeDomainString('://invalid')).toBe('://invalid')
+  })
+
+  it('normalizeDomainString 経由なら createDomainName は例外を投げない', () => {
+    expect(() =>
+      createDomainName(normalizeDomainString('https://example.com')),
+    ).not.toThrow()
   })
 })

@@ -9,6 +9,7 @@ import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 
 /**
  * `RepairTabGroupParentCategoryIdsUseCase` の入力。
@@ -102,6 +103,7 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
             command.tabGroups.map((group) =>
               createTabGroup({
                 ...group,
+                domain: normalizeDomainString(group.domain),
                 urlIds: group.urlIds ?? [],
               }),
             ),
