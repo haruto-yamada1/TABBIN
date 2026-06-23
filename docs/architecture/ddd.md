@@ -102,6 +102,30 @@ src/contexts/saved-tabs/
 - `components/` は view model を受け取り描画する純粋な component を目指し、業務ロジックは持ちません。
 - `pages/` は controller hook と components を組み合わせる組み立て層です。`routes/` は React Router のルート定義のみを置きます。
 
+## application boundary の命名規約
+
+application 層が presentation に公開する contract は、ファイル名から種別が判断できる命名規約に従います。目的はファイル名の統一ではなく、application boundary を読み取りやすくすることです（Issue #587）。
+
+| ディレクトリ                | 接尾辞                                   | 役割                                  |
+| --------------------------- | ---------------------------------------- | ------------------------------------- |
+| `application/commands/`     | `*Command.ts`                            | 状態変更リクエストの入力型            |
+| `application/queries/`      | `*Query.ts`                              | 読み取りリクエストの入力型            |
+| `application/dto/`          | `*Dto.ts`                                | presentation へ返す読み取り専用モデル |
+| `application/use-cases/`    | `*UseCase.ts`                            | 1 操作のオーケストレーション          |
+| `application/mappers/`      | `*Mapper.ts`                             | DTO / snapshot 相互変換（pure）       |
+| `application/ports/`        | `*Port.ts` / `*Ports.ts` / `*Service.ts` | 外部依存の interface                  |
+| `application/services/`     | `*Service.ts`                            | application 層のドメイン協調サービス  |
+| `presentation/view-models/` | `*ViewModel.ts`                          | presentation 内部の整形済みモデル     |
+
+### 配置方針
+
+- presentation に渡すデータは DTO / ViewModel を優先し、domain entity / value object を直接渡さない（`dependency-cruiser` の `no-presentation-to-domain` で機械的に担保）。
+- use-case の入力は `Command` / `Query` として表現し、use-case の出力は `Dto` として表現する。
+- 小さい use-case では `*Dto.ts` に複数の関連 DTO を集約してよい。命名規約のためだけに過剰なファイル分割をしない。
+- `application/ports/` の `*Ports.ts`（複数形）は複数 port を束ねる composite 型の置き場として許容する。
+- `application/services/` は application 層内で domain service を組み合わせる純粋な協調サービス置き場で、`domain/services/` とは区別する。
+- 命名規約は `dddLayerGuard.test.ts` で静的に検査し、違反があれば CI で検出する。
+
 ## 禁止ルール（厳守）
 
 | 層             | 禁止事項                                                                                                                                           |
