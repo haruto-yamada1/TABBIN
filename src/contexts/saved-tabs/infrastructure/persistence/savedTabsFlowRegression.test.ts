@@ -120,6 +120,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
   const notification = createCaptureNotificationPort()
   const deps: SavedTabsUseCasesDeps = {
     browserTabPort: browserTabPort.port,
+    clock: { now: () => 0 },
     browserWindowPort: browserWindowPort.port,
     categoriesCommandService: {
       updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
@@ -462,6 +463,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const notification = createCaptureNotificationPort()
       const deps: SavedTabsUseCasesDeps = {
         browserTabPort,
+        clock: { now: () => 0 },
         browserWindowPort,
         categoriesCommandService: {
           updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),

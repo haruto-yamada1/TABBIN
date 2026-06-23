@@ -10,6 +10,7 @@ import type { BrowserTabPort } from './ports/BrowserTabPort'
 import type { BrowserWindowPort } from './ports/BrowserWindowPort'
 import type { CategoriesCommandService } from './ports/CategoriesCommandService'
 import type { CategoryAssignmentPort } from './ports/CategoryAssignmentPort'
+import type { ClockPort } from './ports/ClockPort'
 import type { CustomProjectsCommandService } from './ports/CustomProjectsCommandService'
 import type { MessagingPort } from './ports/MessagingPort'
 import type { MigrationPort } from './ports/MigrationPort'
@@ -25,6 +26,7 @@ export interface SavedTabsUseCasesDeps {
   readonly browserWindowPort: BrowserWindowPort
   readonly categoriesCommandService: CategoriesCommandService
   readonly categoryAssignmentPort: CategoryAssignmentPort
+  readonly clock: ClockPort
   readonly customProjectRepository: CustomProjectRepository
   readonly customProjectsCommandService: CustomProjectsCommandService
   readonly domainCategoryMappingRepository: DomainCategoryMappingRepository

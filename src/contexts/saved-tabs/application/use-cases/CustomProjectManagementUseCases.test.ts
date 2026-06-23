@@ -42,7 +42,7 @@ describe('custom project management use-cases', () => {
     const createProject = createCreateCustomProjectUseCase({
       customProjectRepository,
       generateId: () => 'project-2',
-      now: () => 10,
+      clock: { now: () => 10 },
     })
 
     const result = await createProject({ name: '  Reading  ' })
@@ -62,6 +62,7 @@ describe('custom project management use-cases', () => {
   it('既定ID・時刻生成でもprojectを生成できる', async () => {
     const customProjectRepository = createRepository()
     const createProject = createCreateCustomProjectUseCase({
+      clock: { now: () => 1_700_000_000_000 },
       customProjectRepository,
     })
 
@@ -79,6 +80,7 @@ describe('custom project management use-cases', () => {
   ])('空名と重複名を拒否する: %s', async (name, message) => {
     const customProjectRepository = createRepository([existingProject()])
     const createProject = createCreateCustomProjectUseCase({
+      clock: { now: () => 0 },
       customProjectRepository,
     })
 
@@ -98,7 +100,7 @@ describe('custom project management use-cases', () => {
     const customProjectRepository = createRepository([existingProject(), other])
     const updateName = createUpdateCustomProjectNameUseCase({
       customProjectRepository,
-      now: () => 20,
+      clock: { now: () => 20 },
     })
 
     const result = await updateName({
@@ -129,6 +131,7 @@ describe('custom project management use-cases', () => {
     })
     const customProjectRepository = createRepository([existingProject(), other])
     const updateName = createUpdateCustomProjectNameUseCase({
+      clock: { now: () => 0 },
       customProjectRepository,
     })
 

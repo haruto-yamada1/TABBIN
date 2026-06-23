@@ -5,10 +5,10 @@ declare const savedAtBrand: unique symbol
 /**
  * 保存タブの保存時刻（UNIX epoch ミリ秒）を表す不変値オブジェクト。
  *
- * `Date.now()` で得られる数値を想定する。0 以上の整数で、
- * `Number.isFinite` を満たす値のみ許容する。domain 層では値の妥当性のみ
- * 検証し、現在時刻取得の抽象化が必要な use-case では `Date.now()` を直接
- * 利用する（専用の port を導入する判断は use-case 側で個別に行う）。
+ * 主に `ClockPort.now()` で得られる UNIX epoch ミリ秒を想定する。
+ * 0 以上の整数で、`Number.isFinite` を満たす値のみ許容する。
+ * domain 層では値の妥当性のみ検証し、現在時刻の取得は
+ * `application/ports/ClockPort` 経由で use-case から注入する。
  *
  * @example
  * ```ts

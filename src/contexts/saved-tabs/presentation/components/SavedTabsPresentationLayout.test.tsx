@@ -89,6 +89,7 @@ const buildLayoutComposition = () => {
     browserTabPort: {
       open: async (input: { url: string }) => ({ url: input.url }),
     },
+    clock: { now: () => 0 },
     browserWindowPort: {
       openWithUrls: async (input: { urls: readonly string[] }) => ({
         urls: [...input.urls],

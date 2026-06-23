@@ -192,6 +192,36 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(names).toContain('chrome.notifications')
       expect(names).toContain('chrome.runtime')
     })
+
+    it('issue #582: Date.now() を no-restricted-properties で禁止している', () => {
+      const names = getRestrictedProperties(override)
+      expect(names).toContain('Date.now')
+    })
+
+    it('issue #582: domain 層のソースファイルが Date.now( / new Date( を直接使わない', () => {
+      // JSDoc やコメント内の言及は対象外とする。
+      // 検出したいのは「現在時刻の取得」という
+      // 副作用での実際のコード呼び出しのみ。
+      const stripComments = (source: string): string =>
+        source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+      const domainRoot = resolve(repoRoot, 'src/contexts/saved-tabs/domain')
+      const domainSourceFiles = collectSourceFiles(domainRoot)
+      expect(domainSourceFiles.length).toBeGreaterThan(0)
+      for (const absolutePath of domainSourceFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} should not call Date.now() directly (use ClockPort)`,
+        ).not.toMatch(/\bDate\.now\s*\(/)
+        expect(
+          source,
+          `${relativePath} should not call new Date() directly (use ClockPort)`,
+        ).not.toMatch(/\bnew\s+Date\s*\(/)
+      }
+    })
   })
 
   describe('application 層', () => {
@@ -1104,6 +1134,71 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(savedTabsAppSource).not.toMatch(
         /Chrome\.storage\.local\.set\(\{\s*savedTabs:\s*newGroups/,
       )
+    })
+  })
+
+  describe('issue #582: domain 層の直接時刻依存を禁止する ClockPort 導入', () => {
+    it('ClockPort が定義されている', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/ports/ClockPort.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('interface ClockPort')
+      expect(source).toContain('now:')
+    })
+
+    it('ClockPort は chrome API を import / 利用しない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/ports/ClockPort.ts',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(/from\s+['"]chrome['"]/)
+      // ClockPort はプリントの interface のみで、Date.now() も使わない
+      expect(source).not.toMatch(/\bDate\.now\s*\(/)
+    })
+
+    it('SystemClockAdapter が定義されている', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/browser/SystemClockAdapter.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('ClockPort')
+      expect(source).toContain('createSystemClock')
+      // SystemClock は infrastructure 層なので Date.now() 使用は OK
+      expect(source).toContain('Date.now()')
+    })
+
+    it('createSavedTabsUseCasesDeps は clock を組み立てる', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('clock:')
+      expect(source).toContain('createSystemClock')
+    })
+
+    it('SavedTabsUseCasesDeps は clock を含む', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/SavedTabsUseCasesDeps.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('clock: ClockPort')
+      expect(source).toContain('import type { ClockPort }')
     })
   })
 })

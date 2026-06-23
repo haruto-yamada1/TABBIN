@@ -6,6 +6,7 @@ import { createChromeMessagingAdapter } from '@/contexts/saved-tabs/infrastructu
 import type { ChromeApiLike as ChromeMessagingApiLike } from '@/contexts/saved-tabs/infrastructure/browser/ChromeMessagingAdapter'
 import { createChromeStorageChangeAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeStorageChangeAdapter'
 import { createSonnerNotificationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter'
+import { createSystemClock } from '@/contexts/saved-tabs/infrastructure/browser/SystemClockAdapter'
 import { createChromeCustomProjectRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeCustomProjectRepository'
 import { createChromeDomainCategoryMappingRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeDomainCategoryMappingRepository'
 import { createChromeDomainCategorySettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeDomainCategorySettingsRepository'
@@ -123,6 +124,7 @@ export const createSavedTabsUseCasesDeps = (
       getApi: () => getChromeApi(),
     }),
     categoriesCommandService: createLibCategoriesCommandService(),
+    clock: createSystemClock(),
     categoryAssignmentPort: createLibCategoryAssignmentPort({
       parentCategoryRepository: createChromeParentCategoryRepository(port),
       tabGroupRepository: createChromeTabGroupRepository(port),

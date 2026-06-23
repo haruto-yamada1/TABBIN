@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import type { ClockPort } from '@/contexts/saved-tabs/application/ports/ClockPort'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type {
@@ -31,11 +32,11 @@ export interface DeleteCustomProjectUseCaseDeps {
   readonly customProjectRepository: CustomProjectRepository
   readonly uncategorizedProjectId: string
   /**
-   * 現在のエポックミリ秒。未分類プロジェクトを新規作成するときの
-   * `createdAt` / `updatedAt` に使う（テスト時は固定値を注入して
-   * 時刻依存を排除する）。
+   * 現在時刻の取得 port。未分類プロジェクトを新規作成するときの
+   * `createdAt` / `updatedAt` に使う（テスト時は固定時刻を返す stub
+   * を注入して時刻依存を排除する）。
    */
-  readonly now?: () => number
+  readonly clock: ClockPort
 }
 
 /**
@@ -58,7 +59,6 @@ export interface DeleteCustomProjectUseCaseDeps {
 export const createDeleteCustomProjectUseCase = (
   deps: DeleteCustomProjectUseCaseDeps,
 ): DeleteCustomProjectUseCase => {
-  const now = deps.now ?? ((): number => Date.now())
   return async (command) => {
     if (command.projectId === deps.uncategorizedProjectId) {
       throw new SavedTabsDomainError(
@@ -118,7 +118,7 @@ export const createDeleteCustomProjectUseCase = (
         mergedRawBase = entityToRawSnapshot(merged)
       }
     } else {
-      const timestamp = now()
+      const timestamp = deps.clock.now()
       const createdUncategorized: CustomProject = {
         categories: [],
         createdAt: timestamp as never,
