@@ -110,13 +110,12 @@ module.exports = {
       },
     },
     {
-      name: 'no-application-to-infrastructure-or-presentation',
-      comment:
-        'Application code must not depend on infrastructure or presentation',
+      name: 'no-application-to-presentation',
+      comment: 'Application code must not depend on presentation',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/application/' },
       to: {
-        path: '^src/contexts/[^/]+/(infrastructure|presentation)/',
+        path: '^src/contexts/[^/]+/presentation/',
       },
     },
     {
@@ -160,20 +159,24 @@ module.exports = {
       },
     },
     {
-      name: 'no-presentation-to-infrastructure',
-      comment:
-        'Presentation code must use infrastructure through application ports',
-      severity: 'error',
-      from: { path: '^src/contexts/[^/]+/presentation/' },
-      to: { path: '^src/contexts/[^/]+/infrastructure/' },
-    },
-    {
       name: 'no-presentation-to-domain',
       comment:
         'Presentation code must use application DTOs/view-models instead of domain entities',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/presentation/' },
       to: { path: '^src/contexts/[^/]+/domain/' },
+    },
+    {
+      name: 'no-infrastructure-construction-outside-composition',
+      comment:
+        'Infrastructure implementations must be wired only from composition, entrypoints, or infrastructure itself',
+      severity: 'error',
+      from: {
+        path: '^src/(?!app/composition/|entrypoints/|contexts/[^/]+/infrastructure/)',
+      },
+      to: {
+        path: '^src/contexts/[^/]+/infrastructure/',
+      },
     },
     {
       name: 'no-presentation-tests-to-domain',

@@ -275,7 +275,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     it('@/components / @/features/*/components / @/contexts/*/presentation への依存を禁止している', () => {
       expect(dependencyCruiserSource).toContain("name: 'no-application-to-ui'")
       expect(dependencyCruiserSource).toContain(
-        "name: 'no-application-to-infrastructure-or-presentation'",
+        "name: 'no-application-to-presentation'",
       )
     })
 
