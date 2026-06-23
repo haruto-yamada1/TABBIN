@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
-import { savedTabsUncategorizedProjectId as UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/application/services/SavedTabsPresentationDefaults'
+import { savedTabsUncategorizedProjectId as UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
 import { DeleteEntityConfirmPanel } from '@/contexts/saved-tabs/presentation/components/shared/DeleteEntityConfirmPanel'
 import {
   SavedTabsResponsiveLabel,

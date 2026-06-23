@@ -9,13 +9,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Toaster } from '@/components/ui/sonner'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import { savedTabsDefaultUserSettings as defaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
 import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
 } from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
-import { savedTabsDefaultUserSettings as defaultUserSettings } from '@/contexts/saved-tabs/application/services/SavedTabsPresentationDefaults'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
 import { Header } from '@/contexts/saved-tabs/presentation/components/Header' // ヘッダーコンポーネントをインポート
 import { CustomModeContainer } from '@/contexts/saved-tabs/presentation/containers/CustomModeContainer'

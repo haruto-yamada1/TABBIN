@@ -1324,4 +1324,121 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       })
     }
   })
+  describe('issue #587: application boundary naming conventions', () => {
+    // application 層が presentation に公開する contract の命名規約を定義する。
+    // presentation が domain entity に直接依存せず、DTO / ViewModel /
+    // Command / Query をファイル名から判断できるようにする。
+    //
+    // 規約 (docs/architecture/ddd.md 参照):
+    //   application/commands/     -> *Command.ts
+    //   application/queries/      -> *Query.ts
+    //   application/dto/          -> *Dto.ts
+    //   application/use-cases/    -> *UseCase.ts
+    //   application/mappers/     -> *Mapper.ts
+    //   application/ports/       -> *Port.ts | *Ports.ts | *Service.ts
+    //   application/services/    -> *Service.ts
+    //   presentation/view-models/ -> *ViewModel.ts
+
+    interface NamingConvention {
+      readonly layer: string
+      readonly subdirectory: string
+      readonly suffixes: readonly string[]
+    }
+
+    const namingConventions: readonly NamingConvention[] = [
+      { layer: 'application', subdirectory: 'commands', suffixes: ['Command'] },
+      { layer: 'application', subdirectory: 'queries', suffixes: ['Query'] },
+      { layer: 'application', subdirectory: 'dto', suffixes: ['Dto'] },
+      {
+        layer: 'application',
+        subdirectory: 'use-cases',
+        suffixes: ['UseCase'],
+      },
+      { layer: 'application', subdirectory: 'mappers', suffixes: ['Mapper'] },
+      {
+        layer: 'application',
+        subdirectory: 'ports',
+        suffixes: ['Port', 'Ports', 'Service'],
+      },
+      { layer: 'application', subdirectory: 'services', suffixes: ['Service'] },
+      {
+        layer: 'presentation',
+        subdirectory: 'view-models',
+        suffixes: ['ViewModel'],
+      },
+    ]
+
+    const contextsDir = resolve(repoRoot, 'src', 'contexts')
+    const allContextNames = readdirSync(contextsDir).filter((entry) => {
+      try {
+        return (
+          statSync(resolve(contextsDir, entry)).isDirectory() &&
+          !entry.startsWith('.')
+        )
+      } catch {
+        return false
+      }
+    })
+
+    it('検査対象の context ディレクトリが存在する', () => {
+      expect(allContextNames.length).toBeGreaterThan(0)
+    })
+
+    for (const convention of namingConventions) {
+      for (const contextName of allContextNames) {
+        const dir = resolve(
+          contextsDir,
+          contextName,
+          convention.layer,
+          convention.subdirectory,
+        )
+        const files = collectSourceFiles(dir)
+        if (files.length === 0) {
+          continue
+        }
+
+        it(`${contextName}/${convention.layer}/${convention.subdirectory}/ の非テストファイルは ${convention.suffixes.join(' | ')} 接尾辞に命名されている`, () => {
+          for (const absolutePath of files) {
+            const filename = absolutePath.split(sep).pop() ?? absolutePath
+            const matches = convention.suffixes.some(
+              (suffix) =>
+                filename.endsWith(`${suffix}.ts`) ||
+                filename.endsWith(`${suffix}.tsx`),
+            )
+            expect(
+              matches,
+              `${filename} in ${contextName}/${convention.layer}/${convention.subdirectory}/ should end with one of: ${convention.suffixes.map((s) => `${s}.ts(x)`).join(', ')}`,
+            ).toBe(true)
+          }
+        })
+      }
+    }
+
+    it('dependency-cruiser に presentation -> domain 依存禁止 rule が定義されている', () => {
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-presentation-to-domain'",
+      )
+    })
+
+    it('presentation 配下の非テストファイルが domain を直接 import していない', () => {
+      for (const contextName of allContextNames) {
+        const presentationRoot = resolve(
+          contextsDir,
+          contextName,
+          'presentation',
+        )
+        const presentationSourceFiles = collectSourceFiles(presentationRoot)
+        for (const absolutePath of presentationSourceFiles) {
+          const relativePath = relative(repoRoot, absolutePath)
+            .split(sep)
+            .join('/')
+          const source = readFileSync(absolutePath, 'utf8')
+          expect(
+            source,
+            `${relativePath} should not import from domain/`,
+          ).not.toMatch(/(?:from|import)\s+['"][^'"]*\/domain(?:\/|['"])/)
+        }
+      }
+    })
+  })
 })

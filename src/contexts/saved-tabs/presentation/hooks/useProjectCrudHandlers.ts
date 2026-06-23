@@ -2,8 +2,8 @@ import { useCallback } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { savedTabsUncategorizedProjectId as UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
 import { toStorageCustomProject } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
-import { savedTabsUncategorizedProjectId as UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/application/services/SavedTabsPresentationDefaults'
 import type {
   CustomProject,
   ProjectKeywordSettings,

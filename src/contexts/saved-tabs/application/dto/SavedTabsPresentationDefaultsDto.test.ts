@@ -6,9 +6,9 @@ import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserS
 import {
   savedTabsDefaultUserSettings,
   savedTabsUncategorizedProjectId,
-} from './SavedTabsPresentationDefaults'
+} from './SavedTabsPresentationDefaultsDto'
 
-describe('SavedTabsPresentationDefaults', () => {
+describe('SavedTabsPresentationDefaultsDto', () => {
   it('domain defaultをplain application valueへコピーする', () => {
     expect(savedTabsDefaultUserSettings).toStrictEqual(defaultUserSettings)
     expect(savedTabsDefaultUserSettings).not.toBe(defaultUserSettings)
