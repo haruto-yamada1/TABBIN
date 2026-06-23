@@ -114,6 +114,41 @@ const collectSourceFiles = (dir: string): string[] => {
   return result
 }
 
+const collectTestFiles = (dir: string): string[] => {
+  const result: string[] = []
+  let entries: string[]
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return result
+  }
+  for (const entry of entries) {
+    const fullPath = resolve(dir, entry)
+    let stats
+    try {
+      stats = statSync(fullPath)
+    } catch {
+      continue
+    }
+    if (stats.isDirectory()) {
+      result.push(...collectTestFiles(fullPath))
+      continue
+    }
+    if (!stats.isFile()) {
+      continue
+    }
+    if (
+      entry.endsWith('.test.ts') ||
+      entry.endsWith('.test.tsx') ||
+      entry.endsWith('.spec.ts') ||
+      entry.endsWith('.spec.tsx')
+    ) {
+      result.push(fullPath)
+    }
+  }
+  return result
+}
+
 describe('src/contexts/saved-tabs DDD layer guard', () => {
   const config = loadOxlintConfig()
   const dependencyCruiserSource = readFileSync(
@@ -280,6 +315,33 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
           source,
           `${relativePath} should not import @/types/storage`,
         ).not.toMatch(/from\s+['"]@\/types\/storage['"]/)
+      }
+    })
+  })
+
+  describe('issue #583: presentation test は domain 層を直接 import しない', () => {
+    it('dependency-cruiser に presentation test → domain 依存禁止 rule が定義されている', () => {
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-presentation-tests-to-domain'",
+      )
+    })
+
+    it('presentation 配下の test / spec ファイルが domain を直接 import していない', () => {
+      const presentationRoot = resolve(
+        repoRoot,
+        'src/contexts/saved-tabs/presentation',
+      )
+      const presentationTestFiles = collectTestFiles(presentationRoot)
+      expect(presentationTestFiles.length).toBeGreaterThan(0)
+      for (const absolutePath of presentationTestFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = readFileSync(absolutePath, 'utf8')
+        expect(
+          source,
+          `${relativePath} should not import from domain/`,
+        ).not.toMatch(/from\s+['"][^'"]*domain\//)
       }
     })
   })
