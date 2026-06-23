@@ -1263,4 +1263,65 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(source).toContain('import type { ClockPort }')
     })
   })
+
+  describe('issue #584: domain/repositories/ は contract のみで実装を含まない', () => {
+    // `src/contexts/*/domain/repositories/` 配下は interface / type /
+    // DTO contract の置き場であり、実装 class や Chrome Storage /
+    // IndexedDB / localStorage / fetch などの外部 API 呼び出しを
+    // 混入させない。実装は infrastructure 層に置く。
+    //
+    // JSDoc 内の禁止 API 言及は対象外とするため、コメントを除去してから
+    // 検査する (issue #582 の stripComments と同じ方針)。
+    const contextsDir = resolve(repoRoot, 'src/contexts')
+    const repositoryFiles: string[] = []
+    for (const entry of readdirSync(contextsDir)) {
+      const repositoriesDir = resolve(
+        contextsDir,
+        entry,
+        'domain',
+        'repositories',
+      )
+      repositoryFiles.push(...collectSourceFiles(repositoriesDir))
+    }
+
+    it('検査対象の repository contract ファイルが存在する', () => {
+      expect(repositoryFiles.length).toBeGreaterThan(0)
+    })
+
+    const stripComments = (source: string): string =>
+      source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+
+    for (const absolutePath of repositoryFiles) {
+      const relativePath = relative(repoRoot, absolutePath).split(sep).join('/')
+
+      it(`${relativePath} は実装 class / 外部 API 呼び出しを含まない`, () => {
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} should not contain class declarations`,
+        ).not.toMatch(/\bclass\b/)
+        expect(
+          source,
+          `${relativePath} should not instantiate classes`,
+        ).not.toMatch(/\bnew\s+[A-Z]/)
+        expect(source, `${relativePath} should not use chrome API`).not.toMatch(
+          /\bchrome\./,
+        )
+        expect(
+          source,
+          `${relativePath} should not use localStorage`,
+        ).not.toMatch(/\blocalStorage\./)
+        expect(
+          source,
+          `${relativePath} should not use sessionStorage`,
+        ).not.toMatch(/\bsessionStorage\./)
+        expect(source, `${relativePath} should not use indexedDB`).not.toMatch(
+          /\bindexedDB\b/,
+        )
+        expect(source, `${relativePath} should not call fetch()`).not.toMatch(
+          /\bfetch\(/,
+        )
+      })
+    }
+  })
 })
