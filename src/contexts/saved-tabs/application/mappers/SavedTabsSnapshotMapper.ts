@@ -3,11 +3,21 @@ import type {
   OpenedUrlsRestoreSnapshot,
   RestoreOpenedUrlsSnapshotCommand,
 } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type {
+  SavedTabsCustomProjectDto,
+  SavedTabsDisplayTabGroupDto,
+  SavedTabsParentCategoryDto,
+  SavedTabsTabGroupDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProject as DomainCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategory as DomainParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { CustomProjectRawSnapshot } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
+
+import { toSavedTabsTabGroupDto } from './SavedTabsPresentationMapper'
 
 /**
  * `BuildSavedTabsSnapshotUseCase` / `RestoreOpenedUrlsSnapshotUseCase` 由来の
@@ -34,7 +44,7 @@ import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
  * 次回 storage 同期時に再取得する前提とする (issue #494)。
  */
 export const toStorageCustomProject = (
-  project: DomainCustomProject,
+  project: DomainCustomProject | SavedTabsCustomProjectDto,
 ): CustomProject => ({
   categories: [...project.categories],
   createdAt: project.createdAt,
@@ -89,7 +99,7 @@ export const toStorageCustomProjectFromRaw = (
  * (issue #494)。
  */
 export const toStorageParentCategory = (
-  category: DomainParentCategory,
+  category: SavedTabsParentCategoryDto,
 ): ParentCategory => ({
   domains: [...category.domains],
   domainNames: [...category.domainNames],
@@ -104,10 +114,40 @@ export const toStorageParentCategory = (
  * 再解決するため、`urls` を持たないエンティティでも表示に必要な情報は
  * 揃う (issue #494)。
  */
-export const toStorageTabGroup = (group: DomainTabGroup): TabGroup => ({
+export const toStorageTabGroup = (
+  group: DomainTabGroup | SavedTabsTabGroupDto | SavedTabsDisplayTabGroupDto,
+): TabGroup => ({
   id: group.id,
   domain: group.domain,
-  urlIds: [...group.urlIds],
+  urlIds: group.urlIds ? [...group.urlIds] : [],
+  ...('urls' in group && group.urls
+    ? { urls: group.urls.map((url) => ({ ...url })) }
+    : {}),
+  ...('urlSubCategories' in group && group.urlSubCategories
+    ? { urlSubCategories: { ...group.urlSubCategories } }
+    : {}),
+  ...('subCategories' in group && group.subCategories
+    ? { subCategories: [...group.subCategories] }
+    : {}),
+  ...(group.categoryKeywords
+    ? {
+        categoryKeywords: group.categoryKeywords.map((entry) => ({
+          categoryName: entry.categoryName,
+          keywords: [...entry.keywords],
+        })),
+      }
+    : {}),
+  ...('subCategoryOrder' in group && group.subCategoryOrder
+    ? { subCategoryOrder: [...group.subCategoryOrder] }
+    : {}),
+  ...('subCategoryOrderWithUncategorized' in group &&
+  group.subCategoryOrderWithUncategorized
+    ? {
+        subCategoryOrderWithUncategorized: [
+          ...group.subCategoryOrderWithUncategorized,
+        ],
+      }
+    : {}),
   parentCategoryId: group.parentCategoryId,
   savedAt: group.savedAt,
 })
@@ -125,10 +165,8 @@ export const toStorageTabGroup = (group: DomainTabGroup): TabGroup => ({
  * キャストに限定し、呼び出し側の disable を排除する。
  */
 export const toPresentationTabGroups = (
-  groups: readonly DomainTabGroup[],
-): TabGroup[] =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  groups as unknown as TabGroup[]
+  groups: readonly (SavedTabsTabGroupDto | SavedTabsDisplayTabGroupDto)[],
+): TabGroup[] => groups.map(toStorageTabGroup)
 
 /**
  * storage 形 `TabGroup` (presentation 編集結果を含む) を domain 形
@@ -140,8 +178,18 @@ export const toPresentationTabGroups = (
  * `toDomainTabGroupsForReorder` と同パターン）。
  */
 export const toDomainTabGroupFromStorage = (group: TabGroup): DomainTabGroup =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  group as unknown as DomainTabGroup
+  createTabGroup({
+    categoryKeywords: group.categoryKeywords,
+    domain: group.domain,
+    id: group.id,
+    parentCategoryId: group.parentCategoryId,
+    savedAt: group.savedAt,
+    subCategories: group.subCategories,
+    subCategoryOrder: group.subCategoryOrder,
+    subCategoryOrderWithUncategorized: group.subCategoryOrderWithUncategorized,
+    urlIds: group.urlIds ?? [],
+    urlSubCategories: group.urlSubCategories,
+  })
 
 /**
  * snapshot 内の readonly 配列を immutable copy に正規化する。
@@ -173,16 +221,7 @@ export const toDomainParentCategories = (
   if (!categories) {
     return undefined
   }
-  // 構造は一致しているため、branded 型の差分は use-case 側の mapper / factory
-  // が `RestoreOpenedUrlsSnapshotUseCase` 経由で吸収する前提でキャストする。
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  return categories.map((category) => ({
-    domains: [...category.domains],
-    domainNames: [...category.domainNames],
-    id: category.id,
-    name: category.name,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  })) as unknown as BuildSavedTabsSnapshotCommand['parentCategories']
+  return categories.map((category) => createParentCategory(category))
 }
 
 /**
@@ -194,15 +233,7 @@ export const toDomainParentCategories = (
  */
 export const toDomainTabGroupsForReorder = (
   groups: readonly TabGroup[],
-): readonly DomainTabGroup[] =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  groups.map((group) => ({
-    id: group.id,
-    domain: group.domain,
-    parentCategoryId: group.parentCategoryId,
-    savedAt: group.savedAt,
-    urlIds: [...(group.urlIds ?? [])],
-  })) as unknown as readonly DomainTabGroup[]
+): readonly DomainTabGroup[] => groups.map(toDomainTabGroupFromStorage)
 
 /**
  * snapshot を `RestoreOpenedUrlsSnapshotCommand` 形式へ持ち替える純粋関数。
@@ -238,6 +269,13 @@ export const toDomainTabGroupsFromStorage = (
   groups: readonly TabGroup[],
 ): readonly DomainTabGroup[] => groups.map(toDomainTabGroupFromStorage)
 
+export const toSavedTabsTabGroupsFromStorage = (
+  groups: readonly TabGroup[],
+): readonly SavedTabsTabGroupDto[] =>
+  groups.map((group) =>
+    toSavedTabsTabGroupDto(toDomainTabGroupFromStorage(group)),
+  )
+
 /**
  * storage 形 `ParentCategory` を domain 形 `ParentCategory` へ持ち替える。
  * `RepairTabGroupParentCategoryIdsUseCase` 等の branded 入力 port
@@ -246,11 +284,7 @@ export const toDomainTabGroupsFromStorage = (
  */
 const toDomainParentCategory = (
   category: ParentCategory,
-): DomainParentCategory => {
-  const { domains, domainNames, id, name } = category
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  return { domains, domainNames, id, name } as unknown as DomainParentCategory
-}
+): DomainParentCategory => createParentCategory(category)
 
 /**
  * storage 形 `ParentCategory[]` を domain 形 `ParentCategory[]` へ

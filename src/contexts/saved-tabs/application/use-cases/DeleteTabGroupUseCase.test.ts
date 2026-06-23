@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import {
+  toSavedTabsTabGroupDto,
+  toSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
@@ -256,8 +260,12 @@ describe('DeleteTabGroupUseCase', () => {
 
     const result = await useCase({ tabGroupId: target.id })
 
-    expect(result.snapshot.savedTabs).toStrictEqual([target])
-    expect(result.snapshot.urlRecords).toStrictEqual([url1])
+    expect(result.snapshot.savedTabs).toStrictEqual([
+      toSavedTabsTabGroupDto(target),
+    ])
+    expect(result.snapshot.urlRecords).toStrictEqual([
+      toSavedTabsUrlRecordDto(url1),
+    ])
     expect(result.snapshot.customProjects).toBeUndefined()
     expect(result.snapshot.parentCategories).toBeUndefined()
   })

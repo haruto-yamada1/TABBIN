@@ -1,6 +1,4 @@
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `DeleteTabGroupUseCase` の結果 DTO。
@@ -15,13 +13,13 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * 表示する用途を想定。
  */
 export interface DeletedTabGroupDto {
-  readonly removedTabGroupId: TabGroup['id']
+  readonly removedTabGroupId: string
   /**
    * 削除対象 TabGroup 内に含まれていた URL のうち、削除後に
    * どの TabGroup / CustomProject からも参照されなくなった `UrlRecordId`。
    * 空集合なら「他で参照されていたため UrlRecord は保持された」ことを示す。
    */
-  readonly removedUrlRecordIds: readonly UrlRecordId[]
+  readonly removedUrlRecordIds: readonly string[]
   /**
    * 復元に必要なスナップショット。
    * presentation 層が Undo を発火する際に `RestoreOpenedUrlsSnapshotCommand`

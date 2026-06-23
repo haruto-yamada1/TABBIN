@@ -2,8 +2,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
-import type { UserSettingsDto as UserSettings } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { SortableUrlItemProps } from '@/types/saved-tabs'
 
 const sortableUrlItemAdditionalI18nState = vi.hoisted(() => ({
@@ -177,5 +177,94 @@ describe('SortableUrlItem additional', () => {
         action: 'urlDropped',
       }),
     )
+  })
+
+  it('Provider 外では外部 drop 判定でも messaging port 通知を no-op にする', () => {
+    renderWithMessagingPort(<SortableUrlItem {...createProps()} />)
+
+    const link = screen.getByRole('button', { name: 'Example Tab' })
+    const dataTransfer = {
+      setData: vi.fn(),
+      dropEffect: 'copy',
+    }
+
+    expect(() => {
+      fireEvent.dragStart(link, { dataTransfer })
+      fireEvent.dragEnd(link, { dataTransfer })
+    }).not.toThrow()
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      'text/plain',
+      'https://example.com',
+    )
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      'text/uri-list',
+      'https://example.com',
+    )
+  })
+
+  it('drag 中に window blur して link drop した場合は外部 drop として通知する', () => {
+    renderWithMessagingPort(<SortableUrlItem {...createProps()} />, {
+      send: sendMessageMock,
+    })
+
+    const link = screen.getByRole('button', { name: 'Example Tab' })
+    const dataTransfer = {
+      setData: vi.fn(),
+      dropEffect: 'link',
+    }
+
+    fireEvent.dragStart(link, { dataTransfer })
+    window.dispatchEvent(new Event('blur'))
+    fireEvent.dragEnd(link, { dataTransfer })
+
+    expect(sendMessageMock).toHaveBeenCalledWith({
+      action: 'urlDragStarted',
+      groupId: 'group-1',
+      url: 'https://example.com',
+    })
+    expect(sendMessageMock).toHaveBeenCalledWith({
+      action: 'urlDropped',
+      fromExternal: true,
+      groupId: 'group-1',
+      url: 'https://example.com',
+    })
+  })
+
+  it('confirmDeleteEach が true の場合は確認後に削除する', () => {
+    const props = createProps()
+    const handleDeleteUrl = vi.fn()
+    renderWithMessagingPort(
+      <SortableUrlItem
+        {...props}
+        handleDeleteUrl={handleDeleteUrl}
+        settings={{ ...defaultSettings, confirmDeleteEach: true }}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'タブを削除' }))
+    expect(handleDeleteUrl).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    expect(handleDeleteUrl).toHaveBeenCalledWith(
+      'group-1',
+      'https://example.com',
+    )
+  })
+
+  it('保存時刻非表示かつ自動削除なしなら補助行を表示しない', () => {
+    renderWithMessagingPort(
+      <SortableUrlItem
+        {...createProps()}
+        savedAt={Date.parse('2026-06-02T12:34:56.000Z')}
+        autoDeletePeriod='never'
+        settings={{
+          ...defaultSettings,
+          showSavedTime: false,
+        }}
+      />,
+    )
+
+    const link = screen.getByRole('button', { name: 'Example Tab' })
+    expect(link.textContent).not.toContain('2026/06/02')
   })
 })

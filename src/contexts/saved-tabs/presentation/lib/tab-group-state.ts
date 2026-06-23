@@ -1,5 +1,5 @@
-import type { ParentCategoryDto } from '@/contexts/saved-tabs/domain/dto/ParentCategoryDto'
-import type { PresentationCategoryLookup } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
+import type { SavedTabsParentCategoryDto as ParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { PresentationCategoryLookup } from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { TabGroup, UrlRecord } from '@/types/storage'
 

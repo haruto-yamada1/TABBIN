@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const keywordEditorI18nState = vi.hoisted(() => ({
@@ -38,24 +38,34 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
 import { KeywordEditor } from './KeywordEditor'
 
-const createKeywordModalValue = () => ({
+const createKeywordModalValue = (
+  options: {
+    isRenaming?: boolean
+    keywords?: string[]
+    newKeyword?: string
+    subCategories?: string[]
+    handleAddKeyword?: ReturnType<typeof vi.fn>
+    handleRemoveKeyword?: ReturnType<typeof vi.fn>
+    setNewKeyword?: ReturnType<typeof vi.fn>
+  } = {},
+) => ({
   state: {
     subcategory: {
       activeCategory: 'news',
     },
     keywords: {
-      keywords: [],
-      newKeyword: '',
-      setNewKeyword: vi.fn(),
-      handleAddKeyword: vi.fn(),
-      handleRemoveKeyword: vi.fn(),
+      keywords: options.keywords ?? [],
+      newKeyword: options.newKeyword ?? '',
+      setNewKeyword: options.setNewKeyword ?? vi.fn(),
+      handleAddKeyword: options.handleAddKeyword ?? vi.fn(),
+      handleRemoveKeyword: options.handleRemoveKeyword ?? vi.fn(),
     },
     rename: {
-      isRenaming: false,
+      isRenaming: options.isRenaming ?? false,
     },
   },
   group: {
-    subCategories: ['news'],
+    subCategories: options.subCategories ?? ['news'],
   },
 })
 
@@ -77,5 +87,85 @@ describe('KeywordEditor', () => {
     expect(
       screen.getByPlaceholderText('e.g. Tech, New features, Tutorial'),
     ).toBeTruthy()
+  })
+
+  it('subcategory が無ければ editor を描画しない', () => {
+    useKeywordModalMock.mockReturnValue(
+      createKeywordModalValue({ subCategories: [] }),
+    )
+
+    const { container } = render(<KeywordEditor />)
+
+    expect(container.childElementCount).toBe(0)
+  })
+
+  it('入力変更を state setter へ渡す', () => {
+    const setNewKeyword = vi.fn()
+    useKeywordModalMock.mockReturnValue(
+      createKeywordModalValue({ setNewKeyword }),
+    )
+    render(<KeywordEditor />)
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'guide' },
+    })
+
+    expect(setNewKeyword).toHaveBeenCalledWith('guide')
+  })
+
+  it('Enter で追加し、それ以外の key では追加しない', () => {
+    const handleAddKeyword = vi.fn()
+    useKeywordModalMock.mockReturnValue(
+      createKeywordModalValue({ handleAddKeyword }),
+    )
+    render(<KeywordEditor />)
+    const input = screen.getByRole('textbox')
+
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(handleAddKeyword).not.toHaveBeenCalled()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(handleAddKeyword).toHaveBeenCalledOnce()
+  })
+
+  it('blur 時は空白を無視し、入力済みなら追加する', () => {
+    const emptyAdd = vi.fn()
+    useKeywordModalMock.mockReturnValue(
+      createKeywordModalValue({ handleAddKeyword: emptyAdd, newKeyword: '  ' }),
+    )
+    const { rerender } = render(<KeywordEditor />)
+    fireEvent.blur(screen.getByRole('textbox'))
+    expect(emptyAdd).not.toHaveBeenCalled()
+
+    const filledAdd = vi.fn()
+    useKeywordModalMock.mockReturnValue(
+      createKeywordModalValue({
+        handleAddKeyword: filledAdd,
+        newKeyword: 'guide',
+      }),
+    )
+    rerender(<KeywordEditor />)
+    fireEvent.blur(screen.getByRole('textbox'))
+    expect(filledAdd).toHaveBeenCalledOnce()
+  })
+
+  it('keyword badge の削除を委譲し、rename 中は操作を無効化する', () => {
+    const handleRemoveKeyword = vi.fn()
+    useKeywordModalMock.mockReturnValue(
+      createKeywordModalValue({
+        handleRemoveKeyword,
+        keywords: ['guide'],
+      }),
+    )
+    const { rerender } = render(<KeywordEditor />)
+
+    fireEvent.click(screen.getByRole('button'))
+    expect(handleRemoveKeyword).toHaveBeenCalledWith('guide')
+
+    useKeywordModalMock.mockReturnValue(
+      createKeywordModalValue({ isRenaming: true, keywords: ['guide'] }),
+    )
+    rerender(<KeywordEditor />)
+    expect(screen.getByRole('textbox').hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('button').hasAttribute('disabled')).toBe(true)
   })
 })

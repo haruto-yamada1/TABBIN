@@ -1,16 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
-import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
-import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-import { createUrl } from '@/contexts/saved-tabs/domain/value-objects/Url'
-import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
 import { toCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
 import type { SavedTabsViewModel } from '@/contexts/saved-tabs/presentation/view-models/SavedTabsViewModel'
@@ -29,7 +24,7 @@ import { toTabGroupViewModel } from '@/contexts/saved-tabs/presentation/view-mod
  *   省略時は use-case / repository の readAll を初回マウント時に行う。
  */
 export interface UseSavedTabsControllerInput {
-  readonly deps: SavedTabsUseCasesDeps
+  readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
   readonly initialTabGroups?: readonly TabGroup[]
   readonly initialCustomProjects?: readonly CustomProject[]
@@ -44,7 +39,7 @@ export interface UseSavedTabsControllerInput {
  */
 export interface UseSavedTabsControllerReturn {
   readonly viewModel: SavedTabsViewModel
-  readonly deps: SavedTabsUseCasesDeps
+  readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
   readonly openSavedUrl: (
     input: OpenSavedUrlControllerInput,
@@ -111,26 +106,6 @@ export interface RestoreSnapshotControllerResult {
   readonly restoredUrlRecordCount: number
 }
 
-/**
- * `RestoreSnapshotControllerInput.snapshot.parentCategories` 形式
- * (plain `string` フィールド) を domain `ParentCategory` へ
- * 持ち替える。`useSavedTabsController` 専用。
- */
-const toDomainParentCategoryFromControllerInput = (category: {
-  readonly id: string
-  readonly name: string
-  readonly domains: readonly string[]
-  readonly domainNames: readonly string[]
-}): ParentCategory => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- plain string → branded domain 投影 (controller 入口)
-  return {
-    domains: [...category.domains],
-    domainNames: [...category.domainNames],
-    id: category.id,
-    name: category.name,
-  } as unknown as ParentCategory
-}
-
 export interface SyncCategoryControllerInput {
   readonly command?: {
     readonly domain: string
@@ -171,23 +146,11 @@ const toTabGroupViewModelFromEntity = (group: TabGroup): TabGroupViewModel =>
     urlIds: [...group.urlIds],
   })
 
-// 旧 `castToBranded` ユーティリティは domain value-object の
-// factory (`createUrlRecordId` / `createTabGroupId` / `createDomainName` /
-// `createParentCategoryId` / `createSavedAt` / `createUrl`) へ
-// 置換済み (issue #512 follow-up)。branded 値はすべて factory 経由
-// で生成し、`as unknown as T` の構造的キャストを排除する。
-
-// 旧 `castToBranded` ユーティリティは domain value-object の
-// factory (`createUrlRecordId` / `createTabGroupId` / `createDomainName` /
-// `createParentCategoryId` / `createSavedAt` / `createUrl`) へ
-// 置換済み (issue #512 follow-up)。branded 値はすべて factory 経由
-// で生成し、`as unknown as T` の構造的キャストを排除する。
-
 /**
  * presentation 層の中心 controller hook。
  *
  * 責務:
- * 1. repository から TabGroup / CustomProject を読み込み、view-model へ変換する。
+ * 1. application query から TabGroup / CustomProject を読み込み、view-model へ変換する。
  * 2. application use-case を呼び、結果を view-model へ反映する。
  * 3. loading / error 状態と、Undo 復元用の snapshot 保持を管理する。
  *
@@ -206,6 +169,8 @@ export const useSavedTabsController = (
     restoreOpenedUrlsSnapshot: restoreOpenedUrlsSnapshotUseCase,
     syncCategoryAssignments: syncCategoryAssignmentsUseCase,
     removeUnreferencedUrlRecords: removeUnreferencedUrlRecordsUseCase,
+    getCustomProjects,
+    getSavedTabs,
   } = useCases
   const [state, setState] = useState<ControllerState>({
     customProjects:
@@ -227,8 +192,8 @@ export const useSavedTabsController = (
     setState((prev) => ({ ...prev, error: null, loading: true }))
     try {
       const [allTabGroups, allCustomProjects] = await Promise.all([
-        deps.tabGroupRepository.findAll(),
-        deps.customProjectRepository.findAll(),
+        getSavedTabs(),
+        getCustomProjects(),
       ])
       setState({
         customProjects: allCustomProjects.map(
@@ -242,7 +207,7 @@ export const useSavedTabsController = (
       setError(error instanceof Error ? error.message : String(error))
       setState((prev) => ({ ...prev, loading: false }))
     }
-  }, [deps.customProjectRepository, deps.tabGroupRepository, setError])
+  }, [getCustomProjects, getSavedTabs, setError])
 
   const openSavedUrl = useCallback(
     async (openInput: OpenSavedUrlControllerInput) => {
@@ -250,7 +215,7 @@ export const useSavedTabsController = (
         const dto = await openSavedUrlUseCase({
           origin: openInput.origin,
           settings: openInput.settings,
-          urlRecordId: createUrlRecordId(openInput.urlRecordId),
+          urlRecordId: openInput.urlRecordId,
         })
         if (dto.snapshot) {
           lastSnapshotRef.current = {
@@ -295,7 +260,7 @@ export const useSavedTabsController = (
     async (deleteInput: DeleteTabGroupControllerInput) => {
       try {
         const dto = await deleteTabGroupUseCase({
-          tabGroupId: createTabGroupId(deleteInput.tabGroupId),
+          tabGroupId: deleteInput.tabGroupId,
         })
         lastSnapshotRef.current = {
           customProjects: dto.snapshot.customProjects
@@ -338,34 +303,7 @@ export const useSavedTabsController = (
     async (restoreInput: RestoreSnapshotControllerInput) => {
       const snapshot = restoreInput.snapshot
       try {
-        const dto = await restoreOpenedUrlsSnapshotUseCase({
-          snapshot: {
-            ...(snapshot.customProjects
-              ? { customProjects: snapshot.customProjects }
-              : {}),
-            ...(snapshot.parentCategories
-              ? {
-                  // presentation (plain string) → domain (branded) 投影は
-                  // mapper (`toDomainParentCategoryFromControllerInput`)
-                  // 内に閉じ、disable を排除する。
-                  parentCategories: snapshot.parentCategories.map(
-                    toDomainParentCategoryFromControllerInput,
-                  ),
-                }
-              : {}),
-            ...(snapshot.savedTabs ? { savedTabs: snapshot.savedTabs } : {}),
-            ...(snapshot.urlRecords
-              ? {
-                  urlRecords: snapshot.urlRecords.map((record) => ({
-                    id: createUrlRecordId(record.id),
-                    savedAt: createSavedAt(record.savedAt),
-                    title: record.title,
-                    url: createUrl(record.url),
-                  })),
-                }
-              : {}),
-          },
-        })
+        const dto = await restoreOpenedUrlsSnapshotUseCase({ snapshot })
         lastSnapshotRef.current = null
         await refresh()
         return {
@@ -387,10 +325,8 @@ export const useSavedTabsController = (
           syncInput.command
             ? {
                 command: {
-                  domain: createDomainName(syncInput.command.domain),
-                  parentCategoryId: createParentCategoryId(
-                    syncInput.command.parentCategoryId,
-                  ),
+                  domain: syncInput.command.domain,
+                  parentCategoryId: syncInput.command.parentCategoryId,
                 },
               }
             : {},

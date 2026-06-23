@@ -40,6 +40,24 @@ describe('ChromeParentCategoryRepository', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('default chrome.storage.local port で read/write する', async () => {
+    const state: StorageState = { [PARENT_CATEGORIES_KEY]: [] }
+    const local = createPort(state)
+    vi.stubGlobal('chrome', { storage: { local } })
+    const repository = createChromeParentCategoryRepository()
+    const sample = createSampleParentCategory('category-1', 'Docs')
+    if (!sample) {
+      throw new Error('sample parent category could not be created')
+    }
+
+    await expect(repository.findAll()).resolves.toStrictEqual([])
+    await repository.saveAll([sample])
+
+    expect(local.get).toHaveBeenCalled()
+    expect(local.set).toHaveBeenCalled()
   })
 
   describe('createChromeParentCategoryRepository (factory)', () => {

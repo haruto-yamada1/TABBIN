@@ -7,11 +7,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
-import {
-  toDomainParentCategoriesFromStorage,
-  toDomainTabGroupsFromStorage,
-  toPresentationTabGroups,
-} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toPresentationTabGroups } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { GetSavedTabsQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsQuery'
@@ -20,7 +17,6 @@ import type {
   RepairTabGroupParentCategoryIdsCommand,
   RepairTabGroupParentCategoryIdsUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -290,13 +286,10 @@ const useTabData = ({
 
         // データ読み込み: page data query 経由 (issue #510)
         const pageData = await getSavedTabsPageDataQueryRef.current()
-        // query 戻り値 (branded domain) は presentation 編集前の参照を
-        // 保持するため mapper ではなく直接 cast。`ensureValidParentCategories`
-        // 側の判定 (`domainNames` 未定義検出) は未定義のまま流す必要がある
-        // ため、`?? []` 等で正規化しない。
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- branded → storage 投影 (初期ロード)
-        const savedTabs = [...pageData.tabGroups] as unknown as TabGroup[]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- branded → storage 投影 (初期ロード)
+        const savedTabs = toPresentationTabGroups(pageData.tabGroups)
+        // legacy storage の不正な `domainNames` を検出して再 migration するため、
+        // parent category だけは正規化せず runtime shape を保持する。
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- legacy invalid shape detection
         const parentCategories = [
           ...pageData.parentCategories,
         ] as unknown as ParentCategory[]
@@ -318,15 +311,14 @@ const useTabData = ({
         // parentCategoryId 修復は application use-case 経由 (issue #517)。
         // 修復があった場合のみ use-case 内で `tabGroupRepository.saveAll` が
         // 走り、storage への副作用は use-case 側に閉じている。
-        // storage → domain 投影は mapper 内に閉じ、`as never` を排除する。
+        // display DTO を rich field のまま application use-case へ渡す。
         const repairCommand: RepairTabGroupParentCategoryIdsCommand = {
-          tabGroups: toDomainTabGroupsFromStorage(savedTabs),
-          parentCategories:
-            toDomainParentCategoriesFromStorage(finalCategories),
+          tabGroups: pageData.tabGroups,
+          parentCategories: finalCategories,
         }
         const { tabGroups: repairedTabGroups } =
           await repairTabGroupParentCategoryIdsUseCaseRef.current(repairCommand)
-        // domain → presentation 投影は mapper 内に閉じ、`as unknown as` を排除する。
+        // application DTO → presentation 投影は mapper 内に閉じる。
         const finalTabGroups = toPresentationTabGroups(repairedTabGroups)
         setTabData((prev) => ({
           ...prev,

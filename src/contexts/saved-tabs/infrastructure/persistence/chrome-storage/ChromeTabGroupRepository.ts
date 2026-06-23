@@ -1,3 +1,4 @@
+import type { SavedTabsTabGroupReadPort } from '@/contexts/saved-tabs/application/ports/SavedTabsTabGroupReadPort'
 import type { SavedTabRawSummaryDto } from '@/contexts/saved-tabs/domain/dto/SavedTabRawSummaryDto'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
@@ -14,20 +15,21 @@ import { SAVED_TABS_KEY } from './savedTabsStorageKeys'
 import { SavedTabRawSchema } from './savedTabsStorageSchema'
 import type { SavedTabRaw } from './savedTabsStorageSchema'
 
-const getDefaultPort = (): ChromeStorageLocalPort | null => {
+type ChromeTabGroupStoragePort = Pick<ChromeStorageLocalPort, 'get' | 'set'>
+
+const getDefaultPort = (): ChromeTabGroupStoragePort | null => {
   const local = getChromeStorageLocal()
   if (!local) {
     return null
   }
   return {
     get: async (key) => local.get(key),
-    remove: async (key) => local.remove(key),
     set: async (value) => local.set(value),
   }
 }
 
 const findAllRawTabGroups = async (
-  port: ChromeStorageLocalPort,
+  port: ChromeTabGroupStoragePort,
 ): Promise<SavedTabRaw[]> => {
   const result = await port.get(SAVED_TABS_KEY)
   const raw = result[SAVED_TABS_KEY]
@@ -49,7 +51,7 @@ const findAllRawTabGroups = async (
 }
 
 const createChromeTabGroupRepositoryImpl = (
-  port: ChromeStorageLocalPort,
+  port: ChromeTabGroupStoragePort,
 ): TabGroupRepository => {
   const findAll = async (): Promise<readonly TabGroup[]> => {
     const result = await port.get(SAVED_TABS_KEY)
@@ -145,7 +147,7 @@ const createChromeTabGroupRepositoryImpl = (
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */
 export const createChromeTabGroupRepository = (
-  port: ChromeStorageLocalPort | null = getDefaultPort(),
+  port: ChromeTabGroupStoragePort | null = getDefaultPort(),
 ): TabGroupRepository => {
   if (!port) {
     warnMissingChromeStorage('ChromeTabGroupRepository')
@@ -154,4 +156,46 @@ export const createChromeTabGroupRepository = (
     )
   }
   return createChromeTabGroupRepositoryImpl(port)
+}
+
+export const createChromeSavedTabsTabGroupReadAdapter = (
+  port: ChromeTabGroupStoragePort | null = getDefaultPort(),
+): SavedTabsTabGroupReadPort => {
+  if (!port) {
+    throw new SavedTabsRepositoryUnavailableError(
+      'chrome.storage.local が利用できないため saved-tabs read port を初期化できません',
+    )
+  }
+  return {
+    findAll: async () =>
+      (await findAllRawTabGroups(port)).map((group) => ({
+        ...group,
+        ...(group.urlIds ? { urlIds: [...group.urlIds] } : {}),
+        ...(group.urls ? { urls: group.urls.map((url) => ({ ...url })) } : {}),
+        ...(group.urlSubCategories
+          ? { urlSubCategories: { ...group.urlSubCategories } }
+          : {}),
+        ...(group.subCategories
+          ? { subCategories: [...group.subCategories] }
+          : {}),
+        ...(group.categoryKeywords
+          ? {
+              categoryKeywords: group.categoryKeywords.map((entry) => ({
+                categoryName: entry.categoryName,
+                keywords: [...entry.keywords],
+              })),
+            }
+          : {}),
+        ...(group.subCategoryOrder
+          ? { subCategoryOrder: [...group.subCategoryOrder] }
+          : {}),
+        ...(group.subCategoryOrderWithUncategorized
+          ? {
+              subCategoryOrderWithUncategorized: [
+                ...group.subCategoryOrderWithUncategorized,
+              ],
+            }
+          : {}),
+      })),
+  }
 }

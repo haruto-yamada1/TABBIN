@@ -9,13 +9,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Toaster } from '@/components/ui/sonner'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
-} from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
-import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
+} from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
+import { savedTabsDefaultUserSettings as defaultUserSettings } from '@/contexts/saved-tabs/application/services/SavedTabsPresentationDefaults'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
 import { Header } from '@/contexts/saved-tabs/presentation/components/Header' // ヘッダーコンポーネントをインポート
 import { CustomModeContainer } from '@/contexts/saved-tabs/presentation/containers/CustomModeContainer'
@@ -47,7 +47,7 @@ import '@/assets/global.css'
 
 interface SavedTabsAppProps {
   readonly controller: UseSavedTabsControllerReturn
-  readonly deps: SavedTabsUseCasesDeps
+  readonly deps: SavedTabsPresentationPorts
   readonly initialViewMode?: ViewMode
   readonly isAiSidebarOpen?: boolean
   readonly onViewModeNavigate?: (mode: ViewMode) => void

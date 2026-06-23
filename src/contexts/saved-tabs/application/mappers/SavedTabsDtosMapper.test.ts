@@ -172,6 +172,55 @@ describe('SavedTabsDtosMapper.toStorageDomainCategorySettings', () => {
 })
 
 describe('SavedTabsDtosMapper round-trip', () => {
+  it('toStorageUserSettings は全optional fieldを復元する', () => {
+    const result = toStorageUserSettings({
+      activeAiSystemPromptId: 'preset-1',
+      aiSystemPrompts: [
+        {
+          createdAt: 1,
+          id: 'preset-1',
+          name: 'Default',
+          template: 'template',
+          updatedAt: 2,
+        },
+      ],
+      autoDeletePeriod: 'never',
+      clickBehavior: 'saveCurrentTab',
+      colors: { accent: '#fff' },
+      confirmDeleteAll: true,
+      confirmDeleteEach: false,
+      enableCategories: true,
+      excludePatterns: [],
+      excludePinnedTabs: false,
+      fontSizePercent: 110,
+      language: 'en',
+      ollamaModel: 'model',
+      openAllInNewWindow: false,
+      openUrlInBackground: true,
+      removeTabAfterExternalDrop: false,
+      removeTabAfterOpen: true,
+      showSavedTime: true,
+    })
+
+    expect(result).toMatchObject({
+      activeAiSystemPromptId: 'preset-1',
+      autoDeletePeriod: 'never',
+      colors: { accent: '#fff' },
+      fontSizePercent: 110,
+      language: 'en',
+      ollamaModel: 'model',
+    })
+    expect(result.aiSystemPrompts).toStrictEqual([
+      {
+        createdAt: 1,
+        id: 'preset-1',
+        name: 'Default',
+        template: 'template',
+        updatedAt: 2,
+      },
+    ])
+  })
+
   it('toUserSettingsDto → toStorageUserSettings は元の storage 形と等価', () => {
     const original = {
       clickBehavior: 'saveWindowTabs' as const,

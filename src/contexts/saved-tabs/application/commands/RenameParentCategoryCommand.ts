@@ -1,5 +1,3 @@
-import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-
 /**
  * `RenameParentCategoryCommand` の入力。
  *
@@ -19,6 +17,6 @@ import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-object
  * ```
  */
 export interface RenameParentCategoryCommand {
-  readonly categoryId: ParentCategoryId
+  readonly categoryId: string
   readonly newName: string
 }

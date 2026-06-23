@@ -2,8 +2,8 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useCallback } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import {
   showOpenedUrlsUndoToast,
   toDomainParentCategories,
@@ -14,7 +14,7 @@ import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 interface UseTabOpeningHandlersDeps {
   savedTabsUseCases: SavedTabsUseCases
-  deps: SavedTabsUseCasesDeps
+  deps: SavedTabsPresentationPorts
   settings: UserSettingsDto
   categories: ParentCategory[]
   refreshTabGroupsWithUrls: (tabGroups?: TabGroup[]) => Promise<TabGroup[]>

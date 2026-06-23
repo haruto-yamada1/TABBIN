@@ -1,5 +1,3 @@
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
-
 /**
  * `RemoveUnreferencedUrlRecordsUseCase` の結果 DTO。
  *
@@ -10,5 +8,5 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  */
 export interface RemovedUrlRecordsDto {
   readonly removedCount: number
-  readonly removedUrlRecordIds: readonly UrlRecordId[]
+  readonly removedUrlRecordIds: readonly string[]
 }

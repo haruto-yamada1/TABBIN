@@ -1,15 +1,15 @@
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
 /**
  * `SaveCustomProjectsUseCase` の入力。
  *
- * `projects` は domain entity 形の `CustomProject` 配列。
- * `findAll()` 経由で取得した entity をそのまま `saveAll` に渡す
- * 用途を想定。
+ * `projects` は application DTO として受け取り、use-case 内で domain
+ * entity に変換して保存する。
  */
 export interface SaveCustomProjectsCommand {
-  readonly projects: readonly CustomProject[]
+  readonly projects: readonly SavedTabsCustomProjectDto[]
 }
 
 export type SaveCustomProjectsUseCase = (
@@ -50,7 +50,9 @@ export const createSaveCustomProjectsUseCase = (
   deps: SaveCustomProjectsUseCaseDeps,
 ): SaveCustomProjectsUseCase => {
   return async (command) => {
-    await deps.customProjectRepository.saveAll(command.projects)
+    await deps.customProjectRepository.saveAll(
+      command.projects.map(createCustomProject),
+    )
   }
 }
 

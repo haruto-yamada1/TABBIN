@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { toSavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
@@ -130,7 +131,10 @@ describe('DeleteTabGroupsUseCase', () => {
 
     expect(result.removedTabGroupIds).toStrictEqual([group1.id, group2.id])
     expect(result.removedUrlRecordIds).toStrictEqual(['url-1', 'url-2'])
-    expect(result.snapshot.savedTabs).toStrictEqual([group1, group2])
+    expect(result.snapshot.savedTabs).toStrictEqual([
+      toSavedTabsTabGroupDto(group1),
+      toSavedTabsTabGroupDto(group2),
+    ])
     expect(
       (await repos.tabGroupRepository.findAll()).map((group) => group.id),
     ).toStrictEqual([other.id])

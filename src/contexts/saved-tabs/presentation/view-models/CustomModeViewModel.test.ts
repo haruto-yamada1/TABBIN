@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createSavedTabsCustomProjectDto as createCustomProject } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
 
 import { createCustomModeViewModel } from './CustomModeViewModel'
 

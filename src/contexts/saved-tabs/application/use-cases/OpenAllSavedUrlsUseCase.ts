@@ -1,6 +1,11 @@
 import type { OpenAllSavedUrlsCommand } from '@/contexts/saved-tabs/application/commands/OpenAllSavedUrlsCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { OpenedUrlsDto } from '@/contexts/saved-tabs/application/dto/OpenedUrlsDto'
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsTabGroupDto,
+  toSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
@@ -211,16 +216,18 @@ export const createOpenAllSavedUrlsUseCase = (
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
       customProjectOrder: undefined,
-      customProjects: plan.previousCustomProjects,
+      customProjects: plan.previousCustomProjects.map(
+        toSavedTabsCustomProjectDto,
+      ),
       parentCategories: undefined,
-      savedTabs: plan.previousTabGroups,
-      urlRecords: plan.removedUrlRecords,
+      savedTabs: plan.previousTabGroups.map(toSavedTabsTabGroupDto),
+      urlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }
 
     return {
       openedUrls,
       removedUrlRecordIds: plan.urlRecordIdsToDelete,
-      removedUrlRecords: plan.removedUrlRecords,
+      removedUrlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
       snapshot,
     }
   }

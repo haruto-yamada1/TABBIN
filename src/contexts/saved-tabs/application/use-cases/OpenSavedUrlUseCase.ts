@@ -1,6 +1,11 @@
 import type { OpenSavedUrlCommand } from '@/contexts/saved-tabs/application/commands/OpenSavedUrlCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { OpenedUrlDto } from '@/contexts/saved-tabs/application/dto/OpenedUrlDto'
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsTabGroupDto,
+  toSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
@@ -12,6 +17,7 @@ import {
 } from '@/contexts/saved-tabs/domain/services/OpenedUrlRemovalPolicy'
 import type { UrlReferenceOrigin } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
 import { isUrlRecordReferencedElsewhere } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
+import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `OpenSavedUrlUseCase` が依存する repository / port 群。
@@ -50,8 +56,9 @@ export const createOpenSavedUrlUseCase = (
   deps: OpenSavedUrlUseCaseDeps,
 ): OpenSavedUrlUseCase => {
   return async (command) => {
+    const urlRecordId = createUrlRecordId(command.urlRecordId)
     const [urlRecord, allTabGroups, allCustomProjects] = await Promise.all([
-      deps.urlRecordRepository.findById(command.urlRecordId),
+      deps.urlRecordRepository.findById(urlRecordId),
       deps.tabGroupRepository.findAll(),
       deps.customProjectRepository.findAll(),
     ])
@@ -160,15 +167,19 @@ export const createOpenSavedUrlUseCase = (
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
       customProjectOrder: undefined,
-      customProjects: previousCustomProjects,
+      customProjects: previousCustomProjects.map(toSavedTabsCustomProjectDto),
       parentCategories: undefined,
-      savedTabs: previousTabGroups,
-      urlRecords: removedRecord ? [previousUrlRecord] : [],
+      savedTabs: previousTabGroups.map(toSavedTabsTabGroupDto),
+      urlRecords: removedRecord
+        ? [toSavedTabsUrlRecordDto(previousUrlRecord)]
+        : [],
     }
 
     return {
       openedUrl: opened.url,
-      removedUrlRecord: removedRecord,
+      removedUrlRecord: removedRecord
+        ? toSavedTabsUrlRecordDto(removedRecord)
+        : null,
       removedUrlRecordId: removedId,
       snapshot,
     }

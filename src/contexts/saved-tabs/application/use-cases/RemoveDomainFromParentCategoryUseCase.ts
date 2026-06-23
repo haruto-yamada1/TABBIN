@@ -1,10 +1,13 @@
 import type { RemoveDomainFromParentCategoryCommand } from '@/contexts/saved-tabs/application/commands/RemoveDomainFromParentCategoryCommand'
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `RemoveDomainFromParentCategoryUseCase` が依存する repository 群。
@@ -22,7 +25,7 @@ export interface RemoveDomainFromParentCategoryUseCaseDeps {
  */
 export type RemoveDomainFromParentCategoryUseCase = (
   command: RemoveDomainFromParentCategoryCommand,
-) => Promise<readonly ParentCategory[]>
+) => Promise<readonly SavedTabsParentCategoryDto[]>
 
 /**
  * `RemoveDomainFromParentCategoryUseCase` を生成する。
@@ -45,6 +48,8 @@ export const createRemoveDomainFromParentCategoryUseCase = (
     const targetCategoryId: ParentCategoryId = createParentCategoryId(
       command.categoryId,
     )
+    const domainId = createTabGroupId(command.domainId)
+    const domainName = createDomainName(command.domainName)
     const allCategories = await deps.parentCategoryRepository.findAll()
     const targetCategory = parentCategoryById(allCategories, targetCategoryId)
     if (!targetCategory) {
@@ -54,15 +59,13 @@ export const createRemoveDomainFromParentCategoryUseCase = (
       )
     }
     const filteredDomains = targetCategory.domains.filter(
-      (domainId) => domainId !== command.domainId,
+      (currentDomainId) => currentDomainId !== domainId,
     )
     const filteredDomainNames = targetCategory.domainNames.filter(
-      (name) => name !== command.domainName,
+      (name) => name !== domainName,
     )
-    const hasDomainId = targetCategory.domains.includes(command.domainId)
-    const hasDomainName = targetCategory.domainNames.includes(
-      command.domainName,
-    )
+    const hasDomainId = targetCategory.domains.includes(domainId)
+    const hasDomainName = targetCategory.domainNames.includes(domainName)
     if (!hasDomainId && !hasDomainName) {
       throw new SavedTabsDomainError(
         'このドメインは対象カテゴリに登録されていません',
@@ -79,6 +82,6 @@ export const createRemoveDomainFromParentCategoryUseCase = (
         : category,
     )
     await deps.parentCategoryRepository.saveAll(updatedCategories)
-    return updatedCategories
+    return updatedCategories.map(toSavedTabsParentCategoryDto)
   }
 }

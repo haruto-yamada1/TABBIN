@@ -3,7 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 
-import { createChromeTabGroupRepository } from './ChromeTabGroupRepository'
+import {
+  createChromeSavedTabsTabGroupReadAdapter,
+  createChromeTabGroupRepository,
+} from './ChromeTabGroupRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SAVED_TABS_KEY } from './savedTabsStorageKeys'
@@ -39,6 +42,7 @@ describe('ChromeTabGroupRepository', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   describe('createChromeTabGroupRepository (factory)', () => {
@@ -114,6 +118,120 @@ describe('ChromeTabGroupRepository', () => {
       const repo = createChromeTabGroupRepository(createPort(state))
       await expect(repo.findAll()).resolves.toStrictEqual([])
     })
+  })
+
+  describe('raw read methods', () => {
+    it('findRawDomainById は raw domain を返し、未知IDはnullを返す', async () => {
+      const repo = createChromeTabGroupRepository(
+        createPort({
+          [SAVED_TABS_KEY]: [
+            {
+              domain: 'https://example.com',
+              id: 'group-1',
+              urlIds: ['url-1'],
+            },
+          ],
+        }),
+      )
+
+      await expect(
+        repo.findRawDomainById(createTabGroupId('group-1')),
+      ).resolves.toBe('https://example.com')
+      await expect(
+        repo.findRawDomainById(createTabGroupId('missing')),
+      ).resolves.toBeNull()
+    })
+
+    it('findRawTabGroupById はrich summaryを返し、未知IDはnullを返す', async () => {
+      const repo = createChromeTabGroupRepository(
+        createPort({
+          [SAVED_TABS_KEY]: [
+            {
+              categoryKeywords: [
+                { categoryName: 'Docs', keywords: ['reference'] },
+              ],
+              domain: 'example.com',
+              id: 'group-1',
+              parentCategoryId: 'category-1',
+              subCategories: ['Docs'],
+            },
+          ],
+        }),
+      )
+
+      await expect(
+        repo.findRawTabGroupById(createTabGroupId('group-1')),
+      ).resolves.toStrictEqual({
+        categoryKeywords: [{ categoryName: 'Docs', keywords: ['reference'] }],
+        domain: 'example.com',
+        id: 'group-1',
+        parentCategoryId: 'category-1',
+        subCategories: ['Docs'],
+      })
+      await expect(
+        repo.findRawTabGroupById(createTabGroupId('missing')),
+      ).resolves.toBeNull()
+    })
+  })
+
+  describe('SavedTabsTabGroupReadPort', () => {
+    it('raw rich fieldをdeep copyして返す', async () => {
+      const raw = {
+        categoryKeywords: [{ categoryName: 'Docs', keywords: ['reference'] }],
+        domain: 'example.com',
+        id: 'group-1',
+        subCategories: ['Docs'],
+        subCategoryOrder: ['Docs'],
+        subCategoryOrderWithUncategorized: ['Docs', 'uncategorized'],
+        urlIds: ['url-1'],
+        urls: [{ title: 'Example', url: 'https://example.com' }],
+        urlSubCategories: { 'url-1': 'Docs' },
+      }
+      const adapter = createChromeSavedTabsTabGroupReadAdapter(
+        createPort({ [SAVED_TABS_KEY]: [raw] }),
+      )
+
+      const [result] = await adapter.findAll()
+
+      expect(result).toStrictEqual(raw)
+      expect(result?.urlIds).not.toBe(raw.urlIds)
+      expect(result?.urls).not.toBe(raw.urls)
+      expect(result?.categoryKeywords).not.toBe(raw.categoryKeywords)
+    })
+
+    it('optional rich fieldが無いrawも返し、null portを拒否する', async () => {
+      const adapter = createChromeSavedTabsTabGroupReadAdapter(
+        createPort({
+          [SAVED_TABS_KEY]: [{ domain: 'example.com', id: 'group-1' }],
+        }),
+      )
+
+      await expect(adapter.findAll()).resolves.toStrictEqual([
+        { domain: 'example.com', id: 'group-1' },
+      ])
+      expect(() => createChromeSavedTabsTabGroupReadAdapter(null)).toThrow(
+        SavedTabsRepositoryUnavailableError,
+      )
+    })
+  })
+
+  it('default chrome.storage.local portでread/writeする', async () => {
+    const state: StorageState = {
+      [SAVED_TABS_KEY]: [{ domain: 'example.com', id: 'group-1' }],
+    }
+    const local = createPort(state)
+    vi.stubGlobal('chrome', { storage: { local } })
+    const repo = createChromeTabGroupRepository()
+    const sample = createSampleTabGroup('group-2', 'docs.example.com')
+    if (!sample) {
+      throw new Error('sample tab group could not be created')
+    }
+
+    await expect(repo.findAll()).resolves.toHaveLength(1)
+    await repo.saveAll([sample])
+
+    expect(local.get).toHaveBeenCalled()
+    expect(local.set).toHaveBeenCalled()
   })
 
   describe('findById', () => {

@@ -14,6 +14,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
 import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
 import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
@@ -33,7 +34,6 @@ import type { SetCustomProjectUrlCategoryUseCase } from '@/contexts/saved-tabs/a
 import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
 

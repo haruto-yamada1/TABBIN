@@ -11,14 +11,18 @@ import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository
 import { DOMAIN_CATEGORY_SETTINGS_KEY } from './savedTabsStorageKeys'
 import { DomainCategorySettingsRawSchema } from './savedTabsStorageSchema'
 
-const getDefaultPort = (): ChromeStorageLocalPort | null => {
+type ChromeDomainCategorySettingsStoragePort = Pick<
+  ChromeStorageLocalPort,
+  'get' | 'set'
+>
+
+const getDefaultPort = (): ChromeDomainCategorySettingsStoragePort | null => {
   const local = getChromeStorageLocal()
   if (!local) {
     return null
   }
   return {
     get: async (key) => local.get(key),
-    remove: async (key) => local.remove(key),
     set: async (value) => local.set(value),
   }
 }
@@ -45,7 +49,7 @@ const parseSettings = (raw: unknown): readonly DomainCategorySettingsDto[] => {
 }
 
 const createChromeDomainCategorySettingsRepositoryImpl = (
-  port: ChromeStorageLocalPort,
+  port: ChromeDomainCategorySettingsStoragePort,
 ): DomainCategorySettingsRepository => {
   const findAll = async (): Promise<readonly DomainCategorySettingsDto[]> => {
     const result = await port.get(DOMAIN_CATEGORY_SETTINGS_KEY)
@@ -77,7 +81,7 @@ const createChromeDomainCategorySettingsRepositoryImpl = (
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */
 export const createChromeDomainCategorySettingsRepository = (
-  port: ChromeStorageLocalPort | null = getDefaultPort(),
+  port: ChromeDomainCategorySettingsStoragePort | null = getDefaultPort(),
 ): DomainCategorySettingsRepository => {
   if (!port) {
     warnMissingChromeStorage('ChromeDomainCategorySettingsRepository')

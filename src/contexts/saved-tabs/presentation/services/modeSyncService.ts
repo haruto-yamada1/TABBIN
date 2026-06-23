@@ -1,7 +1,7 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import type { ModeSyncEvent } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   CustomProject,

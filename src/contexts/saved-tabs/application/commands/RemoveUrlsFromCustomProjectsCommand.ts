@@ -1,4 +1,4 @@
-import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import type { SavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 /**
  * `RemoveUrlsFromCustomProjectsUseCase` の入力。
@@ -18,5 +18,5 @@ import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
  * 受け取る (issue #511)。
  */
 export interface RemoveUrlsFromCustomProjectsCommand {
-  readonly tabGroups: readonly TabGroupDto[]
+  readonly tabGroups: readonly SavedTabsDisplayTabGroupDto[]
 }

@@ -3,7 +3,6 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
-  toDomainTabGroupFromStorage,
   toPresentationTabGroups,
   toStorageParentCategory,
 } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
@@ -363,9 +362,7 @@ export const useCategoryKeywordModal = ({
               }
             : g,
         )
-        await categoryAssignmentPort.saveTabGroups(
-          updatedGroups.map(toDomainTabGroupFromStorage),
-        )
+        await categoryAssignmentPort.saveTabGroups(updatedGroups)
       } catch (error) {
         console.error('キーワード削除に伴う保存処理に失敗しました:', error)
       }
@@ -430,9 +427,7 @@ export const useCategoryKeywordModal = ({
         }
         return tab
       })
-      await categoryAssignmentPort.saveTabGroups(
-        updatedTabs.map(toDomainTabGroupFromStorage),
-      )
+      await categoryAssignmentPort.saveTabGroups(updatedTabs)
       setActiveCategory(validName)
       setNewSubCategory('')
       setSubCategoryNameError(null)
@@ -562,9 +557,7 @@ export const useCategoryKeywordModal = ({
       const updatedTabs = savedTabs.map((tab) =>
         renameCategoryInTab(tab, group.id, activeCategory, validName),
       )
-      await categoryAssignmentPort.saveTabGroups(
-        updatedTabs.map(toDomainTabGroupFromStorage),
-      )
+      await categoryAssignmentPort.saveTabGroups(updatedTabs)
       setActiveCategory(validName)
       updateCategoryEditState({
         isRenaming: false,

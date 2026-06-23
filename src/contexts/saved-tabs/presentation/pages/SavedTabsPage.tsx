@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import { SavedTabsPresentationLayout } from '@/contexts/saved-tabs/presentation/components/SavedTabsPresentationLayout'
 import {
   LEFT_PANE_COMPACT_BREAKPOINT_PX,
   useSavedTabsLeftPaneWidth,
 } from '@/contexts/saved-tabs/presentation/components/savedTabsPresentationLayout.helpers'
 import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
-import { createSavedTabsUseCasesContextValueFromDeps } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext.utils'
 import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
@@ -38,14 +39,14 @@ export type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/
  *   を読む。`SavedTabsRoute` からの呼び出し時は `search` を渡す。
  */
 export interface SavedTabsPageProps {
-  readonly deps?: SavedTabsUseCasesDeps
+  readonly deps: SavedTabsPresentationPorts
   readonly initialCustomProjects?: readonly CustomProject[]
   readonly initialTabGroups?: readonly TabGroup[]
   readonly initialViewMode?: ViewMode
   readonly onViewModeNavigate?: (mode: ViewMode) => void
   readonly resolveActiveRef?: ResolveActiveRef
   readonly search?: string
-  readonly useCases?: SavedTabsUseCases
+  readonly useCases: SavedTabsUseCases
 }
 
 /**
@@ -73,7 +74,7 @@ export interface SavedTabsPageState {
   readonly viewModel: SavedTabsViewModel
   readonly refresh: () => Promise<void>
   readonly controller: UseSavedTabsControllerReturn
-  readonly deps: SavedTabsUseCasesDeps
+  readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
   readonly resolveActiveRef: ResolveActiveRef
 }
@@ -86,21 +87,14 @@ export interface SavedTabsPageState {
  */
 const useSavedTabsPage = (input: SavedTabsPageProps): SavedTabsPageState => {
   const { deps: inputDeps, useCases: inputUseCases } = input
-  if (!inputDeps) {
-    throw new Error(
-      'SavedTabsPage: deps is required. Use createSavedTabsUseCasesDeps() at the call site for chrome real environment.',
-    )
-  }
   // 初期値は `() => true` (active 固定)。`SavedTabsApp` 側の
   // useEffect が settings を読んで本関数を上書きする。
   const fallbackResolveActiveRef = useRef<() => boolean>(() => true)
   const resolveActiveRef = input.resolveActiveRef ?? fallbackResolveActiveRef
-  const contextValue = useMemo(() => {
-    if (inputUseCases) {
-      return { deps: inputDeps, useCases: inputUseCases }
-    }
-    return createSavedTabsUseCasesContextValueFromDeps(inputDeps)
-  }, [inputDeps, inputUseCases])
+  const contextValue = useMemo(
+    () => ({ deps: inputDeps, useCases: inputUseCases }),
+    [inputDeps, inputUseCases],
+  )
   const controller = useSavedTabsController({
     deps: contextValue.deps,
     initialCustomProjects: input.initialCustomProjects,
@@ -123,8 +117,7 @@ const useSavedTabsPage = (input: SavedTabsPageProps): SavedTabsPageState => {
       return
     }
     void refreshRef.current()
-    // refresh は deps.customProjectRepository / deps.tabGroupRepository が
-    // 変わったときだけ新しくなる。初回 mount 時に 1 回だけ走ればよいため、
+    // 初回 mount 時に 1 回だけ走ればよいため、
     // ここでは依存配列を空にして再実行を抑止する。
   }, [])
   return {

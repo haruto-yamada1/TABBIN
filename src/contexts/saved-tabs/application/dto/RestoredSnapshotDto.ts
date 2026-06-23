@@ -1,8 +1,9 @@
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
-import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import type {
+  SavedTabsCustomProjectDto,
+  SavedTabsParentCategoryDto,
+  SavedTabsTabGroupDto,
+  SavedTabsUrlRecordDto,
+} from './SavedTabsPresentationDto'
 
 /**
  * `RestoreOpenedUrlsSnapshotUseCase` の結果 DTO。
@@ -18,9 +19,9 @@ import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects
  * 必須フィールドにはしない。
  */
 export interface RestoredSnapshotDto {
-  readonly restoredTabGroups: readonly TabGroup[]
-  readonly restoredUrlRecords: readonly UrlRecord[]
-  readonly restoredCustomProjects: readonly CustomProject[]
-  readonly restoredParentCategories: readonly ParentCategory[]
-  readonly restoredCustomProjectOrder?: readonly CustomProjectId[]
+  readonly restoredTabGroups: readonly SavedTabsTabGroupDto[]
+  readonly restoredUrlRecords: readonly SavedTabsUrlRecordDto[]
+  readonly restoredCustomProjects: readonly SavedTabsCustomProjectDto[]
+  readonly restoredParentCategories: readonly SavedTabsParentCategoryDto[]
+  readonly restoredCustomProjectOrder?: readonly string[]
 }

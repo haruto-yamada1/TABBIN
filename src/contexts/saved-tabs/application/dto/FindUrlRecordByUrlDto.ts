@@ -1,5 +1,3 @@
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
-
 /**
  * `FindUrlRecordByUrlUseCase` の結果 DTO。
  *
@@ -11,7 +9,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  */
 export interface FindUrlRecordByUrlDto {
   readonly record: {
-    readonly id: UrlRecordId
+    readonly id: string
     readonly url: string
     readonly title: string
   } | null

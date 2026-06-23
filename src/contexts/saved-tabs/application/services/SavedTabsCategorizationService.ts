@@ -1,5 +1,7 @@
-import type { ParentCategoryDto } from '@/contexts/saved-tabs/domain/dto/ParentCategoryDto'
-import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import type {
+  SavedTabsParentCategoryDto as ParentCategoryDto,
+  SavedTabsDisplayTabGroupDto as TabGroupDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 /**
  * 親カテゴリの高速検索用マップ (domain DTO ベース)。

@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
@@ -13,8 +15,8 @@ export interface CreateCustomProjectCommand {
 }
 
 export interface CreateCustomProjectResult {
-  readonly all: readonly CustomProject[]
-  readonly project: CustomProject
+  readonly all: readonly SavedTabsCustomProjectDto[]
+  readonly project: SavedTabsCustomProjectDto
 }
 
 export type CreateCustomProjectUseCase = (
@@ -72,8 +74,8 @@ export const createCreateCustomProjectUseCase = (
     const updatedAll: readonly CustomProject[] = [...all, newProject]
     await deps.customProjectRepository.saveAll(updatedAll)
     return {
-      all: updatedAll,
-      project: newProject,
+      all: updatedAll.map(toSavedTabsCustomProjectDto),
+      project: toSavedTabsCustomProjectDto(newProject),
     }
   }
 }

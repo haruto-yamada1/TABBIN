@@ -1,7 +1,3 @@
-import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
-import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-
 /**
  * `RemoveDomainFromParentCategoryCommand` の入力。
  *
@@ -19,7 +15,7 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * ```
  */
 export interface RemoveDomainFromParentCategoryCommand {
-  readonly categoryId: ParentCategoryId
-  readonly domainId: TabGroupId
-  readonly domainName: DomainName
+  readonly categoryId: string
+  readonly domainId: string
+  readonly domainName: string
 }

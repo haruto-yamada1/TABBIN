@@ -1,6 +1,6 @@
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
-import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+
+import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
 
 /**
  * `OpenSavedUrlUseCase` の結果 DTO。
@@ -19,12 +19,12 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  */
 export interface OpenedUrlDto {
   readonly openedUrl: string
-  readonly removedUrlRecordId: UrlRecordId | null
+  readonly removedUrlRecordId: string | null
   /**
    * 開いた URL がどの `UrlRecord` だったか。Undo 時の
    * 「どの `UrlRecord` を戻すか」識別に使う。
    */
-  readonly removedUrlRecord: UrlRecord | null
+  readonly removedUrlRecord: SavedTabsUrlRecordDto | null
   /**
    * Undo 用の snapshot。`DeleteTabGroupDto` と同じく
    * `RestoreOpenedUrlsSnapshotCommand` へそのまま渡せる形。

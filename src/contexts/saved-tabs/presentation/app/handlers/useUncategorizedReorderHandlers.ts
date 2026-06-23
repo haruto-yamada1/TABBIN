@@ -5,6 +5,7 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import { toSavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { toDomainTabGroupsForReorder } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import type { TabGroup } from '@/types/storage'
@@ -102,7 +103,9 @@ export const useUncategorizedReorderHandlers = ({
       // Repository 実装側の mapper が
       // `urls` / `urlSubCategories` などのリッチ補助フィールドを持ち越す。
       await savedTabsUseCases.reorderTabGroups({
-        tabGroups: toDomainTabGroupsForReorder(newTabGroups),
+        tabGroups: toDomainTabGroupsForReorder(newTabGroups).map(
+          toSavedTabsTabGroupDto,
+        ),
       })
       await refreshTabGroupsWithUrls(newTabGroups)
 

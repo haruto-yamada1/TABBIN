@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
 import type {
   DomainModeViewModel,
@@ -201,9 +203,8 @@ export const useDomainModeController = (
 
   const openTab = useCallback(
     async (url: string) => {
-      const urlRecords = await controller.deps.urlRecordRepository.findAll()
-      const targetRecord = urlRecords.find((record) => record.url === url)
-      if (!targetRecord) {
+      const { record } = await controller.useCases.findUrlRecordByUrl({ url })
+      if (!record) {
         await controller.deps.browserTabPort.open({ url })
         return
       }
@@ -213,10 +214,10 @@ export const useDomainModeController = (
           removeTabAfterExternalDrop: false,
           removeTabAfterOpen: false,
         },
-        urlRecordId: targetRecord.id,
+        urlRecordId: record.id,
       })
     },
-    [controller.deps, openSavedUrl],
+    [controller.deps.browserTabPort, controller.useCases, openSavedUrl],
   )
 
   const openAllTabs = useCallback(

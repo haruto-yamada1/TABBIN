@@ -1,10 +1,13 @@
 import type { AddDomainToParentCategoryCommand } from '@/contexts/saved-tabs/application/commands/AddDomainToParentCategoryCommand'
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `AddDomainToParentCategoryUseCase` が依存する repository 群。
@@ -22,7 +25,7 @@ export interface AddDomainToParentCategoryUseCaseDeps {
  */
 export type AddDomainToParentCategoryUseCase = (
   command: AddDomainToParentCategoryCommand,
-) => Promise<readonly ParentCategory[]>
+) => Promise<readonly SavedTabsParentCategoryDto[]>
 
 /**
  * `AddDomainToParentCategoryUseCase` を生成する。
@@ -45,6 +48,8 @@ export const createAddDomainToParentCategoryUseCase = (
     const targetCategoryId: ParentCategoryId = createParentCategoryId(
       command.categoryId,
     )
+    const domainId = createTabGroupId(command.domainId)
+    const domainName = createDomainName(command.domainName)
     const allCategories = await deps.parentCategoryRepository.findAll()
     const targetCategory = parentCategoryById(allCategories, targetCategoryId)
     if (!targetCategory) {
@@ -53,13 +58,13 @@ export const createAddDomainToParentCategoryUseCase = (
         'PARENT_CATEGORY_NOT_FOUND',
       )
     }
-    if (targetCategory.domains.includes(command.domainId)) {
+    if (targetCategory.domains.includes(domainId)) {
       throw new SavedTabsDomainError(
         'このドメインは既にカテゴリに追加されています',
         'INVALID_PARENT_CATEGORY',
       )
     }
-    if (targetCategory.domainNames.includes(command.domainName)) {
+    if (targetCategory.domainNames.includes(domainName)) {
       throw new SavedTabsDomainError(
         'このドメインは既にカテゴリに追加されています',
         'INVALID_PARENT_CATEGORY',
@@ -69,12 +74,12 @@ export const createAddDomainToParentCategoryUseCase = (
       category.id === targetCategoryId
         ? {
             ...category,
-            domainNames: [...category.domainNames, command.domainName],
-            domains: [...category.domains, command.domainId],
+            domainNames: [...category.domainNames, domainName],
+            domains: [...category.domains, domainId],
           }
         : category,
     )
     await deps.parentCategoryRepository.saveAll(updatedCategories)
-    return updatedCategories
+    return updatedCategories.map(toSavedTabsParentCategoryDto)
   }
 }

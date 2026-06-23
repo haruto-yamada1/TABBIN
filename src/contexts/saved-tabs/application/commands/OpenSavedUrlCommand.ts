@@ -1,6 +1,3 @@
-import type { OpenedUrlOrigin } from '@/contexts/saved-tabs/domain/services/OpenedUrlRemovalPolicy'
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
-
 /**
  * `OpenSavedUrlUseCase` の入力。
  *
@@ -20,8 +17,8 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * ```
  */
 export interface OpenSavedUrlCommand {
-  readonly urlRecordId: UrlRecordId
-  readonly origin: OpenedUrlOrigin
+  readonly urlRecordId: string
+  readonly origin: 'click' | 'externalDrop'
   /**
    * 開いたあとに保存タブから削除するかの設定値。
    * presentation 層がユーザーの preferences から取得して注入する。

@@ -8,9 +8,61 @@ import {
 } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-const { useDomainCardMock } = vi.hoisted(() => ({
-  useDomainCardMock: vi.fn(),
-}))
+const { handleSaveKeywordsMock, useDomainCardMock, useSavedTabsUseCasesMock } =
+  vi.hoisted(() => ({
+    handleSaveKeywordsMock: vi.fn(),
+    useDomainCardMock: vi.fn(),
+    useSavedTabsUseCasesMock: vi.fn(),
+  }))
+
+vi.mock(
+  '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext',
+  () => ({
+    useSavedTabsUseCases: useSavedTabsUseCasesMock,
+  }),
+)
+
+const createContext = (
+  options: {
+    confirmDeleteAll?: boolean
+    isReorderMode?: boolean
+    searchQuery?: string
+    showKeywordModal?: boolean
+    urls?: { title: string; url: string }[]
+    handleDeleteGroup?: ReturnType<typeof vi.fn>
+    handleDeleteUrls?: ReturnType<typeof vi.fn>
+    handleOpenAllTabs?: ReturnType<typeof vi.fn>
+    setShowKeywordModal?: ReturnType<typeof vi.fn>
+  } = {},
+) => ({
+  state: {
+    keywordModal: {
+      showKeywordModal: options.showKeywordModal ?? false,
+      setShowKeywordModal: options.setShowKeywordModal ?? vi.fn(),
+      handleCloseKeywordModal: vi.fn(),
+    },
+    parentCategories: {
+      categories: [],
+      handleCreateParentCategory: vi.fn(),
+      handleAssignToParentCategory: vi.fn(),
+      handleUpdateParentCategories: vi.fn(),
+    },
+    categoryActions: { handleCategoryDelete: vi.fn() },
+  },
+  group: {
+    id: 'group-1',
+    domain: 'example.com',
+    urls: options.urls,
+  },
+  settings: { confirmDeleteAll: options.confirmDeleteAll ?? false },
+  isReorderMode: options.isReorderMode ?? false,
+  searchQuery: options.searchQuery ?? '',
+  handlers: {
+    handleOpenAllTabs: options.handleOpenAllTabs ?? vi.fn(),
+    handleDeleteGroup: options.handleDeleteGroup ?? vi.fn(),
+    handleDeleteUrls: options.handleDeleteUrls,
+  },
+})
 
 const domainCardMessages: Record<string, string> = {
   'savedTabs.accessibility.nounAction': '「{{target}}」の{{action}}',
@@ -94,12 +146,23 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 vi.mock(
   '@/contexts/saved-tabs/presentation/components/CategoryKeywordModal',
   () => ({
-    CategoryKeywordModal: () => null,
+    CategoryKeywordModal: ({
+      onSave,
+    }: {
+      onSave: (domain: string, category: string, keywords: string[]) => void
+    }) => (
+      <button
+        onClick={() => onSave('example.com', 'Docs', ['guide'])}
+        type='button'
+      >
+        save keywords
+      </button>
+    ),
   }),
 )
 
 vi.mock('@/contexts/saved-tabs/presentation/lib/category-keywords', () => ({
-  handleSaveKeywords: vi.fn(),
+  handleSaveKeywords: handleSaveKeywordsMock,
 }))
 
 vi.mock('./DomainCardContext', () => ({
@@ -112,6 +175,7 @@ describe('DomainCardActions', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    useSavedTabsUseCasesMock.mockReturnValue(null)
   })
 
   it('検索中のすべて削除は表示中URLだけを削除する', async () => {
@@ -265,5 +329,124 @@ describe('DomainCardActions', () => {
         name: '「example.com」のすべてのタブを削除',
       }),
     ).toBeTruthy()
+  })
+
+  it('子カテゴリ管理ボタンで keyword modal を toggle する', () => {
+    const setShowKeywordModal = vi.fn()
+    useDomainCardMock.mockReturnValue(
+      createContext({
+        setShowKeywordModal,
+        urls: [{ title: 'Docs', url: 'https://example.com/docs' }],
+      }),
+    )
+
+    render(<DomainCardActions />)
+    fireEvent.click(
+      screen.getByRole('button', { name: '「example.com」の子カテゴリ管理' }),
+    )
+
+    expect(setShowKeywordModal).toHaveBeenCalledWith(true)
+  })
+
+  it('少数 URL は即時に開き、並び替えモードではログを残す', () => {
+    const handleOpenAllTabs = vi.fn()
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const urls = [{ title: 'Docs', url: 'https://example.com/docs' }]
+    useDomainCardMock.mockReturnValue(
+      createContext({ handleOpenAllTabs, isReorderMode: true, urls }),
+    )
+
+    render(<DomainCardActions />)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを開く',
+      }),
+    )
+
+    expect(handleOpenAllTabs).toHaveBeenCalledWith(urls)
+    expect(log).toHaveBeenCalled()
+  })
+
+  it('大量 URL は確認後に開く', () => {
+    const handleOpenAllTabs = vi.fn()
+    const urls = Array.from({ length: 10 }, (_, index) => ({
+      title: `Tab ${index}`,
+      url: `https://example.com/${index}`,
+    }))
+    useDomainCardMock.mockReturnValue(
+      createContext({ handleOpenAllTabs, isReorderMode: true, urls }),
+    )
+    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+
+    render(<DomainCardActions />)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを開く',
+      }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '開く' }))
+
+    expect(handleOpenAllTabs).toHaveBeenCalledWith(urls)
+  })
+
+  it('削除確認後に group を削除し、並び替えモードではログを残す', () => {
+    const handleDeleteGroup = vi.fn()
+    useDomainCardMock.mockReturnValue(
+      createContext({
+        confirmDeleteAll: true,
+        handleDeleteGroup,
+        isReorderMode: true,
+        urls: [],
+      }),
+    )
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+
+    render(<DomainCardActions />)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを削除',
+      }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+
+    expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
+    expect(log).toHaveBeenCalled()
+  })
+
+  it('検索中でも URL が無ければ group 削除へ fallback する', () => {
+    const handleDeleteGroup = vi.fn()
+    useDomainCardMock.mockReturnValue(
+      createContext({ handleDeleteGroup, searchQuery: 'docs', urls: [] }),
+    )
+
+    render(<DomainCardActions />)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを削除',
+      }),
+    )
+
+    expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
+  })
+
+  it('use-case context がある場合だけ keyword 保存を委譲する', () => {
+    const useCases = { getSavedTabsPageData: vi.fn() }
+    useSavedTabsUseCasesMock.mockReturnValue({
+      deps: { categoryAssignmentPort: {} },
+      useCases,
+    })
+    useDomainCardMock.mockReturnValue(
+      createContext({ showKeywordModal: true, urls: [] }),
+    )
+
+    render(<DomainCardActions />)
+    fireEvent.click(screen.getByRole('button', { name: 'save keywords' }))
+
+    expect(handleSaveKeywordsMock).toHaveBeenCalledWith(
+      useCases,
+      'example.com',
+      'Docs',
+      ['guide'],
+    )
   })
 })

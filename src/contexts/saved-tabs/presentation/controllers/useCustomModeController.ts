@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomModeViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomModeViewModel'
 import { createCustomModeViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomModeViewModel'
 import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
@@ -118,9 +118,8 @@ export const useCustomModeController = (
 
   const openUrl = useCallback(
     async (url: string) => {
-      const urlRecords = await controller.deps.urlRecordRepository.findAll()
-      const targetRecord = urlRecords.find((record) => record.url === url)
-      if (!targetRecord) {
+      const { record } = await controller.useCases.findUrlRecordByUrl({ url })
+      if (!record) {
         await controller.deps.browserTabPort.open({ url })
         return
       }
@@ -130,10 +129,10 @@ export const useCustomModeController = (
           removeTabAfterExternalDrop: false,
           removeTabAfterOpen: false,
         },
-        urlRecordId: targetRecord.id,
+        urlRecordId: record.id,
       })
     },
-    [controller.deps, openSavedUrl],
+    [controller.deps.browserTabPort, controller.useCases, openSavedUrl],
   )
 
   return {

@@ -15,6 +15,7 @@ import type { MessagingPort } from './ports/MessagingPort'
 import type { MigrationPort } from './ports/MigrationPort'
 import type { NotificationPort } from './ports/NotificationPort'
 import type { RemoveSubCategoryFromTabGroupPort } from './ports/RemoveSubCategoryFromTabGroupPort'
+import type { SavedTabsTabGroupReadPort } from './ports/SavedTabsTabGroupReadPort'
 import type { SetCategoryKeywordsPort } from './ports/SetCategoryKeywordsPort'
 import type { StorageChangePort } from './ports/StorageChangePort'
 
@@ -35,6 +36,7 @@ export interface SavedTabsUseCasesDeps {
   readonly removeSubCategoryFromTabGroupPort: RemoveSubCategoryFromTabGroupPort
   readonly setCategoryKeywordsPort: SetCategoryKeywordsPort
   readonly storageChangePort: StorageChangePort
+  readonly savedTabsTabGroupReadPort?: SavedTabsTabGroupReadPort
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly userSettingsRepository: UserSettingsRepository

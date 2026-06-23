@@ -1,5 +1,3 @@
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-
 /**
  * `DeleteSavedUrlUseCase` の入力。
  *
@@ -21,6 +19,6 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * ```
  */
 export interface DeleteSavedUrlCommand {
-  readonly tabGroupId: TabGroupId
+  readonly tabGroupId: string
   readonly url: string
 }

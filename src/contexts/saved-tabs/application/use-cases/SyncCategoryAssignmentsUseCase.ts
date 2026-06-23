@@ -11,6 +11,7 @@ import {
   resolveCategoryForTabGroup,
 } from '@/contexts/saved-tabs/domain/services/CategoryAssignmentPolicy'
 import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
 /**
  * `SyncCategoryAssignmentsUseCase` の入力。
@@ -47,13 +48,15 @@ const syncSingleDomain = async (
   unassignedTabGroupIds: TabGroup['id'][]
   updatedCategoryIds: ParentCategory['id'][]
 }> => {
+  const targetDomainName = createDomainName(moveCommand.domain)
+  const targetCategoryId = createParentCategoryId(moveCommand.parentCategoryId)
   const [allTabGroups, allCategories] = await Promise.all([
     deps.tabGroupRepository.findAll(),
     deps.parentCategoryRepository.findAll(),
   ])
 
   const targetCategory = allCategories.find(
-    (category) => category.id === moveCommand.parentCategoryId,
+    (category) => category.id === targetCategoryId,
   )
   if (!targetCategory) {
     throw new SavedTabsDomainError(
@@ -65,18 +68,17 @@ const syncSingleDomain = async (
   const updatedCategoryIds: ParentCategory['id'][] = []
   const nextCategory = parentCategoryContainsDomainName(
     targetCategory,
-    moveCommand.domain,
+    targetDomainName,
   )
     ? targetCategory
     : ({
         ...targetCategory,
-        domainNames: [...targetCategory.domainNames, moveCommand.domain],
+        domainNames: [...targetCategory.domainNames, targetDomainName],
       } as ParentCategory)
   if (nextCategory !== targetCategory) {
     updatedCategoryIds.push(targetCategory.id)
   }
 
-  const targetDomainName = createDomainName(moveCommand.domain)
   const assignedTabGroupIds: TabGroup['id'][] = []
   const unassignedTabGroupIds: TabGroup['id'][] = []
   const updatedTabGroups = allTabGroups.map((group) => {

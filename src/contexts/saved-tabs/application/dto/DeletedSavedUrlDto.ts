@@ -1,7 +1,6 @@
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+
+import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
 
 /**
  * `DeleteSavedUrlUseCase` の結果 DTO。
@@ -20,8 +19,8 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * `UrlRecord` の配列を格納する。1 件も削除されなかったケースでは `null`。
  */
 export interface DeletedSavedUrlDto {
-  readonly removedUrlRecordId: UrlRecordId | null
-  readonly removedTabGroupId: TabGroup['id'] | null
-  readonly removedUrlRecord: UrlRecord | null
+  readonly removedUrlRecordId: string | null
+  readonly removedTabGroupId: string | null
+  readonly removedUrlRecord: SavedTabsUrlRecordDto | null
   readonly snapshot: OpenedUrlsRestoreSnapshot | null
 }

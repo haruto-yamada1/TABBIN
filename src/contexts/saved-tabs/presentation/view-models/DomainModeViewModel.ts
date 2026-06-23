@@ -1,5 +1,7 @@
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 import type { CustomProjectViewModel } from './CustomProjectViewModel'
 import type { TabGroupViewModel } from './TabGroupViewModel'

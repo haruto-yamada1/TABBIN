@@ -56,14 +56,32 @@ vi.mock('../shared/CardGroupActions', () => ({
   CardGroupActions: (props: Record<string, unknown>) => {
     cardGroupActionsSpy(props)
     return (
-      <button
-        onClick={() => {
-          ;(props.onDeleteAll as (() => void) | undefined)?.()
-        }}
-        type='button'
-      >
-        すべて削除
-      </button>
+      <>
+        <button
+          onClick={() => {
+            ;(props.onManage as (() => void) | undefined)?.()
+          }}
+          type='button'
+        >
+          管理
+        </button>
+        <button
+          onClick={() => {
+            ;(props.onOpenAll as (() => void) | undefined)?.()
+          }}
+          type='button'
+        >
+          すべて開く
+        </button>
+        <button
+          onClick={() => {
+            ;(props.onDeleteAll as (() => void) | undefined)?.()
+          }}
+          type='button'
+        >
+          すべて削除
+        </button>
+      </>
     )
   },
 }))
@@ -220,5 +238,118 @@ describe('CategoryGroupActions', () => {
           '「Work」のタブ1件をすべて削除します。この操作は元に戻せません。',
       }),
     )
+  })
+
+  it('管理と一括 open を handler へ委譲する', () => {
+    const setIsModalOpen = vi.fn()
+    const handleOpenAllTabs = vi.fn()
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const domains = [
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        urls: [{ title: 'Docs', url: 'https://example.com/docs' }],
+      },
+    ]
+    useCategoryGroupMock.mockReturnValue({
+      state: {
+        modal: { setIsModalOpen },
+        reorder: { isReorderMode: true, tempDomainOrder: domains },
+      },
+      category: { id: 'category-1', name: 'Work' },
+      domains: [],
+      settings: { confirmDeleteAll: false },
+      searchQuery: '',
+      handlers: {
+        handleOpenAllTabs,
+        handleDeleteGroup: vi.fn(),
+        handleDeleteUrl: vi.fn(),
+        handleOpenTab: vi.fn(),
+        handleUpdateUrls: vi.fn(),
+        handleUpdateDomainsOrder: vi.fn(),
+        handleMoveDomainToCategory: vi.fn(),
+        handleDeleteCategory: vi.fn(),
+      },
+    })
+
+    render(<CategoryGroupActions />)
+    fireEvent.click(screen.getByRole('button', { name: '管理' }))
+    fireEvent.click(screen.getByRole('button', { name: 'すべて開く' }))
+
+    expect(setIsModalOpen).toHaveBeenCalledWith(true)
+    expect(handleOpenAllTabs).toHaveBeenCalledWith(domains[0]?.urls)
+    expect(log).toHaveBeenCalled()
+  })
+
+  it('bulk delete handler が無ければ各 group を削除する', async () => {
+    const handleDeleteGroup = vi.fn()
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const domains = [
+      { domain: 'example.com', id: 'group-1', urls: [] },
+      { domain: 'sample.com', id: 'group-2' },
+    ]
+    useCategoryGroupMock.mockReturnValue({
+      state: {
+        modal: { setIsModalOpen: vi.fn() },
+        reorder: { isReorderMode: true, tempDomainOrder: domains },
+      },
+      category: { id: 'category-1', name: 'Work' },
+      domains: [],
+      settings: { confirmDeleteAll: false },
+      searchQuery: '',
+      handlers: {
+        handleOpenAllTabs: vi.fn(),
+        handleDeleteGroup,
+        handleDeleteUrl: vi.fn(),
+        handleOpenTab: vi.fn(),
+        handleUpdateUrls: vi.fn(),
+        handleUpdateDomainsOrder: vi.fn(),
+        handleMoveDomainToCategory: vi.fn(),
+        handleDeleteCategory: vi.fn(),
+      },
+    })
+
+    render(<CategoryGroupActions />)
+    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+
+    await waitFor(() => {
+      expect(handleDeleteGroup).toHaveBeenNthCalledWith(1, 'group-1')
+      expect(handleDeleteGroup).toHaveBeenNthCalledWith(2, 'group-2')
+    })
+    expect(log).toHaveBeenCalled()
+  })
+
+  it('検索中の空 URL group は削除処理を呼ばない', async () => {
+    const handleDeleteUrls = vi.fn()
+    useCategoryGroupMock.mockReturnValue({
+      state: {
+        modal: { setIsModalOpen: vi.fn() },
+        reorder: { isReorderMode: false, tempDomainOrder: [] },
+      },
+      category: { id: 'category-1', name: 'Work' },
+      domains: [{ domain: 'example.com', id: 'group-1' }],
+      settings: { confirmDeleteAll: false },
+      searchQuery: 'docs',
+      handlers: {
+        handleOpenAllTabs: vi.fn(),
+        handleDeleteGroup: vi.fn(),
+        handleDeleteUrls,
+        handleDeleteUrl: vi.fn(),
+        handleOpenTab: vi.fn(),
+        handleUpdateUrls: vi.fn(),
+        handleUpdateDomainsOrder: vi.fn(),
+        handleMoveDomainToCategory: vi.fn(),
+        handleDeleteCategory: vi.fn(),
+      },
+    })
+
+    render(<CategoryGroupActions />)
+
+    expect(cardGroupActionsSpy.mock.calls.at(-1)?.[0]).toMatchObject({
+      onDeleteAll: expect.any(Function),
+      onOpenAll: undefined,
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await waitFor(() => expect(handleDeleteUrls).not.toHaveBeenCalled())
   })
 })

@@ -1,6 +1,11 @@
 import type { DeleteSavedUrlCommand } from '@/contexts/saved-tabs/application/commands/DeleteSavedUrlCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { DeletedSavedUrlDto } from '@/contexts/saved-tabs/application/dto/DeletedSavedUrlDto'
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsTabGroupDto,
+  toSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
@@ -172,15 +177,19 @@ export const createDeleteSavedUrlUseCase = (
     // storage を正確に巻き戻せるようにする。
     const snapshot: OpenedUrlsRestoreSnapshot = {
       customProjectOrder: undefined,
-      customProjects: previousCustomProjects,
+      customProjects: previousCustomProjects.map(toSavedTabsCustomProjectDto),
       parentCategories: undefined,
-      savedTabs: isGroupEmpty ? [previousGroup] : [],
-      urlRecords: removedUrlRecord ? [previousUrlRecord] : [],
+      savedTabs: isGroupEmpty ? [toSavedTabsTabGroupDto(previousGroup)] : [],
+      urlRecords: removedUrlRecord
+        ? [toSavedTabsUrlRecordDto(previousUrlRecord)]
+        : [],
     }
 
     return {
       removedTabGroupId: isGroupEmpty ? previousGroup.id : null,
-      removedUrlRecord,
+      removedUrlRecord: removedUrlRecord
+        ? toSavedTabsUrlRecordDto(removedUrlRecord)
+        : null,
       removedUrlRecordId,
       snapshot,
     }

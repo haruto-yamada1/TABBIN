@@ -1,6 +1,6 @@
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
-import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+
+import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
 
 /**
  * `OpenAllSavedUrlsUseCase` の結果 DTO。
@@ -18,7 +18,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  */
 export interface OpenedUrlsDto {
   readonly openedUrls: readonly string[]
-  readonly removedUrlRecordIds: readonly UrlRecordId[]
-  readonly removedUrlRecords: readonly UrlRecord[]
+  readonly removedUrlRecordIds: readonly string[]
+  readonly removedUrlRecords: readonly SavedTabsUrlRecordDto[]
   readonly snapshot: OpenedUrlsRestoreSnapshot | null
 }

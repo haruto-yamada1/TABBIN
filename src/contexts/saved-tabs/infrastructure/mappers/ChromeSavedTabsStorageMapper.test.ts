@@ -10,6 +10,14 @@ import { ChromeSavedTabsStorageMapper } from './ChromeSavedTabsStorageMapper'
 
 describe('ChromeSavedTabsStorageMapper', () => {
   describe('parseTabGroup', () => {
+    it('URL として壊れた legacy domain は domain validation で null になる', () => {
+      expect(
+        ChromeSavedTabsStorageMapper.parseTabGroup({
+          domain: 'http://[',
+          id: 'group-1',
+        }),
+      ).toBeNull()
+    })
     it('必須フィールドを持つ生データを entity 化する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
         domain: 'example.com',
@@ -105,6 +113,16 @@ describe('ChromeSavedTabsStorageMapper', () => {
   })
 
   describe('parseParentCategory', () => {
+    it('domain entity の不変条件を満たさない name は null を返す', () => {
+      expect(
+        ChromeSavedTabsStorageMapper.parseParentCategory({
+          domainNames: [],
+          domains: [],
+          id: 'cat-1',
+          name: '',
+        }),
+      ).toBeNull()
+    })
     it('必須フィールドを持つ生データを entity 化する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
         domainNames: ['example.com'],
@@ -141,6 +159,14 @@ describe('ChromeSavedTabsStorageMapper', () => {
   })
 
   describe('parseCustomProject', () => {
+    it('domain entity の不変条件を満たさない name は null を返す', () => {
+      expect(
+        ChromeSavedTabsStorageMapper.parseCustomProject({
+          id: 'project-1',
+          name: '',
+        }),
+      ).toBeNull()
+    })
     it('必須フィールドを持つ生データを entity 化する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
         categories: ['research'],

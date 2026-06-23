@@ -1,9 +1,6 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 
-import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
-import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import type { CategoryManagementModalUseCases } from './CategoryManagementModal.types'
@@ -166,7 +163,7 @@ export const useCategoryActions = ({
       setIsSaving(true)
       try {
         const updatedCategories = await renameParentCategory({
-          categoryId: createParentCategoryId(category.id),
+          categoryId: category.id,
           newName: trimmedName,
         })
         console.log('Modal - renameParentCategory呼び出し完了')
@@ -227,7 +224,7 @@ export const useCategoryActions = ({
       // `chrome.storage.local` の直叩きを撤去する (issue #518)。
       // use-case は削除後カテゴリ一覧を返すので state へ反映する。
       const { all } = await deleteParentCategory({
-        categoryId: createParentCategoryId(category.id),
+        categoryId: category.id,
       })
       // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
       setParentCategories([...all] as unknown as ParentCategory[])
@@ -268,11 +265,9 @@ export const useCategoryActions = ({
         throw new Error('ドメインが見つかりません')
       }
       const updatedCategories = await addDomainToParentCategory({
-        categoryId: createParentCategoryId(category.id),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        domainId: activeSelectedDomain as unknown as TabGroupId,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        domainName: selectedDomainInfo.domain as unknown as DomainName,
+        categoryId: category.id,
+        domainId: activeSelectedDomain,
+        domainName: selectedDomainInfo.domain,
       })
       // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
       setParentCategories([...updatedCategories] as unknown as ParentCategory[])
@@ -335,11 +330,9 @@ export const useCategoryActions = ({
       // カテゴリ更新は `removeDomainFromParentCategory` use-case 経由で行い、
       // `chrome.storage.local.get/set` の直叩きを撤去する（issue #502）。
       const updatedCategories = await removeDomainFromParentCategory({
-        categoryId: createParentCategoryId(category.id),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        domainId: domainId as unknown as TabGroupId,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        domainName: domainInfo.domain as unknown as DomainName,
+        categoryId: category.id,
+        domainId,
+        domainName: domainInfo.domain,
       })
       // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
       setParentCategories([...updatedCategories] as unknown as ParentCategory[])

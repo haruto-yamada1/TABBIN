@@ -1,4 +1,5 @@
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { SavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 
 /**
@@ -16,7 +17,7 @@ import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositori
  * 返り値は branded domain entity の `readonly TabGroup[]` を維持し、
  * 呼び出し側で `readonly` 性を保ったまま扱えるようにしている。
  */
-export type GetSavedTabsQuery = () => Promise<readonly TabGroup[]>
+export type GetSavedTabsQuery = () => Promise<readonly SavedTabsTabGroupDto[]>
 
 /**
  * `GetSavedTabsQuery` が依存する repository 群。
@@ -40,5 +41,6 @@ export interface GetSavedTabsQueryDeps {
 export const createGetSavedTabsQuery = (
   deps: GetSavedTabsQueryDeps,
 ): GetSavedTabsQuery => {
-  return async () => deps.tabGroupRepository.findAll()
+  return async () =>
+    (await deps.tabGroupRepository.findAll()).map(toSavedTabsTabGroupDto)
 }

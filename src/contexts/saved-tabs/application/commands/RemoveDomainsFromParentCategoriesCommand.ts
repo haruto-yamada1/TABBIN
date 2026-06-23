@@ -1,5 +1,3 @@
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-
 /**
  * `RemoveDomainsFromParentCategoriesCommand` の入力。
  *
@@ -26,5 +24,5 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * ```
  */
 export interface RemoveDomainsFromParentCategoriesCommand {
-  readonly domainIds: readonly TabGroupId[]
+  readonly domainIds: readonly string[]
 }

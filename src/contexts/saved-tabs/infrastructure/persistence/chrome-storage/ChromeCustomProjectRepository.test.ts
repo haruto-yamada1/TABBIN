@@ -45,6 +45,27 @@ describe('ChromeCustomProjectRepository', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('default chrome.storage.local port で read/write する', async () => {
+    const state: StorageState = {
+      [CUSTOM_PROJECTS_KEY]: [],
+      [CUSTOM_PROJECT_ORDER_KEY]: [],
+    }
+    const local = createPort(state)
+    vi.stubGlobal('chrome', { storage: { local } })
+    const repository = createChromeCustomProjectRepository()
+    const sample = createSampleCustomProject('project-1', 'Docs')
+    if (!sample) {
+      throw new Error('sample custom project could not be created')
+    }
+
+    await expect(repository.findAll()).resolves.toStrictEqual([])
+    await repository.saveAll([sample])
+
+    expect(local.get).toHaveBeenCalled()
+    expect(local.set).toHaveBeenCalled()
   })
 
   describe('createChromeCustomProjectRepository (factory)', () => {
@@ -437,6 +458,62 @@ describe('ChromeCustomProjectRepository', () => {
       const result = await repo.findOrder()
       expect(result.map((id) => id)).toStrictEqual(['project-1', 'project-2'])
     })
+  })
+
+  describe('raw snapshot', () => {
+    it('findAllRaw は legacy default を補い rich fields を保持する', async () => {
+      const repo = createChromeCustomProjectRepository(
+        createPort({
+          [CUSTOM_PROJECTS_KEY]: [
+            {
+              categoryOrder: ['Docs'],
+              id: 'project-1',
+              name: 'Docs',
+              urls: [{ title: 'Example', url: 'https://example.com' }],
+            },
+          ],
+        }),
+      )
+
+      await expect(repo.findAllRaw?.()).resolves.toStrictEqual([
+        expect.objectContaining({
+          categories: [],
+          createdAt: 0,
+          id: 'project-1',
+          updatedAt: 0,
+          urls: [{ title: 'Example', url: 'https://example.com' }],
+        }),
+      ])
+    })
+
+    it('restoreAllRaw は snapshot を merge せず保存する', async () => {
+      const state: StorageState = {}
+      const repo = createChromeCustomProjectRepository(createPort(state))
+      const snapshots = [
+        {
+          categories: ['Docs'],
+          createdAt: 1,
+          id: 'project-1',
+          name: 'Docs',
+          updatedAt: 2,
+          urls: [{ title: 'Example', url: 'https://example.com' }],
+        },
+      ]
+
+      await repo.restoreAllRaw?.(snapshots)
+
+      expect(state[CUSTOM_PROJECTS_KEY]).toStrictEqual(snapshots)
+      expect(state[CUSTOM_PROJECTS_KEY]).not.toBe(snapshots)
+    })
+  })
+
+  it('chrome global が無い既定 port は利用不能エラーを投げる', () => {
+    vi.stubGlobal('chrome', undefined)
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    expect(() => createChromeCustomProjectRepository()).toThrow(
+      SavedTabsRepositoryUnavailableError,
+    )
   })
 
   describe('saveOrder', () => {

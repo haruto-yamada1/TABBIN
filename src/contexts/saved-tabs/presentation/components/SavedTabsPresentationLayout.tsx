@@ -2,7 +2,7 @@ import { Profiler } from 'react'
 import type { RefObject } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import { SavedTabsApp } from '@/contexts/saved-tabs/presentation/app/SavedTabsApp'
 import {
   handleSavedTabsRender,
@@ -41,7 +41,7 @@ import { SavedTabsScrollControls } from './SavedTabsScrollControls'
 export interface SavedTabsPresentationLayoutProps {
   readonly attachLeftPaneRef: (node: HTMLDivElement | null) => void
   readonly controller: UseSavedTabsControllerReturn
-  readonly deps: SavedTabsUseCasesDeps
+  readonly deps: SavedTabsPresentationPorts
   readonly initialViewMode: ViewMode
   readonly isAiSidebarOpen: boolean
   readonly isCompactLeftPaneLayout: boolean

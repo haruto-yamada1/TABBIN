@@ -1,4 +1,5 @@
 import type { ReorderTabGroupsCommand } from '@/contexts/saved-tabs/application/commands/ReorderTabGroupsCommand'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 
 /**
@@ -37,6 +38,6 @@ export const createReorderTabGroupsUseCase = (
   deps: ReorderTabGroupsUseCaseDeps,
 ): ReorderTabGroupsUseCase => {
   return async (command) => {
-    await deps.tabGroupRepository.saveAll(command.tabGroups)
+    await deps.tabGroupRepository.saveAll(command.tabGroups.map(createTabGroup))
   }
 }

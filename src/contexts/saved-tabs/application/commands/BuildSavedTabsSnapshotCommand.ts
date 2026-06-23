@@ -1,4 +1,4 @@
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 /**
  * `BuildSavedTabsSnapshotUseCase` の入力。
@@ -12,5 +12,5 @@ import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/Paren
  * repository 経由へ移す目的（issue #494）。
  */
 export interface BuildSavedTabsSnapshotCommand {
-  readonly parentCategories?: readonly ParentCategory[]
+  readonly parentCategories?: readonly SavedTabsParentCategoryDto[]
 }

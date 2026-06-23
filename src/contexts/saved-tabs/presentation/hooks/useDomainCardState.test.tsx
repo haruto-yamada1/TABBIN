@@ -404,7 +404,12 @@ describe('useDomainCardState', () => {
         subCategoryOrder: ['news', 'tech'],
         subCategoryOrderWithUncategorized: ['news', 'tech'],
       }),
-      otherGroup,
+      expect.objectContaining({
+        domain: otherGroup.domain,
+        id: otherGroup.id,
+        subCategories: otherGroup.subCategories,
+        urls: otherGroup.urls,
+      }),
     ])
     expect(toast.success).toHaveBeenCalled()
 
@@ -891,6 +896,60 @@ describe('useDomainCardState', () => {
       'ドメイン割り当てエラー:',
       expect.any(Error),
     )
+  })
+
+  it('optional dependency がない場合は repository fallback せず no-op/throw する', async () => {
+    const params = {
+      ...createUseDomainCardStateParams({ group: createGroup() }).params,
+      assignDomainToCategoryUseCase: undefined,
+      categoryAssignmentPort: undefined,
+      createParentCategoryUseCase: undefined,
+      deleteSingleUrl: undefined,
+      getSavedTabsPageDataQuery: undefined,
+      handleDeleteCategory: undefined,
+      handleDeleteUrls: undefined,
+    } as UseDomainCardStateParams
+
+    const { result } = renderHook(() => useDomainCardState(params))
+
+    await waitFor(() => {
+      expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
+        'news',
+        'tech',
+      ])
+    })
+
+    act(() => {
+      result.current.categoryReorder.handleCategoryDragEnd({
+        active: { id: 'news' },
+        over: { id: 'tech' },
+      })
+    })
+    await act(async () => {
+      await result.current.categoryReorder.handleConfirmCategoryReorder()
+    })
+    expect(result.current.categoryReorder.isCategoryReorderMode).toBe(false)
+
+    await act(async () => {
+      await result.current.categoryActions.handleDeleteAllTabsInCategory(
+        'news',
+        [{ url: 'https://example.com/news-1' }],
+      )
+    })
+
+    await act(async () => {
+      await expect(
+        result.current.parentCategories.handleCreateParentCategory('Parent'),
+      ).rejects.toThrow('createParentCategoryUseCase is not provided')
+    })
+    await act(async () => {
+      await expect(
+        result.current.parentCategories.handleAssignToParentCategory(
+          'group-1',
+          'parent-1',
+        ),
+      ).rejects.toThrow('assignDomainToCategoryUseCase is not provided')
+    })
   })
 
   it('drag monitor はドラッグ中に折りたたみ、通常終了時にユーザー状態へ戻す', async () => {

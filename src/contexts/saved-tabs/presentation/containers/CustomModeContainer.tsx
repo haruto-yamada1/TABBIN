@@ -1,6 +1,6 @@
 import { LoadingState } from '@/components/ui/loading-state'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import { CustomProjectSection } from '@/contexts/saved-tabs/presentation/components/CustomProjectSection'
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 

@@ -1,8 +1,7 @@
+import type { SavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/dto/SavedTabsCustomProjectRawSnapshotDto'
+import { toSavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsCustomProjectRawSnapshotMapper'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type {
-  CustomProjectRawSnapshot,
-  CustomProjectRepository,
-} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
 /**
  * presentation 層が「rich フィールド付き `CustomProject` の生
@@ -21,7 +20,7 @@ import type {
  * `getCustomProjectsQuery` を併用する。
  */
 export type GetCustomProjectRawsQuery = () => Promise<
-  readonly CustomProjectRawSnapshot[]
+  readonly SavedTabsCustomProjectRawSnapshotDto[]
 >
 
 /**
@@ -33,7 +32,7 @@ export interface GetCustomProjectRawsQueryDeps {
 
 const entityToRawSnapshot = (
   project: CustomProject,
-): CustomProjectRawSnapshot => ({
+): SavedTabsCustomProjectRawSnapshotDto => ({
   categories: [...project.categories],
   createdAt: project.createdAt,
   id: project.id,
@@ -63,9 +62,10 @@ const entityToRawSnapshot = (
 export const createGetCustomProjectRawsQuery = (
   deps: GetCustomProjectRawsQueryDeps,
 ): GetCustomProjectRawsQuery => {
-  return async (): Promise<readonly CustomProjectRawSnapshot[]> => {
+  return async (): Promise<readonly SavedTabsCustomProjectRawSnapshotDto[]> => {
     if (deps.customProjectRepository.findAllRaw) {
-      return deps.customProjectRepository.findAllRaw()
+      const raws = await deps.customProjectRepository.findAllRaw()
+      return raws.map(toSavedTabsCustomProjectRawSnapshotDto)
     }
     const projects = await deps.customProjectRepository.findAll()
     return projects.map(entityToRawSnapshot)

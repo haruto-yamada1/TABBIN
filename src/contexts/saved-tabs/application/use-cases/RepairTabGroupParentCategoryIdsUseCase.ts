@@ -1,4 +1,11 @@
+import type {
+  SavedTabsDisplayTabGroupDto,
+  SavedTabsParentCategoryDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
@@ -12,8 +19,8 @@ import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositori
  * で取得した値をそのまま渡す運用を推奨。
  */
 export interface RepairTabGroupParentCategoryIdsCommand {
-  readonly tabGroups?: readonly TabGroup[]
-  readonly parentCategories?: readonly ParentCategory[]
+  readonly tabGroups?: readonly SavedTabsDisplayTabGroupDto[]
+  readonly parentCategories?: readonly SavedTabsParentCategoryDto[]
 }
 
 /**
@@ -25,7 +32,7 @@ export interface RepairTabGroupParentCategoryIdsCommand {
  *   `false` のときは storage への副作用を発生させない。
  */
 export interface RepairTabGroupParentCategoryIdsDto {
-  readonly tabGroups: readonly TabGroup[]
+  readonly tabGroups: readonly SavedTabsDisplayTabGroupDto[]
   readonly updated: boolean
 }
 
@@ -91,10 +98,17 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
   return async (command = {}) => {
     const [tabGroups, parentCategories] = await Promise.all([
       command.tabGroups !== undefined
-        ? Promise.resolve(command.tabGroups)
+        ? Promise.resolve(
+            command.tabGroups.map((group) =>
+              createTabGroup({
+                ...group,
+                urlIds: group.urlIds ?? [],
+              }),
+            ),
+          )
         : deps.tabGroupRepository.findAll(),
       command.parentCategories !== undefined
-        ? Promise.resolve(command.parentCategories)
+        ? Promise.resolve(command.parentCategories.map(createParentCategory))
         : deps.parentCategoryRepository.findAll(),
     ])
 
@@ -134,8 +148,23 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
       console.log('TabGroupのparentCategoryId修復処理が完了しました')
     }
 
+    const displayTabGroups = command.tabGroups
+      ? updatedTabGroups.map((group, index) => {
+          const original = command.tabGroups?.[index]
+          if (!original) {
+            return toSavedTabsDisplayTabGroupDto(group)
+          }
+          return {
+            ...original,
+            ...(group.parentCategoryId
+              ? { parentCategoryId: group.parentCategoryId }
+              : {}),
+          }
+        })
+      : updatedTabGroups.map(toSavedTabsDisplayTabGroupDto)
+
     return {
-      tabGroups: updatedTabGroups,
+      tabGroups: displayTabGroups,
       updated: needsUpdate,
     }
   }

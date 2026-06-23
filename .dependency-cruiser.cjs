@@ -141,6 +141,14 @@ module.exports = {
       from: { path: '^src/contexts/[^/]+/presentation/' },
       to: { path: '^src/contexts/[^/]+/infrastructure/' },
     },
+    {
+      name: 'no-presentation-to-domain',
+      comment:
+        'Presentation code must use application DTOs/view-models instead of domain entities',
+      severity: 'error',
+      from: { path: '^src/contexts/[^/]+/presentation/' },
+      to: { path: '^src/contexts/[^/]+/domain/' },
+    },
     ...noCrossContextRules,
   ],
   options: {
