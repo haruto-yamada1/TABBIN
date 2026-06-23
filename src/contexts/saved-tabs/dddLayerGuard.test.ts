@@ -341,7 +341,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         expect(
           source,
           `${relativePath} should not import from domain/`,
-        ).not.toMatch(/from\s+['"][^'"]*domain\//)
+        ).not.toMatch(/import\s+['"][^'"]*domain\/|from\s+['"][^'"]*domain\//)
       }
     })
   })
