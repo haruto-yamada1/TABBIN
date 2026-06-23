@@ -1,5 +1,9 @@
 import type { RestoreOpenedUrlsSnapshotCommand } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { RestoredSnapshotDto } from '@/contexts/saved-tabs/application/dto/RestoredSnapshotDto'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
@@ -89,43 +93,53 @@ export const createRestoreOpenedUrlsSnapshotUseCase = (
     const restoredCustomProjectOrder = normalizeCustomProjectOrder(
       snapshot.customProjectOrder,
     )
+    const restoredTabGroupEntities = restoredTabGroups.map(createTabGroup)
+    const restoredUrlRecordEntities = restoredUrlRecords.map(createUrlRecord)
+    const restoredCustomProjectEntities =
+      restoredCustomProjects.map(createCustomProject)
+    const restoredParentCategoryEntities =
+      restoredParentCategories.map(createParentCategory)
 
-    if (snapshot.savedTabs && snapshot.savedTabs.length > 0) {
+    if (restoredTabGroupEntities.length > 0) {
       const existing = await deps.tabGroupRepository.findAll()
-      const incomingIds = new Set(snapshot.savedTabs.map((group) => group.id))
+      const incomingIds = new Set(
+        restoredTabGroupEntities.map((group) => group.id),
+      )
       const merged = [
         ...existing.filter((group) => !incomingIds.has(group.id)),
-        ...snapshot.savedTabs,
+        ...restoredTabGroupEntities,
       ]
       await deps.tabGroupRepository.saveAll(merged)
     }
 
-    if (snapshot.urlRecords && snapshot.urlRecords.length > 0) {
+    if (restoredUrlRecordEntities.length > 0) {
       const existing = await deps.urlRecordRepository.findAll()
       const incomingIds = new Set(
-        snapshot.urlRecords.map((record) => record.id),
+        restoredUrlRecordEntities.map((record) => record.id),
       )
       const merged = [
         ...existing.filter((record) => !incomingIds.has(record.id)),
-        ...snapshot.urlRecords,
+        ...restoredUrlRecordEntities,
       ]
       await deps.urlRecordRepository.saveAll(merged)
     }
 
-    if (snapshot.customProjects && snapshot.customProjects.length > 0) {
+    if (restoredCustomProjectEntities.length > 0) {
       const existing = await deps.customProjectRepository.findAll()
       const incomingIds = new Set(
-        snapshot.customProjects.map((project) => project.id),
+        restoredCustomProjectEntities.map((project) => project.id),
       )
       const merged = [
         ...existing.filter((project) => !incomingIds.has(project.id)),
-        ...snapshot.customProjects,
+        ...restoredCustomProjectEntities,
       ]
       await deps.customProjectRepository.saveAll(merged)
     }
 
-    if (snapshot.parentCategories && snapshot.parentCategories.length > 0) {
-      await deps.parentCategoryRepository.saveAll(snapshot.parentCategories)
+    if (restoredParentCategoryEntities.length > 0) {
+      await deps.parentCategoryRepository.saveAll(
+        restoredParentCategoryEntities,
+      )
     }
 
     if (restoredCustomProjectOrder) {
@@ -133,7 +147,7 @@ export const createRestoreOpenedUrlsSnapshotUseCase = (
     }
 
     return {
-      restoredCustomProjectOrder,
+      restoredCustomProjectOrder: restoredCustomProjectOrder?.map(String),
       restoredCustomProjects,
       restoredParentCategories,
       restoredTabGroups,

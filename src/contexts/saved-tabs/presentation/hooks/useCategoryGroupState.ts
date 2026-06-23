@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
-import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
@@ -98,7 +97,7 @@ export const useCategoryGroupState = ({
         await renameParentCategoryUseCase({
           // storage 層 `categoryId` (plain string) を branded 化は
           // domain factory に閉じ、`as unknown as` を排除する。
-          categoryId: createParentCategoryId(categoryId),
+          categoryId,
           newName,
         })
       } catch (error) {

@@ -1,6 +1,11 @@
 import type { DeleteSavedUrlsCommand } from '@/contexts/saved-tabs/application/commands/DeleteSavedUrlsCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { DeletedSavedUrlsDto } from '@/contexts/saved-tabs/application/dto/DeletedSavedUrlsDto'
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsTabGroupDto,
+  toSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
@@ -180,16 +185,16 @@ export const createDeleteSavedUrlsUseCase = (
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
       customProjectOrder: undefined,
-      customProjects: previousCustomProjects,
+      customProjects: previousCustomProjects.map(toSavedTabsCustomProjectDto),
       parentCategories: undefined,
-      savedTabs: isGroupEmpty ? [previousGroup] : [],
-      urlRecords: removedUrlRecords,
+      savedTabs: isGroupEmpty ? [toSavedTabsTabGroupDto(previousGroup)] : [],
+      urlRecords: removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }
 
     return {
       removedTabGroupIds: isGroupEmpty ? [previousGroup.id] : [],
       removedUrlRecordIds: urlRecordsToDelete,
-      removedUrlRecords,
+      removedUrlRecords: removedUrlRecords.map(toSavedTabsUrlRecordDto),
       snapshot,
     }
   }

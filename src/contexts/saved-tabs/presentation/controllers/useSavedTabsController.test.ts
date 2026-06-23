@@ -2,302 +2,132 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createSavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
-import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
-import type { NotificationPort } from '@/contexts/saved-tabs/application/ports/NotificationPort'
-import type { SetCategoryKeywordsPort } from '@/contexts/saved-tabs/application/ports/SetCategoryKeywordsPort'
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
-import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import {
+  createSavedTabsCustomProjectDto,
+  createSavedTabsParentCategoryDto,
+  createSavedTabsTabGroupDto,
+  createSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
+import {
+  createSavedTabsPresentationPortsStub,
+  createSavedTabsUseCasesStub,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
 
 import { useSavedTabsController } from './useSavedTabsController'
 
-const createSampleTabGroup = (id: string, domain: string): TabGroup =>
-  createTabGroup({
-    domain,
-    id,
-    urlIds: [`url-${id}`],
+afterEach(() => vi.restoreAllMocks())
+
+const group = createSavedTabsTabGroupDto({
+  domain: 'example.com',
+  id: 'group-1',
+  urlIds: ['url-1'],
+})
+const project = createSavedTabsCustomProjectDto({
+  id: 'project-1',
+  name: 'Reading',
+  urlIds: ['url-1'],
+})
+const record = createSavedTabsUrlRecordDto({
+  id: 'url-1',
+  url: 'https://example.com/article',
+})
+
+const setup = (options: { initial?: boolean } = {}) => {
+  let groups = [group]
+  let projects = [project]
+  const open = vi.fn(async ({ url }: { url: string }) => ({ url }))
+  const getSavedTabs = vi.fn(async () => groups)
+  const getCustomProjects = vi.fn(async () => projects)
+  const restoreOpenedUrlsSnapshot = vi.fn(async ({ snapshot }) => {
+    groups = [...(snapshot.savedTabs ?? groups)]
+    projects = [...(snapshot.customProjects ?? projects)]
+    return {
+      restoredCustomProjects: snapshot.customProjects ?? [],
+      restoredParentCategories: snapshot.parentCategories ?? [],
+      restoredTabGroups: snapshot.savedTabs ?? [],
+      restoredUrlRecords: snapshot.urlRecords ?? [],
+    }
   })
-
-const createSampleCustomProject = (id: string, name: string): CustomProject =>
-  createCustomProject({
-    categories: [],
-    createdAt: 1,
-    id,
-    name,
-    updatedAt: 1,
-    urlIds: [],
+  const deps = createSavedTabsPresentationPortsStub({
+    browserTabPort: { open },
   })
-
-interface InMemoryState {
-  tabGroups: TabGroup[]
-  customProjects: CustomProject[]
-}
-
-const createInMemoryRepositories = (initial: Partial<InMemoryState> = {}) => {
-  const state: InMemoryState = {
-    customProjects: [...(initial.customProjects ?? [])],
-    tabGroups: [...(initial.tabGroups ?? [])],
-  }
-  const tabGroupRepository: TabGroupRepository = {
-    findAll: async () => state.tabGroups.map((group) => ({ ...group })),
-
-    findById: async (id) =>
-      state.tabGroups.find((group) => group.id === id) ?? null,
-
-    findRawDomainById: vi.fn(async () => null),
-
-    findRawTabGroupById: vi.fn(async () => null),
-
-    removeByIds: async (ids) => {
-      const idSet = new Set(ids)
-      state.tabGroups = state.tabGroups.filter((group) => !idSet.has(group.id))
-    },
-
-    saveAll: async (groups) => {
-      state.tabGroups = groups.map((group) => ({ ...group }))
-    },
-  }
-  const customProjectRepository: CustomProjectRepository = {
-    findAll: async () =>
-      state.customProjects.map((project) => ({ ...project })),
-
-    findById: async (id) =>
-      state.customProjects.find((project) => project.id === id) ?? null,
-
-    removeByIds: async (ids) => {
-      const idSet = new Set(ids)
-      state.customProjects = state.customProjects.filter(
-        (project) => !idSet.has(project.id),
-      )
-    },
-
-    saveAll: async (projects) => {
-      state.customProjects = projects.map((project) => ({ ...project }))
-    },
-
-    findOrder: async () => [],
-
-    saveOrder: async () => undefined,
-  }
-  return { customProjectRepository, state, tabGroupRepository }
-}
-
-const createEmptyDeps = (
-  initialUrlRecords: ReturnType<typeof createUrlRecord>[] = [],
-): {
-  deps: SavedTabsUseCasesDeps
-  openSpy: ReturnType<typeof vi.fn>
-  notifySpy: ReturnType<typeof vi.fn>
-  urlRecords: ReturnType<typeof createUrlRecord>[]
-} => {
-  const urlRecords: ReturnType<typeof createUrlRecord>[] = [
-    ...initialUrlRecords,
-  ]
-  const urlRecordRepository: UrlRecordRepository = {
-    findAll: async () => urlRecords.map((record) => ({ ...record })),
-
-    findById: async (id) =>
-      urlRecords.find((record) => record.id === id) ?? null,
-
-    removeByIds: async (ids) => {
-      const idSet = new Set(ids)
-      for (let i = urlRecords.length - 1; i >= 0; i--) {
-        if (idSet.has(urlRecords[i]?.id ?? '')) {
-          urlRecords.splice(i, 1)
-        }
+  const useCases = createSavedTabsUseCasesStub({
+    deleteTabGroup: vi.fn(async ({ tabGroupId }) => {
+      const removed = groups.find((entry) => entry.id === tabGroupId)
+      if (!removed) {
+        throw new Error('Tab group not found')
       }
-    },
-
-    saveAll: async (records) => {
-      urlRecords.splice(
-        0,
-        urlRecords.length,
-        ...records.map((record) => ({ ...record })),
-      )
-    },
-  }
-  const parentCategoryRepository: ParentCategoryRepository = {
-    findAll: async () => [],
-
-    findById: async () => null,
-
-    removeByIds: async () => undefined,
-
-    saveAll: async () => undefined,
-  }
-  const openSpy = vi.fn(async (input: { url: string }) => ({ url: input.url }))
-  const browserTabPort: BrowserTabPort = { open: openSpy }
-  const browserWindowPort: BrowserWindowPort = {
-    openWithUrls: vi.fn(async (input) => ({
-      urls: [...input.urls],
+      groups = groups.filter((entry) => entry.id !== tabGroupId)
+      return {
+        removedTabGroupId: tabGroupId,
+        removedUrlRecordIds: [],
+        snapshot: { savedTabs: [removed] },
+      }
+    }),
+    getCustomProjects,
+    getSavedTabs,
+    openSavedUrl: vi.fn(async ({ urlRecordId }) => {
+      if (urlRecordId !== record.id) {
+        throw new Error('URL not found')
+      }
+      const opened = await open({ url: record.url })
+      return {
+        openedUrl: opened.url,
+        removedUrlRecord: null,
+        removedUrlRecordId: null,
+        snapshot: null,
+      }
+    }),
+    removeUnreferencedUrlRecords: vi.fn(async () => ({
+      removedCount: 0,
+      removedUrlRecordIds: [],
     })),
-  }
-  const notifySpy = vi.fn()
-  const notificationPort: NotificationPort = {
-    error: notifySpy,
-    info: notifySpy,
-    success: notifySpy,
-  }
-  const setCategoryKeywordsPort: SetCategoryKeywordsPort = {
-    setCategoryKeywords: vi.fn().mockResolvedValue(undefined),
-  }
-  return {
-    deps: {
-      browserTabPort,
-      browserWindowPort,
-      categoriesCommandService: {
-        updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
-      },
-      categoryAssignmentPort: {
-        saveParentCategories: vi.fn().mockResolvedValue(undefined),
-        saveTabGroups: vi.fn().mockResolvedValue(undefined),
-      },
-      customProjectRepository:
-        createInMemoryRepositories().customProjectRepository,
-      customProjectsCommandService: {
-        addCategoryToProject: vi.fn().mockResolvedValue(undefined),
-        addUrlToCustomProject: vi.fn().mockResolvedValue(undefined),
-        moveUrlBetweenCustomProjects: vi.fn().mockResolvedValue(undefined),
-        removeCategoryFromProject: vi.fn().mockResolvedValue(undefined),
-        removeUrlFromCustomProject: vi.fn().mockResolvedValue(undefined),
-        removeUrlIdsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
-        removeUrlsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
-        removeUrlsFromCustomProject: vi.fn().mockResolvedValue(undefined),
-        renameCategoryInProject: vi.fn().mockResolvedValue(undefined),
-        reorderProjectUrls: vi.fn().mockResolvedValue(undefined),
-        setUrlCategory: vi.fn().mockResolvedValue(undefined),
-        updateCategoryOrder: vi.fn().mockResolvedValue(undefined),
-        updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
-      },
-      domainCategoryMappingRepository: {
-        findAll: async () => [],
-
-        saveAll: async () => undefined,
-      },
-      domainCategorySettingsRepository: {
-        findAll: async () => [],
-
-        saveAll: async () => undefined,
-      },
-      migrationPort: {
-        migrateParentCategoriesToDomainNames: vi
-          .fn()
-          .mockResolvedValue(undefined),
-        migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
-      },
-      notificationPort,
-      parentCategoryRepository,
-      removeSubCategoryFromTabGroupPort: {
-        removeSubCategoryFromTabGroup: vi.fn().mockResolvedValue([]),
-      },
-      setCategoryKeywordsPort,
-      storageChangePort: {
-        subscribe: () => () => {},
-      },
-      messagingPort: {
-        send: vi.fn().mockResolvedValue(undefined),
-      },
-      tabGroupRepository: createInMemoryRepositories().tabGroupRepository,
-      urlRecordRepository,
-      userSettingsRepository: {
-        findAll: async () => ({}) as never,
-
-        save: async () => undefined,
-      },
-    },
-    notifySpy,
-    openSpy,
-    urlRecords,
-  }
-}
-
-const renderController = (input: {
-  deps: SavedTabsUseCasesDeps
-  initialTabGroups?: readonly TabGroup[]
-  initialCustomProjects?: readonly CustomProject[]
-  useCases?: ReturnType<typeof createSavedTabsUseCases>
-}) => {
-  const useCases = input.useCases ?? createSavedTabsUseCases(input.deps)
-  return renderHook(() =>
+    restoreOpenedUrlsSnapshot,
+    syncCategoryAssignments: vi.fn(async () => ({
+      assignedTabGroupIds: [],
+      unassignedTabGroupIds: [],
+      updatedCategoryIds: [],
+    })),
+  })
+  const hook = renderHook(() =>
     useSavedTabsController({
-      deps: input.deps,
-      initialCustomProjects: input.initialCustomProjects,
-      initialTabGroups: input.initialTabGroups,
+      deps,
+      ...(options.initial
+        ? { initialCustomProjects: projects, initialTabGroups: groups }
+        : {}),
       useCases,
     }),
   )
+  return {
+    ...hook,
+    getCustomProjects,
+    getSavedTabs,
+    open,
+    restoreOpenedUrlsSnapshot,
+    useCases,
+  }
 }
 
 describe('useSavedTabsController', () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('initialTabGroups / initialCustomProjects を渡すと view-model へ反映する', () => {
-    const { deps } = createEmptyDeps()
-    const groups = [createSampleTabGroup('g1', 'example.com')]
-    const projects = [createSampleCustomProject('p1', 'Reading')]
-    const { result } = renderController({
-      deps,
-      initialCustomProjects: projects,
-      initialTabGroups: groups,
-    })
+  it('initial application DTO を view-model に変換する', () => {
+    const { result } = setup({ initial: true })
     expect(result.current.viewModel.loading).toBe(false)
     expect(result.current.viewModel.tabGroups).toHaveLength(1)
     expect(result.current.viewModel.customProjects).toHaveLength(1)
+  })
+
+  it('refresh は application query から表示データを取得する', async () => {
+    const { result, getSavedTabs, getCustomProjects } = setup()
+    await act(async () => {
+      await result.current.refresh()
+    })
+    expect(getSavedTabs).toHaveBeenCalledOnce()
+    expect(getCustomProjects).toHaveBeenCalledOnce()
     expect(result.current.viewModel.hasContent).toBe(true)
   })
 
-  it('initial が無ければ refresh で view-model を構築する', async () => {
-    const { deps } = createEmptyDeps()
-    const groups = [createSampleTabGroup('g1', 'example.com')]
-    const projects = [createSampleCustomProject('p1', 'Reading')]
-    const inMemory = createInMemoryRepositories({
-      customProjects: projects,
-      tabGroups: groups,
-    })
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    expect(result.current.viewModel.loading).toBe(false)
-    expect(result.current.viewModel.tabGroups).toHaveLength(1)
-    expect(result.current.viewModel.customProjects).toHaveLength(1)
-  })
-
-  it('openSavedUrl は use-case を呼び、refresh で最新を反映する', async () => {
-    const urlRecord = createUrlRecord({
-      id: 'url-g1',
-      savedAt: 1,
-      title: 'example article',
-      url: 'https://example.com/article',
-    })
-    const { deps, openSpy } = createEmptyDeps([urlRecord])
-    const group = createSampleTabGroup('g1', 'example.com')
-    const inMemory = createInMemoryRepositories({ tabGroups: [group] })
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
+  it('openSavedUrl は primitive command を use-case に渡す', async () => {
+    const { result, open, useCases } = setup({ initial: true })
     await act(async () => {
       await result.current.openSavedUrl({
         origin: 'click',
@@ -305,492 +135,232 @@ describe('useSavedTabsController', () => {
           removeTabAfterExternalDrop: false,
           removeTabAfterOpen: false,
         },
-        urlRecordId: 'url-g1',
+        urlRecordId: record.id,
       })
     })
-    expect(openSpy).toHaveBeenCalledWith({ url: 'https://example.com/article' })
+    expect(useCases.openSavedUrl).toHaveBeenCalledWith({
+      origin: 'click',
+      settings: {
+        removeTabAfterExternalDrop: false,
+        removeTabAfterOpen: false,
+      },
+      urlRecordId: 'url-1',
+    })
+    expect(open).toHaveBeenCalledWith({ url: record.url })
   })
 
-  it('use-case 失敗時は error をセットし再 throw する', async () => {
-    const { deps } = createEmptyDeps()
-    const group = createSampleTabGroup('g1', 'example.com')
-    const inMemory = createInMemoryRepositories({ tabGroups: [group] })
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
+  it('deleteTabGroup 後に application query から再読込する', async () => {
+    const { result } = setup({ initial: true })
     await act(async () => {
-      await result.current.refresh()
+      await result.current.deleteTabGroup({ tabGroupId: group.id })
     })
-    // urlRecordRepository は空のため openSavedUrl は 'URL_RECORD_NOT_FOUND' で失敗する
+    expect(result.current.viewModel.tabGroups).toHaveLength(0)
+  })
+
+  it('application DTO snapshot を変換せず restore use-case へ渡す', async () => {
+    const { result, restoreOpenedUrlsSnapshot } = setup({ initial: true })
+    const category = createSavedTabsParentCategoryDto({
+      id: 'category-1',
+      name: 'Docs',
+    })
+    const snapshot = {
+      customProjects: [project],
+      parentCategories: [category],
+      savedTabs: [group],
+      urlRecords: [record],
+    }
+    let summary:
+      | Awaited<ReturnType<typeof result.current.restoreOpenedUrlsSnapshot>>
+      | undefined
     await act(async () => {
-      await expect(
-        result.current.openSavedUrl({
+      summary = await result.current.restoreOpenedUrlsSnapshot({ snapshot })
+    })
+    expect(restoreOpenedUrlsSnapshot).toHaveBeenCalledWith({ snapshot })
+    expect(summary?.restoredTabGroupCount).toBe(1)
+    expect(summary?.restoredUrlRecordCount).toBe(1)
+  })
+
+  it('sync と cleanup の application DTO を集計する', async () => {
+    const { result } = setup({ initial: true })
+    let syncSummary:
+      | Awaited<ReturnType<typeof result.current.syncCategoryAssignments>>
+      | undefined
+    let cleanupSummary:
+      | Awaited<ReturnType<typeof result.current.removeUnreferencedUrlRecords>>
+      | undefined
+    await act(async () => {
+      syncSummary = await result.current.syncCategoryAssignments({
+        command: { domain: 'example.com', parentCategoryId: 'category-1' },
+      })
+      cleanupSummary = await result.current.removeUnreferencedUrlRecords()
+    })
+    expect(syncSummary?.assignedTabGroupCount).toBe(0)
+    expect(cleanupSummary?.removedCount).toBe(0)
+  })
+
+  it('use-case の失敗を error view-model に反映して再 throw する', async () => {
+    const { result, useCases } = setup({ initial: true })
+    vi.mocked(useCases.openSavedUrl).mockRejectedValueOnce(new Error('failed'))
+    let thrown: unknown
+    await act(async () => {
+      try {
+        await result.current.openSavedUrl({
           origin: 'click',
           settings: {
             removeTabAfterExternalDrop: false,
             removeTabAfterOpen: false,
           },
-          urlRecordId: 'url-missing',
-        }),
-      ).rejects.toThrow(/.*/)
+          urlRecordId: record.id,
+        })
+      } catch (error) {
+        thrown = error
+      }
     })
-    expect(result.current.viewModel.error).not.toBeNull()
+    expect(thrown).toEqual(new Error('failed'))
+    expect(result.current.viewModel.error).toBe('failed')
   })
 
-  it('deleteTabGroup は use-case を呼んで repository から消す', async () => {
-    const { deps } = createEmptyDeps()
-    const group = createSampleTabGroup('g1', 'example.com')
-    const inMemory = createInMemoryRepositories({ tabGroups: [group] })
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
+  it('refresh の非 Error 失敗を文字列化し loading を解除する', async () => {
+    const { result, getSavedTabs } = setup({ initial: true })
+    getSavedTabs.mockRejectedValueOnce('refresh failed')
+
     await act(async () => {
       await result.current.refresh()
     })
-    await act(async () => {
-      await result.current.deleteTabGroup({ tabGroupId: 'g1' })
-    })
-    expect(result.current.viewModel.tabGroups).toHaveLength(0)
-  })
 
-  it('restoreOpenedUrlsSnapshot は snapshot を受け取って use-case を呼ぶ', async () => {
-    const { deps } = createEmptyDeps()
-    const group = createSampleTabGroup('g1', 'example.com')
-    const inMemory = createInMemoryRepositories({ tabGroups: [] })
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    let summary: {
-      restoredTabGroupCount: number
-      restoredUrlRecordCount: number
-    } = {
-      restoredTabGroupCount: -1,
-      restoredUrlRecordCount: -1,
-    }
-    await act(async () => {
-      summary = await result.current.restoreOpenedUrlsSnapshot({
-        snapshot: { savedTabs: [group] },
-      })
-    })
-    expect(summary.restoredTabGroupCount).toBe(1)
-    expect(summary.restoredUrlRecordCount).toBe(0)
-  })
-
-  it('restoreOpenedUrlsSnapshot は parentCategories / urlRecords を含む snapshot をそのまま use-case へ流す', async () => {
-    const { deps } = createEmptyDeps()
-    const inMemory = createInMemoryRepositories({ tabGroups: [] })
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    let summary = { restoredTabGroupCount: -1, restoredUrlRecordCount: -1 }
-    await act(async () => {
-      summary = await result.current.restoreOpenedUrlsSnapshot({
-        snapshot: {
-          parentCategories: [
-            {
-              domainNames: ['example.com'],
-              domains: ['group-1'],
-              id: 'cat-1',
-              name: 'Docs',
-            },
-          ],
-          savedTabs: [createSampleTabGroup('g1', 'example.com')],
-          urlRecords: [
-            {
-              id: 'url-1',
-              savedAt: 1,
-              title: 'example',
-              url: 'https://example.com',
-            },
-          ],
-        },
-      })
-    })
-    expect(summary.restoredTabGroupCount).toBe(1)
-    expect(summary.restoredUrlRecordCount).toBe(1)
-  })
-
-  it('restoreOpenedUrlsSnapshot の use-case 失敗時は error をセットし再 throw する', async () => {
-    const { deps } = createEmptyDeps()
-    const inMemory = createInMemoryRepositories({ tabGroups: [] })
-    const failingParentCategoryRepository: ParentCategoryRepository = {
-      findAll: async () => [],
-
-      findById: async () => null,
-
-      removeByIds: async () => undefined,
-
-      saveAll: async () => {
-        throw new Error('restore-broken')
-      },
-    }
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      parentCategoryRepository: failingParentCategoryRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    await act(async () => {
-      await expect(
-        result.current.restoreOpenedUrlsSnapshot({
-          snapshot: {
-            parentCategories: [
-              {
-                domainNames: [],
-                domains: [],
-                id: 'cat-1',
-                name: 'Docs',
-              },
-            ],
-          },
-        }),
-      ).rejects.toThrow(/.*/)
-    })
-    expect(result.current.viewModel.error).not.toBeNull()
-  })
-
-  it('deleteTabGroup の snapshot に parentCategories が含まれるケースを吸収する', async () => {
-    const { deps } = createEmptyDeps()
-    const inMemory = createInMemoryRepositories({ tabGroups: [] })
-    const baseUseCases = createSavedTabsUseCases({
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    })
-    // parentCategories 付きの snapshot を返すモックへ差し替える
-    const useCases = {
-      ...baseUseCases,
-      deleteTabGroup: (() =>
-        Promise.resolve({
-          removedTabGroupId: 'g1' as never,
-          removedUrlRecordIds: [],
-          snapshot: {
-            customProjects: undefined,
-            parentCategories: [
-              {
-                domainNames: ['example.com'],
-                domains: [],
-                id: 'cat-1' as never,
-                name: 'Docs' as never,
-              },
-            ],
-            savedTabs: [createSampleTabGroup('g1', 'example.com')],
-            urlRecords: [],
-          },
-        }) as never) as never,
-    }
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({
-      deps: overrideDeps,
-      useCases,
-    })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    await act(async () => {
-      const dto = await result.current.deleteTabGroup({ tabGroupId: 'g1' })
-      expect(dto.removedTabGroupId).toBe('g1')
-    })
-  })
-
-  it('deleteTabGroup の use-case 失敗時は error をセットし再 throw する', async () => {
-    const { deps } = createEmptyDeps()
-    const inMemory = createInMemoryRepositories({ tabGroups: [] })
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    await act(async () => {
-      await expect(
-        result.current.deleteTabGroup({ tabGroupId: 'not-found' }),
-      ).rejects.toThrow(/.*/)
-    })
-    expect(result.current.viewModel.error).not.toBeNull()
-  })
-
-  it('syncCategoryAssignments の use-case 失敗時は error をセットし再 throw する', async () => {
-    const { deps } = createEmptyDeps()
-    const inMemory = createInMemoryRepositories({ tabGroups: [] })
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    // parentCategoryRepository は空配列を返すので、存在しない parentCategoryId
-    // を指定すると SavedTabsDomainError が投げられる
-    await act(async () => {
-      await expect(
-        result.current.syncCategoryAssignments({
-          command: {
-            domain: 'example.com',
-            parentCategoryId: 'missing-cat',
-          },
-        }),
-      ).rejects.toThrow(/.*/)
-    })
-    expect(result.current.viewModel.error).not.toBeNull()
-  })
-
-  it('removeUnreferencedUrlRecords の use-case 失敗時は error をセットし再 throw する', async () => {
-    const failingUrlRecordRepository: UrlRecordRepository = {
-      findAll: async () => {
-        throw new Error('storage broken')
-      },
-
-      findById: async () => null,
-
-      removeByIds: async () => undefined,
-
-      saveAll: async () => undefined,
-    }
-    const { deps } = createEmptyDeps()
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      urlRecordRepository: failingUrlRecordRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    await act(async () => {
-      await expect(
-        result.current.removeUnreferencedUrlRecords(),
-      ).rejects.toThrow(/.*/)
-    })
-    expect(result.current.viewModel.error).not.toBeNull()
-  })
-
-  it('openSavedUrl の use-case 成功時に snapshot に parentCategories / urlRecords が含まれていれば controller に保持する', async () => {
-    const urlRecord = createUrlRecord({
-      id: 'url-g1',
-      savedAt: 1,
-      title: 'example article',
-      url: 'https://example.com/article',
-    })
-    const { deps } = createEmptyDeps([urlRecord])
-    const inMemory = createInMemoryRepositories({
-      tabGroups: [createSampleTabGroup('g1', 'example.com')],
-    })
-    const baseUseCases = createSavedTabsUseCases({
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    })
-    // parentCategories 付き snapshot を返すモックへ差し替える
-    const useCases = {
-      ...baseUseCases,
-      openSavedUrl: (() =>
-        Promise.resolve({
-          openedUrl: 'https://example.com/article',
-          removedUrlRecord: null,
-          removedUrlRecordId: null,
-          snapshot: {
-            customProjects: undefined,
-            parentCategories: [
-              {
-                domainNames: ['example.com'],
-                domains: [],
-                id: 'cat-1' as never,
-                name: 'Docs' as never,
-              },
-            ],
-            savedTabs: undefined,
-            urlRecords: [
-              {
-                id: 'url-g1' as never,
-                savedAt: 1 as never,
-                title: 'example article',
-                url: 'https://example.com/article' as never,
-              },
-            ],
-          },
-        }) as never) as never,
-    }
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({
-      deps: overrideDeps,
-      useCases,
-    })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    await act(async () => {
-      const dto = await result.current.openSavedUrl({
-        origin: 'click',
-        settings: {
-          removeTabAfterExternalDrop: false,
-          removeTabAfterOpen: false,
-        },
-        urlRecordId: 'url-g1',
-      })
-      expect(dto.openedUrl).toBe('https://example.com/article')
-    })
-  })
-
-  it('deleteTabGroup の snapshot に urlRecords が含まれるケースを吸収する', async () => {
-    const { deps } = createEmptyDeps()
-    const inMemory = createInMemoryRepositories({ tabGroups: [] })
-    const baseUseCases = createSavedTabsUseCases({
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    })
-    const useCases = {
-      ...baseUseCases,
-      deleteTabGroup: (() =>
-        Promise.resolve({
-          removedTabGroupId: 'g1' as never,
-          removedUrlRecordIds: ['url-1' as never],
-          snapshot: {
-            customProjects: undefined,
-            parentCategories: undefined,
-            savedTabs: [createSampleTabGroup('g1', 'example.com')],
-            urlRecords: [
-              {
-                id: 'url-1' as never,
-                savedAt: 1 as never,
-                title: 'example',
-                url: 'https://example.com' as never,
-              },
-            ],
-          },
-        }) as never) as never,
-    }
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
-    }
-    const { result } = renderController({
-      deps: overrideDeps,
-      useCases,
-    })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    await act(async () => {
-      const dto = await result.current.deleteTabGroup({ tabGroupId: 'g1' })
-      expect(dto.removedUrlRecordIds).toHaveLength(1)
-    })
-  })
-
-  it('refresh の repository 取得失敗時は error をセットする', async () => {
-    const failingTabGroupRepository: TabGroupRepository = {
-      findAll: async () => {
-        throw new Error('storage broken')
-      },
-
-      findById: async () => null,
-
-      findRawDomainById: vi.fn(async () => null),
-
-      findRawTabGroupById: vi.fn(async () => null),
-
-      removeByIds: async () => undefined,
-
-      saveAll: async () => undefined,
-    }
-    const { deps } = createEmptyDeps()
-    const overrideDeps: SavedTabsUseCasesDeps = {
-      ...deps,
-      tabGroupRepository: failingTabGroupRepository,
-    }
-    const { result } = renderController({ deps: overrideDeps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    expect(result.current.viewModel.error).not.toBeNull()
+    expect(result.current.viewModel.error).toBe('refresh failed')
     expect(result.current.viewModel.loading).toBe(false)
   })
 
-  it('removeUnreferencedUrlRecords は use-case の removedCount を返す', async () => {
-    const { deps } = createEmptyDeps()
-    const { result } = renderController({ deps })
-    await act(async () => {
-      await result.current.refresh()
+  it('openSavedUrl の full/empty snapshot を安全にコピーする', async () => {
+    const { result, useCases } = setup({ initial: true })
+    const category = createSavedTabsParentCategoryDto({
+      domainNames: ['example.com'],
+      domains: ['group-1'],
+      id: 'category-1',
+      name: 'Docs',
     })
-    let removed = 0
-    await act(async () => {
-      removed = (await result.current.removeUnreferencedUrlRecords())
-        .removedCount
-    })
-    expect(removed).toBe(0)
-  })
-
-  it('syncCategoryAssignments の戻り値を view-model へ集計する', async () => {
-    const { deps } = createEmptyDeps()
-    const { result } = renderController({ deps })
-    await act(async () => {
-      await result.current.refresh()
-    })
-    let summary: {
-      assignedTabGroupCount: number
-      updatedCategoryCount: number
-      unassignedTabGroupCount: number
-    } = {
-      assignedTabGroupCount: -1,
-      unassignedTabGroupCount: -1,
-      updatedCategoryCount: -1,
+    const fullSnapshot = {
+      customProjects: [project],
+      parentCategories: [category],
+      savedTabs: [group],
+      urlRecords: [record],
     }
+    vi.mocked(useCases.openSavedUrl)
+      .mockResolvedValueOnce({
+        openedUrl: record.url,
+        removedUrlRecord: record,
+        removedUrlRecordId: record.id,
+        snapshot: fullSnapshot,
+      })
+      .mockResolvedValueOnce({
+        openedUrl: record.url,
+        removedUrlRecord: null,
+        removedUrlRecordId: null,
+        snapshot: {},
+      })
+
     await act(async () => {
-      summary = await result.current.syncCategoryAssignments({})
+      await result.current.openSavedUrl({
+        origin: 'click',
+        settings: {
+          removeTabAfterExternalDrop: false,
+          removeTabAfterOpen: true,
+        },
+        urlRecordId: record.id,
+      })
+      await result.current.openSavedUrl({
+        origin: 'click',
+        settings: {
+          removeTabAfterExternalDrop: false,
+          removeTabAfterOpen: true,
+        },
+        urlRecordId: record.id,
+      })
     })
-    expect(summary.assignedTabGroupCount).toBe(0)
-    expect(summary.unassignedTabGroupCount).toBe(0)
-    expect(summary.updatedCategoryCount).toBe(0)
+
+    expect(useCases.openSavedUrl).toHaveBeenCalledTimes(2)
   })
 
-  it('createSavedTabsUseCases が use-case を組み立てる', () => {
-    const { deps } = createEmptyDeps()
-    const inMemory = createInMemoryRepositories()
-    const useCases = createSavedTabsUseCases({
-      ...deps,
-      customProjectRepository: inMemory.customProjectRepository,
-      tabGroupRepository: inMemory.tabGroupRepository,
+  it('deleteTabGroup の full/empty snapshot を安全にコピーする', async () => {
+    const { result, useCases } = setup({ initial: true })
+    const category = createSavedTabsParentCategoryDto({
+      domainNames: ['example.com'],
+      domains: ['group-1'],
+      id: 'category-1',
+      name: 'Docs',
     })
-    expect(useCases.openSavedUrl).toBeTypeOf('function')
-    expect(useCases.deleteTabGroup).toBeTypeOf('function')
-    expect(useCases.restoreOpenedUrlsSnapshot).toBeTypeOf('function')
-    expect(useCases.syncCategoryAssignments).toBeTypeOf('function')
-    expect(useCases.removeUnreferencedUrlRecords).toBeTypeOf('function')
+    vi.mocked(useCases.deleteTabGroup)
+      .mockResolvedValueOnce({
+        removedTabGroupId: group.id,
+        removedUrlRecordIds: [record.id],
+        snapshot: {
+          customProjects: [project],
+          parentCategories: [category],
+          savedTabs: [group],
+          urlRecords: [record],
+        },
+      })
+      .mockResolvedValueOnce({
+        removedTabGroupId: group.id,
+        removedUrlRecordIds: [],
+        snapshot: {},
+      })
+
+    await act(async () => {
+      await result.current.deleteTabGroup({ tabGroupId: group.id })
+      await result.current.deleteTabGroup({ tabGroupId: group.id })
+    })
+
+    expect(useCases.deleteTabGroup).toHaveBeenCalledTimes(2)
   })
+
+  it('syncCategoryAssignments は command 省略時に空 command を渡す', async () => {
+    const { result, useCases } = setup({ initial: true })
+
+    await act(async () => {
+      await result.current.syncCategoryAssignments({})
+    })
+
+    expect(useCases.syncCategoryAssignments).toHaveBeenCalledWith({})
+  })
+
+  it.each([
+    ['deleteTabGroup', new Error('delete failed')],
+    ['deleteTabGroup', 'delete string failed'],
+    ['restoreOpenedUrlsSnapshot', new Error('restore failed')],
+    ['restoreOpenedUrlsSnapshot', 'restore string failed'],
+    ['syncCategoryAssignments', new Error('sync failed')],
+    ['syncCategoryAssignments', 'sync string failed'],
+    ['removeUnreferencedUrlRecords', new Error('cleanup failed')],
+    ['removeUnreferencedUrlRecords', 'cleanup string failed'],
+  ] as const)(
+    '%s の失敗を error view-model に反映して再 throw する',
+    async (operation, failure) => {
+      const { result, useCases } = setup({ initial: true })
+      vi.mocked(useCases[operation]).mockRejectedValueOnce(failure)
+      let thrown: unknown
+
+      await act(async () => {
+        try {
+          if (operation === 'deleteTabGroup') {
+            await result.current.deleteTabGroup({ tabGroupId: group.id })
+          } else if (operation === 'restoreOpenedUrlsSnapshot') {
+            await result.current.restoreOpenedUrlsSnapshot({ snapshot: {} })
+          } else if (operation === 'syncCategoryAssignments') {
+            await result.current.syncCategoryAssignments({})
+          } else {
+            await result.current.removeUnreferencedUrlRecords()
+          }
+        } catch (error) {
+          thrown = error
+        }
+      })
+
+      expect(thrown).toBe(failure)
+      expect(result.current.viewModel.error).toBe(
+        failure instanceof Error ? failure.message : failure,
+      )
+    },
+  )
 })

@@ -10,6 +10,8 @@ import {
 } from 'react-router-dom'
 
 import { createSavedTabsUseCasesDeps } from '@/app/composition/createSavedTabsUseCases'
+import { createSavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsDepsFactory } from '@/contexts/saved-tabs/presentation/routes/SavedTabsRoute'
 import {
   getSavedTabsEntryRoute,
   getSavedTabsHrefForMode,
@@ -85,6 +87,22 @@ const SavedTabsRouteComponent = lazy(async () =>
   ),
 )
 
+const createSavedTabsPresentationDependencies: SavedTabsDepsFactory = (
+  options,
+) => {
+  const deps = createSavedTabsUseCasesDeps(options)
+  return {
+    deps: {
+      browserTabPort: deps.browserTabPort,
+      categoryAssignmentPort: deps.categoryAssignmentPort,
+      messagingPort: deps.messagingPort,
+      migrationPort: deps.migrationPort,
+      storageChangePort: deps.storageChangePort,
+    },
+    useCases: createSavedTabsUseCases(deps),
+  }
+}
+
 const SavedTabsRoutePage = () => {
   const routerLocation = useLocation()
   const navigate = useNavigate()
@@ -127,7 +145,7 @@ const SavedTabsRoutePage = () => {
   return (
     <Suspense fallback={null}>
       <SavedTabsRouteComponent
-        createDeps={createSavedTabsUseCasesDeps}
+        createDeps={createSavedTabsPresentationDependencies}
         search={routerLocation.search}
         onViewModeNavigate={handleViewModeNavigate}
       />

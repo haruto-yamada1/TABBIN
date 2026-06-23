@@ -1,6 +1,3 @@
-import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-
 /**
  * `SyncCategoryAssignmentsUseCase` の結果 DTO。
  *
@@ -16,13 +13,13 @@ export interface CategorySyncDto {
   /**
    * 新たにカテゴリへ割り当てられた `TabGroupId` 一覧。
    */
-  readonly assignedTabGroupIds: readonly TabGroupId[]
+  readonly assignedTabGroupIds: readonly string[]
   /**
    * カテゴリから外れた（未分類に戻った）`TabGroupId` 一覧。
    */
-  readonly unassignedTabGroupIds: readonly TabGroupId[]
+  readonly unassignedTabGroupIds: readonly string[]
   /**
    * `domainNames` / `domains` の同期が発生した `ParentCategoryId` 一覧。
    */
-  readonly updatedCategoryIds: readonly ParentCategoryId[]
+  readonly updatedCategoryIds: readonly string[]
 }

@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
@@ -29,7 +31,7 @@ export interface AssignDomainToCategoryCommand {
 const UNCATEGORIZED_SENTINEL = 'none' as const
 
 export interface AssignDomainToCategoryResult {
-  readonly all: readonly ParentCategory[]
+  readonly all: readonly SavedTabsParentCategoryDto[]
   readonly mappings: readonly { domain: string; categoryId: string }[]
 }
 
@@ -199,8 +201,9 @@ export const createAssignDomainToCategoryUseCase = (
     }
 
     return {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      all: updatedCategories as readonly ParentCategory[],
+      all: updatedCategories.map((category) =>
+        toSavedTabsParentCategoryDto(category as ParentCategory),
+      ),
       mappings: nextMappings,
     }
   }

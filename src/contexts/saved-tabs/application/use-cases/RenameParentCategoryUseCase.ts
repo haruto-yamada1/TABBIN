@@ -1,6 +1,7 @@
 import type { RenameParentCategoryCommand } from '@/contexts/saved-tabs/application/commands/RenameParentCategoryCommand'
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
@@ -21,7 +22,7 @@ export interface RenameParentCategoryUseCaseDeps {
  */
 export type RenameParentCategoryUseCase = (
   command: RenameParentCategoryCommand,
-) => Promise<readonly ParentCategory[]>
+) => Promise<readonly SavedTabsParentCategoryDto[]>
 
 /**
  * `RenameParentCategoryUseCase` を生成する。
@@ -52,7 +53,7 @@ export const createRenameParentCategoryUseCase = (
       )
     }
     if (targetCategory.name === command.newName) {
-      return allCategories
+      return allCategories.map(toSavedTabsParentCategoryDto)
     }
     const updatedCategories = allCategories.map((category) =>
       category.id === targetCategoryId
@@ -63,6 +64,6 @@ export const createRenameParentCategoryUseCase = (
         : category,
     )
     await deps.parentCategoryRepository.saveAll(updatedCategories)
-    return updatedCategories
+    return updatedCategories.map(toSavedTabsParentCategoryDto)
   }
 }

@@ -4,17 +4,11 @@ import type { ChangeEvent } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import {
-  toDomainParentCategories,
-  toDomainTabGroupFromStorage,
-} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type {
   StorageChangePort,
   TypedSavedTabsStorageChange,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import {
@@ -113,128 +107,27 @@ const setupChromeStorage = (state: StorageState = {}) => {
     },
   } as unknown as typeof chrome
 
-  // chrome.storage.local 直叩きを撤去した production code に合わせて
-  // repository モックも `local` shim 経由で読み書きする。`local.get` /
-  // `local.set` への既存アサーションが引き続き機能する。
-  const tabGroupRepository: TabGroupRepository = {
-    findAll: vi.fn(
-      async () =>
-        (((await local.get('savedTabs')) as { savedTabs?: TabGroup[] })
-          .savedTabs ?? []) as unknown as ReturnType<
-          TabGroupRepository['findAll']
-        >,
-    ),
-    findById: vi.fn(
-      async (id) =>
-        ((
-          (await local.get('savedTabs')) as { savedTabs?: TabGroup[] }
-        ).savedTabs?.find((tab) => tab.id === id) ??
-          null) as unknown as ReturnType<TabGroupRepository['findById']>,
-    ),
-    findRawDomainById: vi.fn(async () => null),
-    findRawTabGroupById: vi.fn(async () => null),
-    saveAll: vi.fn(
-      async (_next: Parameters<TabGroupRepository['saveAll']>[0]) => {
-        await local.set({
-          savedTabs: [
-            ..._next,
-          ] as unknown as Partial<StorageState>['savedTabs'],
-        })
-      },
-    ),
-    removeByIds: vi.fn(
-      async (ids: Parameters<TabGroupRepository['removeByIds']>[0]) => {
-        const current =
-          ((await local.get('savedTabs')) as { savedTabs?: TabGroup[] })
-            .savedTabs ?? []
-        const idSet = new Set(ids as readonly string[])
-        await local.set({
-          savedTabs: current.filter((tab) => !idSet.has(tab.id)),
-        })
-      },
-    ),
-  }
-  const parentCategoryRepository: ParentCategoryRepository = {
-    findAll: vi.fn(
-      async () =>
-        ((
-          (await local.get('parentCategories')) as {
-            parentCategories?: ParentCategory[]
-          }
-        ).parentCategories ?? []) as unknown as ReturnType<
-          ParentCategoryRepository['findAll']
-        >,
-    ),
-    findById: vi.fn(
-      async (id) =>
-        ((
-          (await local.get('parentCategories')) as {
-            parentCategories?: ParentCategory[]
-          }
-        ).parentCategories?.find((category) => category.id === id) ??
-          null) as unknown as ReturnType<ParentCategoryRepository['findById']>,
-    ),
-    saveAll: vi.fn(
-      async (_next: Parameters<ParentCategoryRepository['saveAll']>[0]) => {
-        await local.set({
-          parentCategories: [
-            ..._next,
-          ] as unknown as Partial<StorageState>['parentCategories'],
-        })
-      },
-    ),
-    removeByIds: vi.fn(
-      async (ids: Parameters<ParentCategoryRepository['removeByIds']>[0]) => {
-        const current =
-          (
-            (await local.get('parentCategories')) as {
-              parentCategories?: ParentCategory[]
-            }
-          ).parentCategories ?? []
-        const idSet = new Set(ids as readonly string[])
-        await local.set({
-          parentCategories: current.filter(
-            (category) => !idSet.has(category.id),
-          ),
-        })
-      },
-    ),
-  }
-
   const getSavedTabsPageDataQuery = vi.fn(async () => {
-    const [tabGroups, parentCategories] = await Promise.all([
-      tabGroupRepository.findAll(),
-      parentCategoryRepository.findAll(),
-    ])
+    const tabGroups = state.savedTabs ?? []
+    const parentCategories = state.parentCategories ?? []
     return {
       tabGroups,
       parentCategories,
       userSettings: {} as UserSettingsDto,
     }
   })
-  // domain.ParentCategory (branded readonly) は storage 層 ParentCategory
-  // (mutable plain) と構造互換のため、`unknown` 経由で委譲する。
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const categoryAssignmentPort: any = {
-    saveParentCategories: vi.fn(async (next: readonly ParentCategory[]) =>
-      parentCategoryRepository.saveAll(
-        toDomainParentCategories(
-          next as readonly ParentCategory[] | undefined,
-        ) ?? [],
-      ),
-    ),
-    saveTabGroups: vi.fn(async (next: readonly TabGroup[]) =>
-      tabGroupRepository.saveAll(next.map(toDomainTabGroupFromStorage)),
-    ),
+  const categoryAssignmentPort = {
+    saveParentCategories: vi.fn(async () => {}),
+    saveTabGroups: vi.fn(async (next: readonly TabGroup[]) => {
+      await local.set({ savedTabs: [...next] })
+    }),
   }
 
   const result = {
     categoryAssignmentPort,
     getSavedTabsPageDataQuery,
     local,
-    parentCategoryRepository,
     state,
-    tabGroupRepository,
   }
   lastStorage = result
   return result
@@ -549,7 +442,9 @@ describe('useCategoryKeywordModal', () => {
 
   it('親カテゴリ読み込みに失敗した場合はエラートーストを表示する', async () => {
     const storage = setupChromeStorage()
-    storage.local.get.mockRejectedValueOnce(new Error('storage failed'))
+    storage.getSavedTabsPageDataQuery.mockRejectedValueOnce(
+      new Error('storage failed'),
+    )
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     renderModalHook()

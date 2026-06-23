@@ -1,3 +1,5 @@
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
@@ -15,8 +17,8 @@ export interface CreateParentCategoryCommand {
 }
 
 export interface CreateParentCategoryResult {
-  readonly category: ParentCategory
-  readonly all: readonly ParentCategory[]
+  readonly category: SavedTabsParentCategoryDto
+  readonly all: readonly SavedTabsParentCategoryDto[]
 }
 
 /**
@@ -82,8 +84,8 @@ export const createCreateParentCategoryUseCase = (
     const updatedAll: readonly ParentCategory[] = [...all, newCategory]
     await deps.parentCategoryRepository.saveAll(updatedAll)
     return {
-      all: updatedAll,
-      category: newCategory,
+      all: updatedAll.map(toSavedTabsParentCategoryDto),
+      category: toSavedTabsParentCategoryDto(newCategory),
     }
   }
 }

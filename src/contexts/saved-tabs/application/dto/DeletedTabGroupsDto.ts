@@ -1,7 +1,6 @@
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+
+import type { SavedTabsTabGroupDto } from './SavedTabsPresentationDto'
 
 /**
  * `DeleteTabGroupsUseCase` の結果 DTO。
@@ -19,14 +18,14 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * もの。空配列なら「他で参照されていたため UrlRecord は保持された」ことを示す。
  */
 export interface DeletedTabGroupsDto {
-  readonly removedTabGroupIds: readonly TabGroupId[]
-  readonly removedUrlRecordIds: readonly UrlRecordId[]
+  readonly removedTabGroupIds: readonly string[]
+  readonly removedUrlRecordIds: readonly string[]
   /**
    * 復元に必要なスナップショット。
    * presentation 層が Undo を発火する際に `RestoreOpenedUrlsSnapshotCommand`
    * へそのまま渡せる形。
    */
   readonly snapshot: OpenedUrlsRestoreSnapshot & {
-    readonly savedTabs: readonly TabGroup[]
+    readonly savedTabs: readonly SavedTabsTabGroupDto[]
   }
 }

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import {
+  createSavedTabsParentCategoryDto as createParentCategory,
+  createSavedTabsTabGroupDto as createTabGroup,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
 
 import { toCustomProjectViewModel } from './CustomProjectViewModel'
 import {

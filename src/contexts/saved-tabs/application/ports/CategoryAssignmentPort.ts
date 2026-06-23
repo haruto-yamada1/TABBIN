@@ -19,8 +19,10 @@
  * 既存 `parentCategoryRepository` / `tabGroupRepository` へ委譲する
  * thin facade として提供する。
  */
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type {
+  SavedTabsDisplayTabGroupDto,
+  SavedTabsParentCategoryDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 /**
  * `CategoryAssignmentPort` 関数定義。
@@ -35,11 +37,13 @@ export interface CategoryAssignmentPort {
    * `parentCategoryRepository.saveAll` へ委譲する薄いラッパ。
    */
   readonly saveParentCategories: (
-    categories: readonly ParentCategory[],
+    categories: readonly SavedTabsParentCategoryDto[],
   ) => Promise<void>
   /**
    * 旧 `@/lib/storage/tabs` 系の `TabGroup[]` 永続化 port 版。
    * `tabGroupRepository.saveAll` へ委譲する薄いラッパ。
    */
-  readonly saveTabGroups: (tabGroups: readonly TabGroup[]) => Promise<void>
+  readonly saveTabGroups: (
+    tabGroups: readonly SavedTabsDisplayTabGroupDto[],
+  ) => Promise<void>
 }

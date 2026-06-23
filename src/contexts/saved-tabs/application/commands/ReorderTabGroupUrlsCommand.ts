@@ -1,5 +1,3 @@
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-
 /**
  * `ReorderTabGroupUrlsUseCase` の入力。
  *
@@ -19,6 +17,6 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * ```
  */
 export interface ReorderTabGroupUrlsCommand {
-  readonly tabGroupId: TabGroupId
+  readonly tabGroupId: string
   readonly newUrlOrder: readonly string[]
 }

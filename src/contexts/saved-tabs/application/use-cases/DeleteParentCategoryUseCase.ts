@@ -1,5 +1,6 @@
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
@@ -15,8 +16,8 @@ export interface DeleteParentCategoryCommand {
 }
 
 export interface DeleteParentCategoryResult {
-  readonly all: readonly ParentCategory[]
-  readonly removedCategory: ParentCategory
+  readonly all: readonly SavedTabsParentCategoryDto[]
+  readonly removedCategory: SavedTabsParentCategoryDto
 }
 
 /**
@@ -71,8 +72,8 @@ export const createDeleteParentCategoryUseCase = (
     await deps.parentCategoryRepository.saveAll(remaining)
 
     return {
-      all: remaining,
-      removedCategory: targetCategory,
+      all: remaining.map(toSavedTabsParentCategoryDto),
+      removedCategory: toSavedTabsParentCategoryDto(targetCategory),
     }
   }
 }

@@ -5,6 +5,7 @@ import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/doma
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `PrepareTabGroupDeletionUseCase` が依存する repository / port 群。
@@ -111,9 +112,9 @@ export const createPrepareTabGroupDeletionUseCase = (
 ): PrepareTabGroupDeletionUseCase => {
   return async (command) => {
     try {
-      const groupToRemove = await deps.tabGroupRepository.findRawTabGroupById(
-        command.tabGroupId,
-      )
+      const tabGroupId = createTabGroupId(command.tabGroupId)
+      const groupToRemove =
+        await deps.tabGroupRepository.findRawTabGroupById(tabGroupId)
       if (!groupToRemove?.domain) {
         return
       }

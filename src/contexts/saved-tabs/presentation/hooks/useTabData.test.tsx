@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import { useTabData } from './useTabData'
@@ -195,7 +195,13 @@ describe('useTabData', () => {
       parentCategories: repairedCategories,
       tabGroups: savedTabs,
     })
-    expect(result.current.tabGroups).toStrictEqual(expectedRepaired)
+    expect(result.current.tabGroups).toStrictEqual(
+      expectedRepaired.map((group) => ({
+        ...group,
+        savedAt: undefined,
+        urlIds: group.urlIds ?? [],
+      })),
+    )
   })
 
   it('マイグレーションや保存タブ読み込みの失敗時もロードを終了する', async () => {
@@ -473,7 +479,12 @@ describe('useTabData', () => {
     })
 
     expect(result.current.tabGroups).toStrictEqual([
-      ...storedGroups,
+      {
+        ...storedGroups[0],
+        parentCategoryId: undefined,
+        savedAt: undefined,
+        urlIds: [],
+      },
       appendedGroup,
     ])
 

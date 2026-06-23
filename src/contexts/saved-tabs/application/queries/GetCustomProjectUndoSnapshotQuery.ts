@@ -1,10 +1,13 @@
+import type { SavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/dto/SavedTabsCustomProjectRawSnapshotDto'
+import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsCustomProjectRawSnapshotMapper'
+import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
 } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * undo 用途の `CustomProject` 読み取りスナップショット (issue #538)。
@@ -20,9 +23,9 @@ import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects
  * `customProjectRepository.restoreAllRaw` / `saveAll` に渡す。
  */
 export interface CustomProjectUndoSnapshot {
-  customProjectOrder?: readonly CustomProjectId[]
-  customProjects?: readonly CustomProject[]
-  customProjectsRaw?: readonly CustomProjectRawSnapshot[]
+  customProjectOrder?: readonly string[]
+  customProjects?: readonly SavedTabsCustomProjectDto[]
+  customProjectsRaw?: readonly SavedTabsCustomProjectRawSnapshotDto[]
 }
 
 /**
@@ -83,20 +86,30 @@ export const createGetCustomProjectUndoSnapshotQuery = (
   return async (): Promise<CustomProjectUndoSnapshot> => {
     const order = await deps.customProjectRepository.findOrder()
     const base: CustomProjectUndoSnapshot =
-      order.length > 0 ? { customProjectOrder: order } : {}
+      order.length > 0 ? { customProjectOrder: [...order] } : {}
     if (deps.customProjectRepository.findAllRaw) {
       const raws = await deps.customProjectRepository.findAllRaw()
-      const projects: CustomProject[] = raws.map(entityFromRaw)
+      const projects = raws.map((raw) =>
+        toSavedTabsCustomProjectDto(entityFromRaw(raw)),
+      )
       return {
         ...base,
         ...(projects.length > 0 ? { customProjects: projects } : {}),
-        ...(raws.length > 0 ? { customProjectsRaw: raws } : {}),
+        ...(raws.length > 0
+          ? {
+              customProjectsRaw: raws.map(
+                toSavedTabsCustomProjectRawSnapshotDto,
+              ),
+            }
+          : {}),
       }
     }
     const projects = await deps.customProjectRepository.findAll()
     return {
       ...base,
-      ...(projects.length > 0 ? { customProjects: projects } : {}),
+      ...(projects.length > 0
+        ? { customProjects: projects.map(toSavedTabsCustomProjectDto) }
+        : {}),
     }
   }
 }

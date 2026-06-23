@@ -1,6 +1,3 @@
-import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
-import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-
 /**
  * `MoveDomainToCategoryCommand` の入力。
  *
@@ -20,6 +17,6 @@ import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-object
  * ```
  */
 export interface MoveDomainToCategoryCommand {
-  readonly domain: DomainName
-  readonly parentCategoryId: ParentCategoryId
+  readonly domain: string
+  readonly parentCategoryId: string
 }

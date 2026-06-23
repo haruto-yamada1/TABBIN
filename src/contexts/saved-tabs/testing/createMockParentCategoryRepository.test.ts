@@ -33,4 +33,37 @@ describe('createMockParentCategoryRepository', () => {
     const all = await repo.findAll()
     expect(all.map((c) => c.id)).toStrictEqual(['c2'])
   })
+
+  it('removeByIds は指定 id の parent category だけを除外する', async () => {
+    const repo = createMockParentCategoryRepository({
+      parentCategories: [
+        toMockParentCategory({ id: 'c1', name: 'Docs' }),
+        toMockParentCategory({ id: 'c2', name: 'News' }),
+        toMockParentCategory({ id: 'c3', name: 'Work' }),
+      ],
+    })
+
+    await repo.removeByIds(['c1', 'c3'] as never)
+
+    const all = await repo.findAll()
+    expect(all.map((category) => category.id)).toStrictEqual(['c2'])
+  })
+
+  it('toMockParentCategory は domain fields を保持し配列をコピーする', () => {
+    const domainNames = ['example.com']
+    const domains = ['group-1']
+    const category = toMockParentCategory({
+      domainNames,
+      domains,
+      id: 'c1',
+      name: 'Docs',
+    })
+
+    expect(category).toMatchObject({
+      domainNames: ['example.com'],
+      domains: ['group-1'],
+    })
+    expect(category.domainNames).not.toBe(domainNames)
+    expect(category.domains).not.toBe(domains)
+  })
 })

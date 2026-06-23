@@ -137,4 +137,55 @@ describe('createSavedTabsPorts (app/composition)', () => {
       expect(() => notificationPort.info({ message: 'hello' })).not.toThrow()
     })
   })
+
+  it('browserWindowPort は chrome.windows.create に URL 配列を渡す', async () => {
+    const create = vi.fn(async () => ({
+      tabs: [{ url: 'https://example.com' }, { url: undefined }],
+    }))
+    setChromeApi({ windows: { create } })
+    const { browserWindowPort } = createSavedTabsPorts()
+
+    await expect(
+      browserWindowPort.openWithUrls({
+        urls: ['https://example.com', 'https://docs.example.com'],
+      }),
+    ).resolves.toEqual({ urls: ['https://example.com'] })
+    expect(create).toHaveBeenCalledWith({
+      focused: true,
+      url: ['https://example.com', 'https://docs.example.com'],
+    })
+  })
+
+  it('messagingPort は chrome.runtime.sendMessage に委譲する', async () => {
+    const sendMessage = vi.fn(
+      (_: unknown, callback?: (value: unknown) => void) =>
+        callback?.({ status: 'ok', success: true }),
+    )
+    setChromeApi({ runtime: { sendMessage } })
+    const { messagingPort } = createSavedTabsPorts()
+    const message = {
+      action: 'urlDragStarted' as const,
+      groupId: 'group-1',
+      url: 'https://example.com',
+    }
+
+    await expect(messagingPort.send(message)).resolves.toEqual({
+      status: 'ok',
+      success: true,
+    })
+    expect(sendMessage).toHaveBeenCalledWith(message, expect.any(Function))
+  })
+
+  it('storageChangePort は chrome.storage.onChanged の購読を解除できる', () => {
+    const addListener = vi.fn()
+    const removeListener = vi.fn()
+    setChromeApi({ storage: { onChanged: { addListener, removeListener } } })
+    const { storageChangePort } = createSavedTabsPorts()
+    const listener = vi.fn()
+
+    const unsubscribe = storageChangePort.subscribe(listener)
+    expect(addListener).toHaveBeenCalledWith(expect.any(Function))
+    unsubscribe()
+    expect(removeListener).toHaveBeenCalledWith(addListener.mock.calls[0]?.[0])
+  })
 })

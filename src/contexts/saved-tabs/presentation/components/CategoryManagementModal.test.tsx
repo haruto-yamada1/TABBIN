@@ -17,20 +17,11 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { z } from 'zod'
 
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
-import { createAddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
-import { createDeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
-import { createRemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
-import { createRenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
-import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type {
   CategoryManagementModalDeps,
   CategoryManagementModalUseCases,
@@ -222,85 +213,100 @@ const resetMockState = () => {
   }
 }
 
-const createMockRepositories = (): {
-  tabGroupRepository: TabGroupRepository
-  parentCategoryRepository: ParentCategoryRepository
-} => {
-  const tabGroupRepository: TabGroupRepository = {
-    findAll: vi.fn(
-      async () =>
-        [...mockStateRef.current.savedTabs] as unknown as ReturnType<
-          TabGroupRepository['findAll']
-        >,
-    ),
-
-    findById: vi.fn(
-      async (id) =>
-        (mockStateRef.current.savedTabs.find(
-          (g) => g.id === (id as unknown as string),
-        ) ?? null) as unknown as ReturnType<TabGroupRepository['findById']>,
-    ),
-    findRawDomainById: vi.fn(async () => null),
-    findRawTabGroupById: vi.fn(async () => null),
-
-    saveAll: vi.fn(async (groups) => {
-      mockStateRef.current.savedTabs = [
-        ...groups,
-      ] as unknown as typeof mockStateRef.current.savedTabs
-    }),
-
-    removeByIds: vi.fn(async (ids) => {
-      const idSet = new Set(ids as unknown as string[])
-      mockStateRef.current.savedTabs = mockStateRef.current.savedTabs.filter(
-        (g) => !idSet.has(g.id),
-      )
+const createMockRepositories = () => {
+  const tabGroupRepository = {
+    saveAll: vi.fn(async (groups: readonly TabGroup[]) => {
+      mockStateRef.current.savedTabs = [...groups]
     }),
   }
-  const parentCategoryRepository: ParentCategoryRepository = {
-    findAll: vi.fn(
-      async () =>
-        [...mockStateRef.current.parentCategories] as unknown as ReturnType<
-          ParentCategoryRepository['findAll']
-        >,
-    ),
-
-    findById: vi.fn(
-      async (id) =>
-        (mockStateRef.current.parentCategories.find(
-          (c) => c.id === (id as unknown as string),
-        ) ?? null) as unknown as ReturnType<
-          ParentCategoryRepository['findById']
-        >,
-    ),
-
-    saveAll: vi.fn(async (cats) => {
-      mockStateRef.current.parentCategories = [...cats]
+  const parentCategoryRepository = {
+    saveAll: vi.fn(async (categories: readonly ParentCategory[]) => {
+      mockStateRef.current.parentCategories = [...categories]
     }),
-
-    removeByIds: vi.fn(async (ids) => {
-      const idSet = new Set(ids as unknown as string[])
-      mockStateRef.current.parentCategories =
-        mockStateRef.current.parentCategories.filter((c) => !idSet.has(c.id))
-    }),
+    removeByIds: vi.fn(async () => {}),
   }
-  return { tabGroupRepository, parentCategoryRepository }
+  return { parentCategoryRepository, tabGroupRepository }
 }
 
-const createUseCases = (
-  parentCategoryRepository: ParentCategoryRepository,
-): CategoryManagementModalUseCases => ({
-  renameParentCategory: createRenameParentCategoryUseCase({
-    parentCategoryRepository,
-  }),
-  addDomainToParentCategory: createAddDomainToParentCategoryUseCase({
-    parentCategoryRepository,
-  }),
-  removeDomainFromParentCategory: createRemoveDomainFromParentCategoryUseCase({
-    parentCategoryRepository,
-  }),
-  deleteParentCategory: createDeleteParentCategoryUseCase({
-    parentCategoryRepository,
-  }),
+const createUseCases = (persistence: {
+  saveAll: (categories: readonly ParentCategory[]) => Promise<void>
+}): CategoryManagementModalUseCases => ({
+  renameParentCategory: async ({ categoryId, newName }) => {
+    const updated = mockStateRef.current.parentCategories.map((category) =>
+      category.id === categoryId ? { ...category, name: newName } : category,
+    )
+    await persistence.saveAll(updated)
+    return updated
+  },
+  addDomainToParentCategory: async ({ categoryId, domainId, domainName }) => {
+    const target = mockStateRef.current.parentCategories.find(
+      (category) => category.id === categoryId,
+    )
+    if (!target) {
+      throw new Error('Parent category not found')
+    }
+    if (
+      target.domains.includes(domainId) ||
+      target.domainNames.includes(domainName)
+    ) {
+      throw new Error('Domain already exists')
+    }
+    const updated = mockStateRef.current.parentCategories.map((category) =>
+      category.id === categoryId
+        ? {
+            ...category,
+            domains: [...category.domains, domainId],
+            domainNames: [...category.domainNames, domainName],
+          }
+        : category,
+    )
+    await persistence.saveAll(updated)
+    return updated
+  },
+  removeDomainFromParentCategory: async ({
+    categoryId,
+    domainId,
+    domainName,
+  }) => {
+    const target = mockStateRef.current.parentCategories.find(
+      (category) => category.id === categoryId,
+    )
+    if (!target) {
+      throw new Error('Parent category not found')
+    }
+    if (
+      !target.domains.includes(domainId) &&
+      !target.domainNames.includes(domainName)
+    ) {
+      throw new Error('Domain not found')
+    }
+    const updated = mockStateRef.current.parentCategories.map((category) =>
+      category.id === categoryId
+        ? {
+            ...category,
+            domains: category.domains.filter((id) => id !== domainId),
+            domainNames: category.domainNames.filter(
+              (name) => name !== domainName,
+            ),
+          }
+        : category,
+    )
+    await persistence.saveAll(updated)
+    return updated
+  },
+  deleteParentCategory: async ({ categoryId }) => {
+    const removedCategory = mockStateRef.current.parentCategories.find(
+      (category) => category.id === categoryId,
+    )
+    if (!removedCategory) {
+      throw new Error('Parent category not found')
+    }
+    const all = mockStateRef.current.parentCategories.filter(
+      (category) => category.id !== categoryId,
+    )
+    await persistence.saveAll(all)
+    return { all, removedCategory }
+  },
 })
 
 interface SetupMocksOptions {
@@ -491,7 +497,7 @@ describe('CategoryManagementModal', () => {
     // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredRename = createDeferred<void>()
     const renameParentCategory = vi.fn(
-      async (command: { categoryId: ParentCategoryId; newName: string }) => {
+      async (command: { categoryId: string; newName: string }) => {
         mockStateRef.current.parentCategories =
           mockStateRef.current.parentCategories.map((cat) =>
             cat.id === (command.categoryId as unknown as string)
@@ -587,7 +593,7 @@ describe('CategoryManagementModal', () => {
   it('リネーム開始/バリデーション/成功保存/closeガード（isRenaming）を処理する', async () => {
     const onClose = vi.fn()
     const renameParentCategory = vi.fn(
-      async (command: { categoryId: ParentCategoryId; newName: string }) => {
+      async (command: { categoryId: string; newName: string }) => {
         mockStateRef.current.parentCategories =
           mockStateRef.current.parentCategories.map((cat) =>
             cat.id === (command.categoryId as unknown as string)
@@ -728,7 +734,7 @@ describe('CategoryManagementModal', () => {
     // 状態 (mockStateRef) を更新しない (古い name のまま返す) シナリオで
     // 1次検証が失敗することを検証する。
     const renameParentCategory = vi.fn(
-      async (command: { categoryId: ParentCategoryId; newName: string }) => {
+      async (command: { categoryId: string; newName: string }) => {
         // 意図的に state を更新せず、元の name のまま返す
         return mockStateRef.current.parentCategories.map((cat) => ({
           ...cat,
@@ -1081,9 +1087,9 @@ describe('CategoryManagementModal', () => {
     const deferredAdd = createDeferred<void>()
     const addDomainToParentCategory = vi.fn(
       async (command: {
-        categoryId: ParentCategoryId
-        domainId: TabGroupId
-        domainName: DomainName
+        categoryId: string
+        domainId: string
+        domainName: string
       }) => {
         mockStateRef.current.parentCategories =
           mockStateRef.current.parentCategories.map((cat) =>
@@ -1187,9 +1193,9 @@ describe('CategoryManagementModal', () => {
     const addCallArg = vi.mocked(addDomainToParentCategory).mock
       .calls[0]?.[0] as
       | {
-          categoryId: ParentCategoryId
-          domainId: TabGroupId
-          domainName: DomainName
+          categoryId: string
+          domainId: string
+          domainName: string
         }
       | undefined
     expect(addCallArg?.categoryId).toBeTruthy()
@@ -1381,9 +1387,9 @@ describe('CategoryManagementModal', () => {
     const deferredRemove = createDeferred<void>()
     const removeDomainFromParentCategory = vi.fn(
       async (command: {
-        categoryId: ParentCategoryId
-        domainId: TabGroupId
-        domainName: DomainName
+        categoryId: string
+        domainId: string
+        domainName: string
       }) => {
         mockStateRef.current.parentCategories =
           mockStateRef.current.parentCategories.map((cat) =>

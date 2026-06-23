@@ -1,3 +1,4 @@
+import { toSavedTabsDisplayTabGroupDto } from './mappers/SavedTabsPresentationMapper'
 import { createGetCustomProjectOrderQuery } from './queries/GetCustomProjectOrderQuery'
 import { createGetCustomProjectRawsQuery } from './queries/GetCustomProjectRawsQuery'
 import { createGetCustomProjectsQuery } from './queries/GetCustomProjectsQuery'
@@ -167,7 +168,12 @@ export const createSavedTabsUseCases = (
   }),
   getSavedTabsPageData: createGetSavedTabsPageDataQuery({
     parentCategoryRepository: deps.parentCategoryRepository,
-    tabGroupRepository: deps.tabGroupRepository,
+    tabGroupReadPort: deps.savedTabsTabGroupReadPort ?? {
+      findAll: async () =>
+        (await deps.tabGroupRepository.findAll()).map(
+          toSavedTabsDisplayTabGroupDto,
+        ),
+    },
     userSettingsRepository: deps.userSettingsRepository,
   }),
   getSavedTabs: createGetSavedTabsQuery({

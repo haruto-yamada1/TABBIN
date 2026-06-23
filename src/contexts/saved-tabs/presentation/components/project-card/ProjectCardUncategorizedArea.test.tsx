@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path'
 // eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const projectCardI18nState = vi.hoisted(() => ({
@@ -50,26 +50,71 @@ vi.mock('@/contexts/saved-tabs/presentation/components/ProjectUrlItem', () => ({
 
 import { ProjectCardUncategorizedArea } from './ProjectCardUncategorizedArea'
 
-const createContextValue = () => ({
+interface TestProjectUrl {
+  readonly title: string
+  readonly url: string
+}
+
+interface TestProjectCardContextValue {
+  readonly handlers: {
+    readonly handleDeleteUrl: ReturnType<typeof vi.fn>
+    readonly handleOpenUrl: ReturnType<typeof vi.fn>
+    readonly handleSetUrlCategory: ReturnType<typeof vi.fn>
+  }
+  readonly hookState: {
+    readonly urls: {
+      readonly projectUrls: readonly TestProjectUrl[]
+      readonly uncategorizedUrls: readonly TestProjectUrl[]
+    }
+  }
+  readonly isUncategorizedOver: boolean
+  readonly project: {
+    readonly categories: readonly string[]
+    readonly id: string
+  }
+  readonly setUncategorizedDropRef: ReturnType<typeof vi.fn>
+  readonly settings: {
+    readonly confirmDeleteEach: boolean
+  }
+}
+
+interface TestProjectCardContextOverrides {
+  readonly handlers?: Partial<TestProjectCardContextValue['handlers']>
+  readonly hookState?: {
+    readonly urls?: Partial<TestProjectCardContextValue['hookState']['urls']>
+  }
+  readonly isUncategorizedOver?: boolean
+  readonly project?: Partial<TestProjectCardContextValue['project']>
+  readonly setUncategorizedDropRef?: TestProjectCardContextValue['setUncategorizedDropRef']
+  readonly settings?: Partial<TestProjectCardContextValue['settings']>
+}
+
+const createContextValue = (
+  overrides: TestProjectCardContextOverrides = {},
+): TestProjectCardContextValue => ({
   hookState: {
     urls: {
       projectUrls: [{ url: 'https://example.com', title: 'Example Tab' }],
       uncategorizedUrls: [{ url: 'https://example.com', title: 'Example Tab' }],
+      ...overrides.hookState?.urls,
     },
   },
   project: {
     id: 'project-1',
     categories: ['Work'],
+    ...overrides.project,
   },
   settings: {
     confirmDeleteEach: false,
+    ...overrides.settings,
   },
-  isUncategorizedOver: false,
-  setUncategorizedDropRef: vi.fn(),
+  isUncategorizedOver: overrides.isUncategorizedOver ?? false,
+  setUncategorizedDropRef: overrides.setUncategorizedDropRef ?? vi.fn(),
   handlers: {
     handleOpenUrl: vi.fn(),
     handleDeleteUrl: vi.fn(),
     handleSetUrlCategory: vi.fn(),
+    ...overrides.handlers,
   },
 })
 
@@ -98,5 +143,101 @@ describe('ProjectCardUncategorizedArea', () => {
 
     expect(screen.getByLabelText('Uncategorized tabs area')).toBeTruthy()
     expect(screen.getByText('Uncategorized tabs')).toBeTruthy()
+  })
+
+  it('カテゴリがない場合は未分類見出しを省略して URL 一覧だけ表示する', () => {
+    useProjectCardMock.mockReturnValue(
+      createContextValue({
+        project: {
+          id: 'project-1',
+          categories: [],
+        },
+      }),
+    )
+
+    render(<ProjectCardUncategorizedArea />)
+
+    expect(screen.getByText('Example Tab')).toBeTruthy()
+    expect(screen.queryByText('未分類のタブ')).toBeNull()
+  })
+
+  it('空の未分類エリアで選択中 URL が projectUrls にあれば未分類へ戻す', () => {
+    const handleSetUrlCategory = vi.fn()
+    vi.spyOn(window, 'getSelection').mockReturnValue({
+      toString: () => 'https://example.com',
+    } as Selection)
+    useProjectCardMock.mockReturnValue(
+      createContextValue({
+        hookState: {
+          urls: {
+            projectUrls: [{ url: 'https://example.com', title: 'Example Tab' }],
+            uncategorizedUrls: [],
+          },
+        },
+        handlers: {
+          handleSetUrlCategory,
+        },
+      }),
+    )
+
+    render(<ProjectCardUncategorizedArea />)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'タブをここにドロップして未分類に移動',
+      }),
+    )
+
+    expect(handleSetUrlCategory).toHaveBeenCalledWith(
+      'project-1',
+      'https://example.com',
+      undefined,
+    )
+  })
+
+  it('空の未分類エリアで選択中 URL が projectUrls にない場合は no-op', () => {
+    const handleSetUrlCategory = vi.fn()
+    vi.spyOn(window, 'getSelection').mockReturnValue({
+      toString: () => 'https://other.example.com',
+    } as Selection)
+    useProjectCardMock.mockReturnValue(
+      createContextValue({
+        hookState: {
+          urls: {
+            projectUrls: [{ url: 'https://example.com', title: 'Example Tab' }],
+            uncategorizedUrls: [],
+          },
+        },
+        handlers: {
+          handleSetUrlCategory,
+        },
+        isUncategorizedOver: true,
+      }),
+    )
+
+    render(<ProjectCardUncategorizedArea />)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'タブをここにドロップして未分類に移動',
+      }),
+    )
+
+    expect(handleSetUrlCategory).not.toHaveBeenCalled()
+  })
+
+  it('projectUrls が空なら未分類エリアを表示しない', () => {
+    useProjectCardMock.mockReturnValue(
+      createContextValue({
+        hookState: {
+          urls: {
+            projectUrls: [],
+            uncategorizedUrls: [],
+          },
+        },
+      }),
+    )
+
+    const { container } = render(<ProjectCardUncategorizedArea />)
+
+    expect(container.firstChild).toBeNull()
   })
 })

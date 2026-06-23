@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ParentCategoryDto } from '@/contexts/saved-tabs/domain/dto/ParentCategoryDto'
-import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import type {
+  SavedTabsParentCategoryDto as ParentCategoryDto,
+  SavedTabsDisplayTabGroupDto as TabGroupDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 import {
   buildPresentationCategoryLookup,

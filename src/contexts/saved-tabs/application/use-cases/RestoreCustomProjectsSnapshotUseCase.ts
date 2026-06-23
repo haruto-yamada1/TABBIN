@@ -1,9 +1,9 @@
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type {
-  CustomProjectRawSnapshot,
-  CustomProjectRepository,
-} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import type { SavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/dto/SavedTabsCustomProjectRawSnapshotDto'
+import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toCustomProjectRawSnapshot } from '@/contexts/saved-tabs/application/mappers/SavedTabsCustomProjectRawSnapshotMapper'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * undo 復元で `RestoreCustomProjectsSnapshotUseCase` に渡す payload。
@@ -16,9 +16,9 @@ import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects
  * `customProjectOrder ?? []` ではなく省略有無を意識する。
  */
 export interface RestoreCustomProjectsSnapshotPayload {
-  readonly customProjectOrder?: readonly CustomProjectId[]
-  readonly customProjects: readonly CustomProject[]
-  readonly customProjectsRaw?: readonly CustomProjectRawSnapshot[]
+  readonly customProjectOrder?: readonly string[]
+  readonly customProjects: readonly SavedTabsCustomProjectDto[]
+  readonly customProjectsRaw?: readonly SavedTabsCustomProjectRawSnapshotDto[]
 }
 
 /**
@@ -80,15 +80,14 @@ export const createRestoreCustomProjectsSnapshotUseCase = (
       deps.customProjectRepository.restoreAllRaw
     ) {
       await deps.customProjectRepository.restoreAllRaw(
-        payload.customProjectsRaw,
+        payload.customProjectsRaw.map(toCustomProjectRawSnapshot),
       )
     } else {
-      await deps.customProjectRepository.saveAll(payload.customProjects)
+      await deps.customProjectRepository.saveAll(
+        payload.customProjects.map(createCustomProject),
+      )
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const order = (payload.customProjectOrder ?? []) as unknown as Parameters<
-      CustomProjectRepository['saveOrder']
-    >[0]
+    const order = (payload.customProjectOrder ?? []).map(createCustomProjectId)
     await deps.customProjectRepository.saveOrder(order)
   }
 }

@@ -1,4 +1,4 @@
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { SavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 /**
  * `ReorderTabGroupsUseCase` の入力。
@@ -9,5 +9,5 @@ import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
  * `TabGroupRepository.saveAll` に委譲する（issue #494）。
  */
 export interface ReorderTabGroupsCommand {
-  readonly tabGroups: readonly TabGroup[]
+  readonly tabGroups: readonly SavedTabsTabGroupDto[]
 }

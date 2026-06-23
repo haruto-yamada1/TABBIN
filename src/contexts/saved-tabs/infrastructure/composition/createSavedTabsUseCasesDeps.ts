@@ -13,7 +13,10 @@ import { createChromeMigrationAdapter } from '@/contexts/saved-tabs/infrastructu
 import { createChromeParentCategoryRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeParentCategoryRepository'
 import { createLibRemoveSubCategoryFromTabGroupAdapter } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeRemoveSubCategoryFromTabGroupAdapter'
 import { createLibSetCategoryKeywordsAdapter } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeSetCategoryKeywordsAdapter'
-import { createChromeTabGroupRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeTabGroupRepository'
+import {
+  createChromeSavedTabsTabGroupReadAdapter,
+  createChromeTabGroupRepository,
+} from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeTabGroupRepository'
 import { createChromeUrlRecordRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUserSettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUserSettingsRepository'
 import { getChromeGlobal } from '@/lib/browser/chrome-global'
@@ -150,6 +153,7 @@ export const createSavedTabsUseCasesDeps = (
     storageChangePort: createChromeStorageChangeAdapter({
       getApi: () => getChromeApi(),
     }),
+    savedTabsTabGroupReadPort: createChromeSavedTabsTabGroupReadAdapter(port),
     tabGroupRepository: createChromeTabGroupRepository(port),
     urlRecordRepository: createChromeUrlRecordRepository(port),
     userSettingsRepository: createChromeUserSettingsRepository(port),

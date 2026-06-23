@@ -3,8 +3,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
 import { toStorageCustomProject } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
-import { UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/domain/entities/UncategorizedProject'
-import { customProjectIdToString } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import { savedTabsUncategorizedProjectId as UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/application/services/SavedTabsPresentationDefaults'
 import type {
   CustomProject,
   ProjectKeywordSettings,
@@ -135,7 +134,7 @@ const useProjectCrudHandlers = ({
         }
         await refs.deleteCustomProjectUseCaseRef
           .current({
-            projectId: customProjectIdToString(UNCATEGORIZED_PROJECT_ID),
+            projectId: UNCATEGORIZED_PROJECT_ID,
           })
           .catch(async () => {})
         await refs.deleteCustomProjectUseCaseRef.current({

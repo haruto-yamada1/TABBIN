@@ -1,5 +1,3 @@
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-
 /**
  * `SetCategoryKeywordsUseCase` の入力。
  *
@@ -21,7 +19,7 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * ```
  */
 export interface SetCategoryKeywordsCommand {
-  readonly tabGroupId: TabGroupId
+  readonly tabGroupId: string
   readonly categoryName: string
   readonly keywords: readonly string[]
 }

@@ -8,8 +8,11 @@ import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import {
   getSnapshotSavedTabs,
   toDomainParentCategories,
+  toDomainParentCategoriesFromStorage,
+  toDomainTabGroupsFromStorage,
   toDomainTabGroupsForReorder,
   toRestoreOpenedUrlsSnapshotCommand,
+  toSavedTabsTabGroupsFromStorage,
   toStorageCustomProject,
   toStorageCustomProjectFromRaw,
   toStorageCustomProjects,
@@ -315,6 +318,55 @@ describe('SavedTabsSnapshotMapper.toStorageParentCategories', () => {
         domainNames: ['example.com'],
         id: 'cat-1',
         name: 'Reading',
+      },
+    ])
+  })
+})
+
+describe('SavedTabsSnapshotMapper storage application bridges', () => {
+  it('storage tab groupsをdomainとapplication DTOへ変換する', () => {
+    const groups = [
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        parentCategoryId: 'category-1',
+        savedAt: 1,
+        urlIds: ['url-1'],
+      },
+    ]
+
+    expect(toDomainTabGroupsFromStorage(groups)[0]).toMatchObject({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1'],
+    })
+    expect(toSavedTabsTabGroupsFromStorage(groups)).toStrictEqual([
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        parentCategoryId: 'category-1',
+        savedAt: 1,
+        urlIds: ['url-1'],
+      },
+    ])
+  })
+
+  it('storage parent categoriesをdomainへ変換する', () => {
+    expect(
+      toDomainParentCategoriesFromStorage([
+        {
+          domainNames: ['example.com'],
+          domains: ['group-1'],
+          id: 'category-1',
+          name: 'Docs',
+        },
+      ]),
+    ).toStrictEqual([
+      {
+        domainNames: ['example.com'],
+        domains: ['group-1'],
+        id: 'category-1',
+        name: 'Docs',
       },
     ])
   })

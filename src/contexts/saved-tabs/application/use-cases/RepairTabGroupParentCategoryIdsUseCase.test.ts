@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { toSavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
@@ -77,7 +78,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
 
     const result = await useCase({
       parentCategories: [category],
-      tabGroups: [tabGroup],
+      tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
 
     expect(result.updated).toBe(true)
@@ -105,7 +106,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
 
     const result = await useCase({
       parentCategories: [category],
-      tabGroups: [tabGroup],
+      tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
 
     expect(result.updated).toBe(true)
@@ -132,7 +133,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
 
     const result = await useCase({
       parentCategories: [idCategory],
-      tabGroups: [tabGroup],
+      tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
 
     expect(result.tabGroups[0].parentCategoryId).toBe('cat-by-id')
@@ -160,7 +161,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
 
     const result = await useCase({
       parentCategories: [category],
-      tabGroups: [tabGroup],
+      tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
 
     expect(result.updated).toBe(false)
@@ -189,7 +190,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
 
     const result = await useCase({
       parentCategories: [category],
-      tabGroups: [tabGroup],
+      tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
 
     expect(result.updated).toBe(false)

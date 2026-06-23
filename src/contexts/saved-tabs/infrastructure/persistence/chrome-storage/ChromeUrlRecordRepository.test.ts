@@ -96,6 +96,37 @@ describe('ChromeUrlRecordRepository', () => {
       expect(result).toStrictEqual([])
     })
 
+    it('port 未指定で作った repository は default storage の set/remove wrapper を使う', async () => {
+      const state: StorageState = {
+        [URLS_KEY]: [
+          { id: 'url-1', savedAt: 1, title: 'A', url: 'https://example.com/a' },
+          { id: 'url-2', savedAt: 2, title: 'B', url: 'https://example.com/b' },
+        ],
+      }
+      const storage = {
+        get: vi.fn(async (key: string) => ({ [key]: state[key] })),
+        remove: vi.fn(async (key: string) => {
+          delete state[key]
+        }),
+        set: vi.fn(async (value: Record<string, unknown>) => {
+          Object.assign(state, value)
+        }),
+      }
+      vi.mocked(getChromeStorageLocal).mockReturnValue(storage as never)
+      const repo = createChromeUrlRecordRepository()
+
+      const record = createSampleRecord('url-3', 'https://example.com/c')
+      expect(record).not.toBeNull()
+      if (!record) {
+        return
+      }
+      await repo.saveAll([record])
+      await repo.removeByIds([createUrlRecordId('url-3')])
+
+      expect(storage.set).toHaveBeenCalledTimes(2)
+      expect(storage.get).toHaveBeenCalledWith(URLS_KEY)
+    })
+
     it('port 未指定で getChromeStorageLocal が null を返す場合は throw する', () => {
       const warnSpy = vi
         .spyOn(console, 'warn')

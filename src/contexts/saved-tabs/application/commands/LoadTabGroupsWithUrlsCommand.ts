@@ -1,4 +1,4 @@
-import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import type { SavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 /**
  * `LoadTabGroupsWithUrlsUseCase` の入力。
@@ -19,5 +19,5 @@ import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
  * `TabGroupUrlResolver.ts` 内で行う）。
  */
 export interface LoadTabGroupsWithUrlsCommand {
-  readonly tabGroups: readonly TabGroupDto[]
+  readonly tabGroups: readonly SavedTabsDisplayTabGroupDto[]
 }

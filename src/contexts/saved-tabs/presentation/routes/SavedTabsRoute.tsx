@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
+import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
 import { SavedTabsPage } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
@@ -8,7 +9,10 @@ import type { ViewMode } from '@/types/storage'
 
 export type SavedTabsDepsFactory = (options: {
   readonly resolveActive: () => boolean
-}) => SavedTabsUseCasesDeps
+}) => {
+  readonly deps: SavedTabsPresentationPorts
+  readonly useCases: SavedTabsUseCases
+}
 
 /**
  * `SavedTabsRoute` の props。
@@ -44,7 +48,7 @@ export const SavedTabsRoute = ({
   search,
 }: SavedTabsRouteProps) => {
   const resolveActiveRef = useRef<ResolveActiveRef['current']>(() => true)
-  const deps = useMemo(
+  const composition = useMemo(
     () => createDeps({ resolveActive: () => resolveActiveRef.current() }),
     [createDeps],
   )
@@ -53,11 +57,12 @@ export const SavedTabsRoute = ({
   )
   return (
     <SavedTabsPage
-      deps={deps}
+      deps={composition.deps}
       initialViewMode={initialViewMode}
       onViewModeNavigate={onViewModeNavigate}
       resolveActiveRef={resolveActiveRef}
       search={search}
+      useCases={composition.useCases}
     />
   )
 }

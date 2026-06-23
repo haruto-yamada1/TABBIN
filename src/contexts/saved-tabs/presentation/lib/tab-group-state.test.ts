@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest' // eslint-disable-line
 
-import type { ParentCategoryDto } from '@/contexts/saved-tabs/domain/dto/ParentCategoryDto'
-import { buildPresentationCategoryLookup } from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
+import type { SavedTabsParentCategoryDto as ParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { buildPresentationCategoryLookup } from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
 
 import {
   buildUpdatedGroupAfterUrlIdRemoval,

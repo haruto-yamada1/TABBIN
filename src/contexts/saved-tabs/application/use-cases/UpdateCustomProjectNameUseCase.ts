@@ -1,3 +1,5 @@
+import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
@@ -10,8 +12,8 @@ export interface UpdateCustomProjectNameCommand {
 }
 
 export interface UpdateCustomProjectNameResult {
-  readonly all: readonly CustomProject[]
-  readonly project: CustomProject
+  readonly all: readonly SavedTabsCustomProjectDto[]
+  readonly project: SavedTabsCustomProjectDto
 }
 
 export type UpdateCustomProjectNameUseCase = (
@@ -71,8 +73,8 @@ export const createUpdateCustomProjectNameUseCase = (
     }
     await deps.customProjectRepository.saveAll(updatedAll)
     return {
-      all: updatedAll,
-      project: updated,
+      all: updatedAll.map(toSavedTabsCustomProjectDto),
+      project: toSavedTabsCustomProjectDto(updated),
     }
   }
 }

@@ -4,6 +4,7 @@ import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedT
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import { reorderTabGroupUrlIds } from '@/contexts/saved-tabs/domain/services/TabGroupUrlReorderer'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
@@ -45,12 +46,13 @@ export const createReorderTabGroupUrlsUseCase = (
   deps: ReorderTabGroupUrlsUseCaseDeps,
 ): ReorderTabGroupUrlsUseCase => {
   return async (command) => {
+    const tabGroupId = createTabGroupId(command.tabGroupId)
     const [allTabGroups, allUrlRecords] = await Promise.all([
       deps.tabGroupRepository.findAll(),
       deps.urlRecordRepository.findAll(),
     ])
     const targetIndex = allTabGroups.findIndex(
-      (group) => group.id === command.tabGroupId,
+      (group) => group.id === tabGroupId,
     )
     if (targetIndex === -1) {
       throw new SavedTabsDomainError(

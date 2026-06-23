@@ -1,6 +1,8 @@
 import type { RemoveDomainsFromParentCategoriesCommand } from '@/contexts/saved-tabs/application/commands/RemoveDomainsFromParentCategoriesCommand'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
@@ -13,19 +15,17 @@ export interface RemoveDomainsFromParentCategoriesUseCaseDeps {
 /**
  * `RemoveDomainsFromParentCategoriesUseCase` の関数型。
  *
- * 成功時は domain 形 `ParentCategory[]` を返す。`domainIds` が空の場合は
+ * 成功時は application DTO を返す。`domainIds` が空の場合は
  * 何もせずに現在値をそのまま返す。対象 domain がどのカテゴリにも
  * 含まれていない場合も no-op として現在値を返す (旧
  * `removeDomainFromParentCategories` の挙動を踏襲する)。
  *
- * domain `ParentCategory` を返しているのは issue #511 で確立された
- * application 層 convention に従うため。presentation 側で
- * `setCategories` に渡す storage 形への widening は
- * `as unknown as` キャストまたは issue #511 の mapper 経由で行う。
+ * domain entity は application 内部で DTO に変換し、presentation へは
+ * 公開しない。
  */
 export type RemoveDomainsFromParentCategoriesUseCase = (
   command: RemoveDomainsFromParentCategoriesCommand,
-) => Promise<readonly ParentCategory[]>
+) => Promise<readonly SavedTabsParentCategoryDto[]>
 
 /**
  * `RemoveDomainsFromParentCategoriesUseCase` を生成する。
@@ -35,7 +35,7 @@ export type RemoveDomainsFromParentCategoriesUseCase = (
  * 2. 各 `ParentCategory.domains` から `command.domainIds` に含まれる
  *    `TabGroupId` を取り除く
  * 3. `parentCategoryRepository.saveAll` で全カテゴリを書き戻す
- * 4. 更新後の domain 形 `ParentCategory[]` を presentation 側へ返す
+ * 4. 更新後のカテゴリを application DTO に変換して返す
  *
  * 旧 `src/contexts/saved-tabs/presentation/app/SavedTabsApp.tsx` 内の
  * 以下の 2 箇所を use-case 経由へ置換する:
@@ -55,14 +55,14 @@ export const createRemoveDomainsFromParentCategoriesUseCase = (
   return async (command) => {
     const allCategories = await deps.parentCategoryRepository.findAll()
     if (command.domainIds.length === 0) {
-      return allCategories
+      return allCategories.map(toSavedTabsParentCategoryDto)
     }
-    const idSet = new Set<TabGroupId>(command.domainIds)
+    const idSet = new Set<TabGroupId>(command.domainIds.map(createTabGroupId))
     const updatedCategories = allCategories.map((category) => ({
       ...category,
       domains: category.domains.filter((domainId) => !idSet.has(domainId)),
     }))
     await deps.parentCategoryRepository.saveAll(updatedCategories)
-    return updatedCategories
+    return updatedCategories.map(toSavedTabsParentCategoryDto)
   }
 }

@@ -1,4 +1,4 @@
-import type { ResolvedTabGroupUrlDto } from '@/contexts/saved-tabs/domain/dto/ResolvedTabGroupUrlDto'
+import type { SavedTabsDisplayUrlDto } from './SavedTabsPresentationDto'
 
 /**
  * `LoadTabGroupUrlsUseCase` の戻り値 DTO。
@@ -10,5 +10,5 @@ import type { ResolvedTabGroupUrlDto } from '@/contexts/saved-tabs/domain/dto/Re
  * だけを返す (issue #511)。
  */
 export interface LoadTabGroupUrlsDto {
-  readonly urls: readonly ResolvedTabGroupUrlDto[]
+  readonly urls: readonly SavedTabsDisplayUrlDto[]
 }

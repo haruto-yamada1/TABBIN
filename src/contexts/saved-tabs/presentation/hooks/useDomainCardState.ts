@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
-  toDomainTabGroupFromStorage,
   toPresentationTabGroups,
   toStorageParentCategory,
 } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
@@ -257,9 +256,7 @@ export const useDomainCardState = ({
           }
           return tab
         })
-        await categoryAssignmentPort.saveTabGroups(
-          updatedTabs.map(toDomainTabGroupFromStorage),
-        )
+        await categoryAssignmentPort.saveTabGroups(updatedTabs)
       } catch (error) {
         console.error('カテゴリ順序の更新に失敗しました:', error)
       }

@@ -1,5 +1,11 @@
 import type { BuildSavedTabsSnapshotCommand } from '@/contexts/saved-tabs/application/commands/BuildSavedTabsSnapshotCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsParentCategoryDto,
+  toSavedTabsTabGroupDto,
+  toSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
@@ -65,13 +71,15 @@ export const createBuildSavedTabsSnapshotUseCase = (
       deps.parentCategoryRepository.findAll(),
       deps.urlRecordRepository.findAll(),
     ])
-    const parentCategories = command.parentCategories ?? storedCategories
+    const parentCategories =
+      command.parentCategories ??
+      storedCategories.map(toSavedTabsParentCategoryDto)
     return {
-      customProjectOrder: [...customProjectOrder],
-      customProjects: [...customProjects],
+      customProjectOrder: customProjectOrder.map(String),
+      customProjects: customProjects.map(toSavedTabsCustomProjectDto),
       parentCategories: [...parentCategories],
-      savedTabs: [...tabGroups],
-      urlRecords: [...urlRecords],
+      savedTabs: tabGroups.map(toSavedTabsTabGroupDto),
+      urlRecords: urlRecords.map(toSavedTabsUrlRecordDto),
     }
   }
 }

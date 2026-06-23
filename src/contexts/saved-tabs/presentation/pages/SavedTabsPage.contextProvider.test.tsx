@@ -2,212 +2,57 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
-import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
-import type { NotificationPort } from '@/contexts/saved-tabs/application/ports/NotificationPort'
-import type { SetCategoryKeywordsPort } from '@/contexts/saved-tabs/application/ports/SetCategoryKeywordsPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
-import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
-import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
-import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
-
-vi.mock('@/features/i18n/context/I18nProvider', () => ({
-  I18nProvider: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-  useI18n: () => ({
-    language: 'ja',
-    t: (key: string) => key,
-  }),
-  useI18nText: () => (key: string) => key,
-}))
-
-const createInMemoryDeps = (): SavedTabsUseCasesDeps => {
-  const tabGroupRepository: TabGroupRepository = {
-    findAll: async () => [],
-
-    findById: async () => null,
-    findRawDomainById: vi.fn(async () => null),
-    findRawTabGroupById: vi.fn(async () => null),
-
-    removeByIds: async () => undefined,
-
-    saveAll: async () => undefined,
-  }
-  const customProjectRepository: CustomProjectRepository = {
-    findAll: async () => [],
-
-    findById: async () => null,
-
-    removeByIds: async () => undefined,
-
-    saveAll: async () => undefined,
-
-    findOrder: async () => [],
-
-    saveOrder: async () => undefined,
-  }
-  const urlRecordRepository: UrlRecordRepository = {
-    findAll: async () => [],
-
-    findById: async () => null,
-
-    removeByIds: async () => undefined,
-
-    saveAll: async () => undefined,
-  }
-  const parentCategoryRepository: ParentCategoryRepository = {
-    findAll: async () => [],
-
-    findById: async () => null,
-
-    removeByIds: async () => undefined,
-
-    saveAll: async () => undefined,
-  }
-  const browserTabPort: BrowserTabPort = {
-    open: async (input: { url: string }) => ({ url: input.url }),
-  }
-  const browserWindowPort: BrowserWindowPort = {
-    openWithUrls: async (input: { urls: readonly string[] }) => ({
-      urls: [...input.urls],
-    }),
-  }
-  const notificationPort: NotificationPort = {
-    error: vi.fn(),
-    info: vi.fn(),
-    success: vi.fn(),
-  }
-  const setCategoryKeywordsPort: SetCategoryKeywordsPort = {
-    setCategoryKeywords: vi.fn().mockResolvedValue(undefined),
-  }
-  return {
-    browserTabPort,
-    browserWindowPort,
-    categoriesCommandService: {
-      updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
-    },
-    categoryAssignmentPort: {
-      saveParentCategories: vi.fn().mockResolvedValue(undefined),
-      saveTabGroups: vi.fn().mockResolvedValue(undefined),
-    },
-    customProjectRepository,
-    customProjectsCommandService: {
-      addCategoryToProject: vi.fn().mockResolvedValue(undefined),
-      addUrlToCustomProject: vi.fn().mockResolvedValue(undefined),
-      moveUrlBetweenCustomProjects: vi.fn().mockResolvedValue(undefined),
-      removeCategoryFromProject: vi.fn().mockResolvedValue(undefined),
-      removeUrlFromCustomProject: vi.fn().mockResolvedValue(undefined),
-      removeUrlIdsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
-      removeUrlsFromAllCustomProjects: vi.fn().mockResolvedValue(undefined),
-      removeUrlsFromCustomProject: vi.fn().mockResolvedValue(undefined),
-      renameCategoryInProject: vi.fn().mockResolvedValue(undefined),
-      reorderProjectUrls: vi.fn().mockResolvedValue(undefined),
-      setUrlCategory: vi.fn().mockResolvedValue(undefined),
-      updateCategoryOrder: vi.fn().mockResolvedValue(undefined),
-      updateProjectKeywords: vi.fn().mockResolvedValue(undefined),
-    },
-    domainCategoryMappingRepository: {
-      findAll: async () => [],
-
-      saveAll: async () => undefined,
-    },
-    domainCategorySettingsRepository: {
-      findAll: async () => [],
-
-      saveAll: async () => undefined,
-    },
-    migrationPort: {
-      migrateParentCategoriesToDomainNames: vi
-        .fn()
-        .mockResolvedValue(undefined),
-      migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
-    },
-    notificationPort,
-    parentCategoryRepository,
-    removeSubCategoryFromTabGroupPort: {
-      removeSubCategoryFromTabGroup: vi.fn().mockResolvedValue([]),
-    },
-    setCategoryKeywordsPort,
-    storageChangePort: {
-      subscribe: () => () => {},
-    },
-    messagingPort: {
-      send: vi.fn().mockResolvedValue(undefined),
-    },
-    tabGroupRepository,
-    urlRecordRepository,
-    userSettingsRepository: {
-      findAll: async () => ({}) as never,
-
-      save: async () => undefined,
-    },
-  }
-}
+import {
+  createSavedTabsPresentationPortsStub,
+  createSavedTabsUseCasesStub,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import type * as SavedTabsUseCasesContextModule from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 
 const probeState = vi.hoisted(() => ({
-  // probe が観測した context の storageChangePort 参照を保持し、
-  // テスト本体から参照同一性で検証する。
   capturedPort: null as StorageChangePort | null,
 }))
 
-const ContextProbe = ({ testId }: { testId: string }) => {
-  const context = useSavedTabsUseCases()
-  probeState.capturedPort = context?.deps.storageChangePort ?? null
-  const hasContext = context ? 'true' : 'false'
-  const hasPort = context?.deps.storageChangePort ? 'true' : 'false'
-  return (
-    <div
-      data-testid={testId}
-      data-has-context={hasContext}
-      data-has-port={hasPort}
-    />
-  )
-}
-
 vi.mock(
   '@/contexts/saved-tabs/presentation/components/SavedTabsPresentationLayout',
-  () => ({
-    SavedTabsPresentationLayout: () => <ContextProbe testId='context-probe' />,
-  }),
+  async () => {
+    const { useSavedTabsUseCases } = await vi.importActual<
+      typeof SavedTabsUseCasesContextModule
+    >('@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext')
+    return {
+      SavedTabsPresentationLayout: () => {
+        const context = useSavedTabsUseCases()
+        probeState.capturedPort = context?.deps.storageChangePort ?? null
+        return (
+          <div
+            data-testid='context-probe'
+            data-has-context={Boolean(context)}
+          />
+        )
+      },
+    }
+  },
 )
 
 import { SavedTabsPage } from './SavedTabsPage'
 
-describe('SavedTabsPage / issue #495 review P2', () => {
+describe('SavedTabsPage provider', () => {
   afterEach(() => {
     cleanup()
-    vi.clearAllMocks()
     probeState.capturedPort = null
   })
 
-  it('SavedTabsUseCasesProvider を mount し storageChangePort を配布する', () => {
-    // Codex review P2 指摘: SavedTabsPage が provider を介さずに
-    // SavedTabsPresentationLayout を直接レンダリングしていたため、
-    // 子コンポーネント (例: DomainCardActions) から
-    // `useSavedTabsUseCases()` を呼ぶと `null` が返り、
-    // `storageChangePort` が undefined になっていた。
-    // provider を page 配下に置くことで、deps.storageChangePort が
-    // 子コンポーネントへ確実に届くことを検証する。
-    const subscribeSpy = vi.fn(() => () => {})
+  it('presentation ports と use-cases を context へ配布する', () => {
     const storageChangePort: StorageChangePort = {
-      subscribe: subscribeSpy,
+      subscribe: vi.fn(() => () => {}),
     }
-    const deps: SavedTabsUseCasesDeps = {
-      ...createInMemoryDeps(),
-      storageChangePort,
-    }
-    render(<SavedTabsPage deps={deps} />)
-    const probe = screen.getByTestId('context-probe')
-    expect(probe.getAttribute('data-has-context')).toBe('true')
-    // deps で渡した storageChangePort が context 経由で取得できる
-    // ことを verify する。provider が null だと
-    // `useSavedTabsUseCases()` が undefined を返し、
-    // 配下の KeywordModal が subscribe できない (Codex 指摘)
-    expect(probe.getAttribute('data-has-port')).toBe('true')
+    const deps = createSavedTabsPresentationPortsStub({ storageChangePort })
+    const useCases = createSavedTabsUseCasesStub({
+      getCustomProjects: vi.fn(async () => []),
+      getSavedTabs: vi.fn(async () => []),
+    })
+    render(<SavedTabsPage deps={deps} useCases={useCases} />)
+    expect(screen.getByTestId('context-probe').dataset.hasContext).toBe('true')
     expect(probeState.capturedPort).toBe(storageChangePort)
   })
 })

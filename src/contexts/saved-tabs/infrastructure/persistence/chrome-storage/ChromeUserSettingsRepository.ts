@@ -10,20 +10,21 @@ import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import { USER_SETTINGS_KEY } from './savedTabsStorageKeys'
 
-const getDefaultPort = (): ChromeStorageLocalPort | null => {
+type ChromeUserSettingsStoragePort = Pick<ChromeStorageLocalPort, 'get' | 'set'>
+
+const getDefaultPort = (): ChromeUserSettingsStoragePort | null => {
   const local = getChromeStorageLocal()
   if (!local) {
     return null
   }
   return {
     get: async (key) => local.get(key),
-    remove: async (key) => local.remove(key),
     set: async (value) => local.set(value),
   }
 }
 
 const createChromeUserSettingsRepositoryImpl = (
-  port: ChromeStorageLocalPort,
+  port: ChromeUserSettingsStoragePort,
 ): UserSettingsRepository => {
   const findAll = async (): Promise<UserSettingsDto> => {
     const result = await port.get(USER_SETTINGS_KEY)
@@ -57,7 +58,7 @@ const createChromeUserSettingsRepositoryImpl = (
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */
 export const createChromeUserSettingsRepository = (
-  port: ChromeStorageLocalPort | null = getDefaultPort(),
+  port: ChromeUserSettingsStoragePort | null = getDefaultPort(),
 ): UserSettingsRepository => {
   if (!port) {
     warnMissingChromeStorage('ChromeUserSettingsRepository')

@@ -2,7 +2,6 @@ import { useCallback, useEffect } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import { customProjectIdToString } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import type { CustomProject, ViewMode } from '@/types/storage'
 
 import { toRawStorageCustomProject } from './projectManagementDefaults'
@@ -263,7 +262,7 @@ const useProjectCategoryHandlers = ({
           refs.getCustomProjectOrderQueryRef.current(),
         ])
         const projectsAsCust = raws.map(toRawStorageCustomProject)
-        const orderKeys = order.map(customProjectIdToString)
+        const orderKeys = [...order]
         const ordered =
           orderKeys.length > 0
             ? [

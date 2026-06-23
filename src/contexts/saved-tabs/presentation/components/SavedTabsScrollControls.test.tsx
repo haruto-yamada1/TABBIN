@@ -83,6 +83,7 @@ describe('contexts/SavedTabsScrollControls', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     cleanup()
     document.body.innerHTML = ''
   })
@@ -207,6 +208,12 @@ describe('contexts/SavedTabsScrollControls', () => {
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
   })
 
+  it('alt + 未知 key は無視される', () => {
+    renderWithContainer('domain')
+    fireEvent.keyDown(window, { altKey: true, key: 'Home' })
+    expect(scrollControlState.getRelativeScrollTarget).not.toHaveBeenCalled()
+  })
+
   it('scrollContainerRef.current が null のときは useEffect が早期 return する', () => {
     const Probe = () => {
       const ref = useRef<HTMLDivElement | null>(null)
@@ -280,6 +287,18 @@ describe('contexts/SavedTabsScrollControls', () => {
     expect(scrollControlState.scrollContainerToTarget).toHaveBeenCalled()
   })
 
+  it('highlight は timeout 後に解除される', () => {
+    vi.useFakeTimers()
+    const target = document.createElement('div')
+    scrollControlState.getRelativeScrollTarget.mockReturnValue(target)
+    renderWithContainer('domain')
+
+    fireEvent.click(screen.getByLabelText('Scroll to previous parent category'))
+    expect(target.classList.contains('saved-tabs-scroll-highlight')).toBe(true)
+    void act(() => vi.advanceTimersByTime(1_200))
+    expect(target.classList.contains('saved-tabs-scroll-highlight')).toBe(false)
+  })
+
   it('getRelativeScrollTarget が null を返す場合 updateAvailability だけ呼んで早期 return', () => {
     scrollControlState.getRelativeScrollTarget.mockReturnValue(null)
     renderWithContainer('domain')
@@ -307,5 +326,42 @@ describe('contexts/SavedTabsScrollControls', () => {
     })
     fireEvent.click(screen.getByLabelText('Scroll to top'))
     expect(scrollTo).toHaveBeenCalled()
+  })
+
+  it('描画後に ref が null になった top/bottom/relative 操作は no-op', () => {
+    const ref: { current: HTMLDivElement | null } = {
+      current: document.createElement('div'),
+    }
+    render(
+      <SavedTabsScrollControls scrollContainerRef={ref} viewMode='domain' />,
+    )
+    ref.current = null
+
+    fireEvent.click(screen.getByLabelText('Scroll to top'))
+    fireEvent.click(screen.getByLabelText('Scroll to bottom'))
+    fireEvent.click(screen.getByLabelText('Scroll to previous parent category'))
+
+    expect(scrollControlState.scrollContainerToTarget).not.toHaveBeenCalled()
+  })
+
+  it('button 長押しで遅延後に scroll を反復し mouseUp で停止する', () => {
+    vi.useFakeTimers()
+    const container = renderWithContainer('domain')
+    expect(container).not.toBeNull()
+    const scrollTo = vi.fn()
+    Object.defineProperty(container, 'scrollTo', {
+      configurable: true,
+      value: scrollTo,
+    })
+    const topButton = screen.getByLabelText('Scroll to top')
+
+    fireEvent.mouseDown(topButton)
+    void act(() => vi.advanceTimersByTime(700))
+    fireEvent.mouseUp(topButton)
+    const callsAfterMouseUp = scrollTo.mock.calls.length
+    void act(() => vi.advanceTimersByTime(500))
+
+    expect(callsAfterMouseUp).toBeGreaterThan(0)
+    expect(scrollTo).toHaveBeenCalledTimes(callsAfterMouseUp)
   })
 })

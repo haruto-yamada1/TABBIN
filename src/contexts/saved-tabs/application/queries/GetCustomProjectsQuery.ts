@@ -1,4 +1,5 @@
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
 /**
@@ -14,7 +15,9 @@ import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repos
  * 純粋な read-only query。state は持たず、副作用は
  * `customProjectRepository.findAll()` 呼び出しのみ。
  */
-export type GetCustomProjectsQuery = () => Promise<readonly CustomProject[]>
+export type GetCustomProjectsQuery = () => Promise<
+  readonly SavedTabsCustomProjectDto[]
+>
 
 /**
  * `GetCustomProjectsQuery` が依存する repository 群。
@@ -41,5 +44,8 @@ export interface GetCustomProjectsQueryDeps {
 export const createGetCustomProjectsQuery = (
   deps: GetCustomProjectsQueryDeps,
 ): GetCustomProjectsQuery => {
-  return async () => deps.customProjectRepository.findAll()
+  return async () =>
+    (await deps.customProjectRepository.findAll()).map(
+      toSavedTabsCustomProjectDto,
+    )
 }

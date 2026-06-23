@@ -12,7 +12,7 @@ import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type {
   CustomProject,
   ParentCategory,
@@ -495,7 +495,7 @@ const SavedTabsApp = ImportedSavedTabsApp as unknown as React.ComponentType<{
 import {
   buildPresentationCategoryLookup,
   organizeTabGroupsWithCategories,
-} from '@/contexts/saved-tabs/domain/services/SavedTabsCategorizationService'
+} from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
 import {
   buildDisplayTabGroup,
   getDisplayUrlCount,

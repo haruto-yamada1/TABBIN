@@ -1,5 +1,6 @@
 import type { MoveDomainBetweenCategoriesCommand } from '@/contexts/saved-tabs/application/commands/MoveDomainBetweenCategoriesCommand'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { moveDomainBetweenCategories } from '@/contexts/saved-tabs/domain/services/CategoryDomainMoveService'
 import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
@@ -15,14 +16,14 @@ export interface MoveDomainBetweenCategoriesUseCaseDeps {
 /**
  * `MoveDomainBetweenCategoriesUseCase` の関数型。
  *
- * 成功時は更新後の domain 形 `ParentCategory[]` を返す。
+ * 成功時は更新後の application DTO を返す。
  * `command.tabGroups` から対象 `domainId` が見つからない場合は
  * `moved=false` 相当の結果（カテゴリを一切変更しない）を返す（旧
  * `useCategoryManagement.handleMoveDomainToCategory` の挙動と一致）。
  */
 export type MoveDomainBetweenCategoriesUseCase = (
   command: MoveDomainBetweenCategoriesCommand,
-) => Promise<readonly ParentCategory[]>
+) => Promise<readonly SavedTabsParentCategoryDto[]>
 
 /**
  * `MoveDomainBetweenCategoriesUseCase` を生成する。
@@ -33,7 +34,7 @@ export type MoveDomainBetweenCategoriesUseCase = (
  * 2. domain `CategoryDomainMoveService.moveDomainBetweenCategories` で
  *    カテゴリ配列の `domains` / `domainNames` を更新する。
  * 3. `parentCategoryRepository.saveAll` で全カテゴリを書き戻す。
- * 4. 更新後の domain 形 `ParentCategory[]` を presentation 側へ返す。
+ * 4. 更新後のカテゴリを application DTO に変換して返す。
  *
  * 旧
  * `src/contexts/saved-tabs/presentation/hooks/useCategoryManagement.ts`
@@ -54,7 +55,7 @@ export const createMoveDomainBetweenCategoriesUseCase = (
       (group) => group.id === command.domainId,
     )
     if (!domainGroup) {
-      return allCategories
+      return allCategories.map(toSavedTabsParentCategoryDto)
     }
     const { updatedCategories } = moveDomainBetweenCategories({
       categories: allCategories,
@@ -64,6 +65,6 @@ export const createMoveDomainBetweenCategoriesUseCase = (
       toCategoryId: command.toCategoryId,
     })
     await deps.parentCategoryRepository.saveAll(updatedCategories)
-    return updatedCategories
+    return updatedCategories.map(toSavedTabsParentCategoryDto)
   }
 }

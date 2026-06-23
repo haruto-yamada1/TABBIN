@@ -1,7 +1,9 @@
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import type {
+  SavedTabsCustomProjectDto,
+  SavedTabsParentCategoryDto,
+  SavedTabsTabGroupDto,
+  SavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 /**
  * `RestoreOpenedUrlsSnapshotUseCase` の入力。
@@ -24,11 +26,11 @@ import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
  * ```
  */
 export interface OpenedUrlsRestoreSnapshot {
-  readonly savedTabs?: readonly TabGroup[]
-  readonly urlRecords?: readonly UrlRecord[]
-  readonly customProjects?: readonly CustomProject[]
+  readonly savedTabs?: readonly SavedTabsTabGroupDto[]
+  readonly urlRecords?: readonly SavedTabsUrlRecordDto[]
+  readonly customProjects?: readonly SavedTabsCustomProjectDto[]
   readonly customProjectOrder?: readonly string[]
-  readonly parentCategories?: readonly ParentCategory[]
+  readonly parentCategories?: readonly SavedTabsParentCategoryDto[]
 }
 
 /**

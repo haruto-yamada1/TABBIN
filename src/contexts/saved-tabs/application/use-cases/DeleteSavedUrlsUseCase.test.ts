@@ -263,6 +263,89 @@ describe('DeleteSavedUrlsUseCase', () => {
     ).toStrictEqual(['url-1'])
   })
 
+  it('URL record が存在しても対象 group が参照していなければ no-op', async () => {
+    const group = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-other'],
+    })
+    const record = createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    })
+    const repos = createInMemoryRepositories({
+      tabGroups: [group],
+      urlRecords: [record],
+    })
+
+    const result = await createDeleteSavedUrlsUseCase(repos)({
+      tabGroupId: group.id,
+      urls: [record.url],
+    })
+
+    expect(result).toStrictEqual({
+      removedTabGroupIds: [],
+      removedUrlRecordIds: [],
+      removedUrlRecords: [],
+      snapshot: null,
+    })
+  })
+
+  it('対象 group が残り URL を持ち、削除 URL が他所で参照中なら snapshot null', async () => {
+    const targetGroup = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1', 'url-2'],
+    })
+    const otherGroup = createTabGroup({
+      domain: 'other.com',
+      id: 'group-2',
+      urlIds: ['url-1'],
+    })
+    const url1 = createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    })
+    const url2 = createUrlRecord({
+      id: 'url-2',
+      savedAt: 1,
+      title: 'B',
+      url: 'https://example.com/b',
+    })
+    const unrelatedProject = createCustomProject({
+      categories: [],
+      createdAt: 1,
+      id: 'project-1',
+      name: 'Unrelated',
+      updatedAt: 1,
+      urlIds: ['url-2'],
+    })
+    const repos = createInMemoryRepositories({
+      customProjects: [unrelatedProject],
+      tabGroups: [targetGroup, otherGroup],
+      urlRecords: [url1, url2],
+    })
+
+    const result = await createDeleteSavedUrlsUseCase(repos)({
+      tabGroupId: targetGroup.id,
+      urls: [url1.url],
+    })
+
+    expect(result.snapshot).toBeNull()
+    expect(result.removedUrlRecordIds).toStrictEqual([])
+    expect(
+      (await repos.tabGroupRepository.findById(targetGroup.id))?.urlIds,
+    ).toStrictEqual(['url-2'])
+    expect(
+      (await repos.customProjectRepository.findById(unrelatedProject.id))
+        ?.urlIds,
+    ).toStrictEqual(['url-2'])
+  })
+
   it('空配列のときは port を呼ばず早期 return する', async () => {
     const repos = createInMemoryRepositories()
     const useCase = createDeleteSavedUrlsUseCase(repos)

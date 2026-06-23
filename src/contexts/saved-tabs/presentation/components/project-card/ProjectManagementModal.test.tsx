@@ -379,6 +379,68 @@ describe('ProjectManagementModal', () => {
     })
   })
 
+  it('各 keyword input の Enter/blur と URL/domain 削除を処理する', async () => {
+    const onUpdateProjectKeywords = vi.fn().mockResolvedValue(undefined)
+    render(
+      <ProjectManagementModal
+        isOpen
+        onClose={vi.fn()}
+        project={project}
+        onUpdateProjectKeywords={onUpdateProjectKeywords}
+      />,
+    )
+    const titleInput = screen.getByLabelText('タイトルキーワード')
+    const urlInput = screen.getByLabelText('URLキーワード')
+    const domainInput = screen.getByLabelText('ドメインキーワード')
+
+    fireEvent.change(titleInput, { target: { value: 'release' } })
+    fireEvent.blur(titleInput)
+    fireEvent.change(urlInput, { target: { value: 'spec' } })
+    fireEvent.keyDown(urlInput, { key: 'Enter' })
+    fireEvent.change(domainInput, { target: { value: 'github.com' } })
+    fireEvent.blur(domainInput)
+
+    const urlDeleteButton = screen
+      .getByText('docs')
+      .parentElement?.querySelector('button')
+    if (!urlDeleteButton) {
+      throw new Error('URL keyword delete button not found')
+    }
+    fireEvent.click(urlDeleteButton)
+    const domainDeleteButton = screen
+      .getByText('example.com')
+      .parentElement?.querySelector('button')
+    if (!domainDeleteButton) {
+      throw new Error('domain keyword delete button not found')
+    }
+    fireEvent.click(domainDeleteButton)
+
+    await waitFor(() => {
+      expect(onUpdateProjectKeywords).toHaveBeenCalledWith(
+        'project-1',
+        expect.objectContaining({ urlKeywords: ['spec'] }),
+      )
+      expect(onUpdateProjectKeywords).toHaveBeenCalledWith(
+        'project-1',
+        expect.objectContaining({ domainKeywords: ['github.com'] }),
+      )
+    })
+  })
+
+  it('未分類プロジェクト名の click は rename を開始しない', () => {
+    render(
+      <ProjectManagementModal
+        isOpen
+        onClose={vi.fn()}
+        project={uncategorizedProject}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('未分類'))
+
+    expect(screen.queryByRole('textbox', { name: 'プロジェクト名' })).toBeNull()
+  })
+
   it('削除ハンドラ未設定でも例外で落とさない', async () => {
     render(
       <ProjectManagementModal isOpen onClose={vi.fn()} project={project} />,

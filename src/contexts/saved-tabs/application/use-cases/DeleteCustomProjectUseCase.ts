@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
+import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type {
@@ -18,7 +20,7 @@ export interface DeleteCustomProjectCommand {
 }
 
 export interface DeleteCustomProjectResult {
-  readonly all: readonly CustomProject[]
+  readonly all: readonly SavedTabsCustomProjectDto[]
 }
 
 export type DeleteCustomProjectUseCase = (
@@ -174,7 +176,7 @@ export const createDeleteCustomProjectUseCase = (
       }
     }
     return {
-      all: remaining,
+      all: remaining.map(toSavedTabsCustomProjectDto),
     }
   }
 }

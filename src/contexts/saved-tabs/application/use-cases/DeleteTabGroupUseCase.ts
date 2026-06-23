@@ -1,11 +1,16 @@
 import type { DeleteTabGroupCommand } from '@/contexts/saved-tabs/application/commands/DeleteTabGroupCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { DeletedTabGroupDto } from '@/contexts/saved-tabs/application/dto/DeletedTabGroupDto'
+import {
+  toSavedTabsTabGroupDto,
+  toSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import { filterUnreferencedUrlRecords } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
+import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
  * `DeleteTabGroupUseCase` が依存する repository 群。
@@ -48,15 +53,14 @@ export const createDeleteTabGroupUseCase = (
   deps: DeleteTabGroupUseCaseDeps,
 ): DeleteTabGroupUseCase => {
   return async (command) => {
+    const tabGroupId = createTabGroupId(command.tabGroupId)
     const [allTabGroups, allUrlRecords, allCustomProjects] = await Promise.all([
       deps.tabGroupRepository.findAll(),
       deps.urlRecordRepository.findAll(),
       deps.customProjectRepository.findAll(),
     ])
 
-    const targetGroup = allTabGroups.find(
-      (group) => group.id === command.tabGroupId,
-    )
+    const targetGroup = allTabGroups.find((group) => group.id === tabGroupId)
     if (!targetGroup) {
       throw new SavedTabsDomainError(
         '削除対象の TabGroup が見つかりません',
@@ -90,8 +94,8 @@ export const createDeleteTabGroupUseCase = (
       customProjectOrder: undefined,
       customProjects: undefined,
       parentCategories: undefined,
-      savedTabs: [targetGroup],
-      urlRecords: removedUrlRecords,
+      savedTabs: [toSavedTabsTabGroupDto(targetGroup)],
+      urlRecords: removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }
 
     return {

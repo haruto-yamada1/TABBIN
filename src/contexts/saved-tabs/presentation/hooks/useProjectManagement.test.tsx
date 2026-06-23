@@ -3,14 +3,32 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type {
-  CustomProjectRawSnapshot,
-  CustomProjectRepository,
-} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProject } from '@/types/storage'
 
 import { useProjectManagement } from './useProjectManagement'
+
+interface CustomProjectRawSnapshot {
+  id: string
+  name: string
+  categories: readonly string[]
+  createdAt: number
+  updatedAt: number
+  urlIds?: readonly string[]
+  urls?: readonly {
+    id?: string
+    url: string
+    title: string
+    savedAt?: number
+  }[]
+  urlMetadata?: Readonly<Record<string, { notes?: string; category?: string }>>
+  projectKeywords?: {
+    urlKeywords: readonly string[]
+    titleKeywords: readonly string[]
+    domainKeywords: readonly string[]
+  }
+  categoryOrder?: readonly string[]
+}
 
 const projectManagementMocks = vi.hoisted(() => ({
   // issue #539 / #540 で application use-case へ移設した 10 操作の
@@ -228,7 +246,7 @@ describe('useProjectManagement', () => {
       saveAll: vi.fn(),
       findOrder: vi.fn(),
       saveOrder: vi.fn(),
-    } as unknown as CustomProjectRepository
+    }
     ;(
       customProjectRepository.findOrder as unknown as {
         mockResolvedValue: (value: unknown) => void
@@ -274,9 +292,7 @@ describe('useProjectManagement', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
         customProjectRepository.saveOrder(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-          command.newOrder as unknown as Parameters<
-            CustomProjectRepository['saveOrder']
-          >[0],
+          command.newOrder,
         ),
     )
     // `getCustomProjectRaws` は `customProjectRepository.findAllRaw` を
@@ -348,9 +364,7 @@ describe('useProjectManagement', () => {
         } else if (payload.customProjects) {
           await customProjectRepository.saveAll(
             // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-            payload.customProjects as unknown as Parameters<
-              CustomProjectRepository['saveAll']
-            >[0],
+            payload.customProjects,
           )
         }
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion

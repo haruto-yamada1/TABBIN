@@ -1,5 +1,4 @@
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * presentation 層が「`CustomProject` の表示順 (ID 配列)」を必要とするときの
@@ -15,9 +14,7 @@ import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects
  * branded 型を維持し、presentation 層で `string` 配列として扱いたい
  * 場合は呼び出し側で widen する。
  */
-export type GetCustomProjectOrderQuery = () => Promise<
-  readonly CustomProjectId[]
->
+export type GetCustomProjectOrderQuery = () => Promise<readonly string[]>
 
 /**
  * `GetCustomProjectOrderQuery` が依存する repository 群。
@@ -43,5 +40,6 @@ export interface GetCustomProjectOrderQueryDeps {
 export const createGetCustomProjectOrderQuery = (
   deps: GetCustomProjectOrderQueryDeps,
 ): GetCustomProjectOrderQuery => {
-  return async () => deps.customProjectRepository.findOrder()
+  return async () =>
+    (await deps.customProjectRepository.findOrder()).map(String)
 }

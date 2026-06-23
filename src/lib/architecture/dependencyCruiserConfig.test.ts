@@ -210,6 +210,24 @@ describe('dependency-cruiser architecture rules', () => {
       },
     },
     {
+      name: 'presentation dependencies on domain',
+      rule: 'no-presentation-to-domain',
+      files: {
+        'src/contexts/foo/domain/entity.ts': 'export const entity = 1\n',
+        'src/contexts/foo/presentation/view.ts': "import '../domain/entity'\n",
+      },
+    },
+    {
+      name: 'type-only presentation dependencies on domain',
+      rule: 'no-presentation-to-domain',
+      files: {
+        'src/contexts/foo/domain/entity.ts':
+          'export interface DomainEntity {}\n',
+        'src/contexts/foo/presentation/view.ts':
+          "import type { DomainEntity } from '../domain/entity'\nexport type ViewEntity = DomainEntity\n",
+      },
+    },
+    {
       name: 'direct dependencies between contexts',
       rule: 'no-foo-to-other-context',
       files: {

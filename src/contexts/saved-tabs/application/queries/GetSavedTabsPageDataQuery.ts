@@ -1,8 +1,14 @@
-import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type {
+  SavedTabsParentCategoryDto,
+  SavedTabsDisplayTabGroupDto,
+  SavedTabsUserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import {
+  toSavedTabsParentCategoryDto,
+  toSavedTabsUserSettingsDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import type { SavedTabsTabGroupReadPort } from '@/contexts/saved-tabs/application/ports/SavedTabsTabGroupReadPort'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
 
 /**
@@ -19,9 +25,9 @@ import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/reposi
  * `tabGroups` / `parentCategories` は branded domain entity のまま。
  */
 export interface SavedTabsPageDataDto {
-  readonly tabGroups: readonly TabGroup[]
-  readonly parentCategories: readonly ParentCategory[]
-  readonly userSettings: UserSettingsDto
+  readonly tabGroups: readonly SavedTabsDisplayTabGroupDto[]
+  readonly parentCategories: readonly SavedTabsParentCategoryDto[]
+  readonly userSettings: SavedTabsUserSettingsDto
 }
 
 /**
@@ -33,7 +39,7 @@ export type GetSavedTabsPageDataQuery = () => Promise<SavedTabsPageDataDto>
  * `GetSavedTabsPageDataQuery` が依存する repository 群。
  */
 export interface GetSavedTabsPageDataQueryDeps {
-  readonly tabGroupRepository: TabGroupRepository
+  readonly tabGroupReadPort: SavedTabsTabGroupReadPort
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly userSettingsRepository: UserSettingsRepository
 }
@@ -60,14 +66,14 @@ export const createGetSavedTabsPageDataQuery = (
 ): GetSavedTabsPageDataQuery => {
   return async (): Promise<SavedTabsPageDataDto> => {
     const [tabGroups, parentCategories, userSettings] = await Promise.all([
-      deps.tabGroupRepository.findAll(),
+      deps.tabGroupReadPort.findAll(),
       deps.parentCategoryRepository.findAll(),
       deps.userSettingsRepository.findAll(),
     ])
     return {
+      parentCategories: parentCategories.map(toSavedTabsParentCategoryDto),
       tabGroups,
-      parentCategories,
-      userSettings,
+      userSettings: toSavedTabsUserSettingsDto(userSettings),
     }
   }
 }
