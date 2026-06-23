@@ -1,3 +1,4 @@
+/// <reference types="node" />
 const fs = process.getBuiltinModule('node:fs')
 const path = process.getBuiltinModule('node:path')
 
@@ -6,6 +7,12 @@ const contextsDirectory = path.join(__dirname, 'src', 'contexts')
 /** @param {string} value */
 const escapeRegExp = (value) =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`)
+
+// UI / routing / notification / animation 系 npm package。
+// domain / application 層はこれら UI 実装詳細に依存してはならない
+// (issue #574)。infrastructure 層の adapter は許可する。
+const uiPackagesPattern =
+  '(^|/)node_modules/(react|react-dom|react-router-dom|sonner|lucide-react|@radix-ui|@dnd-kit|motion)(/|$)'
 
 const getContextNames = () => {
   if (!fs.existsSync(contextsDirectory)) {
@@ -52,11 +59,12 @@ module.exports = {
       to: { couldNotResolve: true },
     },
     {
-      name: 'no-domain-to-react',
-      comment: 'Domain code must not depend on React',
+      name: 'no-domain-to-ui-packages',
+      comment:
+        'Domain code must not depend on UI, routing, notification, or animation packages',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/domain/' },
-      to: { path: '(^|/)node_modules/(react|react-dom)/' },
+      to: { path: uiPackagesPattern },
     },
     {
       name: 'no-domain-to-ui',
@@ -95,11 +103,12 @@ module.exports = {
       },
     },
     {
-      name: 'no-application-to-react',
-      comment: 'Application code must not depend on React',
+      name: 'no-application-to-ui-packages',
+      comment:
+        'Application code must not depend on UI, routing, notification, or animation packages',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/application/' },
-      to: { path: '(^|/)node_modules/(react|react-dom)/' },
+      to: { path: uiPackagesPattern },
     },
     {
       name: 'no-application-to-ui',

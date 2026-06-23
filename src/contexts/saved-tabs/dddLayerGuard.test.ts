@@ -132,8 +132,10 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(override).toBeDefined()
     })
 
-    it('react / react-dom の import を禁止している', () => {
-      expect(dependencyCruiserSource).toContain("name: 'no-domain-to-react'")
+    it('UI / routing / notification / animation 系 package の import を禁止している', () => {
+      expect(dependencyCruiserSource).toContain(
+        "name: 'no-domain-to-ui-packages'",
+      )
     })
 
     it('@/components / @/features/*/components / @/contexts/*/{application,infrastructure,presentation} への依存を禁止している', () => {
@@ -170,9 +172,9 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(override).toBeDefined()
     })
 
-    it('react / react-dom の import を禁止している', () => {
+    it('UI / routing / notification / animation 系 package の import を禁止している', () => {
       expect(dependencyCruiserSource).toContain(
-        "name: 'no-application-to-react'",
+        "name: 'no-application-to-ui-packages'",
       )
     })
 

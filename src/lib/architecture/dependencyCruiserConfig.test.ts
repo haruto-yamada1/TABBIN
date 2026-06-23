@@ -105,10 +105,53 @@ describe('dependency-cruiser architecture rules', () => {
       files: { 'src/a.ts': "import './missing'\n" },
     },
     {
-      name: 'domain dependencies on React',
-      rule: 'no-domain-to-react',
+      name: 'domain dependencies on React (ui-packages)',
+      rule: 'no-domain-to-ui-packages',
       files: {
         'src/contexts/foo/domain/entity.ts': "import 'react'\n",
+      },
+    },
+    {
+      name: 'domain dependencies on react-router-dom',
+      rule: 'no-domain-to-ui-packages',
+      files: {
+        'src/contexts/foo/domain/entity.ts': "import 'react-router-dom'\n",
+      },
+    },
+    {
+      name: 'domain dependencies on sonner',
+      rule: 'no-domain-to-ui-packages',
+      files: {
+        'src/contexts/foo/domain/entity.ts': "import 'sonner'\n",
+      },
+    },
+    {
+      name: 'domain dependencies on lucide-react',
+      rule: 'no-domain-to-ui-packages',
+      files: {
+        'src/contexts/foo/domain/entity.ts': "import 'lucide-react'\n",
+      },
+    },
+    {
+      name: 'domain dependencies on @radix-ui scoped package',
+      rule: 'no-domain-to-ui-packages',
+      files: {
+        'src/contexts/foo/domain/entity.ts':
+          "import '@radix-ui/react-dialog'\n",
+      },
+    },
+    {
+      name: 'domain dependencies on @dnd-kit scoped package',
+      rule: 'no-domain-to-ui-packages',
+      files: {
+        'src/contexts/foo/domain/entity.ts': "import '@dnd-kit/core'\n",
+      },
+    },
+    {
+      name: 'domain dependencies on motion',
+      rule: 'no-domain-to-ui-packages',
+      files: {
+        'src/contexts/foo/domain/entity.ts': "import 'motion'\n",
       },
     },
     {
@@ -149,10 +192,54 @@ describe('dependency-cruiser architecture rules', () => {
       },
     },
     {
-      name: 'application dependencies on React',
-      rule: 'no-application-to-react',
+      name: 'application dependencies on React (ui-packages)',
+      rule: 'no-application-to-ui-packages',
       files: {
         'src/contexts/foo/application/useCase.ts': "import 'react'\n",
+      },
+    },
+    {
+      name: 'application dependencies on react-router-dom',
+      rule: 'no-application-to-ui-packages',
+      files: {
+        'src/contexts/foo/application/useCase.ts':
+          "import 'react-router-dom'\n",
+      },
+    },
+    {
+      name: 'application dependencies on sonner',
+      rule: 'no-application-to-ui-packages',
+      files: {
+        'src/contexts/foo/application/useCase.ts': "import 'sonner'\n",
+      },
+    },
+    {
+      name: 'application dependencies on lucide-react',
+      rule: 'no-application-to-ui-packages',
+      files: {
+        'src/contexts/foo/application/useCase.ts': "import 'lucide-react'\n",
+      },
+    },
+    {
+      name: 'application dependencies on @radix-ui scoped package',
+      rule: 'no-application-to-ui-packages',
+      files: {
+        'src/contexts/foo/application/useCase.ts':
+          "import '@radix-ui/react-dialog'\n",
+      },
+    },
+    {
+      name: 'application dependencies on @dnd-kit scoped package',
+      rule: 'no-application-to-ui-packages',
+      files: {
+        'src/contexts/foo/application/useCase.ts': "import '@dnd-kit/core'\n",
+      },
+    },
+    {
+      name: 'application dependencies on motion',
+      rule: 'no-application-to-ui-packages',
+      files: {
+        'src/contexts/foo/application/useCase.ts': "import 'motion'\n",
       },
     },
     {
