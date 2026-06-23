@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
+import { getAiChatToolDefinitions } from '@/constants/aiChatTools'
 
 const mocked = vi.hoisted(() => ({
   createOllama: vi.fn(),
@@ -463,7 +463,7 @@ describe('runAiChatRequest', () => {
       tools: Record<string, { description: string }>
     }
 
-    for (const toolDefinition of AI_CHAT_TOOL_DEFINITIONS) {
+    for (const toolDefinition of getAiChatToolDefinitions('ja')) {
       expect(generateArgs.tools[toolDefinition.name]?.description).toBe(
         toolDefinition.description,
       )
@@ -492,6 +492,59 @@ describe('runAiChatRequest', () => {
         type: 'dynamic-tool',
       }),
     ])
+  })
+  it('言語設定が en のとき AI SDK へ英語 description を渡し reasoning も英語タイトルになる', async () => {
+    ;(
+      globalThis as typeof globalThis & {
+        chrome?: typeof chrome
+      }
+    ).chrome = {
+      i18n: {
+        getUILanguage: () => 'en-US',
+      },
+      runtime: {
+        id: 'test-extension-id',
+      },
+      storage: {
+        local: {
+          get: vi.fn(async (key: string) =>
+            key === 'savedTabs'
+              ? {
+                  savedTabs: [
+                    {
+                      domain: 'react.dev',
+                      id: 'group-1',
+                      urlIds: ['url-1'],
+                    },
+                  ],
+                }
+              : {},
+          ),
+        },
+      },
+    } as unknown as typeof chrome
+
+    mocked.getUserSettings.mockResolvedValue({
+      language: 'en',
+      ollamaModel: 'llama3.2',
+    })
+
+    const result = await runAiChatRequest({
+      history: [],
+      prompt: 'What tabs did I add this month?',
+    })
+
+    const generateArgs = mocked.generateText.mock.calls[0]?.[0] as {
+      tools: Record<string, { description: string }>
+    }
+
+    for (const toolDefinition of getAiChatToolDefinitions('en')) {
+      expect(generateArgs.tools[toolDefinition.name]?.description).toBe(
+        toolDefinition.description,
+      )
+    }
+    expect(result.reasoning).toContain('List saved tabs')
+    expect(result.toolTraces[0]?.title).toBe('List saved tabs')
   })
 
   it('active system prompt template を使い、placeholder に context を差し込む', async () => {

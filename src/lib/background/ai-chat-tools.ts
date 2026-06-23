@@ -2,7 +2,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 
-import { AI_CHAT_TOOL_DESCRIPTIONS } from '@/constants/aiChatTools'
+import { getAiChatToolDescription } from '@/constants/aiChatTools'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
 import {
   DEFAULT_SAVED_URL_PAGE,
@@ -155,7 +155,7 @@ const createAiChatTools = (
   language: AppLanguage = 'ja',
 ) => ({
   findUrlsByMonth: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.findUrlsByMonth,
+    description: getAiChatToolDescription(language, 'findUrlsByMonth'),
     inputSchema: paginationSchema.extend({
       year: z.number().int(),
       month: z.number().int().min(MIN_MONTH).max(MAX_MONTH),
@@ -165,7 +165,10 @@ const createAiChatTools = (
       mapPageForToolOutput(findSavedUrlsAddedInMonthPage(records, input)),
   }),
   generateSavedTabsAnalytics: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.generateSavedTabsAnalytics,
+    description: getAiChatToolDescription(
+      language,
+      'generateSavedTabsAnalytics',
+    ),
     inputSchema: z.object({
       chartType: z.enum(['area', 'bar', 'line', 'pie', 'radar']).default('bar'),
       compareBy: z.enum(['mode', 'none']).default('none'),
@@ -226,20 +229,20 @@ const createAiChatTools = (
       }),
   }),
   getCurrentDateTime: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.getCurrentDateTime,
+    description: getAiChatToolDescription(language, 'getCurrentDateTime'),
     inputSchema: z.object({}),
 
     execute: async () => createCurrentDateTimeOutput(),
   }),
 
   inferUserInterests: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.inferUserInterests,
+    description: getAiChatToolDescription(language, 'inferUserInterests'),
     inputSchema: z.object({}),
 
     execute: async () => inferUserInterests(records, language),
   }),
   listSavedUrls: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.listSavedUrls,
+    description: getAiChatToolDescription(language, 'listSavedUrls'),
     inputSchema: paginationSchema,
 
     execute: async (input) =>
@@ -247,7 +250,7 @@ const createAiChatTools = (
   }),
 
   searchSavedUrls: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.searchSavedUrls,
+    description: getAiChatToolDescription(language, 'searchSavedUrls'),
     inputSchema: paginationSchema.extend({
       query: z.string().min(1),
     }),

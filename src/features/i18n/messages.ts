@@ -119,6 +119,24 @@ const messages = {
     'aiChat.streaming.receivedQuestion': '- Received question: {{prompt}}',
     'aiChat.streaming.toolsFollow':
       '- Tools and reasoning update after each completed step.',
+    'aiChat.tool.findUrlsByMonth.description':
+      'List tabs saved in the specified year and month. page/pageSize/sortDirection are configurable.',
+    'aiChat.tool.findUrlsByMonth.title': 'Search tabs by month',
+    'aiChat.tool.generateSavedTabsAnalytics.description':
+      'Aggregate saved tabs by domain, category, project, and time series, then return chartSpecs. Prefer this when charts or analysis are requested.',
+    'aiChat.tool.generateSavedTabsAnalytics.title': 'Saved tabs analytics',
+    'aiChat.tool.getCurrentDateTime.description':
+      'Get the current time. Use this before handling today, this month, days ago, or relative dates.',
+    'aiChat.tool.getCurrentDateTime.title': 'Check current time',
+    'aiChat.tool.inferUserInterests.description':
+      'Estimate themes that may match your interests from saved trends.',
+    'aiChat.tool.inferUserInterests.title': 'Infer interests',
+    'aiChat.tool.listSavedUrls.description':
+      'List currently saved tabs in order of saved time. page/pageSize/sortDirection are configurable.',
+    'aiChat.tool.listSavedUrls.title': 'List saved tabs',
+    'aiChat.tool.searchSavedUrls.description':
+      'Search saved tabs by keyword. page/pageSize/sortDirection are configurable.',
+    'aiChat.tool.searchSavedUrls.title': 'Search tabs by keyword',
     'aiChat.suggestion.favoriteContent':
       'What kinds of content do I save most often?',
     'aiChat.suggestion.recentTabs': 'Show me the tabs I added this month',
@@ -947,6 +965,24 @@ const messages = {
     'aiChat.streaming.receivedQuestion': '- 質問を受け取りました: {{prompt}}',
     'aiChat.streaming.toolsFollow':
       '- ステップ完了ごとにツール実行結果と推論を更新します。',
+    'aiChat.tool.findUrlsByMonth.description':
+      '指定した年月に保存されたタブを一覧化する。page/pageSize/sortDirection を指定できる',
+    'aiChat.tool.findUrlsByMonth.title': '月別タブ検索',
+    'aiChat.tool.generateSavedTabsAnalytics.description':
+      '保存済みタブをドメイン、カテゴリ、プロジェクト、時系列で集計し、chartSpecs を返す。チャートや分析を求められたら優先して使う',
+    'aiChat.tool.generateSavedTabsAnalytics.title': '保存分析',
+    'aiChat.tool.getCurrentDateTime.description':
+      '現在時刻を取得する。今日、今月、何日前、相対日付を扱う前に使う',
+    'aiChat.tool.getCurrentDateTime.title': '現在時刻確認',
+    'aiChat.tool.inferUserInterests.description':
+      '保存傾向から興味のありそうなテーマを推定する',
+    'aiChat.tool.inferUserInterests.title': '興味推定',
+    'aiChat.tool.listSavedUrls.description':
+      '現在保存されているタブを保存日時順に一覧化する。page/pageSize/sortDirection を指定できる',
+    'aiChat.tool.listSavedUrls.title': '保存済みタブ一覧',
+    'aiChat.tool.searchSavedUrls.description':
+      'キーワードで保存済みタブを検索する。page/pageSize/sortDirection を指定できる',
+    'aiChat.tool.searchSavedUrls.title': 'キーワードタブ検索',
     'aiChat.suggestion.favoriteContent': '最近よく保存しているジャンルは？',
     'aiChat.suggestion.recentTabs': '今月追加したタブを教えて',
     'aiChat.suggestion.recommendation': 'どんなコンテンツが好きそうか教えて',
