@@ -1369,21 +1369,16 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     ]
 
     const contextsDir = resolve(repoRoot, 'src', 'contexts')
-    let allContextNames: string[]
-    try {
-      allContextNames = readdirSync(contextsDir).filter((entry) => {
-        try {
-          return (
-            statSync(resolve(contextsDir, entry)).isDirectory() &&
-            !entry.startsWith('.')
-          )
-        } catch {
-          return false
-        }
-      })
-    } catch {
-      allContextNames = []
-    }
+    const allContextNames = readdirSync(contextsDir).filter((entry) => {
+      try {
+        return (
+          statSync(resolve(contextsDir, entry)).isDirectory() &&
+          !entry.startsWith('.')
+        )
+      } catch {
+        return false
+      }
+    })
 
     for (const convention of namingConventions) {
       for (const contextName of allContextNames) {
@@ -1421,7 +1416,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       )
     })
 
-    it('presentation 配下の非テストファイルが domain (entities / value-objects / services / errors) を直接 import していない', () => {
+    it('presentation 配下の非テストファイルが domain を直接 import していない', () => {
       for (const contextName of allContextNames) {
         const presentationRoot = resolve(
           contextsDir,
@@ -1436,10 +1431,8 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
           const source = readFileSync(absolutePath, 'utf8')
           expect(
             source,
-            `${relativePath} should not import from domain/ (entities | value-objects | services | errors)`,
-          ).not.toMatch(
-            /from\s+['"][^'"]*\/domain\/(entities|value-objects|services|errors)\//,
-          )
+            `${relativePath} should not import from domain/`,
+          ).not.toMatch(/from\s+['"][^'"]*\/domain\//)
         }
       }
     })
