@@ -334,8 +334,8 @@ describe('dependency-cruiser architecture rules', () => {
       },
     },
     {
-      name: 'direct dependencies between contexts',
-      rule: 'no-foo-to-other-context',
+      name: 'direct dependencies on another context internal file',
+      rule: 'no-foo-to-other-context-internal',
       files: {
         'src/contexts/bar/domain/entity.ts': 'export const entity = 1\n',
         'src/contexts/foo/domain/entity.ts':
@@ -343,8 +343,8 @@ describe('dependency-cruiser architecture rules', () => {
       },
     },
     {
-      name: 'type-only direct dependencies between contexts',
-      rule: 'no-foo-to-other-context',
+      name: 'type-only direct dependencies on another context internal file',
+      rule: 'no-foo-to-other-context-internal',
       files: {
         'src/contexts/bar/domain/entity.ts':
           'export interface OtherContextEntity {}\n',
@@ -363,6 +363,36 @@ describe('dependency-cruiser architecture rules', () => {
     const result = cruise({
       'src/contexts/foo/application/useCase.ts': "import '../domain/entity'\n",
       'src/contexts/foo/domain/entity.ts': 'export const entity = 1\n',
+    })
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
+  it('allows cross-context import through public-api.ts', () => {
+    const result = cruise({
+      'src/contexts/bar/public-api.ts': 'export const barApi = 1\n',
+      'src/contexts/foo/application/useCase.ts':
+        "import '../../bar/public-api'\n",
+    })
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
+  it('allows type-only cross-context import through public-api.ts', () => {
+    const result = cruise({
+      'src/contexts/bar/public-api.ts': 'export interface BarApi {}\n',
+      'src/contexts/foo/application/useCase.ts':
+        "import type { BarApi } from '../../bar/public-api'\nexport type FooApi = BarApi\n",
+    })
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
+  it('allows cross-context import to shared kernel', () => {
+    const result = cruise({
+      'src/contexts/shared/kernel.ts': 'export const sharedKernel = 1\n',
+      'src/contexts/foo/application/useCase.ts':
+        "import '../../shared/kernel'\n",
     })
 
     expect(result).toEqual({ status: 0, output: '' })

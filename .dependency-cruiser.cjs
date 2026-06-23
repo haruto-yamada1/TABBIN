@@ -25,19 +25,36 @@ const getContextNames = () => {
     .map((entry) => entry.name)
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// Cross-context import policy (issue #585)
+//
+// A context may depend on another context ONLY through that context's
+// public API file: src/contexts/{context-name}/public-api.ts
+//
+// Internal files (domain, application, infrastructure, presentation,
+// testing, etc.) of another context must NOT be imported directly.
+//
+// src/contexts/shared/ is a shared kernel. Any context may import from
+// it freely — no public-api.ts restriction applies.
+// ──────────────────────────────────────────────────────────────────────
 const noCrossContextRules = getContextNames().map((contextName) => {
   const escapedContextName = escapeRegExp(contextName)
 
   return {
-    name: `no-${contextName}-to-other-context`,
-    comment: `${contextName} context must not directly depend on another context`,
+    name: `no-${contextName}-to-other-context-internal`,
+    comment: `${contextName} context must depend on another context only through its public-api.ts`,
     severity: 'error',
     from: {
       path: `^src/contexts/${escapedContextName}/`,
     },
     to: {
       path: `^src/contexts/(?!${escapedContextName}/)[^/]+/`,
-      pathNot: ['^src/contexts/shared/'],
+      pathNot: [
+        // shared kernel — freely importable by any context
+        '^src/contexts/shared/',
+        // public API entry point — the only allowed cross-context surface
+        String.raw`^src/contexts/[^/]+/public-api\.ts$`,
+      ],
     },
   }
 })
