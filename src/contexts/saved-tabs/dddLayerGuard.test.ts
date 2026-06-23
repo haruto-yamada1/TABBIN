@@ -28,7 +28,8 @@ const findOverride = (
   config: OxlintConfig,
   layer: string,
 ): OxlintOverride | undefined => {
-  const pattern = `src/contexts/saved-tabs/${layer}/**`
+  // issue #581: DDD override は saved-tabs 固定ではなく src/contexts/* に一般化されている
+  const pattern = `src/contexts/*/${layer}/**`
   return config.overrides?.find((entry) =>
     entry.files?.some((file) => file.includes(pattern)),
   )
@@ -123,6 +124,34 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
   it('.oxlintrc.json に overrides が定義されている', () => {
     expect(Array.isArray(config.overrides)).toBe(true)
     expect(config.overrides?.length ?? 0).toBeGreaterThan(0)
+  })
+
+  describe('issue #581: DDD override は src/contexts/* に一般化されている', () => {
+    // saved-tabs 固定の glob に戻らないことを担保する。
+    // 新しい context が追加されても同じ DDD 制約が自動で効く状態を維持する。
+    it('domain / application / presentation の override が src/contexts/*/** を使用している', () => {
+      for (const layer of ['domain', 'application', 'presentation']) {
+        const override = findOverride(config, layer)
+        expect(
+          override,
+          `${layer} 層の override が見つかりません`,
+        ).toBeDefined()
+        const hasGeneralized = override?.files?.some((file) =>
+          file.includes(`src/contexts/*/${layer}/**`),
+        )
+        expect(
+          hasGeneralized,
+          `${layer} 層の override は src/contexts/*/${layer}/** を使用してください`,
+        ).toBe(true)
+        const hasSavedTabsSpecific = override?.files?.some((file) =>
+          file.includes(`src/contexts/saved-tabs/${layer}/**`),
+        )
+        expect(
+          hasSavedTabsSpecific,
+          `${layer} 層の override は saved-tabs 固定に戻さないでください`,
+        ).toBeFalsy()
+      }
+    })
   })
 
   describe('domain 層', () => {
