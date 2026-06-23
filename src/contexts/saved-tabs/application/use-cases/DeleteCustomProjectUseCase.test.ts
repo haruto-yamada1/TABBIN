@@ -50,6 +50,7 @@ const baseTimestamp = 1_700_000_000_000
 const createDeps = (
   repo: CustomProjectRepository,
 ): DeleteCustomProjectUseCaseDeps => ({
+  clock: { now: () => baseTimestamp },
   customProjectRepository: repo,
   uncategorizedProjectId: 'custom-uncategorized',
 })
@@ -107,7 +108,7 @@ describe('createDeleteCustomProjectUseCase', () => {
 
     const useCase = createDeleteCustomProjectUseCase({
       ...createDeps(repo),
-      now: () => baseTimestamp,
+      clock: { now: () => baseTimestamp },
     })
     const result = await useCase({
       projectId: createCustomProjectId('project-1'),

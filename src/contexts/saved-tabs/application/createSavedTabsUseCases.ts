@@ -101,6 +101,7 @@ export const createSavedTabsUseCases = (
     urlRecordRepository: deps.urlRecordRepository,
   }),
   createCustomProject: createCreateCustomProjectUseCase({
+    clock: deps.clock,
     customProjectRepository: deps.customProjectRepository,
   }),
   createParentCategory: createCreateParentCategoryUseCase({
@@ -108,6 +109,7 @@ export const createSavedTabsUseCases = (
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
   deleteCustomProject: createDeleteCustomProjectUseCase({
+    clock: deps.clock,
     customProjectRepository: deps.customProjectRepository,
     uncategorizedProjectId:
       // `lib/storage/projects` 側の sentinel に揃える。`chrome.storage.local`
@@ -331,6 +333,7 @@ export const createSavedTabsUseCases = (
     tabGroupRepository: deps.tabGroupRepository,
   }),
   updateCustomProjectName: createUpdateCustomProjectNameUseCase({
+    clock: deps.clock,
     customProjectRepository: deps.customProjectRepository,
   }),
 })

@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import type { ClockPort } from '@/contexts/saved-tabs/application/ports/ClockPort'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
@@ -25,12 +26,11 @@ export type CreateCustomProjectUseCase = (
 
 export interface CreateCustomProjectUseCaseDeps {
   readonly customProjectRepository: CustomProjectRepository
+  readonly clock: ClockPort
   readonly generateId?: () => string
-  readonly now?: () => number
 }
 
 const defaultGenerateId = (): string => uuidv4()
-const defaultNow = (): number => Date.now()
 
 /**
  * `CreateCustomProjectUseCase` を生成する。
@@ -62,7 +62,7 @@ export const createCreateCustomProjectUseCase = (
     }
     // eslint-disable-next-line typescript/no-unsafe-type-assertion
     const id = (deps.generateId ?? defaultGenerateId)() as CustomProjectId
-    const now = (deps.now ?? defaultNow)()
+    const now = deps.clock.now()
     const newProject = createCustomProject({
       categories: [],
       createdAt: now,

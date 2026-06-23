@@ -1,5 +1,6 @@
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import type { ClockPort } from '@/contexts/saved-tabs/application/ports/ClockPort'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
@@ -22,10 +23,8 @@ export type UpdateCustomProjectNameUseCase = (
 
 export interface UpdateCustomProjectNameUseCaseDeps {
   readonly customProjectRepository: CustomProjectRepository
-  readonly now?: () => number
+  readonly clock: ClockPort
 }
-
-const defaultNow = (): number => Date.now()
 
 /**
  * `UpdateCustomProjectNameUseCase` を生成する。
@@ -52,7 +51,7 @@ export const createUpdateCustomProjectNameUseCase = (
       throw new Error(`DUPLICATE_PROJECT_NAME:${newName}`)
     }
     const targetId = createCustomProjectId(command.projectId)
-    const now = createSavedAt((deps.now ?? defaultNow)())
+    const now = createSavedAt(deps.clock.now())
     const updatedAll: CustomProject[] = []
     let updated: CustomProject | null = null
     for (const project of all) {

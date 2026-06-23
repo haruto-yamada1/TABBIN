@@ -592,6 +592,11 @@
             "object": "chrome",
             "property": "runtime",
             "message": "domain 層は chrome.runtime を直接利用できません"
+          },
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "domain 層は Date.now() を直接利用できません。ClockPort 経由で時刻を注入してください"
           }
         ]
       }
