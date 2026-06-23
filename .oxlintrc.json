@@ -536,7 +536,7 @@
       }
     },
     {
-      "files": ["src/contexts/saved-tabs/domain/**/*.{ts,tsx}"],
+      "files": ["src/contexts/*/domain/**/*.{ts,tsx}"],
       "rules": {
         "eslint/no-restricted-globals": [
           "error",
@@ -597,7 +597,7 @@
       }
     },
     {
-      "files": ["src/contexts/saved-tabs/application/**/*.{ts,tsx}"],
+      "files": ["src/contexts/*/application/**/*.{ts,tsx}"],
       "rules": {
         "eslint/no-restricted-properties": [
           "error",
@@ -630,7 +630,7 @@
       }
     },
     {
-      "files": ["src/contexts/saved-tabs/presentation/**/*.{ts,tsx}"],
+      "files": ["src/contexts/*/presentation/**/*.{ts,tsx}"],
       "rules": {
         "eslint/no-restricted-properties": [
           "error",
