@@ -1,3 +1,4 @@
+import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
@@ -245,7 +246,7 @@ const buildMergedExistingDomainTab = async (
     })
   return {
     id: existingTab.id,
-    domain: existingTab.domain,
+    domain: normalizeDomainString(existingTab.domain),
     urlIds: mergedUrlData.urlIds,
     urlSubCategories: mergedUrlData.urlSubCategories,
     parentCategoryId:
@@ -291,7 +292,7 @@ const buildMergedNewDomainTab = async (
     )
   return {
     id: importedTab.id,
-    domain: importedTab.domain,
+    domain: normalizeDomainString(importedTab.domain),
     urlIds: resolvedUrlData.urlIds,
     urlSubCategories: resolvedUrlData.urlSubCategories,
     parentCategoryId: importedTab.parentCategoryId,
@@ -317,7 +318,7 @@ const mergeTabsByDomain = async (
 ): Promise<TabGroup[]> => {
   const tabMapByDomain = new Map<string, TabGroup>()
   for (const tab of currentTabs) {
-    tabMapByDomain.set(tab.domain, tab)
+    tabMapByDomain.set(normalizeDomainString(tab.domain), tab)
   }
   const mergedImportedTabs = await Promise.all(
     normalizedImportedTabs.map(async (importedTab) => {

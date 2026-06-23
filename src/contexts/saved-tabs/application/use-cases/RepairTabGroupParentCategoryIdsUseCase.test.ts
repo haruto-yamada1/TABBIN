@@ -221,4 +221,37 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     expect(result.updated).toBe(true)
     expect(result.tabGroups[0].parentCategoryId).toBe('cat-1')
   })
+
+  it('スキーム付き domain を含む DTO でも例外を投げずに正規化する', async () => {
+    const category = createParentCategory({
+      domainNames: ['example.com'],
+      domains: [],
+      id: 'cat-1',
+      name: 'Docs',
+    })
+    const tabGroup = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: [],
+    })
+    const repos = createInMemoryRepositories({
+      parentCategories: [category],
+      tabGroups: [tabGroup],
+    })
+    const useCase = createRepairTabGroupParentCategoryIdsUseCase(repos)
+
+    // DTO の domain にスキームが含まれていても、use-case 内で
+    // normalizeDomainString が hostname へ正規化するため例外にならない
+    const result = await useCase({
+      parentCategories: [category],
+      tabGroups: [
+        {
+          ...toSavedTabsDisplayTabGroupDto(tabGroup),
+          domain: 'https://example.com',
+        },
+      ],
+    })
+
+    expect(result.tabGroups[0].parentCategoryId).toBe('cat-1')
+  })
 })

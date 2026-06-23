@@ -1,3 +1,4 @@
+import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import {
   getBrowserUiLocale,
   getMessage,
@@ -47,6 +48,19 @@ const getUncategorizedProjectName = (
 ) => getMessage(resolveCurrentLanguage({ language }), 'savedTabs.uncategorized')
 
 const normalizeUrlKey = (url: string): string => url.trim()
+
+/**
+ * ドメイン文字列からプレースホルダー URL のベースを構築する。
+ * hostname 単位のドメイン（`example.com`）には `https://` を付与し、
+ * URL 形式のドメイン（`https://example.com`）はそのまま使う。
+ */
+const toPlaceholderBaseUrl = (domain: string): string => {
+  const stripped = domain.replace(/\/+$/, '')
+  if (stripped.includes('://')) {
+    return stripped
+  }
+  return `https://${stripped}`
+}
 
 const buildConvertedUrlData = (
   urls: ImportedUrlData[],
@@ -176,9 +190,11 @@ const normalizeImportedTabsForImport = (
   const normalizedImportedTabs: (ImportedTabData & {
     urls: ImportedUrlData[]
   })[] = importedTabs.map((tab) => {
+    const normalizedDomain = normalizeDomainString(tab.domain)
     if (Array.isArray(tab.urls)) {
       return {
         ...tab,
+        domain: normalizedDomain,
         urls: tab.urls,
       }
     }
@@ -193,13 +209,14 @@ const normalizeImportedTabsForImport = (
       restoredUrls.length === 0
     ) {
       unresolvedTabs.push({
-        domain: tab.domain,
+        domain: normalizedDomain,
         savedAt: tab.savedAt,
         urlIds: Array.from(new Set(tab.urlIds)),
       })
     }
     return {
       ...tab,
+      domain: normalizedDomain,
       urls: restoredUrls,
     }
   })
@@ -276,7 +293,7 @@ const ensurePlaceholderUrlRecords = async (
   const newRecords: UrlRecord[] = []
   let offset = 0
   for (const tab of unresolvedTabs) {
-    const baseDomain = tab.domain.replace(/\/+$/, '')
+    const baseDomain = toPlaceholderBaseUrl(tab.domain)
     for (const urlId of tab.urlIds) {
       if (existingIdSet.has(urlId)) {
         continue
@@ -320,7 +337,7 @@ const convertTabGroupToExportUrls = (
     return []
   }
   const exportedUrls: NonNullable<TabGroup['urls']> = []
-  const baseDomain = tab.domain.replace(/\/+$/, '')
+  const baseDomain = toPlaceholderBaseUrl(tab.domain)
   let offset = 0
   for (const urlId of tab.urlIds) {
     const urlRecord =

@@ -479,11 +479,11 @@ describe('import-export ユーティリティ', () => {
       language: 'en',
       tabGroups: [
         {
-          domain: 'https://empty.example.com',
+          domain: 'empty.example.com',
           id: 'group-empty',
         },
         {
-          domain: 'https://aligned.example.com',
+          domain: 'aligned.example.com',
           id: 'group-1',
           urlIds: ['url-a', 'url-b'],
         },
@@ -519,7 +519,7 @@ describe('import-export ユーティリティ', () => {
       language: 'en',
       tabGroups: [
         {
-          domain: 'https://legacy-uncategorized.example.com',
+          domain: 'legacy-uncategorized.example.com',
           id: 'legacy-group',
           urlIds: ['legacy-url'],
         },
@@ -734,7 +734,7 @@ describe('import-export ユーティリティ', () => {
     const parentCategories = [
       { id: 'cat-1', name: 'Work', domains: [], domainNames: [] },
     ]
-    const savedTabs = [{ id: 'tab-1', domain: 'https://example.com', urls: [] }]
+    const savedTabs = [{ id: 'tab-1', domain: 'example.com', urls: [] }]
 
     createChromeMock({
       customProjectOrder: [],
@@ -791,7 +791,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'project-urlids-group',
-          domain: 'https://project-urlids.example.com',
+          domain: 'project-urlids.example.com',
           urlIds: ['imported-project-url', 'current-project-url'],
         },
       ],
@@ -842,7 +842,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'saved-group',
-          domain: 'https://example.com',
+          domain: 'example.com',
           urls: [
             {
               url: 'https://example.com/docs',
@@ -964,7 +964,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'dedupe-group',
-          domain: 'https://dedupe.example.com',
+          domain: 'dedupe.example.com',
           urlIds: ['url-known', 'url-known', 'missing-tab-id'],
         },
       ],
@@ -1048,7 +1048,7 @@ describe('import-export ユーティリティ', () => {
       parentCategories: [],
       savedTabs: [
         {
-          domain: 'https://fallback-language.example.com',
+          domain: 'fallback-language.example.com',
           id: 'fallback-language-group',
           urlIds: ['fallback-url'],
         },
@@ -1205,7 +1205,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'project-urlids-group',
-          domain: 'https://project-urlids.example.com',
+          domain: 'project-urlids.example.com',
           urlIds: ['imported-project-url', 'current-project-url'],
         },
       ],
@@ -1664,7 +1664,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'group-1',
-          domain: 'https://portable.example.com',
+          domain: 'portable.example.com',
           urlIds: ['url-1', 'url-2'],
           urlSubCategories: { 'url-2': 'Docs' },
         },
@@ -1691,7 +1691,7 @@ describe('import-export ユーティリティ', () => {
     expect(result.savedTabs[0]).toEqual(
       expect.objectContaining({
         id: 'group-1',
-        domain: 'https://portable.example.com',
+        domain: 'portable.example.com',
         urls: [
           {
             url: 'https://portable.example.com/home',
@@ -1718,7 +1718,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'missing-group',
-          domain: 'https://missing-export.example.com',
+          domain: 'missing-export.example.com',
           urlIds: ['missing-id-1', 'missing-id-2'],
           urlSubCategories: { 'missing-id-2': 'RecoveredSub' },
           savedAt: 100,
@@ -1733,7 +1733,7 @@ describe('import-export ユーティリティ', () => {
     expect(result.savedTabs[0]).toEqual(
       expect.objectContaining({
         id: 'missing-group',
-        domain: 'https://missing-export.example.com',
+        domain: 'missing-export.example.com',
         urls: [
           {
             url: 'https://missing-export.example.com/#tabbin-export-missing-missing-id-1',
@@ -1771,7 +1771,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'missing-en-group',
-          domain: 'https://missing-en.example.com',
+          domain: 'missing-en.example.com',
           urlIds: ['missing-en-id'],
         },
       ],
@@ -1795,7 +1795,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'legacy-group',
-          domain: 'https://legacy.example.com',
+          domain: 'legacy.example.com',
           urls: [
             { url: 'https://legacy.example.com/ok', title: 'ok' },
             { title: 'missing-url' },
@@ -1822,12 +1822,12 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'placeholder-no-savedat',
-          domain: 'https://placeholder-branch.example.com/',
+          domain: 'placeholder-branch.example.com',
           urlIds: ['missing-no-savedat'],
         },
         {
           id: 'titleless-record-group',
-          domain: 'https://titleless-record.example.com',
+          domain: 'titleless-record.example.com',
           urlIds: ['titleless-record-id'],
         },
       ],
@@ -1890,7 +1890,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'forced-skip-group',
-          domain: 'https://forced-skip.example.com',
+          domain: 'forced-skip.example.com',
           urlIds: ['forced-skip-placeholder-id'],
         },
       ],
@@ -2079,7 +2079,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'translated-missing-group',
-            domain: 'https://translated-missing.example.com',
+            domain: 'translated-missing.example.com',
             urlIds: ['translated-missing-id'],
           },
         ],
@@ -2149,7 +2149,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'preview-group',
-            domain: 'https://preview.example.com',
+            domain: 'preview.example.com',
             urls: [],
           },
         ],
@@ -2334,7 +2334,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'restored-group',
-          domain: 'https://restored.example.com',
+          domain: 'restored.example.com',
           urlIds: ['backup-url-1'],
           urlSubCategories: { 'backup-url-1': 'FromBackup' },
         },
@@ -2369,7 +2369,7 @@ describe('import-export ユーティリティ', () => {
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'restored-group',
-        domain: 'https://restored.example.com',
+        domain: 'restored.example.com',
         urlIds: ['restored-url-id'],
         urlSubCategories: { 'restored-url-id': 'FromBackup' },
       }),
@@ -2405,7 +2405,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'restored-titleless-group',
-          domain: 'https://restored-titleless.example.com',
+          domain: 'restored-titleless.example.com',
           urlIds: ['backup-titleless-url-1'],
         },
       ],
@@ -2464,7 +2464,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'missing-group',
-          domain: 'https://missing.example.com',
+          domain: 'missing.example.com',
           urlIds: ['missing-url-id'],
         },
       ],
@@ -2493,7 +2493,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'missing-group',
-            domain: 'https://missing.example.com',
+            domain: 'missing.example.com',
             urlIds: ['missing-url-id'],
             urlSubCategories: undefined,
             parentCategoryId: undefined,
@@ -2537,7 +2537,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'missing-overwrite-group',
-          domain: 'https://missing-overwrite.example.com',
+          domain: 'missing-overwrite.example.com',
           urlIds: ['missing-overwrite-url-id'],
         },
       ],
@@ -2564,7 +2564,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'missing-overwrite-group',
-            domain: 'https://missing-overwrite.example.com',
+            domain: 'missing-overwrite.example.com',
             urlIds: ['missing-overwrite-url-id'],
             urlSubCategories: undefined,
             parentCategoryId: undefined,
@@ -2662,7 +2662,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'raw-fallback-group',
-          domain: 'https://fallback.example.com/',
+          domain: 'fallback.example.com',
           urlIds: ['raw-fallback-id', 'raw-fallback-id'],
           urlSubCategories: {
             'raw-fallback-id': 'KeepMe',
@@ -2686,7 +2686,7 @@ describe('import-export ユーティリティ', () => {
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'raw-fallback-group',
-        domain: 'https://fallback.example.com/',
+        domain: 'fallback.example.com',
         urlIds: ['raw-fallback-id'],
         urlSubCategories: { 'raw-fallback-id': 'KeepMe' },
       }),
@@ -2736,7 +2736,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'empty-group',
-          domain: 'https://empty.example.com',
+          domain: 'empty.example.com',
         },
       ],
     }
@@ -2754,7 +2754,7 @@ describe('import-export ユーティリティ', () => {
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'empty-group',
-        domain: 'https://empty.example.com',
+        domain: 'empty.example.com',
         urlIds: [],
         urlSubCategories: undefined,
         subCategories: [],
@@ -2786,7 +2786,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'invalid-current-urls-group',
-          domain: 'https://invalid-current-urls.example.com',
+          domain: 'invalid-current-urls.example.com',
           urlIds: ['invalid-current-urls-id'],
         },
       ],
@@ -2841,7 +2841,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'safe-group',
-          domain: 'https://safe.example.com',
+          domain: 'safe.example.com',
           urls: [{ url: 'https://safe.example.com/path' }],
         },
       ],
@@ -2875,7 +2875,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'safe-group',
-            domain: 'https://safe.example.com',
+            domain: 'safe.example.com',
             urlIds: ['new-url-id'],
             urlSubCategories: undefined,
             parentCategoryId: undefined,
@@ -2894,7 +2894,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'existing-group',
-          domain: 'https://existing-fallback.example.com',
+          domain: 'existing-fallback.example.com',
           parentCategoryId: 'parent-old',
           savedAt: 777,
         },
@@ -2923,7 +2923,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-existing',
-          domain: 'https://existing-fallback.example.com',
+          domain: 'existing-fallback.example.com',
           urls: [{ url: 'https://existing-fallback.example.com/path' }],
         },
       ],
@@ -2941,7 +2941,7 @@ describe('import-export ユーティリティ', () => {
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'existing-group',
-        domain: 'https://existing-fallback.example.com',
+        domain: 'existing-fallback.example.com',
         parentCategoryId: 'parent-old',
         savedAt: 777,
         urlIds: ['new-id'],
@@ -2958,7 +2958,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'dup-group',
-          domain: 'https://dup.example.com',
+          domain: 'dup.example.com',
           urlIds: ['dup-id'],
           urlSubCategories: {},
           categoryKeywords: [{ categoryName: 'news', keywords: ['old'] }],
@@ -2989,7 +2989,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'dup-group-imported',
-          domain: 'https://dup.example.com',
+          domain: 'dup.example.com',
           urls: [{ url: 'https://dup.example.com/path' }],
           categoryKeywords: [
             { categoryName: 'news', keywords: 'not-array' },
@@ -3056,7 +3056,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'new-domain-edge-group',
-          domain: 'https://new-edge.example.com',
+          domain: 'new-edge.example.com',
           urls: [{ url: 'https://new-edge.example.com' }],
           categoryKeywords: [{ categoryName: 'edge', keywords: 'not-array' }],
           subCategories: [{ name: 'Obj' }, { name: 'Obj' }, 'Str', 'Str', 0],
@@ -3086,7 +3086,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'ordered-group',
-          domain: 'https://ordered.example.com',
+          domain: 'ordered.example.com',
           urlIds: ['ordered-url-id'],
           subCategories: ['ExistingA', 'ExistingB'],
           subCategoryOrder: ['ExistingA', 'ExistingB'],
@@ -3121,7 +3121,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'ordered-group-imported',
-          domain: 'https://ordered.example.com',
+          domain: 'ordered.example.com',
           urls: [{ url: 'https://ordered.example.com/path' }],
           subCategories: ['ImportedB', 'ExistingB', 'ImportedA'],
           subCategoryOrder: ['ImportedB', 'ExistingB', 'ImportedA'],
@@ -3178,7 +3178,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'force-group',
-          domain: 'https://force.example.com',
+          domain: 'force.example.com',
           categoryKeywords: [
             {
               categoryName: 'force-undefined-existing-item',
@@ -3211,7 +3211,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'force-group-imported',
-          domain: 'https://force.example.com',
+          domain: 'force.example.com',
           urls: [{ url: 'https://force.example.com' }],
           categoryKeywords: [
             {
@@ -3247,7 +3247,7 @@ describe('import-export ユーティリティ', () => {
     const currentTabs = [
       {
         id: 'group-1',
-        domain: 'https://existing.example.com',
+        domain: 'existing.example.com',
         urlIds: ['url-existing'],
         urlSubCategories: { 'url-existing': 'OldSub' },
         parentCategoryId: 'cat-1',
@@ -3311,7 +3311,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-existing-group',
-          domain: 'https://existing.example.com',
+          domain: 'existing.example.com',
           urls: [
             {
               url: 'https://existing.example.com/new',
@@ -3333,7 +3333,7 @@ describe('import-export ユーティリティ', () => {
         },
         {
           id: 'imported-new-group',
-          domain: 'https://new.example.com',
+          domain: 'new.example.com',
           urls: [
             {
               url: 'https://new.example.com/path',
@@ -3393,13 +3393,13 @@ describe('import-export ユーティリティ', () => {
     expect(savedTabsArg).toHaveLength(2)
 
     const mergedExisting = savedTabsArg.find(
-      (tab) => tab.domain === 'https://existing.example.com',
+      (tab) => tab.domain === 'existing.example.com',
     )
 
     expect(mergedExisting).toEqual(
       expect.objectContaining({
         id: 'group-1',
-        domain: 'https://existing.example.com',
+        domain: 'existing.example.com',
         parentCategoryId: 'cat-2',
         savedAt: 50,
       }),
@@ -3428,13 +3428,13 @@ describe('import-export ユーティリティ', () => {
     ])
 
     const mergedNewDomain = savedTabsArg.find(
-      (tab) => tab.domain === 'https://new.example.com',
+      (tab) => tab.domain === 'new.example.com',
     )
 
     expect(mergedNewDomain).toEqual(
       expect.objectContaining({
         id: 'imported-new-group',
-        domain: 'https://new.example.com',
+        domain: 'new.example.com',
         urlIds: ['url-imported-new-domain'],
         subCategories: ['ProjectObj', 'ProjectStr'],
         categoryKeywords: [{ categoryName: 'topic', keywords: ['keyword'] }],
@@ -3452,7 +3452,7 @@ describe('import-export ユーティリティ', () => {
     const currentTabs = [
       {
         id: 'group-1',
-        domain: 'https://existing.example.com',
+        domain: 'existing.example.com',
         urlIds: ['url-existing'],
         // 孤児 urlId (url-existing-orphan) を含む
         urlSubCategories: {
@@ -3484,7 +3484,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-existing-group',
-          domain: 'https://existing.example.com',
+          domain: 'existing.example.com',
           urls: [
             {
               url: 'https://existing.example.com/new',
@@ -3505,7 +3505,7 @@ describe('import-export ユーティリティ', () => {
       unknown
     >[]
     const mergedExisting = savedTabsArg.find(
-      (tab) => tab.domain === 'https://existing.example.com',
+      (tab) => tab.domain === 'existing.example.com',
     )
 
     expect(mergedExisting?.urlIds).toEqual([
@@ -3537,7 +3537,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'current-group',
-          domain: 'https://current.example.com',
+          domain: 'current.example.com',
           urlIds: ['url-current'],
         },
       ],
@@ -3621,7 +3621,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-group',
-          domain: 'https://imported.example.com',
+          domain: 'imported.example.com',
           urls: [
             {
               url: 'https://duplicate.example.com/1',
@@ -3690,7 +3690,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'saved-group',
-          domain: 'https://example.com',
+          domain: 'example.com',
           urls: [
             { url: 'https://example.com/a', title: 'A' },
             { url: 'https://example.com/b', title: 'B' },
@@ -3770,7 +3770,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'saved-group',
-          domain: 'https://example.com',
+          domain: 'example.com',
           urls: [
             { url: 'https://example.com/a', title: 'A' },
             { url: 'https://example.com/b', title: 'B' },
@@ -3855,7 +3855,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'replace-group',
-          domain: 'https://replace.example.com',
+          domain: 'replace.example.com',
           urls: [
             { url: 'https://replace.example.com/fail', title: 'fail' },
             {
@@ -3913,7 +3913,7 @@ describe('import-export ユーティリティ', () => {
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'replace-group',
-        domain: 'https://replace.example.com',
+        domain: 'replace.example.com',
         urlIds: ['url-overwrite-2'],
         urlSubCategories: { 'url-overwrite-2': 'SubA' },
         subCategories: ['ObjectSub', 'StringSub'],
@@ -4013,7 +4013,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'saved-group',
-          domain: 'https://restored.example.com',
+          domain: 'restored.example.com',
           urls: [
             {
               url: 'https://restored.example.com/1',
@@ -4290,7 +4290,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'group-main',
-          domain: 'https://example.com',
+          domain: 'example.com',
           urls: [
             { url: 'https://example.com/a', title: 'A' },
             { url: 'https://example.com/b', title: 'B' },
@@ -4353,7 +4353,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'current-group',
-          domain: 'https://current.example.com',
+          domain: 'current.example.com',
           urlIds: ['url-current'],
         },
       ],
@@ -4448,7 +4448,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-group',
-          domain: 'https://imported.example.com',
+          domain: 'imported.example.com',
           urls: [
             {
               url: 'https://imported.example.com/a',
@@ -4549,7 +4549,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'sync-failure-group',
-          domain: 'https://sync-failure.example.com',
+          domain: 'sync-failure.example.com',
           urls: [
             {
               url: 'https://sync-failure.example.com',
@@ -4630,7 +4630,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'bulk-group',
-          domain: 'https://bulk.example.com',
+          domain: 'bulk.example.com',
           urls: importedUrls,
         },
       ],
@@ -4680,7 +4680,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'normalize-group',
-          domain: 'https://normalize.example.com',
+          domain: 'normalize.example.com',
           urls: [{ url: 'https://normalize.example.com', title: 'Normalize' }],
           subCategories: [{ name: 'ObjSub' }, 123, 'StrSub', { name: 999 }],
           categoryKeywords: [
@@ -4734,7 +4734,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'ordered-overwrite-group',
-          domain: 'https://ordered-overwrite.example.com',
+          domain: 'ordered-overwrite.example.com',
           urls: [
             {
               url: 'https://ordered-overwrite.example.com',
@@ -4795,7 +4795,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'minimal-group',
-          domain: 'https://minimal.example.com',
+          domain: 'minimal.example.com',
           urls: [{ url: 'https://minimal.example.com' }],
         },
       ],
@@ -4812,7 +4812,7 @@ describe('import-export ユーティリティ', () => {
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'minimal-group',
-        domain: 'https://minimal.example.com',
+        domain: 'minimal.example.com',
         urlIds: ['url-minimal'],
         subCategories: [],
         categoryKeywords: [],
