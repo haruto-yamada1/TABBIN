@@ -183,12 +183,21 @@ describe('dependency-cruiser architecture rules', () => {
     },
     {
       name: 'application dependencies on infrastructure',
-      rule: 'no-application-to-infrastructure-or-presentation',
+      rule: 'no-infrastructure-construction-outside-composition',
       files: {
         'src/contexts/foo/application/useCase.ts':
           "import '../infrastructure/repository'\n",
         'src/contexts/foo/infrastructure/repository.ts':
           'export const repository = 1\n',
+      },
+    },
+    {
+      name: 'application dependencies on presentation',
+      rule: 'no-application-to-presentation',
+      files: {
+        'src/contexts/foo/presentation/view.ts': 'export const view = 1\n',
+        'src/contexts/foo/application/useCase.ts':
+          "import '../presentation/view'\n",
       },
     },
     {
@@ -278,7 +287,7 @@ describe('dependency-cruiser architecture rules', () => {
     },
     {
       name: 'presentation dependencies on infrastructure',
-      rule: 'no-presentation-to-infrastructure',
+      rule: 'no-infrastructure-construction-outside-composition',
       files: {
         'src/contexts/foo/infrastructure/repository.ts':
           'export const repository = 1\n',
@@ -288,12 +297,32 @@ describe('dependency-cruiser architecture rules', () => {
     },
     {
       name: 'type-only presentation dependencies on infrastructure',
-      rule: 'no-presentation-to-infrastructure',
+      rule: 'no-infrastructure-construction-outside-composition',
       files: {
         'src/contexts/foo/infrastructure/repository.ts':
           'export interface Repository {}\n',
         'src/contexts/foo/presentation/view.ts':
           "import type { Repository } from '../infrastructure/repository'\nexport type ViewRepository = Repository\n",
+      },
+    },
+    {
+      name: 'domain dependencies on infrastructure',
+      rule: 'no-infrastructure-construction-outside-composition',
+      files: {
+        'src/contexts/foo/infrastructure/repository.ts':
+          'export const repository = 1\n',
+        'src/contexts/foo/domain/entity.ts':
+          "import '../infrastructure/repository'\n",
+      },
+    },
+    {
+      name: 'shared utility dependencies on infrastructure',
+      rule: 'no-infrastructure-construction-outside-composition',
+      files: {
+        'src/contexts/foo/infrastructure/repository.ts':
+          'export const repository = 1\n',
+        'src/lib/helper.ts':
+          "import '../contexts/foo/infrastructure/repository'\n",
       },
     },
     {
@@ -378,6 +407,17 @@ describe('dependency-cruiser architecture rules', () => {
     expect(result).toEqual({ status: 0, output: '' })
   })
 
+  it('allows composition layer to wire infrastructure implementations', () => {
+    const result = cruise({
+      'src/contexts/foo/infrastructure/repository.ts':
+        'export const repository = 1\n',
+      'src/app/composition/wireRepositories.ts':
+        "import '../../contexts/foo/infrastructure/repository'\n",
+    })
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
   it('allows type-only cross-context import through public-api.ts', () => {
     const result = cruise({
       'src/contexts/bar/public-api.ts': 'export interface BarApi {}\n',
@@ -388,11 +428,32 @@ describe('dependency-cruiser architecture rules', () => {
     expect(result).toEqual({ status: 0, output: '' })
   })
 
+  it('allows entrypoints to wire infrastructure implementations', () => {
+    const result = cruise({
+      'src/contexts/foo/infrastructure/repository.ts':
+        'export const repository = 1\n',
+      'src/entrypoints/background.ts':
+        "import '../contexts/foo/infrastructure/repository'\n",
+    })
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
   it('allows cross-context import to shared kernel', () => {
     const result = cruise({
       'src/contexts/shared/kernel.ts': 'export const sharedKernel = 1\n',
       'src/contexts/foo/application/useCase.ts':
         "import '../../shared/kernel'\n",
+    })
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
+  it('allows infrastructure to import from other infrastructure', () => {
+    const result = cruise({
+      'src/contexts/foo/infrastructure/repository.ts':
+        'export const repository = 1\n',
+      'src/contexts/foo/infrastructure/adapter.ts': "import './repository'\n",
     })
 
     expect(result).toEqual({ status: 0, output: '' })
