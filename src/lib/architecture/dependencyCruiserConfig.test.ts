@@ -381,6 +381,35 @@ describe('dependency-cruiser architecture rules', () => {
           "import type { OtherContextEntity } from '../../bar/domain/entity'\nexport type FooEntity = OtherContextEntity\n",
       },
     },
+    {
+      name: 'legacy feature dependencies on context domain',
+      rule: 'no-legacy-features-to-context-internals',
+      files: {
+        'src/contexts/saved-tabs/domain/entity.ts': 'export const entity = 1\n',
+        'src/features/foo/bar.ts':
+          "import '../../contexts/saved-tabs/domain/entity'\n",
+      },
+    },
+    {
+      name: 'legacy feature dependencies on context application',
+      rule: 'no-legacy-features-to-context-internals',
+      files: {
+        'src/contexts/saved-tabs/application/useCase.ts':
+          'export const useCase = 1\n',
+        'src/features/foo/bar.ts':
+          "import '../../contexts/saved-tabs/application/useCase'\n",
+      },
+    },
+    {
+      name: 'legacy feature dependencies on context infrastructure',
+      rule: 'no-legacy-features-to-context-internals',
+      files: {
+        'src/contexts/saved-tabs/infrastructure/repo.ts':
+          'export const repo = 1\n',
+        'src/features/foo/bar.ts':
+          "import '../../contexts/saved-tabs/infrastructure/repo'\n",
+      },
+    },
   ])('rejects $name with $rule', ({ files, rule }) => {
     const result = cruise(removeUndefinedFiles(files))
 
@@ -402,6 +431,28 @@ describe('dependency-cruiser architecture rules', () => {
       'src/contexts/bar/public-api.ts': 'export const barApi = 1\n',
       'src/contexts/foo/application/useCase.ts':
         "import '../../bar/public-api'\n",
+    })
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
+  it('allows legacy feature dependencies on context public API', () => {
+    const result = cruise({
+      'src/contexts/saved-tabs/public-api.ts':
+        'export const savedTabsApi = 1\n',
+      'src/features/foo/bar.ts':
+        "import '../../contexts/saved-tabs/public-api'\n",
+    })
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
+  it('allows legacy feature dependencies on context presentation entry point', () => {
+    const result = cruise({
+      'src/contexts/saved-tabs/presentation/route.tsx':
+        'export const SavedTabsRoute = 1\n',
+      'src/features/foo/bar.ts':
+        "import '../../contexts/saved-tabs/presentation/route'\n",
     })
 
     expect(result).toEqual({ status: 0, output: '' })

@@ -1,4 +1,4 @@
-import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { normalizeDomainString } from '@/contexts/saved-tabs/public-api'
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
