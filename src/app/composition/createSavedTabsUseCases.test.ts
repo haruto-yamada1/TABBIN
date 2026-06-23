@@ -39,6 +39,25 @@ const buildChromeStorageLocal = (state: Record<string, unknown>) =>
     // eslint-disable-next-line typescript/no-explicit-any
   }) as any
 
+const buildSavedTabsState = () => ({
+  customProjects: [],
+  savedTabs: [
+    {
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1'],
+    },
+  ],
+  urls: [
+    {
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    },
+  ],
+})
+
 describe('createSavedTabsUseCases (app/composition)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -104,24 +123,7 @@ describe('createSavedTabsUseCases (app/composition)', () => {
   })
 
   it('options.resolveActive を渡すと openSavedUrl が active 設定を反映する', async () => {
-    const state: Record<string, unknown> = {
-      customProjects: [],
-      savedTabs: [
-        {
-          domain: 'example.com',
-          id: 'group-1',
-          urlIds: ['url-1'],
-        },
-      ],
-      urls: [
-        {
-          id: 'url-1',
-          savedAt: 1,
-          title: 'A',
-          url: 'https://example.com/a',
-        },
-      ],
-    }
+    const state: Record<string, unknown> = buildSavedTabsState()
     vi.mocked(getChromeStorageLocal).mockReturnValue(
       buildChromeStorageLocal(state),
     )
@@ -186,24 +188,7 @@ describe('createSavedTabsPresentationComposition (app/composition)', () => {
   })
 
   it('resolveActive を渡すと use-case に反映される', async () => {
-    const state: Record<string, unknown> = {
-      customProjects: [],
-      savedTabs: [
-        {
-          domain: 'example.com',
-          id: 'group-1',
-          urlIds: ['url-1'],
-        },
-      ],
-      urls: [
-        {
-          id: 'url-1',
-          savedAt: 1,
-          title: 'A',
-          url: 'https://example.com/a',
-        },
-      ],
-    }
+    const state: Record<string, unknown> = buildSavedTabsState()
     vi.mocked(getChromeStorageLocal).mockReturnValue(
       buildChromeStorageLocal(state),
     )
