@@ -1380,6 +1380,10 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       }
     })
 
+    it('検査対象の context ディレクトリが存在する', () => {
+      expect(allContextNames.length).toBeGreaterThan(0)
+    })
+
     for (const convention of namingConventions) {
       for (const contextName of allContextNames) {
         const dir = resolve(
@@ -1432,7 +1436,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
           expect(
             source,
             `${relativePath} should not import from domain/`,
-          ).not.toMatch(/from\s+['"][^'"]*\/domain\//)
+          ).not.toMatch(/from\s+['"][^'"]*\/domain(?:\/|['"])/)
         }
       }
     })
