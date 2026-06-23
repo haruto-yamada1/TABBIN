@@ -1,7 +1,7 @@
 import { generateText, stepCountIs } from 'ai'
 import { createOllama } from 'ai-sdk-ollama'
 
-import { AI_CHAT_TOOL_TITLES } from '@/constants/aiChatTools'
+import { getAiChatToolTitle } from '@/constants/aiChatTools'
 import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
 import { buildAiSavedUrlRecords } from '@/features/ai-chat/lib/buildAiContext'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
@@ -275,8 +275,8 @@ const getStringValue = (
   return typeof value === 'string' ? value : undefined
 }
 
-const getToolTitle = (toolName: string): string =>
-  AI_CHAT_TOOL_TITLES[toolName] || toolName
+const getToolTitle = (language: AppLanguage, toolName: string): string =>
+  getAiChatToolTitle(language, toolName)
 
 const getToolResultCount = (output: unknown): number | null => {
   if (Array.isArray(output)) {
@@ -365,9 +365,11 @@ const getAllToolResults = (
 }
 
 const createToolTracesFromParts = ({
+  language,
   toolCalls,
   toolResults,
 }: {
+  language: AppLanguage
   toolCalls?: GenerateTextToolCallLike[]
   toolResults?: GenerateTextToolResultLike[]
 }): AiChatToolTrace[] => {
@@ -385,7 +387,7 @@ const createToolTracesFromParts = ({
       input: toolCall.input,
       output: toolResult?.output,
       state: toolResult ? 'output-available' : 'input-available',
-      title: getToolTitle(toolCall.toolName),
+      title: getToolTitle(language, toolCall.toolName),
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
       type: 'dynamic-tool',
@@ -393,8 +395,12 @@ const createToolTracesFromParts = ({
   })
 }
 
-const createToolTraces = (result: GenerateTextResultLike): AiChatToolTrace[] =>
+const createToolTraces = (
+  result: GenerateTextResultLike,
+  language: AppLanguage,
+): AiChatToolTrace[] =>
   createToolTracesFromParts({
+    language,
     toolCalls: getAllToolCalls(result),
     toolResults: getAllToolResults(result),
   })
@@ -686,6 +692,7 @@ const runAiChatRequest = async (
         model: ollama(ollamaModel),
         onStepFinish: (stepResult) => {
           const stepToolTraces = createToolTracesFromParts({
+            language,
             toolCalls: stepResult.toolCalls,
             toolResults: stepResult.toolResults,
           })
@@ -725,7 +732,7 @@ const runAiChatRequest = async (
 
   const toolTraces = mergeToolTraces(
     streamedToolTraces,
-    createToolTraces(result),
+    createToolTraces(result, language),
   )
   const toolCharts = getChartsFromToolTraces(toolTraces)
   const fallbackCharts =

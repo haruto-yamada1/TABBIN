@@ -13,12 +13,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
+import { getAiChatToolDefinitions } from '@/constants/aiChatTools'
 import {
   MAX_AI_SYSTEM_PROMPT_NAME_LENGTH,
   MAX_AI_SYSTEM_PROMPT_PRESETS,
 } from '@/features/ai-chat/lib/systemPromptPresets'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import type { AppLanguage } from '@/features/i18n/messages'
 import { cn } from '@/lib/utils'
 import type { AiSystemPromptPreset } from '@/types/storage'
 
@@ -89,6 +90,7 @@ const PromptEditorPanel = ({
   errorMessage,
   isDeleteDisabled,
   isLimitReached,
+  language,
   onChangePromptName,
   onChangePromptTemplate,
   onDeletePrompt,
@@ -99,6 +101,7 @@ const PromptEditorPanel = ({
   errorMessage: string
   isDeleteDisabled: boolean
   isLimitReached: boolean
+  language: AppLanguage
   onChangePromptName: (value: string) => void
   onChangePromptTemplate: (value: string) => void
   onDeletePrompt: () => void
@@ -184,7 +187,7 @@ const PromptEditorPanel = ({
           </p>
         </div>
         <div className='grid gap-2 xl:grid-cols-2'>
-          {AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => (
+          {getAiChatToolDefinitions(language).map((toolDefinition) => (
             <div
               className='rounded-md border border-border/70 bg-muted/20 p-3'
               key={toolDefinition.name}
@@ -282,7 +285,7 @@ export const SystemPromptManagerDialog = ({
   onSave,
   onSelectPrompt,
 }: SystemPromptManagerDialogProps) => {
-  const { t } = useI18n()
+  const { language, t } = useI18n()
   const selectedPrompt = getSelectedPrompt(presets, selectedPromptId)
   const isLimitReached = presets.length >= MAX_AI_SYSTEM_PROMPT_PRESETS
   const isDeleteDisabled = presets.length <= 1
@@ -316,6 +319,7 @@ export const SystemPromptManagerDialog = ({
                   errorMessage={errorMessage}
                   isDeleteDisabled={isDeleteDisabled}
                   isLimitReached={isLimitReached}
+                  language={language}
                   onChangePromptName={onChangePromptName}
                   onChangePromptTemplate={onChangePromptTemplate}
                   onDeletePrompt={onDeletePrompt}

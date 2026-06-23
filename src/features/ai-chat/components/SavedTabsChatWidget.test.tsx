@@ -16,7 +16,7 @@ import {
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
+import { getAiChatToolDefinitions } from '@/constants/aiChatTools'
 import type { UserSettings } from '@/types/storage'
 
 const mocked = vi.hoisted(() => ({
@@ -996,7 +996,7 @@ describe('SavedTabsChatWidget', () => {
 
     expect(within(dialog).getByText('Available tools')).toBeTruthy()
 
-    for (const toolDefinition of AI_CHAT_TOOL_DEFINITIONS) {
+    for (const toolDefinition of getAiChatToolDefinitions('en')) {
       expect(
         within(dialog).getByText(toolDefinition.name, {
           exact: false,

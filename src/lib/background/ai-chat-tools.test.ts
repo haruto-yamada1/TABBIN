@@ -85,3 +85,25 @@ describe('createAiChatTools', () => {
     )
   })
 })
+
+describe('createAiChatTools (language-aware descriptions)', () => {
+  it('language=ja のとき日本語 description を AI SDK tool へ渡す', () => {
+    const tools = createAiChatTools(records, 'ja')
+    expect(tools.getCurrentDateTime.description).toBe(
+      '現在時刻を取得する。今日、今月、何日前、相対日付を扱う前に使う',
+    )
+    expect(tools.listSavedUrls.description).toBe(
+      '現在保存されているタブを保存日時順に一覧化する。page/pageSize/sortDirection を指定できる',
+    )
+  })
+
+  it('language=en のとき英語 description を AI SDK tool へ渡す', () => {
+    const tools = createAiChatTools(records, 'en')
+    expect(tools.getCurrentDateTime.description).toBe(
+      'Get the current time. Use this before handling today, this month, days ago, or relative dates.',
+    )
+    expect(tools.listSavedUrls.description).toBe(
+      'List currently saved tabs in order of saved time. page/pageSize/sortDirection are configurable.',
+    )
+  })
+})
