@@ -53,4 +53,7 @@ web-ext.config.ts
 
 
 # APM dependencies
-apm_modules/
+apm_modules/.worktrees/
+
+# Worktree directory
+.worktrees/
