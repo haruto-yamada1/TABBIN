@@ -1303,7 +1303,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         expect(
           source,
           `${relativePath} should not instantiate classes`,
-        ).not.toMatch(/\bnew\s+[A-Z]/)
+        ).not.toMatch(/\bnew\s+[a-zA-Z]/)
         expect(source, `${relativePath} should not use chrome API`).not.toMatch(
           /\bchrome\./,
         )
@@ -1319,7 +1319,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
           /\bindexedDB\b/,
         )
         expect(source, `${relativePath} should not call fetch()`).not.toMatch(
-          /\bfetch\(/,
+          /\bfetch\s*\(/,
         )
       })
     }
