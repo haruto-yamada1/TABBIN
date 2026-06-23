@@ -1,4 +1,4 @@
-import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { normalizeDomainString } from '@/contexts/saved-tabs/public-api'
 import {
   getBrowserUiLocale,
   getMessage,

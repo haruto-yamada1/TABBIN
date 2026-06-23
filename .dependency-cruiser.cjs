@@ -179,6 +179,18 @@ module.exports = {
       },
     },
     {
+      name: 'no-legacy-features-to-context-internals',
+      comment:
+        'Legacy feature code must not depend on context internals (domain, application, infrastructure). Use the context public API (public-api.ts), a facade, or a presentation entry point instead. See issue #588.',
+      severity: 'error',
+      from: {
+        path: '^src/features/',
+      },
+      to: {
+        path: '^src/contexts/[^/]+/(domain|application|infrastructure)/',
+      },
+    },
+    {
       name: 'no-presentation-tests-to-domain',
       comment:
         'Presentation tests must use application DTO fixtures instead of domain entities',

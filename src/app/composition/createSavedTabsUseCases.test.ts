@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as chromeStorageModule from '@/lib/browser/chrome-storage'
 
-import { createSavedTabsUseCases } from './createSavedTabsUseCases'
+import {
+  createSavedTabsPresentationComposition,
+  createSavedTabsUseCases,
+} from './createSavedTabsUseCases'
 
 vi.mock('@/lib/browser/chrome-storage', async () => {
   const actual = await vi.importActual<typeof chromeStorageModule>(
@@ -35,6 +38,25 @@ const buildChromeStorageLocal = (state: Record<string, unknown>) =>
     },
     // eslint-disable-next-line typescript/no-explicit-any
   }) as any
+
+const buildSavedTabsState = () => ({
+  customProjects: [],
+  savedTabs: [
+    {
+      domain: 'example.com',
+      id: 'group-1',
+      urlIds: ['url-1'],
+    },
+  ],
+  urls: [
+    {
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    },
+  ],
+})
 
 describe('createSavedTabsUseCases (app/composition)', () => {
   beforeEach(() => {
@@ -101,24 +123,7 @@ describe('createSavedTabsUseCases (app/composition)', () => {
   })
 
   it('options.resolveActive を渡すと openSavedUrl が active 設定を反映する', async () => {
-    const state: Record<string, unknown> = {
-      customProjects: [],
-      savedTabs: [
-        {
-          domain: 'example.com',
-          id: 'group-1',
-          urlIds: ['url-1'],
-        },
-      ],
-      urls: [
-        {
-          id: 'url-1',
-          savedAt: 1,
-          title: 'A',
-          url: 'https://example.com/a',
-        },
-      ],
-    }
+    const state: Record<string, unknown> = buildSavedTabsState()
     vi.mocked(getChromeStorageLocal).mockReturnValue(
       buildChromeStorageLocal(state),
     )
@@ -136,6 +141,71 @@ describe('createSavedTabsUseCases (app/composition)', () => {
       typeof useCases.openSavedUrl
     >[0]['urlRecordId']
     await useCases.openSavedUrl({
+      origin: 'click',
+      settings: {
+        removeTabAfterExternalDrop: false,
+        removeTabAfterOpen: false,
+      },
+      urlRecordId,
+    })
+
+    expect(create).toHaveBeenCalledWith({
+      active: false,
+      url: 'https://example.com/a',
+    })
+  })
+})
+
+describe('createSavedTabsPresentationComposition (app/composition)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    restoreChromeApi()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    restoreChromeApi()
+  })
+
+  it('presentation ports と use-case 群のバンドルを返す', () => {
+    vi.mocked(getChromeStorageLocal).mockReturnValue(
+      buildChromeStorageLocal({}),
+    )
+    setChromeApi({
+      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
+      tabs: { create: vi.fn(async () => ({ url: 'https://example.com' })) },
+    })
+
+    const composition = createSavedTabsPresentationComposition()
+
+    expect(composition.deps.browserTabPort).toBeTypeOf('object')
+    expect(composition.deps.categoryAssignmentPort).toBeTypeOf('object')
+    expect(composition.deps.messagingPort).toBeTypeOf('object')
+    expect(composition.deps.migrationPort).toBeTypeOf('object')
+    expect(composition.deps.storageChangePort).toBeTypeOf('object')
+    expect(composition.useCases.openSavedUrl).toBeTypeOf('function')
+    expect(composition.useCases.deleteTabGroup).toBeTypeOf('function')
+  })
+
+  it('resolveActive を渡すと use-case に反映される', async () => {
+    const state: Record<string, unknown> = buildSavedTabsState()
+    vi.mocked(getChromeStorageLocal).mockReturnValue(
+      buildChromeStorageLocal(state),
+    )
+    const create = vi.fn(
+      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
+      async ({ url }: { active?: boolean; url: string }) => ({ url }),
+    )
+    setChromeApi({ tabs: { create } })
+
+    const composition = createSavedTabsPresentationComposition({
+      resolveActive: () => false,
+    })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const urlRecordId = 'url-1' as unknown as Parameters<
+      typeof composition.useCases.openSavedUrl
+    >[0]['urlRecordId']
+    await composition.useCases.openSavedUrl({
       origin: 'click',
       settings: {
         removeTabAfterExternalDrop: false,
