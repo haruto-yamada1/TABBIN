@@ -158,6 +158,16 @@ module.exports = {
       from: { path: '^src/contexts/[^/]+/presentation/' },
       to: { path: '^src/contexts/[^/]+/domain/' },
     },
+    {
+      name: 'no-presentation-tests-to-domain',
+      comment:
+        'Presentation tests must use application DTO fixtures instead of domain entities',
+      severity: 'error',
+      from: {
+        path: '^src/contexts/[^/]+/presentation/.*\\.(test|spec)\\.(ts|tsx)$',
+      },
+      to: { path: '^src/contexts/[^/]+/domain/' },
+    },
     ...noCrossContextRules,
   ],
   options: {
