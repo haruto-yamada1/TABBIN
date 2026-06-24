@@ -17,7 +17,11 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { z } from 'zod'
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
@@ -27,7 +31,6 @@ import type {
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { categoryNameSchema } from '@/contexts/saved-tabs/presentation/components/categoryNameSchema'
-import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const categoryManagementModalI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',

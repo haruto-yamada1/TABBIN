@@ -9,8 +9,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { ViewMode } from '@/types/storage'
 
 import {
   SavedTabsResponsiveLabel,

@@ -1,14 +1,14 @@
 import type { RefObject, SetStateAction } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  ViewMode,
-} from '@/types/storage'
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 
 import { syncStorageChanges } from './modeSyncService'
 

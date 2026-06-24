@@ -1,5 +1,3 @@
-import type { TabGroup } from '@/types/storage'
-
 /**
  * `RemoveSubCategoryFromTabGroupsUseCase` の入力 (issue #519)。
  *
@@ -15,6 +13,8 @@ import type { TabGroup } from '@/types/storage'
  * original の rich フィールドを保持してしまう) 既存問題を回避する
  * (issue #519 Codex レビュー P1)。
  */
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export interface RemoveSubCategoryFromTabGroupsCommand {
   readonly groupId: string
   readonly categoryName: string

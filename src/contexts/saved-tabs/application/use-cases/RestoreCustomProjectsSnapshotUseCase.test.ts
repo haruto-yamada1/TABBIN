@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toCreateCustomProjectInput } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type {
   CustomProjectRawSnapshot,
@@ -27,19 +30,14 @@ const makeRepository = (options: {
   }) as unknown as CustomProjectRepository
 
 describe('RestoreCustomProjectsSnapshotUseCase', () => {
-  const projects: CustomProject[] = [
+  const projects: SavedTabsCustomProjectDto[] = [
     {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      id: 'project-1' as never,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      name: 'Project A' as never,
+      id: 'project-1',
+      name: 'Project A',
       categories: [],
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      createdAt: 1 as never,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      updatedAt: 2 as never,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      urlIds: ['url-a' as never],
+      createdAt: 1,
+      updatedAt: 2,
+      urlIds: ['url-a'],
     },
   ]
   const raws: CustomProjectRawSnapshot[] = [
@@ -102,7 +100,9 @@ describe('RestoreCustomProjectsSnapshotUseCase', () => {
       },
     })
 
-    expect(saveAll).toHaveBeenCalledWith(projects)
+    expect(saveAll).toHaveBeenCalledWith(
+      projects.map((p) => createCustomProject(toCreateCustomProjectInput(p))),
+    )
     expect(restoreAllRaw).not.toHaveBeenCalled()
     expect(saveOrder).toHaveBeenCalledWith(order)
   })
@@ -126,7 +126,9 @@ describe('RestoreCustomProjectsSnapshotUseCase', () => {
       },
     })
 
-    expect(saveAll).toHaveBeenCalledWith(projects)
+    expect(saveAll).toHaveBeenCalledWith(
+      projects.map((p) => createCustomProject(toCreateCustomProjectInput(p))),
+    )
     expect(saveOrder).toHaveBeenCalledWith(order)
   })
 

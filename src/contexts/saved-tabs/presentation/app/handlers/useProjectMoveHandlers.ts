@@ -3,10 +3,10 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { CustomProject } from '@/types/storage'
 
 interface UseProjectMoveHandlersDeps {
   savedTabsUseCases: SavedTabsUseCases
@@ -46,9 +46,9 @@ export const useProjectMoveHandlers = ({
               id: project.id as unknown as string,
               name: project.name,
               updatedAt: project.updatedAt,
-              ...(project.urlIds.length > 0
+              ...((project.urlIds ?? []).length > 0
                 ? // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain UrlRecordId と storage 側の string 差 (issue #511 と同系統)
-                  { urlIds: [...project.urlIds] as unknown as string[] }
+                  { urlIds: [...(project.urlIds ?? [])] as unknown as string[] }
                 : {}),
             }))
           },

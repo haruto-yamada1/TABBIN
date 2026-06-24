@@ -9,8 +9,8 @@ import {
   isDevProfileEnabled,
 } from '@/contexts/saved-tabs/presentation/app/savedTabsProfiler'
 import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
-import type { ViewMode } from '@/types/storage'
 
 import { SavedTabsChatWidgetBridge } from './SavedTabsChatWidgetBridge'
 import { SavedTabsResponsiveLayoutProvider } from './SavedTabsResponsiveLayoutContext'

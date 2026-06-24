@@ -4,6 +4,9 @@ import type {
   RestoreOpenedUrlsSnapshotCommand,
 } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
   SavedTabsCustomProjectDto,
   SavedTabsDisplayTabGroupDto,
   SavedTabsParentCategoryDto,
@@ -16,10 +19,8 @@ import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup as DomainTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { CustomProjectRawSnapshot } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 import { toSavedTabsTabGroupDto } from './SavedTabsPresentationMapper'
-
 /**
  * `BuildSavedTabsSnapshotUseCase` / `RestoreOpenedUrlsSnapshotUseCase` 由来の
  * domain entity 形 snapshot を presentation 層 (chrome.storage 互換の
@@ -52,7 +53,7 @@ export const toStorageCustomProject = (
   id: project.id,
   name: project.name,
   updatedAt: project.updatedAt,
-  urlIds: [...project.urlIds],
+  urlIds: project.urlIds ? [...project.urlIds] : [],
 })
 
 /** raw snapshot の rich 補助フィールドを保持したまま storage 形へ投影する。 */

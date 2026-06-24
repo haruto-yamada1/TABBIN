@@ -2,6 +2,11 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useCallback } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import {
   countTabGroupUrls,
@@ -14,7 +19,6 @@ import {
 import type { OpenedUrlsStorageSnapshot } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 interface UseTabGroupDeletionHandlersDeps {
   isUncategorizedReorderMode: boolean

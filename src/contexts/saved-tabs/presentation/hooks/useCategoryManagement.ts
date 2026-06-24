@@ -1,12 +1,16 @@
-/**
- * @file useCategoryManagement.ts
- * @description 親カテゴリの CRUD・並び替えモード・ドメイン移動を担うカスタムフック。
- */
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+/**
+ * @file useCategoryManagement.ts
+ * @description 親カテゴリの CRUD・並び替えモード・ドメイン移動を担うカスタムフック。
+ */
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import { buildReorderedCategoryOrder } from '@/contexts/saved-tabs/application/services/ParentCategoryReorderService'
 import type { MoveDomainBetweenCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/MoveDomainBetweenCategoriesUseCase'
@@ -15,7 +19,6 @@ import type { ReorderDomainsInCategoryUseCase } from '@/contexts/saved-tabs/appl
 import type { ReorderParentCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderParentCategoriesUseCase'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseCategoryManagement フックの戻り値型 */
 interface UseCategoryManagementReturn {

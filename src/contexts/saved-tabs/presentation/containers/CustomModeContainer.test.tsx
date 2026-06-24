@@ -1,9 +1,11 @@
-// @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { CustomProject } from '@/types/storage'
+// @vitest-environment jsdom
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({

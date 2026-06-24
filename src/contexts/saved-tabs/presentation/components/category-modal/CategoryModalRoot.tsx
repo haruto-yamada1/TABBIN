@@ -6,13 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import { useCategoryModal } from '@/contexts/saved-tabs/presentation/hooks/useCategoryModal'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { TabGroup } from '@/types/storage'
 
 import { CategoryModalContext } from './CategoryModalContext'
 import type { CategoryModalContextType } from './CategoryModalContext'

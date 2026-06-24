@@ -1,9 +1,11 @@
-// @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { ParentCategory, TabGroup } from '@/types/storage'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 import { useTabData } from './useTabData'
 

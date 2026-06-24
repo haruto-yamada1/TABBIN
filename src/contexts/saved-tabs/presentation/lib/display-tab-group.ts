@@ -1,5 +1,3 @@
-import type { CustomProject, TabGroup } from '@/types/storage'
-
 /**
  * 描画用に「表示対象」とみなせる URL 数を返す。
  *
@@ -16,6 +14,11 @@ import type { CustomProject, TabGroup } from '@/types/storage'
  * getDisplayUrlCount({ id: 'g1', domain: 'a' })                  // 0
  * ```
  */
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export const getDisplayUrlCount = (group: TabGroup): number =>
   (group.urls ?? group.urlIds ?? []).length
 

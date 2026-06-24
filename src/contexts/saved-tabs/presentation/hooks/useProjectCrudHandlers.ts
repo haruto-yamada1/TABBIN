@@ -3,12 +3,12 @@ import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
 import { savedTabsUncategorizedProjectId as UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
-import { toStorageCustomProject } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type {
-  CustomProject,
-  ProjectKeywordSettings,
-  ViewMode,
-} from '@/types/storage'
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toStorageCustomProject } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 
 import {
   showCustomProjectDeleteUndoToast,

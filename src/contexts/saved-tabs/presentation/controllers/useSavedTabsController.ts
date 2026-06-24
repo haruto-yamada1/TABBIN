@@ -135,7 +135,7 @@ const toCustomProjectViewModelFromEntity = (
     id: project.id,
     name: project.name,
     updatedAt: project.updatedAt,
-    urlIds: [...project.urlIds],
+    urlIds: [...(project.urlIds ?? [])],
   })
 
 const toTabGroupViewModelFromEntity = (group: TabGroup): TabGroupViewModel =>
@@ -143,7 +143,7 @@ const toTabGroupViewModelFromEntity = (group: TabGroup): TabGroupViewModel =>
     domain: group.domain,
     id: group.id,
     parentCategoryId: group.parentCategoryId,
-    urlIds: [...group.urlIds],
+    urlIds: [...(group.urlIds ?? [])],
   })
 
 /**

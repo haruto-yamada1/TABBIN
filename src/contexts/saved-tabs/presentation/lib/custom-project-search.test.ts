@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
-import type { CustomProject } from '@/types/storage'
 
 import { filterCustomProjectsByQuery } from './custom-project-search'
 

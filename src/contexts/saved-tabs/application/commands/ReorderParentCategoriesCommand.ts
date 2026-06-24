@@ -1,5 +1,3 @@
-import type { ParentCategory } from '@/types/storage'
-
 /**
  * `ReorderParentCategoriesUseCase` の入力 (issue #519)。
  *
@@ -16,6 +14,8 @@ import type { ParentCategory } from '@/types/storage'
  * `ParentCategoryReorderService.buildReorderedCategoryOrder` 出力）
  * に委ねる方針。
  */
+import type { SavedTabsParentCategoryDto as ParentCategory } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export interface ReorderParentCategoriesCommand {
   readonly categories: readonly ParentCategory[]
 }

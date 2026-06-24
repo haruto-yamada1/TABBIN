@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 // eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
@@ -14,7 +13,8 @@ import {
 } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { TabGroup } from '@/types/storage'
+// @vitest-environment jsdom
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 import { DomainSelectionList } from './DomainSelectionList'
 

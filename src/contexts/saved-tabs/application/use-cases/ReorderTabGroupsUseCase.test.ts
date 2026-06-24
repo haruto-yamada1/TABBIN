@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { toSavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 
@@ -63,7 +64,9 @@ describe('ReorderTabGroupsUseCase', () => {
     })
     const useCase = createReorderTabGroupsUseCase(repositories)
 
-    await useCase({ tabGroups: [third, first, second] })
+    await useCase({
+      tabGroups: [third, first, second].map(toSavedTabsTabGroupDto),
+    })
 
     expect(repositories.saveAllSpy).toHaveBeenCalledTimes(1)
     expect(repositories.saveAllSpy).toHaveBeenCalledWith([third, first, second])

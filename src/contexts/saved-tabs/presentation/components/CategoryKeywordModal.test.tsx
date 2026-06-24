@@ -1,9 +1,12 @@
-// @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
-import type { ParentCategory, TabGroup } from '@/types/storage'
+// @vitest-environment jsdom
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { CategoryKeywordModalProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 const { keywordModalRootSpy } = vi.hoisted(() => ({
   keywordModalRootSpy: vi.fn(),

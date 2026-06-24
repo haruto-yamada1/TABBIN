@@ -1,11 +1,13 @@
-// @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+// @vitest-environment jsdom
+import type {
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
-import type { SortableDomainCardProps } from '@/types/saved-tabs'
-import type { TabGroup } from '@/types/storage'
+import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 const { domainCardRootSpy } = vi.hoisted(() => ({
   domainCardRootSpy: vi.fn(),

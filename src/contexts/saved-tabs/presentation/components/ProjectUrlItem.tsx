@@ -5,10 +5,12 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { CustomProject } from '@/types/storage'
 
 import {
   getCategoryDisplayName,

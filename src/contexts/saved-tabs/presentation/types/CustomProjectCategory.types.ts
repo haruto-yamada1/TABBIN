@@ -1,6 +1,8 @@
 // Filepath: contexts/saved-tabs/presentation/types/CustomProjectCategory.types.ts
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { CustomProject } from '@/types/storage'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 export interface CustomProjectCategoryProps {
   projectId: string

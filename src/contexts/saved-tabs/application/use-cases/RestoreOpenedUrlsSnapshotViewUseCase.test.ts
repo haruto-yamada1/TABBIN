@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsParentCategoryDto,
+  toSavedTabsTabGroupDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
@@ -24,32 +29,38 @@ describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
       customProjects: [
-        createCustomProject({
-          categories: ['cat-1'],
-          createdAt: 1,
-          id: 'project-1',
-          name: 'Reading',
-          updatedAt: 2,
-          urlIds: ['url-1'],
-        }),
+        toSavedTabsCustomProjectDto(
+          createCustomProject({
+            categories: ['cat-1'],
+            createdAt: 1,
+            id: 'project-1',
+            name: 'Reading',
+            updatedAt: 2,
+            urlIds: ['url-1'],
+          }),
+        ),
       ],
       customProjectOrder: ['project-1'],
       parentCategories: [
-        createParentCategory({
-          domains: ['group-1'],
-          domainNames: ['example.com'],
-          id: 'cat-1',
-          name: 'Reading',
-        }),
+        toSavedTabsParentCategoryDto(
+          createParentCategory({
+            domains: ['group-1'],
+            domainNames: ['example.com'],
+            id: 'cat-1',
+            name: 'Reading',
+          }),
+        ),
       ],
       savedTabs: [
-        createTabGroup({
-          domain: 'example.com',
-          id: 'group-1',
-          parentCategoryId: 'cat-1',
-          savedAt: 10,
-          urlIds: ['url-1'],
-        }),
+        toSavedTabsTabGroupDto(
+          createTabGroup({
+            domain: 'example.com',
+            id: 'group-1',
+            parentCategoryId: 'cat-1',
+            savedAt: 10,
+            urlIds: ['url-1'],
+          }),
+        ),
       ],
       urlRecords: [],
     }

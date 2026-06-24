@@ -20,11 +20,12 @@
  * `TabGroup` への正規化 (subCategory の `urlSubCategories` 引継ぎ等)
  * を行う責務を負う。
  */
-import type { TabGroup } from '@/types/storage'
 
 /**
  * `RemoveSubCategoryFromTabGroupPort` の関数定義。
  */
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export interface RemoveSubCategoryFromTabGroupPort {
   /**
    * 指定 `groupId` の `TabGroup` から `categoryName` を 1 件削除し、

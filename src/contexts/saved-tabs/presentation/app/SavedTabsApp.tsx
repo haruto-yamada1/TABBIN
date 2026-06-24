@@ -10,7 +10,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import { savedTabsDefaultUserSettings as defaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import {
   buildPresentationCategoryLookup,
@@ -29,9 +32,9 @@ import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/u
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
 import { createCategorizedDisplayState } from '@/contexts/saved-tabs/presentation/lib/categorized-display'
 import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { TabGroup, ViewMode } from '@/types/storage'
 
 import { useProjectMoveHandlers } from './handlers/useProjectMoveHandlers'
 import { useTabGroupDeletionHandlers } from './handlers/useTabGroupDeletionHandlers'

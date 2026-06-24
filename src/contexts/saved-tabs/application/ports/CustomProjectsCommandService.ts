@@ -1,5 +1,3 @@
-import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
-
 /**
  * 旧 `src/lib/storage/projects` の高レベル操作を port として再公開する
  * DDD 境界 interface。
@@ -21,6 +19,11 @@ import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
  * あくまで互換層として lib/storage をラップする。`lib/storage` の
  * 全面 DDD 化は別 issue で段階的に行う。
  */
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export interface CustomProjectsCommandService {
   /**
    * 旧 `addCategoryToProject` の port 版。カテゴリが既に存在する場合は

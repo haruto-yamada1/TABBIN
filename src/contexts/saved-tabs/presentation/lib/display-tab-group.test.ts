@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CustomProject, TabGroup } from '@/types/storage'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 import { buildDisplayTabGroup, getDisplayUrlCount } from './display-tab-group'
 

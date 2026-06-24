@@ -12,14 +12,14 @@ import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  UrlRecord,
-  ViewMode,
-} from '@/types/storage'
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUrlRecordDto as UrlRecord,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 
 const commandServiceMock = vi.hoisted(() => {
   const addCategoryToProject = vi.fn()

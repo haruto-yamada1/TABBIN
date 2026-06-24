@@ -1,4 +1,8 @@
-import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 
 import { buildDisplayTabGroup, getDisplayUrlCount } from './display-tab-group'
 import { shouldShowUncategorizedHeader } from './uncategorized-display'

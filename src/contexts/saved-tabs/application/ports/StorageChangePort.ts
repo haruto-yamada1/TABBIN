@@ -38,13 +38,6 @@
  * ```
  */
 
-import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  UserSettings,
-} from '@/types/storage'
-
 /**
  * saved-tabs context が同期対象とする storage キー。
  *
@@ -52,6 +45,13 @@ import type {
  * 列挙する。`urlRecords` のような domain 用語ではなく、実装のキー名
  * (`urls` など) を採用する。
  */
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettings,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export type SavedTabsStorageChangeKey =
   | 'savedTabs'
   | 'urls'

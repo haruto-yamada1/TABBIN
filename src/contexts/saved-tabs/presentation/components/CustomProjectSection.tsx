@@ -33,9 +33,9 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { CustomProject } from '@/types/storage'
 
 import { CustomProjectCard } from './CustomProjectCard'
 import { DragHandlersContext } from './DragHandlersContext'

@@ -1,7 +1,9 @@
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-// Filepath: contexts/saved-tabs/presentation/types/CustomProjectSection.types.ts
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
-import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
 export interface CustomProjectSectionProps {
   projects: CustomProject[]

@@ -1,15 +1,17 @@
-// @vitest-environment jsdom
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type {
   StorageChangePort,
   TypedSavedTabsStorageChange,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import {
   renameCategoryInTab,

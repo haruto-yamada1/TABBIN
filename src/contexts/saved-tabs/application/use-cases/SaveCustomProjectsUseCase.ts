@@ -1,4 +1,5 @@
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import { toCreateCustomProjectInput } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
@@ -51,7 +52,7 @@ export const createSaveCustomProjectsUseCase = (
 ): SaveCustomProjectsUseCase => {
   return async (command) => {
     await deps.customProjectRepository.saveAll(
-      command.projects.map(createCustomProject),
+      command.projects.map(toCreateCustomProjectInput).map(createCustomProject),
     )
   }
 }

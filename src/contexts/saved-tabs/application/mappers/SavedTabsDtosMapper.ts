@@ -1,17 +1,20 @@
-import type { DomainCategoryMappingDto } from '@/contexts/saved-tabs/domain/dto/DomainCategoryMappingDto'
-import type { DomainCategorySettingsDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
+import type {
+  SavedTabsAiSystemPromptDto as AiSystemPromptPreset,
+  SavedTabsUserSettingsDto as UserSettings,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  DomainCategoryMappingDto as DomainParentCategoryMapping,
+  DomainCategoryMappingDto,
+} from '@/contexts/saved-tabs/domain/dto/DomainCategoryMappingDto'
+import type {
+  DomainCategorySettingsDto as DomainCategorySettings,
+  SubCategoryKeywordDto as SubCategoryKeyword,
+  DomainCategorySettingsDto,
+} from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
 import type {
   AiSystemPromptPresetDto,
   UserSettingsDto,
 } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type {
-  AiSystemPromptPreset,
-  DomainCategorySettings,
-  DomainParentCategoryMapping,
-  SubCategoryKeyword,
-  UserSettings,
-} from '@/types/storage'
-
 /**
  * `@/types/storage` 形 (chrome.storage 互換) と domain DTO 間の
  * 純変換を集約する application mapper (issue #511)。

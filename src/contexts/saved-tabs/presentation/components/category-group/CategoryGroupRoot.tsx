@@ -11,8 +11,8 @@ import type {
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { CategoryManagementModal } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { useCategoryGroupState } from '@/contexts/saved-tabs/presentation/hooks/useCategoryGroupState'
+import type { CategoryGroupProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { CategoryGroupProps } from '@/types/saved-tabs'
 
 import { CategoryGroupContext } from './CategoryGroupContext'
 import type { CategoryGroupContextType } from './CategoryGroupContext'

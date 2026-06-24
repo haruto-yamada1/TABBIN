@@ -1,5 +1,3 @@
-import type { TabGroup } from '@/types/storage'
-
 /**
  * `MoveDomainBetweenCategoriesUseCase` の入力 (issue #525)。
  *
@@ -23,6 +21,8 @@ import type { TabGroup } from '@/types/storage'
  * }
  * ```
  */
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export interface MoveDomainBetweenCategoriesCommand {
   /** 移動する `TabGroupId`（生文字列）。 */
   readonly domainId: string

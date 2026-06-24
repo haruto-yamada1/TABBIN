@@ -10,7 +10,7 @@ export interface CustomProjectViewModel {
   readonly name: string
   readonly urlIds: readonly string[]
   readonly urls: readonly {
-    readonly id: string
+    readonly id?: string
     readonly url: string
     readonly title: string
     readonly category?: string
@@ -36,7 +36,7 @@ export const toCustomProjectViewModel = (project: {
   name: string
   urlIds?: readonly string[]
   urls?: readonly {
-    id: string
+    id?: string
     url: string
     title: string
     category?: string

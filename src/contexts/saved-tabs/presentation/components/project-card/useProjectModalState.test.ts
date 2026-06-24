@@ -1,8 +1,11 @@
-// @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
+// @vitest-environment jsdom
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 import { useProjectModalState } from './useProjectModalState'
 import { createProjectNameSchema } from './useProjectNameSchema'

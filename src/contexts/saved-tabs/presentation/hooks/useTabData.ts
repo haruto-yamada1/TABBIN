@@ -7,7 +7,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toPresentationTabGroups } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
@@ -18,8 +22,6 @@ import type {
   RepairTabGroupParentCategoryIdsUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { ParentCategory, TabGroup } from '@/types/storage'
-
 /** UseTabData フックの引数 */
 interface UseTabDataParams {
   /** URL 解決用 use-case。presentation 層が `loadTabGroupsWithUrls` 相当の操作で `@/lib/storage/tabs` を直接呼ばないようにするための依存注入ポイント。 */

@@ -1,6 +1,7 @@
 import type { SavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/dto/SavedTabsCustomProjectRawSnapshotDto'
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toCustomProjectRawSnapshot } from '@/contexts/saved-tabs/application/mappers/SavedTabsCustomProjectRawSnapshotMapper'
+import { toCreateCustomProjectInput } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
@@ -84,7 +85,9 @@ export const createRestoreCustomProjectsSnapshotUseCase = (
       )
     } else {
       await deps.customProjectRepository.saveAll(
-        payload.customProjects.map(createCustomProject),
+        payload.customProjects
+          .map(toCreateCustomProjectInput)
+          .map(createCustomProject),
       )
     }
     const order = (payload.customProjectOrder ?? []).map(createCustomProjectId)

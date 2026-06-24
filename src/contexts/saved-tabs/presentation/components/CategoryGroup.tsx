@@ -6,7 +6,7 @@ import type {
   CategoryManagementModalDeps,
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
-import type { CategoryGroupProps } from '@/types/saved-tabs'
+import type { CategoryGroupProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 import { CategoryGroupActions } from './category-group/CategoryGroupActions'
 import { CategoryGroupContent } from './category-group/CategoryGroupContent'

@@ -1,5 +1,5 @@
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { getPageHref } from '@/features/navigation/lib/pageNavigation'
-import type { ViewMode } from '@/types/storage'
 
 /**
  * view mode に対応する href を解決する。

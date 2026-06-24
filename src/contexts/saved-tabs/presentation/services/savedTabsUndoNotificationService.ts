@@ -4,10 +4,14 @@ import { toast } from 'sonner'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
   RestoredSnapshotViewDto,
   RestoreOpenedUrlsSnapshotViewUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 /**
  * `SavedTabsUndoNotificationService` 群が共通で必要とする presenter 依存。

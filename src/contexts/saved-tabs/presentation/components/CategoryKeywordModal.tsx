@@ -1,8 +1,8 @@
+import type { SavedTabsParentCategoryDto as ParentCategory } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
-import type { CategoryKeywordModalProps } from '@/types/saved-tabs'
-import type { ParentCategory } from '@/types/storage'
+import type { CategoryKeywordModalProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 import { KeywordEditor } from './keyword-modal/KeywordEditor'
 import { KeywordModalRoot } from './keyword-modal/KeywordModalRoot'

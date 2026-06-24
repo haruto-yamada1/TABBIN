@@ -2,6 +2,10 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import {
   toPresentationTabGroups,
   toStorageParentCategory,
@@ -11,7 +15,6 @@ import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/applicatio
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** UseDomainCardState フックの引数 */
 interface UseDomainCardStateParams {
