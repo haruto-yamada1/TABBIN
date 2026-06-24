@@ -210,5 +210,7 @@ export const toCreateCustomProjectInput = (
   id: dto.id,
   name: dto.name,
   updatedAt: dto.updatedAt,
-  urlIds: dto.urlIds ?? [],
+  urlIds:
+    dto.urlIds ??
+    (dto.urls ? dto.urls.map((_, index) => `url-${index}`) : []),
 })

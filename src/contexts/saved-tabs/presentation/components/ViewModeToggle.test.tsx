@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import {
   cleanup,
   fireEvent,
@@ -7,7 +8,6 @@ import {
 } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-// @vitest-environment jsdom
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 
 const viewModeI18nState = vi.hoisted(() => ({

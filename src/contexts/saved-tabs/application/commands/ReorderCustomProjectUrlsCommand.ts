@@ -20,5 +20,5 @@ import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/save
 
 export interface ReorderCustomProjectUrlsCommand {
   readonly projectId: string
-  readonly urls: CustomProject['urls']
+  readonly urls: NonNullable<CustomProject['urls']>
 }

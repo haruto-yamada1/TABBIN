@@ -335,4 +335,44 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     expect(result.restoredCustomProjectOrder).toBeUndefined()
     expect(repos.customProjectOrder).toStrictEqual(initial)
   })
+
+  it('legacy snapshot で savedTabs[].urlIds / customProjects[].urlIds が省略されている場合、urlIds: [] を持つ entity へ正規化する', async () => {
+    const repos = createInMemoryRepositories()
+    const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
+
+    const result = await useCase({
+      snapshot: {
+        savedTabs: [
+          {
+            domain: 'legacy-tabs.com',
+            id: 'group-legacy',
+          },
+        ],
+        customProjects: [
+          {
+            id: 'project-legacy',
+            name: 'Legacy Project',
+            categories: [],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    })
+
+    expect(result.restoredTabGroups).toHaveLength(1)
+    expect(result.restoredCustomProjects).toHaveLength(1)
+    expect(repos.tabGroups).toHaveLength(1)
+    expect(repos.tabGroups[0]).toMatchObject({
+      domain: 'legacy-tabs.com',
+      id: 'group-legacy',
+      urlIds: [],
+    })
+    expect(repos.customProjects).toHaveLength(1)
+    expect(repos.customProjects[0]).toMatchObject({
+      id: 'project-legacy',
+      name: 'Legacy Project',
+      urlIds: [],
+    })
+  })
 })

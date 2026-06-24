@@ -106,7 +106,7 @@ module.exports = {
         'Application code must use application DTOs instead of shared storage persistence types',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/application/' },
-      to: { path: '^src/types/storage(?:/|.)' },
+      to: { path: '^src/types/storage(?:/|\\.)' },
     },
     {
       name: 'no-presentation-to-storage-types',
@@ -114,7 +114,7 @@ module.exports = {
         'Presentation code must use view models instead of shared storage persistence types',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/presentation/' },
-      to: { path: '^src/types/storage(?:/|.)' },
+      to: { path: '^src/types/storage(?:/|\\.)' },
     },
     {
       name: 'no-domain-to-outer-layer',
