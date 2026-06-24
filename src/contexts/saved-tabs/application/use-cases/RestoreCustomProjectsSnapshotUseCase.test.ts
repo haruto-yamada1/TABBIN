@@ -147,4 +147,35 @@ describe('RestoreCustomProjectsSnapshotUseCase', () => {
 
     expect(saveOrder).toHaveBeenCalledWith([])
   })
+
+  it('urlIds が未設定の SavedTabsCustomProjectDto を渡された場合、saveAll へは urlIds: [] を持つ domain project を渡す', async () => {
+    const saveAll = vi.fn().mockResolvedValue(undefined)
+    const customProjectRepository = makeRepository({ saveAll })
+    const useCase = createRestoreCustomProjectsSnapshotUseCase({
+      customProjectRepository,
+    })
+
+    await useCase({
+      payload: {
+        customProjects: [
+          {
+            id: 'project-legacy',
+            name: 'Legacy Project',
+            categories: ['test'],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    })
+
+    expect(saveAll).toHaveBeenCalledTimes(1)
+    const savedProjects = saveAll.mock.calls[0][0]
+    expect(savedProjects).toHaveLength(1)
+    expect(savedProjects[0]).toMatchObject({
+      id: 'project-legacy',
+      name: 'Legacy Project',
+      urlIds: [],
+    })
+  })
 })
