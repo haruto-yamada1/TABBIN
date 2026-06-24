@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-import type { TabGroup } from '@/types/storage'
 
 import { createReorderDomainsInCategoryUseCase } from './ReorderDomainsInCategoryUseCase'
 import type { ReorderDomainsInCategoryUseCaseDeps } from './ReorderDomainsInCategoryUseCase'

@@ -74,12 +74,12 @@ export const useCustomModeController = (
         categories: [...project.categories],
         categoryOrder: project.categories,
         createdAt: project.createdAt,
-        displayUrlCount: project.urlIds.length,
-        hasUrls: project.urlIds.length > 0,
+        displayUrlCount: (project.urlIds ?? []).length,
+        hasUrls: (project.urlIds ?? []).length > 0,
         id: project.id,
         name: project.name,
         updatedAt: project.updatedAt,
-        urlIds: [...project.urlIds],
+        urlIds: [...(project.urlIds ?? [])],
         urls: [],
       }))
     }

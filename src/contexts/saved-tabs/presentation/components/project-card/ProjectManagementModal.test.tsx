@@ -14,7 +14,7 @@ import {
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { CustomProject } from '@/types/storage'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 const projectManagementModalI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',

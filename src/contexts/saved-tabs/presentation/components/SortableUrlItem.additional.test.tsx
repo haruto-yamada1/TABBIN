@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // esli
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
-import type { SortableUrlItemProps } from '@/types/saved-tabs'
+import type { SortableUrlItemProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 const sortableUrlItemAdditionalI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',

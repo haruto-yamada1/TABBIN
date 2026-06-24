@@ -1,3 +1,4 @@
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type {
   CustomProjectRawSnapshot,
@@ -5,7 +6,6 @@ import type {
 } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
-import type { CustomProject } from '@/types/storage'
 
 /**
  * `GetProjectUrlsUseCase` の戻り値要素型。

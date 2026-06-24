@@ -17,7 +17,7 @@ export interface TabGroupViewModel {
   readonly parentCategoryId: string | undefined
   readonly urlIds: readonly string[]
   readonly urls: readonly {
-    readonly id: string
+    readonly id?: string
     readonly url: string
     readonly title: string
     readonly subCategory?: string
@@ -44,7 +44,7 @@ export const toTabGroupViewModel = (group: {
   parentCategoryId?: string
   urlIds?: readonly string[]
   urls?: readonly {
-    id: string
+    id?: string
     url: string
     title: string
     subCategory?: string

@@ -19,13 +19,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { DeleteEntityConfirmPanel } from '@/contexts/saved-tabs/presentation/components/shared/DeleteEntityConfirmPanel'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { ParentCategory, TabGroup } from '@/types/storage'
 
 import type {
   CategoryManagementModalDeps,

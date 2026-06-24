@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsTabGroupDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
@@ -168,13 +172,15 @@ describe('SavedTabsSnapshotMapper.getSnapshotSavedTabs', () => {
     const result = getSnapshotSavedTabs(
       buildSnapshot({
         savedTabs: [
-          createTabGroup({
-            domain: 'example.com',
-            id: 'group-1',
-            parentCategoryId: 'cat-1',
-            savedAt: 10,
-            urlIds: ['url-1'],
-          }),
+          toSavedTabsTabGroupDto(
+            createTabGroup({
+              domain: 'example.com',
+              id: 'group-1',
+              parentCategoryId: 'cat-1',
+              savedAt: 10,
+              urlIds: ['url-1'],
+            }),
+          ),
         ],
       }),
     )
@@ -269,14 +275,16 @@ describe('SavedTabsSnapshotMapper.toStorageCustomProjects', () => {
       toStorageCustomProjects(
         buildSnapshot({
           customProjects: [
-            createCustomProject({
-              categories: ['cat-1'],
-              createdAt: 1,
-              id: 'project-1',
-              name: 'Reading',
-              updatedAt: 2,
-              urlIds: ['url-1'],
-            }),
+            toSavedTabsCustomProjectDto(
+              createCustomProject({
+                categories: ['cat-1'],
+                createdAt: 1,
+                id: 'project-1',
+                name: 'Reading',
+                updatedAt: 2,
+                urlIds: ['url-1'],
+              }),
+            ),
           ],
         }),
       ),

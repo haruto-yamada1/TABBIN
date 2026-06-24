@@ -10,7 +10,11 @@ import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { savedTabsDefaultUserSettings as defaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { CategoryGroup } from '@/contexts/saved-tabs/presentation/components/CategoryGroup'
@@ -26,7 +30,6 @@ import {
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { ParentCategory, TabGroup } from '@/types/storage'
 
 const BULK_OPEN_THRESHOLD = 10
 const EMPTY_TAB_GROUPS: TabGroup[] = []

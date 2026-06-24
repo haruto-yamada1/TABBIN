@@ -6,6 +6,21 @@ export interface SavedTabsAiSystemPromptDto {
   readonly updatedAt: number
 }
 
+export interface SavedTabsProjectKeywordSettingsDto {
+  titleKeywords: string[]
+  urlKeywords: string[]
+  domainKeywords: string[]
+}
+
+export interface SavedTabsCustomProjectUrlDto {
+  id?: string
+  url: string
+  title: string
+  notes?: string
+  savedAt?: number
+  category?: string
+}
+
 export interface SavedTabsUserSettingsDto {
   language?: 'system' | 'ja' | 'en'
   removeTabAfterOpen: boolean
@@ -32,12 +47,16 @@ export interface SavedTabsUserSettingsDto {
 }
 
 export interface SavedTabsCustomProjectDto {
-  readonly id: string
-  readonly name: string
-  readonly urlIds: readonly string[]
-  readonly categories: readonly string[]
-  readonly createdAt: number
-  readonly updatedAt: number
+  id: string
+  name: string
+  urlIds?: string[]
+  categories: string[]
+  createdAt: number
+  updatedAt: number
+  projectKeywords?: SavedTabsProjectKeywordSettingsDto
+  urls?: SavedTabsCustomProjectUrlDto[]
+  urlMetadata?: Record<string, { notes?: string; category?: string }>
+  categoryOrder?: string[]
 }
 
 export interface SavedTabsParentCategoryDto {
@@ -48,21 +67,22 @@ export interface SavedTabsParentCategoryDto {
 }
 
 export interface SavedTabsCategoryKeywordDto {
-  readonly categoryName: string
-  readonly keywords: readonly string[]
+  categoryName: string
+  keywords: string[]
 }
 
 export interface SavedTabsTabGroupDto {
-  readonly id: string
-  readonly domain: string
-  readonly urlIds: readonly string[]
-  readonly urlSubCategories?: Readonly<Record<string, string>>
-  readonly subCategories?: readonly string[]
-  readonly categoryKeywords?: readonly SavedTabsCategoryKeywordDto[]
-  readonly subCategoryOrder?: readonly string[]
-  readonly subCategoryOrderWithUncategorized?: readonly string[]
-  readonly parentCategoryId?: string
-  readonly savedAt?: number
+  id: string
+  domain: string
+  urlIds?: string[]
+  urlSubCategories?: Record<string, string>
+  subCategories?: string[]
+  categoryKeywords?: SavedTabsCategoryKeywordDto[]
+  subCategoryOrder?: string[]
+  subCategoryOrderWithUncategorized?: string[]
+  parentCategoryId?: string
+  savedAt?: number
+  urls?: SavedTabsDisplayUrlDto[]
 }
 
 export interface SavedTabsDisplayUrlDto {

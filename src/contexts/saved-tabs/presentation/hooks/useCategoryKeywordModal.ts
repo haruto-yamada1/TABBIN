@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import {
   toPresentationTabGroups,
   toStorageParentCategory,
@@ -10,7 +14,6 @@ import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/p
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { ParentCategory, TabGroup } from '@/types/storage'
 
 /** カテゴリ名のバリデーションスキーマ */
 const MAX_CATEGORY_NAME_LENGTH = 25

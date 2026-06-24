@@ -29,8 +29,8 @@ import {
   getScopedObjectActionLabel,
   getScopedSortLabel,
 } from '@/contexts/saved-tabs/presentation/lib/accessibility'
+import type { SortableCategorySectionProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { SortableCategorySectionProps } from '@/types/saved-tabs'
 
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
 import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'

@@ -1,5 +1,9 @@
 import type { RestoreOpenedUrlsSnapshotCommand } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { RestoredSnapshotDto } from '@/contexts/saved-tabs/application/dto/RestoredSnapshotDto'
+import {
+  toCreateCustomProjectInput,
+  toCreateTabGroupInput,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
@@ -93,10 +97,13 @@ export const createRestoreOpenedUrlsSnapshotUseCase = (
     const restoredCustomProjectOrder = normalizeCustomProjectOrder(
       snapshot.customProjectOrder,
     )
-    const restoredTabGroupEntities = restoredTabGroups.map(createTabGroup)
+    const restoredTabGroupEntities = restoredTabGroups
+      .map(toCreateTabGroupInput)
+      .map(createTabGroup)
     const restoredUrlRecordEntities = restoredUrlRecords.map(createUrlRecord)
-    const restoredCustomProjectEntities =
-      restoredCustomProjects.map(createCustomProject)
+    const restoredCustomProjectEntities = restoredCustomProjects
+      .map(toCreateCustomProjectInput)
+      .map(createCustomProject)
     const restoredParentCategoryEntities =
       restoredParentCategories.map(createParentCategory)
 

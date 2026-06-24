@@ -28,8 +28,8 @@ import type {
   ScrollDirection,
   ScrollTargetType,
 } from '@/contexts/saved-tabs/presentation/lib/scroll-controls'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
-import type { ViewMode } from '@/types/storage'
 
 const HIGHLIGHT_CLASS_NAME = 'saved-tabs-scroll-highlight'
 const HIGHLIGHT_DURATION_MS = 1200

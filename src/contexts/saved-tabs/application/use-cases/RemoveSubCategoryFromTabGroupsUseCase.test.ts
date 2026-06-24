@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { RemoveSubCategoryFromTabGroupPort } from '@/contexts/saved-tabs/application/ports/RemoveSubCategoryFromTabGroupPort'
-import type { TabGroup } from '@/types/storage'
 
 import { createRemoveSubCategoryFromTabGroupsUseCase } from './RemoveSubCategoryFromTabGroupsUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCaseDeps } from './RemoveSubCategoryFromTabGroupsUseCase'

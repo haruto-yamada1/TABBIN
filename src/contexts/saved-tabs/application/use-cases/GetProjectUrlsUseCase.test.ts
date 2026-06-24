@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
 import { createUrl } from '@/contexts/saved-tabs/domain/value-objects/Url'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
-import type { CustomProject } from '@/types/storage'
 
 import { createGetProjectUrlsUseCase } from './GetProjectUrlsUseCase'
 

@@ -5,10 +5,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsUrlRecordDto as UrlRecord,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { getMessage } from '@/features/i18n/lib/language'
-import type { CustomProject, UrlRecord } from '@/types/storage'
 
 import { useCategoryDnD } from './useCategoryDnD'
 

@@ -2,8 +2,12 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 
 const headerI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',

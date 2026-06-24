@@ -14,7 +14,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
 import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
 import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
@@ -34,8 +38,8 @@ import type { SetCustomProjectUrlCategoryUseCase } from '@/contexts/saved-tabs/a
 import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { CustomProject, TabGroup, ViewMode } from '@/types/storage'
 
 import type { UseProjectManagementReturn } from './projectManagementDefaults'
 import {
@@ -62,7 +66,6 @@ import {
 import { useProjectCategoryHandlers } from './useProjectCategoryHandlers'
 import { useProjectCrudHandlers } from './useProjectCrudHandlers'
 import { useProjectManagementRefs } from './useProjectManagementRefs'
-
 /**
  * issue #539 / #540 で `useProjectManagement` から application
  * use-case へ移設した 10 操作。

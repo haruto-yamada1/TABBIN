@@ -4,8 +4,8 @@ import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/applicati
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
 import { SavedTabsPage } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
-import type { ViewMode } from '@/types/storage'
 
 export type SavedTabsDepsFactory = (options: {
   readonly resolveActive: () => boolean

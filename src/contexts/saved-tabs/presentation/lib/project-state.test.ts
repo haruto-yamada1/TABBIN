@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest' // eslint-disable-line
 
-import type { CustomProject } from '@/types/storage'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 import { moveUrlBetweenProjectsState } from './project-state'
 

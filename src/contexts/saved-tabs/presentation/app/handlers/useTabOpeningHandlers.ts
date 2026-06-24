@@ -2,7 +2,12 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useCallback } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import {
   showOpenedUrlsUndoToast,
@@ -10,7 +15,6 @@ import {
 } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { CustomProject, ParentCategory, TabGroup } from '@/types/storage'
 
 interface UseTabOpeningHandlersDeps {
   savedTabsUseCases: SavedTabsUseCases

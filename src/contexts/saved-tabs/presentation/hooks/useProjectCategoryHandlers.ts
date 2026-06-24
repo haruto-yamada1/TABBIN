@@ -2,7 +2,8 @@ import { useCallback, useEffect } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import type { CustomProject, ViewMode } from '@/types/storage'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 
 import { toRawStorageCustomProject } from './projectManagementDefaults'
 import type { ProjectManagementRefs } from './useProjectManagementRefs'

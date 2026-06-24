@@ -1,5 +1,3 @@
-import type { CustomProject } from '@/types/storage'
-
 /**
  * `ReorderCustomProjectUrlsUseCase` の入力 (issue #539)。
  *
@@ -18,6 +16,8 @@ import type { CustomProject } from '@/types/storage'
  * }
  * ```
  */
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export interface ReorderCustomProjectUrlsCommand {
   readonly projectId: string
   readonly urls: CustomProject['urls']

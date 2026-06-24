@@ -6,7 +6,7 @@ import type { CSSProperties } from 'react'
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { useDomainCardState } from '@/contexts/saved-tabs/presentation/hooks/useDomainCardState'
-import type { SortableDomainCardProps } from '@/types/saved-tabs'
+import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 import { DomainCardContext } from './DomainCardContext'
 import type { DomainCardContextType } from './DomainCardContext'

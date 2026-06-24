@@ -1,5 +1,3 @@
-import type { ProjectKeywordSettings } from '@/types/storage'
-
 /**
  * `UpdateCustomProjectKeywordsUseCase` の入力 (issue #539)。
  *
@@ -20,6 +18,8 @@ import type { ProjectKeywordSettings } from '@/types/storage'
  * }
  * ```
  */
+import type { SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+
 export interface UpdateCustomProjectKeywordsCommand {
   readonly projectId: string
   readonly projectKeywords: ProjectKeywordSettings

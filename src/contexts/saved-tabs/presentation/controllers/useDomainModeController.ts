@@ -134,13 +134,13 @@ export const useDomainModeController = (
       parentViewModel.tabGroups.length === 0
     ) {
       return initialTabGroups.map((group) => ({
-        displayUrlCount: group.urlIds.length,
+        displayUrlCount: (group.urlIds ?? []).length,
         domain: group.domain,
-        hasUrls: group.urlIds.length > 0,
+        hasUrls: (group.urlIds ?? []).length > 0,
         id: group.id,
         parentCategoryId: group.parentCategoryId,
         subCategoryCount: 0,
-        urlIds: [...group.urlIds],
+        urlIds: [...(group.urlIds ?? [])],
         urls: [],
       }))
     }
@@ -159,12 +159,12 @@ export const useDomainModeController = (
         categories: [...project.categories],
         categoryOrder: project.categories,
         createdAt: project.createdAt,
-        displayUrlCount: project.urlIds.length,
-        hasUrls: project.urlIds.length > 0,
+        displayUrlCount: (project.urlIds ?? []).length,
+        hasUrls: (project.urlIds ?? []).length > 0,
         id: project.id,
         name: project.name,
         updatedAt: project.updatedAt,
-        urlIds: [...project.urlIds],
+        urlIds: [...(project.urlIds ?? [])],
         urls: [],
       }))
     }

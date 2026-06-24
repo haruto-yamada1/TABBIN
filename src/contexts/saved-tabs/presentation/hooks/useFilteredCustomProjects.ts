@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
-import type { CustomProject } from '@/types/storage'
 
 /**
  * `customProjects` / `searchQuery` 変更時に `savedTabsUseCases.getProjectUrls` を

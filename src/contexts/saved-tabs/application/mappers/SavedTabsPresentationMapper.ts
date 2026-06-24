@@ -7,9 +7,15 @@ import type {
   SavedTabsUserSettingsDto,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type {
+  createCustomProject,
+  CustomProject,
+} from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type {
+  createTabGroup,
+  TabGroup,
+} from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
 type Mutable<T> = { -readonly [Key in keyof T]: T[Key] }
@@ -124,7 +130,7 @@ export const toSavedTabsDisplayTabGroupDto = (
   return {
     domain: dto.domain,
     id: dto.id,
-    urlIds: [...dto.urlIds],
+    ...(dto.urlIds ? { urlIds: [...dto.urlIds] } : {}),
     ...(dto.parentCategoryId ? { parentCategoryId: dto.parentCategoryId } : {}),
     ...(dto.savedAt === undefined ? {} : { savedAt: dto.savedAt }),
     ...(dto.urlSubCategories
@@ -166,3 +172,43 @@ export const toSavedTabsUrlRecordDto = (
   }
   return dto
 }
+
+/**
+ * `SavedTabsTabGroupDto` から domain factory 入力へ変換する。
+ *
+ * application DTO は storage 互換で `urlIds` を省略可能にしているが、
+ * domain factory では必須なので未設定時は空配列に正規化する。
+ */
+export const toCreateTabGroupInput = (
+  dto: SavedTabsTabGroupDto,
+): Parameters<typeof createTabGroup>[0] => ({
+  categoryKeywords: dto.categoryKeywords,
+  domain: dto.domain,
+  id: dto.id,
+  parentCategoryId: dto.parentCategoryId,
+  savedAt: dto.savedAt,
+  subCategories: dto.subCategories,
+  subCategoryOrder: dto.subCategoryOrder,
+  subCategoryOrderWithUncategorized: dto.subCategoryOrderWithUncategorized,
+  urlIds: dto.urlIds ?? [],
+  urlSubCategories: dto.urlSubCategories,
+})
+
+/**
+ * `SavedTabsCustomProjectDto` から domain factory 入力へ変換する。
+ *
+ * application DTO は storage 互換で `urlIds` を省略可能にしているが、
+ * domain factory では必須なので未設定時は空配列に正規化する。
+ * storage 互換の rich フィールド (`urls` / `urlMetadata` /
+ * `projectKeywords` / `categoryOrder`) は domain 入力に不要なので無視する。
+ */
+export const toCreateCustomProjectInput = (
+  dto: SavedTabsCustomProjectDto,
+): Parameters<typeof createCustomProject>[0] => ({
+  categories: dto.categories,
+  createdAt: dto.createdAt,
+  id: dto.id,
+  name: dto.name,
+  updatedAt: dto.updatedAt,
+  urlIds: dto.urlIds ?? [],
+})

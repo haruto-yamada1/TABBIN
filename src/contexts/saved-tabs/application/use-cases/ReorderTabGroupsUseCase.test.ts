@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { toSavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 
@@ -63,7 +64,9 @@ describe('ReorderTabGroupsUseCase', () => {
     })
     const useCase = createReorderTabGroupsUseCase(repositories)
 
-    await useCase({ tabGroups: [third, first, second] })
+    await useCase({
+      tabGroups: [third, first, second].map(toSavedTabsTabGroupDto),
+    })
 
     expect(repositories.saveAllSpy).toHaveBeenCalledTimes(1)
     expect(repositories.saveAllSpy).toHaveBeenCalledWith([third, first, second])
@@ -90,5 +93,28 @@ describe('ReorderTabGroupsUseCase', () => {
 
     expect(repositories.saveAllSpy).toHaveBeenCalledWith([])
     expect(repositories.tabGroups).toStrictEqual([])
+  })
+
+  it('urlIds が未設定の DTO を渡された場合、repository へは urlIds: [] を持つ domain entity を保存する', async () => {
+    const repositories = createInMemoryRepositories()
+    const useCase = createReorderTabGroupsUseCase(repositories)
+
+    await useCase({
+      tabGroups: [
+        {
+          domain: 'legacy.com',
+          id: 'group-legacy',
+        },
+      ],
+    })
+
+    expect(repositories.saveAllSpy).toHaveBeenCalledTimes(1)
+    const savedGroups = repositories.saveAllSpy.mock.calls[0][0]
+    expect(savedGroups).toHaveLength(1)
+    expect(savedGroups[0]).toMatchObject({
+      domain: 'legacy.com',
+      id: 'group-legacy',
+      urlIds: [],
+    })
   })
 })

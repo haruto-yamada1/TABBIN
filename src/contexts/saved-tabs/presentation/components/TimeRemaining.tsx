@@ -16,7 +16,7 @@ import {
 import { useCallback, useMemo, useState } from 'react'
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
-import type { CategorySectionProps } from '@/types/saved-tabs'
+import type { CategorySectionProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 import { SortableUrlItem } from './SortableUrlItem'
 

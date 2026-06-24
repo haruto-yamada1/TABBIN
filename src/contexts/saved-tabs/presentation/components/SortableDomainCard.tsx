@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react'
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
-import type { SortableDomainCardProps } from '@/types/saved-tabs'
+import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 import { DomainCardActions } from './domain-card/DomainCardActions'
 import { DomainCardContent } from './domain-card/DomainCardContent'

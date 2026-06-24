@@ -1,8 +1,10 @@
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
-import type { CustomProject } from '@/types/storage'
 
 /** ProjectCard のコンテキスト型 */
 export interface ProjectCardContextType {

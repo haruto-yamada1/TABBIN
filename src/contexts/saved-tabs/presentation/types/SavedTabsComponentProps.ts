@@ -1,4 +1,16 @@
-import type { ParentCategory, TabGroup, UserSettings } from './storage'
+/**
+ * SavedTabs 表示コンポーネント間で共有する props 型。
+ *
+ * これらは presentation 層の型であり、storage 型を直接参照しない。
+ * 必要な DTO は `SavedTabsPresentationDto` から再エクスポートして使う
+ * (issue #589)。
+ */
+
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettings,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 export interface DomainCardActionHandlers {
   handleOpenAllTabs: (urls: { url: string; title: string }[]) => void

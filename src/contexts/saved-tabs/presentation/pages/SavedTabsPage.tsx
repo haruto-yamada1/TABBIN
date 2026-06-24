@@ -14,10 +14,10 @@ import {
 import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
 import type { SavedTabsViewModel } from '@/contexts/saved-tabs/presentation/view-models/SavedTabsViewModel'
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
-import type { ViewMode } from '@/types/storage'
 
 export type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
 

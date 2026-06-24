@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsParentCategoryDto,
+  toSavedTabsTabGroupDto,
+  toSavedTabsUrlRecordDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
@@ -163,17 +169,25 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
 
     const result = await useCase({
       snapshot: {
-        customProjects: [project],
-        parentCategories: [category],
-        savedTabs: [target],
-        urlRecords: [url],
+        customProjects: [toSavedTabsCustomProjectDto(project)],
+        parentCategories: [toSavedTabsParentCategoryDto(category)],
+        savedTabs: [toSavedTabsTabGroupDto(target)],
+        urlRecords: [toSavedTabsUrlRecordDto(url)],
       },
     })
 
-    expect(result.restoredTabGroups).toStrictEqual([target])
-    expect(result.restoredUrlRecords).toStrictEqual([url])
-    expect(result.restoredCustomProjects).toStrictEqual([project])
-    expect(result.restoredParentCategories).toStrictEqual([category])
+    expect(result.restoredTabGroups).toStrictEqual([
+      toSavedTabsTabGroupDto(target),
+    ])
+    expect(result.restoredUrlRecords).toStrictEqual([
+      toSavedTabsUrlRecordDto(url),
+    ])
+    expect(result.restoredCustomProjects).toStrictEqual([
+      toSavedTabsCustomProjectDto(project),
+    ])
+    expect(result.restoredParentCategories).toStrictEqual([
+      toSavedTabsParentCategoryDto(category),
+    ])
     expect(repos.tabGroups).toStrictEqual([target])
     expect(repos.urlRecords).toStrictEqual([url])
     expect(repos.customProjects).toStrictEqual([project])
@@ -194,7 +208,9 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     const repos = createInMemoryRepositories({ tabGroups: [existing] })
     const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
 
-    await useCase({ snapshot: { savedTabs: [restored] } })
+    await useCase({
+      snapshot: { savedTabs: [toSavedTabsTabGroupDto(restored)] },
+    })
 
     expect(repos.tabGroups.map((group) => group.id)).toStrictEqual([
       existing.id,
@@ -216,7 +232,9 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     const repos = createInMemoryRepositories({ tabGroups: [existing] })
     const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
 
-    await useCase({ snapshot: { savedTabs: [restored] } })
+    await useCase({
+      snapshot: { savedTabs: [toSavedTabsTabGroupDto(restored)] },
+    })
 
     expect(repos.tabGroups).toStrictEqual([restored])
   })
@@ -258,8 +276,8 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
 
     await useCase({
       snapshot: {
-        customProjects: [restoredProject],
-        urlRecords: [restoredUrl],
+        customProjects: [toSavedTabsCustomProjectDto(restoredProject)],
+        urlRecords: [toSavedTabsUrlRecordDto(restoredUrl)],
       },
     })
 
@@ -316,5 +334,45 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
 
     expect(result.restoredCustomProjectOrder).toBeUndefined()
     expect(repos.customProjectOrder).toStrictEqual(initial)
+  })
+
+  it('legacy snapshot で savedTabs[].urlIds / customProjects[].urlIds が省略されている場合、urlIds: [] を持つ entity へ正規化する', async () => {
+    const repos = createInMemoryRepositories()
+    const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
+
+    const result = await useCase({
+      snapshot: {
+        savedTabs: [
+          {
+            domain: 'legacy-tabs.com',
+            id: 'group-legacy',
+          },
+        ],
+        customProjects: [
+          {
+            id: 'project-legacy',
+            name: 'Legacy Project',
+            categories: [],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    })
+
+    expect(result.restoredTabGroups).toHaveLength(1)
+    expect(result.restoredCustomProjects).toHaveLength(1)
+    expect(repos.tabGroups).toHaveLength(1)
+    expect(repos.tabGroups[0]).toMatchObject({
+      domain: 'legacy-tabs.com',
+      id: 'group-legacy',
+      urlIds: [],
+    })
+    expect(repos.customProjects).toHaveLength(1)
+    expect(repos.customProjects[0]).toMatchObject({
+      id: 'project-legacy',
+      name: 'Legacy Project',
+      urlIds: [],
+    })
   })
 })

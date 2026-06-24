@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react'
 
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
+} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
 import { projectNameSchema } from './useProjectNameSchema'
 import type { ProjectNameSchema } from './useProjectNameSchema'
