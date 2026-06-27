@@ -479,6 +479,57 @@ describe('migration storage facade', () => {
     ])
   })
 
+  it('saveTabs は hostname 形式の既存ドメインへ追加し schemeful の重複ドメインを作らない', async () => {
+    const state: StorageState = {
+      savedTabs: [
+        {
+          domain: 'existing.example.com',
+          id: 'existing-group',
+          parentCategoryId: 'category-1',
+          subCategories: ['docs'],
+          urlIds: ['old-url'],
+          urlSubCategories: {
+            'old-url': 'docs',
+          },
+        },
+      ],
+    }
+    mocks.getParentCategories.mockResolvedValue([
+      createCategory({
+        domains: ['existing-group'],
+        domainNames: ['existing.example.com'],
+        id: 'category-1',
+      }),
+    ])
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { saveTabs } = await loadModule()
+
+    await saveTabs([
+      {
+        title: 'New Doc',
+        url: 'https://existing.example.com/new-doc',
+      },
+    ] as chrome.tabs.Tab[])
+
+    expect(state.savedTabs).toStrictEqual([
+      expect.objectContaining({
+        domain: 'existing.example.com',
+        id: 'existing-group',
+        parentCategoryId: 'category-1',
+        subCategories: ['docs'],
+        urlIds: ['old-url', 'id:https://existing.example.com/new-doc'],
+        urlSubCategories: {
+          'old-url': 'docs',
+        },
+      }),
+    ])
+  })
+
   it('saveTabs は空 domainNames を検出したら親カテゴリ移行後の値で分類する', async () => {
     const state: StorageState = {
       domainCategoryMappings: [],
