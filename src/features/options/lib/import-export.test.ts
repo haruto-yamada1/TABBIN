@@ -1206,7 +1206,11 @@ describe('import-export ユーティリティ', () => {
         {
           id: 'project-urlids-group',
           domain: 'project-urlids.example.com',
-          urlIds: ['imported-project-url', 'current-project-url'],
+          urlIds: ['url-2', 'url-3', 'url-1'],
+          urlSubCategories: {
+            'url-1': 'Docs',
+            'url-2': 'Backlog',
+          },
         },
       ],
       urls: [
@@ -1288,16 +1292,22 @@ describe('import-export ユーティリティ', () => {
       buildCustomProject({
         id: 'project-2',
         name: 'Project 2',
-        urlIds: [],
+        urlIds: ['url-2'],
         categories: ['Backlog'],
         categoryOrder: ['Backlog'],
+        urlMetadata: {
+          'url-2': {
+            category: 'Backlog',
+            notes: 'memo-2',
+          },
+        },
         createdAt: 12,
         updatedAt: 13,
       }),
       buildCustomProject({
         id: 'custom-uncategorized',
         name: '未分類',
-        urlIds: [],
+        urlIds: ['url-3'],
         categories: [],
         createdAt: 14,
         updatedAt: 15,
@@ -1305,7 +1315,7 @@ describe('import-export ユーティリティ', () => {
       buildCustomProject({
         id: 'project-1',
         name: 'Project 1',
-        urlIds: [],
+        urlIds: ['url-1'],
         projectKeywords: {
           titleKeywords: ['release'],
           urlKeywords: ['docs'],
@@ -1313,8 +1323,258 @@ describe('import-export ユーティリティ', () => {
         },
         categories: ['Docs'],
         categoryOrder: ['Docs'],
+        urlMetadata: {
+          'url-1': {
+            category: 'Docs',
+            notes: 'memo-1',
+          },
+        },
         createdAt: 10,
         updatedAt: 11,
+      }),
+    ])
+
+    expect(importedStore.savedTabs).toEqual([
+      {
+        id: 'project-urlids-group',
+        domain: 'project-urlids.example.com',
+        urlIds: ['url-2', 'url-3', 'url-1'],
+        urlSubCategories: {
+          'url-1': 'Docs',
+          'url-2': 'Backlog',
+        },
+        categoryKeywords: [],
+        subCategories: [],
+      },
+    ])
+  })
+
+  it('merge モードの復元は legacy/modern 混在バックアップでも既存データと URL 関係を壊さない', async () => {
+    const { store } = createChromeMock({
+      customProjectOrder: ['current-project'],
+      customProjects: [
+        buildCustomProject({
+          id: 'current-project',
+          name: 'Current Project',
+          urlIds: ['current-url'],
+          categories: ['Current'],
+          categoryOrder: ['Current'],
+          urlMetadata: {
+            'current-url': {
+              category: 'Current',
+              notes: 'current-note',
+            },
+          },
+          createdAt: 1,
+          updatedAt: 2,
+        }),
+      ],
+      parentCategories: [],
+      savedTabs: [
+        {
+          id: 'current-group',
+          domain: 'current.example.com',
+          urlIds: ['current-url'],
+          urlSubCategories: {
+            'current-url': 'Current',
+          },
+          savedAt: 10,
+        },
+      ],
+      urls: [
+        {
+          id: 'current-url',
+          url: 'https://current.example.com/home',
+          title: 'Current Home',
+          savedAt: 10,
+        },
+      ],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockResolvedValue(
+      new Map([
+        [
+          'https://modern.example.com/spec',
+          {
+            id: 'modern-url',
+            url: 'https://modern.example.com/spec',
+            title: 'Modern Spec',
+            savedAt: 40,
+          },
+        ],
+      ]),
+    )
+
+    const result = await importSettings(
+      JSON.stringify({
+        customProjectOrder: ['legacy-project', 'modern-project'],
+        customProjects: [
+          buildCustomProject({
+            id: 'legacy-project',
+            name: 'Legacy Project',
+            urlIds: ['missing-legacy-url'],
+            categories: ['Legacy'],
+            categoryOrder: ['Legacy'],
+            urlMetadata: {
+              'missing-legacy-url': {
+                category: 'Legacy',
+                notes: 'legacy-note',
+              },
+            },
+            createdAt: 20,
+            updatedAt: 21,
+          }),
+          buildCustomProject({
+            id: 'modern-project',
+            name: 'Modern Project',
+            urls: [
+              {
+                url: 'https://modern.example.com/spec',
+                title: 'Modern Spec',
+                notes: 'modern-note',
+                savedAt: 40,
+                category: 'Spec',
+              },
+            ],
+            urlIds: [],
+            categories: ['Spec'],
+            categoryOrder: ['Spec'],
+            createdAt: 30,
+            updatedAt: 31,
+          }),
+        ],
+        parentCategories: [],
+        savedTabs: [
+          {
+            id: 'legacy-group',
+            domain: 'legacy.example.com',
+            urlIds: ['missing-legacy-url'],
+            urlSubCategories: {
+              'missing-legacy-url': 'Legacy',
+            },
+            savedAt: 20,
+          },
+          {
+            id: 'modern-group',
+            domain: 'modern.example.com',
+            urls: [
+              {
+                url: 'https://modern.example.com/spec',
+                title: 'Modern Spec',
+                savedAt: 40,
+                subCategory: 'Spec',
+              },
+            ],
+            savedAt: 40,
+          },
+        ],
+        timestamp: '2026-03-21T00:00:00.000Z',
+        urls: [],
+        userSettings: buildFullUserSettings(),
+        version: '9.9.9',
+      }),
+      true,
+    )
+
+    expect(result.success).toBe(true)
+
+    expect(store.savedTabs).toEqual([
+      {
+        id: 'current-group',
+        domain: 'current.example.com',
+        urlIds: ['current-url'],
+        urlSubCategories: {
+          'current-url': 'Current',
+        },
+        savedAt: 10,
+      },
+      {
+        id: 'legacy-group',
+        domain: 'legacy.example.com',
+        urlIds: ['missing-legacy-url'],
+        urlSubCategories: {
+          'missing-legacy-url': 'Legacy',
+        },
+        categoryKeywords: [],
+        savedAt: 20,
+        subCategories: [],
+      },
+      {
+        id: 'modern-group',
+        domain: 'modern.example.com',
+        urlIds: ['modern-url'],
+        urlSubCategories: {
+          'modern-url': 'Spec',
+        },
+        categoryKeywords: [],
+        savedAt: 40,
+        subCategories: [],
+      },
+    ])
+    expect(store.urls).toEqual([
+      {
+        id: 'current-url',
+        url: 'https://current.example.com/home',
+        title: 'Current Home',
+        savedAt: 10,
+      },
+      {
+        id: 'missing-legacy-url',
+        url: 'https://legacy.example.com/#tabbin-restored-missing-legacy-url',
+        title: '復元データ（元URL欠損）',
+        savedAt: 20,
+      },
+    ])
+    expect(store.customProjectOrder).toEqual([
+      'current-project',
+      'legacy-project',
+      'modern-project',
+    ])
+    expect(store.customProjects).toEqual([
+      buildCustomProject({
+        id: 'current-project',
+        name: 'Current Project',
+        urlIds: ['current-url'],
+        categories: ['Current'],
+        categoryOrder: ['Current'],
+        urlMetadata: {
+          'current-url': {
+            category: 'Current',
+            notes: 'current-note',
+          },
+        },
+        createdAt: 1,
+        updatedAt: 2,
+      }),
+      buildCustomProject({
+        id: 'legacy-project',
+        name: 'Legacy Project',
+        urlIds: ['missing-legacy-url'],
+        categories: ['Legacy'],
+        categoryOrder: ['Legacy'],
+        urlMetadata: {
+          'missing-legacy-url': {
+            category: 'Legacy',
+            notes: 'legacy-note',
+          },
+        },
+        createdAt: 20,
+        updatedAt: 21,
+      }),
+      buildCustomProject({
+        id: 'modern-project',
+        name: 'Modern Project',
+        urlIds: ['modern-url'],
+        categories: ['Spec'],
+        categoryOrder: ['Spec'],
+        urlMetadata: {
+          'modern-url': {
+            category: 'Spec',
+            notes: 'modern-note',
+          },
+        },
+        createdAt: 30,
+        updatedAt: 31,
       }),
     ])
   })
@@ -4333,6 +4593,243 @@ describe('import-export ユーティリティ', () => {
     expect(store.customProjectOrder).toEqual([
       'project-main',
       'custom-uncategorized',
+    ])
+  })
+
+  it('overwrite モードの復元は legacy/modern 混在バックアップでも savedTabs と customProjects の URL 関係を保持する', async () => {
+    const restoredAt = new Date('2026-03-10T00:00:00.000Z')
+    vi.useFakeTimers()
+    vi.setSystemTime(restoredAt)
+
+    const { store } = createChromeMock({
+      customProjectOrder: ['stale-project'],
+      customProjects: [
+        buildCustomProject({
+          id: 'stale-project',
+          name: 'Stale',
+          urlIds: ['stale-url'],
+          createdAt: 1,
+          updatedAt: 1,
+        }),
+      ],
+      parentCategories: [],
+      savedTabs: [],
+      urls: [],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockResolvedValue(
+      new Map([
+        [
+          'https://docs.example.com/spec',
+          {
+            id: 'url-docs',
+            url: 'https://docs.example.com/spec',
+            title: 'Docs Spec',
+            savedAt: 101,
+          },
+        ],
+        [
+          'https://app.example.com/login',
+          {
+            id: 'url-app',
+            url: 'https://app.example.com/login',
+            title: 'App Login',
+            savedAt: 102,
+          },
+        ],
+      ]),
+    )
+
+    const imported = {
+      version: '6.0.0',
+      timestamp: '2026-03-09T12:00:00.000Z',
+      userSettings: {
+        removeTabAfterOpen: true,
+        removeTabAfterExternalDrop: true,
+        excludePatterns: [],
+        enableCategories: true,
+        showSavedTime: false,
+        clickBehavior: 'saveWindowTabs',
+      },
+      parentCategories: [
+        {
+          id: 'parent-work',
+          name: 'Work',
+          domains: [],
+          domainNames: ['docs.example.com'],
+          keywords: [],
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'group-docs',
+          domain: 'docs.example.com',
+          urlIds: ['legacy-doc-url'],
+          urlSubCategories: {
+            'legacy-doc-url': 'Research',
+          },
+          parentCategoryId: 'parent-work',
+          subCategories: ['Research'],
+          savedAt: 201,
+        },
+        {
+          id: 'group-missing',
+          domain: 'missing.example.com',
+          urlIds: ['missing-tab-url'],
+          savedAt: 202,
+        },
+        {
+          id: 'group-app',
+          domain: 'app.example.com',
+          urls: [
+            {
+              url: 'https://app.example.com/login',
+              title: 'App Login',
+              subCategory: 'Apps',
+            },
+          ],
+          subCategories: ['Apps'],
+          savedAt: 203,
+        },
+      ],
+      urls: [
+        {
+          id: 'legacy-doc-url',
+          url: 'https://docs.example.com/spec',
+          title: 'Docs Spec',
+          savedAt: 101,
+        },
+      ],
+      customProjects: [
+        buildCustomProject({
+          id: 'project-docs',
+          name: 'Docs',
+          urlIds: ['legacy-doc-url'],
+          urlMetadata: {
+            'legacy-doc-url': {
+              notes: 'legacy docs memo',
+              category: 'Research',
+            },
+          },
+          categories: ['Research', 'Backlog'],
+          categoryOrder: ['Backlog', 'Research'],
+          createdAt: 301,
+          updatedAt: 302,
+        }),
+        buildCustomProject({
+          id: 'project-apps',
+          name: 'Apps',
+          urls: [
+            {
+              url: 'https://app.example.com/login',
+              title: 'App Login',
+              notes: 'modern app memo',
+              category: 'Apps',
+            },
+          ],
+          categories: ['Apps'],
+          categoryOrder: ['Apps'],
+          createdAt: 303,
+          updatedAt: 304,
+        }),
+      ],
+      customProjectOrder: ['project-docs', 'project-apps'],
+    }
+
+    const result = await importSettings(JSON.stringify(imported), false)
+
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('設定とタブデータを置き換えました')
+
+    expect(store.savedTabs).toEqual([
+      {
+        id: 'group-docs',
+        domain: 'docs.example.com',
+        urlIds: ['url-docs'],
+        urlSubCategories: {
+          'url-docs': 'Research',
+        },
+        parentCategoryId: 'parent-work',
+        categoryKeywords: [],
+        subCategories: ['Research'],
+        savedAt: 201,
+      },
+      {
+        id: 'group-missing',
+        domain: 'missing.example.com',
+        urlIds: ['missing-tab-url'],
+        urlSubCategories: undefined,
+        parentCategoryId: undefined,
+        categoryKeywords: [],
+        subCategories: [],
+        savedAt: 202,
+      },
+      {
+        id: 'group-app',
+        domain: 'app.example.com',
+        urlIds: ['url-app'],
+        urlSubCategories: {
+          'url-app': 'Apps',
+        },
+        parentCategoryId: undefined,
+        categoryKeywords: [],
+        subCategories: ['Apps'],
+        savedAt: 203,
+      },
+    ])
+
+    expect(store.customProjects).toEqual([
+      buildCustomProject({
+        id: 'project-docs',
+        name: 'Docs',
+        urlIds: ['url-docs'],
+        urlMetadata: {
+          'url-docs': {
+            notes: 'legacy docs memo',
+            category: 'Research',
+          },
+        },
+        categories: ['Research', 'Backlog'],
+        categoryOrder: ['Backlog', 'Research'],
+        createdAt: 301,
+        updatedAt: 302,
+      }),
+      buildCustomProject({
+        id: 'project-apps',
+        name: 'Apps',
+        urlIds: ['url-app'],
+        urlMetadata: {
+          'url-app': {
+            notes: 'modern app memo',
+            category: 'Apps',
+          },
+        },
+        categories: ['Apps'],
+        categoryOrder: ['Apps'],
+        createdAt: 303,
+        updatedAt: 304,
+      }),
+      buildCustomProject({
+        id: 'custom-uncategorized',
+        name: '未分類',
+        urlIds: ['missing-tab-url'],
+        categories: [],
+        createdAt: restoredAt.getTime(),
+        updatedAt: restoredAt.getTime(),
+      }),
+    ])
+    expect(store.customProjectOrder).toEqual([
+      'project-docs',
+      'project-apps',
+      'custom-uncategorized',
+    ])
+    expect(store.urls).toEqual([
+      {
+        id: 'missing-tab-url',
+        url: 'https://missing.example.com/#tabbin-restored-missing-tab-url',
+        title: '復元データ（元URL欠損）',
+        savedAt: 202,
+      },
     ])
   })
 
