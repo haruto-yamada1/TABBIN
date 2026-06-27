@@ -117,11 +117,11 @@ describe('SortableUrlItem', () => {
     expect(openButton.className).toContain('w-full')
     expect(openButton.className).toContain('min-w-0')
 
-    const textColumn = openButton.querySelector('div')
+    const textColumn = openButton.querySelector(':scope > span')
     expect(textColumn?.className).toContain('min-w-0')
     expect(textColumn?.className).toContain('overflow-hidden')
 
-    const titleLabel = openButton.querySelector('span')
+    const titleLabel = openButton.querySelector(':scope > span > span')
     expect(titleLabel?.className).toContain('truncate')
     expect(screen.getByText('2026/06/02 12:34')).toBeTruthy()
     expect(screen.getByTestId('time-remaining')).toBeTruthy()

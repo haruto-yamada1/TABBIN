@@ -623,7 +623,7 @@ describe('SavedTabsChatWidget', () => {
       name: /Another conversation/,
     })
     const conversationRow = conversationButton.parentElement
-    const textRows = conversationButton.querySelectorAll('p')
+    const textRows = conversationButton.querySelectorAll(':scope > span')
     const title = textRows[0]
     const preview = textRows[1]
 

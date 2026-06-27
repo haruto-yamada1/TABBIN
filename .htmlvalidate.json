@@ -1,0 +1,8 @@
+{
+  "transform": {
+    "^.*\\.tsx$": "./tools/html-validate/tsx-transformer.mjs"
+  },
+  "rules": {
+    "element-permitted-content": "error"
+  }
+}
