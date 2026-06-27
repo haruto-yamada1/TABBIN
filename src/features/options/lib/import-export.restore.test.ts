@@ -49,7 +49,7 @@ import {
   buildCustomProject,
   buildFullUserSettings,
   createChromeMock,
-} from './import-export.test-fixtures'
+} from './importExportTestFixtures'
 
 describe('import/export restore regression', () => {
   beforeEach(() => {

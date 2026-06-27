@@ -84,7 +84,7 @@ import {
   buildCustomProject,
   buildFullUserSettings,
   createChromeMock,
-} from './import-export.test-fixtures'
+} from './importExportTestFixtures'
 
 const buildAnalyticsQuery = (
   override: Partial<AnalyticsQuery> = {},
