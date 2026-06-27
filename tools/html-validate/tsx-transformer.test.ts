@@ -110,6 +110,44 @@ describe('tsx html-validate transformer', () => {
     ).toContain('<button type="button"><div><span>保存</span></div></button>')
   })
 
+  it('preserves call-site children when inlining local wrappers', () => {
+    expect(
+      transform(`
+        const LocalButton = ({ children }) => (
+          <button type="button">{children}</button>
+        )
+
+        export function SaveButton() {
+          return <LocalButton><div>保存</div></LocalButton>
+        }
+      `),
+    ).toContain('<button type="button"><div>保存</div></button>')
+  })
+
+  it('uses exported same-file wrappers for inference while keeping them as roots', () => {
+    expect(
+      transform(`
+        export const LocalButton = ({ children }) => (
+          <button type="button">{children}</button>
+        )
+
+        export function SaveButton() {
+          return <LocalButton><div>保存</div></LocalButton>
+        }
+      `),
+    ).toContain('<button type="button"><div>保存</div></button>')
+  })
+
+  it('does not infer a native button for explicit true asChild composition', () => {
+    expect(
+      transform(`
+        export function LinkButton() {
+          return <Button asChild={true}><a href="/tabs"><div>保存</div></a></Button>
+        }
+      `),
+    ).toContain('<span data-component="Button"></span>')
+  })
+
   it('infers imported wrappers that render known intrinsic components', () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tsx-transformer-'))
     try {

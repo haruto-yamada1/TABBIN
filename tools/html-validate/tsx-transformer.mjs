@@ -6,8 +6,10 @@ import ts from 'typescript'
 /** @typedef {import('html-validate').Source} Source */
 /** @typedef {import('html-validate').TransformerResult} TransformerResult */
 /** @typedef {ts.JsxElement | ts.JsxSelfClosingElement | ts.JsxFragment} RenderableJsx */
+/** @typedef {readonly ts.JsxChild[]} JsxChildren */
 /** @typedef {Map<string, RenderableJsx>} ComponentMap */
 /** @typedef {Map<string, string>} IntrinsicMap */
+/** @typedef {{ componentMap: ComponentMap; intrinsicMap: IntrinsicMap; slottedChildren: JsxChildren | null }} SerializationContext */
 
 /** @type {Set<string>} */
 const VOID_ELEMENTS = new Set([
@@ -123,8 +125,9 @@ function transformer(source) {
   const position = sourceFile.getLineAndCharacterOfPosition(
     firstRoot.getStart(sourceFile),
   )
+  const context = { componentMap, intrinsicMap, slottedChildren: null }
   const data = roots
-    .map((root) => serializeNode(root, sourceFile, componentMap, intrinsicMap))
+    .map((root) => serializeNode(root, sourceFile, context))
     .join('\n')
 
   return [
@@ -172,24 +175,21 @@ function isJsxNode(node) {
 /**
  * @param {ts.Node} node
  * @param {ts.SourceFile} sourceFile
- * @param {ComponentMap} componentMap
- * @param {IntrinsicMap} intrinsicMap
+ * @param {SerializationContext} context
  * @returns {string}
  */
-function serializeNode(node, sourceFile, componentMap, intrinsicMap) {
+function serializeNode(node, sourceFile, context) {
   if (ts.isJsxElement(node)) {
-    return serializeElement(node, sourceFile, componentMap, intrinsicMap)
+    return serializeElement(node, sourceFile, context)
   }
 
   if (ts.isJsxSelfClosingElement(node)) {
-    return serializeSelfClosing(node, sourceFile, componentMap, intrinsicMap)
+    return serializeSelfClosing(node, sourceFile, context)
   }
 
   if (ts.isJsxFragment(node)) {
     return node.children
-      .map((child) =>
-        serializeNode(child, sourceFile, componentMap, intrinsicMap),
-      )
+      .map((child) => serializeNode(child, sourceFile, context))
       .join('')
   }
 
@@ -198,12 +198,7 @@ function serializeNode(node, sourceFile, componentMap, intrinsicMap) {
   }
 
   if (ts.isJsxExpression(node)) {
-    return serializeExpression(
-      node.expression,
-      sourceFile,
-      componentMap,
-      intrinsicMap,
-    )
+    return serializeExpression(node.expression, sourceFile, context)
   }
 
   return ''
@@ -212,38 +207,33 @@ function serializeNode(node, sourceFile, componentMap, intrinsicMap) {
 /**
  * @param {ts.JsxElement} node
  * @param {ts.SourceFile} sourceFile
- * @param {ComponentMap} componentMap
- * @param {IntrinsicMap} intrinsicMap
+ * @param {SerializationContext} context
  * @returns {string}
  */
-function serializeElement(node, sourceFile, componentMap, intrinsicMap) {
+function serializeElement(node, sourceFile, context) {
   const tagName = node.openingElement.tagName.getText(sourceFile)
   const attributes = node.openingElement.attributes
   const intrinsicTagName = getIntrinsicTagName(
     tagName,
     attributes,
     sourceFile,
-    intrinsicMap,
+    context.intrinsicMap,
   )
 
   if (!intrinsicTagName) {
-    const localComponent = componentMap.get(tagName)
+    const localComponent = context.componentMap.get(tagName)
     if (localComponent) {
-      return serializeNode(
-        localComponent,
-        sourceFile,
-        componentMap,
-        intrinsicMap,
-      )
+      return serializeNode(localComponent, sourceFile, {
+        ...context,
+        slottedChildren: node.children,
+      })
     }
 
     return `<span data-component="${escapeAttribute(tagName)}"></span>`
   }
 
   const serializedChildren = node.children
-    .map((child) =>
-      serializeNode(child, sourceFile, componentMap, intrinsicMap),
-    )
+    .map((child) => serializeNode(child, sourceFile, context))
     .join('')
   const htmlTagName = intrinsicTagName.toLowerCase()
   const serializedAttributes = serializeAttributes(attributes, sourceFile)
@@ -258,29 +248,26 @@ function serializeElement(node, sourceFile, componentMap, intrinsicMap) {
 /**
  * @param {ts.JsxSelfClosingElement} node
  * @param {ts.SourceFile} sourceFile
- * @param {ComponentMap} componentMap
- * @param {IntrinsicMap} intrinsicMap
+ * @param {SerializationContext} context
  * @returns {string}
  */
-function serializeSelfClosing(node, sourceFile, componentMap, intrinsicMap) {
+function serializeSelfClosing(node, sourceFile, context) {
   const tagName = node.tagName.getText(sourceFile)
   const attributes = node.attributes
   const intrinsicTagName = getIntrinsicTagName(
     tagName,
     attributes,
     sourceFile,
-    intrinsicMap,
+    context.intrinsicMap,
   )
 
   if (!intrinsicTagName) {
-    const localComponent = componentMap.get(tagName)
+    const localComponent = context.componentMap.get(tagName)
     if (localComponent) {
-      return serializeNode(
-        localComponent,
-        sourceFile,
-        componentMap,
-        intrinsicMap,
-      )
+      return serializeNode(localComponent, sourceFile, {
+        ...context,
+        slottedChildren: [],
+      })
     }
 
     return `<span data-component="${escapeAttribute(tagName)}"></span>`
@@ -299,22 +286,26 @@ function serializeSelfClosing(node, sourceFile, componentMap, intrinsicMap) {
 /**
  * @param {ts.Expression | undefined} expression
  * @param {ts.SourceFile} sourceFile
- * @param {ComponentMap} componentMap
- * @param {IntrinsicMap} intrinsicMap
+ * @param {SerializationContext} context
  * @returns {string}
  */
-function serializeExpression(
-  expression,
-  sourceFile,
-  componentMap,
-  intrinsicMap,
-) {
+function serializeExpression(expression, sourceFile, context) {
   if (!expression) {
     return ''
   }
 
+  if (
+    context.slottedChildren &&
+    ts.isIdentifier(expression) &&
+    expression.text === 'children'
+  ) {
+    return context.slottedChildren
+      .map((child) => serializeNode(child, sourceFile, context))
+      .join('')
+  }
+
   if (isRenderableJsx(expression)) {
-    return serializeNode(expression, sourceFile, componentMap, intrinsicMap)
+    return serializeNode(expression, sourceFile, context)
   }
 
   /** @type {string[]} */
@@ -326,9 +317,7 @@ function serializeExpression(
    */
   function visit(node) {
     if (isRenderableJsx(node)) {
-      descendants.push(
-        serializeNode(node, sourceFile, componentMap, intrinsicMap),
-      )
+      descendants.push(serializeNode(node, sourceFile, context))
       return
     }
 
@@ -362,10 +351,6 @@ function collectLocalComponents(sourceFile) {
  * @returns {{ name: string; node: RenderableJsx } | null}
  */
 function getLocalComponent(node) {
-  if (isExported(node)) {
-    return null
-  }
-
   if (ts.isFunctionDeclaration(node)) {
     return getFunctionDeclarationComponent(node)
   }
@@ -492,7 +477,7 @@ function findReturnedJsx(block) {
  * @returns {boolean}
  */
 function isLocalComponentDeclaration(node) {
-  return Boolean(getLocalComponent(node))
+  return !isExported(node) && Boolean(getLocalComponent(node))
 }
 
 /**
@@ -917,7 +902,22 @@ function hasBooleanAttribute(attributes, attributeName, sourceFile) {
     (property) =>
       ts.isJsxAttribute(property) &&
       property.name.getText(sourceFile) === attributeName &&
-      !property.initializer,
+      isTruthyBooleanAttribute(property.initializer),
+  )
+}
+
+/**
+ * @param {ts.JsxAttributeValue | undefined} initializer
+ * @returns {boolean}
+ */
+function isTruthyBooleanAttribute(initializer) {
+  if (!initializer) {
+    return true
+  }
+
+  return (
+    ts.isJsxExpression(initializer) &&
+    initializer.expression?.kind === ts.SyntaxKind.TrueKeyword
   )
 }
 
