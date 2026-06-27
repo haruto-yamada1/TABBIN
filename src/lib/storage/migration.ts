@@ -176,6 +176,29 @@ const buildGroupedTabsByDomain = (
   }
   return groupedTabs
 }
+const normalizeDomainLookupKey = (domain: string): string => {
+  const trimmedDomain = domain.trim().toLowerCase()
+  if (!trimmedDomain.includes('://')) {
+    return trimmedDomain
+  }
+  try {
+    return new URL(trimmedDomain).hostname
+  } catch {
+    return trimmedDomain
+  }
+}
+const buildGroupedTabsLookup = (
+  savedTabs: TabGroup[],
+): Map<string, TabGroup> => {
+  const groupedTabs = new Map<string, TabGroup>()
+  for (const group of savedTabs) {
+    const key = normalizeDomainLookupKey(group.domain)
+    if (!groupedTabs.has(key)) {
+      groupedTabs.set(key, group)
+    }
+  }
+  return groupedTabs
+}
 const getCategoryDomainNames = (category: {
   domainNames?: unknown
 }): string[] =>
@@ -215,7 +238,10 @@ const findCategoryByDomainMapping = (
   domainCategoryMappings: DomainParentCategoryMapping[],
   parentCategories: ParentCategory[],
 ): DomainCategoryMatch | null => {
-  const domainMapping = domainCategoryMappings.find((m) => m.domain === domain)
+  const domainKey = normalizeDomainLookupKey(domain)
+  const domainMapping = domainCategoryMappings.find(
+    (m) => normalizeDomainLookupKey(m.domain) === domainKey,
+  )
   if (!domainMapping) {
     return null
   }
@@ -237,6 +263,7 @@ const findCategoryByDomainNames = (
   domain: string,
   parentCategories: ParentCategory[],
 ): DomainCategoryMatch | null => {
+  const domainKey = normalizeDomainLookupKey(domain)
   for (const category of parentCategories) {
     if (!Array.isArray(category.domainNames)) {
       console.log(`カテゴリ「${category.name}」のdomainNamesが不正です`)
@@ -246,7 +273,11 @@ const findCategoryByDomainNames = (
       domainCount: category.domainNames.length,
       searchDomain: redactUrlForLog(domain),
     })
-    if (category.domainNames.some((d) => d === domain)) {
+    if (
+      category.domainNames.some(
+        (d) => normalizeDomainLookupKey(d) === domainKey,
+      )
+    ) {
       console.log(
         `ドメイン ${redactUrlForLog(domain)} は親カテゴリ「${category.name}」のdomainNamesに見つかりました`,
       )
@@ -391,6 +422,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   const { savedTabs = [] } = savedTabsResult
   const filteredTabs = filterItemsBySavableUrl(tabs, settings.excludePatterns)
   const groupedTabs = buildGroupedTabsByDomain(savedTabs)
+  const groupedTabsLookup = buildGroupedTabsLookup(savedTabs)
   console.log('既存タブグループ数:', savedTabs.length)
   console.log('重複除外済みタブグループ数:', groupedTabs.size)
   console.log('ドメインマッピング:', domainCategoryMappings)
@@ -399,10 +431,16 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   )
   logParentCategorySnapshot(parentCategories)
   const tabsWithDomains = getTabsWithDomains(filteredTabs)
+  const missingDomainKeys = new Set<string>()
   const missingDomainSet = tabsWithDomains.reduce<Set<string>>(
     (domains, { domain }) => {
-      if (!groupedTabs.has(domain)) {
+      const domainKey = normalizeDomainLookupKey(domain)
+      if (
+        !groupedTabsLookup.has(domainKey) &&
+        !missingDomainKeys.has(domainKey)
+      ) {
         domains.add(domain)
+        missingDomainKeys.add(domainKey)
       }
       return domains
     },
@@ -430,6 +468,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   }
   for (const { domain, group } of createdGroups) {
     groupedTabs.set(domain, group)
+    groupedTabsLookup.set(normalizeDomainLookupKey(domain), group)
   }
   const urlRecordByUrl = await createOrUpdateUrlRecordsBatch(
     tabsWithDomains.map(({ tab, url }) => ({
@@ -438,11 +477,12 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     })),
   )
   for (const { domain, url } of tabsWithDomains) {
-    const group = groupedTabs.get(domain)
+    const domainKey = normalizeDomainLookupKey(domain)
+    const group = groupedTabsLookup.get(domainKey)
     if (!group) {
       throw new Error(`Domain group not found: ${redactUrlForLog(domain)}`)
     }
-    if (!missingDomainSet.has(domain)) {
+    if (!missingDomainKeys.has(domainKey)) {
       console.log(`既存のドメインに追加: ${redactUrlForLog(domain)}`)
     }
     const urlRecord = urlRecordByUrl.get(url)
@@ -491,10 +531,10 @@ const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
   const uniqueDomains = getUniqueDomainsFromTabs(filteredTabs)
 
   // 各ドメインで自動カテゴライズを実行
-  const groupByDomain = new Map(savedTabs.map((group) => [group.domain, group]))
+  const groupByDomain = buildGroupedTabsLookup(savedTabs)
   await Promise.all(
     [...uniqueDomains].flatMap((domain) => {
-      const group = groupByDomain.get(domain)
+      const group = groupByDomain.get(normalizeDomainLookupKey(domain))
       return group && (group.categoryKeywords?.length ?? 0) > 0
         ? [autoCategorizeTabs(group.id)]
         : []
