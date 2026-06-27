@@ -80,119 +80,11 @@ import {
   resolveCurrentLanguage,
   restoreImportedCustomProjectUrlsFromIds,
 } from './import-export'
-
-type StorageStore = Record<string, unknown>
-
-const clone = <T>(value: T): T => {
-  if (value === undefined) {
-    return value
-  }
-  // eslint-disable-next-line unicorn/prefer-structured-clone
-  return JSON.parse(JSON.stringify(value)) as T
-}
-
-const readStorageByKeys = (
-  store: StorageStore,
-  keys?: string | string[] | Record<string, unknown>,
-) => {
-  if (keys === undefined) {
-    return clone(store)
-  }
-
-  if (typeof keys === 'string') {
-    return { [keys]: clone(store[keys]) }
-  }
-
-  if (Array.isArray(keys)) {
-    const result: Record<string, unknown> = {}
-    for (const key of keys) {
-      result[key] = clone(store[key])
-    }
-    return result
-  }
-
-  const result: Record<string, unknown> = {}
-  for (const [key, fallback] of Object.entries(keys)) {
-    result[key] = store[key] === undefined ? clone(fallback) : clone(store[key])
-  }
-  return result
-}
-
-const createChromeMock = (
-  initialStore: StorageStore = {},
-  options: {
-    manifestVersion?: string
-    failGet?: boolean
-  } = {},
-) => {
-  const store = clone(initialStore)
-
-  const get = vi.fn(
-    async (keys?: string | string[] | Record<string, unknown>) => {
-      if (options.failGet) {
-        throw new Error('storage get failed')
-      }
-      return readStorageByKeys(store, keys)
-    },
-  )
-
-  const set = vi.fn(async (next: Record<string, unknown>) => {
-    for (const [key, value] of Object.entries(next)) {
-      store[key] = clone(value)
-    }
-  })
-
-  ;(globalThis as unknown as { chrome: typeof chrome }).chrome = {
-    storage: {
-      local: { get, set },
-    },
-    i18n: {
-      getUILanguage: () => 'ja',
-    },
-    runtime: {
-      getManifest: () => ({ version: options.manifestVersion ?? '9.9.9' }),
-    },
-  } as unknown as typeof chrome
-
-  return { store, get, set }
-}
-
-const buildFullUserSettings = (
-  override: Partial<UserSettings> = {},
-): UserSettings => ({
-  removeTabAfterOpen: true,
-  removeTabAfterExternalDrop: true,
-  excludePatterns: ['existing-pattern'],
-  enableCategories: true,
-  autoDeletePeriod: 'never',
-  showSavedTime: false,
-  clickBehavior: 'saveSameDomainTabs',
-  excludePinnedTabs: true,
-  openUrlInBackground: true,
-  openAllInNewWindow: false,
-  confirmDeleteAll: false,
-  confirmDeleteEach: false,
-  colors: {},
-  ollamaModel: '',
-  ...override,
-})
-
-const buildCustomProject = (
-  override: Partial<CustomProject> = {},
-): CustomProject => ({
-  id: 'project-1',
-  name: 'Project 1',
-  projectKeywords: {
-    titleKeywords: [],
-    urlKeywords: [],
-    domainKeywords: [],
-  },
-  urlIds: [],
-  categories: [],
-  createdAt: 1,
-  updatedAt: 1,
-  ...override,
-})
+import {
+  buildCustomProject,
+  buildFullUserSettings,
+  createChromeMock,
+} from './import-export.test-fixtures'
 
 const buildAnalyticsQuery = (
   override: Partial<AnalyticsQuery> = {},
@@ -1246,37 +1138,34 @@ describe('import-export ユーティリティ', () => {
       urls: [],
     }).store
 
-    vi.mocked(createOrUpdateUrlRecordsBatch).mockResolvedValue(
-      new Map([
-        [
-          'https://example.com/docs',
-          {
-            id: 'url-1',
-            url: 'https://example.com/docs',
-            title: 'Docs',
-            savedAt: 200,
-          },
-        ],
-        [
-          'https://example.com/backlog',
-          {
-            id: 'url-2',
-            url: 'https://example.com/backlog',
-            title: 'Backlog',
-            savedAt: 201,
-          },
-        ],
-        [
-          'https://example.com/uncategorized',
-          {
-            id: 'url-3',
-            url: 'https://example.com/uncategorized',
-            title: 'Uncategorized',
-            savedAt: 202,
-          },
-        ],
-      ]),
-    )
+    const docsUrlRecord = {
+      id: 'url-1',
+      url: 'https://example.com/docs',
+      title: 'Docs',
+      savedAt: 200,
+    }
+    const backlogUrlRecord = {
+      id: 'url-2',
+      url: 'https://example.com/backlog',
+      title: 'Backlog',
+      savedAt: 201,
+    }
+    const uncategorizedUrlRecord = {
+      id: 'url-3',
+      url: 'https://example.com/uncategorized',
+      title: 'Uncategorized',
+      savedAt: 202,
+    }
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockImplementation(async () => {
+      await chrome.storage.local.set({
+        urls: [docsUrlRecord, backlogUrlRecord, uncategorizedUrlRecord],
+      })
+      return new Map([
+        ['https://example.com/docs', docsUrlRecord],
+        ['https://example.com/backlog', backlogUrlRecord],
+        ['https://example.com/uncategorized', uncategorizedUrlRecord],
+      ])
+    })
 
     const result = await importSettings(JSON.stringify(backup), false)
 
@@ -1347,6 +1236,11 @@ describe('import-export ユーティリティ', () => {
         subCategories: [],
       },
     ])
+    expect(importedStore.urls).toEqual([
+      docsUrlRecord,
+      backlogUrlRecord,
+      uncategorizedUrlRecord,
+    ])
   })
 
   it('merge モードの復元は legacy/modern 混在バックアップでも既存データと URL 関係を壊さない', async () => {
@@ -1391,19 +1285,24 @@ describe('import-export ユーティリティ', () => {
       ],
     })
     vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
-    vi.mocked(createOrUpdateUrlRecordsBatch).mockResolvedValue(
-      new Map([
-        [
-          'https://modern.example.com/spec',
-          {
-            id: 'modern-url',
-            url: 'https://modern.example.com/spec',
-            title: 'Modern Spec',
-            savedAt: 40,
-          },
-        ],
-      ]),
-    )
+    const currentUrlRecord = {
+      id: 'current-url',
+      url: 'https://current.example.com/home',
+      title: 'Current Home',
+      savedAt: 10,
+    }
+    const modernUrlRecord = {
+      id: 'modern-url',
+      url: 'https://modern.example.com/spec',
+      title: 'Modern Spec',
+      savedAt: 40,
+    }
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockImplementation(async () => {
+      await chrome.storage.local.set({
+        urls: [currentUrlRecord, modernUrlRecord],
+      })
+      return new Map([['https://modern.example.com/spec', modernUrlRecord]])
+    })
 
     const result = await importSettings(
       JSON.stringify({
@@ -1512,12 +1411,8 @@ describe('import-export ユーティリティ', () => {
       },
     ])
     expect(store.urls).toEqual([
-      {
-        id: 'current-url',
-        url: 'https://current.example.com/home',
-        title: 'Current Home',
-        savedAt: 10,
-      },
+      currentUrlRecord,
+      modernUrlRecord,
       {
         id: 'missing-legacy-url',
         url: 'https://legacy.example.com/#tabbin-restored-missing-legacy-url',
@@ -4617,28 +4512,27 @@ describe('import-export ユーティリティ', () => {
       urls: [],
     })
     vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
-    vi.mocked(createOrUpdateUrlRecordsBatch).mockResolvedValue(
-      new Map([
-        [
-          'https://docs.example.com/spec',
-          {
-            id: 'url-docs',
-            url: 'https://docs.example.com/spec',
-            title: 'Docs Spec',
-            savedAt: 101,
-          },
-        ],
-        [
-          'https://app.example.com/login',
-          {
-            id: 'url-app',
-            url: 'https://app.example.com/login',
-            title: 'App Login',
-            savedAt: 102,
-          },
-        ],
-      ]),
-    )
+    const docsUrlRecord = {
+      id: 'url-docs',
+      url: 'https://docs.example.com/spec',
+      title: 'Docs Spec',
+      savedAt: 101,
+    }
+    const appUrlRecord = {
+      id: 'url-app',
+      url: 'https://app.example.com/login',
+      title: 'App Login',
+      savedAt: 102,
+    }
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockImplementation(async () => {
+      await chrome.storage.local.set({
+        urls: [docsUrlRecord, appUrlRecord],
+      })
+      return new Map([
+        ['https://docs.example.com/spec', docsUrlRecord],
+        ['https://app.example.com/login', appUrlRecord],
+      ])
+    })
 
     const imported = {
       version: '6.0.0',
@@ -4824,6 +4718,8 @@ describe('import-export ユーティリティ', () => {
       'custom-uncategorized',
     ])
     expect(store.urls).toEqual([
+      docsUrlRecord,
+      appUrlRecord,
       {
         id: 'missing-tab-url',
         url: 'https://missing.example.com/#tabbin-restored-missing-tab-url',
@@ -4857,37 +4753,34 @@ describe('import-export ユーティリティ', () => {
       urls: [],
     })
     vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
-    vi.mocked(createOrUpdateUrlRecordsBatch).mockResolvedValue(
-      new Map([
-        [
-          'https://imported.example.com/a',
-          {
-            id: 'url-imported-a',
-            url: 'https://imported.example.com/a',
-            title: 'Imported A',
-            savedAt: 100,
-          },
-        ],
-        [
-          'https://imported.example.com/b',
-          {
-            id: 'url-imported-b',
-            url: 'https://imported.example.com/b',
-            title: 'Imported B',
-            savedAt: 101,
-          },
-        ],
-        [
-          'https://imported.example.com/extra',
-          {
-            id: 'url-imported-extra',
-            url: 'https://imported.example.com/extra',
-            title: 'Imported Extra',
-            savedAt: 102,
-          },
-        ],
-      ]),
-    )
+    const importedAUrlRecord = {
+      id: 'url-imported-a',
+      url: 'https://imported.example.com/a',
+      title: 'Imported A',
+      savedAt: 100,
+    }
+    const importedBUrlRecord = {
+      id: 'url-imported-b',
+      url: 'https://imported.example.com/b',
+      title: 'Imported B',
+      savedAt: 101,
+    }
+    const importedExtraUrlRecord = {
+      id: 'url-imported-extra',
+      url: 'https://imported.example.com/extra',
+      title: 'Imported Extra',
+      savedAt: 102,
+    }
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockImplementation(async () => {
+      await chrome.storage.local.set({
+        urls: [importedAUrlRecord, importedBUrlRecord, importedExtraUrlRecord],
+      })
+      return new Map([
+        ['https://imported.example.com/a', importedAUrlRecord],
+        ['https://imported.example.com/b', importedBUrlRecord],
+        ['https://imported.example.com/extra', importedExtraUrlRecord],
+      ])
+    })
 
     const imported = {
       version: '4.0.1',
@@ -5013,6 +4906,11 @@ describe('import-export ユーティリティ', () => {
       'project-main',
       'project-secondary',
       'custom-uncategorized',
+    ])
+    expect(store.urls).toEqual([
+      importedAUrlRecord,
+      importedBUrlRecord,
+      importedExtraUrlRecord,
     ])
   })
 
