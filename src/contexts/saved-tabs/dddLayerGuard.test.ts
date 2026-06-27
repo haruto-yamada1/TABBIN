@@ -189,6 +189,24 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
   })
 
+  describe('issue #590: public-api.ts の barrel 例外は最小範囲に限定する', () => {
+    it('src/contexts/*/public-api.ts のみ oxc/no-barrel-file を例外許可する', () => {
+      const barrelFileOverrides =
+        config.overrides?.filter(
+          (entry) => entry.rules?.['oxc/no-barrel-file'] === 'off',
+        ) ?? []
+
+      expect(barrelFileOverrides).toEqual([
+        {
+          files: ['src/contexts/*/public-api.ts'],
+          rules: {
+            'oxc/no-barrel-file': 'off',
+          },
+        },
+      ])
+    })
+  })
+
   describe('domain 層', () => {
     const override = findOverride(config, 'domain')
 
