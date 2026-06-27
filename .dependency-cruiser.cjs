@@ -76,6 +76,18 @@ module.exports = {
       to: { couldNotResolve: true },
     },
     {
+      name: 'no-shared-or-components-to-context',
+      comment:
+        'Shared and common component code must not depend on feature contexts',
+      severity: 'error',
+      from: {
+        path: '^src/(shared|components)/',
+      },
+      to: {
+        path: '^src/contexts/',
+      },
+    },
+    {
       name: 'no-domain-to-ui-packages',
       comment:
         'Domain code must not depend on UI, routing, notification, or animation packages',
