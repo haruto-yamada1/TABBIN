@@ -221,6 +221,12 @@ function serializeElement(node, sourceFile, context) {
   )
 
   if (!intrinsicTagName) {
+    if (hasBooleanAttribute(attributes, 'asChild', sourceFile)) {
+      return node.children
+        .map((child) => serializeNode(child, sourceFile, context))
+        .join('')
+    }
+
     const localComponent = context.componentMap.get(tagName)
     if (localComponent) {
       return serializeNode(localComponent, sourceFile, {
@@ -262,6 +268,10 @@ function serializeSelfClosing(node, sourceFile, context) {
   )
 
   if (!intrinsicTagName) {
+    if (hasBooleanAttribute(attributes, 'asChild', sourceFile)) {
+      return ''
+    }
+
     const localComponent = context.componentMap.get(tagName)
     if (localComponent) {
       return serializeNode(localComponent, sourceFile, {
@@ -300,7 +310,10 @@ function serializeExpression(expression, sourceFile, context) {
     expression.text === 'children'
   ) {
     return context.slottedChildren
-      .map((child) => serializeNode(child, sourceFile, context))
+      .map((child) => serializeNode(child, sourceFile, {
+        ...context,
+        slottedChildren: null,
+      }))
       .join('')
   }
 

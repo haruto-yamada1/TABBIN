@@ -91,7 +91,7 @@ describe('tsx html-validate transformer', () => {
           return <Button asChild><a href="/tabs"><div>保存</div></a></Button>
         }
       `),
-    ).toContain('<span data-component="Button"></span>')
+    ).toContain('<a href="/tabs"><div>保存</div></a>')
   })
 
   it('inlines local components when they are rendered inside known intrinsic components', () => {
@@ -145,7 +145,7 @@ describe('tsx html-validate transformer', () => {
           return <Button asChild={true}><a href="/tabs"><div>保存</div></a></Button>
         }
       `),
-    ).toContain('<span data-component="Button"></span>')
+    ).toContain('<a href="/tabs"><div>保存</div></a>')
   })
 
   it('infers imported wrappers that render known intrinsic components', () => {
