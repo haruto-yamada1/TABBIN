@@ -310,10 +310,12 @@ function serializeExpression(expression, sourceFile, context) {
     expression.text === 'children'
   ) {
     return context.slottedChildren
-      .map((child) => serializeNode(child, sourceFile, {
-        ...context,
-        slottedChildren: null,
-      }))
+      .map((child) =>
+        serializeNode(child, sourceFile, {
+          ...context,
+          slottedChildren: null,
+        }),
+      )
       .join('')
   }
 
