@@ -23,10 +23,10 @@ const ButtonContent = ({
   autoDeletePeriod?: string | undefined
   settings: { showSavedTime: boolean }
 }) => (
-  <div className='flex w-full min-w-0 flex-col overflow-hidden'>
+  <span className='flex w-full min-w-0 flex-col overflow-hidden'>
     <span className='block truncate text-left'>{title}</span>
     {savedAt && (
-      <div className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
+      <span className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
         {settings.showSavedTime && (
           <span className='truncate text-muted-foreground'>
             {formatDatetime(savedAt)}
@@ -38,9 +38,9 @@ const ButtonContent = ({
             autoDeletePeriod={autoDeletePeriod}
           />
         )}
-      </div>
+      </span>
     )}
-  </div>
+  </span>
 )
 
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）

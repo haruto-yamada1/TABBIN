@@ -72,16 +72,16 @@ const PresetButton = ({
       type='button'
       variant='ghost'
     >
-      <div className='flex min-w-0 items-center justify-between gap-2'>
-        <p className='min-w-0 flex-1 truncate text-sm font-medium'>
+      <span className='flex min-w-0 items-center justify-between gap-2'>
+        <span className='min-w-0 flex-1 truncate text-sm font-medium'>
           {prompt.name}
-        </p>
+        </span>
         {prompt.id === activePromptId ? (
           <span className='shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground'>
             {t('aiChat.systemPrompt.inUse')}
           </span>
         ) : null}
-      </div>
+      </span>
     </Button>
   )
 }

@@ -361,7 +361,10 @@ const Sidebar = ({
         )}
         onPointerDown={handleResizeStart}
       >
-        <div className='absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/80' />
+        <span
+          aria-hidden='true'
+          className='absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/80'
+        />
       </button>
     </div>
   )

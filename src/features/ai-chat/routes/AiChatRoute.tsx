@@ -60,12 +60,12 @@ const HistoryItemCard = ({
           type='button'
           variant='ghost'
         >
-          <p className='w-full min-w-0 truncate text-sm font-medium text-foreground'>
+          <span className='block w-full min-w-0 truncate text-sm font-medium text-foreground'>
             {historyItem.title}
-          </p>
-          <p className='mt-1 line-clamp-2 w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'>
+          </span>
+          <span className='mt-1 line-clamp-2 block w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'>
             {historyItem.preview}
-          </p>
+          </span>
         </Button>
         <Button
           type='button'

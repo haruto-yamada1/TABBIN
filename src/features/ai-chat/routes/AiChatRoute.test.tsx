@@ -192,7 +192,7 @@ describe('AiChatRoute', () => {
       .getAllByRole('button', { name: /最初の会話/ })
       .find((button) => button.className.includes('flex-col'))
     const conversationRow = conversationButton?.parentElement
-    const textRows = conversationButton?.querySelectorAll('p')
+    const textRows = conversationButton?.querySelectorAll(':scope > span')
     const title = textRows?.[0]
     const preview = textRows?.[1]
 

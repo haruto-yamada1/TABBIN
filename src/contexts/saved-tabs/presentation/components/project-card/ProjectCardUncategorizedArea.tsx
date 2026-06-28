@@ -125,7 +125,7 @@ export const ProjectCardUncategorizedArea = () => {
         type='button'
         variant='outline'
       >
-        <div className='min-h-8' />
+        <span className='block min-h-8' />
       </Button>
     )
   }
