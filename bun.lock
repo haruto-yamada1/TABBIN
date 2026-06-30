@@ -94,6 +94,7 @@
         "autoprefixer": "^10.5.0",
         "dependency-cruiser": "^17.4.3",
         "eslint-plugin-react-hooks": "^7.1.1",
+        "eslint-plugin-testing-library": "^7.16.2",
         "happy-dom": "^20.10.2",
         "html-validate": "^11.5.3",
         "jscpd": "^5.0.8",
@@ -1514,6 +1515,8 @@
     "eslint-plugin-react-web-api": ["eslint-plugin-react-web-api@5.9.5", "", { "dependencies": { "@eslint-react/ast": "5.9.5", "@eslint-react/core": "5.9.5", "@eslint-react/eslint": "5.9.5", "@eslint-react/shared": "5.9.5", "@eslint-react/var": "5.9.5", "@typescript-eslint/types": "^8.62.0", "@typescript-eslint/utils": "^8.62.0", "birecord": "^0.1.1", "ts-pattern": "^5.9.0" }, "peerDependencies": { "eslint": "*", "typescript": "*" } }, "sha512-QySgjUrlEifAZp0phtA+VzuJZdRYcIxTjFXPMaSY+QPKAsHZo3cJ3rjFcbtR9DS/kdGGf6p/Oa02Rqgk9cw2FQ=="],
 
     "eslint-plugin-react-x": ["eslint-plugin-react-x@5.9.5", "", { "dependencies": { "@eslint-react/ast": "5.9.5", "@eslint-react/core": "5.9.5", "@eslint-react/eslint": "5.9.5", "@eslint-react/jsx": "5.9.5", "@eslint-react/shared": "5.9.5", "@eslint-react/var": "5.9.5", "@typescript-eslint/scope-manager": "^8.62.0", "@typescript-eslint/type-utils": "^8.62.0", "@typescript-eslint/types": "^8.62.0", "@typescript-eslint/typescript-estree": "^8.62.0", "@typescript-eslint/utils": "^8.62.0", "compare-versions": "^6.1.1", "string-ts": "^2.3.1", "ts-api-utils": "^2.5.0", "ts-pattern": "^5.9.0" }, "peerDependencies": { "eslint": "*", "typescript": "*" } }, "sha512-GToujy4Aj5xs5h/yMG7gUWYlb52oyMTvk1KXqcXefMhYY31AY0xEN1385W/dGVGOMyobNrHDVzoZ2lBDF2cquw=="],
+
+    "eslint-plugin-testing-library": ["eslint-plugin-testing-library@7.16.2", "", { "dependencies": { "@typescript-eslint/scope-manager": "^8.56.0", "@typescript-eslint/utils": "^8.56.0" }, "peerDependencies": { "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0" } }, "sha512-8gleGnQXK2ZA3hHwjCwpYTZvM+9VsrJ+/9kDI8CjqAQGAdMQOdn/rJNu7ZySENuiWlGKQWyZJ4ZjEg2zamaRHw=="],
 
     "eslint-scope": ["eslint-scope@9.1.2", "", { "dependencies": { "@types/esrecurse": "^4.3.1", "@types/estree": "^1.0.8", "esrecurse": "^4.3.0", "estraverse": "^5.2.0" } }, "sha512-xS90H51cKw0jltxmvmHy2Iai1LIqrfbw57b79w/J7MfvDfkIkFZ+kj6zC3BjtUwh150HsSSdxXZcsuv72miDFQ=="],
 
