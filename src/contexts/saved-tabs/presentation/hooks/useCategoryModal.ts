@@ -282,15 +282,32 @@ export const useCategoryModal = ({
   }, [getSavedTabsPageDataQuery, t, tabGroups])
 
   // --- 選択カテゴリ変更時のドメイン選択更新 ---
-  useEffect(() => {
-    if (!selectedCategoryId) {
-      return
+  const [prevDomainSync, setPrevDomainSync] = useState<{
+    selectedCategoryId: string | null
+    categories: typeof categories
+    updateFn: typeof updateSelectedDomains
+  } | null>(null)
+
+  if (
+    prevDomainSync === null ||
+    prevDomainSync.selectedCategoryId !== selectedCategoryId ||
+    prevDomainSync.categories !== categories ||
+    prevDomainSync.updateFn !== updateSelectedDomains
+  ) {
+    setPrevDomainSync({
+      selectedCategoryId,
+      categories,
+      updateFn: updateSelectedDomains,
+    })
+    if (selectedCategoryId) {
+      const selectedCategory = categories.find(
+        (c) => c.id === selectedCategoryId,
+      )
+      if (selectedCategory) {
+        updateSelectedDomains(selectedCategory)
+      }
     }
-    const selectedCategory = categories.find((c) => c.id === selectedCategoryId)
-    if (selectedCategory) {
-      updateSelectedDomains(selectedCategory)
-    }
-  }, [selectedCategoryId, categories, updateSelectedDomains])
+  }
 
   // --- カテゴリ選択ハンドラ ---
   const handleCategoryChange = useCallback(

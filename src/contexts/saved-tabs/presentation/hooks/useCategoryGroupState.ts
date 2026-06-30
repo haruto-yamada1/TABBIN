@@ -1,6 +1,6 @@
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import type {
@@ -131,29 +131,38 @@ export const useCategoryGroupState = ({
   )
 
   // --- ドラッグ中の折りたたみ制御 ---
-  useEffect(() => {
+  const [prevDragSync, setPrevDragSync] = useState({
+    isDraggingGlobal,
+    isCategoryReorderMode,
+  })
+
+  if (
+    prevDragSync.isDraggingGlobal !== isDraggingGlobal ||
+    prevDragSync.isCategoryReorderMode !== isCategoryReorderMode
+  ) {
+    setPrevDragSync({ isDraggingGlobal, isCategoryReorderMode })
     if (isDraggingGlobal && !isCategoryReorderMode) {
       setIsCollapsed(true)
     }
-  }, [isDraggingGlobal, isCategoryReorderMode, setIsCollapsed])
+  }
 
   // --- 親カテゴリ並び替えモード中の折りたたみ ---
-  const prevReorderModeRef = useRef<boolean>(false)
-  useEffect(() => {
-    if (isCategoryReorderMode && !prevReorderModeRef.current) {
+  const [prevReorderMode, setPrevReorderMode] = useState(false)
+
+  if (prevReorderMode !== isCategoryReorderMode) {
+    setPrevReorderMode(isCategoryReorderMode)
+    if (isCategoryReorderMode) {
       setCollapseState({
         isCollapsed: true,
         userCollapsedState: isCollapsed,
       })
-      prevReorderModeRef.current = true
-    } else if (!isCategoryReorderMode && prevReorderModeRef.current) {
+    } else {
       setCollapseState((prev) => ({
         ...prev,
         isCollapsed: userCollapsedState,
       }))
-      prevReorderModeRef.current = false
     }
-  }, [isCategoryReorderMode, isCollapsed, userCollapsedState])
+  }
 
   // --- ネイティブDnDハンドラ ---
   const handleDragOver = useCallback((event: React.DragEvent) => {
