@@ -195,9 +195,7 @@ export const useCategoryKeywordModal = ({
 
   if (prevParentCategoryId !== group.parentCategoryId) {
     setPrevParentCategoryId(group.parentCategoryId)
-    if (group.parentCategoryId) {
-      setSelectedParentCategory(group.parentCategoryId)
-    }
+    setSelectedParentCategory(group.parentCategoryId ?? 'none')
   }
 
   // --- バリデーション ---

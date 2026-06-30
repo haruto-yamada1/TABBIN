@@ -299,7 +299,9 @@ export const useCategoryModal = ({
       categories,
       updateFn: updateSelectedDomains,
     })
-    if (selectedCategoryId) {
+    if (selectedCategoryId === 'uncategorized') {
+      updateSelectedDomains('uncategorized')
+    } else if (selectedCategoryId) {
       const selectedCategory = categories.find(
         (c) => c.id === selectedCategoryId,
       )

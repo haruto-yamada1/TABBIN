@@ -559,13 +559,14 @@ export const useDomainCardState = ({
   )
 
   // --- ドラッグ・並び替えモード時の折りたたみ制御 ---
-  const [prevCollapseSync, setPrevCollapseSync] = useState({
-    isDraggingGlobal,
-    isReorderMode,
-    userCollapsedState,
-  })
+  const [prevCollapseSync, setPrevCollapseSync] = useState<{
+    isDraggingGlobal: boolean
+    isReorderMode: boolean
+    userCollapsedState: boolean
+  } | null>(null)
 
   if (
+    !prevCollapseSync ||
     prevCollapseSync.isDraggingGlobal !== isDraggingGlobal ||
     prevCollapseSync.isReorderMode !== isReorderMode ||
     prevCollapseSync.userCollapsedState !== userCollapsedState

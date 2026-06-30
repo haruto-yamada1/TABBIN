@@ -131,12 +131,13 @@ export const useCategoryGroupState = ({
   )
 
   // --- ドラッグ中の折りたたみ制御 ---
-  const [prevDragSync, setPrevDragSync] = useState({
-    isDraggingGlobal,
-    isCategoryReorderMode,
-  })
+  const [prevDragSync, setPrevDragSync] = useState<{
+    isDraggingGlobal: boolean
+    isCategoryReorderMode: boolean
+  } | null>(null)
 
   if (
+    !prevDragSync ||
     prevDragSync.isDraggingGlobal !== isDraggingGlobal ||
     prevDragSync.isCategoryReorderMode !== isCategoryReorderMode
   ) {
