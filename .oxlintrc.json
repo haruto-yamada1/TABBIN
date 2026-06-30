@@ -17,6 +17,10 @@
     {
       "name": "eslint-react",
       "specifier": "@eslint-react/eslint-plugin"
+    },
+    {
+      "name": "react-hooks-compiler",
+      "specifier": "eslint-plugin-react-hooks"
     }
   ],
   "categories": {
@@ -406,7 +410,19 @@
     "jsdoc/check-tag-names": "error",
     "jsdoc/check-property-names": "error",
     "jsdoc/empty-tags": "error",
-    "jsdoc/implements-on-classes": "error"
+    "jsdoc/implements-on-classes": "error",
+    "react-hooks-compiler/static-components": "error",
+    "react-hooks-compiler/use-memo": "error",
+    "react-hooks-compiler/preserve-manual-memoization": "error",
+    "react-hooks-compiler/immutability": "error",
+    "react-hooks-compiler/globals": "error",
+    "react-hooks-compiler/set-state-in-effect": "error",
+    "react-hooks-compiler/error-boundaries": "error",
+    "react-hooks-compiler/purity": "error",
+    "react-hooks-compiler/set-state-in-render": "error",
+    "react-hooks-compiler/unsupported-syntax": "error",
+    "react-hooks-compiler/config": "error",
+    "react-hooks-compiler/gating": "error"
   },
   "overrides": [
     {

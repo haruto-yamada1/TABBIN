@@ -1,5 +1,5 @@
 import { RotateCcw } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { z } from 'zod'
 
 import { ModeToggle } from '@/components/mode-toggle'
@@ -126,15 +126,18 @@ const useOptionsRouteView = () => {
     fontSizeInputValue: String(fontSizePercent),
     fontSizeSliderValue: String(fontSizePercent),
   })
+  const [prevFontSizePercent, setPrevFontSizePercent] =
+    useState(fontSizePercent)
   const { fontSizeInputValue, fontSizeSliderValue } = fontSizeValues
 
-  useEffect(() => {
+  if (prevFontSizePercent !== fontSizePercent) {
+    setPrevFontSizePercent(fontSizePercent)
     const nextFontSizeValue = String(fontSizePercent)
     setFontSizeValues({
       fontSizeInputValue: nextFontSizeValue,
       fontSizeSliderValue: nextFontSizeValue,
     })
-  }, [fontSizePercent])
+  }
 
   const updateFontSizePercent = useCallback(
     async (value: number) => {

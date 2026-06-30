@@ -186,8 +186,17 @@ export const useCategoryKeywordModal = ({
   const [internalParentCategories, setInternalParentCategories] = useState<
     ParentCategory[]
   >(initialParentCategories)
-  const [selectedParentCategory, setSelectedParentCategory] =
-    useState<string>('none')
+  const [selectedParentCategory, setSelectedParentCategory] = useState<string>(
+    group.parentCategoryId ?? 'none',
+  )
+  const [prevParentCategoryId, setPrevParentCategoryId] = useState(
+    group.parentCategoryId,
+  )
+
+  if (prevParentCategoryId !== group.parentCategoryId) {
+    setPrevParentCategoryId(group.parentCategoryId)
+    setSelectedParentCategory(group.parentCategoryId ?? 'none')
+  }
 
   // --- バリデーション ---
   const validateCategoryName = useCallback(
@@ -205,13 +214,6 @@ export const useCategoryKeywordModal = ({
     },
     [t],
   )
-
-  // --- 初期値の設定 ---
-  useEffect(() => {
-    if (group.parentCategoryId) {
-      setSelectedParentCategory(group.parentCategoryId)
-    }
-  }, [group.parentCategoryId])
 
   // --- 親カテゴリ読み込み ---
   // 以下の値 (group, onUpdateParentCategories, getSavedTabsPageDataQuery, t) は
@@ -288,7 +290,13 @@ export const useCategoryKeywordModal = ({
   }, [isOpen, loadParentCategories])
 
   // --- カテゴリ変更時のキーワード読み込み ---
-  useEffect(() => {
+  const keywordSyncKey = isOpen && activeCategory ? activeCategory : ''
+  const [prevKeywordSyncKey, setPrevKeywordSyncKey] = useState<string | null>(
+    null,
+  )
+
+  if (keywordSyncKey !== prevKeywordSyncKey) {
+    setPrevKeywordSyncKey(keywordSyncKey)
     if (isOpen && activeCategory) {
       const categoryKeywords = group.categoryKeywords?.find(
         (ck) => ck.categoryName === activeCategory,
@@ -301,7 +309,7 @@ export const useCategoryKeywordModal = ({
         newCategoryName: '',
       }))
     }
-  }, [isOpen, activeCategory, group])
+  }
 
   // --- キーワード追加 ---
   const handleAddKeyword = useCallback(() => {

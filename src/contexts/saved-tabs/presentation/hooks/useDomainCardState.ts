@@ -141,8 +141,8 @@ const buildCategoryOrderFromSaved = (
  * @param params フックの引数
  * @returns 折りたたみ・ソート・カテゴリ並び替え・キーワードモーダル・親カテゴリ関連の状態と操作
  */
+// eslint-disable-next-line eslint/max-lines-per-function, eslint/complexity
 export const useDomainCardState = ({
-  // eslint-disable-line eslint/max-lines-per-function
   group,
   handleDeleteUrls,
   handleDeleteCategory,
@@ -226,27 +226,54 @@ export const useDomainCardState = ({
   )
 
   // --- 保存済みカテゴリ順序の初期化 ---
-  useEffect(() => {
+  const [prevCategoryInitSync, setPrevCategoryInitSync] = useState<{
+    savedOrderRef: typeof group.subCategoryOrderWithUncategorized
+    computedRef: typeof computedCategoryIds
+    allLen: number
+    trigger: number
+  } | null>(null)
+
+  if (
+    !prevCategoryInitSync ||
+    prevCategoryInitSync.savedOrderRef !==
+      group.subCategoryOrderWithUncategorized ||
+    prevCategoryInitSync.computedRef !== computedCategoryIds ||
+    prevCategoryInitSync.allLen !== allCategoryIds.length ||
+    prevCategoryInitSync.trigger !== categoryUpdateTrigger
+  ) {
+    setPrevCategoryInitSync({
+      savedOrderRef: group.subCategoryOrderWithUncategorized,
+      computedRef: computedCategoryIds,
+      allLen: allCategoryIds.length,
+      trigger: categoryUpdateTrigger,
+    })
     if (
       group.subCategoryOrderWithUncategorized &&
       allCategoryIds.length === 0
     ) {
       const savedOrder = [...group.subCategoryOrderWithUncategorized]
       if (savedOrder.length > 0) {
-        console.log('保存済みの順序を読み込み:', savedOrder)
         setAllCategoryIds(savedOrder)
       }
     }
-  }, [group.subCategoryOrderWithUncategorized, allCategoryIds.length])
+    if (allCategoryIds.length === 0 && computedCategoryIds.length > 0) {
+      setAllCategoryIds(computedCategoryIds)
+    }
+    if (
+      categoryUpdateTrigger > 0 &&
+      !arraysEqual(computedCategoryIds, allCategoryIds)
+    ) {
+      setAllCategoryIds(computedCategoryIds)
+    }
+  }
 
   // --- カテゴリ順序の更新を保存する関数 ---
-  const handleUpdateCategoryOrder = useCallback(
+  const saveCategoryOrder = useCallback(
     async (updatedOrder: string[], updatedAllOrder: string[]) => {
+      if (!categoryAssignmentPort || !getSavedTabsPageDataQuery) {
+        return
+      }
       try {
-        setAllCategoryIds(updatedAllOrder)
-        if (!categoryAssignmentPort || !getSavedTabsPageDataQuery) {
-          return
-        }
         const { tabGroups: savedTabs } = await getSavedTabsPageDataQuery()
         const updatedTabs = toPresentationTabGroups(savedTabs).map((tab) => {
           if (tab.id === group.id) {
@@ -267,6 +294,14 @@ export const useDomainCardState = ({
     [categoryAssignmentPort, getSavedTabsPageDataQuery, group.id],
   )
 
+  const handleUpdateCategoryOrder = useCallback(
+    async (updatedOrder: string[], updatedAllOrder: string[]) => {
+      setAllCategoryIds(updatedAllOrder)
+      await saveCategoryOrder(updatedOrder, updatedAllOrder)
+    },
+    [saveCategoryOrder],
+  )
+
   // --- 新規カテゴリ順序の自動保存 ---
   useEffect(() => {
     if (
@@ -277,32 +312,13 @@ export const useDomainCardState = ({
       const regularOrder = allCategoryIds.filter(
         (id) => id !== '__uncategorized',
       )
-      void handleUpdateCategoryOrder(regularOrder, allCategoryIds)
+      void saveCategoryOrder(regularOrder, allCategoryIds)
     }
   }, [
     allCategoryIds,
     group.subCategoryOrderWithUncategorized,
-    handleUpdateCategoryOrder,
+    saveCategoryOrder,
   ])
-
-  // --- カテゴリ表示の初期化 ---
-  useEffect(() => {
-    if (allCategoryIds.length === 0 && computedCategoryIds.length > 0) {
-      console.log('初期カテゴリID設定:', computedCategoryIds)
-      setAllCategoryIds(computedCategoryIds)
-    }
-  }, [allCategoryIds.length, computedCategoryIds])
-
-  // --- カテゴリ設定変更の監視 ---
-  useEffect(() => {
-    if (
-      categoryUpdateTrigger > 0 &&
-      !arraysEqual(computedCategoryIds, allCategoryIds)
-    ) {
-      console.log('カテゴリ設定変更を検知 - 表示を更新:', computedCategoryIds)
-      setAllCategoryIds(computedCategoryIds)
-    }
-  }, [categoryUpdateTrigger, computedCategoryIds, allCategoryIds])
 
   // --- タブ変更の監視 ---
   const prevUrlsRef = useRef<TabGroup['urls']>([])
@@ -543,13 +559,25 @@ export const useDomainCardState = ({
   )
 
   // --- ドラッグ・並び替えモード時の折りたたみ制御 ---
-  useEffect(() => {
+  const [prevCollapseSync, setPrevCollapseSync] = useState<{
+    isDraggingGlobal: boolean
+    isReorderMode: boolean
+    userCollapsedState: boolean
+  } | null>(null)
+
+  if (
+    !prevCollapseSync ||
+    prevCollapseSync.isDraggingGlobal !== isDraggingGlobal ||
+    prevCollapseSync.isReorderMode !== isReorderMode ||
+    prevCollapseSync.userCollapsedState !== userCollapsedState
+  ) {
+    setPrevCollapseSync({ isDraggingGlobal, isReorderMode, userCollapsedState })
     if (isDraggingGlobal || isReorderMode) {
       setIsCollapsed(true)
     } else {
       setIsCollapsed(userCollapsedState)
     }
-  }, [isDraggingGlobal, isReorderMode, userCollapsedState])
+  }
   return {
     /** カテゴリ操作 */
     categoryActions: {
