@@ -13,6 +13,12 @@
     "oxc",
     "jsdoc"
   ],
+  "jsPlugins": [
+    {
+      "name": "eslint-react",
+      "specifier": "@eslint-react/eslint-plugin"
+    }
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -201,6 +207,13 @@
     "react/no-danger-with-children": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
+    "eslint-react/dom-no-void-elements-with-children": "error",
+    "eslint-react/dom-no-unsafe-iframe-sandbox": "error",
+    "eslint-react/dom-no-unknown-property": "error",
+    "eslint-react/no-nested-component-definitions": "error",
+    "eslint-react/no-missing-key": "error",
+    "eslint-react/no-duplicate-key": "error",
+    "eslint-react/jsx-no-children-prop-with-children": "error",
     "react-perf/jsx-no-jsx-as-prop": "error",
     "react-perf/jsx-no-new-array-as-prop": "error",
     "react-perf/jsx-no-new-function-as-prop": "error",
