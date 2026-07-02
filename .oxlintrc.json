@@ -21,6 +21,10 @@
     {
       "name": "react-hooks-compiler",
       "specifier": "eslint-plugin-react-hooks"
+    },
+    {
+      "name": "testing-library",
+      "specifier": "eslint-plugin-testing-library"
     }
   ],
   "categories": {
@@ -700,6 +704,31 @@
             "message": "presentation 層は chrome.runtime を直接利用できません（MessagingPort 経由）"
           }
         ]
+      }
+    },
+    {
+      "files": [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/**/*.spec.ts",
+        "src/**/*.spec.tsx",
+        "src/test/**",
+        "src/**/testing/**",
+        "tests/**/*.test.ts",
+        "tests/**/*.test.tsx"
+      ],
+      "rules": {
+        "testing-library/await-async-events": "error",
+        "testing-library/await-async-queries": "error",
+        "testing-library/await-async-utils": "error",
+        "testing-library/no-await-sync-events": "error",
+        "testing-library/no-await-sync-queries": "error",
+        "testing-library/prefer-screen-queries": "error",
+        "testing-library/prefer-query-by-disappearance": "error",
+        "testing-library/no-global-regexp-flag-in-query": "error",
+        "testing-library/no-dom-import": "error",
+        "testing-library/prefer-user-event-setup": "error",
+        "testing-library/no-debugging-utils": "error"
       }
     }
   ]
