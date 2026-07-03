@@ -511,6 +511,8 @@ describe('SavedTabsChatWidget', () => {
     )
 
     const log = screen.getByRole('log')
+    // 内部スクロール viewport は意味的 query で参照できないため log の直接子要素を検証する
+    // eslint-disable-next-line testing-library/no-node-access
     const scrollContainer = log.firstElementChild
 
     expect(scrollContainer?.className.includes('overscroll-contain')).toBe(true)
@@ -529,12 +531,11 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-    const sidebar = screen.getByLabelText('AI chat sidebar')
-    const shell = sidebar.parentElement
+    const shell = screen.getByTestId('chat-shell')
 
-    expect(shell?.className.includes('h-screen')).toBe(true)
-    expect(shell?.className.includes('overflow-hidden')).toBe(true)
-    expect(shell?.className.includes('overscroll-none')).toBe(true)
+    expect(shell).toHaveClass('h-screen')
+    expect(shell).toHaveClass('overflow-hidden')
+    expect(shell).toHaveClass('overscroll-none')
   })
 
   it('does not show a model-name badge in the header', async () => {
@@ -566,11 +567,11 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-    const title = screen.getByText('Chat').parentElement
+    const title = screen.getByTestId('chat-header-title')
 
-    expect(title?.className.includes('absolute')).toBe(true)
-    expect(title?.className.includes('inset-x-0')).toBe(true)
-    expect(title?.className.includes('justify-center')).toBe(true)
+    expect(title).toHaveClass('absolute')
+    expect(title).toHaveClass('inset-x-0')
+    expect(title).toHaveClass('justify-center')
   })
 
   it('shows the system prompt settings icon and selector on the left of the header', async () => {
@@ -661,10 +662,11 @@ describe('SavedTabsChatWidget', () => {
     const conversationButton = screen.getByRole('button', {
       name: /Another conversation/,
     })
-    const conversationRow = conversationButton.parentElement
-    const textRows = conversationButton.querySelectorAll(':scope > span')
-    const title = textRows[0]
-    const preview = textRows[1]
+    const conversationRow = screen.getByTestId(
+      'conversation-row-conversation-2',
+    )
+    const title = screen.getByTestId('conversation-title-conversation-2')
+    const preview = screen.getByTestId('conversation-preview-conversation-2')
 
     expect(conversationButton.className).toContain('flex-col')
     expect(conversationButton.className).toContain('items-start')
@@ -672,17 +674,17 @@ describe('SavedTabsChatWidget', () => {
     expect(conversationButton.className).toContain('overflow-hidden')
     expect(conversationButton.className).toContain('whitespace-normal')
     expect(conversationButton.className).not.toContain('flex-1')
-    expect(conversationRow?.className).toContain('min-w-0')
-    expect(conversationRow?.className).toContain('grid')
-    expect(conversationRow?.className).toContain(
+    expect(conversationRow.className).toContain('min-w-0')
+    expect(conversationRow.className).toContain('grid')
+    expect(conversationRow.className).toContain(
       'grid-cols-[minmax(0,1fr)_auto]',
     )
-    expect(title?.className).toContain('w-full')
-    expect(title?.className).toContain('min-w-0')
-    expect(preview?.className).toContain('w-full')
-    expect(preview?.className).toContain('min-w-0')
-    expect(preview?.className).toContain('wrap-anywhere')
-    expect(preview?.className).toContain('overflow-hidden')
+    expect(title.className).toContain('w-full')
+    expect(title.className).toContain('min-w-0')
+    expect(preview.className).toContain('w-full')
+    expect(preview.className).toContain('min-w-0')
+    expect(preview.className).toContain('wrap-anywhere')
+    expect(preview.className).toContain('overflow-hidden')
 
     await user.click(
       screen.getByRole('button', { name: /Another conversation/ }),
@@ -1264,12 +1266,16 @@ describe('SavedTabsChatWidget', () => {
     const listItemButton = await screen.findByRole('button', {
       name: normalizedLongName,
     })
-    const listItemName = within(listItemButton).getByText(normalizedLongName)
-    const listItemRow = listItemName.parentElement
+    const listItemName = screen.getByTestId(
+      'system-prompt-name-long-system-prompt',
+    )
+    const listItemRow = screen.getByTestId(
+      'system-prompt-row-long-system-prompt',
+    )
 
     expect(listItemButton.className.includes('overflow-hidden')).toBe(true)
     expect(listItemName.className.includes('truncate')).toBe(true)
-    expect(listItemRow?.className.includes('min-w-0')).toBe(true)
+    expect(listItemRow.className.includes('min-w-0')).toBe(true)
   })
 
   it('shows new conversation as an icon button with a tooltip label', async () => {
@@ -1725,8 +1731,18 @@ describe('SavedTabsChatWidget', () => {
         name: 'Most-saved categories',
       }),
     ])
-    const messageContent = chartHeading.closest('[class*="overflow"]')
-    const assistantMessage = chartHeading.closest('[class*="max-w"]')
+    const messageContent = screen.getAllByTestId('message-content').find((el) =>
+      within(el).queryByRole('heading', {
+        level: 3,
+        name: 'Most-saved categories',
+      }),
+    )
+    const assistantMessage = screen.getAllByTestId('chat-message').find((el) =>
+      within(el).queryByRole('heading', {
+        level: 3,
+        name: 'Most-saved categories',
+      }),
+    )
 
     expect(screen.getByText('Recent saved category mix')).toBeTruthy()
     expect(messageContent?.className).toContain('overflow-visible')
@@ -1840,10 +1856,7 @@ describe('SavedTabsChatWidget', () => {
     })
     await user.click(sourcesTrigger)
 
-    const sourcesGroup =
-      // eslint-disable-next-line typescript/no-unnecessary-type-assertion
-      (sourcesTrigger.closest('[data-slot="sources"]') as HTMLElement | null) ??
-      document.body
+    const sourcesGroup = screen.getByTestId('message-sources')
 
     expect(
       within(sourcesGroup).getAllByRole('link', {
@@ -2165,14 +2178,11 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-    const emptyStateMessage = screen.getByRole('heading', {
-      name: 'Select a model',
-    })
-    const emptyStateRoot = emptyStateMessage.closest('div')?.parentElement
+    expect(screen.getByRole('heading', { name: 'Select a model' })).toBeTruthy()
+    const emptyStateRoot = screen.getByTestId('empty-state-root')
 
-    expect(emptyStateMessage).toBeTruthy()
     expect(screen.queryByTestId('ai-chat-intro')).toBeNull()
-    expect(emptyStateRoot?.className.includes('justify-center')).toBe(true)
+    expect(emptyStateRoot.className.includes('justify-center')).toBe(true)
   })
 
   it('does not send when the input is empty', async () => {
@@ -2188,10 +2198,7 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-    const form = screen.getByLabelText('Ask AI').closest('form')
-    if (!form) {
-      throw new Error('form not found')
-    }
+    const form = screen.getByTestId('chat-form')
 
     fireEvent.submit(form)
     expect(mocked.sendRuntimeMessage).not.toHaveBeenCalled()

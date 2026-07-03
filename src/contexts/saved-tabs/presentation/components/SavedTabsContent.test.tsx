@@ -271,7 +271,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       isDragging: true,
     })
     const handleOpenAllTabs = vi.fn()
-    const { container } = render(
+    render(
       <SavedTabsContentComponent
         {...createProps({
           urls: undefined as unknown as { url: string; title: string }[],
@@ -282,8 +282,12 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     )
 
     expect(screen.getByRole('heading', { name: /0/ })).toBeTruthy()
-    expect(container.innerHTML.includes('shadow-lg')).toBe(true)
-    expect(container.innerHTML.includes('cursor-grabbing')).toBe(true)
+    expect(screen.getByTestId('draggable-category-section')).toHaveClass(
+      'shadow-lg',
+    )
+    expect(screen.getByTestId('draggable-category-handle')).toHaveClass(
+      'cursor-grabbing',
+    )
 
     await user.click(
       screen.getByRole('button', { name: getOpenAllButtonName('news') }),

@@ -819,7 +819,10 @@ const useCustomProjectSectionView = ({
           <div className='text-2xl text-foreground'>
             {t('savedTabs.customProjects.emptyTitle')}
           </div>
-          <div className='text-center text-muted-foreground'>
+          <div
+            className='text-center text-muted-foreground'
+            data-testid='empty-state-description'
+          >
             {t('savedTabs.customProjects.emptyDescription')}
             <br />
             {t('savedTabs.customProjects.emptyHint')}

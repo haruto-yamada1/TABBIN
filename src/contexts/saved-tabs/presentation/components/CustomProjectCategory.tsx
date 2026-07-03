@@ -158,6 +158,7 @@ const CategoryContent = (props: CategoryContentProps) => {
         >
           <ul
             className={`gap-y-1 ${props.isOver ? 'rounded bg-primary/5 p-1' : ''}`}
+            data-testid='category-url-list'
           >
             {props.urls.map((item) => (
               <ProjectUrlItem
@@ -176,6 +177,7 @@ const CategoryContent = (props: CategoryContentProps) => {
           className={`rounded border-2 border-dashed p-4 py-2 text-center text-muted-foreground ${
             props.isOver ? 'border-primary bg-primary/10' : ''
           }`}
+          data-testid='empty-state'
         />
       )}
     </CardContent>

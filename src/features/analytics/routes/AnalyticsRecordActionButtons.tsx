@@ -90,7 +90,10 @@ export const AnalyticsRecordActionButtons = ({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className='flex items-center justify-end gap-1'>
+      <div
+        className='flex items-center justify-end gap-1'
+        data-testid={`analytics-action-row-${record.id}`}
+      >
         <OpenLinkButton
           ariaLabel={t('analytics.openAria', undefined, {
             title: record.title,

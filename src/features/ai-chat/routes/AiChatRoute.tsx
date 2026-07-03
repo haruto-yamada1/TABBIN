@@ -53,17 +53,27 @@ const HistoryItemCard = ({
           : 'border-transparent bg-transparent hover:bg-background/80'
       }`}
     >
-      <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'>
+      <div
+        className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'
+        data-testid={`conversation-row-${historyItem.id}`}
+      >
         <Button
           className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
+          data-testid={`conversation-button-${historyItem.id}`}
           onClick={handleClick}
           type='button'
           variant='ghost'
         >
-          <span className='block w-full min-w-0 truncate text-sm font-medium text-foreground'>
+          <span
+            className='block w-full min-w-0 truncate text-sm font-medium text-foreground'
+            data-testid={`conversation-title-${historyItem.id}`}
+          >
             {historyItem.title}
           </span>
-          <span className='mt-1 line-clamp-2 block w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'>
+          <span
+            className='mt-1 line-clamp-2 block w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'
+            data-testid={`conversation-preview-${historyItem.id}`}
+          >
             {historyItem.preview}
           </span>
         </Button>
@@ -195,7 +205,10 @@ export const AiChatRoute = () => {
       <div className='flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
         <main className='min-h-0 flex-1 overflow-hidden bg-muted/10 px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-5'>
           <div className='mx-auto flex h-full min-h-0 max-w-7xl overflow-hidden'>
-            <div className='flex min-h-0 flex-1 overflow-hidden'>
+            <div
+              className='flex min-h-0 flex-1 overflow-hidden'
+              data-testid='chat-widget-shell'
+            >
               <SavedTabsChatWidget
                 conversationId={activeConversation.id}
                 defaultOpen

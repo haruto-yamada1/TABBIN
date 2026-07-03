@@ -77,13 +77,14 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
 
       <div
         {...getRootProps()}
+        data-testid='import-dropzone'
         className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
           isDragActive
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/20'
         }`}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} data-testid='dropzone-file-input' />
         <Upload className='mx-auto mb-2 size-12 text-muted-foreground' />
         <p className='mb-1 text-sm font-medium'>
           {isDragActive
@@ -374,6 +375,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
 
       <input
         aria-label={t('options.importExport.import')}
+        data-testid='hidden-file-input'
         type='file'
         ref={fileInputRef}
         accept='.json'

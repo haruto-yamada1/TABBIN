@@ -98,7 +98,7 @@ describe('KeywordEditor', () => {
 
     const { container } = render(<KeywordEditor />)
 
-    expect(container.childElementCount).toBe(0)
+    expect(container).toBeEmptyDOMElement()
   })
 
   it('入力変更を state setter へ渡す', async () => {

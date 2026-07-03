@@ -72,8 +72,14 @@ const PresetButton = ({
       type='button'
       variant='ghost'
     >
-      <span className='flex min-w-0 items-center justify-between gap-2'>
-        <span className='min-w-0 flex-1 truncate text-sm font-medium'>
+      <span
+        className='flex min-w-0 items-center justify-between gap-2'
+        data-testid={`system-prompt-row-${prompt.id}`}
+      >
+        <span
+          className='min-w-0 flex-1 truncate text-sm font-medium'
+          data-testid={`system-prompt-name-${prompt.id}`}
+        >
           {prompt.name}
         </span>
         {prompt.id === activePromptId ? (

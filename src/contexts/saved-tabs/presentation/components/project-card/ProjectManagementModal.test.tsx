@@ -11,6 +11,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
@@ -435,19 +436,13 @@ describe('ProjectManagementModal', () => {
     fireEvent.change(domainInput, { target: { value: 'github.com' } })
     fireEvent.blur(domainInput)
 
-    const urlDeleteButton = screen
-      .getByText('docs')
-      .parentElement?.querySelector('button')
-    if (!urlDeleteButton) {
-      throw new Error('URL keyword delete button not found')
-    }
+    const urlDeleteButton = within(
+      screen.getByTestId('keyword-badge-docs'),
+    ).getByRole('button')
     await user.click(urlDeleteButton)
-    const domainDeleteButton = screen
-      .getByText('example.com')
-      .parentElement?.querySelector('button')
-    if (!domainDeleteButton) {
-      throw new Error('domain keyword delete button not found')
-    }
+    const domainDeleteButton = within(
+      screen.getByTestId('keyword-badge-example.com'),
+    ).getByRole('button')
     await user.click(domainDeleteButton)
 
     await waitFor(() => {

@@ -12,6 +12,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Children, isValidElement } from 'react'
@@ -144,10 +145,19 @@ vi.mock('@/components/ui/select', () => {
     const triggerProps = isValidElement(triggerNode)
       ? (triggerNode.props as Record<string, unknown>)
       : {}
+    const extractChildren = (
+      props: { children?: ReactNode } | undefined,
+    ): ReactNode | undefined => {
+      if (!props) {
+        return undefined
+      }
+      const { children } = props
+      return children
+    }
     const contentChildren = isValidElement<{ children?: ReactNode }>(
       contentNode,
     )
-      ? contentNode.props.children
+      ? extractChildren(contentNode.props as { children?: ReactNode })
       : undefined
     const items = contentChildren
       ? Children.toArray(contentChildren).reduce<
@@ -157,15 +167,12 @@ vi.mock('@/components/ui/select', () => {
           if (!isValidElement(item)) {
             return values
           }
-          const props = item.props as {
+          const { children, value } = item.props as {
             children?: ReactNode
             value: string
           }
 
-          values.push({
-            children: props.children,
-            value: props.value,
-          })
+          values.push({ children, value })
           return values
         }, [])
       : []
@@ -178,9 +185,9 @@ vi.mock('@/components/ui/select', () => {
         onChange={(event) => onValueChange?.(event.target.value)}
         value={value}
       >
-        {items.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.children}
+        {items.map(({ children, value }) => (
+          <option key={value} value={value}>
+            {children}
           </option>
         ))}
       </select>
@@ -1335,10 +1342,10 @@ describe('AnalyticsRoute', () => {
 
     const saveButton = screen.getByRole('button', { name: 'Save' })
     const resetButton = screen.getByRole('button', { name: 'Reset' })
-    const buttonRow = saveButton.parentElement
+    const buttonRow = screen.getByTestId('analytics-action-button-row')
 
-    expect(buttonRow?.className.includes('grid')).toBe(true)
-    expect(buttonRow?.className.includes('grid-cols-2')).toBe(true)
+    expect(buttonRow.className.includes('grid')).toBe(true)
+    expect(buttonRow.className.includes('grid-cols-2')).toBe(true)
     expect(saveButton.className.includes('w-full')).toBe(true)
     expect(resetButton.className.includes('w-full')).toBe(true)
   })
@@ -1790,9 +1797,9 @@ describe('AnalyticsRoute', () => {
     expect(actionButtonsSource).toContain("t('analytics.open')")
     expect(actionButtonsSource).toContain("t('common.delete')")
     expect(drilldownSource).toContain('<AnalyticsRecordActionButtons')
-    expect(
-      openLink.closest('div')?.parentElement?.className.includes('shrink-0'),
-    ).toBe(true)
+    expect(screen.getByTestId('analytics-action-column-1')).toHaveClass(
+      'shrink-0',
+    )
   })
 
   it('ドリルダウンは現在の分析条件で絞り込まれた保存タブだけを表示する', async () => {
@@ -2004,23 +2011,23 @@ describe('AnalyticsRoute', () => {
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
-    const openLink = await screen.findByRole('link', {
+    await screen.findByRole('link', {
       name: 'Open Extremely long analytics drilldown title that should never push the action area out of view even when the canvas is narrow',
     })
     const deleteButton = screen.getByRole('button', { name: 'Delete tab' })
 
-    const buttonRow = openLink.closest('div')
-    const actionColumn = buttonRow?.parentElement
-    const cardLayout = actionColumn?.parentElement
+    const buttonRow = screen.getByTestId('analytics-action-row-1')
+    const actionColumn = screen.getByTestId('analytics-action-column-1')
+    const cardLayout = screen.getByTestId('analytics-card-layout-1')
 
-    expect(cardLayout?.className.includes('grid')).toBe(true)
-    expect(
-      cardLayout?.className.includes('sm:grid-cols-[minmax(0,1fr)_auto]'),
-    ).toBe(true)
-    expect(buttonRow?.className.includes('items-center')).toBe(true)
-    expect(buttonRow?.className.includes('justify-end')).toBe(true)
-    expect(deleteButton.parentElement).toBe(buttonRow)
-    expect(actionColumn?.className.includes('sm:items-end')).toBe(true)
+    expect(cardLayout).toHaveClass('grid')
+    expect(cardLayout).toHaveClass('sm:grid-cols-[minmax(0,1fr)_auto]')
+    expect(buttonRow).toHaveClass('items-center')
+    expect(buttonRow).toHaveClass('justify-end')
+    expect(within(buttonRow).getByRole('button', { name: 'Delete tab' })).toBe(
+      deleteButton,
+    )
+    expect(actionColumn).toHaveClass('sm:items-end')
   })
 
   it('ドリルダウン各行に削除ボタンを表示する', async () => {

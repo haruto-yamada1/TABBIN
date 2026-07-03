@@ -241,6 +241,6 @@ describe('ProjectCardUncategorizedArea', () => {
 
     const { container } = render(<ProjectCardUncategorizedArea />)
 
-    expect(container.firstChild).toBeNull()
+    expect(container).toBeEmptyDOMElement()
   })
 })

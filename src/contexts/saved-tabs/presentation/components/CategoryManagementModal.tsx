@@ -400,6 +400,7 @@ const AddDomainSection = ({
                 size='icon'
                 onClick={onAddDomain}
                 className='cursor-pointer'
+                data-testid='add-domain-button'
                 disabled={!activeSelectedDomain || isProcessing}
               >
                 <Plus size={18} />

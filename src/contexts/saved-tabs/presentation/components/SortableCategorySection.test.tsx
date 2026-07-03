@@ -490,7 +490,7 @@ describe('SortableCategorySection', () => {
       isDragging: true,
     })
 
-    const { rerender, container } = render(
+    const { rerender } = render(
       <SortableCategorySection
         {...createProps({
           isReorderMode: true,
@@ -504,8 +504,10 @@ describe('SortableCategorySection', () => {
     })
     expect(collapseButton.hasAttribute('disabled')).toBe(true)
     expect(screen.queryByTestId('category-section')).toBeNull()
-    expect(container.querySelector('.top-20')).toBeTruthy()
-    expect(container.innerHTML.includes('shadow-lg')).toBe(true)
+    expect(screen.getByTestId('sortable-category-header')).toHaveClass('top-20')
+    expect(screen.getByTestId('sortable-category-section')).toHaveClass(
+      'shadow-lg',
+    )
 
     await user.click(
       screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),

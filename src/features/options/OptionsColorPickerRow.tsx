@@ -29,6 +29,7 @@ export const OptionsColorPickerRow = ({
       <div className='flex items-center gap-x-4'>
         <input
           aria-label={label}
+          data-testid={`color-picker-${colorKey}`}
           id={`${colorKey}-picker`}
           type='color'
           value={color}

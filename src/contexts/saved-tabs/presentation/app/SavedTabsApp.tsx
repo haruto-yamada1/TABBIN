@@ -511,6 +511,7 @@ const useSavedTabsAppView = ({
     <>
       <Toaster />
       <div
+        data-testid='saved-tabs-layout'
         className={
           isAiSidebarOpen
             ? 'min-h-screen w-full py-2'

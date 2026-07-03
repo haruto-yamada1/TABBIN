@@ -1063,7 +1063,11 @@ describe('SavedTabsApp custom search', () => {
   it('AI サイドバーが開いている場合は全幅レイアウトを使う', () => {
     render(<SavedTabsApp isAiSidebarOpen />)
 
-    expect(document.querySelector('.min-h-screen.w-full.py-2')).toBeTruthy()
+    expect(screen.getByTestId('saved-tabs-layout')).toHaveClass(
+      'min-h-screen',
+      'w-full',
+      'py-2',
+    )
   })
 
   it('カテゴリ並び替えモードでは一時順序とフッター表示条件を使う', async () => {

@@ -125,15 +125,13 @@ describe('OllamaErrorNotice', () => {
       />,
     )
 
-    const root = screen.getByText(
-      'Ollama denied access from the extension (403 Forbidden).',
-    ).parentElement
+    const root = screen.getByTestId('ollama-error-notice')
 
-    expect(root?.className).toContain('max-h-')
-    expect(root?.className).toContain('overflow-y-auto')
-    expect(root?.className).toContain('overflow-x-hidden')
-    expect(root?.className).toContain('[&_a]:break-all')
-    expect(root?.className).toContain('[&_code]:break-all')
+    expect(root).toHaveClass('max-h-40')
+    expect(root).toHaveClass('overflow-y-auto')
+    expect(root).toHaveClass('overflow-x-hidden')
+    expect(root).toHaveClass('[&_a]:break-all')
+    expect(root).toHaveClass('[&_code]:break-all')
   })
 
   it('can copy the macOS command row', async () => {

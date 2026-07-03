@@ -199,33 +199,32 @@ describe('AiChatRoute', () => {
   it('履歴項目の本文ボタンは縦積みレイアウトで削除ボタンを押し出さない', () => {
     render(createElement(AiChatRoute))
 
-    const conversationButton = screen
-      .getAllByRole('button', { name: /最初の会話/ })
-      .find((button) => button.className.includes('flex-col'))
-    const conversationRow = conversationButton?.parentElement
-    const textRows = conversationButton?.querySelectorAll(':scope > span')
-    const title = textRows?.[0]
-    const preview = textRows?.[1]
-
-    expect(conversationButton).toBeTruthy()
-
-    expect(conversationButton?.className).toContain('flex-col')
-    expect(conversationButton?.className).toContain('items-start')
-    expect(conversationButton?.className).toContain('whitespace-normal')
-    expect(conversationButton?.className).toContain('w-full')
-    expect(conversationButton?.className).toContain('overflow-hidden')
-    expect(conversationButton?.className).not.toContain('flex-1')
-    expect(conversationRow?.className).toContain('min-w-0')
-    expect(conversationRow?.className).toContain('grid')
-    expect(conversationRow?.className).toContain(
-      'grid-cols-[minmax(0,1fr)_auto]',
+    const conversationButton = screen.getByTestId(
+      'conversation-button-conversation-1',
     )
-    expect(title?.className).toContain('w-full')
-    expect(title?.className).toContain('min-w-0')
-    expect(preview?.className).toContain('w-full')
-    expect(preview?.className).toContain('min-w-0')
-    expect(preview?.className).toContain('wrap-anywhere')
-    expect(preview?.className).toContain('overflow-hidden')
+    const conversationRow = screen.getByTestId(
+      'conversation-row-conversation-1',
+    )
+    const title = screen.getByTestId('conversation-title-conversation-1')
+    const preview = screen.getByTestId('conversation-preview-conversation-1')
+
+    expect(conversationButton).toHaveTextContent('最初の会話')
+
+    expect(conversationButton).toHaveClass('flex-col')
+    expect(conversationButton).toHaveClass('items-start')
+    expect(conversationButton).toHaveClass('whitespace-normal')
+    expect(conversationButton).toHaveClass('w-full')
+    expect(conversationButton).toHaveClass('overflow-hidden')
+    expect(conversationButton).not.toHaveClass('flex-1')
+    expect(conversationRow).toHaveClass('min-w-0')
+    expect(conversationRow).toHaveClass('grid')
+    expect(conversationRow).toHaveClass('grid-cols-[minmax(0,1fr)_auto]')
+    expect(title).toHaveClass('w-full')
+    expect(title).toHaveClass('min-w-0')
+    expect(preview).toHaveClass('w-full')
+    expect(preview).toHaveClass('min-w-0')
+    expect(preview).toHaveClass('wrap-anywhere')
+    expect(preview).toHaveClass('overflow-hidden')
   })
 
   it('狭い画面では左履歴を完全非表示にしてチャットを残り幅へ広げる', () => {
@@ -235,12 +234,10 @@ describe('AiChatRoute', () => {
 
     expect(screen.queryByText('Recent conversations')).toBeNull()
 
-    const widgetShell = screen.getByTestId(
-      'saved-tabs-chat-widget',
-    ).parentElement
-    expect(widgetShell?.className.includes('min-h-0')).toBe(true)
-    expect(widgetShell?.className.includes('flex-1')).toBe(true)
-    expect(widgetShell?.className.includes('overflow-hidden')).toBe(true)
+    const widgetShell = screen.getByTestId('chat-widget-shell')
+    expect(widgetShell).toHaveClass('min-h-0')
+    expect(widgetShell).toHaveClass('flex-1')
+    expect(widgetShell).toHaveClass('overflow-hidden')
   })
 
   it('狭い画面でも履歴ボタンで左履歴を再表示できる', async () => {

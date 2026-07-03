@@ -110,21 +110,21 @@ describe('SortableUrlItem', () => {
       />,
     )
 
-    const listItem = document.querySelector('li')
-    expect(listItem?.className).toContain('min-w-0')
+    const listItem = screen.getByTestId('sortable-url-item')
+    expect(listItem).toHaveClass('min-w-0')
 
     const openButton = screen.getByRole('button', {
       name: /Very long saved tab title/,
     })
-    expect(openButton.className).toContain('w-full')
-    expect(openButton.className).toContain('min-w-0')
+    expect(openButton).toHaveClass('w-full')
+    expect(openButton).toHaveClass('min-w-0')
 
-    const textColumn = openButton.querySelector(':scope > span')
-    expect(textColumn?.className).toContain('min-w-0')
-    expect(textColumn?.className).toContain('overflow-hidden')
+    const textColumn = screen.getByTestId('url-text-column')
+    expect(textColumn).toHaveClass('min-w-0')
+    expect(textColumn).toHaveClass('overflow-hidden')
 
-    const titleLabel = openButton.querySelector(':scope > span > span')
-    expect(titleLabel?.className).toContain('truncate')
+    const titleLabel = screen.getByTestId('url-title-label')
+    expect(titleLabel).toHaveClass('truncate')
     expect(screen.getByText('2026/06/02 12:34')).toBeTruthy()
     expect(screen.getByTestId('time-remaining')).toBeTruthy()
 

@@ -386,7 +386,10 @@ const useSavedTabsScrollControlsView = ({
   return (
     <TooltipProvider delayDuration={0}>
       <div className='flex h-full w-12 shrink-0 items-center justify-center border-l border-border bg-background/80'>
-        <div className='flex flex-col gap-2 opacity-100'>
+        <div
+          className='flex flex-col gap-2 opacity-100'
+          data-testid='scroll-button-group'
+        >
           <SavedTabsScrollControlButton
             ariaLabel={scrollToTopLabel}
             disabled={!availability.top}

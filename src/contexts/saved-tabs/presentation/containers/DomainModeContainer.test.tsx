@@ -439,10 +439,8 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    const header = screen
-      .getByText('未分類のドメイン')
-      .closest('[data-saved-tabs-scroll-target="parent"]')
-    expect(header?.className).toContain('mt-6')
+    const header = screen.getByTestId('uncategorized-section-header')
+    expect(header).toHaveClass('mt-6')
 
     expect(
       screen.queryByRole('button', {

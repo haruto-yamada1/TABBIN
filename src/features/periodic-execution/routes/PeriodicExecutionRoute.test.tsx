@@ -300,19 +300,9 @@ describe('PeriodicExecutionRoute', () => {
 
     const dialog = screen.getByRole('alertdialog')
     const cancelButton = screen.getByRole('button', { name: 'Cancel' })
-    const labelledBy = dialog.getAttribute('aria-labelledby')
-    const describedBy = dialog.getAttribute('aria-describedby')
 
-    expect(labelledBy).toBeTruthy()
-    expect(describedBy).toBeTruthy()
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    expect(document.getElementById(labelledBy ?? '')?.textContent).toBe(
-      'Auto delete',
-    )
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    expect(document.getElementById(describedBy ?? '')?.textContent).toBe(
-      '確認メッセージ',
-    )
-    expect(document.activeElement).toBe(cancelButton)
+    expect(dialog).toHaveAccessibleName('Auto delete')
+    expect(dialog).toHaveAccessibleDescription('確認メッセージ')
+    expect(cancelButton).toHaveFocus()
   })
 })

@@ -137,11 +137,10 @@ describe('CardCollapseControl', () => {
 
 describe('CardGroupTitle', () => {
   it('ドラッグハンドルを muted foreground 色で描画する', () => {
-    const { container } = render(<CardGroupTitle title='動画' />)
+    render(<CardGroupTitle title='動画' />)
 
-    const dragHandle = container.querySelector('svg')
-    // eslint-disable-next-line typescript/no-deprecated
-    expect(dragHandle?.className.baseVal).toContain('text-muted-foreground')
+    const dragHandle = screen.getByTestId('drag-handle')
+    expect(dragHandle).toHaveClass('text-muted-foreground')
   })
 })
 

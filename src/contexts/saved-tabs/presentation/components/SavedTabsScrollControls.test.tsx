@@ -149,11 +149,10 @@ describe('contexts/SavedTabsScrollControls', () => {
 
   it('scroll ボタンを hover なしでも opacity-100 で表示する', () => {
     renderWithContainer('domain')
-    const scrollButtonGroup =
-      screen.getByLabelText('Scroll to top').parentElement
-    expect(scrollButtonGroup?.className.includes('opacity-100')).toBe(true)
-    expect(scrollButtonGroup?.className.includes('opacity-35')).toBe(false)
-    expect(scrollButtonGroup?.className.includes('opacity-70')).toBe(false)
+    const scrollButtonGroup = screen.getByTestId('scroll-button-group')
+    expect(scrollButtonGroup).toHaveClass('opacity-100')
+    expect(scrollButtonGroup).not.toHaveClass('opacity-35')
+    expect(scrollButtonGroup).not.toHaveClass('opacity-70')
   })
 
   it('初期状態で全ボタンが active なら disabled にならない', () => {
