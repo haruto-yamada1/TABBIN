@@ -5,12 +5,7 @@ import { dirname, resolve } from 'node:path'
 // eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
-import {
-  cleanup,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -59,6 +54,14 @@ const baseError = {
   faqUrl: 'https://docs.ollama.com/faq#how-do-i-configure-ollama-server',
   tagsUrl: 'http://localhost:11434/api/tags',
 } as const
+const restoreClipboardMock = () => {
+  Object.defineProperty(window.navigator, 'clipboard', {
+    configurable: true,
+    value: {
+      writeText: mocked.writeClipboardText,
+    },
+  })
+}
 
 describe('OllamaErrorNotice', () => {
   beforeEach(() => {
@@ -66,12 +69,7 @@ describe('OllamaErrorNotice', () => {
     mocked.toastError.mockReset()
     mocked.toastSuccess.mockReset()
     mocked.writeClipboardText.mockReset()
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: mocked.writeClipboardText,
-      },
-    })
+    restoreClipboardMock()
   })
 
   afterEach(() => {
@@ -140,12 +138,7 @@ describe('OllamaErrorNotice', () => {
 
   it('can copy the macOS command row', async () => {
     const user = userEvent.setup()
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: mocked.writeClipboardText,
-      },
-    })
+    restoreClipboardMock()
     render(
       <OllamaErrorNotice
         error={{
@@ -182,12 +175,7 @@ describe('OllamaErrorNotice', () => {
 
   it('can copy the Windows value row', async () => {
     const user = userEvent.setup()
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: mocked.writeClipboardText,
-      },
-    })
+    restoreClipboardMock()
     render(
       <OllamaErrorNotice
         error={{
@@ -209,12 +197,7 @@ describe('OllamaErrorNotice', () => {
 
   it('can copy the check command row', async () => {
     const user = userEvent.setup()
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: mocked.writeClipboardText,
-      },
-    })
+    restoreClipboardMock()
     render(
       <OllamaErrorNotice
         error={{
@@ -236,12 +219,7 @@ describe('OllamaErrorNotice', () => {
 
   it('shows an error toast when the clipboard API is unavailable', async () => {
     const user = userEvent.setup()
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: mocked.writeClipboardText,
-      },
-    })
+    restoreClipboardMock()
     render(
       <OllamaErrorNotice
         error={{
@@ -268,12 +246,7 @@ describe('OllamaErrorNotice', () => {
 
   it('shows an error toast when clipboard write fails', async () => {
     const user = userEvent.setup()
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: mocked.writeClipboardText,
-      },
-    })
+    restoreClipboardMock()
     mocked.writeClipboardText.mockRejectedValueOnce(new Error('failed'))
 
     render(

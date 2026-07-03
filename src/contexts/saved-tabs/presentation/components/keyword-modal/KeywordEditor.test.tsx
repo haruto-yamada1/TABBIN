@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { useState } from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const keywordEditorI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',

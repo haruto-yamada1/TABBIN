@@ -257,10 +257,10 @@ describe('OptionsRoute', () => {
     const user = userEvent.setup()
     render(<OptionsRoute />)
 
-    // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(screen.getByLabelText('click-behavior'), {
-      target: { value: 'saveCurrentTab' },
-    })
+    await user.selectOptions(
+      screen.getByLabelText('click-behavior'),
+      'saveCurrentTab',
+    )
     expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
       'clickBehavior',
       'saveCurrentTab',

@@ -1,12 +1,6 @@
 /* eslint-disable max-lines-per-function, typescript/consistent-type-imports, typescript/no-misused-promises, typescript/require-await -- vi.importActual の typeof import および mock interface の sync 実装 */
 // @vitest-environment jsdom
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'

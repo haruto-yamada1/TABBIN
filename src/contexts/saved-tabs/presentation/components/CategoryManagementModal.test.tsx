@@ -694,7 +694,7 @@ describe('CategoryManagementModal', () => {
         '例: ビジネスツール、技術情報',
       )
       await user.clear(input)
-    await user.type(input, '失敗1')
+      await user.type(input, '失敗1')
       await user.type(input, '{Enter}')
 
       await waitFor(() => {
@@ -733,7 +733,7 @@ describe('CategoryManagementModal', () => {
         '例: ビジネスツール、技術情報',
       )
       await user.clear(input)
-    await user.type(input, '更新未反映')
+      await user.type(input, '更新未反映')
       await user.type(input, '{Enter}')
 
       await waitFor(() => {

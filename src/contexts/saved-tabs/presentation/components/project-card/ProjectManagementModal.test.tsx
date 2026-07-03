@@ -204,6 +204,7 @@ describe('ProjectManagementModal', () => {
     expect(HTMLInputElement.prototype.select).toHaveBeenCalledTimes(1)
 
     const input = screen.getByPlaceholderText('例: ウェブサイトリニューアル')
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: '   ' } })
     expect(screen.getByText('プロジェクト名を入力してください')).toBeTruthy()
@@ -214,6 +215,7 @@ describe('ProjectManagementModal', () => {
       initialFocusCalls + 1,
     )
 
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'Project Beta' } })
     fireEvent.blur(input)
@@ -235,6 +237,7 @@ describe('ProjectManagementModal', () => {
 
     await user.click(screen.getByRole('button', { name: 'Project Alpha' }))
     const input = screen.getByPlaceholderText('例: ウェブサイトリニューアル')
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(input, { key: 'Escape' })
     expect(screen.getByRole('button', { name: 'Project Alpha' })).toBeTruthy()
@@ -243,6 +246,7 @@ describe('ProjectManagementModal', () => {
     const emptyInput = screen.getByPlaceholderText(
       '例: ウェブサイトリニューアル',
     )
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(emptyInput, { target: { value: 'Project Alpha' } })
     fireEvent.blur(emptyInput)
@@ -252,8 +256,10 @@ describe('ProjectManagementModal', () => {
     const secondInput = screen.getByPlaceholderText(
       '例: ウェブサイトリニューアル',
     )
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(secondInput, { target: { value: 'Project Gamma' } })
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(secondInput, { key: 'Enter' })
 
@@ -320,8 +326,10 @@ describe('ProjectManagementModal', () => {
 
     await user.click(screen.getByRole('button', { name: '名前を変更' }))
     const input = screen.getByPlaceholderText('例: ウェブサイトリニューアル')
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'Project Delta' } })
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(input, { key: 'Enter' })
     await user.click(screen.getByRole('button', { name: 'dialog-close' }))
@@ -364,15 +372,20 @@ describe('ProjectManagementModal', () => {
     const urlInput = screen.getByLabelText('URLキーワード')
     const domainInput = screen.getByLabelText('ドメインキーワード')
 
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(titleInput, { target: { value: 'release' } })
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(titleInput, { key: 'Enter' })
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(urlInput, { target: { value: 'spec' } })
     fireEvent.blur(urlInput)
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(domainInput, { target: { value: 'github.com' } })
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(domainInput, { key: 'Enter' })
 
@@ -407,13 +420,17 @@ describe('ProjectManagementModal', () => {
     const urlInput = screen.getByLabelText('URLキーワード')
     const domainInput = screen.getByLabelText('ドメインキーワード')
 
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(titleInput, { target: { value: 'release' } })
     fireEvent.blur(titleInput)
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(urlInput, { target: { value: 'spec' } })
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(urlInput, { key: 'Enter' })
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(domainInput, { target: { value: 'github.com' } })
     fireEvent.blur(domainInput)
@@ -507,8 +524,10 @@ describe('ProjectManagementModal', () => {
     const renameInput = screen.getByPlaceholderText(
       '例: ウェブサイトリニューアル',
     )
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(renameInput, { target: { value: 'Project Busy' } })
+    // Radix Dialog focus trap prevents userEvent from focusing inputs
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(renameInput, { key: 'Enter' })
     fireEvent.blur(renameInput)

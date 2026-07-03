@@ -258,7 +258,7 @@ describe('ProjectCardRoot', () => {
     expect(dragHandle).toBeTruthy()
     if (dragHandle) {
       // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.pointerDown(dragHandle)
+      fireEvent.pointerDown(dragHandle)
     }
     expect(projectDragListenerMock).toHaveBeenCalled()
 

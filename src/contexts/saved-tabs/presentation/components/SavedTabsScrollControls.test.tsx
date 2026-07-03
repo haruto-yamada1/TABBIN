@@ -296,7 +296,9 @@ describe('contexts/SavedTabsScrollControls', () => {
     scrollControlState.getRelativeScrollTarget.mockReturnValue(targetEl)
     const container = renderWithContainer('domain')
     expect(container).not.toBeNull()
-    await user.click(screen.getByLabelText('Scroll to previous parent category'))
+    await user.click(
+      screen.getByLabelText('Scroll to previous parent category'),
+    )
     expect(scrollControlState.scrollContainerToTarget).toHaveBeenCalled()
   })
 
@@ -318,7 +320,9 @@ describe('contexts/SavedTabsScrollControls', () => {
     const user = userEvent.setup()
     scrollControlState.getRelativeScrollTarget.mockReturnValue(null)
     renderWithContainer('domain')
-    await user.click(screen.getByLabelText('Scroll to previous parent category'))
+    await user.click(
+      screen.getByLabelText('Scroll to previous parent category'),
+    )
     expect(scrollControlState.scrollContainerToTarget).not.toHaveBeenCalled()
   })
 
@@ -357,7 +361,9 @@ describe('contexts/SavedTabsScrollControls', () => {
 
     await user.click(screen.getByLabelText('Scroll to top'))
     await user.click(screen.getByLabelText('Scroll to bottom'))
-    await user.click(screen.getByLabelText('Scroll to previous parent category'))
+    await user.click(
+      screen.getByLabelText('Scroll to previous parent category'),
+    )
 
     expect(scrollControlState.scrollContainerToTarget).not.toHaveBeenCalled()
   })

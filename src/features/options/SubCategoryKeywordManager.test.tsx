@@ -102,7 +102,10 @@ const renderManager = (
   return render(<SubCategoryKeywordManager tabGroup={tabGroup} />)
 }
 
-const selectCategory = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+const selectCategory = async (
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+) => {
   await user.click(screen.getByRole('button', { name }))
 }
 

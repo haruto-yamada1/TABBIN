@@ -186,11 +186,14 @@ const getDropzoneFileInput = (container: HTMLElement): HTMLInputElement => {
 describe('ImportExportSettingsコンポーネント', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubGlobal('ResizeObserver', class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
     vi.spyOn(console, 'error').mockImplementation(() => {})
     readerMode = 'success'
     readerContent = '{"import":"payload"}'
@@ -316,8 +319,15 @@ describe('ImportExportSettingsコンポーネント', () => {
       screen.getByText('Warning: all existing data will be replaced.'),
     ).toBeTruthy()
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -339,6 +349,7 @@ describe('ImportExportSettingsコンポーネント', () => {
   it('ファイル未選択時は file change イベントを無視する', async () => {
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(getHiddenFileInput(container), {
       target: { files: [] },
@@ -362,8 +373,15 @@ describe('ImportExportSettingsコンポーネント', () => {
       screen.getByRole('button', { name: 'Import settings and tab data' }),
     )
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getDropzoneFileInput(container), { target: { files: [new File(['dummy'], 'dropzone.json', { type: 'application/json' })] } })
+    fireEvent.change(getDropzoneFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'dropzone.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -442,8 +460,15 @@ describe('ImportExportSettingsコンポーネント', () => {
       screen.getByRole('button', { name: 'Import settings and tab data' }),
     )
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -464,8 +489,13 @@ describe('ImportExportSettingsコンポーネント', () => {
   it('読み込み前に JSON 以外のファイルを拒否する', async () => {
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.txt', { type: 'text/plain' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [new File(['dummy'], 'backup.txt', { type: 'text/plain' })],
+      },
+    })
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Please select a JSON file')
@@ -476,6 +506,7 @@ describe('ImportExportSettingsコンポーネント', () => {
   it('10MB を超える JSON ファイルは読み込み前に拒否する', async () => {
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(getHiddenFileInput(container), {
       target: {
@@ -503,8 +534,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Preview failed')
@@ -519,8 +557,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
@@ -548,8 +593,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(screen.getByText('Yes')).toBeTruthy()
@@ -565,8 +617,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -599,8 +658,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -623,8 +689,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -645,8 +718,15 @@ describe('ImportExportSettingsコンポーネント', () => {
     const user = userEvent.setup()
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -666,8 +746,15 @@ describe('ImportExportSettingsコンポーネント', () => {
     const user = userEvent.setup()
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -687,8 +774,15 @@ describe('ImportExportSettingsコンポーネント', () => {
     const user = userEvent.setup()
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -718,8 +812,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
@@ -732,8 +833,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
@@ -752,8 +860,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container, unmount } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     await waitFor(() => {
       expect(
@@ -776,8 +891,15 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container, unmount } = render(<ImportExportSettings />)
 
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), { target: { files: [new File(['dummy'], 'backup.json', { type: 'application/json' })] } })
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
 
     unmount()
 

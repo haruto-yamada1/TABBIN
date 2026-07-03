@@ -211,7 +211,6 @@ const restoreClipboardMock = () => {
   })
 }
 
-
 describe('SavedTabsChatWidget', () => {
   beforeEach(() => {
     storageListeners.length = 0
@@ -894,7 +893,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(await screen.findByLabelText('Ask AI'))
-    await user.type(await screen.findByLabelText('Ask AI'), 'Show me the tabs I added this month')
+    await user.type(
+      await screen.findByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
@@ -973,7 +975,10 @@ describe('SavedTabsChatWidget', () => {
     await user.clear(screen.getByLabelText('Prompt name'))
     await user.type(screen.getByLabelText('Prompt name'), 'Research notes')
     await user.clear(screen.getByLabelText('System prompt body'))
-    await user.type(screen.getByLabelText('System prompt body'), 'Analyze saved-tab patterns.')
+    await user.type(
+      screen.getByLabelText('System prompt body'),
+      'Analyze saved-tab patterns.',
+    )
 
     await user.click(screen.getByRole('button', { name: 'Duplicate' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -1072,7 +1077,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'Show me the tabs I added this month')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
@@ -1164,7 +1172,10 @@ describe('SavedTabsChatWidget', () => {
     expect(saveButton.hasAttribute('disabled')).toBe(true)
 
     await user.clear(screen.getByLabelText('System prompt body'))
-    await user.type(screen.getByLabelText('System prompt body'), 'Give me more comparison angles for saved tabs.')
+    await user.type(
+      screen.getByLabelText('System prompt body'),
+      'Give me more comparison angles for saved tabs.',
+    )
     await user.click(screen.getByText('Research'))
     await user.clear(screen.getByLabelText('Prompt name'))
     await user.type(screen.getByLabelText('Prompt name'), 'Default')
@@ -1314,7 +1325,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'Show me the tabs I added this month')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
@@ -1414,7 +1428,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'Show me the tabs I added this month')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
@@ -1451,7 +1468,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'Show me the tabs I added this month')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
@@ -1497,7 +1517,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'Show me the tabs I added this month')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
     await user.click(
       screen.getByRole('button', {
         name: 'Submit',
@@ -1653,7 +1676,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'What kinds of content do I save most often?')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'What kinds of content do I save most often?',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
@@ -1740,7 +1766,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'Show me the tabs I saved recently')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I saved recently',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
@@ -1853,7 +1882,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'Show me the tabs I added this month')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
@@ -1995,7 +2027,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'What kinds of content do I save most often?')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'What kinds of content do I save most often?',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await expect(
@@ -2033,7 +2068,10 @@ describe('SavedTabsChatWidget', () => {
     )
 
     await user.clear(screen.getByLabelText('Ask AI'))
-    await user.type(screen.getByLabelText('Ask AI'), 'What kinds of content do I save most often?')
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'What kinds of content do I save most often?',
+    )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
@@ -2243,8 +2281,13 @@ describe('SavedTabsChatWidget', () => {
     )
 
     const uploadInput = screen.getByLabelText('Upload files')
+    // user.upload fails on hidden inputs with pointer-events: none
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(uploadInput, { target: { files: [new File(['Hello'], 'memo.txt', { type: 'text/plain' })] } })
+    fireEvent.change(uploadInput, {
+      target: {
+        files: [new File(['Hello'], 'memo.txt', { type: 'text/plain' })],
+      },
+    })
 
     await expect(screen.findByText('memo.txt')).resolves.toBeTruthy()
 

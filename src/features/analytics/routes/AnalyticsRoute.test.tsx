@@ -692,11 +692,14 @@ describe('AnalyticsRoute', () => {
       shouldAdvanceTime: true,
     })
     vi.setSystemTime(new Date(Date.UTC(2026, 2, 14, 0, 0, 0)))
-    vi.stubGlobal('ResizeObserver', class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
 
     analyticsRouteMocks.language = 'en'
     analyticsRouteMocks.deleteViewMock.mockReset()
@@ -1732,7 +1735,9 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
 
-    await user.click(screen.getByRole('button', { name: 'emit-empty-messages' }))
+    await user.click(
+      screen.getByRole('button', { name: 'emit-empty-messages' }),
+    )
     await user.click(screen.getByRole('button', { name: 'emit-user-only' }))
 
     expect(screen.getByText('Saved count by domain')).toBeTruthy()
@@ -1845,7 +1850,10 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
 
-    await user.selectOptions(screen.getByLabelText('Group by'), 'parentCategory')
+    await user.selectOptions(
+      screen.getByLabelText('Group by'),
+      'parentCategory',
+    )
     await user.click(
       screen.getByRole('button', { name: 'emit-uncategorized-click' }),
     )

@@ -1,11 +1,5 @@
 // @vitest-environment jsdom
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -341,7 +335,10 @@ describe('CustomProjectSection', () => {
     await user.click(screen.getByRole('button', { name: 'dialog-open' }))
 
     await user.clear(screen.getByLabelText('プロジェクト名 *'))
-    await user.type(screen.getByLabelText('プロジェクト名 *'), 'Enter Created Project')
+    await user.type(
+      screen.getByLabelText('プロジェクト名 *'),
+      'Enter Created Project',
+    )
 
     await user.type(screen.getByLabelText('プロジェクト名 *'), '{Enter}')
 

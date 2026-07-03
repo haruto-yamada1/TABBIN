@@ -99,11 +99,14 @@ describe('AiChatRoute', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubGlobal('ResizeObserver', class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
     mocked.useSharedAiChatHistory.mockReturnValue({
       activeConversation: {
         createdAt: 1,
