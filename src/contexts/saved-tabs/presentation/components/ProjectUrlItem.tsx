@@ -209,6 +209,7 @@ const ProjectUrlItemComponent = ({
         ref={setNodeRef}
         style={style}
         className={`group relative flex min-w-0 items-center overflow-hidden border-b border-border pb-1 last:border-0 ${isDragging ? 'bg-secondary/50 opacity-50' : ''} ${isInSubcategory ? 'pl-2' : ''} ${item.category ? 'border-l-2 border-l-primary/30' : ''} `}
+        data-testid='project-url-item'
         data-url={originalUrl}
         data-project-id={projectId}
         data-category={item.category}
@@ -221,6 +222,7 @@ const ProjectUrlItemComponent = ({
           {...attributes}
           {...listeners}
           className='cursor-grab p-1 active:cursor-grabbing'
+          data-testid='project-url-drag-handle'
         >
           <GripVertical size={16} className='text-muted-foreground' />
         </div>
@@ -243,7 +245,10 @@ const ProjectUrlItemComponent = ({
                 className='mr-1 inline-block text-primary'
               />
             )}
-            <span className='min-w-0 flex-1 truncate'>
+            <span
+              className='min-w-0 flex-1 truncate'
+              data-testid='project-url-title'
+            >
               {item.title || item.url}
             </span>
             {/* カテゴリ階層の視覚的な表示をシンプル化 */}
@@ -255,7 +260,10 @@ const ProjectUrlItemComponent = ({
           </Button>
         </div>
         {/* ボタン群 */}
-        <div className='flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100'>
+        <div
+          className='flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100'
+          data-testid='project-url-action-bar'
+        >
           <Button
             variant='ghost'
             size='sm'

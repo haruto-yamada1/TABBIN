@@ -201,6 +201,7 @@ const OllamaErrorNotice = ({
   return (
     <TooltipProvider delayDuration={0}>
       <div
+        data-testid='ollama-error-notice'
         className={cn(
           'max-h-40 space-y-2 overflow-x-hidden overflow-y-auto pr-1 wrap-break-word',
           '[&_a]:break-all',

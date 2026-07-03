@@ -23,8 +23,13 @@ const ButtonContent = ({
   autoDeletePeriod?: string | undefined
   settings: { showSavedTime: boolean }
 }) => (
-  <span className='flex w-full min-w-0 flex-col overflow-hidden'>
-    <span className='block truncate text-left'>{title}</span>
+  <span
+    className='flex w-full min-w-0 flex-col overflow-hidden'
+    data-testid='url-text-column'
+  >
+    <span className='block truncate text-left' data-testid='url-title-label'>
+      {title}
+    </span>
     {savedAt && (
       <span className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
         {settings.showSavedTime && (
@@ -205,6 +210,7 @@ export const SortableUrlItem = ({
         style={style}
         className='group relative flex min-w-0 items-center overflow-hidden pb-1 last:border-0 last:pb-0'
         data-category-context={categoryContext}
+        data-testid='sortable-url-item'
       >
         <div
           className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'

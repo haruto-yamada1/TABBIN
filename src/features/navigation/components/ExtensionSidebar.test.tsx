@@ -30,7 +30,7 @@ vi.mock('@/components/ui/sidebar', () => ({
     <footer data-testid='sidebar-footer'>{children}</footer>
   ),
   SidebarGroup: ({ children }: { children: React.ReactNode }) => (
-    <section>{children}</section>
+    <section data-testid='sidebar-group'>{children}</section>
   ),
   SidebarGroupContent: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
@@ -134,8 +134,8 @@ describe('ExtensionSidebar', () => {
     const content = screen.getByTestId('sidebar-content')
     const footer = screen.getByTestId('sidebar-footer')
 
-    expect(content.querySelectorAll('section')).toHaveLength(1)
-    expect(content.firstChild?.textContent).toContain('タブ一覧')
+    expect(screen.getAllByTestId('sidebar-group')).toHaveLength(1)
+    expect(screen.getByTestId('sidebar-group')).toHaveTextContent('タブ一覧')
     expect(content.textContent).toContain('チャット')
     expect(content.textContent).toContain('分析')
     expect(content.textContent).toContain('定期実行')
@@ -166,7 +166,7 @@ describe('ExtensionSidebar', () => {
   })
 
   it('タブ一覧の親アイコンは共通入口へ飛ぶ', () => {
-    const { container } = render(
+    render(
       <ExtensionSidebar
         state={{
           expandedGroup: 'tab-list',
@@ -175,9 +175,10 @@ describe('ExtensionSidebar', () => {
       />,
     )
 
-    const tabListLinks = container.querySelectorAll('a[href^="app.html#"]')
-
-    expect(tabListLinks[0]?.getAttribute('href')).toBe('app.html#/saved-tabs')
+    expect(screen.getByRole('link', { name: 'タブ一覧' })).toHaveAttribute(
+      'href',
+      'app.html#/saved-tabs',
+    )
   })
 
   it('saved tabs submenu labels also come from i18n keys', () => {
@@ -275,7 +276,7 @@ describe('ExtensionSidebar', () => {
   it('通常幅ではヘッダーに開くボタンを表示しない', () => {
     sidebarContextValue.sidebarWidth = 256
 
-    const { container } = render(
+    render(
       <ExtensionSidebar
         state={{
           expandedGroup: 'tab-list',
@@ -290,7 +291,7 @@ describe('ExtensionSidebar', () => {
     expect(
       screen.getByRole('button', { name: 'サイドバーを小さくする' }),
     ).not.toBeNull()
-    expect(container.querySelector('header > div')?.className).toContain(
+    expect(screen.getByTestId('sidebar-header-row')).toHaveClass(
       'justify-between',
     )
   })

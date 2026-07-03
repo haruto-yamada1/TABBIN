@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
@@ -158,30 +159,11 @@ class MockFileReader {
   }
 }
 
-const getHiddenFileInput = (container: HTMLElement): HTMLInputElement => {
-  // eslint-disable-next-line typescript/no-unnecessary-type-assertion
-  const fileInput = container.querySelector(
-    'input[type="file"].hidden',
-  ) as HTMLInputElement | null
-  if (!fileInput) {
-    throw new Error('hidden file input not found')
-  }
-  return fileInput
-}
+const getHiddenFileInput = (container: HTMLElement): HTMLInputElement =>
+  within(container).getByTestId('hidden-file-input') as HTMLInputElement
 
-const getDropzoneFileInput = (container: HTMLElement): HTMLInputElement => {
-  // eslint-disable-next-line typescript/no-unnecessary-type-assertion
-  const fileInputs = Array.from(
-    document.querySelectorAll('input[type="file"]'),
-  ) as HTMLInputElement[]
-  const dropzoneInput =
-    fileInputs.find((input) => !input.classList.contains('hidden')) ??
-    fileInputs.find((input) => input !== getHiddenFileInput(container))
-  if (!dropzoneInput) {
-    throw new Error('dropzone file input not found')
-  }
-  return dropzoneInput
-}
+const getDropzoneFileInput = (): HTMLInputElement =>
+  screen.getByTestId('dropzone-file-input') as HTMLInputElement
 
 describe('ImportExportSettingsコンポーネント', () => {
   beforeEach(() => {
@@ -367,7 +349,7 @@ describe('ImportExportSettingsコンポーネント', () => {
       message: 'ok',
     })
 
-    const { container } = render(<ImportExportSettings />)
+    render(<ImportExportSettings />)
 
     await user.click(
       screen.getByRole('button', { name: 'Import settings and tab data' }),
@@ -375,7 +357,7 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getDropzoneFileInput(container), {
+    fireEvent.change(getDropzoneFileInput(), {
       target: {
         files: [
           new File(['dummy'], 'dropzone.json', { type: 'application/json' }),
@@ -402,16 +384,13 @@ describe('ImportExportSettingsコンポーネント', () => {
 
   it('dropzone 上でドラッグ中にドラッグアクティブラベルを表示する', async () => {
     const user = userEvent.setup()
-    const { container } = render(<ImportExportSettings />)
+    render(<ImportExportSettings />)
 
     await user.click(
       screen.getByRole('button', { name: 'Import settings and tab data' }),
     )
 
-    const dropzone = getDropzoneFileInput(container).parentElement
-    if (!dropzone) {
-      throw new Error('dropzone container not found')
-    }
+    const dropzone = screen.getByTestId('import-dropzone')
 
     fireEvent.dragEnter(dropzone, {
       dataTransfer: {
@@ -428,16 +407,13 @@ describe('ImportExportSettingsコンポーネント', () => {
 
   it('受け入れファイルがない drop イベントは処理しない', async () => {
     const user = userEvent.setup()
-    const { container } = render(<ImportExportSettings />)
+    render(<ImportExportSettings />)
 
     await user.click(
       screen.getByRole('button', { name: 'Import settings and tab data' }),
     )
 
-    const dropzone = getDropzoneFileInput(container).parentElement
-    if (!dropzone) {
-      throw new Error('dropzone container not found')
-    }
+    const dropzone = screen.getByTestId('import-dropzone')
 
     fireEvent.drop(dropzone, {
       dataTransfer: {

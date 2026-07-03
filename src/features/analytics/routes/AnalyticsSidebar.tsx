@@ -368,7 +368,10 @@ export const AnalyticsSidebar = ({
               />
               <LimitInput onApplyQuery={onApplyQuery} query={query} t={t} />
             </CardContent>
-            <div className='mt-4 grid grid-cols-2 gap-2'>
+            <div
+              className='mt-4 grid grid-cols-2 gap-2'
+              data-testid='analytics-action-button-row'
+            >
               <Button
                 className='w-full cursor-pointer rounded-xl'
                 // eslint-disable-next-line typescript/no-misused-promises

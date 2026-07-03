@@ -350,7 +350,10 @@ export const ProjectCardRoot = ({
               {urls.projectUrls.length === 0 &&
                 !isExternalItemOver &&
                 !urls.isLoadingUrls && (
-                  <div className='py-4 text-center text-muted-foreground'>
+                  <div
+                    className='py-4 text-center text-muted-foreground'
+                    data-testid='project-empty-state'
+                  >
                     {t('savedTabs.project.emptyTitle')}
                     <br />
                     {t('savedTabs.project.emptyDescription')}

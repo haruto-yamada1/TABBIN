@@ -519,11 +519,8 @@ describe('options route behavior', () => {
     await user.click(resetButtons[1])
     expect(mocked.handleResetColors).toHaveBeenCalledTimes(1)
 
-    const colorInput = document.querySelector('input[type="color"]')
+    const colorInput = screen.getAllByTestId('color-picker')[0]
     const hexInput = screen.getAllByPlaceholderText('e.g. #FF5733, #3366CC')[0]
-    if (!colorInput) {
-      throw new Error('color input not found')
-    }
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(colorInput, { target: { value: '#ffffff' } })
     // eslint-disable-next-line testing-library/prefer-user-event

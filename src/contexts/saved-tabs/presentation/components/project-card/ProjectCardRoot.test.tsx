@@ -250,16 +250,10 @@ describe('ProjectCardRoot', () => {
     expect(screen.getByTestId('card').style.contentVisibility).toBe('auto')
     expect(screen.getByTestId('card').style.containIntrinsicSize).toBe('360px')
 
-    // 以前はbutton要素でしたが、CardGroupTitle内でdiv要素に変更され、
-    // aria-labelなどは付与されていないため、親の attributes から取得した属性で検証します
-    const dragHandle = screen
-      .getByText('Project A')
-      .closest('div[data-sortable-attr="project"]')
-    expect(dragHandle).toBeTruthy()
-    if (dragHandle) {
-      // eslint-disable-next-line testing-library/prefer-user-event
-      fireEvent.pointerDown(dragHandle)
-    }
+    // CardGroupTitle のルート div がドラッグハンドル（sortable listeners を受ける要素）
+    const dragHandle = screen.getByTestId('card-group-title')
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.pointerDown(dragHandle)
     expect(projectDragListenerMock).toHaveBeenCalled()
 
     expect(registerHandlersMock).toHaveBeenCalledWith(
@@ -373,11 +367,9 @@ describe('ProjectCardRoot', () => {
       </ProjectCardRoot>,
     )
 
-    const description = screen
-      .getByTestId('card-content')
-      .querySelector('.py-4.text-center.text-muted-foreground')
-    expect(description?.textContent).toContain('This project has no tabs.')
-    expect(description?.textContent).toContain(
+    const description = screen.getByTestId('project-empty-state')
+    expect(description).toHaveTextContent('This project has no tabs.')
+    expect(description).toHaveTextContent(
       'Save tabs from the extension icon or add them from the context menu.',
     )
   })

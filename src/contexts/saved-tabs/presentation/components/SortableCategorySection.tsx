@@ -307,9 +307,11 @@ const useSortableCategorySectionView = ({
         style={style}
         className={sectionClassName}
         data-saved-tabs-scroll-target='child'
+        data-testid='sortable-category-section'
       >
         <div
           className={`category-header sticky ${stickyTop} z-30 mb-0.5 flex items-center justify-between gap-2 bg-background pb-0.5`}
+          data-testid='sortable-category-header'
         >
           {/* 折りたたみ切り替えボタン */}
           <TooltipIconButton

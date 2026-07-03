@@ -24,6 +24,7 @@ export const CardGroupTitle = ({
   className = '',
 }: CardGroupTitleProps) => (
   <div
+    data-testid='card-group-title'
     className={`flex w-full cursor-grab items-center gap-2 text-foreground hover:cursor-grab active:cursor-grabbing ${className}`}
     {...sortableAttributes}
     {...sortableListeners}
@@ -31,6 +32,7 @@ export const CardGroupTitle = ({
     <GripVertical
       size={16}
       aria-hidden='true'
+      data-testid='drag-handle'
       className='shrink-0 text-muted-foreground'
     />
     <div className='flex min-w-0 items-center gap-2'>

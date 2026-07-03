@@ -250,13 +250,11 @@ describe('CustomProjectSection', () => {
     render(<CustomProjectSection {...createProps({ projects: [] })} />)
 
     expect(screen.getByText('No projects')).toBeTruthy()
-    const description = document.querySelector(
-      '.text-center.text-muted-foreground',
-    )
-    expect(description?.textContent).toContain(
+    const description = screen.getByTestId('empty-state-description')
+    expect(description).toHaveTextContent(
       'No projects are available to display',
     )
-    expect(description?.textContent).toContain(
+    expect(description).toHaveTextContent(
       'Create a parent category to show it as a project',
     )
   })

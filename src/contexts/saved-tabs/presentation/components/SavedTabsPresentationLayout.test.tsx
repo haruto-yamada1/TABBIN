@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -328,7 +329,8 @@ describe('SavedTabsPresentationLayout', () => {
     expect(presentationMock.onAiSidebarOpenChange).toBe(onAiSidebarOpenChange)
   })
 
-  it('onViewModeNavigate を SavedTabsApp へ伝える', () => {
+  it('onViewModeNavigate を SavedTabsApp へ伝える', async () => {
+    const user = userEvent.setup()
     const onViewModeNavigate = vi.fn()
     const Probe = () => {
       const leftPaneRef = useRef<HTMLDivElement>(null)
@@ -353,7 +355,7 @@ describe('SavedTabsPresentationLayout', () => {
       )
     }
     render(<Probe />)
-    screen.getByText('navigate-custom').click()
+    await user.click(screen.getByRole('button', { name: 'navigate-custom' }))
     expect(onViewModeNavigate).toHaveBeenCalledWith('custom')
   })
 })

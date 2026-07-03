@@ -761,7 +761,9 @@
         "testing-library/no-dom-import": "error",
         "testing-library/prefer-user-event-setup": "error",
         "testing-library/no-debugging-utils": "error",
-        "testing-library/prefer-user-event": "error"
+        "testing-library/prefer-user-event": "error",
+        "testing-library/no-container": "error",
+        "testing-library/no-node-access": "error"
       }
     }
   ]

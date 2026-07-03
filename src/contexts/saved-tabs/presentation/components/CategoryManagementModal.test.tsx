@@ -1028,12 +1028,7 @@ describe('CategoryManagementModal', () => {
       )
 
       await screen.findByTestId('select-item-g2')
-      const plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
-        .previousElementSibling as HTMLButtonElement | null
-      expect(plusButton).toBeTruthy()
-      if (!plusButton) {
-        throw new Error('plusButton not found')
-      }
+      const plusButton = screen.getByTestId('add-domain-button')
       await user.click(plusButton)
 
       await waitFor(() => {
@@ -1085,13 +1080,7 @@ describe('CategoryManagementModal', () => {
       )
 
       await screen.findByTestId('select-item-g2')
-      const secondPlusButton = screen.getByText(
-        '選択したドメインを親カテゴリに追加',
-      ).previousElementSibling as HTMLButtonElement | null
-      expect(secondPlusButton).toBeTruthy()
-      if (!secondPlusButton) {
-        throw new Error('secondPlusButton not found')
-      }
+      const secondPlusButton = screen.getByTestId('add-domain-button')
       await user.click(secondPlusButton)
 
       await waitFor(() => {
@@ -1171,12 +1160,7 @@ describe('CategoryManagementModal', () => {
 
     await screen.findByTestId('select-item-g2')
     expect(screen.getByTestId('select-item-g3')).toBeTruthy()
-    const plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
-      .previousElementSibling as HTMLButtonElement | null
-    expect(plusButton).toBeTruthy()
-    if (!plusButton) {
-      throw new Error('plusButton not found')
-    }
+    const plusButton = screen.getByTestId('add-domain-button')
 
     await user.click(plusButton)
     await waitFor(() => {
@@ -1272,12 +1256,7 @@ describe('CategoryManagementModal', () => {
       )
 
       await screen.findByTestId('select-item-g1')
-      const plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
-        .previousElementSibling as HTMLButtonElement | null
-      expect(plusButton).toBeTruthy()
-      if (!plusButton) {
-        throw new Error('plusButton not found')
-      }
+      const plusButton = screen.getByTestId('add-domain-button')
       await user.click(plusButton)
       await waitFor(() => {
         expect(toastErrorSpy).toHaveBeenCalledWith(
@@ -1304,12 +1283,7 @@ describe('CategoryManagementModal', () => {
         />,
       )
       await screen.findByTestId('select-item-g2')
-      const plusButton = screen.getByText('選択したドメインを親カテゴリに追加')
-        .previousElementSibling as HTMLButtonElement | null
-      expect(plusButton).toBeTruthy()
-      if (!plusButton) {
-        throw new Error('plusButton not found')
-      }
+      const plusButton = screen.getByTestId('add-domain-button')
 
       const originalFind = Array.prototype.find
       using findSpy = vi.spyOn(Array.prototype, 'find')

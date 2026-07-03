@@ -118,6 +118,7 @@ export const SortableCategorySection = ({
       <div
         ref={setNodeRef}
         style={style}
+        data-testid='draggable-category-section'
         className={
           isDragging
             ? 'category-section mb-1 rounded-md bg-muted shadow-lg'
@@ -128,6 +129,7 @@ export const SortableCategorySection = ({
           {/* ドラッグハンドル部分 */}
           <div
             className={`flex grow items-center ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
+            data-testid='draggable-category-handle'
             {...attributes}
             {...listeners}
           >

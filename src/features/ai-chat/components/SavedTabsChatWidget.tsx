@@ -651,7 +651,10 @@ const useChatSidebarHeaderView = ({
           {systemPromptSelector}
         </div>
 
-        <CardTitle className='pointer-events-none absolute inset-x-0 flex items-center justify-center px-20 text-base'>
+        <CardTitle
+          className='pointer-events-none absolute inset-x-0 flex items-center justify-center px-20 text-base'
+          data-testid='chat-header-title'
+        >
           <span className='truncate'>{title}</span>
         </CardTitle>
 
@@ -759,11 +762,16 @@ const renderChatConversationMessage = ({
     Boolean(message.charts && message.charts.length > 0)
 
   return (
-    <Message className={cn(hasCharts && 'max-w-full')} from={message.role}>
+    <Message
+      className={cn(hasCharts && 'max-w-full')}
+      data-testid='chat-message'
+      from={message.role}
+    >
       {messageSources.length > 0 ? (
         <Sources
           className='mb-0 rounded-md border border-border/70 bg-background/70 px-3 py-2 text-foreground'
           data-slot='sources'
+          data-testid='message-sources'
         >
           <SourcesTrigger
             className='w-full justify-between text-muted-foreground'
@@ -798,6 +806,7 @@ const renderChatConversationMessage = ({
           hasCharts && 'w-full overflow-visible',
           'wrap-break-word whitespace-pre-wrap',
         )}
+        data-testid='message-content'
       >
         {message.attachments && message.attachments.length > 0
           ? renderChatMessageAttachments({
@@ -923,6 +932,7 @@ const useChatPromptComposerView = ({
     <PromptInput
       accept={getAiChatAttachmentInputAccept()}
       className='shrink-0'
+      data-testid='chat-form'
       maxFiles={AI_CHAT_MAX_ATTACHMENTS}
       maxFileSize={AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES}
       multiple
@@ -1137,6 +1147,7 @@ const useSavedTabsChatPanelView = ({
         <Conversation className='min-h-0 flex-1'>
           {messages.length === 0 && !isConfigured ? (
             <ConversationEmptyState
+              data-testid='empty-state-root'
               description=''
               title={t('aiChat.emptySelectModel')}
             />
@@ -1179,7 +1190,10 @@ const useSavedTabsChatPanelView = ({
   }
 
   return (
-    <div className='sticky top-0 z-50 flex h-screen max-w-[calc(100vw-24px)] shrink-0 self-start overflow-hidden overscroll-none'>
+    <div
+      className='sticky top-0 z-50 flex h-screen max-w-[calc(100vw-24px)] shrink-0 self-start overflow-hidden overscroll-none'
+      data-testid='chat-shell'
+    >
       <Button
         aria-label={t('aiChat.resizeAria')}
         className={`relative min-h-0 w-4 shrink-0 cursor-col-resize touch-none self-stretch rounded-none border-0 bg-transparent ${

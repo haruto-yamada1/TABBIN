@@ -71,6 +71,7 @@ const KeywordBadge = ({
     <Badge
       variant='outline'
       className='flex items-center gap-1 rounded px-2 py-1'
+      data-testid={`keyword-badge-${keyword}`}
     >
       {keyword}
       <Button

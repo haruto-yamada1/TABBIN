@@ -1,5 +1,7 @@
 import { afterEach, beforeEach } from 'vitest'
 
+import '@testing-library/jest-dom/vitest'
+
 const allowedConsoleMessagePrefixes = [
   'The width(-1) and height(-1) of chart should be greater than 0,',
   '[カテゴリ同期] ストレージ同期エラー:',

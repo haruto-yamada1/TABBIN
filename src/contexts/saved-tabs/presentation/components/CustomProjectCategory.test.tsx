@@ -477,7 +477,7 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    const emptyState = screen.getByTestId('card-content').querySelector('div')
+    const emptyState = screen.getByTestId('empty-state')
     expect(emptyState).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'カテゴリ管理' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'すべて開く' })).toBeNull()
@@ -550,7 +550,7 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    const emptyState = screen.getByTestId('card-content').querySelector('div')
+    const emptyState = screen.getByTestId('empty-state')
     expect(emptyState).toBeTruthy()
     expect(
       // eslint-disable-next-line typescript/non-nullable-type-assertion-style
@@ -652,7 +652,9 @@ describe('CustomProjectCategory', () => {
 
     expect(screen.getByTestId('card').className.includes('border-2')).toBe(true)
     expect(
-      document.querySelector('ul')?.className.includes('bg-primary/5'),
+      screen
+        .getByTestId('category-url-list')
+        .className.includes('bg-primary/5'),
     ).toBe(true)
 
     rerender(

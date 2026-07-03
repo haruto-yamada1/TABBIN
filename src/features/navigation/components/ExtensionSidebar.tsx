@@ -271,7 +271,10 @@ const HeaderSection = ({
   const { t } = useI18n()
 
   return (
-    <div className='flex items-center justify-between gap-2 rounded-lg py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'>
+    <div
+      className='flex items-center justify-between gap-2 rounded-lg py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'
+      data-testid='sidebar-header-row'
+    >
       {isIconCollapsed ? (
         <Tooltip>
           <TooltipTrigger asChild>

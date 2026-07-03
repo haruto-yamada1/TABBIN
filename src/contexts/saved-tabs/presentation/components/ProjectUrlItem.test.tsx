@@ -191,7 +191,7 @@ describe('ProjectUrlItem', () => {
       />,
     )
 
-    const listItem = document.querySelector('li')
+    const listItem = screen.getByTestId('project-url-item')
     expect(listItem).toBeTruthy()
     expect(listItem?.getAttribute('data-url')).toBe(item.url)
     expect(listItem?.getAttribute('data-project-id')).toBe('project-1')
@@ -202,16 +202,14 @@ describe('ProjectUrlItem', () => {
     expect(listItem?.getAttribute('data-in-uncategorized')).toBe('false')
     expect(listItem?.className).not.toContain('pl-2')
     expect(listItem?.className).not.toContain('border-l-2')
-    const dragHandle = listItem?.querySelector('svg')?.parentElement
+    const dragHandle = screen.getByTestId('project-url-drag-handle')
     expect(dragHandle?.className).not.toContain('opacity-')
-    const actionBar = screen.getByRole('button', {
-      name: 'タブを削除',
-    }).parentElement
+    const actionBar = screen.getByTestId('project-url-action-bar')
     expect(actionBar?.className).toContain('group-focus-within:opacity-100')
 
     const link = screen.getByRole('button', { name: item.url })
     expect(link.className).toContain('min-w-0')
-    const titleLabel = link.querySelector('span')
+    const titleLabel = screen.getByTestId('project-url-title')
     expect(titleLabel?.className).toContain('min-w-0')
     expect(titleLabel?.className).toContain('truncate')
     await user.click(link)
@@ -272,7 +270,7 @@ describe('ProjectUrlItem', () => {
       />,
     )
 
-    const listItem = document.querySelector('li')
+    const listItem = screen.getByTestId('project-url-item')
     expect(listItem?.className).toContain('bg-secondary/50')
     expect(listItem?.className).toContain('opacity-50')
     expect(listItem?.className).toContain('pl-2')

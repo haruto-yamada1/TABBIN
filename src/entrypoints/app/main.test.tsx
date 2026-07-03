@@ -91,7 +91,7 @@ describe('app bootstrap', () => {
     domReadyHandler?.(new Event('DOMContentLoaded'))
 
     expect(mocked.createRoot).toHaveBeenCalledWith(
-      document.querySelector('#app'),
+      document.querySelector('#app'), // eslint-disable-line testing-library/no-node-access -- createRoot のマウント先要素の検証には DOM ノード参照が必須
     )
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
   })
