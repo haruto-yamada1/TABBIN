@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -233,7 +234,7 @@ describe('ProjectCardRoot', () => {
     cleanup()
   })
 
-  it('プロジェクト名とドラッグハンドルを表示し、DnD コールバックを呼び出す', () => {
+  it('プロジェクト名とドラッグハンドルを表示し、DnD コールバックを呼び出す', async () => {
     const props = createProps()
     const hookState = createHookState()
     useCustomProjectCardMock.mockReturnValue(hookState)
@@ -256,6 +257,7 @@ describe('ProjectCardRoot', () => {
       .closest('div[data-sortable-attr="project"]')
     expect(dragHandle).toBeTruthy()
     if (dragHandle) {
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.pointerDown(dragHandle)
     }
     expect(projectDragListenerMock).toHaveBeenCalled()
@@ -455,7 +457,8 @@ describe('ProjectCardRoot', () => {
     expect(screen.queryByText('children')).toBeNull()
   })
 
-  it('折りたたみボタンで表示を切り替え、並び替えボタンでソート順を循環できる', () => {
+  it('折りたたみボタンで表示を切り替え、並び替えボタンでソート順を循環できる', async () => {
+    const user = userEvent.setup()
     render(
       <ProjectCardRoot {...createProps()}>
         <div>children</div>
@@ -463,16 +466,16 @@ describe('ProjectCardRoot', () => {
     )
 
     const collapseButton = screen.getByRole('button', { name: '折りたたむ' })
-    fireEvent.click(collapseButton)
+    await user.click(collapseButton)
     expect(screen.queryByText('children')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: '展開' }))
+    await user.click(screen.getByRole('button', { name: '展開' }))
     expect(screen.getByText('children')).toBeTruthy()
 
     const sortButton = screen.getByRole('button', { name: 'デフォルト' })
-    fireEvent.click(sortButton)
+    await user.click(sortButton)
     expect(screen.getByRole('button', { name: '保存日時の昇順' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '保存日時の昇順' }))
+    await user.click(screen.getByRole('button', { name: '保存日時の昇順' }))
     expect(screen.getByRole('button', { name: '保存日時の降順' })).toBeTruthy()
   })
 })

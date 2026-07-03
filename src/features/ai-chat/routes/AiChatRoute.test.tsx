@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -98,6 +99,14 @@ describe('AiChatRoute', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
     mocked.useSharedAiChatHistory.mockReturnValue({
       activeConversation: {
         createdAt: 1,
@@ -141,6 +150,7 @@ describe('AiChatRoute', () => {
 
   afterEach(() => {
     cleanup()
+    vi.unstubAllGlobals()
   })
 
   it('履歴一覧の操作に shared ui button を使い、生の button 要素を残さない', () => {
@@ -160,14 +170,15 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('history-variant:sidebar-toggle')).toBeTruthy()
   })
 
-  it('履歴項目クリックで会話を選択し、breakpoint 跨ぎの resize で履歴表示を切り替える', () => {
+  it('履歴項目クリックで会話を選択し、breakpoint 跨ぎの resize で履歴表示を切り替える', async () => {
+    const user = userEvent.setup()
     render(createElement(AiChatRoute))
 
     window.innerWidth = 1100
     fireEvent(window, new Event('resize'))
     expect(screen.getByText('Recent conversations')).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       screen
         .getAllByRole('button', { name: /別の会話/ })
@@ -232,12 +243,13 @@ describe('AiChatRoute', () => {
     expect(widgetShell?.className.includes('overflow-hidden')).toBe(true)
   })
 
-  it('狭い画面でも履歴ボタンで左履歴を再表示できる', () => {
+  it('狭い画面でも履歴ボタンで左履歴を再表示できる', async () => {
+    const user = userEvent.setup()
     window.innerWidth = 800
 
     render(createElement(AiChatRoute))
 
-    fireEvent.click(screen.getByText('toggle-history'))
+    await user.click(screen.getByText('toggle-history'))
 
     expect(screen.getByText('Recent conversations')).toBeTruthy()
   })
@@ -275,10 +287,11 @@ describe('AiChatRoute', () => {
     expect(screen.getByRole('status')).toBeTruthy()
   })
 
-  it('履歴削除ボタンから確認モーダルを開き、削除を実行できる', () => {
+  it('履歴削除ボタンから確認モーダルを開き、削除を実行できる', async () => {
+    const user = userEvent.setup()
     render(createElement(AiChatRoute))
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'Delete 最初の会話',
       }),
@@ -286,15 +299,16 @@ describe('AiChatRoute', () => {
 
     expect(screen.getByText('Delete this conversation?')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
 
     expect(mocked.deleteConversation).toHaveBeenCalledWith('conversation-1')
   })
 
-  it('履歴削除確認はキャンセルできる', () => {
+  it('履歴削除確認はキャンセルできる', async () => {
+    const user = userEvent.setup()
     render(createElement(AiChatRoute))
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'Delete 最初の会話',
       }),
@@ -302,21 +316,22 @@ describe('AiChatRoute', () => {
 
     expect(screen.getByText('Delete this conversation?')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByText('Delete this conversation?')).toBeNull()
     expect(mocked.deleteConversation).not.toHaveBeenCalled()
   })
 
-  it('履歴削除確認はキャンセルで削除されない', () => {
+  it('履歴削除確認はキャンセルで削除されない', async () => {
+    const user = userEvent.setup()
     render(createElement(AiChatRoute))
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'Delete 最初の会話',
       }),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(mocked.deleteConversation).not.toHaveBeenCalled()
   })

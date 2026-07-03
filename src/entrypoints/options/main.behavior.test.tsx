@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -401,35 +402,37 @@ describe('options route behavior', () => {
     expect(screen.queryByText('Loading...')).toBeNull()
   })
 
-  it('clickBehavior の select を変更すると updateSetting が呼ばれる', () => {
+  it('clickBehavior の select を変更すると updateSetting が呼ばれる', async () => {
+    const user = userEvent.setup()
     render(createElement(OptionsPage))
 
     expect(screen.queryByText('Current value')).toBeNull()
 
-    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
+    await user.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.updateSetting).toHaveBeenCalledWith(
       'clickBehavior',
       'saveWindowTabs',
     )
   })
 
-  it('auto delete 系の checkbox を変更すると updateSetting が呼ばれる', () => {
+  it('auto delete 系の checkbox を変更すると updateSetting が呼ばれる', async () => {
+    const user = userEvent.setup()
     render(createElement(OptionsPage))
 
-    fireEvent.click(
+    await user.click(
       screen.getByLabelText('Delete automatically after opening a saved tab'),
     )
-    fireEvent.click(
+    await user.click(
       screen.getByLabelText(
         'Delete automatically after dropping into another browser',
       ),
     )
-    fireEvent.click(screen.getByLabelText('Exclude pinned tabs'))
-    fireEvent.click(screen.getByLabelText('Open in background tabs'))
-    fireEvent.click(screen.getByLabelText('Open all tabs in a new window'))
-    fireEvent.click(screen.getByLabelText('Show saved time'))
-    fireEvent.click(screen.getByLabelText('Confirm before deleting tabs'))
-    fireEvent.click(screen.getByLabelText('Confirm before deleting all'))
+    await user.click(screen.getByLabelText('Exclude pinned tabs'))
+    await user.click(screen.getByLabelText('Open in background tabs'))
+    await user.click(screen.getByLabelText('Open all tabs in a new window'))
+    await user.click(screen.getByLabelText('Show saved time'))
+    await user.click(screen.getByLabelText('Confirm before deleting tabs'))
+    await user.click(screen.getByLabelText('Confirm before deleting all'))
 
     expect(mocked.updateSetting).toHaveBeenCalledWith(
       'removeTabAfterOpen',
@@ -453,24 +456,24 @@ describe('options route behavior', () => {
     expect(mocked.updateSetting).toHaveBeenCalledWith('confirmDeleteAll', true)
   })
 
-  it('exclude pattern を blur / Add ボタン / Enter / Remove ボタンで追加・削除できる', () => {
+  it('exclude pattern を blur / Add ボタン / Enter / Remove ボタンで追加・削除できる', async () => {
+    const user = userEvent.setup()
     render(createElement(OptionsPage))
 
     const excludeInput = screen.getByPlaceholderText('e.g. chrome-extension://')
-    fireEvent.change(excludeInput, {
-      target: { value: 'https://example.com' },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(excludeInput, { target: { value: 'https://example.com' } })
     expect(mocked.handleExcludePatternInputChange).toHaveBeenCalledTimes(1)
     fireEvent.blur(excludeInput)
     expect(mocked.addExcludePattern).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: 'Add' }))
     expect(mocked.addExcludePattern).toHaveBeenCalledTimes(2)
 
-    fireEvent.keyDown(excludeInput, { key: 'Enter' })
+    await user.type(excludeInput, '{Enter}')
     expect(mocked.addExcludePattern).toHaveBeenCalledTimes(3)
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'Remove exclude pattern chrome://',
       }),
@@ -478,41 +481,42 @@ describe('options route behavior', () => {
     expect(mocked.removeExcludePattern).toHaveBeenCalledWith('chrome://')
   })
 
-  it('font size slider / input / Reset ボタンでフォントサイズを変更できる', () => {
+  it('font size slider / input / Reset ボタンでフォントサイズを変更できる', async () => {
+    const user = userEvent.setup()
     render(createElement(OptionsPage))
 
     const resetButtons = screen.getAllByRole('button', { name: 'Reset' })
 
-    fireEvent.click(resetButtons[0])
+    await user.click(resetButtons[0])
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 100)
 
     const fontSizeSlider = screen.getByLabelText('Font size slider')
     const updateSettingCallCount = mocked.updateSetting.mock.calls.length
 
-    fireEvent.change(fontSizeSlider, {
-      target: { value: '125' },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(fontSizeSlider, { target: { value: '125' } })
     expect(mocked.updateSetting).toHaveBeenCalledTimes(updateSettingCallCount)
     expect(
       (screen.getByLabelText('Font size percentage') as HTMLInputElement).value,
     ).toBe('125')
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.mouseUp(fontSizeSlider)
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 125)
 
-    fireEvent.change(screen.getByLabelText('Font size percentage'), {
-      target: { value: '501' },
-    })
+    await user.clear(screen.getByLabelText('Font size percentage'))
+    await user.type(screen.getByLabelText('Font size percentage'), '501')
     fireEvent.blur(screen.getByLabelText('Font size percentage'))
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 500)
   })
 
-  it('color input / hex input / Reset colors ボタンで色を変更できる', () => {
+  it('color input / hex input / Reset colors ボタンで色を変更できる', async () => {
+    const user = userEvent.setup()
     render(createElement(OptionsPage))
 
     const resetButtons = screen.getAllByRole('button', { name: 'Reset' })
 
-    fireEvent.click(resetButtons[1])
+    await user.click(resetButtons[1])
     expect(mocked.handleResetColors).toHaveBeenCalledTimes(1)
 
     const colorInput = document.querySelector('input[type="color"]')
@@ -520,18 +524,22 @@ describe('options route behavior', () => {
     if (!colorInput) {
       throw new Error('color input not found')
     }
-    fireEvent.input(colorInput, { target: { value: '#ffffff' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(colorInput, { target: { value: '#ffffff' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(colorInput, { target: { value: '#ffffff' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(hexInput, { target: { value: '#000000' } })
 
     expect(mocked.handleColorChange).toHaveBeenCalled()
   })
 
-  it('Contact / Release Notes の外部リンクを noopener,noreferrer 付きで window.open する', () => {
+  it('Contact / Release Notes の外部リンクを noopener,noreferrer 付きで window.open する', async () => {
+    const user = userEvent.setup()
     render(createElement(OptionsPage))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Contact' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Release Notes' }))
+    await user.click(screen.getByRole('button', { name: 'Contact' }))
+    await user.click(screen.getByRole('button', { name: 'Release Notes' }))
 
     expect(window.open).toHaveBeenCalledWith(
       'https://forms.gle/c9gBiF2TmgXaeU7J6',
@@ -545,14 +553,13 @@ describe('options route behavior', () => {
     )
   })
 
-  it('Enter 以外のキー入力では除外パターンを追加しない', () => {
+  it('Enter 以外のキー入力では除外パターンを追加しない', async () => {
+    const user = userEvent.setup()
     render(createElement(OptionsPage))
 
-    fireEvent.keyDown(
+    await user.type(
       screen.getAllByPlaceholderText('e.g. chrome-extension://')[0],
-      {
-        key: 'Escape',
-      },
+      '{Escape}',
     )
 
     expect(mocked.addExcludePattern).not.toHaveBeenCalled()

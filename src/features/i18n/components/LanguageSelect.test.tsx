@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { I18nProvider, useI18n } from '@/features/i18n/context/I18nProvider'
@@ -66,6 +67,7 @@ const MessageProbe = () => {
 
 describe('LanguageSelect', () => {
   it('選択変更で表示言語を切り替え、設定を保存する', async () => {
+    const user = userEvent.setup()
     mockedSettings.getUserSettings.mockResolvedValue({
       ...defaultSettings,
       language: 'system',
@@ -87,9 +89,7 @@ describe('LanguageSelect', () => {
       expect(screen.getByText('チャット')).toBeTruthy()
     })
 
-    fireEvent.change(screen.getByLabelText('language-select'), {
-      target: { value: 'en' },
-    })
+    await user.selectOptions(screen.getByLabelText('language-select'), 'en')
 
     await waitFor(() => {
       expect(screen.getByText('Chat')).toBeTruthy()

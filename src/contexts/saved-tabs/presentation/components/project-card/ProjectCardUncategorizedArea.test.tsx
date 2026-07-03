@@ -5,7 +5,8 @@ import { dirname, resolve } from 'node:path'
 // eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const projectCardI18nState = vi.hoisted(() => ({
@@ -161,7 +162,8 @@ describe('ProjectCardUncategorizedArea', () => {
     expect(screen.queryByText('未分類のタブ')).toBeNull()
   })
 
-  it('空の未分類エリアで選択中 URL が projectUrls にあれば未分類へ戻す', () => {
+  it('空の未分類エリアで選択中 URL が projectUrls にあれば未分類へ戻す', async () => {
+    const user = userEvent.setup()
     const handleSetUrlCategory = vi.fn()
     vi.spyOn(window, 'getSelection').mockReturnValue({
       toString: () => 'https://example.com',
@@ -181,7 +183,7 @@ describe('ProjectCardUncategorizedArea', () => {
     )
 
     render(<ProjectCardUncategorizedArea />)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'タブをここにドロップして未分類に移動',
       }),
@@ -194,7 +196,8 @@ describe('ProjectCardUncategorizedArea', () => {
     )
   })
 
-  it('空の未分類エリアで選択中 URL が projectUrls にない場合は no-op', () => {
+  it('空の未分類エリアで選択中 URL が projectUrls にない場合は no-op', async () => {
+    const user = userEvent.setup()
     const handleSetUrlCategory = vi.fn()
     vi.spyOn(window, 'getSelection').mockReturnValue({
       toString: () => 'https://other.example.com',
@@ -215,7 +218,7 @@ describe('ProjectCardUncategorizedArea', () => {
     )
 
     render(<ProjectCardUncategorizedArea />)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'タブをここにドロップして未分類に移動',
       }),

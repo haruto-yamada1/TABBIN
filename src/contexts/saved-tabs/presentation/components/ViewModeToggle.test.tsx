@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
@@ -106,7 +101,8 @@ describe('ViewModeToggle', () => {
     viewModeI18nState.language = 'ja'
   })
 
-  it('domain モードの選択表示と tooltip/menu を描画し onChange を呼ぶ', () => {
+  it('domain モードの選択表示と tooltip/menu を描画し onChange を呼ぶ', async () => {
+    const user = userEvent.setup()
     const onChange = vi.fn()
 
     render(<ViewModeToggle currentMode='domain' onChange={onChange} />)
@@ -119,7 +115,7 @@ describe('ViewModeToggle', () => {
     expect(screen.getByTestId('select-item-domain')).toBeTruthy()
     expect(screen.getByTestId('select-item-custom')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'emit-custom' }))
+    await user.click(screen.getByRole('button', { name: 'emit-custom' }))
 
     expect(onChange).toHaveBeenCalledTimes(1)
     expect(onChange).toHaveBeenCalledWith('custom')

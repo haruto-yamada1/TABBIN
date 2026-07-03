@@ -1,12 +1,6 @@
 // @vitest-environment jsdom
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -268,6 +262,7 @@ describe('CustomProjectSection', () => {
   })
 
   it('作成ダイアログで空入力・重複・成功・キャンセルの分岐を処理する', async () => {
+    const user = userEvent.setup()
     const handleCreateProject = vi.fn()
     render(
       <CustomProjectSection
@@ -277,31 +272,28 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-open' }))
     expect(screen.getByTestId('dialog-content')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: '作成' }))
+    await user.click(screen.getByRole('button', { name: '作成' }))
     await waitFor(() => {
       expect(screen.getByText('プロジェクト名を入力してください')).toBeTruthy()
     })
 
-    fireEvent.change(screen.getByLabelText('プロジェクト名 *'), {
-      target: { value: '   ' },
-    })
+    await user.clear(screen.getByLabelText('プロジェクト名 *'))
+    await user.type(screen.getByLabelText('プロジェクト名 *'), '   ')
 
-    fireEvent.change(screen.getByLabelText('プロジェクト名 *'), {
-      target: { value: 'Project One' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '作成' }))
+    await user.clear(screen.getByLabelText('プロジェクト名 *'))
+    await user.type(screen.getByLabelText('プロジェクト名 *'), 'Project One')
+    await user.click(screen.getByRole('button', { name: '作成' }))
     await waitFor(() => {
       expect(
         screen.getByText('プロジェクト名「Project One」は既に使用されています'),
       ).toBeTruthy()
     })
 
-    fireEvent.change(screen.getByLabelText('プロジェクト名 *'), {
-      target: { value: 'New Project' },
-    })
+    await user.clear(screen.getByLabelText('プロジェクト名 *'))
+    await user.type(screen.getByLabelText('プロジェクト名 *'), 'New Project')
     await waitFor(() => {
       expect(
         screen.queryByText(
@@ -310,7 +302,7 @@ describe('CustomProjectSection', () => {
       ).toBeNull()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: '作成' }))
+    await user.click(screen.getByRole('button', { name: '作成' }))
 
     await waitFor(() => {
       expect(handleCreateProject).toHaveBeenCalledWith('New Project')
@@ -319,18 +311,18 @@ describe('CustomProjectSection', () => {
       expect(screen.queryByTestId('dialog-content')).toBeNull()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-open' }))
     expect(screen.queryByLabelText('説明（オプション）')).toBeNull()
-    fireEvent.change(screen.getByLabelText('プロジェクト名 *'), {
-      target: { value: 'Tmp' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    await user.clear(screen.getByLabelText('プロジェクト名 *'))
+    await user.type(screen.getByLabelText('プロジェクト名 *'), 'Tmp')
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }))
     await waitFor(() => {
       expect(screen.queryByTestId('dialog-content')).toBeNull()
     })
   })
 
   it('プロジェクト名入力で Enter を押すと作成を実行する', async () => {
+    const user = userEvent.setup()
     const handleCreateProject = vi.fn()
     render(
       <CustomProjectSection
@@ -340,16 +332,15 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-open' }))
 
-    fireEvent.change(screen.getByLabelText('プロジェクト名 *'), {
-      target: { value: 'Enter Created Project' },
-    })
+    await user.clear(screen.getByLabelText('プロジェクト名 *'))
+    await user.type(
+      screen.getByLabelText('プロジェクト名 *'),
+      'Enter Created Project',
+    )
 
-    fireEvent.keyDown(screen.getByLabelText('プロジェクト名 *'), {
-      key: 'Enter',
-      code: 'Enter',
-    })
+    await user.type(screen.getByLabelText('プロジェクト名 *'), '{Enter}')
 
     await waitFor(() => {
       expect(handleCreateProject).toHaveBeenCalledWith('Enter Created Project')
@@ -357,6 +348,7 @@ describe('CustomProjectSection', () => {
   })
 
   it('Enter以外のキーでは送信せず、ダイアログcloseイベントでフォームをリセットする', async () => {
+    const user = userEvent.setup()
     const handleCreateProject = vi.fn()
     render(
       <CustomProjectSection
@@ -366,20 +358,16 @@ describe('CustomProjectSection', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-open' }))
 
-    fireEvent.change(screen.getByLabelText('プロジェクト名 *'), {
-      target: { value: 'Temporary Name' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('プロジェクト名 *'), {
-      key: 'Escape',
-      code: 'Escape',
-    })
+    await user.clear(screen.getByLabelText('プロジェクト名 *'))
+    await user.type(screen.getByLabelText('プロジェクト名 *'), 'Temporary Name')
+    await user.type(screen.getByLabelText('プロジェクト名 *'), '{Escape}')
 
     expect(handleCreateProject).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-open' }))
 
     await waitFor(() => {
       expect(

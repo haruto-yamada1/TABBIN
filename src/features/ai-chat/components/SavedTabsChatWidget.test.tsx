@@ -14,6 +14,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { getAiChatToolDefinitions } from '@/constants/aiChatTools'
@@ -201,6 +202,14 @@ const buildConfiguredSettings = (): UserSettings =>
     removeTabAfterOpen: true,
     showSavedTime: false,
   }) as UserSettings
+const restoreClipboardMock = () => {
+  Object.defineProperty(window.navigator, 'clipboard', {
+    configurable: true,
+    value: {
+      writeText: mocked.writeClipboardText,
+    },
+  })
+}
 
 describe('SavedTabsChatWidget', () => {
   beforeEach(() => {
@@ -223,12 +232,7 @@ describe('SavedTabsChatWidget', () => {
         unobserve() {}
       },
     )
-    Object.defineProperty(window.navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: mocked.writeClipboardText,
-      },
-    })
+    restoreClipboardMock()
     ;(globalThis as unknown as { chrome: typeof chrome }).chrome =
       createChromeMock()
     Element.prototype.scrollIntoView = vi.fn()
@@ -270,12 +274,14 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('opens the sidebar from the bottom-right launcher', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     const onOpenChange = vi.fn()
 
     render(<SavedTabsChatWidget onOpenChange={onOpenChange} />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -288,12 +294,14 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('renders Japanese copy when the display language is ja', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.language = 'ja'
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'AIチャットを開く',
       }),
@@ -303,7 +311,7 @@ describe('SavedTabsChatWidget', () => {
     expect(screen.getByText('チャット')).toBeTruthy()
     expect(screen.getByText('今月追加したタブを教えて')).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'システムプロンプト設定を開く' }),
     )
 
@@ -313,12 +321,14 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('closes with the sidebar X button', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     const onOpenChange = vi.fn()
 
     render(<SavedTabsChatWidget onOpenChange={onOpenChange} />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -326,13 +336,15 @@ describe('SavedTabsChatWidget', () => {
 
     expect(screen.getByLabelText('AI chat sidebar')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close AI chat' }))
+    await user.click(screen.getByRole('button', { name: 'Close AI chat' }))
 
     expect(screen.queryByLabelText('AI chat sidebar')).toBeNull()
     expect(onOpenChange).toHaveBeenLastCalledWith(false)
   })
 
   it('drags the sidebar width and restores it on the next render', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
@@ -342,7 +354,7 @@ describe('SavedTabsChatWidget', () => {
 
     const { unmount } = render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -353,8 +365,11 @@ describe('SavedTabsChatWidget', () => {
 
     expect(sidebar.style.width).toBe('420px')
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.pointerDown(resizeHandle, { clientX: 780 })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.pointerMove(window, { clientX: 700 })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.pointerUp(window)
 
     expect(sidebar.style.width).toBe('500px')
@@ -366,7 +381,7 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -376,11 +391,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('renders the resize handle as a full-height sidebar boundary', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -393,12 +410,14 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('shows a text send button at narrow widths while keeping the input UI', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     window.localStorage.setItem('tabbin-ai-chat-sidebar-width', '320')
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -412,11 +431,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('keeps the intro copy and suggested prompts near the input on first render', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -436,11 +457,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('anchors the input area as a bottom dock', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -452,12 +475,14 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('renders ConversationScrollButton in the conversation area', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.conversationScrollButtonVisible = true
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -467,17 +492,19 @@ describe('SavedTabsChatWidget', () => {
       name: 'Jump to latest message',
     })
 
-    fireEvent.click(scrollButton)
+    await user.click(scrollButton)
 
     expect(mocked.conversationScrollButtonClick).toHaveBeenCalledTimes(1)
   })
 
   it('contains overscroll in the conversation scroll area', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -490,11 +517,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('keeps the chat shell as an independent scroll region', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -509,11 +538,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('does not show a model-name badge in the header', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -523,11 +554,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('centers the header title in the sidebar', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -541,11 +574,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('shows the system prompt settings icon and selector on the left of the header', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -558,6 +593,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('places the history button to the left of system prompt settings and triggers sidebar-toggle', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     const onToggleHistory = vi.fn()
 
@@ -581,12 +618,14 @@ describe('SavedTabsChatWidget', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
 
-    fireEvent.click(historyButton)
+    await user.click(historyButton)
 
     expect(onToggleHistory).toHaveBeenCalledTimes(1)
   })
 
   it('opens the list from the dropdown history button and calls the conversation select callback', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     const onSelectHistoryItem = vi.fn()
 
@@ -612,7 +651,7 @@ describe('SavedTabsChatWidget', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Recent conversations',
       }),
@@ -645,7 +684,7 @@ describe('SavedTabsChatWidget', () => {
     expect(preview?.className).toContain('wrap-anywhere')
     expect(preview?.className).toContain('overflow-hidden')
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: /Another conversation/ }),
     )
 
@@ -653,6 +692,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('deletes a conversation after confirming from the dropdown history menu', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     const onDeleteHistoryItem = vi.fn()
     const onSelectHistoryItem = vi.fn()
@@ -680,13 +721,13 @@ describe('SavedTabsChatWidget', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Recent conversations',
       }),
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'Delete Another conversation',
       }),
@@ -694,13 +735,15 @@ describe('SavedTabsChatWidget', () => {
 
     expect(screen.getByText('Delete this conversation?')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
 
     expect(onDeleteHistoryItem).toHaveBeenCalledWith('conversation-2')
     expect(onSelectHistoryItem).not.toHaveBeenCalled()
   })
 
   it('reflects userSettings changes from chrome.storage.onChanged without reloading', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     const initialSettings = buildConfiguredSettings()
     const importedSettings = {
       ...buildConfiguredSettings(),
@@ -721,7 +764,7 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -825,6 +868,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('notifies onMessagesChange only at conversation start and completion, not during stream steps', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     const onMessagesChange = vi.fn()
     let handlePortMessage: ((message: unknown) => void) | undefined
@@ -847,12 +892,12 @@ describe('SavedTabsChatWidget', () => {
       <SavedTabsChatWidget defaultOpen onMessagesChange={onMessagesChange} />,
     )
 
-    fireEvent.change(await screen.findByLabelText('Ask AI'), {
-      target: {
-        value: 'Show me the tabs I added this month',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(await screen.findByLabelText('Ask AI'))
+    await user.type(
+      await screen.findByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(onMessagesChange).toHaveBeenCalledTimes(1)
@@ -905,17 +950,19 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('opens the system prompt modal and can create, duplicate, and save', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Open system prompt settings' }),
     )
 
@@ -923,17 +970,18 @@ describe('SavedTabsChatWidget', () => {
       screen.findByRole('dialog', { name: 'System prompt manager' }),
     ).resolves.toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'New prompt' }))
+    await user.click(screen.getByRole('button', { name: 'New prompt' }))
 
-    fireEvent.change(screen.getByLabelText('Prompt name'), {
-      target: { value: 'Research notes' },
-    })
-    fireEvent.change(screen.getByLabelText('System prompt body'), {
-      target: { value: 'Analyze saved-tab patterns.' },
-    })
+    await user.clear(screen.getByLabelText('Prompt name'))
+    await user.type(screen.getByLabelText('Prompt name'), 'Research notes')
+    await user.clear(screen.getByLabelText('System prompt body'))
+    await user.type(
+      screen.getByLabelText('System prompt body'),
+      'Analyze saved-tab patterns.',
+    )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Duplicate' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(mocked.saveUserSettings).toHaveBeenCalledWith(
@@ -953,20 +1001,22 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('最後の system prompt を削除したら直前の prompt を選択する', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Open system prompt settings' }),
     )
-    fireEvent.click(await screen.findByRole('button', { name: 'Research' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(await screen.findByRole('button', { name: 'Research' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
       expect(screen.getByLabelText<HTMLInputElement>('Prompt name').value).toBe(
@@ -976,17 +1026,19 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('shows the available tools list in the system prompt manager', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Open system prompt settings' }),
     )
 
@@ -1007,6 +1059,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('saves the active preset and resets the conversation when switching the selector', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.sendRuntimeMessage.mockResolvedValue({
       answer: 'First response',
@@ -1016,22 +1070,25 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'Show me the tabs I added this month',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
 
+    // Radix UI Select does not work with userEvent in jsdom
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.click(screen.getByRole('combobox', { name: 'Default' }))
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.click(await screen.findByRole('option', { name: 'Research' }))
 
     await waitFor(() => {
@@ -1047,6 +1104,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('disables create and duplicate when there are 50 system prompts', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue({
       ...buildConfiguredSettings(),
       activeAiSystemPromptId: 'prompt-1',
@@ -1061,13 +1120,13 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Open system prompt settings' }),
     )
 
@@ -1082,17 +1141,19 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('disables saving when the system prompt name or body is empty or duplicated', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Open system prompt settings' }),
     )
 
@@ -1100,35 +1161,30 @@ describe('SavedTabsChatWidget', () => {
 
     expect(saveButton.hasAttribute('disabled')).toBe(false)
 
-    fireEvent.change(screen.getByLabelText('Prompt name'), {
-      target: { value: '' },
-    })
+    await user.clear(screen.getByLabelText('Prompt name'))
 
     expect(saveButton.hasAttribute('disabled')).toBe(true)
 
-    fireEvent.change(screen.getByLabelText('Prompt name'), {
-      target: { value: 'Default' },
-    })
-    fireEvent.change(screen.getByLabelText('System prompt body'), {
-      target: { value: '' },
-    })
+    await user.clear(screen.getByLabelText('Prompt name'))
+    await user.type(screen.getByLabelText('Prompt name'), 'Default')
+    await user.clear(screen.getByLabelText('System prompt body'))
 
     expect(saveButton.hasAttribute('disabled')).toBe(true)
 
-    fireEvent.change(screen.getByLabelText('System prompt body'), {
-      target: { value: 'Give me more comparison angles for saved tabs.' },
-    })
-    fireEvent.click(screen.getByText('Research'))
-    fireEvent.change(screen.getByLabelText('Prompt name'), {
-      target: { value: 'Default' },
-    })
+    await user.clear(screen.getByLabelText('System prompt body'))
+    await user.type(
+      screen.getByLabelText('System prompt body'),
+      'Give me more comparison angles for saved tabs.',
+    )
+    await user.click(screen.getByText('Research'))
+    await user.clear(screen.getByLabelText('Prompt name'))
+    await user.type(screen.getByLabelText('Prompt name'), 'Default')
 
     expect(saveButton.hasAttribute('disabled')).toBe(true)
     expect(mocked.saveUserSettings).not.toHaveBeenCalled()
 
-    fireEvent.change(screen.getByLabelText('Prompt name'), {
-      target: { value: 'Research details' },
-    })
+    await user.clear(screen.getByLabelText('Prompt name'))
+    await user.type(screen.getByLabelText('Prompt name'), 'Research details')
 
     expect(saveButton.hasAttribute('disabled')).toBe(false)
 
@@ -1137,25 +1193,26 @@ describe('SavedTabsChatWidget', () => {
 
     expect(nameInput.maxLength).toBe(25)
 
-    fireEvent.change(nameInput, {
-      target: { value: 'a'.repeat(26) },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(nameInput, { target: { value: 'a'.repeat(26) } })
 
     expect(saveButton.hasAttribute('disabled')).toBe(true)
   })
 
   it('shows duplicate and delete actions to the right of the prompt name input', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Open system prompt settings' }),
     )
 
@@ -1169,6 +1226,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('truncates long names in the system prompt list', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     const longName =
       'A very long system prompt name that should be truncated in the list view'
     const normalizedLongName = longName.slice(0, 25)
@@ -1192,13 +1251,13 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Open system prompt settings' }),
     )
 
@@ -1214,11 +1273,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('shows new conversation as an icon button with a tooltip label', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -1236,6 +1297,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('copies the whole conversation from the header button', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     let handlePortMessage: ((message: unknown) => void) | undefined
     const port = {
@@ -1255,18 +1318,18 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'Show me the tabs I added this month',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(port.postMessage).toHaveBeenCalledWith({
@@ -1295,7 +1358,7 @@ describe('SavedTabsChatWidget', () => {
 
     const copyButton = screen.getByRole('button', { name: 'Copy conversation' })
 
-    fireEvent.click(copyButton)
+    await user.click(copyButton)
 
     await waitFor(() => {
       expect(mocked.writeClipboardText).toHaveBeenCalledWith(
@@ -1313,6 +1376,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('clipboard API がない場合は copy error を表示する', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     Object.defineProperty(window.navigator, 'clipboard', {
       configurable: true,
@@ -1332,7 +1397,7 @@ describe('SavedTabsChatWidget', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', { name: 'Copy conversation' }),
     )
 
@@ -1345,6 +1410,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('resets history and returns to the initial state when new conversation is clicked', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.sendRuntimeMessage.mockResolvedValue({
       answer: 'First response',
@@ -1354,22 +1421,22 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'Show me the tabs I added this month',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'New conversation' }))
+    await user.click(screen.getByRole('button', { name: 'New conversation' }))
 
     expect(screen.queryByText('First response')).toBeNull()
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
@@ -1377,6 +1444,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('disconnects the active stream when new conversation is clicked', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     const port = {
       disconnect: vi.fn(),
@@ -1392,18 +1461,18 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'Show me the tabs I added this month',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(port.postMessage).toHaveBeenCalledWith({
@@ -1413,13 +1482,15 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'New conversation' }))
+    await user.click(screen.getByRole('button', { name: 'New conversation' }))
 
     expect(port.disconnect).toHaveBeenCalled()
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
   })
 
   it('renders the assistant response after submitting a question', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     let handlePortMessage: ((message: unknown) => void) | undefined
     const port = {
@@ -1439,18 +1510,18 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'Show me the tabs I added this month',
-      },
-    })
-    fireEvent.click(
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
+    await user.click(
       screen.getByRole('button', {
         name: 'Submit',
       }),
@@ -1497,7 +1568,7 @@ describe('SavedTabsChatWidget', () => {
       name: '1 source',
     })
     expect(sourcesTrigger).toBeTruthy()
-    fireEvent.click(sourcesTrigger)
+    await user.click(sourcesTrigger)
     await expect(
       screen.findByRole('link', {
         name: 'https://react.dev/learn',
@@ -1516,7 +1587,7 @@ describe('SavedTabsChatWidget', () => {
     ).resolves.not.toHaveLength(0)
     expect(screen.queryByText('Parameters')).toBeNull()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: /Saved tabs list/,
       }),
@@ -1577,6 +1648,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('renders charts directly under the assistant message when present', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     let handlePortMessage: ((message: unknown) => void) | undefined
     const port = {
@@ -1596,18 +1669,18 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'What kinds of content do I save most often?',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'What kinds of content do I save most often?',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(port.postMessage).toHaveBeenCalledWith({
@@ -1665,6 +1738,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('deduplicates source URLs across tool traces', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     let handlePortMessage: ((message: unknown) => void) | undefined
     const port = {
@@ -1684,18 +1759,18 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'Show me the tabs I saved recently',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I saved recently',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(port.postMessage).toHaveBeenCalledWith({
@@ -1763,7 +1838,7 @@ describe('SavedTabsChatWidget', () => {
     const sourcesTrigger = await screen.findByRole('button', {
       name: '2 sources',
     })
-    fireEvent.click(sourcesTrigger)
+    await user.click(sourcesTrigger)
 
     const sourcesGroup =
       // eslint-disable-next-line typescript/no-unnecessary-type-assertion
@@ -1783,6 +1858,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('keeps the input editable but disables send while waiting for a reply', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     const port = {
       disconnect: vi.fn(),
@@ -1798,18 +1875,18 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'Show me the tabs I added this month',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'Show me the tabs I added this month',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(port.postMessage).toHaveBeenCalledWith({
@@ -1826,20 +1903,19 @@ describe('SavedTabsChatWidget', () => {
     expect(textarea.disabled).toBe(false)
     expect((submitButton as HTMLButtonElement).disabled).toBe(true)
 
-    fireEvent.change(textarea, {
-      target: {
-        value: 'Another question to ask',
-      },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(textarea, { target: { value: 'Another question to ask' } })
 
     expect(textarea.value).toBe('Another question to ask')
 
-    fireEvent.click(submitButton)
+    await user.click(submitButton)
 
     expect(port.postMessage).toHaveBeenCalledTimes(1)
   })
 
   it('loads the Ollama model list when the footer selector is opened', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.sendRuntimeMessage.mockResolvedValue({
       models: [
@@ -1853,12 +1929,14 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
+    // Radix UI Select does not work with userEvent in jsdom
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.click(screen.getByRole('combobox', { name: 'llama3.2' }))
 
     await waitFor(() => {
@@ -1874,6 +1952,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('sends immediately when a suggestion is clicked and passes history on the second send', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.sendRuntimeMessage
       .mockResolvedValueOnce({
@@ -1889,13 +1969,13 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.click(screen.getByText('Show me the tabs I added this month'))
+    await user.click(screen.getByText('Show me the tabs I added this month'))
 
     await waitFor(() => {
       expect(mocked.sendRuntimeMessage).toHaveBeenNthCalledWith(1, {
@@ -1908,10 +1988,9 @@ describe('SavedTabsChatWidget', () => {
 
     await expect(screen.findByText('First response')).resolves.toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: { value: 'Tell me more' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(screen.getByLabelText('Ask AI'), 'Tell me more')
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(mocked.sendRuntimeMessage).toHaveBeenNthCalledWith(2, {
@@ -1932,6 +2011,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('shows the fallback error as an assistant message when the response fails', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.sendRuntimeMessage.mockResolvedValue({
       status: 'error',
@@ -1939,18 +2020,18 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'What kinds of content do I save most often?',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'What kinds of content do I save most often?',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await expect(
       screen.findAllByText('Could not get a response from AI.'),
@@ -1958,6 +2039,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('shows macOS setup guidance and the FAQ link for Ollama 403 stream errors', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.platformOs = 'mac'
     let handlePortMessage: ((message: unknown) => void) | undefined
@@ -1978,18 +2061,18 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'What kinds of content do I save most often?',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(
+      screen.getByLabelText('Ask AI'),
+      'What kinds of content do I save most often?',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(port.postMessage).toHaveBeenCalledWith({
@@ -2048,11 +2131,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('treats settings fetch failures as unconfigured and closes with the close button', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockRejectedValue(new Error('failed to load'))
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -2060,11 +2145,13 @@ describe('SavedTabsChatWidget', () => {
 
     expect(screen.getByRole('heading', { name: 'Select a model' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close AI chat' }))
+    await user.click(screen.getByRole('button', { name: 'Close AI chat' }))
     expect(screen.queryByText('Chat')).toBeNull()
   })
 
   it('shows a centered guide and no suggestions when no model is selected', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue({
       ...buildConfiguredSettings(),
       ollamaModel: '',
@@ -2072,7 +2159,7 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -2089,11 +2176,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('does not send when the input is empty', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -2109,11 +2198,13 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('inserts a newline on Enter instead of sending', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -2122,17 +2213,11 @@ describe('SavedTabsChatWidget', () => {
     // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
-    fireEvent.change(textarea, {
-      target: {
-        value: 'first',
-      },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(textarea, { target: { value: 'first' } })
     textarea.focus()
     textarea.setSelectionRange(5, 5)
-    fireEvent.keyDown(textarea, {
-      code: 'Enter',
-      key: 'Enter',
-    })
+    await user.type(textarea, '{Enter}')
 
     await waitFor(() => {
       expect(textarea.value).toBe('first\n')
@@ -2141,6 +2226,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('sends on Ctrl+Enter', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.sendRuntimeMessage.mockResolvedValue({
       answer: 'Ctrl submit response',
@@ -2150,7 +2237,7 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -2159,16 +2246,9 @@ describe('SavedTabsChatWidget', () => {
     // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
-    fireEvent.change(textarea, {
-      target: {
-        value: 'Ctrl submit',
-      },
-    })
-    fireEvent.keyDown(textarea, {
-      code: 'Enter',
-      ctrlKey: true,
-      key: 'Enter',
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(textarea, { target: { value: 'Ctrl submit' } })
+    await user.type(textarea, '{Control>}{Enter}{/Control}')
 
     await waitFor(() => {
       expect(mocked.sendRuntimeMessage).toHaveBeenCalledWith({
@@ -2183,6 +2263,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('sends text attachments in the conversation payload when selected from the bottom-left picker', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.sendRuntimeMessage.mockResolvedValue({
       answer: 'I read the attachment',
@@ -2192,13 +2274,15 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
     const uploadInput = screen.getByLabelText('Upload files')
+    // user.upload fails on hidden inputs with pointer-events: none
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(uploadInput, {
       target: {
         files: [new File(['Hello'], 'memo.txt', { type: 'text/plain' })],
@@ -2207,12 +2291,9 @@ describe('SavedTabsChatWidget', () => {
 
     await expect(screen.findByText('memo.txt')).resolves.toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText('Ask AI'), {
-      target: {
-        value: 'Summarize the attachment',
-      },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await user.clear(screen.getByLabelText('Ask AI'))
+    await user.type(screen.getByLabelText('Ask AI'), 'Summarize the attachment')
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
 
     await waitFor(() => {
       expect(mocked.sendRuntimeMessage).toHaveBeenCalledWith({
@@ -2236,6 +2317,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('can select and save a model from inside the chat when none is set', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue({
       ...buildConfiguredSettings(),
       ollamaModel: '',
@@ -2252,7 +2335,7 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
@@ -2263,6 +2346,8 @@ describe('SavedTabsChatWidget', () => {
 
     expect(screen.queryByRole('button', { name: 'Load models' })).toBeNull()
 
+    // Radix UI Select does not work with userEvent in jsdom
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.click(screen.getByRole('combobox', { name: 'Select a model' }))
 
     await waitFor(() => {
@@ -2271,6 +2356,7 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.click(
       await screen.findByRole('option', { name: 'llama3.2 (8B)' }),
     )
@@ -2292,6 +2378,8 @@ describe('SavedTabsChatWidget', () => {
   })
 
   it('shows Windows guidance and download links for Ollama connection errors while fetching the model list', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.platformOs = 'win'
     mocked.sendRuntimeMessage.mockResolvedValue({
@@ -2309,12 +2397,14 @@ describe('SavedTabsChatWidget', () => {
 
     render(<SavedTabsChatWidget />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', {
         name: 'Open AI chat',
       }),
     )
 
+    // Radix UI Select does not work with userEvent in jsdom
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.click(screen.getByRole('combobox', { name: 'llama3.2' }))
 
     await waitFor(() => {

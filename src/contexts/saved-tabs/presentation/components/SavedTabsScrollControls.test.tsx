@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -173,15 +174,21 @@ describe('contexts/SavedTabsScrollControls', () => {
   it('alt + ArrowUp / ArrowDown / PageUp / PageDown キーボードショートカットを受ける', () => {
     renderWithContainer('domain')
     act(() => {
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp' })
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, { altKey: true, key: 'ArrowDown' })
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, { altKey: true, key: 'PageUp' })
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, { altKey: true, key: 'PageDown' })
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, {
         altKey: true,
         key: 'ArrowUp',
         shiftKey: true,
       })
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, {
         altKey: true,
         key: 'ArrowDown',
@@ -194,6 +201,7 @@ describe('contexts/SavedTabsScrollControls', () => {
   it('alt キー無しの keyDown は無視される', () => {
     renderWithContainer('domain')
     act(() => {
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, { altKey: false, key: 'ArrowUp' })
     })
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
@@ -202,7 +210,9 @@ describe('contexts/SavedTabsScrollControls', () => {
   it('metaKey / ctrlKey 併用時は alt + 矢印でも無視される', () => {
     renderWithContainer('domain')
     act(() => {
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp', metaKey: true })
+      // eslint-disable-next-line testing-library/prefer-user-event
       fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp', ctrlKey: true })
     })
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
@@ -210,6 +220,7 @@ describe('contexts/SavedTabsScrollControls', () => {
 
   it('alt + 未知 key は無視される', () => {
     renderWithContainer('domain')
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(window, { altKey: true, key: 'Home' })
     expect(scrollControlState.getRelativeScrollTarget).not.toHaveBeenCalled()
   })
@@ -224,7 +235,8 @@ describe('contexts/SavedTabsScrollControls', () => {
     expect(() => render(<Probe />)).not.toThrow()
   })
 
-  it('custom モードの上下プロジェクトボタンを押下しても例外を投げない', () => {
+  it('custom モードの上下プロジェクトボタンを押下しても例外を投げない', async () => {
+    const user = userEvent.setup()
     renderWithContainer('custom')
     const buttons = screen.getAllByRole('button')
     const previousProject = buttons.find(
@@ -237,14 +249,13 @@ describe('contexts/SavedTabsScrollControls', () => {
     )
     expect(previousProject).toBeDefined()
     expect(nextProject).toBeDefined()
-    act(() => {
-      fireEvent.click(previousProject as HTMLElement)
-      fireEvent.click(nextProject as HTMLElement)
-    })
+    await user.click(previousProject as HTMLElement)
+    await user.click(nextProject as HTMLElement)
     expect(buttons.length).toBeGreaterThan(0)
   })
 
-  it('Scroll to top ボタン押下で container.scrollTo({ top: 0, behavior: "smooth" }) を呼ぶ', () => {
+  it('Scroll to top ボタン押下で container.scrollTo({ top: 0, behavior: "smooth" }) を呼ぶ', async () => {
+    const user = userEvent.setup()
     const container = renderWithContainer('domain')
     expect(container).not.toBeNull()
     const scrollTo = vi.fn()
@@ -252,14 +263,15 @@ describe('contexts/SavedTabsScrollControls', () => {
       configurable: true,
       value: scrollTo,
     })
-    fireEvent.click(screen.getByLabelText('Scroll to top'))
+    await user.click(screen.getByLabelText('Scroll to top'))
     expect(scrollTo).toHaveBeenCalledWith({
       behavior: 'smooth',
       top: 0,
     })
   })
 
-  it('Scroll to bottom ボタン押下で container.scrollTo({ top: container.scrollHeight, behavior: "smooth" }) を呼ぶ', () => {
+  it('Scroll to bottom ボタン押下で container.scrollTo({ top: container.scrollHeight, behavior: "smooth" }) を呼ぶ', async () => {
+    const user = userEvent.setup()
     const container = renderWithContainer('domain')
     expect(container).not.toBeNull()
     const scrollTo = vi.fn()
@@ -267,14 +279,15 @@ describe('contexts/SavedTabsScrollControls', () => {
       configurable: true,
       value: scrollTo,
     })
-    fireEvent.click(screen.getByLabelText('Scroll to bottom'))
+    await user.click(screen.getByLabelText('Scroll to bottom'))
     expect(scrollTo).toHaveBeenCalledWith({
       behavior: 'smooth',
       top: container?.scrollHeight,
     })
   })
 
-  it('getRelativeScrollTarget が target を返すと highlight / scrollTo / announce / updateAvailability を順に呼ぶ', () => {
+  it('getRelativeScrollTarget が target を返すと highlight / scrollTo / announce / updateAvailability を順に呼ぶ', async () => {
+    const user = userEvent.setup()
     const targetEl = document.createElement('div')
     targetEl.classList.add('saved-tabs-scroll-target')
     targetEl.setAttribute('data-saved-tabs-scroll-target', 'parent')
@@ -283,26 +296,33 @@ describe('contexts/SavedTabsScrollControls', () => {
     scrollControlState.getRelativeScrollTarget.mockReturnValue(targetEl)
     const container = renderWithContainer('domain')
     expect(container).not.toBeNull()
-    fireEvent.click(screen.getByLabelText('Scroll to previous parent category'))
+    await user.click(
+      screen.getByLabelText('Scroll to previous parent category'),
+    )
     expect(scrollControlState.scrollContainerToTarget).toHaveBeenCalled()
   })
 
-  it('highlight は timeout 後に解除される', () => {
+  it('highlight は timeout 後に解除される', async () => {
     vi.useFakeTimers()
     const target = document.createElement('div')
     scrollControlState.getRelativeScrollTarget.mockReturnValue(target)
     renderWithContainer('domain')
 
+    // userEvent is incompatible with fake timers; use fireEvent here
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.click(screen.getByLabelText('Scroll to previous parent category'))
     expect(target.classList.contains('saved-tabs-scroll-highlight')).toBe(true)
     void act(() => vi.advanceTimersByTime(1_200))
     expect(target.classList.contains('saved-tabs-scroll-highlight')).toBe(false)
   })
 
-  it('getRelativeScrollTarget が null を返す場合 updateAvailability だけ呼んで早期 return', () => {
+  it('getRelativeScrollTarget が null を返す場合 updateAvailability だけ呼んで早期 return', async () => {
+    const user = userEvent.setup()
     scrollControlState.getRelativeScrollTarget.mockReturnValue(null)
     renderWithContainer('domain')
-    fireEvent.click(screen.getByLabelText('Scroll to previous parent category'))
+    await user.click(
+      screen.getByLabelText('Scroll to previous parent category'),
+    )
     expect(scrollControlState.scrollContainerToTarget).not.toHaveBeenCalled()
   })
 
@@ -315,7 +335,8 @@ describe('contexts/SavedTabsScrollControls', () => {
     expect(scrollControlState.getScrollControlAvailability).toHaveBeenCalled()
   })
 
-  it('container が null の状態で container が必要な関数を呼んでも例外を投げない', () => {
+  it('container が null の状態で container が必要な関数を呼んでも例外を投げない', async () => {
+    const user = userEvent.setup()
     const container = renderWithContainer('domain')
     const scrollTo = vi.fn()
     // ref.current を取り出せないシナリオで Scroll to top をクリック
@@ -324,11 +345,12 @@ describe('contexts/SavedTabsScrollControls', () => {
       configurable: true,
       value: scrollTo,
     })
-    fireEvent.click(screen.getByLabelText('Scroll to top'))
+    await user.click(screen.getByLabelText('Scroll to top'))
     expect(scrollTo).toHaveBeenCalled()
   })
 
-  it('描画後に ref が null になった top/bottom/relative 操作は no-op', () => {
+  it('描画後に ref が null になった top/bottom/relative 操作は no-op', async () => {
+    const user = userEvent.setup()
     const ref: { current: HTMLDivElement | null } = {
       current: document.createElement('div'),
     }
@@ -337,9 +359,11 @@ describe('contexts/SavedTabsScrollControls', () => {
     )
     ref.current = null
 
-    fireEvent.click(screen.getByLabelText('Scroll to top'))
-    fireEvent.click(screen.getByLabelText('Scroll to bottom'))
-    fireEvent.click(screen.getByLabelText('Scroll to previous parent category'))
+    await user.click(screen.getByLabelText('Scroll to top'))
+    await user.click(screen.getByLabelText('Scroll to bottom'))
+    await user.click(
+      screen.getByLabelText('Scroll to previous parent category'),
+    )
 
     expect(scrollControlState.scrollContainerToTarget).not.toHaveBeenCalled()
   })
@@ -355,8 +379,10 @@ describe('contexts/SavedTabsScrollControls', () => {
     })
     const topButton = screen.getByLabelText('Scroll to top')
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.mouseDown(topButton)
     void act(() => vi.advanceTimersByTime(700))
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.mouseUp(topButton)
     const callsAfterMouseUp = scrollTo.mock.calls.length
     void act(() => vi.advanceTimersByTime(500))

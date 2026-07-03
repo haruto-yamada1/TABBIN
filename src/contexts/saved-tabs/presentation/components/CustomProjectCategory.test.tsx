@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -260,6 +261,7 @@ describe('CustomProjectCategory', () => {
   })
 
   it('カテゴリURLをフィルタして描画し、折りたたみ・ソート・即時一括操作を処理する', async () => {
+    const user = userEvent.setup()
     const handleOpenAllUrls = vi.fn()
     const handleDeleteUrl = vi.fn(async () => {})
     render(
@@ -283,33 +285,35 @@ describe('CustomProjectCategory', () => {
     )
 
     const collapseButton = screen.getByRole('button', { name: '折りたたむ' })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.pointerDown(collapseButton)
-    fireEvent.click(collapseButton)
+    await user.click(collapseButton)
     expect(screen.queryByTestId('card-content')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: '展開' }))
+    await user.click(screen.getByRole('button', { name: '展開' }))
     expect(screen.getByTestId('card-content')).toBeTruthy()
 
     const sortButton = screen.getByRole('button', { name: 'デフォルト' })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.pointerDown(sortButton)
-    fireEvent.click(sortButton)
+    await user.click(sortButton)
     expect(screen.getByRole('button', { name: '保存日時の昇順' })).toBeTruthy()
     expect(screen.getAllByTestId('project-url-item')[0]?.textContent).toContain(
       'https://c.com',
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '保存日時の昇順' }))
+    await user.click(screen.getByRole('button', { name: '保存日時の昇順' }))
     expect(screen.getByRole('button', { name: '保存日時の降順' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '保存日時の降順' }))
+    await user.click(screen.getByRole('button', { name: '保存日時の降順' }))
     expect(screen.getByRole('button', { name: 'デフォルト' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて開く' }))
+    await user.click(screen.getByRole('button', { name: 'すべて開く' }))
     expect(handleOpenAllUrls).toHaveBeenCalledWith(
       expect.arrayContaining([
         { url: 'https://b.com', title: 'B', category: 'Work', savedAt: 2 },
       ]),
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
     await waitFor(() => {
       expect(handleDeleteUrl).toHaveBeenCalledTimes(3)
     })
@@ -355,6 +359,7 @@ describe('CustomProjectCategory', () => {
   })
 
   it('10件以上の一括開く確認ダイアログで handleOpenAllUrls 未指定時は window.open にフォールバックする', async () => {
+    const user = userEvent.setup()
     using openSpy = vi.spyOn(window, 'open')
     render(
       <CustomProjectCategory
@@ -370,8 +375,8 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて開く' }))
-    fireEvent.click(await screen.findByRole('button', { name: '開く' }))
+    await user.click(screen.getByRole('button', { name: 'すべて開く' }))
+    await user.click(await screen.findByRole('button', { name: '開く' }))
 
     expect(openSpy).toHaveBeenCalledTimes(10)
     expect(openSpy).toHaveBeenCalledWith(
@@ -382,6 +387,7 @@ describe('CustomProjectCategory', () => {
   })
 
   it('confirmDeleteAll=true では一括削除確認ダイアログを表示し未分類名も表示する', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrl = vi.fn(async () => {})
     render(
       <CustomProjectCategory
@@ -397,17 +403,18 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
     expect(screen.getByText('タブをすべて削除しますか？')).toBeTruthy()
     expect(screen.getByText(/未分類/)).toBeTruthy()
-    fireEvent.click(await screen.findByRole('button', { name: '削除' }))
+    await user.click(await screen.findByRole('button', { name: '削除' }))
 
     await waitFor(() => {
       expect(handleDeleteUrl).toHaveBeenCalledWith('project-1', 'https://u.com')
     })
   })
 
-  it('カテゴリ管理ダイアログで rename / delete の分岐とイベント停止を処理する', () => {
+  it('カテゴリ管理ダイアログで rename / delete の分岐とイベント停止を処理する', async () => {
+    const user = userEvent.setup()
     const handleRenameCategory = vi.fn()
     const handleDeleteCategory = vi.fn()
     render(
@@ -419,37 +426,42 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'カテゴリ管理' }))
+    await user.click(screen.getByRole('button', { name: 'カテゴリ管理' }))
     expect(screen.getByRole('heading', { name: 'カテゴリ管理' })).toBeTruthy()
 
     const dialogContent = screen.getByTestId('dialog-content')
     const stopPropagation = vi.fn()
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(dialogContent, { key: 'Enter', stopPropagation })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(dialogContent, { key: ' ', stopPropagation })
 
     const renameInput = screen.getByLabelText('カテゴリ名')
-    fireEvent.change(renameInput, { target: { value: '   ' } })
+    await user.clear(renameInput)
+    await user.type(renameInput, '   ')
     fireEvent.blur(renameInput)
     expect(screen.getByText('カテゴリ名を入力してください')).toBeTruthy()
 
-    fireEvent.change(renameInput, { target: { value: 'Work' } })
+    await user.clear(renameInput)
+    await user.type(renameInput, 'Work')
     fireEvent.blur(renameInput)
     expect(handleRenameCategory).not.toHaveBeenCalled()
 
-    fireEvent.change(renameInput, { target: { value: 'Work2' } })
-    fireEvent.keyDown(renameInput, { key: 'Enter' })
+    await user.clear(renameInput)
+    await user.type(renameInput, 'Work2')
+    await user.type(renameInput, '{Enter}')
     expect(handleRenameCategory).toHaveBeenCalledWith(
       'project-1',
       'Work',
       'Work2',
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'カテゴリを削除' }))
-    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    await user.click(screen.getByRole('button', { name: 'カテゴリを削除' }))
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }))
     expect(screen.queryByRole('button', { name: '削除' })).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'カテゴリを削除' }))
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: 'カテゴリを削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
     expect(handleDeleteCategory).toHaveBeenCalledWith('project-1', 'Work')
     expect(screen.queryByRole('heading', { name: 'カテゴリ管理' })).toBeNull()
   })
@@ -550,7 +562,8 @@ describe('CustomProjectCategory', () => {
     ).toBe(true)
   })
 
-  it('savedAt 未指定のソートと、管理ダイアログの未設定ハンドラ/イベント分岐を処理する', () => {
+  it('savedAt 未指定のソートと、管理ダイアログの未設定ハンドラ/イベント分岐を処理する', async () => {
+    const user = userEvent.setup()
     const handleDeleteCategory = vi.fn()
     const { rerender } = render(
       <CustomProjectCategory
@@ -565,10 +578,10 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'デフォルト' }))
+    await user.click(screen.getByRole('button', { name: 'デフォルト' }))
     expect(screen.getByRole('button', { name: '保存日時の昇順' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'カテゴリ管理' }))
+    await user.click(screen.getByRole('button', { name: 'カテゴリ管理' }))
     const dialogContent = screen.getByTestId('dialog-content')
     const pointerStopPropagation = vi.fn()
     const pointerDownEvent = new Event('pointerdown', {
@@ -592,13 +605,14 @@ describe('CustomProjectCategory', () => {
     expect(keyStopPropagation).not.toHaveBeenCalled()
 
     const renameInput = screen.getByLabelText('カテゴリ名')
-    fireEvent.keyDown(renameInput, { key: 'Escape' })
-    fireEvent.change(renameInput, { target: { value: 'Renamed' } })
-    fireEvent.keyDown(renameInput, { key: 'Enter' })
+    await user.type(renameInput, '{Escape}')
+    await user.clear(renameInput)
+    await user.type(renameInput, 'Renamed')
+    await user.type(renameInput, '{Enter}')
     expect(handleDeleteCategory).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'カテゴリを削除' }))
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: 'カテゴリを削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
     expect(handleDeleteCategory).toHaveBeenCalledWith('project-1', 'Work')
 
     const handleRenameCategory = vi.fn()
@@ -612,14 +626,14 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'カテゴリ管理' }))
+    await user.click(screen.getByRole('button', { name: 'カテゴリ管理' }))
     const deleteCategoryButton = screen.queryByRole('button', {
       name: 'カテゴリを削除',
     })
     if (deleteCategoryButton) {
-      fireEvent.click(deleteCategoryButton)
+      await user.click(deleteCategoryButton)
     }
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
     expect(screen.queryByRole('heading', { name: 'カテゴリ管理' })).toBeNull()
   })
 

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const keywordEditorI18nState = vi.hoisted(() => ({
@@ -99,21 +101,32 @@ describe('KeywordEditor', () => {
     expect(container.childElementCount).toBe(0)
   })
 
-  it('入力変更を state setter へ渡す', () => {
+  it('入力変更を state setter へ渡す', async () => {
+    const user = userEvent.setup()
     const setNewKeyword = vi.fn()
-    useKeywordModalMock.mockReturnValue(
-      createKeywordModalValue({ setNewKeyword }),
-    )
-    render(<KeywordEditor />)
 
-    fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'guide' },
-    })
+    function Harness() {
+      const [keywordValue, setKeywordValue] = useState('')
+      useKeywordModalMock.mockImplementation(() =>
+        createKeywordModalValue({
+          setNewKeyword: vi.fn((value: string) => {
+            setNewKeyword(value)
+            setKeywordValue(value)
+          }),
+          newKeyword: keywordValue,
+        }),
+      )
+      return <KeywordEditor />
+    }
+
+    render(<Harness />)
+    await user.type(screen.getByRole('textbox'), 'guide')
 
     expect(setNewKeyword).toHaveBeenCalledWith('guide')
   })
 
-  it('Enter で追加し、それ以外の key では追加しない', () => {
+  it('Enter で追加し、それ以外の key では追加しない', async () => {
+    const user = userEvent.setup()
     const handleAddKeyword = vi.fn()
     useKeywordModalMock.mockReturnValue(
       createKeywordModalValue({ handleAddKeyword }),
@@ -121,9 +134,9 @@ describe('KeywordEditor', () => {
     render(<KeywordEditor />)
     const input = screen.getByRole('textbox')
 
-    fireEvent.keyDown(input, { key: 'Escape' })
+    await user.type(input, '{Escape}')
     expect(handleAddKeyword).not.toHaveBeenCalled()
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     expect(handleAddKeyword).toHaveBeenCalledOnce()
   })
 
@@ -148,7 +161,8 @@ describe('KeywordEditor', () => {
     expect(filledAdd).toHaveBeenCalledOnce()
   })
 
-  it('keyword badge の削除を委譲し、rename 中は操作を無効化する', () => {
+  it('keyword badge の削除を委譲し、rename 中は操作を無効化する', async () => {
+    const user = userEvent.setup()
     const handleRemoveKeyword = vi.fn()
     useKeywordModalMock.mockReturnValue(
       createKeywordModalValue({
@@ -158,7 +172,7 @@ describe('KeywordEditor', () => {
     )
     const { rerender } = render(<KeywordEditor />)
 
-    fireEvent.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('button'))
     expect(handleRemoveKeyword).toHaveBeenCalledWith('guide')
 
     useKeywordModalMock.mockReturnValue(

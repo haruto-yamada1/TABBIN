@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -230,7 +231,8 @@ describe('SortableUrlItem additional', () => {
     })
   })
 
-  it('confirmDeleteEach が true の場合は確認後に削除する', () => {
+  it('confirmDeleteEach が true の場合は確認後に削除する', async () => {
+    const user = userEvent.setup()
     const props = createProps()
     const handleDeleteUrl = vi.fn()
     renderWithMessagingPort(
@@ -241,10 +243,10 @@ describe('SortableUrlItem additional', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'タブを削除' }))
+    await user.click(screen.getByRole('button', { name: 'タブを削除' }))
     expect(handleDeleteUrl).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
     expect(handleDeleteUrl).toHaveBeenCalledWith(
       'group-1',
       'https://example.com',

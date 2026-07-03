@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -191,19 +192,23 @@ describe('OptionsRoute', () => {
   })
 
   it('renders settings sections and commits font size controls', async () => {
+    const user = userEvent.setup()
     render(<OptionsRoute />)
 
     expect(screen.getByText('options.title')).toBeTruthy()
     expect(screen.getByText('import-export-settings')).toBeTruthy()
 
     const slider = screen.getByLabelText('options.fontSize.rangeLabel')
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(slider, { target: { value: '125' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyUp(slider, { key: 'Tab' })
     expect(optionsRouteMocks.updateSetting).not.toHaveBeenCalledWith(
       'fontSizePercent',
       125,
     )
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyUp(slider, { key: 'ArrowRight' })
     await waitFor(() => {
       expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
@@ -211,8 +216,10 @@ describe('OptionsRoute', () => {
         125,
       )
     })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(slider, { target: { value: '130' } })
     fireEvent.touchEnd(slider)
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(slider, { target: { value: '135' } })
     fireEvent.blur(slider)
     await waitFor(() => {
@@ -223,59 +230,65 @@ describe('OptionsRoute', () => {
     })
 
     const input = screen.getByLabelText('options.fontSize.inputLabel')
-    fireEvent.change(input, { target: { value: '' } })
+    await user.clear(input)
     fireEvent.blur(input)
     expect((input as HTMLInputElement).value).toBe('100')
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'not-number' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     expect((input as HTMLInputElement).value).toBe('100')
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'NaN' } })
     fireEvent.blur(input)
     expect((input as HTMLInputElement).value).toBe('100')
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'not-number' } })
-    fireEvent.keyDown(input, { key: 'Escape' })
+    await user.type(input, '{Escape}')
     expect((input as HTMLInputElement).value).toBe('')
 
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     expect((input as HTMLInputElement).value).toBe('100')
   })
 
   it('updates behavior, color, reset, exclude removal, and external links', async () => {
+    const user = userEvent.setup()
     render(<OptionsRoute />)
 
-    fireEvent.change(screen.getByLabelText('click-behavior'), {
-      target: { value: 'saveCurrentTab' },
-    })
+    await user.selectOptions(
+      screen.getByLabelText('click-behavior'),
+      'saveCurrentTab',
+    )
     expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
       'clickBehavior',
       'saveCurrentTab',
     )
 
-    fireEvent.click(screen.getByLabelText('options.autoDelete.openAfter'))
+    await user.click(screen.getByLabelText('options.autoDelete.openAfter'))
     expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
       'removeTabAfterOpen',
       false,
     )
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(screen.getAllByDisplayValue(/^#/)[0], {
       target: { value: '#123456' },
     })
     expect(optionsRouteMocks.handleColorChange).toHaveBeenCalled()
 
-    fireEvent.click(screen.getAllByText('common.reset')[0])
+    await user.click(screen.getAllByText('common.reset')[0])
     expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
       'fontSizePercent',
       100,
     )
 
-    fireEvent.click(screen.getAllByText('common.reset')[1])
+    await user.click(screen.getAllByText('common.reset')[1])
     expect(optionsRouteMocks.handleResetColors).toHaveBeenCalled()
 
-    fireEvent.click(screen.getByText('options.contact'))
-    fireEvent.click(screen.getByText('options.releaseNotes'))
+    await user.click(screen.getByText('options.contact'))
+    await user.click(screen.getByText('options.releaseNotes'))
 
     expect(window.open).toHaveBeenCalledWith(
       'https://forms.gle/c9gBiF2TmgXaeU7J6',

@@ -5,13 +5,8 @@ import { dirname, resolve } from 'node:path'
 // eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -274,6 +269,7 @@ describe('DomainSelectionList', () => {
   })
 
   it('チェックボックス操作でドメイン選択トグルを呼び出す', async () => {
+    const user = userEvent.setup()
     const tabGroups = createTabGroups(1)
     const toggleDomainSelection = vi.fn()
 
@@ -292,7 +288,7 @@ describe('DomainSelectionList', () => {
       expect(screen.getByRole('checkbox')).toBeTruthy()
     })
 
-    fireEvent.click(screen.getByRole('checkbox'))
+    await user.click(screen.getByRole('checkbox'))
 
     expect(toggleDomainSelection).toHaveBeenCalledWith('group-0')
   })

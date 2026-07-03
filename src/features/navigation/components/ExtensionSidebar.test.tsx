@@ -5,13 +5,8 @@ import { dirname, resolve } from 'node:path'
 // eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const sidebarContextValue = {
@@ -253,7 +248,8 @@ describe('ExtensionSidebar', () => {
     sidebarContextValue.sidebarWidth = 256
   })
 
-  it('縮小ヘッダーの開くボタンは固定でサイドバーを開いて幅を通常幅へ戻す', () => {
+  it('縮小ヘッダーの開くボタンは固定でサイドバーを開いて幅を通常幅へ戻す', async () => {
+    const user = userEvent.setup()
     sidebarContextValue.sidebarWidth = 48
     sidebarContextValue.open = true
 
@@ -266,7 +262,7 @@ describe('ExtensionSidebar', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
+    await user.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
 
     expect(sidebarContextValue.setSidebarWidth).toHaveBeenCalledWith(256)
     expect(sidebarContextValue.setOpen).toHaveBeenCalledWith(true)
@@ -299,7 +295,8 @@ describe('ExtensionSidebar', () => {
     )
   })
 
-  it('通常幅ヘッダーの縮小ボタンは icon rail 幅まで戻す', () => {
+  it('通常幅ヘッダーの縮小ボタンは icon rail 幅まで戻す', async () => {
+    const user = userEvent.setup()
     sidebarContextValue.sidebarWidth = 256
 
     render(
@@ -311,7 +308,7 @@ describe('ExtensionSidebar', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'サイドバーを小さくする' }),
     )
 

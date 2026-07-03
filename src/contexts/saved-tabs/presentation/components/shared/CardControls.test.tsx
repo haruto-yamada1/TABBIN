@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -47,7 +48,8 @@ afterEach(() => {
 })
 
 describe('CardSortControl', () => {
-  it('default -> asc -> desc -> default でソート順を切り替える', () => {
+  it('default -> asc -> desc -> default でソート順を切り替える', async () => {
+    const user = userEvent.setup()
     const Harness = () => {
       const [sortOrder, setSortOrder] = useState<SortOrder>('default')
       return (
@@ -60,25 +62,26 @@ describe('CardSortControl', () => {
 
     render(<Harness />)
 
-    const clickSortButton = (name: string) => {
-      fireEvent.click(screen.getByRole('button', { name }))
+    const clickSortButton = async (name: string) => {
+      await user.click(screen.getByRole('button', { name }))
     }
 
     expect(screen.getByTestId('sort-order').textContent).toBe('default')
 
-    clickSortButton('デフォルト')
+    await clickSortButton('デフォルト')
     expect(screen.getByTestId('sort-order').textContent).toBe('asc')
 
-    clickSortButton('保存日時の昇順')
+    await clickSortButton('保存日時の昇順')
     expect(screen.getByTestId('sort-order').textContent).toBe('desc')
 
-    clickSortButton('保存日時の降順')
+    await clickSortButton('保存日時の降順')
     expect(screen.getByTestId('sort-order').textContent).toBe('default')
   })
 })
 
 describe('CardCollapseControl', () => {
-  it('有効時に折りたたみ状態とユーザー状態を更新する', () => {
+  it('有効時に折りたたみ状態とユーザー状態を更新する', async () => {
+    const user = userEvent.setup()
     const Harness = () => {
       const [isCollapsed, setIsCollapsed] = useState(false)
       const [userCollapsedState, setUserCollapsedState] = useState(false)
@@ -98,16 +101,17 @@ describe('CardCollapseControl', () => {
 
     render(<Harness />)
 
-    fireEvent.click(screen.getByRole('button', { name: '折りたたむ' }))
+    await user.click(screen.getByRole('button', { name: '折りたたむ' }))
     expect(screen.getByTestId('collapsed').textContent).toBe('true')
     expect(screen.getByTestId('user-collapsed').textContent).toBe('true')
 
-    fireEvent.click(screen.getByRole('button', { name: '展開' }))
+    await user.click(screen.getByRole('button', { name: '展開' }))
     expect(screen.getByTestId('collapsed').textContent).toBe('false')
     expect(screen.getByTestId('user-collapsed').textContent).toBe('false')
   })
 
-  it('無効時はクリックしても状態を更新しない', () => {
+  it('無効時はクリックしても状態を更新しない', async () => {
+    const user = userEvent.setup()
     const setIsCollapsed = vi.fn()
     const setUserCollapsedState = vi.fn()
 
@@ -124,7 +128,7 @@ describe('CardCollapseControl', () => {
     const button = screen.getByRole('button', { name: '折りたたむ' })
     expect(button.getAttribute('disabled')).not.toBeNull()
 
-    fireEvent.click(button)
+    await user.click(button)
     expect(setIsCollapsed).not.toHaveBeenCalled()
     expect(setUserCollapsedState).not.toHaveBeenCalled()
     expect(screen.getByText('並び替えモード中')).toBeTruthy()
@@ -154,7 +158,8 @@ describe('CardReorderControls', () => {
     expect(container.textContent).toBe('')
   })
 
-  it('並び替えモード時に確定/キャンセル操作を実行する', () => {
+  it('並び替えモード時に確定/キャンセル操作を実行する', async () => {
+    const user = userEvent.setup()
     const onCancel = vi.fn()
     const onConfirm = vi.fn()
 
@@ -166,10 +171,10 @@ describe('CardReorderControls', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '並び替えをキャンセル' }),
     )
-    fireEvent.click(screen.getByRole('button', { name: '並び替えを確定' }))
+    await user.click(screen.getByRole('button', { name: '並び替えを確定' }))
 
     expect(onCancel).toHaveBeenCalledTimes(1)
     expect(onConfirm).toHaveBeenCalledTimes(1)

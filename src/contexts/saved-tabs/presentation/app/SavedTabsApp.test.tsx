@@ -1,13 +1,7 @@
 /* eslint-disable max-lines-per-function, typescript/consistent-type-imports, typescript/no-misused-promises, typescript/require-await -- vi.importActual の typeof import および mock interface の sync 実装 */
 // @vitest-environment jsdom
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
@@ -992,11 +986,11 @@ describe('SavedTabsApp custom search', () => {
   })
 
   it('プロジェクト名一致で対象プロジェクトだけを表示する', async () => {
+    const user = userEvent.setup()
     render(<SavedTabsApp />)
 
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: 'Reading' },
-    })
+    await user.clear(screen.getByLabelText('search'))
+    await user.type(screen.getByLabelText('search'), 'Reading')
 
     await waitFor(() => {
       expect(screen.getByText('project:Reading List')).toBeTruthy()
@@ -1007,11 +1001,11 @@ describe('SavedTabsApp custom search', () => {
   })
 
   it('URL 一致で対象プロジェクトに絞り込み、一致した URL を表示する', async () => {
+    const user = userEvent.setup()
     render(<SavedTabsApp />)
 
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: 'docker-cmd' },
-    })
+    await user.clear(screen.getByLabelText('search'))
+    await user.type(screen.getByLabelText('search'), 'docker-cmd')
 
     await waitFor(() => {
       expect(
@@ -1027,11 +1021,11 @@ describe('SavedTabsApp custom search', () => {
   })
 
   it('タイトル一致で対象プロジェクトに絞り込み、一致したタブを表示する', async () => {
+    const user = userEvent.setup()
     render(<SavedTabsApp />)
 
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: 'Meeting notes' },
-    })
+    await user.clear(screen.getByLabelText('search'))
+    await user.type(screen.getByLabelText('search'), 'Meeting notes')
 
     await waitFor(() => {
       expect(
@@ -1101,6 +1095,7 @@ describe('SavedTabsApp custom search', () => {
   })
 
   it('ドメインモードでは親カテゴリ名検索で一致したグループを保持する', async () => {
+    const user = userEvent.setup()
     const group: TabGroup = {
       id: 'group-1',
       domain: 'example.com',
@@ -1129,9 +1124,8 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: 'Reading' },
-    })
+    await user.clear(screen.getByLabelText('search'))
+    await user.type(screen.getByLabelText('search'), 'Reading')
 
     await waitFor(() => {
       expect(mocked.domainModeContainerSpy).toHaveBeenLastCalledWith(
@@ -1143,6 +1137,7 @@ describe('SavedTabsApp custom search', () => {
   })
 
   it('parentCategoryId が直接指す親カテゴリ名でも検索一致する', async () => {
+    const user = userEvent.setup()
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
@@ -1171,9 +1166,8 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: 'Reading' },
-    })
+    await user.clear(screen.getByLabelText('search'))
+    await user.type(screen.getByLabelText('search'), 'Reading')
 
     await waitFor(() => {
       expect(mocked.domainModeContainerSpy).toHaveBeenLastCalledWith(
@@ -1189,6 +1183,7 @@ describe('SavedTabsApp custom search', () => {
   })
 
   it('検索時に URL 一覧が空のグループとカテゴリ未一致ログ分岐を扱う', async () => {
+    const user = userEvent.setup()
     const emptyGroup: TabGroup = {
       domain: 'empty.example.com',
       id: 'group-empty',
@@ -1213,9 +1208,8 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: 'missing' },
-    })
+    await user.clear(screen.getByLabelText('search'))
+    await user.type(screen.getByLabelText('search'), 'missing')
 
     await waitFor(() => {
       expect(mocked.domainModeContainerSpy).toHaveBeenLastCalledWith(
@@ -2617,6 +2611,7 @@ describe('SavedTabsApp custom search', () => {
   })
 
   it('未分類ドメインの並び替えを確定/キャンセルできる', async () => {
+    const user = userEvent.setup()
     const group1: TabGroup = {
       domain: 'a.example.com',
       id: 'group-1',
@@ -2666,9 +2661,7 @@ describe('SavedTabsApp custom search', () => {
       }) => void
     }
 
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: '' },
-    })
+    await user.clear(screen.getByLabelText('search'))
 
     act(() => {
       domainProps.handleUncategorizedDragEnd({
@@ -2780,6 +2773,7 @@ describe('SavedTabsApp custom search', () => {
   })
 
   it('親カテゴリ検索は missing parent と URL 部分一致の絞り込みを処理する', async () => {
+    const user = userEvent.setup()
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
@@ -2813,9 +2807,8 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
-    fireEvent.change(screen.getByLabelText('search'), {
-      target: { value: 'alpha' },
-    })
+    await user.clear(screen.getByLabelText('search'))
+    await user.type(screen.getByLabelText('search'), 'alpha')
 
     await waitFor(() => {
       expect(mocked.domainModeContainerSpy).toHaveBeenLastCalledWith(

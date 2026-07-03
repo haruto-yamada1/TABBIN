@@ -2,12 +2,12 @@
 import {
   act,
   cleanup,
-  fireEvent,
   render,
   renderHook,
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -270,6 +270,7 @@ describe('ThemeProvider', () => {
   })
 
   it('user テーマの色適用と userSettings 変更イベントを反映する', async () => {
+    const user = userEvent.setup()
     storageValues.userSettings = {
       colors: {
         accent: '#111111',
@@ -298,7 +299,7 @@ describe('ThemeProvider', () => {
     })
     expect(document.documentElement.style.getPropertyValue('--accent')).toBe('')
 
-    fireEvent.click(screen.getByRole('button', { name: 'set-user' }))
+    await user.click(screen.getByRole('button', { name: 'set-user' }))
 
     await waitFor(() => {
       expect(screen.getByTestId('theme').textContent).toBe('user')

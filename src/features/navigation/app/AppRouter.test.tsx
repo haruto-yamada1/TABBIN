@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const routeModuleLoads = vi.hoisted(() => ({
@@ -120,6 +121,7 @@ describe('AppRouter', () => {
   })
 
   it('サイドバークリックで SPA 遷移する', async () => {
+    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     const analyticsLink = screen.getAllByRole('link', {
@@ -129,15 +131,16 @@ describe('AppRouter', () => {
       throw new Error('分析リンクが見つかりません')
     }
 
-    fireEvent.click(analyticsLink)
+    await user.click(analyticsLink)
 
     await expect(screen.findByText('analytics-route')).resolves.toBeTruthy()
   })
 
-  it('router context では内部リンクが app.html ではなく route を指す', () => {
+  it('router context では内部リンクが app.html ではなく route を指す', async () => {
+    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=custom']} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
+    await user.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
 
     expect(
       screen
@@ -181,10 +184,11 @@ describe('AppRouter', () => {
   })
 
   it('SavedTabsRoute から別 mode を選ぶと replace navigate する', async () => {
+    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     await screen.findByText('saved-tabs-route:?mode=domain')
-    fireEvent.click(screen.getByRole('button', { name: 'navigate-custom' }))
+    await user.click(screen.getByRole('button', { name: 'navigate-custom' }))
 
     await expect(
       screen.findByText('saved-tabs-route:?mode=custom'),
@@ -192,10 +196,11 @@ describe('AppRouter', () => {
   })
 
   it('SavedTabsRoute から同じ mode を選んだ場合は再 navigate しない', async () => {
+    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     await screen.findByText('saved-tabs-route:?mode=domain')
-    fireEvent.click(screen.getByRole('button', { name: 'navigate-domain' }))
+    await user.click(screen.getByRole('button', { name: 'navigate-domain' }))
 
     await expect(
       screen.findByText('saved-tabs-route:?mode=domain'),

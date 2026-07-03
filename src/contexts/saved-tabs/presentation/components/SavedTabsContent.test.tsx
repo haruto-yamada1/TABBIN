@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -239,6 +234,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
   })
 
   it('renders English category controls when the display language is en', async () => {
+    const user = userEvent.setup()
     savedTabsContentI18nState.language = 'en'
 
     render(
@@ -256,7 +252,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
         name: getOpenAllButtonName('__uncategorized'),
       }),
     ).toBeTruthy()
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: getDeleteAllButtonName('__uncategorized'),
       }),
@@ -264,7 +260,8 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     await expect(screen.findByText('Delete all tabs?')).resolves.toBeTruthy()
   })
 
-  it('isDragging スタイルと urls 未指定時のフォールバックを処理する', () => {
+  it('isDragging スタイルと urls 未指定時のフォールバックを処理する', async () => {
+    const user = userEvent.setup()
     useSortableMock.mockReturnValue({
       attributes: {},
       listeners: {},
@@ -288,13 +285,14 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
     expect(container.innerHTML.includes('shadow-lg')).toBe(true)
     expect(container.innerHTML.includes('cursor-grabbing')).toBe(true)
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: getOpenAllButtonName('news') }),
     )
     expect(handleOpenAllTabs).toHaveBeenCalledWith([])
   })
 
   it('すべて開くボタンは件数が少ない場合に即時実行し、多い場合は確認ダイアログを経由する', async () => {
+    const user = userEvent.setup()
     const handleOpenAllTabs = vi.fn()
     const { rerender } = render(
       <SavedTabsContentComponent
@@ -305,7 +303,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: getOpenAllButtonName('news') }),
     )
     expect(handleOpenAllTabs).toHaveBeenCalledWith([
@@ -324,14 +322,14 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: getOpenAllButtonName('news') }),
     )
     await expect(
       screen.findByText('10個以上のタブを開こうとしています。続行しますか？'),
     ).resolves.toBeTruthy()
     const openButton = await screen.findByRole('button', { name: '開く' })
-    fireEvent.click(openButton)
+    await user.click(openButton)
 
     expect(handleOpenAllTabs).toHaveBeenCalledWith(
       expect.arrayContaining([{ url: 'https://example.com/0', title: '0' }]),
@@ -339,6 +337,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
   })
 
   it('削除ボタンがない場合は描画せず、ある場合は確認ダイアログを開く', async () => {
+    const user = userEvent.setup()
     const { rerender } = render(
       <SavedTabsContentComponent {...createProps()} />,
     )
@@ -354,7 +353,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
     )
     await expect(
@@ -363,6 +362,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
   })
 
   it('カテゴリ全削除確認で handleDeleteAllTabs を 1 回だけ呼ぶ', async () => {
+    const user = userEvent.setup()
     const handleDeleteAllTabs = vi.fn().mockResolvedValue(undefined)
 
     render(
@@ -373,10 +373,10 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
     )
-    fireEvent.click(await screen.findByRole('button', { name: '削除' }))
+    await user.click(await screen.findByRole('button', { name: '削除' }))
 
     await waitFor(() => {
       expect(handleDeleteAllTabs).toHaveBeenCalledWith([
@@ -389,6 +389,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
   })
 
   it('削除処理で例外時でも落ちずに終了する', async () => {
+    const user = userEvent.setup()
     const handleDeleteAllTabs = vi.fn().mockRejectedValueOnce(new Error('boom'))
 
     const { rerender } = render(
@@ -399,10 +400,10 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
     )
-    fireEvent.click(await screen.findByRole('button', { name: '削除' }))
+    await user.click(await screen.findByRole('button', { name: '削除' }))
 
     await screen.findByRole('button', { name: getDeleteAllButtonName('news') })
 
@@ -415,12 +416,12 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: getDeleteAllButtonName('error-case'),
       }),
     )
-    fireEvent.click(await screen.findByRole('button', { name: '削除' }))
+    await user.click(await screen.findByRole('button', { name: '削除' }))
 
     await waitFor(() => {
       expect(console.error).toHaveBeenCalled()
@@ -428,6 +429,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
   })
 
   it('削除確認の二重実行を防ぐ', async () => {
+    const user = userEvent.setup()
     let resolveUpdate: (() => void) | undefined
     const handleDeleteAllTabs = vi.fn().mockImplementationOnce(
       async () =>
@@ -444,13 +446,13 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: getDeleteAllButtonName('news') }),
     )
     const confirmButton = await screen.findByRole('button', {
       name: '削除',
     })
-    fireEvent.click(confirmButton)
+    await user.click(confirmButton)
     await waitFor(() => {
       expect(
         screen
@@ -458,7 +460,7 @@ describe('SavedTabsContent.tsx (legacy SortableCategorySection)', () => {
           .hasAttribute('disabled'),
       ).toBe(true)
     })
-    fireEvent.click(confirmButton)
+    await user.click(confirmButton)
 
     await waitFor(() => {
       expect(handleDeleteAllTabs).toHaveBeenCalledTimes(1)

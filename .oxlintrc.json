@@ -201,7 +201,12 @@
     "react/no-react-children": "off",
     "react/hook-use-state": "error",
     "react/jsx-handler-names": "error",
-    "react/jsx-max-depth": ["error", { "max": 5 }],
+    "react/jsx-max-depth": [
+      "error",
+      {
+        "max": 5
+      }
+    ],
     "react/jsx-no-constructed-context-values": "error",
     "react/jsx-props-no-spreading": "off",
     "react/react-in-jsx-scope": "off",
@@ -444,7 +449,10 @@
         "vitest.workspace.ts",
         "src/entrypoints/**"
       ],
-      "env": { "node": true, "es2024": true },
+      "env": {
+        "node": true,
+        "es2024": true
+      },
       "rules": {
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
@@ -452,11 +460,19 @@
         "unicorn/no-abusive-eslint-disable": "off",
         "eslint/max-lines": [
           "error",
-          { "max": 800, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 800,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-lines-per-function": [
           "error",
-          { "max": 250, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 250,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-statements": ["error", 100],
         "eslint/max-params": "off"
@@ -497,11 +513,19 @@
         "eslint/no-magic-numbers": "off",
         "eslint/max-lines": [
           "error",
-          { "max": 5000, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 5000,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-lines-per-function": [
           "error",
-          { "max": 2000, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 2000,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-statements": ["error", 200],
         "eslint/complexity": ["error", 20],
@@ -545,11 +569,19 @@
         "eslint/no-magic-numbers": "off",
         "eslint/max-lines": [
           "error",
-          { "max": 800, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 800,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-lines-per-function": [
           "error",
-          { "max": 300, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 300,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-statements": ["error", 100],
         "eslint/complexity": ["error", 20],
@@ -728,7 +760,8 @@
         "testing-library/no-global-regexp-flag-in-query": "error",
         "testing-library/no-dom-import": "error",
         "testing-library/prefer-user-event-setup": "error",
-        "testing-library/no-debugging-utils": "error"
+        "testing-library/no-debugging-utils": "error",
+        "testing-library/prefer-user-event": "error"
       }
     }
   ]
