@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const cardGroupActionsI18nState = vi.hoisted(() => ({
@@ -87,7 +88,8 @@ describe('CardGroupActions', () => {
     cardGroupActionsI18nState.language = 'ja'
   })
 
-  it('確認なしの操作では即時に各ハンドラを呼ぶ', () => {
+  it('確認なしの操作では即時に各ハンドラを呼ぶ', async () => {
+    const user = userEvent.setup()
     const onManage = vi.fn()
     const onOpenAll = vi.fn()
     const onDeleteAll = vi.fn()
@@ -101,9 +103,9 @@ describe('CardGroupActions', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '設定' }))
-    fireEvent.click(screen.getByRole('button', { name: 'すべてのタブを開く' }))
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: '設定' }))
+    await user.click(screen.getByRole('button', { name: 'すべてのタブを開く' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
 
     expect(onManage).toHaveBeenCalledTimes(1)
     expect(onOpenAll).toHaveBeenCalledTimes(1)
@@ -118,7 +120,8 @@ describe('CardGroupActions', () => {
     ).toContain('bg-secondary')
   })
 
-  it('確認が必要な場合はダイアログを開いてから実行する', () => {
+  it('確認が必要な場合はダイアログを開いてから実行する', async () => {
+    const user = userEvent.setup()
     const onOpenAll = vi.fn()
     const onDeleteAll = vi.fn()
 
@@ -134,23 +137,24 @@ describe('CardGroupActions', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべてのタブを開く' }))
+    await user.click(screen.getByRole('button', { name: 'すべてのタブを開く' }))
     expect(
       screen.getByText('20個以上のタブを開こうとしています。続行しますか？'),
     ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '開く' }))
+    await user.click(screen.getByRole('button', { name: '開く' }))
     expect(onOpenAll).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
     expect(screen.getByText('URLをすべて削除しますか？')).toBeTruthy()
     expect(screen.getByText('すべて削除します')).toBeTruthy()
     const confirmDeleteButton = screen.getByRole('button', { name: '削除' })
     expect(confirmDeleteButton.getAttribute('data-variant')).toBe('destructive')
-    fireEvent.click(confirmDeleteButton)
+    await user.click(confirmDeleteButton)
     expect(onDeleteAll).toHaveBeenCalledTimes(1)
   })
 
-  it('対象名付きの aria-label と確認文言を受け取れる', () => {
+  it('対象名付きの aria-label と確認文言を受け取れる', async () => {
+    const user = userEvent.setup()
     const onOpenAll = vi.fn()
     const onDeleteAll = vi.fn()
 
@@ -170,7 +174,7 @@ describe('CardGroupActions', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類のドメイン」のすべてのタブを開く',
       }),
@@ -181,7 +185,7 @@ describe('CardGroupActions', () => {
       ),
     ).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類のドメイン」のすべてのタブを削除',
       }),

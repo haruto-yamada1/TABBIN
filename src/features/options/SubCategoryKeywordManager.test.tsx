@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup } from '@/types/storage'
@@ -101,8 +102,8 @@ const renderManager = (
   return render(<SubCategoryKeywordManager tabGroup={tabGroup} />)
 }
 
-const selectCategory = (name: string) => {
-  fireEvent.click(screen.getByRole('button', { name }))
+const selectCategory = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(screen.getByRole('button', { name }))
 }
 
 const getLastSavedTab = () =>
@@ -170,7 +171,8 @@ describe('SubCategoryKeywordManager', () => {
     await expect(updateTabGroup(tabGroup)).resolves.toBe(false)
   })
 
-  it('重複したキーワード追加では toast.error を表示する', () => {
+  it('重複したキーワード追加では toast.error を表示する', async () => {
+    const user = userEvent.setup()
     renderManager(
       createTabGroup({
         categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
@@ -180,12 +182,11 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    selectCategory('Docs')
+    await selectCategory(user, 'Docs')
 
-    fireEvent.change(screen.getByPlaceholderText('Enter keyword'), {
-      target: { value: 'guide' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Add keyword' }))
+    await user.clear(screen.getByPlaceholderText('Enter keyword'))
+    await user.type(screen.getByPlaceholderText('Enter keyword'), 'guide')
+    await user.click(screen.getByRole('button', { name: 'Add keyword' }))
 
     expect(toast.error).toHaveBeenCalledWith('Duplicate keyword')
     expect(setCategoryKeywords).not.toHaveBeenCalled()
@@ -206,7 +207,8 @@ describe('SubCategoryKeywordManager', () => {
     expect(screen.queryByText('Keyword manager')).toBeNull()
   })
 
-  it('カテゴリにキーワード設定がない場合は空のキーワード一覧を表示する', () => {
+  it('カテゴリにキーワード設定がない場合は空のキーワード一覧を表示する', async () => {
+    const user = userEvent.setup()
     renderManager(
       createTabGroup({
         categoryKeywords: undefined,
@@ -214,12 +216,13 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    selectCategory('Docs')
+    await selectCategory(user, 'Docs')
 
     expect(screen.getByText('No keywords')).not.toBeNull()
   })
 
   it('キーワード追加で setCategoryKeywords に保存する', async () => {
+    const user = userEvent.setup()
     renderManager(
       createTabGroup({
         categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
@@ -229,12 +232,11 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    selectCategory('Docs')
+    await selectCategory(user, 'Docs')
 
-    fireEvent.change(screen.getByPlaceholderText('Enter keyword'), {
-      target: { value: 'API' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Add keyword' }))
+    await user.clear(screen.getByPlaceholderText('Enter keyword'))
+    await user.type(screen.getByPlaceholderText('Enter keyword'), 'API')
+    await user.click(screen.getByRole('button', { name: 'Add keyword' }))
 
     await waitFor(() => {
       expect(setCategoryKeywords).toHaveBeenCalledWith('group-1', 'Docs', [
@@ -245,6 +247,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('キーワード入力で Enter を押すと追加処理を実行する', async () => {
+    const user = userEvent.setup()
     renderManager(
       createTabGroup({
         categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
@@ -254,14 +257,11 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    selectCategory('Docs')
+    await selectCategory(user, 'Docs')
 
-    fireEvent.change(screen.getByPlaceholderText('Enter keyword'), {
-      target: { value: 'API' },
-    })
-    fireEvent.keyDown(screen.getByPlaceholderText('Enter keyword'), {
-      key: 'Enter',
-    })
+    await user.clear(screen.getByPlaceholderText('Enter keyword'))
+    await user.type(screen.getByPlaceholderText('Enter keyword'), 'API')
+    await user.type(screen.getByPlaceholderText('Enter keyword'), '{Enter}')
 
     await waitFor(() => {
       expect(setCategoryKeywords).toHaveBeenCalledWith('group-1', 'Docs', [
@@ -272,6 +272,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('キーワード追加の保存失敗ではエラーを記録する', async () => {
+    const user = userEvent.setup()
     vi.mocked(setCategoryKeywords).mockRejectedValueOnce(
       new Error('save failed'),
     )
@@ -285,12 +286,11 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    selectCategory('Docs')
+    await selectCategory(user, 'Docs')
 
-    fireEvent.change(screen.getByPlaceholderText('Enter keyword'), {
-      target: { value: 'API' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Add keyword' }))
+    await user.clear(screen.getByPlaceholderText('Enter keyword'))
+    await user.type(screen.getByPlaceholderText('Enter keyword'), 'API')
+    await user.click(screen.getByRole('button', { name: 'Add keyword' }))
 
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
@@ -301,6 +301,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('キーワード削除で setCategoryKeywords に保存する', async () => {
+    const user = userEvent.setup()
     renderManager(
       createTabGroup({
         categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
@@ -310,9 +311,9 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    selectCategory('Docs')
+    await selectCategory(user, 'Docs')
 
-    fireEvent.click(screen.getByLabelText('Delete keyword Guide'))
+    await user.click(screen.getByLabelText('Delete keyword Guide'))
 
     await waitFor(() => {
       expect(setCategoryKeywords).toHaveBeenCalledWith('group-1', 'Docs', [])
@@ -320,6 +321,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('キーワード削除の保存失敗では toast.error を表示する', async () => {
+    const user = userEvent.setup()
     vi.mocked(setCategoryKeywords).mockRejectedValueOnce(
       new Error('save failed'),
     )
@@ -333,8 +335,8 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByLabelText('Delete keyword Guide'))
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByLabelText('Delete keyword Guide'))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to update keywords')
@@ -342,6 +344,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('サブカテゴリ作成で savedTabs を更新する', async () => {
+    const user = userEvent.setup()
     renderManager(
       createTabGroup({
         categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
@@ -351,12 +354,9 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Subcategory name'), {
-      target: { value: 'News' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Subcategory name'), {
-      key: 'Enter',
-    })
+    await user.clear(screen.getByLabelText('Subcategory name'))
+    await user.type(screen.getByLabelText('Subcategory name'), 'News')
+    await user.type(screen.getByLabelText('Subcategory name'), '{Enter}')
 
     await waitFor(() => {
       expect(getLastSavedTab()?.subCategories).toStrictEqual(['Docs', 'News'])
@@ -367,32 +367,26 @@ describe('SubCategoryKeywordManager', () => {
     })
   })
 
-  it('対象外キーと空入力では追加・rename を実行しない', () => {
+  it('対象外キーと空入力では追加・rename を実行しない', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
 
-    fireEvent.keyDown(screen.getByLabelText('Subcategory name'), {
-      key: 'Tab',
-    })
+    await user.type(screen.getByLabelText('Subcategory name'), '{Tab}')
     fireEvent.blur(screen.getByLabelText('Subcategory name'))
     expect(storageLocalSet).not.toHaveBeenCalled()
 
-    selectCategory('Docs')
-    fireEvent.keyDown(screen.getByPlaceholderText('Enter keyword'), {
-      key: 'Tab',
-    })
-    fireEvent.keyDown(screen.getByPlaceholderText('Enter keyword'), {
-      key: 'Enter',
-    })
+    await selectCategory(user, 'Docs')
+    await user.type(screen.getByPlaceholderText('Enter keyword'), '{Tab}')
+    await user.type(screen.getByPlaceholderText('Enter keyword'), '{Enter}')
     expect(setCategoryKeywords).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
-      key: 'Tab',
-    })
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await user.type(screen.getByLabelText('Rename subcategory'), '{Tab}')
     expect(screen.getByLabelText('Rename subcategory')).not.toBeNull()
   })
 
   it('空状態の blur でもサブカテゴリを作成し不足配列を補完する', async () => {
+    const user = userEvent.setup()
     const tabGroup = createTabGroup({
       categoryKeywords: undefined,
       subCategories: undefined,
@@ -403,9 +397,8 @@ describe('SubCategoryKeywordManager', () => {
 
     renderManager(tabGroup, [structuredClone(tabGroup)])
 
-    fireEvent.change(screen.getByLabelText('Subcategory name'), {
-      target: { value: 'News' },
-    })
+    await user.clear(screen.getByLabelText('Subcategory name'))
+    await user.type(screen.getByLabelText('Subcategory name'), 'News')
     fireEvent.blur(screen.getByLabelText('Subcategory name'))
 
     await waitFor(() => {
@@ -417,6 +410,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('サブカテゴリ作成の保存失敗ではエラーを記録して保存しない', async () => {
+    const user = userEvent.setup()
     renderManager(
       createTabGroup({
         categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
@@ -427,12 +421,9 @@ describe('SubCategoryKeywordManager', () => {
     )
     storageLocalGet.mockRejectedValueOnce(new Error('storage failed'))
 
-    fireEvent.change(screen.getByLabelText('Subcategory name'), {
-      target: { value: 'News' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Subcategory name'), {
-      key: 'Enter',
-    })
+    await user.clear(screen.getByLabelText('Subcategory name'))
+    await user.type(screen.getByLabelText('Subcategory name'), 'News')
+    await user.type(screen.getByLabelText('Subcategory name'), '{Enter}')
 
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
@@ -443,7 +434,8 @@ describe('SubCategoryKeywordManager', () => {
     expect(storageLocalSet).not.toHaveBeenCalled()
   })
 
-  it('重複したサブカテゴリ作成では toast.error を表示する', () => {
+  it('重複したサブカテゴリ作成では toast.error を表示する', async () => {
+    const user = userEvent.setup()
     renderManager(
       createTabGroup({
         categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
@@ -453,21 +445,19 @@ describe('SubCategoryKeywordManager', () => {
       }),
     )
 
-    fireEvent.change(screen.getByLabelText('Subcategory name'), {
-      target: { value: 'Docs' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Subcategory name'), {
-      key: 'Enter',
-    })
+    await user.clear(screen.getByLabelText('Subcategory name'))
+    await user.type(screen.getByLabelText('Subcategory name'), 'Docs')
+    await user.type(screen.getByLabelText('Subcategory name'), '{Enter}')
 
     expect(toast.error).toHaveBeenCalledWith('Duplicate subcategory')
     expect(storageLocalSet).not.toHaveBeenCalled()
   })
 
   it('サブカテゴリ削除で savedTabs を更新し toast.success を表示する', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
 
-    fireEvent.click(screen.getByLabelText('Delete Guides'))
+    await user.click(screen.getByLabelText('Delete Guides'))
 
     await waitFor(() => {
       expect(getLastSavedTab()?.subCategories).toStrictEqual(['Docs'])
@@ -480,12 +470,13 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('選択中のサブカテゴリを削除するとキーワード表示をクリアする', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
 
-    selectCategory('Guides')
+    await selectCategory(user, 'Guides')
     expect(screen.getByText('Article')).not.toBeNull()
 
-    fireEvent.click(screen.getByLabelText('Delete Guides'))
+    await user.click(screen.getByLabelText('Delete Guides'))
 
     await waitFor(() => {
       expect(screen.queryByText('Guides keywords')).toBeNull()
@@ -494,10 +485,11 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('削除対象のタブグループが見つからない場合は保存しない', async () => {
+    const user = userEvent.setup()
     const tabGroup = createTabGroup()
     renderManager(tabGroup, [])
 
-    fireEvent.click(screen.getByLabelText('Delete Guides'))
+    await user.click(screen.getByLabelText('Delete Guides'))
 
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith('タブグループが見つかりません')
@@ -507,6 +499,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('サブカテゴリ削除は保存データの不足配列を空配列として扱う', async () => {
+    const user = userEvent.setup()
     const tabGroup = createTabGroup({
       categoryKeywords: undefined,
       subCategories: ['Docs'],
@@ -519,7 +512,7 @@ describe('SubCategoryKeywordManager', () => {
 
     renderManager(tabGroup, [savedTab])
 
-    fireEvent.click(screen.getByLabelText('Delete Docs'))
+    await user.click(screen.getByLabelText('Delete Docs'))
 
     await waitFor(() => {
       expect(getLastSavedTab()).toStrictEqual(
@@ -532,10 +525,11 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('サブカテゴリ削除の保存失敗では toast.error を表示する', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
     storageLocalGet.mockRejectedValueOnce(new Error('storage failed'))
 
-    fireEvent.click(screen.getByLabelText('Delete Guides'))
+    await user.click(screen.getByLabelText('Delete Guides'))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete subcategory')
@@ -543,6 +537,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('サブカテゴリ名変更で savedTabs の関連フィールドを更新する', async () => {
+    const user = userEvent.setup()
     const tabGroup = createTabGroup({
       urls: [
         {
@@ -578,14 +573,11 @@ describe('SubCategoryKeywordManager', () => {
 
     renderManager(tabGroup, [structuredClone(tabGroup), untouchedTab])
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    fireEvent.change(screen.getByLabelText('Rename subcategory'), {
-      target: { value: 'Reference' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
-      key: 'Enter',
-    })
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await user.clear(screen.getByLabelText('Rename subcategory'))
+    await user.type(screen.getByLabelText('Rename subcategory'), 'Reference')
+    await user.type(screen.getByLabelText('Rename subcategory'), '{Enter}')
 
     await waitFor(() => {
       expect(getLastSavedTab()?.subCategories).toStrictEqual([
@@ -624,6 +616,7 @@ describe('SubCategoryKeywordManager', () => {
   })
 
   it('サブカテゴリ名変更は保存データの不足配列を空配列として扱う', async () => {
+    const user = userEvent.setup()
     const tabGroup = createTabGroup({
       categoryKeywords: [{ categoryName: 'Docs', keywords: ['Guide'] }],
       subCategories: ['Docs'],
@@ -638,14 +631,11 @@ describe('SubCategoryKeywordManager', () => {
 
     renderManager(tabGroup, [savedTab])
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    fireEvent.change(screen.getByLabelText('Rename subcategory'), {
-      target: { value: 'Reference' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
-      key: 'Enter',
-    })
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await user.clear(screen.getByLabelText('Rename subcategory'))
+    await user.type(screen.getByLabelText('Rename subcategory'), 'Reference')
+    await user.type(screen.getByLabelText('Rename subcategory'), '{Enter}')
 
     await waitFor(() => {
       expect(getLastSavedTab()).toStrictEqual(
@@ -660,90 +650,82 @@ describe('SubCategoryKeywordManager', () => {
     })
   })
 
-  it('サブカテゴリ名変更中に Escape を押すと rename をキャンセルする', () => {
+  it('サブカテゴリ名変更中に Escape を押すと rename をキャンセルする', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    fireEvent.change(screen.getByLabelText('Rename subcategory'), {
-      target: { value: 'Reference' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
-      key: 'Escape',
-    })
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await user.clear(screen.getByLabelText('Rename subcategory'))
+    await user.type(screen.getByLabelText('Rename subcategory'), 'Reference')
+    await user.type(screen.getByLabelText('Rename subcategory'), '{Escape}')
 
     expect(screen.queryByLabelText('Rename subcategory')).toBeNull()
     expect(screen.getByText('Docs keywords')).not.toBeNull()
   })
 
-  it('rename 中に別カテゴリを選ぶと rename モードを終了する', () => {
+  it('rename 中に別カテゴリを選ぶと rename モードを終了する', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    selectCategory('Guides')
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await selectCategory(user, 'Guides')
 
     expect(screen.queryByLabelText('Rename subcategory')).toBeNull()
     expect(screen.getByText('Guides keywords')).not.toBeNull()
   })
 
-  it('空のサブカテゴリ名で確定すると rename モードを閉じる', () => {
+  it('空のサブカテゴリ名で確定すると rename モードを閉じる', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    fireEvent.change(screen.getByLabelText('Rename subcategory'), {
-      target: { value: '   ' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
-      key: 'Enter',
-    })
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await user.clear(screen.getByLabelText('Rename subcategory'))
+    await user.type(screen.getByLabelText('Rename subcategory'), '   ')
+    await user.type(screen.getByLabelText('Rename subcategory'), '{Enter}')
 
     expect(screen.queryByLabelText('Rename subcategory')).toBeNull()
     expect(storageLocalSet).not.toHaveBeenCalled()
   })
 
-  it('同じサブカテゴリ名で確定すると保存せず rename モードを閉じる', () => {
+  it('同じサブカテゴリ名で確定すると保存せず rename モードを閉じる', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
-      key: 'Enter',
-    })
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await user.type(screen.getByLabelText('Rename subcategory'), '{Enter}')
 
     expect(screen.queryByLabelText('Rename subcategory')).toBeNull()
     expect(storageLocalSet).not.toHaveBeenCalled()
   })
 
-  it('重複したサブカテゴリ名変更では toast.error を表示する', () => {
+  it('重複したサブカテゴリ名変更では toast.error を表示する', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    fireEvent.change(screen.getByLabelText('Rename subcategory'), {
-      target: { value: 'Guides' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
-      key: 'Enter',
-    })
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await user.clear(screen.getByLabelText('Rename subcategory'))
+    await user.type(screen.getByLabelText('Rename subcategory'), 'Guides')
+    await user.type(screen.getByLabelText('Rename subcategory'), '{Enter}')
 
     expect(toast.error).toHaveBeenCalledWith('Duplicate subcategory')
     expect(storageLocalSet).not.toHaveBeenCalled()
   })
 
   it('サブカテゴリ名変更の保存失敗では toast.error を表示する', async () => {
+    const user = userEvent.setup()
     renderManager(createTabGroup())
     storageLocalSet.mockRejectedValueOnce(new Error('save failed'))
 
-    selectCategory('Docs')
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
-    fireEvent.change(screen.getByLabelText('Rename subcategory'), {
-      target: { value: 'Reference' },
-    })
-    fireEvent.keyDown(screen.getByLabelText('Rename subcategory'), {
-      key: 'Enter',
-    })
+    await selectCategory(user, 'Docs')
+    await user.click(screen.getByRole('button', { name: 'Rename' }))
+    await user.clear(screen.getByLabelText('Rename subcategory'))
+    await user.type(screen.getByLabelText('Rename subcategory'), 'Reference')
+    await user.type(screen.getByLabelText('Rename subcategory'), '{Enter}')
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to rename subcategory')

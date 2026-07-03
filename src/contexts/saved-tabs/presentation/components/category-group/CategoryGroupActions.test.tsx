@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const { cardGroupActionsSpy, useCategoryGroupMock } = vi.hoisted(() => ({
@@ -99,6 +99,7 @@ describe('CategoryGroupActions', () => {
   })
 
   it('検索中のすべて削除は表示中URLだけを group ごとに削除する', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrls = vi.fn().mockResolvedValue(undefined)
     const handleDeleteGroup = vi.fn()
     const handleDeleteGroups = vi.fn()
@@ -139,7 +140,7 @@ describe('CategoryGroupActions', () => {
 
     render(<CategoryGroupActions />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
 
     await waitFor(() => {
       expect(handleDeleteUrls).toHaveBeenNthCalledWith(1, 'group-1', [
@@ -155,6 +156,7 @@ describe('CategoryGroupActions', () => {
   })
 
   it('未検索時のすべて削除は既存の group 削除を使う', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrls = vi.fn().mockResolvedValue(undefined)
     const handleDeleteGroups = vi.fn().mockResolvedValue(undefined)
 
@@ -186,7 +188,7 @@ describe('CategoryGroupActions', () => {
 
     render(<CategoryGroupActions />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
 
     await waitFor(() => {
       expect(handleDeleteGroups).toHaveBeenCalledWith(['group-1', 'group-2'])
@@ -240,7 +242,8 @@ describe('CategoryGroupActions', () => {
     )
   })
 
-  it('管理と一括 open を handler へ委譲する', () => {
+  it('管理と一括 open を handler へ委譲する', async () => {
+    const user = userEvent.setup()
     const setIsModalOpen = vi.fn()
     const handleOpenAllTabs = vi.fn()
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
@@ -273,8 +276,8 @@ describe('CategoryGroupActions', () => {
     })
 
     render(<CategoryGroupActions />)
-    fireEvent.click(screen.getByRole('button', { name: '管理' }))
-    fireEvent.click(screen.getByRole('button', { name: 'すべて開く' }))
+    await user.click(screen.getByRole('button', { name: '管理' }))
+    await user.click(screen.getByRole('button', { name: 'すべて開く' }))
 
     expect(setIsModalOpen).toHaveBeenCalledWith(true)
     expect(handleOpenAllTabs).toHaveBeenCalledWith(domains[0]?.urls)
@@ -282,6 +285,7 @@ describe('CategoryGroupActions', () => {
   })
 
   it('bulk delete handler が無ければ各 group を削除する', async () => {
+    const user = userEvent.setup()
     const handleDeleteGroup = vi.fn()
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const domains = [
@@ -310,7 +314,7 @@ describe('CategoryGroupActions', () => {
     })
 
     render(<CategoryGroupActions />)
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
 
     await waitFor(() => {
       expect(handleDeleteGroup).toHaveBeenNthCalledWith(1, 'group-1')
@@ -320,6 +324,7 @@ describe('CategoryGroupActions', () => {
   })
 
   it('検索中の空 URL group は削除処理を呼ばない', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrls = vi.fn()
     useCategoryGroupMock.mockReturnValue({
       state: {
@@ -349,7 +354,7 @@ describe('CategoryGroupActions', () => {
       onDeleteAll: expect.any(Function),
       onOpenAll: undefined,
     })
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
     await waitFor(() => expect(handleDeleteUrls).not.toHaveBeenCalled())
   })
 })

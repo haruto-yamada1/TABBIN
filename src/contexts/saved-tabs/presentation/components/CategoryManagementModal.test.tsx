@@ -14,6 +14,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { z } from 'zod'
 
@@ -412,6 +413,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('開いたときに初期化して利用可能ドメインを読み込み、通常時は閉じられる', async () => {
+    const user = userEvent.setup()
     const onClose = vi.fn()
     const { deps, useCases, getSavedTabsPageDataQuery } = setupMocks()
     render(
@@ -432,7 +434,7 @@ describe('CategoryManagementModal', () => {
     expect(screen.getByTestId('select-item-g2')).toBeTruthy()
     expect(getSavedTabsPageDataQuery).toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -459,6 +461,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム開始時に input を focus/select し Escape でキャンセルする', async () => {
+    const user = userEvent.setup()
     let rafCallback: FrameRequestCallback | undefined
     ;(
       globalThis.requestAnimationFrame as unknown as ReturnType<typeof vi.fn>
@@ -479,7 +482,7 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
     const input = (await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
     )) as HTMLInputElement
@@ -490,13 +493,14 @@ describe('CategoryManagementModal', () => {
     expect(focusSpy).toHaveBeenCalled()
     expect(selectSpy).toHaveBeenCalled()
 
-    fireEvent.keyDown(input, { key: 'Escape' })
+    await user.type(input, '{Escape}')
     expect(
       screen.queryByPlaceholderText('例: ビジネスツール、技術情報'),
     ).toBeNull()
   })
 
   it('リネーム時の Enter/Blur 分岐（変更なし・バリデーション失敗・処理中・キャンセル）を処理する', async () => {
+    const user = userEvent.setup()
     // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredRename = createDeferred<void>()
     const renameParentCategory = vi.fn(
@@ -527,13 +531,13 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
     let input = await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
     )
 
     // 変更なし Enter -> 早期 return
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     expect(
       screen.getByPlaceholderText('例: ビジネスツール、技術情報'),
     ).toBeTruthy()
@@ -543,10 +547,11 @@ describe('CategoryManagementModal', () => {
     expect(
       screen.queryByPlaceholderText('例: ビジネスツール、技術情報'),
     ).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
     input = await screen.findByPlaceholderText('例: ビジネスツール、技術情報')
-    fireEvent.change(input, { target: { value: '12345678901234567890123456' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.clear(input)
+    await user.type(input, '12345678901234567890123456')
+    await user.type(input, '{Enter}')
     expect(
       screen.getByText('新規親カテゴリ名は25文字以下にしてください'),
     ).toBeTruthy()
@@ -557,10 +562,11 @@ describe('CategoryManagementModal', () => {
     expect(focusSpy).toHaveBeenCalled()
 
     // Tab key -> Enter/Escape どちらでもない分岐
-    fireEvent.keyDown(input, { key: 'Tab' })
+    await user.type(input, '{Tab}')
 
     // valid blur -> 保存開始
-    fireEvent.change(input, { target: { value: 'BlurSave' } })
+    await user.clear(input)
+    await user.type(input, 'BlurSave')
     fireEvent.blur(input)
     await waitFor(() => {
       expect(renameParentCategory).toHaveBeenCalledWith(
@@ -572,7 +578,7 @@ describe('CategoryManagementModal', () => {
     })
 
     // 処理中 Enter/Blur は早期 return
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     fireEvent.blur(input)
 
     await act(async () => {
@@ -584,9 +590,10 @@ describe('CategoryManagementModal', () => {
     })
 
     // 再度開いて同名 blur -> キャンセル
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
     input = await screen.findByPlaceholderText('例: ビジネスツール、技術情報')
-    fireEvent.change(input, { target: { value: 'BlurSave' } })
+    await user.clear(input)
+    await user.type(input, 'BlurSave')
     fireEvent.blur(input)
     expect(
       screen.queryByPlaceholderText('例: ビジネスツール、技術情報'),
@@ -594,6 +601,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム開始/バリデーション/成功保存/closeガード（isRenaming）を処理する', async () => {
+    const user = userEvent.setup()
     const onClose = vi.fn()
     const renameParentCategory = vi.fn(
       async (command: { categoryId: string; newName: string }) => {
@@ -621,25 +629,27 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
     const input = await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(onClose).not.toHaveBeenCalled()
 
-    fireEvent.change(input, { target: { value: '' } })
+    await user.clear(input)
     fireEvent.blur(input)
     expect(screen.getByText('新規親カテゴリ名を入力してください')).toBeTruthy()
 
-    fireEvent.change(input, { target: { value: '12345678901234567890123456' } })
+    await user.clear(input)
+    await user.type(input, '12345678901234567890123456')
     expect(
       screen.getByText('新規親カテゴリ名は25文字以下にしてください'),
     ).toBeTruthy()
 
-    fireEvent.change(input, { target: { value: '新しいカテゴリ' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.clear(input)
+    await user.type(input, '新しいカテゴリ')
+    await user.type(input, '{Enter}')
 
     await waitFor(() => {
       expect(renameParentCategory).toHaveBeenCalledWith(
@@ -657,6 +667,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム失敗時（use-case throw / 確認失敗）に toast.error を出す', async () => {
+    const user = userEvent.setup()
     // Sub-test 1: renameParentCategory use-case が throw する
     {
       const renameParentCategory = vi.fn(async () => {
@@ -676,14 +687,15 @@ describe('CategoryManagementModal', () => {
         />,
       )
 
-      fireEvent.click(
+      await user.click(
         screen.getByRole('button', { name: /親カテゴリ名を変更/ }),
       )
       const input = await screen.findByPlaceholderText(
         '例: ビジネスツール、技術情報',
       )
-      fireEvent.change(input, { target: { value: '失敗1' } })
-      fireEvent.keyDown(input, { key: 'Enter' })
+      await user.clear(input)
+    await user.type(input, '失敗1')
+      await user.type(input, '{Enter}')
 
       await waitFor(() => {
         expect(toastErrorSpy).toHaveBeenCalledWith(
@@ -714,14 +726,15 @@ describe('CategoryManagementModal', () => {
         />,
       )
 
-      fireEvent.click(
+      await user.click(
         screen.getByRole('button', { name: /親カテゴリ名を変更/ }),
       )
       const input = await screen.findByPlaceholderText(
         '例: ビジネスツール、技術情報',
       )
-      fireEvent.change(input, { target: { value: '更新未反映' } })
-      fireEvent.keyDown(input, { key: 'Enter' })
+      await user.clear(input)
+    await user.type(input, '更新未反映')
+      await user.type(input, '{Enter}')
 
       await waitFor(() => {
         expect(toastErrorSpy).toHaveBeenCalledWith(
@@ -732,6 +745,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム use-case 戻り値が更新を反映しない場合にエラーとして処理する', async () => {
+    const user = userEvent.setup()
     // issue #518 で `parentCategoryRepository.findById` による最終確認は
     // 撤廃され、use-case 戻り値検証 (1次検証) のみが残る。use-case が
     // 状態 (mockStateRef) を更新しない (古い name のまま返す) シナリオで
@@ -764,12 +778,13 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
     const input = await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
     )
-    fireEvent.change(input, { target: { value: '更新後' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.clear(input)
+    await user.type(input, '更新後')
+    await user.type(input, '{Enter}')
 
     await waitFor(() => {
       expect(renameParentCategory).toHaveBeenCalled()
@@ -780,6 +795,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム保存で non-Error を投げた場合も stack なしでハンドリングする', async () => {
+    const user = userEvent.setup()
     const renameParentCategory = vi.fn(async () => {
       // eslint-disable-next-line eslint/no-throw-literal
       throw 'string-error'
@@ -799,12 +815,13 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
     const input = await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
     )
-    fireEvent.change(input, { target: { value: 'string fail' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.clear(input)
+    await user.type(input, 'string fail')
+    await user.type(input, '{Enter}')
 
     await waitFor(() => {
       expect(
@@ -822,6 +839,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('リネーム保存時に validateCategoryName が false を返した場合は処理を中止する', async () => {
+    const user = userEvent.setup()
     const renameParentCategory =
       vi.fn() as unknown as RenameParentCategoryUseCase
     const { deps, useCases } = setupMocks({
@@ -839,11 +857,12 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ名を変更/ }))
     const input = await screen.findByPlaceholderText(
       '例: ビジネスツール、技術情報',
     )
-    fireEvent.change(input, { target: { value: 'valid-name' } })
+    await user.clear(input)
+    await user.type(input, 'valid-name')
 
     using _safeParseSpy = vi
       .spyOn(categoryNameSchema, 'safeParse')
@@ -861,7 +880,7 @@ describe('CategoryManagementModal', () => {
           }) as ReturnType<typeof z.ZodString.prototype.safeParse>,
       )
 
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     await waitFor(() => {
       expect(screen.getByText('カテゴリ名が無効です')).toBeTruthy()
     })
@@ -869,6 +888,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('親カテゴリ削除の成功/失敗を処理する', async () => {
+    const user = userEvent.setup()
     const onClose = vi.fn()
     const { deps, useCases, parentCategoryRepository } = setupMocks()
     const { rerender } = render(
@@ -882,8 +902,8 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
-    fireEvent.click(screen.getByRole('button', { name: /^削除$/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
+    await user.click(screen.getByRole('button', { name: /^削除$/ }))
 
     await waitFor(() => {
       // `deleteParentCategory` use-case 経由で削除される (issue #518)。
@@ -915,8 +935,8 @@ describe('CategoryManagementModal', () => {
         useCases={useCases}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
-    fireEvent.click(screen.getByRole('button', { name: /^削除$/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
+    await user.click(screen.getByRole('button', { name: /^削除$/ }))
 
     await waitFor(() => {
       expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの削除に失敗しました')
@@ -924,6 +944,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('親カテゴリ削除確認のキャンセル・関連ドメインなし表示・処理中の再入防止を処理する', async () => {
+    const user = userEvent.setup()
     // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredRemove = createDeferred<void>()
     const deleteParentCategory = vi.fn(
@@ -958,13 +979,13 @@ describe('CategoryManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
     expect(screen.queryByText(/件のドメインが関連付けられています/)).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }))
     expect(screen.queryByRole('button', { name: /^削除$/ })).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
-    fireEvent.click(screen.getByRole('button', { name: /^削除$/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリを削除/ }))
+    await user.click(screen.getByRole('button', { name: /^削除$/ }))
 
     await waitFor(() => {
       expect(deleteParentCategory).toHaveBeenCalledTimes(1)
@@ -985,6 +1006,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('ドメイン追加の成功/重複エラーを処理する', async () => {
+    const user = userEvent.setup()
     const [currentDomain] = createDomains()
     expect(currentDomain).toBeTruthy()
     if (!currentDomain) {
@@ -1012,7 +1034,7 @@ describe('CategoryManagementModal', () => {
       if (!plusButton) {
         throw new Error('plusButton not found')
       }
-      fireEvent.click(plusButton)
+      await user.click(plusButton)
 
       await waitFor(() => {
         // eslint-disable-next-line no-console
@@ -1070,7 +1092,7 @@ describe('CategoryManagementModal', () => {
       if (!secondPlusButton) {
         throw new Error('secondPlusButton not found')
       }
-      fireEvent.click(secondPlusButton)
+      await user.click(secondPlusButton)
 
       await waitFor(() => {
         expect(toastErrorSpy).toHaveBeenCalledWith(
@@ -1081,6 +1103,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('ドメイン追加の残件選択・カテゴリ更新分岐・処理中再入防止を処理する', async () => {
+    const user = userEvent.setup()
     const domains3: TabGroup[] = [
       { id: 'g1', domain: 'a.com', urls: [] },
       { id: 'g2', domain: 'b.com', urls: [] },
@@ -1155,7 +1178,7 @@ describe('CategoryManagementModal', () => {
       throw new Error('plusButton not found')
     }
 
-    fireEvent.click(plusButton)
+    await user.click(plusButton)
     await waitFor(() => {
       expect(addDomainToParentCategory).toHaveBeenCalledTimes(1)
     })
@@ -1225,6 +1248,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('ドメイン追加でカテゴリ不存在・選択ドメイン情報不存在をハンドリングする', async () => {
+    const user = userEvent.setup()
     const [currentDomain] = createDomains()
     expect(currentDomain).toBeTruthy()
     if (!currentDomain) {
@@ -1254,7 +1278,7 @@ describe('CategoryManagementModal', () => {
       if (!plusButton) {
         throw new Error('plusButton not found')
       }
-      fireEvent.click(plusButton)
+      await user.click(plusButton)
       await waitFor(() => {
         expect(toastErrorSpy).toHaveBeenCalledWith(
           'カテゴリの設定に失敗しました',
@@ -1310,7 +1334,7 @@ describe('CategoryManagementModal', () => {
         return originalFind.call(context, predicate, thisArg)
       })
 
-      fireEvent.click(plusButton)
+      await user.click(plusButton)
       await waitFor(() => {
         expect(toastErrorSpy).toHaveBeenCalledWith(
           'カテゴリの設定に失敗しました',
@@ -1320,6 +1344,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('ドメイン削除の成功/失敗と closeガード（loading中）を処理する', async () => {
+    const user = userEvent.setup()
     const originalReadyState = document.readyState
     const removeDomainFromParentCategory = vi.fn(
       async () => mockStateRef.current.parentCategories,
@@ -1347,7 +1372,7 @@ describe('CategoryManagementModal', () => {
     if (!firstRemoveButton) {
       throw new Error('firstRemoveButton not found')
     }
-    fireEvent.click(firstRemoveButton)
+    await user.click(firstRemoveButton)
     await waitFor(() => {
       expect(toastSuccessSpy).toHaveBeenCalledWith(
         'ドメイン a.com を「仕事」から削除しました',
@@ -1368,7 +1393,7 @@ describe('CategoryManagementModal', () => {
     if (!nextRemoveButton) {
       throw new Error('nextRemoveButton not found')
     }
-    fireEvent.click(nextRemoveButton)
+    await user.click(nextRemoveButton)
     await waitFor(() => {
       expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの削除に失敗しました')
     })
@@ -1377,7 +1402,7 @@ describe('CategoryManagementModal', () => {
       configurable: true,
       get: () => 'loading',
     })
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
 
     Object.defineProperty(document, 'readyState', {
       configurable: true,
@@ -1386,6 +1411,7 @@ describe('CategoryManagementModal', () => {
   })
 
   it('ドメイン削除のカテゴリ更新分岐・処理中再入防止・関連データ不足を処理する', async () => {
+    const user = userEvent.setup()
     // eslint-disable-next-line typescript/no-invalid-void-type
     const deferredRemove = createDeferred<void>()
     const removeDomainFromParentCategory = vi.fn(
@@ -1452,7 +1478,7 @@ describe('CategoryManagementModal', () => {
     if (!removeButton) {
       throw new Error('removeButton not found')
     }
-    fireEvent.click(removeButton)
+    await user.click(removeButton)
 
     await waitFor(() => {
       expect(removeDomainFromParentCategory).toHaveBeenCalledTimes(1)
@@ -1502,7 +1528,7 @@ describe('CategoryManagementModal', () => {
       />,
     )
     removeButtons = screen.getAllByRole('button', { name: 'ドメインを削除' })
-    fireEvent.click(removeButtons[0] as HTMLButtonElement)
+    await user.click(removeButtons[0] as HTMLButtonElement)
     await waitFor(() => {
       expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの削除に失敗しました')
     })
@@ -1527,7 +1553,7 @@ describe('CategoryManagementModal', () => {
       />,
     )
     removeButtons = screen.getAllByRole('button', { name: 'ドメインを削除' })
-    fireEvent.click(removeButtons[0] as HTMLButtonElement)
+    await user.click(removeButtons[0] as HTMLButtonElement)
     await waitFor(() => {
       expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの削除に失敗しました')
     })

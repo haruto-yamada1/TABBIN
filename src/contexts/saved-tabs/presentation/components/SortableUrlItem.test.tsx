@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -88,7 +89,8 @@ describe('SortableUrlItem', () => {
     cleanup()
   })
 
-  it('長いタイトルでも縮小可能なclassを維持し、クリックと削除を処理する', () => {
+  it('長いタイトルでも縮小可能なclassを維持し、クリックと削除を処理する', async () => {
+    const user = userEvent.setup()
     const handleOpenTab = vi.fn()
     const handleDeleteUrl = vi.fn()
 
@@ -126,12 +128,12 @@ describe('SortableUrlItem', () => {
     expect(screen.getByText('2026/06/02 12:34')).toBeTruthy()
     expect(screen.getByTestId('time-remaining')).toBeTruthy()
 
-    fireEvent.click(openButton)
+    await user.click(openButton)
     expect(handleOpenTab).toHaveBeenCalledWith(
       'https://example.com/really/long/path/that/should/not/stretch/the/card',
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'タブを削除' }))
+    await user.click(screen.getByRole('button', { name: 'タブを削除' }))
     expect(handleDeleteUrl).toHaveBeenCalledWith(
       'group-1',
       'https://example.com/really/long/path/that/should/not/stretch/the/card',

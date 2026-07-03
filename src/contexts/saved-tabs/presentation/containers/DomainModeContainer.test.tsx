@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
@@ -266,7 +266,8 @@ describe('DomainModeContainer', () => {
     ).toBeTruthy()
   })
 
-  it('未分類ヘッダーのすべて開くは表示中の未分類タブだけを開く', () => {
+  it('未分類ヘッダーのすべて開くは表示中の未分類タブだけを開く', async () => {
+    const user = userEvent.setup()
     const handleOpenAllTabs = vi.fn()
 
     render(
@@ -283,7 +284,7 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類のドメイン」のすべてのタブを開く',
       }),
@@ -297,6 +298,7 @@ describe('DomainModeContainer', () => {
   })
 
   it('未分類ヘッダーのすべて削除は一括削除ハンドラがなければ単体削除にフォールバックする', async () => {
+    const user = userEvent.setup()
     const handleDeleteGroup = vi.fn()
 
     render(
@@ -314,7 +316,7 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類のドメイン」のすべてのタブを削除',
       }),
@@ -327,6 +329,7 @@ describe('DomainModeContainer', () => {
   })
 
   it('検索中の未分類ヘッダーのすべて削除は表示中URLだけを group 単位で削除する', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrls = vi.fn().mockResolvedValue(undefined)
     const handleDeleteGroup = vi.fn()
     const handleDeleteGroups = vi.fn()
@@ -359,7 +362,7 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類のドメイン」のすべてのタブを削除',
       }),
@@ -379,6 +382,7 @@ describe('DomainModeContainer', () => {
   })
 
   it('検索中の未分類一括削除は URL がない group をスキップする', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrls = vi.fn().mockResolvedValue(undefined)
 
     render(
@@ -406,7 +410,7 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類のドメイン」のすべてのタブを削除',
       }),
@@ -455,6 +459,7 @@ describe('DomainModeContainer', () => {
   })
 
   it('未分類ヘッダーのすべて削除は一括削除ハンドラを優先する', async () => {
+    const user = userEvent.setup()
     const handleDeleteGroups = vi.fn().mockResolvedValue(undefined)
     const handleDeleteGroup = vi.fn()
 
@@ -473,7 +478,7 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類のドメイン」のすべてのタブを削除',
       }),
@@ -486,6 +491,7 @@ describe('DomainModeContainer', () => {
   })
 
   it('カテゴリあり表示では空カテゴリを飛ばし、移動ハンドラに tabGroups を渡す', async () => {
+    const user = userEvent.setup()
     const handleMoveDomainToCategory = vi.fn()
     const domainGroups: TabGroup[] = [
       {
@@ -540,7 +546,7 @@ describe('DomainModeContainer', () => {
     expect(screen.getByText('category-group:Category 1')).toBeTruthy()
     expect(screen.queryByText('category-group:Empty')).toBeNull()
 
-    fireEvent.click(screen.getByText('move-domain'))
+    await user.click(screen.getByText('move-domain'))
 
     expect(handleMoveDomainToCategory).toHaveBeenCalledWith(
       'domain-1',
@@ -551,6 +557,7 @@ describe('DomainModeContainer', () => {
   })
 
   it('未分類リストと並び替え確定/取消ボタンを表示して操作できる', async () => {
+    const user = userEvent.setup()
     const handleCancelUncategorizedReorder = vi.fn()
     const handleConfirmUncategorizedReorder = vi.fn()
 
@@ -573,12 +580,12 @@ describe('DomainModeContainer', () => {
     expect(screen.getByText('sortable-domain-card:example.com')).toBeTruthy()
     expect(screen.getByText('sortable-domain-card:sample.com')).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '親カテゴリの並び替えをキャンセル',
       }),
     )
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '親カテゴリの並び替えを確定' }),
     )
 

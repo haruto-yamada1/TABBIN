@@ -13,6 +13,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Children, isValidElement } from 'react'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
@@ -691,6 +692,11 @@ describe('AnalyticsRoute', () => {
       shouldAdvanceTime: true,
     })
     vi.setSystemTime(new Date(Date.UTC(2026, 2, 14, 0, 0, 0)))
+    vi.stubGlobal('ResizeObserver', class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    })
 
     analyticsRouteMocks.language = 'en'
     analyticsRouteMocks.deleteViewMock.mockReset()
@@ -763,6 +769,7 @@ describe('AnalyticsRoute', () => {
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   it('analytics helper が trace と fallback label を正規化する', () => {
@@ -1334,25 +1341,24 @@ describe('AnalyticsRoute', () => {
   })
 
   it('左側の手動フィルタ変更でチャートを更新する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
 
-    fireEvent.change(screen.getByLabelText('Group by'), {
-      target: { value: 'project' },
-    })
+    await user.selectOptions(screen.getByLabelText('Group by'), 'project')
 
     expect(await screen.findByText('Saved count by project')).toBeTruthy()
   })
 
   it('チャート種別・表示件数・リセット操作で分析条件を更新する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
 
-    fireEvent.change(screen.getByLabelText('Chart type'), {
-      target: { value: 'pie' },
-    })
+    await user.selectOptions(screen.getByLabelText('Chart type'), 'pie')
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(screen.getByLabelText('Top count'), {
       target: { value: '0' },
     })
@@ -1360,7 +1366,7 @@ describe('AnalyticsRoute', () => {
     const limitInput = screen.getByLabelText('Top count') as HTMLInputElement
     expect(limitInput.value).toBe('1')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
 
     expect(limitInput.value).toBe('8')
   })
@@ -1379,6 +1385,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('保存済みビューの旧 time は時系列（直近）として読み込む', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([
       {
         createdAt: 1,
@@ -1418,7 +1425,7 @@ describe('AnalyticsRoute', () => {
       await screen.findByRole('button', { name: 'Legacy Time View' }),
     ).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Legacy Time View' }))
+    await user.click(screen.getByRole('button', { name: 'Legacy Time View' }))
 
     await waitFor(() => {
       expect(
@@ -1431,13 +1438,15 @@ describe('AnalyticsRoute', () => {
   })
 
   it('現在の条件を保存できる', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(screen.getByLabelText('View name'), {
       target: { value: 'My Analytics' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(analyticsRouteMocks.saveViewsMock).toHaveBeenCalledTimes(1)
@@ -1445,16 +1454,16 @@ describe('AnalyticsRoute', () => {
   })
 
   it('保存成功後にビュー名をクリアする', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     await screen.findByText('Analysis conditions')
 
     const viewNameInput = screen.getByLabelText('View name') as HTMLInputElement
 
-    fireEvent.change(viewNameInput, {
-      target: { value: 'My Analytics' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(viewNameInput, { target: { value: 'My Analytics' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(analyticsRouteMocks.saveViewsMock).toHaveBeenCalledTimes(1)
@@ -1464,27 +1473,28 @@ describe('AnalyticsRoute', () => {
   })
 
   it('ビュー名が空のまま保存するとエラーを表示する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     await screen.findByText('Analysis conditions')
 
     const viewNameInput = screen.getByLabelText('View name')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(analyticsRouteMocks.saveViewsMock).not.toHaveBeenCalled()
     expect(viewNameInput.getAttribute('aria-invalid')).toBe('true')
     expect(screen.getByText('Enter a view name')).toBeTruthy()
 
-    fireEvent.change(viewNameInput, {
-      target: { value: 'My Analytics' },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(viewNameInput, { target: { value: 'My Analytics' } })
 
     expect(viewNameInput.getAttribute('aria-invalid')).toBe('false')
     expect(screen.queryByText('Enter a view name')).toBeNull()
   })
 
   it('既存ビューと同名では保存できず重複エラーを表示する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([
       {
         createdAt: 1,
@@ -1524,10 +1534,9 @@ describe('AnalyticsRoute', () => {
 
     const viewNameInput = screen.getByLabelText('View name')
 
-    fireEvent.change(viewNameInput, {
-      target: { value: '  My Analytics  ' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(viewNameInput, { target: { value: '  My Analytics  ' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(analyticsRouteMocks.saveViewsMock).not.toHaveBeenCalled()
     expect(viewNameInput.getAttribute('aria-invalid')).toBe('true')
@@ -1535,9 +1544,8 @@ describe('AnalyticsRoute', () => {
       screen.getByText('A view with this name already exists'),
     ).toBeTruthy()
 
-    fireEvent.change(viewNameInput, {
-      target: { value: 'My Analytics 2' },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(viewNameInput, { target: { value: 'My Analytics 2' } })
 
     expect(viewNameInput.getAttribute('aria-invalid')).toBe('false')
     expect(
@@ -1546,6 +1554,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('大文字小文字だけが異なるビュー名は別名として保存できる', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([
       {
         createdAt: 1,
@@ -1583,10 +1592,11 @@ describe('AnalyticsRoute', () => {
 
     await screen.findByRole('button', { name: 'My Analytics' })
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(screen.getByLabelText('View name'), {
       target: { value: 'my analytics' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(analyticsRouteMocks.saveViewsMock).toHaveBeenCalledTimes(1)
@@ -1597,6 +1607,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('保存済みビューを読み込み、削除できる', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([
       {
         createdAt: 1,
@@ -1635,7 +1646,7 @@ describe('AnalyticsRoute', () => {
     expect(
       await screen.findByRole('button', { name: 'Delete Saved View' }),
     ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Saved View' }))
+    await user.click(screen.getByRole('button', { name: 'Delete Saved View' }))
 
     await waitFor(() => {
       expect(analyticsRouteMocks.deleteViewMock).toHaveBeenCalledWith('view-1')
@@ -1643,6 +1654,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('保存済みビューを読み込んでもモードは両方固定になる', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([
       {
         createdAt: 1,
@@ -1682,7 +1694,7 @@ describe('AnalyticsRoute', () => {
       await screen.findByRole('button', { name: 'Delete Domain Only View' }),
     ).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Domain Only View' }))
+    await user.click(screen.getByRole('button', { name: 'Domain Only View' }))
 
     await waitFor(() => {
       expect(
@@ -1694,41 +1706,45 @@ describe('AnalyticsRoute', () => {
   })
 
   it('AIチャットから渡されたチャートを左側に反映する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-ai-chart' }))
+    await user.click(screen.getByRole('button', { name: 'emit-ai-chart' }))
 
     expect(await screen.findByText('AI-generated chart')).toBeTruthy()
     expect(analyticsRouteMocks.updateMessagesMock).toHaveBeenCalledTimes(1)
   })
 
   it('分析クエリが無い AI チャートでも左側に反映する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-only' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-only' }))
 
     expect(await screen.findByText('AI chart without query')).toBeTruthy()
   })
 
   it('AI メッセージに有効なチャートがない場合は現在のチャートを維持する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'emit-empty-messages' }))
-    fireEvent.click(screen.getByRole('button', { name: 'emit-user-only' }))
+    await user.click(screen.getByRole('button', { name: 'emit-empty-messages' }))
+    await user.click(screen.getByRole('button', { name: 'emit-user-only' }))
 
     expect(screen.getByText('Saved count by domain')).toBeTruthy()
     expect(analyticsRouteMocks.updateMessagesMock).toHaveBeenCalledTimes(2)
   })
 
   it('AI ツール出力の query が不正でもチャートだけを反映する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'emit-invalid-query-chart' }),
     )
 
@@ -1736,10 +1752,11 @@ describe('AnalyticsRoute', () => {
   })
 
   it('チャートクリックで項目に含まれる保存タブを表示する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     expect(await screen.findByText('Saved tabs in this item')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull()
@@ -1774,6 +1791,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('ドリルダウンは現在の分析条件で絞り込まれた保存タブだけを表示する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadRecordsMock.mockResolvedValue([
       ...records,
       {
@@ -1793,8 +1811,8 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-ai-chart' }))
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-ai-chart' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     expect(await screen.findByText('Saved tabs in this item')).toBeTruthy()
     expect(screen.getByText('Example Docs')).toBeTruthy()
@@ -1802,10 +1820,11 @@ describe('AnalyticsRoute', () => {
   })
 
   it('空ラベルのドリルダウンは一致なし表示にする', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'emit-empty-chart-click' }),
     )
 
@@ -1821,37 +1840,33 @@ describe('AnalyticsRoute', () => {
   })
 
   it('親カテゴリ・子カテゴリ・プロジェクト条件で未分類ドリルダウンを表示する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
 
-    fireEvent.change(screen.getByLabelText('Group by'), {
-      target: { value: 'parentCategory' },
-    })
-    fireEvent.click(
+    await user.selectOptions(screen.getByLabelText('Group by'), 'parentCategory')
+    await user.click(
       screen.getByRole('button', { name: 'emit-uncategorized-click' }),
     )
 
     expect(await screen.findByText('News Entry')).toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText('Group by'), {
-      target: { value: 'subCategory' },
-    })
-    fireEvent.click(
+    await user.selectOptions(screen.getByLabelText('Group by'), 'subCategory')
+    await user.click(
       screen.getByRole('button', { name: 'emit-uncategorized-click' }),
     )
 
     expect(await screen.findByText('News Entry')).toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText('Group by'), {
-      target: { value: 'project' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'emit-inbox-click' }))
+    await user.selectOptions(screen.getByLabelText('Group by'), 'project')
+    await user.click(screen.getByRole('button', { name: 'emit-inbox-click' }))
 
     expect(await screen.findByText('News Entry')).toBeTruthy()
   })
 
   it('時系列とプロジェクトカテゴリ条件でドリルダウンラベルを解決する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([
       {
         createdAt: 1,
@@ -1891,22 +1906,21 @@ describe('AnalyticsRoute', () => {
       await screen.findByRole('button', { name: 'Project Category View' }),
     ).toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText('Group by'), {
-      target: { value: 'timeRecent' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'emit-time-click' }))
+    await user.selectOptions(screen.getByLabelText('Group by'), 'timeRecent')
+    await user.click(screen.getByRole('button', { name: 'emit-time-click' }))
 
     expect(await screen.findByText('Example Docs')).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'Project Category View' }),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'emit-catchup-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-catchup-click' }))
 
     expect(await screen.findByText('News Entry')).toBeTruthy()
   })
 
   it('モード比較ドリルダウンは seriesKey に合う保存元だけを残す', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([
       {
         createdAt: 1,
@@ -1942,10 +1956,10 @@ describe('AnalyticsRoute', () => {
 
     render(<AnalyticsRoute />)
 
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', { name: 'Compare Mode View' }),
     )
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'emit-domain-series-news-click' }),
     )
 
@@ -1953,13 +1967,13 @@ describe('AnalyticsRoute', () => {
       await screen.findByText('No matching saved tabs were found.'),
     ).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'emit-custom-series-news-click' }),
     )
 
     expect(await screen.findByText('News Entry')).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'emit-other-series-news-click' }),
     )
 
@@ -1967,6 +1981,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('長いタイトルでもドリルダウンの操作列が見切れないレイアウトを使う', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadRecordsMock.mockResolvedValue([
       {
         ...records[0],
@@ -1979,7 +1994,7 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     const openLink = await screen.findByRole('link', {
       name: 'Open Extremely long analytics drilldown title that should never push the action area out of view even when the canvas is narrow',
@@ -2001,10 +2016,11 @@ describe('AnalyticsRoute', () => {
   })
 
   it('ドリルダウン各行に削除ボタンを表示する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     expect(
       await screen.findByRole('button', { name: 'Delete tab' }),
@@ -2012,10 +2028,11 @@ describe('AnalyticsRoute', () => {
   })
 
   it('ドリルダウン見出しにすべて開く・すべて削除ボタンを表示する', async () => {
+    const user = userEvent.setup()
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     expect(
       await screen.findByRole('button', { name: 'Open all tabs in this item' }),
@@ -2026,6 +2043,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('ドリルダウンのすべて開くで対象URLを一括で開く', async () => {
+    const user = userEvent.setup()
     const openSpy = vi
       .spyOn(window, 'open')
       .mockImplementation(vi.fn() as never)
@@ -2033,9 +2051,9 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
     openSpy.mockClear()
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', { name: 'Open all tabs in this item' }),
     )
 
@@ -2048,6 +2066,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('ドリルダウンのすべて開くは10件以上で確認ダイアログを経由する', async () => {
+    const user = userEvent.setup()
     const manyRecords = Array.from({ length: 10 }, (_, index) => ({
       ...records[0],
       id: `docs-${index}`,
@@ -2066,21 +2085,22 @@ describe('AnalyticsRoute', () => {
         'Created Saved count by domain from 10 saved records.',
       ),
     ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
     openSpy.mockClear()
-    fireEvent.click(
+    await user.click(
       await screen.findByRole('button', { name: 'Open all tabs in this item' }),
     )
 
     expect(await screen.findByText('Open all tabs?')).toBeTruthy()
     expect(openSpy).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+    await user.click(screen.getByRole('button', { name: 'Open' }))
 
     expect(openSpy).toHaveBeenCalledTimes(10)
   })
 
   it('confirmDeleteAll=false のときドリルダウンのすべて削除で対象URL IDを一括削除する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadRecordsMock
       .mockResolvedValueOnce(bulkDeleteRecords)
       .mockResolvedValueOnce([records[1]])
@@ -2088,8 +2108,8 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(
       await screen.findByRole('button', {
         name: 'Delete all tabs in this item',
       }),
@@ -2116,6 +2136,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('confirmDeleteAll=true のときドリルダウンのすべて削除は確認ダイアログを経由する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
       ...defaultSettings,
       confirmDeleteAll: true,
@@ -2127,8 +2148,8 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(
       await screen.findByRole('button', {
         name: 'Delete all tabs in this item',
       }),
@@ -2137,7 +2158,7 @@ describe('AnalyticsRoute', () => {
     expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
     expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
       expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledWith(
@@ -2152,6 +2173,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('一括削除確認はキャンセルできる', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
       ...defaultSettings,
       confirmDeleteAll: true,
@@ -2161,15 +2183,15 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(
       await screen.findByRole('button', {
         name: 'Delete all tabs in this item',
       }),
     )
 
     expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     await waitFor(() => {
       expect(screen.queryByText('Delete all tabs?')).toBeNull()
@@ -2178,6 +2200,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('confirmDeleteEach=false のとき即時削除して一覧を再読込する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadRecordsMock
       .mockResolvedValueOnce(records)
       .mockResolvedValueOnce([records[1]])
@@ -2185,8 +2208,8 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
     await waitFor(() => {
       expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledWith(
@@ -2229,6 +2252,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('削除 Undo の復元失敗はトーストで通知する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadRecordsMock
       .mockResolvedValueOnce(records)
       .mockResolvedValueOnce([records[1]])
@@ -2239,8 +2263,8 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
     await waitFor(() => {
       expect(toast.info).toHaveBeenCalled()
@@ -2259,6 +2283,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('単体削除失敗時はエラートーストを表示してドリルダウンを維持する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.sendMessageMock.mockImplementation(
       (
         message: unknown,
@@ -2277,8 +2302,8 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete the tab')
@@ -2292,6 +2317,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('単体削除失敗時は background error が空でも fallback エラーを扱う', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.sendMessageMock.mockImplementation(
       (message: unknown, callback?: (response: { status: string }) => void) => {
         const action = (message as { action?: string })?.action
@@ -2307,8 +2333,8 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete the tab')
@@ -2316,6 +2342,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('一括削除失敗時はエラートーストを表示して確認ダイアログを閉じる', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
       ...defaultSettings,
       confirmDeleteAll: true,
@@ -2339,15 +2366,15 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(
       await screen.findByRole('button', {
         name: 'Delete all tabs in this item',
       }),
     )
 
     expect(await screen.findByText('Delete all tabs?')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete the tabs')
@@ -2362,6 +2389,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('一括削除失敗時は background error が空でも fallback エラーを扱う', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
       ...defaultSettings,
       confirmDeleteAll: true,
@@ -2382,13 +2410,13 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(
       await screen.findByRole('button', {
         name: 'Delete all tabs in this item',
       }),
     )
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete the tabs')
@@ -2396,6 +2424,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('削除 Undo snapshot が非配列なら空 payload を復元する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.storageGetMock.mockResolvedValue({
       customProjectOrder: { invalid: true },
       customProjects: { invalid: true },
@@ -2410,8 +2439,8 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
     await waitFor(() => {
       expect(toast.info).toHaveBeenCalled()
@@ -2430,6 +2459,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('confirmDeleteEach=true のとき確認ダイアログ経由で削除する', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
       ...defaultSettings,
       confirmDeleteEach: true,
@@ -2441,13 +2471,13 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
     expect(await screen.findByText('Delete this tab?')).toBeTruthy()
     expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
       expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledTimes(1)
@@ -2455,6 +2485,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('単体削除確認はキャンセルできる', async () => {
+    const user = userEvent.setup()
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue({
       ...defaultSettings,
       confirmDeleteEach: true,
@@ -2463,11 +2494,11 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
 
     expect(await screen.findByText('Delete this tab?')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     await waitFor(() => {
       expect(screen.queryByText('Delete this tab?')).toBeNull()
@@ -2476,6 +2507,7 @@ describe('AnalyticsRoute', () => {
   })
 
   it('削除中は二重送信しない', async () => {
+    const user = userEvent.setup()
     let resolveRemoval: ((value: { status: string }) => void) | undefined
     analyticsRouteMocks.sendMessageMock.mockImplementation(
       (
@@ -2489,13 +2521,13 @@ describe('AnalyticsRoute', () => {
     render(<AnalyticsRoute />)
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
-    fireEvent.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     const deleteButton = await screen.findByRole('button', {
       name: 'Delete tab',
     })
-    fireEvent.click(deleteButton)
-    fireEvent.click(deleteButton)
+    await user.click(deleteButton)
+    await user.click(deleteButton)
 
     await waitFor(() => {
       expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledTimes(1)

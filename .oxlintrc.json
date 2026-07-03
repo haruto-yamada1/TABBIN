@@ -83,8 +83,14 @@
     "eslint/func-style": "off",
     "eslint/id-length": "off",
     "eslint/init-declarations": "off",
-    "eslint/complexity": ["error", 15],
-    "eslint/max-depth": ["error", 3],
+    "eslint/complexity": [
+      "error",
+      15
+    ],
+    "eslint/max-depth": [
+      "error",
+      3
+    ],
     "eslint/max-lines": [
       "error",
       {
@@ -101,9 +107,18 @@
         "skipComments": true
       }
     ],
-    "eslint/max-nested-callbacks": ["error", 3],
-    "eslint/max-params": ["error", 4],
-    "eslint/max-statements": ["error", 60],
+    "eslint/max-nested-callbacks": [
+      "error",
+      3
+    ],
+    "eslint/max-params": [
+      "error",
+      4
+    ],
+    "eslint/max-statements": [
+      "error",
+      60
+    ],
     "eslint/new-cap": "off",
     "eslint/no-continue": "off",
     "eslint/no-duplicate-imports": "off",
@@ -124,7 +139,12 @@
     "eslint/no-magic-numbers": [
       "error",
       {
-        "ignore": [-1, 0, 1, 2],
+        "ignore": [
+          -1,
+          0,
+          1,
+          2
+        ],
         "ignoreArrayIndexes": true,
         "ignoreDefaultValues": true,
         "detectObjects": false,
@@ -144,7 +164,10 @@
     "eslint/no-promise-executor-return": "off",
     "eslint/default-case-last": "error",
     "eslint/default-param-last": "error",
-    "eslint/eqeqeq": ["error", "always"],
+    "eslint/eqeqeq": [
+      "error",
+      "always"
+    ],
     "eslint/guard-for-in": "error",
     "eslint/no-await-in-loop": "error",
     "eslint/no-debugger": "error",
@@ -201,7 +224,12 @@
     "react/no-react-children": "off",
     "react/hook-use-state": "error",
     "react/jsx-handler-names": "error",
-    "react/jsx-max-depth": ["error", { "max": 5 }],
+    "react/jsx-max-depth": [
+      "error",
+      {
+        "max": 5
+      }
+    ],
     "react/jsx-no-constructed-context-values": "error",
     "react/jsx-props-no-spreading": "off",
     "react/react-in-jsx-scope": "off",
@@ -444,7 +472,10 @@
         "vitest.workspace.ts",
         "src/entrypoints/**"
       ],
-      "env": { "node": true, "es2024": true },
+      "env": {
+        "node": true,
+        "es2024": true
+      },
       "rules": {
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
@@ -452,13 +483,24 @@
         "unicorn/no-abusive-eslint-disable": "off",
         "eslint/max-lines": [
           "error",
-          { "max": 800, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 800,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-lines-per-function": [
           "error",
-          { "max": 250, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 250,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
-        "eslint/max-statements": ["error", 100],
+        "eslint/max-statements": [
+          "error",
+          100
+        ],
         "eslint/max-params": "off"
       }
     },
@@ -472,7 +514,9 @@
       }
     },
     {
-      "files": ["src/contexts/*/public-api.ts"],
+      "files": [
+        "src/contexts/*/public-api.ts"
+      ],
       "rules": {
         "oxc/no-barrel-file": "off"
       }
@@ -497,15 +541,32 @@
         "eslint/no-magic-numbers": "off",
         "eslint/max-lines": [
           "error",
-          { "max": 5000, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 5000,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-lines-per-function": [
           "error",
-          { "max": 2000, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 2000,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
-        "eslint/max-statements": ["error", 200],
-        "eslint/complexity": ["error", 20],
-        "eslint/max-depth": ["error", 5],
+        "eslint/max-statements": [
+          "error",
+          200
+        ],
+        "eslint/complexity": [
+          "error",
+          20
+        ],
+        "eslint/max-depth": [
+          "error",
+          5
+        ],
         "eslint/max-params": "off",
         "import/first": "off",
         "eslint/max-nested-callbacks": "off",
@@ -545,14 +606,28 @@
         "eslint/no-magic-numbers": "off",
         "eslint/max-lines": [
           "error",
-          { "max": 800, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 800,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
         "eslint/max-lines-per-function": [
           "error",
-          { "max": 300, "skipBlankLines": true, "skipComments": true }
+          {
+            "max": 300,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
         ],
-        "eslint/max-statements": ["error", 100],
-        "eslint/complexity": ["error", 20],
+        "eslint/max-statements": [
+          "error",
+          100
+        ],
+        "eslint/complexity": [
+          "error",
+          20
+        ],
         "react-perf/jsx-no-jsx-as-prop": "off",
         "react-perf/jsx-no-new-function-as-prop": "off",
         "react-perf/jsx-no-new-object-as-prop": "off",
@@ -575,7 +650,9 @@
       }
     },
     {
-      "files": ["src/contexts/*/domain/**/*.{ts,tsx}"],
+      "files": [
+        "src/contexts/*/domain/**/*.{ts,tsx}"
+      ],
       "rules": {
         "eslint/no-restricted-globals": [
           "error",
@@ -641,7 +718,9 @@
       }
     },
     {
-      "files": ["src/contexts/*/application/**/*.{ts,tsx}"],
+      "files": [
+        "src/contexts/*/application/**/*.{ts,tsx}"
+      ],
       "rules": {
         "eslint/no-restricted-properties": [
           "error",
@@ -674,7 +753,9 @@
       }
     },
     {
-      "files": ["src/contexts/*/presentation/**/*.{ts,tsx}"],
+      "files": [
+        "src/contexts/*/presentation/**/*.{ts,tsx}"
+      ],
       "rules": {
         "eslint/no-restricted-properties": [
           "error",
@@ -728,7 +809,8 @@
         "testing-library/no-global-regexp-flag-in-query": "error",
         "testing-library/no-dom-import": "error",
         "testing-library/prefer-user-event-setup": "error",
-        "testing-library/no-debugging-utils": "error"
+        "testing-library/no-debugging-utils": "error",
+        "testing-library/prefer-user-event": "error"
       }
     }
   ]

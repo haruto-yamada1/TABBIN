@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -169,7 +170,8 @@ describe('ProjectUrlItem', () => {
   })
 
   // eslint-disable-next-line eslint/complexity
-  it('未分類URLを描画しリンククリックと即時削除を処理する', () => {
+  it('未分類URLを描画しリンククリックと即時削除を処理する', async () => {
+    const user = userEvent.setup()
     const handleOpenUrl = vi.fn()
     const handleDeleteUrl = vi.fn()
     const item = {
@@ -212,10 +214,10 @@ describe('ProjectUrlItem', () => {
     const titleLabel = link.querySelector('span')
     expect(titleLabel?.className).toContain('min-w-0')
     expect(titleLabel?.className).toContain('truncate')
-    fireEvent.click(link)
+    await user.click(link)
     expect(handleOpenUrl).toHaveBeenCalledWith(item.url)
 
-    fireEvent.click(screen.getByRole('button', { name: 'タブを削除' }))
+    await user.click(screen.getByRole('button', { name: 'タブを削除' }))
     expect(handleDeleteUrl).toHaveBeenCalledWith('project-1', item.url)
 
     expect(useSortableMock).toHaveBeenCalledWith(
@@ -241,6 +243,7 @@ describe('ProjectUrlItem', () => {
   })
 
   it('サブカテゴリ付きURLを描画し確認ダイアログ経由で削除する', async () => {
+    const user = userEvent.setup()
     useSortableMock.mockReturnValueOnce({
       attributes: { 'data-attr': 'x' },
       listeners: { onPointerDown: vi.fn() },
@@ -283,11 +286,11 @@ describe('ProjectUrlItem', () => {
     expect(screen.getByText('Child')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Doc/ })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'タブを削除' }))
+    await user.click(screen.getByRole('button', { name: 'タブを削除' }))
     const confirmButton = await screen.findByRole('button', {
       name: '削除',
     })
-    fireEvent.click(confirmButton)
+    await user.click(confirmButton)
 
     expect(handleDeleteUrl).toHaveBeenCalledWith('project-1', item.url)
 

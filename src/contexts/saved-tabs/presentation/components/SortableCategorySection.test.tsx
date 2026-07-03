@@ -2,11 +2,11 @@
 import {
   act,
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -222,7 +222,8 @@ describe('SortableCategorySection', () => {
     vi.restoreAllMocks()
   })
 
-  it('カテゴリ名表示・折りたたみ・ソート切替・即時でのすべて開くを処理する', () => {
+  it('カテゴリ名表示・折りたたみ・ソート切替・即時でのすべて開くを処理する', async () => {
+    const user = userEvent.setup()
     const handleOpenAllTabs = vi.fn()
     render(
       <SortableCategorySection
@@ -240,7 +241,7 @@ describe('SortableCategorySection', () => {
       'https://b.com,https://a.com,https://c.com',
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
     )
     expect(
@@ -252,7 +253,7 @@ describe('SortableCategorySection', () => {
       'https://c.com,https://a.com,https://b.com',
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類」の並び順: 保存日時の昇順',
       }),
@@ -266,7 +267,7 @@ describe('SortableCategorySection', () => {
       'https://b.com,https://a.com,https://c.com',
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類」の並び順: 保存日時の降順',
       }),
@@ -275,14 +276,14 @@ describe('SortableCategorySection', () => {
       screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
     ).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '「未分類」を折りたたむ' }),
     )
     expect(screen.queryByTestId('category-section')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: '「未分類」を展開' }))
+    await user.click(screen.getByRole('button', { name: '「未分類」を展開' }))
     expect(screen.getByTestId('category-section')).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類」のすべてのタブを開く',
       }),
@@ -295,6 +296,7 @@ describe('SortableCategorySection', () => {
   })
 
   it('10件以上は開く確認ダイアログを経由する', async () => {
+    const user = userEvent.setup()
     const handleOpenAllTabs = vi.fn()
     render(
       <SortableCategorySection
@@ -309,12 +311,12 @@ describe('SortableCategorySection', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類」のすべてのタブを開く',
       }),
     )
-    fireEvent.click(await screen.findByRole('button', { name: '開く' }))
+    await user.click(await screen.findByRole('button', { name: '開く' }))
 
     expect(handleOpenAllTabs).toHaveBeenCalledWith(
       expect.arrayContaining([
@@ -323,7 +325,8 @@ describe('SortableCategorySection', () => {
     )
   })
 
-  it('urls 未指定時の件数/一括開くフォールバックと savedAt 未指定ソートを処理する', () => {
+  it('urls 未指定時の件数/一括開くフォールバックと savedAt 未指定ソートを処理する', async () => {
+    const user = userEvent.setup()
     const handleOpenAllTabs = vi.fn()
     const { rerender } = render(
       <SortableCategorySection
@@ -335,7 +338,7 @@ describe('SortableCategorySection', () => {
     )
 
     expect(screen.getByText('0')).toBeTruthy()
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類」のすべてのタブを開く',
       }),
@@ -352,7 +355,7 @@ describe('SortableCategorySection', () => {
         })}
       />,
     )
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
     )
     expect(
@@ -363,10 +366,12 @@ describe('SortableCategorySection', () => {
   })
 
   it('削除ボタンは handler がある時のみ描画され、confirmDeleteAll=false では即時削除し二重実行を防ぐ', async () => {
+    const user = userEvent.setup({ delay: null })
+    let resolveDelete: () => void = () => {}
     const handleDeleteAllTabs = vi.fn(
       async () =>
         new Promise<void>((resolve) => {
-          setTimeout(resolve, 0)
+          resolveDelete = resolve
         }),
     )
     const { rerender } = render(<SortableCategorySection {...createProps()} />)
@@ -386,7 +391,7 @@ describe('SortableCategorySection', () => {
     const deleteButton = screen.getByRole('button', {
       name: '「未分類」のすべてのタブを削除',
     })
-    fireEvent.click(deleteButton)
+    await user.click(deleteButton)
     expect(handleDeleteAllTabs).toHaveBeenCalledTimes(1)
     expect(screen.getByText('削除中...')).toBeTruthy()
     expect(
@@ -397,12 +402,14 @@ describe('SortableCategorySection', () => {
         .hasAttribute('disabled'),
     ).toBe(true)
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「未分類」のすべてのタブを削除',
       }),
     )
     expect(handleDeleteAllTabs).toHaveBeenCalledTimes(1)
+
+    resolveDelete()
 
     await waitFor(() => {
       expect(
@@ -414,6 +421,7 @@ describe('SortableCategorySection', () => {
   })
 
   it('confirmDeleteAll=true の削除確認ダイアログとエラーハンドリングを処理する', async () => {
+    const user = userEvent.setup()
     const handleDeleteAllTabs = vi.fn(async () => {
       throw new Error('boom')
     })
@@ -428,13 +436,13 @@ describe('SortableCategorySection', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「news」のすべてのタブを削除',
       }),
     )
     expect(screen.getByText('タブを削除')).toBeTruthy()
-    fireEvent.click(await screen.findByRole('button', { name: '削除' }))
+    await user.click(await screen.findByRole('button', { name: '削除' }))
 
     await waitFor(() => {
       expect(handleDeleteAllTabs).toHaveBeenCalledWith(
@@ -447,11 +455,12 @@ describe('SortableCategorySection', () => {
   })
 
   it('DnD monitor によるドラッグ中の自動折りたたみと復元を処理する', async () => {
+    const user = userEvent.setup()
     render(<SortableCategorySection {...createProps()} />)
 
     expect(screen.getByTestId('category-section')).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '「未分類」を折りたたむ' }),
     )
     expect(screen.queryByTestId('category-section')).toBeNull()
@@ -477,6 +486,7 @@ describe('SortableCategorySection', () => {
   })
 
   it('並び替えモード中は折りたたみボタン無効・自動折りたたみ、isDragging スタイルも適用される', async () => {
+    const user = userEvent.setup()
     useSortableMock.mockReturnValue({
       attributes: {},
       listeners: {},
@@ -503,7 +513,7 @@ describe('SortableCategorySection', () => {
     expect(container.querySelector('.top-20')).toBeTruthy()
     expect(container.innerHTML.includes('shadow-lg')).toBe(true)
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
     )
     expect(

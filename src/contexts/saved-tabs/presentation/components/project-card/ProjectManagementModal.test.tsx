@@ -12,6 +12,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -181,6 +182,7 @@ describe('ProjectManagementModal', () => {
   })
 
   it('リネーム入力のバリデーションと blur 保存を処理する', async () => {
+    const user = userEvent.setup()
     const onRenameProject = vi.fn().mockResolvedValue(undefined)
 
     render(
@@ -192,7 +194,7 @@ describe('ProjectManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '名前を変更' }))
+    await user.click(screen.getByRole('button', { name: '名前を変更' }))
     flushAnimationFrames()
 
     const initialFocusCalls = vi.mocked(HTMLInputElement.prototype.focus).mock
@@ -202,6 +204,7 @@ describe('ProjectManagementModal', () => {
     expect(HTMLInputElement.prototype.select).toHaveBeenCalledTimes(1)
 
     const input = screen.getByPlaceholderText('例: ウェブサイトリニューアル')
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: '   ' } })
     expect(screen.getByText('プロジェクト名を入力してください')).toBeTruthy()
 
@@ -211,6 +214,7 @@ describe('ProjectManagementModal', () => {
       initialFocusCalls + 1,
     )
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'Project Beta' } })
     fireEvent.blur(input)
 
@@ -224,28 +228,33 @@ describe('ProjectManagementModal', () => {
   })
 
   it('Escape でリネームをキャンセルし、未設定ハンドラではエラーを握る', async () => {
+    const user = userEvent.setup()
     render(
       <ProjectManagementModal isOpen onClose={vi.fn()} project={project} />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Project Alpha' }))
+    await user.click(screen.getByRole('button', { name: 'Project Alpha' }))
     const input = screen.getByPlaceholderText('例: ウェブサイトリニューアル')
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(input, { key: 'Escape' })
     expect(screen.getByRole('button', { name: 'Project Alpha' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Project Alpha' }))
+    await user.click(screen.getByRole('button', { name: 'Project Alpha' }))
     const emptyInput = screen.getByPlaceholderText(
       '例: ウェブサイトリニューアル',
     )
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(emptyInput, { target: { value: 'Project Alpha' } })
     fireEvent.blur(emptyInput)
     expect(screen.getByRole('button', { name: 'Project Alpha' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: '名前を変更' }))
+    await user.click(screen.getByRole('button', { name: '名前を変更' }))
     const secondInput = screen.getByPlaceholderText(
       '例: ウェブサイトリニューアル',
     )
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(secondInput, { target: { value: 'Project Gamma' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(secondInput, { key: 'Enter' })
 
     await waitFor(() => {
@@ -257,6 +266,7 @@ describe('ProjectManagementModal', () => {
   })
 
   it('削除確認のキャンセルと削除成功を処理する', async () => {
+    const user = userEvent.setup()
     const onDeleteProject = vi.fn().mockResolvedValue(undefined)
     const onClose = vi.fn()
 
@@ -269,18 +279,18 @@ describe('ProjectManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
+    await user.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
     expect(
       screen.getByText(
         /このプロジェクトに含まれるすべてのタブとの紐付けも解除されます/,
       ),
     ).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }))
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }))
     expect(screen.queryByText('削除')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
 
     await waitFor(() => {
       expect(onDeleteProject).toHaveBeenCalledWith('project-1')
@@ -289,6 +299,7 @@ describe('ProjectManagementModal', () => {
   })
 
   it('onOpenChange は loading 中や document loading 中は閉じない', async () => {
+    const user = userEvent.setup()
     let resolveRename: (() => void) | undefined
     const onClose = vi.fn()
     const onRenameProject = vi.fn(
@@ -307,11 +318,13 @@ describe('ProjectManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '名前を変更' }))
+    await user.click(screen.getByRole('button', { name: '名前を変更' }))
     const input = screen.getByPlaceholderText('例: ウェブサイトリニューアル')
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'Project Delta' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(input, { key: 'Enter' })
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(onClose).not.toHaveBeenCalled()
 
     resolveRename?.()
@@ -323,18 +336,19 @@ describe('ProjectManagementModal', () => {
       configurable: true,
       get: () => 'loading',
     })
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(onClose).not.toHaveBeenCalled()
 
     Object.defineProperty(document, 'readyState', {
       configurable: true,
       get: () => 'complete',
     })
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('プロジェクトキーワードを blur で保存する', async () => {
+    const user = userEvent.setup()
     const onUpdateProjectKeywords = vi.fn().mockResolvedValue(undefined)
 
     render(
@@ -350,23 +364,22 @@ describe('ProjectManagementModal', () => {
     const urlInput = screen.getByLabelText('URLキーワード')
     const domainInput = screen.getByLabelText('ドメインキーワード')
 
-    fireEvent.change(titleInput, {
-      target: { value: 'release' },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(titleInput, { target: { value: 'release' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(titleInput, { key: 'Enter' })
-    fireEvent.change(urlInput, {
-      target: { value: 'spec' },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(urlInput, { target: { value: 'spec' } })
     fireEvent.blur(urlInput)
-    fireEvent.change(domainInput, {
-      target: { value: 'github.com' },
-    })
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(domainInput, { target: { value: 'github.com' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(domainInput, { key: 'Enter' })
 
     const deleteButtons = screen.getAllByRole('button', {
       name: 'キーワードを削除',
     })
-    fireEvent.click(deleteButtons[0])
+    await user.click(deleteButtons[0])
 
     fireEvent.blur(domainInput)
 
@@ -380,6 +393,7 @@ describe('ProjectManagementModal', () => {
   })
 
   it('各 keyword input の Enter/blur と URL/domain 削除を処理する', async () => {
+    const user = userEvent.setup()
     const onUpdateProjectKeywords = vi.fn().mockResolvedValue(undefined)
     render(
       <ProjectManagementModal
@@ -393,10 +407,14 @@ describe('ProjectManagementModal', () => {
     const urlInput = screen.getByLabelText('URLキーワード')
     const domainInput = screen.getByLabelText('ドメインキーワード')
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(titleInput, { target: { value: 'release' } })
     fireEvent.blur(titleInput)
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(urlInput, { target: { value: 'spec' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(urlInput, { key: 'Enter' })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(domainInput, { target: { value: 'github.com' } })
     fireEvent.blur(domainInput)
 
@@ -406,14 +424,14 @@ describe('ProjectManagementModal', () => {
     if (!urlDeleteButton) {
       throw new Error('URL keyword delete button not found')
     }
-    fireEvent.click(urlDeleteButton)
+    await user.click(urlDeleteButton)
     const domainDeleteButton = screen
       .getByText('example.com')
       .parentElement?.querySelector('button')
     if (!domainDeleteButton) {
       throw new Error('domain keyword delete button not found')
     }
-    fireEvent.click(domainDeleteButton)
+    await user.click(domainDeleteButton)
 
     await waitFor(() => {
       expect(onUpdateProjectKeywords).toHaveBeenCalledWith(
@@ -427,7 +445,8 @@ describe('ProjectManagementModal', () => {
     })
   })
 
-  it('未分類プロジェクト名の click は rename を開始しない', () => {
+  it('未分類プロジェクト名の click は rename を開始しない', async () => {
+    const user = userEvent.setup()
     render(
       <ProjectManagementModal
         isOpen
@@ -436,18 +455,19 @@ describe('ProjectManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByText('未分類'))
+    await user.click(screen.getByText('未分類'))
 
     expect(screen.queryByRole('textbox', { name: 'プロジェクト名' })).toBeNull()
   })
 
   it('削除ハンドラ未設定でも例外で落とさない', async () => {
+    const user = userEvent.setup()
     render(
       <ProjectManagementModal isOpen onClose={vi.fn()} project={project} />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
 
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
@@ -458,6 +478,7 @@ describe('ProjectManagementModal', () => {
   })
 
   it('処理中は onBlur と削除ボタンを再実行しない', async () => {
+    const user = userEvent.setup()
     let resolveRename: (() => void) | undefined
     let resolveDelete: (() => void) | undefined
     const onRenameProject = vi.fn(
@@ -482,11 +503,13 @@ describe('ProjectManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: '名前を変更' }))
+    await user.click(screen.getByRole('button', { name: '名前を変更' }))
     const renameInput = screen.getByPlaceholderText(
       '例: ウェブサイトリニューアル',
     )
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(renameInput, { target: { value: 'Project Busy' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(renameInput, { key: 'Enter' })
     fireEvent.blur(renameInput)
 
@@ -506,9 +529,9 @@ describe('ProjectManagementModal', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: 'プロジェクトを削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
 
     expect(onDeleteProject).toHaveBeenCalledTimes(1)
 

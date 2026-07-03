@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -279,7 +280,8 @@ describe('CustomProjectSection additional', () => {
     cleanup()
   })
 
-  it('create dialog の close と Enter 以外のキー分岐を処理する', () => {
+  it('create dialog の close と Enter 以外のキー分岐を処理する', async () => {
+    const user = userEvent.setup()
     const handleCreateProject = vi.fn()
 
     render(
@@ -290,13 +292,14 @@ describe('CustomProjectSection additional', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-open' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-open' }))
     const nameInput = screen.getByLabelText('プロジェクト名 *')
-    fireEvent.change(nameInput, { target: { value: 'Created Project' } })
-    fireEvent.keyDown(nameInput, { key: 'Escape' })
+    await user.clear(nameInput)
+    await user.type(nameInput, 'Created Project')
+    await user.type(nameInput, '{Escape}')
     expect(handleCreateProject).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(screen.queryByText('新規プロジェクト作成')).toBeNull()
   })
 

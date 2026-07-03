@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
@@ -256,7 +257,8 @@ describe('PeriodicExecutionRoute', () => {
     ).toBeTruthy()
   })
 
-  it('自動削除期間が未設定なら never を選択値として扱う', () => {
+  it('自動削除期間が未設定なら never を選択値として扱う', async () => {
+    const user = userEvent.setup()
     mocked.settings = {
       ...mocked.settings,
       autoDeletePeriod: undefined,
@@ -264,7 +266,7 @@ describe('PeriodicExecutionRoute', () => {
 
     render(createElement(PeriodicExecutionRoute))
 
-    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
+    await user.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
   })
 
@@ -277,17 +279,18 @@ describe('PeriodicExecutionRoute', () => {
     expect(screen.queryByText('Loading...')).toBeNull()
   })
 
-  it('自動削除期間の変更と確認操作を処理する', () => {
+  it('自動削除期間の変更と確認操作を処理する', async () => {
+    const user = userEvent.setup()
     render(createElement(PeriodicExecutionRoute))
 
-    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
+    await user.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
     expect(mocked.prepareAutoDeletePeriod).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(mocked.hideConfirmation).toHaveBeenCalledTimes(1)
     expect(mocked.confirmationConfirm).toHaveBeenCalledTimes(1)
   })

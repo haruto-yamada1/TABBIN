@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/components/ui/button', () => ({
@@ -117,7 +118,8 @@ describe('OllamaModelSelector', () => {
     expect(screen.queryByText('Loading model list...')).toBeNull()
   })
 
-  it('fetches models when opening the select in fetchOnOpen mode', () => {
+  it('fetches models when opening the select in fetchOnOpen mode', async () => {
+    const user = userEvent.setup()
     const onFetchModels = vi.fn()
 
     render(
@@ -130,7 +132,7 @@ describe('OllamaModelSelector', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'open-select' }))
+    await user.click(screen.getByRole('button', { name: 'open-select' }))
 
     expect(onFetchModels).toHaveBeenCalledTimes(1)
   })

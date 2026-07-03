@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 // eslint-disable-next-line eslint/no-unused-vars
 import { dirname, resolve } from 'node:path'
@@ -6,11 +7,11 @@ import { fileURLToPath } from 'node:url'
 
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { OllamaErrorNotice } from './OllamaErrorNotice'
@@ -138,6 +139,13 @@ describe('OllamaErrorNotice', () => {
   })
 
   it('can copy the macOS command row', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: mocked.writeClipboardText,
+      },
+    })
     render(
       <OllamaErrorNotice
         error={{
@@ -150,7 +158,7 @@ describe('OllamaErrorNotice', () => {
 
     const copyButton = screen.getByRole('button', { name: 'Copy command' })
 
-    fireEvent.click(copyButton)
+    await user.click(copyButton)
     await Promise.resolve()
 
     expect(mocked.writeClipboardText).toHaveBeenCalledWith(
@@ -173,6 +181,13 @@ describe('OllamaErrorNotice', () => {
   })
 
   it('can copy the Windows value row', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: mocked.writeClipboardText,
+      },
+    })
     render(
       <OllamaErrorNotice
         error={{
@@ -183,7 +198,7 @@ describe('OllamaErrorNotice', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy value' }))
+    await user.click(screen.getByRole('button', { name: 'Copy value' }))
 
     await waitFor(() => {
       expect(mocked.writeClipboardText).toHaveBeenCalledWith(
@@ -193,6 +208,13 @@ describe('OllamaErrorNotice', () => {
   })
 
   it('can copy the check command row', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: mocked.writeClipboardText,
+      },
+    })
     render(
       <OllamaErrorNotice
         error={{
@@ -203,7 +225,7 @@ describe('OllamaErrorNotice', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy check command' }))
+    await user.click(screen.getByRole('button', { name: 'Copy check command' }))
 
     await waitFor(() => {
       expect(mocked.writeClipboardText).toHaveBeenCalledWith(
@@ -213,6 +235,13 @@ describe('OllamaErrorNotice', () => {
   })
 
   it('shows an error toast when the clipboard API is unavailable', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: mocked.writeClipboardText,
+      },
+    })
     render(
       <OllamaErrorNotice
         error={{
@@ -228,7 +257,7 @@ describe('OllamaErrorNotice', () => {
       value: undefined,
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy value' }))
+    await user.click(screen.getByRole('button', { name: 'Copy value' }))
 
     await waitFor(() => {
       expect(mocked.toastError).toHaveBeenCalledWith(
@@ -238,6 +267,13 @@ describe('OllamaErrorNotice', () => {
   })
 
   it('shows an error toast when clipboard write fails', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(window.navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: mocked.writeClipboardText,
+      },
+    })
     mocked.writeClipboardText.mockRejectedValueOnce(new Error('failed'))
 
     render(
@@ -250,7 +286,7 @@ describe('OllamaErrorNotice', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy check command' }))
+    await user.click(screen.getByRole('button', { name: 'Copy check command' }))
 
     await waitFor(() => {
       expect(mocked.toastError).toHaveBeenCalledWith(

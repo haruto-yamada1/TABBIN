@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -240,6 +241,7 @@ describe('ProjectCardRoot additional', () => {
   })
 
   it('open all と管理モーダル close を処理する', async () => {
+    const user = userEvent.setup()
     const handleOpenAllUrls = vi.fn()
 
     render(
@@ -254,7 +256,7 @@ describe('ProjectCardRoot additional', () => {
       </ProjectCardRoot>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべてのタブを開く' }))
+    await user.click(screen.getByRole('button', { name: 'すべてのタブを開く' }))
     expect(handleOpenAllUrls).toHaveBeenCalledWith([
       {
         url: 'https://example.com/one',
@@ -266,11 +268,11 @@ describe('ProjectCardRoot additional', () => {
       },
     ])
 
-    fireEvent.click(screen.getByRole('button', { name: '管理' }))
+    await user.click(screen.getByRole('button', { name: '管理' }))
     expect(
       screen.getByRole('button', { name: 'close-management-modal' }),
     ).toBeTruthy()
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'close-management-modal' }),
     )
     await act(async () => {})
@@ -280,7 +282,7 @@ describe('ProjectCardRoot additional', () => {
   })
 
   it('一括削除は project handler があればそれを使い、なければ hook handler を順に呼ぶ', async () => {
-    vi.useFakeTimers()
+    const user = userEvent.setup()
 
     const handleDeleteUrlsFromProject = vi.fn().mockResolvedValue(undefined)
     const hookDeleteUrl = vi.fn()
@@ -303,12 +305,13 @@ describe('ProjectCardRoot additional', () => {
       </ProjectCardRoot>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
-    await act(async () => {})
-    expect(handleDeleteUrlsFromProject).toHaveBeenCalledWith('project-1', [
-      'https://example.com/one',
-      'https://example.com/two',
-    ])
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await waitFor(() => {
+      expect(handleDeleteUrlsFromProject).toHaveBeenCalledWith('project-1', [
+        'https://example.com/one',
+        'https://example.com/two',
+      ])
+    })
 
     rerender(
       <ProjectCardRoot
@@ -328,23 +331,19 @@ describe('ProjectCardRoot additional', () => {
       </ProjectCardRoot>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
 
-    await act(async () => {
-      vi.runAllTimers()
+    await waitFor(() => {
+      expect(hookDeleteUrl).toHaveBeenNthCalledWith(
+        1,
+        'project-1',
+        'https://example.com/one',
+      )
+      expect(hookDeleteUrl).toHaveBeenNthCalledWith(
+        2,
+        'project-1',
+        'https://example.com/two',
+      )
     })
-
-    expect(hookDeleteUrl).toHaveBeenNthCalledWith(
-      1,
-      'project-1',
-      'https://example.com/one',
-    )
-    expect(hookDeleteUrl).toHaveBeenNthCalledWith(
-      2,
-      'project-1',
-      'https://example.com/two',
-    )
-
-    vi.useRealTimers()
   })
 })

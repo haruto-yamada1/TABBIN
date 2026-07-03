@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { CategoryReorderFooter } from './Footer'
@@ -46,7 +47,8 @@ describe('CategoryReorderFooterコンポーネント', () => {
     footerI18nState.language = 'ja'
   })
 
-  it('キャンセル/確認ボタンをクリックするとハンドラを呼び出す', () => {
+  it('キャンセル/確認ボタンをクリックするとハンドラを呼び出す', async () => {
+    const user = userEvent.setup()
     const onConfirm = vi.fn()
     const onCancel = vi.fn()
 
@@ -57,10 +59,10 @@ describe('CategoryReorderFooterコンポーネント', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '親カテゴリの並び替えをキャンセル' }),
     )
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '親カテゴリの並び替えを確定' }),
     )
 
@@ -68,13 +70,14 @@ describe('CategoryReorderFooterコンポーネント', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })
 
-  it('ハンドラなしでも描画できる', () => {
+  it('ハンドラなしでも描画できる', async () => {
+    const user = userEvent.setup()
     render(<CategoryReorderFooter />)
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '親カテゴリの並び替えをキャンセル' }),
     )
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '親カテゴリの並び替えを確定' }),
     )
 

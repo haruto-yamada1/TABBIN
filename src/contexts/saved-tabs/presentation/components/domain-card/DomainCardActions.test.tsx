@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const { handleSaveKeywordsMock, useDomainCardMock, useSavedTabsUseCasesMock } =
@@ -179,6 +179,7 @@ describe('DomainCardActions', () => {
   })
 
   it('検索中のすべて削除は表示中URLだけを削除する', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrls = vi.fn().mockResolvedValue(undefined)
     const handleDeleteGroup = vi.fn()
 
@@ -216,7 +217,7 @@ describe('DomainCardActions', () => {
 
     render(<DomainCardActions />)
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「example.com」のすべてのタブを削除',
       }),
@@ -231,7 +232,8 @@ describe('DomainCardActions', () => {
     expect(handleDeleteGroup).not.toHaveBeenCalled()
   })
 
-  it('未検索時のすべて削除は group 削除を使う', () => {
+  it('未検索時のすべて削除は group 削除を使う', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrls = vi.fn().mockResolvedValue(undefined)
     const handleDeleteGroup = vi.fn()
 
@@ -269,7 +271,7 @@ describe('DomainCardActions', () => {
 
     render(<DomainCardActions />)
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「example.com」のすべてのタブを削除',
       }),
@@ -331,7 +333,8 @@ describe('DomainCardActions', () => {
     ).toBeTruthy()
   })
 
-  it('子カテゴリ管理ボタンで keyword modal を toggle する', () => {
+  it('子カテゴリ管理ボタンで keyword modal を toggle する', async () => {
+    const user = userEvent.setup()
     const setShowKeywordModal = vi.fn()
     useDomainCardMock.mockReturnValue(
       createContext({
@@ -341,14 +344,15 @@ describe('DomainCardActions', () => {
     )
 
     render(<DomainCardActions />)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: '「example.com」の子カテゴリ管理' }),
     )
 
     expect(setShowKeywordModal).toHaveBeenCalledWith(true)
   })
 
-  it('少数 URL は即時に開き、並び替えモードではログを残す', () => {
+  it('少数 URL は即時に開き、並び替えモードではログを残す', async () => {
+    const user = userEvent.setup()
     const handleOpenAllTabs = vi.fn()
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const urls = [{ title: 'Docs', url: 'https://example.com/docs' }]
@@ -357,7 +361,7 @@ describe('DomainCardActions', () => {
     )
 
     render(<DomainCardActions />)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「example.com」のすべてのタブを開く',
       }),
@@ -367,7 +371,8 @@ describe('DomainCardActions', () => {
     expect(log).toHaveBeenCalled()
   })
 
-  it('大量 URL は確認後に開く', () => {
+  it('大量 URL は確認後に開く', async () => {
+    const user = userEvent.setup()
     const handleOpenAllTabs = vi.fn()
     const urls = Array.from({ length: 10 }, (_, index) => ({
       title: `Tab ${index}`,
@@ -379,17 +384,18 @@ describe('DomainCardActions', () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
 
     render(<DomainCardActions />)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「example.com」のすべてのタブを開く',
       }),
     )
-    fireEvent.click(screen.getByRole('button', { name: '開く' }))
+    await user.click(screen.getByRole('button', { name: '開く' }))
 
     expect(handleOpenAllTabs).toHaveBeenCalledWith(urls)
   })
 
-  it('削除確認後に group を削除し、並び替えモードではログを残す', () => {
+  it('削除確認後に group を削除し、並び替えモードではログを残す', async () => {
+    const user = userEvent.setup()
     const handleDeleteGroup = vi.fn()
     useDomainCardMock.mockReturnValue(
       createContext({
@@ -402,25 +408,26 @@ describe('DomainCardActions', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
 
     render(<DomainCardActions />)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「example.com」のすべてのタブを削除',
       }),
     )
-    fireEvent.click(screen.getByRole('button', { name: '削除' }))
+    await user.click(screen.getByRole('button', { name: '削除' }))
 
     expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
     expect(log).toHaveBeenCalled()
   })
 
-  it('検索中でも URL が無ければ group 削除へ fallback する', () => {
+  it('検索中でも URL が無ければ group 削除へ fallback する', async () => {
+    const user = userEvent.setup()
     const handleDeleteGroup = vi.fn()
     useDomainCardMock.mockReturnValue(
       createContext({ handleDeleteGroup, searchQuery: 'docs', urls: [] }),
     )
 
     render(<DomainCardActions />)
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: '「example.com」のすべてのタブを削除',
       }),
@@ -429,7 +436,8 @@ describe('DomainCardActions', () => {
     expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
   })
 
-  it('use-case context がある場合だけ keyword 保存を委譲する', () => {
+  it('use-case context がある場合だけ keyword 保存を委譲する', async () => {
+    const user = userEvent.setup()
     const useCases = { getSavedTabsPageData: vi.fn() }
     useSavedTabsUseCasesMock.mockReturnValue({
       deps: { categoryAssignmentPort: {} },
@@ -440,7 +448,7 @@ describe('DomainCardActions', () => {
     )
 
     render(<DomainCardActions />)
-    fireEvent.click(screen.getByRole('button', { name: 'save keywords' }))
+    await user.click(screen.getByRole('button', { name: 'save keywords' }))
 
     expect(handleSaveKeywordsMock).toHaveBeenCalledWith(
       useCases,

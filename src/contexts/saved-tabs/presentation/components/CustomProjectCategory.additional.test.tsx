@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
@@ -134,6 +134,7 @@ describe('CustomProjectCategory additional', () => {
   })
 
   it('handleDeleteUrlsFromProject があれば一括削除でそちらを使う', async () => {
+    const user = userEvent.setup()
     const handleDeleteUrlsFromProject = vi.fn().mockResolvedValue(undefined)
 
     render(
@@ -144,7 +145,7 @@ describe('CustomProjectCategory additional', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'すべて削除' }))
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
 
     await waitFor(() => {
       expect(handleDeleteUrlsFromProject).toHaveBeenCalledWith('project-1', [

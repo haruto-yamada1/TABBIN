@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
@@ -188,7 +189,8 @@ describe('Header', () => {
     vi.restoreAllMocks()
   })
 
-  it('検索入力変更・クリア・件数表示を処理する', () => {
+  it('検索入力変更・クリア・件数表示を処理する', async () => {
+    const user = userEvent.setup()
     const onSearchChange = vi.fn()
 
     render(
@@ -201,13 +203,14 @@ describe('Header', () => {
       />,
     )
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(screen.getByPlaceholderText('検索'), {
       target: { value: 'next' },
     })
     expect(onSearchChange).toHaveBeenCalledWith('next')
 
     const clearButton = screen.getByRole('button', { name: '検索をクリア' })
-    fireEvent.click(clearButton)
+    await user.click(clearButton)
     expect(onSearchChange).toHaveBeenCalledWith('')
 
     expect(screen.getByText('タブ:2')).toBeTruthy()
@@ -328,7 +331,8 @@ describe('Header', () => {
     expect(screen.getByText('プロジェクト:1')).toBeTruthy()
   })
 
-  it('domain モードで親カテゴリ管理モーダルを開閉し ViewModeToggle を描画する', () => {
+  it('domain モードで親カテゴリ管理モーダルを開閉し ViewModeToggle を描画する', async () => {
+    const user = userEvent.setup()
     render(<Header {...createProps()} />)
 
     expect(viewModeToggleSpy).toHaveBeenCalledWith(
@@ -337,7 +341,7 @@ describe('Header', () => {
       }),
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /親カテゴリ管理/ }))
+    await user.click(screen.getByRole('button', { name: /親カテゴリ管理/ }))
     expect(screen.getByTestId('category-modal')).toBeTruthy()
     expect(categoryModalSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -345,13 +349,14 @@ describe('Header', () => {
       }),
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'close-category-modal' }),
     )
     expect(screen.queryByTestId('category-modal')).toBeNull()
   })
 
-  it('custom モードでプロジェクト追加ダイアログの Enter 分岐（空/重複/成功）を処理する', () => {
+  it('custom モードでプロジェクト追加ダイアログの Enter 分岐（空/重複/成功）を処理する', async () => {
+    const user = userEvent.setup()
     const onCreateProject = vi.fn()
     const customProjects = createCustomProjects()
 
@@ -365,22 +370,24 @@ describe('Header', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
+    await user.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
     const input = screen.getByPlaceholderText('例: 仕事、調査、後で読む')
 
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     expect(toastErrorSpy).toHaveBeenCalledWith(
       'プロジェクト名を入力してください',
     )
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'Project A' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     expect(toastErrorSpy).toHaveBeenCalledWith(
       '同じプロジェクト名は追加できません',
     )
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: '新プロジェクト' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
 
     expect(onCreateProject).toHaveBeenCalledTimes(1)
     expect(onCreateProject).toHaveBeenCalledWith('新プロジェクト')
@@ -390,7 +397,8 @@ describe('Header', () => {
     expect(screen.queryByTestId('dialog-content')).toBeNull()
   })
 
-  it('IME 変換中の Enter ではプロジェクト追加しない', () => {
+  it('IME 変換中の Enter ではプロジェクト追加しない', async () => {
+    const user = userEvent.setup()
     const onCreateProject = vi.fn()
 
     render(
@@ -402,9 +410,11 @@ describe('Header', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
+    await user.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
     const input = screen.getByPlaceholderText('例: 仕事、調査、後で読む')
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: '新プロジェクト' } })
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.keyDown(input, {
       key: 'Enter',
       isComposing: true,
@@ -415,7 +425,8 @@ describe('Header', () => {
     expect(toastSuccessSpy).not.toHaveBeenCalled()
   })
 
-  it('customProjects が空でもプロジェクト追加できる', () => {
+  it('customProjects が空でもプロジェクト追加できる', async () => {
+    const user = userEvent.setup()
     const onCreateProject = vi.fn()
 
     render(
@@ -428,16 +439,18 @@ describe('Header', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
+    await user.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
     const input = screen.getByPlaceholderText('例: 仕事、調査、後で読む')
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: '新プロジェクト' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
 
     expect(onCreateProject).toHaveBeenCalledTimes(1)
     expect(onCreateProject).toHaveBeenCalledWith('新プロジェクト')
   })
 
-  it('Dialog の onOpenChange で custom プロジェクトダイアログを閉じる', () => {
+  it('Dialog の onOpenChange で custom プロジェクトダイアログを閉じる', async () => {
+    const user = userEvent.setup()
     render(
       <Header
         {...createProps({
@@ -446,14 +459,15 @@ describe('Header', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
+    await user.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
     expect(screen.getByTestId('dialog-content')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'dialog-close' }))
+    await user.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(screen.queryByTestId('dialog-content')).toBeNull()
   })
 
-  it('Enter 以外のキーでは追加せず、onCreateProject 未指定時のデフォルト関数でも成功分岐を通る', () => {
+  it('Enter 以外のキーでは追加せず、onCreateProject 未指定時のデフォルト関数でも成功分岐を通る', async () => {
+    const user = userEvent.setup()
     render(
       <Header
         {...(createProps({
@@ -485,14 +499,15 @@ describe('Header', () => {
     expect(screen.getByText('タブ:0')).toBeTruthy()
     expect(screen.getByText('プロジェクト:2')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
+    await user.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
     const input = screen.getByPlaceholderText('例: 仕事、調査、後で読む')
 
+    // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(input, { target: { value: 'プロジェクトX' } })
-    fireEvent.keyDown(input, { key: 'Escape' })
+    await user.type(input, '{Escape}')
     expect(toastSuccessSpy).not.toHaveBeenCalled()
 
-    fireEvent.keyDown(input, { key: 'Enter' })
+    await user.type(input, '{Enter}')
     expect(toastSuccessSpy).toHaveBeenCalledWith(
       'プロジェクト「プロジェクトX」を追加しました',
     )
