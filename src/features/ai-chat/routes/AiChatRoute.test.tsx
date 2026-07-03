@@ -199,10 +199,14 @@ describe('AiChatRoute', () => {
   it('履歴項目の本文ボタンは縦積みレイアウトで削除ボタンを押し出さない', () => {
     render(createElement(AiChatRoute))
 
-    const conversationButton = screen.getAllByTestId('conversation-button')[0]
-    const conversationRow = screen.getAllByTestId('conversation-row')[0]
-    const title = screen.getAllByTestId('conversation-title')[0]
-    const preview = screen.getAllByTestId('conversation-preview')[0]
+    const conversationButton = screen.getByTestId(
+      'conversation-button-conversation-1',
+    )
+    const conversationRow = screen.getByTestId(
+      'conversation-row-conversation-1',
+    )
+    const title = screen.getByTestId('conversation-title-conversation-1')
+    const preview = screen.getByTestId('conversation-preview-conversation-1')
 
     expect(conversationButton).toHaveTextContent('最初の会話')
 

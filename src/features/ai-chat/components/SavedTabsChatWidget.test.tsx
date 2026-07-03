@@ -1731,22 +1731,18 @@ describe('SavedTabsChatWidget', () => {
         name: 'Most-saved categories',
       }),
     ])
-    const messageContent = screen
-      .getAllByTestId('message-content')
-      .find((el) =>
-        within(el).queryByRole('heading', {
-          level: 3,
-          name: 'Most-saved categories',
-        }),
-      )
-    const assistantMessage = screen
-      .getAllByTestId('chat-message')
-      .find((el) =>
-        within(el).queryByRole('heading', {
-          level: 3,
-          name: 'Most-saved categories',
-        }),
-      )
+    const messageContent = screen.getAllByTestId('message-content').find((el) =>
+      within(el).queryByRole('heading', {
+        level: 3,
+        name: 'Most-saved categories',
+      }),
+    )
+    const assistantMessage = screen.getAllByTestId('chat-message').find((el) =>
+      within(el).queryByRole('heading', {
+        level: 3,
+        name: 'Most-saved categories',
+      }),
+    )
 
     expect(screen.getByText('Recent saved category mix')).toBeTruthy()
     expect(messageContent?.className).toContain('overflow-visible')

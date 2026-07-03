@@ -88,7 +88,7 @@ const DrilldownRecordCard = ({
     >
       <div
         className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'
-        data-testid='analytics-card-layout'
+        data-testid={`analytics-card-layout-${record.id}`}
       >
         <div className='min-w-0 flex-1'>
           <p className='truncate text-sm font-medium'>{record.title}</p>
@@ -118,7 +118,7 @@ const DrilldownRecordCard = ({
         </div>
         <div
           className='flex shrink-0 flex-col gap-2 sm:items-end'
-          data-testid='analytics-action-column'
+          data-testid={`analytics-action-column-${record.id}`}
         >
           <time className='text-xs text-muted-foreground'>
             {formatLocaleDateTime(

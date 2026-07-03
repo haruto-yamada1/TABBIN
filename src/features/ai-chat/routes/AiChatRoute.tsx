@@ -55,24 +55,24 @@ const HistoryItemCard = ({
     >
       <div
         className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2'
-        data-testid='conversation-row'
+        data-testid={`conversation-row-${historyItem.id}`}
       >
         <Button
           className='h-auto w-full min-w-0 flex-col items-start justify-start overflow-hidden px-0 text-left whitespace-normal hover:bg-transparent'
-          data-testid='conversation-button'
+          data-testid={`conversation-button-${historyItem.id}`}
           onClick={handleClick}
           type='button'
           variant='ghost'
         >
           <span
             className='block w-full min-w-0 truncate text-sm font-medium text-foreground'
-            data-testid='conversation-title'
+            data-testid={`conversation-title-${historyItem.id}`}
           >
             {historyItem.title}
           </span>
           <span
             className='mt-1 line-clamp-2 block w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'
-            data-testid='conversation-preview'
+            data-testid={`conversation-preview-${historyItem.id}`}
           >
             {historyItem.preview}
           </span>

@@ -650,12 +650,8 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    expect(screen.getByTestId('card').className.includes('border-2')).toBe(true)
-    expect(
-      screen
-        .getByTestId('category-url-list')
-        .className.includes('bg-primary/5'),
-    ).toBe(true)
+    expect(screen.getByTestId('card')).toHaveClass('border-2')
+    expect(screen.getByTestId('category-url-list')).toHaveClass('bg-primary/5')
 
     rerender(
       <CustomProjectCategory

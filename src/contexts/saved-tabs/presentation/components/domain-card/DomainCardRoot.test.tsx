@@ -152,7 +152,7 @@ describe('DomainCardRoot', () => {
       </DomainCardRoot>,
     )
 
-    const root = screen.getByTestId('domain-scroll-target') as HTMLElement
+    const root = screen.getByTestId('domain-scroll-target')
     expect(root?.style.contentVisibility).toBe('auto')
     expect(root?.style.containIntrinsicSize).toBe('360px')
     expect(screen.getByText('2')).toBeTruthy()

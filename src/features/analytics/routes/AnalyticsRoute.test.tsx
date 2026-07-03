@@ -1797,11 +1797,9 @@ describe('AnalyticsRoute', () => {
     expect(actionButtonsSource).toContain("t('analytics.open')")
     expect(actionButtonsSource).toContain("t('common.delete')")
     expect(drilldownSource).toContain('<AnalyticsRecordActionButtons')
-    expect(
-      screen
-        .getByTestId('analytics-action-column')
-        .className.includes('shrink-0'),
-    ).toBe(true)
+    expect(screen.getByTestId('analytics-action-column-1')).toHaveClass(
+      'shrink-0',
+    )
   })
 
   it('ドリルダウンは現在の分析条件で絞り込まれた保存タブだけを表示する', async () => {
@@ -2018,20 +2016,18 @@ describe('AnalyticsRoute', () => {
     })
     const deleteButton = screen.getByRole('button', { name: 'Delete tab' })
 
-    const buttonRow = screen.getByTestId('analytics-action-row')
-    const actionColumn = screen.getByTestId('analytics-action-column')
-    const cardLayout = screen.getByTestId('analytics-card-layout')
+    const buttonRow = screen.getByTestId('analytics-action-row-1')
+    const actionColumn = screen.getByTestId('analytics-action-column-1')
+    const cardLayout = screen.getByTestId('analytics-card-layout-1')
 
-    expect(cardLayout.className.includes('grid')).toBe(true)
-    expect(
-      cardLayout.className.includes('sm:grid-cols-[minmax(0,1fr)_auto]'),
-    ).toBe(true)
-    expect(buttonRow.className.includes('items-center')).toBe(true)
-    expect(buttonRow.className.includes('justify-end')).toBe(true)
+    expect(cardLayout).toHaveClass('grid')
+    expect(cardLayout).toHaveClass('sm:grid-cols-[minmax(0,1fr)_auto]')
+    expect(buttonRow).toHaveClass('items-center')
+    expect(buttonRow).toHaveClass('justify-end')
     expect(within(buttonRow).getByRole('button', { name: 'Delete tab' })).toBe(
       deleteButton,
     )
-    expect(actionColumn.className.includes('sm:items-end')).toBe(true)
+    expect(actionColumn).toHaveClass('sm:items-end')
   })
 
   it('ドリルダウン各行に削除ボタンを表示する', async () => {

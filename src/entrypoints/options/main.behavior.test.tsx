@@ -519,7 +519,7 @@ describe('options route behavior', () => {
     await user.click(resetButtons[1])
     expect(mocked.handleResetColors).toHaveBeenCalledTimes(1)
 
-    const colorInput = screen.getAllByTestId('color-picker')[0]
+    const colorInput = screen.getByTestId('color-picker-background')
     const hexInput = screen.getAllByPlaceholderText('e.g. #FF5733, #3366CC')[0]
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(colorInput, { target: { value: '#ffffff' } })
