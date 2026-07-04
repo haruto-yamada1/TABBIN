@@ -38,6 +38,6 @@ export const SAVED_TABS_STORAGE_KEYS = [
   PARENT_CATEGORIES_KEY,
   CUSTOM_PROJECTS_KEY,
   CUSTOM_PROJECT_ORDER_KEY,
-]
+] as const
 
 export type SavedTabsStorageKey = (typeof SAVED_TABS_STORAGE_KEYS)[number]

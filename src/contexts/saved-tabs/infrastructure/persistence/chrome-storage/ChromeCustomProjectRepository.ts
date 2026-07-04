@@ -76,7 +76,7 @@ const toRawSnapshots = (
 /**
  * `CUSTOM_PROJECT_ORDER_KEY` の生値を `CustomProjectId[]` へ詰め替える。
  *
- * - 非配列 / 配列でも要素が文字列以外 / 空文字はスキップする。
+ * - 非配列 / 配列でも要素が文字列以外 / 空文字・空白のみはスキップする。
  * - ドメイン層で `createCustomProjectId` が空文字を拒否するため、parse
  *   時点で空文字を除外しないと repository 境界で例外が漏れる。
  */
@@ -87,14 +87,15 @@ const parseCustomProjectOrder = (raw: unknown): readonly CustomProjectId[] => {
   const result: CustomProjectId[] = []
   const seen = new Set<string>()
   for (const item of raw) {
-    if (typeof item !== 'string' || item.length === 0) {
+    if (typeof item !== 'string') {
       continue
     }
-    if (seen.has(item)) {
+    const trimmedItem = item.trim()
+    if (trimmedItem.length === 0 || seen.has(trimmedItem)) {
       continue
     }
-    seen.add(item)
-    result.push(createCustomProjectId(item))
+    seen.add(trimmedItem)
+    result.push(createCustomProjectId(trimmedItem))
   }
   return result
 }

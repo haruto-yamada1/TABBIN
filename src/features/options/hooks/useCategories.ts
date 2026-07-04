@@ -4,9 +4,10 @@ import { z } from 'zod'
 import {
   getBrowserUiLocale,
   getMessage,
+  getStoredLanguageSetting,
   resolveLanguage,
 } from '@/features/i18n/lib/language'
-import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
+import type { AppLanguage } from '@/features/i18n/messages'
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -26,17 +27,6 @@ const MAX_CATEGORY_NAME_LENGTH = 25
 const ERROR_TOAST_DURATION_MS = 3000
 
 const getUiLocale = () => getBrowserUiLocale('ja')
-
-const isLanguageSetting = (value: unknown): value is LanguageSetting =>
-  value === 'system' || value === 'ja' || value === 'en'
-
-const getStoredLanguageSetting = (value: unknown): LanguageSetting => {
-  if (typeof value !== 'object' || value === null) {
-    return 'system'
-  }
-  const language: unknown = Reflect.get(value, 'language')
-  return isLanguageSetting(language) ? language : 'system'
-}
 
 export const useCategories = () => {
   const [categoryState, setCategoryState] = useState<{

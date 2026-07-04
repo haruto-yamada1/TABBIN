@@ -10,7 +10,7 @@ import { createChromeMessagingAdapter } from '@/contexts/saved-tabs/infrastructu
 import type { ChromeApiLike as ChromeMessagingApiLike } from '@/contexts/saved-tabs/infrastructure/browser/ChromeMessagingAdapter'
 import { createChromeStorageChangeAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeStorageChangeAdapter'
 import { createSonnerNotificationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter'
-import { getChromeGlobal } from '@/lib/browser/chrome-global'
+import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 
 /**
  * `src/app/composition/` レベルで組み立てる、saved-tabs 用
@@ -75,8 +75,7 @@ type ChromeOnChangedListener = (
   areaName: string,
 ) => void
 
-const isChromeApi = (value: unknown): value is ChromeApi =>
-  typeof value === 'object' && value !== null
+const isChromeApi = (value: unknown): value is ChromeApi => isObjectLike(value)
 
 const getChromeApi = (): ChromeApi | undefined => getChromeGlobal(isChromeApi)
 

@@ -1,14 +1,11 @@
-import { getChromeGlobal } from '@/lib/browser/chrome-global'
+import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 
 type ChromeStorageApi = typeof chrome.storage
 
 const warnedContexts = new Set<string>()
 
-const isObject = (value: unknown): value is object =>
-  typeof value === 'object' && value !== null
-
 const isChromeApi = (value: unknown): value is typeof chrome =>
-  isObject(value) && isObject(Reflect.get(value, 'storage'))
+  isObjectLike(value) && isObjectLike(Reflect.get(value, 'storage'))
 
 const getChromeApi = (): typeof chrome | undefined =>
   getChromeGlobal(isChromeApi)

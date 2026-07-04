@@ -6,6 +6,9 @@
  * 明示してから呼び出し側の最小 chrome shape へ絞り込む。
  */
 
+export const isObjectLike = (value: unknown): value is object =>
+  typeof value === 'object' && value !== null
+
 export const getChromeGlobal = <T>(
   isChromeApi: (value: unknown) => value is T,
 ): T | undefined => {

@@ -20,7 +20,7 @@ import {
 } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeTabGroupRepository'
 import { createChromeUrlRecordRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUserSettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUserSettingsRepository'
-import { getChromeGlobal } from '@/lib/browser/chrome-global'
+import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
@@ -75,7 +75,7 @@ type ChromeOnChangedListener = (
 ) => void
 
 const isChromeLike = (value: unknown): value is ChromeLike =>
-  typeof value === 'object' && value !== null
+  isObjectLike(value)
 
 const getChromeApi = (): ChromeLike | undefined => getChromeGlobal(isChromeLike)
 

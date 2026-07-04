@@ -141,10 +141,8 @@ const ensureValidParentCategories = async (
   console.log('無効なカテゴリを検出、再マイグレーションを実行')
   await migrationPort.migrateParentCategoriesToDomainNames()
   // `ensureValidParentCategories` の判定は `domainNames` 未定義/
-  // 配列非互換を invalid として検出する。mapper 側で `?? []` 化すると
-  // 検出ロジックが破壊されるため、query 戻り値 (branded domain) を
-  // そのまま cast して下流判定へ流す。
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- branded ParentCategory → storage 投影 (判定用)
+  // 配列非互換を invalid として検出する。再取得後も配列として clone し、
+  // 下流では同じ runtime shape check を維持する。
   const refreshed = (await getSavedTabsPageDataQuery()).parentCategories
   return [...refreshed]
 }
@@ -302,7 +300,6 @@ const useTabData = ({
         const savedTabs = toPresentationTabGroups(pageData.tabGroups)
         // legacy storage の不正な `domainNames` を検出して再 migration するため、
         // parent category だけは正規化せず runtime shape を保持する。
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- legacy invalid shape detection
         const parentCategories = [...pageData.parentCategories]
         const userSettings = pageData.userSettings
         logSavedTabsSummary(savedTabs)

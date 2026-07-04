@@ -50,6 +50,17 @@ export const resolveLanguage = (
   return setting
 }
 
+export const isLanguageSetting = (value: unknown): value is LanguageSetting =>
+  value === 'system' || value === 'ja' || value === 'en'
+
+export const getStoredLanguageSetting = (value: unknown): LanguageSetting => {
+  if (!isRecord(value)) {
+    return 'system'
+  }
+  const language: unknown = Reflect.get(value, 'language')
+  return isLanguageSetting(language) ? language : 'system'
+}
+
 export const getMessage = (
   language: AppLanguage,
   key: string,

@@ -1,4 +1,5 @@
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import { ensureStringArray } from '@/contexts/saved-tabs/domain/services/ensureStringArray'
 import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
@@ -73,6 +74,7 @@ export const createTabGroup = (input: CreateTabGroupInput): TabGroup => {
   const rawUrlIds: readonly string[] = ensureStringArray(
     input.urlIds,
     'TabGroup の urlIds は配列で指定してください',
+    'INVALID_TAB_GROUP',
   )
   const seen = new Set<string>()
   const urlIds: UrlRecordId[] = []
@@ -120,23 +122,6 @@ export const createTabGroup = (input: CreateTabGroupInput): TabGroup => {
     savedAt:
       input.savedAt === undefined ? undefined : createSavedAt(input.savedAt),
   }
-}
-
-const ensureStringArray = (
-  value: unknown,
-  message: string,
-): readonly string[] => {
-  if (!Array.isArray(value)) {
-    throw new SavedTabsDomainError(message, 'INVALID_TAB_GROUP')
-  }
-  const strings: string[] = []
-  for (const item of value) {
-    if (typeof item !== 'string') {
-      throw new SavedTabsDomainError(message, 'INVALID_TAB_GROUP')
-    }
-    strings.push(item)
-  }
-  return strings
 }
 
 /**

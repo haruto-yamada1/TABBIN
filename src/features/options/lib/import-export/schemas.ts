@@ -148,6 +148,19 @@ const importedCustomProjectSchema = z.object({
     .optional(),
 })
 
+const analyticsGroupBySchema = z.preprocess(
+  (value) => (value === 'time' ? 'timeRecent' : value),
+  z.enum([
+    'domain',
+    'parentCategory',
+    'project',
+    'projectCategory',
+    'subCategory',
+    'timeRecent',
+    'timeTop',
+  ]),
+)
+
 const analyticsQuerySchema = z.object({
   chartType: z.enum(['area', 'bar', 'line', 'pie', 'radar']),
   compareBy: z.enum(['mode', 'none']),
@@ -169,15 +182,7 @@ const analyticsQuerySchema = z.object({
     includedProjects: z.array(z.string()),
     includedSubCategories: z.array(z.string()),
   }),
-  groupBy: z.enum([
-    'domain',
-    'parentCategory',
-    'project',
-    'projectCategory',
-    'subCategory',
-    'timeRecent',
-    'timeTop',
-  ]),
+  groupBy: analyticsGroupBySchema,
   limit: z.number(),
   mode: z.enum(['both', 'custom', 'domain']),
   normalize: z.boolean(),

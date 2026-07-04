@@ -59,7 +59,6 @@ export const createCreateCustomProjectUseCase = (
     ) {
       throw new Error(`DUPLICATE_PROJECT_NAME:${name}`)
     }
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
     const id = (deps.generateId ?? defaultGenerateId)()
     const now = deps.clock.now()
     const newProject = createCustomProject({

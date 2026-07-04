@@ -3,6 +3,7 @@ import { createContext, use, useEffect, useMemo, useState } from 'react'
 import {
   getBrowserUiLocale,
   getMessage,
+  getStoredLanguageSetting,
   resolveLanguage,
 } from '@/features/i18n/lib/language'
 import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
@@ -29,17 +30,6 @@ const getUiLocale = () =>
   getBrowserUiLocale(
     typeof navigator === 'undefined' ? undefined : navigator.language,
   )
-
-const isLanguageSetting = (value: unknown): value is LanguageSetting =>
-  value === 'system' || value === 'ja' || value === 'en'
-
-const getStoredLanguageSetting = (value: unknown): LanguageSetting => {
-  if (typeof value !== 'object' || value === null) {
-    return 'system'
-  }
-  const language: unknown = Reflect.get(value, 'language')
-  return isLanguageSetting(language) ? language : 'system'
-}
 
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const [i18nState, setI18nState] = useState<{
