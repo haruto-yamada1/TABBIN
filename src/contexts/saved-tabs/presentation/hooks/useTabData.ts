@@ -302,9 +302,7 @@ const useTabData = ({
         // legacy storage の不正な `domainNames` を検出して再 migration するため、
         // parent category だけは正規化せず runtime shape を保持する。
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- legacy invalid shape detection
-        const parentCategories = [
-          ...pageData.parentCategories,
-        ] as unknown as ParentCategory[]
+        const parentCategories = [...pageData.parentCategories]
         const userSettings = pageData.userSettings
         logSavedTabsSummary(savedTabs)
 

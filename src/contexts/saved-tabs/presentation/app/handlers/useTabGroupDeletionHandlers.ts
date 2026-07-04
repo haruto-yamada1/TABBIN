@@ -215,9 +215,7 @@ export const useTabGroupDeletionHandlers = ({
         // use-case が一括で行う。
         await savedTabsUseCases.deleteTabGroups({
           // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-          tabGroupIds: ids as unknown as Parameters<
-            typeof savedTabsUseCases.deleteTabGroups
-          >[0]['tabGroupIds'],
+          tabGroupIds: ids,
         })
         // customProject 側の URL ID 同期削除は他 storage key を触る
         // ため、issue 範囲外として従来通り UI 側で実行していたが、
@@ -303,9 +301,7 @@ export const useTabGroupDeletionHandlers = ({
         // issue 範囲外として従来通り UI 側で実行する。
         await savedTabsUseCases.deleteSavedUrl({
           // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-          tabGroupId: groupId as unknown as Parameters<
-            typeof savedTabsUseCases.deleteSavedUrl
-          >[0]['tabGroupId'],
+          tabGroupId: groupId,
           url,
         })
         showOpenedUrlsUndoToast({
@@ -353,9 +349,7 @@ export const useTabGroupDeletionHandlers = ({
         // 複数 URL 削除は DeleteSavedUrlsUseCase 経由に置き換える。
         await savedTabsUseCases.deleteSavedUrls({
           // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
-          tabGroupId: groupId as unknown as Parameters<
-            typeof savedTabsUseCases.deleteSavedUrls
-          >[0]['tabGroupId'],
+          tabGroupId: groupId,
           urls,
         })
         console.log(

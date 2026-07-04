@@ -69,6 +69,7 @@ describe('createAiChatTools', () => {
       },
       {
         abortSignal: new AbortController().signal,
+        context: {},
         toolCallId: 'tool-1',
         messages: [],
       },

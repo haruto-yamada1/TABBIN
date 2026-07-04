@@ -105,7 +105,7 @@ export const useCustomModeController = (
           updatedAt: vm.updatedAt,
           urlIds: [...vm.urlIds],
           urls: [...vm.urls],
-        })) as unknown as readonly CustomProject[],
+        })),
         searchQuery,
       }),
     [

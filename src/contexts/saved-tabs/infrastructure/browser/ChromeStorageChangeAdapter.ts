@@ -181,7 +181,7 @@ export const createChromeStorageChangeAdapter = (
     if (deps.getApi) {
       return deps.getApi()?.storage?.onChanged ?? null
     }
-    return getChromeStorageOnChanged() as ChromeStorageOnChangedLike | null
+    return getChromeStorageOnChanged()
   }
 
   const buildTypedChange = (

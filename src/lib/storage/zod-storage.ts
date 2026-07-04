@@ -12,7 +12,7 @@ export function fromStorageChange<T extends z.ZodType>(
   schema: T,
   value: unknown,
 ) {
-  return schema.parse(value) as z.output<T>
+  return schema.parse(value)
 }
 
 /**

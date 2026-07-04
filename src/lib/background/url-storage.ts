@@ -159,7 +159,7 @@ const removeUrlIdsFromRecord = <T>(
 
   return {
     hasChanges,
-    record: Object.fromEntries(entries) as Record<string, T>,
+    record: Object.fromEntries(entries),
   }
 }
 

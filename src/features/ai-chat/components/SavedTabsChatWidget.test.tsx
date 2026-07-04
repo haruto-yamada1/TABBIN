@@ -146,7 +146,6 @@ const createChromeMock = () =>
         (callback: (info: chrome.runtime.PlatformInfo) => void) => {
           callback({
             arch: 'x86-64',
-            nacl_arch: 'x86-64',
             os: mocked.platformOs as chrome.runtime.PlatformOs,
           })
         },

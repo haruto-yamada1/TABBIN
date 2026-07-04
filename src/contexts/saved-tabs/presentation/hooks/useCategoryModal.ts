@@ -176,10 +176,14 @@ export const useCategoryModal = ({
   const [nameError, setNameError] = useState<string | null>(null)
 
   // --- カテゴリリスト・選択状態 ---
-  const [categoryData, setCategoryData] = useState({
-    categories: [] as ParentCategory[],
-    domainCategories: {} as DomainCategoryMap,
-    selectedCategoryId: null as string | null,
+  const [categoryData, setCategoryData] = useState<{
+    categories: ParentCategory[]
+    domainCategories: DomainCategoryMap
+    selectedCategoryId: string | null
+  }>({
+    categories: [],
+    domainCategories: {},
+    selectedCategoryId: null,
   })
   const { categories, domainCategories, selectedCategoryId } = categoryData
   const setCategories: Dispatch<SetStateAction<ParentCategory[]>> = useCallback(

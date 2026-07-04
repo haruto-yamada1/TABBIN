@@ -78,7 +78,7 @@ export const CategorySection = ({
             // 新形式のURL並び替え use-case を呼び出し
             await reorderTabGroupUrlsUseCase?.({
               // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-              tabGroupId: groupId as never,
+              tabGroupId: groupId,
               newUrlOrder: newUrls.map((item) => item.url),
             })
 

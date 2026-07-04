@@ -483,11 +483,11 @@ const useCategoryManagementModalView = ({
         }
         setSavedTabGroups(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage 層 TabGroup へ投影
-          [...pageData.tabGroups] as unknown as TabGroup[],
+          [...pageData.tabGroups],
         )
         setParentCategories(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
-          [...pageData.parentCategories] as unknown as ParentCategory[],
+          [...pageData.parentCategories],
         )
       } catch (error) {
         console.error('利用可能なドメインの取得に失敗しました:', error)
