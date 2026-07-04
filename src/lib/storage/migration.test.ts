@@ -1658,3 +1658,45 @@ it('savedTabs の同一正規化ドメイン重複はマージせず warn する
   )
   warnSpy.mockRestore()
 })
+
+// 回帰 (CodeRabbit PR #626): 正規化後に hostname が取れない (空 key) エントリ同士は
+// 空文字列キーでマージ・消失せず、別々に保持される。
+it('空に正規化されるエントリ同士はマージ/破棄せず別々に保持する', async () => {
+  const state = setupChrome({
+    domainCategoryMappings: [
+      { categoryId: 'cat-a', domain: '' },
+      { categoryId: 'cat-b', domain: '   ' },
+    ],
+    domainCategorySettings: [
+      {
+        categoryKeywords: [],
+        domain: '',
+        subCategories: ['a'],
+      },
+      {
+        categoryKeywords: [],
+        domain: '   ',
+        subCategories: ['b'],
+      },
+    ],
+  })
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+  // 両エントリとも空 key なので別々に保持 (マージ/破棄されない)
+  expect(state.domainCategorySettings).toStrictEqual([
+    {
+      categoryKeywords: [],
+      domain: '',
+      subCategories: ['a'],
+    },
+    {
+      categoryKeywords: [],
+      domain: '   ',
+      subCategories: ['b'],
+    },
+  ])
+  expect(state.domainCategoryMappings).toStrictEqual([
+    { categoryId: 'cat-a', domain: '' },
+    { categoryId: 'cat-b', domain: '   ' },
+  ])
+})

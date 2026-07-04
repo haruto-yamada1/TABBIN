@@ -617,11 +617,15 @@ const mergeCategoryKeywords = (
 const mergeDomainCategorySettings = (
   settings: DomainCategorySettings[],
 ): DomainCategorySettings[] => {
-  const byKey = new Map<string, DomainCategorySettings>()
+  const byKey = new Map<string | symbol, DomainCategorySettings>()
   let merged = 0
   for (const entry of settings) {
     const normalized = { ...entry, domain: toHostnameOrKeep(entry.domain) }
     const key = normalizeDomainLookupKey(normalized.domain)
+    if (key === '') {
+      byKey.set(Symbol('unkeyed-domain-category-setting'), normalized)
+      continue
+    }
     const existing = byKey.get(key)
     if (!existing) {
       byKey.set(key, normalized)
@@ -652,11 +656,15 @@ const mergeDomainCategorySettings = (
 const dedupDomainCategoryMappings = (
   mappings: DomainParentCategoryMapping[],
 ): DomainParentCategoryMapping[] => {
-  const byKey = new Map<string, DomainParentCategoryMapping>()
+  const byKey = new Map<string | symbol, DomainParentCategoryMapping>()
   let conflicts = 0
   for (const mapping of mappings) {
     const normalized = { ...mapping, domain: toHostnameOrKeep(mapping.domain) }
     const key = normalizeDomainLookupKey(normalized.domain)
+    if (key === '') {
+      byKey.set(Symbol('unkeyed-domain-category-mapping'), normalized)
+      continue
+    }
     const existing = byKey.get(key)
     if (!existing) {
       byKey.set(key, normalized)
