@@ -125,14 +125,24 @@ const parseActiveDragData = (value: unknown): ActiveDragData | null => {
     return null
   }
 
-  const candidate = value as ActiveDragData
+  const projectId: unknown = Reflect.get(value, 'projectId')
+  const type: unknown = Reflect.get(value, 'type')
+  const title: unknown = Reflect.get(value, 'title')
+  const url: unknown = Reflect.get(value, 'url')
   const hasRecognizedData =
-    typeof candidate.projectId === 'string' ||
-    typeof candidate.type === 'string' ||
-    typeof candidate.title === 'string' ||
-    typeof candidate.url === 'string'
+    typeof projectId === 'string' ||
+    typeof type === 'string' ||
+    typeof title === 'string' ||
+    typeof url === 'string'
 
-  return hasRecognizedData ? candidate : null
+  return hasRecognizedData
+    ? {
+        projectId: typeof projectId === 'string' ? projectId : undefined,
+        title: typeof title === 'string' ? title : undefined,
+        type: typeof type === 'string' ? type : undefined,
+        url: typeof url === 'string' ? url : undefined,
+      }
+    : null
 }
 
 const resolveActiveDragData = (

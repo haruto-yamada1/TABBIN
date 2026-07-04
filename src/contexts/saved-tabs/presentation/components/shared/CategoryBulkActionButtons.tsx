@@ -1,4 +1,5 @@
 import { ExternalLink, Trash } from 'lucide-react'
+import type { CSSProperties } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
@@ -8,7 +9,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from './SavedTabsResponsive'
 
-const RELATIVE_POSITION_STYLE = { position: 'relative' } as const
+const RELATIVE_POSITION_STYLE: CSSProperties = { position: 'relative' }
 
 interface CategoryBulkActionButtonsProps {
   isDeleting: boolean

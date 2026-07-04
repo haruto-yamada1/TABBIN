@@ -14,7 +14,7 @@ import type { CategoryLookup } from './CategoryAssignmentPolicy'
  * `ParentCategoryId` と衝突しないよう、長く明示的な記号列を使う。
  * 既存ストレージ上の ID には絶対に出現しない前提。
  */
-export const UNCATEGORIZED_KEY = '__saved-tabs:uncategorized__' as const
+export const UNCATEGORIZED_KEY = '__saved-tabs:uncategorized__'
 
 /**
  * `CategoryAssignmentPolicy` のキーまたは `UNCATEGORIZED_KEY`。

@@ -30,6 +30,17 @@ const getUiLocale = () =>
     typeof navigator === 'undefined' ? undefined : navigator.language,
   )
 
+const isLanguageSetting = (value: unknown): value is LanguageSetting =>
+  value === 'system' || value === 'ja' || value === 'en'
+
+const getStoredLanguageSetting = (value: unknown): LanguageSetting => {
+  if (typeof value !== 'object' || value === null) {
+    return 'system'
+  }
+  const language: unknown = Reflect.get(value, 'language')
+  return isLanguageSetting(language) ? language : 'system'
+}
+
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const [i18nState, setI18nState] = useState<{
     languageSetting: LanguageSetting
@@ -75,11 +86,11 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
 
-      const nextSettings = changes.userSettings.newValue as {
-        language?: LanguageSetting
-      }
+      const nextLanguageSetting = getStoredLanguageSetting(
+        changes.userSettings.newValue,
+      )
       setI18nState({
-        languageSetting: nextSettings.language ?? 'system',
+        languageSetting: nextLanguageSetting,
         uiLocale: getUiLocale(),
       })
     }

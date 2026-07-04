@@ -60,13 +60,7 @@ interface ChromeLike extends ChromeApiLikeBase {
         >
       | undefined
   }
-  readonly runtime?: {
-    readonly sendMessage?: (
-      message: unknown,
-      callback?: (response: unknown) => void,
-    ) => void
-    readonly lastError?: { readonly message?: string } | undefined
-  }
+  readonly runtime?: ChromeMessagingApiLike['runtime']
   readonly storage?: {
     readonly onChanged?: {
       readonly addListener: (callback: ChromeOnChangedListener) => void
@@ -80,7 +74,15 @@ type ChromeOnChangedListener = (
   areaName: string,
 ) => void
 
-const getChromeApi = (): ChromeLike | undefined => getChromeGlobal<ChromeLike>()
+const isChromeLike = (value: unknown): value is ChromeLike =>
+  typeof value === 'object' && value !== null
+
+const getChromeApi = (): ChromeLike | undefined => getChromeGlobal(isChromeLike)
+
+const getChromeMessagingApi = (): ChromeMessagingApiLike | undefined => {
+  const api = getChromeApi()
+  return api?.runtime ? { runtime: api.runtime } : undefined
+}
 
 /**
  * chrome 実環境向けに SavedTabsUseCasesDeps を構築する。
@@ -137,15 +139,7 @@ export const createSavedTabsUseCasesDeps = (
       createChromeDomainCategorySettingsRepository(port),
     migrationPort: createChromeMigrationAdapter(),
     messagingPort: createChromeMessagingAdapter({
-      // `ChromeLike` は `BrowserTabPort` 由来の `ChromeApiLike` に対し
-      // `runtime` / `storage` を追加で持つ拡張型。
-      // `createChromeMessagingAdapter` は `runtime` を持つ別系統の
-      // `ChromeApiLike` を要求するため、構造的部分型の境界を
-      // unsafe cast で超える。
-      getApi: () => {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        return getChromeApi() as unknown as ChromeMessagingApiLike | undefined
-      },
+      getApi: getChromeMessagingApi,
     }),
     notificationPort: createSonnerNotificationAdapter(),
     parentCategoryRepository: createChromeParentCategoryRepository(port),

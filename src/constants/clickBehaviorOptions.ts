@@ -12,4 +12,4 @@ export const clickBehaviorOptions = [
     labelKey: 'options.clickBehavior.allWindows',
     value: 'saveAllWindowsTabs',
   },
-] as const
+]

@@ -104,7 +104,7 @@ const emitStorageChanges = (changes: StorybookStorageState) => {
         oldValue: undefined,
       },
     ]),
-  ) as Record<string, chrome.storage.StorageChange>
+  )
 
   for (const listener of storageListeners) {
     listener(formattedChanges, 'local')
@@ -293,12 +293,12 @@ const ensureNavigatorMocks = () => {
       'webkitSpeechRecognition' in globalThis
     )
   ) {
-    const globalWithSpeechRecognition = globalThis as typeof globalThis &
-      Record<string, unknown>
-
-    globalWithSpeechRecognition.SpeechRecognition = StorybookSpeechRecognition
-    globalWithSpeechRecognition.webkitSpeechRecognition =
-      StorybookSpeechRecognition
+    Reflect.set(globalThis, 'SpeechRecognition', StorybookSpeechRecognition)
+    Reflect.set(
+      globalThis,
+      'webkitSpeechRecognition',
+      StorybookSpeechRecognition,
+    )
   }
 }
 

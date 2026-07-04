@@ -1,4 +1,5 @@
 import type { ReorderParentCategoriesCommand } from '@/contexts/saved-tabs/application/commands/ReorderParentCategoriesCommand'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 
@@ -38,15 +39,14 @@ export const createReorderParentCategoriesUseCase = (
   deps: ReorderParentCategoriesUseCaseDeps,
 ): ReorderParentCategoriesUseCase => {
   return async (command) => {
-    // `@/types/storage.ParentCategory` から
-    // domain `ParentCategory` (branded id / name / domain names) への
-    // widening は既存 use-case 群と同じ storage 層との branded
-    // 差異吸収パターン (issue #511)。`saveAll` 自体は
-    // chrome-storage 実装側で `TabGroup` / `ParentCategory` の
-    // structural 互換を受け入れる。
-    await deps.parentCategoryRepository.saveAll(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- storage 層 ParentCategory と domain 層 ParentCategory の branded 差異
-      command.categories as unknown as readonly ParentCategory[],
+    const categories: ParentCategory[] = command.categories.map((category) =>
+      createParentCategory({
+        domainNames: category.domainNames,
+        domains: category.domains,
+        id: category.id,
+        name: category.name,
+      }),
     )
+    await deps.parentCategoryRepository.saveAll(categories)
   }
 }

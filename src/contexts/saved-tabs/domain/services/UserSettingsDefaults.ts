@@ -6,11 +6,7 @@ import {
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
 
-const DEFAULT_EXCLUDE_PATTERNS = [
-  'about:',
-  'chrome-extension://',
-  'chrome://',
-] as const
+const DEFAULT_EXCLUDE_PATTERNS = ['about:', 'chrome-extension://', 'chrome://']
 
 /**
  * `UserSettingsDto` の domain 既定値。`src/lib/storage/settings.defaultSettings`
@@ -97,9 +93,10 @@ const mergeStoredUserSettings = (
   // OK: callers always spread result with defaultUserSettings which provides all required fields
   // eslint-disable-next-line typescript/no-unsafe-type-assertion
   return {
+    ...defaultUserSettings,
     ...settings,
     excludePatterns,
-  } as UserSettingsDto
+  }
 }
 
 /**

@@ -32,6 +32,20 @@ import {
   removeUrlRecordsFromStorage,
 } from './url-storage'
 
+const isOllamaErrorDetails = (value: unknown): value is OllamaErrorDetails => {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  return (
+    (Reflect.get(value, 'kind') === 'forbidden' ||
+      Reflect.get(value, 'kind') === 'notInstalledOrNotRunning') &&
+    typeof Reflect.get(value, 'faqUrl') === 'string' &&
+    typeof Reflect.get(value, 'downloadUrl') === 'string' &&
+    typeof Reflect.get(value, 'baseUrl') === 'string' &&
+    typeof Reflect.get(value, 'tagsUrl') === 'string'
+  )
+}
+
 const getOllamaErrorDetails = (
   error: unknown,
 ): OllamaErrorDetails | undefined => {
@@ -39,13 +53,9 @@ const getOllamaErrorDetails = (
     return undefined
   }
 
-  const maybeOllamaError = (
-    error as Error & {
-      ollamaError?: OllamaErrorDetails
-    }
-  ).ollamaError
+  const maybeOllamaError: unknown = Reflect.get(error, 'ollamaError')
 
-  return maybeOllamaError
+  return isOllamaErrorDetails(maybeOllamaError) ? maybeOllamaError : undefined
 }
 
 interface RuntimeOnConnect {

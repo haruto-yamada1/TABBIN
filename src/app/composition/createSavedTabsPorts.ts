@@ -61,13 +61,7 @@ interface ChromeApi extends ChromeApiLike {
         >
       | undefined
   }
-  readonly runtime?: {
-    readonly sendMessage?: (
-      message: unknown,
-      callback?: (response: unknown) => void,
-    ) => void
-    readonly lastError?: { readonly message?: string } | undefined
-  }
+  readonly runtime?: ChromeMessagingApiLike['runtime']
   readonly storage?: {
     readonly onChanged?: {
       readonly addListener: (callback: ChromeOnChangedListener) => void
@@ -81,7 +75,15 @@ type ChromeOnChangedListener = (
   areaName: string,
 ) => void
 
-const getChromeApi = (): ChromeApi | undefined => getChromeGlobal<ChromeApi>()
+const isChromeApi = (value: unknown): value is ChromeApi =>
+  typeof value === 'object' && value !== null
+
+const getChromeApi = (): ChromeApi | undefined => getChromeGlobal(isChromeApi)
+
+const getChromeMessagingApi = (): ChromeMessagingApiLike | undefined => {
+  const api = getChromeApi()
+  return api?.runtime ? { runtime: api.runtime } : undefined
+}
 
 /**
  * saved-tabs 用 port 実装を生成する。
@@ -116,15 +118,7 @@ export const createSavedTabsPorts = (
     getApi: () => getChromeApi(),
   }),
   messagingPort: createChromeMessagingAdapter({
-    // `getChromeApi()` の戻り値 `ChromeApi` は `BrowserTabPort` 由来の
-    // `ChromeApiLike` (`{ tabs?: ... }`) に対し `runtime` / `storage` を
-    // 追加で持つ拡張型。`createChromeMessagingAdapter` は
-    // 拡張後の `ChromeApiLike` (`{ runtime?: ... }`) を要求するため、
-    // `ChromeMessagingApiLike` への構造的部分型キャストで境界を超える。
-    getApi: () => {
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      return getChromeApi() as unknown as ChromeMessagingApiLike | undefined
-    },
+    getApi: getChromeMessagingApi,
   }),
   notificationPort: createSonnerNotificationAdapter(),
   storageChangePort: createChromeStorageChangeAdapter({

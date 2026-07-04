@@ -15,7 +15,7 @@ const stateStatuses = [
   'approved',
   'changes_requested',
   'blocked',
-] as const
+]
 
 export type HarnessStateStatus = (typeof stateStatuses)[number]
 export type JsonPrimitive = string | number | boolean | null

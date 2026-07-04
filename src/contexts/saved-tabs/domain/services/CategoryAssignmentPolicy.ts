@@ -1,6 +1,5 @@
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
-import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
@@ -17,7 +16,7 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
 export interface CategoryLookup {
   readonly byId: ReadonlyMap<ParentCategoryId, ParentCategory>
   readonly byTabGroupId: ReadonlyMap<TabGroupId, ParentCategory>
-  readonly byDomainName: ReadonlyMap<DomainName, ParentCategory>
+  readonly byDomainName: ReadonlyMap<string, ParentCategory>
 }
 
 /**
@@ -36,7 +35,7 @@ export const buildCategoryLookup = (
 ): CategoryLookup => {
   const byId = new Map<ParentCategoryId, ParentCategory>()
   const byTabGroupId = new Map<TabGroupId, ParentCategory>()
-  const byDomainName = new Map<DomainName, ParentCategory>()
+  const byDomainName = new Map<string, ParentCategory>()
   for (const category of categories) {
     byId.set(category.id, category)
     for (const tabGroupId of category.domains) {

@@ -43,6 +43,5 @@ export const moveCustomProjectUrlAndSyncState = async ({
   // シグネチャは `CustomProject[]` だが、`Dispatch<SetStateAction<T>>` は
   // 構造的部分型により `readonly` 要素を許容するためそのまま渡せる。
   const updatedProjects = await getCustomProjects()
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- readonly 投影を setCustomProjects 経由で書き戻すための widening
-  setCustomProjects(updatedProjects as CustomProject[])
+  setCustomProjects([...updatedProjects])
 }

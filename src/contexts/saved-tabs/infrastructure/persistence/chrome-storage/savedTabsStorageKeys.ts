@@ -16,21 +16,21 @@
  * domain / repository 化する。
  */
 
-export const SAVED_TABS_KEY = 'savedTabs' as const
+export const SAVED_TABS_KEY = 'savedTabs'
 
-export const URLS_KEY = 'urls' as const
+export const URLS_KEY = 'urls'
 
-export const PARENT_CATEGORIES_KEY = 'parentCategories' as const
+export const PARENT_CATEGORIES_KEY = 'parentCategories'
 
-export const CUSTOM_PROJECTS_KEY = 'customProjects' as const
+export const CUSTOM_PROJECTS_KEY = 'customProjects'
 
-export const CUSTOM_PROJECT_ORDER_KEY = 'customProjectOrder' as const
+export const CUSTOM_PROJECT_ORDER_KEY = 'customProjectOrder'
 
-export const USER_SETTINGS_KEY = 'userSettings' as const
+export const USER_SETTINGS_KEY = 'userSettings'
 
-export const DOMAIN_CATEGORY_MAPPINGS_KEY = 'domainCategoryMappings' as const
+export const DOMAIN_CATEGORY_MAPPINGS_KEY = 'domainCategoryMappings'
 
-export const DOMAIN_CATEGORY_SETTINGS_KEY = 'domainCategorySettings' as const
+export const DOMAIN_CATEGORY_SETTINGS_KEY = 'domainCategorySettings'
 
 export const SAVED_TABS_STORAGE_KEYS = [
   SAVED_TABS_KEY,
@@ -38,6 +38,6 @@ export const SAVED_TABS_STORAGE_KEYS = [
   PARENT_CATEGORIES_KEY,
   CUSTOM_PROJECTS_KEY,
   CUSTOM_PROJECT_ORDER_KEY,
-] as const
+]
 
 export type SavedTabsStorageKey = (typeof SAVED_TABS_STORAGE_KEYS)[number]

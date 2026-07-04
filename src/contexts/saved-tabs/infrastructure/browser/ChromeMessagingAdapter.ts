@@ -65,6 +65,12 @@ export interface ChromeMessagingAdapterDeps {
   readonly getApi?: () => ChromeApiLike | undefined
 }
 
+const isObject = (value: unknown): value is object =>
+  typeof value === 'object' && value !== null
+
+const isChromeApiLike = (value: unknown): value is ChromeApiLike =>
+  isObject(value)
+
 /**
  * `chrome.runtime.sendMessage` を利用する `MessagingPort` 実装を生成する。
  *
@@ -81,8 +87,8 @@ export const createChromeMessagingAdapter = (
     if (deps.getApi) {
       return deps.getApi()
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    return (globalThis as typeof globalThis & { chrome?: ChromeApiLike }).chrome
+    const chromeValue: unknown = Reflect.get(globalThis, 'chrome')
+    return isChromeApiLike(chromeValue) ? chromeValue : undefined
   }
   return {
     [CHROME_MESSAGING_ADAPTER_MARKER]: true,

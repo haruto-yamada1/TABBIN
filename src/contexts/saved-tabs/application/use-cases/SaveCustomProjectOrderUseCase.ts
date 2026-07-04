@@ -1,4 +1,5 @@
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * `SaveCustomProjectOrderUseCase` の入力。
@@ -40,8 +41,7 @@ export interface SaveCustomProjectOrderUseCaseDeps {
  *
  * `newOrder` は UI 入力の都合で `readonly string[]` として受け取る。
  * `CustomProjectRepository.saveOrder` は branded `CustomProjectId` を
- * 要求するため、use-case 境界で `unknown` キャストを 1 度だけ行う
- * (storage 実装側は branded 検証に依存しない素のマッピング)。
+ * 要求するため、use-case 境界で value object constructor を通す。
  *
  * @example
  * ```ts
@@ -55,10 +55,7 @@ export const createSaveCustomProjectOrderUseCase = (
   deps: SaveCustomProjectOrderUseCaseDeps,
 ): SaveCustomProjectOrderUseCase => {
   return async (command) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const order = command.newOrder as unknown as Parameters<
-      CustomProjectRepository['saveOrder']
-    >[0]
+    const order = command.newOrder.map((id) => createCustomProjectId(id))
     await deps.customProjectRepository.saveOrder(order)
   }
 }

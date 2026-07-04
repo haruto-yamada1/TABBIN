@@ -98,7 +98,7 @@ const sortIconMap = {
   asc: ArrowUpNarrowWide,
   default: ArrowUpDown,
   desc: ArrowUpWideNarrow,
-} as const
+}
 
 const getCollapseTooltipText = (
   isReorderMode: boolean,

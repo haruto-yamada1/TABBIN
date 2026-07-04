@@ -100,16 +100,20 @@ export const createCustomProject = (
 }
 
 const ensureStringArray = (
-  value: readonly string[],
+  value: unknown,
   message: string,
 ): readonly string[] => {
   if (!Array.isArray(value)) {
     throw new SavedTabsDomainError(message, 'INVALID_CUSTOM_PROJECT')
   }
-  // OK: input 型は readonly string[] であり、Array.isArray の narrowing で
-  // any[] へ広がるのを元の型へ戻すだけのキャストにする。
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return value as readonly string[]
+  const strings: string[] = []
+  for (const item of value) {
+    if (typeof item !== 'string') {
+      throw new SavedTabsDomainError(message, 'INVALID_CUSTOM_PROJECT')
+    }
+    strings.push(item)
+  }
+  return strings
 }
 
 /**

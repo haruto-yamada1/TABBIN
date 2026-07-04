@@ -49,9 +49,8 @@ const isRuntimePort = (value: unknown): value is RuntimePort =>
   hasFunctionProperty(value, 'postMessage')
 
 const getGlobalBrowserApi = (): BrowserApi | null => {
-  const api = (globalThis as typeof globalThis & { browser?: BrowserApi })
-    .browser
-  return api ?? null
+  const api: unknown = Reflect.get(globalThis, 'browser')
+  return isObject(api) ? api : null
 }
 
 const getGlobalChromeRuntime = (): ChromeRuntime | null => {

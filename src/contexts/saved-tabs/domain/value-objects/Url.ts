@@ -41,7 +41,7 @@ export const createUrl = (value: string): Url => {
     throw new SavedTabsDomainError('URL の形式が不正です', 'INVALID_URL')
   }
   // OK: createUrl は URL バリデーション通過後のブランド型タグ付けに限定
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- branded primitive constructor boundary after runtime validation
   return value as Url
 }
 

@@ -3,6 +3,7 @@ import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
 } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import {
@@ -93,9 +94,7 @@ const parseCustomProjectOrder = (raw: unknown): readonly CustomProjectId[] => {
       continue
     }
     seen.add(item)
-    // ブランド型タグ付けに限定し、検証は `createCustomProjectId` 側に委ねる
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    result.push(item as CustomProjectId)
+    result.push(createCustomProjectId(item))
   }
   return result
 }

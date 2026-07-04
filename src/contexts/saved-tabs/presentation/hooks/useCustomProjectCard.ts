@@ -43,6 +43,10 @@ type ProjectUrlItem = UrlRecord & {
   notes?: string
   category?: string
 }
+interface UrlState {
+  isLoadingUrls: boolean
+  projectUrls: ProjectUrlItem[]
+}
 const isPointerDroppedInUncategorizedArea = (
   event: DragEndEvent,
   hasSourceCategory: boolean,
@@ -315,9 +319,9 @@ export const useCustomProjectCard = ({
 }: UseCustomProjectCardParams) => {
   const { t, language } = useI18n()
   // --- プロジェクトURL状態 ---
-  const [urlState, setUrlState] = useState({
+  const [urlState, setUrlState] = useState<UrlState>({
     isLoadingUrls: true,
-    projectUrls: [] as ProjectUrlItem[],
+    projectUrls: [],
   })
   const { isLoadingUrls, projectUrls } = urlState
   const setProjectUrls: Dispatch<SetStateAction<ProjectUrlItem[]>> =

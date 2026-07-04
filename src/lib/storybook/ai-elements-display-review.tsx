@@ -32,6 +32,7 @@ import {
   AttachmentRemove,
   Attachments,
 } from '@/components/ai-elements/attachments'
+import type { AttachmentData } from '@/components/ai-elements/attachments'
 import {
   Checkpoint,
   CheckpointIcon,
@@ -75,23 +76,22 @@ const sampleTool = {
   }),
 } satisfies AiTool
 
-const sampleAttachment = {
+const sampleAttachment: AttachmentData = {
   filename: 'review.png',
   id: 'file-1',
   mediaType: 'image/png',
   type: 'file',
   url: `data:image/png;base64,${samplePng}`,
-} as const
+}
 
-const sampleSource = {
+const sampleSource: AttachmentData = {
   filename: 'migration-guide.md',
   id: 'source-1',
   mediaType: 'text/markdown',
   sourceId: 'source-1',
   title: 'Migration guide',
   type: 'source-document',
-  url: 'https://tabbin.app/docs/migration',
-} as const
+}
 
 const Section = ({
   children,

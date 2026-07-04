@@ -24,11 +24,13 @@ const isAnalyticsQuery = (value: unknown): value is AnalyticsQuery => {
     return false
   }
 
-  const query = value as Partial<AnalyticsQuery>
+  const chartType: unknown = Reflect.get(value, 'chartType')
+  const groupBy: unknown = Reflect.get(value, 'groupBy')
+  const mode: unknown = Reflect.get(value, 'mode')
   return (
-    typeof query.chartType === 'string' &&
-    typeof query.groupBy === 'string' &&
-    typeof query.mode === 'string'
+    typeof chartType === 'string' &&
+    typeof groupBy === 'string' &&
+    typeof mode === 'string'
   )
 }
 
@@ -76,11 +78,9 @@ const getLatestAnalyticsQuery = (
       continue
     }
 
-    const query =
-      toolTrace.output &&
-      typeof toolTrace.output === 'object' &&
-      'query' in toolTrace.output
-        ? toolTrace.output.query
+    const query: unknown =
+      toolTrace.output && typeof toolTrace.output === 'object'
+        ? Reflect.get(toolTrace.output, 'query')
         : undefined
     if (isAnalyticsQuery(query)) {
       return query

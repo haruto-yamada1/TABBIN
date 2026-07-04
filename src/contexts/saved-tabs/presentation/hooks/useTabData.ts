@@ -78,6 +78,11 @@ interface UseTabDataReturn {
    */
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>
 }
+interface TabDataState {
+  isLoading: boolean
+  tabGroups: TabGroup[]
+  tabGroupsWithUrls: TabGroup[]
+}
 const runInitialMigrations = async (
   migrationPort: MigrationPort,
 ): Promise<void> => {
@@ -140,8 +145,7 @@ const ensureValidParentCategories = async (
   // 検出ロジックが破壊されるため、query 戻り値 (branded domain) を
   // そのまま cast して下流判定へ流す。
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- branded ParentCategory → storage 投影 (判定用)
-  const refreshed = (await getSavedTabsPageDataQuery())
-    .parentCategories as unknown as ParentCategory[]
+  const refreshed = (await getSavedTabsPageDataQuery()).parentCategories
   return [...refreshed]
 }
 /**
@@ -174,10 +178,10 @@ const useTabData = ({
   onCategoriesLoaded,
   onSettingsLoaded,
 }: UseTabDataParams): UseTabDataReturn => {
-  const [tabData, setTabData] = useState({
+  const [tabData, setTabData] = useState<TabDataState>({
     isLoading: true,
-    tabGroups: [] as TabGroup[],
-    tabGroupsWithUrls: [] as TabGroup[],
+    tabGroups: [],
+    tabGroupsWithUrls: [],
   })
   const { isLoading, tabGroups, tabGroupsWithUrls } = tabData
   const setTabGroups: Dispatch<SetStateAction<TabGroup[]>> = useCallback(
@@ -272,12 +276,9 @@ const useTabData = ({
    */
   const refreshTabGroupsWithUrls = useCallback(
     async (nextGroups?: TabGroup[]): Promise<TabGroup[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- query は branded domain entity を返し、presentation 層は storage shape で扱う
-      const groups =
-        nextGroups ??
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        ((await getSavedTabsQueryRef.current()) as unknown as TabGroup[])
-      const normalizedGroups = Array.isArray(groups) ? groups : []
+      const normalizedGroups = [
+        ...(nextGroups ?? (await getSavedTabsQueryRef.current())),
+      ]
       const groupsWithUrls = await loadTabGroupsWithUrls(normalizedGroups)
       skipNextTabGroupsSyncRef.current = true
       setTabData((prev) => ({

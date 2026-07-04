@@ -3,9 +3,7 @@ import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 
 import '@wxt-dev/module-react' // eslint-disable-line
 
-const vitePlugins = tailwindcss() as unknown as NonNullable< // eslint-disable-line
-  WxtViteConfig['plugins']
->
+const vitePlugins = tailwindcss()
 
 export default defineConfig({
   srcDir: 'src',

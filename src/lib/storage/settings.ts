@@ -10,11 +10,7 @@ import {
 } from '@/lib/browser/chrome-storage'
 import type { UserSettings } from '@/types/storage'
 
-const DEFAULT_EXCLUDE_PATTERNS = [
-  'about:',
-  'chrome-extension://',
-  'chrome://',
-] as const
+const DEFAULT_EXCLUDE_PATTERNS = ['about:', 'chrome-extension://', 'chrome://']
 
 const stripLegacyUserSettings = (settings: unknown): Partial<UserSettings> => {
   if (!isStrippableSettings(settings)) {
@@ -54,13 +50,11 @@ const mergeExcludePatterns = (
 
 const mergeStoredUserSettings = (
   settings: Partial<UserSettings>,
-): UserSettings =>
-  // OK: callers always spread result with defaultSettings which provides all required fields
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  ({
-    ...settings,
-    excludePatterns: mergeExcludePatterns(settings.excludePatterns),
-  }) as UserSettings
+): UserSettings => ({
+  ...defaultSettings,
+  ...settings,
+  excludePatterns: mergeExcludePatterns(settings.excludePatterns),
+})
 
 // デフォルト設定
 export const defaultSettings: UserSettings = {

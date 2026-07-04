@@ -1,8 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
-import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategoryMappingRepository'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
@@ -28,7 +25,7 @@ export interface AssignDomainToCategoryCommand {
  * 未分類を表すセンチネル値。presentation 層から `'none'` 文字列で
  * 渡されるケースと互換。`createParentCategoryId` の対象にもならない。
  */
-const UNCATEGORIZED_SENTINEL = 'none' as const
+const UNCATEGORIZED_SENTINEL = 'none'
 
 export interface AssignDomainToCategoryResult {
   readonly all: readonly SavedTabsParentCategoryDto[]
@@ -131,26 +128,14 @@ export const createAssignDomainToCategoryUseCase = (
         ? null
         : createParentCategoryId(command.categoryId)
 
-    if (!targetCategoryId) {
-      // 未分類へ戻す: 他カテゴリから domainId / domain 名を取り除く
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion
-      const target = parentCategoryById(all, '' as never)
-      void target
-    }
-
-    const commandDomainId = command.domainId
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const tabGroupDomainId = createTabGroupId(command.domainId)
     const updatedCategories = all.map((category) => {
       if (targetCategoryId && category.id === targetCategoryId) {
         if (!targetDomain) {
           return category
         }
-        const hasDomainId = (category.domains as readonly string[]).includes(
-          commandDomainId,
-        )
-        const hasDomainName = (
-          category.domainNames as readonly string[]
-        ).includes(targetDomain)
+        const hasDomainId = category.domains.includes(tabGroupDomainId)
+        const hasDomainName = category.domainNames.includes(targetDomain)
         if (hasDomainId && hasDomainName) {
           return category
         }
@@ -161,34 +146,27 @@ export const createAssignDomainToCategoryUseCase = (
             : [...category.domainNames, targetDomain],
           domains: hasDomainId
             ? category.domains
-            : [...(category.domains as readonly string[]), commandDomainId],
+            : [...category.domains, tabGroupDomainId],
         }
       }
       // 他のカテゴリからは除く
       if (!targetDomain) {
         return {
           ...category,
-          domains: (category.domains as readonly string[]).filter(
-            (id) => id !== commandDomainId,
-          ),
+          domains: category.domains.filter((id) => id !== tabGroupDomainId),
         }
       }
       return {
         ...category,
-        domainNames: (category.domainNames as readonly string[]).filter(
+        domainNames: category.domainNames.filter(
           (name) => name !== targetDomain,
         ),
-        domains: (category.domains as readonly string[]).filter(
-          (id) => id !== commandDomainId,
-        ),
+        domains: category.domains.filter((id) => id !== tabGroupDomainId),
       }
     })
 
     if (updatedCategories.some((category, index) => category !== all[index])) {
-      await deps.parentCategoryRepository.saveAll(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        updatedCategories as readonly ParentCategory[],
-      )
+      await deps.parentCategoryRepository.saveAll(updatedCategories)
     } else {
       // no-op
     }
@@ -202,7 +180,7 @@ export const createAssignDomainToCategoryUseCase = (
 
     return {
       all: updatedCategories.map((category) =>
-        toSavedTabsParentCategoryDto(category as ParentCategory),
+        toSavedTabsParentCategoryDto(category),
       ),
       mappings: nextMappings,
     }

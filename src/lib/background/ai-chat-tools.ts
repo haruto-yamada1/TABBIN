@@ -75,7 +75,7 @@ const createCurrentDateTimeOutput = (now = new Date()) => {
       },
       [],
     ),
-  ) as Record<string, string>
+  )
 
   const localDate = `${parts.year}-${parts.month}-${parts.day}`
   const localTime = `${parts.hour}:${parts.minute}:${parts.second}`

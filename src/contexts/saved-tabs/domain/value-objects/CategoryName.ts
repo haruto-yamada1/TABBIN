@@ -48,7 +48,7 @@ export const createCategoryName = (value: string): CategoryName => {
     )
   }
   // OK: createCategoryName は正規化後のブランド型タグ付けに限定
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- branded primitive constructor boundary after runtime validation
   return trimmed as CategoryName
 }
 

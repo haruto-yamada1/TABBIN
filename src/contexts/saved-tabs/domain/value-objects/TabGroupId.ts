@@ -28,7 +28,7 @@ export const createTabGroupId = (value: string): TabGroupId => {
     )
   }
   // OK: createTabGroupId は検証通過後のブランド型タグ付けに限定
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
+  // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- branded primitive constructor boundary after runtime validation
   return value as TabGroupId
 }
 

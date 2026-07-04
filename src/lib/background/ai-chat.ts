@@ -38,9 +38,11 @@ const parseRecord = (v: unknown): Record<string, unknown> => {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) {
     return {}
   }
-  // OK: structuredClone preserves 'object' type; narrow to Record<string, unknown> after runtime type guard
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return structuredClone(v) as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const key of Object.keys(v)) {
+    result[key] = structuredClone(Reflect.get(v, key))
+  }
+  return result
 }
 
 interface OllamaModelOption {
@@ -283,13 +285,11 @@ const getToolResultCount = (output: unknown): number | null => {
     return output.length
   }
 
-  if (
-    output &&
-    typeof output === 'object' &&
-    'items' in output &&
-    Array.isArray(output.items)
-  ) {
-    return output.items.length
+  if (output && typeof output === 'object') {
+    const items: unknown = Reflect.get(output, 'items')
+    if (Array.isArray(items)) {
+      return items.length
+    }
   }
 
   return null
@@ -300,7 +300,7 @@ const getPaginatedToolTotalCount = (output: unknown): number | null => {
     return null
   }
 
-  const { totalItems } = output as { totalItems?: unknown }
+  const totalItems: unknown = Reflect.get(output, 'totalItems')
   return typeof totalItems === 'number' ? totalItems : null
 }
 
@@ -522,13 +522,16 @@ const isChartSpec = (value: unknown): value is AiChartSpec => {
     return false
   }
 
-  const spec = value as Partial<AiChartSpec>
+  const title: unknown = Reflect.get(value, 'title')
+  const type: unknown = Reflect.get(value, 'type')
+  const data: unknown = Reflect.get(value, 'data')
+  const series: unknown = Reflect.get(value, 'series')
 
   return (
-    typeof spec.title === 'string' &&
-    typeof spec.type === 'string' &&
-    Array.isArray(spec.data) &&
-    Array.isArray(spec.series)
+    typeof title === 'string' &&
+    typeof type === 'string' &&
+    Array.isArray(data) &&
+    Array.isArray(series)
   )
 }
 
@@ -537,7 +540,7 @@ const getChartSpecsFromOutput = (output: unknown): AiChartSpec[] => {
     return []
   }
 
-  const { chartSpecs } = output as { chartSpecs?: unknown }
+  const chartSpecs: unknown = Reflect.get(output, 'chartSpecs')
   if (!Array.isArray(chartSpecs)) {
     return []
   }

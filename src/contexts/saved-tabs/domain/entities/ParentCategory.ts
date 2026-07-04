@@ -32,7 +32,7 @@ export interface ParentCategory {
   readonly id: ParentCategoryId
   readonly name: CategoryName
   readonly domains: readonly TabGroupId[]
-  readonly domainNames: readonly DomainName[]
+  readonly domainNames: readonly string[]
 }
 
 interface CreateParentCategoryInput {

@@ -6,7 +6,7 @@ import {
   getMessage,
   resolveLanguage,
 } from '@/features/i18n/lib/language'
-import type { AppLanguage } from '@/features/i18n/messages'
+import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -26,6 +26,17 @@ const MAX_CATEGORY_NAME_LENGTH = 25
 const ERROR_TOAST_DURATION_MS = 3000
 
 const getUiLocale = () => getBrowserUiLocale('ja')
+
+const isLanguageSetting = (value: unknown): value is LanguageSetting =>
+  value === 'system' || value === 'ja' || value === 'en'
+
+const getStoredLanguageSetting = (value: unknown): LanguageSetting => {
+  if (typeof value !== 'object' || value === null) {
+    return 'system'
+  }
+  const language: unknown = Reflect.get(value, 'language')
+  return isLanguageSetting(language) ? language : 'system'
+}
 
 export const useCategories = () => {
   const [categoryState, setCategoryState] = useState<{
@@ -81,15 +92,12 @@ export const useCategories = () => {
       }
 
       if (areaName === 'local' && changes.userSettings?.newValue) {
-        const nextSettings = changes.userSettings.newValue as {
-          language?: 'en' | 'ja' | 'system'
-        }
+        const nextLanguageSetting = getStoredLanguageSetting(
+          changes.userSettings.newValue,
+        )
         setCategoryState((prev) => ({
           ...prev,
-          language: resolveLanguage(
-            nextSettings.language ?? 'system',
-            getUiLocale(),
-          ),
+          language: resolveLanguage(nextLanguageSetting, getUiLocale()),
         }))
       }
     }

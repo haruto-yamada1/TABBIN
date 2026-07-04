@@ -11,9 +11,11 @@ type SavedTabsProfilerGlobal = typeof globalThis & {
   savedTabsProfiler?: SavedTabsProfilerStats
 }
 
+const getSavedTabsProfilerGlobal = (): SavedTabsProfilerGlobal => globalThis
+
 const isDevProfileEnabled =
   import.meta.env.DEV &&
-  Boolean((globalThis as SavedTabsProfilerGlobal).enableSavedTabsProfiler)
+  Boolean(getSavedTabsProfilerGlobal().enableSavedTabsProfiler)
 
 let savedTabsCommitCount = 0
 const handleSavedTabsRender: ProfilerOnRenderCallback = (
@@ -31,7 +33,7 @@ const handleSavedTabsRender: ProfilerOnRenderCallback = (
     commits: savedTabsCommitCount,
     phase,
   }
-  ;(globalThis as SavedTabsProfilerGlobal).savedTabsProfiler = stats
+  getSavedTabsProfilerGlobal().savedTabsProfiler = stats
   console.log(
     `[Profiler] SavedTabs commit #${savedTabsCommitCount} phase=${phase} actual=${actualDuration.toFixed(2)}ms`,
   )
