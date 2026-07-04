@@ -23,6 +23,16 @@ vi.mock('@/features/ai-chat/hooks/useSharedAiChatHistory', () => ({
   useSharedAiChatHistory: mocked.useSharedAiChatHistory,
 }))
 
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='tooltip-content'>{children}</div>
+  ),
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}))
+
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
     t: (key: string, fallback?: string, values?: Record<string, string>) => {
@@ -223,8 +233,19 @@ describe('AiChatRoute', () => {
     expect(title).toHaveClass('min-w-0')
     expect(preview).toHaveClass('w-full')
     expect(preview).toHaveClass('min-w-0')
+    expect(preview).toHaveClass('line-clamp-3')
     expect(preview).toHaveClass('wrap-anywhere')
-    expect(preview).toHaveClass('overflow-hidden')
+    expect(preview).not.toHaveClass('block')
+  })
+
+  it('履歴説明文は 3 行で省略し、説明文 hover 用 tooltip に全文を載せる', () => {
+    render(createElement(AiChatRoute))
+
+    const preview = screen.getByTestId('conversation-preview-conversation-1')
+    expect(preview).toHaveClass('line-clamp-3')
+
+    const tooltipContents = screen.getAllByTestId('tooltip-content')
+    expect(tooltipContents[0]).toHaveTextContent('最初の会話')
   })
 
   it('狭い画面では左履歴を完全非表示にしてチャットを残り幅へ広げる', () => {

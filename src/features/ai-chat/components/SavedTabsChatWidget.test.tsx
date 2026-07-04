@@ -683,8 +683,9 @@ describe('SavedTabsChatWidget', () => {
     expect(title.className).toContain('min-w-0')
     expect(preview.className).toContain('w-full')
     expect(preview.className).toContain('min-w-0')
+    expect(preview.className).toContain('line-clamp-3')
     expect(preview.className).toContain('wrap-anywhere')
-    expect(preview.className).toContain('overflow-hidden')
+    expect(preview.className).not.toContain('block')
 
     await user.click(
       screen.getByRole('button', { name: /Another conversation/ }),
