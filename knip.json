@@ -44,7 +44,6 @@
   "ignoreFiles": ["src/stories/**", "tests/**"],
   "ignoreDependencies": [
     "@storybook/addon-onboarding",
-    "@storybook/builder-vite",
     "@testing-library/jest-dom",
     "autoprefixer",
     "path",
