@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { ConversationPreviewTooltip } from '@/features/ai-chat/components/ConversationPreviewTooltip'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import { cn } from '@/lib/utils'
 
@@ -65,12 +66,10 @@ export const SavedTabsChatHistoryItemCard = ({
           >
             {historyItem.title}
           </span>
-          <span
-            className='mt-1 line-clamp-2 block w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'
-            data-testid={`conversation-preview-${historyItem.id}`}
-          >
-            {historyItem.preview}
-          </span>
+          <ConversationPreviewTooltip
+            id={historyItem.id}
+            preview={historyItem.preview}
+          />
         </Button>
         {onDeleteHistoryItem ? (
           <Button

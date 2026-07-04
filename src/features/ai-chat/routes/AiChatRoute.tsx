@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ConversationPreviewTooltip } from '@/features/ai-chat/components/ConversationPreviewTooltip'
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
@@ -70,12 +71,10 @@ const HistoryItemCard = ({
           >
             {historyItem.title}
           </span>
-          <span
-            className='mt-1 line-clamp-2 block w-full min-w-0 overflow-hidden text-xs leading-5 wrap-anywhere text-muted-foreground'
-            data-testid={`conversation-preview-${historyItem.id}`}
-          >
-            {historyItem.preview}
-          </span>
+          <ConversationPreviewTooltip
+            id={historyItem.id}
+            preview={historyItem.preview}
+          />
         </Button>
         <Button
           type='button'
