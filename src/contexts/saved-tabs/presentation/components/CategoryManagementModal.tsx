@@ -680,8 +680,8 @@ const CategoryManagementModal = (props: CategoryManagementModalProps) => {
 
   return (
     <CategoryManagementModalContent
-      key={`${props.category.id}:${props.category.name}`}
       {...props}
+      key={`${props.category.id}:${props.category.name}`}
     />
   )
 }

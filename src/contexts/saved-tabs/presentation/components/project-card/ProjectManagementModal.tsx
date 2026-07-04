@@ -666,8 +666,8 @@ export const ProjectManagementModal = (props: ProjectManagementModalProps) => {
 
   return (
     <ProjectManagementModalContent
-      key={`${props.project.id}:${props.project.name}`}
       {...props}
+      key={`${props.project.id}:${props.project.name}`}
     />
   )
 }
