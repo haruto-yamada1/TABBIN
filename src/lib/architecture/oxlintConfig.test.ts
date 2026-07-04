@@ -102,6 +102,18 @@ describe('oxlint configuration', () => {
     ])
   })
 
+  it('disallows empty object types and empty interfaces', () => {
+    const config = JSON.parse(readFileSync(oxlintConfigPath, 'utf8'))
+
+    expect(config.rules['typescript/no-empty-object-type']).toEqual([
+      'error',
+      {
+        allowInterfaces: 'never',
+        allowObjectTypes: 'never',
+      },
+    ])
+  })
+
   it('allows const assertions for literal values', () => {
     const result = runOxlint(`
 const statuses = ['saved', 'archived'] as const
@@ -127,5 +139,19 @@ export const user = rawUser as User
 
     expect(result.status).not.toBe(0)
     expect(result.output).toContain('typescript/consistent-type-assertions')
+  })
+
+  it('reports empty type literals and empty interfaces as errors', () => {
+    const result = runOxlint(`
+type Props = {}
+
+interface Options {}
+
+export const props: Props = {}
+export const options: Options = {}
+`)
+
+    expect(result.status).not.toBe(0)
+    expect(result.output).toContain('typescript/no-empty-object-type')
   })
 })
