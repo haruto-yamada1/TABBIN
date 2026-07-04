@@ -25,7 +25,7 @@ function readStateIfExists(filePath: string): HarnessStateFile | null {
     return null
   }
 
-  return parsed.value as HarnessStateFile
+  return parsed.value
 }
 
 function readJsonFile(

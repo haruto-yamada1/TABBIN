@@ -98,7 +98,7 @@ export const createAssignDomainToCategoryUseCase = (
     const rawDomain = tabGroup
       ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
         ((await deps.tabGroupRepository.findRawDomainById(tabGroupId)) ??
-        (tabGroup.domain as unknown as string))
+        tabGroup.domain)
       : null
 
     const targetDomain = rawDomain

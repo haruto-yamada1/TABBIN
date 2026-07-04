@@ -115,13 +115,7 @@ export const useDomainModeController = (
         | ((prev: readonly ParentCategory[]) => readonly ParentCategory[]),
     ) => {
       setParentCategoriesState((prev) =>
-        typeof next === 'function'
-          ? (
-              next as (
-                p: readonly ParentCategory[],
-              ) => readonly ParentCategory[]
-            )(prev)
-          : next,
+        typeof next === 'function' ? next(prev) : next,
       )
     },
     [],
@@ -189,7 +183,7 @@ export const useDomainModeController = (
           id: vm.id,
           parentCategoryId: vm.parentCategoryId,
           urlIds: [...vm.urlIds],
-        })) as unknown as readonly TabGroup[],
+        })),
       }),
     [
       customProjectsForView,

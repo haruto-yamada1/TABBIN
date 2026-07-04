@@ -38,10 +38,9 @@ export const getDisplayUrlCount = (group: TabGroup): number =>
  * // => { id: 'p1', domain: 'My Project', urls: [], urlIds: ['u1'] }
  * ```
  */
-export const buildDisplayTabGroup = (project: CustomProject): TabGroup =>
-  ({
-    id: project.id,
-    domain: project.name,
-    urls: project.urls ?? [],
-    urlIds: project.urlIds ?? [],
-  }) as TabGroup
+export const buildDisplayTabGroup = (project: CustomProject): TabGroup => ({
+  id: project.id,
+  domain: project.name,
+  urls: project.urls ?? [],
+  urlIds: project.urlIds ?? [],
+})

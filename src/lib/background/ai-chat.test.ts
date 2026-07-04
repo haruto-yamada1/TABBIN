@@ -17,7 +17,7 @@ vi.mock('ai-sdk-ollama', () => ({
 
 vi.mock('ai', () => ({
   generateText: mocked.generateText,
-  stepCountIs: vi.fn((count: number) => count),
+  isStepCount: vi.fn((count: number) => count),
   tool: vi.fn((definition: unknown) => definition),
 }))
 
@@ -449,7 +449,7 @@ describe('runAiChatRequest', () => {
           modelId: 'llama3.2',
           provider: 'ollama',
         },
-        system: expect.stringContaining('保存済みタブ 1 件'),
+        instructions: expect.stringContaining('保存済みタブ 1 件'),
         tools: expect.objectContaining({
           findUrlsByMonth: expect.any(Object),
           getCurrentDateTime: expect.any(Object),
@@ -580,22 +580,22 @@ describe('runAiChatRequest', () => {
 
     expect(mocked.generateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        system: expect.stringContaining('以下の前提を厳守してください。'),
+        instructions: expect.stringContaining('以下の前提を厳守してください。'),
       }),
     )
     expect(mocked.generateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        system: expect.stringContaining('保存済みタブ 1 件'),
+        instructions: expect.stringContaining('保存済みタブ 1 件'),
       }),
     )
     expect(mocked.generateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        system: expect.stringContaining('最後に簡潔に答えてください。'),
+        instructions: expect.stringContaining('最後に簡潔に答えてください。'),
       }),
     )
     expect(mocked.generateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        system: expect.not.stringContaining('{{saved_url_context}}'),
+        instructions: expect.not.stringContaining('{{saved_url_context}}'),
       }),
     )
   })
@@ -749,7 +749,7 @@ describe('runAiChatRequest', () => {
     const onStepUpdate = vi.fn()
     mocked.generateText.mockImplementationOnce(
       async (options: {
-        onStepFinish?: (result: {
+        onStepEnd?: (result: {
           toolCalls?: {
             input: {
               page: number
@@ -773,7 +773,7 @@ describe('runAiChatRequest', () => {
           }[]
         }) => void
       }) => {
-        options.onStepFinish?.({
+        options.onStepEnd?.({
           toolCalls: [
             {
               input: {
@@ -859,13 +859,13 @@ describe('runAiChatRequest', () => {
     )
   })
 
-  it('onStepFinish に tool 情報が無くても空 trace で更新する', async () => {
+  it('onStepEnd に tool 情報が無くても空 trace で更新する', async () => {
     const onStepUpdate = vi.fn()
     mocked.generateText.mockImplementationOnce(
       async (options: {
-        onStepFinish?: (result: Record<string, unknown>) => void
+        onStepEnd?: (result: Record<string, unknown>) => void
       }) => {
-        options.onStepFinish?.({})
+        options.onStepEnd?.({})
 
         return {
           text: '保存済みタブを要約しました。',
@@ -1377,7 +1377,7 @@ describe('runAiChatRequest', () => {
     })
 
     const generateArgs = mocked.generateText.mock.calls[0]?.[0] as {
-      system: string
+      instructions: string
       tools: {
         findUrlsByMonth: { execute: (input: unknown) => Promise<unknown> }
         inferUserInterests: { execute: () => Promise<unknown> }
@@ -1386,7 +1386,7 @@ describe('runAiChatRequest', () => {
       }
     }
 
-    expect(generateArgs.system).toContain('https://react.dev/learn')
+    expect(generateArgs.instructions).toContain('https://react.dev/learn')
 
     await expect(
       generateArgs.tools.findUrlsByMonth.execute({

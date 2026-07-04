@@ -43,12 +43,12 @@ export const useProjectMoveHandlers = ({
               categories: [...project.categories],
               createdAt: project.createdAt,
               // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain CustomProjectId と storage 側の string 差 (issue #511 と同系統)
-              id: project.id as unknown as string,
+              id: project.id,
               name: project.name,
               updatedAt: project.updatedAt,
               ...((project.urlIds ?? []).length > 0
                 ? // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain UrlRecordId と storage 側の string 差 (issue #511 と同系統)
-                  { urlIds: [...(project.urlIds ?? [])] as unknown as string[] }
+                  { urlIds: [...(project.urlIds ?? [])] }
                 : {}),
             }))
           },

@@ -230,7 +230,7 @@ export const useCategoryActions = ({
         categoryId: category.id,
       })
       // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
-      setParentCategories([...all] as unknown as ParentCategory[])
+      setParentCategories([...all])
       toast.success(
         t('savedTabs.categoryModal.deleted', undefined, {
           name: category.name,
@@ -273,7 +273,7 @@ export const useCategoryActions = ({
         domainName: selectedDomainInfo.domain,
       })
       // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
-      setParentCategories([...updatedCategories] as unknown as ParentCategory[])
+      setParentCategories([...updatedCategories])
       setSelectedDomain('')
       toast.success(
         t('savedTabs.categoryModal.domainAssigned', undefined, {
@@ -338,7 +338,7 @@ export const useCategoryActions = ({
         domainName: domainInfo.domain,
       })
       // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
-      setParentCategories([...updatedCategories] as unknown as ParentCategory[])
+      setParentCategories([...updatedCategories])
       toast.success(
         t('savedTabs.categoryModal.domainRemoved', undefined, {
           categoryName: category.name,

@@ -215,6 +215,7 @@
         "max": 5
       }
     ],
+    "react/jsx-no-literals": "off",
     "react/jsx-no-constructed-context-values": "error",
     "react/jsx-props-no-spreading": "off",
     "react/react-in-jsx-scope": "off",
@@ -226,6 +227,7 @@
     "react/no-array-index-key": "error",
     "react/no-danger": "error",
     "react/no-danger-with-children": "error",
+    "react/react-compiler": "off",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
     "eslint-react/dom-no-void-elements-with-children": "error",
@@ -327,6 +329,9 @@
     "unicorn/explicit-length-check": "off",
     "unicorn/prefer-ternary": "off",
     "unicorn/filename-case": "off",
+    "unicorn/max-nested-calls": "off",
+    "unicorn/prefer-export-from": "off",
+    "unicorn/prefer-single-call": "off",
     "unicorn/no-abusive-eslint-disable": "error",
     "unicorn/no-useless-spread": "error",
     "unicorn/no-useless-collection-argument": "error",
@@ -493,6 +498,14 @@
       ],
       "rules": {
         "typescript/promise-function-async": "off"
+      }
+    },
+    {
+      "files": [
+        "src/contexts/saved-tabs/presentation/components/category-group/CategoryGroupRoot.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/no-noninteractive-element-interactions": "off"
       }
     },
     {

@@ -82,13 +82,10 @@ export const createDeleteCustomProjectUseCase = (
     )
     const targetRaw = await findRawForId(
       deps.customProjectRepository,
-      target.id as unknown as string,
+      target.id,
     )
     const uncategorizedRaw = uncategorized
-      ? await findRawForId(
-          deps.customProjectRepository,
-          uncategorized.id as unknown as string,
-        )
+      ? await findRawForId(deps.customProjectRepository, uncategorized.id)
       : undefined
 
     // PR #514 review P2: 未分類プロジェクトが storage に無い場合は、
@@ -166,7 +163,7 @@ export const createDeleteCustomProjectUseCase = (
       if (targetRaw) {
         const removedSnapshot: CustomProjectRawSnapshot = {
           ...targetRaw,
-          urlIds: target.urlIds as unknown as readonly string[],
+          urlIds: target.urlIds,
           urls: targetRaw.urls,
           urlMetadata: targetRaw.urlMetadata,
           projectKeywords: targetRaw.projectKeywords,
@@ -218,7 +215,7 @@ const mergeEntityUncategorized = (
   if (targetUrlIds.length === 0) {
     return uncategorized
   }
-  const existing = new Set(uncategorized.urlIds as unknown as readonly string[])
+  const existing = new Set<string>(uncategorized.urlIds)
   const nextUrlIds: string[] = [
     ...(uncategorized.urlIds as unknown as readonly string[]),
   ]

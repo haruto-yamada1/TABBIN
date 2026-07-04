@@ -1,4 +1,4 @@
-import { generateText, stepCountIs } from 'ai'
+import { generateText, isStepCount } from 'ai'
 import { createOllama } from 'ai-sdk-ollama'
 
 import { getAiChatToolTitle } from '@/constants/aiChatTools'
@@ -690,7 +690,7 @@ const runAiChatRequest = async (
           },
         ],
         model: ollama(ollamaModel),
-        onStepFinish: (stepResult) => {
+        onStepEnd: (stepResult) => {
           const stepToolTraces = createToolTracesFromParts({
             language,
             toolCalls: stepResult.toolCalls,
@@ -712,11 +712,11 @@ const runAiChatRequest = async (
             toolTraces: streamedToolTraces,
           })
         },
-        stopWhen: stepCountIs(MAX_AI_CHAT_STEPS),
-        system: buildFinalSystemPrompt({
+        instructions: buildFinalSystemPrompt({
           savedUrlContext: createContextSummary(records, language),
           template: activeSystemPrompt.template,
         }),
+        stopWhen: isStepCount(MAX_AI_CHAT_STEPS),
         tools,
       })
     } catch (error) {
