@@ -785,20 +785,19 @@ const runDomainHostnameMigration = async (): Promise<void> => {
   }
 }
 
+const isLockManager = (
+  value: unknown,
+): value is { request: LockManager['request'] } =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'request') === 'function'
+
 const migrateDomainStorageToHostname = async (): Promise<void> => {
-  // 複数コンテキスト (saved-tabs page 複数起動等) で同時実行されないよう
-  // Web Locks で直列化する。ロック取得不可環境 (古いブラウザ) はそのまま実行。
   // 複数コンテキスト (saved-tabs page 複数起動等) での同時実行を Web Locks で直列化する。
   // Locks API は型上は常に存在する扱いだが実行環境によっては未実装なので、
-  // 部分型へ安全にキャストして feature-detect する。
-  const locksApi = (
-    navigator as {
-      locks?: {
-        request?: (name: string, callback: () => Promise<void>) => Promise<void>
-      }
-    }
-  ).locks
-  if (locksApi?.request) {
+  // Reflect.get + 型ガードで feature-detect し、取得不可なら直接実行する。
+  const locksApi = Reflect.get(navigator, 'locks')
+  if (isLockManager(locksApi)) {
     await locksApi.request(
       'domainHostnameMigration',
       runDomainHostnameMigration,

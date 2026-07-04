@@ -2,13 +2,7 @@ import { z } from 'zod'
 
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
-import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  UrlRecord,
-  UserSettings,
-} from '@/types/storage'
+import type { ParentCategory, UserSettings } from '@/types/storage'
 
 interface ImportedUrlData {
   url: string
@@ -87,15 +81,15 @@ interface ConvertedUrlData {
 interface BackupData {
   version: string
   timestamp: string
-  userSettings: UserSettings
+  userSettings: Partial<UserSettings>
   parentCategories: ParentCategory[]
-  savedTabs: TabGroup[]
+  savedTabs: ImportedTabData[]
   aiChatConversations?: AiChatConversation[]
   activeAiChatConversationId?: string
-  customProjects?: CustomProject[]
+  customProjects?: ImportedCustomProjectData[]
   customProjectOrder?: string[]
   savedAnalyticsViews?: SavedAnalyticsView[]
-  urls?: UrlRecord[]
+  urls?: ImportedUrlRecordData[]
 }
 
 const importedUrlDataSchema = z.object({
@@ -154,6 +148,19 @@ const importedCustomProjectSchema = z.object({
     .optional(),
 })
 
+const analyticsGroupBySchema = z.preprocess(
+  (value) => (value === 'time' ? 'timeRecent' : value),
+  z.enum([
+    'domain',
+    'parentCategory',
+    'project',
+    'projectCategory',
+    'subCategory',
+    'timeRecent',
+    'timeTop',
+  ]),
+)
+
 const analyticsQuerySchema = z.object({
   chartType: z.enum(['area', 'bar', 'line', 'pie', 'radar']),
   compareBy: z.enum(['mode', 'none']),
@@ -175,16 +182,7 @@ const analyticsQuerySchema = z.object({
     includedProjects: z.array(z.string()),
     includedSubCategories: z.array(z.string()),
   }),
-  groupBy: z.enum([
-    'domain',
-    'parentCategory',
-    'project',
-    'projectCategory',
-    'subCategory',
-    'time',
-    'timeRecent',
-    'timeTop',
-  ]),
+  groupBy: analyticsGroupBySchema,
   limit: z.number(),
   mode: z.enum(['both', 'custom', 'domain']),
   normalize: z.boolean(),
@@ -236,11 +234,19 @@ const aiChatToolTraceSchema = z.object({
   errorText: z.string().optional(),
   input: z.unknown(),
   output: z.unknown().optional(),
-  state: z.string(),
+  state: z.enum([
+    'approval-requested',
+    'approval-responded',
+    'input-available',
+    'input-streaming',
+    'output-available',
+    'output-denied',
+    'output-error',
+  ]),
   title: z.string(),
   toolCallId: z.string(),
   toolName: z.string(),
-  type: z.string(),
+  type: z.enum(['dynamic-tool']),
 })
 
 const ollamaErrorDetailsSchema = z.object({
@@ -272,7 +278,7 @@ const aiChatConversationSchema = z.object({
   updatedAt: z.number(),
 })
 
-const backupDataSchema = z.object({
+const backupDataSchema: z.ZodType<BackupData> = z.object({
   version: z.string(),
   timestamp: z.string(),
   userSettings: z.object({
@@ -297,6 +303,14 @@ const backupDataSchema = z.object({
     ]),
     enableCategories: z.boolean(),
     excludePatterns: z.array(z.string()),
+    excludePinnedTabs: z.boolean().optional(),
+    openUrlInBackground: z.boolean().optional(),
+    openAllInNewWindow: z.boolean().optional(),
+    confirmDeleteAll: z.boolean().optional(),
+    confirmDeleteEach: z.boolean().optional(),
+    fontSizePercent: z.number().optional(),
+    colors: z.record(z.string(), z.string()).optional(),
+    language: z.enum(['system', 'ja', 'en']).optional(),
     ollamaModel: z.string().optional(),
     removeTabAfterExternalDrop: z.boolean().optional(),
     removeTabAfterOpen: z.boolean(),
@@ -340,15 +354,14 @@ const backupDataSchema = z.object({
 
 function parseBackupData(jsonData: string): BackupData | null {
   // eslint-disable-next-line typescript/no-unsafe-assignment
-  const parsedData = JSON.parse(jsonData)
-  const validationResult = backupDataSchema.safeParse(parsedData)
+  const rawData: unknown = JSON.parse(jsonData)
+  const validationResult = backupDataSchema.safeParse(rawData)
   if (!validationResult.success) {
     console.error('バリデーションエラー:', validationResult.error)
     return null
   }
-  // OK: backupDataSchema validates subset of BackupData; import merge fills remaining fields from current settings
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return structuredClone(validationResult.data) as BackupData
+  const backupData: BackupData = structuredClone(validationResult.data)
+  return backupData
 }
 
 export { backupDataSchema, parseBackupData }

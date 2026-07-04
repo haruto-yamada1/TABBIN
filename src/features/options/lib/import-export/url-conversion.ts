@@ -17,7 +17,7 @@ import type {
 
 const IMPORT_URL_RECORD_OPTIONS = {
   preserveExistingOnDuplicate: true,
-} as const
+}
 
 const getUrlRecordTitle = (record: Partial<Pick<UrlRecord, 'title'>>): string =>
   record.title ?? ''

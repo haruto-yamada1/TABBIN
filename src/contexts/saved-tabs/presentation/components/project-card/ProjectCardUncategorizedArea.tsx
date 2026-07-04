@@ -7,7 +7,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useProjectCard } from './ProjectCardContext'
 
-const HIDDEN_OVERFLOW_STYLE = { overflow: 'hidden' } as const
+const HIDDEN_OVERFLOW_STYLE = { overflow: 'hidden' }
 
 /**
  * ProjectCard の未分類URLエリア

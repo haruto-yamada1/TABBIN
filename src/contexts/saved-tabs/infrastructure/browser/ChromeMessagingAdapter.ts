@@ -35,6 +35,7 @@ import type {
   MessagingPort,
   MessagingPortResponse,
 } from '@/contexts/saved-tabs/application/ports/MessagingPort'
+import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 
 export interface ChromeRuntimeSendMessageLike {
   /**
@@ -65,6 +66,9 @@ export interface ChromeMessagingAdapterDeps {
   readonly getApi?: () => ChromeApiLike | undefined
 }
 
+const isChromeApiLike = (value: unknown): value is ChromeApiLike =>
+  isObjectLike(value)
+
 /**
  * `chrome.runtime.sendMessage` を利用する `MessagingPort` 実装を生成する。
  *
@@ -81,8 +85,7 @@ export const createChromeMessagingAdapter = (
     if (deps.getApi) {
       return deps.getApi()
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    return (globalThis as typeof globalThis & { chrome?: ChromeApiLike }).chrome
+    return getChromeGlobal(isChromeApiLike)
   }
   return {
     [CHROME_MESSAGING_ADAPTER_MARKER]: true,

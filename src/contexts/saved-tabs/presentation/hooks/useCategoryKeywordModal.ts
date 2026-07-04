@@ -64,6 +64,11 @@ interface UseCategoryKeywordModalParams {
    */
   readonly storageChangePort?: StorageChangePort
 }
+interface CategoryEditState {
+  isRenaming: boolean
+  keywords: string[]
+  newCategoryName: string
+}
 const resolveSelectedParentCategoryId = (
   storedCategories: ParentCategory[],
   group: TabGroup,
@@ -152,11 +157,13 @@ export const useCategoryKeywordModal = ({
   )
 
   // --- キーワード・リネーム状態 ---
-  const [categoryEditState, setCategoryEditState] = useState({
-    isRenaming: false,
-    keywords: [] as string[],
-    newCategoryName: '',
-  })
+  const [categoryEditState, setCategoryEditState] = useState<CategoryEditState>(
+    {
+      isRenaming: false,
+      keywords: [],
+      newCategoryName: '',
+    },
+  )
   const { keywords, isRenaming, newCategoryName } = categoryEditState
   const updateCategoryEditState = useCallback(
     (updates: Partial<typeof categoryEditState>) => {

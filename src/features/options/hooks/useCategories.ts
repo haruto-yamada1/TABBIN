@@ -4,6 +4,7 @@ import { z } from 'zod'
 import {
   getBrowserUiLocale,
   getMessage,
+  getStoredLanguageSetting,
   resolveLanguage,
 } from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
@@ -81,15 +82,12 @@ export const useCategories = () => {
       }
 
       if (areaName === 'local' && changes.userSettings?.newValue) {
-        const nextSettings = changes.userSettings.newValue as {
-          language?: 'en' | 'ja' | 'system'
-        }
+        const nextLanguageSetting = getStoredLanguageSetting(
+          changes.userSettings.newValue,
+        )
         setCategoryState((prev) => ({
           ...prev,
-          language: resolveLanguage(
-            nextSettings.language ?? 'system',
-            getUiLocale(),
-          ),
+          language: resolveLanguage(nextLanguageSetting, getUiLocale()),
         }))
       }
     }

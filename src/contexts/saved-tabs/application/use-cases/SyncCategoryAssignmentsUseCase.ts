@@ -79,7 +79,7 @@ const syncSingleDomain = async (
     : ({
         ...targetCategory,
         domainNames: [...targetCategory.domainNames, targetDomainName],
-      } as ParentCategory)
+      } satisfies ParentCategory)
   if (nextCategory !== targetCategory) {
     updatedCategoryIds.push(targetCategory.id)
   }

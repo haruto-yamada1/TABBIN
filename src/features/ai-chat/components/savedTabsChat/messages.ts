@@ -90,12 +90,12 @@ const getSourceItems = (output: unknown): ChatMessageSource[] => {
       return []
     }
 
-    const { url } = item as { url?: unknown }
+    const url: unknown = Reflect.get(item, 'url')
     if (typeof url !== 'string' || url.length === 0) {
       return []
     }
 
-    const { title } = item as { title?: unknown }
+    const title: unknown = Reflect.get(item, 'title')
 
     return [
       {

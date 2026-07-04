@@ -246,6 +246,14 @@
     "typescript/await-thenable": "error",
     "typescript/consistent-indexed-object-style": "error",
     "typescript/consistent-return": "error",
+    "typescript/consistent-type-assertions": [
+      "error",
+      {
+        "assertionStyle": "never",
+        "objectLiteralTypeAssertions": "never",
+        "arrayLiteralTypeAssertions": "never"
+      }
+    ],
     "typescript/consistent-type-imports": "error",
     "typescript/method-signature-style": "error",
     "typescript/no-base-to-string": "error",
@@ -530,6 +538,7 @@
         "typescript/no-unsafe-argument": "off",
         "typescript/no-unsafe-return": "off",
         "typescript/no-unsafe-type-assertion": "off",
+        "typescript/consistent-type-assertions": "off",
         "typescript/no-unnecessary-condition": "off",
         "eslint/no-magic-numbers": "off",
         "eslint/max-lines": [

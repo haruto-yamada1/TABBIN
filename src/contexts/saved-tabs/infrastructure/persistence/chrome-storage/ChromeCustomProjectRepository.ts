@@ -3,6 +3,7 @@ import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
 } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import {
@@ -75,7 +76,7 @@ const toRawSnapshots = (
 /**
  * `CUSTOM_PROJECT_ORDER_KEY` の生値を `CustomProjectId[]` へ詰め替える。
  *
- * - 非配列 / 配列でも要素が文字列以外 / 空文字はスキップする。
+ * - 非配列 / 配列でも要素が文字列以外 / 空文字・空白のみはスキップする。
  * - ドメイン層で `createCustomProjectId` が空文字を拒否するため、parse
  *   時点で空文字を除外しないと repository 境界で例外が漏れる。
  */
@@ -86,16 +87,15 @@ const parseCustomProjectOrder = (raw: unknown): readonly CustomProjectId[] => {
   const result: CustomProjectId[] = []
   const seen = new Set<string>()
   for (const item of raw) {
-    if (typeof item !== 'string' || item.length === 0) {
+    if (typeof item !== 'string') {
       continue
     }
-    if (seen.has(item)) {
+    const trimmedItem = item.trim()
+    if (trimmedItem.length === 0 || seen.has(trimmedItem)) {
       continue
     }
-    seen.add(item)
-    // ブランド型タグ付けに限定し、検証は `createCustomProjectId` 側に委ねる
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    result.push(item as CustomProjectId)
+    seen.add(trimmedItem)
+    result.push(createCustomProjectId(trimmedItem))
   }
   return result
 }

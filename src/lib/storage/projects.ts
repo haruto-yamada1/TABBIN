@@ -89,7 +89,9 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
       if (!parsed.success) {
         // スキーマ違反のレコードは drop し、配列全体は壊さない
         console.warn(
-          `不正なプロジェクトデータをスキップ: id=${String((project as { id?: unknown }).id)}`,
+          `不正なプロジェクトデータをスキップ: id=${String(
+            Reflect.get(project, 'id'),
+          )}`,
           parsed.error.issues,
         )
         return []

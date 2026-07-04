@@ -58,4 +58,4 @@ export const colorOptions = [
   },
   { key: 'sidebar-border', labelKey: 'options.color.sidebarBorder' },
   { key: 'sidebar-ring', labelKey: 'options.color.sidebarRing' },
-] as const
+]

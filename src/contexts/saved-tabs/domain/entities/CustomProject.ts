@@ -1,4 +1,5 @@
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
+import { ensureStringArray } from '@/contexts/saved-tabs/domain/services/ensureStringArray'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
 import type { CategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
 import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
@@ -58,10 +59,12 @@ export const createCustomProject = (
   const rawUrlIds: readonly string[] = ensureStringArray(
     input.urlIds,
     'CustomProject の urlIds は配列で指定してください',
+    'INVALID_CUSTOM_PROJECT',
   )
   const rawCategories: readonly string[] = ensureStringArray(
     input.categories,
     'CustomProject の categories は配列で指定してください',
+    'INVALID_CUSTOM_PROJECT',
   )
   const seenUrlIds = new Set<string>()
   const urlIds: UrlRecordId[] = []
@@ -97,19 +100,6 @@ export const createCustomProject = (
     createdAt: createSavedAt(input.createdAt),
     updatedAt: createSavedAt(input.updatedAt),
   }
-}
-
-const ensureStringArray = (
-  value: readonly string[],
-  message: string,
-): readonly string[] => {
-  if (!Array.isArray(value)) {
-    throw new SavedTabsDomainError(message, 'INVALID_CUSTOM_PROJECT')
-  }
-  // OK: input 型は readonly string[] であり、Array.isArray の narrowing で
-  // any[] へ広がるのを元の型へ戻すだけのキャストにする。
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return value as readonly string[]
 }
 
 /**

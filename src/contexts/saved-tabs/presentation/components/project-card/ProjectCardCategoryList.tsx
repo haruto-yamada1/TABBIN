@@ -8,7 +8,7 @@ import { useProjectCard } from './ProjectCardContext'
 
 const EMPTY_CATEGORY_URLS: NonNullable<CustomProjectCategoryProps['urls']> = []
 
-const CATEGORY_DRAG_DATA = { type: 'category' } as const
+const CATEGORY_DRAG_DATA = { type: 'category' }
 
 /**
  * ProjectCard のカテゴリ表示部分

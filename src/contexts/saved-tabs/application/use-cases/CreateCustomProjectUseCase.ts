@@ -6,7 +6,6 @@ import type { ClockPort } from '@/contexts/saved-tabs/application/ports/ClockPor
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
-import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 
 /**
  * `CreateCustomProjectUseCase` の入力。
@@ -60,8 +59,7 @@ export const createCreateCustomProjectUseCase = (
     ) {
       throw new Error(`DUPLICATE_PROJECT_NAME:${name}`)
     }
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion
-    const id = (deps.generateId ?? defaultGenerateId)() as CustomProjectId
+    const id = (deps.generateId ?? defaultGenerateId)()
     const now = deps.clock.now()
     const newProject = createCustomProject({
       categories: [],

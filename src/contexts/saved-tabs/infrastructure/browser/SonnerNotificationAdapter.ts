@@ -31,6 +31,12 @@ const resolveToast = (
   override?: SonnerNotificationAdapterDeps['toastOverride'],
 ) => override ?? toast
 
+const isPromiseLike = (value: unknown): value is Promise<unknown> =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'then') === 'function' &&
+  typeof Reflect.get(value, 'catch') === 'function'
+
 const toSonnerAction = (
   action: NotificationMessage['action'],
 ): { label: string; onClick: () => void } | undefined => {
@@ -44,8 +50,8 @@ const toSonnerAction = (
       // 同期 throw は `try / catch` で吸収し、reject / async throw は `.catch` で吸収する。
       try {
         const result = action.onClick()
-        if (result && typeof (result as Promise<unknown>).then === 'function') {
-          void (result as Promise<unknown>).catch((error: unknown) => {
+        if (isPromiseLike(result)) {
+          void result.catch((error: unknown) => {
             console.error('NotificationPort action onClick で失敗:', error)
           })
         }

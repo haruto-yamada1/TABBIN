@@ -12,7 +12,11 @@ import {
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
 import type {
+  AiChartAxisFormat,
+  AiChartDatum,
+  AiChartSeries,
   AiChartSpec,
+  AiChartType,
   AiChatAttachment,
   AiSavedUrlRecord,
 } from '@/features/ai-chat/types'
@@ -34,13 +38,35 @@ import { createAiChatTools } from './ai-chat-tools'
 const HTTP_FORBIDDEN = 403
 const MAX_AI_CHAT_STEPS = 5
 
+const aiChartTypeValues = [
+  'area',
+  'bar',
+  'line',
+  'pie',
+  'radar',
+] as const satisfies readonly AiChartType[]
+const aiChartTypes: ReadonlySet<string> = new Set(aiChartTypeValues)
+
+const aiChartAxisFormatValues = [
+  'count',
+  'date',
+  'label',
+  'percent',
+] as const satisfies readonly AiChartAxisFormat[]
+const aiChartAxisFormats: ReadonlySet<string> = new Set(aiChartAxisFormatValues)
+
+const isRecordLike = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
 const parseRecord = (v: unknown): Record<string, unknown> => {
-  if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+  if (!isRecordLike(v)) {
     return {}
   }
-  // OK: structuredClone preserves 'object' type; narrow to Record<string, unknown> after runtime type guard
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return structuredClone(v) as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const key of Object.keys(v)) {
+    result[key] = structuredClone(Reflect.get(v, key))
+  }
+  return result
 }
 
 interface OllamaModelOption {
@@ -283,13 +309,11 @@ const getToolResultCount = (output: unknown): number | null => {
     return output.length
   }
 
-  if (
-    output &&
-    typeof output === 'object' &&
-    'items' in output &&
-    Array.isArray(output.items)
-  ) {
-    return output.items.length
+  if (output && typeof output === 'object') {
+    const items: unknown = Reflect.get(output, 'items')
+    if (Array.isArray(items)) {
+      return items.length
+    }
   }
 
   return null
@@ -300,7 +324,7 @@ const getPaginatedToolTotalCount = (output: unknown): number | null => {
     return null
   }
 
-  const { totalItems } = output as { totalItems?: unknown }
+  const totalItems: unknown = Reflect.get(output, 'totalItems')
   return typeof totalItems === 'number' ? totalItems : null
 }
 
@@ -517,27 +541,92 @@ const mergeToolTraces = (
   return mergedToolTraces
 }
 
+const isAiChartType = (value: unknown): value is AiChartType =>
+  typeof value === 'string' && aiChartTypes.has(value)
+
+const isAiChartAxisFormat = (value: unknown): value is AiChartAxisFormat =>
+  typeof value === 'string' && aiChartAxisFormats.has(value)
+
+const isChartDatum = (value: unknown): value is AiChartDatum => {
+  if (!isRecordLike(value)) {
+    return false
+  }
+  return Object.values(value).every(
+    (item) =>
+      typeof item === 'number' || typeof item === 'string' || item === null,
+  )
+}
+
+const isChartSeries = (value: unknown): value is AiChartSeries => {
+  if (!isRecordLike(value)) {
+    return false
+  }
+  return (
+    typeof Reflect.get(value, 'colorToken') === 'string' &&
+    typeof Reflect.get(value, 'dataKey') === 'string' &&
+    typeof Reflect.get(value, 'label') === 'string'
+  )
+}
+
+const hasOptionalStringProperty = (
+  value: Record<string, unknown>,
+  key: string,
+): boolean => {
+  const item: unknown = Reflect.get(value, key)
+  return item === undefined || typeof item === 'string'
+}
+
+const hasOptionalBooleanProperty = (
+  value: Record<string, unknown>,
+  key: string,
+): boolean => {
+  const item: unknown = Reflect.get(value, key)
+  return item === undefined || typeof item === 'boolean'
+}
+
+const hasValidOptionalChartProperties = (
+  value: Record<string, unknown>,
+): boolean => {
+  const valueFormat: unknown = Reflect.get(value, 'valueFormat')
+
+  return (
+    hasOptionalStringProperty(value, 'categoryKey') &&
+    hasOptionalStringProperty(value, 'description') &&
+    hasOptionalStringProperty(value, 'emptyMessage') &&
+    hasOptionalBooleanProperty(value, 'showLegend') &&
+    hasOptionalBooleanProperty(value, 'stacked') &&
+    (valueFormat === undefined || isAiChartAxisFormat(valueFormat)) &&
+    hasOptionalStringProperty(value, 'xKey')
+  )
+}
+
 const isChartSpec = (value: unknown): value is AiChartSpec => {
-  if (!value || typeof value !== 'object') {
+  if (!isRecordLike(value)) {
     return false
   }
 
-  const spec = value as Partial<AiChartSpec>
+  const title: unknown = Reflect.get(value, 'title')
+  const type: unknown = Reflect.get(value, 'type')
+  const data: unknown = Reflect.get(value, 'data')
+  const series: unknown = Reflect.get(value, 'series')
 
   return (
-    typeof spec.title === 'string' &&
-    typeof spec.type === 'string' &&
-    Array.isArray(spec.data) &&
-    Array.isArray(spec.series)
+    typeof title === 'string' &&
+    isAiChartType(type) &&
+    Array.isArray(data) &&
+    data.every(isChartDatum) &&
+    Array.isArray(series) &&
+    series.every(isChartSeries) &&
+    hasValidOptionalChartProperties(value)
   )
 }
 
 const getChartSpecsFromOutput = (output: unknown): AiChartSpec[] => {
-  if (!output || typeof output !== 'object') {
+  if (!isRecordLike(output)) {
     return []
   }
 
-  const { chartSpecs } = output as { chartSpecs?: unknown }
+  const chartSpecs: unknown = Reflect.get(output, 'chartSpecs')
   if (!Array.isArray(chartSpecs)) {
     return []
   }

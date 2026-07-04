@@ -1,16 +1,14 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
 import {
+  DEFAULT_EXCLUDE_PATTERNS,
+  mergeStoredUserSettingsDefaults,
+} from '@/contexts/saved-tabs/domain/services/userSettingsDefaultsMerge'
+import {
   DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
   DEFAULT_AI_SYSTEM_PROMPT_TEMPLATE,
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
-
-const DEFAULT_EXCLUDE_PATTERNS = [
-  'about:',
-  'chrome-extension://',
-  'chrome://',
-] as const
 
 /**
  * `UserSettingsDto` の domain 既定値。`src/lib/storage/settings.defaultSettings`
@@ -74,33 +72,10 @@ const stripLegacyUserSettings = (
   return rest
 }
 
-const mergeExcludePatterns = (
-  excludePatterns: readonly string[] | undefined,
-): string[] => {
-  const mergedPatterns = new Set<string>(DEFAULT_EXCLUDE_PATTERNS)
-  for (const pattern of excludePatterns ?? []) {
-    if (typeof pattern !== 'string') {
-      continue
-    }
-    const normalizedPattern = pattern.trim()
-    if (normalizedPattern) {
-      mergedPatterns.add(normalizedPattern)
-    }
-  }
-  return [...mergedPatterns]
-}
-
 const mergeStoredUserSettings = (
   settings: Partial<UserSettingsDto>,
-): UserSettingsDto => {
-  const excludePatterns = mergeExcludePatterns(settings.excludePatterns)
-  // OK: callers always spread result with defaultUserSettings which provides all required fields
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return {
-    ...settings,
-    excludePatterns,
-  } as UserSettingsDto
-}
+): UserSettingsDto =>
+  mergeStoredUserSettingsDefaults(defaultUserSettings, settings)
 
 /**
  * `UserSettingsDto` → `normalizeAiSystemPromptSettings` 入力形へ投影する純関数。

@@ -192,9 +192,13 @@ const useAnalyticsRouteOptions = (t: (key: string) => string) => {
 
 const useAnalyticsRouteView = () => {
   const { language, t } = useI18n()
-  const [analyticsData, setAnalyticsData] = useState(() => ({
+  const [analyticsData, setAnalyticsData] = useState<{
+    records: typeof awaitableEmptyRecords
+    savedViews: SavedAnalyticsView[]
+    settings: typeof defaultSettings
+  }>(() => ({
     records: awaitableEmptyRecords,
-    savedViews: [] as SavedAnalyticsView[],
+    savedViews: [],
     settings: defaultSettings,
   }))
   const { records, savedViews, settings } = analyticsData

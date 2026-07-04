@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { ClockPort } from '@/contexts/saved-tabs/application/ports/ClockPort'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type {
   CustomProjectRawSnapshot,
@@ -116,14 +116,14 @@ export const createDeleteCustomProjectUseCase = (
       }
     } else {
       const timestamp = deps.clock.now()
-      const createdUncategorized: CustomProject = {
+      const createdUncategorized = createCustomProject({
         categories: [],
-        createdAt: timestamp as never,
-        id: deps.uncategorizedProjectId as never,
-        name: '未分類' as never,
-        updatedAt: timestamp as never,
+        createdAt: timestamp,
+        id: deps.uncategorizedProjectId,
+        name: '未分類',
+        updatedAt: timestamp,
         urlIds: [],
-      }
+      })
       merged = mergeEntityUncategorized(target, createdUncategorized)
       // PR #514 / Codex review: 旧 `findOrCreateUncategorizedProject` 経路を
       // 踏襲し、新規作成した uncategorized プロジェクトを `all` へ明示的に
@@ -211,14 +211,12 @@ const mergeEntityUncategorized = (
   target: CustomProject,
   uncategorized: CustomProject,
 ): CustomProject => {
-  const targetUrlIds = target.urlIds as unknown as readonly string[]
+  const targetUrlIds = target.urlIds
   if (targetUrlIds.length === 0) {
     return uncategorized
   }
-  const existing = new Set<string>(uncategorized.urlIds)
-  const nextUrlIds: string[] = [
-    ...(uncategorized.urlIds as unknown as readonly string[]),
-  ]
+  const existing = new Set(uncategorized.urlIds)
+  const nextUrlIds = [...uncategorized.urlIds]
   for (const urlId of targetUrlIds) {
     if (!existing.has(urlId)) {
       existing.add(urlId)
@@ -227,7 +225,7 @@ const mergeEntityUncategorized = (
   }
   return {
     ...uncategorized,
-    urlIds: nextUrlIds as never,
+    urlIds: nextUrlIds,
     updatedAt: target.updatedAt,
   }
 }

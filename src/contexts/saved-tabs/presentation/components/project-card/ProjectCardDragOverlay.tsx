@@ -1,10 +1,11 @@
 import { DragOverlay } from '@dnd-kit/core'
+import type { CSSProperties } from 'react'
 
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useProjectCard } from './ProjectCardContext'
 
-const DRAG_OVERLAY_STYLE = { pointerEvents: 'none' } as const
+const DRAG_OVERLAY_STYLE: CSSProperties = { pointerEvents: 'none' }
 
 /**
  * ProjectCard のドラッグ中オーバーレイ

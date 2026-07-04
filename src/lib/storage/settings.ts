@@ -1,5 +1,9 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
 import {
+  DEFAULT_EXCLUDE_PATTERNS,
+  mergeStoredUserSettingsDefaults,
+} from '@/contexts/saved-tabs/domain/services/userSettingsDefaultsMerge'
+import {
   DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
   DEFAULT_AI_SYSTEM_PROMPT_TEMPLATE,
   normalizeAiSystemPromptSettings,
@@ -9,12 +13,6 @@ import {
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 import type { UserSettings } from '@/types/storage'
-
-const DEFAULT_EXCLUDE_PATTERNS = [
-  'about:',
-  'chrome-extension://',
-  'chrome://',
-] as const
 
 const stripLegacyUserSettings = (settings: unknown): Partial<UserSettings> => {
   if (!isStrippableSettings(settings)) {
@@ -34,33 +32,9 @@ const hasLegacyUserSettingsKeys = (settings: unknown): boolean =>
   typeof settings === 'object' &&
   settings !== null &&
   ('aiChatEnabled' in settings || 'aiProvider' in settings)
-const mergeExcludePatterns = (
-  excludePatterns: string[] | undefined,
-): string[] => {
-  const mergedPatterns = new Set<string>(DEFAULT_EXCLUDE_PATTERNS)
-
-  for (const pattern of excludePatterns ?? []) {
-    if (typeof pattern !== 'string') {
-      continue
-    }
-    const normalizedPattern = pattern.trim()
-    if (normalizedPattern) {
-      mergedPatterns.add(normalizedPattern)
-    }
-  }
-
-  return [...mergedPatterns]
-}
-
 const mergeStoredUserSettings = (
   settings: Partial<UserSettings>,
-): UserSettings =>
-  // OK: callers always spread result with defaultSettings which provides all required fields
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  ({
-    ...settings,
-    excludePatterns: mergeExcludePatterns(settings.excludePatterns),
-  }) as UserSettings
+): UserSettings => mergeStoredUserSettingsDefaults(defaultSettings, settings)
 
 // デフォルト設定
 export const defaultSettings: UserSettings = {

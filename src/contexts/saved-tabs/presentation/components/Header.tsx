@@ -123,7 +123,7 @@ export const Header = ({
       const isComposing =
         event.nativeEvent.isComposing ||
         ('isComposing' in event &&
-          Boolean((event as { isComposing?: unknown }).isComposing)) ||
+          Boolean(Reflect.get(event, 'isComposing'))) ||
         false
       if (isComposing) {
         return

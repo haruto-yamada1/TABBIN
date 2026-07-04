@@ -143,14 +143,14 @@ const mergeUrlData = (
 
 const mergeUserSettings = (
   currentSettings: UserSettings,
-  importedSettings: UserSettings,
+  importedSettings: Partial<UserSettings>,
 ): UserSettings => ({
   ...currentSettings,
   ...importedSettings,
   excludePatterns: [
     ...new Set([
       ...currentSettings.excludePatterns,
-      ...importedSettings.excludePatterns,
+      ...(importedSettings.excludePatterns ?? []),
     ]),
   ],
 })
@@ -158,10 +158,12 @@ const mergeUserSettings = (
 const normalizeImportedCategory = (
   category: ParentCategory,
 ): ParentCategory => {
-  const { keywords: _keywords, ...rest } = category as ParentCategory & {
-    keywords?: string[]
+  return {
+    domainNames: category.domainNames,
+    domains: category.domains,
+    id: category.id,
+    name: category.name,
   }
-  return rest
 }
 
 const mergeParentCategoriesData = (

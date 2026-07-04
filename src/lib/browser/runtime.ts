@@ -1,3 +1,5 @@
+import { isObjectLike } from './chrome-global'
+
 interface BrowserRuntime {
   connect?: (connectInfo?: { name?: string }) => RuntimePort
   sendMessage?: (message: unknown) => Promise<unknown>
@@ -32,35 +34,31 @@ interface BrowserModule {
 
 let browserApiPromise: Promise<BrowserApi | null> | null = null
 
-const isObject = (value: unknown): value is object =>
-  typeof value === 'object' && value !== null
-
 const hasFunctionProperty = (value: object, property: string): boolean =>
   typeof Reflect.get(value, property) === 'function'
 
 const hasAddListener = (value: unknown): boolean =>
-  isObject(value) && hasFunctionProperty(value, 'addListener')
+  isObjectLike(value) && hasFunctionProperty(value, 'addListener')
 
 const isRuntimePort = (value: unknown): value is RuntimePort =>
-  isObject(value) &&
+  isObjectLike(value) &&
   hasFunctionProperty(value, 'disconnect') &&
   hasAddListener(Reflect.get(value, 'onDisconnect')) &&
   hasAddListener(Reflect.get(value, 'onMessage')) &&
   hasFunctionProperty(value, 'postMessage')
 
 const getGlobalBrowserApi = (): BrowserApi | null => {
-  const api = (globalThis as typeof globalThis & { browser?: BrowserApi })
-    .browser
-  return api ?? null
+  const api: unknown = Reflect.get(globalThis, 'browser')
+  return isObjectLike(api) ? api : null
 }
 
 const getGlobalChromeRuntime = (): ChromeRuntime | null => {
   const chromeValue: unknown = Reflect.get(globalThis, 'chrome')
-  if (typeof chromeValue !== 'object' || chromeValue === null) {
+  if (!isObjectLike(chromeValue)) {
     return null
   }
   const runtimeValue: unknown = Reflect.get(chromeValue, 'runtime')
-  if (typeof runtimeValue !== 'object' || runtimeValue === null) {
+  if (!isObjectLike(runtimeValue)) {
     return null
   }
   const connectValue: unknown = Reflect.get(runtimeValue, 'connect')

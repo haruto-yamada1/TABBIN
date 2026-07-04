@@ -1109,7 +1109,13 @@ describe('runAiChatRequest', () => {
               },
               {
                 data: [{ count: 1, label: 'React' }],
-                series: [{ dataKey: 'count', label: 'Count' }],
+                series: [
+                  {
+                    colorToken: 'chart-1',
+                    dataKey: 'count',
+                    label: 'Count',
+                  },
+                ],
                 title: 'Valid chart',
                 type: 'bar',
                 xKey: 'label',
@@ -1130,7 +1136,7 @@ describe('runAiChatRequest', () => {
     expect(result.charts).toStrictEqual([
       {
         data: [{ count: 1, label: 'React' }],
-        series: [{ dataKey: 'count', label: 'Count' }],
+        series: [{ colorToken: 'chart-1', dataKey: 'count', label: 'Count' }],
         title: 'Valid chart',
         type: 'bar',
         xKey: 'label',
