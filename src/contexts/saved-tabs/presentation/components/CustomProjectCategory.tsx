@@ -162,10 +162,10 @@ const CategoryContent = (props: CategoryContentProps) => {
           >
             {props.urls.map((item) => (
               <ProjectUrlItem
-                key={item.url}
                 item={item}
                 projectId={props.projectId}
                 {...projectUrlItemProps}
+                key={item.url}
                 availableCategories={CATEGORY_SELECT_OPTIONS}
                 settings={props.settings}
               />

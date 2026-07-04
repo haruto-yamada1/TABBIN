@@ -328,7 +328,7 @@ const CollapsedNav = ({ items }: { items: RailItem[] }) => (
   <div className='flex h-full flex-col items-center'>
     <div className='flex flex-col items-center gap-3 pt-2'>
       {items.map((item) => (
-        <IconRailLink key={item.label} {...item} />
+        <IconRailLink {...item} key={item.label} />
       ))}
     </div>
   </div>
