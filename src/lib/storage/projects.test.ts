@@ -522,7 +522,7 @@ describe('projects storage', () => {
 
     expect(state.savedTabs).toEqual([
       expect.objectContaining({
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         urlIds: expect.arrayContaining([
           state.urls?.[0]?.id,
           state.urls?.[1]?.id,
@@ -578,7 +578,7 @@ describe('projects storage', () => {
 
     expect(state.savedTabs).toEqual([
       expect.objectContaining({
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         urlIds: expect.arrayContaining([
           state.urls?.find(
             (record) => record.url === 'https://docs.example.com/a',
@@ -589,7 +589,7 @@ describe('projects storage', () => {
         ]),
       }),
       expect.objectContaining({
-        domain: 'https://news.example.com',
+        domain: 'news.example.com',
         urlIds: [
           state.urls?.find(
             (record) => record.url === 'https://news.example.com/x',
@@ -656,11 +656,11 @@ describe('projects storage', () => {
     )
     expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         urlIds: [state.urls?.[0]?.id],
       }),
       expect.objectContaining({
-        domain: 'https://issues.example.com',
+        domain: 'issues.example.com',
         urlIds: [state.urls?.[1]?.id],
       }),
     ])
@@ -1389,7 +1389,7 @@ describe('projects storage', () => {
 
     expect(state.savedTabs).toEqual([
       {
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         id: 'uuid-2',
         savedAt: 1000,
         urlIds: ['uuid-1'],

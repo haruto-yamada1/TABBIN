@@ -6,6 +6,7 @@ import type {
   ParentCategory,
   SubCategoryKeyword,
 } from '@/types/storage'
+import { normalizeDomainLookupKey } from '@/utils/domain-normalize'
 
 // 親カテゴリを取得する関数
 export const getParentCategories = async (): Promise<ParentCategory[]> => {
@@ -46,9 +47,13 @@ export const findCategoryByDomainName = async (
   domainName: string,
 ): Promise<ParentCategory | null> => {
   const categories = await getParentCategories()
+  const lookupKey = normalizeDomainLookupKey(domainName)
   return (
-    categories.find((category) => category.domainNames.includes(domainName)) ??
-    null
+    categories.find((category) =>
+      category.domainNames.some(
+        (name) => normalizeDomainLookupKey(name) === lookupKey,
+      ),
+    ) ?? null
   )
 } // ドメインのカテゴリ設定を取得する関数
 export const getDomainCategorySettings = async (): Promise<
@@ -73,8 +78,11 @@ export const updateDomainCategorySettings = async (
 ): Promise<void> => {
   const settings = await getDomainCategorySettings()
 
-  // 既存の設定を探す
-  const existingIndex = settings.findIndex((s) => s.domain === domain)
+  // 既存の設定を探す (ストレージ形式のスキーム付き/hostname 混在を吸収)
+  const domainKey = normalizeDomainLookupKey(domain)
+  const existingIndex = settings.findIndex(
+    (s) => normalizeDomainLookupKey(s.domain) === domainKey,
+  )
   if (existingIndex !== -1) {
     // 既存の設定を更新
     settings[existingIndex] = {
@@ -113,8 +121,11 @@ export const updateDomainCategoryMapping = async (
 ): Promise<void> => {
   const mappings = await getDomainCategoryMappings()
 
-  // 既存のマッピングを探す
-  const existingIndex = mappings.findIndex((m) => m.domain === domain)
+  // 既存のマッピングを探す (ストレージ形式のスキーム付き/hostname 混在を吸収)
+  const mappingDomainKey = normalizeDomainLookupKey(domain)
+  const existingIndex = mappings.findIndex(
+    (m) => normalizeDomainLookupKey(m.domain) === mappingDomainKey,
+  )
   if (categoryId === null) {
     // カテゴリIDがnullの場合は、マッピングを削除
     if (existingIndex !== -1) {

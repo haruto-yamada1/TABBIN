@@ -31,6 +31,7 @@ const createMigrationPortMock = () => ({
   migrateParentCategoriesToDomainNames:
     migrateParentCategoriesToDomainNamesMock,
   migrateToUrlsStorage: migrateToUrlsStorageMock,
+  migrateDomainStorageToHostname: vi.fn(async () => {}),
 })
 
 let migrationPort: ReturnType<typeof createMigrationPortMock>

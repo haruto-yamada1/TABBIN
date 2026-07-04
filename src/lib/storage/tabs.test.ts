@@ -530,6 +530,67 @@ describe('tabs storage', () => {
     ])
   })
 
+  // 回帰 (Finding B): 既存ドメイン設定がスキーム付き (legacy) でグループが
+  // hostname 形のとき、normalizeDomainLookupKey 比較で既存設定を見つけて更新し、
+  // 重複設定を作らない。
+  it('スキーム付き既存ドメイン設定と hostname グループを形式差で吸収して重複設定を作らない', async () => {
+    const state = {
+      savedTabs: [
+        {
+          categoryKeywords: [
+            {
+              categoryName: 'docs',
+              keywords: ['old'],
+            },
+          ],
+          domain: 'example.com',
+          id: 'group-1',
+          subCategories: ['docs'],
+        } as TabGroup,
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async () => state),
+
+          set: vi.fn(async (value: typeof state) => {
+            Object.assign(state, value)
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+    // 既存設定は legacy のスキーム付き形式
+    const settings = [
+      {
+        categoryKeywords: [
+          {
+            categoryName: 'docs',
+            keywords: ['old'],
+          },
+        ],
+        domain: 'https://example.com',
+        subCategories: ['docs'],
+      },
+    ]
+    mocks.getDomainCategorySettingsMock.mockResolvedValue(settings)
+
+    const { setCategoryKeywords } = await loadTabsModule()
+
+    await setCategoryKeywords('group-1', 'docs', ['new'])
+
+    // 既存設定 (schemeful domain) が hostname グループと一致して更新され、
+    // 重複エントリが追加されない
+    expect(settings).toHaveLength(1)
+    expect(settings[0].domain).toBe('https://example.com')
+    expect(settings[0].categoryKeywords).toStrictEqual([
+      {
+        categoryName: 'docs',
+        keywords: ['new'],
+      },
+    ])
+  })
+
   it('setUrlSubCategory は既存 urlSubCategories に上書き保存する', async () => {
     const state = {
       savedTabs: [

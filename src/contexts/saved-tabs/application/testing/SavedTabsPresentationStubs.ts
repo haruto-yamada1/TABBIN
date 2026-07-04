@@ -32,6 +32,7 @@ export const createSavedTabsPresentationPortsStub = (
   migrationPort: overrides.migrationPort ?? {
     migrateParentCategoriesToDomainNames: async () => {},
     migrateToUrlsStorage: async () => {},
+    migrateDomainStorageToHostname: async () => {},
   },
   storageChangePort: overrides.storageChangePort ?? {
     subscribe: () => () => {},

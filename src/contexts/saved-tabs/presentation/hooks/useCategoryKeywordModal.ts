@@ -14,6 +14,7 @@ import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/p
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { normalizeDomainLookupKey } from '@/utils/domain-normalize'
 
 /** カテゴリ名のバリデーションスキーマ */
 const MAX_CATEGORY_NAME_LENGTH = 25
@@ -70,10 +71,13 @@ const resolveSelectedParentCategoryId = (
   if (group.parentCategoryId) {
     return group.parentCategoryId
   }
+  const groupDomainKey = normalizeDomainLookupKey(group.domain)
   const matchedCategory = storedCategories.find(
     (category) =>
       category.domains.includes(group.id) ||
-      category.domainNames.includes(group.domain),
+      category.domainNames.some(
+        (name) => normalizeDomainLookupKey(name) === groupDomainKey,
+      ),
   )
   return matchedCategory ? matchedCategory.id : 'none'
 }

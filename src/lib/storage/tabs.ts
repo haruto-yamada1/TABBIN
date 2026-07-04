@@ -1,5 +1,6 @@
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { SubCategoryKeyword, TabGroup, UrlRecord } from '@/types/storage'
+import { normalizeDomainLookupKey } from '@/utils/domain-normalize'
 
 import {
   getDomainCategorySettings,
@@ -187,7 +188,10 @@ const addSubCategoryToGroup = async (
 
   // ドメイン別設定にも保存して永続化
   const settings = await getDomainCategorySettings()
-  const existingSetting = settings.find((s) => s.domain === group.domain)
+  const groupDomainKey = normalizeDomainLookupKey(group.domain)
+  const existingSetting = settings.find(
+    (s) => normalizeDomainLookupKey(s.domain) === groupDomainKey,
+  )
   if (existingSetting) {
     // 既存の設定がある場合は更新
     if (!existingSetting.subCategories.includes(subCategoryName)) {
@@ -301,7 +305,10 @@ const setCategoryKeywords = async (
 
   // ドメイン別設定にも保存して永続化
   const settings = await getDomainCategorySettings()
-  const existingSetting = settings.find((s) => s.domain === group.domain)
+  const groupDomainKey = normalizeDomainLookupKey(group.domain)
+  const existingSetting = settings.find(
+    (s) => normalizeDomainLookupKey(s.domain) === groupDomainKey,
+  )
   if (existingSetting) {
     // 既存の設定がある場合は更新
     const keywordIndex = existingSetting.categoryKeywords.findIndex(
@@ -495,7 +502,10 @@ const restoreCategorySettings = async (
   tabGroup: TabGroup,
 ): Promise<TabGroup> => {
   const settings = await getDomainCategorySettings()
-  const domainSettings = settings.find((s) => s.domain === tabGroup.domain)
+  const tabGroupDomainKey = normalizeDomainLookupKey(tabGroup.domain)
+  const domainSettings = settings.find(
+    (s) => normalizeDomainLookupKey(s.domain) === tabGroupDomainKey,
+  )
   if (domainSettings) {
     return {
       ...tabGroup,

@@ -5,6 +5,7 @@ import type {
   TabGroup,
   UrlRecord,
 } from '@/types/storage'
+import { normalizeDomainLookupKey } from '@/utils/domain-normalize'
 import { isTimestampInLocalMonth } from '@/utils/localDateTime'
 
 const getDomainFromUrl = (value: string): string => {
@@ -23,6 +24,16 @@ interface BuildAiSavedUrlRecordsInput {
   customProjects: CustomProject[]
   parentCategories: ParentCategory[]
 }
+
+const categoryMatchesGroup = (
+  category: ParentCategory,
+  group: TabGroup,
+): boolean =>
+  category.domains.includes(group.id) ||
+  category.domainNames.some(
+    (name) =>
+      normalizeDomainLookupKey(name) === normalizeDomainLookupKey(group.domain),
+  )
 
 export const buildAiSavedUrlRecords = ({
   urlRecords,
@@ -53,10 +64,7 @@ export const buildAiSavedUrlRecords = ({
       const parentCategoryNames = unique(
         matchingGroups.flatMap((group) =>
           parentCategories.flatMap((category) =>
-            category.domains.includes(group.id) ||
-            category.domainNames.includes(group.domain)
-              ? [category.name]
-              : [],
+            categoryMatchesGroup(category, group) ? [category.name] : [],
           ),
         ),
       )

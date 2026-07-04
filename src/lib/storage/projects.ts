@@ -7,6 +7,7 @@ import type {
   TabGroup,
   UrlRecord,
 } from '@/types/storage'
+import { normalizeDomainLookupKey } from '@/utils/domain-normalize'
 
 import {
   findMatchingProjectIdForSavedTab,
@@ -383,9 +384,12 @@ const setProjectUrlMetadata = (
     notes,
   }
 }
+// hostname 形 (`example.com`) を返す。既有のスキーム付きデータとの混在は
+// normalizeDomainLookupKey 経由の比較で吸収し、保存データは別途
+// migrateDomainStorageToHostname で hostname へ統一する。
 const getDomainFromUrl = (url: string): string => {
   const urlObj = new URL(url)
-  return `${urlObj.protocol}//${urlObj.hostname}`
+  return urlObj.hostname
 }
 const ensureUrlIdInGroup = (group: TabGroup, urlId: string): TabGroup => {
   group.urlIds ??= []
@@ -410,8 +414,9 @@ const addUrlIdToDomainMode = async (
       savedTabs?: TabGroup[]
     }>('savedTabs')
     const domain = getDomainFromUrl(url)
+    const domainKey = normalizeDomainLookupKey(domain)
     const domainGroup = savedTabs.find(
-      (group: TabGroup) => group.domain === domain,
+      (group: TabGroup) => normalizeDomainLookupKey(group.domain) === domainKey,
     )
     if (domainGroup) {
       ensureUrlIdInGroup(domainGroup, urlId)

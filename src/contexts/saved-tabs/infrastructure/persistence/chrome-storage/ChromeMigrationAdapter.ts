@@ -1,5 +1,6 @@
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import {
+  migrateDomainStorageToHostname,
   migrateParentCategoriesToDomainNames,
   migrateToUrlsStorage,
 } from '@/lib/storage/migration'
@@ -20,5 +21,8 @@ export const createChromeMigrationAdapter = (): MigrationPort => ({
   },
   migrateToUrlsStorage: async () => {
     await migrateToUrlsStorage()
+  },
+  migrateDomainStorageToHostname: async () => {
+    await migrateDomainStorageToHostname()
   },
 })
