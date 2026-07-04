@@ -1,7 +1,7 @@
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
 import type { CategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
-import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import { tryCreateDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
@@ -70,7 +70,17 @@ export const createParentCategory = (
     id: createParentCategoryId(input.id),
     name: createCategoryName(input.name),
     domains: input.domains.map((domain) => createTabGroupId(domain)),
-    domainNames: input.domainNames.map((name) => createDomainName(name)),
+    // 保存フロー (getTabDomain) が `https://example.com` のようにスキーム付き
+    // 文字列を domainNames に書き込む既存データと互換するため、TabGroup.domain
+    // と同じく normalizeDomainString で hostname へ正規化してから DomainName 化する。
+    // さらに `https://` (host-less) や `://invalid` (パース失敗) のように
+    // 正規化後に有効な hostname が取れない不正エントリは tryCreateDomainName で
+    // null 化して除外し、1 件の不正値でカテゴリ全体の読み込み
+    // (toDomainParentCategories) が落ちないようにする
+    // (CodeRabbit PR #625 review 指摘)。
+    domainNames: input.domainNames
+      .map(tryCreateDomainName)
+      .filter((name): name is DomainName => name !== null),
   }
 }
 

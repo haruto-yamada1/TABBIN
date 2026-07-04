@@ -71,6 +71,24 @@ export const createDomainName = (value: string): DomainName => {
 }
 
 /**
+ * `createDomainName` の安全版。`normalizeDomainString` で正規化した結果が
+ * 不正（空文字列・スキーム残留・パース失敗で hostname が取れない等）の場合は
+ * 例外を投げず `null` を返す。
+ *
+ * 旧ストレージの `parentCategories[].domainNames` に混入した不正エントリ
+ * （`https://` の host-less スキーム、`://invalid` のパース失敗形など）を、
+ * カテゴリ全体の読み込み失敗にせず個別にスキップするために使う
+ * (CodeRabbit PR #625 review 指摘)。
+ */
+export const tryCreateDomainName = (value: string): DomainName | null => {
+  try {
+    return createDomainName(normalizeDomainString(value))
+  } catch {
+    return null
+  }
+}
+
+/**
  * `DomainName` を生文字列へ戻す。永続化や UI へ渡すための変換口。
  */
 export const domainNameToString = (domain: DomainName): string => domain
