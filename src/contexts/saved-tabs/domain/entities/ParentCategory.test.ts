@@ -71,4 +71,45 @@ describe('ParentCategory entity', () => {
     const b = createParentCategory({ ...baseInput, name: 'Renamed' })
     expect(isSameParentCategory(a, b)).toBe(true)
   })
+
+  // 回帰: 保存フロー (getTabDomain) が `https://example.com` のように
+  // スキーム付き文字列を domainNames に書き込む既存データを開くとき、
+  // createDomainName が「ドメイン名にスキームを含めることはできません」で
+  // 例外を投げてタブを開けなくする不具合 (issue: タブ消失・保存タブ開封失敗) の回帰。
+  it('domainNames にスキーム付き文字列が含まれても hostname へ正規化して保持する', () => {
+    const category = createParentCategory({
+      ...baseInput,
+      domainNames: [
+        'https://example.com',
+        'http://other.com/path',
+        'plain.org',
+      ],
+    })
+    expect(category.domainNames).toStrictEqual([
+      'example.com',
+      'other.com',
+      'plain.org',
+    ])
+  })
+
+  it('domainNames のスキーム付き値は小文字へ正規化される', () => {
+    const category = createParentCategory({
+      ...baseInput,
+      domainNames: ['https://Example.COM'],
+    })
+    expect(category.domainNames).toStrictEqual(['example.com'])
+  })
+
+  it('parentCategoryContainsDomainName は正規化済みの domainNames と一致する', () => {
+    const category = createParentCategory({
+      ...baseInput,
+      domainNames: ['https://example.com'],
+    })
+    expect(
+      parentCategoryContainsDomainName(
+        category,
+        createDomainName('example.com'),
+      ),
+    ).toBe(true)
+  })
 })

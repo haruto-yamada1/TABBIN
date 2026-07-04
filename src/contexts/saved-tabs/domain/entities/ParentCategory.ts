@@ -1,7 +1,10 @@
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
 import type { CategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
-import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import {
+  createDomainName,
+  normalizeDomainString,
+} from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
@@ -70,7 +73,14 @@ export const createParentCategory = (
     id: createParentCategoryId(input.id),
     name: createCategoryName(input.name),
     domains: input.domains.map((domain) => createTabGroupId(domain)),
-    domainNames: input.domainNames.map((name) => createDomainName(name)),
+    // 保存フロー (getTabDomain) が `https://example.com` のようにスキーム付き
+    // 文字列を domainNames に書き込む既存データと互換するため、TabGroup.domain
+    // と同じく normalizeDomainString で hostname へ正規化してから DomainName 化する。
+    // これにより toDomainParentCategories 経由の読み込みで
+    // 「ドメイン名にスキームを含めることはできません」エラーを防ぐ。
+    domainNames: input.domainNames.map((name) =>
+      createDomainName(normalizeDomainString(name)),
+    ),
   }
 }
 

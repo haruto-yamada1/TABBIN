@@ -218,6 +218,31 @@ describe('SavedTabsSnapshotMapper.toDomainParentCategories', () => {
       name: 'Reading',
     })
   })
+
+  // 回帰: 保存フロー (lib/storage/migration getTabDomain) が
+  // `https://example.com` のようにスキーム付き文字列を domainNames に書き込む
+  // 既存データを開くとき、toDomainParentCategories 経由で
+  // createDomainName が「ドメイン名にスキームを含めることはできません」を投げて
+  // useTabOpeningHandlers.handleOpenTab がタブを開けなくする不具合の回帰。
+  it('domainNames にスキーム付き文字列が含まれても hostname へ正規化して例外を投げない', () => {
+    const result = toDomainParentCategories([
+      {
+        domains: ['group-1'],
+        domainNames: [
+          'https://example.com',
+          'http://other.com/path',
+          'plain.org',
+        ],
+        id: 'cat-1',
+        name: 'Reading',
+      },
+    ])
+    expect(result?.[0].domainNames).toStrictEqual([
+      'example.com',
+      'other.com',
+      'plain.org',
+    ])
+  })
 })
 
 describe('SavedTabsSnapshotMapper.toDomainTabGroupsForReorder', () => {
