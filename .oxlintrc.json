@@ -158,6 +158,13 @@
     "eslint/no-debugger": "error",
     "eslint/no-eval": "error",
     "eslint/no-new-func": "error",
+    "typescript/no-empty-object-type": [
+      "error",
+      {
+        "allowInterfaces": "never",
+        "allowObjectTypes": "never"
+      }
+    ],
     "eslint/sort-imports": "off",
     "eslint/sort-keys": "off",
     "eslint/prefer-named-capture-group": "off",

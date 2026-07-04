@@ -163,7 +163,7 @@ export type ModelSelectorLogoProps = Omit<
     | 'scaleway'
     | 'amazon-bedrock'
     | 'cerebras'
-    | (string & {})
+    | (string & Record<never, never>)
 }
 
 export const ModelSelectorLogo = ({
