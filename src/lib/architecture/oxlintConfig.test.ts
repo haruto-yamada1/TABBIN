@@ -26,11 +26,14 @@ const hasCommandOutput = (
 ): error is { stderr?: unknown; stdout?: unknown; status?: unknown } =>
   typeof error === 'object' && error !== null
 
-const createFixture = (source: string) => {
+const createFixture = (source: string, relativeSourcePath = 'src/index.ts') => {
   const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-oxlint-'))
   fixtureDirectories.push(fixtureRoot)
 
-  const sourcePath = path.join(fixtureRoot, 'src/index.ts')
+  const isContextLayerFixture = relativeSourcePath.startsWith('src/contexts/')
+  const sourcePath = isContextLayerFixture
+    ? createContextLayerFixturePath(relativeSourcePath)
+    : path.join(fixtureRoot, relativeSourcePath)
   mkdirSync(path.dirname(sourcePath), { recursive: true })
   writeFileSync(sourcePath, source)
   writeFileSync(
@@ -52,8 +55,23 @@ const createFixture = (source: string) => {
   }
 }
 
-const runOxlint = (source: string): CommandResult => {
-  const fixture = createFixture(source)
+const createContextLayerFixturePath = (relativeSourcePath: string): string => {
+  const contextFixtureRoot = mkdtempSync(
+    path.join(projectRoot, 'src/contexts/__oxlint-fixture-'),
+  )
+  fixtureDirectories.push(contextFixtureRoot)
+
+  return path.join(
+    contextFixtureRoot,
+    relativeSourcePath.replace(/^src\/contexts\/[^/]+\//, ''),
+  )
+}
+
+const runOxlint = (
+  source: string,
+  relativeSourcePath?: string,
+): CommandResult => {
+  const fixture = createFixture(source, relativeSourcePath)
 
   try {
     execFileSync(
@@ -114,6 +132,25 @@ describe('oxlint configuration', () => {
     ])
   })
 
+  it('disallows parameter reassignment in contexts domain and application layers', () => {
+    const config = JSON.parse(readFileSync(oxlintConfigPath, 'utf8'))
+
+    expect(config.overrides).toContainEqual({
+      files: [
+        'src/contexts/*/domain/**/*.{ts,tsx}',
+        'src/contexts/*/application/**/*.{ts,tsx}',
+      ],
+      rules: {
+        'eslint/no-param-reassign': [
+          'error',
+          {
+            props: true,
+          },
+        ],
+      },
+    })
+  })
+
   it('allows const assertions for literal values', () => {
     const result = runOxlint(`
 const statuses = ['saved', 'archived'] as const
@@ -153,5 +190,44 @@ export const options: Options = {}
 
     expect(result.status).not.toBe(0)
     expect(result.output).toContain('typescript/no-empty-object-type')
+  })
+
+  it('reports parameter property mutation in contexts domain files', () => {
+    const result = runOxlint(
+      `
+interface SavedTab {
+  title: string
+}
+
+export const renameTab = (tab: SavedTab): SavedTab => {
+  tab.title = 'new title'
+
+  return tab
+}
+`,
+      'src/contexts/saved-tabs/domain/services/MutatingDomainService.ts',
+    )
+
+    expect(result.status).not.toBe(0)
+    expect(result.output).toContain('eslint/no-param-reassign')
+  })
+
+  it('does not apply parameter reassignment restrictions to presentation files', () => {
+    const result = runOxlint(
+      `
+interface SavedTab {
+  title: string
+}
+
+export const renameTab = (tab: SavedTab): SavedTab => {
+  tab.title = 'new title'
+
+  return tab
+}
+`,
+      'src/contexts/saved-tabs/presentation/services/MutatingPresentationService.ts',
+    )
+
+    expect(result).toEqual({ status: 0, output: '' })
   })
 })

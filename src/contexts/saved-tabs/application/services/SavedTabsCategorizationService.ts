@@ -67,48 +67,31 @@ const hasDisplayableUrls = (group: TabGroupDto): boolean => {
   return hasNewUrls || hasOldUrls
 }
 
-const pushGroupToCategory = (
-  categorizedGroups: Record<string, TabGroupDto[]>,
+const assignParentCategory = (
+  group: TabGroupDto,
   categoryId: string,
-  group: TabGroupDto,
-): void => {
-  if (!Object.hasOwn(categorizedGroups, categoryId)) {
-    categorizedGroups[categoryId] = []
-  }
-  const categorizedGroup =
-    group.parentCategoryId === categoryId
-      ? group
-      : {
-          ...group,
-          parentCategoryId: categoryId,
-        }
-  categorizedGroups[categoryId].push(categorizedGroup)
-}
+): TabGroupDto =>
+  group.parentCategoryId === categoryId
+    ? group
+    : {
+        ...group,
+        parentCategoryId: categoryId,
+      }
 
-const tryCategorizeById = (
+const resolveCategoryIdByGroupId = (
   group: TabGroupDto,
   categoryLookup: PresentationCategoryLookup,
-  categorizedGroups: Record<string, TabGroupDto[]>,
-): boolean => {
+): string | undefined => {
   const category = categoryLookup.byGroupId.get(group.id)
-  if (!category) {
-    return false
-  }
-  pushGroupToCategory(categorizedGroups, category.id, group)
-  return true
+  return category?.id
 }
 
-const tryCategorizeByDomainName = (
+const resolveCategoryIdByDomainName = (
   group: TabGroupDto,
   categoryLookup: PresentationCategoryLookup,
-  categorizedGroups: Record<string, TabGroupDto[]>,
-): boolean => {
+): string | undefined => {
   const category = categoryLookup.byDomainName.get(group.domain)
-  if (!category) {
-    return false
-  }
-  pushGroupToCategory(categorizedGroups, category.id, group)
-  return true
+  return category?.id
 }
 
 const matchesParentCategoryQuery = (
@@ -167,30 +150,57 @@ const filterGroupByQuery = (
   }
 }
 
+const sortGroupsByDomainOrder = (
+  groups: readonly TabGroupDto[],
+  domains: readonly string[],
+): TabGroupDto[] => {
+  const domainOrder = new Map(domains.map((domain, index) => [domain, index]))
+  return groups.toSorted((a, b) => {
+    const indexA = domainOrder.get(a.id) ?? -1
+    const indexB = domainOrder.get(b.id) ?? -1
+    if (indexA === -1) {
+      return 1
+    }
+    if (indexB === -1) {
+      return -1
+    }
+    return indexA - indexB
+  })
+}
+
 const sortCategorizedGroups = (
   categorizedGroups: Record<string, TabGroupDto[]>,
   categoryLookup: PresentationCategoryLookup,
-): void => {
-  for (const categoryId of Object.keys(categorizedGroups)) {
-    const category = categoryLookup.byId.get(categoryId)
-    const domains = category?.domains
-    if (!(domains && domains.length > 0)) {
-      continue
-    }
-    const domainOrder = new Map(domains.map((domain, index) => [domain, index]))
-    categorizedGroups[categoryId].sort((a, b) => {
-      const indexA = domainOrder.get(a.id) ?? -1
-      const indexB = domainOrder.get(b.id) ?? -1
-      if (indexA === -1) {
-        return 1
+): Record<string, TabGroupDto[]> =>
+  Object.fromEntries(
+    Object.entries(categorizedGroups).map(([categoryId, groups]) => {
+      const category = categoryLookup.byId.get(categoryId)
+      const domains = category?.domains
+      if (!(domains && domains.length > 0)) {
+        return [categoryId, [...groups]]
       }
-      if (indexB === -1) {
-        return -1
-      }
-      return indexA - indexB
-    })
-  }
-}
+      return [categoryId, sortGroupsByDomainOrder(groups, domains)]
+    }),
+  )
+
+const resolveCategoryId = (
+  group: TabGroupDto,
+  categoryLookup: PresentationCategoryLookup,
+): string | undefined =>
+  resolveCategoryIdByGroupId(group, categoryLookup) ??
+  resolveCategoryIdByDomainName(group, categoryLookup)
+
+const addGroupToCategory = (
+  categorizedGroups: Record<string, TabGroupDto[]>,
+  categoryId: string,
+  group: TabGroupDto,
+): Record<string, TabGroupDto[]> => ({
+  ...categorizedGroups,
+  [categoryId]: [
+    ...(categorizedGroups[categoryId] ?? []),
+    assignParentCategory(group, categoryId),
+  ],
+})
 
 /**
  * `TabGroupDto[]` 配列を `ParentCategoryDto[]` 配列と
@@ -245,43 +255,27 @@ export const organizeTabGroupsWithCategories = ({
       uncategorized: [...tabGroupsWithUrls],
     }
   }
-  const categorizedGroups: Record<string, TabGroupDto[]> = {}
+  let categorizedGroups: Record<string, TabGroupDto[]> = {}
   const uncategorizedGroups: TabGroupDto[] = []
   const normalizedQuery = searchQuery?.trim().toLowerCase() ?? ''
   const hasSearchQuery = normalizedQuery.length > 0
-  const groupsToOrganize = tabGroupsWithUrls.reduce<TabGroupDto[]>(
-    (groups, group) => {
-      const nextGroup = hasSearchQuery
+  const groupsToOrganize = tabGroupsWithUrls
+    .map((group) =>
+      hasSearchQuery
         ? filterGroupByQuery(group, normalizedQuery, categoryLookup)
-        : group
-      if (hasDisplayableUrls(nextGroup)) {
-        groups.push(nextGroup)
-      }
-      return groups
-    },
-    [],
-  )
-  for (const group of groupsToOrganize) {
-    const categorizedById = tryCategorizeById(
-      group,
-      categoryLookup,
-      categorizedGroups,
+        : group,
     )
-    if (categorizedById) {
+    .filter(hasDisplayableUrls)
+  for (const group of groupsToOrganize) {
+    const categoryId = resolveCategoryId(group, categoryLookup)
+    if (!categoryId) {
+      uncategorizedGroups.push(group)
       continue
     }
-    const categorizedByDomainName = tryCategorizeByDomainName(
-      group,
-      categoryLookup,
-      categorizedGroups,
-    )
-    if (!categorizedByDomainName) {
-      uncategorizedGroups.push(group)
-    }
+    categorizedGroups = addGroupToCategory(categorizedGroups, categoryId, group)
   }
-  sortCategorizedGroups(categorizedGroups, categoryLookup)
   return {
-    categorized: categorizedGroups,
+    categorized: sortCategorizedGroups(categorizedGroups, categoryLookup),
     uncategorized: uncategorizedGroups,
   }
 }
