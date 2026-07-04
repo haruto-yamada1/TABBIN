@@ -7,6 +7,7 @@ import {
   domainNameToString,
   equalsDomainName,
   normalizeDomainString,
+  tryCreateDomainName,
 } from './DomainName'
 
 describe('DomainName 値オブジェクト', () => {
@@ -58,5 +59,49 @@ describe('normalizeDomainString', () => {
     expect(() =>
       createDomainName(normalizeDomainString('https://example.com')),
     ).not.toThrow()
+  })
+})
+
+describe('tryCreateDomainName', () => {
+  it('有効な hostname は DomainName を返す', () => {
+    const domain = tryCreateDomainName('example.com')
+    if (domain === null) {
+      throw new Error('expected DomainName, got null')
+    }
+    expect(domainNameToString(domain)).toBe('example.com')
+  })
+
+  it('スキーム付き文字列は正規化して DomainName を返す', () => {
+    const domain = tryCreateDomainName('https://Example.COM')
+    if (domain === null) {
+      throw new Error('expected DomainName, got null')
+    }
+    expect(domainNameToString(domain)).toBe('example.com')
+  })
+
+  it('host-less スキーム (https://) は null を返す (カテゴリ全体の読み込み失敗を防ぐ)', () => {
+    expect(tryCreateDomainName('https://')).toBeNull()
+  })
+
+  it('パース失敗形 (://invalid) は null を返す', () => {
+    expect(tryCreateDomainName('://invalid')).toBeNull()
+  })
+
+  it('空白のみは null を返す', () => {
+    expect(tryCreateDomainName('   ')).toBeNull()
+  })
+
+  it('空文字列は null を返す', () => {
+    expect(tryCreateDomainName('')).toBeNull()
+  })
+
+  it('https:///path は hostname (path) を取り出して DomainName を返す', () => {
+    // Node の URL は `https:///path` を host=path と解釈するため、
+    // 有効な hostname が取れれば DomainName 化する (空でなければ許容)。
+    const domain = tryCreateDomainName('https:///path')
+    if (domain === null) {
+      throw new Error('expected DomainName, got null')
+    }
+    expect(domainNameToString(domain)).toBe('path')
   })
 })

@@ -112,4 +112,32 @@ describe('ParentCategory entity', () => {
       ),
     ).toBe(true)
   })
+
+  // 回帰 (CodeRabbit PR #625): normalizeDomainString で有効な hostname が取れない
+  // 不正エントリ (host-less スキーム / パース失敗形 / 空白のみ) が混入していても、
+  // 1 件の不正値でカテゴリ全体の生成 (toDomainParentCategories) が落ちず、
+  // 不正エントリだけ除外して有効なドメインだけ残る。
+  it('host-less / パース失敗 / 空白のみの domainNames は除外されカテゴリ生成は成功する', () => {
+    const category = createParentCategory({
+      ...baseInput,
+      domainNames: [
+        'https://example.com',
+        'https://',
+        '://invalid',
+        '   ',
+        '',
+        'other.com',
+      ],
+    })
+    expect(category.domainNames).toStrictEqual(['example.com', 'other.com'])
+  })
+
+  it('domainNames が全て不正でもカテゴリ生成は例外を投げず空配列になる', () => {
+    const category = createParentCategory({
+      ...baseInput,
+      domains: [],
+      domainNames: ['https://', '://invalid', '   '],
+    })
+    expect(category.domainNames).toStrictEqual([])
+  })
 })
