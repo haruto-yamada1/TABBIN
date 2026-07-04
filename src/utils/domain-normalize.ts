@@ -31,3 +31,39 @@ export const normalizeDomainLookupKey = (domain: string): string => {
     return trimmed
   }
 }
+
+/**
+ * URL 文字列から hostname を取り出す。不正 URL は例外を投げず空文字列を返す。
+ *
+ * `src/lib/storage/projects.ts` / `src/lib/storage/project-keywords.ts` /
+ * `src/features/ai-chat/lib/buildAiContext.ts` に分散していた
+ * `getDomainFromUrl` を一本化したもの (CodeRabbit PR #626 review)。
+ * 呼び出し側は savable URL で呼ぶ前提だが、不正値でも投げず `''` を返すことで
+ * 保存/マッチングの silent 失敗を防ぐ。
+ */
+export const toHostname = (url: string): string => {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 2 つのドメイン値が正規化後に等価かを判定する。
+ * `normalizeDomainLookupKey` 経由でスキーム付き/hostname の形式差を吸収する。
+ */
+export const domainMatches = (a: string, b: string): boolean =>
+  normalizeDomainLookupKey(a) === normalizeDomainLookupKey(b)
+
+/**
+ * `domainNames` 配列の中に `domain` と等価なエントリが存在するかを判定する。
+ * `normalizeDomainLookupKey` 比較を 1 箇所に集約し、`assignDomainToCategory` /
+ * `assignGroupToCategory` / `findCategoryByDomainName` 等での
+ * `domainNames.some((name) => normalizeDomainLookupKey(name) === key)`
+ * の重複を解消する (CodeRabbit PR #626 review)。
+ */
+export const hasNormalizedDomain = (
+  domainNames: readonly string[],
+  domain: string,
+): boolean => domainNames.some((name) => domainMatches(name, domain))

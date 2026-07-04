@@ -204,7 +204,7 @@ describe('buildAiSavedUrlRecords', () => {
 
     expect(records[0]).toStrictEqual(
       expect.objectContaining({
-        domain: 'not-a-url',
+        domain: '',
         parentCategories: [],
         projectCategories: [],
         savedInProjects: ['Project without metadata'],
@@ -312,7 +312,7 @@ describe('searchSavedUrls', () => {
     expect(searchSavedUrls(records, 'reading')).toStrictEqual([records[1]])
   })
 
-  it('空クエリなら全件を返し、不正URLは domain に元文字列を使う', () => {
+  it('空クエリなら全件を返し、不正URLは domain を空にする', () => {
     const records = buildAiSavedUrlRecords({
       urlRecords: [
         {
@@ -327,7 +327,7 @@ describe('searchSavedUrls', () => {
       parentCategories: [],
     })
 
-    expect(records[0]?.domain).toBe('not a url')
+    expect(records[0]?.domain).toBe('')
     expect(searchSavedUrls(records, '   ')).toStrictEqual(records)
   })
 })

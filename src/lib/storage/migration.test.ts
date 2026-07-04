@@ -1465,3 +1465,108 @@ describe('migrateDomainStorageToHostname', () => {
     expect(state.domainHostnameMigrationCompleted).toBe(true)
   })
 })
+
+it('完了フラグはデータ書き込みとは別の set 呼び出しで書く (部分失敗でフラグだけ立つのを防ぐ)', async () => {
+  const state: StorageState = {
+    savedTabs: [{ domain: 'https://docs.example.com', id: 'group-1' }],
+  }
+  const setCalls: Record<string, unknown>[] = []
+  globalThis.chrome = {
+    storage: {
+      local: {
+        get: vi.fn(async (keys?: string | string[]) => {
+          if (keys === 'domainHostnameMigrationCompleted') {
+            return { domainHostnameMigrationCompleted: false }
+          }
+          if (keys === 'savedTabs') {
+            return { savedTabs: state.savedTabs }
+          }
+          return {}
+        }),
+        set: vi.fn(async (value: Record<string, unknown>) => {
+          setCalls.push(value)
+          Object.assign(state, value)
+        }),
+      },
+    },
+  } as unknown as typeof chrome
+
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+
+  // データ (savedTabs) と完了フラグは別の set 呼び出し
+  const dataSets = setCalls.filter((c) => 'savedTabs' in c)
+  const flagSets = setCalls.filter(
+    (c) => 'domainHostnameMigrationCompleted' in c,
+  )
+  expect(dataSets).toHaveLength(1)
+  expect(flagSets).toHaveLength(1)
+  // フラグの set はデータを含まない (分離)
+  const flagSet = flagSets[0]
+  if (!flagSet) {
+    throw new Error('完了フラグの set が記録されていません')
+  }
+  expect(Object.keys(flagSet)).toStrictEqual([
+    'domainHostnameMigrationCompleted',
+  ])
+})
+
+it('書き込み直前に再読み込みし、並行保存で追加されたエントリを巻き戻さない', async () => {
+  // savedTabs の書き込みと同時に並行保存が parentCategories を更新したと想定し、
+  // savedTabs の set 副作用で parentCategories へ新規カテゴリを追加する。
+  // migration は parentCategories を savedTabs 書き込み「後」に再読み込みするため、
+  // 並行追加を取り込んで巻き戻さない。
+  const state: StorageState = {
+    parentCategories: [
+      createCategory({
+        domainNames: ['https://legacy.example.com'],
+        id: 'category-1',
+        name: 'Legacy',
+      }),
+    ],
+    savedTabs: [{ domain: 'https://docs.example.com', id: 'group-1' }],
+  }
+  globalThis.chrome = {
+    storage: {
+      local: {
+        get: vi.fn(async (keys?: string | string[]) => {
+          if (keys === 'domainHostnameMigrationCompleted') {
+            return { domainHostnameMigrationCompleted: false }
+          }
+          return { [keys as string]: state[keys as keyof StorageState] }
+        }),
+        set: vi.fn(async (value: Record<string, unknown>) => {
+          Object.assign(state, value)
+          // savedTabs 書き込みと同時に並行保存が parentCategories へ新規カテゴリを追加
+          if ('savedTabs' in value) {
+            state.parentCategories = [
+              ...(state.parentCategories ?? []),
+              createCategory({
+                domainNames: ['concurrent.example.com'],
+                id: 'category-concurrent',
+                name: 'Concurrent',
+              }),
+            ]
+          }
+        }),
+      },
+    },
+  } as unknown as typeof chrome
+
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+
+  // 並行保存で追加されたカテゴリも hostname 化されて保持される (巻き戻らない)
+  expect(state.parentCategories).toStrictEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        domainNames: ['legacy.example.com'],
+        id: 'category-1',
+      }),
+      expect.objectContaining({
+        domainNames: ['concurrent.example.com'],
+        id: 'category-concurrent',
+      }),
+    ]),
+  )
+})

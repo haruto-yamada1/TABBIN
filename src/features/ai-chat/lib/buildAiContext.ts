@@ -5,16 +5,8 @@ import type {
   TabGroup,
   UrlRecord,
 } from '@/types/storage'
-import { normalizeDomainLookupKey } from '@/utils/domain-normalize'
+import { hasNormalizedDomain, toHostname } from '@/utils/domain-normalize'
 import { isTimestampInLocalMonth } from '@/utils/localDateTime'
-
-const getDomainFromUrl = (value: string): string => {
-  try {
-    return new URL(value).hostname
-  } catch {
-    return value
-  }
-}
 
 const unique = (values: string[]): string[] => [...new Set(values)]
 
@@ -30,10 +22,7 @@ const categoryMatchesGroup = (
   group: TabGroup,
 ): boolean =>
   category.domains.includes(group.id) ||
-  category.domainNames.some(
-    (name) =>
-      normalizeDomainLookupKey(name) === normalizeDomainLookupKey(group.domain),
-  )
+  hasNormalizedDomain(category.domainNames, group.domain)
 
 export const buildAiSavedUrlRecords = ({
   urlRecords,
@@ -70,7 +59,7 @@ export const buildAiSavedUrlRecords = ({
       )
 
       return {
-        domain: getDomainFromUrl(record.url),
+        domain: toHostname(record.url),
         id: record.id,
         parentCategories: parentCategoryNames,
         projectCategories,
