@@ -580,9 +580,9 @@ describe('tabs storage', () => {
     await setCategoryKeywords('group-1', 'docs', ['new'])
 
     // 既存設定 (schemeful domain) が hostname グループと一致して更新され、
-    // 重複エントリが追加されない
+    // 触ったレコードの domain は hostname へ漸進移行される (CodeRabbit PR #626 review)
     expect(settings).toHaveLength(1)
-    expect(settings[0].domain).toBe('https://example.com')
+    expect(settings[0].domain).toBe('example.com')
     expect(settings[0].categoryKeywords).toStrictEqual([
       {
         categoryName: 'docs',

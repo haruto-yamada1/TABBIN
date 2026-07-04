@@ -4,6 +4,7 @@ import {
   domainMatches,
   hasNormalizedDomain,
   normalizeDomainLookupKey,
+  tabGroupMatchesCategory,
   toHostname,
 } from './domain-normalize'
 
@@ -82,5 +83,51 @@ describe('hasNormalizedDomain', () => {
 
   it('空配列は false', () => {
     expect(hasNormalizedDomain([], 'example.com')).toBe(false)
+  })
+})
+
+describe('domainMatches 空衝突ガード (CodeRabbit PR #626)', () => {
+  it('両辺空文字列は一致とみなさない (空ドメイン同士の誤マージを防ぐ)', () => {
+    expect(domainMatches('', '')).toBe(false)
+  })
+
+  it('片方が空の場合は一致しない', () => {
+    expect(domainMatches('example.com', '')).toBe(false)
+    expect(domainMatches('', 'example.com')).toBe(false)
+  })
+
+  it('異なる不正 URL は一致しない (異なる lookup key)', () => {
+    expect(domainMatches('not a url', 'also not a url')).toBe(false)
+  })
+
+  it('同一の不正 URL (非空 key) は従来どおり一致する', () => {
+    // normalizeDomainLookupKey は scheme 無し文字列をそのまま返すため、
+    // 同一の不正文字列は非空 key で一致する (空ガードの対象外)。
+    expect(domainMatches('not-a-url', 'not-a-url')).toBe(true)
+  })
+})
+
+describe('tabGroupMatchesCategory', () => {
+  it('domains に tabGroupId が含まれれば true', () => {
+    expect(
+      tabGroupMatchesCategory(['group-1'], ['other.com'], 'group-1', 'x.com'),
+    ).toBe(true)
+  })
+
+  it('domainNames に等価なドメインがあれば true', () => {
+    expect(
+      tabGroupMatchesCategory(
+        [],
+        ['https://example.com'],
+        'group-1',
+        'example.com',
+      ),
+    ).toBe(true)
+  })
+
+  it('どちらにも一致しなければ false', () => {
+    expect(
+      tabGroupMatchesCategory(['group-2'], ['other.com'], 'group-1', 'x.com'),
+    ).toBe(false)
   })
 })

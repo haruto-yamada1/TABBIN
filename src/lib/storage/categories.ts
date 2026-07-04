@@ -130,8 +130,10 @@ export const updateDomainCategoryMapping = async (
     return
   }
   if (existingIndex !== -1) {
-    // 既存のマッピングを更新
-    mappings[existingIndex].categoryId = categoryId
+    // 既存のマッピングを更新。触ったレコードの domain を現在の (hostname) 値で
+    // 上書きし、legacy スキーム付き形式を漸進的に解消する
+    // (updateDomainCategorySettings と同じ挙動) (CodeRabbit PR #626 review)。
+    mappings[existingIndex] = { categoryId, domain }
   } else {
     // 新しいマッピングを追加
     mappings.push({

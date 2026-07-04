@@ -407,6 +407,11 @@ const addUrlIdToDomainMode = async (
       savedTabs?: TabGroup[]
     }>('savedTabs')
     const domain = toHostname(url)
+    // host が取れない URL はドメイングループを作らず、空ドメイン bucket に
+    // 他の不正 URL を誤マージしない (CodeRabbit PR #626 review)。
+    if (domain === '') {
+      return
+    }
     const domainGroup = savedTabs.find((group: TabGroup) =>
       domainMatches(group.domain, domain),
     )

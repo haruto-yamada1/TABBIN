@@ -6,6 +6,7 @@ import type {
   DomainCategorySettings,
   DomainParentCategoryMapping,
   ParentCategory,
+  SubCategoryKeyword,
   TabGroup,
 } from '@/types/storage'
 import {
@@ -585,6 +586,126 @@ const toHostnameOrKeep = (value: string): string => {
   return key.length > 0 && !key.includes('://') ? key : value
 }
 
+const mergeCategoryKeywords = (
+  a: readonly SubCategoryKeyword[] | undefined,
+  b: readonly SubCategoryKeyword[] | undefined,
+): SubCategoryKeyword[] => {
+  const byName = new Map<string, Set<string>>()
+  for (const ck of [...(a ?? []), ...(b ?? [])]) {
+    let set = byName.get(ck.categoryName)
+    if (!set) {
+      set = new Set()
+      byName.set(ck.categoryName, set)
+    }
+    for (const keyword of ck.keywords) {
+      set.add(keyword)
+    }
+  }
+  return [...byName.entries()].map(([categoryName, keywords]) => ({
+    categoryName,
+    keywords: [...keywords],
+  }))
+}
+
+/**
+ * `domainCategorySettings` を正規化ドメインキーでマージする。
+ * 同一ドメインの重複エントリ (legacy スキーム付き + hostname 等) は
+ * subCategories / categoryKeywords を union して 1 件に統合し、
+ * `.find()` で 2 件目が到達不能の dead data になるのを防ぐ
+ * (CodeRabbit PR #626 review)。
+ */
+const mergeDomainCategorySettings = (
+  settings: DomainCategorySettings[],
+): DomainCategorySettings[] => {
+  const byKey = new Map<string, DomainCategorySettings>()
+  let merged = 0
+  for (const entry of settings) {
+    const normalized = { ...entry, domain: toHostnameOrKeep(entry.domain) }
+    const key = normalizeDomainLookupKey(normalized.domain)
+    const existing = byKey.get(key)
+    if (!existing) {
+      byKey.set(key, normalized)
+      continue
+    }
+    merged += 1
+    existing.subCategories = Array.from(
+      new Set([...existing.subCategories, ...normalized.subCategories]),
+    )
+    existing.categoryKeywords = mergeCategoryKeywords(
+      existing.categoryKeywords,
+      normalized.categoryKeywords,
+    )
+  }
+  if (merged > 0) {
+    console.log(
+      `domainCategorySettings の hostname 正規化で ${merged} 件の重複エントリをマージしました`,
+    )
+  }
+  return [...byKey.values()]
+}
+
+/**
+ * `domainCategoryMappings` を正規化ドメインキーで dedup する。
+ * 同一ドメインの競合 (異なる categoryId) は最初のエントリを保持し、
+ * 競合を warn して silent に破棄しない (CodeRabbit PR #626 review)。
+ */
+const dedupDomainCategoryMappings = (
+  mappings: DomainParentCategoryMapping[],
+): DomainParentCategoryMapping[] => {
+  const byKey = new Map<string, DomainParentCategoryMapping>()
+  let conflicts = 0
+  for (const mapping of mappings) {
+    const normalized = { ...mapping, domain: toHostnameOrKeep(mapping.domain) }
+    const key = normalizeDomainLookupKey(normalized.domain)
+    const existing = byKey.get(key)
+    if (!existing) {
+      byKey.set(key, normalized)
+      continue
+    }
+    if (existing.categoryId !== normalized.categoryId) {
+      conflicts += 1
+      console.warn(
+        `domainCategoryMappings でドメイン ${key} の競合を検出: categoryId ${normalized.categoryId} を破棄し ${existing.categoryId} を保持します`,
+      )
+    }
+  }
+  if (conflicts > 0) {
+    console.log(
+      `domainCategoryMappings の hostname 正規化で ${conflicts} 件の競合を解決しました`,
+    )
+  }
+  return [...byKey.values()]
+}
+
+/**
+ * `savedTabs` を正規化し、同一正規化ドメインの重複グループを検出して warn する。
+ * マージは parentCategories[].domains (TabGroupId 参照) との整合を壊さないよう
+ * 行わず、重複を検出した場合のみ警告してユーザー判断に委ねる
+ * (CodeRabbit PR #626 review)。
+ */
+const normalizeSavedTabsAndWarnDuplicates = (
+  groups: TabGroup[],
+): TabGroup[] => {
+  const seen = new Set<string>()
+  let duplicates = 0
+  const normalized = groups.map((group) => {
+    const domain = toHostnameOrKeep(group.domain)
+    const key = normalizeDomainLookupKey(domain)
+    if (key !== '' && seen.has(key)) {
+      duplicates += 1
+    } else {
+      seen.add(key)
+    }
+    return { ...group, domain }
+  })
+  if (duplicates > 0) {
+    console.warn(
+      `savedTabs に hostname 正規化後も重複するドメイングループが ${duplicates} 件検出されました。手動で統合してください`,
+    )
+  }
+  return normalized
+}
+
 const runDomainHostnameMigration = async (): Promise<void> => {
   if (domainHostnameMigrationDone) {
     return
@@ -602,10 +723,7 @@ const runDomainHostnameMigration = async (): Promise<void> => {
     }>('savedTabs')
     if (Array.isArray(savedTabsRes.savedTabs)) {
       await chrome.storage.local.set({
-        savedTabs: savedTabsRes.savedTabs.map((group) => ({
-          ...group,
-          domain: toHostnameOrKeep(group.domain),
-        })),
+        savedTabs: normalizeSavedTabsAndWarnDuplicates(savedTabsRes.savedTabs),
       })
     }
     const parentCategoriesRes = await chrome.storage.local.get<{
@@ -617,7 +735,10 @@ const runDomainHostnameMigration = async (): Promise<void> => {
           Array.isArray(category.domainNames)
             ? {
                 ...category,
-                domainNames: category.domainNames.map(toHostnameOrKeep),
+                // 正規化後に同ドメインになる重複を除去 (CodeRabbit PR #626 review)
+                domainNames: Array.from(
+                  new Set(category.domainNames.map(toHostnameOrKeep)),
+                ),
               }
             : category,
         ),
@@ -628,8 +749,8 @@ const runDomainHostnameMigration = async (): Promise<void> => {
     }>('domainCategorySettings')
     if (Array.isArray(settingsRes.domainCategorySettings)) {
       await chrome.storage.local.set({
-        domainCategorySettings: settingsRes.domainCategorySettings.map(
-          (entry) => ({ ...entry, domain: toHostnameOrKeep(entry.domain) }),
+        domainCategorySettings: mergeDomainCategorySettings(
+          settingsRes.domainCategorySettings,
         ),
       })
     }
@@ -638,11 +759,8 @@ const runDomainHostnameMigration = async (): Promise<void> => {
     }>('domainCategoryMappings')
     if (Array.isArray(mappingsRes.domainCategoryMappings)) {
       await chrome.storage.local.set({
-        domainCategoryMappings: mappingsRes.domainCategoryMappings.map(
-          (mapping) => ({
-            ...mapping,
-            domain: toHostnameOrKeep(mapping.domain),
-          }),
+        domainCategoryMappings: dedupDomainCategoryMappings(
+          mappingsRes.domainCategoryMappings,
         ),
       })
     }

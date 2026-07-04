@@ -1397,6 +1397,30 @@ describe('projects storage', () => {
     ])
   })
 
+  // 回帰 (CodeRabbit PR #626): host が取れない URL はドメインモードの
+  // savedTabs へ空ドメイングループを作らず、他の不正 URL を誤マージしない。
+  it('addUrlToCustomProject は host が取れない URL をドメインモードへ追加しない', async () => {
+    const state: StorageState = {
+      customProjects: [createProject({ id: 'target' })],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { addUrlToCustomProject } = await loadModule()
+
+    await addUrlToCustomProject('target', 'not a url', 'Broken')
+
+    // カスタムプロジェクトには URL が保持されるが、ドメインモードの
+    // savedTabs には空ドメイングループが作られない
+    expect(state.customProjects?.[0]?.urlIds).toEqual(['uuid-1'])
+    expect(state.savedTabs).toEqual([])
+  })
+
   it('addUrlToCustomProject は既存ドメイングループの URL IDs を補完する', async () => {
     const target = createProject({ id: 'target' })
     delete target.urlIds

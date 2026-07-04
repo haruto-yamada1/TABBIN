@@ -271,3 +271,34 @@ describe('categories storage', () => {
     expect(state.domainCategoryMappings).toStrictEqual([])
   })
 })
+
+// 回帰 (CodeRabbit PR #626): updateDomainCategoryMapping は触った mapping の
+// domain を現在の (hostname) 値で上書きし、legacy スキーム付き形式を漸進移行する
+it('updateDomainCategoryMapping は既存マッピングの domain を渡した値へ書き換える', async () => {
+  const state: StorageState = {
+    domainCategoryMappings: [
+      {
+        categoryId: 'cat-old',
+        domain: 'https://legacy.example.com',
+      },
+    ],
+  }
+  globalThis.chrome = {
+    storage: {
+      local: createChromeStorageLocal(state),
+    },
+  } as unknown as typeof chrome
+
+  const { updateDomainCategoryMapping, getDomainCategoryMappings } =
+    await loadModule()
+
+  // 既存の schemeful マッピングを hostname で更新すると domain も hostname へ書き換わる
+  await updateDomainCategoryMapping('legacy.example.com', 'cat-new')
+
+  await expect(getDomainCategoryMappings()).resolves.toStrictEqual([
+    {
+      categoryId: 'cat-new',
+      domain: 'legacy.example.com',
+    },
+  ])
+})

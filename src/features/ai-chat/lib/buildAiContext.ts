@@ -5,7 +5,7 @@ import type {
   TabGroup,
   UrlRecord,
 } from '@/types/storage'
-import { hasNormalizedDomain, toHostname } from '@/utils/domain-normalize'
+import { tabGroupMatchesCategory, toHostname } from '@/utils/domain-normalize'
 import { isTimestampInLocalMonth } from '@/utils/localDateTime'
 
 const unique = (values: string[]): string[] => [...new Set(values)]
@@ -16,13 +16,6 @@ interface BuildAiSavedUrlRecordsInput {
   customProjects: CustomProject[]
   parentCategories: ParentCategory[]
 }
-
-const categoryMatchesGroup = (
-  category: ParentCategory,
-  group: TabGroup,
-): boolean =>
-  category.domains.includes(group.id) ||
-  hasNormalizedDomain(category.domainNames, group.domain)
 
 export const buildAiSavedUrlRecords = ({
   urlRecords,
@@ -53,7 +46,14 @@ export const buildAiSavedUrlRecords = ({
       const parentCategoryNames = unique(
         matchingGroups.flatMap((group) =>
           parentCategories.flatMap((category) =>
-            categoryMatchesGroup(category, group) ? [category.name] : [],
+            tabGroupMatchesCategory(
+              category.domains,
+              category.domainNames,
+              group.id,
+              group.domain,
+            )
+              ? [category.name]
+              : [],
           ),
         ),
       )
