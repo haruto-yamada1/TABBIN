@@ -7,6 +7,7 @@ import type {
   TabGroup,
   UrlRecord,
 } from '@/types/storage'
+import { domainMatches, toHostname } from '@/utils/domain-normalize'
 
 import {
   findMatchingProjectIdForSavedTab,
@@ -383,10 +384,6 @@ const setProjectUrlMetadata = (
     notes,
   }
 }
-const getDomainFromUrl = (url: string): string => {
-  const urlObj = new URL(url)
-  return `${urlObj.protocol}//${urlObj.hostname}`
-}
 const ensureUrlIdInGroup = (group: TabGroup, urlId: string): TabGroup => {
   group.urlIds ??= []
   if (!group.urlIds.includes(urlId)) {
@@ -409,9 +406,14 @@ const addUrlIdToDomainMode = async (
     const { savedTabs = [] } = await chrome.storage.local.get<{
       savedTabs?: TabGroup[]
     }>('savedTabs')
-    const domain = getDomainFromUrl(url)
-    const domainGroup = savedTabs.find(
-      (group: TabGroup) => group.domain === domain,
+    const domain = toHostname(url)
+    // host が取れない URL はドメイングループを作らず、空ドメイン bucket に
+    // 他の不正 URL を誤マージしない (CodeRabbit PR #626 review)。
+    if (domain === '') {
+      return
+    }
+    const domainGroup = savedTabs.find((group: TabGroup) =>
+      domainMatches(group.domain, domain),
     )
     if (domainGroup) {
       ensureUrlIdInGroup(domainGroup, urlId)

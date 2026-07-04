@@ -94,6 +94,16 @@ const runInitialMigrations = async (
   } catch (error) {
     console.error('URL管理マイグレーションエラー:', error)
   }
+  // 既有のスキーム付きドメインを hostname へ正規化してストレージ形式を一本化する。
+  // 他のマイグレーション (domainNames 再構築含む) の後に実行し、最終的に
+  // hostname 形式で揃える (Finding B の根本治療)。
+  try {
+    console.log('ドメイン hostname 化マイグレーションを開始...')
+    await migrationPort.migrateDomainStorageToHostname()
+    console.log('ドメイン hostname 化マイグレーションが完了しました')
+  } catch (error) {
+    console.error('ドメイン hostname 化マイグレーションエラー:', error)
+  }
 }
 const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
   console.log('タブグループ数:', savedTabs.length)

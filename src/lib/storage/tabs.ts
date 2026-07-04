@@ -1,5 +1,6 @@
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { SubCategoryKeyword, TabGroup, UrlRecord } from '@/types/storage'
+import { domainMatches } from '@/utils/domain-normalize'
 
 import {
   getDomainCategorySettings,
@@ -187,11 +188,20 @@ const addSubCategoryToGroup = async (
 
   // ドメイン別設定にも保存して永続化
   const settings = await getDomainCategorySettings()
-  const existingSetting = settings.find((s) => s.domain === group.domain)
+  const existingSetting = settings.find((s) =>
+    domainMatches(s.domain, group.domain),
+  )
   if (existingSetting) {
-    // 既存の設定がある場合は更新
-    if (!existingSetting.subCategories.includes(subCategoryName)) {
+    // 既存の設定がある場合は更新。触ったレコードの domain を現在の
+    // group.domain (hostname) へ書き換えて legacy スキーム付き形式を漸進的に
+    // 解消する (CodeRabbit PR #626 review)。
+    const domainChanged = existingSetting.domain !== group.domain
+    existingSetting.domain = group.domain
+    const subAdded = !existingSetting.subCategories.includes(subCategoryName)
+    if (subAdded) {
       existingSetting.subCategories.push(subCategoryName)
+    }
+    if (domainChanged || subAdded) {
       await saveDomainCategorySettings(settings)
     }
   } else {
@@ -301,9 +311,12 @@ const setCategoryKeywords = async (
 
   // ドメイン別設定にも保存して永続化
   const settings = await getDomainCategorySettings()
-  const existingSetting = settings.find((s) => s.domain === group.domain)
+  const existingSetting = settings.find((s) =>
+    domainMatches(s.domain, group.domain),
+  )
   if (existingSetting) {
-    // 既存の設定がある場合は更新
+    // 既存の設定がある場合は更新。触ったレコードの domain を hostname へ書き換え
+    existingSetting.domain = group.domain
     const keywordIndex = existingSetting.categoryKeywords.findIndex(
       (ck) => ck.categoryName === categoryName,
     )
@@ -495,7 +508,9 @@ const restoreCategorySettings = async (
   tabGroup: TabGroup,
 ): Promise<TabGroup> => {
   const settings = await getDomainCategorySettings()
-  const domainSettings = settings.find((s) => s.domain === tabGroup.domain)
+  const domainSettings = settings.find((s) =>
+    domainMatches(s.domain, tabGroup.domain),
+  )
   if (domainSettings) {
     return {
       ...tabGroup,

@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
+  DomainCategorySettings,
   DomainParentCategoryMapping,
   ParentCategory,
   TabGroup,
@@ -66,6 +67,8 @@ vi.mock('./urls', () => ({
 
 interface StorageState {
   domainCategoryMappings?: DomainParentCategoryMapping[]
+  domainCategorySettings?: DomainCategorySettings[]
+  domainHostnameMigrationCompleted?: boolean
   parentCategories?: ParentCategory[]
   savedTabs?: TabGroup[]
 }
@@ -102,6 +105,15 @@ const createCategory = (
 const loadModule = async () => {
   vi.resetModules()
   return import('./migration')
+}
+
+const setupChrome = (state: StorageState) => {
+  globalThis.chrome = {
+    storage: {
+      local: createChromeStorageLocal(state),
+    },
+  } as unknown as typeof chrome
+  return state
 }
 
 describe('migration storage facade', () => {
@@ -145,7 +157,7 @@ describe('migration storage facade', () => {
 
     expect(getTabDomain('not a url')).toBeNull()
     expect(getTabDomain('https://docs.example.com/path')).toBe(
-      'https://docs.example.com',
+      'docs.example.com',
     )
     expect(
       getTabsWithDomains([
@@ -163,7 +175,7 @@ describe('migration storage facade', () => {
       ] as chrome.tabs.Tab[]),
     ).toStrictEqual([
       {
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         tab: {
           title: 'Docs',
           url: 'https://docs.example.com/path',
@@ -185,7 +197,7 @@ describe('migration storage facade', () => {
           url: 'https://docs.example.com/path',
         },
       ] as chrome.tabs.Tab[]),
-    ]).toStrictEqual(['https://docs.example.com'])
+    ]).toStrictEqual(['docs.example.com'])
     expect(errorSpy).toHaveBeenCalledTimes(2)
   })
 
@@ -368,7 +380,7 @@ describe('migration storage facade', () => {
       // eslint-disable-line
       ...group,
       categoryKeywords:
-        group.domain === 'https://mapped.example.com'
+        group.domain === 'mapped.example.com'
           ? [
               {
                 categoryName: 'docs',
@@ -420,20 +432,20 @@ describe('migration storage facade', () => {
             keywords: ['Guide'],
           },
         ],
-        domain: 'https://mapped.example.com',
+        domain: 'mapped.example.com',
         id: 'uuid-1',
         parentCategoryId: 'category-1',
         urlIds: ['id:https://mapped.example.com/guide'],
       }),
       expect.objectContaining({
-        domain: 'https://named.example.com',
+        domain: 'named.example.com',
         id: 'uuid-2',
         parentCategoryId: 'category-1',
         urlIds: ['id:https://named.example.com/page'],
       }),
     ])
     expect(mocks.updateDomainCategoryMapping).toHaveBeenCalledWith(
-      'https://mapped.example.com',
+      'mapped.example.com',
       'category-1',
     )
     expect(mocks.autoCategorizeTabs).toHaveBeenCalledWith('uuid-1')
@@ -580,7 +592,7 @@ describe('migration storage facade', () => {
     expect(state.savedTabs).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          domain: 'https://new.example.com',
+          domain: 'new.example.com',
           id: 'uuid-1',
         }),
       ]),
@@ -903,7 +915,7 @@ describe('migration storage facade', () => {
           urlIds: ['id:https://existing-no-ids.example.com/path'],
         }),
         expect.objectContaining({
-          domain: 'https://new-unmatched.example.com',
+          domain: 'new-unmatched.example.com',
           id: 'uuid-1',
         }),
       ]),
@@ -938,7 +950,7 @@ describe('migration storage facade', () => {
     ])
     expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
-        domain: 'https://untitled.example.com',
+        domain: 'untitled.example.com',
         urlIds: ['id:https://untitled.example.com/path'],
       }),
     ])
@@ -982,14 +994,14 @@ describe('migration storage facade', () => {
     expect(state.savedTabs).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          domain: 'https://same.example.com',
+          domain: 'same.example.com',
           urlIds: [
             'id:https://same.example.com/a',
             'id:https://same.example.com/b',
           ],
         }),
         expect.objectContaining({
-          domain: 'https://other.example.com',
+          domain: 'other.example.com',
           urlIds: ['id:https://other.example.com/c'],
         }),
       ]),
@@ -1048,8 +1060,8 @@ describe('migration storage facade', () => {
       expect.objectContaining({
         domainNames: [
           'https://seed.example.com',
-          'https://docs.example.com',
-          'https://issues.example.com',
+          'docs.example.com',
+          'issues.example.com',
         ],
         domains: ['uuid-1', 'uuid-2'],
         id: 'category-1',
@@ -1057,11 +1069,11 @@ describe('migration storage facade', () => {
     ])
     expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         parentCategoryId: 'category-1',
       }),
       expect.objectContaining({
-        domain: 'https://issues.example.com',
+        domain: 'issues.example.com',
         parentCategoryId: 'category-1',
       }),
     ])
@@ -1207,13 +1219,13 @@ describe('migration storage facade', () => {
 
     expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
-        domain: 'https://mapped-invalid.example.com',
+        domain: 'mapped-invalid.example.com',
         parentCategoryId: 'category-invalid',
       }),
     ])
     expect(mocks.saveParentCategories).toHaveBeenCalledWith([
       expect.objectContaining({
-        domainNames: ['https://mapped-invalid.example.com'],
+        domainNames: ['mapped-invalid.example.com'],
         domains: ['uuid-1'],
         id: 'category-invalid',
       }),
@@ -1260,4 +1272,431 @@ describe('migration storage facade', () => {
     ])
     expect(mocks.autoCategorizeTabs).toHaveBeenCalledWith('docs-group')
   })
+})
+
+describe('migrateDomainStorageToHostname', () => {
+  it('スキーム付き savedTabs.domain / parentCategories.domainNames を hostname へ正規化する', async () => {
+    const state = setupChrome({
+      domainCategoryMappings: [
+        { categoryId: 'category-1', domain: 'https://mapped.example.com' },
+      ],
+      domainCategorySettings: [
+        {
+          categoryKeywords: [],
+          domain: 'https://settings.example.com',
+          subCategories: ['docs'],
+        },
+      ],
+      parentCategories: [
+        createCategory({
+          domainNames: ['https://existing.example.com', 'plain.org'],
+          id: 'category-1',
+          name: 'Docs',
+        }),
+      ],
+      savedTabs: [
+        {
+          domain: 'https://docs.example.com',
+          id: 'group-1',
+          urlIds: ['url-1'],
+        },
+      ],
+    })
+
+    const { migrateDomainStorageToHostname } = await loadModule()
+    await migrateDomainStorageToHostname()
+
+    expect(state.savedTabs).toStrictEqual([
+      {
+        domain: 'docs.example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      },
+    ])
+    expect(state.parentCategories).toStrictEqual([
+      expect.objectContaining({
+        domainNames: ['existing.example.com', 'plain.org'],
+        id: 'category-1',
+      }),
+    ])
+    expect(state.domainCategorySettings).toStrictEqual([
+      {
+        categoryKeywords: [],
+        domain: 'settings.example.com',
+        subCategories: ['docs'],
+      },
+    ])
+    expect(state.domainCategoryMappings).toStrictEqual([
+      { categoryId: 'category-1', domain: 'mapped.example.com' },
+    ])
+    expect(state.domainHostnameMigrationCompleted).toBe(true)
+  })
+
+  it('大文字混在のスキーム付きドメインも小文字 hostname へ正規化する', async () => {
+    const state = setupChrome({
+      savedTabs: [{ domain: 'https://Example.COM', id: 'group-1' }],
+    })
+    const { migrateDomainStorageToHostname } = await loadModule()
+    await migrateDomainStorageToHostname()
+    expect(state.savedTabs?.[0]?.domain).toBe('example.com')
+  })
+
+  it('既に hostname のデータは変化せず (冪等)', async () => {
+    const state = setupChrome({
+      parentCategories: [
+        createCategory({ domainNames: ['example.com'], id: 'c-1' }),
+      ],
+      savedTabs: [{ domain: 'example.com', id: 'group-1' }],
+    })
+    const { migrateDomainStorageToHostname } = await loadModule()
+    await migrateDomainStorageToHostname()
+    expect(state.savedTabs?.[0]?.domain).toBe('example.com')
+    expect(state.parentCategories?.[0]?.domainNames).toStrictEqual([
+      'example.com',
+    ])
+    expect(state.domainHostnameMigrationCompleted).toBe(true)
+  })
+
+  it('完了フラグ済みのときはストレージへ書き込まない (再実行抑制)', async () => {
+    const setSpy = vi.fn(async () => {})
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async (keys?: string | string[]) => {
+            if (keys === 'domainHostnameMigrationCompleted') {
+              return { domainHostnameMigrationCompleted: true }
+            }
+            return {}
+          }),
+          set: setSpy,
+        },
+      },
+    } as unknown as typeof chrome
+
+    const { migrateDomainStorageToHostname } = await loadModule()
+    await migrateDomainStorageToHostname()
+    expect(setSpy).not.toHaveBeenCalled()
+  })
+
+  it('同一セッション内の2回目はメモリフラグで書き込まない', async () => {
+    const state = setupChrome({
+      savedTabs: [{ domain: 'https://docs.example.com', id: 'group-1' }],
+    })
+    const { migrateDomainStorageToHostname } = await loadModule()
+    await migrateDomainStorageToHostname()
+    expect(state.savedTabs?.[0]?.domain).toBe('docs.example.com')
+    // 2回目はモジュールスコープのメモリフラグで早期リターンし set が呼ばれない
+    let secondSetCalled = false
+    globalThis.chrome.storage.local.set = vi.fn(async () => {
+      secondSetCalled = true
+    })
+    await migrateDomainStorageToHostname()
+    expect(secondSetCalled).toBe(false)
+  })
+
+  it('正規化結果が無効な値 (host-less / パース失敗) は元の値を保持してデータを悪化させない', async () => {
+    const state = setupChrome({
+      parentCategories: [
+        createCategory({
+          domainNames: ['https://', '://invalid', 'good.example.com'],
+          id: 'c-1',
+        }),
+      ],
+      savedTabs: [{ domain: 'https://', id: 'group-1' }],
+    })
+    const { migrateDomainStorageToHostname } = await loadModule()
+    await migrateDomainStorageToHostname()
+    // host-less / パース失敗は元の値を保持 (データを悪化させない)
+    expect(state.savedTabs?.[0]?.domain).toBe('https://')
+    expect(state.parentCategories?.[0]?.domainNames).toStrictEqual([
+      'https://',
+      '://invalid',
+      'good.example.com',
+    ])
+  })
+
+  it('ドメイン以外のフィールド (urlIds / subCategories / categoryKeywords) を保持する', async () => {
+    const state = setupChrome({
+      domainCategorySettings: [
+        {
+          categoryKeywords: [{ categoryName: 'docs', keywords: ['Guide'] }],
+          domain: 'https://docs.example.com',
+          subCategories: ['docs', 'guide'],
+        },
+      ],
+      savedTabs: [
+        {
+          domain: 'https://docs.example.com',
+          id: 'group-1',
+          parentCategoryId: 'category-1',
+          subCategories: ['docs'],
+          urlIds: ['url-1', 'url-2'],
+          urlSubCategories: { 'url-1': 'docs' },
+        },
+      ],
+    })
+    const { migrateDomainStorageToHostname } = await loadModule()
+    await migrateDomainStorageToHostname()
+    expect(state.savedTabs).toStrictEqual([
+      {
+        domain: 'docs.example.com',
+        id: 'group-1',
+        parentCategoryId: 'category-1',
+        subCategories: ['docs'],
+        urlIds: ['url-1', 'url-2'],
+        urlSubCategories: { 'url-1': 'docs' },
+      },
+    ])
+    expect(state.domainCategorySettings).toStrictEqual([
+      {
+        categoryKeywords: [{ categoryName: 'docs', keywords: ['Guide'] }],
+        domain: 'docs.example.com',
+        subCategories: ['docs', 'guide'],
+      },
+    ])
+  })
+
+  it('存在しないキーは書き換えず、完了フラグだけ書き込む', async () => {
+    const state = setupChrome({})
+    const { migrateDomainStorageToHostname } = await loadModule()
+    await migrateDomainStorageToHostname()
+    expect(state.savedTabs).toBeUndefined()
+    expect(state.parentCategories).toBeUndefined()
+    expect(state.domainHostnameMigrationCompleted).toBe(true)
+  })
+})
+
+it('完了フラグはデータ書き込みとは別の set 呼び出しで書く (部分失敗でフラグだけ立つのを防ぐ)', async () => {
+  const state: StorageState = {
+    savedTabs: [{ domain: 'https://docs.example.com', id: 'group-1' }],
+  }
+  const setCalls: Record<string, unknown>[] = []
+  globalThis.chrome = {
+    storage: {
+      local: {
+        get: vi.fn(async (keys?: string | string[]) => {
+          if (keys === 'domainHostnameMigrationCompleted') {
+            return { domainHostnameMigrationCompleted: false }
+          }
+          if (keys === 'savedTabs') {
+            return { savedTabs: state.savedTabs }
+          }
+          return {}
+        }),
+        set: vi.fn(async (value: Record<string, unknown>) => {
+          setCalls.push(value)
+          Object.assign(state, value)
+        }),
+      },
+    },
+  } as unknown as typeof chrome
+
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+
+  // データ (savedTabs) と完了フラグは別の set 呼び出し
+  const dataSets = setCalls.filter((c) => 'savedTabs' in c)
+  const flagSets = setCalls.filter(
+    (c) => 'domainHostnameMigrationCompleted' in c,
+  )
+  expect(dataSets).toHaveLength(1)
+  expect(flagSets).toHaveLength(1)
+  // フラグの set はデータを含まない (分離)
+  const flagSet = flagSets[0]
+  if (!flagSet) {
+    throw new Error('完了フラグの set が記録されていません')
+  }
+  expect(Object.keys(flagSet)).toStrictEqual([
+    'domainHostnameMigrationCompleted',
+  ])
+})
+
+it('書き込み直前に再読み込みし、並行保存で追加されたエントリを巻き戻さない', async () => {
+  // savedTabs の書き込みと同時に並行保存が parentCategories を更新したと想定し、
+  // savedTabs の set 副作用で parentCategories へ新規カテゴリを追加する。
+  // migration は parentCategories を savedTabs 書き込み「後」に再読み込みするため、
+  // 並行追加を取り込んで巻き戻さない。
+  const state: StorageState = {
+    parentCategories: [
+      createCategory({
+        domainNames: ['https://legacy.example.com'],
+        id: 'category-1',
+        name: 'Legacy',
+      }),
+    ],
+    savedTabs: [{ domain: 'https://docs.example.com', id: 'group-1' }],
+  }
+  globalThis.chrome = {
+    storage: {
+      local: {
+        get: vi.fn(async (keys?: string | string[]) => {
+          if (keys === 'domainHostnameMigrationCompleted') {
+            return { domainHostnameMigrationCompleted: false }
+          }
+          return { [keys as string]: state[keys as keyof StorageState] }
+        }),
+        set: vi.fn(async (value: Record<string, unknown>) => {
+          Object.assign(state, value)
+          // savedTabs 書き込みと同時に並行保存が parentCategories へ新規カテゴリを追加
+          if ('savedTabs' in value) {
+            state.parentCategories = [
+              ...(state.parentCategories ?? []),
+              createCategory({
+                domainNames: ['concurrent.example.com'],
+                id: 'category-concurrent',
+                name: 'Concurrent',
+              }),
+            ]
+          }
+        }),
+      },
+    },
+  } as unknown as typeof chrome
+
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+
+  // 並行保存で追加されたカテゴリも hostname 化されて保持される (巻き戻らない)
+  expect(state.parentCategories).toStrictEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        domainNames: ['legacy.example.com'],
+        id: 'category-1',
+      }),
+      expect.objectContaining({
+        domainNames: ['concurrent.example.com'],
+        id: 'category-concurrent',
+      }),
+    ]),
+  )
+})
+
+it('parentCategories.domainNames は正規化後に同ドメインの重複を除去する', async () => {
+  const state = setupChrome({
+    parentCategories: [
+      createCategory({
+        domainNames: [
+          'https://x.example.com',
+          'x.example.com',
+          'y.example.com',
+        ],
+        id: 'c-1',
+      }),
+    ],
+  })
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+  expect(state.parentCategories?.[0]?.domainNames).toStrictEqual([
+    'x.example.com',
+    'y.example.com',
+  ])
+})
+
+it('domainCategorySettings の同一ドメイン重複エントリをマージし dead data を残さない', async () => {
+  const state = setupChrome({
+    domainCategorySettings: [
+      {
+        categoryKeywords: [{ categoryName: 'docs', keywords: ['Guide'] }],
+        domain: 'https://x.example.com',
+        subCategories: ['docs'],
+      },
+      {
+        categoryKeywords: [{ categoryName: 'news', keywords: ['Top'] }],
+        domain: 'x.example.com',
+        subCategories: ['news'],
+      },
+    ],
+  })
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+  // 1 件にマージされ、subCategories / categoryKeywords が union される
+  expect(state.domainCategorySettings).toHaveLength(1)
+  expect(state.domainCategorySettings?.[0]?.domain).toBe('x.example.com')
+  expect(state.domainCategorySettings?.[0]?.subCategories).toStrictEqual([
+    'docs',
+    'news',
+  ])
+  expect(state.domainCategorySettings?.[0]?.categoryKeywords).toStrictEqual([
+    { categoryName: 'docs', keywords: ['Guide'] },
+    { categoryName: 'news', keywords: ['Top'] },
+  ])
+})
+
+it('domainCategoryMappings の同ドメイン競合は最初のエントリを保持し破棄を warn する', async () => {
+  const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const state = setupChrome({
+    domainCategoryMappings: [
+      { categoryId: 'keep', domain: 'https://x.example.com' },
+      { categoryId: 'drop', domain: 'x.example.com' },
+    ],
+  })
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+  expect(state.domainCategoryMappings).toStrictEqual([
+    { categoryId: 'keep', domain: 'x.example.com' },
+  ])
+  expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('drop'))
+  warnSpy.mockRestore()
+})
+
+it('savedTabs の同一正規化ドメイン重複はマージせず warn する (domains 参照を壊さない)', async () => {
+  const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const state = setupChrome({
+    savedTabs: [
+      { domain: 'https://x.example.com', id: 'group-1', urlIds: ['u1'] },
+      { domain: 'x.example.com', id: 'group-2', urlIds: ['u2'] },
+    ],
+  })
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+  // 両グループとも domain は hostname 化されるが、マージはせず件数を保持
+  expect(state.savedTabs).toHaveLength(2)
+  expect(state.savedTabs?.[0]?.domain).toBe('x.example.com')
+  expect(state.savedTabs?.[1]?.domain).toBe('x.example.com')
+  expect(warnSpy).toHaveBeenCalledWith(
+    expect.stringContaining('重複するドメイングループ'),
+  )
+  warnSpy.mockRestore()
+})
+
+// 回帰 (CodeRabbit PR #626): 正規化後に hostname が取れない (空 key) エントリ同士は
+// 空文字列キーでマージ・消失せず、別々に保持される。
+it('空に正規化されるエントリ同士はマージ/破棄せず別々に保持する', async () => {
+  const state = setupChrome({
+    domainCategoryMappings: [
+      { categoryId: 'cat-a', domain: '' },
+      { categoryId: 'cat-b', domain: '   ' },
+    ],
+    domainCategorySettings: [
+      {
+        categoryKeywords: [],
+        domain: '',
+        subCategories: ['a'],
+      },
+      {
+        categoryKeywords: [],
+        domain: '   ',
+        subCategories: ['b'],
+      },
+    ],
+  })
+  const { migrateDomainStorageToHostname } = await loadModule()
+  await migrateDomainStorageToHostname()
+  // 両エントリとも空 key なので別々に保持 (マージ/破棄されない)
+  expect(state.domainCategorySettings).toStrictEqual([
+    {
+      categoryKeywords: [],
+      domain: '',
+      subCategories: ['a'],
+    },
+    {
+      categoryKeywords: [],
+      domain: '   ',
+      subCategories: ['b'],
+    },
+  ])
+  expect(state.domainCategoryMappings).toStrictEqual([
+    { categoryId: 'cat-a', domain: '' },
+    { categoryId: 'cat-b', domain: '   ' },
+  ])
 })

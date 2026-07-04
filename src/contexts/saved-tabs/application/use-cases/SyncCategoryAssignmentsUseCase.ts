@@ -10,7 +10,10 @@ import {
   buildCategoryLookup,
   resolveCategoryForTabGroup,
 } from '@/contexts/saved-tabs/domain/services/CategoryAssignmentPolicy'
-import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
+import {
+  createDomainName,
+  normalizeDomainString,
+} from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
 /**
@@ -48,7 +51,9 @@ const syncSingleDomain = async (
   unassignedTabGroupIds: TabGroup['id'][]
   updatedCategoryIds: ParentCategory['id'][]
 }> => {
-  const targetDomainName = createDomainName(moveCommand.domain)
+  const targetDomainName = createDomainName(
+    normalizeDomainString(moveCommand.domain),
+  )
   const targetCategoryId = createParentCategoryId(moveCommand.parentCategoryId)
   const [allTabGroups, allCategories] = await Promise.all([
     deps.tabGroupRepository.findAll(),

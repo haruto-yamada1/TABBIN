@@ -154,6 +154,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
         .fn()
         .mockResolvedValue(undefined),
       migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
+      migrateDomainStorageToHostname: vi.fn().mockResolvedValue(undefined),
     },
     notificationPort: notification.notificationPort,
     parentCategoryRepository: createChromeParentCategoryRepository(port),
@@ -499,6 +500,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
             .fn()
             .mockResolvedValue(undefined),
           migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
+          migrateDomainStorageToHostname: vi.fn().mockResolvedValue(undefined),
         },
         notificationPort: notification.notificationPort,
         parentCategoryRepository: createChromeParentCategoryRepository(port),

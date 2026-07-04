@@ -170,6 +170,7 @@ const buildLayoutComposition = () => {
         .fn()
         .mockResolvedValue(undefined),
       migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
+      migrateDomainStorageToHostname: vi.fn().mockResolvedValue(undefined),
     },
     categoriesCommandService: {
       updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),

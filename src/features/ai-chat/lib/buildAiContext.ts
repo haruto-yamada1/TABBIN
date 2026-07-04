@@ -5,15 +5,8 @@ import type {
   TabGroup,
   UrlRecord,
 } from '@/types/storage'
+import { tabGroupMatchesCategory, toHostname } from '@/utils/domain-normalize'
 import { isTimestampInLocalMonth } from '@/utils/localDateTime'
-
-const getDomainFromUrl = (value: string): string => {
-  try {
-    return new URL(value).hostname
-  } catch {
-    return value
-  }
-}
 
 const unique = (values: string[]): string[] => [...new Set(values)]
 
@@ -53,8 +46,12 @@ export const buildAiSavedUrlRecords = ({
       const parentCategoryNames = unique(
         matchingGroups.flatMap((group) =>
           parentCategories.flatMap((category) =>
-            category.domains.includes(group.id) ||
-            category.domainNames.includes(group.domain)
+            tabGroupMatchesCategory(
+              category.domains,
+              category.domainNames,
+              group.id,
+              group.domain,
+            )
               ? [category.name]
               : [],
           ),
@@ -62,7 +59,7 @@ export const buildAiSavedUrlRecords = ({
       )
 
       return {
-        domain: getDomainFromUrl(record.url),
+        domain: toHostname(record.url),
         id: record.id,
         parentCategories: parentCategoryNames,
         projectCategories,

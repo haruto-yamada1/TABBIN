@@ -22,4 +22,13 @@ export interface MigrationPort {
    * 緊急マイグレーション用途 (旧 data 形式と新 data 形式の互換維持)。
    */
   migrateParentCategoriesToDomainNames: () => Promise<void>
+
+  /**
+   * スキーム付きドメイン (`https://example.com`) を hostname (`example.com`)
+   * へ正規化し、`savedTabs` / `parentCategories` / `domainCategorySettings` /
+   * `domainCategoryMappings` のドメイン値を hostname 形式へ冪等に統一する
+   * (Finding B の根本治療)。完了フラグ `domainHostnameMigrationCompleted` で
+   * 再実行を抑制する。
+   */
+  migrateDomainStorageToHostname: () => Promise<void>
 }

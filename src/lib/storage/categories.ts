@@ -6,6 +6,7 @@ import type {
   ParentCategory,
   SubCategoryKeyword,
 } from '@/types/storage'
+import { domainMatches, hasNormalizedDomain } from '@/utils/domain-normalize'
 
 // 親カテゴリを取得する関数
 export const getParentCategories = async (): Promise<ParentCategory[]> => {
@@ -47,8 +48,9 @@ export const findCategoryByDomainName = async (
 ): Promise<ParentCategory | null> => {
   const categories = await getParentCategories()
   return (
-    categories.find((category) => category.domainNames.includes(domainName)) ??
-    null
+    categories.find((category) =>
+      hasNormalizedDomain(category.domainNames, domainName),
+    ) ?? null
   )
 } // ドメインのカテゴリ設定を取得する関数
 export const getDomainCategorySettings = async (): Promise<
@@ -73,8 +75,10 @@ export const updateDomainCategorySettings = async (
 ): Promise<void> => {
   const settings = await getDomainCategorySettings()
 
-  // 既存の設定を探す
-  const existingIndex = settings.findIndex((s) => s.domain === domain)
+  // 既存の設定を探す (ストレージ形式のスキーム付き/hostname 混在を吸収)
+  const existingIndex = settings.findIndex((s) =>
+    domainMatches(s.domain, domain),
+  )
   if (existingIndex !== -1) {
     // 既存の設定を更新
     settings[existingIndex] = {
@@ -113,8 +117,10 @@ export const updateDomainCategoryMapping = async (
 ): Promise<void> => {
   const mappings = await getDomainCategoryMappings()
 
-  // 既存のマッピングを探す
-  const existingIndex = mappings.findIndex((m) => m.domain === domain)
+  // 既存のマッピングを探す (ストレージ形式のスキーム付き/hostname 混在を吸収)
+  const existingIndex = mappings.findIndex((m) =>
+    domainMatches(m.domain, domain),
+  )
   if (categoryId === null) {
     // カテゴリIDがnullの場合は、マッピングを削除
     if (existingIndex !== -1) {
@@ -124,8 +130,10 @@ export const updateDomainCategoryMapping = async (
     return
   }
   if (existingIndex !== -1) {
-    // 既存のマッピングを更新
-    mappings[existingIndex].categoryId = categoryId
+    // 既存のマッピングを更新。触ったレコードの domain を現在の (hostname) 値で
+    // 上書きし、legacy スキーム付き形式を漸進的に解消する
+    // (updateDomainCategorySettings と同じ挙動) (CodeRabbit PR #626 review)。
+    mappings[existingIndex] = { categoryId, domain }
   } else {
     // 新しいマッピングを追加
     mappings.push({

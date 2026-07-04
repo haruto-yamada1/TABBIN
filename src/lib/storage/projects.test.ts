@@ -522,7 +522,7 @@ describe('projects storage', () => {
 
     expect(state.savedTabs).toEqual([
       expect.objectContaining({
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         urlIds: expect.arrayContaining([
           state.urls?.[0]?.id,
           state.urls?.[1]?.id,
@@ -578,7 +578,7 @@ describe('projects storage', () => {
 
     expect(state.savedTabs).toEqual([
       expect.objectContaining({
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         urlIds: expect.arrayContaining([
           state.urls?.find(
             (record) => record.url === 'https://docs.example.com/a',
@@ -589,7 +589,7 @@ describe('projects storage', () => {
         ]),
       }),
       expect.objectContaining({
-        domain: 'https://news.example.com',
+        domain: 'news.example.com',
         urlIds: [
           state.urls?.find(
             (record) => record.url === 'https://news.example.com/x',
@@ -656,11 +656,11 @@ describe('projects storage', () => {
     )
     expect(state.savedTabs).toStrictEqual([
       expect.objectContaining({
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         urlIds: [state.urls?.[0]?.id],
       }),
       expect.objectContaining({
-        domain: 'https://issues.example.com',
+        domain: 'issues.example.com',
         urlIds: [state.urls?.[1]?.id],
       }),
     ])
@@ -1389,12 +1389,36 @@ describe('projects storage', () => {
 
     expect(state.savedTabs).toEqual([
       {
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         id: 'uuid-2',
         savedAt: 1000,
         urlIds: ['uuid-1'],
       },
     ])
+  })
+
+  // 回帰 (CodeRabbit PR #626): host が取れない URL はドメインモードの
+  // savedTabs へ空ドメイングループを作らず、他の不正 URL を誤マージしない。
+  it('addUrlToCustomProject は host が取れない URL をドメインモードへ追加しない', async () => {
+    const state: StorageState = {
+      customProjects: [createProject({ id: 'target' })],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { addUrlToCustomProject } = await loadModule()
+
+    await addUrlToCustomProject('target', 'not a url', 'Broken')
+
+    // カスタムプロジェクトには URL が保持されるが、ドメインモードの
+    // savedTabs には空ドメイングループが作られない
+    expect(state.customProjects?.[0]?.urlIds).toEqual(['uuid-1'])
+    expect(state.savedTabs).toEqual([])
   })
 
   it('addUrlToCustomProject は既存ドメイングループの URL IDs を補完する', async () => {
