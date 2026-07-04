@@ -12,11 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { ConversationPreviewTooltip } from '@/features/ai-chat/components/ConversationPreviewTooltip'
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
@@ -75,28 +71,10 @@ const HistoryItemCard = ({
           >
             {historyItem.title}
           </span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span
-                className='mt-1 line-clamp-3 w-full min-w-0 text-xs leading-5 wrap-anywhere text-muted-foreground'
-                data-testid={`conversation-preview-${historyItem.id}`}
-              >
-                {historyItem.preview}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent
-              align='start'
-              className='max-w-sm p-0 text-left'
-              side='right'
-            >
-              <div
-                className='max-h-[min(24rem,calc(100vh-2rem))] overflow-y-auto px-3 py-1.5 text-xs leading-5 wrap-anywhere whitespace-pre-wrap'
-                data-testid={`conversation-preview-tooltip-content-${historyItem.id}`}
-              >
-                {historyItem.preview}
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          <ConversationPreviewTooltip
+            id={historyItem.id}
+            preview={historyItem.preview}
+          />
         </Button>
         <Button
           type='button'

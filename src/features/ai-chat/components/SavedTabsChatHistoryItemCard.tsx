@@ -2,12 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { ConversationPreviewTooltip } from '@/features/ai-chat/components/ConversationPreviewTooltip'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import { cn } from '@/lib/utils'
 
@@ -22,39 +17,6 @@ interface SavedTabsChatHistoryItemCardProps {
   setPendingDeleteHistoryItem: (item: AiChatHistoryItem | null) => void
   t: TranslateFn
 }
-
-const HistoryItemPreview = ({
-  id,
-  preview,
-}: {
-  id: string
-  preview: string
-}) => (
-  <TooltipProvider delayDuration={0}>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          className='mt-1 line-clamp-3 w-full min-w-0 text-xs leading-5 wrap-anywhere text-muted-foreground'
-          data-testid={`conversation-preview-${id}`}
-        >
-          {preview}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent
-        align='start'
-        className='max-w-sm p-0 text-left'
-        side='right'
-      >
-        <div
-          className='max-h-[min(24rem,calc(100vh-2rem))] overflow-y-auto px-3 py-1.5 text-xs leading-5 wrap-anywhere whitespace-pre-wrap'
-          data-testid={`conversation-preview-tooltip-content-${id}`}
-        >
-          {preview}
-        </div>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-)
 
 export const SavedTabsChatHistoryItemCard = ({
   historyItem,
@@ -104,7 +66,7 @@ export const SavedTabsChatHistoryItemCard = ({
           >
             {historyItem.title}
           </span>
-          <HistoryItemPreview
+          <ConversationPreviewTooltip
             id={historyItem.id}
             preview={historyItem.preview}
           />
