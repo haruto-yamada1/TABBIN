@@ -23,6 +23,39 @@ interface SavedTabsChatHistoryItemCardProps {
   t: TranslateFn
 }
 
+const HistoryItemPreview = ({
+  id,
+  preview,
+}: {
+  id: string
+  preview: string
+}) => (
+  <TooltipProvider delayDuration={0}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className='mt-1 line-clamp-3 w-full min-w-0 text-xs leading-5 wrap-anywhere text-muted-foreground'
+          data-testid={`conversation-preview-${id}`}
+        >
+          {preview}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent
+        align='start'
+        className='max-w-sm p-0 text-left'
+        side='right'
+      >
+        <div
+          className='max-h-[min(24rem,calc(100vh-2rem))] overflow-y-auto px-3 py-1.5 text-xs leading-5 wrap-anywhere whitespace-pre-wrap'
+          data-testid={`conversation-preview-tooltip-content-${id}`}
+        >
+          {preview}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+)
+
 export const SavedTabsChatHistoryItemCard = ({
   historyItem,
   isActive,
@@ -71,30 +104,10 @@ export const SavedTabsChatHistoryItemCard = ({
           >
             {historyItem.title}
           </span>
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className='mt-1 line-clamp-3 w-full min-w-0 text-xs leading-5 wrap-anywhere text-muted-foreground'
-                  data-testid={`conversation-preview-${historyItem.id}`}
-                >
-                  {historyItem.preview}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent
-                align='start'
-                className='max-w-sm p-0 text-left'
-                side='right'
-              >
-                <div
-                  className='max-h-[min(24rem,calc(100vh-2rem))] overflow-y-auto px-3 py-1.5 text-xs leading-5 wrap-anywhere whitespace-pre-wrap'
-                  data-testid={`conversation-preview-tooltip-content-${historyItem.id}`}
-                >
-                  {historyItem.preview}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <HistoryItemPreview
+            id={historyItem.id}
+            preview={historyItem.preview}
+          />
         </Button>
         {onDeleteHistoryItem ? (
           <Button

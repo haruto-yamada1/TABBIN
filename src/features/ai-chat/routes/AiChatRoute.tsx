@@ -12,7 +12,11 @@ import {
 } from '@/components/ui/dialog'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
