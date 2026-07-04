@@ -29,6 +29,10 @@
     {
       "name": "playwright",
       "specifier": "eslint-plugin-playwright"
+    },
+    {
+      "name": "storybook",
+      "specifier": "eslint-plugin-storybook"
     }
   ],
   "categories": {
@@ -809,6 +813,35 @@
         "playwright/valid-expect-in-promise": "error",
         "playwright/valid-test-tags": "error",
         "playwright/valid-title": "error"
+      }
+    },
+    {
+      "files": [
+        "src/**/*.stories.ts",
+        "src/**/*.stories.tsx",
+        "src/**/*.story.ts",
+        "src/**/*.story.tsx"
+      ],
+      "rules": {
+        "storybook/default-exports": "error",
+        "storybook/story-exports": "error",
+        "storybook/no-redundant-story-name": "error",
+        "storybook/prefer-pascal-case": "error",
+        "storybook/context-in-play-function": "error",
+        "storybook/use-storybook-expect": "error",
+        "storybook/use-storybook-testing-library": "error",
+        "storybook/meta-satisfies-type": "error"
+      }
+    },
+    {
+      "files": [
+        ".storybook/main.ts",
+        ".storybook/main.js",
+        ".storybook/main.mjs",
+        ".storybook/main.cjs"
+      ],
+      "rules": {
+        "storybook/no-uninstalled-addons": "error"
       }
     }
   ]
