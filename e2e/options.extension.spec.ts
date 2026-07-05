@@ -69,7 +69,7 @@ test.describe('extension options', () => {
     const downloadPath = await download.path()
     expect(downloadPath).toBeTruthy()
 
-    const fileContent = await readFile(downloadPath!, 'utf-8')
+    const fileContent = await readFile(downloadPath as string, 'utf8')
     const backupData = JSON.parse(fileContent)
 
     expect(backupData.version).toBeDefined()
@@ -94,7 +94,7 @@ test.describe('extension options', () => {
     const downloadPath = await download.path()
     expect(downloadPath).toBeTruthy()
 
-    const fileContent = await readFile(downloadPath!, 'utf-8')
+    const fileContent = await readFile(downloadPath as string, 'utf8')
     const backupData = JSON.parse(fileContent)
     expect(backupData.urls).toHaveLength(1)
     expect(backupData.savedTabs).toHaveLength(1)

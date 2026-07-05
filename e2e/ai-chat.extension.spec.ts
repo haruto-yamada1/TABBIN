@@ -34,7 +34,7 @@ interface RuntimeLike {
 }
 
 interface InitScriptPage {
-  addInitScript(script: () => void): Promise<unknown>
+  addInitScript: (script: () => void) => Promise<unknown>
 }
 
 const installOllamaListFailureMock = async (page: InitScriptPage) => {
