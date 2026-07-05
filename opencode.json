@@ -4,11 +4,7 @@
     "playwright": {
       "type": "local",
       "enabled": true,
-      "command": [
-        "npx",
-        "-y",
-        "@playwright/mcp"
-      ]
+      "command": ["npx", "-y", "@playwright/mcp"]
     },
     "context7": {
       "type": "remote",
