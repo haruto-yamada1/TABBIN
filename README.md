@@ -37,6 +37,17 @@ TABBIN(タビン)はブラウザのタブを整理・分類する拡張機能で
 
 ### [🌐 DeepWiki](https://deepwiki.com/TarouTanakaYokohama/TABBIN/1-overview)
 
+### 📦 リリース手順
+
+配布前に以下のコマンドで品質とビルドを確認します。
+
+```bash
+bun run release:check   # quality → Chrome build → Firefox build
+bun run release:zip     # release:check → Chrome zip → Firefox zip
+```
+
+詳細は [docs/release.md](docs/release.md) を参照してください。
+
 ## 📞 サポート
 
 問題が発生した場合や質問がある場合は、[Issues](https://github.com/yourusername/tabbin/issues) か、[お問い合わせフォーム](https://forms.gle/c9gBiF2TmgXaeU7J6)をご利用ください。
