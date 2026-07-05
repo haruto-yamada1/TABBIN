@@ -27,11 +27,14 @@ const loadOxlintConfig = (): OxlintConfig => {
 const findOverride = (
   config: OxlintConfig,
   layer: string,
+  ruleName?: string,
 ): OxlintOverride | undefined => {
   // issue #581: DDD override は saved-tabs 固定ではなく src/contexts/* に一般化されている
   const pattern = `src/contexts/*/${layer}/**`
-  return config.overrides?.find((entry) =>
-    entry.files?.some((file) => file.includes(pattern)),
+  return config.overrides?.find(
+    (entry) =>
+      entry.files?.some((file) => file.includes(pattern)) &&
+      (!ruleName || Object.hasOwn(entry.rules ?? {}, ruleName)),
   )
 }
 
@@ -208,10 +211,20 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
   })
 
   describe('domain 層', () => {
-    const override = findOverride(config, 'domain')
+    const globalsOverride = findOverride(
+      config,
+      'domain',
+      'eslint/no-restricted-globals',
+    )
+    const propertiesOverride = findOverride(
+      config,
+      'domain',
+      'eslint/no-restricted-properties',
+    )
 
     it('override が定義されている', () => {
-      expect(override).toBeDefined()
+      expect(globalsOverride).toBeDefined()
+      expect(propertiesOverride).toBeDefined()
     })
 
     it('UI / routing / notification / animation 系 package の import を禁止している', () => {
@@ -228,7 +241,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('chrome / localStorage / sessionStorage / document / window の global 参照を禁止している', () => {
-      const names = getRestrictedGlobals(override)
+      const names = getRestrictedGlobals(globalsOverride)
       expect(names).toContain('chrome')
       expect(names).toContain('localStorage')
       expect(names).toContain('sessionStorage')
@@ -237,7 +250,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('chrome.tabs / chrome.storage / chrome.contextMenus / chrome.alarms / chrome.notifications / chrome.runtime の直叩きを禁止している', () => {
-      const names = getRestrictedProperties(override)
+      const names = getRestrictedProperties(propertiesOverride)
       expect(names).toContain('chrome.tabs')
       expect(names).toContain('chrome.storage')
       expect(names).toContain('chrome.contextMenus')
@@ -247,7 +260,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('issue #582: Date.now() を no-restricted-properties で禁止している', () => {
-      const names = getRestrictedProperties(override)
+      const names = getRestrictedProperties(propertiesOverride)
       expect(names).toContain('Date.now')
     })
 
@@ -278,10 +291,14 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
   })
 
   describe('application 層', () => {
-    const override = findOverride(config, 'application')
+    const propertiesOverride = findOverride(
+      config,
+      'application',
+      'eslint/no-restricted-properties',
+    )
 
     it('override が定義されている', () => {
-      expect(override).toBeDefined()
+      expect(propertiesOverride).toBeDefined()
     })
 
     it('UI / routing / notification / animation 系 package の import を禁止している', () => {
@@ -298,7 +315,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('chrome.tabs / chrome.storage / chrome.contextMenus / chrome.alarms / chrome.notifications の直叩きを禁止している', () => {
-      const names = getRestrictedProperties(override)
+      const names = getRestrictedProperties(propertiesOverride)
       expect(names).toContain('chrome.tabs')
       expect(names).toContain('chrome.storage')
       expect(names).toContain('chrome.contextMenus')
@@ -325,14 +342,18 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
   })
 
   describe('presentation 層', () => {
-    const override = findOverride(config, 'presentation')
+    const propertiesOverride = findOverride(
+      config,
+      'presentation',
+      'eslint/no-restricted-properties',
+    )
 
     it('override が定義されている', () => {
-      expect(override).toBeDefined()
+      expect(propertiesOverride).toBeDefined()
     })
 
     it('chrome.storage / chrome.tabs / chrome.contextMenus / chrome.alarms / chrome.runtime の直叩きを禁止している', () => {
-      const names = getRestrictedProperties(override)
+      const names = getRestrictedProperties(propertiesOverride)
       expect(names).toContain('chrome.storage')
       expect(names).toContain('chrome.tabs')
       expect(names).toContain('chrome.contextMenus')

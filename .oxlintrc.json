@@ -644,6 +644,20 @@
       }
     },
     {
+      "files": [
+        "src/contexts/*/domain/**/*.{ts,tsx}",
+        "src/contexts/*/application/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "eslint/no-param-reassign": [
+          "error",
+          {
+            "props": true
+          }
+        ]
+      }
+    },
+    {
       "files": ["src/contexts/*/domain/**/*.{ts,tsx}"],
       "rules": {
         "eslint/no-restricted-globals": [
