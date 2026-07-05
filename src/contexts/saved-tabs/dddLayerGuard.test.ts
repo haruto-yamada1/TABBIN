@@ -58,6 +58,34 @@ const getRestrictedGlobals = (
   })
 }
 
+const getRestrictedGlobalMessages = (
+  override: OxlintOverride | undefined,
+): Record<string, string> => {
+  if (!override?.rules) {
+    return {}
+  }
+  const entry = override.rules['eslint/no-restricted-globals']
+  if (!entry || typeof entry === 'string') {
+    return {}
+  }
+  const [, ...rest] = entry
+  return Object.fromEntries(
+    rest.flatMap((value) => {
+      if (!value || typeof value !== 'object') {
+        return []
+      }
+      const record = value as Record<string, unknown>
+      if (
+        typeof record.name === 'string' &&
+        typeof record.message === 'string'
+      ) {
+        return [[record.name, record.message]]
+      }
+      return []
+    }),
+  )
+}
+
 const getRestrictedProperties = (
   override: OxlintOverride | undefined,
 ): string[] => {
@@ -207,6 +235,82 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
           },
         },
       ])
+    })
+  })
+
+  describe('issue #643: production src は同期 browser dialog global を直接使わない', () => {
+    const expectedProductionSrcFiles = [
+      'src/contexts/**/*.{ts,tsx}',
+      'src/features/**/*.{ts,tsx}',
+      'src/components/**/*.{ts,tsx}',
+      'src/lib/**/*.{ts,tsx}',
+      'src/entrypoints/**/*.{ts,tsx}',
+    ]
+
+    const productionDialogOverride = config.overrides?.find((entry) =>
+      expectedProductionSrcFiles.every((file) => entry.files?.includes(file)),
+    )
+
+    it('production src 限定の override が定義されている', () => {
+      expect(productionDialogOverride).toBeDefined()
+      expect(productionDialogOverride?.files).toStrictEqual(
+        expectedProductionSrcFiles,
+      )
+    })
+
+    it('test / story / tools / config / docs / e2e へ過剰適用していない', () => {
+      const files = productionDialogOverride?.files ?? []
+      expect(files).not.toContain('tools/**/*.ts')
+      expect(files).not.toContain('*.config.ts')
+      expect(files).not.toContain('docs/**/*.md')
+      expect(files).not.toContain('e2e/**/*.ts')
+
+      const testOverride = config.overrides?.find((entry) =>
+        entry.files?.includes('**/*.test.ts'),
+      )
+      const storyOverride = config.overrides?.find((entry) =>
+        entry.files?.includes('**/*.stories.tsx'),
+      )
+      expect(testOverride?.rules?.['eslint/no-restricted-globals']).toBe('off')
+      expect(storyOverride?.rules?.['eslint/no-restricted-globals']).toBe('off')
+      expect(testOverride?.rules?.['eslint/no-restricted-properties']).toBe(
+        'off',
+      )
+      expect(storyOverride?.rules?.['eslint/no-restricted-properties']).toBe(
+        'off',
+      )
+    })
+
+    it('alert / confirm / prompt を no-restricted-globals で error にしている', () => {
+      const entry =
+        productionDialogOverride?.rules?.['eslint/no-restricted-globals']
+      expect(entry).toBeDefined()
+      expect(Array.isArray(entry)).toBe(true)
+      expect(entry?.[0]).toBe('error')
+
+      const names = getRestrictedGlobals(productionDialogOverride)
+      expect(names).toContain('alert')
+      expect(names).toContain('confirm')
+      expect(names).toContain('prompt')
+    })
+
+    it('window / globalThis 経由の alert / confirm / prompt も禁止している', () => {
+      const names = getRestrictedProperties(productionDialogOverride)
+      expect(names).toContain('window.alert')
+      expect(names).toContain('window.confirm')
+      expect(names).toContain('window.prompt')
+      expect(names).toContain('globalThis.alert')
+      expect(names).toContain('globalThis.confirm')
+      expect(names).toContain('globalThis.prompt')
+    })
+
+    it('代替 UI への移行方針を message で示している', () => {
+      const messages = getRestrictedGlobalMessages(productionDialogOverride)
+      expect(messages.alert).toContain('toast')
+      expect(messages.alert).toContain('dialog component')
+      expect(messages.confirm).toContain('確認 dialog component')
+      expect(messages.prompt).toContain('form')
+      expect(messages.prompt).toContain('dialog component')
     })
   })
 

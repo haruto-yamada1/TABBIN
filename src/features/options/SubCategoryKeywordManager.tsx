@@ -194,9 +194,6 @@ const useSubCategoryKeywordManagerView = ({
       console.log(`子カテゴリの削除を開始: "${categoryToRemove}"`)
 
       try {
-        // 確認ダイアログを一時的にスキップ (問題特定のため)
-        // If (confirm(`子カテゴリ "${categoryToRemove}" を削除してもよろしいですか？`)) {
-
         // 選択中のカテゴリを削除する場合は選択を解除
         if (activeCategory === categoryToRemove) {
           setActiveCategory(null)
