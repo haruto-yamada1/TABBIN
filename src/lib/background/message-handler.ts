@@ -15,7 +15,11 @@ import type {
   StatusResponse,
   TimeRemainingResponse,
 } from '@/types/background'
-import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
+import {
+  AI_CHAT_STREAM_PORT_NAME,
+  backgroundMessageSchema,
+  messageActionSchema,
+} from '@/types/background'
 import type { UserSettings } from '@/types/storage'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
@@ -67,6 +71,39 @@ const isRuntimeOnConnect = (value: unknown): value is RuntimeOnConnect =>
   value !== null &&
   typeof Reflect.get(value, 'addListener') === 'function'
 
+const parseBackgroundMessage = (
+  message: unknown,
+):
+  | { status: 'valid'; message: BackgroundMessage }
+  | { action: string; status: 'unknown_action' }
+  | { status: 'invalid_message' } => {
+  if (typeof message !== 'object' || message === null) {
+    return { status: 'invalid_message' }
+  }
+
+  const action: unknown = Reflect.get(message, 'action')
+  if (typeof action !== 'string') {
+    return { status: 'invalid_message' }
+  }
+
+  if (!messageActionSchema.safeParse(action).success) {
+    return {
+      action,
+      status: 'unknown_action',
+    }
+  }
+
+  const result = backgroundMessageSchema.safeParse(message)
+  if (!result.success) {
+    return { status: 'invalid_message' }
+  }
+
+  return {
+    message: result.data,
+    status: 'valid',
+  }
+}
+
 const isAiChatStreamRunMessage = (
   message: unknown,
 ): message is AiChatStreamClientMessage =>
@@ -81,18 +118,24 @@ const setupMessageListener = (): void => {
   // eslint-disable-next-line eslint/complexity
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     console.log('バックグラウンドがメッセージを受信:', message)
-    const isValidMessage = (msg: unknown): msg is BackgroundMessage =>
-      typeof msg === 'object' &&
-      msg !== null &&
-      'action' in msg &&
-      typeof msg.action === 'string'
-    if (!isValidMessage(message)) {
+
+    const parsedMessage = parseBackgroundMessage(message)
+    if (parsedMessage.status === 'invalid_message') {
       sendResponse({
         status: 'invalid_message',
       })
       return false
     }
-    const typedMessage = message
+
+    if (parsedMessage.status === 'unknown_action') {
+      console.warn('未知のメッセージアクション:', parsedMessage.action)
+      sendResponse({
+        status: 'unknown_action',
+      })
+      return false
+    }
+
+    const typedMessage = parsedMessage.message
     switch (typedMessage.action) {
       case 'urlDragStarted': {
         handleUrlDragStartedMessage(typedMessage.url, sendResponse)
@@ -135,11 +178,8 @@ const setupMessageListener = (): void => {
         return true
       }
       default: {
-        // eslint-disable-next-line typescript/no-unsafe-member-access
-        console.warn('未知のメッセージアクション:', message.action)
-        sendResponse({
-          status: 'unknown_action',
-        })
+        const exhaustiveMessage: never = typedMessage
+        void exhaustiveMessage
         return false
       }
     }

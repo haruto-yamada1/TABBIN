@@ -228,6 +228,10 @@ describe('setupMessageListener', () => {
   it('不正メッセージと未知 action を弾く', () => {
     const { listener } = setupListener()
     const invalidResponse = vi.fn()
+    const invalidRemoveResponse = vi.fn()
+    const invalidBulkRemoveResponse = vi.fn()
+    const invalidAiChatPromptResponse = vi.fn()
+    const invalidAiChatHistoryResponse = vi.fn()
     const unknownResponse = vi.fn()
 
     expect(
@@ -236,6 +240,62 @@ describe('setupMessageListener', () => {
     expect(invalidResponse).toHaveBeenCalledWith({
       status: 'invalid_message',
     })
+
+    expect(
+      listener(
+        { action: 'removeUrlFromStorage', url: 1 },
+        {} as chrome.runtime.MessageSender,
+        invalidRemoveResponse,
+      ),
+    ).toBe(false)
+    expect(invalidRemoveResponse).toHaveBeenCalledWith({
+      status: 'invalid_message',
+    })
+    expect(mocked.removeUrlFromStorage).not.toHaveBeenCalled()
+
+    expect(
+      listener(
+        { action: 'removeUrlRecordsFromStorage', urlIds: 'invalid' },
+        {} as chrome.runtime.MessageSender,
+        invalidBulkRemoveResponse,
+      ),
+    ).toBe(false)
+    expect(invalidBulkRemoveResponse).toHaveBeenCalledWith({
+      status: 'invalid_message',
+    })
+    expect(mocked.removeUrlRecordsFromStorage).not.toHaveBeenCalled()
+
+    expect(
+      listener(
+        {
+          action: 'runAiChat',
+          history: [],
+          prompt: 1,
+        },
+        {} as chrome.runtime.MessageSender,
+        invalidAiChatPromptResponse,
+      ),
+    ).toBe(false)
+    expect(invalidAiChatPromptResponse).toHaveBeenCalledWith({
+      status: 'invalid_message',
+    })
+    expect(mocked.runAiChatRequest).not.toHaveBeenCalled()
+
+    expect(
+      listener(
+        {
+          action: 'runAiChat',
+          history: 'invalid',
+          prompt: 'test',
+        },
+        {} as chrome.runtime.MessageSender,
+        invalidAiChatHistoryResponse,
+      ),
+    ).toBe(false)
+    expect(invalidAiChatHistoryResponse).toHaveBeenCalledWith({
+      status: 'invalid_message',
+    })
+    expect(mocked.runAiChatRequest).not.toHaveBeenCalled()
 
     expect(
       listener(
@@ -352,11 +412,9 @@ describe('setupMessageListener', () => {
     const { listener } = setupListener()
     const bulkRemoveResponse = vi.fn()
     const emptyBulkRemoveResponse = vi.fn()
-    const invalidBulkRemoveResponse = vi.fn()
     const bulkRemoveErrorResponse = vi.fn()
     const errorObjectResponse = vi.fn()
     mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(2)
-    mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(0)
     mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(0)
     mocked.removeUrlRecordsFromStorage.mockRejectedValueOnce('bulk failed')
     mocked.removeUrlRecordsFromStorage.mockRejectedValueOnce(
@@ -396,22 +454,6 @@ describe('setupMessageListener', () => {
         status: 'removed',
       })
     })
-
-    listener(
-      {
-        action: 'removeUrlRecordsFromStorage',
-        urlIds: 'invalid',
-      },
-      {} as chrome.runtime.MessageSender,
-      invalidBulkRemoveResponse,
-    )
-    await vi.waitFor(() => {
-      expect(invalidBulkRemoveResponse).toHaveBeenCalledWith({
-        removedCount: 0,
-        status: 'removed',
-      })
-    })
-    expect(mocked.removeUrlRecordsFromStorage).toHaveBeenCalledWith([])
 
     listener(
       {
