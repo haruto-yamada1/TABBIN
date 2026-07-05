@@ -1,9 +1,4 @@
-import {
-  expect,
-  getExtensionUrl,
-  seedStorage,
-  test,
-} from './helpers/extension'
+import { expect, getExtensionUrl, seedStorage, test } from './helpers/extension'
 
 const createBaseSeed = () => ({
   customProjectOrder: [],
@@ -111,7 +106,9 @@ test.describe('extension ai-chat', () => {
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/ai-chat'))
 
-    await expect(page.getByRole('combobox', { name: 'Select a model' })).toBeVisible()
+    await expect(
+      page.getByRole('combobox', { name: 'Select a model' }),
+    ).toBeVisible()
   })
 
   test('Ollama が未設定の状態でエラーガイダンスを表示する', async ({

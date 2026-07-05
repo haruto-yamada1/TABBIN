@@ -122,27 +122,30 @@ test.describe('extension options', () => {
       })
     })
 
-    await serviceWorker.evaluate(async (data: {
-      savedTabs: unknown[]
-      urls: unknown[]
-      customProjects: unknown[]
-      parentCategories: unknown[]
-      customProjectOrder: unknown[]
-    }) => {
-      await chrome.storage.local.set({
-        savedTabs: data.savedTabs,
-        urls: data.urls,
-        customProjects: data.customProjects,
-        parentCategories: data.parentCategories,
-        customProjectOrder: data.customProjectOrder,
-      })
-    }, {
-      savedTabs: backupData.savedTabs,
-      urls: backupData.urls,
-      customProjects: backupData.customProjects ?? [],
-      parentCategories: backupData.parentCategories ?? [],
-      customProjectOrder: backupData.customProjectOrder ?? [],
-    })
+    await serviceWorker.evaluate(
+      async (data: {
+        savedTabs: unknown[]
+        urls: unknown[]
+        customProjects: unknown[]
+        parentCategories: unknown[]
+        customProjectOrder: unknown[]
+      }) => {
+        await chrome.storage.local.set({
+          savedTabs: data.savedTabs,
+          urls: data.urls,
+          customProjects: data.customProjects,
+          parentCategories: data.parentCategories,
+          customProjectOrder: data.customProjectOrder,
+        })
+      },
+      {
+        savedTabs: backupData.savedTabs,
+        urls: backupData.urls,
+        customProjects: backupData.customProjects ?? [],
+        parentCategories: backupData.parentCategories ?? [],
+        customProjectOrder: backupData.customProjectOrder ?? [],
+      },
+    )
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
