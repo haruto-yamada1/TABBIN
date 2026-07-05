@@ -10,9 +10,7 @@
     "src/utils/**/*.{test,stories}.{ts,tsx}",
     "e2e/**/*.{ts,tsx}",
     "tools/**/*.{ts,tsx}",
-    ".storybook/**/*.{ts,tsx}",
-    "vitest.config.ts",
-    "vitest.workspace.ts"
+    ".storybook/**/*.{ts,tsx}"
   ],
   "project": [
     "src/app/**/*.{ts,tsx}",
@@ -44,7 +42,6 @@
   "ignoreFiles": ["src/stories/**", "tests/**"],
   "ignoreDependencies": [
     "@storybook/addon-onboarding",
-    "@testing-library/jest-dom",
     "autoprefixer",
     "path",
     "postcss",
@@ -53,5 +50,5 @@
   "lefthook": true,
   "playwright": true,
   "storybook": true,
-  "vitest": false
+  "vitest": true
 }
