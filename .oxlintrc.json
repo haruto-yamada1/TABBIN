@@ -155,6 +155,7 @@
     "eslint/eqeqeq": ["error", "always"],
     "eslint/guard-for-in": "error",
     "eslint/no-await-in-loop": "error",
+    "eslint/no-alert": "off",
     "eslint/no-debugger": "error",
     "eslint/no-eval": "error",
     "eslint/no-new-func": "error",
@@ -531,6 +532,65 @@
     },
     {
       "files": [
+        "src/contexts/**/*.{ts,tsx}",
+        "src/features/**/*.{ts,tsx}",
+        "src/components/**/*.{ts,tsx}",
+        "src/lib/**/*.{ts,tsx}",
+        "src/entrypoints/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "alert",
+            "message": "alert は使わず、toast / dialog component 経由にしてください"
+          },
+          {
+            "name": "confirm",
+            "message": "confirm は使わず、確認 dialog component 経由にしてください"
+          },
+          {
+            "name": "prompt",
+            "message": "prompt は使わず、form / dialog component 経由にしてください"
+          }
+        ],
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "window",
+            "property": "alert",
+            "message": "window.alert は使わず、toast / dialog component 経由にしてください"
+          },
+          {
+            "object": "window",
+            "property": "confirm",
+            "message": "window.confirm は使わず、確認 dialog component 経由にしてください"
+          },
+          {
+            "object": "window",
+            "property": "prompt",
+            "message": "window.prompt は使わず、form / dialog component 経由にしてください"
+          },
+          {
+            "object": "globalThis",
+            "property": "alert",
+            "message": "globalThis.alert は使わず、toast / dialog component 経由にしてください"
+          },
+          {
+            "object": "globalThis",
+            "property": "confirm",
+            "message": "globalThis.confirm は使わず、確認 dialog component 経由にしてください"
+          },
+          {
+            "object": "globalThis",
+            "property": "prompt",
+            "message": "globalThis.prompt は使わず、form / dialog component 経由にしてください"
+          }
+        ]
+      }
+    },
+    {
+      "files": [
         "**/*.test.ts",
         "**/*.test.tsx",
         "**/*.spec.ts",
@@ -548,6 +608,8 @@
         "typescript/consistent-type-assertions": "off",
         "typescript/no-unnecessary-condition": "off",
         "eslint/no-magic-numbers": "off",
+        "eslint/no-restricted-globals": "off",
+        "eslint/no-restricted-properties": "off",
         "eslint/max-lines": [
           "error",
           {
@@ -604,6 +666,8 @@
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
         "eslint/no-magic-numbers": "off",
+        "eslint/no-restricted-globals": "off",
+        "eslint/no-restricted-properties": "off",
         "eslint/max-lines": [
           "error",
           {

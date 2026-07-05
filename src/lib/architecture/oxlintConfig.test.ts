@@ -230,4 +230,67 @@ export const renameTab = (tab: SavedTab): SavedTab => {
 
     expect(result).toEqual({ status: 0, output: '' })
   })
+
+  it('reports synchronous browser dialog globals in production src', () => {
+    const result = runOxlint(
+      `
+export const showUnsafeDialogs = (): void => {
+  alert('saved')
+  window.confirm('delete')
+  globalThis.prompt('name')
+}
+`,
+      'src/contexts/saved-tabs/infrastructure/browser/UnsafeDialogAdapter.ts',
+    )
+
+    expect(result.status).not.toBe(0)
+    expect(result.output).toContain('eslint/no-restricted-globals')
+    expect(result.output).toContain('eslint/no-restricted-properties')
+  })
+
+  it('does not apply browser dialog global restrictions to test files', () => {
+    const result = runOxlint(
+      `
+export const showUnsafeDialogsInTest = (): void => {
+  alert('test')
+  window.confirm('test')
+  globalThis.prompt('test')
+}
+`,
+      'src/contexts/saved-tabs/infrastructure/browser/UnsafeDialogAdapter.test.ts',
+    )
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
+  it('does not report browser dialog global restrictions in story files', () => {
+    const result = runOxlint(
+      `
+import type { Meta, StoryObj } from '@storybook/react'
+
+const meta = {
+  title: 'Fixture/UnsafeDialogAdapter',
+} satisfies Meta
+
+export default meta
+
+type Story = StoryObj<typeof meta>
+
+export const UnsafeDialogStory = {
+  render: (): null => {
+    alert('story')
+    window.confirm('story')
+    globalThis.prompt('story')
+
+    return null
+  },
+} satisfies Story
+`,
+      'src/contexts/saved-tabs/infrastructure/browser/UnsafeDialogAdapter.stories.ts',
+    )
+
+    expect(result.output).not.toContain('eslint/no-alert')
+    expect(result.output).not.toContain('eslint/no-restricted-globals')
+    expect(result.output).not.toContain('eslint/no-restricted-properties')
+  })
 })
