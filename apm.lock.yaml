@@ -1,6 +1,23 @@
 lockfile_version: '1'
-generated_at: '2026-05-03T00:00:00+09:00'
+generated_at: '2026-07-05T11:01:42.736986+00:00'
 dependencies: []
+mcp_servers:
+  - context7
+  - playwright
+mcp_configs:
+  context7:
+    name: context7
+    transport: http
+    registry: false
+    url: https://mcp.context7.com/mcp
+  playwright:
+    name: playwright
+    transport: stdio
+    args:
+      - -y
+      - '@playwright/mcp'
+    registry: false
+    command: npx
 local_deployed_files:
   - .agents/skills/agent-automation-recommender
   - .agents/skills/agent-introspection-debugging
