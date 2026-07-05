@@ -3,9 +3,8 @@
  */
 
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import { removeUrlFromAllCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
-import { deleteUrlRecord, invalidateUrlCache } from '@/lib/storage/urls'
+import { invalidateUrlCache } from '@/lib/storage/urls'
 import type { DraggedUrlInfo } from '@/types/background'
 import type {
   CustomProject,
@@ -16,6 +15,20 @@ import type {
 
 // ドラッグされたURL情報を一時保存するためのストア
 let draggedUrlInfo: DraggedUrlInfo | null = null
+let savedTabsStorageMutationQueue: Promise<void> = Promise.resolve()
+
+const enqueueStorageMutation = async <T>(
+  mutation: () => Promise<T>,
+): Promise<T> => {
+  const nextTask = savedTabsStorageMutationQueue.then(mutation, mutation)
+
+  savedTabsStorageMutationQueue = nextTask.then(
+    () => undefined,
+    () => undefined,
+  )
+
+  return nextTask
+}
 
 /**
  * ドラッグ情報を設定
@@ -119,6 +132,40 @@ const removeLegacyUrlFromGroup = (
     },
   ]
 }
+
+const removeLegacyUrlIdsFromGroup = (
+  group: TabGroup,
+  targetUrlIds: Set<string>,
+  targetUrlKeys: Set<string>,
+  removedGroupIds: string[],
+): TabGroup[] => {
+  if (!Array.isArray(group.urls)) {
+    return [group]
+  }
+
+  const updatedUrls = group.urls.filter((item) => {
+    if (item.id && targetUrlIds.has(item.id)) {
+      return false
+    }
+
+    const itemUrlKey = createComparableUrlKey(item.url)
+    return !(itemUrlKey && targetUrlKeys.has(itemUrlKey))
+  })
+  if (updatedUrls.length === group.urls.length) {
+    return [group]
+  }
+  if (updatedUrls.length === 0) {
+    removedGroupIds.push(group.id)
+    return []
+  }
+  return [
+    {
+      ...group,
+      urls: updatedUrls,
+    },
+  ]
+}
+
 const updateGroupAfterUrlRemoval = (
   group: TabGroup,
   targetUrlKey: string,
@@ -160,6 +207,28 @@ interface BulkParentCategoriesRemovalResult {
 const createUrlIdSet = (urlIds: string[]): Set<string> =>
   new Set(urlIds.filter((id) => typeof id === 'string' && id.length > 0))
 
+const createComparableUrlKeySet = (
+  urls: UrlRecord[],
+  urlIds: Set<string>,
+): Set<string> =>
+  new Set(
+    urls.flatMap((record) => {
+      if (!urlIds.has(record.id)) {
+        return []
+      }
+
+      const urlKey = createComparableUrlKey(record.url)
+      return urlKey ? [urlKey] : []
+    }),
+  )
+
+const haveTabGroupsChanged = (
+  currentGroups: TabGroup[],
+  nextGroups: TabGroup[],
+): boolean =>
+  currentGroups.length !== nextGroups.length ||
+  nextGroups.some((group, index) => group !== currentGroups[index])
+
 const removeUrlIdsFromRecord = <T>(
   record: Record<string, T> | undefined,
   urlIds: Set<string>,
@@ -186,6 +255,7 @@ const removeUrlIdsFromRecord = <T>(
 const removeUrlIdsFromSavedTabs = (
   savedTabs: TabGroup[],
   urlIds: Set<string>,
+  targetUrlKeys = new Set<string>(),
 ): BulkSavedTabsRemovalResult => {
   let hasChanges = false
   const removedGroupIds: string[] = []
@@ -193,7 +263,16 @@ const removeUrlIdsFromSavedTabs = (
 
   for (const group of savedTabs) {
     if (!Array.isArray(group.urlIds)) {
-      updatedTabs.push(group)
+      const nextGroups = removeLegacyUrlIdsFromGroup(
+        group,
+        urlIds,
+        targetUrlKeys,
+        removedGroupIds,
+      )
+      if (nextGroups[0] !== group || nextGroups.length === 0) {
+        hasChanges = true
+      }
+      updatedTabs.push(...nextGroups)
       continue
     }
 
@@ -328,54 +407,89 @@ const removeUrlRecordsById = (
  * URLをストレージから削除する関数（カテゴリ設定とマッピングを保持）
  */
 const removeUrlFromStorage = async (url: string): Promise<void> => {
+  const targetUrlKey = createComparableUrlKey(url)
+  if (!targetUrlKey) {
+    console.log(
+      '削除対象URLを比較可能な形式にできないため、削除をスキップしました:',
+      redactUrlForLog(url),
+    )
+    return
+  }
+
   try {
-    const targetUrlKey = createComparableUrlKey(url)
-    if (!targetUrlKey) {
-      console.log(
-        '削除対象URLを比較可能な形式にできないため、削除をスキップしました:',
-        redactUrlForLog(url),
+    await enqueueStorageMutation(async () => {
+      const storageResult =
+        await chrome.storage.local.get<BulkUrlRemovalStorage>([
+          'savedTabs',
+          'urls',
+          'customProjects',
+          'parentCategories',
+        ])
+      const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
+        ? storageResult.savedTabs
+        : []
+      const urlRecords = Array.isArray(storageResult.urls)
+        ? storageResult.urls
+        : []
+      const customProjects = Array.isArray(storageResult.customProjects)
+        ? storageResult.customProjects
+        : []
+      const parentCategories = Array.isArray(storageResult.parentCategories)
+        ? storageResult.parentCategories
+        : []
+      const matchedUrlRecord = urlRecords.find(
+        (record) => createComparableUrlKey(record.url) === targetUrlKey,
       )
-      return
-    }
+      const matchedUrlId = matchedUrlRecord?.id
+      const removedGroupIds: string[] = []
 
-    const storageResult = await chrome.storage.local.get<{
-      savedTabs?: TabGroup[]
-      urls?: UrlRecord[]
-    }>(['savedTabs', 'urls'])
-    const savedTabs: TabGroup[] = Array.isArray(storageResult.savedTabs)
-      ? storageResult.savedTabs
-      : []
-    const urlRecords = Array.isArray(storageResult.urls)
-      ? storageResult.urls
-      : []
-    const matchedUrlRecord = urlRecords.find(
-      (record) => createComparableUrlKey(record.url) === targetUrlKey,
-    )
-    const matchedUrlId = matchedUrlRecord?.id
-    const removedGroupIds: string[] = []
+      // URLを含むグループのみを更新（新形式 urlIds / 旧形式 urls の両方に対応）
+      const updatedGroups: TabGroup[] = savedTabs.flatMap((group: TabGroup) =>
+        updateGroupAfterUrlRemoval(
+          group,
+          targetUrlKey,
+          matchedUrlId,
+          removedGroupIds,
+        ),
+      )
+      const removedGroupIdsWithDomain = removedGroupIds.filter((groupId) => {
+        const group = savedTabs.find((item) => item.id === groupId)
+        return Boolean(group?.domain)
+      })
+      const parentCategoriesResult = removeGroupsFromParentCategories(
+        parentCategories,
+        removedGroupIdsWithDomain,
+      )
+      const targetUrlIds = matchedUrlId
+        ? createUrlIdSet([matchedUrlId])
+        : new Set<string>()
+      const customProjectsResult = removeUrlIdsFromCustomProjects(
+        customProjects,
+        targetUrlIds,
+      )
+      const urlsResult = removeUrlRecordsById(urlRecords, targetUrlIds)
+      const payload: BulkUrlRemovalStorage = {}
 
-    // URLを含むグループのみを更新（新形式 urlIds / 旧形式 urls の両方に対応）
-    const updatedGroups: TabGroup[] = savedTabs.flatMap((group: TabGroup) =>
-      updateGroupAfterUrlRemoval(
-        group,
-        targetUrlKey,
-        matchedUrlId,
-        removedGroupIds,
-      ),
-    )
+      if (haveTabGroupsChanged(savedTabs, updatedGroups)) {
+        payload.savedTabs = updatedGroups
+      }
+      if (parentCategoriesResult.hasChanges) {
+        payload.parentCategories = parentCategoriesResult.parentCategories
+      }
+      if (customProjectsResult.hasChanges) {
+        payload.customProjects = customProjectsResult.customProjects
+      }
+      if (urlsResult.hasChanges) {
+        payload.urls = urlsResult.urls
+      }
 
-    // 複数グループを単一の read-modify-write で外し、カテゴリ更新の競合を防ぐ。
-    await removeFromParentCategories(removedGroupIds, savedTabs)
-
-    // 更新したグループをストレージに保存
-    await chrome.storage.local.set({
-      savedTabs: updatedGroups,
+      if (Object.keys(payload).length > 0) {
+        await chrome.storage.local.set(payload)
+        if (urlsResult.hasChanges) {
+          invalidateUrlCache()
+        }
+      }
     })
-
-    if (matchedUrlRecord) {
-      await removeUrlFromAllCustomProjects(matchedUrlRecord.url)
-      await deleteUrlRecord(matchedUrlRecord.id)
-    }
 
     console.log(`ストレージからURL ${redactUrlForLog(url)} を削除しました`)
   } catch (error) {
@@ -394,102 +508,67 @@ const removeUrlRecordsFromStorage = async (
   }
 
   try {
-    const storageResult = await chrome.storage.local.get<BulkUrlRemovalStorage>(
-      ['savedTabs', 'urls', 'customProjects', 'parentCategories'],
-    )
-    const savedTabs = Array.isArray(storageResult.savedTabs)
-      ? storageResult.savedTabs
-      : []
-    const urls = Array.isArray(storageResult.urls) ? storageResult.urls : []
-    const customProjects = Array.isArray(storageResult.customProjects)
-      ? storageResult.customProjects
-      : []
-    const parentCategories = Array.isArray(storageResult.parentCategories)
-      ? storageResult.parentCategories
-      : []
-    const savedTabsResult = removeUrlIdsFromSavedTabs(savedTabs, targetUrlIds)
-    const customProjectsResult = removeUrlIdsFromCustomProjects(
-      customProjects,
-      targetUrlIds,
-    )
-    const parentCategoriesResult = removeGroupsFromParentCategories(
-      parentCategories,
-      savedTabsResult.removedGroupIds,
-    )
-    const urlsResult = removeUrlRecordsById(urls, targetUrlIds)
-    const payload: BulkUrlRemovalStorage = {}
+    return await enqueueStorageMutation(async () => {
+      const storageResult =
+        await chrome.storage.local.get<BulkUrlRemovalStorage>([
+          'savedTabs',
+          'urls',
+          'customProjects',
+          'parentCategories',
+        ])
+      const savedTabs = Array.isArray(storageResult.savedTabs)
+        ? storageResult.savedTabs
+        : []
+      const urls = Array.isArray(storageResult.urls) ? storageResult.urls : []
+      const customProjects = Array.isArray(storageResult.customProjects)
+        ? storageResult.customProjects
+        : []
+      const parentCategories = Array.isArray(storageResult.parentCategories)
+        ? storageResult.parentCategories
+        : []
+      const targetUrlKeys = createComparableUrlKeySet(urls, targetUrlIds)
+      const savedTabsResult = removeUrlIdsFromSavedTabs(
+        savedTabs,
+        targetUrlIds,
+        targetUrlKeys,
+      )
+      const customProjectsResult = removeUrlIdsFromCustomProjects(
+        customProjects,
+        targetUrlIds,
+      )
+      const parentCategoriesResult = removeGroupsFromParentCategories(
+        parentCategories,
+        savedTabsResult.removedGroupIds,
+      )
+      const urlsResult = removeUrlRecordsById(urls, targetUrlIds)
+      const payload: BulkUrlRemovalStorage = {}
 
-    if (savedTabsResult.hasChanges) {
-      payload.savedTabs = savedTabsResult.savedTabs
-    }
-    if (customProjectsResult.hasChanges) {
-      payload.customProjects = customProjectsResult.customProjects
-    }
-    if (parentCategoriesResult.hasChanges) {
-      payload.parentCategories = parentCategoriesResult.parentCategories
-    }
-    if (urlsResult.hasChanges) {
-      payload.urls = urlsResult.urls
-    }
-
-    if (Object.keys(payload).length > 0) {
-      await chrome.storage.local.set(payload)
-      if (urlsResult.hasChanges) {
-        invalidateUrlCache()
+      if (savedTabsResult.hasChanges) {
+        payload.savedTabs = savedTabsResult.savedTabs
       }
-    }
+      if (customProjectsResult.hasChanges) {
+        payload.customProjects = customProjectsResult.customProjects
+      }
+      if (parentCategoriesResult.hasChanges) {
+        payload.parentCategories = parentCategoriesResult.parentCategories
+      }
+      if (urlsResult.hasChanges) {
+        payload.urls = urlsResult.urls
+      }
 
-    console.log(`${urlsResult.removedCount}件のURLレコードを一括削除しました`)
-    return urlsResult.removedCount
+      if (Object.keys(payload).length > 0) {
+        await chrome.storage.local.set(payload)
+        if (urlsResult.hasChanges) {
+          invalidateUrlCache()
+        }
+      }
+
+      console.log(`${urlsResult.removedCount}件のURLレコードを一括削除しました`)
+      return urlsResult.removedCount
+    })
   } catch (error) {
     console.error('URLレコードの一括削除中にエラーが発生しました:', error)
     throw error
-  }
-}
-/**
- * 空になったグループを親カテゴリから一括削除する。
- */
-const removeFromParentCategories = async (
-  groupIds: string[],
-  savedTabs: TabGroup[],
-): Promise<void> => {
-  if (groupIds.length === 0) {
-    return
-  }
-
-  try {
-    const groupIdsToRemove = new Set(groupIds)
-    const groupsToRemove = savedTabs.filter(
-      (group) => groupIdsToRemove.has(group.id) && Boolean(group.domain),
-    )
-    if (groupsToRemove.length === 0) {
-      console.log('削除対象のグループが見つからないか、ドメイン名がありません')
-      return
-    }
-
-    const categoriesStorage = await chrome.storage.local.get<{
-      parentCategories?: ParentCategory[]
-    }>('parentCategories')
-    const parentCategories: ParentCategory[] =
-      categoriesStorage.parentCategories ?? []
-    const removalResult = removeGroupsFromParentCategories(
-      parentCategories,
-      groupsToRemove.map((group) => group.id),
-    )
-    if (!removalResult.hasChanges) {
-      return
-    }
-    await chrome.storage.local.set({
-      parentCategories: removalResult.parentCategories,
-    })
-    console.log(
-      `${groupsToRemove.length}個のグループIDをカテゴリから削除しました（ドメイン名を保持）`,
-    )
-  } catch (error: unknown) {
-    console.error(
-      '親カテゴリからの削除中にエラーが発生しました:',
-      error instanceof Error ? error.message : error,
-    )
   }
 }
 /**
