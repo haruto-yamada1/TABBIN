@@ -33,17 +33,35 @@ const getDraggedUrlInfo = (): DraggedUrlInfo | null => draggedUrlInfo
 const clearDraggedUrlInfo = (): void => {
   draggedUrlInfo = null
 }
+interface ComparableUrlKeyOptions {
+  readonly ignoreHash?: boolean
+  readonly ignoreSearch?: boolean
+}
+
 /**
- * URLを正規化する関数（比較のため）
+ * URL比較用の安全な key を作成する。
  */
-const normalizeUrl = (url: string): string => {
+const createComparableUrlKey = (
+  rawUrl: string,
+  options: ComparableUrlKeyOptions = {},
+): string | null => {
   try {
-    // 不要なパラメータやフラグメントを取り除く
-    return url.trim().toLowerCase().split('#')[0].split('?')[0]
+    const url = new URL(rawUrl.trim())
+    url.hostname = url.hostname.toLowerCase()
+
+    if (options.ignoreHash) {
+      url.hash = ''
+    }
+    if (options.ignoreSearch) {
+      url.search = ''
+    }
+
+    return url.toString()
   } catch {
-    return url.toLowerCase()
+    return null
   }
 }
+
 const removeUrlIdFromGroup = (
   group: TabGroup,
   matchedUrlId: string,
@@ -78,13 +96,15 @@ const removeUrlIdFromGroup = (
 }
 const removeLegacyUrlFromGroup = (
   group: TabGroup,
-  url: string,
+  targetUrlKey: string,
   removedGroupIds: string[],
 ): TabGroup[] => {
   if (!Array.isArray(group.urls)) {
     return [group]
   }
-  const updatedUrls = group.urls.filter((item) => item.url !== url)
+  const updatedUrls = group.urls.filter(
+    (item) => createComparableUrlKey(item.url) !== targetUrlKey,
+  )
   if (updatedUrls.length === group.urls.length) {
     return [group]
   }
@@ -101,7 +121,7 @@ const removeLegacyUrlFromGroup = (
 }
 const updateGroupAfterUrlRemoval = (
   group: TabGroup,
-  url: string,
+  targetUrlKey: string,
   matchedUrlId: string | undefined,
   removedGroupIds: string[],
 ): TabGroup[] => {
@@ -111,7 +131,7 @@ const updateGroupAfterUrlRemoval = (
     }
     return removeUrlIdFromGroup(group, matchedUrlId, removedGroupIds)
   }
-  return removeLegacyUrlFromGroup(group, url, removedGroupIds)
+  return removeLegacyUrlFromGroup(group, targetUrlKey, removedGroupIds)
 }
 
 interface BulkUrlRemovalStorage {
@@ -309,6 +329,15 @@ const removeUrlRecordsById = (
  */
 const removeUrlFromStorage = async (url: string): Promise<void> => {
   try {
+    const targetUrlKey = createComparableUrlKey(url)
+    if (!targetUrlKey) {
+      console.log(
+        '削除対象URLを比較可能な形式にできないため、削除をスキップしました:',
+        redactUrlForLog(url),
+      )
+      return
+    }
+
     const storageResult = await chrome.storage.local.get<{
       savedTabs?: TabGroup[]
       urls?: UrlRecord[]
@@ -319,12 +348,20 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
     const urlRecords = Array.isArray(storageResult.urls)
       ? storageResult.urls
       : []
-    const matchedUrlId = urlRecords.find((record) => record.url === url)?.id
+    const matchedUrlRecord = urlRecords.find(
+      (record) => createComparableUrlKey(record.url) === targetUrlKey,
+    )
+    const matchedUrlId = matchedUrlRecord?.id
     const removedGroupIds: string[] = []
 
     // URLを含むグループのみを更新（新形式 urlIds / 旧形式 urls の両方に対応）
     const updatedGroups: TabGroup[] = savedTabs.flatMap((group: TabGroup) =>
-      updateGroupAfterUrlRemoval(group, url, matchedUrlId, removedGroupIds),
+      updateGroupAfterUrlRemoval(
+        group,
+        targetUrlKey,
+        matchedUrlId,
+        removedGroupIds,
+      ),
     )
 
     // 複数グループを単一の read-modify-write で外し、カテゴリ更新の競合を防ぐ。
@@ -335,9 +372,9 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
       savedTabs: updatedGroups,
     })
 
-    if (matchedUrlId) {
-      await removeUrlFromAllCustomProjects(url)
-      await deleteUrlRecord(matchedUrlId)
+    if (matchedUrlRecord) {
+      await removeUrlFromAllCustomProjects(matchedUrlRecord.url)
+      await deleteUrlRecord(matchedUrlRecord.id)
     }
 
     console.log(`ストレージからURL ${redactUrlForLog(url)} を削除しました`)
@@ -524,29 +561,21 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
     )
     console.log('新しいタブのURL:', redactUrlForLog(tab.url))
 
-    // URLを正規化して比較
-    const normalizedDraggedUrl = normalizeUrl(draggedUrlInfo.url)
-    const normalizedTabUrl = normalizeUrl(tab.url ?? '')
-    console.log(
-      '正規化されたドラッグURL:',
-      redactUrlForLog(normalizedDraggedUrl),
-    )
-    console.log('正規化された新タブURL:', redactUrlForLog(normalizedTabUrl))
+    const draggedUrlKey = createComparableUrlKey(draggedUrlInfo.url, {
+      ignoreHash: true,
+    })
+    const tabUrlKey = createComparableUrlKey(tab.url ?? '', {
+      ignoreHash: true,
+    })
+    console.log('比較用ドラッグURL:', redactUrlForLog(draggedUrlInfo.url))
+    console.log('比較用新タブURL:', redactUrlForLog(tab.url))
 
     // URLが一致しない場合は何もしない
-    if (
-      !normalizedTabUrl ||
-      !normalizedDraggedUrl ||
-      !(
-        normalizedTabUrl === normalizedDraggedUrl ||
-        normalizedTabUrl.includes(normalizedDraggedUrl) ||
-        normalizedDraggedUrl.includes(normalizedTabUrl)
-      )
-    ) {
+    if (!tabUrlKey || !draggedUrlKey || tabUrlKey !== draggedUrlKey) {
       console.log('URLが一致しません。削除をスキップします')
       return
     }
-    console.log('URLが一致または類似しています')
+    console.log('URLが一致しています')
     try {
       // 処理済みとマーク
       draggedUrlInfo.processed = true
@@ -571,11 +600,11 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
 
 export {
   clearDraggedUrlInfo,
+  createComparableUrlKey,
   getDraggedUrlInfo,
   handleTabCreated,
   handleUrlDragStarted,
   handleUrlDropped,
-  normalizeUrl,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,
   setDraggedUrlInfo,
