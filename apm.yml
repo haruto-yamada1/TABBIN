@@ -5,14 +5,26 @@ author: TarouTanakaYokohama
 license: UNLICENSED
 type: hybrid
 target:
-  - codex
-  - claude
-  - cursor
-  - gemini
-  - copilot
+- codex
+- claude
+- cursor
+- gemini
+- copilot
+- opencode
 dependencies:
   apm: []
-  mcp: []
+  mcp:
+  - name: playwright
+    registry: false
+    transport: stdio
+    command: npx
+    args:
+    - -y
+    - '@playwright/mcp'
+  - name: context7
+    registry: false
+    transport: http
+    url: https://mcp.context7.com/mcp
 includes: auto
 scripts:
   validate: apm compile --validate
@@ -23,8 +35,8 @@ compilation:
   strategy: distributed
   source_attribution: true
   exclude:
-    - apm_modules/**
-    - .output/**
-    - coverage/**
-    - playwright-report/**
-    - test-results/**
+  - apm_modules/**
+  - .output/**
+  - coverage/**
+  - playwright-report/**
+  - test-results/**
