@@ -20,11 +20,11 @@ import { deleteUrlRecord, invalidateUrlCache } from '@/lib/storage/urls'
 
 import {
   clearDraggedUrlInfo,
+  createComparableUrlKey,
   getDraggedUrlInfo,
   handleTabCreated,
   handleUrlDragStarted,
   handleUrlDropped,
-  normalizeUrl,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,
   setDraggedUrlInfo,
@@ -285,6 +285,73 @@ describe('url-storage', () => {
     expect(getDraggedUrlInfo()).toBeNull()
   })
 
+  it('新規タブURLの hash だけが違う場合は同じURLとして削除する', async () => {
+    storageState = {
+      savedTabs: [
+        {
+          id: 'group-1',
+          domain: 'example.com',
+          urls: [
+            { url: 'https://example.com/page#saved', title: 'Saved' },
+            { url: 'https://example.org/keep', title: 'Other' },
+          ],
+        },
+      ],
+      parentCategories: [],
+      urls: [],
+    }
+    setupChromeMock()
+    vi.mocked(getUserSettings).mockResolvedValue(
+      createSettings({ removeTabAfterOpen: true }),
+    )
+    handleUrlDragStarted('https://example.com/page#saved')
+
+    await handleTabCreated({
+      url: 'https://example.com/page#opened',
+    } as chrome.tabs.Tab)
+
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      savedTabs: [
+        {
+          id: 'group-1',
+          domain: 'example.com',
+          urls: [{ url: 'https://example.org/keep', title: 'Other' }],
+        },
+      ],
+    })
+    expect(getDraggedUrlInfo()).toBeNull()
+  })
+
+  it('新規タブURLの query が違う場合は削除しない', async () => {
+    vi.mocked(getUserSettings).mockResolvedValue(
+      createSettings({ removeTabAfterOpen: true }),
+    )
+    handleUrlDragStarted('https://example.com/page?mode=edit')
+
+    await handleTabCreated({
+      url: 'https://example.com/page?mode=view',
+    } as chrome.tabs.Tab)
+
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+    expect(getUserSettings).not.toHaveBeenCalled()
+    expect(getDraggedUrlInfo()?.url).toBe('https://example.com/page?mode=edit')
+  })
+
+  it('新規タブURLが部分一致しても別URLなら削除しない', async () => {
+    vi.mocked(getUserSettings).mockResolvedValue(
+      createSettings({ removeTabAfterOpen: true }),
+    )
+    handleUrlDragStarted('https://example.com/page')
+
+    await handleTabCreated({
+      url: 'https://example.com/page-2',
+    } as chrome.tabs.Tab)
+
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+    expect(getUserSettings).not.toHaveBeenCalled()
+    expect(getDraggedUrlInfo()?.url).toBe('https://example.com/page')
+  })
+
   it('新規タブURLが一致しても removeTabAfterOpen=false なら削除しない', async () => {
     vi.mocked(getUserSettings).mockResolvedValue(
       createSettings({ removeTabAfterOpen: false }),
@@ -292,7 +359,7 @@ describe('url-storage', () => {
     handleUrlDragStarted('https://example.com/path?query=1')
 
     await handleTabCreated({
-      url: 'https://example.com/path',
+      url: 'https://example.com/path?query=1',
     } as chrome.tabs.Tab)
 
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
@@ -341,17 +408,48 @@ describe('url-storage', () => {
     expect(getDraggedUrlInfo()).toBeNull()
   })
 
-  it('normalizeUrl は trim 失敗時にフォールバック値を返す', () => {
-    const malformed = {
-      trim() {
-        throw new Error('trim failed')
-      },
-      toLowerCase() {
-        return 'fallback-url'
-      },
-    } as unknown as string
+  it('createComparableUrlKey は URL API で host を正規化し hash を明示的に無視できる', () => {
+    expect(
+      createComparableUrlKey('https://Example.com/path?x=1#top', {
+        ignoreHash: true,
+      }),
+    ).toBe('https://example.com/path?x=1')
+  })
 
-    expect(normalizeUrl(malformed)).toBe('fallback-url')
+  it('createComparableUrlKey は query を明示的に無視しない限り比較 key に残す', () => {
+    expect(createComparableUrlKey('https://example.com/path?mode=edit')).toBe(
+      'https://example.com/path?mode=edit',
+    )
+    expect(
+      createComparableUrlKey('https://example.com/path?mode=edit', {
+        ignoreSearch: true,
+      }),
+    ).toBe('https://example.com/path')
+  })
+
+  it('createComparableUrlKey は不正URLで null を返す', () => {
+    expect(createComparableUrlKey('not a url')).toBeNull()
+  })
+
+  it('不正URLの削除要求は保存済みデータを変更しない', async () => {
+    storageState = {
+      savedTabs: [
+        {
+          id: 'group-invalid',
+          domain: 'invalid.example.com',
+          urls: [{ url: 'not a url', title: 'Invalid' }],
+        },
+      ],
+      parentCategories: [],
+      urls: [],
+    }
+    setupChromeMock()
+
+    await removeUrlFromStorage('not a url')
+
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+    expect(removeUrlFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(deleteUrlRecord).not.toHaveBeenCalled()
   })
 
   it('URL削除でグループが空になったとき parentCategories からIDを外す', async () => {
@@ -818,6 +916,36 @@ describe('url-storage', () => {
 
     expect(removeUrlFromAllCustomProjects).toHaveBeenCalledWith(
       'https://target.example.com/page',
+    )
+    expect(deleteUrlRecord).toHaveBeenCalledWith('url-id-1')
+  })
+
+  it('urlIdsベース削除は URL API の比較 key で対象レコードを特定する', async () => {
+    storageState = {
+      savedTabs: [
+        {
+          id: 'group-target',
+          domain: 'target.example.com',
+          urlIds: ['url-id-1'],
+        },
+      ],
+      parentCategories: [],
+      urls: [
+        {
+          id: 'url-id-1',
+          url: 'https://Target.example.com/page',
+          title: 'Target',
+          savedAt: 1,
+        },
+      ],
+    }
+    setupChromeMock()
+    vi.mocked(deleteUrlRecord).mockResolvedValue(true)
+
+    await removeUrlFromStorage('https://target.example.com/page')
+
+    expect(removeUrlFromAllCustomProjects).toHaveBeenCalledWith(
+      'https://Target.example.com/page',
     )
     expect(deleteUrlRecord).toHaveBeenCalledWith('url-id-1')
   })
