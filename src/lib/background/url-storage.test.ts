@@ -12,6 +12,7 @@ vi.mock('@/lib/storage/projects', () => ({
 vi.mock('@/lib/storage/urls', () => ({
   deleteUrlRecord: vi.fn(),
   invalidateUrlCache: vi.fn(),
+  withUrlRecordMutation: vi.fn(async (mutation) => mutation()),
 }))
 
 import { removeUrlFromAllCustomProjects } from '@/lib/storage/projects'

@@ -27,27 +27,44 @@ interface StorageState {
   urls?: UrlRecord[] | unknown
 }
 
-const createChromeStorageLocal = (state: StorageState) => ({
-  get: vi.fn(async (keys?: string | string[]) => {
-    if (!keys) {
-      return state
-    }
+interface ChromeStorageLocalOptions {
+  cloneReads?: boolean
+  getSetDelayMs?: (value: Record<string, unknown>) => number
+}
 
-    if (Array.isArray(keys)) {
-      return Object.fromEntries(
-        keys.map((key) => [key, state[key as keyof StorageState]]),
-      )
-    }
+const createChromeStorageLocal = (
+  state: StorageState,
+  options: ChromeStorageLocalOptions = {},
+) => {
+  const readValue = <T>(value: T): T =>
+    options.cloneReads ? structuredClone(value) : value
 
-    return {
-      [keys]: state[keys as keyof StorageState],
-    }
-  }),
+  return {
+    get: vi.fn(async (keys?: string | string[]) => {
+      if (!keys) {
+        return readValue(state)
+      }
 
-  set: vi.fn(async (value: Record<string, unknown>) => {
-    Object.assign(state, value)
-  }),
-})
+      if (Array.isArray(keys)) {
+        return Object.fromEntries(
+          keys.map((key) => [key, readValue(state[key as keyof StorageState])]),
+        )
+      }
+
+      return {
+        [keys]: readValue(state[keys as keyof StorageState]),
+      }
+    }),
+
+    set: vi.fn(async (value: Record<string, unknown>) => {
+      const delayMs = options.getSetDelayMs?.(value) ?? 0
+      if (delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+      Object.assign(state, value)
+    }),
+  }
+}
 
 const loadUrlsModule = async () => {
   vi.resetModules()
@@ -134,6 +151,48 @@ describe('urls storage', () => {
     ])
 
     expect(state.urls).toStrictEqual([first, second, third])
+  })
+
+  it('同時 create と delete が URL レコードの更新を失わない', async () => {
+    const state: StorageState = {
+      customProjects: [],
+      savedTabs: [],
+      urls: [
+        {
+          id: 'delete-target',
+          savedAt: 1,
+          title: 'Delete target',
+          url: 'https://example.com/delete-target',
+        },
+      ],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state, {
+          cloneReads: true,
+          getSetDelayMs: (value) =>
+            Array.isArray(value.urls) && value.urls.length === 0 ? 10 : 0,
+        }),
+      },
+    } as unknown as typeof chrome
+
+    const { createOrUpdateUrlRecord, deleteUrlRecord, getUrlRecords } =
+      await loadUrlsModule()
+
+    await Promise.all([
+      createOrUpdateUrlRecord('https://example.com/new', 'New'),
+      deleteUrlRecord('delete-target'),
+    ])
+
+    await expect(getUrlRecords()).resolves.toStrictEqual([
+      {
+        id: 'uuid-1',
+        savedAt: expect.any(Number),
+        title: 'New',
+        url: 'https://example.com/new',
+        favIconUrl: undefined,
+      },
+    ])
   })
 
   it('一括 upsert で空URLを除外しながら新規作成と更新を行う', async () => {
