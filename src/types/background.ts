@@ -28,31 +28,6 @@ export interface DraggedUrlInfo {
   timeoutId?: NodeJS.Timeout
 }
 
-/**
- * メッセージアクション型定義
- */
-export const messageActionSchema = z.enum([
-  'urlDragStarted',
-  'urlDropped',
-  'removeUrlFromStorage',
-  'removeUrlRecordsFromStorage',
-  'calculateTimeRemaining',
-  'checkExpiredTabs',
-  'updateTabTimestamps',
-  'getAlarmStatus',
-  'listOllamaModels',
-  'runAiChat',
-])
-
-export type MessageAction = z.infer<typeof messageActionSchema>
-
-/**
- * メッセージ基底型
- */
-export interface BaseMessage {
-  action: MessageAction
-}
-
 const nonEmptyStringSchema = z.string().min(1)
 
 const aiChatAttachmentSchema = z.object({
@@ -115,6 +90,31 @@ export const backgroundMessageSchema = z.discriminatedUnion('action', [
     prompt: nonEmptyStringSchema,
   }),
 ])
+
+/**
+ * 全てのメッセージ型のユニオン
+ */
+export type BackgroundMessage = z.infer<typeof backgroundMessageSchema>
+
+/**
+ * メッセージアクション型定義
+ */
+export type MessageAction = BackgroundMessage['action']
+
+export const messageActionSchema = z.custom<MessageAction>(
+  (action) =>
+    typeof action === 'string' &&
+    backgroundMessageSchema.options.some(
+      (schema) => schema.shape.action.value === action,
+    ),
+)
+
+/**
+ * メッセージ基底型
+ */
+export interface BaseMessage {
+  action: MessageAction
+}
 
 /**
  * URLドラッグ開始メッセージ
@@ -194,11 +194,6 @@ export type RunAiChatMessage = Extract<
   BackgroundMessage,
   { action: 'runAiChat' }
 >
-
-/**
- * 全てのメッセージ型のユニオン
- */
-export type BackgroundMessage = z.infer<typeof backgroundMessageSchema>
 
 /**
  * レスポンス型定義
