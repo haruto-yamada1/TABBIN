@@ -553,10 +553,31 @@
           {
             "name": "prompt",
             "message": "prompt は使わず、form / dialog component 経由にしてください"
+          },
+          {
+            "name": "DOMParser",
+            "message": "DOMParser は HTML parsing / injection リスクがあるため、用途を限定した sanitizer / adapter 経由にしてください"
           }
         ],
         "eslint/no-restricted-properties": [
           "error",
+          {
+            "property": "innerHTML",
+            "message": "innerHTML は HTML injection / XSS リスクがあるため禁止です。React render / textContent / sanitizer 経由にしてください"
+          },
+          {
+            "property": "outerHTML",
+            "message": "outerHTML は HTML injection / XSS リスクがあるため禁止です"
+          },
+          {
+            "property": "insertAdjacentHTML",
+            "message": "insertAdjacentHTML は HTML injection / XSS リスクがあるため禁止です"
+          },
+          {
+            "object": "document",
+            "property": "write",
+            "message": "document.write は禁止です。React render / safe renderer に置き換えてください"
+          },
           {
             "object": "window",
             "property": "alert",
