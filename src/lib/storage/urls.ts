@@ -49,7 +49,7 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
 /**
  * URLレコードを保存する
  */
-const saveUrlRecords = async (urlRecords: UrlRecord[]): Promise<void> => {
+const saveUrlRecordsUnsafe = async (urlRecords: UrlRecord[]): Promise<void> => {
   try {
     await chrome.storage.local.set({
       urls: urlRecords,
@@ -114,7 +114,7 @@ const createOrUpdateUrlRecordUnsafe = async (
     const updatedRecords = urlRecords.map((record) =>
       record.id === existingRecord.id ? updatedRecord : record,
     )
-    await saveUrlRecords(updatedRecords)
+    await saveUrlRecordsUnsafe(updatedRecords)
     return updatedRecord
   }
   // 新しいレコードを作成
@@ -125,7 +125,7 @@ const createOrUpdateUrlRecordUnsafe = async (
     title,
     url,
   }
-  await saveUrlRecords([...urlRecords, newRecord])
+  await saveUrlRecordsUnsafe([...urlRecords, newRecord])
   return newRecord
 }
 
@@ -194,20 +194,27 @@ const createOrUpdateUrlRecordsBatchUnsafe = async (
     resolvedRecordByUrl.set(input.url, updatedRecord)
   }
 
-  await saveUrlRecords(records)
+  await saveUrlRecordsUnsafe(records)
   return resolvedRecordByUrl
 }
 
 const enqueueUrlRecordMutation = async <T>(
   operation: () => Promise<T>,
 ): Promise<T> => {
-  const result = urlRecordMutationQueue.then(operation)
+  const result = urlRecordMutationQueue.then(operation, operation)
   urlRecordMutationQueue = result.then(
     () => undefined,
     () => undefined,
   )
   return result
 }
+
+const withUrlRecordMutation = async <T>(
+  operation: () => Promise<T>,
+): Promise<T> => enqueueUrlRecordMutation(operation)
+
+const saveUrlRecords = async (urlRecords: UrlRecord[]): Promise<void> =>
+  enqueueUrlRecordMutation(async () => saveUrlRecordsUnsafe(urlRecords))
 
 const createOrUpdateUrlRecord = async (
   url: string,
@@ -229,7 +236,7 @@ const createOrUpdateUrlRecordsBatch = async (
 /**
  * URLレコードを削除する（参照されていない場合のみ）
  */
-const deleteUrlRecord = async (id: string): Promise<boolean> => {
+const deleteUrlRecordUnsafe = async (id: string): Promise<boolean> => {
   // 参照チェック（SavedTabsとCustomProjectsで使用されていないか確認）
   const isReferenced = await isUrlRecordReferenced(id)
   if (isReferenced) {
@@ -239,12 +246,15 @@ const deleteUrlRecord = async (id: string): Promise<boolean> => {
   const urlRecords = await getUrlRecords()
   const filteredRecords = urlRecords.filter((record) => record.id !== id)
   if (filteredRecords.length < urlRecords.length) {
-    await saveUrlRecords(filteredRecords)
+    await saveUrlRecordsUnsafe(filteredRecords)
     console.log(`URLレコード ${id} を削除しました`)
     return true
   }
   return false
 }
+
+const deleteUrlRecord = async (id: string): Promise<boolean> =>
+  enqueueUrlRecordMutation(async () => deleteUrlRecordUnsafe(id))
 /**
  * URLレコードが他の場所で参照されているかチェックする
  */
@@ -275,7 +285,7 @@ const isUrlRecordReferenced = async (urlId: string): Promise<boolean> => {
 /**
  * 使用されていないURLレコードをクリーンアップする
  */
-const cleanupUnreferencedUrls = async (): Promise<number> => {
+const cleanupUnreferencedUrlsUnsafe = async (): Promise<number> => {
   try {
     const [urlRecords, savedTabsResult, customProjectsResult] =
       await Promise.all([
@@ -317,7 +327,7 @@ const cleanupUnreferencedUrls = async (): Promise<number> => {
     )
     const deletedCount = urlRecords.length - referencedRecords.length
     if (deletedCount > 0) {
-      await saveUrlRecords(referencedRecords)
+      await saveUrlRecordsUnsafe(referencedRecords)
       console.log(
         `${deletedCount}個の未参照URLレコードをクリーンアップしました`,
       )
@@ -328,10 +338,14 @@ const cleanupUnreferencedUrls = async (): Promise<number> => {
     return 0
   }
 }
+
+const cleanupUnreferencedUrls = async (): Promise<number> =>
+  enqueueUrlRecordMutation(cleanupUnreferencedUrlsUnsafe)
+
 /**
  * 重複するURLレコードを統合する
  */
-const deduplicateUrlRecords = async (): Promise<number> => {
+const deduplicateUrlRecordsUnsafe = async (): Promise<number> => {
   try {
     const urlRecords = await getUrlRecords()
     const urlMap = new Map<string, UrlRecord>()
@@ -357,11 +371,11 @@ const deduplicateUrlRecords = async (): Promise<number> => {
     }
     if (duplicateIds.length > 0) {
       // 重複IDの参照を更新
-      await updateUrlReferences(duplicateIds, replacementIdMap)
+      await updateUrlReferencesUnsafe(duplicateIds, replacementIdMap)
 
       // 重複レコードを削除
       const deduplicatedRecords = [...urlMap.values()]
-      await saveUrlRecords(deduplicatedRecords)
+      await saveUrlRecordsUnsafe(deduplicatedRecords)
       console.log(`${duplicateIds.length}個の重複URLレコードを統合しました`)
     }
     return duplicateIds.length
@@ -370,6 +384,9 @@ const deduplicateUrlRecords = async (): Promise<number> => {
     return 0
   }
 }
+
+const deduplicateUrlRecords = async (): Promise<number> =>
+  enqueueUrlRecordMutation(deduplicateUrlRecordsUnsafe)
 
 const remapReferenceKeys = <T>(
   values: Record<string, T> | undefined,
@@ -405,7 +422,7 @@ const remapReferenceKeys = <T>(
  */
 // TODO(#557): SavedTabs/CustomProjects の重複ロジックを共通化して複雑度を削減する。
 // eslint-disable-next-line eslint/complexity
-const updateUrlReferences = async (
+const updateUrlReferencesUnsafe = async (
   duplicateIds: string[],
   replacementIdMap: Map<string, string>,
 ): Promise<void> => {
@@ -487,6 +504,14 @@ const updateUrlReferences = async (
   }
 }
 
+const updateUrlReferences = async (
+  duplicateIds: string[],
+  replacementIdMap: Map<string, string>,
+): Promise<void> =>
+  enqueueUrlRecordMutation(async () =>
+    updateUrlReferencesUnsafe(duplicateIds, replacementIdMap),
+  )
+
 export {
   cleanupUnreferencedUrls,
   createOrUpdateUrlRecord,
@@ -501,4 +526,5 @@ export {
   isUrlRecordReferenced,
   saveUrlRecords,
   updateUrlReferences,
+  withUrlRecordMutation,
 }
