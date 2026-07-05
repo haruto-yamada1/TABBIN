@@ -132,6 +132,40 @@ const removeLegacyUrlFromGroup = (
     },
   ]
 }
+
+const removeLegacyUrlIdsFromGroup = (
+  group: TabGroup,
+  targetUrlIds: Set<string>,
+  targetUrlKeys: Set<string>,
+  removedGroupIds: string[],
+): TabGroup[] => {
+  if (!Array.isArray(group.urls)) {
+    return [group]
+  }
+
+  const updatedUrls = group.urls.filter((item) => {
+    if (item.id && targetUrlIds.has(item.id)) {
+      return false
+    }
+
+    const itemUrlKey = createComparableUrlKey(item.url)
+    return !(itemUrlKey && targetUrlKeys.has(itemUrlKey))
+  })
+  if (updatedUrls.length === group.urls.length) {
+    return [group]
+  }
+  if (updatedUrls.length === 0) {
+    removedGroupIds.push(group.id)
+    return []
+  }
+  return [
+    {
+      ...group,
+      urls: updatedUrls,
+    },
+  ]
+}
+
 const updateGroupAfterUrlRemoval = (
   group: TabGroup,
   targetUrlKey: string,
@@ -173,6 +207,28 @@ interface BulkParentCategoriesRemovalResult {
 const createUrlIdSet = (urlIds: string[]): Set<string> =>
   new Set(urlIds.filter((id) => typeof id === 'string' && id.length > 0))
 
+const createComparableUrlKeySet = (
+  urls: UrlRecord[],
+  urlIds: Set<string>,
+): Set<string> =>
+  new Set(
+    urls.flatMap((record) => {
+      if (!urlIds.has(record.id)) {
+        return []
+      }
+
+      const urlKey = createComparableUrlKey(record.url)
+      return urlKey ? [urlKey] : []
+    }),
+  )
+
+const haveTabGroupsChanged = (
+  currentGroups: TabGroup[],
+  nextGroups: TabGroup[],
+): boolean =>
+  currentGroups.length !== nextGroups.length ||
+  nextGroups.some((group, index) => group !== currentGroups[index])
+
 const removeUrlIdsFromRecord = <T>(
   record: Record<string, T> | undefined,
   urlIds: Set<string>,
@@ -199,6 +255,7 @@ const removeUrlIdsFromRecord = <T>(
 const removeUrlIdsFromSavedTabs = (
   savedTabs: TabGroup[],
   urlIds: Set<string>,
+  targetUrlKeys = new Set<string>(),
 ): BulkSavedTabsRemovalResult => {
   let hasChanges = false
   const removedGroupIds: string[] = []
@@ -206,7 +263,16 @@ const removeUrlIdsFromSavedTabs = (
 
   for (const group of savedTabs) {
     if (!Array.isArray(group.urlIds)) {
-      updatedTabs.push(group)
+      const nextGroups = removeLegacyUrlIdsFromGroup(
+        group,
+        urlIds,
+        targetUrlKeys,
+        removedGroupIds,
+      )
+      if (nextGroups[0] !== group || nextGroups.length === 0) {
+        hasChanges = true
+      }
+      updatedTabs.push(...nextGroups)
       continue
     }
 
@@ -402,10 +468,11 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
         targetUrlIds,
       )
       const urlsResult = removeUrlRecordsById(urlRecords, targetUrlIds)
-      const payload: BulkUrlRemovalStorage = {
-        savedTabs: updatedGroups,
-      }
+      const payload: BulkUrlRemovalStorage = {}
 
+      if (haveTabGroupsChanged(savedTabs, updatedGroups)) {
+        payload.savedTabs = updatedGroups
+      }
       if (parentCategoriesResult.hasChanges) {
         payload.parentCategories = parentCategoriesResult.parentCategories
       }
@@ -416,9 +483,11 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
         payload.urls = urlsResult.urls
       }
 
-      await chrome.storage.local.set(payload)
-      if (urlsResult.hasChanges) {
-        invalidateUrlCache()
+      if (Object.keys(payload).length > 0) {
+        await chrome.storage.local.set(payload)
+        if (urlsResult.hasChanges) {
+          invalidateUrlCache()
+        }
       }
     })
 
@@ -457,7 +526,12 @@ const removeUrlRecordsFromStorage = async (
       const parentCategories = Array.isArray(storageResult.parentCategories)
         ? storageResult.parentCategories
         : []
-      const savedTabsResult = removeUrlIdsFromSavedTabs(savedTabs, targetUrlIds)
+      const targetUrlKeys = createComparableUrlKeySet(urls, targetUrlIds)
+      const savedTabsResult = removeUrlIdsFromSavedTabs(
+        savedTabs,
+        targetUrlIds,
+        targetUrlKeys,
+      )
       const customProjectsResult = removeUrlIdsFromCustomProjects(
         customProjects,
         targetUrlIds,

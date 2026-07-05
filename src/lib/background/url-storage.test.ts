@@ -62,7 +62,7 @@ interface StorageState {
     id: string
     domain: string
     parentCategoryId?: string
-    urls?: { url: string; title: string }[]
+    urls?: { id?: string; url: string; title: string; savedAt?: number }[]
     urlIds?: string[]
     urlSubCategories?: Record<string, string>
   }[]
@@ -382,11 +382,11 @@ describe('url-storage', () => {
     vi.mocked(getUserSettings).mockResolvedValue(
       createSettings({ removeTabAfterOpen: true }),
     )
-    handleUrlDragStarted('https://example.com/path')
+    handleUrlDragStarted('https://example.com')
 
     await expect(
       handleTabCreated({
-        url: 'https://example.com/path',
+        url: 'https://example.com',
       } as chrome.tabs.Tab),
     ).resolves.toBeUndefined()
 
@@ -606,7 +606,7 @@ describe('url-storage', () => {
     )
   })
 
-  it('savedTabs が未定義でも空配列として保存する', async () => {
+  it('savedTabs が未定義で削除対象がない場合は保存しない', async () => {
     storageState = {
       parentCategories: [],
     }
@@ -614,7 +614,7 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://example.com')
 
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
   })
 
   it('urls/urlIds 未定義グループは保持し、カテゴリ更新を行わない', async () => {
@@ -638,18 +638,7 @@ describe('url-storage', () => {
     await removeUrlFromStorage('https://does-not-exist.example.com')
     await Promise.resolve()
 
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({
-      savedTabs: [
-        {
-          id: 'group-no-urls',
-          domain: 'no-urls.example.com',
-        },
-      ],
-    })
-
-    expect(chrome.storage.local.set).not.toHaveBeenCalledWith({
-      parentCategories: expect.anything(),
-    })
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
   })
 
   it('domainNames に対象ドメインがない場合の分岐を通る', async () => {
@@ -1221,16 +1210,80 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+  })
+
+  it('単一URL削除でsavedTabsが変わらない場合はsavedTabsを書き戻さない', async () => {
+    storageState = {
+      customProjects: [
+        {
+          id: 'project-1',
+          name: 'Project 1',
+          urlIds: ['url-id-1', 'url-id-keep'],
+          urlMetadata: {
+            'url-id-1': { category: 'Remove' },
+            'url-id-keep': { category: 'Keep' },
+          },
+          categories: [],
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ],
+      parentCategories: [],
       savedTabs: [
         {
-          id: 'group-target',
-          domain: 'target.example.com',
-          urlIds: ['url-id-1'],
-          urlSubCategories: { 'url-id-1': 'catA' },
+          id: 'group-keep',
+          domain: 'keep.example.com',
+          urlIds: ['url-id-keep'],
+        },
+      ],
+      urls: [
+        {
+          id: 'url-id-1',
+          url: 'https://project.example.com/remove',
+          title: 'Remove',
+          savedAt: 1,
+        },
+        {
+          id: 'url-id-keep',
+          url: 'https://keep.example.com/page',
+          title: 'Keep',
+          savedAt: 2,
+        },
+      ],
+    }
+    setupChromeMock({ cloneReads: true })
+
+    await removeUrlFromStorage('https://project.example.com/remove')
+
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      customProjects: [
+        {
+          id: 'project-1',
+          name: 'Project 1',
+          urlIds: ['url-id-keep'],
+          urlMetadata: {
+            'url-id-keep': { category: 'Keep' },
+          },
+          categories: [],
+          createdAt: 1,
+          updatedAt: expect.any(Number),
+        },
+      ],
+      urls: [
+        {
+          id: 'url-id-keep',
+          url: 'https://keep.example.com/page',
+          title: 'Keep',
+          savedAt: 2,
         },
       ],
     })
+    expect(chrome.storage.local.set).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        savedTabs: expect.anything(),
+      }),
+    )
   })
 
   it('カテゴリ削除処理で parentCategories/savedTabs 未定義でもフォールバックする', async () => {
@@ -1619,6 +1672,93 @@ describe('url-storage', () => {
           savedAt: 2,
           title: 'Keep',
           url: 'https://project.example.com/2',
+        },
+      ],
+    })
+  })
+
+  it('一括削除は旧形式urlsだけのグループと親カテゴリ参照も更新する', async () => {
+    storageState = {
+      customProjects: [],
+      parentCategories: [
+        {
+          id: 'cat-1',
+          name: 'Category 1',
+          domains: ['legacy-empty', 'group-keep'],
+          domainNames: ['legacy.example.com', 'keep.example.com'],
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'legacy-empty',
+          domain: 'legacy.example.com',
+          urls: [
+            {
+              url: 'https://legacy.example.com/remove',
+              title: 'Remove',
+            },
+          ],
+        },
+        {
+          id: 'group-keep',
+          domain: 'keep.example.com',
+          urls: [
+            {
+              id: 'keep-url',
+              url: 'https://keep.example.com/page',
+              title: 'Keep',
+            },
+          ],
+        },
+      ],
+      urls: [
+        {
+          id: 'legacy-url',
+          savedAt: 1,
+          title: 'Remove',
+          url: 'https://legacy.example.com/remove',
+        },
+        {
+          id: 'keep-url',
+          savedAt: 2,
+          title: 'Keep',
+          url: 'https://keep.example.com/page',
+        },
+      ],
+    }
+    setupChromeMock({ cloneReads: true })
+
+    const removedCount = await removeUrlRecordsFromStorage(['legacy-url'])
+
+    expect(removedCount).toBe(1)
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      parentCategories: [
+        {
+          id: 'cat-1',
+          name: 'Category 1',
+          domains: ['group-keep'],
+          domainNames: ['legacy.example.com', 'keep.example.com'],
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'group-keep',
+          domain: 'keep.example.com',
+          urls: [
+            {
+              id: 'keep-url',
+              url: 'https://keep.example.com/page',
+              title: 'Keep',
+            },
+          ],
+        },
+      ],
+      urls: [
+        {
+          id: 'keep-url',
+          savedAt: 2,
+          title: 'Keep',
+          url: 'https://keep.example.com/page',
         },
       ],
     })
