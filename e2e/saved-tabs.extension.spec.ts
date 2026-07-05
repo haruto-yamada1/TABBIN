@@ -1,4 +1,6 @@
 import {
+  createBaseSeed,
+  defaultUserSettings,
   expect,
   getExtensionUrl,
   readStorage,
@@ -8,47 +10,25 @@ import {
 
 const now = Date.now()
 
-const createSeedWithUrls = () => ({
-  customProjectOrder: [],
-  customProjects: [],
-  domainCategoryMappings: [],
-  domainCategorySettings: [],
-  parentCategories: [],
-  savedTabs: [
-    {
-      domain: 'example.com',
-      id: 'group-example',
-      urlIds: ['url-example'],
-    },
-  ],
-  'tab-manager-theme': 'system',
-  urls: [
-    {
-      id: 'url-example',
-      savedAt: now,
-      title: 'Example Home',
-      url: 'https://example.com/',
-    },
-  ],
-  userSettings: {
-    autoDeletePeriod: 'never',
-    clickBehavior: 'saveCurrentTab',
-    colors: {},
-    confirmDeleteAll: false,
-    confirmDeleteEach: false,
-    enableCategories: true,
-    excludePatterns: ['chrome-extension://', 'chrome://'],
-    excludePinnedTabs: true,
-    language: 'en',
-    ollamaModel: '',
-    openAllInNewWindow: false,
-    openUrlInBackground: true,
-    removeTabAfterExternalDrop: true,
-    removeTabAfterOpen: true,
-    showSavedTime: false,
-  },
-  viewMode: 'domain',
-})
+const createSeedWithUrls = () =>
+  createBaseSeed({
+    savedTabs: [
+      {
+        domain: 'example.com',
+        id: 'group-example',
+        urlIds: ['url-example'],
+      },
+    ],
+    urls: [
+      {
+        id: 'url-example',
+        savedAt: now,
+        title: 'Example Home',
+        url: 'https://example.com/',
+      },
+    ],
+    userSettings: { ...defaultUserSettings, clickBehavior: 'saveCurrentTab' },
+  })
 
 const createCustomProjectSeed = () => {
   const base = createSeedWithUrls()

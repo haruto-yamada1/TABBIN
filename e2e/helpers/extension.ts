@@ -65,6 +65,38 @@ export const test = base.extend<ExtensionFixtures>({
 
 export { expect }
 
+export const defaultUserSettings = {
+  autoDeletePeriod: 'never',
+  clickBehavior: 'saveSameDomainTabs',
+  colors: {},
+  confirmDeleteAll: false,
+  confirmDeleteEach: false,
+  enableCategories: true,
+  excludePatterns: ['chrome-extension://', 'chrome://'],
+  excludePinnedTabs: true,
+  language: 'en',
+  ollamaModel: '',
+  openAllInNewWindow: false,
+  openUrlInBackground: true,
+  removeTabAfterExternalDrop: true,
+  removeTabAfterOpen: true,
+  showSavedTime: false,
+}
+
+export const createBaseSeed = (overrides?: Record<string, unknown>) => ({
+  customProjectOrder: [],
+  customProjects: [],
+  domainCategoryMappings: [],
+  domainCategorySettings: [],
+  parentCategories: [],
+  savedTabs: [],
+  'tab-manager-theme': 'system',
+  urls: [],
+  userSettings: { ...defaultUserSettings },
+  viewMode: 'domain',
+  ...overrides,
+})
+
 export const getExtensionUrl = (extensionId: string, pathname: string) =>
   `chrome-extension://${extensionId}/${pathname}`
 

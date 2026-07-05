@@ -1,6 +1,10 @@
-import { readFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 
 import {
+  createBaseSeed,
+  defaultUserSettings,
   expect,
   getExtensionUrl,
   readStorage,
@@ -10,47 +14,25 @@ import {
 
 const now = Date.now()
 
-const createSeedWithUrls = () => ({
-  customProjectOrder: [],
-  customProjects: [],
-  domainCategoryMappings: [],
-  domainCategorySettings: [],
-  parentCategories: [],
-  savedTabs: [
-    {
-      domain: 'example.com',
-      id: 'group-example',
-      urlIds: ['url-example'],
-    },
-  ],
-  'tab-manager-theme': 'system',
-  urls: [
-    {
-      id: 'url-example',
-      savedAt: now,
-      title: 'Example Home',
-      url: 'https://example.com/',
-    },
-  ],
-  userSettings: {
-    autoDeletePeriod: 'never',
-    clickBehavior: 'saveCurrentTab',
-    colors: {},
-    confirmDeleteAll: false,
-    confirmDeleteEach: false,
-    enableCategories: true,
-    excludePatterns: ['chrome-extension://', 'chrome://'],
-    excludePinnedTabs: true,
-    language: 'en',
-    ollamaModel: '',
-    openAllInNewWindow: false,
-    openUrlInBackground: true,
-    removeTabAfterExternalDrop: true,
-    removeTabAfterOpen: true,
-    showSavedTime: false,
-  },
-  viewMode: 'domain',
-})
+const createSeedWithUrls = () =>
+  createBaseSeed({
+    savedTabs: [
+      {
+        domain: 'example.com',
+        id: 'group-example',
+        urlIds: ['url-example'],
+      },
+    ],
+    urls: [
+      {
+        id: 'url-example',
+        savedAt: now,
+        title: 'Example Home',
+        url: 'https://example.com/',
+      },
+    ],
+    userSettings: { ...defaultUserSettings, clickBehavior: 'saveCurrentTab' },
+  })
 
 test.describe('extension options', () => {
   test('設定をエクスポートしてエクスポートデータの内容を確認できる', async ({
@@ -79,7 +61,7 @@ test.describe('extension options', () => {
     expect(backupData.savedTabs[0].domain).toBe('example.com')
   })
 
-  test('エクスポートした設定からインポート相当のストレージ復元ができる', async ({
+  test('エクスポートしたファイルを実際のインポートUIで復元できる', async ({
     extensionId,
     page,
     serviceWorker,
@@ -99,53 +81,25 @@ test.describe('extension options', () => {
     expect(backupData.urls).toHaveLength(1)
     expect(backupData.savedTabs).toHaveLength(1)
 
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'tabbin-import-'))
+    const tmpFilePath = path.join(tmpDir, 'tabbin-backup.json')
+    await writeFile(tmpFilePath, fileContent)
+
     await serviceWorker.evaluate(async () => {
       await chrome.storage.local.clear()
-      await chrome.storage.local.set({
-        userSettings: {
-          autoDeletePeriod: 'never',
-          clickBehavior: 'saveSameDomainTabs',
-          colors: {},
-          confirmDeleteAll: false,
-          confirmDeleteEach: false,
-          enableCategories: true,
-          excludePatterns: ['chrome-extension://', 'chrome://'],
-          excludePinnedTabs: true,
-          language: 'en',
-          ollamaModel: '',
-          openAllInNewWindow: false,
-          openUrlInBackground: true,
-          removeTabAfterExternalDrop: true,
-          removeTabAfterOpen: true,
-          showSavedTime: false,
-        },
-      })
     })
 
-    await serviceWorker.evaluate(
-      async (data: {
-        savedTabs: unknown[]
-        urls: unknown[]
-        customProjects: unknown[]
-        parentCategories: unknown[]
-        customProjectOrder: unknown[]
-      }) => {
-        await chrome.storage.local.set({
-          savedTabs: data.savedTabs,
-          urls: data.urls,
-          customProjects: data.customProjects,
-          parentCategories: data.parentCategories,
-          customProjectOrder: data.customProjectOrder,
-        })
-      },
-      {
-        savedTabs: backupData.savedTabs,
-        urls: backupData.urls,
-        customProjects: backupData.customProjects ?? [],
-        parentCategories: backupData.parentCategories ?? [],
-        customProjectOrder: backupData.customProjectOrder ?? [],
-      },
-    )
+    await page.getByRole('button', { name: /import/i }).click()
+    await page
+      .locator('[data-testid="hidden-file-input"]')
+      .setInputFiles(tmpFilePath)
+    await expect(
+      page.getByRole('button', { name: /confirm.*import/i }),
+    ).toBeVisible()
+    await page.getByRole('button', { name: /confirm.*import/i }).click()
+    await expect(
+      page.getByRole('button', { name: /confirm.*import/i }),
+    ).toBeHidden()
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
@@ -159,5 +113,7 @@ test.describe('extension options', () => {
     }>(serviceWorker, ['savedTabs', 'urls'])
     expect(data.savedTabs[0].domain).toBe('example.com')
     expect(data.urls[0].url).toBe('https://example.com/')
+
+    await rm(tmpDir, { force: true, recursive: true })
   })
 })

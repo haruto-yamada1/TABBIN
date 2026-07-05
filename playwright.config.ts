@@ -8,22 +8,17 @@ export default defineConfig({
     {
       name: 'storybook',
       testMatch: '**/*.story.spec.ts',
-      use: {
-        ...devices['Desktop Chrome'],
-      },
     },
     {
       name: 'extension',
       testMatch: '**/*.extension.spec.ts',
-      use: {
-        ...devices['Desktop Chrome'],
-      },
     },
   ],
   reporter: 'html',
   retries: process.env.CI ? 2 : 0,
   testDir: './e2e',
   use: {
+    ...devices['Desktop Chrome'],
     trace: 'on-first-retry',
   },
   workers: process.env.CI ? 1 : undefined,

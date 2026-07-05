@@ -1,33 +1,10 @@
-import { expect, getExtensionUrl, seedStorage, test } from './helpers/extension'
-
-const createBaseSeed = () => ({
-  customProjectOrder: [],
-  customProjects: [],
-  domainCategoryMappings: [],
-  domainCategorySettings: [],
-  parentCategories: [],
-  savedTabs: [],
-  'tab-manager-theme': 'system',
-  urls: [],
-  userSettings: {
-    autoDeletePeriod: 'never',
-    clickBehavior: 'saveSameDomainTabs',
-    colors: {},
-    confirmDeleteAll: false,
-    confirmDeleteEach: false,
-    enableCategories: true,
-    excludePatterns: ['chrome-extension://', 'chrome://'],
-    excludePinnedTabs: true,
-    language: 'en',
-    ollamaModel: '',
-    openAllInNewWindow: false,
-    openUrlInBackground: true,
-    removeTabAfterExternalDrop: true,
-    removeTabAfterOpen: true,
-    showSavedTime: false,
-  },
-  viewMode: 'domain',
-})
+import {
+  createBaseSeed,
+  expect,
+  getExtensionUrl,
+  seedStorage,
+  test,
+} from './helpers/extension'
 
 interface RuntimeLike {
   sendMessage?: (message: unknown) => Promise<unknown>
@@ -75,10 +52,14 @@ const installOllamaListFailureMock = async (page: InitScriptPage) => {
       try {
         runtime.sendMessage = nextSendMessage
       } catch {
-        Object.defineProperty(runtime, 'sendMessage', {
-          configurable: true,
-          value: nextSendMessage,
-        })
+        try {
+          Object.defineProperty(runtime, 'sendMessage', {
+            configurable: true,
+            value: nextSendMessage,
+          })
+        } catch {
+          // Both assignment and defineProperty failed; silently continue
+        }
       }
     }
 
