@@ -6,17 +6,19 @@ export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   projects: [
     {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-      },
+      name: 'storybook',
+      testMatch: '**/*.story.spec.ts',
+    },
+    {
+      name: 'extension',
+      testMatch: '**/*.extension.spec.ts',
     },
   ],
   reporter: 'html',
   retries: process.env.CI ? 2 : 0,
   testDir: './e2e',
-  testMatch: '**/*.story.spec.ts',
   use: {
+    ...devices['Desktop Chrome'],
     trace: 'on-first-retry',
   },
   workers: process.env.CI ? 1 : undefined,
