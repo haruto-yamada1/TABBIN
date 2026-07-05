@@ -22,6 +22,18 @@ interface ImportedUrlRecordData {
   favIconUrl?: string
 }
 
+const importableUrlSchema = z.string().refine(
+  (value) => {
+    try {
+      new URL(value)
+      return true
+    } catch {
+      return false
+    }
+  },
+  { message: 'Invalid URL' },
+)
+
 interface ImportedTabData {
   id: string
   domain: string
@@ -93,9 +105,9 @@ interface BackupData {
 }
 
 const importedUrlDataSchema = z.object({
-  url: z.string(),
+  url: importableUrlSchema,
   title: z.string().optional(),
-  favIconUrl: z.string().optional(),
+  favIconUrl: importableUrlSchema.optional(),
   timestamp: z.number().optional(),
   tabId: z.number().optional(),
   // インポート用に他のプロパティも許可
@@ -104,11 +116,11 @@ const importedUrlDataSchema = z.object({
 })
 
 const importedUrlRecordSchema = z.object({
-  favIconUrl: z.string().optional(),
+  favIconUrl: importableUrlSchema.optional(),
   id: z.string(),
   savedAt: z.number().optional(),
   title: z.string().optional(),
-  url: z.string(),
+  url: importableUrlSchema,
 })
 
 const importedCustomProjectSchema = z.object({
@@ -138,7 +150,7 @@ const importedCustomProjectSchema = z.object({
   urls: z
     .array(
       z.object({
-        url: z.string(),
+        url: importableUrlSchema,
         title: z.string().optional(),
         notes: z.string().optional(),
         savedAt: z.number().optional(),
@@ -251,11 +263,11 @@ const aiChatToolTraceSchema = z.object({
 
 const ollamaErrorDetailsSchema = z.object({
   allowedOrigins: z.string().optional(),
-  baseUrl: z.string(),
-  downloadUrl: z.string(),
-  faqUrl: z.string(),
+  baseUrl: importableUrlSchema,
+  downloadUrl: importableUrlSchema,
+  faqUrl: importableUrlSchema,
   kind: z.enum(['forbidden', 'notInstalledOrNotRunning']),
-  tagsUrl: z.string(),
+  tagsUrl: importableUrlSchema,
 })
 
 const aiChatConversationMessageSchema = z.object({
@@ -364,7 +376,7 @@ function parseBackupData(jsonData: string): BackupData | null {
   return backupData
 }
 
-export { backupDataSchema, parseBackupData }
+export { backupDataSchema, importableUrlSchema, parseBackupData }
 export type {
   BackupData,
   ConvertedUrlData,
