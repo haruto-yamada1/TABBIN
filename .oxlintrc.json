@@ -321,6 +321,7 @@
       }
     ],
     "typescript/non-nullable-type-assertion-style": "off",
+    "typescript/dot-notation": "error",
     "unicorn/consistent-existence-index-check": "off",
     "unicorn/consistent-function-scoping": "off",
     "unicorn/no-await-expression-member": "off",
