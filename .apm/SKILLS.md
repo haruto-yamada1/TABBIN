@@ -121,6 +121,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | `github-issue-implementation` | GitHub issue URL から issue 内容を確認し、`develop` 最新化、issue 用 branch / worktree 作成、実装、検証、git workflow への handoff まで進めます。 |
 | `split-to-prs` | 現在の変更や大きな作業を、小さく review しやすい PR に分割します。 |
 | `git-staged-branch-commit-push` | staged changes を確認し、現在の branch から新しい branch を作成して commit と push まで進めます。 |
+| `commit-push-pr` | 実装完了後の commit、push、PR 作成を一貫して行います。sandbox の .git 読み取り専用・ネットワーク遮断・gh 未認証を回避する知識を含みます。 |
 
 ### APM / Cursor / 設定作成
 
