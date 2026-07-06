@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
+import { isValidUrl } from '@/lib/url-filter'
 import type { ParentCategory, UserSettings } from '@/types/storage'
 
 interface ImportedUrlData {
@@ -22,17 +23,11 @@ interface ImportedUrlRecordData {
   favIconUrl?: string
 }
 
-const importableUrlSchema = z.string().refine(
-  (value) => {
-    try {
-      new URL(value)
-      return true
-    } catch {
-      return false
-    }
-  },
-  { message: 'Invalid URL' },
-)
+const importableUrlSchema = z.string().refine(isValidUrl, {
+  message: 'Invalid URL',
+})
+
+const favIconUrlSchema = importableUrlSchema.or(z.literal(''))
 
 interface ImportedTabData {
   id: string
@@ -107,7 +102,7 @@ interface BackupData {
 const importedUrlDataSchema = z.object({
   url: importableUrlSchema,
   title: z.string().optional(),
-  favIconUrl: importableUrlSchema.optional(),
+  favIconUrl: favIconUrlSchema.optional(),
   timestamp: z.number().optional(),
   tabId: z.number().optional(),
   // インポート用に他のプロパティも許可
@@ -116,7 +111,7 @@ const importedUrlDataSchema = z.object({
 })
 
 const importedUrlRecordSchema = z.object({
-  favIconUrl: importableUrlSchema.optional(),
+  favIconUrl: favIconUrlSchema.optional(),
   id: z.string(),
   savedAt: z.number().optional(),
   title: z.string().optional(),
@@ -376,7 +371,12 @@ function parseBackupData(jsonData: string): BackupData | null {
   return backupData
 }
 
-export { backupDataSchema, importableUrlSchema, parseBackupData }
+export {
+  backupDataSchema,
+  favIconUrlSchema,
+  importableUrlSchema,
+  parseBackupData,
+}
 export type {
   BackupData,
   ConvertedUrlData,

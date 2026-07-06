@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { backupDataSchema, parseBackupData } from './import-export/schemas'
-import { buildFullUserSettings } from './importExportTestFixtures'
+import { buildFullUserSettings } from '@/features/options/lib/importExportTestFixtures'
+
+import { backupDataSchema, parseBackupData } from './schemas'
 
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
@@ -168,6 +169,24 @@ describe('parseBackupData', () => {
           savedAt: 100,
           favIconUrl:
             'chrome://favicon/size/16@2x/https://example.com/icon.png',
+        },
+      ],
+    }
+
+    const result = parseBackupData(JSON.stringify(data))
+    expect(result).not.toBeNull()
+  })
+
+  it('accepts empty string favIconUrl for backward compatibility', () => {
+    const data = {
+      ...baseBackup(),
+      urls: [
+        {
+          id: 'url-1',
+          url: 'https://example.com',
+          title: 'Example',
+          savedAt: 100,
+          favIconUrl: '',
         },
       ],
     }
@@ -383,7 +402,7 @@ describe('parseBackupData', () => {
     expect(result).toBeNull()
   })
 
-  it('rejects invalid favIconUrl', () => {
+  it('rejects invalid favIconUrl (non-empty, non-url)', () => {
     const data = {
       ...baseBackup(),
       urls: [
