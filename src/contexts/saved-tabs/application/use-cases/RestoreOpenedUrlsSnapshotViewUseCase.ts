@@ -22,7 +22,7 @@ import type { RestoreOpenedUrlsSnapshotUseCase } from './RestoreOpenedUrlsSnapsh
  * 存在しないとき `undefined` を維持し、UI が意図せず「空配列で全消し」
  * しないよう presenter 層に通知する (issue #512)。
  */
-export interface RestoredSnapshotViewDto {
+export type RestoredSnapshotViewDto = {
   readonly customProjects?: readonly CustomProject[]
   readonly parentCategories?: readonly ParentCategory[]
   readonly savedTabs: readonly TabGroup[]
@@ -36,7 +36,7 @@ export interface RestoredSnapshotViewDto {
  * storage 形に詰め替えることで、presentation 層が mapper の役割を
  * helper 側に持たなくて済むようにする (issue #512)。
  */
-export interface RestoreOpenedUrlsSnapshotViewUseCaseDeps {
+export type RestoreOpenedUrlsSnapshotViewUseCaseDeps = {
   readonly restoreOpenedUrlsSnapshot: RestoreOpenedUrlsSnapshotUseCase
 }
 

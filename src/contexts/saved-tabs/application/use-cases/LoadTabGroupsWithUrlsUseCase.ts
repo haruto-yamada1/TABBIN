@@ -9,7 +9,7 @@ import { resolveTabGroupsWithUrls } from '@/contexts/saved-tabs/domain/services/
  * テスト時は in-memory mock を注入する。`chrome.storage.local` への
  * 依存を排除した unit test を書けるように、interface のみを公開する。
  */
-export interface LoadTabGroupsWithUrlsUseCaseDeps {
+export type LoadTabGroupsWithUrlsUseCaseDeps = {
   readonly urlRecordRepository: UrlRecordRepository
 }
 

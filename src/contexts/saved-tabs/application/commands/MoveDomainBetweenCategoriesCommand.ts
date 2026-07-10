@@ -23,7 +23,7 @@
  */
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface MoveDomainBetweenCategoriesCommand {
+export type MoveDomainBetweenCategoriesCommand = {
   /** 移動する `TabGroupId`（生文字列）。 */
   readonly domainId: string
   /**

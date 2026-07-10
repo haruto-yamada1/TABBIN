@@ -19,7 +19,7 @@
  * })
  * ```
  */
-export interface NotificationAction {
+export type NotificationAction = {
   readonly label: string
   /**
    * ユーザーが通知の action をクリックしたときに呼ばれる副作用。
@@ -28,7 +28,7 @@ export interface NotificationAction {
   readonly onClick: () => void | Promise<void>
 }
 
-export interface NotificationMessage {
+export type NotificationMessage = {
   readonly message: string
   readonly action?: NotificationAction
 }
@@ -40,7 +40,7 @@ export interface NotificationMessage {
  * 分ける。port 実装が `success` を `info` に丸めても問題ないが、info を
  * success に昇格させないこと（呼び出し側の意図が変わる）。
  */
-export interface NotificationPort {
+export type NotificationPort = {
   info: (input: NotificationMessage) => void
   success: (input: NotificationMessage) => void
   error: (input: NotificationMessage) => void

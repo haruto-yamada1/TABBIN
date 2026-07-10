@@ -20,7 +20,7 @@ import type { OpenedUrlsStorageSnapshot } from '@/contexts/saved-tabs/presentati
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 
-interface UseTabGroupDeletionHandlersDeps {
+type UseTabGroupDeletionHandlersDeps = {
   isUncategorizedReorderMode: boolean
   setTempUncategorizedOrder: Dispatch<SetStateAction<TabGroup[]>>
   categories: ParentCategory[]

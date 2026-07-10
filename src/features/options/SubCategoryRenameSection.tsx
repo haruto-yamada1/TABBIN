@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-interface SubCategoryRenameSectionProps {
+type SubCategoryRenameSectionProps = {
   renameInputRef: React.RefObject<HTMLInputElement | null>
   newCategoryName: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void

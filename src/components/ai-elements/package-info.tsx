@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 type ChangeType = 'major' | 'minor' | 'patch' | 'added' | 'removed'
 
-interface PackageInfoContextType {
+type PackageInfoContextType = {
   name: string
   currentVersion?: string
   newVersion?: string

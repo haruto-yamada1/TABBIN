@@ -9,6 +9,6 @@ import type { SavedTabsDisplayUrlDto } from './SavedTabsPresentationDto'
  * `@/types/storage` には依存せず、domain DTO `ResolvedTabGroupUrlDto`
  * だけを返す (issue #511)。
  */
-export interface LoadTabGroupUrlsDto {
+export type LoadTabGroupUrlsDto = {
   readonly urls: readonly SavedTabsDisplayUrlDto[]
 }

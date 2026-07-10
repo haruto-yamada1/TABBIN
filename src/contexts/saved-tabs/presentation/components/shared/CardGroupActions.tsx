@@ -20,7 +20,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from './SavedTabsResponsive'
 
-interface CardGroupActionsProps {
+type CardGroupActionsProps = {
   onOpenAll?: () => void
   onDeleteAll?: () => void
   onManage?: () => void

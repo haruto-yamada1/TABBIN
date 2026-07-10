@@ -72,7 +72,7 @@ export type SavedTabsStorageChangeKey =
  * `TypedSavedTabsStorageChange` を使う。新規実装では unknown 形のこの型を
  * 直接扱わないこと。
  */
-export interface SavedTabsStorageChange {
+export type SavedTabsStorageChange = {
   readonly key: SavedTabsStorageChangeKey
   readonly oldValue: unknown
   readonly newValue: unknown
@@ -144,7 +144,7 @@ export type TypedSavedTabsStorageChange =
  * 持つ場合はリークしないよう、返り値の unsubscribe 関数を必ず
  * 呼び出すこと。
  */
-export interface StorageChangePort {
+export type StorageChangePort = {
   /**
    * `chrome` 由来の port 実装に付くマーカー。
    *

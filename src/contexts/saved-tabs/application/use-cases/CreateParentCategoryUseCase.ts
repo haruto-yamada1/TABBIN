@@ -12,11 +12,11 @@ import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objec
  * `ParentCategory` を生成する。重複チェックは use-case 側で行う
  * （同名カテゴリの存在を `findAll` で確認）。
  */
-export interface CreateParentCategoryCommand {
+export type CreateParentCategoryCommand = {
   readonly name: string
 }
 
-export interface CreateParentCategoryResult {
+export type CreateParentCategoryResult = {
   readonly category: SavedTabsParentCategoryDto
   readonly all: readonly SavedTabsParentCategoryDto[]
 }
@@ -33,7 +33,7 @@ export type CreateParentCategoryUseCase = (
 /**
  * `CreateParentCategoryUseCase` が必要とする依存。
  */
-export interface CreateParentCategoryUseCaseDeps {
+export type CreateParentCategoryUseCaseDeps = {
   readonly parentCategoryRepository: ParentCategoryRepository
   /**
    * 新しい `ParentCategory.id` を採番する port。`uuid v4` 固定だと

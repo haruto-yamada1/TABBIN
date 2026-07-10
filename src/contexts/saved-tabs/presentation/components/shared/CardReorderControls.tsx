@@ -11,7 +11,7 @@ import {
 } from './SavedTabsResponsive'
 
 /** CardReorderControls の props */
-interface CardReorderControlsProps {
+type CardReorderControlsProps = {
   /** 並び替えモード */
   isReorderMode: boolean
   /** 並び替えキャンセル */

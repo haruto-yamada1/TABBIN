@@ -52,7 +52,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
   }
 })
 
-interface StorageState {
+type StorageState = {
   parentCategories?: ParentCategory[]
   savedTabs?: TabGroup[]
 }

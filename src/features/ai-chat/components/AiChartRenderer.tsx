@@ -28,7 +28,7 @@ import {
   YAxis,
 } from '@/lib/lazy-recharts'
 
-interface AiChartPointSelection {
+type AiChartPointSelection = {
   label: string
   seriesKey?: string
   spec: AiChartSpec
@@ -242,14 +242,14 @@ const renderPieChart = ({
   </PieChart>
 )
 
-interface CartesianChartRenderProps {
+type CartesianChartRenderProps = {
   onChartPointClick?: (selection: AiChartPointSelection) => void
   primarySeries: AiChartSeries
   shouldShowLegend: boolean
   spec: AiChartSpec
 }
 
-interface CartesianChartContentProps {
+type CartesianChartContentProps = {
   children: ReactNode
   shouldShowLegend: boolean
   spec: AiChartSpec

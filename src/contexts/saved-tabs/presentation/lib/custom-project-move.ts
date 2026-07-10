@@ -4,7 +4,7 @@ import type { MoveUrlBetweenCustomProjectsCommand } from '@/contexts/saved-tabs/
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { MoveUrlBetweenCustomProjectsUseCase } from '@/contexts/saved-tabs/application/use-cases/MoveUrlBetweenCustomProjectsUseCase'
 
-interface MoveCustomProjectUrlAndSyncStateParams {
+type MoveCustomProjectUrlAndSyncStateParams = {
   sourceProjectId: string
   targetProjectId: string
   url: string

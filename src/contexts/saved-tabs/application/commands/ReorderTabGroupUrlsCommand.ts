@@ -16,7 +16,7 @@
  * })
  * ```
  */
-export interface ReorderTabGroupUrlsCommand {
+export type ReorderTabGroupUrlsCommand = {
   readonly tabGroupId: string
   readonly newUrlOrder: readonly string[]
 }

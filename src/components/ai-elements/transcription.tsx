@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 type TranscriptionSegment = TranscriptionResult['segments'][number]
 
-interface TranscriptionContextValue {
+type TranscriptionContextValue = {
   segments: TranscriptionSegment[]
   currentTime: number
   onTimeUpdate: (time: number) => void

@@ -31,7 +31,7 @@ import {
 } from './importFileDialog.helpers'
 import type { PreviewData } from './importFileDialog.helpers'
 
-interface ImportSelectStepProps {
+type ImportSelectStepProps = {
   mergeData: boolean
   onMergeChange: (mergeData: boolean) => void
   isDragActive: boolean
@@ -99,7 +99,7 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
   )
 }
 
-interface ImportPreviewStepProps {
+type ImportPreviewStepProps = {
   previewData: PreviewData
   mergeData: boolean
 }
@@ -176,7 +176,7 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
   )
 }
 
-interface ImportFileDialogProps {
+type ImportFileDialogProps = {
   onImportSuccess: () => Promise<void>
 }
 

@@ -1,7 +1,7 @@
 import { getMessage } from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 
-interface AiChatToolDefinition {
+type AiChatToolDefinition = {
   descriptionKey: string
   name: string
   titleKey: string
@@ -75,7 +75,7 @@ const getAiChatToolDescription = (
   return getMessage(language, toolDefinition.descriptionKey, toolName)
 }
 
-interface ResolvedAiChatToolDefinition {
+type ResolvedAiChatToolDefinition = {
   description: string
   name: string
   title: string

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSonnerNotificationAdapter } from './SonnerNotificationAdapter'
 import type { SonnerNotificationAdapterDeps } from './SonnerNotificationAdapter'
 
-interface ToastMock {
+type ToastMock = {
   error: ReturnType<typeof vi.fn>
   info: ReturnType<typeof vi.fn>
   success: ReturnType<typeof vi.fn>

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
-interface SpeechRecognition extends EventTarget {
+type SpeechRecognition = EventTarget & {
   continuous: boolean
   interimResults: boolean
   lang: string
@@ -25,25 +25,25 @@ interface SpeechRecognition extends EventTarget {
     | null
 }
 
-interface SpeechRecognitionEvent extends Event {
+type SpeechRecognitionEvent = Event & {
   results: SpeechRecognitionResultList
   resultIndex: number
 }
 
-interface SpeechRecognitionResultList {
+type SpeechRecognitionResultList = {
   readonly length: number
   item(index: number): SpeechRecognitionResult
   [index: number]: SpeechRecognitionResult
 }
 
-interface SpeechRecognitionResult {
+type SpeechRecognitionResult = {
   readonly length: number
   item(index: number): SpeechRecognitionAlternative
   [index: number]: SpeechRecognitionAlternative
   isFinal: boolean
 }
 
-interface SpeechRecognitionAlternative {
+type SpeechRecognitionAlternative = {
   transcript: string
   confidence: number
 }
@@ -82,7 +82,7 @@ const getRecordingErrorMessage = (error: unknown, fallback: string) => {
   return fallback
 }
 
-interface SpeechRecognitionErrorEvent extends Event {
+type SpeechRecognitionErrorEvent = Event & {
   error: string
 }
 
@@ -129,7 +129,7 @@ const detectSpeechInputMode = (): SpeechInputMode => {
   return 'none'
 }
 
-interface RecordingState {
+type RecordingState = {
   isListening: boolean
   isProcessing: boolean
   errorMessage: string | null
@@ -168,7 +168,7 @@ const recordingReducer = (
   }
 }
 
-interface RecordingButtonProps extends ComponentProps<typeof Button> {
+type RecordingButtonProps = ComponentProps<typeof Button> & {
   isListening: boolean
   isProcessing: boolean
 }

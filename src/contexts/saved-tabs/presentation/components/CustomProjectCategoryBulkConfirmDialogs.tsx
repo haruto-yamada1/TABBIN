@@ -14,7 +14,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { OpenAllTabsConfirmDialog } from './shared/OpenAllTabsConfirmDialog'
 
-interface CategoryBulkConfirmDialogsProps {
+type CategoryBulkConfirmDialogsProps = {
   isOpenAllConfirmOpen: boolean
   setIsOpenAllConfirmOpen: (open: boolean) => void
   isDeleteAllConfirmOpen: boolean

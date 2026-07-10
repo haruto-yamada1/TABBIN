@@ -9,7 +9,7 @@ import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repos
  * `projects` は application DTO として受け取り、use-case 内で domain
  * entity に変換して保存する。
  */
-export interface SaveCustomProjectsCommand {
+export type SaveCustomProjectsCommand = {
   readonly projects: readonly SavedTabsCustomProjectDto[]
 }
 
@@ -20,7 +20,7 @@ export type SaveCustomProjectsUseCase = (
 /**
  * `SaveCustomProjectsUseCase` が依存する repository 群。
  */
-export interface SaveCustomProjectsUseCaseDeps {
+export type SaveCustomProjectsUseCaseDeps = {
   readonly customProjectRepository: CustomProjectRepository
 }
 

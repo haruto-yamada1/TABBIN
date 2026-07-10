@@ -24,7 +24,7 @@ import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-t
 import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
 
-interface ProjectManagementRefs {
+type ProjectManagementRefs = {
   getCustomProjectOrderQueryRef: {
     readonly current: GetCustomProjectOrderQuery
   }

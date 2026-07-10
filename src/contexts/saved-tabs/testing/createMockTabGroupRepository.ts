@@ -30,7 +30,7 @@ import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
-export interface MockTabGroupRepositoryState {
+export type MockTabGroupRepositoryState = {
   readonly savedTabs: readonly TabGroup[]
 }
 

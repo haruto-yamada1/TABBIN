@@ -10,7 +10,7 @@ import type {
 
 import { useProjectManagement } from './useProjectManagement'
 
-interface CustomProjectRawSnapshot {
+type CustomProjectRawSnapshot = {
   id: string
   name: string
   categories: readonly string[]

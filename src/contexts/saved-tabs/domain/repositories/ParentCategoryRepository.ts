@@ -17,7 +17,7 @@ import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-object
  * const docs = categories.find((category) => category.name === 'Docs')
  * ```
  */
-export interface ParentCategoryRepository {
+export type ParentCategoryRepository = {
   findAll: () => Promise<readonly ParentCategory[]>
   findById: (id: ParentCategoryId) => Promise<ParentCategory | null>
   saveAll: (categories: readonly ParentCategory[]) => Promise<void>

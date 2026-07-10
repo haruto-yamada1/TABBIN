@@ -69,25 +69,25 @@ const parseRecord = (v: unknown): Record<string, unknown> => {
   return result
 }
 
-interface OllamaModelOption {
+type OllamaModelOption = {
   name: string
   label: string
   modifiedAt?: string
 }
 
-interface AiChatHistoryMessage {
+type AiChatHistoryMessage = {
   role: 'user' | 'assistant'
   content: string
   attachments?: AiChatAttachment[]
 }
 
-interface AiChatRequest {
+type AiChatRequest = {
   prompt: string
   history: AiChatHistoryMessage[]
   attachments?: AiChatAttachment[]
 }
 
-interface AiChatResult {
+type AiChatResult = {
   answer: string
   charts: AiChartSpec[]
   recordCount: number
@@ -95,13 +95,13 @@ interface AiChatResult {
   toolTraces: AiChatToolTrace[]
 }
 
-interface AiChatStepUpdate {
+type AiChatStepUpdate = {
   charts?: AiChartSpec[]
   reasoning: string
   toolTraces: AiChatToolTrace[]
 }
 
-interface RunAiChatRequestOptions {
+type RunAiChatRequestOptions = {
   onStepUpdate?: (update: AiChatStepUpdate) => void
 }
 
@@ -330,18 +330,18 @@ const getPaginatedToolTotalCount = (output: unknown): number | null => {
 
 const getToolListSeparator = (language: AppLanguage) =>
   language === 'en' ? ', ' : '、'
-interface GenerateTextToolCallLike {
+type GenerateTextToolCallLike = {
   input: unknown
   toolCallId: string
   toolName: string
 }
 
-interface GenerateTextToolResultLike {
+type GenerateTextToolResultLike = {
   output?: unknown
   toolCallId: string
 }
 
-interface GenerateTextResultLike {
+type GenerateTextResultLike = {
   steps?: {
     toolCalls?: GenerateTextToolCallLike[]
     toolResults?: GenerateTextToolResultLike[]

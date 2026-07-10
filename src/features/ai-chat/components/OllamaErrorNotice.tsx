@@ -29,7 +29,7 @@ const getClipboard = (): Pick<Clipboard, 'writeText'> | null => {
   return hasClipboardWrite(clipboard) ? clipboard : null
 }
 
-interface OllamaErrorNoticeProps {
+type OllamaErrorNoticeProps = {
   className?: string
   error: OllamaErrorDetails
   platform: OllamaErrorPlatform

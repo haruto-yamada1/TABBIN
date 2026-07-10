@@ -138,7 +138,7 @@ const DrilldownRecordCard = ({
   )
 }
 
-interface AnalyticsDrilldownPanelProps {
+type AnalyticsDrilldownPanelProps = {
   drilldownSelection: AnalyticsDrilldownSelection | null
   onOpenAllClick: () => void
   onDeleteAllClick: () => void

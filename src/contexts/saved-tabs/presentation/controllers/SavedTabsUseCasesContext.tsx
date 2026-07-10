@@ -11,7 +11,7 @@ import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/applicati
  * 「components から use-case を直接呼ぶ」設計は濫用禁止のため、controller hook
  * 側の拡張（`useDomainModeController` / `useCustomModeController`）を優先する。
  */
-export interface SavedTabsUseCasesContextValue {
+export type SavedTabsUseCasesContextValue = {
   readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
 }

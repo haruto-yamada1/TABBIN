@@ -9,7 +9,7 @@ import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repo
  * テスト時は in-memory mock を注入する。`chrome.storage.local` への
  * 依存を排除した unit test を書けるように、interface のみを公開する。
  */
-export interface ReorderParentCategoriesUseCaseDeps {
+export type ReorderParentCategoriesUseCaseDeps = {
   readonly parentCategoryRepository: ParentCategoryRepository
 }
 

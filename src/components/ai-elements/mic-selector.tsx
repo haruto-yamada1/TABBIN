@@ -33,7 +33,7 @@ const DEFAULT_MIC_SELECTOR_WIDTH = 200
 
 const deviceIdRegex = /\(([\da-fA-F]{4}:[\da-fA-F]{4})\)$/
 
-interface MicSelectorContextType {
+type MicSelectorContextType = {
   data: MediaDeviceInfo[]
   value: string | undefined
   onValueChange?: (value: string) => void

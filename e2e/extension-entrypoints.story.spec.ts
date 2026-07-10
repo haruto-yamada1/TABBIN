@@ -9,11 +9,11 @@ import {
 
 const now = 1_763_600_000_000
 
-interface RuntimeLike {
+type RuntimeLike = {
   sendMessage?: (message: unknown) => Promise<unknown>
 }
 
-interface InitScriptPage {
+type InitScriptPage = {
   addInitScript(script: () => void): Promise<unknown>
 }
 

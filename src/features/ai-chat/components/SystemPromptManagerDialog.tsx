@@ -25,7 +25,7 @@ import type { AiSystemPromptPreset } from '@/types/storage'
 
 import { getSelectedPrompt } from './savedTabsChat/prompts'
 
-export interface SystemPromptManagerDialogProps {
+export type SystemPromptManagerDialogProps = {
   activePromptId: string
   errorMessage: string
   isOpen: boolean

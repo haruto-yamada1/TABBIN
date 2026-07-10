@@ -4,7 +4,7 @@ import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/applica
 /**
  * `UpdateCustomProjectKeywordsUseCase` が依存する port。
  */
-export interface UpdateCustomProjectKeywordsUseCaseDeps {
+export type UpdateCustomProjectKeywordsUseCaseDeps = {
   readonly customProjectsCommandService: CustomProjectsCommandService
 }
 

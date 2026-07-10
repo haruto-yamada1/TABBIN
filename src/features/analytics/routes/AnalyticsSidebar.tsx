@@ -29,7 +29,7 @@ import type { ViewNameValidationError } from '@/features/analytics/routes/analyt
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 
-interface AnalyticsSidebarProps {
+type AnalyticsSidebarProps = {
   query: AnalyticsQuery
   viewName: string
   viewNameError: ViewNameValidationError | null

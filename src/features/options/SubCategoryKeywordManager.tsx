@@ -19,7 +19,7 @@ import {
   updateTabGroup,
 } from './subCategoryKeywordManager.helpers'
 
-interface NewSubCategoryFieldProps {
+type NewSubCategoryFieldProps = {
   value: string
   label: string
   placeholder: string

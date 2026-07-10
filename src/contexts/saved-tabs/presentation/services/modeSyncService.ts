@@ -12,7 +12,7 @@ import type {
   ModeSyncEvent,
 } from '@/contexts/saved-tabs/presentation/types/mode'
 
-interface SyncStorageChangesParams {
+type SyncStorageChangesParams = {
   changes: readonly TypedSavedTabsStorageChange[]
   viewModeRef: RefObject<ViewMode>
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>

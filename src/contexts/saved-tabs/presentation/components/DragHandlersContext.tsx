@@ -1,7 +1,7 @@
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 import { createContext, use } from 'react'
 
-export interface ProjectDragHandlers {
+export type ProjectDragHandlers = {
   handleDragStart: (event: DragStartEvent) => void
   handleDragOver: (event: DragOverEvent, project: { id: string }) => void
   handleCategoryDragEnd: (event: DragEndEvent) => void
@@ -9,7 +9,7 @@ export interface ProjectDragHandlers {
   clearDragState: () => void
 }
 
-export interface DragHandlersContextType {
+export type DragHandlersContextType = {
   registerHandlers: (projectId: string, handlers: ProjectDragHandlers) => void
   unregisterHandlers: (projectId: string) => void
 }

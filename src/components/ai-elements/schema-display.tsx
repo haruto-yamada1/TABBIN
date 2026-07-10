@@ -19,7 +19,7 @@ const SCHEMA_DESCRIPTION_INDENT = 24
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
-interface SchemaParameter {
+type SchemaParameter = {
   name: string
   type: string
   required?: boolean
@@ -27,7 +27,7 @@ interface SchemaParameter {
   location?: 'path' | 'query' | 'header'
 }
 
-interface SchemaProperty {
+type SchemaProperty = {
   name: string
   type: string
   required?: boolean
@@ -36,7 +36,7 @@ interface SchemaProperty {
   items?: SchemaProperty
 }
 
-interface SchemaDisplayContextType {
+type SchemaDisplayContextType = {
   method: HttpMethod
   path: string
   description?: string

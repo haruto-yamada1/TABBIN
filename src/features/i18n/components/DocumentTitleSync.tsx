@@ -4,7 +4,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { TitlePageKey } from '@/features/i18n/lib/title'
 import { getDocumentTitle } from '@/features/i18n/lib/title'
 
-interface DocumentTitleSyncProps {
+type DocumentTitleSyncProps = {
   page: TitlePageKey
 }
 

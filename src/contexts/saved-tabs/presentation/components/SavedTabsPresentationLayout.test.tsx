@@ -203,7 +203,7 @@ const buildLayoutComposition = () => {
   return { deps, resolveActiveRef, useCases }
 }
 
-interface CompositionContext {
+type CompositionContext = {
   readonly controller: UseSavedTabsControllerReturn
   readonly deps: SavedTabsUseCasesDeps
   readonly resolveActiveRef: ResolveActiveRef

@@ -1,6 +1,6 @@
 import type { ProfilerOnRenderCallback } from 'react'
 
-interface SavedTabsProfilerStats {
+type SavedTabsProfilerStats = {
   actualDuration: number
   commits: number
   phase: string

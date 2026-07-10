@@ -7,7 +7,7 @@ import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-object
  * `newOrder` は表示順の `CustomProjectId` 配列。UI 側で並び替え後に
  * presentation hook から渡される。
  */
-export interface SaveCustomProjectOrderCommand {
+export type SaveCustomProjectOrderCommand = {
   readonly newOrder: readonly string[]
 }
 
@@ -25,7 +25,7 @@ export type SaveCustomProjectOrderUseCase = (
 /**
  * `SaveCustomProjectOrderUseCase` が依存する repository 群。
  */
-export interface SaveCustomProjectOrderUseCaseDeps {
+export type SaveCustomProjectOrderUseCaseDeps = {
   readonly customProjectRepository: CustomProjectRepository
 }
 

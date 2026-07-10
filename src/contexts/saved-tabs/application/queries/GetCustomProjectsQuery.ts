@@ -22,7 +22,7 @@ export type GetCustomProjectsQuery = () => Promise<
 /**
  * `GetCustomProjectsQuery` が依存する repository 群。
  */
-export interface GetCustomProjectsQueryDeps {
+export type GetCustomProjectsQueryDeps = {
   readonly customProjectRepository: CustomProjectRepository
 }
 

@@ -23,7 +23,7 @@ import type {
 } from '@/contexts/saved-tabs/application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 /** UseTabData フックの引数 */
-interface UseTabDataParams {
+type UseTabDataParams = {
   /** URL 解決用 use-case。presentation 層が `loadTabGroupsWithUrls` 相当の操作で `@/lib/storage/tabs` を直接呼ばないようにするための依存注入ポイント。 */
   readonly loadTabGroupsWithUrlsUseCase: LoadTabGroupsWithUrlsUseCase
   /**
@@ -57,7 +57,7 @@ interface UseTabDataParams {
 }
 
 /** UseTabData フックの戻り値型 */
-interface UseTabDataReturn {
+type UseTabDataReturn = {
   /** 保存済みタブグループ一覧（URLデータなし・rawデータ） */
   tabGroups: TabGroup[]
   /** TabGroups を直接更新するセッター */
@@ -78,7 +78,7 @@ interface UseTabDataReturn {
    */
   refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>
 }
-interface TabDataState {
+type TabDataState = {
   isLoading: boolean
   tabGroups: TabGroup[]
   tabGroupsWithUrls: TabGroup[]

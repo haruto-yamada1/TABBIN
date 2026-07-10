@@ -4,7 +4,7 @@ import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/save
 
 type ProjectUrl = NonNullable<CustomProject['urls']>[number]
 
-interface MoveUrlBetweenProjectsStateParams {
+type MoveUrlBetweenProjectsStateParams = {
   projects: CustomProject[]
   sourceProjectId: string
   targetProjectId: string

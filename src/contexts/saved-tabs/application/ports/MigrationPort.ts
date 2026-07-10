@@ -9,7 +9,7 @@
  * 実装は `infrastructure/persistence/chrome-storage/ChromeMigrationAdapter`
  * 側に置く。テストでは in-memory adapter を注入できる。
  */
-export interface MigrationPort {
+export type MigrationPort = {
   /**
    * `urls` 形式へのマイグレーションを冪等に実行する。`urlsMigrationCompleted`
    * フラグを見て未実行なら storage データを更新する。

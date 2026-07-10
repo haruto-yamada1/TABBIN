@@ -8,7 +8,7 @@ import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { toRawStorageCustomProject } from './projectManagementDefaults'
 import type { ProjectManagementRefs } from './useProjectManagementRefs'
 
-interface ProjectCategoryHandlerDeps {
+type ProjectCategoryHandlerDeps = {
   refs: ProjectManagementRefs
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
   setViewMode: Dispatch<SetStateAction<ViewMode>>

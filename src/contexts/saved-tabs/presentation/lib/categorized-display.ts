@@ -16,7 +16,7 @@ import { shouldShowUncategorizedHeader } from './uncategorized-display'
  *
  * React / chrome API / storage には依存しない (issue #504)。
  */
-export interface CreateCategorizedDisplayStateInput {
+export type CreateCategorizedDisplayStateInput = {
   readonly categorized: Readonly<Record<string, readonly TabGroup[]>>
   readonly uncategorized: readonly TabGroup[]
   readonly tempUncategorizedOrder: readonly TabGroup[]
@@ -48,7 +48,7 @@ export interface CreateCategorizedDisplayStateInput {
  * 旧 `SavedTabsApp.tsx` 内の同名の useMemo / 計算式を
  * domain-independent な pure 関数として切り出したもの (issue #504)。
  */
-export interface CategorizedDisplayState {
+export type CategorizedDisplayState = {
   readonly hasContentTabGroups: TabGroup[]
   readonly visibleUncategorizedGroups: TabGroup[]
   readonly hasVisibleCategoryGroups: boolean

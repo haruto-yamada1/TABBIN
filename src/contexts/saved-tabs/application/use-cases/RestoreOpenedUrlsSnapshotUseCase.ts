@@ -21,7 +21,7 @@ import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects
  * `ParentCategoryRepository` もオプション扱いとし、snapshot に
  * `parentCategories` が含まれる場合のみ保存する。
  */
-export interface RestoreOpenedUrlsSnapshotUseCaseDeps {
+export type RestoreOpenedUrlsSnapshotUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository

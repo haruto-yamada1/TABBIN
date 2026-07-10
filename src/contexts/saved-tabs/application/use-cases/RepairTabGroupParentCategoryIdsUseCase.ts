@@ -19,7 +19,7 @@ import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-object
  * から取得する。`useTabData` 内の初回ロードでは `GetSavedTabsPageDataQuery`
  * で取得した値をそのまま渡す運用を推奨。
  */
-export interface RepairTabGroupParentCategoryIdsCommand {
+export type RepairTabGroupParentCategoryIdsCommand = {
   readonly tabGroups?: readonly SavedTabsDisplayTabGroupDto[]
   readonly parentCategories?: readonly SavedTabsParentCategoryDto[]
 }
@@ -32,7 +32,7 @@ export interface RepairTabGroupParentCategoryIdsCommand {
  * - `updated` : 実際に永続化層の `savedTabs` を書き換えたかどうか。
  *   `false` のときは storage への副作用を発生させない。
  */
-export interface RepairTabGroupParentCategoryIdsDto {
+export type RepairTabGroupParentCategoryIdsDto = {
   readonly tabGroups: readonly SavedTabsDisplayTabGroupDto[]
   readonly updated: boolean
 }
@@ -40,7 +40,7 @@ export interface RepairTabGroupParentCategoryIdsDto {
 /**
  * `RepairTabGroupParentCategoryIdsUseCase` が依存する repository 群。
  */
-export interface RepairTabGroupParentCategoryIdsUseCaseDeps {
+export type RepairTabGroupParentCategoryIdsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly parentCategoryRepository: ParentCategoryRepository
 }

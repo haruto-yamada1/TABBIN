@@ -19,7 +19,7 @@ import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-object
 import type { RestoreOpenedUrlsSnapshotUseCaseDeps } from './RestoreOpenedUrlsSnapshotUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from './RestoreOpenedUrlsSnapshotUseCase'
 
-interface Repositories extends RestoreOpenedUrlsSnapshotUseCaseDeps {
+type Repositories = RestoreOpenedUrlsSnapshotUseCaseDeps & {
   tabGroups: ReturnType<typeof createTabGroup>[]
   urlRecords: ReturnType<typeof createUrlRecord>[]
   customProjects: ReturnType<typeof createCustomProject>[]

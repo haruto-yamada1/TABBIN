@@ -21,7 +21,7 @@ import type {
  * `@/types/storage` への依存を避け、domain DTO のみで lookup を構築
  * する (issue #511)。
  */
-export interface PresentationCategoryLookup {
+export type PresentationCategoryLookup = {
   readonly byId: ReadonlyMap<string, ParentCategoryDto>
   readonly byGroupId: ReadonlyMap<string, ParentCategoryDto>
   readonly byDomainName: ReadonlyMap<string, ParentCategoryDto>

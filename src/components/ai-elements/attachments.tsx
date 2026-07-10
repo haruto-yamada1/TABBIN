@@ -111,13 +111,13 @@ const renderAttachmentImage = (
 // Contexts
 // ============================================================================
 
-interface AttachmentsContextValue {
+type AttachmentsContextValue = {
   variant: AttachmentVariant
 }
 
 const AttachmentsContext = createContext<AttachmentsContextValue | null>(null)
 
-interface AttachmentContextValue {
+type AttachmentContextValue = {
   data: AttachmentData
   mediaCategory: AttachmentMediaCategory
   onRemove?: () => void

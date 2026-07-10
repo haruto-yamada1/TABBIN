@@ -30,7 +30,7 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  *   ドメイン」が explicit な `domains` 順序へ昇格する。
  * - 対象カテゴリが見つからない場合は no-op として現在値を返す。
  */
-export interface ReorderDomainsInCategoryParams {
+export type ReorderDomainsInCategoryParams = {
   readonly categories: readonly ParentCategory[]
   /** 並び替え対象カテゴリの `ParentCategoryId`。 */
   readonly categoryId: string
@@ -44,7 +44,7 @@ export interface ReorderDomainsInCategoryParams {
   readonly domainIds: readonly TabGroupId[]
 }
 
-export interface ReorderDomainsInCategoryResult {
+export type ReorderDomainsInCategoryResult = {
   readonly targetFound: boolean
   readonly updatedCategories: readonly ParentCategory[]
   readonly domainIdOrder: readonly TabGroupId[]

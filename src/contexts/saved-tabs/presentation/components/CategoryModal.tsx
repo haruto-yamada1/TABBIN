@@ -10,7 +10,7 @@ import { CategorySelector } from './category-modal/CategorySelector'
 import { DomainSelectionList } from './category-modal/DomainSelectionList'
 
 /** CategoryModal コンポーネントの props */
-interface CategoryModalProps {
+type CategoryModalProps = {
   /** モーダルを閉じるハンドラ */
   onClose: () => void
   /** タブグループ一覧 */

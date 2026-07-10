@@ -5,7 +5,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-interface ConversationPreviewTooltipProps {
+type ConversationPreviewTooltipProps = {
   id: string
   preview: string
 }

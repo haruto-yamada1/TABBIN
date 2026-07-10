@@ -16,7 +16,7 @@
  * console.log(opened.url)
  * ```
  */
-export interface BrowserTabPort {
+export type BrowserTabPort = {
   /**
    * 指定 URL を新規タブ / 既存タブで開き、開いた URL を返す。
    *

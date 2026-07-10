@@ -10,7 +10,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { SavedTabsResponsiveTooltipContent } from './SavedTabsResponsive'
 
 /** CardSortControl の props */
-interface CardSortControlProps {
+type CardSortControlProps = {
   /** 現在のソート順 */
   sortOrder: SortOrder
   /** ソート順を設定する関数 */

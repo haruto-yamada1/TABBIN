@@ -6,7 +6,7 @@
  * `id` と `savedAt` は URL 解決後に必ず存在するが、storage 形の
  * `urls` 要素型では optional のため optional 維持とする。
  */
-export interface ResolvedTabGroupUrlDto {
+export type ResolvedTabGroupUrlDto = {
   id?: string
   url: string
   title: string

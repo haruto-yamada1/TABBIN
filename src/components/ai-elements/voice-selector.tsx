@@ -36,7 +36,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
-interface VoiceSelectorContextValue {
+type VoiceSelectorContextValue = {
   value: string | undefined
   setValue: (value: string | undefined) => void
   open: boolean

@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface CategoryReorderFooterProps {
+type CategoryReorderFooterProps = {
   onConfirmCategoryReorder?: () => void
   onCancelCategoryReorder?: () => void
 }

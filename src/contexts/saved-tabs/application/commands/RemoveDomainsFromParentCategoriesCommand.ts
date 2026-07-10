@@ -23,6 +23,6 @@
  * }
  * ```
  */
-export interface RemoveDomainsFromParentCategoriesCommand {
+export type RemoveDomainsFromParentCategoriesCommand = {
   readonly domainIds: readonly string[]
 }

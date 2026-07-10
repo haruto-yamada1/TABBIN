@@ -15,7 +15,7 @@
  */
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface RemoveSubCategoryFromTabGroupsCommand {
+export type RemoveSubCategoryFromTabGroupsCommand = {
   readonly groupId: string
   readonly categoryName: string
 }
@@ -27,6 +27,6 @@ export interface RemoveSubCategoryFromTabGroupsCommand {
  * `refreshTabGroupsWithUrls(updatedGroups)` で UI state へ反映できる
  * ようにする。
  */
-export interface RemoveSubCategoryFromTabGroupsResult {
+export type RemoveSubCategoryFromTabGroupsResult = {
   readonly tabGroups: readonly TabGroup[]
 }

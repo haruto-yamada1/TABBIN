@@ -11,7 +11,7 @@
  * - `subCategoryCount` は CategoryModal / CategoryGroup で「カテゴリ N 件」を
  *   表示するための派生値。
  */
-export interface TabGroupViewModel {
+export type TabGroupViewModel = {
   readonly id: string
   readonly domain: string
   readonly parentCategoryId: string | undefined

@@ -7,6 +7,6 @@
  * 等価物。presentation 層は use-case 経由で取得する
  * （issue #501）。
  */
-export interface FindUrlRecordByUrlCommand {
+export type FindUrlRecordByUrlCommand = {
   readonly url: string
 }

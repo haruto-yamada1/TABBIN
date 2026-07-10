@@ -9,7 +9,7 @@ import {
   updateTabTimestamps,
 } from './expired-tabs'
 
-interface Store {
+type Store = {
   userSettings?: {
     autoDeletePeriod?: string
   }

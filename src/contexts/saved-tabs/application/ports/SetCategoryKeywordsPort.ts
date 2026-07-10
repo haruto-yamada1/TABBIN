@@ -20,7 +20,7 @@
  * 実装は `src/contexts/saved-tabs/infrastructure/persistence/chrome-storage/`
  * 配下に置く。
  */
-export interface SetCategoryKeywordsPort {
+export type SetCategoryKeywordsPort = {
   /**
    * 旧 `src/lib/storage/tabs.setCategoryKeywords` の port 版。
    *

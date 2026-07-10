@@ -11,11 +11,11 @@ import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-object
  *
  * 削除対象カテゴリの ID のみを受け取る。
  */
-export interface DeleteParentCategoryCommand {
+export type DeleteParentCategoryCommand = {
   readonly categoryId: string
 }
 
-export interface DeleteParentCategoryResult {
+export type DeleteParentCategoryResult = {
   readonly all: readonly SavedTabsParentCategoryDto[]
   readonly removedCategory: SavedTabsParentCategoryDto
 }
@@ -36,7 +36,7 @@ export type DeleteParentCategoryUseCase = (
  * `parentCategoryRepository.removeByIds` と同じ最小削除挙動を維持する
  * （presentation 側の既存挙動との互換性確保）。
  */
-export interface DeleteParentCategoryUseCaseDeps {
+export type DeleteParentCategoryUseCaseDeps = {
   readonly parentCategoryRepository: ParentCategoryRepository
 }
 

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface OptionsExcludePatternBadgeProps {
+type OptionsExcludePatternBadgeProps = {
   pattern: string
   onRemove: (pattern: string) => void
 }

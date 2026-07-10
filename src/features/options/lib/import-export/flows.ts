@@ -56,7 +56,7 @@ import {
   resolveCurrentLanguage,
 } from './url-conversion'
 
-interface ImportResult {
+type ImportResult = {
   success: boolean
   message: string
 }
@@ -72,7 +72,7 @@ type NormalizedImportedTab =
   NormalizedImportResult['normalizedImportedTabs'][number]
 type UnresolvedImportTab = NormalizedImportResult['unresolvedTabs'][number]
 
-interface ImportExecutionParams {
+type ImportExecutionParams = {
   importedData: BackupData
   normalizedImportedTabs: NormalizedImportedTab[]
   unresolvedTabs: UnresolvedImportTab[]

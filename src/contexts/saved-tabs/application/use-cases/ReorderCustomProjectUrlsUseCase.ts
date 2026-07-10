@@ -4,7 +4,7 @@ import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/applica
 /**
  * `ReorderCustomProjectUrlsUseCase` が依存する port。
  */
-export interface ReorderCustomProjectUrlsUseCaseDeps {
+export type ReorderCustomProjectUrlsUseCaseDeps = {
   readonly customProjectsCommandService: CustomProjectsCommandService
 }
 

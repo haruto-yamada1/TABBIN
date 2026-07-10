@@ -34,7 +34,7 @@ const USD_FORMATTER = new Intl.NumberFormat('en-US', {
 
 type ModelId = string
 
-interface ContextSchema {
+type ContextSchema = {
   usedTokens: number
   maxTokens: number
   usage?: LanguageModelUsage

@@ -65,7 +65,7 @@ vi.mock('./urls', () => ({
   createOrUpdateUrlRecordsBatch: mocks.createOrUpdateUrlRecordsBatch,
 }))
 
-interface StorageState {
+type StorageState = {
   domainCategoryMappings?: DomainParentCategoryMapping[]
   domainCategorySettings?: DomainCategorySettings[]
   domainHostnameMigrationCompleted?: boolean

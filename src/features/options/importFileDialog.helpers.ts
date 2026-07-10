@@ -1,6 +1,6 @@
 import type { Dispatch } from 'react'
 
-interface PreviewData {
+type PreviewData = {
   version: string
   timestamp: string
   categoriesCount: number
@@ -10,7 +10,7 @@ interface PreviewData {
   hasAnalytics: boolean
 }
 
-interface ImportDialogState {
+type ImportDialogState = {
   isOpen: boolean
   step: 'select' | 'preview'
   previewData: PreviewData | null

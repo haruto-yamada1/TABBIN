@@ -18,7 +18,7 @@
  * }
  * ```
  */
-export interface RemoveUrlsFromCustomProjectCommand {
+export type RemoveUrlsFromCustomProjectCommand = {
   readonly projectId: string
   readonly urls: readonly string[]
 }

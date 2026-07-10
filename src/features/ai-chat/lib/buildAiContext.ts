@@ -10,7 +10,7 @@ import { isTimestampInLocalMonth } from '@/utils/localDateTime'
 
 const unique = (values: string[]): string[] => [...new Set(values)]
 
-interface BuildAiSavedUrlRecordsInput {
+type BuildAiSavedUrlRecordsInput = {
   urlRecords: UrlRecord[]
   savedTabs: TabGroup[]
   customProjects: CustomProject[]

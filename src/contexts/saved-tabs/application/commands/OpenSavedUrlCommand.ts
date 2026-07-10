@@ -16,7 +16,7 @@
  * const result = await openSavedUrlUseCase(command)
  * ```
  */
-export interface OpenSavedUrlCommand {
+export type OpenSavedUrlCommand = {
   readonly urlRecordId: string
   readonly origin: 'click' | 'externalDrop'
   /**

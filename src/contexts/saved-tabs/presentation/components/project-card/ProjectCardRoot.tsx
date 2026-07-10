@@ -46,7 +46,7 @@ const sortProjectUrls = <
 }
 
 /** ProjectCardRoot の props */
-interface ProjectCardRootProps {
+type ProjectCardRootProps = {
   /** プロジェクトデータ */
   project: CustomProjectCardProps['project']
   /** 設定 */

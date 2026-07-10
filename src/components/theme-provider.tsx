@@ -24,12 +24,12 @@ type Theme = 'dark' | 'light' | 'system' | 'user'
 const isTheme = (v: unknown): v is Theme =>
   typeof v === 'string' &&
   (v === 'dark' || v === 'light' || v === 'system' || v === 'user')
-interface ThemeProviderProps {
+type ThemeProviderProps = {
   children: React.ReactNode
   defaultTheme?: Theme
   storageKey?: string
 }
-interface ThemeProviderState {
+type ThemeProviderState = {
   theme: Theme
   setTheme: (theme: Theme) => void
 }

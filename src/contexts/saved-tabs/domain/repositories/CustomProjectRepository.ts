@@ -12,7 +12,7 @@ import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects
  * 結果をこの shape で返す。domain interface は実装の zod スキーマへの
  * 直接依存を避けるため、structural な interface として公開する。
  */
-export interface CustomProjectRawSnapshot {
+export type CustomProjectRawSnapshot = {
   id: string
   name: string
   categories: readonly string[]
@@ -66,7 +66,7 @@ export interface CustomProjectRawSnapshot {
  * const target = projects.find((project) => project.id === projectId)
  * ```
  */
-export interface CustomProjectRepository {
+export type CustomProjectRepository = {
   findAll: () => Promise<readonly CustomProject[]>
   findById: (id: CustomProjectId) => Promise<CustomProject | null>
   saveAll: (projects: readonly CustomProject[]) => Promise<void>

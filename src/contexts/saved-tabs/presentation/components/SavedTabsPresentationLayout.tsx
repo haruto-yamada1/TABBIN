@@ -38,7 +38,7 @@ import { SavedTabsScrollControls } from './SavedTabsScrollControls'
  *   use-case バンドルと controller。`SavedTabsApp` 内部での
  *   use-case 再生成を避けるため props 注入する。
  */
-export interface SavedTabsPresentationLayoutProps {
+export type SavedTabsPresentationLayoutProps = {
   readonly attachLeftPaneRef: (node: HTMLDivElement | null) => void
   readonly controller: UseSavedTabsControllerReturn
   readonly deps: SavedTabsPresentationPorts

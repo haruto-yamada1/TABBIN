@@ -8,6 +8,6 @@ import type { SavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/dto
  * 並べ替えた完全な一覧を渡す。use-case はそのまま
  * `TabGroupRepository.saveAll` に委譲する（issue #494）。
  */
-export interface ReorderTabGroupsCommand {
+export type ReorderTabGroupsCommand = {
   readonly tabGroups: readonly SavedTabsTabGroupDto[]
 }

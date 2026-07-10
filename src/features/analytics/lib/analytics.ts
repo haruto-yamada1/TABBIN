@@ -24,12 +24,12 @@ type AnalyticsTimeBucket = 'day' | 'month' | 'week'
 type AnalyticsSort = 'label-asc' | 'label-desc' | 'value-asc' | 'value-desc'
 type AnalyticsCompareBy = 'mode' | 'none'
 
-interface AnalyticsDateRange {
+type AnalyticsDateRange = {
   from?: string
   to?: string
 }
 
-interface AnalyticsFilters {
+type AnalyticsFilters = {
   excludedDomains: string[]
   excludedParentCategories: string[]
   excludedProjectCategories: string[]
@@ -42,7 +42,7 @@ interface AnalyticsFilters {
   includedSubCategories: string[]
 }
 
-interface AnalyticsQuery {
+type AnalyticsQuery = {
   chartType: AiChartType
   compareBy: AnalyticsCompareBy
   customDateRange?: AnalyticsDateRange
@@ -64,7 +64,7 @@ type AnalyticsQueryInput = Omit<AnalyticsQuery, 'groupBy'> & {
   groupBy: LegacyAnalyticsGroupBy
 }
 
-interface AnalyticsPreset {
+type AnalyticsPreset = {
   id: string
   description: string
   isReadonly: true
@@ -72,20 +72,20 @@ interface AnalyticsPreset {
   query: AnalyticsQuery
 }
 
-interface AnalyticsResult {
+type AnalyticsResult = {
   chartSpecs: AiChartSpec[]
   filteredRecordCount: number
   query: AnalyticsQuery
   summary: string
 }
 
-interface GenerateAnalyticsResultOptions {
+type GenerateAnalyticsResultOptions = {
   messages?: Partial<AnalyticsMessages>
   now?: number
   timeZone?: string
 }
 
-interface AnalyticsMessages {
+type AnalyticsMessages = {
   chartDescriptionAggregated: string
   chartDescriptionCompareMode: string
   chartMonthlySavedTrend: string

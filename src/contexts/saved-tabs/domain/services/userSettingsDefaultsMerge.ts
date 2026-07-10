@@ -22,7 +22,7 @@ export const mergeExcludePatterns = (
   return [...mergedPatterns]
 }
 
-interface UserSettingsDefaultsShape {
+type UserSettingsDefaultsShape = {
   excludePatterns: string[]
 }
 

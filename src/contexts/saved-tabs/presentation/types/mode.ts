@@ -14,11 +14,11 @@ export type ModeSyncEventType =
   | 'settingsUpdated'
   | 'categoriesUpdated'
 
-export interface ModeSyncEvent {
+export type ModeSyncEvent = {
   type: ModeSyncEventType
 }
 
-export interface SavedTabsModeAdapter {
+export type SavedTabsModeAdapter = {
   readonly mode: ViewMode
   getGroups: () => Promise<TabGroup[]>
   getProjects: () => Promise<CustomProject[]>

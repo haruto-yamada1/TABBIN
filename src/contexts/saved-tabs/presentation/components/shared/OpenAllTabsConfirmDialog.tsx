@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-interface OpenAllTabsConfirmDialogProps {
+type OpenAllTabsConfirmDialogProps = {
   open: boolean
   title: string
   description: string

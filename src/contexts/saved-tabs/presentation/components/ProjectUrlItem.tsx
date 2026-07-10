@@ -28,7 +28,7 @@ if (typeof window !== 'undefined') {
   })
 }
 
-interface ProjectUrlItemProps {
+type ProjectUrlItemProps = {
   item: NonNullable<CustomProject['urls']>[0]
   projectId: string
   handleOpenUrl: (url: string) => void

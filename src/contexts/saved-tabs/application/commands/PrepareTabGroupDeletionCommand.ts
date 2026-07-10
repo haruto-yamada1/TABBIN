@@ -27,6 +27,6 @@
  * }
  * ```
  */
-export interface PrepareTabGroupDeletionCommand {
+export type PrepareTabGroupDeletionCommand = {
   readonly tabGroupId: string
 }

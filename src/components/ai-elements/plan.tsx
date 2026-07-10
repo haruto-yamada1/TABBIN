@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils'
 
 import { Shimmer } from './shimmer'
 
-interface PlanContextValue {
+type PlanContextValue = {
   isStreaming: boolean
 }
 

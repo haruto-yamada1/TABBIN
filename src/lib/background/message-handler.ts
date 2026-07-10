@@ -62,7 +62,7 @@ const getOllamaErrorDetails = (
   return isOllamaErrorDetails(maybeOllamaError) ? maybeOllamaError : undefined
 }
 
-interface RuntimeOnConnect {
+type RuntimeOnConnect = {
   addListener: (listener: (port: chrome.runtime.Port) => void) => void
 }
 

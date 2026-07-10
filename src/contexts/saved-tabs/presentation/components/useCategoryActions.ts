@@ -8,12 +8,12 @@ import type {
 
 import type { CategoryManagementModalUseCases } from './CategoryManagementModal.types'
 
-interface AvailableDomain {
+type AvailableDomain = {
   id: string
   domain: string
 }
 
-export interface UseCategoryActionsParams {
+export type UseCategoryActionsParams = {
   categoryNameError: string | null
   isProcessing: boolean
   isRenaming: boolean
@@ -43,7 +43,7 @@ export interface UseCategoryActionsParams {
   t: (key: string, fallback?: string, values?: Record<string, string>) => string
 }
 
-export interface UseCategoryActionsReturn {
+export type UseCategoryActionsReturn = {
   handleStartRenaming: () => void
   handleCancelRenaming: () => void
   handleCategoryNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void

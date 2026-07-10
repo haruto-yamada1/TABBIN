@@ -54,16 +54,16 @@ import {
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
 import type { CustomProject } from '@/types/storage'
 
-export interface ChromeStorageOnChangedLike {
+export type ChromeStorageOnChangedLike = {
   readonly addListener: (callback: ChromeOnChangedListener) => void
   readonly removeListener: (callback: ChromeOnChangedListener) => void
 }
 
-export interface ChromeStorageLike {
+export type ChromeStorageLike = {
   readonly onChanged?: ChromeStorageOnChangedLike
 }
 
-export interface ChromeApiLike {
+export type ChromeApiLike = {
   readonly storage?: ChromeStorageLike
 }
 
@@ -72,7 +72,7 @@ type ChromeOnChangedListener = (
   areaName: string,
 ) => void
 
-export interface ChromeStorageChangeAdapterDeps {
+export type ChromeStorageChangeAdapterDeps = {
   /**
    * `chrome.storage.onChanged` を含む chrome API 全体。テスト時は
    * `storage.onChanged.addListener` / `removeListener` を持つ
@@ -88,7 +88,7 @@ export interface ChromeStorageChangeAdapterDeps {
   readonly getOnChanged?: () => ChromeStorageOnChangedLike | null
 }
 
-export interface ChromeStorageChangeAdapterOptions {
+export type ChromeStorageChangeAdapterOptions = {
   /**
    * 購読対象とする storage エリア名。`chrome.storage.onChanged` は
    * グローバルに発火するため、port 側で areaName を絞り込む。

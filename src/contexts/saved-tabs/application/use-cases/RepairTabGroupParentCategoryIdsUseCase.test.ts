@@ -9,7 +9,7 @@ import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositori
 import { createRepairTabGroupParentCategoryIdsUseCase } from './RepairTabGroupParentCategoryIdsUseCase'
 import type { RepairTabGroupParentCategoryIdsUseCaseDeps } from './RepairTabGroupParentCategoryIdsUseCase'
 
-interface Repositories extends RepairTabGroupParentCategoryIdsUseCaseDeps {
+type Repositories = RepairTabGroupParentCategoryIdsUseCaseDeps & {
   tabGroups: ReturnType<typeof createTabGroup>[]
   parentCategories: ReturnType<typeof createParentCategory>[]
 }

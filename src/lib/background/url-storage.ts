@@ -46,7 +46,7 @@ const getDraggedUrlInfo = (): DraggedUrlInfo | null => draggedUrlInfo
 const clearDraggedUrlInfo = (): void => {
   draggedUrlInfo = null
 }
-interface ComparableUrlKeyOptions {
+type ComparableUrlKeyOptions = {
   readonly ignoreHash?: boolean
   readonly ignoreSearch?: boolean
 }
@@ -181,25 +181,25 @@ const updateGroupAfterUrlRemoval = (
   return removeLegacyUrlFromGroup(group, targetUrlKey, removedGroupIds)
 }
 
-interface BulkUrlRemovalStorage {
+type BulkUrlRemovalStorage = {
   customProjects?: CustomProject[]
   parentCategories?: ParentCategory[]
   savedTabs?: TabGroup[]
   urls?: UrlRecord[]
 }
 
-interface BulkSavedTabsRemovalResult {
+type BulkSavedTabsRemovalResult = {
   hasChanges: boolean
   removedGroupIds: string[]
   savedTabs: TabGroup[]
 }
 
-interface BulkCustomProjectsRemovalResult {
+type BulkCustomProjectsRemovalResult = {
   customProjects: CustomProject[]
   hasChanges: boolean
 }
 
-interface BulkParentCategoriesRemovalResult {
+type BulkParentCategoriesRemovalResult = {
   hasChanges: boolean
   parentCategories: ParentCategory[]
 }

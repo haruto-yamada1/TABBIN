@@ -17,7 +17,7 @@ import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
  * port 戻り値が `string` であり、presentation 側で再パースして
  * 値オブジェクト化する責務を presentation に寄せたいため。
  */
-export interface OpenedUrlDto {
+export type OpenedUrlDto = {
   readonly openedUrl: string
   readonly removedUrlRecordId: string | null
   /**

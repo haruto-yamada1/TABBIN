@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-export interface UseCopyStateOptions {
+export type UseCopyStateOptions = {
   onCopy?: () => void
   onError?: (error: Error) => void
   timeout?: number

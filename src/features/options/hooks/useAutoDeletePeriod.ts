@@ -6,7 +6,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { UserSettings } from '@/types/storage'
 import { isPeriodShortening } from '@/utils/isPeriodShortening'
 
-interface ConfirmationState {
+type ConfirmationState = {
   isVisible: boolean
   message: string
   onConfirm: () => void

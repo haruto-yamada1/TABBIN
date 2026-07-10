@@ -327,7 +327,7 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
     )
   })
 
-interface AnalyticsDeleteUndoSnapshot {
+type AnalyticsDeleteUndoSnapshot = {
   customProjectOrder?: string[]
   customProjects?: CustomProject[]
   parentCategories?: ParentCategory[]
@@ -335,7 +335,7 @@ interface AnalyticsDeleteUndoSnapshot {
   urls?: UrlRecord[]
 }
 
-interface AnalyticsDeleteUndoPayload {
+type AnalyticsDeleteUndoPayload = {
   customProjectOrder?: string[]
   customProjects?: CustomProject[]
   parentCategories?: ParentCategory[]
@@ -391,7 +391,7 @@ const normalizeAnalyticsRouteQuery = (
   mode: 'both',
 })
 
-interface AnalyticsDrilldownSelection {
+type AnalyticsDrilldownSelection = {
   label: string
   matchingRecords: AiSavedUrlRecord[]
   seriesKey?: string

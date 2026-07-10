@@ -172,7 +172,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     throw error
   }
 }
-interface DomainCategoryMatch {
+type DomainCategoryMatch = {
   category: ParentCategory
   method: 'mapping' | 'domainNames'
 }

@@ -100,7 +100,7 @@ export const ConversationScrollButton = ({
   )
 }
 
-export interface ConversationMessage {
+export type ConversationMessage = {
   role: 'user' | 'assistant' | 'system' | 'data' | 'tool'
   content: string
 }

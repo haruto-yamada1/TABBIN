@@ -42,7 +42,7 @@ const getAiChatOllamaError = (
   response: AiChatResponse | undefined,
 ): OllamaErrorDetails | undefined => response?.ollamaError
 
-interface RuntimePlatformApi {
+type RuntimePlatformApi = {
   getPlatformInfo: (
     callback: (info: chrome.runtime.PlatformInfo) => void,
   ) => void

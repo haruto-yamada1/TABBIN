@@ -17,7 +17,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * const target = records.find((record) => record.url === 'https://example.com')
  * ```
  */
-export interface UrlRecordRepository {
+export type UrlRecordRepository = {
   findAll: () => Promise<readonly UrlRecord[]>
   findById: (id: UrlRecordId) => Promise<UrlRecord | null>
   saveAll: (records: readonly UrlRecord[]) => Promise<void>

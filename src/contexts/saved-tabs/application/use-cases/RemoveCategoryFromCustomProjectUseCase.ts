@@ -4,7 +4,7 @@ import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/applica
 /**
  * `RemoveCategoryFromCustomProjectUseCase` が依存する port。
  */
-export interface RemoveCategoryFromCustomProjectUseCaseDeps {
+export type RemoveCategoryFromCustomProjectUseCaseDeps = {
   readonly customProjectsCommandService: CustomProjectsCommandService
 }
 

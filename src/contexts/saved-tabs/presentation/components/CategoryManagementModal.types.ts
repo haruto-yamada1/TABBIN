@@ -5,12 +5,12 @@ import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/applicat
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 
-export interface CategoryManagementModalDeps {
+export type CategoryManagementModalDeps = {
   readonly categoryAssignmentPort: CategoryAssignmentPort
   readonly getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery
 }
 
-export interface CategoryManagementModalUseCases {
+export type CategoryManagementModalUseCases = {
   readonly renameParentCategory: RenameParentCategoryUseCase
   readonly addDomainToParentCategory: AddDomainToParentCategoryUseCase
   readonly removeDomainFromParentCategory: RemoveDomainFromParentCategoryUseCase

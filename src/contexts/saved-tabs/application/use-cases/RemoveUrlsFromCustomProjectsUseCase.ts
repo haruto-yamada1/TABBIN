@@ -16,7 +16,7 @@ import type { LoadTabGroupUrlsUseCase } from './LoadTabGroupUrlsUseCase'
  * URL 文字列を引くために使う (issue #501 対応で
  * `@/lib/storage/tabs.getTabGroupUrls` 直叩きを撤去した経緯)。
  */
-export interface RemoveUrlsFromCustomProjectsUseCaseDeps {
+export type RemoveUrlsFromCustomProjectsUseCaseDeps = {
   readonly customProjectsCommandService: CustomProjectsCommandService
   readonly loadTabGroupUrls: LoadTabGroupUrlsUseCase
 }

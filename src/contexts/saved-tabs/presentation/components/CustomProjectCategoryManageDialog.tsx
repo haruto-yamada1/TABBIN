@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface CategoryManageDialogProps {
+type CategoryManageDialogProps = {
   category: string
   showManageDialog: boolean
   setShowManageDialog: (open: boolean) => void

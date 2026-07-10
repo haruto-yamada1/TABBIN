@@ -15,12 +15,12 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
 import type { OllamaErrorDetails } from '@/types/background'
 
-interface OllamaModelOption {
+type OllamaModelOption = {
   label: string
   name: string
 }
 
-interface OllamaModelSelectorProps {
+type OllamaModelSelectorProps = {
   behavior?: {
     fetchOnOpen?: boolean
     hideFetchButton?: boolean

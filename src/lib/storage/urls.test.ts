@@ -20,14 +20,14 @@ vi.mock('uuid', () => ({
   v4: mocks.uuid,
 }))
 
-interface StorageState {
+type StorageState = {
   customProjects?: CustomProject[]
   savedTabs?: TabGroup[]
   // eslint-disable-next-line typescript/no-redundant-type-constituents
   urls?: UrlRecord[] | unknown
 }
 
-interface ChromeStorageLocalOptions {
+type ChromeStorageLocalOptions = {
   cloneReads?: boolean
   getSetDelayMs?: (value: Record<string, unknown>) => number
 }

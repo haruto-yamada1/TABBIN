@@ -32,7 +32,7 @@ import { ViewModeToggle } from './ViewModeToggle'
 const EMPTY_CUSTOM_PROJECTS: CustomProject[] = []
 const noopCreateProject = () => {}
 
-interface HeaderProps {
+type HeaderProps = {
   tabGroups: TabGroup[]
   filteredTabGroups?: TabGroup[]
   currentMode: ViewMode

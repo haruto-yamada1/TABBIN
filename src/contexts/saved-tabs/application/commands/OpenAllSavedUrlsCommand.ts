@@ -25,7 +25,7 @@
  */
 export type OpenAllSavedUrlsMode = 'newWindow' | 'backgroundTabs'
 
-export interface OpenAllSavedUrlsCommand {
+export type OpenAllSavedUrlsCommand = {
   readonly urls: readonly string[]
   readonly mode: OpenAllSavedUrlsMode
   /**

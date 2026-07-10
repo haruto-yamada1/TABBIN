@@ -44,17 +44,17 @@ import { CardCollapseControl } from './shared/CardCollapseControl'
 import { CardGroupTitle } from './shared/CardGroupTitle'
 import { CardSortControl } from './shared/CardSortControl'
 
-interface CreateProjectFormValues {
+type CreateProjectFormValues = {
   name: string
 }
 
-interface ActiveDragData {
+type ActiveDragData = {
   projectId?: string
   type?: string
   title?: string
   url?: string
 }
-interface DragDebugPayload {
+type DragDebugPayload = {
   activeId: string
   activeType: string | null
   sourceProjectId: string | null

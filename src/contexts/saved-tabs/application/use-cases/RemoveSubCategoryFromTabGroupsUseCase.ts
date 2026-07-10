@@ -11,7 +11,7 @@ import type { RemoveSubCategoryFromTabGroupPort } from '@/contexts/saved-tabs/ap
  * への依存を排除した unit test を書けるように、 port interface のみ
  * を公開する。
  */
-export interface RemoveSubCategoryFromTabGroupsUseCaseDeps {
+export type RemoveSubCategoryFromTabGroupsUseCaseDeps = {
   readonly removeSubCategoryFromTabGroupPort: RemoveSubCategoryFromTabGroupPort
 }
 

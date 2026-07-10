@@ -24,7 +24,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
 /**
  * `OpenAllSavedUrlsUseCase` が依存する repository / port 群。
  */
-export interface OpenAllSavedUrlsUseCaseDeps {
+export type OpenAllSavedUrlsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository
@@ -39,7 +39,7 @@ export type OpenAllSavedUrlsUseCase = (
   command: OpenAllSavedUrlsCommand,
 ) => Promise<OpenedUrlsDto>
 
-interface RemovalPlan {
+type RemovalPlan = {
   readonly previousTabGroups: readonly TabGroup[]
   readonly previousCustomProjects: readonly CustomProject[]
   readonly removedUrlRecords: readonly UrlRecord[]

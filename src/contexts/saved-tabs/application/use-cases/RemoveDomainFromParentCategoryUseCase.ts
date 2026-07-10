@@ -12,7 +12,7 @@ import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/Tab
 /**
  * `RemoveDomainFromParentCategoryUseCase` が依存する repository 群。
  */
-export interface RemoveDomainFromParentCategoryUseCaseDeps {
+export type RemoveDomainFromParentCategoryUseCaseDeps = {
   readonly parentCategoryRepository: ParentCategoryRepository
 }
 

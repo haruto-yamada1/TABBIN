@@ -1,4 +1,4 @@
-interface ExtensionPageHeaderProps {
+type ExtensionPageHeaderProps = {
   description?: string
   title: string
 }

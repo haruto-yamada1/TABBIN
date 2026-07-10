@@ -8,7 +8,7 @@ import type {
 
 type ProjectUrlItem = ProjectUrlEntry
 
-interface FilterCustomProjectsByQueryParams {
+type FilterCustomProjectsByQueryParams = {
   customProjects: CustomProject[]
   searchQuery: string
   loadProjectUrls: GetProjectUrlsUseCase

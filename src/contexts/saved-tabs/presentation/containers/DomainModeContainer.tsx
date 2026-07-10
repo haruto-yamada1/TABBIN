@@ -107,7 +107,7 @@ const UncategorizedReorderActions = ({
 
 type DndSensors = ComponentProps<typeof DndKitContext>['sensors']
 
-interface DomainModeContainerProps {
+type DomainModeContainerProps = {
   state: {
     hasVisibleCategoryGroups: boolean
     isCategoryReorderMode: boolean
@@ -184,7 +184,7 @@ const deleteVisibleUrlsForGroups = async (
   )
 }
 
-interface UncategorizedDomainSectionState {
+type UncategorizedDomainSectionState = {
   shouldShowSectionHeader: boolean
   hasVisibleCategoryGroups: boolean
   confirmDeleteAll: boolean
@@ -192,7 +192,7 @@ interface UncategorizedDomainSectionState {
   shouldShowList: boolean
 }
 
-interface UncategorizedDomainSectionProps {
+type UncategorizedDomainSectionProps = {
   state: UncategorizedDomainSectionState
   displayedDomainCount: number
   displayedTabCount: number

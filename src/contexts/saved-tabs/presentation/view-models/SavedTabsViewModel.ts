@@ -11,7 +11,7 @@ import type { TabGroupViewModel } from './TabGroupViewModel'
  * domain entity を直接参照しない。これにより presentation 層が
  * application 層 interface 変更に振り回されにくくなる。
  */
-export interface SavedTabsViewModel {
+export type SavedTabsViewModel = {
   readonly loading: boolean
   readonly error: string | null
   readonly tabGroups: readonly TabGroupViewModel[]

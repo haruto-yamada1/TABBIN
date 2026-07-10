@@ -8,7 +8,7 @@ type SidebarItemId =
   | 'saved-tabs-domain'
   | 'saved-tabs-custom'
 
-interface SidebarState {
+type SidebarState = {
   expandedGroup: 'tab-list'
   item: SidebarItemId
 }

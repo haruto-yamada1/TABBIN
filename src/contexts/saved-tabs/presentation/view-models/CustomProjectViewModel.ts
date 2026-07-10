@@ -5,7 +5,7 @@
  * 既存の `CustomProjectCard` / `CustomProjectSection` が要求する形に揃え、
  * コンポーネントへそのまま props として渡せることを目標にする。
  */
-export interface CustomProjectViewModel {
+export type CustomProjectViewModel = {
   readonly id: string
   readonly name: string
   readonly urlIds: readonly string[]

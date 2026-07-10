@@ -31,7 +31,7 @@ import type {
  * / `TabGroup`) の配列を永続化する。entity バリデーションや storage shape
  * への写像は実装側に閉じ込め、presentation 層は配列をそのまま渡せる。
  */
-export interface CategoryAssignmentPort {
+export type CategoryAssignmentPort = {
   /**
    * 旧 `@/lib/storage/categories.saveParentCategories` の port 版。
    * `parentCategoryRepository.saveAll` へ委譲する薄いラッパ。

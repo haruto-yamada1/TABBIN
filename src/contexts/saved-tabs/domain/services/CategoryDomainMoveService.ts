@@ -22,7 +22,7 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * 禁止、`@dnd-kit/sortable` 依存禁止) を満たすため、副作用・永続化・
  * ロギングは含めない。
  */
-export interface MoveDomainBetweenCategoriesParams {
+export type MoveDomainBetweenCategoriesParams = {
   readonly categories: readonly ParentCategory[]
   readonly domainId: TabGroupId
   readonly domainName: DomainName
@@ -35,7 +35,7 @@ export interface MoveDomainBetweenCategoriesParams {
   readonly toCategoryId: string
 }
 
-export interface MoveDomainBetweenCategoriesResult {
+export type MoveDomainBetweenCategoriesResult = {
   readonly moved: boolean
   readonly updatedCategories: readonly ParentCategory[]
 }

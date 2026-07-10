@@ -12,7 +12,7 @@ import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/applicatio
  * UI で「他で参照されていなかった URL が N 件削除されました」を
  * 表示する用途を想定。
  */
-export interface DeletedTabGroupDto {
+export type DeletedTabGroupDto = {
   readonly removedTabGroupId: string
   /**
    * 削除対象 TabGroup 内に含まれていた URL のうち、削除後に

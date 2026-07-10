@@ -113,7 +113,7 @@ const createCategoriesCommandServiceMock = (): {
   return { service, updateDomainCategorySettings }
 }
 
-interface Bundle {
+type Bundle = {
   readonly deps: PrepareTabGroupDeletionUseCaseDeps
   readonly tabGroupRepository: TabGroupRepository
   readonly parentCategoryRepository: ParentCategoryRepository
