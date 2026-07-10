@@ -17,7 +17,6 @@ import { harnessRoot, RUN_ID_SUFFIX_LENGTH, runRoot } from './types'
 import type {
   HarnessCheckpointOptions,
   HarnessEvaluateOptions,
-  HarnessFileName,
   HarnessFileResult,
   HarnessGovernanceEvent,
   HarnessPlanOptions,
@@ -29,18 +28,6 @@ import type {
   InitializeHarnessRunResult,
   LearningRecord,
 } from './types'
-
-function harnessFileNames(): HarnessFileName[] {
-  return [
-    'orchestrator.json',
-    'planner.json',
-    'generator.json',
-    'evaluator.json',
-    'decision.json',
-    'scorecard.json',
-    'learning.json',
-  ]
-}
 
 function requireHarnessRun(options: HarnessRunOptions) {
   const resolved = resolveHarnessRun(options)
@@ -57,6 +44,10 @@ function resolveHarnessRun(options: HarnessRunOptions) {
   const runIdOrPath = options.runId ?? readActiveRun(options.projectRoot)
   if (!runIdOrPath) {
     return null
+  }
+
+  if (!path.isAbsolute(runIdOrPath) && runIdOrPath.includes('..')) {
+    throw new Error('runId に相対パス区切り文字を含めることはできません。')
   }
 
   const runDirectory = path.isAbsolute(runIdOrPath)
@@ -131,6 +122,10 @@ export function initializeHarnessRun(
   options: InitializeHarnessRunOptions,
 ): InitializeHarnessRunResult {
   const runId = options.runId ?? defaultRunId()
+  if (runId.includes('/') || runId.includes('..')) {
+    throw new Error('runId にパス区切り文字を含めることはできません。')
+  }
+
   const harnessDirectory = path.join(options.projectRoot, harnessRoot)
   const runDirectory = path.join(options.projectRoot, runRoot, runId)
   const updatedAt = new Date().toISOString()
@@ -248,7 +243,7 @@ export function validateHarnessRun(
   const issues: HarnessValidationIssue[] = []
   let foundStateFile = false
 
-  for (const fileName of harnessFileNames()) {
+  for (const [fileName, schema] of Object.entries(harnessSchemas)) {
     const filePath = path.join(resolved.runDirectory, fileName)
     if (!existsSync(filePath)) {
       continue
@@ -266,13 +261,11 @@ export function validateHarnessRun(
     }
 
     issues.push(
-      ...validateJsonSchema(parsed.value, harnessSchemas[fileName]).map(
-        (issue) => ({
-          file: fileName,
-          path: issue.path,
-          message: issue.message,
-        }),
-      ),
+      ...validateJsonSchema(parsed.value, schema).map((issue) => ({
+        file: fileName,
+        path: issue.path,
+        message: issue.message,
+      })),
     )
   }
 
@@ -468,7 +461,6 @@ export function recordHarnessGovernanceEvent(options: {
 
 export {
   defaultRunId,
-  harnessFileNames,
   loadHarnessSnapshot,
   readActiveRun,
   requireHarnessRun,

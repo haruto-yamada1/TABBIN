@@ -43,7 +43,7 @@ export type HarnessFileName =
   | 'learning.json'
 
 export interface HarnessValidationIssue {
-  file: HarnessFileName | 'ACTIVE' | 'run'
+  file: string
   message: string
   path: string
 }
