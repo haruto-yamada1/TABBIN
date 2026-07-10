@@ -1,5 +1,6 @@
 import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import type { IdGeneratorPort } from '@/contexts/saved-tabs/application/ports/IdGeneratorPort'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
@@ -41,7 +42,7 @@ export type CreateParentCategoryUseCaseDeps = {
    * 旧 `src/lib/storage/categories.createParentCategory` の `uuidv4()`
    * 呼び出しを置換する。
    */
-  readonly generateId: () => string
+  readonly idGenerator: IdGeneratorPort
 }
 
 /**
@@ -51,7 +52,7 @@ export type CreateParentCategoryUseCaseDeps = {
  * 1. 既存カテゴリ一覧を `parentCategoryRepository.findAll` で取得する
  * 2. 同名 (`name.toLowerCase()`) のカテゴリが既にあれば
  *    `DUPLICATE_CATEGORY_NAME` 付き `Error` を投げる
- * 3. `generateId()` で採番した新規 `ParentCategory` を全カテゴリの
+ * 3. `idGenerator.generate()` で採番した新規 `ParentCategory` を全カテゴリの
  *    末尾に追加して `parentCategoryRepository.saveAll` で保存する
  * 4. 戻り値は `{ category, all: updatedCategories }`
  *
@@ -74,7 +75,7 @@ export const createCreateParentCategoryUseCase = (
     if (duplicate) {
       throw new Error(`DUPLICATE_CATEGORY_NAME:${name}`)
     }
-    const newId = createParentCategoryId(deps.generateId())
+    const newId = createParentCategoryId(deps.idGenerator.generate())
     const newCategory: ParentCategory = {
       domainNames: [],
       domains: [],

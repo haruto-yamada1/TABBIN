@@ -807,6 +807,16 @@
             "object": "Date",
             "property": "now",
             "message": "domain 層は Date.now() を直接利用できません。ClockPort 経由で時刻を注入してください"
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "domain 層は Math.random() を直接利用できません。RandomPort / IdGeneratorPort 経由で注入してください"
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "domain 層は crypto.randomUUID() を直接利用できません。IdGeneratorPort 経由で ID を生成してください"
           }
         ]
       }
@@ -840,6 +850,21 @@
             "object": "chrome",
             "property": "notifications",
             "message": "application 層は chrome.notifications を直接利用できません（NotificationPort 経由）"
+          },
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "application 層は Date.now() を直接利用できません。ClockPort 経由で時刻を注入してください"
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "application 層は Math.random() を直接利用できません。RandomPort / IdGeneratorPort 経由で注入してください"
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "application 層は crypto.randomUUID() を直接利用できません。IdGeneratorPort 経由で ID を生成してください"
           }
         ]
       }

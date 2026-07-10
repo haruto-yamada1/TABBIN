@@ -31,7 +31,7 @@ describe('parent category management use-cases', () => {
       parentCategories: [],
     })
     const createCategory = createCreateParentCategoryUseCase({
-      generateId: () => 'category-1',
+      idGenerator: { generate: () => 'category-1' },
       parentCategoryRepository,
     })
 
@@ -66,7 +66,7 @@ describe('parent category management use-cases', () => {
       ],
     })
     const createCategory = createCreateParentCategoryUseCase({
-      generateId: () => 'category-2',
+      idGenerator: { generate: () => 'category-2' },
       parentCategoryRepository,
     })
 

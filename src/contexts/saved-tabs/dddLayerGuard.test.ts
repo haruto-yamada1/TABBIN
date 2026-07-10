@@ -368,6 +368,38 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(names).toContain('Date.now')
     })
 
+    it('issue #642: Math.random() を no-restricted-properties で禁止している', () => {
+      const names = getRestrictedProperties(propertiesOverride)
+      expect(names).toContain('Math.random')
+    })
+
+    it('issue #642: crypto.randomUUID() を no-restricted-properties で禁止している', () => {
+      const names = getRestrictedProperties(propertiesOverride)
+      expect(names).toContain('crypto.randomUUID')
+    })
+
+    it('issue #642: domain 層のソースファイルが Math.random( / crypto.randomUUID( を直接使わない', () => {
+      const stripComments = (source: string): string =>
+        source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+      const domainRoot = resolve(repoRoot, 'src/contexts/saved-tabs/domain')
+      const domainSourceFiles = collectSourceFiles(domainRoot)
+      expect(domainSourceFiles.length).toBeGreaterThan(0)
+      for (const absolutePath of domainSourceFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} should not call Math.random() directly (use RandomPort / IdGeneratorPort)`,
+        ).not.toMatch(/\bMath\.random\s*\(/)
+        expect(
+          source,
+          `${relativePath} should not call crypto.randomUUID() directly (use IdGeneratorPort)`,
+        ).not.toMatch(/\bcrypto\.randomUUID\s*\(/)
+      }
+    })
+
     it('issue #582: domain 層のソースファイルが Date.now( / new Date( を直接使わない', () => {
       // JSDoc やコメント内の言及は対象外とする。
       // 検出したいのは「現在時刻の取得」という
@@ -425,6 +457,51 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(names).toContain('chrome.contextMenus')
       expect(names).toContain('chrome.alarms')
       expect(names).toContain('chrome.notifications')
+    })
+
+    it('issue #642: Date.now() を no-restricted-properties で禁止している', () => {
+      const names = getRestrictedProperties(propertiesOverride)
+      expect(names).toContain('Date.now')
+    })
+
+    it('issue #642: Math.random() を no-restricted-properties で禁止している', () => {
+      const names = getRestrictedProperties(propertiesOverride)
+      expect(names).toContain('Math.random')
+    })
+
+    it('issue #642: crypto.randomUUID() を no-restricted-properties で禁止している', () => {
+      const names = getRestrictedProperties(propertiesOverride)
+      expect(names).toContain('crypto.randomUUID')
+    })
+
+    it('issue #642: application 層のソースファイルが Date.now( / new Date( / Math.random( / crypto.randomUUID( を直接使わない', () => {
+      const stripComments = (source: string): string =>
+        source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+      const appRoot = resolve(repoRoot, 'src/contexts/saved-tabs/application')
+      const appSourceFiles = collectSourceFiles(appRoot)
+      expect(appSourceFiles.length).toBeGreaterThan(0)
+      for (const absolutePath of appSourceFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} should not call Date.now() directly (use ClockPort)`,
+        ).not.toMatch(/\bDate\.now\s*\(/)
+        expect(
+          source,
+          `${relativePath} should not call new Date() directly (use ClockPort)`,
+        ).not.toMatch(/\bnew\s+Date\s*\(/)
+        expect(
+          source,
+          `${relativePath} should not call Math.random() directly (use RandomPort / IdGeneratorPort)`,
+        ).not.toMatch(/\bMath\.random\s*\(/)
+        expect(
+          source,
+          `${relativePath} should not call crypto.randomUUID() directly (use IdGeneratorPort)`,
+        ).not.toMatch(/\bcrypto\.randomUUID\s*\(/)
+      }
     })
   })
 
@@ -1404,6 +1481,96 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       )
       expect(source).toContain('clock: ClockPort')
       expect(source).toContain('import type { ClockPort }')
+    })
+  })
+
+  describe('issue #642: domain / application 層の直接 ID 生成依存を禁止する IdGeneratorPort 導入', () => {
+    it('IdGeneratorPort が定義されている', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/ports/IdGeneratorPort.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('type IdGeneratorPort')
+      expect(source).toContain('generate:')
+    })
+
+    it('IdGeneratorPort は chrome API を import / 利用しない', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/ports/IdGeneratorPort.ts',
+        ),
+        'utf8',
+      )
+      expect(source).not.toMatch(/from\s+['"]chrome['"]/)
+      expect(source).not.toMatch(/\bcrypto\.randomUUID\s*\(/)
+    })
+
+    it('SystemIdGeneratorAdapter が定義されている', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/browser/SystemIdGeneratorAdapter.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('IdGeneratorPort')
+      expect(source).toContain('createSystemIdGenerator')
+      // SystemIdGenerator は infrastructure 層なので crypto.randomUUID() 使用は OK
+      expect(source).toContain('crypto.randomUUID()')
+    })
+
+    it('createSavedTabsUseCasesDeps は idGenerator を組み立てる', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('idGenerator:')
+      expect(source).toContain('createSystemIdGenerator')
+    })
+
+    it('SavedTabsUseCasesDeps は idGenerator を含む', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/SavedTabsUseCasesDeps.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('idGenerator: IdGeneratorPort')
+      expect(source).toContain('import type { IdGeneratorPort }')
+    })
+
+    it('CreateParentCategoryUseCase は idGenerator を use-case 依存として受け取る', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('idGenerator: IdGeneratorPort')
+      expect(source).toContain('deps.idGenerator.generate()')
+    })
+
+    it('CreateCustomProjectUseCase は idGenerator を use-case 依存として受け取る', () => {
+      const source = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase.ts',
+        ),
+        'utf8',
+      )
+      expect(source).toContain('idGenerator: IdGeneratorPort')
+      expect(source).toContain('deps.idGenerator.generate()')
+      // uuid package の直接 import が残っていないことを確認
+      expect(source).not.toMatch(/from\s+['"]uuid['"]/)
     })
   })
 

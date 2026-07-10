@@ -103,9 +103,10 @@ export const createSavedTabsUseCases = (
   createCustomProject: createCreateCustomProjectUseCase({
     clock: deps.clock,
     customProjectRepository: deps.customProjectRepository,
+    idGenerator: deps.idGenerator,
   }),
   createParentCategory: createCreateParentCategoryUseCase({
-    generateId: () => crypto.randomUUID(),
+    idGenerator: deps.idGenerator,
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
   deleteCustomProject: createDeleteCustomProjectUseCase({
