@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 
 import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
 import {
@@ -38,7 +44,10 @@ const useOllamaModelSettings = ({
   const fetchPromiseRef = useRef<Promise<void> | null>(null)
   const isSaveInFlightRef = useRef(false)
   const onSettingsSavedRef = useRef(onSettingsSaved)
-  onSettingsSavedRef.current = onSettingsSaved
+
+  useLayoutEffect(() => {
+    onSettingsSavedRef.current = onSettingsSaved
+  }, [onSettingsSaved])
 
   useEffect(() => {
     isMountedRef.current = true
