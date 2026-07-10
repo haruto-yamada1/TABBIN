@@ -55,6 +55,8 @@ const useConversationClipboard = ({
     messages: ChatMessage[]
   }>({ isCopied: false, messages })
   const copiedTimeoutRef = useRef<number | null>(null)
+  const isMountedRef = useRef(true)
+  const copyRequestGenerationRef = useRef(0)
 
   if (copiedState.messages !== messages) {
     setCopiedState({ isCopied: false, messages })
@@ -71,9 +73,29 @@ const useConversationClipboard = ({
     copiedTimeoutRef.current = null
   }, [])
 
-  useEffect(() => clearCopiedTimeout, [clearCopiedTimeout, messages])
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      copyRequestGenerationRef.current += 1
+    }
+  }, [])
+
+  useEffect(
+    () => () => {
+      copyRequestGenerationRef.current += 1
+      clearCopiedTimeout()
+    },
+    [clearCopiedTimeout, messages],
+  )
 
   const copyConversation = useCallback(async () => {
+    const requestGeneration = copyRequestGenerationRef.current + 1
+    copyRequestGenerationRef.current = requestGeneration
+    const isCurrentRequest = () =>
+      isMountedRef.current &&
+      copyRequestGenerationRef.current === requestGeneration
+
     const conversationCopyText = getConversationCopyText(messages, t)
     if (!conversationCopyText) {
       return
@@ -87,6 +109,9 @@ const useConversationClipboard = ({
 
     try {
       await clipboard.writeText(conversationCopyText)
+      if (!isCurrentRequest()) {
+        return
+      }
       clearCopiedTimeout()
       setCopiedState({ isCopied: true, messages })
       toast.success(t('aiChat.copyConversationSuccess'))
@@ -95,6 +120,9 @@ const useConversationClipboard = ({
         copiedTimeoutRef.current = null
       }, COPIED_CONVERSATION_ICON_TIMEOUT)
     } catch {
+      if (!isCurrentRequest()) {
+        return
+      }
       toast.error(t('aiChat.copyConversationError'))
     }
   }, [clearCopiedTimeout, messages, t])

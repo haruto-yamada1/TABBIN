@@ -62,6 +62,20 @@ const setClipboard = (clipboard: unknown) => {
   })
 }
 
+const createDeferred = () => {
+  let resolveDeferred: () => void = () => {}
+  let rejectDeferred: (reason?: unknown) => void = () => {}
+  const promise = new Promise<void>((resolve, reject) => {
+    resolveDeferred = resolve
+    rejectDeferred = reject
+  })
+  return {
+    promise,
+    reject: rejectDeferred,
+    resolve: resolveDeferred,
+  }
+}
+
 describe('useConversationClipboard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -204,6 +218,93 @@ describe('useConversationClipboard', () => {
     rerender({ currentMessages: messages })
 
     expect(result.current.isConversationCopied).toBe(false)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('pending copy の unmount 後 resolve は副作用を発生させない', async () => {
+    vi.useFakeTimers()
+    const deferred = createDeferred()
+    setClipboard({ writeText: vi.fn().mockReturnValue(deferred.promise) })
+    const { result, unmount } = renderHook(() =>
+      useConversationClipboard({ messages, t }),
+    )
+
+    const pendingCopy = result.current.copyConversation()
+    unmount()
+
+    await act(async () => {
+      deferred.resolve()
+      await pendingCopy
+    })
+
+    expect(mocked.toastSuccess).not.toHaveBeenCalled()
+    expect(mocked.toastError).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('pending copy の会話が A から B を経て同じ A に戻っても副作用を復活させない', async () => {
+    vi.useFakeTimers()
+    const deferred = createDeferred()
+    setClipboard({ writeText: vi.fn().mockReturnValue(deferred.promise) })
+    const { result, rerender } = renderHook(
+      ({ currentMessages }) =>
+        useConversationClipboard({ messages: currentMessages, t }),
+      { initialProps: { currentMessages: messages } },
+    )
+
+    const pendingCopy = result.current.copyConversation()
+    rerender({ currentMessages: [] })
+    rerender({ currentMessages: messages })
+
+    await act(async () => {
+      deferred.resolve()
+      await pendingCopy
+    })
+
+    expect(result.current.isConversationCopied).toBe(false)
+    expect(mocked.toastSuccess).not.toHaveBeenCalled()
+    expect(mocked.toastError).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('並行 copy が逆順 resolve しても古い要求は新しい timeout を上書きしない', async () => {
+    vi.useFakeTimers()
+    const firstDeferred = createDeferred()
+    const secondDeferred = createDeferred()
+    const writeText = vi
+      .fn()
+      .mockReturnValueOnce(firstDeferred.promise)
+      .mockReturnValueOnce(secondDeferred.promise)
+    setClipboard({ writeText })
+    const { result } = renderHook(() =>
+      useConversationClipboard({ messages, t }),
+    )
+
+    const firstCopy = result.current.copyConversation()
+    const secondCopy = result.current.copyConversation()
+
+    await act(async () => {
+      secondDeferred.resolve()
+      await secondCopy
+    })
+    expect(result.current.isConversationCopied).toBe(true)
+    expect(mocked.toastSuccess).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      vi.advanceTimersByTime(COPIED_CONVERSATION_ICON_TIMEOUT / 2)
+    })
+
+    await act(async () => {
+      firstDeferred.resolve()
+      await firstCopy
+    })
+
+    act(() => {
+      vi.advanceTimersByTime(COPIED_CONVERSATION_ICON_TIMEOUT / 2)
+    })
+
+    expect(result.current.isConversationCopied).toBe(false)
+    expect(mocked.toastSuccess).toHaveBeenCalledTimes(1)
     expect(vi.getTimerCount()).toBe(0)
   })
 })
