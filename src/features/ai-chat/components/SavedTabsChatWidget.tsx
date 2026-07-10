@@ -16,7 +16,11 @@ import {
   useRef,
   useState,
 } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  ReactNode,
+} from 'react'
 import { toast } from 'sonner'
 
 import { Attachments } from '@/components/ai-elements/attachments'
@@ -95,6 +99,7 @@ import { SavedTabsChatHeaderTooltipButton } from '@/features/ai-chat/components/
 import { SavedTabsChatHistoryItemCard } from '@/features/ai-chat/components/SavedTabsChatHistoryItemCard'
 import { SystemPromptManagerDialog } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import type { SystemPromptManagerDialogProps } from '@/features/ai-chat/components/SystemPromptManagerDialog'
+import { useChatSidebarResize } from '@/features/ai-chat/hooks/useChatSidebarResize'
 import {
   AI_CHAT_MAX_ATTACHMENTS,
   AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES,
@@ -136,17 +141,13 @@ import {
 } from './savedTabsChat/prompts'
 import {
   areMessagesEquivalent,
-  clampSidebarWidth,
   COPIED_CONVERSATION_ICON_TIMEOUT,
-  DEFAULT_CHAT_SIDEBAR_WIDTH,
   EMPTY_CHAT_MESSAGES,
   EMPTY_HISTORY_ITEMS,
   EMPTY_TOOL_TRACES,
   getResolvedSettings,
   isAiChatConfigured,
-  loadSidebarWidth,
   loadWidgetSettings,
-  persistSidebarWidth,
   syncExternalConversationState,
 } from './savedTabsChat/storage'
 import {
@@ -193,11 +194,11 @@ type SavedTabsChatPanelProps = {
   historyVariant: 'dropdown' | 'none' | 'sidebar-toggle'
   input: string
   layout: {
+    cardStyle?: CSSProperties
     isCompactLayout: boolean
     isResizing: boolean
     mode: 'floating' | 'page'
     showCloseButton: boolean
-    sidebarWidth: number
   }
   status: {
     isConfigured: boolean
@@ -1074,7 +1075,7 @@ const useSavedTabsChatPanelView = ({
     },
     t,
   })
-  const { isCompactLayout, isResizing, mode, sidebarWidth } = layout
+  const { cardStyle, isCompactLayout, isResizing, mode } = layout
   const { isConfigured, isOpen } = status
   const renderedMessages = messages.map((message) => ({
     id: message.id,
@@ -1100,11 +1101,6 @@ const useSavedTabsChatPanelView = ({
     mode === 'page'
       ? 'flex h-full min-h-0 flex-1 flex-col rounded-[1.5rem] border-border shadow-lg'
       : 'flex h-full min-h-0 flex-col rounded-none border-border border-y-0 border-r-0 border-l shadow-2xl'
-  const cardStyle = useMemo(
-    () => (mode === 'page' ? undefined : { width: `${sidebarWidth}px` }),
-    [mode, sidebarWidth],
-  )
-
   if (!isOpen) {
     return null
   }
@@ -1236,7 +1232,8 @@ const useSavedTabsChatWidgetView = ({
   const [isFloatingOpen, setIsFloatingOpen] = useState(
     defaultOpen || mode === 'page',
   )
-  const [isResizing, setIsResizing] = useState(false)
+  const { cardStyle, handleResizeStart, isCompactLayout, isResizing } =
+    useChatSidebarResize({ mode })
   const [input, setInput] = useState('')
   const [messages, setMessages] = useReducer(
     (_state: ChatMessage[], nextMessages: ChatMessage[]) => nextMessages,
@@ -1261,22 +1258,16 @@ const useSavedTabsChatWidgetView = ({
     OllamaErrorDetails | undefined
   >(undefined)
   const [platform, setPlatform] = useState<OllamaErrorPlatform>('unknown')
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_CHAT_SIDEBAR_WIDTH)
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
   const activePortRef = useRef<{
     disconnect: () => void
   } | null>(null)
   const conversationGenerationRef = useRef(0)
   const ignoreNextDisconnectRef = useRef(false)
-  const resizeCleanupRef = useRef<(() => void) | null>(null)
-  const sidebarWidthRef = useRef(DEFAULT_CHAT_SIDEBAR_WIDTH)
   const conversationCopiedTimeoutRef = useRef<number | null>(null)
   const messagesRef = useRef<ChatMessage[]>(initialMessages)
   const syncedConversationIdRef = useRef<string | undefined>(conversationId)
   const isOpen = mode === 'page' || isFloatingOpen
   const releaseChatWidgetResources = useCallback(() => {
-    resizeCleanupRef.current?.()
-    resizeCleanupRef.current = null
     if (conversationCopiedTimeoutRef.current) {
       window.clearTimeout(conversationCopiedTimeoutRef.current)
       conversationCopiedTimeoutRef.current = null
@@ -1284,10 +1275,6 @@ const useSavedTabsChatWidgetView = ({
     activePortRef.current?.disconnect()
     activePortRef.current = null
   }, [])
-
-  useEffect(() => {
-    sidebarWidthRef.current = sidebarWidth
-  }, [sidebarWidth])
 
   useEffect(() => {
     const shouldSyncExternalConversation =
@@ -1344,7 +1331,6 @@ const useSavedTabsChatWidgetView = ({
       }
 
       setSettings(nextSettings)
-      setSidebarWidth(loadSidebarWidth())
     }
 
     void syncWidgetSettings()
@@ -1384,29 +1370,9 @@ const useSavedTabsChatWidgetView = ({
     }
   }, [])
 
-  useEffect(() => {
-    const handleWindowResize = () => {
-      setViewportWidth(window.innerWidth)
-      setSidebarWidth((currentWidth) => clampSidebarWidth(currentWidth))
-    }
-
-    window.addEventListener('resize', handleWindowResize)
-
-    return () => {
-      window.removeEventListener('resize', handleWindowResize)
-    }
-  }, [])
-
   const resolvedSettings = getResolvedSettings(settings)
   const activeSystemPrompt = getActiveAiSystemPrompt(resolvedSettings)
   const isConfigured = isAiChatConfigured(resolvedSettings)
-  const TABLET_BREAKPOINT = 768
-  const SIDEBAR_COMPACT_BREAKPOINT = 360
-
-  const isCompactLayout =
-    mode === 'page'
-      ? viewportWidth < TABLET_BREAKPOINT
-      : sidebarWidth <= SIDEBAR_COMPACT_BREAKPOINT
   const resolvedTitle = title ?? t('aiChat.chatTitle')
 
   const setMessagesState = (nextMessages: ChatMessage[]) => {
@@ -1474,38 +1440,6 @@ const useSavedTabsChatWidgetView = ({
 
     activePortRef.current = null
     activePort.disconnect()
-  }
-
-  const stopResize = () => {
-    resizeCleanupRef.current?.()
-    resizeCleanupRef.current = null
-  }
-  const handleResizeStart = (event: React.PointerEvent<HTMLButtonElement>) => {
-    event.preventDefault()
-    stopResize()
-    setIsResizing(true)
-
-    const previousBodyStyle = document.body.style.cssText
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      const nextWidth = clampSidebarWidth(window.innerWidth - moveEvent.clientX)
-      sidebarWidthRef.current = nextWidth
-      setSidebarWidth(nextWidth)
-    }
-    const handlePointerUp = () => {
-      persistSidebarWidth(sidebarWidthRef.current)
-      setIsResizing(false)
-      stopResize()
-    }
-
-    document.body.style.cssText = `${previousBodyStyle}; cursor: col-resize; user-select: none;`
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
-
-    resizeCleanupRef.current = () => {
-      document.body.style.cssText = previousBodyStyle
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
-    }
   }
 
   const handleFetchModels = async () => {
@@ -1677,11 +1611,11 @@ const useSavedTabsChatWidgetView = ({
     historyVariant,
     input,
     layout: {
+      cardStyle,
       isCompactLayout,
       isResizing,
       mode,
       showCloseButton: mode === 'floating',
-      sidebarWidth,
     },
     messages,
     modelName: resolvedSettings.ollamaModel,
