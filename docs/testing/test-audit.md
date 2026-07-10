@@ -50,7 +50,7 @@ Initial candidates:
 
 - `src/features/options/lib/import-export.test.ts`
 - `src/lib/storybook/component-coverage.test.ts`
-- `src/lib/harness/harnessState.test.ts`
+- `tools/harness/state.test.ts`
 
 Recommended action: reinforce or split only when a touched behavior is hard to
 read. Do not rewrite all of these at once.

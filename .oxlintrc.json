@@ -540,6 +540,7 @@
         "src/entrypoints/**/*.{ts,tsx}"
       ],
       "rules": {
+        "import/no-nodejs-modules": "error",
         "eslint/no-restricted-globals": [
           "error",
           {
@@ -887,6 +888,7 @@
         "tests/**/*.test.tsx"
       ],
       "rules": {
+        "import/no-nodejs-modules": "off",
         "testing-library/await-async-events": "error",
         "testing-library/await-async-queries": "error",
         "testing-library/await-async-utils": "error",
