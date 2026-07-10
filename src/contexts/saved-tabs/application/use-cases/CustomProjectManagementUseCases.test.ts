@@ -41,7 +41,7 @@ describe('custom project management use-cases', () => {
     const customProjectRepository = createRepository([existingProject()])
     const createProject = createCreateCustomProjectUseCase({
       customProjectRepository,
-      generateId: () => 'project-2',
+      idGenerator: { generate: () => 'project-2' },
       clock: { now: () => 10 },
     })
 
@@ -59,19 +59,18 @@ describe('custom project management use-cases', () => {
     expect(customProjectRepository.saveAll).toHaveBeenCalledOnce()
   })
 
-  it('既定ID・時刻生成でもprojectを生成できる', async () => {
+  it('port 経由のID生成でprojectを生成できる', async () => {
     const customProjectRepository = createRepository()
     const createProject = createCreateCustomProjectUseCase({
       clock: { now: () => 1_700_000_000_000 },
       customProjectRepository,
+      idGenerator: { generate: () => 'generated-id' },
     })
 
     const result = await createProject({ name: 'Generated' })
 
-    expect(result.project.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-    )
-    expect(result.project.createdAt).toBeGreaterThan(0)
+    expect(result.project.id).toBe('generated-id')
+    expect(result.project.createdAt).toBe(1_700_000_000_000)
   })
 
   it.each([
@@ -82,6 +81,7 @@ describe('custom project management use-cases', () => {
     const createProject = createCreateCustomProjectUseCase({
       clock: { now: () => 0 },
       customProjectRepository,
+      idGenerator: { generate: () => 'test-id' },
     })
 
     await expect(createProject({ name })).rejects.toThrow(message)

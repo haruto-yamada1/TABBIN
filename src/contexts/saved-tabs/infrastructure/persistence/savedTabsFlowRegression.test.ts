@@ -121,6 +121,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
   const deps: SavedTabsUseCasesDeps = {
     browserTabPort: browserTabPort.port,
     clock: { now: () => 0 },
+    idGenerator: { generate: () => 'test-id' },
     browserWindowPort: browserWindowPort.port,
     categoriesCommandService: {
       updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
@@ -465,6 +466,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const deps: SavedTabsUseCasesDeps = {
         browserTabPort,
         clock: { now: () => 0 },
+        idGenerator: { generate: () => 'test-id' },
         browserWindowPort,
         categoriesCommandService: {
           updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),

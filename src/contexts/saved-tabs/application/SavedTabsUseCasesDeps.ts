@@ -12,6 +12,7 @@ import type { CategoriesCommandService } from './ports/CategoriesCommandService'
 import type { CategoryAssignmentPort } from './ports/CategoryAssignmentPort'
 import type { ClockPort } from './ports/ClockPort'
 import type { CustomProjectsCommandService } from './ports/CustomProjectsCommandService'
+import type { IdGeneratorPort } from './ports/IdGeneratorPort'
 import type { MessagingPort } from './ports/MessagingPort'
 import type { MigrationPort } from './ports/MigrationPort'
 import type { NotificationPort } from './ports/NotificationPort'
@@ -28,6 +29,7 @@ export type SavedTabsUseCasesDeps = {
   readonly categoryAssignmentPort: CategoryAssignmentPort
   readonly clock: ClockPort
   readonly customProjectRepository: CustomProjectRepository
+  readonly idGenerator: IdGeneratorPort
   readonly customProjectsCommandService: CustomProjectsCommandService
   readonly domainCategoryMappingRepository: DomainCategoryMappingRepository
   readonly domainCategorySettingsRepository: DomainCategorySettingsRepository

@@ -91,6 +91,7 @@ const buildLayoutComposition = () => {
       open: async (input: { url: string }) => ({ url: input.url }),
     },
     clock: { now: () => 0 },
+    idGenerator: { generate: () => 'test-id' },
     browserWindowPort: {
       openWithUrls: async (input: { urls: readonly string[] }) => ({
         urls: [...input.urls],

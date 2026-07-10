@@ -1,8 +1,7 @@
-import { v4 as uuidv4 } from 'uuid'
-
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { ClockPort } from '@/contexts/saved-tabs/application/ports/ClockPort'
+import type { IdGeneratorPort } from '@/contexts/saved-tabs/application/ports/IdGeneratorPort'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
@@ -26,17 +25,15 @@ export type CreateCustomProjectUseCase = (
 export type CreateCustomProjectUseCaseDeps = {
   readonly customProjectRepository: CustomProjectRepository
   readonly clock: ClockPort
-  readonly generateId?: () => string
+  readonly idGenerator: IdGeneratorPort
 }
-
-const defaultGenerateId = (): string => uuidv4()
 
 /**
  * `CreateCustomProjectUseCase` を生成する。
  *
  * 責務:
  * 1. 既存 `CustomProject` 一覧から同名 (大小無視) 重複を検出
- * 2. `generateId()` で `CustomProjectId` を採番
+ * 2. `idGenerator.generate()` で `CustomProjectId` を採番
  * 3. 空 `urlIds` / 空 `categories` の新規プロジェクトを repository に保存
  *
  * 旧 `src/lib/storage/projects.createCustomProject` の DDD use-case 化
@@ -59,7 +56,7 @@ export const createCreateCustomProjectUseCase = (
     ) {
       throw new Error(`DUPLICATE_PROJECT_NAME:${name}`)
     }
-    const id = (deps.generateId ?? defaultGenerateId)()
+    const id = deps.idGenerator.generate()
     const now = deps.clock.now()
     const newProject = createCustomProject({
       categories: [],
