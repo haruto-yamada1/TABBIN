@@ -29,16 +29,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  getSelectedPrompt,
-  SYSTEM_PROMPT_SELECTOR_EMPTY_VALUE,
-} from '@/features/ai-chat/components/savedTabsChat/prompts'
+import { SYSTEM_PROMPT_SELECTOR_EMPTY_VALUE } from '@/features/ai-chat/components/savedTabsChat/prompts'
 import { SavedTabsChatHeaderTooltipButton } from '@/features/ai-chat/components/SavedTabsChatHeaderTooltipButton'
 import { SavedTabsChatHistoryItemCard } from '@/features/ai-chat/components/SavedTabsChatHistoryItemCard'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
-import type { AiSystemPromptPreset } from '@/types/storage'
+
+type SavedTabsChatSystemPromptOption = Readonly<{
+  id: string
+  name: string
+}>
 
 type SavedTabsChatHeaderProps = {
   activeSystemPromptId: string
@@ -60,7 +61,7 @@ type SavedTabsChatHeaderProps = {
     isConversationCopied: boolean
     isCopyDisabled: boolean
   }
-  systemPrompts: AiSystemPromptPreset[]
+  systemPrompts: readonly SavedTabsChatSystemPromptOption[]
   title: string
 }
 
@@ -71,12 +72,12 @@ const SystemPromptSelector = ({
   onValueChange,
 }: {
   isCompactLayout: boolean
-  prompts: AiSystemPromptPreset[]
+  prompts: readonly SavedTabsChatSystemPromptOption[]
   selectedPromptId: string
   onValueChange: (value: string) => void
 }) => {
   const { t } = useI18n()
-  const activePrompt = getSelectedPrompt(prompts, selectedPromptId)
+  const activePrompt = prompts.find((prompt) => prompt.id === selectedPromptId)
   if (!activePrompt) {
     return null
   }
@@ -366,5 +367,5 @@ const SavedTabsChatHeader = ({
   )
 }
 
-export type { SavedTabsChatHeaderProps }
+export type { SavedTabsChatHeaderProps, SavedTabsChatSystemPromptOption }
 export { SavedTabsChatHeader }

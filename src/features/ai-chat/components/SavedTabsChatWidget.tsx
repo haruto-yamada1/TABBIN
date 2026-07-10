@@ -465,6 +465,14 @@ const useSavedTabsChatPanelView = ({
     }),
     [status.isConversationCopied, status.isCopyDisabled],
   )
+  const headerSystemPrompts = useMemo(
+    () =>
+      systemPrompts.map(({ id, name }) => ({
+        id,
+        name,
+      })),
+    [systemPrompts],
+  )
   const composerPresentation = useMemo(
     () => ({ isCompactLayout: layout.isCompactLayout }),
     [layout.isCompactLayout],
@@ -554,7 +562,7 @@ const useSavedTabsChatPanelView = ({
         onToggleHistory={onToggleHistory}
         presentation={headerPresentation}
         status={headerStatus}
-        systemPrompts={systemPrompts}
+        systemPrompts={headerSystemPrompts}
         title={title}
       />
 

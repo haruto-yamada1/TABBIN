@@ -49,18 +49,12 @@ const historyItems = [
 
 const systemPrompts = [
   {
-    createdAt: 0,
     id: 'prompt-1',
     name: 'Default',
-    template: 'Answer from saved tabs.',
-    updatedAt: 0,
   },
   {
-    createdAt: 1,
     id: 'prompt-2',
     name: 'Research',
-    template: 'Compare saved tabs.',
-    updatedAt: 1,
   },
 ]
 
