@@ -100,6 +100,7 @@ import { SavedTabsChatHistoryItemCard } from '@/features/ai-chat/components/Save
 import { SystemPromptManagerDialog } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import type { SystemPromptManagerDialogProps } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import { useChatSidebarResize } from '@/features/ai-chat/hooks/useChatSidebarResize'
+import { useConversationClipboard } from '@/features/ai-chat/hooks/useConversationClipboard'
 import {
   AI_CHAT_MAX_ATTACHMENTS,
   AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES,
@@ -128,7 +129,6 @@ import type { OllamaErrorDetails } from '@/types/background'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
 import {
-  getConversationCopyText,
   getMessageSources,
   getSourcesLabel,
   insertLineBreakAtCursor,
@@ -141,7 +141,6 @@ import {
 } from './savedTabsChat/prompts'
 import {
   areMessagesEquivalent,
-  COPIED_CONVERSATION_ICON_TIMEOUT,
   EMPTY_CHAT_MESSAGES,
   EMPTY_HISTORY_ITEMS,
   EMPTY_TOOL_TRACES,
@@ -158,33 +157,6 @@ import {
 import { useChatPromptManager } from './savedTabsChat/useChatPromptManager'
 import { useChatStreamHandlers } from './savedTabsChat/useChatStreamHandlers'
 import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.helpers'
-
-type ClipboardWriter = {
-  writeText: (text: string) => Promise<void>
-}
-
-const getClipboardWriter = (): ClipboardWriter | null => {
-  const navigatorValue: unknown = Reflect.get(globalThis, 'navigator')
-  if (typeof navigatorValue !== 'object' || navigatorValue === null) {
-    return null
-  }
-  const clipboardValue: unknown = Reflect.get(navigatorValue, 'clipboard')
-  if (typeof clipboardValue !== 'object' || clipboardValue === null) {
-    return null
-  }
-  const writeTextValue: unknown = Reflect.get(clipboardValue, 'writeText')
-  if (typeof writeTextValue !== 'function') {
-    return null
-  }
-  return {
-    writeText: async (text) => {
-      await Reflect.apply(writeTextValue, clipboardValue, [text])
-    },
-  }
-}
-
-const getConversationClipboard = (): ClipboardWriter | null =>
-  typeof window === 'undefined' ? null : getClipboardWriter()
 
 type SavedTabsChatPanelProps = {
   activeSystemPromptId: string
@@ -1239,7 +1211,10 @@ const useSavedTabsChatWidgetView = ({
     (_state: ChatMessage[], nextMessages: ChatMessage[]) => nextMessages,
     initialMessages,
   )
-  const [isConversationCopied, setIsConversationCopied] = useState(false)
+  const { copyConversation, isConversationCopied } = useConversationClipboard({
+    messages,
+    t,
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [chatOllamaError, setChatOllamaError] = useState<
@@ -1263,15 +1238,10 @@ const useSavedTabsChatWidgetView = ({
   } | null>(null)
   const conversationGenerationRef = useRef(0)
   const ignoreNextDisconnectRef = useRef(false)
-  const conversationCopiedTimeoutRef = useRef<number | null>(null)
   const messagesRef = useRef<ChatMessage[]>(initialMessages)
   const syncedConversationIdRef = useRef<string | undefined>(conversationId)
   const isOpen = mode === 'page' || isFloatingOpen
   const releaseChatWidgetResources = useCallback(() => {
-    if (conversationCopiedTimeoutRef.current) {
-      window.clearTimeout(conversationCopiedTimeoutRef.current)
-      conversationCopiedTimeoutRef.current = null
-    }
     activePortRef.current?.disconnect()
     activePortRef.current = null
   }, [])
@@ -1490,14 +1460,9 @@ const useSavedTabsChatWidgetView = ({
   }
 
   const handleResetConversation = () => {
-    if (conversationCopiedTimeoutRef.current) {
-      window.clearTimeout(conversationCopiedTimeoutRef.current)
-      conversationCopiedTimeoutRef.current = null
-    }
     conversationGenerationRef.current += 1
     disconnectActivePort(true)
     setMessagesState([])
-    setIsConversationCopied(false)
     setInput('')
     setErrorMessage('')
     setChatOllamaError(undefined)
@@ -1511,34 +1476,6 @@ const useSavedTabsChatWidgetView = ({
     }
 
     handleResetConversation()
-  }
-
-  const handleCopyConversation = async () => {
-    const conversationCopyText = getConversationCopyText(messages, t)
-    if (!conversationCopyText) {
-      return
-    }
-
-    const clipboard = getConversationClipboard()
-    if (!clipboard) {
-      toast.error(t('aiChat.copyConversationError'))
-      return
-    }
-
-    try {
-      await clipboard.writeText(conversationCopyText)
-      if (conversationCopiedTimeoutRef.current) {
-        window.clearTimeout(conversationCopiedTimeoutRef.current)
-      }
-      setIsConversationCopied(true)
-      toast.success(t('aiChat.copyConversationSuccess'))
-      conversationCopiedTimeoutRef.current = window.setTimeout(() => {
-        setIsConversationCopied(false)
-        conversationCopiedTimeoutRef.current = null
-      }, COPIED_CONVERSATION_ICON_TIMEOUT)
-    } catch {
-      toast.error(t('aiChat.copyConversationError'))
-    }
   }
 
   const handleSelectSystemPrompt = async (promptId: string) => {
@@ -1625,7 +1562,7 @@ const useSavedTabsChatWidgetView = ({
       onOpenChange?.(false)
     },
     onCopyConversation: () => {
-      void handleCopyConversation()
+      void copyConversation()
     },
     onDeleteHistoryItem,
     // eslint-disable-next-line typescript/no-misused-promises
