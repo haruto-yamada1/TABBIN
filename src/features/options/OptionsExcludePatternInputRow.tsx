@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface OptionsExcludePatternInputRowProps {
+type OptionsExcludePatternInputRowProps = {
   excludePatternInput: string
   onInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void
   onBlur: () => void

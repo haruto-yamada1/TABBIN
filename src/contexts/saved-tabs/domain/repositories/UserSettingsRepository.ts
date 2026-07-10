@@ -21,7 +21,7 @@ import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSetti
  * await userSettingsRepository.save({ ...settings, removeTabAfterOpen: true })
  * ```
  */
-export interface UserSettingsRepository {
+export type UserSettingsRepository = {
   findAll: () => Promise<UserSettingsDto>
   save: (settings: UserSettingsDto) => Promise<void>
 }

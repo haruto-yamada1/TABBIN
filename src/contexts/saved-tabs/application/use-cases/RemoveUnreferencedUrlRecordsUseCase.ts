@@ -7,7 +7,7 @@ import { filterUnreferencedUrlRecords } from '@/contexts/saved-tabs/domain/servi
 /**
  * `RemoveUnreferencedUrlRecordsUseCase` が依存する repository 群。
  */
-export interface RemoveUnreferencedUrlRecordsUseCaseDeps {
+export type RemoveUnreferencedUrlRecordsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository

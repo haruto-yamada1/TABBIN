@@ -28,7 +28,7 @@ import {
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
-export interface WebPreviewContextValue {
+export type WebPreviewContextValue = {
   url: string
   setUrl: (url: string) => void
   consoleOpen: boolean

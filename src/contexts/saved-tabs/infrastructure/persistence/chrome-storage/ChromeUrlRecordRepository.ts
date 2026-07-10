@@ -17,7 +17,7 @@ import type { UrlRecordRaw } from './savedTabsStorageSchema'
  * 返し、`set` / `remove` は `Promise<void>` を返す。テストでは in-memory モック
  * を注入できるよう、`get(key)` の戻り値型を `Record<string, unknown>` に統一している。
  */
-export interface ChromeStorageLocalPort {
+export type ChromeStorageLocalPort = {
   get: (key: string) => Promise<Record<string, unknown>>
   remove: (key: string) => Promise<void>
   set: (value: Record<string, unknown>) => Promise<void>

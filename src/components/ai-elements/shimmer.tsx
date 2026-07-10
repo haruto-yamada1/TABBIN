@@ -6,7 +6,7 @@ import { memo, useMemo } from 'react'
 
 import { cn } from '@/lib/utils'
 
-export interface TextShimmerProps {
+export type TextShimmerProps = {
   children?: string
   as?: ElementType
   className?: string

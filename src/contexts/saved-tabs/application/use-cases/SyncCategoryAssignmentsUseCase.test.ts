@@ -11,7 +11,7 @@ import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objec
 import type { SyncCategoryAssignmentsUseCaseDeps } from './SyncCategoryAssignmentsUseCase'
 import { createSyncCategoryAssignmentsUseCase } from './SyncCategoryAssignmentsUseCase'
 
-interface Repositories extends SyncCategoryAssignmentsUseCaseDeps {
+type Repositories = SyncCategoryAssignmentsUseCaseDeps & {
   tabGroups: ReturnType<typeof createTabGroup>[]
   parentCategories: ReturnType<typeof createParentCategory>[]
 }

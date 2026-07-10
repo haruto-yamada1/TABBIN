@@ -5,12 +5,12 @@ import { describe, expect, it } from 'vitest'
 
 type RuleEntry = string | [string, ...unknown[]]
 
-interface OxlintOverride {
+type OxlintOverride = {
   files?: string[]
   rules?: Record<string, RuleEntry>
 }
 
-interface OxlintConfig {
+type OxlintConfig = {
   overrides?: OxlintOverride[]
 }
 
@@ -1351,7 +1351,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         ),
         'utf8',
       )
-      expect(source).toContain('interface ClockPort')
+      expect(source).toContain('type ClockPort')
       expect(source).toContain('now:')
     })
 
@@ -1482,7 +1482,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     //   application/services/    -> *Service.ts
     //   presentation/view-models/ -> *ViewModel.ts
 
-    interface NamingConvention {
+    type NamingConvention = {
       readonly layer: string
       readonly subdirectory: string
       readonly suffixes: readonly string[]

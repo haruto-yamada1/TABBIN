@@ -31,7 +31,7 @@ const createCategoryNameSchema = (t: ReturnType<typeof useI18n>['t']) =>
     })
 
 /** UseCategoryKeywordModal フックの依存 (issue #510) */
-interface UseCategoryKeywordModalDeps {
+type UseCategoryKeywordModalDeps = {
   /** カテゴリ / タブグループの永続化 port */
   categoryAssignmentPort: CategoryAssignmentPort
   /** 保存タブページ全体 query (parentCategories 読み取り) */
@@ -39,7 +39,7 @@ interface UseCategoryKeywordModalDeps {
 }
 
 /** UseCategoryKeywordModal フックの引数 */
-interface UseCategoryKeywordModalParams {
+type UseCategoryKeywordModalParams = {
   /** タブグループデータ */
   group: TabGroup
   /** モーダル開閉状態 */
@@ -64,7 +64,7 @@ interface UseCategoryKeywordModalParams {
    */
   readonly storageChangePort?: StorageChangePort
 }
-interface CategoryEditState {
+type CategoryEditState = {
   isRenaming: boolean
   keywords: string[]
   newCategoryName: string

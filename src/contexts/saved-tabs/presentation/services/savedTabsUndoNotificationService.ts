@@ -21,7 +21,7 @@ import type {
  * UI state 反映 (`setCategories` / `setCustomProjects`) と
  * `refreshTabGroupsWithUrls` への委譲は呼び出し元から注入する。
  */
-interface UndoNotificationContext {
+type UndoNotificationContext = {
   readonly refreshTabGroupsWithUrls: (
     nextGroups?: TabGroup[],
   ) => Promise<TabGroup[] | undefined> | TabGroup[] | undefined
@@ -37,7 +37,7 @@ interface UndoNotificationContext {
  * 復元後の payload (storage 形配列) を `setCustomProjects` /
  * `setCategories` / `refreshTabGroupsWithUrls` へ反映する。
  */
-interface ShowOpenedUrlsUndoToastParams extends UndoNotificationContext {
+type ShowOpenedUrlsUndoToastParams = UndoNotificationContext & {
   readonly count: number
   readonly messageKey?: string
   readonly snapshot: OpenedUrlsRestoreSnapshot
@@ -98,7 +98,7 @@ const showOpenedUrlsUndoToast = ({
   })
 }
 
-interface NotifyDeleteFailureParams extends UndoNotificationContext {
+type NotifyDeleteFailureParams = UndoNotificationContext & {
   readonly snapshot?: OpenedUrlsRestoreSnapshot
   readonly t: (key: string, fallback?: string) => string
 }

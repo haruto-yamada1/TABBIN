@@ -25,7 +25,7 @@ import type { ResolvedTabGroupUrlDto } from './ResolvedTabGroupUrlDto'
  * `urlIds?: string[]` を props として受け取る既存コンポーネント
  * との代入互換を取る)。
  */
-export interface TabGroupDto {
+export type TabGroupDto = {
   id: string
   domain: string
   parentCategoryId?: string

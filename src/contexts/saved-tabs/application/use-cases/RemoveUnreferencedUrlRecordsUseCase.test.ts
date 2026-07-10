@@ -10,7 +10,7 @@ import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositor
 import type { RemoveUnreferencedUrlRecordsUseCaseDeps } from './RemoveUnreferencedUrlRecordsUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from './RemoveUnreferencedUrlRecordsUseCase'
 
-interface Repositories extends RemoveUnreferencedUrlRecordsUseCaseDeps {
+type Repositories = RemoveUnreferencedUrlRecordsUseCaseDeps & {
   urlRecords: ReturnType<typeof createUrlRecord>[]
 }
 

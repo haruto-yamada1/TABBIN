@@ -28,7 +28,7 @@ import { useDomainCard } from './DomainCardContext'
 /* eslint-disable react/jsx-handler-names -- handlers from context use handle* naming */
 const EMPTY_CATEGORY_URLS: TabGroup['urls'] = []
 
-interface CategorySectionItemProps {
+type CategorySectionItemProps = {
   categoryName: string
   urls: TabGroup['urls']
   groupId: string

@@ -21,7 +21,7 @@ import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
  * 削除前スナップショットを、`urlRecords` には実際に削除された
  * `UrlRecord` の配列を格納する。1 件も削除されなかったケースでは `null`。
  */
-export interface DeletedSavedUrlsDto {
+export type DeletedSavedUrlsDto = {
   readonly removedUrlRecordIds: readonly string[]
   readonly removedUrlRecords: readonly SavedTabsUrlRecordDto[]
   readonly removedTabGroupIds: readonly string[]

@@ -3,7 +3,7 @@ import type { LazyExoticComponent } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-interface DeferredStoryLoaderProps {
+type DeferredStoryLoaderProps = {
   buttonLabel?: string
   component: LazyExoticComponent<() => React.JSX.Element>
   description: string

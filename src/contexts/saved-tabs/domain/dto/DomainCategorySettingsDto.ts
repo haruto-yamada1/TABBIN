@@ -6,12 +6,12 @@
  * `SubCategoryKeywordDto` として再定義し、`@/types/storage` への
  * 依存を断つ。
  */
-export interface SubCategoryKeywordDto {
+export type SubCategoryKeywordDto = {
   categoryName: string
   keywords: string[]
 }
 
-export interface DomainCategorySettingsDto {
+export type DomainCategorySettingsDto = {
   domain: string
   subCategories: string[]
   categoryKeywords: SubCategoryKeywordDto[]

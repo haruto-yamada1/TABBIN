@@ -18,7 +18,7 @@ import { CategoryModalContext } from './CategoryModalContext'
 import type { CategoryModalContextType } from './CategoryModalContext'
 
 /** CategoryModalRoot の props */
-interface CategoryModalRootProps {
+type CategoryModalRootProps = {
   /** モーダルを閉じるハンドラ */
   onClose: () => void
   /** タブグループ一覧 */

@@ -3,7 +3,7 @@ import type { useCategoryKeywordModal } from '@/contexts/saved-tabs/presentation
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** KeywordModal のコンテキスト型 */
-export interface KeywordModalContextType {
+export type KeywordModalContextType = {
   /** フック戻り値 */
   state: ReturnType<typeof useCategoryKeywordModal>
   /** タブグループデータ */

@@ -15,7 +15,7 @@
  * }
  * ```
  */
-export interface SetCustomProjectUrlCategoryCommand {
+export type SetCustomProjectUrlCategoryCommand = {
   readonly projectId: string
   readonly url: string
   readonly category?: string

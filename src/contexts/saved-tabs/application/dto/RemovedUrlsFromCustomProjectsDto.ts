@@ -12,7 +12,7 @@
  * - `removedUrlCount`: `removeUrlsFromAllCustomProjects` で
  *   同期削除した URL 文字列の件数 (legacy 形式グループ由来)。
  */
-export interface RemovedUrlsFromCustomProjectsDto {
+export type RemovedUrlsFromCustomProjectsDto = {
   readonly removedUrlIdCount: number
   readonly removedUrlCount: number
 }

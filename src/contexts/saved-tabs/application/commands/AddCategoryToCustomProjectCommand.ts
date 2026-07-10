@@ -15,7 +15,7 @@
  * }
  * ```
  */
-export interface AddCategoryToCustomProjectCommand {
+export type AddCategoryToCustomProjectCommand = {
   readonly projectId: string
   readonly categoryName: string
 }

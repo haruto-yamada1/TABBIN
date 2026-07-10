@@ -10,7 +10,7 @@ import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Ur
 /**
  * `ReorderTabGroupUrlsUseCase` が依存する repository 群。
  */
-export interface ReorderTabGroupUrlsUseCaseDeps {
+export type ReorderTabGroupUrlsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
 }

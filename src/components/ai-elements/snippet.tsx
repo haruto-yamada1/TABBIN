@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 
 import { useCopyState } from './use-copy-state'
 
-interface SnippetContextType {
+type SnippetContextType = {
   code: string
 }
 

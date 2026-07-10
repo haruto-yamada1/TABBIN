@@ -3,7 +3,7 @@ import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-interface SubCategoryKeywordTagProps {
+type SubCategoryKeywordTagProps = {
   keyword: string
   onRemove: (keyword: string) => void | Promise<void>
   deleteAriaLabel: string

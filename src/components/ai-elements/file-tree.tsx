@@ -20,7 +20,7 @@ const EMPTY_EXPANDED_PATHS = new Set<string>()
 
 import { cn } from '@/lib/utils'
 
-interface FileTreeContextType {
+type FileTreeContextType = {
   expandedPaths: Set<string>
   togglePath: (path: string) => void
   selectedPath?: string
@@ -94,7 +94,7 @@ export const FileTree = ({
   )
 }
 
-interface FileTreeFolderContextType {
+type FileTreeFolderContextType = {
   path: string
   name: string
   isExpanded: boolean
@@ -179,7 +179,7 @@ export const FileTreeFolder = ({
   )
 }
 
-interface FileTreeFileContextType {
+type FileTreeFileContextType = {
   path: string
   name: string
 }

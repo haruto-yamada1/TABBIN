@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface DeleteUrlConfirmDialogProps {
+type DeleteUrlConfirmDialogProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void

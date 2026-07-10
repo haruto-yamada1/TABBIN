@@ -13,7 +13,7 @@ import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/Tab
  * テスト時は in-memory mock を注入する。`chrome.storage.local` への
  * 依存を排除した unit test を書けるように、interface のみを公開する。
  */
-export interface PrepareTabGroupDeletionUseCaseDeps {
+export type PrepareTabGroupDeletionUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly domainCategoryMappingRepository: DomainCategoryMappingRepository

@@ -13,12 +13,12 @@ import type {
 } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface ConversationHistoryState {
+type ConversationHistoryState = {
   activeConversationId: string
   conversations: AiChatConversation[]
 }
 
-interface UseSharedAiChatHistoryResult {
+type UseSharedAiChatHistoryResult = {
   activeConversation: AiChatConversation | null
   createConversation: () => void
   deleteConversation: (conversationId: string) => void

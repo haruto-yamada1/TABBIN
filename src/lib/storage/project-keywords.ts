@@ -1,12 +1,12 @@
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 import { toHostname } from '@/utils/domain-normalize'
 
-interface SavedTabKeywordMatchTarget {
+type SavedTabKeywordMatchTarget = {
   title: string
   url: string
 }
 
-interface FindMatchingProjectIdForSavedTabParams {
+type FindMatchingProjectIdForSavedTabParams = {
   projects: CustomProject[]
   savedTab: SavedTabKeywordMatchTarget
   projectOrder: string[]

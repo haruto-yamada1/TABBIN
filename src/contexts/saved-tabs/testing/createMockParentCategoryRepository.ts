@@ -14,7 +14,7 @@ import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/Paren
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 
-export interface MockParentCategoryRepositoryState {
+export type MockParentCategoryRepositoryState = {
   readonly parentCategories: readonly ParentCategory[]
 }
 

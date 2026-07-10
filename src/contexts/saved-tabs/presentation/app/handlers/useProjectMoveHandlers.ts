@@ -8,7 +8,7 @@ import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presenta
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 
-interface UseProjectMoveHandlersDeps {
+type UseProjectMoveHandlersDeps = {
   savedTabsUseCases: SavedTabsUseCases
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
   t: TranslateFn

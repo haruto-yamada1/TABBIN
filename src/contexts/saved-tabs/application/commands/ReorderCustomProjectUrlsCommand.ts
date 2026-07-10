@@ -18,7 +18,7 @@
  */
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface ReorderCustomProjectUrlsCommand {
+export type ReorderCustomProjectUrlsCommand = {
   readonly projectId: string
   readonly urls: CustomProject['urls']
 }

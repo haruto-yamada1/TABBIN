@@ -18,6 +18,6 @@ import type { SavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/applicat
  * `resolveGroupUrls` 側で吸収する（domain 層 widening は
  * `TabGroupUrlResolver.ts` 内で行う）。
  */
-export interface LoadTabGroupsWithUrlsCommand {
+export type LoadTabGroupsWithUrlsCommand = {
   readonly tabGroups: readonly SavedTabsDisplayTabGroupDto[]
 }

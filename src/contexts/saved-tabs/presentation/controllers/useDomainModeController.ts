@@ -26,7 +26,7 @@ import type { UseSavedTabsControllerReturn } from './useSavedTabsController'
  * presentation 層が repository を持たないため、呼び出し側が
  * `parentCategories` を持っていればそのまま合成する。
  */
-export interface UseDomainModeControllerInput {
+export type UseDomainModeControllerInput = {
   readonly controller: UseSavedTabsControllerReturn
   readonly initialTabGroups?: readonly TabGroup[]
   readonly initialParentCategories?: readonly ParentCategory[]
@@ -42,7 +42,7 @@ export interface UseDomainModeControllerInput {
  * - `setSearchQuery` / `setParentCategories` は controller がローカルに持つ
  *   派生 state の setter
  */
-export interface UseDomainModeControllerReturn {
+export type UseDomainModeControllerReturn = {
   readonly viewModel: DomainModeViewModel
   readonly categories: readonly ParentCategoryViewModel[]
   readonly setParentCategories: (

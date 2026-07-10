@@ -48,7 +48,7 @@ import {
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
-interface SavedTabsAppProps {
+type SavedTabsAppProps = {
   readonly controller: UseSavedTabsControllerReturn
   readonly deps: SavedTabsPresentationPorts
   readonly initialViewMode?: ViewMode

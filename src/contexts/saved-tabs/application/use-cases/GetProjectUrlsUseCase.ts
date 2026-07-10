@@ -14,7 +14,7 @@ import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Ur
  * 結合した presentation 形。`@/lib/storage/projects.getProjectUrls` の
  * 出力型を DDD 化した。
  */
-export interface ProjectUrlEntry {
+export type ProjectUrlEntry = {
   readonly id: string
   readonly url: string
   readonly title: string
@@ -43,7 +43,7 @@ export type GetProjectUrlsUseCase = (
 /**
  * `GetProjectUrlsUseCase` が必要とする依存。
  */
-export interface GetProjectUrlsUseCaseDeps {
+export type GetProjectUrlsUseCaseDeps = {
   readonly urlRecordRepository: UrlRecordRepository
   /**
    * `project.urlMetadata` を取得するために必要。`findAllRaw` を持つ

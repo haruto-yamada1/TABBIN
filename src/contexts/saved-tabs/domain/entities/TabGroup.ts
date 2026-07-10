@@ -31,7 +31,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * tabGroupUrlCount(group) // 2
  * ```
  */
-export interface TabGroup {
+export type TabGroup = {
   readonly id: TabGroupId
   readonly domain: DomainName
   readonly urlIds: readonly UrlRecordId[]
@@ -47,7 +47,7 @@ export interface TabGroup {
   readonly savedAt?: SavedAt
 }
 
-interface CreateTabGroupInput {
+type CreateTabGroupInput = {
   id: string
   domain: string
   urlIds: readonly string[]

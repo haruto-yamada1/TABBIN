@@ -144,7 +144,7 @@ export const buildUpdatedGroupAfterUrlIdRemoval = (
  * ままだが、これは `urlSubCategories` 等の presentation 専用
  * 補助フィールドを含むため。
  */
-interface CategorySyncState {
+type CategorySyncState = {
   categoriesChanged: boolean
   savedTabsChanged: boolean
   updatedCategories: ParentCategoryDto[]

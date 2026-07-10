@@ -18,7 +18,7 @@
  * })
  * ```
  */
-export interface SetCategoryKeywordsCommand {
+export type SetCategoryKeywordsCommand = {
   readonly tabGroupId: string
   readonly categoryName: string
   readonly keywords: readonly string[]

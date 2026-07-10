@@ -10,7 +10,7 @@ import type { DynamicToolUIPart } from 'ai'
 
 // --- Ollama error ---
 
-export interface OllamaErrorDetails {
+export type OllamaErrorDetails = {
   kind: 'forbidden' | 'notInstalledOrNotRunning'
   faqUrl: string
   downloadUrl: string
@@ -21,7 +21,7 @@ export interface OllamaErrorDetails {
 
 // --- AI chat attachment ---
 
-export interface AiChatAttachment {
+export type AiChatAttachment = {
   filename: string
   mediaType: string
   kind: 'text' | 'image'
@@ -34,7 +34,7 @@ export type AiChartType = 'area' | 'bar' | 'line' | 'pie' | 'radar'
 
 export type AiChartAxisFormat = 'count' | 'date' | 'label' | 'percent'
 
-export interface AiChartSeries {
+export type AiChartSeries = {
   colorToken: string
   dataKey: string
   label: string
@@ -42,7 +42,7 @@ export interface AiChartSeries {
 
 export type AiChartDatum = Record<string, number | string | null>
 
-export interface AiChartSpec {
+export type AiChartSpec = {
   type: AiChartType
   title: string
   data: AiChartDatum[]
@@ -58,7 +58,7 @@ export interface AiChartSpec {
 
 // --- AI chat tool trace ---
 
-export interface AiChatToolTrace {
+export type AiChatToolTrace = {
   toolCallId: string
   toolName: string
   title: string

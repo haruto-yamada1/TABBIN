@@ -19,7 +19,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * `removeTabAfterOpen`: 通常クリックで開いた URL を削除するか
  * `removeTabAfterExternalDrop`: 外部アプリへドラッグして開いた URL を削除するか
  */
-export interface OpenedUrlRemovalSettings {
+export type OpenedUrlRemovalSettings = {
   readonly removeTabAfterOpen: boolean
   readonly removeTabAfterExternalDrop: boolean
 }
@@ -35,7 +35,7 @@ export type OpenedUrlOrigin = 'click' | 'externalDrop'
 /**
  * 開いた URL の入力情報。
  */
-export interface OpenedUrlInput {
+export type OpenedUrlInput = {
   readonly urlRecordId: UrlRecordId
   readonly origin: OpenedUrlOrigin
 }

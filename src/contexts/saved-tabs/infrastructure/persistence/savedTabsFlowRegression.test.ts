@@ -41,7 +41,7 @@ const createPort = (state: StorageState): ChromeStorageLocalPort => {
   /* eslint-enable typescript/require-await */
 }
 
-interface SpyBrowserTabPort {
+type SpyBrowserTabPort = {
   readonly port: BrowserTabPort
   readonly open: ReturnType<typeof vi.fn>
   readonly opened: { active: boolean; url: string }[]
@@ -62,7 +62,7 @@ const createSpyBrowserTabPort = (
   }
 }
 
-interface SpyBrowserWindowPort {
+type SpyBrowserWindowPort = {
   readonly port: BrowserWindowPort
   readonly openWithUrls: ReturnType<typeof vi.fn>
   readonly opened: { focused?: boolean; urls: readonly string[] }[]
@@ -102,7 +102,7 @@ const createCaptureNotificationPort = (): {
   }
 }
 
-interface Bundle {
+type Bundle = {
   readonly deps: SavedTabsUseCasesDeps
   readonly port: ChromeStorageLocalPort
   readonly portState: StorageState

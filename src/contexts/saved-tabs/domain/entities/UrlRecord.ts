@@ -25,7 +25,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * })
  * ```
  */
-export interface UrlRecord {
+export type UrlRecord = {
   readonly id: UrlRecordId
   readonly url: Url
   readonly title: string
@@ -33,7 +33,7 @@ export interface UrlRecord {
   readonly favIconUrl?: string
 }
 
-interface CreateUrlRecordInput {
+type CreateUrlRecordInput = {
   id: string
   url: string
   title: string

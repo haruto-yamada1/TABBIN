@@ -16,7 +16,7 @@ import { getMessage } from '@/features/i18n/lib/language'
 import { useCategoryDnD } from './useCategoryDnD'
 
 /** UseCustomProjectCard フックの引数 */
-interface UseCustomProjectCardParams {
+type UseCustomProjectCardParams = {
   /** プロジェクトデータ */
   project: CustomProject
   /** URL削除ハンドラ */
@@ -43,7 +43,7 @@ type ProjectUrlItem = UrlRecord & {
   notes?: string
   category?: string
 }
-interface UrlState {
+type UrlState = {
   isLoadingUrls: boolean
   projectUrls: ProjectUrlItem[]
 }

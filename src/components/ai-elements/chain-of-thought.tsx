@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 
-interface ChainOfThoughtContextValue {
+type ChainOfThoughtContextValue = {
   isOpen: boolean
   setIsOpen: (open: boolean) => void
 }

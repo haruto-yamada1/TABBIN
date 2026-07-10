@@ -44,7 +44,7 @@ import type {
 } from '@/features/navigation/lib/pageNavigation'
 import { cn } from '@/lib/utils'
 
-interface ExtensionSidebarProps {
+type ExtensionSidebarProps = {
   state: SidebarState
 }
 
@@ -144,7 +144,7 @@ const ICON_RAIL_WIDTH_PX = 48
 const EXPANDED_SIDEBAR_WIDTH_PX = 256
 const SIDEBAR_WIDTH_STORAGE_KEY = 'tabbin-extension-sidebar-width'
 
-interface RailItem {
+type RailItem = {
   icon: React.ComponentType<{ className?: string }>
   isActive: boolean
   label: string

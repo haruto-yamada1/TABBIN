@@ -16,7 +16,7 @@ import {
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 
-interface UseTabOpeningHandlersDeps {
+type UseTabOpeningHandlersDeps = {
   savedTabsUseCases: SavedTabsUseCases
   deps: SavedTabsPresentationPorts
   settings: UserSettingsDto

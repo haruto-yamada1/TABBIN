@@ -10,7 +10,7 @@ import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objec
 /**
  * `RenameParentCategoryUseCase` が依存する repository 群。
  */
-export interface RenameParentCategoryUseCaseDeps {
+export type RenameParentCategoryUseCaseDeps = {
   readonly parentCategoryRepository: ParentCategoryRepository
 }
 

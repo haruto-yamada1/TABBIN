@@ -13,7 +13,7 @@ import type { UseSavedTabsControllerReturn } from './useSavedTabsController'
  * `useSavedTabsController` の戻り値を必須で受け取り、その上に
  * Custom モード固有の state / handler を組み立てる。
  */
-export interface UseCustomModeControllerInput {
+export type UseCustomModeControllerInput = {
   readonly controller: UseSavedTabsControllerReturn
   readonly initialCustomProjects?: readonly CustomProject[]
 }
@@ -26,7 +26,7 @@ export interface UseCustomModeControllerInput {
  *   へ変換する
  * - `setSearchQuery` は controller がローカルに持つ検索 state の setter
  */
-export interface UseCustomModeControllerReturn {
+export type UseCustomModeControllerReturn = {
   readonly viewModel: CustomModeViewModel
   readonly projects: readonly CustomProjectViewModel[]
   readonly searchQuery: string

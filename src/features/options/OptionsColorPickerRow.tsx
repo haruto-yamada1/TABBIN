@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { UserSettings } from '@/types/storage'
 
-interface OptionsColorPickerRowProps {
+type OptionsColorPickerRowProps = {
   colorKey: keyof NonNullable<UserSettings['colors']>
   color: string
   label: string

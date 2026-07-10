@@ -8,13 +8,13 @@ import { invalidateUrlCache } from './urls'
 /** モジュールスコープのメモ化フラグ（ページセッション中の重複ストレージアクセスを防ぐ） */
 let urlsMigrationDone = false
 
-interface UrlMapEntry {
+type UrlMapEntry = {
   id: string
   record: UrlRecord
 }
 
 type UrlMap = Map<string, UrlMapEntry>
-interface UrlMigrationData {
+type UrlMigrationData = {
   existingUrls: UrlRecord[]
   savedTabs: TabGroup[]
   customProjects: CustomProject[]

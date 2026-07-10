@@ -458,7 +458,7 @@ const createStorageGetMock = (
     return result
   })
 
-interface MockSpy {
+type MockSpy = {
   mock: { calls: unknown[][] }
 }
 

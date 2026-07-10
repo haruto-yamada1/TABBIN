@@ -6,13 +6,13 @@ import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 let urlRecordsCache: UrlRecord[] | null = null
 let urlRecordMutationQueue: Promise<void> = Promise.resolve()
 
-interface UrlRecordInput {
+type UrlRecordInput = {
   url: string
   title: string
   favIconUrl?: string
 }
 
-interface CreateOrUpdateUrlRecordOptions {
+type CreateOrUpdateUrlRecordOptions = {
   preserveExistingOnDuplicate?: boolean
 }
 

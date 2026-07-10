@@ -22,7 +22,7 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * const target = groups.find((group) => group.domain === 'example.com')
  * ```
  */
-export interface TabGroupRepository {
+export type TabGroupRepository = {
   findAll: () => Promise<readonly TabGroup[]>
   findById: (id: TabGroupId) => Promise<TabGroup | null>
   saveAll: (groups: readonly TabGroup[]) => Promise<void>

@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-interface SavedTabsChatHeaderTooltipButtonProps {
+type SavedTabsChatHeaderTooltipButtonProps = {
   ariaLabel: string
   children: ReactNode
   dataState?: 'copied' | 'idle'

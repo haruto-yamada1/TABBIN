@@ -25,7 +25,7 @@ vi.mock('./urls', () => ({
   invalidateUrlCache: mocks.invalidateUrlCache,
 }))
 
-interface StorageState {
+type StorageState = {
   customProjects?: CustomProject[]
   savedTabs?: TabGroup[]
   urls?: UrlRecord[]

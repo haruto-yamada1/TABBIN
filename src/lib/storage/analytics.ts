@@ -8,7 +8,7 @@ const HEX_RADIX_AS = 16
 
 const SAVED_ANALYTICS_VIEWS_KEY = 'savedAnalyticsViews'
 
-interface SavedAnalyticsView {
+type SavedAnalyticsView = {
   createdAt: number
   id: string
   name: string

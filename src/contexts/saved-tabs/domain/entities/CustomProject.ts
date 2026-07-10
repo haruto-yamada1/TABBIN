@@ -28,7 +28,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * })
  * ```
  */
-export interface CustomProject {
+export type CustomProject = {
   readonly id: CustomProjectId
   readonly name: CategoryName
   readonly urlIds: readonly UrlRecordId[]
@@ -37,7 +37,7 @@ export interface CustomProject {
   readonly updatedAt: SavedAt
 }
 
-interface CreateCustomProjectInput {
+type CreateCustomProjectInput = {
   id: string
   name: string
   urlIds: readonly string[]

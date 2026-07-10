@@ -1,5 +1,5 @@
 // URLレコードのインターフェース（共通URL管理用）
-export interface UrlRecord {
+export type UrlRecord = {
   id: string
   url: string
   title: string
@@ -8,7 +8,7 @@ export interface UrlRecord {
 }
 
 // 親カテゴリのインターフェース
-export interface ParentCategory {
+export type ParentCategory = {
   id: string
   name: string
   domains: string[] // このカテゴリに属するドメインIDのリスト
@@ -16,18 +16,18 @@ export interface ParentCategory {
 }
 
 // 子カテゴリのキーワード設定のインターフェース
-export interface SubCategoryKeyword {
+export type SubCategoryKeyword = {
   categoryName: string // カテゴリ名
   keywords: string[] // 関連キーワードリスト
 }
 
-export interface ProjectKeywordSettings {
+export type ProjectKeywordSettings = {
   titleKeywords: string[]
   urlKeywords: string[]
   domainKeywords: string[]
 }
 
-export interface TabGroup {
+export type TabGroup = {
   id: string
   domain: string
   parentCategoryId?: string // 親カテゴリのID
@@ -50,7 +50,7 @@ export interface TabGroup {
   savedAt?: number // グループ全体の保存時刻を追加
 }
 
-export interface UserSettings {
+export type UserSettings = {
   language?: 'system' | 'ja' | 'en'
   removeTabAfterOpen: boolean
   removeTabAfterExternalDrop: boolean
@@ -76,20 +76,20 @@ export interface UserSettings {
 }
 
 // ドメイン別のカテゴリ設定を保存するためのインターフェース
-export interface DomainCategorySettings {
+export type DomainCategorySettings = {
   domain: string // ドメイン
   subCategories: string[] // このドメインで設定された子カテゴリリスト
   categoryKeywords: SubCategoryKeyword[] // カテゴリキーワード設定
 }
 
 // ドメインと親カテゴリのマッピングを保存するインターフェース
-export interface DomainParentCategoryMapping {
+export type DomainParentCategoryMapping = {
   domain: string // ドメイン（URL）
   categoryId: string // 親カテゴリID
 }
 
 // カスタムプロジェクト（PJ単位）のデータ構造
-export interface CustomProject {
+export type CustomProject = {
   id: string
   name: string
   projectKeywords?: ProjectKeywordSettings
@@ -117,7 +117,7 @@ export interface CustomProject {
   updatedAt: number
 }
 
-export interface AiSystemPromptPreset {
+export type AiSystemPromptPreset = {
   id: string
   name: string
   template: string

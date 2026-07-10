@@ -63,7 +63,7 @@ const applyFontSizePreview = (value: number) => {
   )
 }
 
-interface ClickBehaviorSelectProps {
+type ClickBehaviorSelectProps = {
   value: string
   onValueChange: (value: string) => void
 }

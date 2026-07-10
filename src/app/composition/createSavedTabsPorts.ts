@@ -22,7 +22,7 @@ import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
  * `SonnerNotificationAdapter` で実装する。`application/ports/` の
  * interface を満たすため、use-case 側からは adapter の詳細を隠せる。
  */
-export interface SavedTabsPorts {
+export type SavedTabsPorts = {
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
   readonly notificationPort: NotificationPort
@@ -43,11 +43,11 @@ export interface SavedTabsPorts {
  * 反映するための関数。`true` を返すと新規タブを active で開き、`false` を返すと
  * バックグラウンド (`active: false`) で開く。未指定なら `active: true` 既定。
  */
-export interface CreateSavedTabsPortsOptions {
+export type CreateSavedTabsPortsOptions = {
   readonly resolveActive?: () => boolean
 }
 
-interface ChromeApi extends ChromeApiLike {
+type ChromeApi = ChromeApiLike & {
   readonly tabs?: ChromeApiLike['tabs'] & {
     readonly create?: NonNullable<NonNullable<ChromeApiLike['tabs']>['create']>
   }

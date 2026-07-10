@@ -19,7 +19,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
 /**
  * `DeleteSavedUrlsUseCase` が依存する repository 群。
  */
-export interface DeleteSavedUrlsUseCaseDeps {
+export type DeleteSavedUrlsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository

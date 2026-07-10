@@ -25,7 +25,7 @@ import type {
  * })
  * ```
  */
-export interface OpenedUrlsRestoreSnapshot {
+export type OpenedUrlsRestoreSnapshot = {
   readonly savedTabs?: readonly SavedTabsTabGroupDto[]
   readonly urlRecords?: readonly SavedTabsUrlRecordDto[]
   readonly customProjects?: readonly SavedTabsCustomProjectDto[]
@@ -39,6 +39,6 @@ export interface OpenedUrlsRestoreSnapshot {
  * snapshot は use-case の DTO から渡されることを想定。UI 側で
  * 「Undo」ボタンを押す前に `useState` などで保持しておく。
  */
-export interface RestoreOpenedUrlsSnapshotCommand {
+export type RestoreOpenedUrlsSnapshotCommand = {
   readonly snapshot: OpenedUrlsRestoreSnapshot
 }

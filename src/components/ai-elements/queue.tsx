@@ -12,7 +12,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
-export interface QueueMessagePart {
+export type QueueMessagePart = {
   type: string
   text?: string
   url?: string
@@ -20,12 +20,12 @@ export interface QueueMessagePart {
   mediaType?: string
 }
 
-export interface QueueMessage {
+export type QueueMessage = {
   id: string
   parts: QueueMessagePart[]
 }
 
-export interface QueueTodo {
+export type QueueTodo = {
   id: string
   title: string
   description?: string

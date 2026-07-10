@@ -1,4 +1,4 @@
-export interface SavedTabRawSubCategoryKeywordDto {
+export type SavedTabRawSubCategoryKeywordDto = {
   readonly categoryName: string
   readonly keywords: readonly string[]
 }
@@ -23,7 +23,7 @@ export interface SavedTabRawSubCategoryKeywordDto {
  * から `findRawTabGroupById` で 4 フィールドだけを抜き出して
  * 投影する。
  */
-export interface SavedTabRawSummaryDto {
+export type SavedTabRawSummaryDto = {
   readonly id: string
   readonly domain: string
   readonly parentCategoryId: string | undefined

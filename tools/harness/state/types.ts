@@ -20,11 +20,11 @@ const stateStatuses = [
 export type HarnessStateStatus = (typeof stateStatuses)[number]
 export type JsonPrimitive = string | number | boolean | null
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[]
-export interface JsonObject {
+export type JsonObject = {
   [key: string]: JsonValue
 }
 
-export interface JsonSchema {
+export type JsonSchema = {
   additionalProperties?: boolean
   enum?: JsonValue[]
   items?: JsonSchema
@@ -42,38 +42,38 @@ export type HarnessFileName =
   | 'scorecard.json'
   | 'learning.json'
 
-export interface HarnessValidationIssue {
+export type HarnessValidationIssue = {
   file: string
   message: string
   path: string
 }
 
-export interface HarnessValidationResult {
+export type HarnessValidationResult = {
   issues: HarnessValidationIssue[]
   ok: boolean
   runDirectory: string | null
   runId: string | null
 }
 
-export interface VerificationRecord {
+export type VerificationRecord = {
   command?: string
   notes?: string
   status?: string
 }
 
-export interface FindingRecord {
+export type FindingRecord = {
   evidence?: string
   severity?: string
   summary?: string
 }
 
-export interface ChecklistRecord {
+export type ChecklistRecord = {
   evidence?: string
   requirement?: string
   status?: string
 }
 
-export interface ScorecardRecord {
+export type ScorecardRecord = {
   evidence?: string
   findings?: string[]
   max_score?: number
@@ -83,20 +83,20 @@ export interface ScorecardRecord {
   status?: string
 }
 
-export interface LearningRecord {
+export type LearningRecord = {
   target?: string
   source?: string
   status?: string
   summary?: string
 }
 
-export interface SecurityFinding {
+export type SecurityFinding = {
   file: string
   severity: string
   summary: string
 }
 
-export interface HarnessStateFile {
+export type HarnessStateFile = {
   agents?: AgentRecord[]
   candidates?: LearningRecord[]
   categories?: ScorecardRecord[]
@@ -113,14 +113,14 @@ export interface HarnessStateFile {
   verification?: VerificationRecord[]
 }
 
-export interface AgentRecord {
+export type AgentRecord = {
   name?: string
   responsibility?: string
   role?: string
   status?: string
 }
 
-export interface PlanRecord {
+export type PlanRecord = {
   files?: string[]
   id?: string
   owner?: string
@@ -128,7 +128,7 @@ export interface PlanRecord {
   title?: string
 }
 
-export interface HarnessSnapshot {
+export type HarnessSnapshot = {
   decision: HarnessStateFile | null
   evaluator: HarnessStateFile | null
   generator: HarnessStateFile | null
@@ -141,40 +141,40 @@ export interface HarnessSnapshot {
   task: string | null
 }
 
-export interface HarnessRunOptions {
+export type HarnessRunOptions = {
   projectRoot: string
   runId?: string
 }
 
-export interface InitializeHarnessRunOptions {
+export type InitializeHarnessRunOptions = {
   projectRoot: string
   runId?: string
   task: string
 }
 
-export interface InitializeHarnessRunResult {
+export type InitializeHarnessRunResult = {
   runDirectory: string
   runId: string
 }
 
-export interface HarnessGovernanceEvent {
+export type HarnessGovernanceEvent = {
   kind: string
   message: string
   severity: string
   source: string
 }
 
-export interface HarnessFileResult {
+export type HarnessFileResult = {
   path: string
 }
 
-export interface HarnessPlanOptions extends HarnessRunOptions {
+export type HarnessPlanOptions = HarnessRunOptions & {
   nextAction?: string
   summary?: string
   tasks?: string[]
 }
 
-export interface HarnessCheckpointOptions extends HarnessRunOptions {
+export type HarnessCheckpointOptions = HarnessRunOptions & {
   command: string
   nextAction?: string
   notes: string
@@ -182,7 +182,7 @@ export interface HarnessCheckpointOptions extends HarnessRunOptions {
   summary?: string
 }
 
-export interface HarnessEvaluateOptions extends HarnessRunOptions {
+export type HarnessEvaluateOptions = HarnessRunOptions & {
   nextAction?: string
   summary?: string
 }

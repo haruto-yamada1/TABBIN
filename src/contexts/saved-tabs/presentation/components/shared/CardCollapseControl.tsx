@@ -9,7 +9,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { SavedTabsResponsiveTooltipContent } from './SavedTabsResponsive'
 
 /** CardCollapseControl の props */
-interface CardCollapseControlProps {
+type CardCollapseControlProps = {
   /** 折りたたみ状態 */
   isCollapsed: boolean
   /** 折りたたみ状態を設定する関数 */

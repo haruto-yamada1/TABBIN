@@ -1,4 +1,4 @@
-export interface SavedTabsAiSystemPromptDto {
+export type SavedTabsAiSystemPromptDto = {
   readonly id: string
   readonly name: string
   readonly template: string
@@ -6,13 +6,13 @@ export interface SavedTabsAiSystemPromptDto {
   readonly updatedAt: number
 }
 
-export interface SavedTabsProjectKeywordSettingsDto {
+export type SavedTabsProjectKeywordSettingsDto = {
   titleKeywords: string[]
   urlKeywords: string[]
   domainKeywords: string[]
 }
 
-export interface SavedTabsCustomProjectUrlDto {
+export type SavedTabsCustomProjectUrlDto = {
   id?: string
   url: string
   title: string
@@ -21,7 +21,7 @@ export interface SavedTabsCustomProjectUrlDto {
   category?: string
 }
 
-export interface SavedTabsUserSettingsDto {
+export type SavedTabsUserSettingsDto = {
   language?: 'system' | 'ja' | 'en'
   removeTabAfterOpen: boolean
   removeTabAfterExternalDrop: boolean
@@ -46,7 +46,7 @@ export interface SavedTabsUserSettingsDto {
   activeAiSystemPromptId?: string
 }
 
-export interface SavedTabsCustomProjectDto {
+export type SavedTabsCustomProjectDto = {
   id: string
   name: string
   urlIds?: string[]
@@ -59,19 +59,19 @@ export interface SavedTabsCustomProjectDto {
   categoryOrder?: string[]
 }
 
-export interface SavedTabsParentCategoryDto {
+export type SavedTabsParentCategoryDto = {
   readonly id: string
   readonly name: string
   readonly domains: readonly string[]
   readonly domainNames: readonly string[]
 }
 
-export interface SavedTabsCategoryKeywordDto {
+export type SavedTabsCategoryKeywordDto = {
   categoryName: string
   keywords: string[]
 }
 
-export interface SavedTabsTabGroupDto {
+export type SavedTabsTabGroupDto = {
   id: string
   domain: string
   urlIds?: string[]
@@ -85,7 +85,7 @@ export interface SavedTabsTabGroupDto {
   urls?: SavedTabsDisplayUrlDto[]
 }
 
-export interface SavedTabsDisplayUrlDto {
+export type SavedTabsDisplayUrlDto = {
   id?: string
   url: string
   title: string
@@ -93,7 +93,7 @@ export interface SavedTabsDisplayUrlDto {
   savedAt?: number
 }
 
-export interface SavedTabsDisplayCategoryKeywordDto {
+export type SavedTabsDisplayCategoryKeywordDto = {
   categoryName: string
   keywords: string[]
 }
@@ -103,7 +103,7 @@ export interface SavedTabsDisplayCategoryKeywordDto {
  * This is separate from `SavedTabsTabGroupDto`, whose `urlIds` are guaranteed
  * by the domain entity mapper.
  */
-export interface SavedTabsDisplayTabGroupDto {
+export type SavedTabsDisplayTabGroupDto = {
   id: string
   domain: string
   parentCategoryId?: string
@@ -117,7 +117,7 @@ export interface SavedTabsDisplayTabGroupDto {
   savedAt?: number
 }
 
-export interface SavedTabsUrlRecordDto {
+export type SavedTabsUrlRecordDto = {
   readonly id: string
   readonly url: string
   readonly title: string

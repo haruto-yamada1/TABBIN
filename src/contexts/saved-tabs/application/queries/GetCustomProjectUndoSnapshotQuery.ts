@@ -22,7 +22,7 @@ import type {
  * `RestoreCustomProjectsSnapshotUseCase` 側で payload 化してから
  * `customProjectRepository.restoreAllRaw` / `saveAll` に渡す。
  */
-export interface CustomProjectUndoSnapshot {
+export type CustomProjectUndoSnapshot = {
   customProjectOrder?: readonly string[]
   customProjects?: readonly SavedTabsCustomProjectDto[]
   customProjectsRaw?: readonly SavedTabsCustomProjectRawSnapshotDto[]
@@ -48,7 +48,7 @@ export type GetCustomProjectUndoSnapshotQuery =
 /**
  * `GetCustomProjectUndoSnapshotQuery` が依存する repository 群。
  */
-export interface GetCustomProjectUndoSnapshotQueryDeps {
+export type GetCustomProjectUndoSnapshotQueryDeps = {
   readonly customProjectRepository: CustomProjectRepository
 }
 

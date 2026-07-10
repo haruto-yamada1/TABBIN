@@ -3,7 +3,7 @@ import type { useCategoryModal } from '@/contexts/saved-tabs/presentation/hooks/
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** CategoryModal のコンテキスト型 */
-export interface CategoryModalContextType {
+export type CategoryModalContextType = {
   /** フック戻り値 */
   state: ReturnType<typeof useCategoryModal>
   /** タブグループ一覧 */

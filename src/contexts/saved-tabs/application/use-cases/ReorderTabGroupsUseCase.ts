@@ -9,7 +9,7 @@ import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositori
  * テスト時は in-memory mock を注入する。`chrome.storage.local` への
  * 依存を排除した unit test を書けるように、interface のみを公開する。
  */
-export interface ReorderTabGroupsUseCaseDeps {
+export type ReorderTabGroupsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
 }
 

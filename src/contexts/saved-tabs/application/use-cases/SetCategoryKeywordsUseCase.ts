@@ -9,7 +9,7 @@ import type { SetCategoryKeywordsPort } from '@/contexts/saved-tabs/application/
  * `DomainCategorySettings` 同期 / `urlSubCategories` 再計算）を
  * まとめて実行する。
  */
-export interface SetCategoryKeywordsUseCaseDeps {
+export type SetCategoryKeywordsUseCaseDeps = {
   readonly setCategoryKeywordsPort: SetCategoryKeywordsPort
 }
 

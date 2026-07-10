@@ -17,7 +17,7 @@ import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/applicat
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 /** UseDomainCardState フックの引数 */
-interface UseDomainCardStateParams {
+type UseDomainCardStateParams = {
   /** タブグループデータ */
   group: TabGroup
   /** 複数URL削除ハンドラ */
@@ -55,7 +55,7 @@ interface UseDomainCardStateParams {
    */
   assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
 }
-interface CategorizedUrlItem {
+type CategorizedUrlItem = {
   id?: string
   url: string
   title: string

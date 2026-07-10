@@ -7,7 +7,7 @@ import {
 } from '@/constants/fontSize'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface OptionsFontSizeInputColumnProps {
+type OptionsFontSizeInputColumnProps = {
   value: string
   onValueChange: (event: React.ChangeEvent<HTMLInputElement>) => void
   onBlur: () => void

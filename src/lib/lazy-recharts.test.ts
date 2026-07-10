@@ -20,7 +20,7 @@ const componentNames = [
   'YAxis',
 ] as const
 
-interface LazyPayload {
+type LazyPayload = {
   _result: () => Promise<{ default: unknown }>
 }
 

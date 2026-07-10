@@ -1,15 +1,15 @@
 import { isObjectLike } from './chrome-global'
 
-interface BrowserRuntime {
+type BrowserRuntime = {
   connect?: (connectInfo?: { name?: string }) => RuntimePort
   sendMessage?: (message: unknown) => Promise<unknown>
 }
 
-interface BrowserApi {
+type BrowserApi = {
   runtime?: BrowserRuntime
 }
 
-interface ChromeRuntime {
+type ChromeRuntime = {
   connect?: (connectInfo?: { name?: string }) => RuntimePort
   sendMessage?: (
     message: unknown,
@@ -17,7 +17,7 @@ interface ChromeRuntime {
   ) => void
 }
 
-interface RuntimePort {
+type RuntimePort = {
   disconnect: () => void
   onDisconnect: {
     addListener: (listener: () => void) => void
@@ -28,7 +28,7 @@ interface RuntimePort {
   postMessage: (message: unknown) => void
 }
 
-interface BrowserModule {
+type BrowserModule = {
   default?: BrowserApi
 }
 

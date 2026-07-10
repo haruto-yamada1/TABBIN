@@ -26,7 +26,7 @@
  */
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface RemoveSubCategoryFromTabGroupPort {
+export type RemoveSubCategoryFromTabGroupPort = {
   /**
    * 指定 `groupId` の `TabGroup` から `categoryName` を 1 件削除し、
    * 永続化する。

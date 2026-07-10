@@ -49,7 +49,7 @@ const createSettings = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   }) as Awaited<ReturnType<typeof getUserSettings>>
 
-interface StorageState {
+type StorageState = {
   customProjects?: {
     id: string
     name: string
@@ -76,7 +76,7 @@ interface StorageState {
   }[]
 }
 
-interface ChromeMockOptions {
+type ChromeMockOptions = {
   cloneReads?: boolean
   rejectGet?: boolean
   rejectSet?: boolean

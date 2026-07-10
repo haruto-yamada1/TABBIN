@@ -7,7 +7,7 @@ import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** ProjectCard のコンテキスト型 */
-export interface ProjectCardContextType {
+export type ProjectCardContextType = {
   /** フック戻り値 */
   hookState: ReturnType<typeof useCustomProjectCard>
   /** プロジェクトデータ */

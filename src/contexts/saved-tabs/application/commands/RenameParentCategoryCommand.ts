@@ -16,7 +16,7 @@
  * }
  * ```
  */
-export interface RenameParentCategoryCommand {
+export type RenameParentCategoryCommand = {
   readonly categoryId: string
   readonly newName: string
 }

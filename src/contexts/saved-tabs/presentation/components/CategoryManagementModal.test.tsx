@@ -313,7 +313,7 @@ const createUseCases = (persistence: {
   },
 })
 
-interface SetupMocksOptions {
+type SetupMocksOptions = {
   useCases?: Partial<CategoryManagementModalUseCases>
   state?: Partial<{ savedTabs: TabGroup[]; parentCategories: ParentCategory[] }>
 }

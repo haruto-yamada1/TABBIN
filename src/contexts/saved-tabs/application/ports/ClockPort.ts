@@ -16,6 +16,6 @@
  * const savedAt = createSavedAt(now)
  * ```
  */
-export interface ClockPort {
+export type ClockPort = {
   readonly now: () => number
 }

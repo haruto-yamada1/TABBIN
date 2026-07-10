@@ -262,6 +262,7 @@
         "arrayLiteralTypeAssertions": "never"
       }
     ],
+    "typescript/consistent-type-definitions": ["error", "type"],
     "typescript/consistent-type-imports": "error",
     "typescript/method-signature-style": "error",
     "typescript/no-base-to-string": "error",
@@ -973,6 +974,12 @@
       ],
       "rules": {
         "storybook/no-uninstalled-addons": "error"
+      }
+    },
+    {
+      "files": ["src/**/*.d.ts"],
+      "rules": {
+        "typescript/consistent-type-definitions": "off"
       }
     }
   ]

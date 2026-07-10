@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import type { AiChatConversationMessage } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface LazySavedTabsChatWidgetProps {
+type LazySavedTabsChatWidgetProps = {
   defaultOpen?: boolean
   historyVariant?: 'dropdown' | 'none' | 'sidebar-toggle'
   mode?: 'floating' | 'page'

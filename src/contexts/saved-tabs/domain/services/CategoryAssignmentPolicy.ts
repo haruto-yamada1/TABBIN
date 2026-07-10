@@ -13,7 +13,7 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * 同じ `TabGroupId` / `DomainName` を複数カテゴリが宣言している場合は
  * 最初に出現したカテゴリを優先する（先勝ち）。
  */
-export interface CategoryLookup {
+export type CategoryLookup = {
   readonly byId: ReadonlyMap<ParentCategoryId, ParentCategory>
   readonly byTabGroupId: ReadonlyMap<TabGroupId, ParentCategory>
   readonly byDomainName: ReadonlyMap<string, ParentCategory>

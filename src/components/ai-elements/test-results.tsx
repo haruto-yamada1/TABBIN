@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils'
 
 type TestStatus = 'passed' | 'failed' | 'skipped' | 'running'
 
-interface TestResultsSummary {
+type TestResultsSummary = {
   passed: number
   failed: number
   skipped: number
@@ -28,7 +28,7 @@ interface TestResultsSummary {
   duration?: number
 }
 
-interface TestResultsContextType {
+type TestResultsContextType = {
   summary?: TestResultsSummary
 }
 
@@ -217,7 +217,7 @@ export const TestResultsContent = ({
   </div>
 )
 
-interface TestSuiteContextType {
+type TestSuiteContextType = {
   name: string
   status: TestStatus
 }
@@ -326,7 +326,7 @@ export const TestSuiteContent = ({
   </CollapsibleContent>
 )
 
-interface TestContextType {
+type TestContextType = {
   name: string
   status: TestStatus
   duration?: number

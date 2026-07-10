@@ -4,7 +4,7 @@ import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/applica
 /**
  * `SetCustomProjectUrlCategoryUseCase` が依存する port。
  */
-export interface SetCustomProjectUrlCategoryUseCaseDeps {
+export type SetCustomProjectUrlCategoryUseCaseDeps = {
   readonly customProjectsCommandService: CustomProjectsCommandService
 }
 

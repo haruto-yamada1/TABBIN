@@ -43,7 +43,7 @@ export type {
 } from './CategoryManagementModal.types'
 
 // 型定義
-interface AvailableDomain {
+type AvailableDomain = {
   id: string
   domain: string
 }
@@ -57,7 +57,7 @@ interface AvailableDomain {
  * 実行する。
  */
 // 親カテゴリ管理モーダルの型定義
-interface CategoryManagementModalProps {
+type CategoryManagementModalProps = {
   isOpen: boolean
   onClose: () => void
   category: {

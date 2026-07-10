@@ -51,12 +51,12 @@ vi.mock('@/contexts/saved-tabs/presentation/components/ProjectUrlItem', () => ({
 
 import { ProjectCardUncategorizedArea } from './ProjectCardUncategorizedArea'
 
-interface TestProjectUrl {
+type TestProjectUrl = {
   readonly title: string
   readonly url: string
 }
 
-interface TestProjectCardContextValue {
+type TestProjectCardContextValue = {
   readonly handlers: {
     readonly handleDeleteUrl: ReturnType<typeof vi.fn>
     readonly handleOpenUrl: ReturnType<typeof vi.fn>
@@ -79,7 +79,7 @@ interface TestProjectCardContextValue {
   }
 }
 
-interface TestProjectCardContextOverrides {
+type TestProjectCardContextOverrides = {
   readonly handlers?: Partial<TestProjectCardContextValue['handlers']>
   readonly hookState?: {
     readonly urls?: Partial<TestProjectCardContextValue['hookState']['urls']>

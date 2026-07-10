@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 
 import { useCopyState } from './use-copy-state'
 
-interface EnvironmentVariablesContextType {
+type EnvironmentVariablesContextType = {
   showValues: boolean
   setShowValues: (show: boolean) => void
 }
@@ -137,7 +137,7 @@ export const EnvironmentVariablesContent = ({
   </div>
 )
 
-interface EnvironmentVariableContextType {
+type EnvironmentVariableContextType = {
   name: string
   value: string
 }

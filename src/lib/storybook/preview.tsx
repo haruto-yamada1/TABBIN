@@ -13,7 +13,7 @@ import { storybookThemeStorage } from './fixtures'
 
 type StoryTheme = 'dark' | 'light' | 'system' | 'user'
 
-interface StorybookHarnessProps {
+type StorybookHarnessProps = {
   children: React.ReactNode
   storage?: Record<string, unknown>
   theme?: StoryTheme

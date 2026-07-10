@@ -16,7 +16,7 @@
  * ```
  */
 
-export interface ChromeBrowserWindowAdapterDeps {
+export type ChromeBrowserWindowAdapterDeps = {
   /**
    * `chrome.windows` を提供する chrome API 全体。テスト時は
    * `chrome.windows.create` を持つモックオブジェクトを渡す。
@@ -24,11 +24,11 @@ export interface ChromeBrowserWindowAdapterDeps {
   readonly getApi: () => ChromeWindowsApiLike | undefined
 }
 
-export interface ChromeWindowsApiLike {
+export type ChromeWindowsApiLike = {
   readonly windows?: ChromeWindowsLike
 }
 
-export interface ChromeWindowsLike {
+export type ChromeWindowsLike = {
   readonly create?: (createProperties: {
     readonly focused?: boolean
     readonly url?: readonly string[] | string
@@ -39,7 +39,7 @@ export interface ChromeWindowsLike {
     | undefined
 }
 
-export interface ChromeBrowserWindowAdapterOptions {
+export type ChromeBrowserWindowAdapterOptions = {
   /**
    * 新規ウィンドウを前面に表示するかを port 利用側（open all saved urls use-case）が
    * 決められるよう、`focused` の既定値を委譲できる。

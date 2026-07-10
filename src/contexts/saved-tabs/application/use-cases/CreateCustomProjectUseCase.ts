@@ -10,11 +10,11 @@ import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repos
 /**
  * `CreateCustomProjectUseCase` の入力。
  */
-export interface CreateCustomProjectCommand {
+export type CreateCustomProjectCommand = {
   readonly name: string
 }
 
-export interface CreateCustomProjectResult {
+export type CreateCustomProjectResult = {
   readonly all: readonly SavedTabsCustomProjectDto[]
   readonly project: SavedTabsCustomProjectDto
 }
@@ -23,7 +23,7 @@ export type CreateCustomProjectUseCase = (
   command: CreateCustomProjectCommand,
 ) => Promise<CreateCustomProjectResult>
 
-export interface CreateCustomProjectUseCaseDeps {
+export type CreateCustomProjectUseCaseDeps = {
   readonly customProjectRepository: CustomProjectRepository
   readonly clock: ClockPort
   readonly generateId?: () => string

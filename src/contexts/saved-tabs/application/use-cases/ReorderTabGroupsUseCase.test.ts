@@ -7,7 +7,7 @@ import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositori
 import type { ReorderTabGroupsUseCaseDeps } from './ReorderTabGroupsUseCase'
 import { createReorderTabGroupsUseCase } from './ReorderTabGroupsUseCase'
 
-interface Repositories extends ReorderTabGroupsUseCaseDeps {
+type Repositories = ReorderTabGroupsUseCaseDeps & {
   tabGroups: ReturnType<typeof createTabGroup>[]
   saveAllSpy: ReturnType<typeof vi.fn>
 }

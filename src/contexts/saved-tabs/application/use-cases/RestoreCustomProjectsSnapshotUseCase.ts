@@ -16,7 +16,7 @@ import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-object
  * 「全消去」セマンティクスを明示するため、呼び出し側で
  * `customProjectOrder ?? []` ではなく省略有無を意識する。
  */
-export interface RestoreCustomProjectsSnapshotPayload {
+export type RestoreCustomProjectsSnapshotPayload = {
   readonly customProjectOrder?: readonly string[]
   readonly customProjects: readonly SavedTabsCustomProjectDto[]
   readonly customProjectsRaw?: readonly SavedTabsCustomProjectRawSnapshotDto[]
@@ -25,7 +25,7 @@ export interface RestoreCustomProjectsSnapshotPayload {
 /**
  * `RestoreCustomProjectsSnapshotUseCase` の入力。
  */
-export interface RestoreCustomProjectsSnapshotCommand {
+export type RestoreCustomProjectsSnapshotCommand = {
   readonly payload: RestoreCustomProjectsSnapshotPayload
 }
 
@@ -41,7 +41,7 @@ export type RestoreCustomProjectsSnapshotUseCase = (
 /**
  * `RestoreCustomProjectsSnapshotUseCase` が依存する repository 群。
  */
-export interface RestoreCustomProjectsSnapshotUseCaseDeps {
+export type RestoreCustomProjectsSnapshotUseCaseDeps = {
   readonly customProjectRepository: CustomProjectRepository
 }
 

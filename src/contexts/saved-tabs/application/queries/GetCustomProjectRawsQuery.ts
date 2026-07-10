@@ -26,7 +26,7 @@ export type GetCustomProjectRawsQuery = () => Promise<
 /**
  * `GetCustomProjectRawsQuery` が依存する repository 群。
  */
-export interface GetCustomProjectRawsQueryDeps {
+export type GetCustomProjectRawsQueryDeps = {
   readonly customProjectRepository: CustomProjectRepository
 }
 

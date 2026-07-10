@@ -16,7 +16,7 @@
  * }
  * ```
  */
-export interface MoveDomainToCategoryCommand {
+export type MoveDomainToCategoryCommand = {
   readonly domain: string
   readonly parentCategoryId: string
 }

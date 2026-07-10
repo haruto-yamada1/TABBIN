@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { useSortOrder } from './useSortOrder'
 
-interface Item {
+type Item = {
   domain: string
 }
 

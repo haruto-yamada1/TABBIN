@@ -15,7 +15,7 @@ import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/applicat
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 /** UseCategoryModal フックの引数 */
-interface UseCategoryModalParams {
+type UseCategoryModalParams = {
   /** タブグループ一覧 */
   tabGroups: TabGroup[]
   /** 保存タブページ全体 query。`parentCategoryRepository.findAll` 直叩きを置換 (issue #510)。*/

@@ -1,7 +1,7 @@
 type ScrollTargetType = 'parent' | 'project' | 'domain' | 'child'
 type ScrollDirection = 'previous' | 'next'
 
-interface ScrollControlAvailability {
+type ScrollControlAvailability = {
   bottom: boolean
   nextChild: boolean
   nextDomain: boolean

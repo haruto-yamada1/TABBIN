@@ -9,7 +9,7 @@ import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/Tab
 /**
  * `MoveDomainBetweenCategoriesUseCase` が依存する repository 群。
  */
-export interface MoveDomainBetweenCategoriesUseCaseDeps {
+export type MoveDomainBetweenCategoriesUseCaseDeps = {
   readonly parentCategoryRepository: ParentCategoryRepository
 }
 

@@ -5,7 +5,7 @@
  * plain object。`domain` を主キー、`categoryId` を値とする
  * 1:N 風マッピングを domain 側で扱うために使う。
  */
-export interface DomainCategoryMappingDto {
+export type DomainCategoryMappingDto = {
   domain: string
   categoryId: string
 }

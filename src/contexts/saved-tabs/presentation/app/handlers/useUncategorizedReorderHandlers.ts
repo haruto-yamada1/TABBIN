@@ -10,7 +10,7 @@ import { toSavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/mapper
 import { toDomainTabGroupsForReorder } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 
-interface UseUncategorizedReorderHandlersDeps {
+type UseUncategorizedReorderHandlersDeps = {
   isUncategorizedReorderMode: boolean
   setIsUncategorizedReorderMode: Dispatch<SetStateAction<boolean>>
   tempUncategorizedOrder: TabGroup[]

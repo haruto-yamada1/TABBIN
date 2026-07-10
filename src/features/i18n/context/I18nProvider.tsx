@@ -17,7 +17,7 @@ import {
   saveUserSettings,
 } from '@/lib/storage/settings'
 
-interface I18nContextValue {
+type I18nContextValue = {
   language: AppLanguage
   languageSetting: LanguageSetting
   setLanguageSetting: (language: LanguageSetting) => Promise<void>

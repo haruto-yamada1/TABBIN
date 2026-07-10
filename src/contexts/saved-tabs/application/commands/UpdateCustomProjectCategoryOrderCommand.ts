@@ -14,7 +14,7 @@
  * }
  * ```
  */
-export interface UpdateCustomProjectCategoryOrderCommand {
+export type UpdateCustomProjectCategoryOrderCommand = {
   readonly projectId: string
   readonly newOrder: readonly string[]
 }

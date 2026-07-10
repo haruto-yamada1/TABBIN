@@ -19,7 +19,7 @@ export type GetCustomProjectOrderQuery = () => Promise<readonly string[]>
 /**
  * `GetCustomProjectOrderQuery` が依存する repository 群。
  */
-export interface GetCustomProjectOrderQueryDeps {
+export type GetCustomProjectOrderQueryDeps = {
   readonly customProjectRepository: CustomProjectRepository
 }
 

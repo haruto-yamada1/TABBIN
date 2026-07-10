@@ -1,7 +1,7 @@
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
-interface LoadingStateProps {
+type LoadingStateProps = {
   className?: string
   minHeightClassName?: string
   spinnerClassName?: string

@@ -23,7 +23,7 @@ import { toTabGroupViewModel } from '@/contexts/saved-tabs/presentation/view-mod
  * - テストや SSR 用に `initialTabGroups` / `initialCustomProjects` を渡せる。
  *   省略時は use-case / repository の readAll を初回マウント時に行う。
  */
-export interface UseSavedTabsControllerInput {
+export type UseSavedTabsControllerInput = {
   readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
   readonly initialTabGroups?: readonly TabGroup[]
@@ -37,7 +37,7 @@ export interface UseSavedTabsControllerInput {
  * `useCustomModeController`) が個別 use-case を直接参照するための導線。
  * 既存 features (`SavedTabsApp`) からも暫定的に参照可能。
  */
-export interface UseSavedTabsControllerReturn {
+export type UseSavedTabsControllerReturn = {
   readonly viewModel: SavedTabsViewModel
   readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
@@ -59,7 +59,7 @@ export interface UseSavedTabsControllerReturn {
   readonly refresh: () => Promise<void>
 }
 
-export interface OpenSavedUrlControllerInput {
+export type OpenSavedUrlControllerInput = {
   readonly urlRecordId: string
   readonly origin: 'click' | 'externalDrop'
   readonly settings: {
@@ -68,21 +68,21 @@ export interface OpenSavedUrlControllerInput {
   }
 }
 
-export interface OpenSavedUrlControllerResult {
+export type OpenSavedUrlControllerResult = {
   readonly openedUrl: string
   readonly removedUrlRecordId: string | null
 }
 
-export interface DeleteTabGroupControllerInput {
+export type DeleteTabGroupControllerInput = {
   readonly tabGroupId: string
 }
 
-export interface DeleteTabGroupControllerResult {
+export type DeleteTabGroupControllerResult = {
   readonly removedTabGroupId: string
   readonly removedUrlRecordIds: readonly string[]
 }
 
-export interface RestoreSnapshotControllerInput {
+export type RestoreSnapshotControllerInput = {
   readonly snapshot: {
     readonly savedTabs?: readonly TabGroup[]
     readonly urlRecords?: readonly {
@@ -101,25 +101,25 @@ export interface RestoreSnapshotControllerInput {
   }
 }
 
-export interface RestoreSnapshotControllerResult {
+export type RestoreSnapshotControllerResult = {
   readonly restoredTabGroupCount: number
   readonly restoredUrlRecordCount: number
 }
 
-export interface SyncCategoryControllerInput {
+export type SyncCategoryControllerInput = {
   readonly command?: {
     readonly domain: string
     readonly parentCategoryId: string
   }
 }
 
-export interface SyncCategoryControllerResult {
+export type SyncCategoryControllerResult = {
   readonly assignedTabGroupCount: number
   readonly unassignedTabGroupCount: number
   readonly updatedCategoryCount: number
 }
 
-interface ControllerState {
+type ControllerState = {
   loading: boolean
   error: string | null
   tabGroups: readonly TabGroupViewModel[]

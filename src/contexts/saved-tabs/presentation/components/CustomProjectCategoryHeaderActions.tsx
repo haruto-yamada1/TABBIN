@@ -9,7 +9,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from './shared/SavedTabsResponsive'
 
-interface CategoryHeaderActionsProps {
+type CategoryHeaderActionsProps = {
   showManageActions: boolean
   showBulkActions: boolean
   onOpenManageDialog: () => void

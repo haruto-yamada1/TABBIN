@@ -7,7 +7,7 @@ import type {
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { CustomProjectSection } from '@/contexts/saved-tabs/presentation/components/CustomProjectSection'
 
-interface CustomModeContainerProps {
+type CustomModeContainerProps = {
   isLoading: boolean
   projects: CustomProject[]
   settings: UserSettingsDto

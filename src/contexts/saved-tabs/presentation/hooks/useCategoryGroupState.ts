@@ -13,7 +13,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { useSortOrder } from './useSortOrder'
 
 /** UseCategoryGroupState フックの引数 */
-interface UseCategoryGroupStateParams {
+type UseCategoryGroupStateParams = {
   /** 親カテゴリデータ */
   category: ParentCategory
   /** ドメイン一覧 */

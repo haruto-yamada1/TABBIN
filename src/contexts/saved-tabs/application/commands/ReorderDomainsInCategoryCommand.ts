@@ -15,7 +15,7 @@
  */
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface ReorderDomainsInCategoryCommand {
+export type ReorderDomainsInCategoryCommand = {
   /** 並び替え対象カテゴリの `ParentCategoryId`。 */
   readonly categoryId: string
   /**

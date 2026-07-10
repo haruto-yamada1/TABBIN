@@ -36,7 +36,7 @@ type ToolUIPartApproval =
     }
   | undefined
 
-interface ConfirmationContextValue {
+type ConfirmationContextValue = {
   approval: ToolUIPartApproval
   state: ToolUIPart['state']
 }
@@ -86,7 +86,7 @@ export const ConfirmationTitle = ({
   <AlertDescription className={cn('inline', className)} {...props} />
 )
 
-export interface ConfirmationRequestProps {
+export type ConfirmationRequestProps = {
   children?: ReactNode
 }
 
@@ -101,7 +101,7 @@ export const ConfirmationRequest = ({ children }: ConfirmationRequestProps) => {
   return children
 }
 
-export interface ConfirmationAcceptedProps {
+export type ConfirmationAcceptedProps = {
   children?: ReactNode
 }
 
@@ -123,7 +123,7 @@ export const ConfirmationAccepted = ({
   return children
 }
 
-export interface ConfirmationRejectedProps {
+export type ConfirmationRejectedProps = {
   children?: ReactNode
 }
 

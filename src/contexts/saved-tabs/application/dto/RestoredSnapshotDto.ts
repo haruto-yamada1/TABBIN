@@ -18,7 +18,7 @@ import type {
  * 既存データ（`order` 未保存の snapshot）と後方互換を保つため、
  * 必須フィールドにはしない。
  */
-export interface RestoredSnapshotDto {
+export type RestoredSnapshotDto = {
   readonly restoredTabGroups: readonly SavedTabsTabGroupDto[]
   readonly restoredUrlRecords: readonly SavedTabsUrlRecordDto[]
   readonly restoredCustomProjects: readonly SavedTabsCustomProjectDto[]
