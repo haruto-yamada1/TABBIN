@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   clampSidebarWidth,
-  DEFAULT_CHAT_SIDEBAR_WIDTH,
   loadSidebarWidth,
   persistSidebarWidth,
 } from '@/features/ai-chat/components/savedTabsChat/storage'
@@ -17,11 +16,9 @@ type ResizeStartEvent = {
 }
 
 const useChatSidebarResize = ({ mode }: { mode: ChatSidebarMode }) => {
-  const [sidebarWidth, setSidebarWidth] = useState(() =>
-    mode === 'floating' ? loadSidebarWidth() : DEFAULT_CHAT_SIDEBAR_WIDTH,
-  )
+  const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth)
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth)
-  const [isResizing, setIsResizing] = useState(false)
+  const [resizeSession, setResizeSession] = useState<object | null>(null)
   const resizeCleanupRef = useRef<(() => void) | null>(null)
   const sidebarWidthRef = useRef(sidebarWidth)
 
@@ -31,6 +28,12 @@ const useChatSidebarResize = ({ mode }: { mode: ChatSidebarMode }) => {
   }, [])
 
   useEffect(() => stopResize, [stopResize])
+
+  useEffect(() => {
+    if (mode === 'page') {
+      stopResize()
+    }
+  }, [mode, stopResize])
 
   useEffect(() => {
     const handleWindowResize = () => {
@@ -59,7 +62,7 @@ const useChatSidebarResize = ({ mode }: { mode: ChatSidebarMode }) => {
 
       event.preventDefault()
       stopResize()
-      setIsResizing(true)
+      setResizeSession({})
 
       const previousBodyStyle = document.body.style.cssText
       const handlePointerMove = (moveEvent: PointerEvent) => {
@@ -71,7 +74,7 @@ const useChatSidebarResize = ({ mode }: { mode: ChatSidebarMode }) => {
       }
       const handlePointerUp = () => {
         persistSidebarWidth(sidebarWidthRef.current)
-        setIsResizing(false)
+        setResizeSession(null)
         stopResize()
       }
 
@@ -92,6 +95,10 @@ const useChatSidebarResize = ({ mode }: { mode: ChatSidebarMode }) => {
     mode === 'page'
       ? viewportWidth < TABLET_BREAKPOINT
       : sidebarWidth <= SIDEBAR_COMPACT_BREAKPOINT
+  const isResizing =
+    mode === 'floating' &&
+    resizeSession !== null &&
+    resizeCleanupRef.current !== null
   const cardStyle = useMemo(
     () => (mode === 'page' ? undefined : { width: `${sidebarWidth}px` }),
     [mode, sidebarWidth],

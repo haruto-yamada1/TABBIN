@@ -1,6 +1,23 @@
 // @vitest-environment jsdom
-import { act, renderHook } from '@testing-library/react'
+import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocked = vi.hoisted(() => ({
+  loadSidebarWidth: vi.fn(() => 420),
+  persistSidebarWidth: vi.fn(),
+}))
+
+vi.mock('@/features/ai-chat/components/savedTabsChat/storage', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>(
+    '@/features/ai-chat/components/savedTabsChat/storage',
+  )
+
+  return {
+    ...actual,
+    loadSidebarWidth: mocked.loadSidebarWidth,
+    persistSidebarWidth: mocked.persistSidebarWidth,
+  }
+})
 
 import { useChatSidebarResize } from './useChatSidebarResize'
 
@@ -16,27 +33,49 @@ const createResizeStartEvent = () => ({
   preventDefault: vi.fn(),
 })
 
+type HookProps = {
+  mode: 'floating' | 'page'
+}
+
 describe('useChatSidebarResize', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
+    mocked.loadSidebarWidth.mockReturnValue(420)
     setViewportWidth(1200)
-    window.localStorage.clear()
     document.body.style.cssText = 'color: red;'
   })
 
   afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
     document.body.style.cssText = ''
   })
 
-  it('restores and clamps the stored floating sidebar width', () => {
-    setViewportWidth(600)
-    window.localStorage.setItem('tabbin-ai-chat-sidebar-width', '900')
+  it('restores the clamped width returned by the storage accessor', () => {
+    mocked.loadSidebarWidth.mockReturnValue(552)
 
     const { result } = renderHook(() =>
       useChatSidebarResize({ mode: 'floating' }),
     )
 
+    expect(mocked.loadSidebarWidth).toHaveBeenCalledOnce()
     expect(result.current.sidebarWidth).toBe(552)
     expect(result.current.cardStyle).toEqual({ width: '552px' })
+  })
+
+  it('restores the saved width when the same instance changes from page to floating', () => {
+    mocked.loadSidebarWidth.mockReturnValue(640)
+    const initialProps: HookProps = { mode: 'page' }
+    const { result, rerender } = renderHook(
+      ({ mode }: HookProps) => useChatSidebarResize({ mode }),
+      { initialProps },
+    )
+
+    rerender({ mode: 'floating' })
+
+    expect(mocked.loadSidebarWidth).toHaveBeenCalledOnce()
+    expect(result.current.sidebarWidth).toBe(640)
+    expect(result.current.cardStyle).toEqual({ width: '640px' })
   })
 
   it('updates the floating sidebar width during pointer movement', () => {
@@ -73,9 +112,8 @@ describe('useChatSidebarResize', () => {
       window.dispatchEvent(new PointerEvent('pointerup'))
     })
 
-    expect(window.localStorage.getItem('tabbin-ai-chat-sidebar-width')).toBe(
-      '550',
-    )
+    expect(mocked.persistSidebarWidth).toHaveBeenCalledOnce()
+    expect(mocked.persistSidebarWidth).toHaveBeenCalledWith(550)
     expect(result.current.isResizing).toBe(false)
     expect(document.body.style.cssText).toBe('color: red;')
   })
@@ -115,5 +153,34 @@ describe('useChatSidebarResize', () => {
     expect(result.current.isResizing).toBe(false)
     expect(result.current.cardStyle).toBeUndefined()
     expect(document.body.style.cssText).toBe('color: red;')
+  })
+
+  it('stops active resizing when the same instance changes to page mode', () => {
+    const removeEventListener = vi.spyOn(window, 'removeEventListener')
+    const initialProps: HookProps = { mode: 'floating' }
+    const { result, rerender } = renderHook(
+      ({ mode }: HookProps) => useChatSidebarResize({ mode }),
+      { initialProps },
+    )
+
+    act(() => {
+      result.current.handleResizeStart(createResizeStartEvent())
+    })
+    rerender({ mode: 'page' })
+    act(() => {
+      window.dispatchEvent(new PointerEvent('pointerup'))
+    })
+
+    expect(result.current.isResizing).toBe(false)
+    expect(mocked.persistSidebarWidth).not.toHaveBeenCalled()
+    expect(document.body.style.cssText).toBe('color: red;')
+    expect(removeEventListener).toHaveBeenCalledWith(
+      'pointermove',
+      expect.any(Function),
+    )
+    expect(removeEventListener).toHaveBeenCalledWith(
+      'pointerup',
+      expect.any(Function),
+    )
   })
 })
