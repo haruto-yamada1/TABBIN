@@ -11,6 +11,6 @@ import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/applicati
  * 旧 `SavedTabsApp.tsx` の `chrome.storage.local.get([...])` を
  * repository 経由へ移す目的（issue #494）。
  */
-export interface BuildSavedTabsSnapshotCommand {
+export type BuildSavedTabsSnapshotCommand = {
   readonly parentCategories?: readonly SavedTabsParentCategoryDto[]
 }

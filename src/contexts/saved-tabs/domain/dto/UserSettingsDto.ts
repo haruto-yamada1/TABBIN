@@ -3,7 +3,7 @@
  *
  * `@/types/storage.AiSystemPromptPreset` と構造互換。
  */
-export interface AiSystemPromptPresetDto {
+export type AiSystemPromptPresetDto = {
   readonly id: string
   readonly name: string
   readonly template: string
@@ -30,7 +30,7 @@ export interface AiSystemPromptPresetDto {
  * 形の `excludePatterns: string[]` を props として受け取る既存
  * コンポーネントとの代入互換を取る)。
  */
-export interface UserSettingsDto {
+export type UserSettingsDto = {
   language?: 'system' | 'ja' | 'en'
   removeTabAfterOpen: boolean
   removeTabAfterExternalDrop: boolean

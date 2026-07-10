@@ -20,7 +20,7 @@ import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositor
  * `urlRecordRepository` は Undo 時に削除された `UrlRecord` を復元するため
  * 必須 (Codex レビュー対応: P1 / issue #494)。
  */
-export interface BuildSavedTabsSnapshotUseCaseDeps {
+export type BuildSavedTabsSnapshotUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly customProjectRepository: CustomProjectRepository
   readonly parentCategoryRepository: ParentCategoryRepository

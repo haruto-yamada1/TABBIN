@@ -23,7 +23,7 @@ export type PersonaState =
   | 'speaking'
   | 'asleep'
 
-interface PersonaProps {
+type PersonaProps = {
   state: PersonaState
   onLoad?: RiveParameters['onLoad']
   onLoadError?: RiveParameters['onLoadError']
@@ -129,7 +129,7 @@ const useTheme = (enabled: boolean) => {
   return theme
 }
 
-interface PersonaWithModelProps {
+type PersonaWithModelProps = {
   rive: ReturnType<typeof useRive>['rive']
   source: (typeof sources)[keyof typeof sources]
   children: React.ReactNode
@@ -166,7 +166,7 @@ const PersonaWithModel = memo(
 
 PersonaWithModel.displayName = 'PersonaWithModel'
 
-interface PersonaWithoutModelProps {
+type PersonaWithoutModelProps = {
   children: ReactNode
 }
 

@@ -17,7 +17,7 @@
  * const result = await deleteSavedUrlsUseCase(command)
  * ```
  */
-export interface DeleteSavedUrlsCommand {
+export type DeleteSavedUrlsCommand = {
   readonly tabGroupId: string
   readonly urls: readonly string[]
 }

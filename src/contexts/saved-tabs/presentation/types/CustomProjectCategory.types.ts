@@ -4,7 +4,7 @@ import type {
   SavedTabsUserSettingsDto as UserSettingsDto,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface CustomProjectCategoryProps {
+export type CustomProjectCategoryProps = {
   projectId: string
   category: string
   urls: CustomProject['urls']

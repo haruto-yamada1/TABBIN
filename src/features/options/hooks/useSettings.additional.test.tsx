@@ -47,7 +47,7 @@ type StorageListener = (
   areaName: string,
 ) => void
 
-interface RetryToastOptions {
+type RetryToastOptions = {
   action?: {
     label: string
     onClick: () => Promise<void> | void

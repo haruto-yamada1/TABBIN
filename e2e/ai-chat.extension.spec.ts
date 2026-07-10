@@ -6,11 +6,11 @@ import {
   test,
 } from './helpers/extension'
 
-interface RuntimeLike {
+type RuntimeLike = {
   sendMessage?: (message: unknown) => Promise<unknown>
 }
 
-interface InitScriptPage {
+type InitScriptPage = {
   addInitScript: (script: () => void) => Promise<unknown>
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-interface TimeRemainingResponse {
+type TimeRemainingResponse = {
   error?: string
   timeRemaining?: number
 }

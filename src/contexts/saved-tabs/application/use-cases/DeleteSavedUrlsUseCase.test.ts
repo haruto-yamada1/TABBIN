@@ -11,7 +11,7 @@ import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositor
 import type { DeleteSavedUrlsUseCaseDeps } from './DeleteSavedUrlsUseCase'
 import { createDeleteSavedUrlsUseCase } from './DeleteSavedUrlsUseCase'
 
-interface Repositories {
+type Repositories = {
   tabGroupRepository: TabGroupRepository
   urlRecordRepository: UrlRecordRepository
   customProjectRepository: CustomProjectRepository

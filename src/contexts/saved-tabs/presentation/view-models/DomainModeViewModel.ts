@@ -14,7 +14,7 @@ import { toTabGroupViewModel } from './TabGroupViewModel'
  * category 割当・検索フィルタ・並び替え状態などの UI 派生値を含める。
  * `useDomainModeController` が組み立て、`DomainModeContainer` が受け取る。
  */
-export interface DomainModeViewModel {
+export type DomainModeViewModel = {
   readonly loading: boolean
   readonly error: string | null
   readonly tabGroups: readonly TabGroupViewModel[]
@@ -25,7 +25,7 @@ export interface DomainModeViewModel {
   readonly categories: readonly ParentCategoryViewModel[]
 }
 
-export interface ParentCategoryViewModel {
+export type ParentCategoryViewModel = {
   readonly id: string
   readonly name: string
   readonly domains: readonly string[]
@@ -52,7 +52,7 @@ export const toParentCategoryViewModel = (
  * (branded 型なし) を扱うケースも、controller 側で entity へ詰め替えるか
  * `unknown` キャストで吸収する。
  */
-export interface CreateDomainModeViewModelInput {
+export type CreateDomainModeViewModelInput = {
   readonly loading: boolean
   readonly error: string | null
   readonly tabGroups: readonly TabGroup[]

@@ -17,6 +17,6 @@ import type { SavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/applicat
  * `@/types/storage` には依存せず、domain DTO `TabGroupDto` だけを
  * 受け取る (issue #511)。
  */
-export interface RemoveUrlsFromCustomProjectsCommand {
+export type RemoveUrlsFromCustomProjectsCommand = {
   readonly tabGroups: readonly SavedTabsDisplayTabGroupDto[]
 }

@@ -17,11 +17,11 @@ import {
 
 import { AppLayout } from './AppLayout'
 
-interface AppRouterProps {
+type AppRouterProps = {
   initialEntries?: string[]
 }
 
-interface StorageLocalRemove {
+type StorageLocalRemove = {
   remove: (key: string) => Promise<void>
 }
 

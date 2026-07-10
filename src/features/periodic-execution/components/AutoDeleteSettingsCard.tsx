@@ -14,13 +14,13 @@ import {
 import { autoDeleteOptions } from '@/constants/autoDeleteOptions'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface ConfirmationState {
+type ConfirmationState = {
   isVisible: boolean
   message: string
   onConfirm: () => void
 }
 
-interface AutoDeleteSettingsCardProps {
+type AutoDeleteSettingsCardProps = {
   confirmationState: ConfirmationState
   hideConfirmation: () => void
   pendingAutoDeletePeriod: string | null | undefined

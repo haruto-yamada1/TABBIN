@@ -17,7 +17,7 @@
  * 配列フィールドは `@/types/storage.ParentCategory` との structural
  * 互換のため readonly 修飾を敢えて付けず、mutable として公開する。
  */
-export interface ParentCategoryDto {
+export type ParentCategoryDto = {
   id: string
   name: string
   domains: string[]

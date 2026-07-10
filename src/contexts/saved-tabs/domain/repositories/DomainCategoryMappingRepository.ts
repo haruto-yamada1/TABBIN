@@ -24,7 +24,7 @@ import type { DomainCategoryMappingDto } from '@/contexts/saved-tabs/domain/dto/
  * )
  * ```
  */
-export interface DomainCategoryMappingRepository {
+export type DomainCategoryMappingRepository = {
   findAll: () => Promise<readonly DomainCategoryMappingDto[]>
   saveAll: (mappings: readonly DomainCategoryMappingDto[]) => Promise<void>
 }

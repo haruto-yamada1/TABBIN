@@ -27,7 +27,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { useProjectModalState } from './useProjectModalState'
 import { createProjectNameSchema } from './useProjectNameSchema'
 
-interface ProjectManagementModalProps {
+type ProjectManagementModalProps = {
   isOpen: boolean
   onClose: () => void
   project: CustomProject
@@ -39,7 +39,7 @@ interface ProjectManagementModalProps {
   onDeleteProject?: (projectId: string) => Promise<void> | void
 }
 
-interface ProjectKeywordSectionProps {
+type ProjectKeywordSectionProps = {
   label: string
   description: string
   inputId: string

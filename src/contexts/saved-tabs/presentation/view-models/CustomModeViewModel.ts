@@ -9,7 +9,7 @@ import { toCustomProjectViewModel } from './CustomProjectViewModel'
  * カスタムプロジェクト一覧と検索クエリ、合計 URL 数を保持する。
  * `useCustomModeController` が組み立て、`CustomModeContainer` が受け取る。
  */
-export interface CustomModeViewModel {
+export type CustomModeViewModel = {
   readonly loading: boolean
   readonly error: string | null
   readonly projects: readonly CustomProjectViewModel[]
@@ -18,7 +18,7 @@ export interface CustomModeViewModel {
   readonly hasContent: boolean
 }
 
-export interface CreateCustomModeViewModelInput {
+export type CreateCustomModeViewModelInput = {
   readonly loading: boolean
   readonly error: string | null
   readonly projects: readonly CustomProject[]

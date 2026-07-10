@@ -63,7 +63,7 @@ export type ExternalDragMessage = UrlDragStartedMessage | UrlDroppedMessage
  * 留める。`removedCount` / `error` などを必要になった時点で
  * discriminated union として拡張する。
  */
-export interface MessagingPortResponse {
+export type MessagingPortResponse = {
   readonly status: string
   readonly success?: boolean
 }
@@ -79,7 +79,7 @@ export interface MessagingPortResponse {
  * ようにする。`getApi` が undefined を返した environment では
  * 早期 return で `undefined` を返す。
  */
-export interface MessagingPort {
+export type MessagingPort = {
   /**
    * `chrome` 由来の port 実装に付くマーカー。
    *

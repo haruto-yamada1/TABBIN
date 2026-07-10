@@ -54,7 +54,7 @@ const getReorderStyle = (isReorderTarget: boolean): React.CSSProperties => {
   }
 }
 
-interface CategoryHeaderMainProps {
+type CategoryHeaderMainProps = {
   attributes: ReturnType<typeof useSortable>['attributes']
   listeners: ReturnType<typeof useSortable>['listeners']
   category: string
@@ -119,7 +119,7 @@ const CategoryHeaderMain = ({
 
 const CATEGORY_SELECT_OPTIONS: string[] = ['undefined']
 
-interface CategoryContentProps {
+type CategoryContentProps = {
   urls: CategoryUrl[]
   urlIds: string[]
   isOver: boolean

@@ -6,7 +6,7 @@
  * 通知すればよいケースと、ID 一覧が欲しいケースの両方に対応するため
  * 両方持つ。
  */
-export interface RemovedUrlRecordsDto {
+export type RemovedUrlRecordsDto = {
   readonly removedCount: number
   readonly removedUrlRecordIds: readonly string[]
 }

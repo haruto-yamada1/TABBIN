@@ -158,7 +158,7 @@ import { useChatPromptManager } from './savedTabsChat/useChatPromptManager'
 import { useChatStreamHandlers } from './savedTabsChat/useChatStreamHandlers'
 import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.helpers'
 
-interface ClipboardWriter {
+type ClipboardWriter = {
   writeText: (text: string) => Promise<void>
 }
 
@@ -185,7 +185,7 @@ const getClipboardWriter = (): ClipboardWriter | null => {
 const getConversationClipboard = (): ClipboardWriter | null =>
   typeof window === 'undefined' ? null : getClipboardWriter()
 
-interface SavedTabsChatPanelProps {
+type SavedTabsChatPanelProps = {
   activeSystemPromptId: string
   chatErrorMessage: string
   chatOllamaError?: OllamaErrorDetails
@@ -235,7 +235,7 @@ interface SavedTabsChatPanelProps {
   systemPrompts: AiSystemPromptPreset[]
 }
 
-interface SavedTabsChatWidgetProps {
+type SavedTabsChatWidgetProps = {
   conversationId?: string
   defaultOpen?: boolean
   historyItems?: AiChatHistoryItem[]

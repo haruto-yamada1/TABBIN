@@ -3,7 +3,7 @@ import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-interface SubCategoryButtonProps {
+type SubCategoryButtonProps = {
   category: string
   activeCategory: string | null
   onSelect: (category: string) => void

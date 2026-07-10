@@ -9,16 +9,16 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useCategoryModalContext } from './CategoryModalContext'
 
-interface DomainCategoryInfo {
+type DomainCategoryInfo = {
   id: string
   name: string
 }
 
-interface DomainSelectionState {
+type DomainSelectionState = {
   selectedCategoryId: string | null
 }
 
-interface DomainState {
+type DomainState = {
   domainCategories: Record<string, DomainCategoryInfo | null>
   selectedDomains: Record<string, boolean>
   toggleDomainSelection: (domainId: string) => void
@@ -123,7 +123,7 @@ const DomainCategoryStatus = ({
   )
 }
 
-interface DomainRowProps {
+type DomainRowProps = {
   group: TabGroup
   selection: DomainSelectionState
   domains: DomainState

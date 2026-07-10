@@ -24,7 +24,7 @@ import {
   requestAssistantAnswer,
 } from './streaming'
 
-interface UseChatStreamHandlersParams {
+type UseChatStreamHandlersParams = {
   messages: ChatMessage[]
   activePortRef: {
     current: {

@@ -13,7 +13,7 @@ import {
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface AnalyticsDialogsProps {
+type AnalyticsDialogsProps = {
   isBulkDeleteConfirmOpen: boolean
   isOpenAllConfirmOpen: boolean
   deleteTarget: AiSavedUrlRecord | null

@@ -38,7 +38,7 @@ export type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/
  * - `search` を渡すと `initialViewMode` より優先して URL の mode クエリ
  *   を読む。`SavedTabsRoute` からの呼び出し時は `search` を渡す。
  */
-export interface SavedTabsPageProps {
+export type SavedTabsPageProps = {
   readonly deps: SavedTabsPresentationPorts
   readonly initialCustomProjects?: readonly CustomProject[]
   readonly initialTabGroups?: readonly TabGroup[]
@@ -70,7 +70,7 @@ export interface SavedTabsPageProps {
  * ページ → controller フック → use-case → repository / port の流れを
  * 一度だけ確立し、その戻り値を layout へ流す。
  */
-export interface SavedTabsPageState {
+export type SavedTabsPageState = {
   readonly viewModel: SavedTabsViewModel
   readonly refresh: () => Promise<void>
   readonly controller: UseSavedTabsControllerReturn

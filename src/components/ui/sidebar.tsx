@@ -79,7 +79,7 @@ const persistSidebarWidth = (width: number): void => {
   }
 }
 
-interface SidebarContextProps {
+type SidebarContextProps = {
   state: 'expanded' | 'collapsed'
   open: boolean
   setOpen: (open: boolean) => void

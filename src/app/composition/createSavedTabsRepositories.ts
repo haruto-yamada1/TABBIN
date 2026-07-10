@@ -24,7 +24,7 @@ import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
  * が利用できない環境で repository 関数を呼び出すと
  * `SavedTabsRepositoryUnavailableError` が投げられる。
  */
-export interface SavedTabsRepositories {
+export type SavedTabsRepositories = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly parentCategoryRepository: ParentCategoryRepository

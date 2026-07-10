@@ -27,7 +27,7 @@ export type CategorizedKey = ParentCategoryId | typeof UNCATEGORIZED_KEY
  * `key` はカテゴリ ID または `UNCATEGORIZED_KEY`、`category` は
  * カテゴリ ID の場合のみ参照可能（未分類では undefined）。
  */
-export interface CategorizedTabGroups {
+export type CategorizedTabGroups = {
   readonly key: CategorizedKey
   readonly category?: ParentCategory
   readonly groups: readonly TabGroup[]

@@ -27,7 +27,7 @@ export const Sandbox = ({ className, ...props }: SandboxRootProps) => (
   />
 )
 
-export interface SandboxHeaderProps {
+export type SandboxHeaderProps = {
   title?: string
   state: ToolUIPart['state']
   className?: string

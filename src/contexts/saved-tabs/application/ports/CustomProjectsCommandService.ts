@@ -24,7 +24,7 @@ import type {
   SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface CustomProjectsCommandService {
+export type CustomProjectsCommandService = {
   /**
    * 旧 `addCategoryToProject` の port 版。カテゴリが既に存在する場合は
    * no-op。`categoryOrder` 末尾に追加する。

@@ -8,7 +8,7 @@ import type { PropsWithChildren } from 'react'
  * 配下の component は compact モード時のみ別レイアウトへ切り替えるなどの
  * responsive 制御に利用する。
  */
-export interface SavedTabsResponsiveLayoutContextValue {
+export type SavedTabsResponsiveLayoutContextValue = {
   isCompactLayout: boolean
 }
 
@@ -17,7 +17,7 @@ const SavedTabsResponsiveLayoutContext =
     isCompactLayout: false,
   })
 
-interface SavedTabsResponsiveLayoutProviderProps extends PropsWithChildren {
+type SavedTabsResponsiveLayoutProviderProps = PropsWithChildren & {
   isCompactLayout: boolean
 }
 

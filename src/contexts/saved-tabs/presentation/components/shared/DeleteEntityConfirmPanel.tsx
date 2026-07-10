@@ -8,7 +8,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 
-interface DeleteEntityConfirmPanelProps {
+type DeleteEntityConfirmPanelProps = {
   description: ReactNode
   cancelLabel: string
   deleteLabel: string

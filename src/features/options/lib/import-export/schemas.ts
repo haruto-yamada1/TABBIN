@@ -5,7 +5,7 @@ import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { isValidUrl } from '@/lib/url-filter'
 import type { ParentCategory, UserSettings } from '@/types/storage'
 
-interface ImportedUrlData {
+type ImportedUrlData = {
   url: string
   title?: string
   favIconUrl?: string
@@ -15,7 +15,7 @@ interface ImportedUrlData {
   savedAt?: number
 }
 
-interface ImportedUrlRecordData {
+type ImportedUrlRecordData = {
   id: string
   url: string
   title?: string
@@ -29,7 +29,7 @@ const importableUrlSchema = z.string().refine(isValidUrl, {
 
 const favIconUrlSchema = importableUrlSchema.or(z.literal(''))
 
-interface ImportedTabData {
+type ImportedTabData = {
   id: string
   domain: string
   urls?: ImportedUrlData[]
@@ -43,7 +43,7 @@ interface ImportedTabData {
   savedAt?: number
 }
 
-interface ImportedCustomProjectData {
+type ImportedCustomProjectData = {
   id: string
   name: string
   projectKeywords?: {
@@ -72,7 +72,7 @@ interface ImportedCustomProjectData {
   updatedAt?: number
 }
 
-interface ImportedCustomProjectUrlData {
+type ImportedCustomProjectUrlData = {
   url: string
   title?: string
   notes?: string
@@ -80,12 +80,12 @@ interface ImportedCustomProjectUrlData {
   category?: string
 }
 
-interface ConvertedUrlData {
+type ConvertedUrlData = {
   urlIds: string[]
   urlSubCategories?: Record<string, string>
 }
 
-interface BackupData {
+type BackupData = {
   version: string
   timestamp: string
   userSettings: Partial<UserSettings>

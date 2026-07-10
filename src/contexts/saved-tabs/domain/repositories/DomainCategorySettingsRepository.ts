@@ -29,7 +29,7 @@ import type { DomainCategorySettingsDto } from '@/contexts/saved-tabs/domain/dto
  * )
  * ```
  */
-export interface DomainCategorySettingsRepository {
+export type DomainCategorySettingsRepository = {
   findAll: () => Promise<readonly DomainCategorySettingsDto[]>
   saveAll: (settings: readonly DomainCategorySettingsDto[]) => Promise<void>
 }

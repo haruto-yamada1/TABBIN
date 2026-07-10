@@ -211,7 +211,7 @@ const showCustomProjectDeleteUndoToast = ({
 }
 
 /** UseProjectManagement フックの戻り値型 */
-interface UseProjectManagementReturn {
+type UseProjectManagementReturn = {
   /** カスタムプロジェクト一覧 */
   customProjects: CustomProject[]
   /** CustomProjects を直接更新するセッター */

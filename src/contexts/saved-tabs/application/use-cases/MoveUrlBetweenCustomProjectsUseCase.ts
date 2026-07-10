@@ -4,7 +4,7 @@ import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/applica
 /**
  * `MoveUrlBetweenCustomProjectsUseCase` が依存する port。
  */
-export interface MoveUrlBetweenCustomProjectsUseCaseDeps {
+export type MoveUrlBetweenCustomProjectsUseCaseDeps = {
   readonly customProjectsCommandService: CustomProjectsCommandService
 }
 

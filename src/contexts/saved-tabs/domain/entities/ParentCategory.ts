@@ -28,14 +28,14 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * })
  * ```
  */
-export interface ParentCategory {
+export type ParentCategory = {
   readonly id: ParentCategoryId
   readonly name: CategoryName
   readonly domains: readonly TabGroupId[]
   readonly domainNames: readonly string[]
 }
 
-interface CreateParentCategoryInput {
+type CreateParentCategoryInput = {
   id: string
   name: string
   domains: readonly string[]

@@ -11,7 +11,7 @@ import {
 const AI_CHAT_CONVERSATIONS_KEY = 'aiChatConversations'
 const ACTIVE_AI_CHAT_CONVERSATION_ID_KEY = 'activeAiChatConversationId'
 
-interface ConversationHistoryState {
+type ConversationHistoryState = {
   activeConversationId: string
   conversations: AiChatConversation[]
 }

@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils'
 import { Shimmer } from './shimmer'
 import { StreamdownMarkdown } from './streamdown-renderer'
 
-interface ReasoningContextValue {
+type ReasoningContextValue = {
   isStreaming: boolean
   isOpen: boolean
   setIsOpen: (open: boolean) => void

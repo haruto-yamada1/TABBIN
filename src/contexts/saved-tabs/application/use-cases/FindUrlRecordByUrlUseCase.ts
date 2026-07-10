@@ -5,7 +5,7 @@ import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositor
 /**
  * `FindUrlRecordByUrlUseCase` が依存する repository 群。
  */
-export interface FindUrlRecordByUrlUseCaseDeps {
+export type FindUrlRecordByUrlUseCaseDeps = {
   readonly urlRecordRepository: UrlRecordRepository
 }
 

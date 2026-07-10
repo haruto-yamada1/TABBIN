@@ -16,11 +16,11 @@ import type {
  * 「未分類」プロジェクトへマージされ、storage 上から消えるわけではない
  * （旧 `lib/storage/projects.deleteCustomProject` の挙動を踏襲）。
  */
-export interface DeleteCustomProjectCommand {
+export type DeleteCustomProjectCommand = {
   readonly projectId: string
 }
 
-export interface DeleteCustomProjectResult {
+export type DeleteCustomProjectResult = {
   readonly all: readonly SavedTabsCustomProjectDto[]
 }
 
@@ -28,7 +28,7 @@ export type DeleteCustomProjectUseCase = (
   command: DeleteCustomProjectCommand,
 ) => Promise<DeleteCustomProjectResult>
 
-export interface DeleteCustomProjectUseCaseDeps {
+export type DeleteCustomProjectUseCaseDeps = {
   readonly customProjectRepository: CustomProjectRepository
   readonly uncategorizedProjectId: string
   /**

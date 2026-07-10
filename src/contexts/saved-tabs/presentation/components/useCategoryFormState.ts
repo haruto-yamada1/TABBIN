@@ -7,7 +7,7 @@ import {
   createCategoryNameSchema,
 } from './categoryNameSchema'
 
-interface CategoryManagementFormState {
+type CategoryManagementFormState = {
   categoryNameError: string | null
   isProcessing: boolean
   isRenaming: boolean
@@ -25,7 +25,7 @@ const createCategoryManagementFormState = (
   newCategoryName: categoryName,
 })
 
-export interface UseCategoryFormStateReturn {
+export type UseCategoryFormStateReturn = {
   categoryNameError: string | null
   isProcessing: boolean
   isRenaming: boolean

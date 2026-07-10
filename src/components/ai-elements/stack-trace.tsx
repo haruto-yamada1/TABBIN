@@ -34,7 +34,7 @@ const STACK_FRAME_WITHOUT_FN_REGEX = /^at\s+(.+):(\d+):(\d+)$/
 const ERROR_TYPE_REGEX = /^(\w+Error|Error):\s*(.*)$/
 const AT_PREFIX_REGEX = /^at\s+/
 
-interface StackFrame {
+type StackFrame = {
   raw: string
   functionName: string | null
   filePath: string | null
@@ -43,14 +43,14 @@ interface StackFrame {
   isInternal: boolean
 }
 
-interface ParsedStackTrace {
+type ParsedStackTrace = {
   errorType: string | null
   errorMessage: string
   frames: StackFrame[]
   raw: string
 }
 
-interface StackTraceContextValue {
+type StackTraceContextValue = {
   trace: ParsedStackTrace
   raw: string
   isOpen: boolean
@@ -439,7 +439,7 @@ export type StackTraceFramesProps = ComponentProps<'div'> & {
   showInternalFrames?: boolean
 }
 
-interface FilePathButtonProps {
+type FilePathButtonProps = {
   frame: StackFrame
   onFilePathClick?: (
     filePath: string,

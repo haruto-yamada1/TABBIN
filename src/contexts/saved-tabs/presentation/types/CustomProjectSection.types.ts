@@ -5,7 +5,7 @@ import type {
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 
-export interface CustomProjectSectionProps {
+export type CustomProjectSectionProps = {
   projects: CustomProject[]
   handleOpenUrl: (url: string) => void
   handleDeleteUrl: (projectId: string, url: string) => void

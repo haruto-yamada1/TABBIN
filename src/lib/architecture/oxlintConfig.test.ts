@@ -132,6 +132,51 @@ describe('oxlint configuration', () => {
     ])
   })
 
+  it('enforces type over interface for object type definitions', () => {
+    const config = JSON.parse(readFileSync(oxlintConfigPath, 'utf8'))
+
+    expect(config.rules['typescript/consistent-type-definitions']).toEqual([
+      'error',
+      'type',
+    ])
+  })
+
+  it('reports interface declarations as consistent-type-definitions errors', () => {
+    const result = runOxlint(`
+interface SavedTab {
+  title: string
+}
+
+export const tab: SavedTab = { title: 'test' }
+`)
+
+    expect(result.status).not.toBe(0)
+    expect(result.output).toContain('typescript/consistent-type-definitions')
+  })
+
+  it('accepts type alias declarations for object types', () => {
+    const result = runOxlint(`
+type SavedTab = {
+  title: string
+}
+
+export const tab: SavedTab = { title: 'test' }
+`)
+
+    expect(result).toEqual({ status: 0, output: '' })
+  })
+
+  it('disables consistent-type-definitions for .d.ts files', () => {
+    const config = JSON.parse(readFileSync(oxlintConfigPath, 'utf8'))
+
+    expect(config.overrides).toContainEqual({
+      files: ['src/**/*.d.ts'],
+      rules: {
+        'typescript/consistent-type-definitions': 'off',
+      },
+    })
+  })
+
   it('disallows parameter reassignment in contexts domain and application layers', () => {
     const config = JSON.parse(readFileSync(oxlintConfigPath, 'utf8'))
 
@@ -163,7 +208,7 @@ export const firstStatus = statuses[0]
 
   it('reports non-const type assertions as errors', () => {
     const result = runOxlint(`
-interface User {
+type User = {
   id: string
 }
 
@@ -182,7 +227,7 @@ export const user = rawUser as User
     const result = runOxlint(`
 type Props = {}
 
-interface Options {}
+type Options = {}
 
 export const props: Props = {}
 export const options: Options = {}
@@ -195,7 +240,7 @@ export const options: Options = {}
   it('reports parameter property mutation in contexts domain files', () => {
     const result = runOxlint(
       `
-interface SavedTab {
+type SavedTab = {
   title: string
 }
 
@@ -215,7 +260,7 @@ export const renameTab = (tab: SavedTab): SavedTab => {
   it('does not apply parameter reassignment restrictions to presentation files', () => {
     const result = runOxlint(
       `
-interface SavedTab {
+type SavedTab = {
   title: string
 }
 

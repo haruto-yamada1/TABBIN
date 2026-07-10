@@ -17,7 +17,7 @@
  * }
  * ```
  */
-export interface MoveUrlBetweenCustomProjectsCommand {
+export type MoveUrlBetweenCustomProjectsCommand = {
   readonly sourceProjectId: string
   readonly targetProjectId: string
   readonly url: string

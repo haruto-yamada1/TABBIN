@@ -26,7 +26,7 @@ import type { SubCategoryKeywordDto } from '@/contexts/saved-tabs/domain/dto/Dom
  * `@/types/storage.SubCategoryKeyword` ではなく domain DTO
  * `SubCategoryKeywordDto` を使う (issue #511)。
  */
-export interface CategoriesCommandService {
+export type CategoriesCommandService = {
   /**
    * 旧 `lib/storage/categories.updateDomainCategorySettings` の port 版。
    * 単一ドメインの `DomainCategorySettings` を upsert する。

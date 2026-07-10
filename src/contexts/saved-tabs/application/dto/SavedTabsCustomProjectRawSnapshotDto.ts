@@ -2,7 +2,7 @@
  * Custom project の undo に必要な rich field を保持する application DTO。
  * storage/repository の raw 型を presentation へ公開しないための境界型。
  */
-export interface SavedTabsCustomProjectRawSnapshotDto {
+export type SavedTabsCustomProjectRawSnapshotDto = {
   readonly id: string
   readonly name: string
   readonly categories: readonly string[]

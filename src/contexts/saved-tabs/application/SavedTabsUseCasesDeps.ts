@@ -21,7 +21,7 @@ import type { SetCategoryKeywordsPort } from './ports/SetCategoryKeywordsPort'
 import type { StorageChangePort } from './ports/StorageChangePort'
 
 /** Dependencies required to construct and present the saved-tabs use cases. */
-export interface SavedTabsUseCasesDeps {
+export type SavedTabsUseCasesDeps = {
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
   readonly categoriesCommandService: CategoriesCommandService

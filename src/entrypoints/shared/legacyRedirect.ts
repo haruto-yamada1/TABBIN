@@ -23,7 +23,7 @@ const redirectToApp = (
   return nextHref
 }
 
-interface LegacyRedirectOptions {
+type LegacyRedirectOptions = {
   replace: (href: string) => void
 }
 

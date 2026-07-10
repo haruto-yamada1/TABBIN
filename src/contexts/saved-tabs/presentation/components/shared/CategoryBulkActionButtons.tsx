@@ -11,7 +11,7 @@ import {
 
 const RELATIVE_POSITION_STYLE: CSSProperties = { position: 'relative' }
 
-interface CategoryBulkActionButtonsProps {
+type CategoryBulkActionButtonsProps = {
   isDeleting: boolean
   showDeleteAction: boolean
   openLabel: string

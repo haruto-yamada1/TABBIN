@@ -22,7 +22,7 @@ export type GetSavedTabsQuery = () => Promise<readonly SavedTabsTabGroupDto[]>
 /**
  * `GetSavedTabsQuery` が依存する repository 群。
  */
-export interface GetSavedTabsQueryDeps {
+export type GetSavedTabsQueryDeps = {
   readonly tabGroupRepository: TabGroupRepository
 }
 

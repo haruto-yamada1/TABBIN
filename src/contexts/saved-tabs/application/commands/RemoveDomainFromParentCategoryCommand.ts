@@ -14,7 +14,7 @@
  * }
  * ```
  */
-export interface RemoveDomainFromParentCategoryCommand {
+export type RemoveDomainFromParentCategoryCommand = {
   readonly categoryId: string
   readonly domainId: string
   readonly domainName: string

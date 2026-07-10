@@ -21,7 +21,7 @@ const EMPTY_PARENT_CATEGORIES: NonNullable<
 > = []
 
 /** KeywordModalRoot の props */
-interface KeywordModalRootProps {
+type KeywordModalRootProps = {
   /** タブグループデータ */
   group: CategoryKeywordModalProps['group']
   /** モーダル開閉状態 */

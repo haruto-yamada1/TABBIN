@@ -11,7 +11,7 @@ import type { ProjectNameSchema } from './useProjectNameSchema'
 
 const normalizeKeyword = (value: string): string => value.trim()
 
-export interface ProjectManagementModalState {
+export type ProjectManagementModalState = {
   isRenaming: boolean
   newProjectName: string
   isProcessing: boolean
@@ -45,7 +45,7 @@ const createProjectManagementModalState = (
   urlKeywords: project.projectKeywords?.urlKeywords ?? [],
 })
 
-export interface KeywordUpdateParams {
+export type KeywordUpdateParams = {
   keyword: string
   keywords: string[]
   section: keyof ProjectKeywordSettings

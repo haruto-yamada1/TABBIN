@@ -16,7 +16,7 @@ import {
 } from './projectManagementDefaults'
 import type { ProjectManagementRefs } from './useProjectManagementRefs'
 
-interface ProjectCrudHandlerDeps {
+type ProjectCrudHandlerDeps = {
   refs: ProjectManagementRefs
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
   setViewMode: Dispatch<SetStateAction<ViewMode>>

@@ -21,7 +21,7 @@ export type SavedTabsDepsFactory = (options: {
  * - `search` : URL の search string。`SavedTabsPage` 内で
  *   `initialViewMode` の解決に利用する
  */
-export interface SavedTabsRouteProps {
+export type SavedTabsRouteProps = {
   readonly createDeps: SavedTabsDepsFactory
   readonly onViewModeNavigate?: (mode: ViewMode) => void
   readonly search?: string

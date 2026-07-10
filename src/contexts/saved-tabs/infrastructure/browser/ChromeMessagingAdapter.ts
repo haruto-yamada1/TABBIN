@@ -37,7 +37,7 @@ import type {
 } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 
-export interface ChromeRuntimeSendMessageLike {
+export type ChromeRuntimeSendMessageLike = {
   /**
    * `chrome.runtime.sendMessage` 互換の最小 API。
    * callback 受け取りは port 側で `Promise` 化する。
@@ -48,16 +48,16 @@ export interface ChromeRuntimeSendMessageLike {
   ) => void
 }
 
-export interface ChromeRuntimeLike {
+export type ChromeRuntimeLike = {
   readonly sendMessage?: ChromeRuntimeSendMessageLike['sendMessage']
   readonly lastError?: { readonly message?: string } | undefined
 }
 
-export interface ChromeApiLike {
+export type ChromeApiLike = {
   readonly runtime?: ChromeRuntimeLike
 }
 
-export interface ChromeMessagingAdapterDeps {
+export type ChromeMessagingAdapterDeps = {
   /**
    * `chrome.runtime` を含む chrome API 全体。テスト時は
    * `runtime.sendMessage` を持つモックオブジェクトを渡す。

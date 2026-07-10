@@ -7,12 +7,12 @@ import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/C
 import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
 
-export interface UpdateCustomProjectNameCommand {
+export type UpdateCustomProjectNameCommand = {
   readonly projectId: string
   readonly newName: string
 }
 
-export interface UpdateCustomProjectNameResult {
+export type UpdateCustomProjectNameResult = {
   readonly all: readonly SavedTabsCustomProjectDto[]
   readonly project: SavedTabsCustomProjectDto
 }
@@ -21,7 +21,7 @@ export type UpdateCustomProjectNameUseCase = (
   command: UpdateCustomProjectNameCommand,
 ) => Promise<UpdateCustomProjectNameResult>
 
-export interface UpdateCustomProjectNameUseCaseDeps {
+export type UpdateCustomProjectNameUseCaseDeps = {
   readonly customProjectRepository: CustomProjectRepository
   readonly clock: ClockPort
 }

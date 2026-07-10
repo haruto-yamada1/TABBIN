@@ -17,7 +17,7 @@ import JsxParser from 'react-jsx-parser'
 
 import { cn } from '@/lib/utils'
 
-interface JSXPreviewContextValue {
+type JSXPreviewContextValue = {
   jsx: string
   processedJsx: string
   error: Error | null
@@ -29,7 +29,7 @@ interface JSXPreviewContextValue {
 
 const JSXPreviewContext = createContext<JSXPreviewContextValue | null>(null)
 
-interface JSXPreviewErrorState {
+type JSXPreviewErrorState = {
   processedJsx: string
   error: Error
 }

@@ -35,7 +35,7 @@ import {
   handleSaveWindowTabs,
 } from './extension-actions'
 
-interface TabsHarness {
+type TabsHarness = {
   query: ReturnType<typeof vi.fn>
   remove: ReturnType<typeof vi.fn>
   getAllWindows: ReturnType<typeof vi.fn>

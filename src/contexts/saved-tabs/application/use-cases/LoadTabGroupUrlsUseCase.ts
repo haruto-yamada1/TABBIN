@@ -10,7 +10,7 @@ import { urlRecordIdToString } from '@/contexts/saved-tabs/domain/value-objects/
  * テスト時は in-memory mock を注入する。`chrome.storage.local` への
  * 依存を排除した unit test を書けるように、interface のみを公開する。
  */
-export interface LoadTabGroupUrlsUseCaseDeps {
+export type LoadTabGroupUrlsUseCaseDeps = {
   readonly urlRecordRepository: UrlRecordRepository
 }
 

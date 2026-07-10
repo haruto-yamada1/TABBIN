@@ -21,7 +21,7 @@ export type {
 /**
  * ドラッグされたURL情報
  */
-export interface DraggedUrlInfo {
+export type DraggedUrlInfo = {
   url: string
   timestamp: number
   processed: boolean
@@ -112,7 +112,7 @@ export const messageActionSchema = z.custom<MessageAction>(
 /**
  * メッセージ基底型
  */
-export interface BaseMessage {
+export type BaseMessage = {
   action: MessageAction
 }
 
@@ -198,7 +198,7 @@ export type RunAiChatMessage = Extract<
 /**
  * レスポンス型定義
  */
-export interface StatusResponse {
+export type StatusResponse = {
   status: string
   success?: boolean
   result?: unknown
@@ -206,18 +206,18 @@ export interface StatusResponse {
   error?: string
 }
 
-export interface TimeRemainingResponse {
+export type TimeRemainingResponse = {
   timeRemaining: number | null
   expirationTime?: number
   error?: string
 }
 
-export interface AlarmStatusResponse {
+export type AlarmStatusResponse = {
   exists: boolean
   scheduledTime?: number
 }
 
-export interface OllamaModelListResponse {
+export type OllamaModelListResponse = {
   status: 'ok' | 'error'
   models?: {
     name: string
@@ -228,7 +228,7 @@ export interface OllamaModelListResponse {
   ollamaError?: OllamaErrorDetails
 }
 
-export interface AiChatResponse {
+export type AiChatResponse = {
   status: 'ok' | 'error'
   answer?: string
   charts?: AiChartSpec[]
@@ -241,7 +241,7 @@ export interface AiChatResponse {
 
 export const AI_CHAT_STREAM_PORT_NAME = 'ai-chat-stream'
 
-export interface RunAiChatStreamPortMessage {
+export type RunAiChatStreamPortMessage = {
   type: 'run'
   prompt: string
   history: {
@@ -252,14 +252,14 @@ export interface RunAiChatStreamPortMessage {
   attachments?: AiChatAttachment[]
 }
 
-export interface AiChatStreamStepMessage {
+export type AiChatStreamStepMessage = {
   type: 'step'
   charts?: AiChartSpec[]
   reasoning: string
   toolTraces: AiChatToolTrace[]
 }
 
-export interface AiChatStreamCompleteMessage {
+export type AiChatStreamCompleteMessage = {
   type: 'complete'
   answer: string
   charts?: AiChartSpec[]
@@ -268,7 +268,7 @@ export interface AiChatStreamCompleteMessage {
   toolTraces: AiChatToolTrace[]
 }
 
-export interface AiChatStreamErrorMessage {
+export type AiChatStreamErrorMessage = {
   type: 'error'
   error: string
   ollamaError?: OllamaErrorDetails

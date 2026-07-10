@@ -16,6 +16,6 @@
  */
 import type { SavedTabsParentCategoryDto as ParentCategory } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface ReorderParentCategoriesCommand {
+export type ReorderParentCategoriesCommand = {
   readonly categories: readonly ParentCategory[]
 }

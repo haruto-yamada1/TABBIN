@@ -453,7 +453,7 @@ const parseCustomProjects = (raw: unknown): CustomProject[] => {
  *
  * repository 実装が「N 件スキップした」をログに出したいケースで使う。
  */
-interface ParseResult<T> {
+type ParseResult<T> = {
   entities: T[]
   skippedCount: number
 }

@@ -9,7 +9,7 @@ type TranslateFn = (
   values?: Record<string, string>,
 ) => string
 
-interface ChatMessageSource {
+type ChatMessageSource = {
   title: string
   url: string
 }

@@ -16,7 +16,7 @@
  * }
  * ```
  */
-export interface AddUrlToCustomProjectCommand {
+export type AddUrlToCustomProjectCommand = {
   readonly projectId: string
   readonly title: string
   readonly url: string

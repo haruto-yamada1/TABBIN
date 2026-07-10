@@ -22,7 +22,7 @@ import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Ur
 /**
  * `OpenSavedUrlUseCase` が依存する repository / port 群。
  */
-export interface OpenSavedUrlUseCaseDeps {
+export type OpenSavedUrlUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository

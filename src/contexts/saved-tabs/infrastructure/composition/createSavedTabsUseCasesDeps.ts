@@ -39,11 +39,11 @@ export type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/Sa
  *   実行時に解決する関数。presentation 層が `openUrlInBackground` 設定を
  *   ref 経由で読むために利用。未指定なら active 固定。
  */
-export interface CreateSavedTabsUseCasesDepsOptions {
+export type CreateSavedTabsUseCasesDepsOptions = {
   readonly resolveActive?: () => boolean
 }
 
-interface ChromeLike extends ChromeApiLikeBase {
+type ChromeLike = ChromeApiLikeBase & {
   readonly tabs?: {
     readonly create?: (createProperties: {
       readonly active?: boolean

@@ -14,7 +14,7 @@
  * }
  * ```
  */
-export interface AddDomainToParentCategoryCommand {
+export type AddDomainToParentCategoryCommand = {
   readonly categoryId: string
   readonly domainId: string
   readonly domainName: string

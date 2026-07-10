@@ -4,7 +4,7 @@ import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/applica
 /**
  * `RemoveUrlsFromCustomProjectUseCase` が依存する port。
  */
-export interface RemoveUrlsFromCustomProjectUseCaseDeps {
+export type RemoveUrlsFromCustomProjectUseCaseDeps = {
   readonly customProjectsCommandService: CustomProjectsCommandService
 }
 

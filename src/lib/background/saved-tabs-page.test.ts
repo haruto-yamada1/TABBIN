@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-
 
 import { openSavedTabsPage, resetSavedTabsPageId } from './saved-tabs-page'
 
-interface TabsHarness {
+type TabsHarness = {
   create: ReturnType<typeof vi.fn>
   get: ReturnType<typeof vi.fn>
   query: ReturnType<typeof vi.fn>

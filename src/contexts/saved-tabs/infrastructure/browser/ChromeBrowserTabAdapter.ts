@@ -16,7 +16,7 @@
  * ```
  */
 
-export interface ChromeBrowserTabAdapterDeps {
+export type ChromeBrowserTabAdapterDeps = {
   /**
    * `chrome.tabs` を提供する chrome API 全体。テスト時は
    * `chrome.tabs.create` を持つモックオブジェクトを渡す。
@@ -24,18 +24,18 @@ export interface ChromeBrowserTabAdapterDeps {
   readonly getApi: () => ChromeApiLike | undefined
 }
 
-export interface ChromeApiLike {
+export type ChromeApiLike = {
   readonly tabs?: ChromeTabsLike
 }
 
-export interface ChromeTabsLike {
+export type ChromeTabsLike = {
   readonly create?: (createProperties: {
     readonly active?: boolean
     readonly url: string
   }) => Promise<{ readonly url?: string } | undefined> | undefined
 }
 
-interface ChromeBrowserTabAdapterOptions {
+type ChromeBrowserTabAdapterOptions = {
   /**
    * 新規タブをアクティブ（前面）にするかを port 利用側（open saved url use-case）が
    * 決められるよう、`active` を返す関数を委譲できる。

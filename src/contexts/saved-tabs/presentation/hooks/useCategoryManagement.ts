@@ -21,7 +21,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 
 /** UseCategoryManagement フックの戻り値型 */
-interface UseCategoryManagementReturn {
+type UseCategoryManagementReturn = {
   /** 親カテゴリ一覧 */
   categories: ParentCategory[]
   /** Categories を直接更新するセッター */
@@ -88,7 +88,7 @@ const resolveStateValue = <T>(
 ): T => (isStateSetter(nextValue) ? nextValue(previousValue) : nextValue)
 
 /** UseCategoryManagement フックの引数 */
-interface UseCategoryManagementParams {
+type UseCategoryManagementParams = {
   /**
    * 親カテゴリの並び替え保存 use-case (issue #519)。
    * 旧 `categoryAssignmentPort.saveParentCategories` 直叩きを

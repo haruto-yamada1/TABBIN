@@ -12,6 +12,6 @@ import type { SavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/applicat
  * `@/types/storage` には依存せず、domain DTO `TabGroupDto` を
  * 受け取る (issue #511)。
  */
-export interface LoadTabGroupUrlsCommand {
+export type LoadTabGroupUrlsCommand = {
   readonly tabGroup: SavedTabsDisplayTabGroupDto
 }

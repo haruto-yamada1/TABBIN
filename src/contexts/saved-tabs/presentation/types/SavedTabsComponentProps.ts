@@ -12,7 +12,7 @@ import type {
   SavedTabsUserSettingsDto as UserSettings,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface DomainCardActionHandlers {
+export type DomainCardActionHandlers = {
   handleOpenAllTabs: (urls: { url: string; title: string }[]) => void
   handleDeleteGroup: (id: string) => void
   handleDeleteGroups?: (ids: string[]) => void
@@ -24,7 +24,7 @@ export interface DomainCardActionHandlers {
 }
 
 // カテゴリグループコンポーネント
-export interface CategoryGroupProps extends DomainCardActionHandlers {
+export type CategoryGroupProps = DomainCardActionHandlers & {
   category: ParentCategory
   domains: TabGroup[]
   handleUpdateDomainsOrder?: (
@@ -42,7 +42,7 @@ export interface CategoryGroupProps extends DomainCardActionHandlers {
 }
 
 // ドメインカード用のソータブルコンポーネントの型
-export interface SortableDomainCardProps extends DomainCardActionHandlers {
+export type SortableDomainCardProps = DomainCardActionHandlers & {
   group: TabGroup
   categoryId?: string // 親カテゴリID
   isDraggingOver?: boolean // ドラッグオーバー状態
@@ -52,7 +52,7 @@ export interface SortableDomainCardProps extends DomainCardActionHandlers {
 }
 
 // カテゴリセクションコンポーネント
-export interface CategorySectionProps {
+export type CategorySectionProps = {
   categoryName: string
   urls: TabGroup['urls']
   groupId: string
@@ -65,7 +65,7 @@ export interface CategorySectionProps {
 }
 
 // 並び替え可能なカテゴリセクションコンポーネント
-export interface SortableCategorySectionProps extends CategorySectionProps {
+export type SortableCategorySectionProps = CategorySectionProps & {
   id: string // ソート用の一意のID
   handleOpenAllTabs: (urls: { url: string; title: string }[]) => void // すべて開く処理
   stickyTop?: string // Sticky位置のクラス名（オプション）
@@ -73,7 +73,7 @@ export interface SortableCategorySectionProps extends CategorySectionProps {
 }
 
 // URL項目用のソータブルコンポーネント
-export interface SortableUrlItemProps {
+export type SortableUrlItemProps = {
   url: string
   title: string
   id: string
@@ -98,7 +98,7 @@ export interface SortableUrlItemProps {
 }
 
 // カード内のURL一覧
-export interface UrlListProps {
+export type UrlListProps = {
   items: TabGroup['urls']
   groupId: string
   subCategories?: string[]
@@ -114,7 +114,7 @@ export interface UrlListProps {
 }
 
 // カテゴリキーワード管理モーダルコンポーネント
-export interface CategoryKeywordModalProps {
+export type CategoryKeywordModalProps = {
   group: TabGroup
   isOpen: boolean
   onClose: () => void

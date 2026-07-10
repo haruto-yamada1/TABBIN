@@ -17,7 +17,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from './shared/SavedTabsResponsive'
 
-interface ViewModeToggleProps {
+type ViewModeToggleProps = {
   currentMode: ViewMode
   onChange: (mode: ViewMode) => void
 }

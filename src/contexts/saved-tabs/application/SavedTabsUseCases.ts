@@ -74,7 +74,7 @@ import type { UpdateCustomProjectNameUseCase } from './use-cases/UpdateCustomPro
  * 実装は `src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCases.ts`
  * および `src/app/composition/createSavedTabsUseCases.ts` が提供する。
  */
-export interface SavedTabsUseCases {
+export type SavedTabsUseCases = {
   readonly openSavedUrl: OpenSavedUrlUseCase
   readonly openAllSavedUrls: OpenAllSavedUrlsUseCase
   readonly deleteTabGroup: DeleteTabGroupUseCase

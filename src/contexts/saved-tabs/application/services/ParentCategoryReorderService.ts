@@ -11,7 +11,7 @@
  * 「並び替えモードの一時配列」または「確定済み配列」のどちらから
  * 読み出すかを引数で切り替える。
  */
-export interface BuildReorderedCategoryOrderParams {
+export type BuildReorderedCategoryOrderParams = {
   readonly activeId: string
   readonly overId: string
   /**

@@ -17,7 +17,7 @@ import type {
  * `console.warn` にフォールバックする。port 仕様は「失敗を throw しない」
  * 方針のため、UI 通知の失敗で use-case 全体が落ちないようにする。
  */
-export interface SonnerNotificationAdapterDeps {
+export type SonnerNotificationAdapterDeps = {
   /**
    * テストや差し替えで `toast` 自体をモックしたい場合に注入する。
    * 未指定なら `sonner` から `toast` を直接 import したものを使う。

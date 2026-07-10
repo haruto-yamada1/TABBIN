@@ -17,7 +17,7 @@ import type { SavedTabsTabGroupDto } from './SavedTabsPresentationDto'
  * うち、削除後にどの TabGroup / CustomProject からも参照されなくなった
  * もの。空配列なら「他で参照されていたため UrlRecord は保持された」ことを示す。
  */
-export interface DeletedTabGroupsDto {
+export type DeletedTabGroupsDto = {
   readonly removedTabGroupIds: readonly string[]
   readonly removedUrlRecordIds: readonly string[]
   /**

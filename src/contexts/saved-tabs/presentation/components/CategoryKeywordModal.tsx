@@ -16,7 +16,7 @@ const EMPTY_PARENT_CATEGORIES: ParentCategory[] = []
  * 複合コンポーネントパターンで構成される薄いラッパー
  * @param props CategoryKeywordModalProps
  */
-interface CategoryKeywordModalExtraProps {
+type CategoryKeywordModalExtraProps = {
   readonly storageChangePort?: StorageChangePort
   /** 永続化依存 (issue #510)。`CategoryAssignmentPort` +
    * `GetSavedTabsPageDataQuery` の 2 つへ集約する。 */

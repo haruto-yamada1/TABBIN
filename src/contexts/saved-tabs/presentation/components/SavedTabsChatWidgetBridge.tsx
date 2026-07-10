@@ -9,7 +9,7 @@ import { LazySavedTabsChatWidget } from '@/features/ai-chat/components/LazySaved
  * rendering する責務だけを切り出し、mode 別 (dropdown / sidebar-toggle)
  * の差分を contexts 側で拡張できる土台にする。
  */
-export interface SavedTabsChatWidgetBridgeProps {
+export type SavedTabsChatWidgetBridgeProps = {
   readonly onOpenChange: (isOpen: boolean) => void
 }
 

@@ -16,7 +16,7 @@ import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/Tab
  * 取り除きのみを行い、対象カテゴリの `domains` / `domainNames` には
  * 追加しない。
  */
-export interface AssignDomainToCategoryCommand {
+export type AssignDomainToCategoryCommand = {
   readonly domainId: string
   readonly categoryId: string
 }
@@ -27,7 +27,7 @@ export interface AssignDomainToCategoryCommand {
  */
 const UNCATEGORIZED_SENTINEL = 'none'
 
-export interface AssignDomainToCategoryResult {
+export type AssignDomainToCategoryResult = {
   readonly all: readonly SavedTabsParentCategoryDto[]
   readonly mappings: readonly { domain: string; categoryId: string }[]
 }
@@ -42,7 +42,7 @@ export type AssignDomainToCategoryUseCase = (
 /**
  * `AssignDomainToCategoryUseCase` が必要とする依存。
  */
-export interface AssignDomainToCategoryUseCaseDeps {
+export type AssignDomainToCategoryUseCaseDeps = {
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly domainCategoryMappingRepository: DomainCategoryMappingRepository
   readonly tabGroupRepository: TabGroupRepository

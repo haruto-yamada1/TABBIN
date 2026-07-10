@@ -4,7 +4,7 @@ import type {
 } from '@dnd-kit/core'
 import { GripVertical } from 'lucide-react'
 
-interface CardGroupTitleProps {
+type CardGroupTitleProps = {
   title: string
   badges?: React.ReactNode
   sortableAttributes?: DraggableAttributes

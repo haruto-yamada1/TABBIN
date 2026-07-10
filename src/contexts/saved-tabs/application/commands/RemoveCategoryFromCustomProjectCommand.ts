@@ -15,7 +15,7 @@
  * }
  * ```
  */
-export interface RemoveCategoryFromCustomProjectCommand {
+export type RemoveCategoryFromCustomProjectCommand = {
   readonly projectId: string
   readonly categoryName: string
 }

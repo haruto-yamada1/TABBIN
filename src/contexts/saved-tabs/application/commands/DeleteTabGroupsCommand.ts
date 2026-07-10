@@ -16,6 +16,6 @@
  * const result = await deleteTabGroupsUseCase(command)
  * ```
  */
-export interface DeleteTabGroupsCommand {
+export type DeleteTabGroupsCommand = {
   readonly tabGroupIds: readonly string[]
 }

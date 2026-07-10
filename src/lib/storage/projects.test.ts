@@ -26,7 +26,7 @@ vi.mock('./url-migration', () => ({
   migrateToUrlsStorage: mocks.migrateToUrlsStorage,
 }))
 
-interface StorageState {
+type StorageState = {
   customProjectOrder?: string[]
   customProjects?: CustomProject[]
   savedTabs?: TabGroup[]

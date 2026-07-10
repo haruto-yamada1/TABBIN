@@ -7,7 +7,7 @@ import path from 'node:path'
 import { test as base, chromium, expect } from '@playwright/test'
 import type { BrowserContext, Page, Worker } from '@playwright/test'
 
-interface ExtensionFixtures {
+type ExtensionFixtures = {
   extensionContext: BrowserContext
   extensionId: string
   serviceWorker: Worker

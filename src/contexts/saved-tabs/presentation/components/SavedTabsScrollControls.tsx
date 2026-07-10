@@ -49,12 +49,12 @@ const initialAvailability: ScrollControlAvailability = {
   top: false,
 }
 
-interface SavedTabsScrollControlsProps {
+type SavedTabsScrollControlsProps = {
   scrollContainerRef: RefObject<HTMLDivElement | null>
   viewMode: ViewMode
 }
 
-interface ScrollControlButtonProps {
+type ScrollControlButtonProps = {
   ariaLabel: string
   children: React.ReactNode
   disabled: boolean

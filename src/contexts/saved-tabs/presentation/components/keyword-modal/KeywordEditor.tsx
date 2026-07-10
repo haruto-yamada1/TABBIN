@@ -9,7 +9,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useKeywordModal } from './KeywordModalContext'
 
-interface KeywordBadgeProps {
+type KeywordBadgeProps = {
   keyword: string
   onRemove: (keyword: string) => Promise<void>
   isDisabled: boolean

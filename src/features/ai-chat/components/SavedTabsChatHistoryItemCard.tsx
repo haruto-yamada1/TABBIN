@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 import type { TranslateFn } from './savedTabsChat/messages'
 
-interface SavedTabsChatHistoryItemCardProps {
+type SavedTabsChatHistoryItemCardProps = {
   historyItem: AiChatHistoryItem
   isActive: boolean
   onDeleteHistoryItem?: (conversationId: string) => void

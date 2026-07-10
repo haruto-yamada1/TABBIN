@@ -24,7 +24,7 @@ import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/reposi
  * domain DTO `UserSettingsDto` を返す (issue #511)。
  * `tabGroups` / `parentCategories` は branded domain entity のまま。
  */
-export interface SavedTabsPageDataDto {
+export type SavedTabsPageDataDto = {
   readonly tabGroups: readonly SavedTabsDisplayTabGroupDto[]
   readonly parentCategories: readonly SavedTabsParentCategoryDto[]
   readonly userSettings: SavedTabsUserSettingsDto
@@ -38,7 +38,7 @@ export type GetSavedTabsPageDataQuery = () => Promise<SavedTabsPageDataDto>
 /**
  * `GetSavedTabsPageDataQuery` が依存する repository 群。
  */
-export interface GetSavedTabsPageDataQueryDeps {
+export type GetSavedTabsPageDataQueryDeps = {
   readonly tabGroupReadPort: SavedTabsTabGroupReadPort
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly userSettingsRepository: UserSettingsRepository

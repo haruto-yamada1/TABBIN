@@ -13,7 +13,7 @@ import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-object
 import type { BuildSavedTabsSnapshotUseCaseDeps } from './BuildSavedTabsSnapshotUseCase'
 import { createBuildSavedTabsSnapshotUseCase } from './BuildSavedTabsSnapshotUseCase'
 
-interface Repositories extends BuildSavedTabsSnapshotUseCaseDeps {
+type Repositories = BuildSavedTabsSnapshotUseCaseDeps & {
   tabGroups: ReturnType<typeof createTabGroup>[]
   customProjects: ReturnType<typeof createCustomProject>[]
   customProjectOrder: ReturnType<typeof createCustomProjectId>[]

@@ -15,7 +15,7 @@
  * }
  * ```
  */
-export interface RenameCustomProjectCategoryCommand {
+export type RenameCustomProjectCategoryCommand = {
   readonly projectId: string
   readonly oldCategoryName: string
   readonly newCategoryName: string

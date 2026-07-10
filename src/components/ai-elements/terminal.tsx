@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { Shimmer } from './shimmer'
 import { useCopyState } from './use-copy-state'
 
-interface TerminalContextType {
+type TerminalContextType = {
   output: string
   isStreaming: boolean
   autoScroll: boolean

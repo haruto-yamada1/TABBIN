@@ -24,14 +24,14 @@ import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objec
  * `command` が指定された場合はそのドメインのみを処理し、
  * 未指定なら全 TabGroup を再判定する。
  */
-export interface SyncCategoryAssignmentsCommand {
+export type SyncCategoryAssignmentsCommand = {
   readonly command?: MoveDomainToCategoryCommand
 }
 
 /**
  * `SyncCategoryAssignmentsUseCase` が依存する repository 群。
  */
-export interface SyncCategoryAssignmentsUseCaseDeps {
+export type SyncCategoryAssignmentsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly parentCategoryRepository: ParentCategoryRepository
 }

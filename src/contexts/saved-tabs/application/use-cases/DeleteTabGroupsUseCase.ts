@@ -18,7 +18,7 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
 /**
  * `DeleteTabGroupsUseCase` が依存する repository 群。
  */
-export interface DeleteTabGroupsUseCaseDeps {
+export type DeleteTabGroupsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository

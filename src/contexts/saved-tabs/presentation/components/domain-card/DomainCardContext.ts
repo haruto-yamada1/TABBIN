@@ -7,7 +7,7 @@ import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** DomainCard のコンテキスト型 */
-export interface DomainCardContextType {
+export type DomainCardContextType = {
   /** フック戻り値 */
   state: ReturnType<typeof useDomainCardState>
   /** タブグループデータ */

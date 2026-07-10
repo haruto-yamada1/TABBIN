@@ -17,7 +17,7 @@
  * console.log(result.urls)
  * ```
  */
-export interface BrowserWindowPort {
+export type BrowserWindowPort = {
   /**
    * 指定 URL 群を 1 つの新規ウィンドウでまとめて開き、
    * 開いた URL 配列を返す。

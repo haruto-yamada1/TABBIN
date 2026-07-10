@@ -16,7 +16,7 @@ import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
  * `snapshot` は `RestoreOpenedUrlsSnapshotCommand` へそのまま渡せる形。
  * 削除が発生しなかったケースでは `null`。
  */
-export interface OpenedUrlsDto {
+export type OpenedUrlsDto = {
   readonly openedUrls: readonly string[]
   readonly removedUrlRecordIds: readonly string[]
   readonly removedUrlRecords: readonly SavedTabsUrlRecordDto[]

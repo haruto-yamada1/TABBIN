@@ -20,7 +20,7 @@
  */
 import type { SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
-export interface UpdateCustomProjectKeywordsCommand {
+export type UpdateCustomProjectKeywordsCommand = {
   readonly projectId: string
   readonly projectKeywords: ProjectKeywordSettings
 }

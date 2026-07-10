@@ -14,7 +14,7 @@ import type { CategoryLookup } from './CategoryAssignmentPolicy'
  * `query` は前後の空白を許容するが、内部では trim + lowercase した値で比較する。
  * 空クエリは「全件マッチ」として扱う。
  */
-export interface SavedTabsSearchInput {
+export type SavedTabsSearchInput = {
   readonly query: string
 }
 
@@ -24,7 +24,7 @@ export interface SavedTabsSearchInput {
  * `urls` は `UrlRecord` の参照解決済みリスト。infrastructure 側で
  * `TabGroup.urlIds` → `UrlRecord` への解決を済ませてから渡す前提。
  */
-export interface SavedTabsSearchContext {
+export type SavedTabsSearchContext = {
   readonly group: TabGroup
   readonly urls: readonly UrlRecord[]
 }
@@ -34,7 +34,7 @@ export interface SavedTabsSearchContext {
  *
  * `categoryMatched` は親カテゴリ名がマッチしたケース（URL は元配列まま）。
  */
-export interface SavedTabsSearchResult {
+export type SavedTabsSearchResult = {
   readonly group: TabGroup
   readonly urls: readonly UrlRecord[]
   readonly categoryMatched: boolean

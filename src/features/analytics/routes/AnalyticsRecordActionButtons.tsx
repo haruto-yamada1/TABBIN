@@ -73,7 +73,7 @@ const DeleteRecordButton = ({
   )
 }
 
-interface AnalyticsRecordActionButtonsProps {
+type AnalyticsRecordActionButtonsProps = {
   deletingUrl: string | null
   handleDeleteClick: (record: AiSavedUrlRecord) => void
   isDeleteActionDisabled: boolean

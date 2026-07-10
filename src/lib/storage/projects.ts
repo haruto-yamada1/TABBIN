@@ -27,7 +27,7 @@ const CUSTOM_UNCATEGORIZED_PROJECT_NAME = '未分類'
 
 let saveUrlsToCustomProjectsQueue: Promise<void> = Promise.resolve()
 
-interface SavedTabItem {
+type SavedTabItem = {
   url: string
   title: string
 }
@@ -726,7 +726,7 @@ const removeUrlsFromCustomProject = async (
   await syncDeleteToDomainMode(targetUrlsSet, urls.length)
 }
 
-interface DeleteSyncBehavior {
+type DeleteSyncBehavior = {
   throwOnError?: boolean
 }
 

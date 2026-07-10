@@ -8,7 +8,7 @@ import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/Tab
 /**
  * `ReorderDomainsInCategoryUseCase` が依存する repository 群。
  */
-export interface ReorderDomainsInCategoryUseCaseDeps {
+export type ReorderDomainsInCategoryUseCaseDeps = {
   readonly parentCategoryRepository: ParentCategoryRepository
 }
 

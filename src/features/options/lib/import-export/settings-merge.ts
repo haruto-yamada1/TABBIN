@@ -46,7 +46,7 @@ import {
 
 const BULK_URL_CONVERSION_THRESHOLD = 100
 
-interface NormalizedImportResult {
+type NormalizedImportResult = {
   normalizedImportedTabs: (ImportedTabData & { urls: ImportedUrlData[] })[]
   unresolvedTabs: {
     domain: string

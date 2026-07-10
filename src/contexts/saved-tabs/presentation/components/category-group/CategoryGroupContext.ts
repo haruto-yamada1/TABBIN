@@ -7,7 +7,7 @@ import type { CategoryGroupProps } from '@/contexts/saved-tabs/presentation/type
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** CategoryGroup のコンテキスト型 */
-export interface CategoryGroupContextType {
+export type CategoryGroupContextType = {
   /** フック戻り値 */
   state: ReturnType<typeof useCategoryGroupState>
   /** 親カテゴリデータ */

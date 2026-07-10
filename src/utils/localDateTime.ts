@@ -16,7 +16,7 @@ const WEEKDAY_INDEX: Record<string, number> = {
   Wed: 3,
 }
 
-interface DateParts {
+type DateParts = {
   day: number
   month: number
   year: number

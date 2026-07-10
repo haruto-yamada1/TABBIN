@@ -1693,12 +1693,12 @@ const getMessages = (language: AppLanguage) => messages[language]
 type AppLanguage = 'ja' | 'en'
 type LanguageSetting = 'system' | AppLanguage
 
-interface ChangelogFeature {
+type ChangelogFeature = {
   text: string
   highlight?: boolean
 }
 
-interface ChangelogItem {
+type ChangelogItem = {
   version: string
   date: string
   features: ChangelogFeature[]

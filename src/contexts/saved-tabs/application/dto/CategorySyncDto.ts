@@ -9,7 +9,7 @@
  * 既存の `TabGroup.parentCategoryId` が変わらなかった場合は
  * `assignedTabGroupIds` にも `unassignedTabGroupIds` にも含めない。
  */
-export interface CategorySyncDto {
+export type CategorySyncDto = {
   /**
    * 新たにカテゴリへ割り当てられた `TabGroupId` 一覧。
    */

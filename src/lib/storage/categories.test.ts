@@ -23,7 +23,7 @@ vi.mock('uuid', () => ({
   v4: mocks.uuid,
 }))
 
-interface StorageState {
+type StorageState = {
   domainCategoryMappings?: DomainParentCategoryMapping[]
   domainCategorySettings?: DomainCategorySettings[]
   parentCategories?: ParentCategory[]
