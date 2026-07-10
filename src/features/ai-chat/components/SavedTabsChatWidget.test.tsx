@@ -2384,6 +2384,47 @@ describe('SavedTabsChatWidget', () => {
     expect(screen.queryByText('Ollama: llama3.2')).toBeNull()
   })
 
+  it('keeps the active conversation and draft input after changing the model', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
+    mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
+    mocked.sendRuntimeMessage.mockResolvedValue({
+      models: [{ label: 'Qwen 3', name: 'qwen3' }],
+      status: 'ok',
+    })
+
+    render(
+      <SavedTabsChatWidget
+        conversationId='active-conversation'
+        initialMessages={[
+          {
+            content: 'Keep this conversation',
+            id: 'existing-message',
+            role: 'user',
+          },
+        ]}
+        mode='page'
+      />,
+    )
+
+    await user.type(await screen.findByLabelText('Ask AI'), 'Keep this draft')
+    // Radix UI Select does not work with userEvent in jsdom
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.click(screen.getByRole('combobox', { name: 'llama3.2' }))
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.click(await screen.findByRole('option', { name: 'Qwen 3' }))
+
+    await waitFor(() => {
+      expect(mocked.saveUserSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ ollamaModel: 'qwen3' }),
+      )
+    })
+    expect(screen.getByText('Keep this conversation')).toBeTruthy()
+    expect((screen.getByLabelText('Ask AI') as HTMLTextAreaElement).value).toBe(
+      'Keep this draft',
+    )
+  })
+
   it('shows Windows guidance and download links for Ollama connection errors while fetching the model list', async () => {
     const user = userEvent.setup()
     restoreClipboardMock()

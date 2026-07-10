@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react'
+import { useLayoutEffect } from 'react'
+import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defaultSettings } from '@/lib/storage/settings'
@@ -187,6 +189,54 @@ describe('useOllamaModelSettings', () => {
       'Could not save model settings',
     )
     expect(result.current.isSavingModel).toBe(false)
+  })
+
+  it('pending save 完了時は rerender 後の最新 callback だけへ通知する', async () => {
+    const deferred = createDeferred<undefined>()
+    mocked.saveUserSettings.mockReturnValue(deferred.promise)
+    const oldCallback = vi.fn()
+    const latestCallback = vi.fn()
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    const latestRenderCommitted = createDeferred<undefined>()
+    let selectModel: (modelName: string) => Promise<boolean> = async () => false
+    const HookHarness = ({
+      onCommit,
+      onSettingsSaved,
+    }: {
+      onCommit?: () => void
+      onSettingsSaved: (nextSettings: UserSettings) => void
+    }) => {
+      selectModel = useOllamaModelSettings({
+        onSettingsSaved,
+        settings,
+        t,
+      }).selectModel
+      useLayoutEffect(() => {
+        onCommit?.()
+      }, [onCommit])
+      return null
+    }
+    await act(async () => {
+      root.render(<HookHarness onSettingsSaved={oldCallback} />)
+    })
+    const savePromise = selectModel('qwen3')
+
+    root.render(
+      <HookHarness
+        onCommit={() => latestRenderCommitted.resolve(undefined)}
+        onSettingsSaved={latestCallback}
+      />,
+    )
+    await latestRenderCommitted.promise
+    deferred.resolve(undefined)
+    await savePromise
+
+    expect(oldCallback).not.toHaveBeenCalled()
+    expect(latestCallback).toHaveBeenCalledOnce()
+    await act(async () => {
+      root.unmount()
+    })
   })
 
   it('同一 hook で進行中の取得と保存を重複実行しない', async () => {

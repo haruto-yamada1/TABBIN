@@ -1404,7 +1404,6 @@ const useSavedTabsChatWidgetView = ({
   } = useOllamaModelSettings({
     onSettingsSaved: (nextSettings) => {
       setSettings(nextSettings)
-      handleResetConversation()
     },
     settings: resolvedSettings,
     t,

@@ -38,10 +38,7 @@ const useOllamaModelSettings = ({
   const fetchPromiseRef = useRef<Promise<void> | null>(null)
   const isSaveInFlightRef = useRef(false)
   const onSettingsSavedRef = useRef(onSettingsSaved)
-
-  useEffect(() => {
-    onSettingsSavedRef.current = onSettingsSaved
-  }, [onSettingsSaved])
+  onSettingsSavedRef.current = onSettingsSaved
 
   useEffect(() => {
     isMountedRef.current = true
