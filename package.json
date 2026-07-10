@@ -5,7 +5,7 @@
   "description": "An extension for organizing and categorizing browser tabs so cluttered tab lists stay manageable.",
   "type": "module",
   "imports": {
-    "#harness-state": "./src/lib/harness/harnessState/index.ts"
+    "#harness-state": "./tools/harness/state/index.ts"
   },
   "scripts": {
     "dev": "wxt",

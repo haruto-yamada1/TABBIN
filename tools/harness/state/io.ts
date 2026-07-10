@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import type { HarnessStateFile, JsonObject, JsonValue } from './types'
@@ -8,18 +8,14 @@ function writeJsonFile(filePath: string, value: unknown) {
 }
 
 function readTextIfExists(filePath: string) {
-  if (!existsSync(filePath)) {
+  try {
+    return readFileSync(filePath, 'utf8')
+  } catch {
     return null
   }
-
-  return readFileSync(filePath, 'utf8')
 }
 
 function readStateIfExists(filePath: string): HarnessStateFile | null {
-  if (!existsSync(filePath)) {
-    return null
-  }
-
   const parsed = readJsonFile(filePath)
   if (!parsed.ok || !isObject(parsed.value)) {
     return null

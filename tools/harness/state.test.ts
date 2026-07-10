@@ -39,7 +39,7 @@ import {
   validationIssueLines,
   writeHarnessStatusSnapshot,
   writeHarnessSchemaFiles,
-} from './harnessState'
+} from './state'
 
 function makeProject() {
   const projectRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-harness-'))
@@ -734,12 +734,12 @@ describe('buildHarnessAudit', () => {
 
     const audit = buildHarnessAudit({
       projectRoot,
-      changedFiles: ['src/lib/harness/harnessState.ts'],
+      changedFiles: ['tools/harness/state.ts'],
       runId: 'run-1',
     })
 
     expect(audit).toContain('# ハーネス監査')
-    expect(audit).toContain('src/lib/harness/harnessState.ts')
+    expect(audit).toContain('tools/harness/state.ts')
     expect(audit).toContain(
       'follow-up issue または `.apm/instructions` への追記候補',
     )
@@ -830,7 +830,7 @@ describe('high fidelity harness commands', () => {
     })
     checkpointHarnessRun({
       projectRoot,
-      command: 'bun run test -- src/lib/harness/harnessState.test.ts',
+      command: 'bun run test -- tools/harness/state.test.ts',
       notes: 'RED を確認した',
       status: 'failed',
     })
@@ -1358,7 +1358,7 @@ describe('high fidelity harness commands', () => {
     ])
     runHarnessCli(projectRoot, 'checkpoint', [
       '--command',
-      'bun run test -- src/lib/harness/harnessState.test.ts',
+      'bun run test -- tools/harness/state.test.ts',
       '--status',
       'passed',
       '--notes',
