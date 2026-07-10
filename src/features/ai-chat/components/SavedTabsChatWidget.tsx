@@ -101,6 +101,7 @@ import { SystemPromptManagerDialog } from '@/features/ai-chat/components/SystemP
 import type { SystemPromptManagerDialogProps } from '@/features/ai-chat/components/SystemPromptManagerDialog'
 import { useChatSidebarResize } from '@/features/ai-chat/hooks/useChatSidebarResize'
 import { useConversationClipboard } from '@/features/ai-chat/hooks/useConversationClipboard'
+import { useOllamaModelSettings } from '@/features/ai-chat/hooks/useOllamaModelSettings'
 import {
   AI_CHAT_MAX_ATTACHMENTS,
   AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES,
@@ -149,11 +150,7 @@ import {
   loadWidgetSettings,
   syncExternalConversationState,
 } from './savedTabsChat/storage'
-import {
-  getAttachmentInputErrorMessage,
-  getRuntimePlatform,
-  requestOllamaModels,
-} from './savedTabsChat/streaming'
+import { getAttachmentInputErrorMessage } from './savedTabsChat/streaming'
 import { useChatPromptManager } from './savedTabsChat/useChatPromptManager'
 import { useChatStreamHandlers } from './savedTabsChat/useChatStreamHandlers'
 import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.helpers'
@@ -1220,19 +1217,6 @@ const useSavedTabsChatWidgetView = ({
   const [chatOllamaError, setChatOllamaError] = useState<
     OllamaErrorDetails | undefined
   >(undefined)
-  const [modelOptions, setModelOptions] = useState<
-    {
-      label: string
-      name: string
-    }[]
-  >([])
-  const [isLoadingModels, setIsLoadingModels] = useState(false)
-  const [isSavingModel, setIsSavingModel] = useState(false)
-  const [setupErrorMessage, setSetupErrorMessage] = useState('')
-  const [setupOllamaError, setSetupOllamaError] = useState<
-    OllamaErrorDetails | undefined
-  >(undefined)
-  const [platform, setPlatform] = useState<OllamaErrorPlatform>('unknown')
   const activePortRef = useRef<{
     disconnect: () => void
   } | null>(null)
@@ -1276,20 +1260,6 @@ const useSavedTabsChatWidgetView = ({
       syncedConversationIdRef,
     })
   }, [conversationId, initialMessages, mode])
-
-  useEffect(() => {
-    let isMounted = true
-
-    void getRuntimePlatform().then((nextPlatform) => {
-      if (isMounted) {
-        setPlatform(nextPlatform)
-      }
-    })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -1412,53 +1382,6 @@ const useSavedTabsChatWidgetView = ({
     activePort.disconnect()
   }
 
-  const handleFetchModels = async () => {
-    setIsLoadingModels(true)
-    setSetupErrorMessage('')
-    setSetupOllamaError(undefined)
-
-    const response = await requestOllamaModels()
-
-    if (response?.status !== 'ok' || !response.models) {
-      setModelOptions([])
-      setSetupErrorMessage(response?.error || t('aiChat.modelListLoadError')) // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error should show default message
-      setSetupOllamaError(response?.ollamaError)
-      setIsLoadingModels(false)
-      return
-    }
-
-    setModelOptions(
-      response.models.map((model) => ({
-        label: model.label,
-        name: model.name,
-      })),
-    )
-    setSetupOllamaError(undefined)
-    setIsLoadingModels(false)
-  }
-
-  const handleSelectModel = async (modelName: string): Promise<boolean> => {
-    const nextSettings = normalizeAiSystemPromptSettings({
-      ...resolvedSettings,
-      ollamaModel: modelName,
-    })
-
-    setIsSavingModel(true)
-    setSetupErrorMessage('')
-    setSetupOllamaError(undefined)
-
-    try {
-      await saveUserSettings(nextSettings)
-      setSettings(nextSettings)
-      return true
-    } catch {
-      setSetupErrorMessage(t('aiChat.modelSettingsSaveError'))
-      return false
-    } finally {
-      setIsSavingModel(false)
-    }
-  }
-
   const handleResetConversation = () => {
     conversationGenerationRef.current += 1
     disconnectActivePort(true)
@@ -1468,6 +1391,24 @@ const useSavedTabsChatWidgetView = ({
     setChatOllamaError(undefined)
     setIsSubmitting(false)
   }
+
+  const {
+    isLoadingModels,
+    isSavingModel,
+    modelOptions,
+    platform,
+    requestModels: handleFetchModels,
+    selectModel: handleSelectModel,
+    setupErrorMessage,
+    setupOllamaError,
+  } = useOllamaModelSettings({
+    onSettingsSaved: (nextSettings) => {
+      setSettings(nextSettings)
+      handleResetConversation()
+    },
+    settings: resolvedSettings,
+    t,
+  })
 
   const handleConversationAction = () => {
     if (onCreateConversation) {
