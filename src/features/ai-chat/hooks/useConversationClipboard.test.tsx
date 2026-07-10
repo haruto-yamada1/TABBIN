@@ -200,5 +200,10 @@ describe('useConversationClipboard', () => {
 
     expect(result.current.isConversationCopied).toBe(false)
     expect(vi.getTimerCount()).toBe(0)
+
+    rerender({ currentMessages: messages })
+
+    expect(result.current.isConversationCopied).toBe(false)
+    expect(vi.getTimerCount()).toBe(0)
   })
 })

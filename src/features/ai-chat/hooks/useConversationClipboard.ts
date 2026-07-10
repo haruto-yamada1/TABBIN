@@ -50,11 +50,18 @@ const useConversationClipboard = ({
   messages: ChatMessage[]
   t: TranslateFn
 }) => {
-  const [copiedMessages, setCopiedMessages] = useState<ChatMessage[] | null>(
-    null,
-  )
+  const [copiedState, setCopiedState] = useState<{
+    isCopied: boolean
+    messages: ChatMessage[]
+  }>({ isCopied: false, messages })
   const copiedTimeoutRef = useRef<number | null>(null)
-  const isConversationCopied = copiedMessages === messages
+
+  if (copiedState.messages !== messages) {
+    setCopiedState({ isCopied: false, messages })
+  }
+
+  const isConversationCopied =
+    copiedState.messages === messages && copiedState.isCopied
 
   const clearCopiedTimeout = useCallback(() => {
     if (copiedTimeoutRef.current === null) {
@@ -81,10 +88,10 @@ const useConversationClipboard = ({
     try {
       await clipboard.writeText(conversationCopyText)
       clearCopiedTimeout()
-      setCopiedMessages(messages)
+      setCopiedState({ isCopied: true, messages })
       toast.success(t('aiChat.copyConversationSuccess'))
       copiedTimeoutRef.current = window.setTimeout(() => {
-        setCopiedMessages(null)
+        setCopiedState({ isCopied: false, messages })
         copiedTimeoutRef.current = null
       }, COPIED_CONVERSATION_ICON_TIMEOUT)
     } catch {
