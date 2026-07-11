@@ -1,3 +1,4 @@
+import { getSavedTabs, saveTabGroups } from '@/lib/storage/tabs'
 import type { TabGroup } from '@/types/storage'
 
 const replaceTabGroup = (
@@ -24,11 +25,9 @@ const shouldSkipRename = (oldName: string, newName: string): boolean =>
 // タブグループを更新するヘルパー関数
 const updateTabGroup = async (updatedTabGroup: TabGroup) => {
   try {
-    const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: TabGroup[]
-    }>('savedTabs')
+    const savedTabs = await getSavedTabs()
     const updatedTabs = replaceTabGroup(savedTabs, updatedTabGroup)
-    await chrome.storage.local.set({ savedTabs: updatedTabs })
+    await saveTabGroups(updatedTabs)
     return true
   } catch (error) {
     console.error('タブグループ更新エラー:', error)

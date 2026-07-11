@@ -11,6 +11,7 @@ import type { ChromeApiLike as ChromeMessagingApiLike } from '@/contexts/saved-t
 import { createChromeStorageChangeAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeStorageChangeAdapter'
 import { createSonnerNotificationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter'
 import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
+import type { ChromeOnChangedListener } from '@/lib/browser/chrome-storage'
 
 /**
  * `src/app/composition/` レベルで組み立てる、saved-tabs 用
@@ -69,11 +70,6 @@ type ChromeApi = ChromeApiLike & {
     }
   }
 }
-
-type ChromeOnChangedListener = (
-  changes: Record<string, chrome.storage.StorageChange>,
-  areaName: string,
-) => void
 
 const isChromeApi = (value: unknown): value is ChromeApi => isObjectLike(value)
 

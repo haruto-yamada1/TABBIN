@@ -5,7 +5,11 @@ import {
   resolveLanguage,
 } from '@/features/i18n/lib/language'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import { createOrUpdateUrlRecord } from '@/lib/storage/urls'
+import {
+  createOrUpdateUrlRecord,
+  getUrlRecords,
+  saveUrlRecords,
+} from '@/lib/storage/urls'
 import type { TabGroup, UrlRecord, UserSettings } from '@/types/storage'
 
 import type {
@@ -282,13 +286,7 @@ const ensurePlaceholderUrlRecords = async (
   if (unresolvedTabs.length === 0) {
     return 0
   }
-  const urlsData = await chrome.storage.local.get({
-    urls: [],
-  })
-  // eslint-disable-next-line typescript/no-unsafe-assignment
-  const currentUrlRecords: UrlRecord[] = Array.isArray(urlsData.urls)
-    ? urlsData.urls
-    : []
+  const currentUrlRecords = await getUrlRecords()
   const existingIdSet = new Set(currentUrlRecords.map((record) => record.id))
   const newRecords: UrlRecord[] = []
   let offset = 0
@@ -313,9 +311,7 @@ const ensurePlaceholderUrlRecords = async (
   if (newRecords.length === 0) {
     return 0
   }
-  await chrome.storage.local.set({
-    urls: [...currentUrlRecords, ...newRecords],
-  })
+  await saveUrlRecords([...currentUrlRecords, ...newRecords])
   return newRecords.length
 }
 

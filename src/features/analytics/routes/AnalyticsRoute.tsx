@@ -55,6 +55,10 @@ import {
 import { AnalyticsSidebar } from '@/features/analytics/routes/AnalyticsSidebar'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
+  getChromeStorageLocal,
+  warnMissingChromeStorage,
+} from '@/lib/browser/chrome-storage'
+import {
   createSavedAnalyticsView,
   deleteSavedAnalyticsView,
   loadSavedAnalyticsViews,
@@ -402,7 +406,13 @@ const useAnalyticsRouteView = () => {
             // eslint-disable-next-line typescript/no-misused-promises
             onClick: async () => {
               try {
-                await chrome.storage.local.set(
+                const storageLocal = getChromeStorageLocal()
+                if (!storageLocal) {
+                  warnMissingChromeStorage('分析削除アンドゥ復元')
+                  toast.error(t('savedTabs.undo.restoreError'))
+                  return
+                }
+                await storageLocal.set(
                   createAnalyticsDeleteUndoPayload(snapshot),
                 )
                 const nextRecords = await refreshRecords()

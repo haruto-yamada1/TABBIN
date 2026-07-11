@@ -4,6 +4,7 @@ import type {
   AiChatAttachment,
   AiChatConversationMessage,
 } from '@/features/ai-chat/types'
+import type { PlatformInfo } from '@/lib/browser/runtime'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import type {
   AiChatResponse,
@@ -43,9 +44,7 @@ const getAiChatOllamaError = (
 ): OllamaErrorDetails | undefined => response?.ollamaError
 
 type RuntimePlatformApi = {
-  getPlatformInfo: (
-    callback: (info: chrome.runtime.PlatformInfo) => void,
-  ) => void
+  getPlatformInfo: (callback: (info: PlatformInfo) => void) => void
 }
 
 const getRuntimePlatformApi = (): RuntimePlatformApi | null => {
@@ -78,13 +77,11 @@ const getRuntimePlatform = async (): Promise<OllamaErrorPlatform> => {
   }
 
   try {
-    const platformInfo = await new Promise<chrome.runtime.PlatformInfo | null>(
-      (resolve) => {
-        runtimeApi.getPlatformInfo((info) => {
-          resolve(info)
-        })
-      },
-    )
+    const platformInfo = await new Promise<PlatformInfo | null>((resolve) => {
+      runtimeApi.getPlatformInfo((info) => {
+        resolve(info)
+      })
+    })
 
     return platformInfo?.os === 'mac' || platformInfo?.os === 'win'
       ? platformInfo.os

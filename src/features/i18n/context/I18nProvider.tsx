@@ -7,6 +7,7 @@ import {
   resolveLanguage,
 } from '@/features/i18n/lib/language'
 import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
+import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -69,7 +70,7 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const handleStorageChange = (
-      changes: Partial<Record<string, chrome.storage.StorageChange>>,
+      changes: Partial<Record<string, StorageChange>>,
       areaName: string,
     ) => {
       if (areaName !== 'local' || !changes.userSettings?.newValue) {

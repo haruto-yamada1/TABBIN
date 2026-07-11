@@ -10,6 +10,12 @@ import {
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
+import { isObjectLike } from '@/lib/browser/chrome-global'
+import {
+  getChromeStorageLocal,
+  warnMissingChromeStorage,
+} from '@/lib/browser/chrome-storage'
+import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import type { AiChatToolTrace } from '@/types/background'
 import type {
@@ -286,46 +292,39 @@ const getNextDeleteTargetAfterDialogOpenChange = ({
   return null
 }
 
-const removeUrlFromStorage = async (url: string): Promise<void> =>
-  new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        action: 'removeUrlFromStorage',
-        url,
-      },
-      (response?: { error?: string; status?: string }) => {
-        if (response?.status === 'removed') {
-          resolve()
-          return
-        }
+type RemoveResponse = { error?: string; status?: string }
 
-        reject(new Error(response?.error || 'removeUrlFromStorage failed')) // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: empty error string should show default message
-      },
-    )
+const isRemoveResponse = (value: unknown): value is RemoveResponse =>
+  isObjectLike(value) &&
+  (typeof Reflect.get(value, 'status') === 'string' ||
+    typeof Reflect.get(value, 'error') === 'string')
+
+const removeUrlFromStorage = async (url: string): Promise<void> => {
+  const response = await sendRuntimeMessage({
+    action: 'removeUrlFromStorage',
+    url,
   })
+  const typedResponse = isRemoveResponse(response) ? response : undefined
+  if (typedResponse?.status !== 'removed') {
+    throw new Error(typedResponse?.error || 'removeUrlFromStorage failed') // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: empty error string should show default message
+  }
+}
 
 const getAnalyticsDateLocale = (language: string): 'en-US' | 'ja-JP' =>
   language === 'ja' ? 'ja-JP' : 'en-US'
 
-const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> =>
-  new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        action: 'removeUrlRecordsFromStorage',
-        urlIds,
-      },
-      (response?: { error?: string; status?: string }) => {
-        if (response?.status === 'removed') {
-          resolve()
-          return
-        }
-
-        reject(
-          new Error(response?.error || 'removeUrlRecordsFromStorage failed'), // eslint-disable-line typescript/prefer-nullish-coalescing -- `||` needed: empty error string should show default message
-        )
-      },
-    )
+const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> => {
+  const response = await sendRuntimeMessage({
+    action: 'removeUrlRecordsFromStorage',
+    urlIds,
   })
+  const typedResponse = isRemoveResponse(response) ? response : undefined
+  if (typedResponse?.status !== 'removed') {
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- `||` needed: empty error string should show default message
+    const errMsg = typedResponse?.error || 'removeUrlRecordsFromStorage failed'
+    throw new Error(errMsg)
+  }
+}
 
 type AnalyticsDeleteUndoSnapshot = {
   customProjectOrder?: string[]
@@ -344,14 +343,20 @@ type AnalyticsDeleteUndoPayload = {
 }
 
 const getAnalyticsDeleteUndoSnapshot =
-  async (): Promise<AnalyticsDeleteUndoSnapshot> =>
-    chrome.storage.local.get<AnalyticsDeleteUndoSnapshot>([
+  async (): Promise<AnalyticsDeleteUndoSnapshot> => {
+    const storageLocal = getChromeStorageLocal()
+    if (!storageLocal) {
+      warnMissingChromeStorage('分析削除アンドゥスナップショット')
+      return {}
+    }
+    return storageLocal.get<AnalyticsDeleteUndoSnapshot>([
       'savedTabs',
       'customProjects',
       'customProjectOrder',
       'parentCategories',
       'urls',
     ])
+  }
 
 const getSnapshotArray = <T>(value: T[] | undefined): T[] | undefined =>
   Array.isArray(value) ? value : undefined

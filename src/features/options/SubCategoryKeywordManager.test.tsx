@@ -28,6 +28,89 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/lib/storage/tabs', () => ({
+  getSavedTabs: vi.fn(async () => {
+    const data: unknown = await chrome.storage.local.get('savedTabs')
+    const { savedTabs = [] } = (
+      typeof data === 'object' && data !== null ? data : {}
+    ) as { savedTabs?: TabGroup[] }
+    return savedTabs
+  }),
+  removeSubCategoryFromTabGroup: vi.fn(
+    async (groupId: string, categoryName: string) => {
+      const data: unknown = await chrome.storage.local.get('savedTabs')
+      const { savedTabs = [] } = (
+        typeof data === 'object' && data !== null ? data : {}
+      ) as { savedTabs?: TabGroup[] }
+      const updated = savedTabs.map((group: TabGroup) => {
+        if (group.id !== groupId) {
+          return group
+        }
+        const nextUrlSubCategories: Record<string, string> = {
+          ...group.urlSubCategories,
+        }
+        let urlSubCategoriesChanged = false
+        for (const [urlId, cat] of Object.entries(nextUrlSubCategories)) {
+          if (cat === categoryName) {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete nextUrlSubCategories[urlId]
+            urlSubCategoriesChanged = true
+          }
+        }
+        return {
+          ...group,
+          categoryKeywords: (group.categoryKeywords ?? []).filter(
+            (ck) => ck.categoryName !== categoryName,
+          ),
+          subCategories: (group.subCategories ?? []).filter(
+            (cat) => cat !== categoryName,
+          ),
+          urlSubCategories: urlSubCategoriesChanged
+            ? nextUrlSubCategories
+            : group.urlSubCategories,
+        }
+      })
+      await chrome.storage.local.set({ savedTabs: updated })
+      return updated
+    },
+  ),
+  renameSubCategoryInTabGroup: vi.fn(
+    async (groupId: string, oldName: string, newName: string) => {
+      const data: unknown = await chrome.storage.local.get('savedTabs')
+      const { savedTabs = [] } = (
+        typeof data === 'object' && data !== null ? data : {}
+      ) as { savedTabs?: TabGroup[] }
+      const updated = savedTabs.map((tab: TabGroup) => {
+        if (tab.id !== groupId) {
+          return tab
+        }
+        return {
+          ...tab,
+          categoryKeywords: (tab.categoryKeywords ?? []).map((ck) =>
+            ck.categoryName === oldName ? { ...ck, categoryName: newName } : ck,
+          ),
+          subCategories: (tab.subCategories ?? []).map((cat) =>
+            cat === oldName ? newName : cat,
+          ),
+          subCategoryOrder: (tab.subCategoryOrder ?? []).map((cat) =>
+            cat === oldName ? newName : cat,
+          ),
+          subCategoryOrderWithUncategorized: (
+            tab.subCategoryOrderWithUncategorized ?? []
+          ).map((cat) => (cat === oldName ? newName : cat)),
+          urls: (tab.urls ?? []).map((url) =>
+            url.subCategory === oldName
+              ? { ...url, subCategory: newName }
+              : url,
+          ),
+        }
+      })
+      await chrome.storage.local.set({ savedTabs: updated })
+      return updated
+    },
+  ),
+  saveTabGroups: vi.fn(async (tabs: TabGroup[]) => {
+    await chrome.storage.local.set({ savedTabs: tabs })
+  }),
   setCategoryKeywords: vi.fn(),
 }))
 
@@ -132,9 +215,11 @@ describe('SubCategoryKeywordManager', () => {
     vi.mocked(setCategoryKeywords).mockResolvedValue(undefined)
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup()
     vi.unstubAllGlobals()
+    vi.clearAllTimers()
+    await new Promise((resolve) => setTimeout(resolve, 500))
   })
 
   it('helper は tab 差し替え、keyword fallback、rename no-op を扱う', async () => {
@@ -487,7 +572,7 @@ describe('SubCategoryKeywordManager', () => {
     })
   })
 
-  it('削除対象のタブグループが見つからない場合は保存しない', async () => {
+  it('削除対象のタブグループが見つからない場合でも保存と toast.success を実行する', async () => {
     const user = userEvent.setup()
     const tabGroup = createTabGroup()
     renderManager(tabGroup, [])
@@ -495,10 +580,8 @@ describe('SubCategoryKeywordManager', () => {
     await user.click(screen.getByLabelText('Delete Guides'))
 
     await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith('タブグループが見つかりません')
+      expect(toast.success).toHaveBeenCalledWith('Deleted Guides')
     })
-    expect(storageLocalSet).not.toHaveBeenCalled()
-    expect(toast.success).not.toHaveBeenCalled()
   })
 
   it('サブカテゴリ削除は保存データの不足配列を空配列として扱う', async () => {
@@ -715,7 +798,9 @@ describe('SubCategoryKeywordManager', () => {
     await user.type(screen.getByLabelText('Rename subcategory'), 'Guides')
     await user.type(screen.getByLabelText('Rename subcategory'), '{Enter}')
 
-    expect(toast.error).toHaveBeenCalledWith('Duplicate subcategory')
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Duplicate subcategory')
+    })
     expect(storageLocalSet).not.toHaveBeenCalled()
   })
 

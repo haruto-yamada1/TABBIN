@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { useTheme } from '@/components/theme-provider'
 import { colorOptions } from '@/constants/colorOptions'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 import { saveUserSettings } from '@/lib/storage/settings'
 import type { UserSettings } from '@/types/storage'
 
@@ -48,7 +49,10 @@ export const useColorSettings = (
       await saveUserSettings(newSettings)
 
       // テーマをシステムに戻す
-      void chrome.storage.local.set({ 'tab-manager-theme': 'system' })
+      const storageLocal = getChromeStorageLocal()
+      if (storageLocal) {
+        void storageLocal.set({ 'tab-manager-theme': 'system' })
+      }
 
       // 成功メッセージを表示
       toast.success(t('options.color.resetSuccess'))

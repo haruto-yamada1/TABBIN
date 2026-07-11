@@ -51,6 +51,7 @@ import {
   SavedTabRawSchema,
   UserSettingsRawSchema,
 } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/savedTabsStorageSchema'
+import type { ChromeOnChangedListener } from '@/lib/browser/chrome-storage'
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
 import type { CustomProject } from '@/types/storage'
 
@@ -66,11 +67,6 @@ export type ChromeStorageLike = {
 export type ChromeApiLike = {
   readonly storage?: ChromeStorageLike
 }
-
-type ChromeOnChangedListener = (
-  changes: Record<string, chrome.storage.StorageChange>,
-  areaName: string,
-) => void
 
 export type ChromeStorageChangeAdapterDeps = {
   /**

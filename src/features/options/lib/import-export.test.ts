@@ -12,7 +12,13 @@ import type { AiChatToolTrace } from '@/types/background'
 import type { CustomProject, UserSettings } from '@/types/storage'
 
 vi.mock('@/lib/storage/categories', () => ({
-  saveParentCategories: vi.fn(),
+  getParentCategories: vi.fn(async () => {
+    const result = await chrome.storage.local.get('parentCategories')
+    return Array.isArray(result.parentCategories) ? result.parentCategories : []
+  }),
+  saveParentCategories: vi.fn(async (categories: unknown) => {
+    await chrome.storage.local.set({ parentCategories: categories })
+  }),
 }))
 
 vi.mock('@/lib/storage/migration', () => ({
@@ -47,6 +53,85 @@ vi.mock('@/lib/storage/settings', () => {
 vi.mock('@/lib/storage/urls', () => ({
   createOrUpdateUrlRecord: vi.fn(),
   createOrUpdateUrlRecordsBatch: vi.fn(),
+  getUrlRecords: vi.fn(async () => {
+    const result = await chrome.storage.local.get({ urls: [] })
+    return Array.isArray(result.urls) ? result.urls : []
+  }),
+  saveUrlRecords: vi.fn(async (records: unknown[]) => {
+    await chrome.storage.local.set({ urls: records })
+  }),
+  invalidateUrlCache: vi.fn(),
+}))
+
+vi.mock('@/lib/storage/tabs', () => ({
+  getSavedTabs: vi.fn(async () => {
+    const result = await chrome.storage.local.get('savedTabs')
+    return Array.isArray(result.savedTabs) ? result.savedTabs : []
+  }),
+  saveTabGroups: vi.fn(async (tabs: unknown[]) => {
+    await chrome.storage.local.set({ savedTabs: tabs })
+  }),
+}))
+
+vi.mock('@/lib/storage/projects', () => ({
+  getCustomProjects: vi.fn(async () => {
+    const result = await chrome.storage.local.get('customProjects')
+    return Array.isArray(result.customProjects) ? result.customProjects : []
+  }),
+  getCustomProjectOrder: vi.fn(async () => {
+    const result = await chrome.storage.local.get('customProjectOrder')
+    return Array.isArray(result.customProjectOrder)
+      ? result.customProjectOrder
+      : []
+  }),
+  saveCustomProjects: vi.fn(async (projects: unknown[]) => {
+    await chrome.storage.local.set({ customProjects: projects })
+  }),
+  updateProjectOrder: vi.fn(async (order: string[]) => {
+    await chrome.storage.local.set({ customProjectOrder: order })
+  }),
+}))
+
+vi.mock('@/lib/storage/analytics', () => ({
+  loadSavedAnalyticsViews: vi.fn(async () => {
+    const result = await chrome.storage.local.get('savedAnalyticsViews')
+    return Array.isArray(result.savedAnalyticsViews)
+      ? result.savedAnalyticsViews
+      : []
+  }),
+  saveSavedAnalyticsViews: vi.fn(async (views: unknown[]) => {
+    await chrome.storage.local.set({ savedAnalyticsViews: views })
+  }),
+}))
+
+vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
+  ACTIVE_AI_CHAT_CONVERSATION_ID_KEY: 'activeAiChatConversationId',
+  AI_CHAT_CONVERSATIONS_KEY: 'aiChatConversations',
+  loadConversationHistory: vi.fn(async () => {
+    const result = await chrome.storage.local.get([
+      'activeAiChatConversationId',
+      'aiChatConversations',
+    ])
+    const conversations = Array.isArray(result.aiChatConversations)
+      ? result.aiChatConversations
+      : []
+    const activeId =
+      typeof result.activeAiChatConversationId === 'string'
+        ? result.activeAiChatConversationId
+        : (conversations[0]?.id ?? '')
+    return { activeConversationId: activeId, conversations }
+  }),
+  saveConversationHistory: vi.fn(
+    async (state: {
+      activeConversationId: string
+      conversations: unknown[]
+    }) => {
+      await chrome.storage.local.set({
+        activeAiChatConversationId: state.activeConversationId,
+        aiChatConversations: state.conversations,
+      })
+    },
+  ),
 }))
 
 import { saveParentCategories } from '@/lib/storage/categories'
@@ -196,6 +281,12 @@ const buildAiChatConversation = (
   updatedAt: 2,
   ...override,
 })
+
+const findSetCallByKey = (
+  calls: [Record<string, unknown> | undefined][],
+  key: string,
+): Record<string, unknown> | undefined =>
+  calls.find((c) => c[0] && key in c[0])?.[0]
 
 describe('import-export ユーティリティ', () => {
   beforeEach(() => {
@@ -2399,7 +2490,8 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-    const payload = set.mock.calls[0]?.[0] as {
+    const payload = (findSetCallByKey(set.mock.calls, 'customProjectOrder') ??
+      {}) as {
       customProjectOrder?: string[]
       customProjects?: CustomProject[]
     }
@@ -2516,10 +2608,8 @@ describe('import-export ユーティリティ', () => {
       },
     )
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -2833,10 +2923,8 @@ describe('import-export ユーティリティ', () => {
     expect(result.message).toContain('設定とタブデータを置き換えました')
     expect(createOrUpdateUrlRecord).not.toHaveBeenCalled()
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -2901,10 +2989,8 @@ describe('import-export ユーティリティ', () => {
     expect(result.success).toBe(true)
     expect(createOrUpdateUrlRecord).not.toHaveBeenCalled()
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -3088,10 +3174,8 @@ describe('import-export ユーティリティ', () => {
 
     expect(result.success).toBe(true)
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -3166,10 +3250,8 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -3222,10 +3304,8 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -3293,10 +3373,8 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -3541,10 +3619,8 @@ describe('import-export ユーティリティ', () => {
       ]),
     )
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
     expect(savedTabsArg).toHaveLength(2)
 
     const mergedExisting = savedTabsArg.find(
@@ -3655,10 +3731,8 @@ describe('import-export ユーティリティ', () => {
 
     expect(result.success).toBe(true)
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
     const mergedExisting = savedTabsArg.find(
       (tab) => tab.domain === 'existing.example.com',
     )
@@ -4059,10 +4133,8 @@ describe('import-export ユーティリティ', () => {
       },
     ])
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
     expect(savedTabsArg).toHaveLength(1)
 
     expect(savedTabsArg[0]).toEqual(
@@ -4077,7 +4149,9 @@ describe('import-export ユーティリティ', () => {
       }),
     )
 
-    expect(set.mock.calls[0]?.[0]?.customProjects).toEqual([
+    expect(
+      findSetCallByKey(set.mock.calls, 'customProjects')?.customProjects,
+    ).toEqual([
       buildCustomProject({
         id: 'custom-uncategorized',
         name: '未分類',
@@ -5036,10 +5110,8 @@ describe('import-export ユーティリティ', () => {
     expect(result.success).toBe(true)
     expect(createOrUpdateUrlRecordsBatch).toHaveBeenCalledTimes(1)
     expect(createOrUpdateUrlRecord).not.toHaveBeenCalled()
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
     expect(savedTabsArg[0]?.urlIds).toHaveLength(100)
   })
 
@@ -5091,10 +5163,8 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -5151,10 +5221,8 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
@@ -5199,10 +5267,8 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
 
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
