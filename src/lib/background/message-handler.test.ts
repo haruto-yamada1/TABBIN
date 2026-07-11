@@ -1163,6 +1163,104 @@ describe('setupMessageListener', () => {
     expect(port.postMessage).not.toHaveBeenCalled()
   })
 
+  it('同時に実行する ai-chat-stream request は port ごとに独立した controller を持つ', async () => {
+    const { portListener } = setupListener()
+    let firstOnDisconnect: (() => void) | undefined
+    let firstOnMessage: ((message: unknown) => void) | undefined
+    let secondOnDisconnect: (() => void) | undefined
+    let secondOnMessage: ((message: unknown) => void) | undefined
+    const optionsList: { signal?: AbortSignal }[] = []
+    const resolveList: ((result: {
+      answer: string
+      charts: never[]
+      reasoning: string
+      recordCount: number
+      toolTraces: never[]
+    }) => void)[] = []
+    const firstPort = {
+      disconnect: vi.fn(),
+      name: 'ai-chat-stream',
+      onDisconnect: {
+        addListener: vi.fn((listener: () => void) => {
+          firstOnDisconnect = listener
+        }),
+      },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          firstOnMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    } as unknown as chrome.runtime.Port
+    const secondPort = {
+      disconnect: vi.fn(),
+      name: 'ai-chat-stream',
+      onDisconnect: {
+        addListener: vi.fn((listener: () => void) => {
+          secondOnDisconnect = listener
+        }),
+      },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          secondOnMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    } as unknown as chrome.runtime.Port
+
+    mocked.runAiChatRequest.mockImplementation(
+      async (_request: unknown, options: { signal?: AbortSignal }) => {
+        optionsList.push(options)
+        return new Promise((resolve) => {
+          resolveList.push(resolve)
+        })
+      },
+    )
+
+    portListener(firstPort)
+    portListener(secondPort)
+    firstOnMessage?.({ history: [], prompt: 'first', type: 'run' })
+    secondOnMessage?.({ history: [], prompt: 'second', type: 'run' })
+
+    expect(optionsList).toHaveLength(2)
+    expect(optionsList[0]?.signal).not.toBe(optionsList[1]?.signal)
+    expect(optionsList[0]?.signal?.aborted).toBe(false)
+    expect(optionsList[1]?.signal?.aborted).toBe(false)
+
+    firstOnDisconnect?.()
+
+    expect(optionsList[0]?.signal?.aborted).toBe(true)
+    expect(optionsList[1]?.signal?.aborted).toBe(false)
+
+    resolveList[0]?.({
+      answer: 'first answer',
+      charts: [],
+      reasoning: '',
+      recordCount: 0,
+      toolTraces: [],
+    })
+    resolveList[1]?.({
+      answer: 'second answer',
+      charts: [],
+      reasoning: '',
+      recordCount: 0,
+      toolTraces: [],
+    })
+    await Promise.all(
+      mocked.runAiChatRequest.mock.results.map((result) => result.value),
+    )
+
+    expect(firstPort.postMessage).not.toHaveBeenCalled()
+    expect(secondPort.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answer: 'second answer',
+        type: 'complete',
+      }),
+    )
+    secondOnDisconnect?.()
+    expect(optionsList[1]?.signal?.aborted).toBe(true)
+  })
+
   it('ai-chat-stream 以外の port は無視し、stream error は error payload を返す', async () => {
     const { portListener } = setupListener()
     const ignoredPort = {
