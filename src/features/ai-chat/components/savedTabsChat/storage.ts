@@ -1,5 +1,9 @@
 import { normalizeAiSystemPromptSettings } from '@/features/ai-chat/lib/systemPromptPresets'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
+import {
+  readLocalStorage,
+  writeLocalStorage,
+} from '@/lib/storage/local-storage-adapter'
 import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
 import type { AiChatToolTrace, OllamaErrorDetails } from '@/types/background'
 import type { UserSettings } from '@/types/storage'
@@ -35,7 +39,7 @@ const loadSidebarWidth = (): number => {
     return DEFAULT_CHAT_SIDEBAR_WIDTH
   }
 
-  const storedWidth = window.localStorage.getItem(CHAT_SIDEBAR_STORAGE_KEY)
+  const storedWidth = readLocalStorage(CHAT_SIDEBAR_STORAGE_KEY)
   if (!storedWidth) {
     return clampSidebarWidth(DEFAULT_CHAT_SIDEBAR_WIDTH)
   }
@@ -52,14 +56,7 @@ const persistSidebarWidth = (width: number): void => {
     return
   }
 
-  try {
-    window.localStorage.setItem(
-      CHAT_SIDEBAR_STORAGE_KEY,
-      String(clampSidebarWidth(width)),
-    )
-  } catch {
-    // Skip persistence when localStorage is unavailable.
-  }
+  writeLocalStorage(CHAT_SIDEBAR_STORAGE_KEY, String(clampSidebarWidth(width)))
 }
 
 const syncExternalConversationState = ({
