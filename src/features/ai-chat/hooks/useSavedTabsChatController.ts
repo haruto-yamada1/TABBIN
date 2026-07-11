@@ -89,15 +89,22 @@ const useSavedTabsChatController = ({
   >(undefined)
   const activePortRef = useRef<{ disconnect: () => void } | null>(null)
   const conversationGenerationRef = useRef(0)
-  const ignoreNextDisconnectRef = useRef(false)
   const messagesRef = useRef<ChatMessage[]>(initialMessages)
   const syncedConversationIdRef = useRef<string | undefined>(conversationId)
   const isOpen = mode === 'page' || isFloatingOpen
 
-  const releaseChatWidgetResources = useCallback(() => {
-    activePortRef.current?.disconnect()
+  const disconnectActivePort = useCallback(() => {
+    const activePort = activePortRef.current
+    if (!activePort) {
+      return
+    }
     activePortRef.current = null
+    activePort.disconnect()
   }, [])
+
+  const releaseChatWidgetResources = useCallback(() => {
+    disconnectActivePort()
+  }, [disconnectActivePort])
 
   useEffect(() => {
     const shouldSyncExternalConversation =
@@ -114,6 +121,8 @@ const useSavedTabsChatController = ({
       return
     }
 
+    conversationGenerationRef.current += 1
+    disconnectActivePort()
     syncExternalConversationState({
       conversationId,
       initialMessages,
@@ -125,7 +134,7 @@ const useSavedTabsChatController = ({
       setMessages,
       syncedConversationIdRef,
     })
-  }, [conversationId, initialMessages, mode])
+  }, [conversationId, disconnectActivePort, initialMessages, mode])
 
   useEffect(() => {
     let isMounted = true
@@ -210,24 +219,9 @@ const useSavedTabsChatController = ({
       options,
     )
 
-  const disconnectActivePort = useCallback(
-    (suppressDisconnectError = false) => {
-      const activePort = activePortRef.current
-      if (!activePort) {
-        return
-      }
-      if (suppressDisconnectError) {
-        ignoreNextDisconnectRef.current = true
-      }
-      activePortRef.current = null
-      activePort.disconnect()
-    },
-    [],
-  )
-
   const resetConversation = useCallback(() => {
     conversationGenerationRef.current += 1
-    disconnectActivePort(true)
+    disconnectActivePort()
     setMessagesState([])
     setInput('')
     setErrorMessage('')
@@ -291,7 +285,6 @@ const useSavedTabsChatController = ({
     messages,
     activePortRef,
     conversationGenerationRef,
-    ignoreNextDisconnectRef,
     disconnectActivePort,
     replaceMessage,
     removeMessage,

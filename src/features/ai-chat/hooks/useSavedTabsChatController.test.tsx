@@ -100,8 +100,7 @@ describe('useSavedTabsChatController', () => {
     mocked.connectRuntimePort.mockResolvedValue(null)
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.saveUserSettings.mockResolvedValue(undefined)
-    ;(globalThis as unknown as { chrome: typeof chrome }).chrome =
-      createChromeMock()
+    vi.stubGlobal('chrome', createChromeMock())
   })
 
   afterEach(() => {
@@ -266,5 +265,96 @@ describe('useSavedTabsChatController', () => {
     })
     expect(result.current.messages.items).toEqual([])
     expect(result.current.errors.chatMessage).toBe('')
+  })
+
+  it('disconnects the previous conversation stream and ignores its completion', async () => {
+    const onMessagesChange = vi.fn()
+    let handlePortMessage: ((message: unknown) => void) | undefined
+    const port = {
+      disconnect: vi.fn(),
+      onDisconnect: { addListener: vi.fn() },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          handlePortMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    }
+    mocked.connectRuntimePort.mockResolvedValue(port)
+    const nextMessages: ChatMessage[] = [
+      { content: 'Conversation B', id: 'message-b', role: 'user' },
+    ]
+    const { result, rerender } = renderHook(
+      ({ conversationId, initialMessages }) =>
+        useSavedTabsChatController({
+          conversationId,
+          initialMessages,
+          mode: 'page',
+          onMessagesChange,
+        }),
+      {
+        initialProps: {
+          conversationId: 'conversation-a',
+          initialMessages: [] as ChatMessage[],
+        },
+      },
+    )
+    await waitFor(() => expect(result.current.status.isConfigured).toBe(true))
+
+    act(() => result.current.actions.handleSelectSuggestion('Question A'))
+    await waitFor(() => expect(port.postMessage).toHaveBeenCalled())
+    onMessagesChange.mockClear()
+
+    rerender({
+      conversationId: 'conversation-b',
+      initialMessages: nextMessages,
+    })
+
+    expect(port.disconnect).toHaveBeenCalledOnce()
+    expect(result.current.messages.items).toEqual(nextMessages)
+    expect(onMessagesChange).not.toHaveBeenCalled()
+
+    act(() => {
+      handlePortMessage?.({
+        answer: 'Late answer from A',
+        charts: [],
+        reasoning: 'Late completion',
+        toolTraces: [],
+        type: 'complete',
+      })
+    })
+    expect(result.current.messages.items).toEqual(nextMessages)
+    expect(onMessagesChange).not.toHaveBeenCalled()
+  })
+
+  it('disconnects a port that resolves after its conversation was reset', async () => {
+    let resolvePort: ((port: unknown) => void) | undefined
+    mocked.connectRuntimePort.mockImplementation(
+      async () =>
+        new Promise((resolve) => {
+          resolvePort = resolve
+        }),
+    )
+    const port = {
+      disconnect: vi.fn(),
+      onDisconnect: { addListener: vi.fn() },
+      onMessage: { addListener: vi.fn() },
+      postMessage: vi.fn(),
+    }
+    const { result } = renderHook(() => useSavedTabsChatController())
+    await waitFor(() => expect(result.current.status.isConfigured).toBe(true))
+
+    act(() => result.current.actions.handleSelectSuggestion('Question A'))
+    await waitFor(() => expect(resolvePort).toBeTypeOf('function'))
+    act(() => result.current.actions.handleCreateConversation())
+    await act(async () => {
+      resolvePort?.(port)
+      await Promise.resolve()
+    })
+
+    expect(port.disconnect).toHaveBeenCalledOnce()
+    expect(port.postMessage).not.toHaveBeenCalled()
+    expect(mocked.sendRuntimeMessage).not.toHaveBeenCalled()
+    expect(result.current.messages.items).toEqual([])
   })
 })

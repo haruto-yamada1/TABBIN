@@ -32,8 +32,7 @@ type UseChatStreamHandlersParams = {
     } | null
   }
   conversationGenerationRef: { current: number }
-  ignoreNextDisconnectRef: { current: boolean }
-  disconnectActivePort: (suppressDisconnectError?: boolean) => void
+  disconnectActivePort: () => void
   replaceMessage: (
     messageId: string,
     nextMessage: Partial<ChatMessage>,
@@ -63,7 +62,6 @@ const useChatStreamHandlers = ({
   messages,
   activePortRef,
   conversationGenerationRef,
-  ignoreNextDisconnectRef,
   disconnectActivePort,
   replaceMessage,
   removeMessage,
@@ -204,11 +202,6 @@ const useChatStreamHandlers = ({
       activePortRef.current = null
     }
 
-    if (ignoreNextDisconnectRef.current) {
-      ignoreNextDisconnectRef.current = false
-      return
-    }
-
     if (!isCurrentRequest(requestGeneration) || isFinished) {
       return
     }
@@ -232,6 +225,11 @@ const useChatStreamHandlers = ({
     try {
       const streamPort = await connectRuntimePort(AI_CHAT_STREAM_PORT_NAME)
       if (!streamPort) {
+        return false
+      }
+
+      if (!isCurrentRequest(requestGeneration)) {
+        streamPort.disconnect()
         return false
       }
 
