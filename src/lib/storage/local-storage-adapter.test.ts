@@ -75,8 +75,7 @@ describe('local-storage-adapter', () => {
     it('window が未定義の場合は何もしない', () => {
       delete (globalThis as Record<string, unknown>).window
 
-      // Should not throw
-      writeLocalStorage('any-key', 'value')
+      expect(() => writeLocalStorage('any-key', 'value')).not.toThrow()
     })
 
     it('localStorage.setItem が例外を投げた場合は何もしない', () => {
@@ -88,8 +87,9 @@ describe('local-storage-adapter', () => {
         configurable: true,
       })
 
-      // Should not throw
-      writeLocalStorage('overflow-key', 'x'.repeat(10_000_000))
+      expect(() =>
+        writeLocalStorage('overflow-key', 'x'.repeat(10_000_000)),
+      ).not.toThrow()
     })
   })
 })
