@@ -102,7 +102,8 @@ const useSavedTabsChatController = ({
     activePort.disconnect()
   }, [])
 
-  const releaseChatWidgetResources = useCallback(() => {
+  const invalidateConversation = useCallback(() => {
+    conversationGenerationRef.current += 1
     disconnectActivePort()
   }, [disconnectActivePort])
 
@@ -121,8 +122,7 @@ const useSavedTabsChatController = ({
       return
     }
 
-    conversationGenerationRef.current += 1
-    disconnectActivePort()
+    invalidateConversation()
     syncExternalConversationState({
       conversationId,
       initialMessages,
@@ -134,7 +134,7 @@ const useSavedTabsChatController = ({
       setMessages,
       syncedConversationIdRef,
     })
-  }, [conversationId, disconnectActivePort, initialMessages, mode])
+  }, [conversationId, initialMessages, invalidateConversation, mode])
 
   useEffect(() => {
     let isMounted = true
@@ -150,7 +150,12 @@ const useSavedTabsChatController = ({
     }
   }, [])
 
-  useEffect(() => releaseChatWidgetResources, [releaseChatWidgetResources])
+  useEffect(
+    () => () => {
+      invalidateConversation()
+    },
+    [invalidateConversation],
+  )
 
   useEffect(() => {
     const storageChangeListener = (
@@ -220,14 +225,13 @@ const useSavedTabsChatController = ({
     )
 
   const resetConversation = useCallback(() => {
-    conversationGenerationRef.current += 1
-    disconnectActivePort()
+    invalidateConversation()
     setMessagesState([])
     setInput('')
     setErrorMessage('')
     setChatOllamaError(undefined)
     setIsSubmitting(false)
-  }, [disconnectActivePort])
+  }, [invalidateConversation])
 
   const {
     isLoadingModels,

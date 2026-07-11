@@ -357,4 +357,41 @@ describe('useSavedTabsChatController', () => {
     expect(mocked.sendRuntimeMessage).not.toHaveBeenCalled()
     expect(result.current.messages.items).toEqual([])
   })
+
+  it('disconnects a port that resolves after the controller unmounts', async () => {
+    const onMessagesChange = vi.fn()
+    let resolvePort: ((port: unknown) => void) | undefined
+    mocked.connectRuntimePort.mockImplementation(
+      async () =>
+        new Promise((resolve) => {
+          resolvePort = resolve
+        }),
+    )
+    const port = {
+      disconnect: vi.fn(),
+      onDisconnect: { addListener: vi.fn() },
+      onMessage: { addListener: vi.fn() },
+      postMessage: vi.fn(),
+    }
+    const { result, unmount } = renderHook(() =>
+      useSavedTabsChatController({ onMessagesChange }),
+    )
+    await waitFor(() => expect(result.current.status.isConfigured).toBe(true))
+
+    act(() => result.current.actions.handleSelectSuggestion('Question A'))
+    await waitFor(() => expect(resolvePort).toBeTypeOf('function'))
+    onMessagesChange.mockClear()
+    unmount()
+    await act(async () => {
+      resolvePort?.(port)
+      await Promise.resolve()
+    })
+
+    expect(port.disconnect).toHaveBeenCalledOnce()
+    expect(port.onMessage.addListener).not.toHaveBeenCalled()
+    expect(port.onDisconnect.addListener).not.toHaveBeenCalled()
+    expect(port.postMessage).not.toHaveBeenCalled()
+    expect(mocked.sendRuntimeMessage).not.toHaveBeenCalled()
+    expect(onMessagesChange).not.toHaveBeenCalled()
+  })
 })
