@@ -509,6 +509,11 @@ const handleAiChatStreamPortMessage = (
   }
 
   const runMessage = message
+  const controller = new AbortController()
+
+  port.onDisconnect.addListener(() => {
+    controller.abort()
+  })
 
   runAiChatRequest(
     {
@@ -518,15 +523,24 @@ const handleAiChatStreamPortMessage = (
     },
     {
       onStepUpdate: (stepUpdate) => {
+        if (controller.signal.aborted) {
+          return
+        }
+
         port.postMessage({
           reasoning: stepUpdate.reasoning,
           toolTraces: stepUpdate.toolTraces,
           type: 'step',
         })
       },
+      signal: controller.signal,
     },
   )
     .then((result) => {
+      if (controller.signal.aborted) {
+        return
+      }
+
       port.postMessage({
         answer: result.answer,
         charts: result.charts,
@@ -537,6 +551,10 @@ const handleAiChatStreamPortMessage = (
       })
     })
     .catch((error: unknown) => {
+      if (controller.signal.aborted) {
+        return
+      }
+
       const errorMessage: AiChatStreamErrorMessage = {
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),

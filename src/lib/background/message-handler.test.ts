@@ -1051,6 +1051,118 @@ describe('setupMessageListener', () => {
     })
   })
 
+  it('ai-chat-stream port 切断時は request を abort して遅延した step と完了を送らない', async () => {
+    const { portListener } = setupListener()
+    let onPortDisconnect: (() => void) | undefined
+    let onPortMessage: ((message: unknown) => void) | undefined
+    let resolveRequest:
+      | ((result: {
+          answer: string
+          charts: never[]
+          reasoning: string
+          recordCount: number
+          toolTraces: never[]
+        }) => void)
+      | undefined
+    let requestOptions:
+      | {
+          onStepUpdate?: (step: {
+            reasoning: string
+            toolTraces: never[]
+          }) => void
+          signal?: AbortSignal
+        }
+      | undefined
+    const port = {
+      disconnect: vi.fn(),
+      name: 'ai-chat-stream',
+      onDisconnect: {
+        addListener: vi.fn((listener: () => void) => {
+          onPortDisconnect = listener
+        }),
+      },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          onPortMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    } as unknown as chrome.runtime.Port
+
+    mocked.runAiChatRequest.mockImplementation(
+      async (_request: unknown, options: typeof requestOptions) => {
+        requestOptions = options
+        return new Promise((resolve) => {
+          resolveRequest = resolve
+        })
+      },
+    )
+
+    portListener(port)
+    onPortMessage?.({ history: [], prompt: 'test', type: 'run' })
+
+    expect(requestOptions?.signal?.aborted).toBe(false)
+    onPortDisconnect?.()
+    expect(requestOptions?.signal?.aborted).toBe(true)
+
+    requestOptions?.onStepUpdate?.({
+      reasoning: 'late step',
+      toolTraces: [],
+    })
+    resolveRequest?.({
+      answer: 'late answer',
+      charts: [],
+      reasoning: 'late completion',
+      recordCount: 0,
+      toolTraces: [],
+    })
+    await expect(
+      mocked.runAiChatRequest.mock.results[0]?.value,
+    ).resolves.toEqual(expect.objectContaining({ answer: 'late answer' }))
+
+    expect(mocked.runAiChatRequest).toHaveBeenCalledOnce()
+    expect(port.postMessage).not.toHaveBeenCalled()
+  })
+
+  it('ai-chat-stream port 切断後に request が失敗しても error を送らない', async () => {
+    const { portListener } = setupListener()
+    let onPortDisconnect: (() => void) | undefined
+    let onPortMessage: ((message: unknown) => void) | undefined
+    let rejectRequest: ((reason?: unknown) => void) | undefined
+    const port = {
+      disconnect: vi.fn(),
+      name: 'ai-chat-stream',
+      onDisconnect: {
+        addListener: vi.fn((listener: () => void) => {
+          onPortDisconnect = listener
+        }),
+      },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          onPortMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    } as unknown as chrome.runtime.Port
+
+    mocked.runAiChatRequest.mockImplementation(async () => {
+      return new Promise((_resolve, reject) => {
+        rejectRequest = reject
+      })
+    })
+
+    portListener(port)
+    onPortMessage?.({ history: [], prompt: 'test', type: 'run' })
+    onPortDisconnect?.()
+    rejectRequest?.(new DOMException('aborted', 'AbortError'))
+    await expect(
+      mocked.runAiChatRequest.mock.results[0]?.value,
+    ).rejects.toThrow('aborted')
+
+    expect(mocked.runAiChatRequest).toHaveBeenCalledOnce()
+    expect(port.postMessage).not.toHaveBeenCalled()
+  })
+
   it('ai-chat-stream 以外の port は無視し、stream error は error payload を返す', async () => {
     const { portListener } = setupListener()
     const ignoredPort = {
