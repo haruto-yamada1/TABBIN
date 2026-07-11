@@ -46,6 +46,13 @@ vi.mock('@/lib/storage/urls', () => ({
   getUrlRecords: mocks.getUrlRecords,
 }))
 
+vi.mock('@/lib/storage/tabs', () => ({
+  getSavedTabs: vi.fn(async () => {
+    const result = await chrome.storage.local.get('savedTabs')
+    return Array.isArray(result.savedTabs) ? result.savedTabs : []
+  }),
+}))
+
 describe('loadAnalyticsRecords', () => {
   beforeEach(() => {
     vi.clearAllMocks()

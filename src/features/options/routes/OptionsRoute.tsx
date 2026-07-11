@@ -34,6 +34,7 @@ import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
 import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
 import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
 import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeInputColumn'
+import { getExtensionUrl } from '@/lib/browser/runtime'
 import type { UserSettings } from '@/types/storage'
 
 import { resetFontSizeInputState } from './optionsRoute.helpers'
@@ -336,7 +337,7 @@ const useOptionsRouteView = () => {
 
   const handleClickReleaseNotes = useCallback(() => {
     window.open(
-      chrome.runtime.getURL('changelog.html'),
+      getExtensionUrl('changelog.html') ?? 'changelog.html',
       '_blank',
       'noopener,noreferrer',
     )

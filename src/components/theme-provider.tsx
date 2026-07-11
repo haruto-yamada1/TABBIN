@@ -9,6 +9,7 @@ import {
 
 import { colorOptions } from '@/constants/colorOptions'
 import { toFontScaleValue } from '@/constants/fontSize'
+import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageLocal,
   getChromeStorageOnChanged,
@@ -97,7 +98,7 @@ export const ThemeProvider = ({
 
     // ストレージの変更を監視
     const handleStorageChange = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Record<string, StorageChange>,
       areaName: string,
     ) => {
       if (
@@ -165,7 +166,7 @@ export const ThemeProvider = ({
   // ユーザー設定のカラー変更を監視し、即座にCSS変数を更新
   useEffect(() => {
     const listener = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Record<string, StorageChange>,
       areaName: string,
     ) => {
       if (areaName === 'local' && Object.hasOwn(changes, 'userSettings')) {

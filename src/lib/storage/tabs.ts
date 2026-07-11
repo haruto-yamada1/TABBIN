@@ -21,6 +21,73 @@ type ResolvedTabGroupUrl = UrlRecord & {
   subCategory?: string
 }
 
+/**
+ * `chrome.storage.local` から `savedTabs` 全件を読み出す。
+ * infrastructure 境界の関数で、features / components 層が
+ * `chrome.storage.local.get` を直接呼ぶ代わりに利用する。
+ */
+const getSavedTabs = async (): Promise<TabGroup[]> => {
+  const { savedTabs = [] } = await chrome.storage.local.get<{
+    savedTabs?: TabGroup[]
+  }>('savedTabs')
+  return savedTabs
+}
+
+/**
+ * `savedTabs` 全件を `chrome.storage.local` へ書き戻す。
+ * `getSavedTabs` と対になる永続化関数。
+ */
+const saveTabGroups = async (tabGroups: TabGroup[]): Promise<void> => {
+  await chrome.storage.local.set({ savedTabs: tabGroups })
+}
+
+/**
+ * 指定タブグループ内の子カテゴリ名をリネームし、関連する
+ * `categoryKeywords`, `urls[].subCategory`, `subCategoryOrder`,
+ * `subCategoryOrderWithUncategorized` も一括更新する。
+ * `SubCategoryKeywordManager` のリネーム操作を
+ * `chrome.storage.local` 直叩きから置換するために追加。
+ */
+const renameSubCategoryInTabGroup = async (
+  groupId: string,
+  oldName: string,
+  newName: string,
+): Promise<TabGroup[]> => {
+  const savedTabs = await getSavedTabs()
+  const updatedTabs = savedTabs.map((tab: TabGroup) => {
+    if (tab.id !== groupId) {
+      return tab
+    }
+    const updatedSubCategories =
+      tab.subCategories?.map((cat) => (cat === oldName ? newName : cat)) ?? []
+    const updatedCategoryKeywords =
+      tab.categoryKeywords?.map((ck) =>
+        ck.categoryName === oldName ? { ...ck, categoryName: newName } : ck,
+      ) ?? []
+    const updatedUrls = (tab.urls ?? []).map((url) =>
+      url.subCategory === oldName ? { ...url, subCategory: newName } : url,
+    )
+    const updatedSubCategoryOrder =
+      tab.subCategoryOrder?.map((cat) => (cat === oldName ? newName : cat)) ??
+      []
+    const updatedSubCategoryOrderWithUncategorized =
+      tab.subCategoryOrderWithUncategorized?.map((cat) =>
+        cat === oldName ? newName : cat,
+      ) ?? []
+    return {
+      ...tab,
+      categoryKeywords: updatedCategoryKeywords,
+      subCategories: updatedSubCategories,
+      subCategoryOrder: updatedSubCategoryOrder,
+      subCategoryOrderWithUncategorized:
+        updatedSubCategoryOrderWithUncategorized,
+      urls: updatedUrls,
+    }
+  })
+  await saveTabGroups(updatedTabs)
+  return updatedTabs
+}
+
 type DeleteSyncOptions = {
   throwOnSyncError?: boolean
 }
@@ -815,6 +882,9 @@ const removeUrlsFromTabGroup = async (
 
 export {
   addSubCategoryToGroup,
+  getSavedTabs,
+  renameSubCategoryInTabGroup,
+  saveTabGroups,
   addSubCategoryWithKeywords,
   addUrlToTabGroup,
   applySubCategoryMapping,

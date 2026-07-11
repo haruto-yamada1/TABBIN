@@ -93,6 +93,60 @@ const sendWithChromeRuntime = async (
     }
   })
 
+/**
+ * `chrome.runtime.PlatformInfo` 互換の最小型。
+ * `chrome.*` 型を利用側に露出しないための infrastructure 側の型境界。
+ */
+export type PlatformInfo = {
+  os?: string
+}
+
+/**
+ * `chrome.runtime.getManifest().version` を安全に取得する。
+ * `chrome` API が見つからない環境では `undefined` を返す。
+ */
+export const getManifestVersion = (): string | undefined => {
+  const chromeRuntime = getGlobalChromeRuntime()
+  if (!chromeRuntime) {
+    return undefined
+  }
+  const getManifestValue: unknown = Reflect.get(chromeRuntime, 'getManifest')
+  if (typeof getManifestValue !== 'function') {
+    return undefined
+  }
+  try {
+    const manifest: unknown = Reflect.apply(getManifestValue, chromeRuntime, [])
+    if (isObjectLike(manifest)) {
+      const version: unknown = Reflect.get(manifest, 'version')
+      return typeof version === 'string' ? version : undefined
+    }
+    return undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * `chrome.runtime.getURL(path)` を安全に呼び出す。
+ * `chrome` API が見つからない環境では `undefined` を返す。
+ */
+export const getExtensionUrl = (path: string): string | undefined => {
+  const chromeRuntime = getGlobalChromeRuntime()
+  if (!chromeRuntime) {
+    return undefined
+  }
+  const getURLValue: unknown = Reflect.get(chromeRuntime, 'getURL')
+  if (typeof getURLValue !== 'function') {
+    return undefined
+  }
+  try {
+    const url: unknown = Reflect.apply(getURLValue, chromeRuntime, [path])
+    return typeof url === 'string' ? url : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export const sendRuntimeMessage = async (
   message: unknown,
 ): Promise<unknown> => {

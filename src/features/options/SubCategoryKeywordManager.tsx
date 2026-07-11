@@ -9,13 +9,16 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { SubCategoryButton } from '@/features/options/SubCategoryButton'
 import { SubCategoryKeywordTag } from '@/features/options/SubCategoryKeywordTag'
 import { SubCategoryRenameSection } from '@/features/options/SubCategoryRenameSection'
-import { setCategoryKeywords } from '@/lib/storage/tabs'
+import {
+  removeSubCategoryFromTabGroup,
+  renameSubCategoryInTabGroup,
+  setCategoryKeywords,
+} from '@/lib/storage/tabs'
 import type { TabGroup } from '@/types/storage'
 
 import {
   getCategoryKeywordsForName,
   getRenameDraftName,
-  replaceTabGroup,
   updateTabGroup,
 } from './subCategoryKeywordManager.helpers'
 
@@ -204,49 +207,8 @@ const useSubCategoryKeywordManagerView = ({
         console.log('削除するカテゴリ:', categoryToRemove)
         console.log('タブグループID:', tabGroup.id)
 
-        // タブの情報を取得
-        const { savedTabs = [] } = await chrome.storage.local.get<{
-          savedTabs?: TabGroup[]
-        }>('savedTabs')
-        console.log('取得したsavedTabs件数:', savedTabs.length)
-
-        // 対象のタブグループを探す
-        const groupToUpdate = savedTabs.find(
-          (g: TabGroup) => g.id === tabGroup.id,
-        )
-        console.log('更新対象のグループ有無:', Boolean(groupToUpdate))
-
-        if (!groupToUpdate) {
-          console.error('タブグループが見つかりません')
-          return
-        }
-
-        // 子カテゴリリストと関連キーワードからカテゴリを削除
-        const updatedSubCategories = (groupToUpdate.subCategories ?? []).filter(
-          (cat: string) => cat !== categoryToRemove,
-        )
-
-        const updatedCategoryKeywords = (
-          groupToUpdate.categoryKeywords ?? []
-        ).filter(
-          (ck: { categoryName: string }) =>
-            ck.categoryName !== categoryToRemove,
-        )
-
-        console.log('更新後のサブカテゴリ:', updatedSubCategories)
-        console.log('更新後のキーワード設定:', updatedCategoryKeywords)
-
-        // グループを更新
-        const updatedGroup = {
-          ...groupToUpdate,
-          categoryKeywords: updatedCategoryKeywords,
-          subCategories: updatedSubCategories,
-        }
-
-        // 保存
-        const updatedTabs = replaceTabGroup(savedTabs, updatedGroup)
-        // ストレージに保存
-        await chrome.storage.local.set({ savedTabs: updatedTabs })
+        // ストレージ経由で子カテゴリを削除
+        await removeSubCategoryFromTabGroup(tabGroup.id, categoryToRemove)
         console.log('ストレージに保存完了')
 
         toast.success(
@@ -282,62 +244,8 @@ const useSubCategoryKeywordManagerView = ({
     async (oldName: string, newName: string) => {
       console.log(`カテゴリ名を変更: ${oldName} → ${newName}`)
 
-      // ストレージからタブグループを取得
-      const { savedTabs = [] } = await chrome.storage.local.get<{
-        savedTabs?: TabGroup[]
-      }>('savedTabs')
-
-      const updatedTabs = savedTabs.map((tab: TabGroup) => {
-        if (tab.id === tabGroup.id) {
-          // 1. subCategories配列を更新
-          const updatedSubCategories =
-            tab.subCategories?.map((cat) =>
-              cat === oldName ? newName : cat,
-            ) ?? []
-
-          // 2. categoryKeywords内の該当カテゴリを更新
-          const updatedCategoryKeywords =
-            tab.categoryKeywords?.map((ck) => {
-              if (ck.categoryName === oldName) {
-                return { ...ck, categoryName: newName }
-              }
-              return ck
-            }) ?? []
-
-          // 3. 各URLのサブカテゴリ参照を更新
-          const updatedUrls = (tab.urls ?? []).map((url) => {
-            if (url.subCategory === oldName) {
-              return { ...url, subCategory: newName }
-            }
-            return url
-          })
-
-          // 4. カテゴリ順序配列があれば更新
-          const updatedSubCategoryOrder =
-            tab.subCategoryOrder?.map((cat) =>
-              cat === oldName ? newName : cat,
-            ) ?? []
-
-          const updatedSubCategoryOrderWithUncategorized =
-            tab.subCategoryOrderWithUncategorized?.map((cat) =>
-              cat === oldName ? newName : cat,
-            ) ?? []
-
-          return {
-            ...tab,
-            categoryKeywords: updatedCategoryKeywords,
-            subCategories: updatedSubCategories,
-            subCategoryOrder: updatedSubCategoryOrder,
-            subCategoryOrderWithUncategorized:
-              updatedSubCategoryOrderWithUncategorized,
-            urls: updatedUrls,
-          }
-        }
-        return tab
-      })
-
-      // 更新したタブをストレージに保存
-      await chrome.storage.local.set({ savedTabs: updatedTabs })
+      // ストレージ経由で子カテゴリ名をリネーム
+      await renameSubCategoryInTabGroup(tabGroup.id, oldName, newName)
       console.log(`カテゴリ名の変更を完了: ${oldName} → ${newName}`)
     },
     [tabGroup],

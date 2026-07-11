@@ -614,69 +614,52 @@
       }
     },
     {
-      "files": [
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/*.spec.ts",
-        "**/*.spec.tsx",
-        "**/testing/**",
-        "src/test/**"
-      ],
+      "files": ["src/features/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
       "rules": {
-        "typescript/no-unsafe-assignment": "off",
-        "typescript/no-unsafe-call": "off",
-        "typescript/no-unsafe-member-access": "off",
-        "typescript/no-unsafe-argument": "off",
-        "typescript/no-unsafe-return": "off",
-        "typescript/no-unsafe-type-assertion": "off",
-        "typescript/consistent-type-assertions": "off",
-        "typescript/no-unnecessary-condition": "off",
-        "eslint/no-magic-numbers": "off",
-        "eslint/no-restricted-globals": "off",
-        "eslint/no-restricted-properties": "off",
-        "eslint/max-lines": [
+        "eslint/no-restricted-globals": [
           "error",
           {
-            "max": 5000,
-            "skipBlankLines": true,
-            "skipComments": true
+            "name": "chrome",
+            "message": "features / components 層は chrome.* を直接利用できません（adapter / infrastructure / repository 経由）"
+          },
+          {
+            "name": "browser",
+            "message": "features / components 層は browser.* を直接利用できません（adapter / infrastructure / repository 経由）"
           }
         ],
-        "eslint/max-lines-per-function": [
+        "eslint/no-restricted-properties": [
           "error",
           {
-            "max": 2000,
-            "skipBlankLines": true,
-            "skipComments": true
+            "object": "chrome",
+            "property": "tabs",
+            "message": "features / components 層は chrome.tabs を直接利用できません（BrowserTabPort / adapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "storage",
+            "message": "features / components 層は chrome.storage を直接利用できません（StorageRepository / adapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "runtime",
+            "message": "features / components 層は chrome.runtime を直接利用できません（RuntimeMessageClient / adapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "contextMenus",
+            "message": "features / components 層は chrome.contextMenus を直接利用できません（ContextMenuAdapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "notifications",
+            "message": "features / components 層は chrome.notifications を直接利用できません（NotificationAdapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "alarms",
+            "message": "features / components 層は chrome.alarms を直接利用できません（AlarmAdapter 経由）"
           }
-        ],
-        "eslint/max-statements": ["error", 200],
-        "eslint/complexity": ["error", 20],
-        "eslint/max-depth": ["error", 5],
-        "eslint/max-params": "off",
-        "import/first": "off",
-        "eslint/max-nested-callbacks": "off",
-        "typescript/await-thenable": "off",
-        "typescript/no-confusing-void-expression": "off",
-        "typescript/non-nullable-type-assertion-style": "off",
-        "typescript/no-unnecessary-type-assertion": "off",
-        "oxc/no-map-spread": "off",
-        "import/no-unassigned-import": "off",
-        "unicorn/no-abusive-eslint-disable": "off",
-        "react-perf/jsx-no-jsx-as-prop": "off",
-        "react-perf/jsx-no-new-array-as-prop": "off",
-        "react-perf/jsx-no-new-function-as-prop": "off",
-        "react-perf/jsx-no-new-object-as-prop": "off",
-        "react/jsx-max-depth": "off",
-        "react/only-export-components": "off",
-        "typescript/require-await": "off",
-        "typescript/unbound-method": "off",
-        "react/jsx-no-useless-fragment": "off",
-        "vitest/prefer-strict-equal": "off",
-        "vitest/consistent-test-it": "off",
-        "vitest/prefer-expect-resolves": "off",
-        "vitest/require-top-level-describe": "off",
-        "typescript/no-dynamic-delete": "off"
+        ]
       }
     },
     {
@@ -753,6 +736,10 @@
           {
             "name": "chrome",
             "message": "domain 層は chrome.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "browser",
+            "message": "domain 層は browser.* を直接利用できません（adapter / port 経由）"
           },
           {
             "name": "localStorage",
@@ -852,6 +839,11 @@
             "message": "application 層は chrome.notifications を直接利用できません（NotificationPort 経由）"
           },
           {
+            "object": "chrome",
+            "property": "runtime",
+            "message": "application 層は chrome.runtime を直接利用できません（MessagingPort 経由）"
+          },
+          {
             "object": "Date",
             "property": "now",
             "message": "application 層は Date.now() を直接利用できません。ClockPort 経由で時刻を注入してください"
@@ -865,6 +857,17 @@
             "object": "crypto",
             "property": "randomUUID",
             "message": "application 層は crypto.randomUUID() を直接利用できません。IdGeneratorPort 経由で ID を生成してください"
+          }
+        ],
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "chrome",
+            "message": "application 層は chrome.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "browser",
+            "message": "application 層は browser.* を直接利用できません（adapter / port 経由）"
           }
         ]
       }
@@ -898,6 +901,22 @@
             "object": "chrome",
             "property": "runtime",
             "message": "presentation 層は chrome.runtime を直接利用できません（MessagingPort 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "notifications",
+            "message": "presentation 層は chrome.notifications を直接利用できません（NotificationPort 経由）"
+          }
+        ],
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "chrome",
+            "message": "presentation 層は chrome.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "browser",
+            "message": "presentation 層は browser.* を直接利用できません（adapter / port 経由）"
           }
         ]
       }
@@ -1005,6 +1024,72 @@
       "files": ["src/**/*.d.ts"],
       "rules": {
         "typescript/consistent-type-definitions": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/testing/**",
+        "src/test/**"
+      ],
+      "rules": {
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/consistent-type-assertions": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "eslint/no-magic-numbers": "off",
+        "eslint/no-restricted-globals": "off",
+        "eslint/no-restricted-properties": "off",
+        "eslint/max-lines": [
+          "error",
+          {
+            "max": 5000,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ],
+        "eslint/max-lines-per-function": [
+          "error",
+          {
+            "max": 2000,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ],
+        "eslint/max-statements": ["error", 200],
+        "eslint/complexity": ["error", 20],
+        "eslint/max-depth": ["error", 5],
+        "eslint/max-params": "off",
+        "import/first": "off",
+        "eslint/max-nested-callbacks": "off",
+        "typescript/await-thenable": "off",
+        "typescript/no-confusing-void-expression": "off",
+        "typescript/non-nullable-type-assertion-style": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "oxc/no-map-spread": "off",
+        "import/no-unassigned-import": "off",
+        "unicorn/no-abusive-eslint-disable": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off",
+        "react-perf/jsx-no-new-array-as-prop": "off",
+        "react-perf/jsx-no-new-function-as-prop": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "react/jsx-max-depth": "off",
+        "react/only-export-components": "off",
+        "typescript/require-await": "off",
+        "typescript/unbound-method": "off",
+        "react/jsx-no-useless-fragment": "off",
+        "vitest/prefer-strict-equal": "off",
+        "vitest/consistent-test-it": "off",
+        "vitest/prefer-expect-resolves": "off",
+        "vitest/require-top-level-describe": "off",
+        "typescript/no-dynamic-delete": "off"
       }
     }
   ]

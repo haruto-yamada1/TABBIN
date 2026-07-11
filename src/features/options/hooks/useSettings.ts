@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -115,7 +116,7 @@ export const useSettings = () => {
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Record<string, StorageChange>,
       areaName: string,
     ) => {
       if (areaName === 'local' && Object.hasOwn(changes, 'userSettings')) {

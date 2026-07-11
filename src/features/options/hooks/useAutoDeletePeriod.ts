@@ -3,6 +3,11 @@ import { toast } from 'sonner'
 
 import { autoDeleteOptions } from '@/constants/autoDeleteOptions'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import {
+  getChromeStorageLocal,
+  warnMissingChromeStorage,
+} from '@/lib/browser/chrome-storage'
+import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import type { UserSettings } from '@/types/storage'
 import { isPeriodShortening } from '@/utils/isPeriodShortening'
 
@@ -76,7 +81,7 @@ export const useAutoDeletePeriod = (
 
     // 「自動削除しない」の場合は確認なしで直接適用
     if (periodToApply === 'never') {
-      applyAutoDeletePeriod()
+      void applyAutoDeletePeriod()
       return
     }
 
@@ -104,11 +109,11 @@ export const useAutoDeletePeriod = (
     })
 
     // 確認を表示
-    showConfirmation(message, applyAutoDeletePeriod, periodToApply)
+    showConfirmation(message, () => void applyAutoDeletePeriod(), periodToApply)
   }
 
   // 実際の適用処理（確認後に実行）
-  const applyAutoDeletePeriod = () => {
+  const applyAutoDeletePeriod = async () => {
     const periodToApply = pendingAutoDeletePeriod ?? settings.autoDeletePeriod
 
     if (!periodToApply) {
@@ -124,43 +129,42 @@ export const useAutoDeletePeriod = (
       }
 
       // ストレージに直接保存
-      chrome.storage.local.set({ userSettings: newSettings }, () => {
-        console.log('設定を保存しました:', newSettings)
+      const storageLocal = getChromeStorageLocal()
+      if (!storageLocal) {
+        warnMissingChromeStorage('自動削除期間の保存')
+        return
+      }
+      await storageLocal.set({ userSettings: newSettings })
+      console.log('設定を保存しました:', newSettings)
 
-        // UI状態を更新
-        setSettings(newSettings)
+      // UI状態を更新
+      setSettings(newSettings)
 
-        // トースト通知を表示
-        if (periodToApply === 'never') {
-          toast.success(t('options.autoDelete.disabled'))
-        } else {
-          const selectedOption = autoDeleteOptions.find(
-            (opt) => opt.value === periodToApply,
-          )
-          const periodLabel = selectedOption
-            ? t(selectedOption.labelKey)
-            : periodToApply
-          toast.success(
-            t('options.autoDelete.enabled', undefined, {
-              periodLabel,
-            }),
-          )
-        }
-
-        // バックグラウンドに通知
-        const needsTimestampUpdate =
-          periodToApply === '30sec' || periodToApply === '1min'
-        chrome.runtime.sendMessage(
-          {
-            action: 'checkExpiredTabs',
-            forceReload: true,
-            period: periodToApply,
-            updateTimestamps: needsTimestampUpdate,
-          },
-          (response) => {
-            console.log('応答:', response)
-          },
+      // トースト通知を表示
+      if (periodToApply === 'never') {
+        toast.success(t('options.autoDelete.disabled'))
+      } else {
+        const selectedOption = autoDeleteOptions.find(
+          (opt) => opt.value === periodToApply,
         )
+        const periodLabel = selectedOption
+          ? t(selectedOption.labelKey)
+          : periodToApply
+        toast.success(
+          t('options.autoDelete.enabled', undefined, {
+            periodLabel,
+          }),
+        )
+      }
+
+      // バックグラウンドに通知
+      const needsTimestampUpdate =
+        periodToApply === '30sec' || periodToApply === '1min'
+      void sendRuntimeMessage({
+        action: 'checkExpiredTabs',
+        forceReload: true,
+        period: periodToApply,
+        updateTimestamps: needsTimestampUpdate,
       })
 
       // 確認を非表示

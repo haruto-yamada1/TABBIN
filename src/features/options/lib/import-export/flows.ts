@@ -1,17 +1,29 @@
 import {
   ACTIVE_AI_CHAT_CONVERSATION_ID_KEY,
   AI_CHAT_CONVERSATIONS_KEY,
+  loadConversationHistory,
 } from '@/features/ai-chat/lib/conversation-history'
 import type { AiChatConversation } from '@/features/ai-chat/types'
+import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
+import { getManifestVersion } from '@/lib/browser/runtime'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { SavedAnalyticsView } from '@/lib/storage/analytics'
-import { saveParentCategories } from '@/lib/storage/categories'
+import { loadSavedAnalyticsViews } from '@/lib/storage/analytics'
+import {
+  getParentCategories,
+  saveParentCategories,
+} from '@/lib/storage/categories'
 import { migrateToUrlsStorage } from '@/lib/storage/migration'
+import {
+  getCustomProjectOrder,
+  getCustomProjects,
+} from '@/lib/storage/projects'
 import {
   defaultSettings,
   getUserSettings as getUserSettingsFromStorage,
   saveUserSettings,
 } from '@/lib/storage/settings'
+import { getSavedTabs } from '@/lib/storage/tabs'
+import { getUrlRecords } from '@/lib/storage/urls'
 import type {
   CustomProject,
   ParentCategory,
@@ -88,13 +100,7 @@ const createImportedUrlRecordMap = (
   )
 
 const createCurrentUrlRecordMap = async (): Promise<Map<string, UrlRecord>> => {
-  const currentUrlsData = await chrome.storage.local.get({
-    urls: [],
-  })
-  // eslint-disable-next-line typescript/no-unsafe-assignment
-  const currentUrlRecords: UrlRecord[] = Array.isArray(currentUrlsData.urls)
-    ? currentUrlsData.urls
-    : []
+  const currentUrlRecords = await getUrlRecords()
   return new Map(
     currentUrlRecords.map((urlRecord) => [urlRecord.id, urlRecord]),
   )
@@ -109,62 +115,35 @@ const exportSettings = async (): Promise<BackupData> => {
   try {
     // 先にマイグレーションを実行し、新形式URLデータの整合性を高める
     await migrateToUrlsStorage()
-    const [userSettings, storageData] = await Promise.all([
+    const [
+      userSettings,
+      customProjectOrder,
+      customProjectsRaw,
+      parentCategories,
+      savedAnalyticsViews,
+      savedTabs,
+      urls,
+    ] = await Promise.all([
       getUserSettingsFromStorage(),
-      chrome.storage.local.get({
-        [ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]: '',
-        [AI_CHAT_CONVERSATIONS_KEY]: [],
-        customProjectOrder: [],
-        customProjects: [],
-        parentCategories: [],
-        savedAnalyticsViews: [],
-        savedTabs: [],
-        urls: [],
-      }),
+      getCustomProjectOrder(),
+      getCustomProjects(),
+      getParentCategories(),
+      loadSavedAnalyticsViews(),
+      getSavedTabs(),
+      getUrlRecords(),
     ])
-    // eslint-disable-next-line typescript/no-unsafe-assignment
-    const parentCategories: ParentCategory[] = Array.isArray(
-      storageData.parentCategories,
+    // parentCategories is already typed from getParentCategories()
+    // savedTabs is already typed from getSavedTabs()
+    const storedCustomProjects: CustomProject[] = customProjectsRaw.map(
+      (project) => normalizeImportedCustomProject(project),
     )
-      ? storageData.parentCategories
-      : []
-    // eslint-disable-next-line typescript/no-unsafe-assignment
-    const savedTabs: TabGroup[] = Array.isArray(storageData.savedTabs)
-      ? storageData.savedTabs
-      : []
-    const storedCustomProjects: CustomProject[] = Array.isArray(
-      storageData.customProjects,
-    )
-      ? storageData.customProjects.map((project) =>
-          // eslint-disable-next-line typescript/no-unsafe-argument
-          normalizeImportedCustomProject(project),
-        )
-      : []
-    const customProjectOrder = Array.isArray(storageData.customProjectOrder)
-      ? storageData.customProjectOrder.filter(
-          (id): id is string => typeof id === 'string',
-        )
-      : []
-    // eslint-disable-next-line typescript/no-unsafe-assignment
-    const aiChatConversations: AiChatConversation[] = Array.isArray(
-      storageData[AI_CHAT_CONVERSATIONS_KEY],
-    )
-      ? storageData[AI_CHAT_CONVERSATIONS_KEY]
-      : []
-    const activeAiChatConversationId =
-      typeof storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] === 'string'
-        ? storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]
-        : ''
-    // eslint-disable-next-line typescript/no-unsafe-assignment
-    const savedAnalyticsViews = Array.isArray(storageData.savedAnalyticsViews)
-      ? storageData.savedAnalyticsViews
-      : []
-    // eslint-disable-next-line typescript/no-unsafe-assignment
-    const urlRecords: UrlRecord[] = Array.isArray(storageData.urls)
-      ? storageData.urls
-      : []
+    // customProjectOrder is already typed from getCustomProjectOrder()
+    const aiChatHistory = await loadConversationHistory()
+    const aiChatConversations: AiChatConversation[] =
+      aiChatHistory.conversations
+    const activeAiChatConversationId = aiChatHistory.activeConversationId
     const urlRecordMap = new Map(
-      urlRecords.map((urlRecord) => [urlRecord.id, urlRecord]),
+      urls.map((urlRecord) => [urlRecord.id, urlRecord]),
     )
     const placeholderUrlRecordMap = new Map<string, UrlRecord>()
     const placeholderUrlTitle = getPlaceholderUrlTitle(
@@ -215,7 +194,8 @@ const exportSettings = async (): Promise<BackupData> => {
       timestamp: new Date().toISOString(),
       urls: exportUrlRecords,
       userSettings,
-      version: chrome.runtime.getManifest().version || '1.0.0',
+      // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty version string should fall through to default
+      version: getManifestVersion() || '1.0.0',
     }
     return backupData
   } catch (error) {
@@ -262,62 +242,34 @@ const importWithMerge = async ({
 }: ImportExecutionParams & {
   translate?: Translate
 }): Promise<ImportResult> => {
-  const [currentSettings, storageData] = await Promise.all([
+  const [
+    currentSettings,
+    currentCustomProjectOrderRaw,
+    currentCustomProjectsRaw,
+    currentParentCategories,
+    currentSavedAnalyticsViewsRaw,
+    currentTabsRaw,
+    currentAiChatHistory,
+  ] = await Promise.all([
     getUserSettingsFromStorage(),
-    chrome.storage.local.get<{
-      activeAiChatConversationId?: string
-      aiChatConversations?: AiChatConversation[]
-      customProjectOrder?: string[]
-      customProjects?: CustomProject[]
-      parentCategories?: ParentCategory[]
-      savedAnalyticsViews?: SavedAnalyticsView[]
-      savedTabs?: TabGroup[]
-    }>([
-      ACTIVE_AI_CHAT_CONVERSATION_ID_KEY,
-      AI_CHAT_CONVERSATIONS_KEY,
-      'customProjectOrder',
-      'customProjects',
-      'parentCategories',
-      'savedAnalyticsViews',
-      'savedTabs',
-    ]),
+    getCustomProjectOrder(),
+    getCustomProjects(),
+    getParentCategories(),
+    loadSavedAnalyticsViews(),
+    getSavedTabs(),
+    loadConversationHistory(),
   ])
-  const currentCategories: ParentCategory[] = Array.isArray(
-    storageData.parentCategories,
+  const currentCategories: ParentCategory[] = currentParentCategories
+  const currentTabs: TabGroup[] = currentTabsRaw
+  const currentCustomProjects: CustomProject[] = currentCustomProjectsRaw.map(
+    (project) => normalizeImportedCustomProject(project),
   )
-    ? storageData.parentCategories
-    : []
-  const currentTabs: TabGroup[] = Array.isArray(storageData.savedTabs)
-    ? storageData.savedTabs
-    : []
-  const currentCustomProjects: CustomProject[] = Array.isArray(
-    storageData.customProjects,
-  )
-    ? storageData.customProjects.map((project) =>
-        normalizeImportedCustomProject(project),
-      )
-    : []
-  const currentCustomProjectOrder: string[] = Array.isArray(
-    storageData.customProjectOrder,
-  )
-    ? storageData.customProjectOrder.filter(
-        (id): id is string => typeof id === 'string',
-      )
-    : []
-  const currentAiChatConversations: AiChatConversation[] = Array.isArray(
-    storageData[AI_CHAT_CONVERSATIONS_KEY],
-  )
-    ? storageData[AI_CHAT_CONVERSATIONS_KEY]
-    : []
+  const currentCustomProjectOrder: string[] = currentCustomProjectOrderRaw
+  const currentAiChatConversations: AiChatConversation[] =
+    currentAiChatHistory.conversations
   const currentActiveAiChatConversationId =
-    typeof storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] === 'string'
-      ? storageData[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]
-      : ''
-  const currentSavedAnalyticsViews = Array.isArray(
-    storageData.savedAnalyticsViews,
-  )
-    ? storageData.savedAnalyticsViews
-    : []
+    currentAiChatHistory.activeConversationId
+  const currentSavedAnalyticsViews = currentSavedAnalyticsViewsRaw
   const mergedSettings = mergeUserSettings(
     currentSettings,
     importedData.userSettings,
@@ -368,23 +320,27 @@ const importWithMerge = async ({
   await Promise.all([
     saveUserSettings(mergedSettings),
     saveParentCategories(mergedCategories),
-    chrome.storage.local.set({
-      customProjectOrder: mergedCustomProjectData.customProjectOrder,
-      customProjects: mergedCustomProjectData.customProjects,
-      ...(mergedAiChatHistory
-        ? {
-            [ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]:
-              mergedAiChatHistory.activeConversationId,
-            [AI_CHAT_CONVERSATIONS_KEY]: mergedAiChatHistory.conversations,
-          }
-        : {}),
-      ...(mergedSavedAnalyticsViews
-        ? {
-            savedAnalyticsViews: mergedSavedAnalyticsViews,
-          }
-        : {}),
-      savedTabs: mergedTabs,
-    }),
+    (async () => {
+      const storageLocal = getChromeStorageLocal()
+      if (!storageLocal) {
+        return
+      }
+      await storageLocal.set({
+        customProjectOrder: mergedCustomProjectData.customProjectOrder,
+        customProjects: mergedCustomProjectData.customProjects,
+        ...(mergedAiChatHistory
+          ? {
+              [ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]:
+                mergedAiChatHistory.activeConversationId,
+              [AI_CHAT_CONVERSATIONS_KEY]: mergedAiChatHistory.conversations,
+            }
+          : {}),
+        ...(mergedSavedAnalyticsViews
+          ? { savedAnalyticsViews: mergedSavedAnalyticsViews }
+          : {}),
+        savedTabs: mergedTabs,
+      })
+    })(),
   ])
   const unresolvedWarning = await createUnresolvedWarning(
     unresolvedTabs,
@@ -450,23 +406,27 @@ const importWithOverwrite = async ({
       ...importedData.userSettings,
     }),
     saveParentCategories(cleanParentCategories),
-    chrome.storage.local.set({
-      customProjectOrder: overwriteCustomProjectData.customProjectOrder,
-      customProjects: overwriteCustomProjectData.customProjects,
-      ...(overwriteAiChatHistory
-        ? {
-            [ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]:
-              overwriteAiChatHistory.activeConversationId,
-            [AI_CHAT_CONVERSATIONS_KEY]: overwriteAiChatHistory.conversations,
-          }
-        : {}),
-      ...(overwriteSavedAnalyticsViews
-        ? {
-            savedAnalyticsViews: overwriteSavedAnalyticsViews,
-          }
-        : {}),
-      savedTabs: cleanTabGroups,
-    }),
+    (async () => {
+      const storageLocal = getChromeStorageLocal()
+      if (!storageLocal) {
+        return
+      }
+      await storageLocal.set({
+        customProjectOrder: overwriteCustomProjectData.customProjectOrder,
+        customProjects: overwriteCustomProjectData.customProjects,
+        ...(overwriteAiChatHistory
+          ? {
+              [ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]:
+                overwriteAiChatHistory.activeConversationId,
+              [AI_CHAT_CONVERSATIONS_KEY]: overwriteAiChatHistory.conversations,
+            }
+          : {}),
+        ...(overwriteSavedAnalyticsViews
+          ? { savedAnalyticsViews: overwriteSavedAnalyticsViews }
+          : {}),
+        savedTabs: cleanTabGroups,
+      })
+    })(),
   ])
   const [unresolvedWarning] = await Promise.all([
     createUnresolvedWarning(unresolvedTabs, translate),

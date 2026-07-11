@@ -18,6 +18,7 @@ import {
 } from '@/features/ai-chat/lib/systemPromptPresets'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -159,7 +160,7 @@ const useSavedTabsChatController = ({
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: Partial<Record<string, chrome.storage.StorageChange>>,
+      changes: Partial<Record<string, StorageChange>>,
       areaName: string,
     ) => {
       if (areaName !== 'local' || !changes.userSettings) {
