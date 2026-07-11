@@ -229,14 +229,6 @@ const useSubCategoryKeywordManagerView = ({
   const startRenameMode = useCallback(() => {
     setIsRenamingSubCategory(true)
     setNewCategoryName(getRenameDraftName(activeCategory))
-
-    // 入力フィールドにフォーカスを当てる
-    requestAnimationFrame(() => {
-      if (renameInputRef.current) {
-        renameInputRef.current.focus()
-        renameInputRef.current.select()
-      }
-    })
   }, [activeCategory])
 
   // カテゴリ名変更の処理関数
