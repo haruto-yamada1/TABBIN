@@ -859,6 +859,26 @@ describe('runAiChatRequest', () => {
     )
   })
 
+  it('request の abort signal を generateText へ渡す', async () => {
+    const controller = new AbortController()
+
+    await runAiChatRequest(
+      {
+        history: [],
+        prompt: 'どんな URL がある？',
+      },
+      {
+        signal: controller.signal,
+      },
+    )
+
+    expect(mocked.generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abortSignal: controller.signal,
+      }),
+    )
+  })
+
   it('onStepEnd に tool 情報が無くても空 trace で更新する', async () => {
     const onStepUpdate = vi.fn()
     mocked.generateText.mockImplementationOnce(

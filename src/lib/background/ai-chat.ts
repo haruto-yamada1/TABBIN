@@ -103,6 +103,7 @@ type AiChatStepUpdate = {
 
 type RunAiChatRequestOptions = {
   onStepUpdate?: (update: AiChatStepUpdate) => void
+  signal?: AbortSignal
 }
 
 const getAiChatUiLocale = () => getBrowserUiLocale('ja')
@@ -757,6 +758,7 @@ const runAiChatRequest = async (
   const result = await (async () => {
     try {
       return await generateText({
+        abortSignal: options.signal,
         messages: [
           ...history.map((message) =>
             message.role === 'user'
