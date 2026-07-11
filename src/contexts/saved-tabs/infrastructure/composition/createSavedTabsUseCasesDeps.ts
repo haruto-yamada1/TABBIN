@@ -22,7 +22,7 @@ import {
 import { createChromeUrlRecordRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUserSettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUserSettingsRepository'
 import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
-import type { StorageChange } from '@/lib/browser/chrome-storage'
+import type { ChromeOnChangedListener } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
@@ -70,11 +70,6 @@ type ChromeLike = ChromeApiLikeBase & {
     }
   }
 }
-
-type ChromeOnChangedListener = (
-  changes: Record<string, StorageChange>,
-  areaName: string,
-) => void
 
 const isChromeLike = (value: unknown): value is ChromeLike =>
   isObjectLike(value)

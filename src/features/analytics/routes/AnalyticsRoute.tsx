@@ -407,13 +407,14 @@ const useAnalyticsRouteView = () => {
             onClick: async () => {
               try {
                 const storageLocal = getChromeStorageLocal()
-                if (storageLocal) {
-                  await storageLocal.set(
-                    createAnalyticsDeleteUndoPayload(snapshot),
-                  )
-                } else {
+                if (!storageLocal) {
                   warnMissingChromeStorage('分析削除アンドゥ復元')
+                  toast.error(t('savedTabs.undo.restoreError'))
+                  return
                 }
+                await storageLocal.set(
+                  createAnalyticsDeleteUndoPayload(snapshot),
+                )
                 const nextRecords = await refreshRecords()
                 rebuildDrilldownSelection(nextRecords)
                 toast.success(t('savedTabs.undo.restored'))

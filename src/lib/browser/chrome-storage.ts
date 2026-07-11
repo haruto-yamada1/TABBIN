@@ -12,6 +12,11 @@ export type StorageChange = {
   oldValue?: unknown
 }
 
+export type ChromeOnChangedListener = (
+  changes: Record<string, StorageChange>,
+  areaName: string,
+) => void
+
 const warnedContexts = new Set<string>()
 
 const isChromeApi = (value: unknown): value is typeof chrome =>

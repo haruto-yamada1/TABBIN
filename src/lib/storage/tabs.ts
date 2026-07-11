@@ -67,6 +67,16 @@ const renameSubCategoryInTabGroup = async (
     const updatedUrls = (tab.urls ?? []).map((url) =>
       url.subCategory === oldName ? { ...url, subCategory: newName } : url,
     )
+    const updatedUrlSubCategories: Record<string, string> = {}
+    let urlSubCategoriesChanged = false
+    for (const [urlId, cat] of Object.entries(tab.urlSubCategories ?? {})) {
+      if (cat === oldName) {
+        updatedUrlSubCategories[urlId] = newName
+        urlSubCategoriesChanged = true
+      } else {
+        updatedUrlSubCategories[urlId] = cat
+      }
+    }
     const updatedSubCategoryOrder =
       tab.subCategoryOrder?.map((cat) => (cat === oldName ? newName : cat)) ??
       []
@@ -81,6 +91,9 @@ const renameSubCategoryInTabGroup = async (
       subCategoryOrder: updatedSubCategoryOrder,
       subCategoryOrderWithUncategorized:
         updatedSubCategoryOrderWithUncategorized,
+      urlSubCategories: urlSubCategoriesChanged
+        ? updatedUrlSubCategories
+        : tab.urlSubCategories,
       urls: updatedUrls,
     }
   })

@@ -45,7 +45,7 @@ vi.mock('@/lib/storage/urls', () => ({
   createOrUpdateUrlRecord: vi.fn(),
   createOrUpdateUrlRecordsBatch: vi.fn(),
   getUrlRecords: vi.fn(async () => {
-    const result = await chrome.storage.local.get('urls')
+    const result = await chrome.storage.local.get({ urls: [] })
     return Array.isArray(result.urls) ? result.urls : []
   }),
   saveUrlRecords: vi.fn(async (records: unknown[]) => {
@@ -96,6 +96,8 @@ vi.mock('@/lib/storage/analytics', () => ({
 }))
 
 vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
+  ACTIVE_AI_CHAT_CONVERSATION_ID_KEY: 'activeAiChatConversationId',
+  AI_CHAT_CONVERSATIONS_KEY: 'aiChatConversations',
   loadConversationHistory: vi.fn(async () => {
     const result = await chrome.storage.local.get([
       'activeAiChatConversationId',
