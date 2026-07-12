@@ -65,6 +65,9 @@ jobs:
       - name: Build extension
         run: bun run build
 
+      - name: Build Firefox extension
+        run: bun run build:firefox
+
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -73,6 +76,9 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 7
+
+      - name: Verify generated manifest version
+        run: bun run verify:app-version
 
   run-tests-shard-1:
     name: Run Vitest Tests

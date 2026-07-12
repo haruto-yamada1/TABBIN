@@ -1,3 +1,4 @@
+import { getAppVersion } from '@/constants/app-version'
 import {
   ACTIVE_AI_CHAT_CONVERSATION_ID_KEY,
   AI_CHAT_CONVERSATIONS_KEY,
@@ -5,7 +6,6 @@ import {
 } from '@/features/ai-chat/lib/conversation-history'
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
-import { getManifestVersion } from '@/lib/browser/runtime'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { loadSavedAnalyticsViews } from '@/lib/storage/analytics'
 import {
@@ -194,8 +194,7 @@ const exportSettings = async (): Promise<BackupData> => {
       timestamp: new Date().toISOString(),
       urls: exportUrlRecords,
       userSettings,
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty version string should fall through to default
-      version: getManifestVersion() || '1.0.0',
+      version: getAppVersion(),
     }
     return backupData
   } catch (error) {

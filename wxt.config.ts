@@ -1,7 +1,30 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+
 import tailwindcss from '@tailwindcss/vite'
 import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 
 import '@wxt-dev/module-react' // eslint-disable-line
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const readPackageVersion = (): string => {
+  const packageJsonPath = path.resolve(import.meta.dirname, 'package.json')
+  const parsed: unknown = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
+  if (!isRecord(parsed)) {
+    throw new TypeError('package.json is not an object')
+  }
+  const version: unknown = parsed.version
+  if (typeof version !== 'string' || version === '') {
+    throw new TypeError(
+      'package.json version is missing, not a string, or empty',
+    )
+  }
+  return version
+}
+
+const APP_VERSION = readPackageVersion()
 
 const vitePlugins = tailwindcss()
 
@@ -12,7 +35,7 @@ export default defineConfig({
     default_locale: 'ja',
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
-    version: '2.0.7',
+    version: APP_VERSION,
     host_permissions: ['http://localhost:11434/*', 'http://127.0.0.1:11434/*'],
     permissions: ['alarms', 'tabs', 'storage', 'contextMenus', 'notifications'],
     action: {
@@ -39,6 +62,9 @@ export default defineConfig({
   }),
   modules: ['@wxt-dev/module-react', '@wxt-dev/i18n/module'],
   vite: () => ({
+    define: {
+      __APP_VERSION__: JSON.stringify(APP_VERSION),
+    },
     plugins: vitePlugins,
   }),
 })
