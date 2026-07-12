@@ -219,7 +219,9 @@ describe('SubCategoryKeywordManager', () => {
     cleanup()
     vi.unstubAllGlobals()
     vi.clearAllTimers()
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve())
+    })
   })
 
   it('helper は tab 差し替え、keyword fallback、rename no-op を扱う', async () => {

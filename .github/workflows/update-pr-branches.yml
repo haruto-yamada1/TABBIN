@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Update open pull requests based on develop
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const owner = context.repo.owner;
@@ -43,6 +43,14 @@ jobs:
             const failed = [];
 
             for (const pull of openPulls) {
+              if (
+                pull.user.login === 'renovate[bot]' ||
+                pull.head.ref.startsWith('renovate/')
+              ) {
+                skipped.push({ number: pull.number, reason: 'renovate' });
+                continue;
+              }
+
               if (pull.draft) {
                 skipped.push({ number: pull.number, reason: 'draft' });
                 continue;
