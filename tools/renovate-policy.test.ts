@@ -170,4 +170,22 @@ describe('Renovate dependency update policy', () => {
     expect(updateWorkflow).toContain("pull.user.login === 'renovate[bot]'")
     expect(updateWorkflow).toContain("pull.head.ref.startsWith('renovate/')")
   })
+
+  it('does not persist credentials in checkout steps', () => {
+    const workflowPaths = [
+      '.github/workflows/ci.yml',
+      '.github/workflows/react-doctor.yml',
+    ]
+    const checkoutSteps = workflowPaths.flatMap((path) =>
+      readRepositoryFile(path)
+        .split('- uses: actions/checkout@')
+        .slice(1)
+        .map((section) => section.split('\n      - ')[0]),
+    )
+
+    expect(checkoutSteps).toHaveLength(5)
+    for (const checkoutStep of checkoutSteps) {
+      expect(checkoutStep).toContain('persist-credentials: false')
+    }
+  })
 })
