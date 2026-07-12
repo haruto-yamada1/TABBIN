@@ -6,7 +6,13 @@
     ":configMigration",
     "abandonments:recommended"
   ],
-  "enabledManagers": ["bun", "github-actions"],
+  "enabledManagers": [
+    "bun",
+    "bun-version",
+    "custom.regex",
+    "github-actions",
+    "nodenv"
+  ],
   "timezone": "Asia/Tokyo",
   "schedule": ["before 6am on monday"],
   "dependencyDashboard": true,
@@ -70,6 +76,57 @@
       "schedule": ["before 6am on the first day of the month"],
       "dependencyDashboardApproval": true,
       "groupName": null
+    },
+    {
+      "description": "Require approval for Node runtime updates",
+      "matchManagers": ["nodenv"],
+      "dependencyDashboardApproval": true,
+      "groupName": null,
+      "automerge": false
+    },
+    {
+      "description": "Require approval for Bun runtime updates",
+      "matchManagers": ["bun-version"],
+      "dependencyDashboardApproval": true,
+      "groupName": null,
+      "automerge": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Sync Node runtime version into package.json engines.node",
+      "fileMatch": ["^package.json$"],
+      "matchStrings": ["\"node\":\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "node",
+      "packageNameTemplate": "nodejs/node",
+      "versioningTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "autoReplaceStringTemplate": "\"node\": \"{{&#8203;{newMajor}}}.x\""
+    },
+    {
+      "customType": "regex",
+      "description": "Sync Bun runtime version into package.json engines.bun",
+      "fileMatch": ["^package.json$"],
+      "matchStrings": ["\"bun\":\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "bun",
+      "packageNameTemplate": "oven-sh/bun",
+      "versioningTemplate": "semver",
+      "datasourceTemplate": "github-releases",
+      "autoReplaceStringTemplate": "\"bun\": \"{{&#8203;{newVersion}}}\""
+    },
+    {
+      "customType": "regex",
+      "description": "Sync Bun runtime version into package.json packageManager",
+      "fileMatch": ["^package.json$"],
+      "matchStrings": [
+        "\"packageManager\":\\s*\"bun@(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "bun",
+      "packageNameTemplate": "oven-sh/bun",
+      "versioningTemplate": "semver",
+      "datasourceTemplate": "github-releases",
+      "autoReplaceStringTemplate": "\"packageManager\": \"bun@{{&#8203;{newVersion}}}\""
     }
   ]
 }

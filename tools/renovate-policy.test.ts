@@ -50,7 +50,13 @@ describe('Renovate dependency update policy', () => {
       readRepositoryFile('.github/renovate.json'),
     ) as RenovateConfig
 
-    expect(config.enabledManagers).toEqual(['bun', 'github-actions'])
+    expect(config.enabledManagers).toEqual([
+      'bun',
+      'bun-version',
+      'custom.regex',
+      'github-actions',
+      'nodenv',
+    ])
     expect(config.timezone).toBe('Asia/Tokyo')
     expect(config.schedule).toEqual(['before 6am on monday'])
     expect(config.automerge).toBe(false)
@@ -169,6 +175,34 @@ describe('Renovate dependency update policy', () => {
     )
     expect(updateWorkflow).toContain("pull.user.login === 'renovate[bot]'")
     expect(updateWorkflow).toContain("pull.head.ref.startsWith('renovate/')")
+  })
+
+  it('requires dashboard approval and disables automerge for Node and Bun runtime updates', () => {
+    const config = JSON.parse(
+      readRepositoryFile('.github/renovate.json'),
+    ) as RenovateConfig
+    const nodeRule = config.packageRules.find(
+      (rule) =>
+        rule.description === 'Require approval for Node runtime updates',
+    )
+    const bunRule = config.packageRules.find(
+      (rule) => rule.description === 'Require approval for Bun runtime updates',
+    )
+
+    expect(nodeRule).toEqual({
+      description: 'Require approval for Node runtime updates',
+      matchManagers: ['nodenv'],
+      dependencyDashboardApproval: true,
+      groupName: null,
+      automerge: false,
+    })
+    expect(bunRule).toEqual({
+      description: 'Require approval for Bun runtime updates',
+      matchManagers: ['bun-version'],
+      dependencyDashboardApproval: true,
+      groupName: null,
+      automerge: false,
+    })
   })
 
   it('does not persist credentials in checkout steps', () => {

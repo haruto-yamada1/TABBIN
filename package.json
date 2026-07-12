@@ -30,7 +30,7 @@
     "check:write": "bun run lint:fix && bun run format",
     "check:duplication": "jscpd --config .jscpd.json",
     "arch:check": "depcruise --config .dependency-cruiser.cjs src --output-type err",
-    "quality:check": "bun run format:check && bun run verify:tooling-dependencies && bun run compile && bun run lint && bun run validate:html && bun run test && bun run knip && bun run check:duplication && bun run secretlint && bun run arch:check",
+    "quality:check": "bun run format:check && bun run verify:tooling-dependencies && bun run verify:toolchain-versions && bun run compile && bun run lint && bun run validate:html && bun run test && bun run knip && bun run check:duplication && bun run secretlint && bun run arch:check",
     "quality:fix": "bun run check:write",
     "test": "vitest run --config vitest.ci.config.ts",
     "test:coverage": "vitest run --coverage --config vitest.ci.config.ts --max-workers=2",
@@ -57,7 +57,9 @@
     "e2e": "playwright test e2e",
     "knip": "knip",
     "doctor": "react-doctor",
-    "verify:app-version": "bun tools/scripts/verify-app-version.ts"
+    "verify:app-version": "bun tools/scripts/verify-app-version.ts",
+    "verify:toolchain-versions": "bun tools/scripts/verify-toolchain-versions.ts",
+    "sync:toolchain-versions": "bun tools/scripts/sync-toolchain-versions.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
