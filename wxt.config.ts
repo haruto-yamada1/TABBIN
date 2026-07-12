@@ -61,10 +61,16 @@ export default defineConfig({
       : {}),
   }),
   modules: ['@wxt-dev/module-react', '@wxt-dev/i18n/module'],
-  vite: () => ({
-    define: {
-      __APP_VERSION__: JSON.stringify(APP_VERSION),
-    },
-    plugins: vitePlugins,
-  }),
+  vite: (env) => {
+    const isProduction = env.mode === 'production'
+
+    return {
+      build: isProduction ? { minify: 'esbuild' } : undefined,
+      define: {
+        __APP_VERSION__: JSON.stringify(APP_VERSION),
+      },
+      esbuild: isProduction ? { drop: ['console', 'debugger'] } : undefined,
+      plugins: vitePlugins,
+    }
+  },
 })

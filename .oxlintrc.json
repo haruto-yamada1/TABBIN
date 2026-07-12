@@ -1148,6 +1148,15 @@
     },
     {
       "files": [
+        "src/entrypoints/background.ts",
+        "src/lib/background/message-handler.ts"
+      ],
+      "rules": {
+        "eslint/no-console": "error"
+      }
+    },
+    {
+      "files": [
         "**/*.test.ts",
         "**/*.test.tsx",
         "**/*.spec.ts",

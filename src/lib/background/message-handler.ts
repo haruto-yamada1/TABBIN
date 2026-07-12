@@ -3,7 +3,7 @@
  */
 
 import type { AiChatAttachment } from '@/features/ai-chat/types'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
+import { logger } from '@/lib/logging/logger'
 import type {
   AiChatResponse,
   AiChatStreamClientMessage,
@@ -20,7 +20,6 @@ import {
   backgroundMessageSchema,
   messageActionSchema,
 } from '@/types/background'
-import type { UserSettings } from '@/types/storage'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
 import {
@@ -117,10 +116,11 @@ const isAiChatStreamRunMessage = (
 const setupMessageListener = (): void => {
   // eslint-disable-next-line eslint/complexity
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    console.log('バックグラウンドがメッセージを受信:', message)
-
     const parsedMessage = parseBackgroundMessage(message)
     if (parsedMessage.status === 'invalid_message') {
+      logger.warn('background_message_rejected', {
+        errorCode: 'INVALID_MESSAGE',
+      })
       sendResponse({
         status: 'invalid_message',
       })
@@ -128,7 +128,9 @@ const setupMessageListener = (): void => {
     }
 
     if (parsedMessage.status === 'unknown_action') {
-      console.warn('未知のメッセージアクション:', parsedMessage.action)
+      logger.warn('background_message_rejected', {
+        errorCode: 'UNKNOWN_ACTION',
+      })
       sendResponse({
         status: 'unknown_action',
       })
@@ -136,6 +138,9 @@ const setupMessageListener = (): void => {
     }
 
     const typedMessage = parsedMessage.message
+    logger.info('background_message_received', {
+      action: typedMessage.action,
+    })
     switch (typedMessage.action) {
       case 'urlDragStarted': {
         handleUrlDragStartedMessage(typedMessage.url, sendResponse)
@@ -222,7 +227,7 @@ const handleUrlDroppedMessage = (
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  console.log('URLドロップを検知:', redactUrlForLog(message.url))
+  logger.debug('background_url_drop_received', { url: message.url })
 
   // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (message.fromExternal === true) {
@@ -233,14 +238,14 @@ const handleUrlDroppedMessage = (
         })
       })
       .catch((error: unknown) => {
-        console.error('URL削除エラー:', error)
+        logger.error('background_url_drop_removal_failed', error)
         sendResponse({
           error: error instanceof Error ? error.message : String(error),
           status: 'error',
         })
       })
   } else {
-    console.log('内部操作のため削除をスキップ')
+    logger.debug('background_url_drop_internal_skipped')
     sendResponse({
       status: 'internal_operation',
     })
@@ -324,7 +329,7 @@ const handleCalculateTimeRemainingMessage = (
       timeRemaining: remainingMs,
     })
   } catch (error) {
-    console.error('残り時間計算エラー:', error)
+    logger.error('background_time_remaining_calculation_failed', error)
     sendResponse({
       error: error?.toString(),
       timeRemaining: null,
@@ -341,35 +346,29 @@ const handleCheckExpiredTabsMessage = (
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  console.log('明示的な期限切れチェックリクエストを受信:', message)
-
-  // 設定情報も出力
-  chrome.storage.local.get<{
-    userSettings?: UserSettings
-  }>(['userSettings'], (data) => {
-    console.log('現在のストレージ内の設定:', data)
+  logger.info('background_expired_tabs_check_requested', {
+    action: 'checkExpiredTabs',
   })
 
   // UpdateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
   if (message.updateTimestamps) {
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty string fallback
-    console.log(`タブの保存時刻を更新します (${message.period || '不明'})`)
+    logger.debug('background_tab_timestamp_update_started')
     // 処理の簡略化 - まずタイムスタンプを更新し、待機せずにチェック実行
     updateTabTimestamps(message.period)
       .then((_result) => {
-        console.log('タブの時刻更新完了。チェックを実行します。')
+        logger.debug('background_tab_timestamp_update_completed')
 
         // 設定を再読み込みし、チェック実行
         checkAndRemoveExpiredTabs()
           .then(() => {
-            console.log('期限切れチェック完了')
+            logger.debug('background_expired_tabs_check_completed')
             sendResponse({
               status: 'completed',
               success: true,
             })
           })
           .catch((error: unknown) => {
-            console.error('チェックエラー:', error)
+            logger.error('background_expired_tabs_check_failed', error)
             sendResponse({
               error: String(error),
               status: 'error',
@@ -377,7 +376,7 @@ const handleCheckExpiredTabsMessage = (
           })
       })
       .catch((error: unknown) => {
-        console.error('タイムスタンプ更新エラー:', error)
+        logger.error('background_tab_timestamp_update_failed', error)
         sendResponse({
           error: String(error),
           status: 'error',
@@ -387,7 +386,7 @@ const handleCheckExpiredTabsMessage = (
     // 単純化 - 常に強制リロードする
     checkAndRemoveExpiredTabs()
       .then(() => {
-        console.log('期限切れチェック完了')
+        logger.debug('background_expired_tabs_check_completed')
         sendResponse({
           status: 'completed',
         })
@@ -409,7 +408,7 @@ const handleUpdateTabTimestampsMessage = (
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  console.log('タブの保存時刻を強制的に更新:', message.period)
+  logger.debug('background_tab_timestamp_force_update_started')
   updateTabTimestamps(message.period)
     .then((result) => {
       sendResponse({
@@ -418,7 +417,7 @@ const handleUpdateTabTimestampsMessage = (
       })
     })
     .catch((error: unknown) => {
-      console.error('時刻更新エラー:', error)
+      logger.error('background_tab_timestamp_force_update_failed', error)
       sendResponse({
         error: String(error),
         status: 'error',
@@ -440,7 +439,9 @@ const handleGetAlarmStatusMessage = (
       : {
           exists: false,
         }
-    console.log('アラーム状態:', status)
+    logger.debug('background_alarm_status_loaded', {
+      action: 'getAlarmStatus',
+    })
     sendResponse(status)
   })
 }
