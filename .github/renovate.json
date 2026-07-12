@@ -1,0 +1,75 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":configMigration",
+    "abandonments:recommended"
+  ],
+  "enabledManagers": ["bun", "github-actions"],
+  "timezone": "Asia/Tokyo",
+  "schedule": ["before 6am on monday"],
+  "dependencyDashboard": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "prCreation": "not-pending",
+  "internalChecksFilter": "strict",
+  "automerge": false,
+  "ignoreScripts": true,
+  "rangeStrategy": "pin",
+  "separateMajorMinor": true,
+  "separateMinorPatch": true,
+  "rebaseWhen": "behind-base-branch",
+  "osvVulnerabilityAlerts": true,
+  "major": {
+    "dependencyDashboardApproval": true
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "automerge": false,
+    "labels": ["security"],
+    "vulnerabilityFixStrategy": "lowest"
+  },
+  "prBodyNotes": [
+    "## Dependency security review\n\n- [ ] Release notes / changelog を確認した\n- [ ] major update の migration guide を確認した\n- [ ] package owner / repository / rename に不自然な変更がない\n- [ ] lifecycle script の追加・変更を確認した\n- [ ] `bun.lock` に予期しない transitive dependency 増加がない\n- [ ] third-party GitHub Action の owner / permissions 変更を確認した\n- [ ] CI を通すために `any` / `@ts-ignore` / lint disable / test skip を追加していない\n\n詳細: `docs/maintenance/dependency-updates.md`"
+  ],
+  "packageRules": [
+    {
+      "description": "Wait before proposing npm-sourced dependency updates",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "description": "Keep the initial exact-version migration separate",
+      "matchUpdateTypes": ["pin"],
+      "groupName": "Pin dependency versions",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Keep high-impact dependencies out of broad custom groups",
+      "matchPackageNames": [
+        "typescript",
+        "@typescript/native-preview",
+        "react",
+        "react-dom",
+        "wxt",
+        "vite",
+        "vitest",
+        "playwright",
+        "@playwright/test",
+        "storybook",
+        "ai",
+        "ai-sdk-ollama"
+      ],
+      "groupName": null
+    },
+    {
+      "description": "Handle TypeScript native preview separately",
+      "matchPackageNames": ["@typescript/native-preview"],
+      "schedule": ["before 6am on the first day of the month"],
+      "dependencyDashboardApproval": true,
+      "groupName": null
+    }
+  ]
+}
