@@ -1,5 +1,10 @@
 # リリース手順
 
+## バージョン更新
+
+拡張機能のバージョンは `package.json` の `version` を authoritative source とする。
+リリース前に `package.json` の `version` を更新するだけでよく、`wxt.config.ts` やバックアップコードに version literal を重複定義する必要はない。
+
 ## 事前チェック
 
 配布前に以下のコマンドで品質とビルドを確認します。
@@ -13,6 +18,7 @@ bun run release:check
 1. `bun run quality` — フォーマット、lint、テスト、重複チェックなど
 2. `bun run build` — Chrome 拡張機能のビルド
 3. `bun run build:firefox` — Firefox 拡張機能のビルド
+4. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
 
 ## ZIP 生成
 
