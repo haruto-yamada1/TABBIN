@@ -344,13 +344,15 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       )
     })
 
-    it('chrome / localStorage / sessionStorage / document / window の global 参照を禁止している', () => {
+    it('chrome / localStorage / sessionStorage / indexedDB / document / window の global 参照を禁止している', () => {
       const names = getRestrictedGlobals(globalsOverride)
       expect(names).toContain('chrome')
       expect(names).toContain('localStorage')
       expect(names).toContain('sessionStorage')
       expect(names).toContain('document')
       expect(names).toContain('window')
+      // issue #646: indexedDB も storage adapter 経由に限定
+      expect(names).toContain('indexedDB')
     })
 
     it('chrome.tabs / chrome.storage / chrome.contextMenus / chrome.alarms / chrome.notifications / chrome.runtime の直叩きを禁止している', () => {
@@ -361,6 +363,14 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(names).toContain('chrome.alarms')
       expect(names).toContain('chrome.notifications')
       expect(names).toContain('chrome.runtime')
+    })
+
+    it('issue #646: window.localStorage / window.sessionStorage / window.indexedDB / browser.storage の直叩きを禁止している', () => {
+      const names = getRestrictedProperties(propertiesOverride)
+      expect(names).toContain('window.localStorage')
+      expect(names).toContain('window.sessionStorage')
+      expect(names).toContain('window.indexedDB')
+      expect(names).toContain('browser.storage')
     })
 
     it('issue #582: Date.now() を no-restricted-properties で禁止している', () => {
@@ -432,9 +442,30 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       'application',
       'eslint/no-restricted-properties',
     )
+    const globalsOverride = findOverride(
+      config,
+      'application',
+      'eslint/no-restricted-globals',
+    )
 
     it('override が定義されている', () => {
       expect(propertiesOverride).toBeDefined()
+      expect(globalsOverride).toBeDefined()
+    })
+
+    it('issue #646: localStorage / sessionStorage / indexedDB の global 参照を禁止している', () => {
+      const names = getRestrictedGlobals(globalsOverride)
+      expect(names).toContain('localStorage')
+      expect(names).toContain('sessionStorage')
+      expect(names).toContain('indexedDB')
+    })
+
+    it('issue #646: window.localStorage / window.sessionStorage / window.indexedDB / browser.storage の直叩きを禁止している', () => {
+      const names = getRestrictedProperties(propertiesOverride)
+      expect(names).toContain('window.localStorage')
+      expect(names).toContain('window.sessionStorage')
+      expect(names).toContain('window.indexedDB')
+      expect(names).toContain('browser.storage')
     })
 
     it('UI / routing / notification / animation 系 package の import を禁止している', () => {
@@ -528,9 +559,30 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       'presentation',
       'eslint/no-restricted-properties',
     )
+    const globalsOverride = findOverride(
+      config,
+      'presentation',
+      'eslint/no-restricted-globals',
+    )
 
     it('override が定義されている', () => {
       expect(propertiesOverride).toBeDefined()
+      expect(globalsOverride).toBeDefined()
+    })
+
+    it('issue #646: localStorage / sessionStorage / indexedDB の global 参照を禁止している', () => {
+      const names = getRestrictedGlobals(globalsOverride)
+      expect(names).toContain('localStorage')
+      expect(names).toContain('sessionStorage')
+      expect(names).toContain('indexedDB')
+    })
+
+    it('issue #646: window.localStorage / window.sessionStorage / window.indexedDB / browser.storage の直叩きを禁止している', () => {
+      const names = getRestrictedProperties(propertiesOverride)
+      expect(names).toContain('window.localStorage')
+      expect(names).toContain('window.sessionStorage')
+      expect(names).toContain('window.indexedDB')
+      expect(names).toContain('browser.storage')
     })
 
     it('chrome.storage / chrome.tabs / chrome.contextMenus / chrome.alarms / chrome.runtime の直叩きを禁止している', () => {

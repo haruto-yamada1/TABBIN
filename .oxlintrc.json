@@ -625,6 +625,18 @@
           {
             "name": "browser",
             "message": "features / components 層は browser.* を直接利用できません（adapter / infrastructure / repository 経由）"
+          },
+          {
+            "name": "localStorage",
+            "message": "features / components 層は localStorage を直接利用できません（src/lib/storage/local-storage-adapter 経由）"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "features / components 層は sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "indexedDB",
+            "message": "features / components 層は indexedDB を直接利用できません（repository / storage adapter 経由）"
           }
         ],
         "eslint/no-restricted-properties": [
@@ -658,6 +670,26 @@
             "object": "chrome",
             "property": "alarms",
             "message": "features / components 層は chrome.alarms を直接利用できません（AlarmAdapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "features / components 層は window.localStorage を直接利用できません（src/lib/storage/local-storage-adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "features / components 層は window.sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "indexedDB",
+            "message": "features / components 層は window.indexedDB を直接利用できません（repository / storage adapter 経由）"
+          },
+          {
+            "object": "browser",
+            "property": "storage",
+            "message": "features / components 層は browser.storage を直接利用できません（repository / storage adapter 経由）"
           }
         ]
       }
@@ -756,6 +788,10 @@
           {
             "name": "window",
             "message": "domain 層は window に依存できません"
+          },
+          {
+            "name": "indexedDB",
+            "message": "domain 層は indexedDB を直接利用できません"
           }
         ],
         "eslint/no-restricted-properties": [
@@ -804,6 +840,26 @@
             "object": "crypto",
             "property": "randomUUID",
             "message": "domain 層は crypto.randomUUID() を直接利用できません。IdGeneratorPort 経由で ID を生成してください"
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "domain 層は window.localStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "domain 層は window.sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "indexedDB",
+            "message": "domain 層は window.indexedDB を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "browser",
+            "property": "storage",
+            "message": "domain 層は browser.storage を直接利用できません（repository 経由）"
           }
         ]
       }
@@ -857,6 +913,26 @@
             "object": "crypto",
             "property": "randomUUID",
             "message": "application 層は crypto.randomUUID() を直接利用できません。IdGeneratorPort 経由で ID を生成してください"
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "application 層は window.localStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "application 層は window.sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "indexedDB",
+            "message": "application 層は window.indexedDB を直接利用できません（repository / storage adapter 経由）"
+          },
+          {
+            "object": "browser",
+            "property": "storage",
+            "message": "application 層は browser.storage を直接利用できません（repository 経由）"
           }
         ],
         "eslint/no-restricted-globals": [
@@ -868,6 +944,18 @@
           {
             "name": "browser",
             "message": "application 層は browser.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "localStorage",
+            "message": "application 層は localStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "application 層は sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "indexedDB",
+            "message": "application 層は indexedDB を直接利用できません（repository / storage adapter 経由）"
           }
         ]
       }
@@ -906,6 +994,26 @@
             "object": "chrome",
             "property": "notifications",
             "message": "presentation 層は chrome.notifications を直接利用できません（NotificationPort 経由）"
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "presentation 層は window.localStorage を直接利用できません（src/lib/storage/local-storage-adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "presentation 層は window.sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "indexedDB",
+            "message": "presentation 層は window.indexedDB を直接利用できません（repository / storage adapter 経由）"
+          },
+          {
+            "object": "browser",
+            "property": "storage",
+            "message": "presentation 層は browser.storage を直接利用できません（repository 経由）"
           }
         ],
         "eslint/no-restricted-globals": [
@@ -917,6 +1025,18 @@
           {
             "name": "browser",
             "message": "presentation 層は browser.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "localStorage",
+            "message": "presentation 層は localStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "presentation 層は sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "indexedDB",
+            "message": "presentation 層は indexedDB を直接利用できません（repository / storage adapter 経由）"
           }
         ]
       }

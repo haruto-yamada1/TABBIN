@@ -42,6 +42,7 @@ import type {
   SidebarItemId,
   SidebarState,
 } from '@/features/navigation/lib/pageNavigation'
+import { writeLocalStorage } from '@/lib/storage/local-storage-adapter'
 import { cn } from '@/lib/utils'
 
 type ExtensionSidebarProps = {
@@ -442,27 +443,16 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
     setOpen(true)
     setSidebarWidth(ICON_RAIL_WIDTH_PX)
 
-    try {
-      window.localStorage.setItem(
-        SIDEBAR_WIDTH_STORAGE_KEY,
-        String(ICON_RAIL_WIDTH_PX),
-      )
-    } catch {
-      // LocalStorage が使えない環境では保持をスキップする
-    }
+    writeLocalStorage(SIDEBAR_WIDTH_STORAGE_KEY, String(ICON_RAIL_WIDTH_PX))
   }, [setOpen, setSidebarWidth])
   const handleExpandSidebar = useCallback(() => {
     setOpen(true)
     setSidebarWidth(EXPANDED_SIDEBAR_WIDTH_PX)
 
-    try {
-      window.localStorage.setItem(
-        SIDEBAR_WIDTH_STORAGE_KEY,
-        String(EXPANDED_SIDEBAR_WIDTH_PX),
-      )
-    } catch {
-      // LocalStorage が使えない環境では保持をスキップする
-    }
+    writeLocalStorage(
+      SIDEBAR_WIDTH_STORAGE_KEY,
+      String(EXPANDED_SIDEBAR_WIDTH_PX),
+    )
   }, [setOpen, setSidebarWidth])
   const savedTabsHref = getSavedTabsEntryRoute()
   const railItems: RailItem[] = useMemo(

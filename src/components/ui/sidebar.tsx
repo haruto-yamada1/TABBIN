@@ -16,6 +16,10 @@ import {
 } from '@/components/ui/tooltip'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  readLocalStorage,
+  writeLocalStorage,
+} from '@/lib/storage/local-storage-adapter'
 import { cn } from '@/lib/utils'
 
 const SECONDS_IN_MINUTE_SB = 60
@@ -52,7 +56,7 @@ const loadSidebarWidth = (): number => {
     return SIDEBAR_WIDTH_ICON_PX
   }
 
-  const storedWidth = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
+  const storedWidth = readLocalStorage(SIDEBAR_WIDTH_STORAGE_KEY)
   if (!storedWidth) {
     return clampSidebarWidth(SIDEBAR_WIDTH_ICON_PX)
   }
@@ -69,14 +73,7 @@ const persistSidebarWidth = (width: number): void => {
     return
   }
 
-  try {
-    window.localStorage.setItem(
-      SIDEBAR_WIDTH_STORAGE_KEY,
-      String(clampSidebarWidth(width)),
-    )
-  } catch {
-    // LocalStorage が使えない環境では保持をスキップする
-  }
+  writeLocalStorage(SIDEBAR_WIDTH_STORAGE_KEY, String(clampSidebarWidth(width)))
 }
 
 type SidebarContextProps = {
