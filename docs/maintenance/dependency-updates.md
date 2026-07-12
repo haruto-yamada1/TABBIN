@@ -82,3 +82,27 @@ owner をこの文書または専用 Issue に残し、恒久的な ignore に�
 と混在させない。`package.json` と `bun.lock` の差分、CI、PR 本文の security checklist、
 high-impact package の grouping、Dashboard approval を確認してから手動 merge する。
 定期的な lockfile maintenance は初期運用では有効化しない。
+
+## Runtime toolchain updates
+
+Node / Bun runtime version は `.node-version` / `.bun-version` を canonical source とする。
+
+- `.node-version` は Renovate の `nodenv` manager で検知する
+- `.bun-version` は Renovate の `bun-version` manager で検知する
+- `enabledManagers` に `custom.regex` を含め、`package.json` 内の runtime version source を
+  同一 dependency identity として検知する
+- Node runtime の package.json sync 対象: `engines.node`
+- Bun runtime の package.json sync 対象: `engines.bun` と `packageManager`
+- Node runtime と Bun runtime は別々の `groupName` でグルーピングする
+  - Node group: `nodenv` + `custom.regex` (`node-version` datasource) `minimumGroupSize: 2`
+  - Bun group: `bun-version` + `custom.regex` (`npm` datasource, packageName `bun`) `minimumGroupSize: 3`
+- runtime update は Dependency Dashboard 承認後に PR を作成する
+- runtime update の automerge は禁止
+- `@types/node` は Node major update と無条件に自動同期せず、runtime major migration として人間が確認する
+- Node major と `@types/node` major の不一致は `bun run verify:toolchain-versions` で検知する
+- CI の各 job では `bun install --frozen-lockfile` の前に `bun run verify:toolchain-versions` を実行する
+- `sync:toolchain-versions` は Renovate runtime PR automation の primary path ではなく、
+  ローカルでの診断 / 手動補助ツールとして残している
+- Bun update 後は `bun install --frozen-lockfile`、`bun run security:audit`、
+  `bun run quality:check`、`bun run build`、`bun run build:firefox` を review 時に確認する
+- runtime update は human manual merge とする

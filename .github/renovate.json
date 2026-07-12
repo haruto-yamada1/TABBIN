@@ -6,7 +6,13 @@
     ":configMigration",
     "abandonments:recommended"
   ],
-  "enabledManagers": ["bun", "github-actions"],
+  "enabledManagers": [
+    "bun",
+    "bun-version",
+    "custom.regex",
+    "github-actions",
+    "nodenv"
+  ],
   "timezone": "Asia/Tokyo",
   "schedule": ["before 6am on monday"],
   "dependencyDashboard": true,
@@ -70,6 +76,61 @@
       "schedule": ["before 6am on the first day of the month"],
       "dependencyDashboardApproval": true,
       "groupName": null
+    },
+    {
+      "description": "Group Node runtime updates",
+      "matchManagers": ["nodenv", "custom.regex"],
+      "matchDatasources": ["node-version"],
+      "groupName": "Node runtime",
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "minimumGroupSize": 2
+    },
+    {
+      "description": "Group Bun runtime updates",
+      "matchManagers": ["bun-version", "custom.regex"],
+      "matchDatasources": ["npm"],
+      "matchPackageNames": ["bun"],
+      "groupName": "Bun runtime",
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "minimumGroupSize": 3
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Sync Node runtime version into package.json engines.node",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": ["\"node\":\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "node",
+      "versioningTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "autoReplaceStringTemplate": "\"node\": \"{{{newMajor}}}.x\""
+    },
+    {
+      "customType": "regex",
+      "description": "Sync Bun runtime version into package.json engines.bun",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": ["\"bun\":\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "bun",
+      "packageNameTemplate": "bun",
+      "versioningTemplate": "npm",
+      "datasourceTemplate": "npm",
+      "autoReplaceStringTemplate": "\"bun\": \"{{{newVersion}}}\""
+    },
+    {
+      "customType": "regex",
+      "description": "Sync Bun runtime version into package.json packageManager",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": [
+        "\"packageManager\":\\s*\"bun@(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "bun",
+      "packageNameTemplate": "bun",
+      "versioningTemplate": "npm",
+      "datasourceTemplate": "npm",
+      "autoReplaceStringTemplate": "\"packageManager\": \"bun@{{{newVersion}}}\""
     }
   ]
 }

@@ -373,7 +373,7 @@ repo-wide `bun run quality` は追加しません。
 テストは多くの場合 `*.test.ts` / `*.test.tsx` として対象コードの近くに置かれます。E2E テストは `e2e/`（`*.spec.ts`）にあります。Storybook の story と Storybook 用の補助 assets は `src/` 配下に置きます。ローカル検査や保守用スクリプトは `tools/scripts/` にあります。`.output/`、`coverage/`、`playwright-report/`、`test-results/` などの生成出力ディレクトリは手動編集しないでください。
 
 ## ビルド、テスト、開発コマンド
-- `bun install`: 依存関係をインストールします（CI は Node `22` と Bun `1.3.14` を使用）。
+- `bun install`: 依存関係をインストールします（CI / local の Node / Bun runtime version は `.node-version` / `.bun-version` を参照してください）。
 - `bun run dev` / `bun run dev:firefox`: Chrome / Firefox 向けに WXT dev mode を起動します。
 - `bun run build` / `bun run build:firefox`: 本番用の拡張機能をビルドします。
 - `bun run zip` / `bun run zip:firefox`: 拡張機能の zip 成果物を作成します。
