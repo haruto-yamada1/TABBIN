@@ -1,5 +1,5 @@
 import { Check, X } from 'lucide-react'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +30,18 @@ export const SubCategoryRenameSection = ({
     void onCompleteRename()
   }, [onCompleteRename])
 
+  const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    e.currentTarget.select()
+  }, [])
+
+  useEffect(() => {
+    const input = renameInputRef.current
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  }, [renameInputRef])
+
   return (
     <div className='relative mb-4'>
       <Label
@@ -46,6 +58,7 @@ export const SubCategoryRenameSection = ({
           value={newCategoryName}
           onChange={onChange}
           onKeyDown={onKeyDown}
+          onFocus={handleFocus}
           className='grow rounded-l border border-border bg-input p-2 text-foreground'
         />
         <div className='flex shrink-0'>
