@@ -4,7 +4,7 @@ import path from 'node:path'
 type JsonObject = Record<string, unknown>
 
 const isRecord = (value: unknown): value is JsonObject =>
-  typeof value === 'object' && value !== null
+  !Array.isArray(value) && typeof value === 'object' && value !== null
 
 const readStringProperty = (parsed: JsonObject, key: string): string => {
   const value: unknown = parsed[key]
@@ -85,9 +85,8 @@ const findStepConfigLines = (ciWorkflow: string, marker: string): string[] => {
       continue
     }
     const collected = collectConfigLines(lines, index)
-    if (collected.length > 0) {
-      sections.push(collected.join(' '))
-    }
+    // Keep empty sections so steps without a version config are still validated.
+    sections.push(collected.join(' '))
   }
 
   return sections

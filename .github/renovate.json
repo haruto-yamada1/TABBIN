@@ -78,55 +78,59 @@
       "groupName": null
     },
     {
-      "description": "Require approval for Node runtime updates",
-      "matchManagers": ["nodenv"],
+      "description": "Group Node runtime updates",
+      "matchManagers": ["nodenv", "custom.regex"],
+      "matchDatasources": ["node-version"],
+      "groupName": "Node runtime",
       "dependencyDashboardApproval": true,
-      "groupName": null,
-      "automerge": false
+      "automerge": false,
+      "minimumGroupSize": 2
     },
     {
-      "description": "Require approval for Bun runtime updates",
-      "matchManagers": ["bun-version"],
+      "description": "Group Bun runtime updates",
+      "matchManagers": ["bun-version", "custom.regex"],
+      "matchDatasources": ["npm"],
+      "matchPackageNames": ["bun"],
+      "groupName": "Bun runtime",
       "dependencyDashboardApproval": true,
-      "groupName": null,
-      "automerge": false
+      "automerge": false,
+      "minimumGroupSize": 3
     }
   ],
   "customManagers": [
     {
       "customType": "regex",
       "description": "Sync Node runtime version into package.json engines.node",
-      "fileMatch": ["^package.json$"],
+      "managerFilePatterns": ["/^package\\.json$/"],
       "matchStrings": ["\"node\":\\s*\"(?<currentValue>[^\"]+)\""],
       "depNameTemplate": "node",
-      "packageNameTemplate": "nodejs/node",
       "versioningTemplate": "node",
       "datasourceTemplate": "node-version",
-      "autoReplaceStringTemplate": "\"node\": \"{{&#8203;{newMajor}}}.x\""
+      "autoReplaceStringTemplate": "\"node\": \"{{{newMajor}}}.x\""
     },
     {
       "customType": "regex",
       "description": "Sync Bun runtime version into package.json engines.bun",
-      "fileMatch": ["^package.json$"],
+      "managerFilePatterns": ["/^package\\.json$/"],
       "matchStrings": ["\"bun\":\\s*\"(?<currentValue>[^\"]+)\""],
       "depNameTemplate": "bun",
-      "packageNameTemplate": "oven-sh/bun",
-      "versioningTemplate": "semver",
-      "datasourceTemplate": "github-releases",
-      "autoReplaceStringTemplate": "\"bun\": \"{{&#8203;{newVersion}}}\""
+      "packageNameTemplate": "bun",
+      "versioningTemplate": "npm",
+      "datasourceTemplate": "npm",
+      "autoReplaceStringTemplate": "\"bun\": \"{{{newVersion}}}\""
     },
     {
       "customType": "regex",
       "description": "Sync Bun runtime version into package.json packageManager",
-      "fileMatch": ["^package.json$"],
+      "managerFilePatterns": ["/^package\\.json$/"],
       "matchStrings": [
         "\"packageManager\":\\s*\"bun@(?<currentValue>[^\"]+)\""
       ],
       "depNameTemplate": "bun",
-      "packageNameTemplate": "oven-sh/bun",
-      "versioningTemplate": "semver",
-      "datasourceTemplate": "github-releases",
-      "autoReplaceStringTemplate": "\"packageManager\": \"bun@{{&#8203;{newVersion}}}\""
+      "packageNameTemplate": "bun",
+      "versioningTemplate": "npm",
+      "datasourceTemplate": "npm",
+      "autoReplaceStringTemplate": "\"packageManager\": \"bun@{{{newVersion}}}\""
     }
   ]
 }

@@ -79,6 +79,38 @@ describe('verifyToolchainVersions', () => {
     )
   })
 
+  it('throws when a setup-node step has no node-version-file referencing .node-version', () => {
+    expect(() =>
+      verifyToolchainVersions({
+        ...validInputs,
+        ciWorkflow: `
+          - uses: actions/setup-node@foo
+            with:
+              node-version-file: '.node-version'
+          - uses: actions/setup-node@foo
+        `,
+      }),
+    ).toThrow(
+      /Found actions\/setup-node step without node-version-file referencing \.node-version/,
+    )
+  })
+
+  it('throws when a setup-bun step has no bun-version-file referencing .bun-version', () => {
+    expect(() =>
+      verifyToolchainVersions({
+        ...validInputs,
+        ciWorkflow: `
+          - uses: oven-sh/setup-bun@bar
+            with:
+              bun-version-file: '.bun-version'
+          - uses: oven-sh/setup-bun@bar
+        `,
+      }),
+    ).toThrow(
+      /Found oven-sh\/setup-bun step without bun-version-file referencing \.bun-version/,
+    )
+  })
+
   it('throws when a setup-node step uses a hardcoded node-version', () => {
     expect(() =>
       verifyToolchainVersions({

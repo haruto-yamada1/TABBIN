@@ -4,7 +4,7 @@ import path from 'node:path'
 type JsonObject = Record<string, unknown>
 
 const isRecord = (value: unknown): value is JsonObject =>
-  typeof value === 'object' && value !== null
+  !Array.isArray(value) && typeof value === 'object' && value !== null
 
 const readJsonFile = (filePath: string): JsonObject => {
   const content = readFileSync(filePath, 'utf8')
@@ -79,6 +79,11 @@ export const syncToolchainVersions = ({
   const packageManager = packageJson.packageManager
   if (typeof packageManager !== 'string') {
     throw new TypeError('package.json packageManager is not a string')
+  }
+  if (!packageManager.startsWith('bun@')) {
+    throw new TypeError(
+      `packageManager does not use bun@ prefix: ${packageManager}`,
+    )
   }
   const expectedPackageManager = `bun@${bunVersionFile}`
   if (packageManager !== expectedPackageManager) {

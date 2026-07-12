@@ -3,11 +3,15 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 type RenovatePackageRule = {
+  automerge?: boolean
   dependencyDashboardApproval?: boolean
   description?: string
   groupName?: string | null
   matchDatasources?: string[]
+  matchManagers?: string[]
   matchPackageNames?: string[]
+  matchUpdateTypes?: string[]
+  minimumGroupSize?: number
   minimumReleaseAge?: string
   schedule?: string[]
 }
@@ -182,26 +186,30 @@ describe('Renovate dependency update policy', () => {
       readRepositoryFile('.github/renovate.json'),
     ) as RenovateConfig
     const nodeRule = config.packageRules.find(
-      (rule) =>
-        rule.description === 'Require approval for Node runtime updates',
+      (rule) => rule.description === 'Group Node runtime updates',
     )
     const bunRule = config.packageRules.find(
-      (rule) => rule.description === 'Require approval for Bun runtime updates',
+      (rule) => rule.description === 'Group Bun runtime updates',
     )
 
     expect(nodeRule).toEqual({
-      description: 'Require approval for Node runtime updates',
-      matchManagers: ['nodenv'],
+      description: 'Group Node runtime updates',
+      matchManagers: ['nodenv', 'custom.regex'],
+      matchDatasources: ['node-version'],
+      groupName: 'Node runtime',
       dependencyDashboardApproval: true,
-      groupName: null,
       automerge: false,
+      minimumGroupSize: 2,
     })
     expect(bunRule).toEqual({
-      description: 'Require approval for Bun runtime updates',
-      matchManagers: ['bun-version'],
+      description: 'Group Bun runtime updates',
+      matchManagers: ['bun-version', 'custom.regex'],
+      matchDatasources: ['npm'],
+      matchPackageNames: ['bun'],
+      groupName: 'Bun runtime',
       dependencyDashboardApproval: true,
-      groupName: null,
       automerge: false,
+      minimumGroupSize: 3,
     })
   })
 

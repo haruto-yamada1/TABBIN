@@ -4,28 +4,102 @@ import { describe, expect, it } from 'vitest'
 
 const readRepositoryFile = (path: string): string => readFileSync(path, 'utf8')
 
+type RenovatePackageRule = {
+  automerge?: boolean
+  dependencyDashboardApproval?: boolean
+  description?: string
+  groupName?: string | null
+  matchDatasources?: string[]
+  matchManagers?: string[]
+  matchPackageNames?: string[]
+  matchUpdateTypes?: string[]
+  minimumGroupSize?: number
+  minimumReleaseAge?: string
+  schedule?: string[]
+}
+
+type RenovateCustomManager = {
+  customType: string
+  description?: string
+  managerFilePatterns: string[]
+  matchStrings: string[]
+  depNameTemplate: string
+  packageNameTemplate?: string
+  datasourceTemplate?: string
+  versioningTemplate?: string
+  autoReplaceStringTemplate?: string
+}
+
 type RenovateConfig = {
   enabledManagers: string[]
-  packageRules: {
-    description?: string
-    matchManagers?: string[]
-    dependencyDashboardApproval?: boolean
-    groupName?: string | null
-    automerge?: boolean
-    matchPackageNames?: string[]
-  }[]
-  customManagers: {
-    description?: string
-    customType: string
-    fileMatch: string[]
-    matchStrings: string[]
-    depNameTemplate: string
-    packageNameTemplate?: string
-    datasourceTemplate?: string
-    versioningTemplate?: string
-    extractVersionTemplate?: string
-    autoReplaceStringTemplate?: string
-  }[]
+  packageRules: RenovatePackageRule[]
+  customManagers: RenovateCustomManager[]
+  postUpgradeTasks?: unknown
+}
+
+const parseJobBlocks = (workflow: string): string[][] => {
+  const lines = workflow.split('\n')
+  const jobs: string[][] = []
+  let inJobs = false
+  let currentJob: string[] = []
+
+  for (const line of lines) {
+    if (line.startsWith('jobs:')) {
+      inJobs = true
+      continue
+    }
+    if (!inJobs) {
+      continue
+    }
+    if (/^ {2}\S+:/.test(line)) {
+      if (currentJob.length > 0) {
+        jobs.push(currentJob)
+      }
+      currentJob = [line]
+    } else if (currentJob.length > 0) {
+      currentJob.push(line)
+    }
+  }
+
+  if (currentJob.length > 0) {
+    jobs.push(currentJob)
+  }
+
+  return jobs
+}
+
+const assertVerifierBeforeInstall = (workflow: string): void => {
+  const jobs = parseJobBlocks(workflow)
+  expect(
+    jobs.length,
+    'CI workflow must contain at least one job',
+  ).toBeGreaterThan(0)
+
+  for (const job of jobs) {
+    const setupBunIndex = job.findIndex((line) =>
+      line.includes('uses: oven-sh/setup-bun'),
+    )
+    const verifierIndex = job.findIndex((line) =>
+      line.includes('run: bun run verify:toolchain-versions'),
+    )
+    const installIndex = job.findIndex((line) =>
+      line.includes('run: bun install --frozen-lockfile'),
+    )
+
+    expect(setupBunIndex, 'every job must set up Bun').toBeGreaterThanOrEqual(0)
+    expect(
+      verifierIndex,
+      'every job must run the toolchain verifier',
+    ).toBeGreaterThanOrEqual(0)
+    expect(
+      installIndex,
+      'every job must install dependencies',
+    ).toBeGreaterThanOrEqual(0)
+    expect(
+      verifierIndex,
+      'verifier must run before frozen install',
+    ).toBeLessThan(installIndex)
+  }
 }
 
 describe('Renovate toolchain update automation policy', () => {
@@ -66,21 +140,74 @@ describe('Renovate toolchain update automation policy', () => {
         versioningTemplate: 'node',
       }),
     )
+    expect(nodeManager?.packageNameTemplate).toBeUndefined()
     expect(bunEnginesManager).toEqual(
       expect.objectContaining({
         customType: 'regex',
         depNameTemplate: 'bun',
-        datasourceTemplate: 'github-releases',
-        versioningTemplate: 'semver',
+        packageNameTemplate: 'bun',
+        datasourceTemplate: 'npm',
+        versioningTemplate: 'npm',
       }),
     )
     expect(bunPackageManager).toEqual(
       expect.objectContaining({
         customType: 'regex',
         depNameTemplate: 'bun',
-        datasourceTemplate: 'github-releases',
-        versioningTemplate: 'semver',
+        packageNameTemplate: 'bun',
+        datasourceTemplate: 'npm',
+        versioningTemplate: 'npm',
       }),
+    )
+  })
+
+  it('matches the actual package.json engines.node value with the Node custom regex manager', () => {
+    const packageJson = readRepositoryFile('package.json')
+    const manager = config.customManagers.find(
+      (candidate) =>
+        candidate.description ===
+        'Sync Node runtime version into package.json engines.node',
+    )
+    const match = new RegExp(manager?.matchStrings[0] ?? '').exec(packageJson)
+
+    expect(manager?.matchStrings[0]).toContain('(?<currentValue>')
+    expect(match?.groups?.currentValue).toBe('24.x')
+    expect(manager?.datasourceTemplate).toBe('node-version')
+    expect(manager?.versioningTemplate).toBe('node')
+    expect(manager?.autoReplaceStringTemplate).toBe(
+      '"node": "{{{newMajor}}}.x"',
+    )
+  })
+
+  it('matches the actual package.json engines.bun value with the Bun custom regex manager', () => {
+    const packageJson = readRepositoryFile('package.json')
+    const manager = config.customManagers.find(
+      (candidate) =>
+        candidate.description ===
+        'Sync Bun runtime version into package.json engines.bun',
+    )
+    const match = new RegExp(manager?.matchStrings[0] ?? '').exec(packageJson)
+
+    expect(match?.groups?.currentValue).toBe('1.3.14')
+    expect(manager?.datasourceTemplate).toBe('npm')
+    expect(manager?.versioningTemplate).toBe('npm')
+    expect(manager?.autoReplaceStringTemplate).toBe('"bun": "{{{newVersion}}}"')
+  })
+
+  it('matches the actual package.json packageManager value with the Bun custom regex manager', () => {
+    const packageJson = readRepositoryFile('package.json')
+    const manager = config.customManagers.find(
+      (candidate) =>
+        candidate.description ===
+        'Sync Bun runtime version into package.json packageManager',
+    )
+    const match = new RegExp(manager?.matchStrings[0] ?? '').exec(packageJson)
+
+    expect(match?.groups?.currentValue).toBe('1.3.14')
+    expect(manager?.datasourceTemplate).toBe('npm')
+    expect(manager?.versioningTemplate).toBe('npm')
+    expect(manager?.autoReplaceStringTemplate).toBe(
+      '"packageManager": "bun@{{{newVersion}}}"',
     )
   })
 
@@ -92,28 +219,41 @@ describe('Renovate toolchain update automation policy', () => {
     }
   })
 
-  it('keeps Node and Bun runtime updates in separate PRs with dashboard approval and no automerge', () => {
+  it('uses only safe triple-brace templates with no zero-width characters', () => {
+    for (const manager of config.customManagers) {
+      const template = manager.autoReplaceStringTemplate ?? ''
+      expect(template).not.toContain('&#8203;')
+      expect(template).not.toContain('\u200B')
+      expect(template).toMatch(/\{\{\{\w+\}\}\}/)
+    }
+  })
+
+  it('groups Node and Bun runtime updates with dashboard approval, no automerge, and minimumGroupSize', () => {
     const nodeRule = config.packageRules.find(
-      (rule) =>
-        rule.description === 'Require approval for Node runtime updates',
+      (rule) => rule.description === 'Group Node runtime updates',
     )
     const bunRule = config.packageRules.find(
-      (rule) => rule.description === 'Require approval for Bun runtime updates',
+      (rule) => rule.description === 'Group Bun runtime updates',
     )
 
     expect(nodeRule).toEqual({
-      description: 'Require approval for Node runtime updates',
-      matchManagers: ['nodenv'],
+      description: 'Group Node runtime updates',
+      matchManagers: ['nodenv', 'custom.regex'],
+      matchDatasources: ['node-version'],
+      groupName: 'Node runtime',
       dependencyDashboardApproval: true,
-      groupName: null,
       automerge: false,
+      minimumGroupSize: 2,
     })
     expect(bunRule).toEqual({
-      description: 'Require approval for Bun runtime updates',
-      matchManagers: ['bun-version'],
+      description: 'Group Bun runtime updates',
+      matchManagers: ['bun-version', 'custom.regex'],
+      matchDatasources: ['npm'],
+      matchPackageNames: ['bun'],
+      groupName: 'Bun runtime',
       dependencyDashboardApproval: true,
-      groupName: null,
       automerge: false,
+      minimumGroupSize: 3,
     })
   })
 
@@ -129,19 +269,30 @@ describe('Renovate toolchain update automation policy', () => {
 
   it('runs verify:toolchain-versions in CI for every job before installing dependencies', () => {
     const ciWorkflow = readRepositoryFile('.github/workflows/ci.yml')
-    const setupBunLines = ciWorkflow
-      .split('\n')
-      .map((line, index) => ({ line, index }))
-      .filter(({ line }) => line.includes('bun-version-file:'))
+    expect(ciWorkflow).toContain('run: bun run verify:toolchain-versions')
+    assertVerifierBeforeInstall(ciWorkflow)
+  })
 
-    expect(setupBunLines.length).toBeGreaterThan(0)
-    for (const { index } of setupBunLines) {
-      const followingLines = ciWorkflow.split('\n').slice(index + 1, index + 10)
-      const hasVerifier = followingLines.some((line) =>
-        line.includes('run: bun run verify:toolchain-versions'),
-      )
-      expect(hasVerifier).toBe(true)
-    }
+  it('fails when the toolchain verifier runs after dependency installation', () => {
+    const reverseCiWorkflow = `
+jobs:
+  dummy:
+    name: Dummy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify toolchain versions
+        run: bun run verify:toolchain-versions
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@foo
+        with:
+          bun-version-file: '.bun-version'
+    `
+    expect(reverseCiWorkflow).toContain('bun install --frozen-lockfile')
+    expect(() => assertVerifierBeforeInstall(reverseCiWorkflow)).toThrow(
+      /verifier must run before frozen install/,
+    )
   })
 
   it('matches all required package.json version sources for runtime sync', () => {
