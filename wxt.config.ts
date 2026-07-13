@@ -6,6 +6,11 @@ import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 
 import '@wxt-dev/module-react' // eslint-disable-line
 
+import {
+  PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
+  createProductionExtensionCsp,
+} from './src/constants/productionNetworkPolicy'
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
@@ -36,7 +41,10 @@ export default defineConfig({
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
     version: APP_VERSION,
-    host_permissions: ['http://localhost:11434/*', 'http://127.0.0.1:11434/*'],
+    content_security_policy: {
+      extension_pages: createProductionExtensionCsp(env.manifestVersion),
+    },
+    host_permissions: PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
     permissions: ['alarms', 'tabs', 'storage', 'contextMenus', 'notifications'],
     action: {
       default_title: '__MSG_extensionName__',

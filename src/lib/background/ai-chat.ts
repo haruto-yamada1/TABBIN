@@ -2,6 +2,7 @@ import { generateText, isStepCount } from 'ai'
 import { createOllama } from 'ai-sdk-ollama'
 
 import { getAiChatToolTitle } from '@/constants/aiChatTools'
+import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
 import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
 import { buildAiSavedUrlRecords } from '@/features/ai-chat/lib/buildAiContext'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
@@ -112,7 +113,6 @@ const normalizeLoadedAiChatSettings = (settings: UserSettings | undefined) =>
 const getNormalizedAiChatSettings = async () =>
   normalizeLoadedAiChatSettings(await getUserSettings())
 
-const OLLAMA_BASE_URL = 'http://localhost:11434'
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`
 const OLLAMA_DOWNLOAD_URL = 'https://ollama.com/download'
 const OLLAMA_FAQ_URL =

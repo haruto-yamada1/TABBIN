@@ -93,6 +93,9 @@ jobs:
       - name: Verify generated manifest version
         run: bun run verify:app-version
 
+      - name: Verify production network policy
+        run: bun run verify:production-network-policy
+
   run-tests-shard-1:
     name: Run Vitest Tests
     runs-on: ubuntu-latest

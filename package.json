@@ -5,7 +5,8 @@
   "description": "An extension for organizing and categorizing browser tabs so cluttered tab lists stay manageable.",
   "type": "module",
   "imports": {
-    "#harness-state": "./tools/harness/state/index.ts"
+    "#harness-state": "./tools/harness/state/index.ts",
+    "#production-network-policy": "./src/constants/productionNetworkPolicy.ts"
   },
   "scripts": {
     "dev": "wxt",
@@ -14,7 +15,7 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
-    "release:check": "git diff --exit-code && bun run quality:check && bun run build && bun run build:firefox && bun run verify:production-logging && bun run verify:app-version && git diff --exit-code",
+    "release:check": "git diff --exit-code && bun run quality:check && bun run build && bun run build:firefox && bun run verify:production-logging && bun run verify:app-version && bun run verify:production-network-policy && git diff --exit-code",
     "release:zip": "bun run release:check && bun run zip && bun run zip:firefox && bun run release:provenance",
     "compile": "tsgo --noEmit",
     "secretlint": "secretlint \"**/*\"",
@@ -27,6 +28,7 @@
     "validate:html": "html-validate --config .htmlvalidate.json --ext tsx,html src",
     "verify:tooling-dependencies": "node tools/scripts/verify-tooling-dependencies.mjs",
     "verify:production-logging": "bun tools/scripts/verify-production-logging.ts",
+    "verify:production-network-policy": "bun tools/scripts/verify-production-network-policy.ts",
     "check": "bun run format:check && bun run compile && bun run lint",
     "check:write": "bun run lint:fix && bun run format",
     "check:duplication": "jscpd --config .jscpd.json",
