@@ -1,16 +1,7 @@
-/* eslint-disable import/first */
 /**
  * Background script - メインエントリーポイント
  * リファクタリング後のモジュラー構造
  */
-
-// プロダクションビルドではデバッグログを抑制する
-if (!import.meta.env.DEV) {
-  // eslint-disable-next-line no-console
-  console.log = () => {}
-  // eslint-disable-next-line no-console
-  console.debug = () => {}
-}
 
 import { defineBackground } from 'wxt/utils/define-background'
 
@@ -21,6 +12,7 @@ import { handleExtensionActionClick } from '@/lib/background/extension-actions'
 import { setupMessageListener } from '@/lib/background/message-handler'
 import { openSavedTabsPage } from '@/lib/background/saved-tabs-page'
 import { handleTabCreated } from '@/lib/background/url-storage'
+import { logger } from '@/lib/logging/logger'
 import { getParentCategories } from '@/lib/storage/categories'
 import { migrateParentCategoriesToDomainNames } from '@/lib/storage/migration'
 
@@ -54,23 +46,19 @@ export default defineBackground(() => {
             changelogShown: true, // 表示したことをマークする
             seenVersion: manifestVersion,
           })
-          console.log(
-            `新バージョン ${manifestVersion} の変更履歴を表示しました`,
-          )
+          logger.debug('background_changelog_displayed')
         }
         if (items.seenVersion !== manifestVersion && items.changelogShown) {
           // ただしバージョンは更新する
           await chrome.storage.local.set({ seenVersion: manifestVersion })
-          console.log(
-            `新バージョン ${manifestVersion} に更新されましたが、変更履歴は既に表示済みです`,
-          )
+          logger.debug('background_changelog_already_displayed')
         }
 
         // 更新時も保存タブページを前面表示 + ピン留めする
         await openSavedTabsPage()
       }
     } catch (error) {
-      console.error('インストール/更新時の自動オープン処理エラー:', error)
+      logger.error('background_install_update_failed', error)
     }
   })
 
@@ -78,13 +66,10 @@ export default defineBackground(() => {
   // eslint-disable-next-line typescript/no-misused-promises
   chrome.runtime.onStartup.addListener(async () => {
     try {
-      console.log('ブラウザ起動時にsaved-tabsページを開きます')
+      logger.debug('background_saved_tabs_open_started')
       await openSavedTabsPage()
     } catch (error) {
-      console.error(
-        '起動時のsaved-tabsページ自動オープンに失敗しました:',
-        error,
-      )
+      logger.error('background_saved_tabs_open_failed', error)
     }
   })
 
@@ -92,31 +77,35 @@ export default defineBackground(() => {
   try {
     // コンテキストメニューを作成
     createContextMenus()
-    console.log('コンテキストメニューの初期化が完了しました')
+    logger.debug('background_context_menu_initialized')
   } catch (error) {
-    console.error('コンテキストメニュー初期化エラー:', error)
+    logger.error('background_context_menu_initialization_failed', error)
   }
   // バックグラウンド初期化時に一度だけマイグレーションを実行
   void (async () => {
     try {
-      console.log('バックグラウンド起動時のデータ構造チェックを開始...')
+      logger.debug('background_data_migration_started')
 
       // 既存のカテゴリを確認
       const categories = await getParentCategories()
-      console.log('現在の親カテゴリ:', categories)
+      logger.debug('background_parent_categories_loaded', {
+        recordCount: categories.length,
+      })
 
       // 強制的にマイグレーションを実行する
-      console.log('親カテゴリのdomainNamesの強制マイグレーションを実行')
+      logger.debug('background_parent_category_migration_started')
       await migrateParentCategoriesToDomainNames()
 
       // 移行後のデータを確認
       const updatedCategories = await getParentCategories()
-      console.log('移行後の親カテゴリ:', updatedCategories)
+      logger.debug('background_parent_category_migration_completed', {
+        recordCount: updatedCategories.length,
+      })
 
       // 期限切れタブのチェック用アラームを設定
       setupExpiredTabsCheckAlarm()
     } catch (error) {
-      console.error('バックグラウンド初期化エラー:', error)
+      logger.error('background_initialization_failed', error)
     }
   })()
 

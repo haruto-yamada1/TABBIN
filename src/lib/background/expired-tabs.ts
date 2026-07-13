@@ -2,7 +2,7 @@
  * 期限切れタブ管理モジュール
  */
 
-import { redactUrlForLog } from '@/lib/logging/redact-url'
+import { logger } from '@/lib/logging/logger'
 import type { AutoDeletePeriod } from '@/types/background'
 import type { TabGroup, UserSettings } from '@/types/storage'
 
@@ -92,7 +92,7 @@ export const getExpirationPeriodMs = (
  */
 export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
   try {
-    console.log('期限切れタブのチェックを開始...', new Date().toLocaleString())
+    logger.debug('background_expired_tabs_check_started')
 
     // ストレージから直接取得する - より単純化した取得方法
     const data = await chrome.storage.local.get<{
@@ -100,17 +100,13 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
     }>(['userSettings'])
     const autoDeletePeriod = data.userSettings?.autoDeletePeriod ?? 'never'
 
-    // デバッグログを追加
-    console.log('ストレージから直接取得した設定:', data)
-    console.log('使用する自動削除期間:', autoDeletePeriod)
-
     // 自動削除が無効な場合は何もしない
     if (autoDeletePeriod === 'never') {
-      console.log('自動削除は無効です')
+      logger.debug('background_expired_tabs_auto_delete_disabled')
       return
     }
     if (!isAutoDeletePeriod(autoDeletePeriod)) {
-      console.log('無効な自動削除期間です')
+      logger.warn('background_expired_tabs_auto_delete_period_invalid')
       return
     }
 
@@ -119,8 +115,6 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
     const expirationPeriod = getExpirationPeriodMs(autoDeletePeriod) ?? 0
     const currentTime = Date.now()
     const cutoffTime = currentTime - expirationPeriod
-    console.log(`現在時刻: ${new Date(currentTime).toLocaleString()}`)
-    console.log(`カットオフ時刻: ${new Date(cutoffTime).toLocaleString()}`)
 
     // 保存されたタブを取得
     const storageResult = await chrome.storage.local.get<{
@@ -128,10 +122,12 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
     }>('savedTabs')
     const savedTabs: TabGroup[] = storageResult.savedTabs ?? []
     if (savedTabs.length === 0) {
-      console.log('保存されたタブはありません')
+      logger.debug('background_expired_tabs_source_empty')
       return
     }
-    console.log(`チェック対象タブグループ数: ${savedTabs.length}`)
+    logger.debug('background_expired_tabs_scan_started', {
+      recordCount: savedTabs.length,
+    })
 
     // チェック対象のURL数を計算
     const totalUrlCount: number = savedTabs.reduce(
@@ -147,17 +143,18 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
         const urlSavedAt = urlEntry.savedAt ?? group.savedAt ?? currentTime
         const isUrlExpired = urlSavedAt < cutoffTime
         if (isUrlExpired) {
-          console.log(
-            `削除: URL ${redactUrlForLog(urlEntry.url)} (ドメイン: ${redactUrlForLog(group.domain)})`,
-          )
+          logger.debug('background_expired_tab_removed', {
+            url: urlEntry.url,
+          })
           return false
         }
         return true
       })
       if (filteredUrls.length !== originalUrlCount) {
-        console.log(
-          `グループ ${redactUrlForLog(group.domain)}: ${originalUrlCount - filteredUrls.length} 件のURLを削除`,
-        )
+        logger.debug('background_expired_tab_group_urls_removed', {
+          domain: group.domain,
+          recordCount: originalUrlCount - filteredUrls.length,
+        })
       }
       if (filteredUrls.length > 0) {
         groups.push({
@@ -179,24 +176,17 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
       updatedTabs.length !== savedTabs.length ||
       updatedUrlCount !== totalUrlCount
     ) {
-      console.log(
-        `削除前: ${savedTabs.length} グループ, ${totalUrlCount} 件のURL`,
-      )
-      console.log(
-        `削除後: ${updatedTabs.length} グループ, ${updatedUrlCount} 件のURL`,
-      )
       await chrome.storage.local.set({
         savedTabs: updatedTabs,
       })
-      console.log('期限切れタブを削除しました')
+      logger.info('background_expired_tabs_removed', {
+        recordCount: totalUrlCount - updatedUrlCount,
+      })
     } else {
-      console.log('削除対象のタブはありませんでした')
+      logger.debug('background_expired_tabs_removal_not_required')
     }
   } catch (error: unknown) {
-    console.error(
-      '期限切れタブチェックエラー:',
-      error instanceof Error ? error.message : error,
-    )
+    logger.error('background_expired_tabs_check_failed', error)
   }
 }
 /**
@@ -209,14 +199,13 @@ export const updateTabTimestamps = async (
   timestamp: number
 }> => {
   try {
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty string fallback
-    console.log(`タブの保存時刻を更新します: ${period || '不明な期間'}`)
+    logger.debug('background_tab_timestamp_update_started')
     const storageResult = await chrome.storage.local.get<{
       savedTabs?: TabGroup[]
     }>('savedTabs')
     const savedTabs: TabGroup[] = storageResult.savedTabs ?? []
     if (savedTabs.length === 0) {
-      console.log('保存されたタブがありません')
+      logger.debug('background_tab_timestamp_update_source_empty')
       return {
         success: false,
         timestamp: 0,
@@ -244,9 +233,9 @@ export const updateTabTimestamps = async (
     await chrome.storage.local.set({
       savedTabs: updatedTabs,
     })
-    console.log(
-      `${updatedTabs.length}個のタブグループの時刻を ${new Date(timestamp).toLocaleString()} に更新しました`,
-    )
+    logger.info('background_tab_timestamp_update_completed', {
+      recordCount: updatedTabs.length,
+    })
 
     // 即座に確認
     void checkAndRemoveExpiredTabs()
@@ -255,7 +244,7 @@ export const updateTabTimestamps = async (
       timestamp,
     }
   } catch (error) {
-    console.error('タブ時刻更新エラー:', error)
+    logger.error('background_tab_timestamp_update_failed', error)
     throw error
   }
 }

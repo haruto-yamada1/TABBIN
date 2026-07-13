@@ -182,6 +182,24 @@ describe('dependency-cruiser architecture rules', () => {
       },
     },
     {
+      name: 'domain dependencies on logging runtime',
+      rule: 'no-domain-application-to-logging',
+      files: {
+        'src/contexts/foo/domain/entity.ts':
+          "import '../../../lib/logging/logger'\n",
+        'src/lib/logging/logger.ts': 'export const logger = 1\n',
+      },
+    },
+    {
+      name: 'application dependencies on logging runtime',
+      rule: 'no-domain-application-to-logging',
+      files: {
+        'src/contexts/foo/application/useCase.ts':
+          "import '../../../lib/logging/logger'\n",
+        'src/lib/logging/logger.ts': 'export const logger = 1\n',
+      },
+    },
+    {
       name: 'application dependencies on infrastructure',
       rule: 'no-infrastructure-construction-outside-composition',
       files: {

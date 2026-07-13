@@ -164,6 +164,14 @@ module.exports = {
       },
     },
     {
+      name: 'no-domain-application-to-logging',
+      comment:
+        'Domain and application code must not depend on the runtime logging transport',
+      severity: 'error',
+      from: { path: '^src/contexts/[^/]+/(domain|application)/' },
+      to: { path: '^src/lib/logging/' },
+    },
+    {
       name: 'no-infrastructure-to-presentation',
       comment: 'Infrastructure code must not depend on presentation code',
       severity: 'error',

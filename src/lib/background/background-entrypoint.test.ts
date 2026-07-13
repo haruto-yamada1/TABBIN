@@ -8,6 +8,12 @@ const mocked = vi.hoisted(() => ({
   openSavedTabsPage: vi.fn(),
   handleTabCreated: vi.fn(),
   getParentCategories: vi.fn(),
+  logger: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
   migrateParentCategoriesToDomainNames: vi.fn(),
 }))
 vi.mock('wxt/utils/define-background', () => ({
@@ -33,6 +39,9 @@ vi.mock('@/lib/background/saved-tabs-page', () => ({
 }))
 vi.mock('@/lib/background/url-storage', () => ({
   handleTabCreated: mocked.handleTabCreated,
+}))
+vi.mock('@/lib/logging/logger', () => ({
+  logger: mocked.logger,
 }))
 vi.mock('@/lib/storage/categories', () => ({
   getParentCategories: mocked.getParentCategories,
@@ -299,11 +308,10 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
   })
   it('インストール時の自動オープンフローのエラーを捕捉する', async () => {
     const harness = await loadBackground()
-    const errorSpy = vi.mocked(console.error)
     mocked.openSavedTabsPage.mockRejectedValueOnce(new Error('open failed'))
     await triggerInstalled(harness, 'install')
-    expect(errorSpy).toHaveBeenCalledWith(
-      'インストール/更新時の自動オープン処理エラー:',
+    expect(mocked.logger.error).toHaveBeenCalledWith(
+      'background_install_update_failed',
       expect.any(Error),
     )
     expect(harness.storageSet).not.toHaveBeenCalledWith({
@@ -313,11 +321,10 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
   })
   it('起動時の自動オープンフローのエラーを捕捉する', async () => {
     const harness = await loadBackground()
-    const errorSpy = vi.mocked(console.error)
     mocked.openSavedTabsPage.mockRejectedValueOnce(new Error('startup failed'))
     await triggerStartup(harness)
-    expect(errorSpy).toHaveBeenCalledWith(
-      '起動時のsaved-tabsページ自動オープンに失敗しました:',
+    expect(mocked.logger.error).toHaveBeenCalledWith(
+      'background_saved_tabs_open_failed',
       expect.any(Error),
     )
   })
@@ -325,17 +332,15 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     mocked.migrateParentCategoriesToDomainNames.mockRejectedValueOnce(
       new Error('migration failed'),
     )
-    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     await loadBackground({
       clearAfterImport: false,
     })
-    expect(errorSpy).toHaveBeenCalledWith(
-      'バックグラウンド初期化エラー:',
+    expect(mocked.logger.error).toHaveBeenCalledWith(
+      'background_initialization_failed',
       expect.any(Error),
     )
   })
   it('バックグラウンドセットアップ中のコンテキストメニュー初期化エラーを処理する', async () => {
-    const errorSpy = vi.mocked(console.error)
     await loadBackground({
       clearAfterImport: false,
       setupMocks: () => {
@@ -344,13 +349,12 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
         })
       },
     })
-    expect(errorSpy).toHaveBeenCalledWith(
-      'コンテキストメニュー初期化エラー:',
+    expect(mocked.logger.error).toHaveBeenCalledWith(
+      'background_context_menu_initialization_failed',
       expect.any(Error),
     )
   })
   it('バックグラウンド初期化 IIFE のエラーを処理する', async () => {
-    const errorSpy = vi.mocked(console.error)
     await loadBackground({
       clearAfterImport: false,
       setupMocks: () => {
@@ -359,13 +363,13 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
         )
       },
     })
-    expect(errorSpy).toHaveBeenCalledWith(
-      'バックグラウンド初期化エラー:',
+    expect(mocked.logger.error).toHaveBeenCalledWith(
+      'background_initialization_failed',
       expect.any(Error),
     )
     expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
   })
-  it('本番モードでは console.log と console.debug を抑制する', async () => {
+  it('本番モードでも console globals を上書きしない', async () => {
     const originalLog = console.log
     const originalDebug = console.debug
     try {
@@ -373,18 +377,10 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
         clearAfterImport: false,
         dev: false,
       })
-      expect(console.log).not.toBe(originalLog)
-      expect(console.debug).not.toBe(originalDebug)
-      expect(() => {
-        console.log('suppressed')
-      }).not.toThrow()
-      expect(() => {
-        console.debug('suppressed')
-      }).not.toThrow()
+      expect(console.log).toBe(originalLog)
+      expect(console.debug).toBe(originalDebug)
     } finally {
       vi.unstubAllEnvs()
-      console.log = originalLog
-      console.debug = originalDebug
     }
   })
 })
