@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Shared policy behavior
+## Task 1: Shared policy behavior
 
 **Files:**
 
@@ -27,7 +27,7 @@
    permissions; replace duplicated literals in runtime and WXT configuration.
 4. Run the focused test and existing `src/lib/background/ai-chat.test.ts`.
 
-### Task 2: AST inventory and manifest verifier
+## Task 2: AST inventory and manifest verifier
 
 **Files:**
 
@@ -50,7 +50,7 @@
    `release:check` and the CI Verify Build job.
 6. Re-run the focused tests and build/verifier commands.
 
-### Task 3: Runtime request interception and security policy
+## Task 3: Runtime request interception and security policy
 
 **Files:**
 
@@ -66,7 +66,7 @@
    verification commands, and required security-review checklist.
 4. Run `bun run build` followed by targeted or full `bun run e2e`.
 
-### Task 4: Completion gates and publication
+## Task 4: Completion gates and publication
 
 **Files:**
 
@@ -81,4 +81,6 @@
    fresh-context evaluator review.
 4. Inspect the scoped diff, commit in Japanese, push
    `codex/issue-721-network-allowlist`, and create a non-draft PR to `develop`
-   that closes #721 and maps each acceptance criterion to evidence.
+   that closes #721 and maps each acceptance criterion to evidence. The
+   `develop` base is an explicitly approved exception for this task because the
+   user requested it when assigning Issue #721.

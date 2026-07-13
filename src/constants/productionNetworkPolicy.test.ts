@@ -109,4 +109,14 @@ describe('production network policy', () => {
   ])('ignores allowed or non-outbound request %#', (request) => {
     expect(getUnexpectedExtensionOutboundRequest(request)).toBeNull()
   })
+
+  it.each([
+    'ws://localhost:11434/api/events',
+    'ws://127.0.0.1:11434/api/events',
+  ])(
+    'does not treat unsupported WebSocket transports as allowed: %s',
+    (url) => {
+      expect(isAllowedProductionOutboundUrl(url)).toBe(false)
+    },
+  )
 })

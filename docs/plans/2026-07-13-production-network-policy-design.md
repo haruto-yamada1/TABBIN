@@ -12,7 +12,7 @@ runtime request guard.
 
 Use one typed production network policy as the source of truth for both the
 Ollama transport and generated manifest permissions. Verify that policy at
-three distinct boundaries:
+four distinct boundaries:
 
 1. A TypeScript-AST inventory detects direct browser network APIs and approved
    explicit network-client imports in production source, including aliases,
@@ -20,7 +20,7 @@ three distinct boundaries:
 2. A post-build verifier requires Chrome and Firefox manifests to contain
    exactly the allowed host permissions and a restrictive `connect-src` CSP.
 3. The extension CSP blocks non-allowlisted connections at runtime and disables
-   form and frame based transmission.
+   form and frame-based transmission.
 4. The shared Playwright fixture rejects HTTP(S)/WS(S) requests initiated by an
    extension page or extension service worker unless their origin is allowed.
 

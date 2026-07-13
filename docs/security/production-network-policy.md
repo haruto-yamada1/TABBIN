@@ -35,7 +35,19 @@ Current production call sites are:
 
 There are no production `XMLHttpRequest`, WebSocket, EventSource, or
 `sendBeacon` call sites. Ollama download and FAQ URLs are user navigation links;
-the extension does not fetch them.
+the extension does not fetch them. Both links open a new top-level tab with
+`target="_blank"`. They remain normal user navigation in production, but the
+Playwright request hook intentionally treats any document request attributed to
+an extension frame or service worker as a policy violation. E2E coverage that
+clicks these links must therefore verify that Playwright attributes the new-tab
+navigation to the new page rather than weakening the extension-initiated
+document guard.
+
+WebSocket transports are not currently supported. The HTTP Ollama origins in
+`connect-src` do not grant `ws:` access, and the runtime URL classifier likewise
+rejects `ws://localhost:11434` and `ws://127.0.0.1:11434`. Adding a WebSocket
+transport requires an explicit allowlist, CSP, manifest, and regression-test
+change.
 
 ## Automated enforcement
 

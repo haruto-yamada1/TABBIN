@@ -8,6 +8,16 @@ import {
 } from '#production-network-policy'
 import ts from 'typescript'
 
+import { collectPotentialNetworkAliasKinds } from './production-network-policy-aliases'
+import type { PotentialAliasSummary } from './production-network-policy-aliases'
+import {
+  NetworkAstTraverser,
+  cloneAliasScopes as cloneScopes,
+  collectBindingIdentifiers,
+  mergeAliasScopeStates as mergeScopeStates,
+} from './production-network-policy-ast'
+import type { AliasScope } from './production-network-policy-ast'
+
 export type NetworkCallsiteKind =
   | 'network-client-import'
   | 'fetch'
@@ -24,11 +34,6 @@ export type NetworkCallsite = {
 }
 
 export type NormalizedNetworkCallsite = Omit<NetworkCallsite, 'line'>
-
-type AliasScope = {
-  bindings: Map<string, NetworkCallsiteKind | null>
-  type: 'block' | 'function' | 'source'
-}
 
 const NETWORK_CLIENT_MODULES = new Set([
   'ai-sdk-ollama',
@@ -114,6 +119,28 @@ const isNamedGlobalObject = (node: ts.Node, name: string): boolean =>
     GLOBAL_OBJECT_NAMES.has(node.expression.text) &&
     getAccessedPropertyName(node) === name)
 
+const resolveDirectNetworkReferences = (
+  node: ts.Node,
+): ReadonlySet<NetworkCallsiteKind> => {
+  if (ts.isIdentifier(node)) {
+    const kind = directGlobalKinds.get(node.text)
+    return kind === undefined ? new Set() : new Set([kind])
+  }
+  const propertyName = getAccessedPropertyName(node)
+  const receiver = getAccessReceiver(node)
+  if (propertyName === null || receiver === null) {
+    return new Set()
+  }
+  if (ts.isIdentifier(receiver) && GLOBAL_OBJECT_NAMES.has(receiver.text)) {
+    const kind = directGlobalKinds.get(propertyName)
+    return kind === undefined ? new Set() : new Set([kind])
+  }
+  return propertyName === 'sendBeacon' &&
+    isNamedGlobalObject(receiver, 'navigator')
+    ? new Set(['send-beacon'])
+    : new Set()
+}
+
 const getBindingPropertyName = (element: ts.BindingElement): string | null => {
   if (element.propertyName === undefined) {
     return ts.isIdentifier(element.name) ? element.name.text : null
@@ -146,19 +173,71 @@ const resolveDestructuredNetworkKind = (
   return null
 }
 
+const resolveIdentifierNetworkReferences = (
+  name: string,
+  scopes: readonly AliasScope[],
+): ReadonlySet<NetworkCallsiteKind> => {
+  const currentFunctionScopeIndex = scopes.findLastIndex(
+    (scope) => scope.type === 'function',
+  )
+  for (let index = scopes.length - 1; index >= 0; index -= 1) {
+    const scope = scopes[index]
+    if (!scope.bindings.has(name)) {
+      continue
+    }
+    const currentKinds = scope.bindings.get(name) ?? new Set()
+    return currentFunctionScopeIndex > index
+      ? new Set([
+          ...currentKinds,
+          ...(scope.potentialBindings.get(name) ?? []),
+          ...(scopes[currentFunctionScopeIndex]?.potentialBindings.get(name) ??
+            []),
+        ])
+      : new Set([...currentKinds, ...(scope.capturedBindings.get(name) ?? [])])
+  }
+  const directKind = directGlobalKinds.get(name)
+  return directKind === undefined ? new Set() : new Set([directKind])
+}
+
+const resolveAliasNetworkReferences = (
+  node: ts.Expression,
+  resolveReferences: (node: ts.Node) => ReadonlySet<NetworkCallsiteKind>,
+): ReadonlySet<NetworkCallsiteKind> => {
+  const directKinds = resolveReferences(node)
+  if (directKinds.size > 0) {
+    return directKinds
+  }
+  if (ts.isConditionalExpression(node)) {
+    return new Set([
+      ...resolveAliasNetworkReferences(node.whenTrue, resolveReferences),
+      ...resolveAliasNetworkReferences(node.whenFalse, resolveReferences),
+    ])
+  }
+  if (
+    ts.isBinaryExpression(node) &&
+    [
+      ts.SyntaxKind.AmpersandAmpersandToken,
+      ts.SyntaxKind.BarBarToken,
+      ts.SyntaxKind.QuestionQuestionToken,
+    ].includes(node.operatorToken.kind)
+  ) {
+    return new Set([
+      ...resolveAliasNetworkReferences(node.left, resolveReferences),
+      ...resolveAliasNetworkReferences(node.right, resolveReferences),
+    ])
+  }
+  if (!ts.isCallExpression(node)) {
+    return new Set()
+  }
+  const method = getAccessedPropertyName(node.expression)
+  const receiver = getAccessReceiver(node.expression)
+  return method === 'bind' && receiver !== null
+    ? resolveReferences(receiver)
+    : new Set()
+}
+
 const getLine = (source: ts.SourceFile, node: ts.Node): number =>
   source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1
-
-const collectBindingIdentifiers = (name: ts.BindingName): string[] => {
-  if (ts.isIdentifier(name)) {
-    return [name.text]
-  }
-  return name.elements.flatMap((element) =>
-    ts.isOmittedExpression(element)
-      ? []
-      : collectBindingIdentifiers(element.name),
-  )
-}
 
 export const normalizeNetworkCallsite = (
   callsite: NetworkCallsite,
@@ -166,6 +245,62 @@ export const normalizeNetworkCallsite = (
   const { line: _line, ...normalized } = callsite
   return normalized
 }
+
+type NetworkCallsiteRecorder = {
+  add: (kind: NetworkCallsiteKind, node: ts.Node, detail?: string) => void
+  resolveInvokedReferences: (
+    node: ts.CallExpression,
+  ) => ReadonlySet<NetworkCallsiteKind>
+  resolveReferences: (node: ts.Node) => ReadonlySet<NetworkCallsiteKind>
+}
+
+const recordNetworkCallsite = (
+  node: ts.Node,
+  recorder: NetworkCallsiteRecorder,
+): void => {
+  if (
+    ts.isImportDeclaration(node) &&
+    ts.isStringLiteral(node.moduleSpecifier) &&
+    isNetworkClientModule(node.moduleSpecifier.text)
+  ) {
+    recorder.add('network-client-import', node, node.moduleSpecifier.text)
+    return
+  }
+  if (
+    ts.isCallExpression(node) &&
+    node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+    node.arguments.length === 1 &&
+    ts.isStringLiteralLike(node.arguments[0]) &&
+    isNetworkClientModule(node.arguments[0].text)
+  ) {
+    recorder.add('network-client-import', node, node.arguments[0].text)
+    return
+  }
+  if (ts.isCallExpression(node)) {
+    for (const kind of recorder.resolveInvokedReferences(node)) {
+      recorder.add(kind, node)
+    }
+  } else if (ts.isNewExpression(node)) {
+    for (const kind of recorder.resolveReferences(node.expression)) {
+      recorder.add(kind, node)
+    }
+  }
+}
+
+const createAliasScope = (
+  type: AliasScope['type'],
+  node: ts.Node,
+  potentialAliases: WeakMap<ts.Node, PotentialAliasSummary>,
+  bindings: Map<string, ReadonlySet<NetworkCallsiteKind>> = new Map<
+    string,
+    ReadonlySet<NetworkCallsiteKind>
+  >(),
+): AliasScope => ({
+  bindings,
+  capturedBindings: potentialAliases.get(node)?.capturedBindings ?? new Map(),
+  potentialBindings: potentialAliases.get(node)?.bindings ?? new Map(),
+  type,
+})
 
 export const collectSourceNetworkCallsites = (
   relativePath: string,
@@ -182,15 +317,49 @@ export const collectSourceNetworkCallsites = (
     scriptKind,
   )
   const callsites: NetworkCallsite[] = []
-  const sourceScope: AliasScope = { bindings: new Map(), type: 'source' }
-  const scopes: AliasScope[] = [sourceScope]
+  const recordedCallsites = new Set<string>()
+  const potentialAliasKinds = collectPotentialNetworkAliasKinds(
+    source,
+    resolveDirectNetworkReferences,
+  )
+  const sourceScope = createAliasScope(
+    'source',
+    source,
+    potentialAliasKinds,
+    new Map(
+      [...directGlobalKinds].map(([name, kind]) => [name, new Set([kind])]),
+    ),
+  )
+  let scopes: AliasScope[] = [sourceScope]
   const getCurrentScope = (): AliasScope => scopes.at(-1) ?? sourceScope
+
+  const createNetworkReference = (
+    kind: NetworkCallsiteKind | null,
+  ): ReadonlySet<NetworkCallsiteKind> =>
+    kind === null ? new Set() : new Set([kind])
+
+  const traverseFromClonedState = (
+    initialScopes: readonly AliasScope[],
+    traverse: () => void,
+  ): AliasScope[] => {
+    const previousScopes = scopes
+    scopes = cloneScopes(initialScopes)
+    traverse()
+    const result = scopes
+    scopes = previousScopes
+    return result
+  }
 
   const add = (
     kind: NetworkCallsiteKind,
     node: ts.Node,
     detail?: string,
   ): void => {
+    const key = `${kind}:${node.pos}:${detail ?? ''}`
+    if (recordedCallsites.has(key)) {
+      return
+    }
+    recordedCallsites.add(key)
     callsites.push({
       ...(detail === undefined ? {} : { detail }),
       kind,
@@ -199,77 +368,69 @@ export const collectSourceNetworkCallsites = (
     })
   }
 
-  const resolveNetworkReference = (
+  const resolveNetworkReferences = (
     node: ts.Node,
-  ): NetworkCallsiteKind | null => {
+  ): ReadonlySet<NetworkCallsiteKind> => {
     if (ts.isIdentifier(node)) {
-      for (let index = scopes.length - 1; index >= 0; index -= 1) {
-        const scope = scopes[index]
-        if (scope.bindings.has(node.text)) {
-          return scope.bindings.get(node.text) ?? null
-        }
-      }
-      return directGlobalKinds.get(node.text) ?? null
+      return resolveIdentifierNetworkReferences(node.text, scopes)
     }
     const propertyName = getAccessedPropertyName(node)
     const receiver = getAccessReceiver(node)
     if (propertyName === null || receiver === null) {
-      return null
+      return new Set()
     }
     if (ts.isIdentifier(receiver) && GLOBAL_OBJECT_NAMES.has(receiver.text)) {
-      return directGlobalKinds.get(propertyName) ?? null
+      return createNetworkReference(directGlobalKinds.get(propertyName) ?? null)
     }
     if (
       propertyName === 'sendBeacon' &&
       isNamedGlobalObject(receiver, 'navigator')
     ) {
-      return 'send-beacon'
+      return createNetworkReference('send-beacon')
     }
-    return null
+    return new Set()
   }
 
-  const resolveAliasSource = (
+  const resolveAliasReferences = (
     node: ts.Expression,
-  ): NetworkCallsiteKind | null => {
-    const directKind = resolveNetworkReference(node)
-    if (directKind !== null) {
-      return directKind
-    }
-    if (!ts.isCallExpression(node)) {
-      return null
-    }
-    const method = getAccessedPropertyName(node.expression)
-    const receiver = getAccessReceiver(node.expression)
-    return method === 'bind' && receiver !== null
-      ? resolveNetworkReference(receiver)
-      : null
-  }
+  ): ReadonlySet<NetworkCallsiteKind> =>
+    resolveAliasNetworkReferences(node, resolveNetworkReferences)
 
   const declareAlias = (
     name: string,
-    kind: NetworkCallsiteKind | null,
+    kinds: ReadonlySet<NetworkCallsiteKind>,
     scope: AliasScope = getCurrentScope(),
   ): void => {
-    scope.bindings.set(name, kind)
+    scope.bindings.set(name, new Set(kinds))
   }
 
   const updateAlias = (
     name: string,
-    kind: NetworkCallsiteKind | null,
+    kinds: ReadonlySet<NetworkCallsiteKind>,
   ): void => {
+    const currentFunctionScopeIndex = scopes.findLastIndex(
+      (scope) => scope.type === 'function',
+    )
     for (let index = scopes.length - 1; index >= 0; index -= 1) {
       const scope = scopes[index]
       if (scope.bindings.has(name)) {
-        scope.bindings.set(name, kind)
+        if (currentFunctionScopeIndex > index) {
+          declareAlias(name, kinds, scopes[currentFunctionScopeIndex])
+          return
+        }
+        scope.bindings.set(name, new Set(kinds))
         return
       }
     }
-    declareAlias(name, kind)
+    declareAlias(name, kinds)
   }
 
   const getVariableDeclarationScope = (
     node: ts.VariableDeclaration,
   ): AliasScope => {
+    if (ts.isCatchClause(node.parent)) {
+      return getCurrentScope()
+    }
     const declarationList = ts.isVariableDeclarationList(node.parent)
       ? node.parent
       : null
@@ -290,21 +451,21 @@ export const collectSourceNetworkCallsites = (
     const declarationScope = getVariableDeclarationScope(node)
     if (node.initializer === undefined) {
       for (const name of collectBindingIdentifiers(node.name)) {
-        declareAlias(name, null, declarationScope)
+        declareAlias(name, new Set(), declarationScope)
       }
       return
     }
     if (ts.isIdentifier(node.name)) {
       declareAlias(
         node.name.text,
-        resolveAliasSource(node.initializer),
+        resolveAliasReferences(node.initializer),
         declarationScope,
       )
       return
     }
     if (!ts.isObjectBindingPattern(node.name)) {
       for (const name of collectBindingIdentifiers(node.name)) {
-        declareAlias(name, null, declarationScope)
+        declareAlias(name, new Set(), declarationScope)
       }
       return
     }
@@ -316,7 +477,11 @@ export const collectSourceNetworkCallsites = (
         node.initializer,
         getBindingPropertyName(element),
       )
-      declareAlias(element.name.text, kind, declarationScope)
+      declareAlias(
+        element.name.text,
+        createNetworkReference(kind),
+        declarationScope,
+      )
     }
   }
 
@@ -325,39 +490,33 @@ export const collectSourceNetworkCallsites = (
       node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
       ts.isIdentifier(node.left)
     ) {
-      updateAlias(node.left.text, resolveAliasSource(node.right))
+      updateAlias(node.left.text, resolveAliasReferences(node.right))
     }
   }
 
-  const resolveInvokedNetworkReference = (
+  const resolveInvokedNetworkReferences = (
     node: ts.CallExpression,
-  ): NetworkCallsiteKind | null => {
-    const directKind = resolveNetworkReference(node.expression)
-    if (directKind !== null) {
-      return directKind
+  ): ReadonlySet<NetworkCallsiteKind> => {
+    const directKinds = resolveNetworkReferences(node.expression)
+    if (directKinds.size > 0) {
+      return directKinds
     }
     const method = getAccessedPropertyName(node.expression)
     const receiver = getAccessReceiver(node.expression)
     return (method === 'call' || method === 'apply') && receiver !== null
-      ? resolveNetworkReference(receiver)
-      : null
+      ? resolveNetworkReferences(receiver)
+      : new Set()
   }
 
   const enterNodeScope = (node: ts.Node): boolean => {
-    if (ts.isFunctionDeclaration(node) && node.name !== undefined) {
-      declareAlias(node.name.text, null)
-    }
-    if (ts.isFunctionLike(node)) {
-      scopes.push({ bindings: new Map(), type: 'function' })
-      for (const parameter of node.parameters) {
-        for (const name of collectBindingIdentifiers(parameter.name)) {
-          declareAlias(name, null)
-        }
-      }
-      return true
-    }
-    if (ts.isBlock(node)) {
-      scopes.push({ bindings: new Map(), type: 'block' })
+    if (
+      ts.isBlock(node) ||
+      ts.isForStatement(node) ||
+      ts.isForInStatement(node) ||
+      ts.isForOfStatement(node) ||
+      ts.isSwitchStatement(node)
+    ) {
+      scopes.push(createAliasScope('block', node, potentialAliasKinds))
       return true
     }
     return false
@@ -371,45 +530,30 @@ export const collectSourceNetworkCallsites = (
     }
   }
 
-  const recordNetworkCallsite = (node: ts.Node): void => {
-    if (
-      ts.isImportDeclaration(node) &&
-      ts.isStringLiteral(node.moduleSpecifier) &&
-      isNetworkClientModule(node.moduleSpecifier.text)
-    ) {
-      add('network-client-import', node, node.moduleSpecifier.text)
-    } else if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteralLike(node.arguments[0]) &&
-      isNetworkClientModule(node.arguments[0].text)
-    ) {
-      add('network-client-import', node, node.arguments[0].text)
-    } else if (ts.isCallExpression(node)) {
-      const kind = resolveInvokedNetworkReference(node)
-      if (kind !== null) {
-        add(kind, node)
-      }
-    } else if (ts.isNewExpression(node)) {
-      const kind = resolveNetworkReference(node.expression)
-      if (kind !== null) {
-        add(kind, node)
-      }
-    }
-  }
-
-  const visit = (node: ts.Node): void => {
-    const createdScope = enterNodeScope(node)
-    registerNodeAliases(node)
-    recordNetworkCallsite(node)
-    ts.forEachChild(node, visit)
-    if (createdScope) {
-      scopes.pop()
-    }
-  }
-
-  visit(source)
+  const traverser = new NetworkAstTraverser({
+    cloneScopes,
+    createScope: (type, node) =>
+      createAliasScope(type, node, potentialAliasKinds),
+    declareAlias: (name, kinds) => {
+      declareAlias(name, kinds)
+    },
+    enterNodeScope,
+    getScopes: () => scopes,
+    mergeScopeStates,
+    recordNetworkCallsite: (node) => {
+      recordNetworkCallsite(node, {
+        add,
+        resolveInvokedReferences: resolveInvokedNetworkReferences,
+        resolveReferences: resolveNetworkReferences,
+      })
+    },
+    registerNodeAliases,
+    setScopes: (nextScopes) => {
+      scopes = nextScopes
+    },
+    traverseFromClonedState,
+  })
+  traverser.traverse(source)
   return callsites.toSorted(compareCallsites)
 }
 
@@ -524,6 +668,7 @@ const parseCspDirectives = (
 const assertExtensionCspMatchesProductionNetworkPolicy = (
   manifest: Record<string, unknown>,
   label: string,
+  manifestVersion: 2 | 3,
 ): void => {
   const directives = parseCspDirectives(
     readExtensionPagesCsp(manifest, label),
@@ -551,7 +696,6 @@ const assertExtensionCspMatchesProductionNetworkPolicy = (
       throw new Error(`${label} ${directive} must be 'none'`)
     }
   }
-  const manifestVersion = manifest.manifest_version === 2 ? 2 : 3
   const expectedDirectives = parseCspDirectives(
     createProductionExtensionCsp(manifestVersion),
     'production network policy',
@@ -588,7 +732,11 @@ export const assertManifestMatchesProductionNetworkPolicy = (
   if (!isRecord(manifest)) {
     throw new TypeError(`${label} manifest is not an object`)
   }
-  const isManifestV2 = manifest.manifest_version === 2
+  const manifestVersion = manifest.manifest_version
+  if (manifestVersion !== 2 && manifestVersion !== 3) {
+    throw new TypeError(`${label} manifest_version must be numeric 2 or 3`)
+  }
+  const isManifestV2 = manifestVersion === 2
   const hostPermissionProperty = isManifestV2
     ? 'permissions'
     : 'host_permissions'
@@ -618,5 +766,9 @@ export const assertManifestMatchesProductionNetworkPolicy = (
       )
     }
   }
-  assertExtensionCspMatchesProductionNetworkPolicy(manifest, label)
+  assertExtensionCspMatchesProductionNetworkPolicy(
+    manifest,
+    label,
+    manifestVersion,
+  )
 }

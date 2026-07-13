@@ -173,6 +173,273 @@ describe('collectSourceNetworkCallsites', () => {
       ),
     ).toEqual([])
   })
+
+  it('isolates nested function assignments from enclosing aliases', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/nested-assignment.ts',
+        `
+          const request = fetch
+          function localHelper() {
+            request = () => undefined
+            request('local')
+          }
+          request('https://example.com/outbound')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([{ kind: 'fetch', path: 'src/nested-assignment.ts' }])
+  })
+
+  it('preserves possible network aliases after conditional assignments', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/conditional-assignment.ts',
+        `
+          let request = fetch
+          if (useLocal) {
+            request = () => undefined
+          }
+          request('https://example.com/outbound')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([{ kind: 'fetch', path: 'src/conditional-assignment.ts' }])
+
+    expect(
+      collectSourceNetworkCallsites(
+        'src/conditional-global-assignment.ts',
+        `
+          if (useLocal) {
+            fetch = () => undefined
+          }
+          fetch('https://example.com/outbound')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([{ kind: 'fetch', path: 'src/conditional-global-assignment.ts' }])
+  })
+
+  it('keeps for and switch lexical bindings from overwriting outer aliases', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/control-flow-bindings.ts',
+        `
+          const request = fetch
+          for (const request of localRequests) {
+            request('local')
+          }
+          switch (mode) {
+            case 'local':
+              const request = () => undefined
+              request('local')
+              break
+          }
+          request('https://example.com/outbound')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([{ kind: 'fetch', path: 'src/control-flow-bindings.ts' }])
+  })
+
+  it('preserves possible aliases after loop and switch assignments', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/control-flow-assignments.ts',
+        `
+          let loopRequest = fetch
+          for (const item of items) {
+            loopRequest = () => item
+          }
+          loopRequest('https://example.com/after-loop')
+
+          let switchRequest = fetch
+          switch (mode) {
+            case 'local':
+              switchRequest = () => undefined
+              break
+          }
+          switchRequest('https://example.com/after-switch')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([
+      { kind: 'fetch', path: 'src/control-flow-assignments.ts' },
+      { kind: 'fetch', path: 'src/control-flow-assignments.ts' },
+    ])
+  })
+
+  it('preserves possible aliases after while and short-circuit assignments', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/additional-control-flow.ts',
+        `
+          let loopRequest = fetch
+          while (shouldReplace) {
+            loopRequest = () => undefined
+          }
+          loopRequest('https://example.com/after-while')
+
+          let branchRequest = fetch
+          shouldReplace && (branchRequest = () => undefined)
+          branchRequest('https://example.com/after-short-circuit')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([
+      { kind: 'fetch', path: 'src/additional-control-flow.ts' },
+      { kind: 'fetch', path: 'src/additional-control-flow.ts' },
+    ])
+  })
+
+  it('includes captured aliases assigned after a function declaration', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/later-captured-alias.ts',
+        `
+          let request
+          function send() {
+            request('https://example.com/from-closure')
+          }
+          request = fetch
+          send()
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([{ kind: 'fetch', path: 'src/later-captured-alias.ts' }])
+  })
+
+  it('tracks aliases assigned from conditional and logical expressions', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/expression-aliases.ts',
+        `
+          const conditionalRequest = flag ? fetch : (() => undefined)
+          conditionalRequest('https://example.com/conditional')
+
+          const logicalRequest = flag && fetch
+          logicalRequest('https://example.com/logical')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([
+      { kind: 'fetch', path: 'src/expression-aliases.ts' },
+      { kind: 'fetch', path: 'src/expression-aliases.ts' },
+    ])
+  })
+
+  it('keeps potential captured aliases isolated by function environment', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/isolated-potential-aliases.ts',
+        `
+          let request = () => undefined
+          function send() {
+            request('local')
+          }
+          function unrelated() {
+            const request = fetch
+            request('https://example.com/unrelated')
+          }
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([{ kind: 'fetch', path: 'src/isolated-potential-aliases.ts' }])
+  })
+
+  it('tracks nested closures by lexical binding scope', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/nested-closure-alias.ts',
+        `
+          function outer() {
+            let request
+            function inner() {
+              request('https://example.com/nested')
+            }
+            request = fetch
+          }
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([{ kind: 'fetch', path: 'src/nested-closure-alias.ts' }])
+  })
+
+  it('does not pollute outer aliases with block-shadowed potentials', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/block-shadow-potential.ts',
+        `
+          let request = () => undefined
+          function send() {
+            request('local')
+          }
+          {
+            const request = fetch
+            request('https://example.com/block')
+          }
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([{ kind: 'fetch', path: 'src/block-shadow-potential.ts' }])
+  })
+
+  it('merges try and catch aliases while preserving catch binding scope', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/try-catch-alias.ts',
+        `
+          let request = fetch
+          try {
+            work()
+          } catch {
+            request = () => undefined
+          }
+          request('https://example.com/after-catch')
+
+          let shadowedRequest = fetch
+          try {
+            work()
+          } catch (shadowedRequest) {
+            shadowedRequest = () => undefined
+          }
+          shadowedRequest('https://example.com/after-shadowed-catch')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([
+      { kind: 'fetch', path: 'src/try-catch-alias.ts' },
+      { kind: 'fetch', path: 'src/try-catch-alias.ts' },
+    ])
+  })
+
+  it('propagates captured network aliases from callable functions', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/callable-captured-alias.ts',
+        `
+          let iifeRequest = () => undefined
+          ;(() => {
+            iifeRequest = fetch
+          })()
+          iifeRequest('https://example.com/iife')
+
+          let namedRequest = () => undefined
+          function enableNetwork() {
+            namedRequest = fetch
+          }
+          enableNetwork()
+          namedRequest('https://example.com/named')
+        `,
+      ).map(normalizeNetworkCallsite),
+    ).toEqual([
+      { kind: 'fetch', path: 'src/callable-captured-alias.ts' },
+      { kind: 'fetch', path: 'src/callable-captured-alias.ts' },
+    ])
+  })
+
+  it('does not include an impossible zero-iteration path for do-while', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/do-while-alias.ts',
+        `
+          let request = fetch
+          do {
+            request = () => undefined
+          } while (false)
+          request('local')
+        `,
+      ),
+    ).toEqual([])
+  })
 })
 
 describe('production network call-site inventory', () => {
@@ -225,6 +492,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
             'http://localhost:11434/*',
           ],
+          manifest_version: 3,
         },
         'manifest.json',
       ),
@@ -271,6 +539,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
             'https://api.example.com/*',
           ],
+          manifest_version: 3,
         },
         'added.json',
       ),
@@ -280,6 +549,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
       assertManifestMatchesProductionNetworkPolicy(
         {
           host_permissions: ['http://localhost:11434/*'],
+          manifest_version: 3,
         },
         'missing.json',
       ),
@@ -292,6 +562,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
             'http://127.0.0.1:11434/*',
           ],
+          manifest_version: 3,
           optional_host_permissions: ['https://api.example.com/*'],
         },
         'optional.json',
@@ -300,7 +571,10 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
 
     expect(() =>
       assertManifestMatchesProductionNetworkPolicy(
-        { host_permissions: 'http://localhost:11434/*' },
+        {
+          host_permissions: 'http://localhost:11434/*',
+          manifest_version: 3,
+        },
         'malformed.json',
       ),
     ).toThrow(/malformed\.json.*host_permissions/)
@@ -314,6 +588,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
             'http://127.0.0.1:11434/*',
           ],
+          manifest_version: 3,
         },
         'missing-csp.json',
       ),
@@ -330,6 +605,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
             'http://127.0.0.1:11434/*',
           ],
+          manifest_version: 3,
         },
         'broad-csp.json',
       ),
@@ -357,6 +633,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             ),
           },
           host_permissions,
+          manifest_version: 3,
         },
         'object-src.json',
       ),
@@ -372,6 +649,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             ),
           },
           host_permissions,
+          manifest_version: 3,
         },
         'script-src.json',
       ),
@@ -384,6 +662,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             extension_pages: `${csp}; report-uri https://example.com/csp`,
           },
           host_permissions,
+          manifest_version: 3,
         },
         'extra-directive.json',
       ),
@@ -401,6 +680,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
             'http://127.0.0.1:11434/*',
           ],
+          manifest_version: 3,
         },
         'duplicate-csp.json',
       ),
@@ -418,10 +698,35 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
             'http://127.0.0.1:11434/*',
           ],
+          manifest_version: 3,
           optional_host_permissions: [],
         },
         'empty-optional.json',
       ),
     ).not.toThrow()
+  })
+
+  it.each([
+    ['missing', undefined],
+    ['string', '3'],
+    ['unsupported', 4],
+  ])('rejects %s manifest_version values', (label, manifestVersion) => {
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        {
+          content_security_policy: {
+            extension_pages: createProductionExtensionCsp(3),
+          },
+          host_permissions: [
+            'http://localhost:11434/*',
+            'http://127.0.0.1:11434/*',
+          ],
+          ...(manifestVersion === undefined
+            ? {}
+            : { manifest_version: manifestVersion }),
+        },
+        `${label}-version.json`,
+      ),
+    ).toThrow(new RegExp(`${label}-version\\.json.*manifest_version.*2 or 3`))
   })
 })
