@@ -152,8 +152,8 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
       })
       if (filteredUrls.length !== originalUrlCount) {
         logger.debug('background_expired_tab_group_urls_removed', {
+          domain: group.domain,
           recordCount: originalUrlCount - filteredUrls.length,
-          url: group.domain,
         })
       }
       if (filteredUrls.length > 0) {

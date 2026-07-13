@@ -212,6 +212,13 @@ describe('expired-tabs ユーティリティ', () => {
       })
       expect(store.savedTabs).toHaveLength(1)
       expect(store.savedTabs?.[0]?.urls).toHaveLength(1)
+      expect(mocked.logger.debug).toHaveBeenCalledWith(
+        'background_expired_tab_group_urls_removed',
+        {
+          domain: 'example.com',
+          recordCount: 1,
+        },
+      )
     })
     it('期限切れ URL がない場合は書き込まない', async () => {
       vi.useFakeTimers()

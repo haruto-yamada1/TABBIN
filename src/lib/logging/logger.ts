@@ -4,6 +4,7 @@ type LogEvent = `${string}_${string}`
 
 type LogContext = {
   readonly action?: string
+  readonly domain?: unknown
   readonly errorCode?: string
   readonly errorName?: string
   readonly recordCount?: number
@@ -68,6 +69,7 @@ const sanitizeContext = (context: LogContext | undefined): LogContext => {
 
   const safeContext: {
     action?: string
+    domain?: string
     errorCode?: string
     errorName?: string
     recordCount?: number
@@ -75,12 +77,16 @@ const sanitizeContext = (context: LogContext | undefined): LogContext => {
   } = {}
   try {
     const action = Reflect.get(context, 'action')
+    const domain = Reflect.get(context, 'domain')
     const errorCode = Reflect.get(context, 'errorCode')
     const errorName = Reflect.get(context, 'errorName')
     const recordCount = Reflect.get(context, 'recordCount')
 
     if (isSafeString(action, SAFE_ACTION_PATTERN)) {
       safeContext.action = action
+    }
+    if (Object.hasOwn(context, 'domain')) {
+      safeContext.domain = redactUrlForLog(domain)
     }
     if (isSafeString(errorCode, SAFE_ERROR_CODE_PATTERN)) {
       safeContext.errorCode = errorCode

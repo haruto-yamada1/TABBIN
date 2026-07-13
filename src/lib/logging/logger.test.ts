@@ -17,6 +17,7 @@ describe('structured logger', () => {
     const context = {
       action: 'runAiChat',
       attachments: [{ content: 'secret attachment' }],
+      domain: 'private.example.com',
       history: [{ content: 'secret history' }],
       notes: 'secret notes',
       prompt: 'secret prompt',
@@ -29,13 +30,14 @@ describe('structured logger', () => {
     expect(sink.info).toHaveBeenCalledWith({
       context: {
         action: 'runAiChat',
+        domain: '[redacted-url]',
         recordCount: 2,
         url: '[redacted-url]',
       },
       event: 'background_message_received',
     })
     expect(JSON.stringify(sink.info.mock.calls)).not.toMatch(
-      /secret|private|token|fragment/,
+      /secret|private|token|fragment|example\.com/,
     )
   })
 
