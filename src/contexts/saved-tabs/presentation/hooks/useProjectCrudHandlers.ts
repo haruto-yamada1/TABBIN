@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import { savedTabsUncategorizedProjectId as UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
@@ -132,11 +131,6 @@ const useProjectCrudHandlers = ({
         if (!project) {
           return
         }
-        await refs.deleteCustomProjectUseCaseRef
-          .current({
-            projectId: UNCATEGORIZED_PROJECT_ID,
-          })
-          .catch(async () => {})
         await refs.deleteCustomProjectUseCaseRef.current({
           projectId,
         })

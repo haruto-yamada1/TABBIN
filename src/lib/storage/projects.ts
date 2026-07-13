@@ -570,92 +570,6 @@ const removeUrlFromCustomProject = async (
   project.updatedAt = Date.now()
   projects[projectIndex] = project
   await saveCustomProjects(projects)
-
-  // ドメインモードからも同じURLを削除
-  try {
-    const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: TabGroup[]
-    }>('savedTabs')
-
-    // URLレコードを取得
-    const urlRecords = await getUrlRecordsByIds(
-      savedTabs.flatMap((group: TabGroup) => group.urlIds ?? []),
-    )
-    const urlRecord = urlRecords.find((record) => record.url === url)
-    if (urlRecord) {
-      const updatedGroups = savedTabs.reduce<TabGroup[]>((groups, group) => {
-        if (!group.urlIds) {
-          groups.push(group)
-          return groups
-        }
-
-        const updatedUrlIds = group.urlIds.filter((id) => id !== urlRecord.id)
-        if (updatedUrlIds.length > 0) {
-          groups.push({
-            ...group,
-            urlIds: updatedUrlIds,
-          })
-        }
-        return groups
-      }, [])
-      await chrome.storage.local.set({
-        savedTabs: updatedGroups,
-      })
-      console.log(
-        `URL ${redactUrlForLog(url)} はドメインモードからも削除されました`,
-      )
-    }
-  } catch (syncError) {
-    console.error('ドメインモードの同期中にエラーが発生しました:', syncError)
-    // エラーをスローしないで続行 - カスタムプロジェクトの削除は成功している
-  }
-}
-
-/**
- * ドメインモードからも指定されたURLを同期削除するヘルパー関数
- */
-const syncDeleteToDomainMode = async (
-  targetUrlsSet: Set<string>,
-  urlsLength: number,
-): Promise<void> => {
-  try {
-    const { savedTabs = [] } = await chrome.storage.local.get<{
-      savedTabs?: TabGroup[]
-    }>('savedTabs')
-
-    const urlRecords = await getUrlRecordsByIds(
-      savedTabs.flatMap((g: TabGroup) => g.urlIds ?? []),
-    )
-    const recordsToDelete = urlRecords.filter((record) =>
-      targetUrlsSet.has(record.url),
-    )
-
-    if (recordsToDelete.length > 0) {
-      const idsToDelete = new Set(recordsToDelete.map((r) => r.id))
-      const updatedGroups = savedTabs.reduce<TabGroup[]>((groups, group) => {
-        if (!group.urlIds) {
-          groups.push(group)
-          return groups
-        }
-
-        const updatedUrlIds = group.urlIds.filter((id) => !idsToDelete.has(id))
-        if (updatedUrlIds.length > 0) {
-          groups.push({
-            ...group,
-            urlIds: updatedUrlIds,
-          })
-        }
-        return groups
-      }, [])
-
-      await chrome.storage.local.set({
-        savedTabs: updatedGroups,
-      })
-      console.log(`${urlsLength}件のURLはドメインモードからも削除されました`)
-    }
-  } catch (syncError) {
-    console.error('ドメインモードの同期中にエラーが発生しました:', syncError)
-  }
 }
 
 /**
@@ -721,9 +635,6 @@ const removeUrlsFromCustomProject = async (
       await saveCustomProjects(projects)
     }
   }
-
-  // ドメインモードからも同じURLを削除
-  await syncDeleteToDomainMode(targetUrlsSet, urls.length)
 }
 
 type DeleteSyncBehavior = {
