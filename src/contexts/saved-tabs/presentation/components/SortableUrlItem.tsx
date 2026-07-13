@@ -216,6 +216,7 @@ export const SortableUrlItem = ({
           className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
           {...attributes}
           {...listeners}
+          aria-label={t('savedTabs.url.dragHandleAria')}
         >
           <GripVertical size={16} aria-hidden='true' />
         </div>

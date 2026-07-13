@@ -518,6 +518,7 @@ const useSavedTabsAppView = ({
             : 'container mx-auto min-h-screen py-2'
         }
       >
+        <h1 className='sr-only'>{t('sidebar.tabList')}</h1>
         <Header
           tabGroups={tabGroups}
           filteredTabGroups={headerFilteredTabGroups}

@@ -221,10 +221,15 @@ const ProjectUrlItemComponent = ({
         <div
           {...attributes}
           {...listeners}
+          aria-label={t('savedTabs.url.dragHandleAria')}
           className='cursor-grab p-1 active:cursor-grabbing'
           data-testid='project-url-drag-handle'
         >
-          <GripVertical size={16} className='text-muted-foreground' />
+          <GripVertical
+            size={16}
+            aria-hidden='true'
+            className='text-muted-foreground'
+          />
         </div>
         {/* タイトル＋バッジ部 */}
         <div className='flex min-w-0 flex-1 items-center'>

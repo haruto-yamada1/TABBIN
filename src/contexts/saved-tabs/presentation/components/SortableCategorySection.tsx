@@ -335,6 +335,7 @@ const useSortableCategorySectionView = ({
             className={`flex grow items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
             {...attributes}
             {...listeners}
+            aria-label={t('savedTabs.category.dragHandleAria')}
           >
             <div className='text-muted-foreground'>
               <GripVertical size={16} aria-hidden='true' />
