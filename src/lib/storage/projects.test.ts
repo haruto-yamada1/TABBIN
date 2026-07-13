@@ -366,7 +366,7 @@ describe('projects storage', () => {
     )
   })
 
-  it('removeUrlsFromCustomProject は URL ID 欠損と空グループ削除を扱う', async () => {
+  it('removeUrlsFromCustomProject は URL ID 欠損を扱いドメイン保存を維持する', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -414,7 +414,13 @@ describe('projects storage', () => {
 
     expect(state.customProjects?.[1]?.urlIds).toEqual([])
 
-    expect(state.savedTabs).toEqual([])
+    expect(state.savedTabs).toEqual([
+      {
+        id: 'domain-group',
+        domain: 'https://docs.example.com',
+        urlIds: ['url-1'],
+      },
+    ])
   })
 
   it('saveUrlsToCustomProjects は未分類から一致プロジェクトへURLを移す', async () => {
@@ -1529,7 +1535,7 @@ describe('projects storage', () => {
     ).rejects.toThrow('Project with ID missing not found')
   })
 
-  it('removeUrlFromCustomProject はURLとメタデータを消し空のドメイングループも削除する', async () => {
+  it('removeUrlFromCustomProject はプロジェクト内のURLとメタデータだけを削除する', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -1576,10 +1582,56 @@ describe('projects storage', () => {
       }),
     )
 
-    expect(state.savedTabs).toEqual([])
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'https://docs.example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      },
+    ])
   })
 
-  it('removeUrlFromCustomProject は存在しないプロジェクトを拒否し同期失敗は握りつぶす', async () => {
+  it('removeUrlFromCustomProject は URL IDs 未定義でもドメイン保存を維持する', async () => {
+    const state: StorageState = {
+      customProjects: [createProject({ id: 'target' })],
+      savedTabs: [
+        {
+          domain: 'https://docs.example.com',
+          id: 'group-1',
+          urlIds: ['url-1'],
+        },
+      ],
+      urls: [
+        {
+          id: 'url-1',
+          savedAt: 1,
+          title: 'Doc',
+          url: 'https://docs.example.com/a',
+        },
+      ],
+    }
+    delete state.customProjects?.[0]?.urlIds
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { removeUrlFromCustomProject } = await loadModule()
+
+    await removeUrlFromCustomProject('target', 'https://docs.example.com/a')
+
+    expect(state.customProjects?.[0]?.urlIds).toEqual([])
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'https://docs.example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      },
+    ])
+  })
+
+  it('removeUrlFromCustomProject は存在しないプロジェクトを拒否しドメイン保存を維持する', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -1635,32 +1687,12 @@ describe('projects storage', () => {
       {
         domain: 'https://docs.example.com',
         id: 'group-with-ids',
-        urlIds: ['url-2'],
+        urlIds: ['url-1', 'url-2'],
       },
     ])
-
-    vi.mocked(chrome.storage.local.get)
-
-      .mockImplementationOnce(async (keys) => {
-        // eslint-disable-line
-        if (Array.isArray(keys)) {
-          return Object.fromEntries(
-            keys.map((key) => [key, state[key as keyof StorageState]]),
-          )
-        }
-        return {
-          [keys as unknown as string]:
-            state[keys as unknown as keyof StorageState],
-        }
-      })
-      .mockRejectedValueOnce(new Error('sync failed'))
-
-    await expect(
-      removeUrlFromCustomProject('target', 'https://docs.example.com/missing'),
-    ).resolves.toBeUndefined()
   })
 
-  it('bulk remove APIs はURL/ID指定でプロジェクトとドメインモードを同期削除する', async () => {
+  it('bulk remove APIs はURL/ID指定でプロジェクトだけを削除する', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -1738,12 +1770,12 @@ describe('projects storage', () => {
       {
         domain: 'https://docs.example.com',
         id: 'group-1',
-        urlIds: ['url-2', 'url-3'],
+        urlIds: ['url-1', 'url-2', 'url-3'],
       },
     ])
   })
 
-  it('bulk remove APIs は空入力・対象なし・同期エラーを扱う', async () => {
+  it('bulk remove APIs は空入力・対象なし・存在しないプロジェクトを扱う', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -1788,24 +1820,16 @@ describe('projects storage', () => {
 
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
-    vi.mocked(chrome.storage.local.get)
-
-      .mockImplementationOnce(async (keys) => {
-        // eslint-disable-line
-        if (Array.isArray(keys)) {
-          return Object.fromEntries(
-            keys.map((key) => [key, state[key as keyof StorageState]]),
-          )
-        }
-        return {
-          [keys as unknown as string]:
-            state[keys as unknown as keyof StorageState],
-        }
-      })
-      .mockRejectedValueOnce(new Error('storage failed'))
-    await expect(
-      removeUrlsFromCustomProject('target', ['https://docs.example.com/one']),
-    ).resolves.toBeUndefined()
+    await removeUrlsFromCustomProject('target', [
+      'https://docs.example.com/one',
+    ])
+    expect(state.customProjects?.[0]?.urlIds).toEqual([])
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'https://docs.example.com',
+        id: 'group-1',
+      },
+    ])
 
     await expect(
       removeUrlsFromCustomProject('missing', ['https://docs.example.com/one']),

@@ -44,6 +44,18 @@ describe('normalizeUserSettings', () => {
     expect(result.normalized).not.toHaveProperty('aiProvider')
   })
 
+  it('未保存の外部ドロップ削除は無効にし、明示的な保存値は維持する', () => {
+    expect(
+      normalizeUserSettings({ userSettings: {} }).normalized
+        .removeTabAfterExternalDrop,
+    ).toBe(false)
+    expect(
+      normalizeUserSettings({
+        userSettings: { removeTabAfterExternalDrop: true },
+      }).normalized.removeTabAfterExternalDrop,
+    ).toBe(true)
+  })
+
   it('除外パターンを trim・重複除去し、必須パターンを補う', () => {
     const result = normalizeUserSettings({
       userSettings: {

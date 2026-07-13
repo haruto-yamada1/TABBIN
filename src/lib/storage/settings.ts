@@ -1,4 +1,5 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
+import { savedTabsActionSettingsDefaults } from '@/contexts/saved-tabs/domain/services/SavedTabsActionSettingsPolicy'
 import {
   DEFAULT_EXCLUDE_PATTERNS,
   mergeStoredUserSettingsDefaults,
@@ -39,8 +40,7 @@ const mergeStoredUserSettings = (
 // デフォルト設定
 export const defaultSettings: UserSettings = {
   language: 'system',
-  removeTabAfterOpen: true,
-  removeTabAfterExternalDrop: true,
+  ...savedTabsActionSettingsDefaults,
   excludePatterns: [...DEFAULT_EXCLUDE_PATTERNS],
   enableCategories: true,
   // デフォルトは有効
@@ -54,13 +54,7 @@ export const defaultSettings: UserSettings = {
   // デフォルトでは固定タブを除外する
   openUrlInBackground: true,
   // デフォルト: URLをバックグラウンドで開く
-  openAllInNewWindow: false,
-  // デフォルト: 「すべてのタブを開く」を現在のウィンドウで開く
-  confirmDeleteAll: false,
-  // デフォルト: 確認しない
-  confirmDeleteEach: false,
   fontSizePercent: DEFAULT_FONT_SIZE_PERCENT,
-  // デフォルト: 確認しない
   colors: {}, // デフォルト: カラー設定まとめ
   ollamaModel: '',
   activeAiSystemPromptId: DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,

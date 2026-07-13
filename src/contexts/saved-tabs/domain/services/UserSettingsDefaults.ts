@@ -1,5 +1,6 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
+import { savedTabsActionSettingsDefaults } from '@/contexts/saved-tabs/domain/services/SavedTabsActionSettingsPolicy'
 import {
   DEFAULT_EXCLUDE_PATTERNS,
   mergeStoredUserSettingsDefaults,
@@ -11,9 +12,9 @@ import {
 } from '@/features/ai-chat/lib/systemPromptPresets'
 
 /**
- * `UserSettingsDto` の domain 既定値。`src/lib/storage/settings.defaultSettings`
- * を DDD 側に再配置したもので、repository / use-case 初期値や未保存状態
- * のフォールバックとして利用する。
+ * `UserSettingsDto` の domain 既定値。repository / use-case 初期値や未保存状態
+ * のフォールバックとして利用する。データ変更とウィンドウ操作の既定値は
+ * `savedTabsActionSettingsDefaults` を source of truth とする。
  *
  * 旧 `lib/storage/settings` の正規化 (`normalizeAiSystemPromptSettings`)
  * 適用前の素の値なので、利用側で `normalizeAiSystemPromptSettings` を
@@ -24,8 +25,7 @@ import {
  */
 export const defaultUserSettings: UserSettingsDto = {
   language: 'system',
-  removeTabAfterOpen: true,
-  removeTabAfterExternalDrop: true,
+  ...savedTabsActionSettingsDefaults,
   excludePatterns: [...DEFAULT_EXCLUDE_PATTERNS],
   enableCategories: true,
   autoDeletePeriod: 'never',
@@ -33,9 +33,6 @@ export const defaultUserSettings: UserSettingsDto = {
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: true,
   openUrlInBackground: true,
-  openAllInNewWindow: false,
-  confirmDeleteAll: false,
-  confirmDeleteEach: false,
   fontSizePercent: DEFAULT_FONT_SIZE_PERCENT,
   colors: {},
   ollamaModel: '',

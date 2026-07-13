@@ -883,6 +883,7 @@ describe('useProjectManagement', () => {
     expect(projectManagementMocks.deleteCustomProject).toHaveBeenCalledWith({
       projectId: 'project-1',
     })
+    expect(projectManagementMocks.deleteCustomProject).toHaveBeenCalledTimes(1)
     expect(result.current.customProjects).toStrictEqual([untouchedProject])
   })
 
