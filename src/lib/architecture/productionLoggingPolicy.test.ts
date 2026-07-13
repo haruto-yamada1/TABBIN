@@ -15,6 +15,7 @@ const repoRoot = resolve(import.meta.dirname, '../../..')
 describe('issue #715: production logging policy', () => {
   it.each([
     'src/entrypoints/background.ts',
+    'src/lib/background/expired-tabs.ts',
     'src/lib/background/message-handler.ts',
   ])('%s は direct console を使わない', (relativePath) => {
     const source = readFileSync(resolve(repoRoot, relativePath), 'utf8')
@@ -31,6 +32,7 @@ describe('issue #715: production logging policy', () => {
     )
 
     expect(override?.files).toContain('src/entrypoints/background.ts')
+    expect(override?.files).toContain('src/lib/background/expired-tabs.ts')
     expect(override?.rules?.['eslint/no-console']).toBe('error')
   })
 
@@ -52,5 +54,15 @@ describe('issue #715: production logging policy', () => {
     )
 
     expect(configSource).toContain("name: 'no-domain-application-to-logging'")
+  })
+
+  it('成果物がない場合も production logging verifier が明示的に失敗する', () => {
+    const verifierSource = readFileSync(
+      resolve(repoRoot, 'tools/scripts/verify-production-logging.ts'),
+      'utf8',
+    )
+
+    expect(verifierSource).toContain('existsSync(outputRoot)')
+    expect(verifierSource).toContain('Production output is missing:')
   })
 })

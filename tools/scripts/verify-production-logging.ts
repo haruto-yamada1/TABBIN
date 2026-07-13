@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 import ts from 'typescript'
@@ -94,7 +94,7 @@ const collectDirectConsoleFragments = (): string[] => {
 }
 
 const readProductionJavaScript = (outputRoot: string) => {
-  if (!statSync(outputRoot).isDirectory()) {
+  if (!existsSync(outputRoot) || !statSync(outputRoot).isDirectory()) {
     throw new Error(`Production output is missing: ${outputRoot}`)
   }
   const bundleParts: string[] = []

@@ -392,6 +392,7 @@ const handleCheckExpiredTabsMessage = (
         })
       })
       .catch((error: unknown) => {
+        logger.error('background_expired_tabs_check_failed', error)
         sendResponse({
           error: String(error),
           status: 'error',

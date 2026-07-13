@@ -2,6 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-
 
 import type { TabGroup } from '@/types/storage'
 
+const mocked = vi.hoisted(() => ({
+  logger: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+}))
+
+vi.mock('@/lib/logging/logger', () => ({
+  logger: mocked.logger,
+}))
+
 import {
   checkAndRemoveExpiredTabs,
   getExpirationPeriodMs,
@@ -68,8 +81,6 @@ const createChromeStorageMock = (initialStore: Store = {}) => {
 describe('expired-tabs ユーティリティ', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(console, 'log').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.useRealTimers()
   })
   it('有効な自動削除期間を判定する', () => {
@@ -118,7 +129,12 @@ describe('expired-tabs ユーティリティ', () => {
       const { set } = createChromeStorageMock({})
       await expect(checkAndRemoveExpiredTabs()).resolves.toBeUndefined()
       expect(set).not.toHaveBeenCalled()
-      expect(console.log).toHaveBeenCalledWith('使用する自動削除期間:', 'never')
+      expect(mocked.logger.debug).toHaveBeenCalledWith(
+        'background_expired_tabs_auto_delete_disabled',
+      )
+      expect(JSON.stringify(mocked.logger.debug.mock.calls)).not.toContain(
+        'autoDeletePeriod',
+      )
     })
     it('自動削除期間が不正な場合は削除をスキップする', async () => {
       const { set } = createChromeStorageMock({
@@ -232,7 +248,9 @@ describe('expired-tabs ユーティリティ', () => {
       await expect(checkAndRemoveExpiredTabs()).resolves.toBeUndefined()
       expect(get).toHaveBeenCalledWith('savedTabs')
       expect(set).not.toHaveBeenCalled()
-      expect(console.log).toHaveBeenCalledWith('保存されたタブはありません')
+      expect(mocked.logger.debug).toHaveBeenCalledWith(
+        'background_expired_tabs_source_empty',
+      )
     })
     it('savedTabs キーがない場合は空配列にフォールバックする', async () => {
       const { set } = createChromeStorageMock({
@@ -242,12 +260,13 @@ describe('expired-tabs ユーティリティ', () => {
       })
       await expect(checkAndRemoveExpiredTabs()).resolves.toBeUndefined()
       expect(set).not.toHaveBeenCalled()
-      expect(console.log).toHaveBeenCalledWith('保存されたタブはありません')
+      expect(mocked.logger.debug).toHaveBeenCalledWith(
+        'background_expired_tabs_source_empty',
+      )
     })
     it('urls のないグループやタイムスタンプのない url エントリを処理する', async () => {
       vi.useFakeTimers()
       vi.setSystemTime(new Date('2026-02-24T12:00:00.000Z'))
-      const now = Date.now()
       const { set } = createChromeStorageMock({
         userSettings: {
           autoDeletePeriod: '1day',
@@ -286,25 +305,26 @@ describe('expired-tabs ユーティリティ', () => {
           },
         ],
       })
-      expect(console.log).toHaveBeenCalledWith(
-        `現在時刻: ${new Date(now).toLocaleString()}`,
+      expect(mocked.logger.debug).toHaveBeenCalledWith(
+        'background_expired_tabs_scan_started',
+        { recordCount: 2 },
       )
     })
     it('予期しないエラーを捕捉してログ出力する', async () => {
       const { get } = createChromeStorageMock()
       get.mockRejectedValueOnce(new Error('boom'))
       await expect(checkAndRemoveExpiredTabs()).resolves.toBeUndefined()
-      expect(console.error).toHaveBeenCalledWith(
-        '期限切れタブチェックエラー:',
-        'boom',
+      expect(mocked.logger.error).toHaveBeenCalledWith(
+        'background_expired_tabs_check_failed',
+        expect.any(Error),
       )
     })
     it('checkAndRemoveExpiredTabs の非 Error 例外値をログ出力する', async () => {
       const { get } = createChromeStorageMock()
       get.mockRejectedValueOnce('string boom')
       await expect(checkAndRemoveExpiredTabs()).resolves.toBeUndefined()
-      expect(console.error).toHaveBeenCalledWith(
-        '期限切れタブチェックエラー:',
+      expect(mocked.logger.error).toHaveBeenCalledWith(
+        'background_expired_tabs_check_failed',
         'string boom',
       )
     })
@@ -425,7 +445,10 @@ describe('expired-tabs ユーティリティ', () => {
       const error = new Error('read failed')
       get.mockRejectedValueOnce(error)
       await expect(updateTabTimestamps('1day')).rejects.toThrow('read failed')
-      expect(console.error).toHaveBeenCalledWith('タブ時刻更新エラー:', error)
+      expect(mocked.logger.error).toHaveBeenCalledWith(
+        'background_tab_timestamp_update_failed',
+        error,
+      )
     })
   })
 })

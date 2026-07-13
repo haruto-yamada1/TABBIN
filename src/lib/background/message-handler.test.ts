@@ -235,37 +235,39 @@ describe('setupMessageListener', () => {
       recordCount: 0,
     })
 
-    listener(
-      {
+    try {
+      listener(
+        {
+          action: 'runAiChat',
+          attachments: [
+            {
+              content: 'secret attachment',
+              filename: 'secret.txt',
+              kind: 'text',
+              mediaType: 'text/plain',
+            },
+          ],
+          history: [
+            {
+              content: 'secret history',
+              role: 'user',
+            },
+          ],
+          prompt: 'secret prompt',
+        },
+        {} as chrome.runtime.MessageSender,
+        vi.fn(),
+      )
+
+      expect(infoSpy).toHaveBeenCalledWith('background_message_received', {
         action: 'runAiChat',
-        attachments: [
-          {
-            content: 'secret attachment',
-            filename: 'secret.txt',
-            kind: 'text',
-            mediaType: 'text/plain',
-          },
-        ],
-        history: [
-          {
-            content: 'secret history',
-            role: 'user',
-          },
-        ],
-        prompt: 'secret prompt',
-      },
-      {} as chrome.runtime.MessageSender,
-      vi.fn(),
-    )
-
-    expect(infoSpy).toHaveBeenCalledWith('background_message_received', {
-      action: 'runAiChat',
-    })
-    expect(JSON.stringify(infoSpy.mock.calls)).not.toMatch(
-      /secret prompt|secret history|secret attachment/,
-    )
-
-    infoSpy.mockRestore()
+      })
+      expect(JSON.stringify(infoSpy.mock.calls)).not.toMatch(
+        /secret prompt|secret history|secret attachment/,
+      )
+    } finally {
+      infoSpy.mockRestore()
+    }
   })
 
   it('不正メッセージと未知 action を弾く', () => {
@@ -725,22 +727,30 @@ describe('setupMessageListener', () => {
       })
     })
 
-    mocked.checkAndRemoveExpiredTabs.mockRejectedValue(
-      new Error('check failed'),
-    )
-    listener(
-      {
-        action: 'checkExpiredTabs',
-      },
-      {} as chrome.runtime.MessageSender,
-      checkErrorResponse,
-    )
-    await vi.waitFor(() => {
-      expect(checkErrorResponse).toHaveBeenCalledWith({
-        error: 'Error: check failed',
-        status: 'error',
+    const checkError = new Error('check failed')
+    mocked.checkAndRemoveExpiredTabs.mockRejectedValue(checkError)
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {})
+    try {
+      listener(
+        {
+          action: 'checkExpiredTabs',
+        },
+        {} as chrome.runtime.MessageSender,
+        checkErrorResponse,
+      )
+      await vi.waitFor(() => {
+        expect(checkErrorResponse).toHaveBeenCalledWith({
+          error: 'Error: check failed',
+          status: 'error',
+        })
+        expect(errorSpy).toHaveBeenCalledWith(
+          'background_expired_tabs_check_failed',
+          checkError,
+        )
       })
-    })
+    } finally {
+      errorSpy.mockRestore()
+    }
 
     mocked.updateTabTimestamps.mockRejectedValue(new Error('update failed'))
     listener(

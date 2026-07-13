@@ -73,29 +73,34 @@ const sanitizeContext = (context: LogContext | undefined): LogContext => {
     recordCount?: number
     url?: string
   } = {}
-  const action = Reflect.get(context, 'action')
-  const errorCode = Reflect.get(context, 'errorCode')
-  const errorName = Reflect.get(context, 'errorName')
-  const recordCount = Reflect.get(context, 'recordCount')
+  try {
+    const action = Reflect.get(context, 'action')
+    const errorCode = Reflect.get(context, 'errorCode')
+    const errorName = Reflect.get(context, 'errorName')
+    const recordCount = Reflect.get(context, 'recordCount')
 
-  if (isSafeString(action, SAFE_ACTION_PATTERN)) {
-    safeContext.action = action
-  }
-  if (isSafeString(errorCode, SAFE_ERROR_CODE_PATTERN)) {
-    safeContext.errorCode = errorCode
-  }
-  if (isSafeString(errorName, SAFE_ERROR_NAME_PATTERN)) {
-    safeContext.errorName = errorName
-  }
-  if (
-    typeof recordCount === 'number' &&
-    Number.isSafeInteger(recordCount) &&
-    recordCount >= 0
-  ) {
-    safeContext.recordCount = recordCount
-  }
-  if (Object.hasOwn(context, 'url')) {
-    safeContext.url = redactUrlForLog(Reflect.get(context, 'url'))
+    if (isSafeString(action, SAFE_ACTION_PATTERN)) {
+      safeContext.action = action
+    }
+    if (isSafeString(errorCode, SAFE_ERROR_CODE_PATTERN)) {
+      safeContext.errorCode = errorCode
+    }
+    if (isSafeString(errorName, SAFE_ERROR_NAME_PATTERN)) {
+      safeContext.errorName = errorName
+    }
+    if (
+      typeof recordCount === 'number' &&
+      Number.isSafeInteger(recordCount) &&
+      recordCount >= 0
+    ) {
+      safeContext.recordCount = recordCount
+    }
+    if (Object.hasOwn(context, 'url')) {
+      safeContext.url = redactUrlForLog(Reflect.get(context, 'url'))
+    }
+  } catch {
+    // Context may be an untrusted Proxy. Logging must never replace the
+    // application flow with a metadata access failure.
   }
 
   return safeContext

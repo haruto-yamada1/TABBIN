@@ -113,11 +113,11 @@ describe('structured logger', () => {
     const sink = createSink()
     const logger = createLogger({ debugEnabled: true, sink })
     const error = new Proxy(new Error('secret error'), {
-      get: (target, property, receiver) => {
+      getOwnPropertyDescriptor: (target, property) => {
         if (property === 'code') {
           throw new Error('secret getter failure')
         }
-        return Reflect.get(target, property, receiver)
+        return Reflect.getOwnPropertyDescriptor(target, property)
       },
     })
 
@@ -127,6 +127,26 @@ describe('structured logger', () => {
     expect(sink.error).toHaveBeenCalledWith({
       context: { errorName: 'Error' },
       event: 'background_operation_failed',
+    })
+  })
+
+  it('context property access が throw しても application flow を壊さない', () => {
+    const sink = createSink()
+    const logger = createLogger({ debugEnabled: true, sink })
+    const context = new Proxy(
+      {},
+      {
+        get: () => {
+          throw new Error('secret context getter failure')
+        },
+      },
+    )
+
+    expect(() => {
+      logger.info('background_operation_completed', context)
+    }).not.toThrow()
+    expect(sink.info).toHaveBeenCalledWith({
+      event: 'background_operation_completed',
     })
   })
 

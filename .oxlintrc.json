@@ -1149,6 +1149,7 @@
     {
       "files": [
         "src/entrypoints/background.ts",
+        "src/lib/background/expired-tabs.ts",
         "src/lib/background/message-handler.ts"
       ],
       "rules": {
