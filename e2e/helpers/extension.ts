@@ -5,7 +5,9 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { test as base, chromium, expect } from '@playwright/test'
-import type { BrowserContext, Page, Worker } from '@playwright/test'
+import type { BrowserContext, Page, Request, Worker } from '@playwright/test'
+
+import { getUnexpectedPlaywrightExtensionOutboundRequest } from './network-policy'
 
 type ExtensionFixtures = {
   extensionContext: BrowserContext
@@ -33,14 +35,30 @@ export const test = base.extend<ExtensionFixtures>({
         ],
       },
     )
+    const violations = new Set<string>()
+    const handleRequest = (request: Request) => {
+      const violation = getUnexpectedPlaywrightExtensionOutboundRequest(request)
+      if (violation !== null) {
+        violations.add(violation)
+      }
+    }
+    extensionContext.on('request', handleRequest)
 
-    await runFixture(extensionContext)
+    try {
+      await runFixture(extensionContext)
+    } finally {
+      extensionContext.off('request', handleRequest)
+      await extensionContext.close()
+      await rm(userDataDir, {
+        force: true,
+        recursive: true,
+      })
+    }
 
-    await extensionContext.close()
-    await rm(userDataDir, {
-      force: true,
-      recursive: true,
-    })
+    expect(
+      [...violations],
+      'unexpected outbound request from an extension page or service worker',
+    ).toEqual([])
   },
   extensionId: async ({ serviceWorker }, runFixture) => {
     const extensionId = new URL(serviceWorker.url()).host
