@@ -1323,6 +1323,7 @@ const messages = {
     'options.importExport.mergeWarning':
       'マージの際、同じIDのデータは更新されます。',
     'options.importExport.placeholderUrlTitle': '復元データ（元URL欠損）',
+    'options.importExport.previewAiChat': 'AIチャット履歴: {{hasAiChat}}',
     'options.importExport.previewAiChatLabel': 'AIチャット履歴',
     'options.importExport.previewAnalytics': '分析ビュー: {{hasAnalytics}}',
     'options.importExport.previewCategoriesLabel': 'カテゴリ数',
