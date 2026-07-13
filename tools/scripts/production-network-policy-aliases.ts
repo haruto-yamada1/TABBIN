@@ -209,16 +209,6 @@ const findDeclaredEnvironment = (
   return null
 }
 
-const findFunctionEnvironment = (
-  environment: PotentialAliasEnvironment,
-): PotentialAliasEnvironment => {
-  let current = environment
-  while (current.type === 'block' && current.parent !== null) {
-    current = current.parent
-  }
-  return current
-}
-
 const isEnvironmentAncestor = (
   ancestor: PotentialAliasEnvironment,
   environment: PotentialAliasEnvironment,
@@ -241,7 +231,7 @@ const assignPendingAliases = (
       assignment.environment,
       assignment.name,
     )
-    const functionEnvironment = findFunctionEnvironment(assignment.environment)
+    const functionEnvironment = findVariableEnvironment(assignment.environment)
     const target =
       declaredEnvironment === null ||
       (functionEnvironment.type === 'function' &&
@@ -343,22 +333,35 @@ const applyPotentialAssignment = (
   target: PotentialAliasEnvironment,
   assignment: PotentialAliasAssignment,
   resolveDirectReferences: DirectReferenceResolver,
-): void => {
+): boolean => {
   const resolvedKinds = resolvePotentialAliasKinds(
     assignment.expression,
     assignment.environment,
     resolveDirectReferences,
   )
+  const hasExisting = target.kinds.has(assignment.name)
   const existing = target.kinds.get(assignment.name) ?? new Set()
-  target.kinds.set(assignment.name, new Set([...existing, ...resolvedKinds]))
-  if (!assignment.captured) {
-    return
+  const newKinds = [...resolvedKinds].filter((kind) => !existing.has(kind))
+  const kindsChanged = !hasExisting || newKinds.length > 0
+  if (kindsChanged) {
+    target.kinds.set(assignment.name, new Set([...existing, ...newKinds]))
   }
+  if (!assignment.captured) {
+    return kindsChanged
+  }
+  const hasCapturedKinds = target.capturedKinds.has(assignment.name)
   const capturedKinds = target.capturedKinds.get(assignment.name) ?? new Set()
-  target.capturedKinds.set(
-    assignment.name,
-    new Set([...capturedKinds, ...resolvedKinds]),
+  const newCapturedKinds = [...resolvedKinds].filter(
+    (kind) => !capturedKinds.has(kind),
   )
+  const capturedKindsChanged = !hasCapturedKinds || newCapturedKinds.length > 0
+  if (capturedKindsChanged) {
+    target.capturedKinds.set(
+      assignment.name,
+      new Set([...capturedKinds, ...newCapturedKinds]),
+    )
+  }
+  return kindsChanged || capturedKindsChanged
 }
 
 export const collectPotentialNetworkAliasKinds = (
@@ -371,14 +374,19 @@ export const collectPotentialNetworkAliasKinds = (
     0,
   )
   for (let pass = 0; pass <= assignmentCount; pass += 1) {
+    let changed = false
     for (const environment of environments) {
       for (const assignment of environment.assignments) {
-        applyPotentialAssignment(
-          environment,
-          assignment,
-          resolveDirectReferences,
-        )
+        changed =
+          applyPotentialAssignment(
+            environment,
+            assignment,
+            resolveDirectReferences,
+          ) || changed
       }
+    }
+    if (!changed) {
+      break
     }
   }
   const result = new WeakMap<ts.Node, PotentialAliasSummary>()
