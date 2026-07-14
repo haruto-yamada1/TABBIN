@@ -62,6 +62,19 @@ const noCrossContextRules = getContextNames().map((contextName) => {
 module.exports = {
   forbidden: [
     {
+      name: 'no-jsx-preview-outside-storybook',
+      comment:
+        'JSXPreview uses react-jsx-parser (a devDependency) and must stay in Storybook / dev-only code. See issue #658.',
+      severity: 'error',
+      from: {
+        pathNot:
+          '^src/lib/storybook/|^src/components/ai-elements/jsx-preview\\.tsx$',
+      },
+      to: {
+        path: '^src/components/ai-elements/jsx-preview\\.tsx$',
+      },
+    },
+    {
       name: 'no-circular',
       comment: 'Circular dependencies are not allowed',
       severity: 'error',
