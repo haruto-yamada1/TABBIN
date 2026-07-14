@@ -58,6 +58,7 @@
     "storybook": "BROWSER=none storybook dev -p 6006",
     "build-storybook": "storybook build",
     "e2e": "playwright test e2e",
+    "e2e:a11y": "playwright test e2e --project=extension --grep 'accessibility'",
     "knip": "knip",
     "doctor": "react-doctor",
     "verify:app-version": "bun tools/scripts/verify-app-version.ts",
@@ -127,6 +128,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@chromatic-com/storybook": "^5.2.1",
     "@cyclonedx/cyclonedx-library": "^10.1.0",
     "@eslint-react/eslint-plugin": "^5.10.3",

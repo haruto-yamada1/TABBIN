@@ -132,6 +132,9 @@ export const SortableCategorySection = ({
             data-testid='draggable-category-handle'
             {...attributes}
             {...listeners}
+            aria-label={t('savedTabs.category.dragHandleAria', undefined, {
+              name: categoryDisplayName,
+            })}
           >
             <div className='mr-2 text-muted-foreground'>
               <GripVertical size={16} aria-hidden='true' />
