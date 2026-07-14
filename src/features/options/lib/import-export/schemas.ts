@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
+import { storedUserSettingsSchema } from '@/lib/storage/zod-storage'
 import { isValidUrl } from '@/lib/url-filter'
 import type { ParentCategory, UserSettings } from '@/types/storage'
 
@@ -288,41 +289,7 @@ const aiChatConversationSchema = z.object({
 const backupDataSchema: z.ZodType<BackupData> = z.object({
   version: z.string(),
   timestamp: z.string(),
-  userSettings: z.object({
-    activeAiSystemPromptId: z.string().optional(),
-    aiSystemPrompts: z
-      .array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          template: z.string(),
-          createdAt: z.number(),
-          updatedAt: z.number(),
-        }),
-      )
-      .optional(),
-    autoDeletePeriod: z.string().optional(),
-    clickBehavior: z.enum([
-      'saveCurrentTab',
-      'saveWindowTabs',
-      'saveSameDomainTabs',
-      'saveAllWindowsTabs',
-    ]),
-    enableCategories: z.boolean(),
-    excludePatterns: z.array(z.string()),
-    excludePinnedTabs: z.boolean().optional(),
-    openUrlInBackground: z.boolean().optional(),
-    openAllInNewWindow: z.boolean().optional(),
-    confirmDeleteAll: z.boolean().optional(),
-    confirmDeleteEach: z.boolean().optional(),
-    fontSizePercent: z.number().optional(),
-    colors: z.record(z.string(), z.string()).optional(),
-    language: z.enum(['system', 'ja', 'en']).optional(),
-    ollamaModel: z.string().optional(),
-    removeTabAfterExternalDrop: z.boolean().optional(),
-    removeTabAfterOpen: z.boolean(),
-    showSavedTime: z.boolean(),
-  }),
+  userSettings: storedUserSettingsSchema,
   parentCategories: z.array(
     z.object({
       id: z.string(),

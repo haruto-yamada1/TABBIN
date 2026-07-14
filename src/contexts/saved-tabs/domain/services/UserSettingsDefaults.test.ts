@@ -115,4 +115,49 @@ describe('normalizeUserSettings', () => {
     expect(result.normalized.aiSystemPrompts).not.toBe(aiSystemPrompts)
     expect(result.normalized.aiSystemPrompts?.[0]).not.toBe(aiSystemPrompts[0])
   })
+
+  it('clickBehavior が enum 外れなら default に fallback する', () => {
+    const result = normalizeUserSettings({
+      userSettings: {
+        clickBehavior: 'invalid-behavior',
+      },
+    })
+
+    expect(result.normalized.clickBehavior).toBe('saveSameDomainTabs')
+  })
+
+  it('autoDeletePeriod が enum 外れなら default に fallback する', () => {
+    const result = normalizeUserSettings({
+      userSettings: {
+        autoDeletePeriod: 'invalid-period',
+      },
+    })
+
+    expect(result.normalized.autoDeletePeriod).toBe('never')
+  })
+
+  it('boolean field が型不正なら default に fallback する', () => {
+    const result = normalizeUserSettings({
+      userSettings: {
+        excludePinnedTabs: 'not-boolean',
+        openUrlInBackground: 1,
+      },
+    })
+
+    expect(result.normalized.excludePinnedTabs).toBe(true)
+    expect(result.normalized.openUrlInBackground).toBe(true)
+  })
+
+  it('aiSystemPrompts の空 id preset を含む場合は default に fallback する', () => {
+    const result = normalizeUserSettings({
+      userSettings: {
+        aiSystemPrompts: [
+          { id: '', name: 'Empty', template: 't', createdAt: 0, updatedAt: 0 },
+        ],
+      },
+    })
+
+    expect(result.normalized.aiSystemPrompts).toBeDefined()
+    expect(result.normalized.aiSystemPrompts).toHaveLength(1)
+  })
 })

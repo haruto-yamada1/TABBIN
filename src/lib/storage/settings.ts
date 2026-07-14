@@ -13,6 +13,7 @@ import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
+import { parseStoredUserSettings } from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 const stripLegacyUserSettings = (settings: unknown): Partial<UserSettings> => {
@@ -84,7 +85,9 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     console.log('取得した設定データ:', data)
     if (Object.hasOwn(data, 'userSettings')) {
       console.log('保存された設定を使用:', data.userSettings)
-      const sanitizedStoredSettings = stripLegacyUserSettings(data.userSettings)
+      const sanitizedStoredSettings = parseStoredUserSettings(
+        stripLegacyUserSettings(data.userSettings),
+      )
       const mergedStoredSettings = mergeStoredUserSettings(
         sanitizedStoredSettings,
       )
@@ -123,8 +126,9 @@ export const saveUserSettings = async (
   settings: UserSettings,
 ): Promise<void> => {
   try {
+    const validatedSettings = parseStoredUserSettings(settings)
     const normalizedSettings = normalizeAiSystemPromptSettings(
-      mergeStoredUserSettings(settings),
+      mergeStoredUserSettings(validatedSettings),
     )
     console.log('ユーザー設定を保存:', normalizedSettings)
     const storageLocal = getChromeStorageLocal()

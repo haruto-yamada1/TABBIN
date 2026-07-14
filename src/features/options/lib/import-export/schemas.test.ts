@@ -532,4 +532,60 @@ describe('backupDataSchema - safeParse', () => {
     const result = backupDataSchema.safeParse(data)
     expect(result.success).toBe(false)
   })
+
+  it('userSettings の clickBehavior が enum 外れでもパースは成功し、該当 field は undefined になる', () => {
+    const data = {
+      ...baseBackup(),
+      userSettings: {
+        ...buildFullUserSettings(),
+        clickBehavior: 'invalid-behavior',
+      },
+    }
+
+    const result = parseBackupData(JSON.stringify(data))
+    expect(result).not.toBeNull()
+    expect(result?.userSettings.clickBehavior).toBeUndefined()
+  })
+
+  it('userSettings の autoDeletePeriod が enum 外れでもパースは成功し、該当 field は undefined になる', () => {
+    const data = {
+      ...baseBackup(),
+      userSettings: {
+        ...buildFullUserSettings(),
+        autoDeletePeriod: 'invalid-period',
+      },
+    }
+
+    const result = parseBackupData(JSON.stringify(data))
+    expect(result).not.toBeNull()
+    expect(result?.userSettings.autoDeletePeriod).toBeUndefined()
+  })
+
+  it('userSettings の boolean field が型不正でもパースは成功し、該当 field は undefined になる', () => {
+    const data = {
+      ...baseBackup(),
+      userSettings: {
+        ...buildFullUserSettings(),
+        excludePinnedTabs: 'not-boolean',
+      },
+    }
+
+    const result = parseBackupData(JSON.stringify(data))
+    expect(result).not.toBeNull()
+    expect(result?.userSettings.excludePinnedTabs).toBeUndefined()
+  })
+
+  it('userSettings の必須 field が欠損していてもパースは成功する (storedUserSettingsSchema は全 field optional)', () => {
+    const data = {
+      ...baseBackup(),
+      userSettings: {
+        language: 'ja',
+      },
+    }
+
+    const result = parseBackupData(JSON.stringify(data))
+    expect(result).not.toBeNull()
+    expect(result?.userSettings.language).toBe('ja')
+    expect(result?.userSettings.clickBehavior).toBeUndefined()
+  })
 })
