@@ -516,7 +516,7 @@ const messages = {
     'options.title': 'Options',
     'periodicExecution.title': 'Scheduled tasks',
     'savedTabs.addProject': 'Add project',
-    'savedTabs.category.dragHandleAria': 'Drag to reorder category',
+    'savedTabs.category.dragHandleAria': 'Drag to reorder category "{{name}}"',
     'savedTabs.category.deleteAllItemName': 'domains in this category',
     'savedTabs.category.deleteAllWarning':
       'Delete all domains in this category. This action cannot be undone.',
@@ -817,7 +817,7 @@ const messages = {
       'Removed {{count}} opened tabs from saved data',
     'savedTabs.undo.restoreError': 'Could not restore saved data',
     'savedTabs.undo.restored': 'Restored saved data',
-    'savedTabs.url.dragHandleAria': 'Drag to reorder tab',
+    'savedTabs.url.dragHandleAria': 'Drag to reorder tab "{{name}}"',
     'savedTabs.url.deleteAria': 'Delete tab',
     'savedTabs.url.deleteConfirmDescription':
       'Delete this tab. This action cannot be undone.',
@@ -1361,7 +1361,8 @@ const messages = {
     'options.title': 'オプション',
     'periodicExecution.title': '定期実行',
     'savedTabs.addProject': 'プロジェクト追加',
-    'savedTabs.category.dragHandleAria': 'ドラッグしてカテゴリを並べ替える',
+    'savedTabs.category.dragHandleAria':
+      'ドラッグしてカテゴリ「{{name}}」を並べ替える',
     'savedTabs.category.deleteAllItemName': 'このカテゴリのドメイン',
     'savedTabs.category.deleteAllWarning':
       'カテゴリ内のすべてのドメインを削除します。この操作は元に戻せません。',
@@ -1659,7 +1660,7 @@ const messages = {
       '開いた{{count}}件のタブを保存データから削除しました',
     'savedTabs.undo.restoreError': '保存データを復元できませんでした',
     'savedTabs.undo.restored': '保存データを復元しました',
-    'savedTabs.url.dragHandleAria': 'ドラッグしてタブを並べ替える',
+    'savedTabs.url.dragHandleAria': 'ドラッグしてタブ「{{name}}」を並べ替える',
     'savedTabs.url.deleteAria': 'タブを削除',
     'savedTabs.url.deleteConfirmDescription':
       'このタブを削除します。この操作は元に戻せません。',

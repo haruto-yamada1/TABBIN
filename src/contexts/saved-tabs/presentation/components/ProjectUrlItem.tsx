@@ -221,7 +221,9 @@ const ProjectUrlItemComponent = ({
         <div
           {...attributes}
           {...listeners}
-          aria-label={t('savedTabs.url.dragHandleAria')}
+          aria-label={t('savedTabs.url.dragHandleAria', undefined, {
+            name: item.title || originalUrl,
+          })}
           className='cursor-grab p-1 active:cursor-grabbing'
           data-testid='project-url-drag-handle'
         >
