@@ -1,5 +1,20 @@
 'use client'
 
+// ──────────────────────────────────────────────────────────────────────
+// JSXPreview is a Storybook / dev-only component (issue #658).
+//
+// react-jsx-parser is a devDependency and this component must NEVER be
+// imported from production code.  A dependency-cruiser rule
+// (no-jsx-preview-outside-storybook) enforces that only files under
+// src/lib/storybook/ may import this module.
+//
+// NEVER pass AI output, user input, or any other untrusted string to
+// JSXPreview.  Only trusted Storybook fixtures and dev-only data are
+// permitted.  If structured rendering of AI output is needed in the
+// future, use Markdown / plain text / a constrained schema renderer
+// instead of a JSX parser.
+// ──────────────────────────────────────────────────────────────────────
+
 import { AlertCircle } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import {
