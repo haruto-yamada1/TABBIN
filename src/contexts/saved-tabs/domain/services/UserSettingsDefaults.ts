@@ -10,6 +10,7 @@ import {
   DEFAULT_AI_SYSTEM_PROMPT_TEMPLATE,
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
+import { parseStoredUserSettings } from '@/lib/storage/zod-storage'
 
 /**
  * `UserSettingsDto` の domain 既定値。repository / use-case 初期値や未保存状態
@@ -129,7 +130,9 @@ export const normalizeUserSettings = (
 } => {
   if (isStrippableSettings(stored) && stored.userSettings) {
     const raw = stored.userSettings
-    const sanitizedStoredSettings = stripLegacyUserSettings(raw)
+    const sanitizedStoredSettings = parseStoredUserSettings(
+      stripLegacyUserSettings(raw),
+    )
     const mergedStoredSettings = mergeStoredUserSettings(
       sanitizedStoredSettings,
     )

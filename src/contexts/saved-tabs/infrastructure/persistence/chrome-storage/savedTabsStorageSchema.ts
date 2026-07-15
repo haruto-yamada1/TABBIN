@@ -73,6 +73,19 @@ export const DomainCategorySettingsRawSchema = z.object({
   categoryKeywords: z.array(subCategoryKeywordSchema),
 })
 
+const AUTO_DELETE_PERIOD_VALUES = new Set([
+  'never',
+  '30sec',
+  '1min',
+  '1hour',
+  '1day',
+  '7days',
+  '14days',
+  '30days',
+  '180days',
+  '365days',
+])
+
 export const UserSettingsRawSchema = z.object({
   language: z
     .union([z.literal('system'), z.literal('ja'), z.literal('en')])
@@ -81,7 +94,12 @@ export const UserSettingsRawSchema = z.object({
   removeTabAfterExternalDrop: z.boolean(),
   excludePatterns: z.array(z.string()),
   enableCategories: z.boolean(),
-  autoDeletePeriod: z.string().optional(),
+  autoDeletePeriod: z
+    .string()
+    .refine((val) => AUTO_DELETE_PERIOD_VALUES.has(val), {
+      message: 'Invalid auto delete period',
+    })
+    .optional(),
   showSavedTime: z.boolean(),
   clickBehavior: z.enum([
     'saveCurrentTab',
@@ -100,8 +118,8 @@ export const UserSettingsRawSchema = z.object({
   aiSystemPrompts: z
     .array(
       z.object({
-        id: z.string(),
-        name: z.string(),
+        id: z.string().min(1),
+        name: z.string().min(1),
         template: z.string(),
         createdAt: z.number(),
         updatedAt: z.number(),
