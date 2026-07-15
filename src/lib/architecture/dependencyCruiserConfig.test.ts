@@ -532,10 +532,15 @@ describe('dependency-cruiser architecture rules', () => {
     expect(readFileSync(configPath, 'utf8')).toContain('module.exports')
   })
 
-  it('keeps circular dependency enforcement out of oxlint', () => {
-    expect(readFileSync(oxlintConfigPath, 'utf8')).not.toContain(
-      'import/no-cycle',
-    )
+  it('enables import/no-cycle in oxlint as early lint detection', () => {
+    const oxlintConfig = JSON.parse(readFileSync(oxlintConfigPath, 'utf8')) as {
+      rules: Record<string, unknown>
+    }
+
+    expect(oxlintConfig.rules['import/no-cycle']).toEqual([
+      'error',
+      { ignoreTypes: true, ignoreExternal: true, maxDepth: 10 },
+    ])
   })
 
   it('runs the architecture check in CI', () => {
