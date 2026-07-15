@@ -143,6 +143,31 @@ describe('createAgentConfigSnapshot', () => {
     writeFileSync(path.join(root, 'AGENTS.md'), 'changed\n')
     expect(createAgentConfigSnapshot(root)).not.toBe(first)
   })
+
+  it('changes when generated Gemini configuration changes', () => {
+    const root = createTemporaryDirectory('tabbin-agent-gemini-snapshot-')
+    const geminiDirectory = path.join(root, '.gemini')
+    mkdirSync(geminiDirectory)
+    writeFileSync(path.join(geminiDirectory, 'settings.json'), '{}\n')
+
+    const first = createAgentConfigSnapshot(root)
+
+    writeFileSync(
+      path.join(geminiDirectory, 'settings.json'),
+      '{"changed":true}\n',
+    )
+    expect(createAgentConfigSnapshot(root)).not.toBe(first)
+  })
+
+  it('ignores repository source files that are not copied into scratch', () => {
+    const root = createTemporaryDirectory('tabbin-agent-source-snapshot-')
+    writeFileSync(path.join(root, '.gitignore'), '.gemini/\n')
+
+    const first = createAgentConfigSnapshot(root)
+
+    writeFileSync(path.join(root, '.gitignore'), '.agents/\n')
+    expect(createAgentConfigSnapshot(root)).toBe(first)
+  })
 })
 
 describe('syncAgentConfig', () => {

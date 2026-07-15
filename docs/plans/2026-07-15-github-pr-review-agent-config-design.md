@@ -58,11 +58,15 @@ repository-local agent artifact の同期を分離し、agent configuration を�
 - Open PR と最新 head SHA を確定する。
 - flat comment ではなく live review thread、review、issue comment を取得し、未解決・非 outdated・
   未対応の項目を正規化する。
-- 各項目を `adopt`、`partially-adopt`、`reject`、`defer` に分類する。
+- 各項目は親分類と詳細分類を分ける。`adopt` は `adopt` / `already-fixed`、
+  `partially-adopt` は同名、`reject` は `reject-false-positive` / `reject-context-mismatch` /
+  `reject-already-enforced` / `reject-preference-only` / `reject-speculative`、`defer` は同名を使う。
+  `duplicate` は分類ではなく処理状態とし、canonical thread の親分類と詳細分類を継承する。
 - 現在の code path、型、schema、test、runtime、repository rule で妥当性を検証する。
-- 妥当なら根本修正、regression test、検証、scoped commit、PR branch push、thread reply を行う。
-- 妥当でなければ code を変更せず、同じ thread へ根拠を返信する。
-- 人間コメントへの返信は、ユーザーが返信を明示的に依頼した場合だけ行う。
+- 妥当なら根本修正、regression test、検証、scoped commit、PR branch push を行う。
+- 妥当でなければ code を変更しない。
+- reviewer の種別や判定にかかわらず、thread reply はユーザーが明示的に許可した場合だけ行う。
+  許可がなければ final response に返信案を示す。
 - merge、close、approve、base branch push、force push、無断 resolve は行わない。
 
 既存 `receiving-code-review` は妥当性検証の原則として再利用し、GitHub workflow と重複させない。
@@ -88,7 +92,8 @@ APM common instruction、docs とする。新規記録前に既存 docs、skills
 - sync script unit tests の RED/GREEN
 - `apm compile --validate`
 - `bun run apm:sync` を二回実行した差分比較
-- `bun run test:coverage`
+- `bun run test:coverage`。完了には repository-wide 100% を要求する。97.28% など100%未満の
+  結果は、変更対象 module が100%でも成功扱いにせず、未達の gate として報告する。
 - `bun run quality:check`
 - commit 後の `bun run release:check`
 - fresh-context review と Open PR remote state の確認

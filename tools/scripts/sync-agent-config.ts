@@ -34,9 +34,9 @@ const SNAPSHOT_PATHS = [
   '.claude',
   '.codex',
   '.cursor',
+  '.gemini',
   '.github',
   '.opencode',
-  '.gitignore',
   'apm.lock.yaml',
 ] as const
 

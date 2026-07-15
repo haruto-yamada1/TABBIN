@@ -79,7 +79,22 @@ push 前と返信前に `headRefOid` と thread state を再取得します。HE
 
 ### 3. 各指摘を分類して検証する
 
-各 actionable feedback を次のいずれかへ分類します。
+各 actionable feedback は、4つの親分類と詳細分類を分けて記録します。
+
+- `adopt`: 詳細分類は `adopt` または `already-fixed`。指摘は妥当で、後者は latest HEAD で
+  修正済みのため追加変更が不要。
+- `partially-adopt`: 詳細分類は `partially-adopt`。問題は妥当だが、提案された解決の一部は
+  repository contract と合わない。
+- `reject`: 詳細分類は `reject-false-positive`、`reject-context-mismatch`、
+  `reject-already-enforced`、`reject-preference-only`、`reject-speculative` のいずれか。
+- `defer`: 詳細分類は `defer`。scope 外、競合する要求、外部 owner 判断が必要で、
+  この PR では安全に決められない。
+
+`duplicate` は親分類ではなく処理状態です。canonical thread の親分類と詳細分類を継承し、
+同じ根本原因へ二重対応しません。latest HEAD で問題が見つからない場合は、修正済みの証拠が
+あれば `adopt` / `already-fixed`、なければ `reject` / `reject-false-positive` とします。
+
+詳細分類の意味は次のとおりです。
 
 - `adopt`: 最新 HEAD に問題があり、提案の方向も妥当。
 - `partially-adopt`: 問題は妥当だが、提案された解決の一部は repository contract と合わない。
@@ -89,8 +104,6 @@ push 前と返信前に `headRefOid` と thread state を再取得します。HE
 - `reject-preference-only`: correctness や保守性の改善ではなく、根拠のない好みだけである。
 - `reject-speculative`: 対応環境で未確認の仮説で、変更が回帰や過剰実装を生む。
 - `already-fixed`: latest HEAD または別の scoped commit ですでに修正済みである。
-- `duplicate`: 同じ根本原因と対応を持つ別 thread に重複している。
-- `defer`: scope 外、競合する要求、外部 owner 判断が必要で、この PR では安全に決められない。
 
 最低限、次を現在の checkout で確認します。
 
@@ -105,7 +118,8 @@ reviewer の説明を実装事実として扱いません。分からない場�
 
 ### 4. 妥当な指摘を修正する
 
-`adopt` / `partially-adopt` では次を行います。
+`adopt` / `adopt` と `partially-adopt` / `partially-adopt` では次を行います。
+`adopt` / `already-fixed` は追加修正しません。
 
 1. 回帰を再現する test を追加または特定し、挙動変更では RED を確認します。
 2. wrapper、adapter、fallback、局所条件、設定弱体化ではなく根本原因を修正します。

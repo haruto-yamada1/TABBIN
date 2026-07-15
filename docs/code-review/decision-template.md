@@ -24,9 +24,8 @@ superseded_by: null
 
 ## 判定
 
-`adopt`、`partially-adopt`、`reject-false-positive`、`reject-context-mismatch`、
-`reject-already-enforced`、`reject-preference-only`、`reject-speculative`、`already-fixed`、
-`duplicate`、`defer` の判断と理由を記載します。
+親分類（`adopt`、`partially-adopt`、`reject`、`defer`）と詳細分類を分けて記載します。
+`duplicate` の場合は処理状態として記録し、canonical thread から継承した分類も示します。
 
 ## 根拠
 
