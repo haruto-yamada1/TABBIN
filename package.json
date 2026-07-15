@@ -64,6 +64,8 @@
     "verify:app-version": "bun tools/scripts/verify-app-version.ts",
     "verify:toolchain-versions": "bun tools/scripts/verify-toolchain-versions.ts",
     "sync:toolchain-versions": "bun tools/scripts/sync-toolchain-versions.ts",
+    "apm:check": "bun tools/scripts/sync-agent-config-cli.ts --check",
+    "apm:sync": "bun tools/scripts/sync-agent-config-cli.ts",
     "release:provenance": "bun tools/scripts/generate-release-provenance.ts"
   },
   "dependencies": {

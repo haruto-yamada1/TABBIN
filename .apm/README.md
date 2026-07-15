@@ -17,8 +17,10 @@
 ## 使い方
 
 ```bash
-apm install
-apm compile
+bun run apm:sync
+bun run apm:check
 ```
 
-パッケージを変更したら、`apm install` と `apm compile` を再実行してください。
+`.apm/` や `apm.yml` を変更したら `bun run apm:sync` で全 configured target を同期し、
+`bun run apm:check` で tracked 生成物と scratch 再生成結果の一致を確認してください。raw の
+`apm install` / `apm compile` は、隔離した scratch で原因を切り分ける場合だけ使います。
