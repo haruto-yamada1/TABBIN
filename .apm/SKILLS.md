@@ -110,6 +110,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | `react-doctor` | React 変更後、早い段階で問題を検出します。 |
 | `requesting-code-review` | 実装完了後や merge 前にレビューを依頼するときに使います。 |
 | `receiving-code-review` | review feedback を受け取り、妥当性を確認して対応します。 |
+| `github-pr-review` | Open GitHub PR の review feedback を投稿者に依存せず検証し、許可範囲で修正、push、thread reply、学びの昇格まで行います。 |
 | `security-review` | Browser extension の権限、storage、user content、依存関係、release-sensitive code を確認します。 |
 | `web-design-guidelines` | UI、UX、accessibility、visual quality をレビューします。 |
 | `e2e-testing` | TABBIN の WXT browser extension flow に Playwright E2E を追加・修正・調査します。 |
@@ -165,8 +166,8 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 - 「新しい挙動を作る」なら `brainstorming` と `test-driven-development`。
 - 「PR 前に不安」なら `requesting-code-review`、React 変更なら追加で `react-doctor`。
 - 「永続タスクや follow-up を残す」なら issue tracker に残します。
-- 「AI 向け資産を変える」なら `.apm/` を編集し、`apm compile --validate` の後に
-  configured target へ `apm compile` して tracked instructions を同期。
+- 「AI 向け資産を変える」なら `.apm/` を編集し、`bun run apm:sync` で configured target を
+  同期した後、`bun run apm:check` で tracked 生成物、必須 skill、二回同期の冪等性を検証。
 
 ## 役割が被って見える skill の整理
 
@@ -179,6 +180,7 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 | --- | --- | --- |
 | 複雑な作業全体を任せる | `harness-orchestrate` | `harness-planner`、`harness-generator`、`harness-evaluator`、`harness-optimizer` |
 | GitHub Issue URL から Open PR まで | `commit-push-pr` | `github-issue-implementation`、必要なら `harness-orchestrate` |
+| Open PR の review feedback 対応 | `github-pr-review` | `receiving-code-review`、必要なら `check` |
 | まだ設計が固まっていない | `brainstorming` | `writing-plans`、`harness-planner` |
 | 実装計画がすでにある | `executing-plans` | `harness-generator`、`subagent-driven-development` |
 | 複数 agent に分担できる | `subagent-driven-development` | `dispatching-parallel-agents`、`harness-generator` |
@@ -198,6 +200,7 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 | `harness-generator` / `executing-plans` / `subagent-driven-development` | `executing-plans` は計画実行の汎用手順、`subagent-driven-development` は分担実行、`harness-generator` はハーネス run の実装担当です。 |
 | `harness-evaluator` / `requesting-code-review` / `react-doctor` / `security-review` / `web-design-guidelines` | `harness-evaluator` は全体評価の器です。React、security、UI などの専門観点は必要に応じて専門 skill を併用します。 |
 | `check` / `verification-before-completion` / `react-doctor` | `check` は実コマンド実行、`verification-before-completion` は完了報告前の規律、`react-doctor` は React 専用の追加検査です。 |
+| `github-pr-review` / `receiving-code-review` / `babysit` | `github-pr-review` は Open PR の live thread から修正・push・返信までの workflow、`receiving-code-review` は指摘の技術的検証原則、`babysit` は PR 全体の継続監視です。 |
 | `create-skill` / `writing-skills` / `find-skills` / `migrate-to-skills` | `find-skills` は探す、`create-skill` は作る、`writing-skills` は品質よく書く、`migrate-to-skills` は既存 rule / command から移行する役割です。 |
 | `agent-automation-recommender` / `harness-optimizer` / `agent-introspection-debugging` | `agent-automation-recommender` は repo 全体の自動化提案、`harness-optimizer` は harness run 後の学習候補整理、`agent-introspection-debugging` は agent の失敗原因調査です。 |
 | `animation-best-practices` / `web-design-guidelines` / `vercel-react-best-practices` | `animation-best-practices` は動き、`web-design-guidelines` は UX / accessibility / visual quality、`vercel-react-best-practices` は React 性能と実装品質です。 |

@@ -19,6 +19,9 @@ APM 0.18.0 の install が管理対象ファイルを cleanup 対象として扱
 - 既存 `receiving-code-review` はレビュー内容を技術的に検証する原則を持つが、Open PR の特定、
   live unresolved thread の取得、PR HEAD との照合、commit/push/reply、永続化判断までを
   一つの GitHub workflow として提供していない。
+- skill 追加前の fresh-agent pressure test でも live thread、HEAD 再確認、根本修正、返信禁止操作は
+  一般規約から導けた一方、repository 内の検索可能な判断記録と enforcement 昇格基準がなく、
+  repository docs ではなく個人 memory へ保存する判断になった。再現性のある入口と保存先が必要である。
 - 継続改善の判断を、型・schema・lint・architecture test・regression test・CI・skill・docs の
   どこへ昇格するかを決める検索可能な repository contract がない。
 
@@ -29,14 +32,23 @@ APM 0.18.0 の install が管理対象ファイルを cleanup 対象として扱
 `tools/scripts/sync-agent-config.ts` を repository-owned entrypoint とする。
 
 1. `apm compile --validate` で source primitives を検証する。
-2. `apm install --root <scratch> --only apm` と `apm compile --root <scratch>` を実行する。
+2. `apm.yml`、`apm.lock.yaml`、`.apm/` を一時 project へ複製し、そこで本番と同じ
+   `apm install --frozen --force --only apm` と
+   `apm compile --single-agents --no-dedup` を実行する。
 3. scratch 上の `AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`github-pr-review` skill が存在し、
-   空でないことを検証する。
-4. 同じ scratch root へ二回同期し、管理対象 snapshot が一致することを確認する。
-5. check mode でなければ、同じ明示 target で repository root を同期し、必須生成物を再検証する。
+   必須内容を含むことを検証する。
+4. 同じ scratch project で二回同期し、cleanup/redeploy 後の管理対象 snapshot が一致することを
+   確認する。
+5. 各同期後に `apm.lock.yaml` を repository formatter で整形する。
+6. check mode では tracked な `AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`apm.lock.yaml` を scratch
+   結果と byte comparison し、drift を非ゼロ終了にする。
+7. check mode でなければ、同じ `apm.yml` の target 設定で repository root を同期し、必須生成物を再検証する。
 
 MCP 配布はこの command の責務に含めない。APM 0.18.0 の Cursor/vscode target drift と
 repository-local agent artifact の同期を分離し、agent configuration を失敗なく再現するためである。
+`--single-agents` は client 別 rules が展開済みでも root `AGENTS.md` を完全生成し、
+`--no-dedup` は `.claude/rules` があっても `CLAUDE.md` を完全生成する。両者により、複数 client へ
+同じ共通指示を配布するこの repository の意図的な contract を維持する。
 
 ### 2. Source-agnostic GitHub review workflow
 

@@ -96,7 +96,7 @@ Codex、Cursor、Claude などで使える自動化を提案します。ファ�
 既存の設定だけで改善できる場合に提案します。
 
 - `AGENTS.md` や `.apm/instructions/` のルール整理。
-- `apm compile --validate`、`apm install`、`apm compile` の運用確認。
+- `bun run apm:sync`、`bun run apm:check` と `.apm` source-of-truth の運用確認。
 - `bun run quality:check`、`bun run test:coverage` などの完了ゲート明確化。
 
 ## 出力形式

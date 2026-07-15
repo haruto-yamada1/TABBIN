@@ -4,7 +4,7 @@
 
 **Goal:** Add a source-agnostic `github-pr-review` workflow, a validated review-learning loop, and a safe idempotent APM synchronization command, then publish an Open PR to `develop`.
 
-**Architecture:** Keep `.apm` as the only authored agent-configuration source. Put GitHub review orchestration in a dedicated skill that reuses `receiving-code-review`, keep reusable decisions in a searchable docs index, and run APM install/compile through a repository script that verifies a scratch deployment before touching generated surfaces.
+**Architecture:** Keep `.apm` as the only authored agent-configuration source. Put GitHub review orchestration in a dedicated skill that reuses `receiving-code-review`, keep reusable decisions in a searchable docs index, and run APM install/compile through a repository script that copies the APM project into a scratch directory and verifies two complete deployments before touching generated surfaces.
 
 **Tech Stack:** TypeScript, Bun, Vitest, APM CLI 0.18.0, Markdown Agent Skills, Git, GitHub CLI.
 
@@ -28,9 +28,10 @@
 
 - Create: `tools/scripts/sync-agent-config.test.ts`
 - Create: `tools/scripts/sync-agent-config.ts`
+- Create: `tools/scripts/sync-agent-config-cli.ts`
 - Modify: `package.json`
 
-1. Write tests for required artifact validation, deterministic snapshot comparison, explicit target commands, and check-only mode.
+1. Write tests for required artifact validation, deterministic snapshot comparison, `apm.yml`-owned target commands, and check-only mode.
 2. Run `bunx vitest run tools/scripts/sync-agent-config.test.ts` and verify RED because the implementation does not exist.
 3. Implement the minimum sync orchestration and exported pure helpers.
 4. Re-run the targeted test and `bun run test:node`; expect PASS.

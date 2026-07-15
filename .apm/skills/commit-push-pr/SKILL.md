@@ -89,16 +89,14 @@ coverage は 100% を確認します。失敗は suppression せず原因を修�
 同期を必須条件にします。
 
 ```bash
-apm compile --validate
-apm compile --target codex
-apm install --force --target agent-skills
+bun run apm:sync
+bun run apm:check
 ```
 
-`apm.yml` で現在の review 対象に別 target が設定されている場合は、その target も正規の
-compile 手順で生成します。TABBIN では `.apm` と `AGENTS.md`、対象 `.agents/skills` の内容を
-比較し、drift がないことを確認します。install が `.gitignore` や `apm.lock.yaml` に意図しない
-差分を作った場合は publish 対象へ混ぜず、source 変更または明示的な dependency 更新だけを
-残します。
+target は `apm.yml` だけを source of truth とし、通常運用で raw の `apm install`、
+`apm compile`、または command line の `--target` を使いません。`apm:check` は tracked 生成物、
+必須 skill、二回同期の冪等性を scratch 再生成結果と比較します。`.gitignore` や
+`apm.lock.yaml` の差分も確認し、source 変更または正規同期で説明できるものだけを残します。
 
 ## Publish phase
 

@@ -36,6 +36,7 @@ web-ext.config.ts
 .codex/
 .cursor/
 .gemini/
+.opencode/
 .github/hooks/
 .github/instructions/
 .github/prompts/*.prompt.md
@@ -52,9 +53,8 @@ web-ext.config.ts
 *.sln
 *.sw?
 
-
-# APM dependencies
-apm_modules/.worktrees/
-
 # Worktree directory
 .worktrees/
+
+# APM dependencies
+apm_modules/
