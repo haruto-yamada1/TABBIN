@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Record the Current Skill Failure
+## Task 1: Record the Current Skill Failure
 
 **Files:**
 
@@ -37,7 +37,7 @@ Expected failure: the agent treats the workflow as publish-only or stops because
 
 Write the observed decision and rationalization to `/tmp/commit-push-pr-red.txt`. Do not edit the skill before this evidence exists.
 
-### Task 2: Refactor the Skill Responsibilities
+## Task 2: Refactor the Skill Responsibilities
 
 **Files:**
 
@@ -64,7 +64,7 @@ Require live Issue body, comments, linked Issue / PR intake before editing. Requ
 
 **Step 4: Encode verification and publishing**
 
-Require targeted tests, `bun run quality:check`, clean-tree `bun run release:check`, scoped staging, Japanese commit/title, push synchronization, and an Open PR to `develop` with cause, solution, changes, risk, commands, and acceptance-criteria mapping.
+Require targeted tests, `bun run test:coverage`, `bun run quality:check`, clean-tree `bun run release:check`, scoped staging, Japanese commit/title, push synchronization, and an Open PR to `develop` with cause, solution, changes, risk, commands, and acceptance-criteria mapping.
 
 If unrelated tracked changes remain in the original worktree, run the clean-tree release gate from a temporary detached worktree at the committed HEAD instead of touching those changes.
 
@@ -72,7 +72,7 @@ If unrelated tracked changes remain in the original worktree, run the clean-tree
 
 Make `github-issue-implementation` return a structured implementation result to its caller. If invoked standalone, it may recommend `commit-push-pr`, but it must not recursively invoke it when already running as its phase.
 
-### Task 3: Align Repository Source of Truth
+## Task 3: Align Repository Source of Truth
 
 **Files:**
 
@@ -97,9 +97,10 @@ Run:
 ```bash
 apm compile --validate
 apm compile --target codex
+apm install --force --target agent-skills
 ```
 
-Expected: exit 0; generated `.agents` skills and root instruction artifacts match `.apm` sources.
+Expected: all commands exit 0; generated `.agents` skills and root instruction artifacts match `.apm` sources, without unintended lockfile or `.gitignore` drift.
 
 **Step 4: Inspect generated scope**
 
@@ -112,7 +113,7 @@ rtk git diff --stat
 
 Expected: only intended source files, generated counterparts, and plan documents are changed.
 
-### Task 4: Verify Skill Behavior
+## Task 4: Verify Skill Behavior
 
 **Files:**
 
@@ -131,15 +132,18 @@ Verify at least:
 
 - existing changes without an Issue URL use publish-only mode;
 - unavailable Issue intake stops before implementation;
+- dirty original checkout is recorded as a baseline and is not reused for Issue implementation;
+- `.apm` changes require validation, configured-target compilation, and runtime skill synchronization;
 - release check is scheduled after a clean checkpoint commit;
 - unrelated dirty files are not staged;
+- existing PR reuse verifies repository, head, Issue, state, Draft status, and base;
 - PR is Open and targets `develop`.
 
 **Step 3: Perform fresh-context review**
 
 Ask a reviewer subagent to compare the updated skill and generated instructions against the approved design. Fix all Critical and Important findings, then repeat the relevant scenario.
 
-### Task 5: Run Repository Gates
+## Task 5: Run Repository Gates
 
 **Files:**
 
@@ -155,9 +159,19 @@ apm compile --target codex
 bun run format:check
 ```
 
-Expected: both exit 0.
+Expected: all commands exit 0.
 
-**Step 2: Run the broad quality gate**
+**Step 2: Run the coverage gate**
+
+Run:
+
+```bash
+rtk bun run test:coverage
+```
+
+Expected: exit 0, all tests pass, and statements, branches, functions, and lines report 100% coverage. Record the result as verification evidence.
+
+**Step 3: Run the broad quality gate**
 
 Run:
 
@@ -167,11 +181,11 @@ rtk bun run quality:check
 
 Expected: exit 0 with no failing sub-gate.
 
-**Step 3: Commit the implementation checkpoint**
+**Step 4: Commit the implementation checkpoint**
 
 Stage only the intended files and commit with a concise Japanese message.
 
-**Step 4: Run the clean-tree release gate**
+**Step 5: Run the clean-tree release gate**
 
 Run:
 
@@ -181,7 +195,7 @@ rtk bun run release:check
 
 Expected: exit 0 and `rtk git status --short` remains clean.
 
-### Task 6: Publish an Open PR
+## Task 6: Publish an Open PR
 
 **Files:**
 

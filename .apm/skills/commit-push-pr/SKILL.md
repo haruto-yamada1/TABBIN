@@ -19,12 +19,19 @@ URL がなければ検証済み変更の publish から開始します。明確�
 
 Issue URL がある場合、ローカル変更がまだなくても停止してはいけません。
 
+Issue mode へ入る前に、元 checkout の `HEAD`、branch、status、unstaged / staged の
+`--name-status` を baseline 証跡として記録します。既存変更が一つでもある場合、原則として
+元 checkout を実装場所にせず、`origin/develop` の clean checkpoint から専用 worktree を
+作ります。既存の Issue worktree を再利用できるのは、開始前の全差分がその Issue の commit、
+harness checkpoint、または同等の証拠と対応付けられる場合だけです。同一 path の差分を含め、
+帰属を分離できない変更があれば実装や publish を開始せず blocker として停止します。
+
 ## Issue mode
 
 **REQUIRED SUB-SKILL:** Use `github-issue-implementation`.
 
-1. sub-skill に Issue URL を渡し、Issue 本文、コメント、関連 Issue / PR、現在の
-   repository を acceptance contract として調査させます。
+1. sub-skill に Issue URL と baseline 証跡を渡し、Issue 本文、コメント、関連 Issue / PR、
+   現在の repository を acceptance contract として調査させます。
 2. sub-skill の worktree / branch で根本原因の修正と検証を完了させます。
 3. sub-skill が返す原因、変更、acceptance criteria 対応、検証証跡を受け取ります。
 4. そのまま下記 Publish phase を続行します。publish を別依頼に分けません。
@@ -56,6 +63,7 @@ user data、permission、public behavior を変える場合は migration と com
 - 要求同士が矛盾し、選択で public behavior が変わる
 - user data 消失、permission 追加、重大な security / privacy risk がある
 - 同じ Issue の branch / worktree が複数あり、安全な続行先を特定できない
+- baseline と Issue 作業後の差分を比較しても、変更の帰属を一意に説明できない
 
 認証や sandbox の失敗は、下記の既知の回避を試してから blocker と判断します。
 blocker 報告には、試した command、exit status、error の要約、取得できなかった contract、
@@ -76,6 +84,21 @@ bun run quality:check
 
 coverage は 100% を確認します。失敗は suppression せず原因を修正し、同じ command を
 再実行します。`release:check` は clean tree gate のため、publish 用 commit 後に実行します。
+
+`.apm/**` を変更した場合は publish 前に次を実行し、source と tracked / runtime 生成物の
+同期を必須条件にします。
+
+```bash
+apm compile --validate
+apm compile --target codex
+apm install --force --target agent-skills
+```
+
+`apm.yml` で現在の review 対象に別 target が設定されている場合は、その target も正規の
+compile 手順で生成します。TABBIN では `.apm` と `AGENTS.md`、対象 `.agents/skills` の内容を
+比較し、drift がないことを確認します。install が `.gitignore` や `apm.lock.yaml` に意図しない
+差分を作った場合は publish 対象へ混ぜず、source 変更または明示的な dependency 更新だけを
+残します。
 
 ## Publish phase
 
@@ -111,8 +134,12 @@ commit しません。作成した verification worktree は結果を記録し�
 
 ### 3. push と Open PR を作成する
 
-branch を push し、同じ head branch の PR がないことを確認します。既存 PR があれば
-重複作成せず更新します。新規作成は必ず `develop` base、Open（非 Draft）にします。
+branch を push し、同じ repository / head branch の PR を全 state で確認します。既存 PR を
+再利用する場合は、head、Issue mode では closing Issue、state、Draft 状態、base を取得し、
+今回の作業と同一であることを証明します。安全に修正できる Draft と base のみ `ready` / `edit`
+で Open（非 Draft）・`develop` へ正規化します。Closed、別 Issue、別 repository、別 head の
+PR は再利用しません。候補との帰属を安全に分けられない場合は blocker として停止します。
+該当 PR がなければ、必ず `develop` base、Open（非 Draft）で新規作成します。
 ユーザーが明示的に要求しない限り force-push しません。
 
 PR 本文には次を含めます。

@@ -11,8 +11,9 @@ publish を安全に続けられる構造化された結果を返します。
 
 ## Input contract
 
-必要な入力は Issue URL または `<owner>/<repo>#<number>` です。caller がすでに branch、
-worktree、既存変更を持つ場合は、その情報も受け取ります。
+必要な入力は Issue URL または `<owner>/<repo>#<number>` と、その repository を読める
+GitHub CLI 認証です。caller がすでに branch、worktree、既存変更を持つ場合は、開始時の
+`HEAD`、branch、status、staged / unstaged path を含む baseline 証跡も受け取ります。
 
 Issue を取得できない、URL が別 repository を指す、Issue が要求する repository を特定
 できない場合は、実装を推測せず停止します。
@@ -32,16 +33,21 @@ Issue から次を明示します。
 - Issue の解決案と、検証が必要な仮説
 
 GitHub 認証や network が必要な command は、利用環境で必要なら escalated permission を
-使います。`gh` 未認証時は `commit-push-pr` の認証手順を使います。取得に失敗したまま
-repository 調査や実装へ進みません。
+使い、intake 前に `gh auth status` を確認します。未認証でも git credential helper が
+利用できる場合は、token を file や stdout に出さず、同じ shell invocation 内だけの
+`GH_TOKEN` で read command を再試行します。利用可能な認証を確立できなければ、取得できない
+contract と試した command を具体的な blocker として返します。取得に失敗したまま repository
+調査や実装へ進みません。
 
 ## 2. Workspace を隔離する
 
-1. `git status --short --branch` で既存変更を確認します。
+1. `git status --short --branch` と staged / unstaged の `--name-status` を baseline と比較します。
 2. `git fetch origin develop` で起点を更新します。
 3. `git worktree list` と branch 一覧から同じ Issue の作業場所を探します。
 4. 安全な既存 worktree が一意なら再利用します。安全とは、同じ Issue の branch が一つだけで、
-   dirty file がないか、すべて今回の Issue scope と証拠で対応付けられる状態です。なければ `origin/develop` から
+   dirty file がないか、開始前の全差分がその Issue の commit / checkpoint と対応付けられる
+   状態です。元 checkout に既存変更がある場合や、同一 path の変更を Issue 作業と分離できない
+   場合は再利用せず、`origin/develop` の clean checkpoint から
    `fix/issue-<number>-<slug>` または変更種別に合う branch と専用 worktree を作ります。
 
 他者変更を stash、reset、checkout、revert しません。複数の候補があり安全な続行先を
@@ -99,6 +105,7 @@ caller へ次を返します。
 
 - Issue number、title、URL、acceptance criteria
 - worktree path と branch 名
+- 開始 baseline と、そこから生じた Issue-owned path / commit の対応
 - 特定した根本原因
 - 採用した解決と主要変更ファイル
 - acceptance criteria と変更 / test の対応
