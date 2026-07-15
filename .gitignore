@@ -39,6 +39,7 @@ web-ext.config.ts
 .opencode/
 .github/hooks/
 .github/instructions/
+.github/copilot-instructions.md
 .github/prompts/*.prompt.md
 .github/skills/
 

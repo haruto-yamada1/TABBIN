@@ -277,6 +277,72 @@ describe('syncAgentConfig', () => {
     expect(() => validateRequiredAgentArtifacts(projectRoot)).not.toThrow()
   })
 
+  it('removes stale generated client artifacts before applying the verified deployment', () => {
+    const projectRoot = createProject()
+    const staleInstruction = path.join(
+      projectRoot,
+      '.github/instructions/removed.instructions.md',
+    )
+    const staleClientHooks = [
+      '.claude/hooks/TABBIN/scripts/stale.sh',
+      '.codex/hooks/TABBIN/scripts/stale.sh',
+      '.cursor/hooks/TABBIN/scripts/stale.sh',
+      '.gemini/hooks/TABBIN/scripts/stale.sh',
+    ].map((relativePath) => path.join(projectRoot, relativePath))
+    const preservedWorkflow = path.join(projectRoot, '.github/workflows/ci.yml')
+    const preservedIssueTemplate = path.join(
+      projectRoot,
+      '.github/ISSUE_TEMPLATE/bug_report.md',
+    )
+    const staleCopilotInstructions = path.join(
+      projectRoot,
+      '.github/copilot-instructions.md',
+    )
+    const harnessState = path.join(
+      projectRoot,
+      '.agents/harness/runtime-state.json',
+    )
+    mkdirSync(path.dirname(staleInstruction), { recursive: true })
+    for (const staleHook of staleClientHooks) {
+      mkdirSync(path.dirname(staleHook), { recursive: true })
+      writeFileSync(staleHook, '# stale generated hook\n')
+    }
+    mkdirSync(path.dirname(preservedWorkflow), { recursive: true })
+    mkdirSync(path.dirname(preservedIssueTemplate), { recursive: true })
+    mkdirSync(path.dirname(harnessState), { recursive: true })
+    writeFileSync(staleInstruction, '# Removed source\n')
+    writeFileSync(preservedWorkflow, 'name: CI\n')
+    writeFileSync(preservedIssueTemplate, '# Bug report\n')
+    writeFileSync(staleCopilotInstructions, '# stale generated instructions\n')
+    writeFileSync(harnessState, '{"status":"running"}\n')
+
+    let rootDeploymentSawClean = false
+    const runner: AgentConfigCommandRunner = (command, args, cwd) => {
+      if (
+        command === 'apm' &&
+        (args[0] !== 'compile' || !args.includes('--validate'))
+      ) {
+        if (cwd === projectRoot && !args.includes('--dry-run')) {
+          rootDeploymentSawClean =
+            !existsSync(staleInstruction) &&
+            !staleClientHooks.some((file) => existsSync(file)) &&
+            !existsSync(staleCopilotInstructions)
+        }
+        writeRequiredArtifacts(cwd)
+      }
+    }
+
+    syncAgentConfig({ projectRoot, runner })
+
+    expect(existsSync(staleInstruction)).toBe(false)
+    expect(staleClientHooks.some((file) => existsSync(file))).toBe(false)
+    expect(existsSync(staleCopilotInstructions)).toBe(false)
+    expect(rootDeploymentSawClean).toBe(true)
+    expect(readFileSync(preservedWorkflow, 'utf8')).toBe('name: CI\n')
+    expect(readFileSync(preservedIssueTemplate, 'utf8')).toBe('# Bug report\n')
+    expect(readFileSync(harnessState, 'utf8')).toBe('{"status":"running"}\n')
+  })
+
   it('fails apply mode when repository output diverges from verified scratch output', () => {
     const projectRoot = createProject()
     const runner: AgentConfigCommandRunner = (command, args, cwd) => {

@@ -47,6 +47,31 @@ const TRACKED_SYNC_ARTIFACTS = [
   'apm.lock.yaml',
 ] as const
 
+const GENERATED_AGENT_ARTIFACT_PATHS = [
+  '.agents/skills',
+  '.claude/apm-hooks.json',
+  '.claude/commands',
+  '.claude/hooks/TABBIN',
+  '.claude/rules',
+  '.claude/settings.json',
+  '.claude/skills',
+  '.codex/hooks.json',
+  '.codex/hooks/TABBIN',
+  '.cursor/commands',
+  '.cursor/hooks.json',
+  '.cursor/hooks/TABBIN',
+  '.cursor/rules',
+  '.gemini/commands',
+  '.gemini/hooks/TABBIN',
+  '.gemini/settings.json',
+  '.github/copilot-instructions.md',
+  '.github/hooks',
+  '.github/instructions',
+  '.github/prompts',
+  '.github/skills',
+  '.opencode/commands',
+] as const
+
 type AgentConfigCommand = {
   args: readonly string[]
   command: string
@@ -181,6 +206,15 @@ const runDeployment = (
   }
 }
 
+const removeGeneratedAgentArtifacts = (projectRoot: string): void => {
+  for (const relativePath of GENERATED_AGENT_ARTIFACT_PATHS) {
+    rmSync(path.join(projectRoot, relativePath), {
+      force: true,
+      recursive: true,
+    })
+  }
+}
+
 const formatApmLockfile = (
   projectRoot: string,
   workingDirectory: string,
@@ -258,6 +292,7 @@ export const syncAgentConfig = ({
     if (checkOnly) {
       validateTrackedArtifactSync(projectRoot, scratchRoot)
     } else {
+      removeGeneratedAgentArtifacts(projectRoot)
       runDeployment(projectRoot, runner, true)
       formatApmLockfile(projectRoot, projectRoot, runner)
       validateRequiredAgentArtifacts(projectRoot)
