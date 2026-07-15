@@ -202,8 +202,16 @@ export const storedUserSettingsSchema = z.object({
   colors: z.record(z.string(), z.string()).optional().catch(undefined),
   ollamaModel: z.string().optional().catch(undefined),
   aiSystemPrompts: z
-    .array(aiSystemPromptPresetSchema)
-    .optional()
+    .preprocess((val) => {
+      if (!Array.isArray(val)) {
+        return undefined
+      }
+      const filtered = val.filter(
+        (item): item is z.infer<typeof aiSystemPromptPresetSchema> =>
+          aiSystemPromptPresetSchema.safeParse(item).success,
+      )
+      return filtered.length > 0 ? filtered : undefined
+    }, z.array(aiSystemPromptPresetSchema).optional())
     .catch(undefined),
   activeAiSystemPromptId: z.string().optional().catch(undefined),
 })

@@ -148,10 +148,17 @@ describe('normalizeUserSettings', () => {
     expect(result.normalized.openUrlInBackground).toBe(true)
   })
 
-  it('aiSystemPrompts の空 id preset を含む場合は default に fallback する', () => {
+  it('aiSystemPrompts は無効要素だけ除外し、有効な preset を保持する', () => {
     const result = normalizeUserSettings({
       userSettings: {
         aiSystemPrompts: [
+          {
+            id: 'valid',
+            name: 'Valid',
+            template: 't',
+            createdAt: 0,
+            updatedAt: 0,
+          },
           { id: '', name: 'Empty', template: 't', createdAt: 0, updatedAt: 0 },
         ],
       },
@@ -159,5 +166,6 @@ describe('normalizeUserSettings', () => {
 
     expect(result.normalized.aiSystemPrompts).toBeDefined()
     expect(result.normalized.aiSystemPrompts).toHaveLength(1)
+    expect(result.normalized.aiSystemPrompts?.[0].id).toBe('valid')
   })
 })

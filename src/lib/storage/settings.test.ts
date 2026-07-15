@@ -356,11 +356,18 @@ describe('settings storage', () => {
     expect(settings.openUrlInBackground).toBe(true)
   })
 
-  it('aiSystemPrompts の空 id preset を含む場合は default に fallback する', async () => {
+  it('aiSystemPrompts は無効要素だけ除外し、有効な preset を保持する', async () => {
     const storageLocal = {
       get: vi.fn(async () => ({
         userSettings: {
           aiSystemPrompts: [
+            {
+              id: 'valid',
+              name: 'Valid',
+              template: 't',
+              createdAt: 0,
+              updatedAt: 0,
+            },
             {
               id: '',
               name: 'Empty',
@@ -379,7 +386,7 @@ describe('settings storage', () => {
 
     const settings = await getUserSettings()
     expect(settings.aiSystemPrompts).toHaveLength(1)
-    expect(settings.aiSystemPrompts?.[0].id).toBe('default-id')
+    expect(settings.aiSystemPrompts?.[0].id).toBe('valid')
   })
 
   it('saveUserSettings は未正規化の clickBehavior を default に正規化して保存する', async () => {

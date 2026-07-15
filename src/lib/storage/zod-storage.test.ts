@@ -238,7 +238,7 @@ describe('zod-storage helpers', () => {
       expect(result.excludePatterns).toBeUndefined()
     })
 
-    it('aiSystemPrompts 内の空 id preset を含む場合は配列全体が除外される', () => {
+    it('aiSystemPrompts は無効要素だけ除外し、有効な preset は保持される', () => {
       const result = parseStoredUserSettings({
         aiSystemPrompts: [
           {
@@ -248,6 +248,16 @@ describe('zod-storage helpers', () => {
             createdAt: 0,
             updatedAt: 0,
           },
+          { id: '', name: 'Empty', template: 't', createdAt: 0, updatedAt: 0 },
+        ],
+      })
+      expect(result.aiSystemPrompts).toHaveLength(1)
+      expect(result.aiSystemPrompts?.[0].id).toBe('valid')
+    })
+
+    it('aiSystemPrompts が全て無効な場合は配列全体が除外される', () => {
+      const result = parseStoredUserSettings({
+        aiSystemPrompts: [
           { id: '', name: 'Empty', template: 't', createdAt: 0, updatedAt: 0 },
         ],
       })
