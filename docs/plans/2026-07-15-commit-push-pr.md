@@ -13,6 +13,7 @@
 ### Task 1: Record the Current Skill Failure
 
 **Files:**
+
 - Read: `.apm/skills/commit-push-pr/SKILL.md`
 - Read: `.apm/skills/github-issue-implementation/SKILL.md`
 - Create: `/tmp/commit-push-pr-red.txt`
@@ -39,6 +40,7 @@ Write the observed decision and rationalization to `/tmp/commit-push-pr-red.txt`
 ### Task 2: Refactor the Skill Responsibilities
 
 **Files:**
+
 - Modify: `.apm/skills/commit-push-pr/SKILL.md`
 - Modify: `.apm/skills/github-issue-implementation/SKILL.md`
 
@@ -64,6 +66,8 @@ Require live Issue body, comments, linked Issue / PR intake before editing. Requ
 
 Require targeted tests, `bun run quality:check`, clean-tree `bun run release:check`, scoped staging, Japanese commit/title, push synchronization, and an Open PR to `develop` with cause, solution, changes, risk, commands, and acceptance-criteria mapping.
 
+If unrelated tracked changes remain in the original worktree, run the clean-tree release gate from a temporary detached worktree at the committed HEAD instead of touching those changes.
+
 **Step 5: Remove the circular handoff**
 
 Make `github-issue-implementation` return a structured implementation result to its caller. If invoked standalone, it may recommend `commit-push-pr`, but it must not recursively invoke it when already running as its phase.
@@ -71,6 +75,7 @@ Make `github-issue-implementation` return a structured implementation result to 
 ### Task 3: Align Repository Source of Truth
 
 **Files:**
+
 - Modify: `.apm/SKILLS.md`
 - Modify: `.apm/instructions/repository-guidelines.instructions.md`
 - Generated: `.agents/skills/commit-push-pr/SKILL.md`
@@ -91,6 +96,7 @@ Run:
 
 ```bash
 apm compile --validate
+apm compile --target codex
 ```
 
 Expected: exit 0; generated `.agents` skills and root instruction artifacts match `.apm` sources.
@@ -109,6 +115,7 @@ Expected: only intended source files, generated counterparts, and plan documents
 ### Task 4: Verify Skill Behavior
 
 **Files:**
+
 - Create: `/tmp/commit-push-pr-green.txt`
 - Create: `/tmp/commit-push-pr-review.txt`
 
@@ -135,6 +142,7 @@ Ask a reviewer subagent to compare the updated skill and generated instructions 
 ### Task 5: Run Repository Gates
 
 **Files:**
+
 - Verify all changed files
 
 **Step 1: Run format and APM validation**
@@ -143,6 +151,7 @@ Run:
 
 ```bash
 apm compile --validate
+apm compile --target codex
 bun run format:check
 ```
 
@@ -175,6 +184,7 @@ Expected: exit 0 and `rtk git status --short` remains clean.
 ### Task 6: Publish an Open PR
 
 **Files:**
+
 - No additional repository files
 
 **Step 1: Push the branch**

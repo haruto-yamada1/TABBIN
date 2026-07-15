@@ -9,7 +9,7 @@ description: ハーネス run の完了前品質ゲートを実行し、証跡�
 
 ```bash
 bun run compile
-bun run quality
+bun run quality:check
 bun run test:coverage
 bun run harness:validate
 bun run harness:audit

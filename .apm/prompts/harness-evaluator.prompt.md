@@ -32,7 +32,7 @@ Generator の作業を次の観点でレビューしてください。
 - `bun run harness:status`、`bun run harness:validate`、
   `bun run harness:surface-audit`、`bun run harness:security-audit`、
   `bun run harness:repo-status` の結果。
-- 検証証跡。コード変更がある場合は特に `bun run quality` と
+- 検証証跡。コード変更がある場合は特に `bun run quality:check` と
   `bun run test:coverage`。
 
 ユーザーが明示的に求めていない限り、修正を実装しないでください。
@@ -73,7 +73,7 @@ Generator の作業を次の観点でレビューしてください。
   ],
   "verification": [
     {
-      "command": "bun run quality",
+      "command": "bun run quality:check",
       "status": "passed",
       "notes": "Generator の出力または再実行結果から証跡を確認した。"
     }

@@ -43,6 +43,8 @@ Issue 本文、コメント、関連 Issue / PR を acceptance contract とす�
 - 変更に近い検証から `bun run quality:check` へ広げる。
 - `bun run release:check` は clean tree を要求するため、変更を commit した後に実行し、
   gate による生成差分が残らないことを確認してから push する。
+- publish-only worktree に無関係な tracked 変更が残る場合は、その変更へ触れず、commit 済み
+  HEAD の detached verification worktree で `release:check` を実行する。
 
 ## Pull Request Contract
 
@@ -54,9 +56,12 @@ Issue 本文、コメント、関連 Issue / PR を acceptance contract とす�
 
 ## Source of Truth
 
-編集対象は `.apm/` 配下とする。`.agents/skills`、`AGENTS.md` などの生成先は
-直接編集せず、`apm compile --validate` で同期する。hooks は orchestration を自動起動せず、
-機械的に検出できる安全ガードが必要な場合だけ変更する。
+編集対象は `.apm/` 配下とします。`.agents/skills`、`AGENTS.md` などの生成先は
+直接編集しません。`apm compile --validate` で source を検証し、
+`apm compile --target codex` で tracked な Codex instructions を同期します。
+ignored な `.agents/skills` deployment は隔離 worktree で source との一致を確認し、
+PR の source of truth にはしません。hooks は orchestration を自動起動せず、機械的に
+検出できる安全ガードが必要な場合だけ変更します。
 
 ## Verification
 
