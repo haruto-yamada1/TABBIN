@@ -177,4 +177,4 @@ Evaluator が `changes_requested` または `blocked` を出した場合、
 source of truth に反映してください。
 
 リポジトリの完了ゲートは、既存の Stop 検証フローを維持します。Stop hook に
-repo-wide `bun run quality` は追加しません。
+repo-wide `bun run quality:check` は追加しません。

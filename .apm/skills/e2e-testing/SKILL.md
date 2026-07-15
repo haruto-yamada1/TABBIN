@@ -42,5 +42,5 @@ browser lifecycle が本質でない限り Vitest 側に置きます。
 - E2E test が user-visible または browser-lifecycle の挙動を覆っている。
 - 実用的に確認できる場合、元の regression で test が失敗することを確認している。
 - 最終的な関連 command と exit status を報告している。
-- repo 全体の完了報告では、引き続き `bun run quality` と
+- repo 全体の完了報告では、引き続き `bun run quality:check` と
   `bun run test:coverage` 100% の gate に従う。

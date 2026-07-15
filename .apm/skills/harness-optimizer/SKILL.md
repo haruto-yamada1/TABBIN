@@ -20,4 +20,4 @@ Evaluator の指摘、`governance.jsonl`、surface audit の結果から再発�
 
 - 学習候補を自動で source-of-truth へ書き込みません。
 - 一時的な失敗と再発防止すべき構造問題を分けます。
-- 既存 hook に repo-wide `bun run quality` を追加しません。
+- 既存 hook に repo-wide `bun run quality:check` を追加しません。

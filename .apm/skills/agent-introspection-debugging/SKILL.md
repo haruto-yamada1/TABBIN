@@ -38,7 +38,7 @@ product code の根本原因分析には `systematic-debugging` を使う。こ�
   `.apm/hooks`、または `.apm/skills` に置き、生成出力は refresh する。
 - Generator/Evaluator ハーネスに Planner や Orchestrator 層を足さない。
 - Evaluator は fresh-context review であり、auto-started hook loop ではない。
-- 完了報告には `bun run quality` と
+- 完了報告には `bun run quality:check` と
   `bun run test:coverage` 100% の fresh な証拠が必要。ユーザーが code completion から
   意図的に scope を狭め、より狭い verifier が正当化される場合を除く。
 - tool が必要な失敗詳細を隠す場合は、意図的に targeted な

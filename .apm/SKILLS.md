@@ -106,7 +106,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 
 | skill | 使う場面 |
 | --- | --- |
-| `check` | `$check` 相当。`bun run quality` を実行し、失敗を修正して再実行します。 |
+| `check` | `$check` 相当。`bun run quality:check` を実行し、失敗を修正して再実行します。 |
 | `react-doctor` | React 変更後、早い段階で問題を検出します。 |
 | `requesting-code-review` | 実装完了後や merge 前にレビューを依頼するときに使います。 |
 | `receiving-code-review` | review feedback を受け取り、妥当性を確認して対応します。 |
@@ -118,10 +118,10 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 
 | skill | 使う場面 |
 | --- | --- |
-| `github-issue-implementation` | GitHub issue URL から issue 内容を確認し、`develop` 最新化、issue 用 branch / worktree 作成、実装、検証、git workflow への handoff まで進めます。 |
+| `github-issue-implementation` | GitHub Issue を live contract として確認し、隔離 worktree で根本原因の修正と検証を行う implementation phase です。 |
 | `split-to-prs` | 現在の変更や大きな作業を、小さく review しやすい PR に分割します。 |
 | `git-staged-branch-commit-push` | staged changes を確認し、現在の branch から新しい branch を作成して commit と push まで進めます。 |
-| `commit-push-pr` | 実装完了後の commit、push、PR 作成を一貫して行います。sandbox の .git 読み取り専用・ネットワーク遮断・gh 未認証を回避する知識を含みます。 |
+| `commit-push-pr` | Issue URL だけで調査・実装・検証から `develop` 向け Open PR まで進める入口です。実装済み変更の publish-only にも使います。 |
 
 ### APM / Cursor / 設定作成
 
@@ -159,12 +159,14 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 ## 使い分けの目安
 
 - 「作業全体を任せたい」なら `harness-orchestrate` または `ハーネスで開始して`。
+- 「GitHub Issue URL から Open PR まで任せたい」なら `commit-push-pr` と URL だけを渡します。
 - 「品質ゲートを通して」なら `check`。
 - 「原因が分からない失敗」なら `systematic-debugging`。
 - 「新しい挙動を作る」なら `brainstorming` と `test-driven-development`。
 - 「PR 前に不安」なら `requesting-code-review`、React 変更なら追加で `react-doctor`。
 - 「永続タスクや follow-up を残す」なら issue tracker に残します。
-- 「AI 向け資産を変える」なら `.apm/` を編集し、最後に `apm install` と `apm compile`。
+- 「AI 向け資産を変える」なら `.apm/` を編集し、`apm compile --validate` の後に
+  configured target へ `apm compile` して tracked instructions を同期。
 
 ## 役割が被って見える skill の整理
 
@@ -176,6 +178,7 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 | 状況 | 最初に使う skill | 必要に応じて併用する skill |
 | --- | --- | --- |
 | 複雑な作業全体を任せる | `harness-orchestrate` | `harness-planner`、`harness-generator`、`harness-evaluator`、`harness-optimizer` |
+| GitHub Issue URL から Open PR まで | `commit-push-pr` | `github-issue-implementation`、必要なら `harness-orchestrate` |
 | まだ設計が固まっていない | `brainstorming` | `writing-plans`、`harness-planner` |
 | 実装計画がすでにある | `executing-plans` | `harness-generator`、`subagent-driven-development` |
 | 複数 agent に分担できる | `subagent-driven-development` | `dispatching-parallel-agents`、`harness-generator` |
@@ -206,6 +209,7 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 - ハーネス系 skill は `.agents/harness/` の状態ファイルへ証跡を残す運用役です。
 - 汎用 skill はハーネス外の小さな作業や、他クライアントでも使いやすい入口として残します。
 
-迷った場合は、まず workflow の入口を 1 つ選びます。大きい作業なら `$harness-orchestrate`、
-不具合なら `systematic-debugging`、品質確認なら `check`、UI なら `web-design-guidelines` を
-最初に使い、足りない専門観点を後から足してください。
+迷った場合は、まず workflow の入口を 1 つ選びます。Issue URL から PR までなら
+`commit-push-pr`、大きい作業なら `$harness-orchestrate`、不具合なら
+`systematic-debugging`、品質確認なら `check`、UI なら `web-design-guidelines` を最初に使い、
+足りない専門観点を後から足してください。
