@@ -114,17 +114,16 @@ export const ThemeProvider = ({
       }
     }
     const storageOnChanged = getChromeStorageOnChanged()
-    if (storageOnChanged) {
-      storageOnChanged.addListener(handleStorageChange)
-    } else {
+    if (!storageOnChanged) {
       warnMissingChromeStorage('テーマ変更監視')
+      return () => {
+        cancelled = true
+      }
     }
-
+    storageOnChanged.addListener(handleStorageChange)
     return () => {
       cancelled = true
-      if (storageOnChanged) {
-        storageOnChanged.removeListener(handleStorageChange)
-      }
+      storageOnChanged.removeListener(handleStorageChange)
     }
   }, [storageKey])
   useEffect(() => {
@@ -183,15 +182,13 @@ export const ThemeProvider = ({
       }
     }
     const storageOnChanged = getChromeStorageOnChanged()
-    if (storageOnChanged) {
-      storageOnChanged.addListener(listener)
-    } else {
+    if (!storageOnChanged) {
       warnMissingChromeStorage('ユーザーテーマ色監視')
+      return () => {}
     }
+    storageOnChanged.addListener(listener)
     return () => {
-      if (storageOnChanged) {
-        storageOnChanged.removeListener(listener)
-      }
+      storageOnChanged.removeListener(listener)
     }
   }, [theme])
   const setTheme = useCallback(
