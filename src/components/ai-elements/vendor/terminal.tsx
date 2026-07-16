@@ -8,8 +8,8 @@ import { createContext, use, useCallback, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-import { Shimmer } from './shimmer'
-import { useCopyState } from './use-copy-state'
+import { Shimmer } from '../shimmer'
+import { useCopyState } from '../use-copy-state'
 
 type TerminalContextType = {
   output: string

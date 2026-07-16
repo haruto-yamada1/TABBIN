@@ -41,7 +41,10 @@ const useReasoning = () => {
   return context
 }
 
-export type ReasoningProps = ComponentProps<typeof Collapsible> & {
+export type ReasoningProps = Omit<
+  ComponentProps<typeof Collapsible>,
+  'onOpenChange'
+> & {
   isStreaming?: boolean
   open?: boolean
   defaultOpen?: boolean
@@ -65,9 +68,7 @@ const updateReasoningStreamTiming = ({
 }) => {
   if (isStreaming) {
     hasEverStreamedRef.current = true
-    if (startTimeRef.current === null) {
-      startTimeRef.current = Date.now()
-    }
+    startTimeRef.current ??= Date.now()
     return
   }
   if (startTimeRef.current !== null) {
@@ -124,19 +125,21 @@ export const Reasoning = memo(
     // Auto-close when streaming ends (once only, and only if it ever streamed)
     useEffect(() => {
       if (
-        hasEverStreamedRef.current &&
-        !isStreaming &&
-        isOpen &&
-        !hasAutoClosedRef.current
+        !hasEverStreamedRef.current ||
+        isStreaming ||
+        !isOpen ||
+        hasAutoClosedRef.current
       ) {
-        const timer = setTimeout(() => {
-          setIsOpen(false)
-          hasAutoClosedRef.current = true
-        }, AUTO_CLOSE_DELAY)
+        return undefined
+      }
 
-        return () => {
-          clearTimeout(timer)
-        }
+      const timer = setTimeout(() => {
+        setIsOpen(false)
+        hasAutoClosedRef.current = true
+      }, AUTO_CLOSE_DELAY)
+
+      return () => {
+        clearTimeout(timer)
       }
     }, [isStreaming, isOpen, setIsOpen])
 

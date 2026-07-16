@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 
-import { useCopyState } from './use-copy-state'
+import { useCopyState } from '../use-copy-state'
 
 export type CommitProps = ComponentProps<typeof Collapsible>
 

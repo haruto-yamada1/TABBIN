@@ -13,7 +13,7 @@ import {
   MessageBranchPrevious,
   MessageBranchSelector,
   MessageContent,
-} from './message'
+} from '../message'
 
 export default {
   args: {

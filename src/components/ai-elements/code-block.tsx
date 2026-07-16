@@ -197,7 +197,7 @@ const languageLoaders: Record<
 
 let themesPromise: Promise<ThemeRegistration[]> | null = null
 
-const loadThemes = () => {
+const loadThemes = async () => {
   themesPromise ??= Promise.all([
     import('shiki/themes/github-light.mjs'),
     import('shiki/themes/github-dark.mjs'),
@@ -218,7 +218,7 @@ const getTokensCacheKey = (code: string, language: SupportedCodeLanguage) => {
   return `${language}:${code.length}:${start}:${end}`
 }
 
-const getHighlighter = (
+const getHighlighter = async (
   language: HighlightLanguage,
 ): Promise<HighlighterCore> => {
   const cached = highlighterCache.get(language)
@@ -229,7 +229,7 @@ const getHighlighter = (
   const highlighterPromise = Promise.all([
     languageLoaders[language](),
     loadThemes(),
-  ]).then(([langs, themes]) =>
+  ]).then(async ([langs, themes]) =>
     createHighlighterCore({
       engine: createJavaScriptRegexEngine({ forgiving: true }),
       langs,
@@ -318,7 +318,7 @@ export const highlightCode = (
         subscribers.delete(tokensCacheKey)
       }
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Failed to highlight code:', error)
       subscribers.delete(tokensCacheKey)
     })
@@ -497,6 +497,7 @@ const CodeBlockContent = ({
     let cancelled = false
 
     // Reset to raw tokens when code changes (shows current code, not stale tokens)
+    // eslint-disable-next-line react-hooks-compiler/set-state-in-effect -- vendored shiki highlighter resets cached tokens when code/language changes before subscribing to async highlight
     setTokenized(highlightCode(code, language) ?? rawTokens)
 
     // Subscribe to async highlighting result

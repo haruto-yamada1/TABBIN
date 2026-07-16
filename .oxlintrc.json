@@ -83,7 +83,7 @@
     "*.log",
     "logs/**",
     "src/components/ui/**",
-    "src/components/ai-elements/**"
+    "src/components/ai-elements/vendor/**"
   ],
   "rules": {
     "eslint/arrow-body-style": "off",
@@ -1335,6 +1335,23 @@
             }
           }
         ]
+      }
+    },
+    {
+      "files": ["src/components/ai-elements/**/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/filename-case": "off",
+        "react/only-export-components": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off"
+      }
+    },
+    {
+      "files": ["src/components/ai-elements/**/*.test.{ts,tsx}"],
+      "rules": {
+        "testing-library/no-node-access": "off",
+        "testing-library/no-container": "off",
+        "testing-library/prefer-user-event": "off"
       }
     }
   ]

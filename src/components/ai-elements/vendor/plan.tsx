@@ -22,7 +22,7 @@ import {
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
-import { Shimmer } from './shimmer'
+import { Shimmer } from '../shimmer'
 
 type PlanContextValue = {
   isStreaming: boolean
