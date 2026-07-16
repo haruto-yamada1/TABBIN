@@ -65,7 +65,7 @@ const mocked = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('@/components/mode-toggle', () => ({
+vi.mock('@/components/ModeToggle', () => ({
   ModeToggle: () => createElement('div', null, 'ModeToggle'),
 }))
 

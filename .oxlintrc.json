@@ -364,7 +364,16 @@
     "unicorn/prefer-string-slice": "off",
     "unicorn/explicit-length-check": "off",
     "unicorn/prefer-ternary": "off",
-    "unicorn/filename-case": "off",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "cases": {
+          "camelCase": true,
+          "pascalCase": true,
+          "kebabCase": true
+        }
+      }
+    ],
     "unicorn/max-nested-calls": "off",
     "unicorn/prefer-export-from": "off",
     "unicorn/prefer-single-call": "off",
@@ -1284,6 +1293,58 @@
       ],
       "rules": {
         "import/max-dependencies": "off"
+      }
+    },
+    {
+      "files": ["src/components/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "pascalCase": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/hooks/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "camelCase": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/**/hooks/**/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "camelCase": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/entrypoints/**/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "camelCase": true
+            }
+          }
+        ]
       }
     }
   ]

@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
-import { ModeToggle } from '@/components/mode-toggle'
+import { ModeToggle } from '@/components/ModeToggle'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'

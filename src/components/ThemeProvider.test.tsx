@@ -23,7 +23,7 @@ import {
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import { ThemeProvider, useTheme } from './theme-provider'
+import { ThemeProvider, useTheme } from './ThemeProvider'
 
 type StorageListener = (
   changes: Record<string, chrome.storage.StorageChange>,
@@ -436,7 +436,7 @@ describe('useTheme', () => {
       warnMissingChromeStorage: vi.fn(),
     }))
 
-    const { useTheme: mockedUseTheme } = await import('./theme-provider')
+    const { useTheme: mockedUseTheme } = await import('./ThemeProvider')
 
     expect(() => renderHook(() => mockedUseTheme())).toThrow(
       'useTheme must be used within a ThemeProvider',

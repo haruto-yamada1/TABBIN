@@ -15,7 +15,7 @@ vi.mock('react-dom/client', () => ({
   createRoot: mocked.createRoot,
 }))
 
-vi.mock('@/components/theme-provider', () => ({
+vi.mock('@/components/ThemeProvider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),

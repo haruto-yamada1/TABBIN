@@ -2,7 +2,7 @@ import type { Decorator, Preview } from '@storybook/react'
 import { useEffect } from 'react'
 import { Toaster } from 'sonner'
 
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import {

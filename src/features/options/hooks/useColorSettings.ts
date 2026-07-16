@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 
-import { useTheme } from '@/components/theme-provider'
+import { useTheme } from '@/components/ThemeProvider'
 import { colorOptions } from '@/constants/colorOptions'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
