@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { getOrCreateRoot, mountToElement, renderToRoot } from './render-root'
 
@@ -14,6 +14,12 @@ vi.mock('react-dom/client', () => ({
 }))
 
 describe('render-root', () => {
+  beforeEach(() => {
+    // createRoot is a module-level mock shared across both tests; clear call
+    // history so absolute call-count assertions stay order-independent.
+    rootMocks.createRoot.mockClear()
+  })
+
   it('同じ container では root を再利用して render する', () => {
     const container = document.createElement('div')
 

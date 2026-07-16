@@ -93,6 +93,9 @@ import { AppRouter } from './AppRouter'
 
 describe('AppRouter', () => {
   beforeEach(() => {
+    // The lazy route-module load counter is module-level and accumulates
+    // across tests; reset it so load-count assertions are order-independent.
+    routeModuleLoads.aiChat = 0
     window.history.replaceState({}, '', '/')
   })
 
