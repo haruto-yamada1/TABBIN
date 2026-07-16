@@ -13,3 +13,10 @@
  */
 
 export { normalizeDomainString } from './domain/value-objects/DomainName'
+
+// issue #639: settings defaults を public API 経由で提供する
+export { savedTabsActionSettingsDefaults } from './domain/services/SavedTabsActionSettingsPolicy'
+export {
+  DEFAULT_EXCLUDE_PATTERNS,
+  mergeStoredUserSettingsDefaults,
+} from './domain/services/userSettingsDefaultsMerge'
