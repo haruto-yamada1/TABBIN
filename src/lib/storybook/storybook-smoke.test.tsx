@@ -3,8 +3,8 @@ import { composeStories } from '@storybook/react'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import * as inputStories from '@/components/ai-elements/inputs.stories'
-import * as messageStories from '@/components/ai-elements/message.stories'
+import * as inputStories from '@/components/ai-elements/vendor/inputs.stories'
+import * as messageStories from '@/components/ai-elements/vendor/message.stories'
 import * as modeToggleStories from '@/components/ModeToggle.stories'
 import * as buttonStories from '@/components/ui/button.stories'
 import * as viewModeStories from '@/contexts/saved-tabs/presentation/components/ViewModeToggle.stories'

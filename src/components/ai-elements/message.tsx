@@ -2,7 +2,12 @@
 
 import type { UIMessage } from 'ai'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
-import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'
+import type {
+  ComponentProps,
+  HTMLAttributes,
+  ReactElement,
+  ReactNode,
+} from 'react'
 import {
   createContext,
   memo,
@@ -26,6 +31,11 @@ import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
 import { StreamdownMarkdown } from './streamdown-renderer'
+
+type ReactBranch = ReactElement
+
+const isReactBranch = (node: ReactNode): node is ReactBranch =>
+  typeof node === 'object' && node !== null && '$$typeof' in node
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage['role']
@@ -201,8 +211,9 @@ export const MessageBranchContent = ({
   ...props
 }: MessageBranchContentProps) => {
   const { currentBranch, setBranches, branches } = useMessageBranch()
-  const childrenArray = useMemo(
-    () => (Array.isArray(children) ? children : [children]),
+  const childrenArray = useMemo<ReactBranch[]>(
+    () =>
+      (Array.isArray(children) ? children : [children]).filter(isReactBranch),
     [children],
   )
 

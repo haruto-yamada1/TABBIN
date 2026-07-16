@@ -57,7 +57,7 @@ const getMediaCategory = (data: AttachmentData): AttachmentMediaCategory => {
     return 'source'
   }
 
-  const mediaType = data.mediaType ?? ''
+  const mediaType = data.mediaType
 
   if (mediaType.startsWith('image/')) {
     return 'image'
@@ -77,11 +77,11 @@ const getMediaCategory = (data: AttachmentData): AttachmentMediaCategory => {
 
 const getAttachmentLabel = (data: AttachmentData): string => {
   if (data.type === 'source-document') {
-    return data.title || data.filename || 'Source'
+    return data.title
   }
 
   const category = getMediaCategory(data)
-  return data.filename || (category === 'image' ? 'Image' : 'Attachment')
+  return data.filename ?? (category === 'image' ? 'Image' : 'Attachment')
 }
 
 const renderAttachmentImage = (
@@ -91,7 +91,7 @@ const renderAttachmentImage = (
 ) =>
   isGrid ? (
     <img
-      alt={filename || 'Image'}
+      alt={filename ?? 'Image'}
       className='size-full object-cover'
       height={96}
       src={url}
@@ -99,7 +99,7 @@ const renderAttachmentImage = (
     />
   ) : (
     <img
-      alt={filename || 'Image'}
+      alt={filename ?? 'Image'}
       className='size-full rounded object-cover'
       height={20}
       src={url}
@@ -250,9 +250,9 @@ const AttachmentPreviewContent = ({
 
   const Icon = mediaCategoryIcons[mediaCategory]
   const iconSize = variant === 'inline' ? 'size-3' : 'size-4'
-  return (
-    fallbackIcon ?? <Icon className={cn(iconSize, 'text-muted-foreground')} />
-  )
+  const defaultIcon = <Icon className={cn(iconSize, 'text-muted-foreground')} />
+  // eslint-disable-next-line react/jsx-no-useless-fragment -- Fragment coerces the ReactNode fallback prop to a ReactElement return type so the component is not inferred as promise-returning under React 19's ReactNode union
+  return <>{fallbackIcon ?? defaultIcon}</>
 }
 
 export const AttachmentPreview = ({

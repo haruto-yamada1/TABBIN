@@ -8,6 +8,13 @@ export type UseCopyStateOptions = {
   timeout?: number
 }
 
+type ClipboardWriter = Pick<Clipboard, 'writeText'>
+
+const hasClipboardWrite = (value: unknown): value is ClipboardWriter =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'writeText') === 'function'
+
 export const useCopyState = ({
   onCopy,
   onError,
@@ -18,7 +25,10 @@ export const useCopyState = ({
 
   const copyText = useCallback(
     async (text: string, { skipIfCopied = false } = {}) => {
-      if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
+      if (
+        typeof window === 'undefined' ||
+        !hasClipboardWrite(Reflect.get(navigator, 'clipboard'))
+      ) {
         onError?.(new Error('Clipboard API not available'))
         return
       }

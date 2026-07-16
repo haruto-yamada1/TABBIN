@@ -1,15 +1,51 @@
-// @covers components/ai-elements/mic-selector.tsx
-// @covers components/ai-elements/model-selector.tsx
-// @covers components/ai-elements/open-in-chat.tsx
+// @covers components/ai-elements/vendor/mic-selector.tsx
+// @covers components/ai-elements/vendor/model-selector.tsx
+// @covers components/ai-elements/vendor/open-in-chat.tsx
 // @covers components/ai-elements/prompt-input.tsx
-// @covers components/ai-elements/speech-input.tsx
-// @covers components/ai-elements/voice-selector.tsx
+// @covers components/ai-elements/vendor/speech-input.tsx
+// @covers components/ai-elements/vendor/voice-selector.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { ImageIcon, MicIcon, PlusIcon, SparklesIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 
+import {
+  PromptInput,
+  PromptInputActionAddAttachments,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuItem,
+  PromptInputActionMenuTrigger,
+  PromptInputBody,
+  PromptInputButton,
+  PromptInputCommand,
+  PromptInputCommandEmpty,
+  PromptInputCommandGroup,
+  PromptInputCommandInput,
+  PromptInputCommandItem,
+  PromptInputCommandList,
+  PromptInputCommandSeparator,
+  PromptInputFooter,
+  PromptInputHeader,
+  PromptInputHoverCard,
+  PromptInputHoverCardContent,
+  PromptInputHoverCardTrigger,
+  PromptInputProvider,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
+  PromptInputSubmit,
+  PromptInputTab,
+  PromptInputTabBody,
+  PromptInputTabItem,
+  PromptInputTabLabel,
+  PromptInputTabsList,
+  PromptInputTextarea,
+  PromptInputTools,
+} from '../prompt-input'
 import {
   MicSelector,
   MicSelectorContent,
@@ -50,42 +86,6 @@ import {
   OpenInTrigger,
   OpenInv0,
 } from './open-in-chat'
-import {
-  PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuItem,
-  PromptInputActionMenuTrigger,
-  PromptInputBody,
-  PromptInputButton,
-  PromptInputCommand,
-  PromptInputCommandEmpty,
-  PromptInputCommandGroup,
-  PromptInputCommandInput,
-  PromptInputCommandItem,
-  PromptInputCommandList,
-  PromptInputCommandSeparator,
-  PromptInputFooter,
-  PromptInputHeader,
-  PromptInputHoverCard,
-  PromptInputHoverCardContent,
-  PromptInputHoverCardTrigger,
-  PromptInputProvider,
-  PromptInputSelect,
-  PromptInputSelectContent,
-  PromptInputSelectItem,
-  PromptInputSelectTrigger,
-  PromptInputSelectValue,
-  PromptInputSubmit,
-  PromptInputTab,
-  PromptInputTabBody,
-  PromptInputTabItem,
-  PromptInputTabLabel,
-  PromptInputTabsList,
-  PromptInputTextarea,
-  PromptInputTools,
-} from './prompt-input'
 import { SpeechInput } from './speech-input'
 import {
   VoiceSelector,

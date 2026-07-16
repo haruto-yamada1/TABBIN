@@ -1,10 +1,10 @@
-// @covers components/ai-elements/canvas.tsx
-// @covers components/ai-elements/connection.tsx
-// @covers components/ai-elements/controls.tsx
-// @covers components/ai-elements/edge.tsx
-// @covers components/ai-elements/node.tsx
-// @covers components/ai-elements/panel.tsx
-// @covers components/ai-elements/toolbar.tsx
+// @covers components/ai-elements/vendor/canvas.tsx
+// @covers components/ai-elements/vendor/connection.tsx
+// @covers components/ai-elements/vendor/controls.tsx
+// @covers components/ai-elements/vendor/edge.tsx
+// @covers components/ai-elements/vendor/node.tsx
+// @covers components/ai-elements/vendor/panel.tsx
+// @covers components/ai-elements/vendor/toolbar.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { MarkerType, Position } from '@xyflow/react'
 import type { Edge as FlowEdge, Node as FlowNode } from '@xyflow/react'

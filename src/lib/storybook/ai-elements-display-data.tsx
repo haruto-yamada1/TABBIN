@@ -1,6 +1,12 @@
 import { ArrowUpRight, FileText } from 'lucide-react'
 
 import {
+  JSXPreview,
+  JSXPreviewContent,
+  JSXPreviewError,
+} from '@/components/ai-elements/jsx-preview'
+import { Shimmer } from '@/components/ai-elements/shimmer'
+import {
   ChainOfThought,
   ChainOfThoughtContent,
   ChainOfThoughtHeader,
@@ -8,7 +14,7 @@ import {
   ChainOfThoughtSearchResult,
   ChainOfThoughtSearchResults,
   ChainOfThoughtStep,
-} from '@/components/ai-elements/chain-of-thought'
+} from '@/components/ai-elements/vendor/chain-of-thought'
 import {
   Context,
   ContextCacheUsage,
@@ -20,7 +26,7 @@ import {
   ContextOutputUsage,
   ContextReasoningUsage,
   ContextTrigger,
-} from '@/components/ai-elements/context'
+} from '@/components/ai-elements/vendor/context'
 import {
   EnvironmentVariable,
   EnvironmentVariableCopyButton,
@@ -33,15 +39,15 @@ import {
   EnvironmentVariablesHeader,
   EnvironmentVariablesTitle,
   EnvironmentVariablesToggle,
-} from '@/components/ai-elements/environment-variables'
+} from '@/components/ai-elements/vendor/environment-variables'
 import {
   FileTree,
   FileTreeActions,
   FileTreeFile,
   FileTreeFolder,
   FileTreeName,
-} from '@/components/ai-elements/file-tree'
-import { Image } from '@/components/ai-elements/image'
+} from '@/components/ai-elements/vendor/file-tree'
+import { Image } from '@/components/ai-elements/vendor/image'
 import {
   InlineCitation,
   InlineCitationCard,
@@ -57,12 +63,7 @@ import {
   InlineCitationQuote,
   InlineCitationSource,
   InlineCitationText,
-} from '@/components/ai-elements/inline-citation'
-import {
-  JSXPreview,
-  JSXPreviewContent,
-  JSXPreviewError,
-} from '@/components/ai-elements/jsx-preview'
+} from '@/components/ai-elements/vendor/inline-citation'
 import {
   PackageInfo,
   PackageInfoChangeType,
@@ -73,7 +74,7 @@ import {
   PackageInfoHeader,
   PackageInfoName,
   PackageInfoVersion,
-} from '@/components/ai-elements/package-info'
+} from '@/components/ai-elements/vendor/package-info'
 import {
   SchemaDisplay,
   SchemaDisplayContent,
@@ -86,8 +87,7 @@ import {
   SchemaDisplayProperty,
   SchemaDisplayRequest,
   SchemaDisplayResponse,
-} from '@/components/ai-elements/schema-display'
-import { Shimmer } from '@/components/ai-elements/shimmer'
+} from '@/components/ai-elements/vendor/schema-display'
 
 const samplePng =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP7m8kG6QAAAABJRU5ErkJggg=='

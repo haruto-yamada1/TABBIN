@@ -14,6 +14,13 @@ import {
   CodeBlockTitle,
 } from '@/components/ai-elements/code-block'
 import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from '@/components/ai-elements/tool'
+import {
   Commit,
   CommitActions,
   CommitAuthor,
@@ -35,7 +42,7 @@ import {
   CommitMetadata,
   CommitSeparator,
   CommitTimestamp,
-} from '@/components/ai-elements/commit'
+} from '@/components/ai-elements/vendor/commit'
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -44,7 +51,7 @@ import {
   ConfirmationRejected,
   ConfirmationRequest,
   ConfirmationTitle,
-} from '@/components/ai-elements/confirmation'
+} from '@/components/ai-elements/vendor/confirmation'
 import {
   StackTrace,
   StackTraceActions,
@@ -56,7 +63,7 @@ import {
   StackTraceExpandButton,
   StackTraceFrames,
   StackTraceHeader,
-} from '@/components/ai-elements/stack-trace'
+} from '@/components/ai-elements/vendor/stack-trace'
 import {
   Terminal,
   TerminalActions,
@@ -66,7 +73,7 @@ import {
   TerminalHeader,
   TerminalStatus,
   TerminalTitle,
-} from '@/components/ai-elements/terminal'
+} from '@/components/ai-elements/vendor/terminal'
 import {
   Test,
   TestDuration,
@@ -85,14 +92,7 @@ import {
   TestSuiteContent,
   TestSuiteName,
   TestSuiteStats,
-} from '@/components/ai-elements/test-results'
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from '@/components/ai-elements/tool'
+} from '@/components/ai-elements/vendor/test-results'
 
 const sampleTrace = `ReferenceError: browser is not defined
     at openSidebar (/Users/tarou/Desktop/TABBIN/features/navigation/sidebar.ts:42:15)

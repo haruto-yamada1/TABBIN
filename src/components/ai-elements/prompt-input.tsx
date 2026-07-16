@@ -86,14 +86,14 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     const response = await fetch(url)
     const blob = await response.blob()
     // FileReader uses callback-based API, wrapping in Promise is necessary
-    return new Promise((resolve) => {
+    return await new Promise((resolve) => {
       const reader = new FileReader()
-      reader.onloadend = () => {
+      reader.addEventListener('loadend', () => {
         resolve(typeof reader.result === 'string' ? reader.result : '')
-      }
-      reader.onerror = () => {
+      })
+      reader.addEventListener('error', () => {
         resolve(null)
-      }
+      })
       reader.readAsDataURL(blob)
     })
   } catch {
@@ -249,7 +249,7 @@ export const PromptInputProvider = ({
   )
 
   const openFileDialog = useCallback(() => {
-    openRef.current?.()
+    openRef.current()
   }, [])
 
   const attachments = useMemo<AttachmentsContext>(
@@ -567,16 +567,18 @@ const usePromptInputView = ({
   )
 
   const clearAttachments = useCallback(() => {
-    usingProvider
-      ? controller?.attachments.clear()
-      : setItems((prev) => {
-          for (const file of prev) {
-            if (file.url) {
-              URL.revokeObjectURL(file.url)
-            }
+    if (usingProvider) {
+      controller?.attachments.clear()
+    } else {
+      setItems((prev) => {
+        for (const file of prev) {
+          if (file.url) {
+            URL.revokeObjectURL(file.url)
           }
-          return []
-        })
+        }
+        return []
+      })
+    }
   }, [usingProvider, controller])
 
   const clearReferencedSources = useCallback(() => {
@@ -612,21 +614,18 @@ const usePromptInputView = ({
   // Attach drop handlers on nearest form and document (opt-in)
   useEffect(() => {
     const form = formRef.current
-    if (!form) {
-      return
-    }
-    if (globalDrop) {
+    if (!form || globalDrop) {
       // When global drop is on, let the document-level handler own drops
-      return
+      return undefined
     }
 
     const onDragOver = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes('Files')) {
+      if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
       }
     }
     const onDrop = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes('Files')) {
+      if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
       }
       if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
@@ -643,16 +642,16 @@ const usePromptInputView = ({
 
   useEffect(() => {
     if (!globalDrop) {
-      return
+      return undefined
     }
 
     const onDragOver = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes('Files')) {
+      if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
       }
     }
     const onDrop = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes('Files')) {
+      if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
       }
       if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
@@ -721,8 +720,8 @@ const usePromptInputView = ({
     [referencedSources, clearReferencedSources],
   )
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
-    async (event) => {
+  const runSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
 
       const form = event.currentTarget
@@ -740,11 +739,16 @@ const usePromptInputView = ({
         form.reset()
       }
 
+      const clearInputs = () => {
+        clear()
+        controller?.textInput.clear()
+      }
+
       try {
         // Convert blob URLs to data URLs asynchronously
         const convertedFiles: FileUIPart[] = await Promise.all(
           files.map(async ({ id: _id, ...item }) => {
-            if (item.url?.startsWith('blob:')) {
+            if (item.url.startsWith('blob:')) {
               const dataUrl = await convertBlobUrlToDataUrl(item.url)
               // If conversion failed, keep the original blob URL
               return {
@@ -760,27 +764,24 @@ const usePromptInputView = ({
 
         // Handle both sync and async onSubmit
         if (result instanceof Promise) {
-          try {
-            await result
-            clear()
-            if (controller) {
-              controller.textInput.clear()
-            }
-          } catch {
-            // Don't clear on error - user may want to retry
-          }
+          // Don't clear on error - user may want to retry
+          void result.then(clearInputs).catch(() => {})
         } else {
           // Sync function completed without throwing, clear inputs
-          clear()
-          if (controller) {
-            controller.textInput.clear()
-          }
+          clearInputs()
         }
       } catch {
         // Don't clear on error - user may want to retry
       }
     },
     [usingProvider, controller, files, onSubmit, clear],
+  )
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
+    (event) => {
+      void runSubmit(event)
+    },
+    [runSubmit],
   )
 
   // Render with or without local provider
@@ -895,11 +896,7 @@ export const PromptInputTextarea = ({
 
   const handlePaste: ClipboardEventHandler<HTMLTextAreaElement> = useCallback(
     (event) => {
-      const items = event.clipboardData?.items
-
-      if (!items) {
-        return
-      }
+      const items = event.clipboardData.items
 
       const files: File[] = []
 

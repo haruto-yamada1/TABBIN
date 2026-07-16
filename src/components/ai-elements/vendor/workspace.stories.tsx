@@ -1,11 +1,11 @@
 // @covers components/ai-elements/conversation.tsx
-// @covers components/ai-elements/queue.tsx
+// @covers components/ai-elements/vendor/queue.tsx
 // @covers components/ai-elements/reasoning.tsx
-// @covers components/ai-elements/sandbox.tsx
+// @covers components/ai-elements/vendor/sandbox.tsx
 // @covers components/ai-elements/sources.tsx
 // @covers components/ai-elements/suggestion.tsx
-// @covers components/ai-elements/task.tsx
-// @covers components/ai-elements/web-preview.tsx
+// @covers components/ai-elements/vendor/task.tsx
+// @covers components/ai-elements/vendor/web-preview.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 import { CheckCircle2, Lightbulb, Search } from 'lucide-react'
 
@@ -17,8 +17,11 @@ import {
   ConversationDownload,
   ConversationEmptyState,
   ConversationScrollButton,
-} from './conversation'
-import { Message, MessageContent, MessageResponse } from './message'
+} from '../conversation'
+import { Message, MessageContent, MessageResponse } from '../message'
+import { Reasoning, ReasoningContent, ReasoningTrigger } from '../reasoning'
+import { Source, Sources, SourcesContent, SourcesTrigger } from '../sources'
+import { Suggestion, Suggestions } from '../suggestion'
 import {
   Queue,
   QueueItem,
@@ -36,7 +39,6 @@ import {
   QueueSectionLabel,
   QueueSectionTrigger,
 } from './queue'
-import { Reasoning, ReasoningContent, ReasoningTrigger } from './reasoning'
 import {
   Sandbox,
   SandboxContent,
@@ -47,8 +49,6 @@ import {
   SandboxTabsList,
   SandboxTabsTrigger,
 } from './sandbox'
-import { Source, Sources, SourcesContent, SourcesTrigger } from './sources'
-import { Suggestion, Suggestions } from './suggestion'
 import { Task, TaskContent, TaskItem, TaskItemFile, TaskTrigger } from './task'
 import {
   WebPreview,

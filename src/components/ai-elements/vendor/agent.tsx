@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
-import { CodeBlock } from './code-block'
+import { CodeBlock } from '../code-block'
 
 export type AgentProps = ComponentProps<'div'>
 
