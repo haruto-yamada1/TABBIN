@@ -1,10 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 /** セッション中のインメモリキャッシュ */
 let urlRecordsCache: UrlRecord[] | null = null
 let urlRecordMutationQueue: Promise<void> = Promise.resolve()
+let registeredUrlStorageOnChanged: typeof chrome.storage.onChanged | null = null
 
 type UrlRecordInput = {
   url: string
@@ -20,11 +22,33 @@ type CreateOrUpdateUrlRecordOptions = {
 const invalidateUrlCache = (): void => {
   urlRecordsCache = null
 }
+
+const ensureUrlCacheInvalidationListener = (): boolean => {
+  const storageOnChanged = getChromeStorageOnChanged()
+  if (storageOnChanged === null) {
+    invalidateUrlCache()
+    return false
+  }
+  if (registeredUrlStorageOnChanged === storageOnChanged) {
+    return true
+  }
+
+  invalidateUrlCache()
+  storageOnChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && Object.hasOwn(changes, 'urls')) {
+      invalidateUrlCache()
+    }
+  })
+  registeredUrlStorageOnChanged = storageOnChanged
+  return true
+}
+
 /**
  * すべてのURLレコードを取得する
  */
 const getUrlRecords = async (): Promise<UrlRecord[]> => {
-  if (urlRecordsCache !== null) {
+  const canUseCache = ensureUrlCacheInvalidationListener()
+  if (canUseCache && urlRecordsCache !== null) {
     return urlRecordsCache
   }
   try {
@@ -33,14 +57,17 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
     if (!Array.isArray(storedUrls)) {
       return []
     }
-    urlRecordsCache = storedUrls.filter(
+    const urlRecords = storedUrls.filter(
       (item): item is UrlRecord =>
         typeof item === 'object' &&
         item !== null &&
         'id' in item &&
         'url' in item,
     )
-    return urlRecordsCache
+    if (canUseCache) {
+      urlRecordsCache = urlRecords
+    }
+    return urlRecords
   } catch (error) {
     console.error('URLレコード取得エラー:', error)
     return []
