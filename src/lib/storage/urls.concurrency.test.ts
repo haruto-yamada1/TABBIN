@@ -227,9 +227,16 @@ describe('URL storage concurrency boundaries', () => {
       ])
     }
 
-    expect(mutationResults.every(({ status }) => status === 'fulfilled')).toBe(
-      true,
+    const rejectedMutation = mutationResults.find(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
     )
+    if (rejectedMutation) {
+      throw rejectedMutation.reason
+    }
+    expect(mutationResults.map(({ status }) => status)).toStrictEqual([
+      'fulfilled',
+      'fulfilled',
+    ])
 
     // Current module-local queues do not coordinate extension contexts. Issue
     // #726 must prevent this lost update in persistence model v2. The fake
