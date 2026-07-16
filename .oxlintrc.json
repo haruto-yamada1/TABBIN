@@ -1296,7 +1296,7 @@
       }
     },
     {
-      "files": ["src/components/*.{ts,tsx}"],
+      "files": ["src/components/**/*.{ts,tsx}"],
       "rules": {
         "unicorn/filename-case": [
           "error",
@@ -1309,20 +1309,10 @@
       }
     },
     {
-      "files": ["src/hooks/*.{ts,tsx}"],
-      "rules": {
-        "unicorn/filename-case": [
-          "error",
-          {
-            "cases": {
-              "camelCase": true
-            }
-          }
-        ]
-      }
-    },
-    {
-      "files": ["src/features/**/hooks/**/*.{ts,tsx}"],
+      "files": [
+        "src/hooks/**/*.{ts,tsx}",
+        "src/features/**/hooks/**/*.{ts,tsx}"
+      ],
       "rules": {
         "unicorn/filename-case": [
           "error",
