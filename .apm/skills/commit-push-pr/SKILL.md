@@ -30,8 +30,10 @@ harness checkpoint、または同等の証拠と対応付けられる場合だ�
 
 **REQUIRED SUB-SKILL:** Use `github-issue-implementation`.
 
-1. sub-skill に Issue URL と baseline 証跡を渡し、Issue 本文、コメント、関連 Issue / PR、
-   現在の repository を acceptance contract として調査させます。
+1. sub-skill に `caller_mode: commit-push-pr`、Issue URL、baseline 証跡を渡し、Issue 本文、
+   コメント、関連 Issue / PR、現在の repository を acceptance contract として調査させます。
+   この flag により sub-skill は commit、push、PR 作成を重複実行せず、implementation phase の
+   結果を caller へ返します。
 2. sub-skill の worktree / branch で根本原因の修正と検証を完了させます。
 3. sub-skill が返す原因、変更、acceptance criteria 対応、検証証跡を受け取ります。
 4. そのまま下記 Publish phase を続行します。publish を別依頼に分けません。
