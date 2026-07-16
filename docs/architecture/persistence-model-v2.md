@@ -484,6 +484,9 @@ on module globals.
 For `urls` only, each module context now lazily subscribes to its own local
 `chrome.storage.onChanged` event, removes and re-registers its listener when the
 available API object changes, and bypasses the cache when the API is unavailable.
+Invalidation or a storage API transition advances the cache generation. A
+resolved read is cached only when that generation and the registered API
+identity are unchanged.
 This closes that cache-coherence gap but does not provide cross-context
 transactional read-modify-write, migration readiness, or preflight-fingerprint
 guarantees for general writers.
@@ -492,22 +495,23 @@ guarantees for general writers.
   newly found logical data class must be added to the matrix before schema
   finalization.
 - #712 owns the pure checker and issue severity/repairability.
-- #726 owns v2 transaction boundaries, physical object stores, indexes, key
-  paths, connection lifecycle, and benchmarks. Use-case-sized multi-store
+- #726 owns v2 physical schema and connection lifecycle, use-case transaction
+  boundaries, and cross-context write serialization. Use-case-sized multi-store
   mutations must not be split into independent repository transactions.
-- #727 owns the PersistenceBootstrap readiness barrier for every domain
-  read/write path and cross-context migration coordination. A module-global
-  Promise is not a correctness boundary.
-- #728 owns legacy migration: raw snapshot parsing, pure v2 mapping, one verified
-  target transaction, read-back, integrity checking, restart, and retry behavior.
+- #727 owns the PersistenceBootstrap readiness barrier and cross-context
+  migration coordination. Every domain read/write participates in this barrier;
+  a module-global Promise is not a correctness boundary.
+- #728 owns raw legacy snapshot parsing, pure v2 mapping, transactional target
+  writes, read-back integrity verification, restart, and retry behavior.
 - #719/#730 own supported Backup V2 limits and round-trip behavior. Every matrix
   row marked Backup V2 = Yes participates in `import(export(x))` invariants.
-- #738 owns preflight source fingerprints and staleness invalidation after normal
-  writes. Its identity, timestamp, reference, capacity, and JSON-safety analysis
-  must use a raw non-repairing reader without mutating the source.
-- #739 owns post-commit cross-context change notification, current
-  `chrome.storage.onChanged` consumer migration, cache invalidation, and re-query
-  convergence after missed, duplicate, out-of-order events or restarts.
+- #738 owns read-only preflight, source fingerprints, and normal-write staleness
+  invalidation. Its identity, timestamp, reference, capacity, and JSON-safety
+  analysis must use a raw non-repairing reader without mutating the source.
+- #739 owns post-commit cross-context change notification and invalidation,
+  current `chrome.storage.onChanged` consumer migration, and re-query
+  convergence. Missed, duplicate, out-of-order events or restarts must converge
+  by reading current persistence state.
 
 Model review is complete for #725 when this document, the TypeScript proposal,
 the executable corpus, the JSON-safe guard, and the policy tests agree. This is

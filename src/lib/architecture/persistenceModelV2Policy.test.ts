@@ -63,25 +63,33 @@ describe('Persistence Model v2 architecture contract', () => {
   })
 
   it('hands current concurrency limitations to the owning v2 issues', () => {
+    const normalizedModelDocument = modelDocument.replace(/\s+/g, ' ')
+
     expect(modelDocument).toContain(
       '[current storage writer inventory](./current-storage-writer-inventory.md)',
     )
 
     for (const handoff of [
-      '#726 owns v2 transaction boundaries',
-      '#727 owns the PersistenceBootstrap readiness barrier',
-      '#728 owns legacy migration',
-      '#738 owns preflight source fingerprints and staleness invalidation',
-      '#739 owns post-commit cross-context change notification',
+      '#726 owns v2 physical schema and connection lifecycle, use-case transaction boundaries, and cross-context write serialization.',
+      '#727 owns the PersistenceBootstrap readiness barrier and cross-context migration coordination.',
+      '#728 owns raw legacy snapshot parsing, pure v2 mapping, transactional target writes, read-back integrity verification, restart, and retry behavior.',
+      '#738 owns read-only preflight, source fingerprints, and normal-write staleness invalidation.',
+      '#739 owns post-commit cross-context change notification and invalidation, current `chrome.storage.onChanged` consumer migration, and re-query convergence.',
     ]) {
-      expect(modelDocument).toContain(handoff)
+      expect(normalizedModelDocument).toContain(handoff)
     }
 
-    expect(modelDocument).toContain(
+    expect(normalizedModelDocument).toContain(
       'module-local queues do not serialize writers in different extension contexts',
     )
-    expect(modelDocument).toContain(
+    expect(normalizedModelDocument).toContain(
       'deterministically reproduces a two-context read-modify-write lost update',
+    )
+    expect(normalizedModelDocument).toContain(
+      'Invalidation or a storage API transition advances the cache generation.',
+    )
+    expect(normalizedModelDocument).toContain(
+      'A resolved read is cached only when that generation and the registered API identity are unchanged.',
     )
   })
 
