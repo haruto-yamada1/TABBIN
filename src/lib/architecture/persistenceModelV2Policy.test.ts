@@ -62,6 +62,29 @@ describe('Persistence Model v2 architecture contract', () => {
     }
   })
 
+  it('hands current concurrency limitations to the owning v2 issues', () => {
+    expect(modelDocument).toContain(
+      '[current storage writer inventory](./current-storage-writer-inventory.md)',
+    )
+
+    for (const handoff of [
+      '#726 owns v2 transaction boundaries',
+      '#727 owns the PersistenceBootstrap readiness barrier',
+      '#728 owns legacy migration',
+      '#738 owns preflight source fingerprints and staleness invalidation',
+      '#739 owns post-commit cross-context change notification',
+    ]) {
+      expect(modelDocument).toContain(handoff)
+    }
+
+    expect(modelDocument).toContain(
+      'module-local queues do not serialize writers in different extension contexts',
+    )
+    expect(modelDocument).toContain(
+      'deterministically reproduces a two-context read-modify-write lost update',
+    )
+  })
+
   it('uses camelCase for the shared persistence utility filename', () => {
     expect(
       existsSync(resolve(repoRoot, 'src/lib/persistence/jsonValue.ts')),
