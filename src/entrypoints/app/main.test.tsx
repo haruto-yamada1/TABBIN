@@ -12,7 +12,7 @@ vi.mock('react-dom/client', () => ({
   createRoot: mocked.createRoot,
 }))
 
-vi.mock('@/components/theme-provider', () => ({
+vi.mock('@/components/ThemeProvider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
@@ -40,7 +40,7 @@ vi.mock('@/components/ui/tooltip', () => ({
   ),
 }))
 
-vi.mock('@/hooks/use-mobile', () => ({
+vi.mock('@/hooks/useMobile', () => ({
   useIsMobile: () => false,
 }))
 

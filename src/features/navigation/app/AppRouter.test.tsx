@@ -7,7 +7,7 @@ const routeModuleLoads = vi.hoisted(() => ({
   aiChat: 0,
 }))
 
-vi.mock('@/hooks/use-mobile', () => ({
+vi.mock('@/hooks/useMobile', () => ({
   useIsMobile: () => false,
 }))
 

@@ -1,9 +1,9 @@
-// @covers components/theme-provider.tsx
+// @covers components/ThemeProvider.tsx
 import type { Meta, StoryObj } from '@storybook/react'
 
 import { Button } from '@/components/ui/button'
 
-import { useTheme } from './theme-provider'
+import { useTheme } from './ThemeProvider'
 
 const ThemeConsumer = () => {
   const { theme, setTheme } = useTheme()

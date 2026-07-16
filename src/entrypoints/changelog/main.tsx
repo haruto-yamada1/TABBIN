@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react'
 import type React from 'react'
 
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import { Card } from '@/components/ui/card'
 import { DocumentTitleSync } from '@/features/i18n/components/DocumentTitleSync'
 import { I18nProvider, useI18n } from '@/features/i18n/context/I18nProvider'

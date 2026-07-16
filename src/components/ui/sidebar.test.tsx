@@ -8,7 +8,7 @@ const { useIsMobileMock } = vi.hoisted(() => ({
   useIsMobileMock: vi.fn(() => false),
 }))
 
-vi.mock('@/hooks/use-mobile', () => ({
+vi.mock('@/hooks/useMobile', () => ({
   useIsMobile: () => useIsMobileMock(),
 }))
 

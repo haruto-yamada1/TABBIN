@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useIsMobile } from '@/hooks/useMobile'
 import {
   readLocalStorage,
   writeLocalStorage,

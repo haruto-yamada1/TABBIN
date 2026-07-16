@@ -32,7 +32,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   }),
 }))
 
-vi.mock('@/components/mode-toggle', () => ({
+vi.mock('@/components/ModeToggle', () => ({
   ModeToggle: () => <div>mode-toggle</div>,
 }))
 

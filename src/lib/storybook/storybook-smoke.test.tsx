@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-
 
 import * as inputStories from '@/components/ai-elements/inputs.stories'
 import * as messageStories from '@/components/ai-elements/message.stories'
-import * as modeToggleStories from '@/components/mode-toggle.stories'
+import * as modeToggleStories from '@/components/ModeToggle.stories'
 import * as buttonStories from '@/components/ui/button.stories'
 import * as viewModeStories from '@/contexts/saved-tabs/presentation/components/ViewModeToggle.stories'
 import * as ollamaStories from '@/features/ai-chat/components/OllamaErrorNotice.stories'

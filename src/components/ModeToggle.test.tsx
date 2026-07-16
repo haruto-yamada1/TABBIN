@@ -8,7 +8,7 @@ const mocked = vi.hoisted(() => ({
   setTheme: vi.fn(),
 }))
 
-vi.mock('@/components/theme-provider', () => ({
+vi.mock('@/components/ThemeProvider', () => ({
   useTheme: () => ({
     setTheme: mocked.setTheme,
     theme: 'system',
@@ -38,7 +38,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   ),
 }))
 
-import { ModeToggle } from './mode-toggle'
+import { ModeToggle } from './ModeToggle'
 
 describe('ModeToggle', () => {
   it('absolute icon の位置基準になる relative ボタンを使う', () => {

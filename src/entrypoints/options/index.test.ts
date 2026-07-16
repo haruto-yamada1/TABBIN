@@ -61,7 +61,7 @@ vi.mock('@/features/options/ImportExportSettings', () => ({
     createElement('div', null, 'ImportExportSettings'),
 }))
 
-vi.mock('@/components/mode-toggle', () => ({
+vi.mock('@/components/ModeToggle', () => ({
   ModeToggle: () => createElement('div', null, 'ModeToggle'),
 }))
 

@@ -1,4 +1,4 @@
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { I18nProvider } from '@/features/i18n/context/I18nProvider'
 import { AppRouter } from '@/features/navigation/app/AppRouter'
