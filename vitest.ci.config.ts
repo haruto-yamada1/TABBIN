@@ -44,6 +44,60 @@ export default defineConfig({
   },
   test: {
     coverage: {
+      // Coverage thresholds — see docs/testing/coverage-thresholds.md
+      //
+      // Global thresholds are set deliberately below current coverage (~97%
+      // statements/lines, ~92% branches, ~98% functions) to give a buffer for
+      // normal fluctuation while catching significant regressions.
+      //
+      // Per-glob thresholds protect critical domains (storage, background,
+      // import-export, ai-chat, i18n) with tighter floors so a drop in these
+      // areas is detected even when global coverage stays above the floor.
+      // Thresholds were calibrated from the coverage baseline measured in #679
+      // and should be revisited when coverage improves.
+      thresholds: {
+        // Global floor — catches project-wide coverage erosion.
+        statements: 90,
+        branches: 85,
+        functions: 90,
+        lines: 90,
+
+        // Critical storage layer — tab/URL/project persistence.
+        'src/lib/storage/**': {
+          statements: 95,
+          branches: 88,
+          functions: 90,
+          lines: 95,
+        },
+        // Background service logic — alarms, notifications, expired tabs.
+        'src/lib/background/**': {
+          statements: 95,
+          branches: 90,
+          functions: 95,
+          lines: 95,
+        },
+        // Import/export flows — user data round-trip integrity.
+        'src/features/options/lib/import-export/**': {
+          statements: 95,
+          branches: 90,
+          functions: 95,
+          lines: 95,
+        },
+        // AI chat core logic — route parsing, history management.
+        'src/features/ai-chat/lib/**': {
+          statements: 95,
+          branches: 85,
+          functions: 95,
+          lines: 95,
+        },
+        // i18n — language detection, provider, translation utils.
+        'src/features/i18n/**': {
+          statements: 90,
+          branches: 75,
+          functions: 95,
+          lines: 90,
+        },
+      },
       exclude: [
         '.storybook/**',
         '**/*.stories.ts',
