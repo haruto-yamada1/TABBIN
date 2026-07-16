@@ -62,6 +62,15 @@ export {
   toStorageTabGroup,
 } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 
+export {
+  buildPresentationCategoryLookup,
+  organizeTabGroupsWithCategories,
+} from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
+
+export { createCategorizedDisplayState } from '@/contexts/saved-tabs/presentation/lib/categorized-display'
+
+export { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
+
 /**
  * `BuildSavedTabsSnapshotUseCase` 由来の `OpenedUrlsRestoreSnapshot` を
  * presentation 層で扱うための alias。旧 `OpenedUrlsStorageSnapshot` と同じ

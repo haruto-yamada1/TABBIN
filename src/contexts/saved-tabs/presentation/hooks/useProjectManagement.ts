@@ -19,29 +19,31 @@ import type {
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
-import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
-import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
-import type { GetCustomProjectUndoSnapshotQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
-import type { AddCategoryToCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/AddCategoryToCustomProjectUseCase'
-import type { AddUrlToCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/AddUrlToCustomProjectUseCase'
-import type { CreateCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase'
-import type { DeleteCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteCustomProjectUseCase'
-import type { RemoveCategoryFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveCategoryFromCustomProjectUseCase'
-import type { RemoveUrlFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUrlFromCustomProjectUseCase'
-import type { RemoveUrlsFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUrlsFromCustomProjectUseCase'
-import type { RenameCustomProjectCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameCustomProjectCategoryUseCase'
-import type { ReorderCustomProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderCustomProjectUrlsUseCase'
-import type { RestoreCustomProjectsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/RestoreCustomProjectsSnapshotUseCase'
-import type { SaveCustomProjectOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/SaveCustomProjectOrderUseCase'
-import type { SetCustomProjectUrlCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/SetCustomProjectUrlCategoryUseCase'
-import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
-import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
-import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import type { UseProjectManagementReturn } from './projectManagementDefaults'
+import type {
+  AddCategoryToCustomProjectUseCase,
+  AddUrlToCustomProjectUseCase,
+  CreateCustomProjectUseCase,
+  DeleteCustomProjectUseCase,
+  GetCustomProjectOrderQuery,
+  GetCustomProjectRawsQuery,
+  GetCustomProjectsQuery,
+  GetCustomProjectUndoSnapshotQuery,
+  RemoveCategoryFromCustomProjectUseCase,
+  RemoveUrlFromCustomProjectUseCase,
+  RemoveUrlsFromCustomProjectUseCase,
+  RenameCustomProjectCategoryUseCase,
+  ReorderCustomProjectUrlsUseCase,
+  RestoreCustomProjectsSnapshotUseCase,
+  SaveCustomProjectOrderUseCase,
+  SetCustomProjectUrlCategoryUseCase,
+  UpdateCustomProjectCategoryOrderUseCase,
+  UpdateCustomProjectKeywordsUseCase,
+  UpdateCustomProjectNameUseCase,
+  UseProjectManagementReturn,
+} from './projectManagementDefaults'
 import {
   asyncNoopAddCategoryToCustomProject,
   asyncNoopAddUrlToCustomProject,

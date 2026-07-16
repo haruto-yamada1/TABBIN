@@ -188,7 +188,12 @@
     "import/no-named-as-default-member": "error",
     "import/no-unassigned-import": "error",
     "import/no-relative-parent-imports": "error",
-    "import/max-dependencies": "off",
+    "import/max-dependencies": [
+      "error",
+      {
+        "max": 25
+      }
+    ],
     "import/no-commonjs": "off",
     "import/unambiguous": "off",
     "import/no-cycle": [
@@ -530,7 +535,8 @@
           }
         ],
         "eslint/max-statements": ["error", 100],
-        "eslint/max-params": "off"
+        "eslint/max-params": "off",
+        "import/max-dependencies": "off"
       }
     },
     {
@@ -757,7 +763,8 @@
         "react/only-export-components": "off",
         "unicorn/no-abusive-eslint-disable": "off",
         "typescript/require-await": "off",
-        "typescript/prefer-ts-expect-error": "off"
+        "typescript/prefer-ts-expect-error": "off",
+        "import/max-dependencies": "off"
       }
     },
     {
@@ -1243,7 +1250,8 @@
         "vitest/consistent-test-it": "off",
         "vitest/prefer-expect-resolves": "off",
         "vitest/require-top-level-describe": "off",
-        "typescript/no-dynamic-delete": "off"
+        "typescript/no-dynamic-delete": "off",
+        "import/max-dependencies": "off"
       }
     },
     {
@@ -1262,6 +1270,15 @@
       "files": ["src/lib/storybook/**/*.{ts,tsx}"],
       "rules": {
         "eslint/no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": [
+        "src/contexts/*/application/create*UseCases.ts",
+        "src/contexts/*/application/*UseCases.ts"
+      ],
+      "rules": {
+        "import/max-dependencies": "off"
       }
     }
   ]
