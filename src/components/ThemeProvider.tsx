@@ -112,14 +112,12 @@ export const ThemeProvider = ({
     const storageOnChanged = getChromeStorageOnChanged()
     if (!storageOnChanged) {
       warnMissingChromeStorage('テーマ変更監視')
-      return
+    } else {
+      storageOnChanged.addListener(handleStorageChange)
     }
-    storageOnChanged.addListener(handleStorageChange)
 
-    // クリーンアップ関数
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
-      storageOnChanged.removeListener(handleStorageChange)
+      storageOnChanged?.removeListener(handleStorageChange)
     }
   }, [storageKey])
   useEffect(() => {
@@ -180,12 +178,11 @@ export const ThemeProvider = ({
     const storageOnChanged = getChromeStorageOnChanged()
     if (!storageOnChanged) {
       warnMissingChromeStorage('ユーザーテーマ色監視')
-      return
+    } else {
+      storageOnChanged.addListener(listener)
     }
-    storageOnChanged.addListener(listener)
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
-      storageOnChanged.removeListener(listener)
+      storageOnChanged?.removeListener(listener)
     }
   }, [theme])
   const setTheme = useCallback(
