@@ -102,6 +102,16 @@ afterEach(() => {
 })
 
 describe('verifyStorageWriterInventory', () => {
+  test('accepts the authoritative inventory for the real repository', () => {
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath: 'docs/architecture/current-storage-writer-inventory.md',
+        repoRoot: process.cwd(),
+        sourceRoots: ['src'],
+      }),
+    ).not.toThrow()
+  })
+
   test('requires every storage key and writer category', () => {
     const repoRoot = createFixture()
     const inventoryPath = 'docs/storage-writer-inventory.md'
