@@ -227,7 +227,7 @@ storage key ごとに最低限、次を記録する。
 
 耐久性の条件は、correctness が module-global queue / cache state に依存せず、
 context restart 後も同じ結果になることである。恒久的 transaction guarantee は
-#726 が所有する。
+Issue `#726` が所有する。
 
 ## 10. Delivery outlook
 
