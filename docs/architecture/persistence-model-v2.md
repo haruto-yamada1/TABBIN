@@ -510,8 +510,9 @@ guarantees for general writers.
   analysis must use a raw non-repairing reader without mutating the source.
 - #739 owns post-commit cross-context change notification and invalidation,
   current `chrome.storage.onChanged` consumer migration, and re-query
-  convergence. Missed, duplicate, out-of-order events or restarts must converge
-  by reading current persistence state.
+  convergence. Consumers invalidate and re-query current persistence state.
+  Missed, duplicate, out-of-order events or restarts must converge by reading
+  that current state.
 
 Model review is complete for #725 when this document, the TypeScript proposal,
 the executable corpus, the JSON-safe guard, and the policy tests agree. This is
