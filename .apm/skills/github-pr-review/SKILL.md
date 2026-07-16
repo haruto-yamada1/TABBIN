@@ -33,10 +33,9 @@ reviewer は人間、CodeRabbit、その他の bot / service のどれでも構�
 ユーザーの依頼から、この run で許可された副作用を明示します。
 
 - 「確認」「triage」だけなら read-only です。
-- 「レビュー対応」「address review」は、live triage、妥当な修正、test、scoped commit、対象 PR
-  branch への通常 push までを許可します。返信は含みません。
+- 「レビュー対応」「address review」は、live triage、妥当な修正、test、scoped commit、
+  対象 PR branch への通常 push、同じ thread への返信、対応済み thread の resolve までを許可します。
 - 「修正して push」まで明示されていれば、対象 PR branch の scoped commit と通常 push が可能です。
-- 「返信」まで明示されていれば、対象 feedback と同じ thread へ返信できます。
 - 人間 reviewer への返信は、ユーザーが返信を明示した場合だけ可能です。
 - 学びの永続化は、この PR の scope に収まり、下記基準を満たす場合だけ行います。
 
@@ -46,7 +45,6 @@ reviewer は人間、CodeRabbit、その他の bot / service のどれでも構�
 - PR の merge、close、approve、request changes
 - 新しい PR / Issue の自動作成
 - ユーザーの未commit変更の破棄、無関係な変更のstage
-- thread resolve
 - generated artifact の直接編集、品質 gate の緩和、test skip、error suppression
 
 ## Workflow
@@ -127,13 +125,15 @@ reviewer の説明を実装事実として扱いません。分からない場�
 4. source-of-truth を編集し、generated artifact は正規 command で同期します。
 5. 対象ファイルだけを stage し、簡潔な日本語 message で commit します。
 6. remote HEAD が変わっていないことを確認して、対象 PR branch へ通常 push します。
-7. 返信が許可されている場合だけ、同じ thread へ commit SHA、修正内容、検証 command と結果を
-   返信します。許可されていなければ final response に返信案を示します。
+7. 同じ thread へ commit SHA、修正内容、検証 command と結果を返信し、thread を resolve します。
+   人間 reviewer への返信は、ユーザーが返信を明示した場合だけ行い、許可されていなければ
+   final response に返信案と resolve の可否を示します。
 
 ### 5. 妥当でない指摘を扱う
 
-`reject-*` では code を変更しません。返信が許可されている場合だけ、同じ thread へ次を簡潔に
-返信します。許可されていなければ同じ内容の返信案を final response に示します。
+`reject-*` では code を変更しません。同じ thread へ次を簡潔に返信し、thread を resolve します。
+人間 reviewer への返信は、ユーザーが返信を明示した場合だけ行い、許可されていなければ
+同じ内容の返信案を final response に示します。
 
 - 対応しない判断
 - latest HEAD の具体的な code / type / test / runtime / contract 根拠
@@ -141,8 +141,8 @@ reviewer の説明を実装事実として扱いません。分からない場�
 - 再評価が必要になる条件
 
 `defer` では、未確定事項、scope、必要な owner 判断を示します。技術的根拠のない迎合や、
-防御的な長文は避けます。返信が許可された inline comment には top-level PR comment ではなく
-同じ thread で返信します。
+防御的な長文は避けます。同じ thread で返信し、thread を resolve します。
+人間 reviewer への返信は、ユーザーが返信を明示した場合だけ行います。
 
 各 thread の URL / identifier、分類、根拠、対応、検証、返信有無を final response の表へ記録します。
 永続的な decision record は、次節の昇格基準を満たす再利用可能な学びだけに限定します。
@@ -177,7 +177,7 @@ reviewer の説明を実装事実として扱いません。分からない場�
 - 対象 PR は Open のまま、remote head と local head が一致している。
 - 全 actionable feedback が final response の表にあり、分類、根拠、対応、検証、返信有無が分かる。
 - 妥当な修正は regression test と fresh gate evidence を持つ。
-- push / reply はユーザーが許可した範囲だけで、同じ thread に行われた。
-- resolve、merge、approve、close、force push を行っていない。
+- push / reply / resolve は許可された範囲だけで、同じ thread に行われた。
+- merge、approve、close、force push を行っていない。
 - 永続化した学びは検証済みで、最小かつ検索可能な enforcement / record になっている。
 - 実行できなかった操作と残る blocker を明示した。
