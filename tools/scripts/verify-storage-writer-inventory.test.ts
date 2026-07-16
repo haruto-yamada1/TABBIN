@@ -75,6 +75,26 @@ ${writerCategories.map((category) => `- ${category}`).join('\n')}
 ${mutationFiles.map((file) => `- \`${file}\``).join('\n')}
 `
 
+const expectMissingScheduledMaintenance = (inventory: string): void => {
+  const repoRoot = createFixture()
+  const inventoryPath = 'docs/storage-writer-inventory.md'
+  writeFixtureFile(repoRoot, inventoryPath, inventory)
+  writeFixtureFile(repoRoot, 'src/empty.ts', 'export {}\n')
+
+  expect(() =>
+    verifyStorageWriterInventory({
+      inventoryPath,
+      repoRoot,
+      sourceRoots: ['src'],
+    }),
+  ).toThrow(
+    [
+      'Storage writer inventory verification failed:',
+      '- Missing required writer category: scheduled maintenance',
+    ].join('\n'),
+  )
+}
+
 afterEach(() => {
   for (const fixtureRoot of fixtureRoots.splice(0)) {
     rmSync(fixtureRoot, { force: true, recursive: true })
@@ -224,6 +244,74 @@ describe('verifyStorageWriterInventory', () => {
         `- Unlisted storage mutation file: ${mutationFile}`,
       ].join('\n'),
     )
+  })
+
+  test.each([
+    {
+      fencedContent: ['```markdown', '- scheduled maintenance', '```'].join(
+        '\n',
+      ),
+      name: 'backtick-fenced list',
+    },
+    {
+      fencedContent: [
+        '~~~markdown',
+        '| Entry |',
+        '| --- |',
+        '| scheduled maintenance |',
+        '~~~',
+      ].join('\n'),
+      name: 'tilde-fenced table',
+    },
+  ])('ignores a $name inside a designated section', ({ fencedContent }) => {
+    expect.hasAssertions()
+    const inventory = createInventory({
+      writerCategories: REQUIRED_WRITER_CATEGORIES.filter(
+        (category) => category !== 'scheduled maintenance',
+      ),
+    }).replace('## Mutation files', `${fencedContent}\n\n## Mutation files`)
+
+    expectMissingScheduledMaintenance(inventory)
+  })
+
+  test('does not activate a designated section from a fenced heading', () => {
+    expect.hasAssertions()
+    const inventory = createInventory({
+      writerCategories: REQUIRED_WRITER_CATEGORIES.filter(
+        (category) => category !== 'scheduled maintenance',
+      ),
+    }).replace(
+      '## Mutation files',
+      [
+        '## Notes',
+        '',
+        '```markdown',
+        '## Writer categories',
+        '- scheduled maintenance',
+        '```',
+        '',
+        '## Mutation files',
+      ].join('\n'),
+    )
+
+    expectMissingScheduledMaintenance(inventory)
+  })
+
+  test.each([
+    { indentedLine: '    - scheduled maintenance', name: 'four spaces' },
+    {
+      indentedLine: '  \t- scheduled maintenance',
+      name: 'spaces followed by a tab',
+    },
+  ])('ignores CommonMark code indented with $name', ({ indentedLine }) => {
+    expect.hasAssertions()
+    const inventory = createInventory({
+      writerCategories: REQUIRED_WRITER_CATEGORIES.filter(
+        (category) => category !== 'scheduled maintenance',
+      ),
+    }).replace('## Mutation files', `${indentedLine}\n\n## Mutation files`)
+
+    expectMissingScheduledMaintenance(inventory)
   })
 
   test('accepts exact entries in structured Markdown tables', () => {

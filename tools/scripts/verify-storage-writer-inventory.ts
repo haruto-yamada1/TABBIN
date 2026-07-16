@@ -58,6 +58,10 @@ const EXCLUDED_DIRECTORY_NAMES = new Set([
 ])
 
 type InventorySection = keyof ParsedStorageWriterInventory
+type MarkdownFence = {
+  readonly character: '`' | '~'
+  readonly length: number
+}
 
 const INVENTORY_SECTION_BY_HEADING: Readonly<Record<string, InventorySection>> =
   {
@@ -71,6 +75,9 @@ const MARKDOWN_LIST_ENTRY = /^\s*[-+*]\s+(.+?)\s*$/
 const MARKDOWN_TABLE_ROW = /^\s*\|(.+)\|\s*$/
 const MARKDOWN_TABLE_SEPARATOR = /^:?-{3,}:?$/
 const INLINE_CODE_ENTRY = /^`([^`\n]+)`$/
+const MARKDOWN_FENCE_OPENING = /^ {0,3}(`{3,}|~{3,})(.*)$/
+const MARKDOWN_FENCE_CLOSING = /^ {0,3}(`+|~+)[ \t]*$/
+const MARKDOWN_INDENTED_CODE = /^(?: {4}| {0,3}\t)/
 
 const normalizeRepoPath = (filePath: string): string =>
   filePath.split(path.sep).join('/')
@@ -96,6 +103,32 @@ const parseMarkdownEntries = (line: string): readonly string[] => {
 
   const cells = tableRow[1].split('|').map(parseMarkdownEntry)
   return cells.every((cell) => MARKDOWN_TABLE_SEPARATOR.test(cell)) ? [] : cells
+}
+
+const parseMarkdownFenceOpening = (line: string): MarkdownFence | undefined => {
+  const match = MARKDOWN_FENCE_OPENING.exec(line)
+  if (!match) {
+    return undefined
+  }
+
+  const marker = match[1]
+  const character = marker[0]
+  if (character !== '`' && character !== '~') {
+    return undefined
+  }
+  if (character === '`' && match[2].includes('`')) {
+    return undefined
+  }
+
+  return { character, length: marker.length }
+}
+
+const isMarkdownFenceClosing = (
+  line: string,
+  fence: MarkdownFence,
+): boolean => {
+  const marker = MARKDOWN_FENCE_CLOSING.exec(line)?.[1]
+  return marker?.[0] === fence.character && marker.length >= fence.length
 }
 
 const addInventoryEntry = ({
@@ -146,8 +179,25 @@ export const parseStorageWriterInventory = (
     writerCategories: new Set<string>(),
   }
   let section: InventorySection | undefined
+  let fence: MarkdownFence | undefined
 
   for (const line of markdown.split('\n')) {
+    if (fence) {
+      if (isMarkdownFenceClosing(line, fence)) {
+        fence = undefined
+      }
+      continue
+    }
+
+    const openingFence = parseMarkdownFenceOpening(line)
+    if (openingFence) {
+      fence = openingFence
+      continue
+    }
+    if (MARKDOWN_INDENTED_CODE.test(line)) {
+      continue
+    }
+
     const heading = MARKDOWN_HEADING.exec(line)
     if (heading) {
       section = INVENTORY_SECTION_BY_HEADING[heading[1].trim().toLowerCase()]
