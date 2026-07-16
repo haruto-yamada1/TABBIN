@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UrlRecord } from '@/types/storage'
 
@@ -125,6 +125,10 @@ describe('URL storage concurrency boundaries', () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
   })
 
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('one module queue serializes two URL mutations', async () => {
     const state: SharedUrlState = { urls: [] }
     const firstWriteStarted = createDeferred<undefined>()
@@ -177,12 +181,12 @@ describe('URL storage concurrency boundaries', () => {
 
   it('two module contexts reproduce the current lost-update limitation', async () => {
     const state: SharedUrlState = { urls: [] }
-    const bothReadsStarted = createDeferred<undefined>()
+    const firstReadStarted = createDeferred<undefined>()
     const allowReadsToReturn = createDeferred<undefined>()
     const storage = createSharedUrlStorage(state, {
       afterReadSnapshot: async ({ call }) => {
-        if (call === 2) {
-          bothReadsStarted.resolve(undefined)
+        if (call === 1) {
+          firstReadStarted.resolve(undefined)
         }
         await allowReadsToReturn.promise
       },
@@ -200,16 +204,37 @@ describe('URL storage concurrency boundaries', () => {
       'B',
     )
 
-    await bothReadsStarted.promise
-    expect(storage.reads).toHaveLength(2)
-    expect(storage.reads.map(({ records }) => records)).toStrictEqual([[], []])
-    expect(storage.writes).toHaveLength(0)
+    let mutationResults: PromiseSettledResult<UrlRecord>[]
+    try {
+      await firstReadStarted.promise
+      await Promise.resolve()
+      await Promise.resolve()
 
-    allowReadsToReturn.resolve(undefined)
-    await Promise.all([firstMutation, secondMutation])
+      expect(
+        storage.reads,
+        'independent module queues must both capture a storage snapshot',
+      ).toHaveLength(2)
+      expect(storage.reads.map(({ records }) => records)).toStrictEqual([
+        [],
+        [],
+      ])
+      expect(storage.writes).toHaveLength(0)
+    } finally {
+      allowReadsToReturn.resolve(undefined)
+      mutationResults = await Promise.allSettled([
+        firstMutation,
+        secondMutation,
+      ])
+    }
+
+    expect(mutationResults.every(({ status }) => status === 'fulfilled')).toBe(
+      true,
+    )
 
     // Current module-local queues do not coordinate extension contexts. Issue
-    // #726 must prevent this lost update in persistence model v2.
+    // #726 must prevent this lost update in persistence model v2. The fake
+    // store intentionally emits no onChanged event because both contexts hold
+    // their snapshots before either write begins.
     expect(storage.writes).toHaveLength(2)
     expect(
       storage.writes.flatMap(({ records }) => records.map(({ url }) => url)),
@@ -222,7 +247,7 @@ describe('URL storage concurrency boundaries', () => {
     expect(state.urls).toHaveLength(1)
   })
 
-  it('a restarted module reloads committed storage without queue state', async () => {
+  it('a fresh module reloads URL records from committed storage', async () => {
     const state: SharedUrlState = { urls: [] }
     const storage = createSharedUrlStorage(state)
     installChromeStorage(storage.local)
