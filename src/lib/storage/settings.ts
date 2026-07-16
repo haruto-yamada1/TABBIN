@@ -1,9 +1,9 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
-import { savedTabsActionSettingsDefaults } from '@/contexts/saved-tabs/domain/services/SavedTabsActionSettingsPolicy'
 import {
   DEFAULT_EXCLUDE_PATTERNS,
   mergeStoredUserSettingsDefaults,
-} from '@/contexts/saved-tabs/domain/services/userSettingsDefaultsMerge'
+  savedTabsActionSettingsDefaults,
+} from '@/contexts/saved-tabs/public-api'
 import {
   DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
   DEFAULT_AI_SYSTEM_PROMPT_TEMPLATE,

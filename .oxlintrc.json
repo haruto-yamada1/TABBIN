@@ -193,7 +193,11 @@
     "import/unambiguous": "off",
     "import/no-cycle": [
       "error",
-      { "ignoreTypes": true, "ignoreExternal": true, "maxDepth": 10 }
+      {
+        "ignoreTypes": true,
+        "ignoreExternal": true,
+        "maxDepth": 10
+      }
     ],
     "promise/always-return": "off",
     "promise/avoid-new": "off",
@@ -466,7 +470,23 @@
     "react-hooks-compiler/set-state-in-render": "error",
     "react-hooks-compiler/unsupported-syntax": "error",
     "react-hooks-compiler/config": "error",
-    "react-hooks-compiler/gating": "error"
+    "react-hooks-compiler/gating": "error",
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "@/contexts/*/domain/**",
+              "@/contexts/*/application/**",
+              "@/contexts/*/infrastructure/**",
+              "@/contexts/*/presentation/**"
+            ],
+            "message": "別 context の内部実装を直接 import しないでください。@/contexts/<context>/public-api 経由にしてください。"
+          }
+        ]
+      }
+    ]
   },
   "overrides": [
     {
@@ -1224,6 +1244,24 @@
         "vitest/prefer-expect-resolves": "off",
         "vitest/require-top-level-describe": "off",
         "typescript/no-dynamic-delete": "off"
+      }
+    },
+    {
+      "files": ["src/contexts/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/app/composition/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/lib/storybook/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
       }
     }
   ]
