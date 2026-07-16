@@ -59,8 +59,11 @@ writer rows below rather than treated as primary domain keys.
   each URL module context lazily subscribes when `storage.onChanged` is
   available. An own `urls` change in the `local` area invalidates that context's
   `urlRecordsCache`; without the API, reads bypass the cache. This is cache
-  coherence only, not transactional RMW or cross-context write serialization.
-  #739 owns the v2 notification protocol.
+  coherence only: an in-flight read caches its snapshot only if the cache
+  generation and event API identity remain unchanged. API transitions detach
+  the prior listener when supported and invalidate the cache. This is not
+  transactional RMW or cross-context write serialization. #739 owns the v2
+  notification protocol.
 
 ## Current writer inventory
 

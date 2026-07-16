@@ -7,6 +7,7 @@ import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 let urlRecordsCache: UrlRecord[] | null = null
 let urlRecordMutationQueue: Promise<void> = Promise.resolve()
 let registeredUrlStorageOnChanged: typeof chrome.storage.onChanged | null = null
+let urlCacheGeneration = 0
 
 type UrlRecordInput = {
   url: string
@@ -21,24 +22,38 @@ type CreateOrUpdateUrlRecordOptions = {
 /** キャッシュを無効化する（書き込み後・外部更新検知後に呼ぶ） */
 const invalidateUrlCache = (): void => {
   urlRecordsCache = null
+  urlCacheGeneration += 1
+}
+
+const handleUrlStorageChange = (
+  changes: Record<string, chrome.storage.StorageChange>,
+  areaName: string,
+): void => {
+  if (areaName === 'local' && Object.hasOwn(changes, 'urls')) {
+    invalidateUrlCache()
+  }
 }
 
 const ensureUrlCacheInvalidationListener = (): boolean => {
   const storageOnChanged = getChromeStorageOnChanged()
-  if (storageOnChanged === null) {
-    invalidateUrlCache()
-    return false
-  }
   if (registeredUrlStorageOnChanged === storageOnChanged) {
-    return true
+    return storageOnChanged !== null
+  }
+
+  if (
+    registeredUrlStorageOnChanged !== null &&
+    typeof registeredUrlStorageOnChanged.removeListener === 'function'
+  ) {
+    registeredUrlStorageOnChanged.removeListener(handleUrlStorageChange)
   }
 
   invalidateUrlCache()
-  storageOnChanged.addListener((changes, areaName) => {
-    if (areaName === 'local' && Object.hasOwn(changes, 'urls')) {
-      invalidateUrlCache()
-    }
-  })
+  registeredUrlStorageOnChanged = null
+  if (storageOnChanged === null) {
+    return false
+  }
+
+  storageOnChanged.addListener(handleUrlStorageChange)
   registeredUrlStorageOnChanged = storageOnChanged
   return true
 }
@@ -51,6 +66,8 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
   if (canUseCache && urlRecordsCache !== null) {
     return urlRecordsCache
   }
+  const readGeneration = urlCacheGeneration
+  const readStorageOnChanged = registeredUrlStorageOnChanged
   try {
     const { urls } = await chrome.storage.local.get('urls')
     const storedUrls: unknown = urls
@@ -64,7 +81,11 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
         'id' in item &&
         'url' in item,
     )
-    if (canUseCache) {
+    if (
+      canUseCache &&
+      urlCacheGeneration === readGeneration &&
+      registeredUrlStorageOnChanged === readStorageOnChanged
+    ) {
       urlRecordsCache = urlRecords
     }
     return urlRecords

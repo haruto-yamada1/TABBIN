@@ -76,11 +76,18 @@ const createChromeStorageOnChanged = () => {
   const addListener = vi.fn((listener: StorageChangeListener) => {
     listeners.push(listener)
   })
+  const removeListener = vi.fn((listener: StorageChangeListener) => {
+    const listenerIndex = listeners.indexOf(listener)
+    if (listenerIndex >= 0) {
+      listeners.splice(listenerIndex, 1)
+    }
+  })
 
   return {
     addListener,
     api: {
       addListener,
+      removeListener,
     } as unknown as typeof chrome.storage.onChanged,
     emit: (
       changes: Record<string, chrome.storage.StorageChange>,
@@ -89,6 +96,25 @@ const createChromeStorageOnChanged = () => {
       listeners.forEach((listener) => {
         listener(changes, areaName)
       })
+    },
+    listenerCount: () => listeners.length,
+    removeListener,
+  }
+}
+
+const createDeferred = <T>() => {
+  let resolveDeferred: ((value: T) => void) | null = null
+  const promise = new Promise<T>((resolve) => {
+    resolveDeferred = resolve
+  })
+
+  return {
+    promise,
+    resolve: (value: T) => {
+      if (resolveDeferred === null) {
+        throw new Error('deferred promise is not initialized')
+      }
+      resolveDeferred(value)
     },
   }
 }
@@ -151,6 +177,58 @@ describe('urls storage', () => {
       expect(local.get).toHaveBeenCalledTimes(2)
     })
 
+    it('in-flight read cannot resurrect cache after external urls change', async () => {
+      const firstRecords: UrlRecord[] = [
+        {
+          id: 'first',
+          savedAt: 1,
+          title: 'First',
+          url: 'https://example.com/first',
+        },
+      ]
+      const secondRecords: UrlRecord[] = [
+        {
+          id: 'second',
+          savedAt: 2,
+          title: 'Second',
+          url: 'https://example.com/second',
+        },
+      ]
+      const firstRead = createDeferred<{ urls: UrlRecord[] }>()
+      const local = {
+        get: vi
+          .fn()
+          .mockImplementationOnce(async () => firstRead.promise)
+          .mockResolvedValue({ urls: secondRecords }),
+        set: vi.fn(),
+      }
+      const storageOnChanged = createChromeStorageOnChanged()
+      globalThis.chrome = {
+        storage: {
+          local,
+          onChanged: storageOnChanged.api,
+        },
+      } as unknown as typeof chrome
+
+      const { getUrlRecords } = await loadUrlsModule()
+
+      const oldSnapshotRead = getUrlRecords()
+      storageOnChanged.emit(
+        {
+          urls: {
+            newValue: secondRecords,
+            oldValue: firstRecords,
+          },
+        },
+        'local',
+      )
+      firstRead.resolve({ urls: firstRecords })
+
+      await expect(oldSnapshotRead).resolves.toStrictEqual(firstRecords)
+      await expect(getUrlRecords()).resolves.toStrictEqual(secondRecords)
+      expect(local.get).toHaveBeenCalledTimes(2)
+    })
+
     it('reads bypass the cache when onChanged is unavailable', async () => {
       const firstRecords: UrlRecord[] = [
         {
@@ -205,7 +283,7 @@ describe('urls storage', () => {
       expect(local.get).toHaveBeenCalledOnce()
     })
 
-    it('registers a urls listener when the onChanged API object changes', async () => {
+    it('moves one stable urls listener across onChanged API objects', async () => {
       const firstRecords: UrlRecord[] = [
         {
           id: 'first',
@@ -220,6 +298,14 @@ describe('urls storage', () => {
           savedAt: 2,
           title: 'Second',
           url: 'https://example.com/second',
+        },
+      ]
+      const thirdRecords: UrlRecord[] = [
+        {
+          id: 'third',
+          savedAt: 3,
+          title: 'Third',
+          url: 'https://example.com/third',
         },
       ]
       const state: StorageState = { urls: firstRecords }
@@ -247,9 +333,31 @@ describe('urls storage', () => {
 
       await expect(getUrlRecords()).resolves.toStrictEqual(secondRecords)
 
-      expect(firstStorageOnChanged.addListener).toHaveBeenCalledOnce()
+      state.urls = thirdRecords
+      globalThis.chrome = {
+        storage: {
+          local,
+          onChanged: firstStorageOnChanged.api,
+        },
+      } as unknown as typeof chrome
+
+      await expect(getUrlRecords()).resolves.toStrictEqual(thirdRecords)
+
+      const stableListener =
+        firstStorageOnChanged.addListener.mock.calls[0]?.[0]
+      expect(firstStorageOnChanged.addListener).toHaveBeenCalledTimes(2)
+      expect(firstStorageOnChanged.removeListener).toHaveBeenCalledOnce()
+      expect(firstStorageOnChanged.listenerCount()).toBe(1)
       expect(secondStorageOnChanged.addListener).toHaveBeenCalledOnce()
-      expect(local.get).toHaveBeenCalledTimes(2)
+      expect(secondStorageOnChanged.removeListener).toHaveBeenCalledOnce()
+      expect(secondStorageOnChanged.listenerCount()).toBe(0)
+      expect(secondStorageOnChanged.addListener).toHaveBeenCalledWith(
+        stableListener,
+      )
+      expect(firstStorageOnChanged.addListener).toHaveBeenLastCalledWith(
+        stableListener,
+      )
+      expect(local.get).toHaveBeenCalledTimes(3)
     })
 
     it('does not reuse cache after the onChanged API returns', async () => {
@@ -308,7 +416,9 @@ describe('urls storage', () => {
       } as unknown as typeof chrome
 
       await expect(getUrlRecords()).resolves.toStrictEqual(thirdRecords)
-      expect(storageOnChanged.addListener).toHaveBeenCalledOnce()
+      expect(storageOnChanged.addListener).toHaveBeenCalledTimes(2)
+      expect(storageOnChanged.removeListener).toHaveBeenCalledOnce()
+      expect(storageOnChanged.listenerCount()).toBe(1)
       expect(local.get).toHaveBeenCalledTimes(3)
     })
 
