@@ -29,7 +29,10 @@ export default defineConfig({
       'src/utils/**/*.test.ts',
       'src/utils/**/*.test.tsx',
     ],
-    setupFiles: ['./src/test/setup-console.ts'],
+    setupFiles: [
+      './src/test/setup-console.ts',
+      './src/test/setup-global-state.ts',
+    ],
     typecheck: {
       enabled: false,
     },
