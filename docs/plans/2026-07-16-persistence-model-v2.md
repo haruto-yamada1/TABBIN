@@ -20,7 +20,7 @@ can consume the decisions without importing infrastructure.
 
 - Create: `src/contexts/saved-tabs/domain/services/UrlIdentityPolicy.test.ts`
 - Create: `src/contexts/saved-tabs/domain/entities/PersistenceModelV2.test.ts`
-- Create: `src/lib/persistence/json-value.test.ts`
+- Create: `src/lib/persistence/jsonValue.test.ts`
 - Create: `src/lib/architecture/persistenceModelV2Policy.test.ts`
 
 1. Define exact URL identity corpus expectations, including every Issue #725
@@ -38,7 +38,7 @@ can consume the decisions without importing infrastructure.
 - Create: `src/contexts/saved-tabs/domain/entities/PersistenceModelV2.ts`
 - Create: `src/contexts/saved-tabs/domain/services/UrlIdentityPolicy.ts`
 - Create: `src/contexts/saved-tabs/domain/services/urlIdentityCorpus.ts`
-- Create: `src/lib/persistence/json-value.ts`
+- Create: `src/lib/persistence/jsonValue.ts`
 
 1. Add v2 entity and snapshot types with composite membership identity.
 2. Add the exact-url-v1 policy and executable corpus.

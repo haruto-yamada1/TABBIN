@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -60,5 +60,14 @@ describe('Persistence Model v2 architecture contract', () => {
     ]) {
       expect(modelDocument).toContain(guardrail)
     }
+  })
+
+  it('uses camelCase for the shared persistence utility filename', () => {
+    expect(
+      existsSync(resolve(repoRoot, 'src/lib/persistence/jsonValue.ts')),
+    ).toBe(true)
+    expect(
+      existsSync(resolve(repoRoot, 'src/lib/persistence/json-value.ts')),
+    ).toBe(false)
   })
 })

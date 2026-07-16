@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isJsonValue } from './json-value'
+import { isJsonValue } from './jsonValue'
 
 describe('isJsonValue', () => {
   it('accepts nested values that round-trip through JSON without loss', () => {

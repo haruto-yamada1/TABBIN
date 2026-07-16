@@ -24,7 +24,7 @@ The normalized saved-tabs aggregate consists of `Url`, `Collection`,
   controls, and recovery snapshots retain their own context ownership. The
   Storage Placement Matrix decides their engine and authority without making
   them saved-tabs domain entities.
-- Shared JSON serialization rules live in `src/lib/persistence/json-value.ts`.
+- Shared JSON serialization rules live in `src/lib/persistence/jsonValue.ts`.
   A context-specific persistence mapper must convert runtime values to that
   shared boundary.
 - Infrastructure may store several aggregates in one IndexedDB database, but
