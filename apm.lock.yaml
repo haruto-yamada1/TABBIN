@@ -298,7 +298,7 @@ local_deployed_file_hashes:
   .claude/rules/00-context-mode.md: sha256:d401dc7362629b4ca86a965be6ce2eb5bd4a01df49ff2e7e0d66cef83a5005b3
   .claude/rules/01-rtk.md: sha256:b2bf8798e77e1cdcc0f0d31d5c5277c63dcb6086672e87ba0b7828dcfec7ca9b
   .claude/rules/02-vitest-local-development.md: sha256:5973808cd7ac1364082aab2f297f83e0cd6cbff9de3276ef41a60f307fd689b5
-  .claude/rules/03-github-pr-review.md: sha256:de31b31eda7baf50ad5758dce05df3a8c31b4931cf3d4df355436be8a52fce54
+  .claude/rules/03-github-pr-review.md: sha256:f390f89ade1e9043114f0b5a1f567b4201827e8f23a857936c9ab6508caddead
   .claude/rules/harness.md: sha256:dc453f64350193cf107ec2510ddad7be57bfa194130d7ee8794c5d700d8e7fb6
   .claude/rules/repository-guidelines.md: sha256:7e1bc06e76e8fe2808d92f7674ac1db0fb2acf7027e67fd1177302b1f5e5b11b
   .codex/hooks/TABBIN/scripts/format-check-on-edit.sh: sha256:c4e970c8bb9af84d52a33deb6831a2eec3847d16de0e95d038f64f4e3e618035
@@ -343,7 +343,7 @@ local_deployed_file_hashes:
   .cursor/rules/00-context-mode.mdc: sha256:7a7d69afa8c55490fe5e945474c365e66d150a2360aa7449c11761371215f17f
   .cursor/rules/01-rtk.mdc: sha256:7c0b16527fe49e8d7180e1759cff25fd24a1e661371fe9d1faed760de44bc3e5
   .cursor/rules/02-vitest-local-development.mdc: sha256:7916ed584375c09276097599e06fc63c145f6f8ba7995150f0978fe960c60872
-  .cursor/rules/03-github-pr-review.mdc: sha256:dbcd02a1312b8cef7c39c757a37831591d61a26e003b897030d895dc8b1430c3
+  .cursor/rules/03-github-pr-review.mdc: sha256:ba170fc152f48c2097d37dc76ba92b660bbab1409c2391a83afdb8d61a687254
   .cursor/rules/harness.mdc: sha256:0cff5ecaeda38db3e52ffce5489b22b4f1e9ec252003df0a51eeaf1309da34f5
   .cursor/rules/repository-guidelines.mdc: sha256:c6dea1730291e606579fdcccecc4ccefe6623c48af066567f7d0366c74acb1c4
   .gemini/commands/agent-automation-recommendations.toml: sha256:ce578d722cab82c16a65ed4a38696e8570a9205b38e99a84a8fbfc362375876a
@@ -389,7 +389,7 @@ local_deployed_file_hashes:
   .github/instructions/00-context-mode.instructions.md: sha256:35a864d8df37bda3f7becc6781dff9b5968cd81e0c9dfd06ca46493f12caadff
   .github/instructions/01-rtk.instructions.md: sha256:17c762d7da8731a1415059900be8e37bb7cb17e859e0c2eddda7c4f933d491a3
   .github/instructions/02-vitest-local-development.instructions.md: sha256:f0fa9049ca62cf675293b6a5fef7e967ab33c48c420c0ff4b2b2b974b0891916
-  .github/instructions/03-github-pr-review.instructions.md: sha256:6a1584a84366d94fd24894da6b5043154b18fcbf4c2111948c08fc681525b530
+  .github/instructions/03-github-pr-review.instructions.md: sha256:7b22d1107c759aaf72180a2092385c3ef0ce6e80a07a67c3990acfd722ed53dd
   .github/instructions/harness.instructions.md: sha256:ed6fdf7848a0574eef6bc57499642609c5c89701d55c9df5a243e46bcb27ba2d
   .github/instructions/repository-guidelines.instructions.md: sha256:b948d0762a18a5818bff12e7400c35f8f3e5da835bb7a720f29e5e06213cbfa2
   .github/prompts/agent-automation-recommendations.prompt.md: sha256:4a5126ce538fa571ff76f84ca2e099a416ed4f00cde623fd498cbb62275f5d3c

@@ -65,9 +65,9 @@ repository-local agent artifact の同期を分離し、agent configuration を�
 - 現在の code path、型、schema、test、runtime、repository rule で妥当性を検証する。
 - 妥当なら根本修正、regression test、検証、scoped commit、PR branch push を行う。
 - 妥当でなければ code を変更しない。
-- reviewer の種別や判定にかかわらず、thread reply はユーザーが明示的に許可した場合だけ行う。
-  許可がなければ final response に返信案を示す。
-- merge、close、approve、base branch push、force push、無断 resolve は行わない。
+- reviewer の種別や判定にかかわらず、review 対応では同じ thread へ根拠を返信して resolve する。
+  read-only 依頼、またはユーザーが返信・resolve を明示的に禁止した場合だけ省略する。
+- merge、close、approve、base branch push、force push は行わない。
 
 既存 `receiving-code-review` は妥当性検証の原則として再利用し、GitHub workflow と重複させない。
 
