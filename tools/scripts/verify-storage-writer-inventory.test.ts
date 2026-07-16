@@ -4,7 +4,10 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, test } from 'vitest'
 
-import { verifyStorageWriterInventory } from './verify-storage-writer-inventory'
+import {
+  containsStorageMutationBoundary,
+  verifyStorageWriterInventory,
+} from './verify-storage-writer-inventory'
 
 const REQUIRED_STORAGE_KEYS = [
   'savedTabs',
@@ -135,43 +138,217 @@ describe('verifyStorageWriterInventory', () => {
     )
   })
 
-  test('recognizes storage mutation boundaries without matching unrelated setters', () => {
+  test('does not accept required items mentioned outside designated sections', () => {
     const repoRoot = createFixture()
     const inventoryPath = 'docs/storage-writer-inventory.md'
-    const mutationFiles = [
-      'src/lib/storage/direct.ts',
-      'src/lib/storage/resolved.ts',
-      'src/contexts/example/infrastructure/persistence/chrome-storage/ChromeExampleRepository.ts',
-    ]
+    const mutationFile = 'src/lib/storage/unlisted.ts'
     writeFixtureFile(
       repoRoot,
       inventoryPath,
-      createInventory({ mutationFiles }),
+      `${createInventory({
+        storageKeys: REQUIRED_STORAGE_KEYS.filter(
+          (key) => key !== 'savedAnalyticsViews',
+        ),
+        writerCategories: REQUIRED_WRITER_CATEGORIES.filter(
+          (category) => category !== 'scheduled maintenance',
+        ),
+      })}
+## Notes
+
+- \`savedAnalyticsViews\`
+- scheduled maintenance
+- \`${mutationFile}\`
+`,
     )
     writeFixtureFile(
       repoRoot,
-      mutationFiles[0],
-      "await chrome.storage.local.remove('urls')\n",
+      mutationFile,
+      'await chrome.storage.local.set({ urls: [] })\n',
     )
-    writeFixtureFile(
-      repoRoot,
-      mutationFiles[1],
-      'const storageLocal = getChromeStorageLocal()\nawait storageLocal.set({ urls: [] })\n',
-    )
-    writeFixtureFile(
-      repoRoot,
-      mutationFiles[2],
-      'const port = getChromeStoragePort()\nawait port.set({ urls: [] })\n',
-    )
-    writeFixtureFile(
-      repoRoot,
-      'src/features/example/useState.ts',
-      'state.set({ urls: [] })\nsetState({ urls: [] })\n',
-    )
-    writeFixtureFile(
-      repoRoot,
-      'src/lib/storage/comment-only.ts',
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow(
       [
+        'Storage writer inventory verification failed:',
+        '- Missing required storage key: savedAnalyticsViews',
+        '- Missing required writer category: scheduled maintenance',
+        `- Unlisted storage mutation file: ${mutationFile}`,
+      ].join('\n'),
+    )
+  })
+
+  test('requires exact list entries inside designated sections', () => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const mutationFile = 'src/lib/storage/unlisted.ts'
+    const inventory = createInventory({
+      storageKeys: REQUIRED_STORAGE_KEYS.filter(
+        (key) => key !== 'savedAnalyticsViews',
+      ),
+      writerCategories: REQUIRED_WRITER_CATEGORIES.filter(
+        (category) => category !== 'scheduled maintenance',
+      ),
+    })
+      .replace(
+        '## Writer categories',
+        '- `savedAnalyticsViews` is pending\n\n## Writer categories',
+      )
+      .replace(
+        '## Mutation files',
+        '- scheduled maintenance is planned\n\n## Mutation files',
+      )
+      .concat(`- see \`${mutationFile}\` for details\n`)
+    writeFixtureFile(repoRoot, inventoryPath, inventory)
+    writeFixtureFile(
+      repoRoot,
+      mutationFile,
+      'await chrome.storage.local.set({ urls: [] })\n',
+    )
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow(
+      [
+        'Storage writer inventory verification failed:',
+        '- Missing required storage key: savedAnalyticsViews',
+        '- Missing required writer category: scheduled maintenance',
+        `- Unlisted storage mutation file: ${mutationFile}`,
+      ].join('\n'),
+    )
+  })
+
+  test('accepts exact entries in structured Markdown tables', () => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const table = (values: readonly string[]): string =>
+      ['| Entry |', '| --- |', ...values.map((value) => `| ${value} |`)].join(
+        '\n',
+      )
+    writeFixtureFile(
+      repoRoot,
+      inventoryPath,
+      `# Current storage writer inventory
+
+## Storage keys
+
+${table(REQUIRED_STORAGE_KEYS.map((key) => `\`${key}\``))}
+
+## Writer categories
+
+${table(REQUIRED_WRITER_CATEGORIES)}
+
+## Mutation files
+
+${table([])}
+`,
+    )
+    writeFixtureFile(repoRoot, 'src/empty.ts', 'export {}\n')
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).not.toThrow()
+  })
+
+  test.each([
+    {
+      name: 'direct chrome storage call',
+      relativePath: 'src/lib/storage/direct.ts',
+      sourceCode: 'await chrome.storage.local.set({ urls: [] })',
+    },
+    {
+      name: 'optional chained chrome storage call',
+      relativePath: 'src/lib/storage/direct.ts',
+      sourceCode: 'await chrome?.storage?.local?.remove?.(`urls`)',
+    },
+    {
+      name: 'resolved storageLocal call',
+      relativePath: 'src/lib/storage/resolved.ts',
+      sourceCode: 'await storageLocal.set({ urls: [] })',
+    },
+    {
+      name: 'optional chained resolved storageLocal call',
+      relativePath: 'src/lib/storage/resolved.ts',
+      sourceCode: 'await storageLocal?.remove?.(`urls`)',
+    },
+    {
+      name: 'Chrome storage repository port set',
+      relativePath:
+        'src/contexts/example/infrastructure/persistence/chrome-storage/ChromeExampleRepository.ts',
+      sourceCode: 'await port.set({ urls: [] })',
+    },
+    {
+      name: 'Chrome storage repository port remove',
+      relativePath:
+        'src/contexts/example/infrastructure/persistence/chrome-storage/ChromeExampleRepository.ts',
+      sourceCode: 'await port.remove(`urls`)',
+    },
+    {
+      name: 'mutation inside a template expression',
+      relativePath: 'src/lib/storage/template.ts',
+      sourceCode: `const result = \`\${chrome.storage.local.set({ urls: [] })}\``,
+    },
+    {
+      name: 'real mutation after a regex literal containing an apostrophe',
+      relativePath: 'src/lib/storage/regex-before-mutation.ts',
+      sourceCode:
+        "const pattern = /'/\nawait chrome.storage.local.remove('urls')",
+    },
+  ])('recognizes $name', ({ relativePath, sourceCode }) => {
+    expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(true)
+  })
+
+  test.each([
+    {
+      name: 'regex literal',
+      sourceCode: 'const pattern = /chrome.storage.local.set()/',
+    },
+    {
+      name: 'line comment',
+      sourceCode: '// chrome.storage.local.set({ urls: [] })',
+    },
+    {
+      name: 'string literal',
+      sourceCode: "const example = 'chrome.storage.local.remove()'",
+    },
+    {
+      name: 'method reference',
+      sourceCode: 'const mutationMethod = chrome.storage.local.set',
+    },
+    {
+      name: 'unrelated state setters',
+      sourceCode: 'state.set({ urls: [] })\nsetState({ urls: [] })',
+    },
+  ])('does not match a $name', ({ sourceCode }) => {
+    expect(
+      containsStorageMutationBoundary(
+        sourceCode,
+        'src/features/example/useState.ts',
+      ),
+    ).toBe(false)
+  })
+
+  test('excludes non-production mutation fixtures from the inventory scan', () => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    writeFixtureFile(repoRoot, inventoryPath, createInventory())
+    writeFixtureFile(
+      repoRoot,
+      'src/lib/storage/non-mutation.ts',
+      [
+        'const pattern = /chrome.storage.local.set()/',
         '// chrome.storage.local.set({ urls: [] })',
         "const example = 'chrome.storage.local.remove()'",
         'const mutationMethod = chrome.storage.local.set',

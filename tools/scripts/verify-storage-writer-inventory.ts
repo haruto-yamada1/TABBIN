@@ -1,6 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
+import ts from 'typescript'
+
 export type StorageWriterInventoryVerificationOptions = {
   readonly repoRoot: string
   readonly inventoryPath: string
@@ -55,8 +57,20 @@ const EXCLUDED_DIRECTORY_NAMES = new Set([
   'tests',
 ])
 
-const normalizeMarkdownText = (markdown: string): string =>
-  markdown.toLowerCase().replace(/\s+/g, ' ')
+type InventorySection = keyof ParsedStorageWriterInventory
+
+const INVENTORY_SECTION_BY_HEADING: Readonly<Record<string, InventorySection>> =
+  {
+    'mutation files': 'mutationFiles',
+    'storage keys': 'storageKeys',
+    'writer categories': 'writerCategories',
+  }
+
+const MARKDOWN_HEADING = /^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/
+const MARKDOWN_LIST_ENTRY = /^\s*[-+*]\s+(.+?)\s*$/
+const MARKDOWN_TABLE_ROW = /^\s*\|(.+)\|\s*$/
+const MARKDOWN_TABLE_SEPARATOR = /^:?-{3,}:?$/
+const INLINE_CODE_ENTRY = /^`([^`\n]+)`$/
 
 const normalizeRepoPath = (filePath: string): string =>
   filePath.split(path.sep).join('/')
@@ -64,62 +78,179 @@ const normalizeRepoPath = (filePath: string): string =>
 const resolveFromRepo = (repoRoot: string, filePath: string): string =>
   path.isAbsolute(filePath) ? filePath : path.join(repoRoot, filePath)
 
-export const parseStorageWriterInventory = (
-  markdown: string,
-): ParsedStorageWriterInventory => {
-  const codeSpans = Array.from(markdown.matchAll(/`([^`\n]+)`/g), (match) =>
-    match[1].trim(),
-  )
-  const normalizedText = normalizeMarkdownText(markdown)
+const parseMarkdownEntry = (entry: string): string => {
+  const trimmedEntry = entry.trim()
+  return INLINE_CODE_ENTRY.exec(trimmedEntry)?.[1] ?? trimmedEntry
+}
 
-  return {
-    mutationFiles: new Set(
-      codeSpans.filter(
-        (value) =>
-          value.includes('/') && PRODUCTION_SOURCE_EXTENSION.test(value),
-      ),
-    ),
-    storageKeys: new Set(
-      REQUIRED_STORAGE_KEYS.filter((key) => codeSpans.includes(key)),
-    ),
-    writerCategories: new Set(
-      REQUIRED_WRITER_CATEGORIES.filter((category) =>
-        normalizedText.includes(category),
-      ),
-    ),
+const parseMarkdownEntries = (line: string): readonly string[] => {
+  const listEntry = MARKDOWN_LIST_ENTRY.exec(line)
+  if (listEntry) {
+    return [parseMarkdownEntry(listEntry[1])]
+  }
+
+  const tableRow = MARKDOWN_TABLE_ROW.exec(line)
+  if (!tableRow) {
+    return []
+  }
+
+  const cells = tableRow[1].split('|').map(parseMarkdownEntry)
+  return cells.every((cell) => MARKDOWN_TABLE_SEPARATOR.test(cell)) ? [] : cells
+}
+
+const addInventoryEntry = ({
+  entry,
+  inventory,
+  section,
+}: {
+  readonly entry: string
+  readonly inventory: {
+    readonly mutationFiles: Set<string>
+    readonly storageKeys: Set<string>
+    readonly writerCategories: Set<string>
+  }
+  readonly section: InventorySection
+}): void => {
+  if (
+    section === 'storageKeys' &&
+    REQUIRED_STORAGE_KEYS.some((storageKey) => storageKey === entry)
+  ) {
+    inventory.storageKeys.add(entry)
+    return
+  }
+
+  const normalizedEntry = entry.toLowerCase()
+  if (
+    section === 'writerCategories' &&
+    REQUIRED_WRITER_CATEGORIES.some((category) => category === normalizedEntry)
+  ) {
+    inventory.writerCategories.add(normalizedEntry)
+    return
+  }
+
+  if (
+    section === 'mutationFiles' &&
+    entry.includes('/') &&
+    PRODUCTION_SOURCE_EXTENSION.test(entry)
+  ) {
+    inventory.mutationFiles.add(entry)
   }
 }
 
-const NON_CODE_SEGMENT =
-  /'(?:\\[\s\S]|[^'\\])*'|"(?:\\[\s\S]|[^"\\])*"|`(?:\\[\s\S]|[^`\\])*`|\/\/[^\n]*|\/\*[\s\S]*?\*\//g
+export const parseStorageWriterInventory = (
+  markdown: string,
+): ParsedStorageWriterInventory => {
+  const inventory = {
+    mutationFiles: new Set<string>(),
+    storageKeys: new Set<string>(),
+    writerCategories: new Set<string>(),
+  }
+  let section: InventorySection | undefined
 
-const stripCommentsAndStrings = (sourceCode: string): string =>
-  sourceCode.replace(NON_CODE_SEGMENT, (segment) =>
-    segment.replace(/[^\n]/g, ' '),
+  for (const line of markdown.split('\n')) {
+    const heading = MARKDOWN_HEADING.exec(line)
+    if (heading) {
+      section = INVENTORY_SECTION_BY_HEADING[heading[1].trim().toLowerCase()]
+      continue
+    }
+    if (!section) {
+      continue
+    }
+    for (const entry of parseMarkdownEntries(line)) {
+      addInventoryEntry({ entry, inventory, section })
+    }
+  }
+
+  return inventory
+}
+
+const STORAGE_MUTATION_METHODS = new Set(['clear', 'remove', 'set'])
+
+const getPropertyAccessPath = (
+  expression: ts.Expression,
+): readonly string[] => {
+  if (ts.isIdentifier(expression)) {
+    return [expression.text]
+  }
+  if (ts.isParenthesizedExpression(expression)) {
+    return getPropertyAccessPath(expression.expression)
+  }
+  if (!ts.isPropertyAccessExpression(expression)) {
+    return []
+  }
+
+  const receiverPath = getPropertyAccessPath(expression.expression)
+  return receiverPath.length === 0
+    ? []
+    : [...receiverPath, expression.name.text]
+}
+
+const isChromeStorageRepositoryPath = (relativePath: string): boolean =>
+  /(?:^|\/)chrome-storage\/Chrome[^/]*Repository\.[cm]?[jt]sx?$/.test(
+    normalizeRepoPath(relativePath),
   )
+
+const isStorageMutationCall = ({
+  callExpression,
+  isChromeStorageRepository,
+}: {
+  readonly callExpression: ts.CallExpression
+  readonly isChromeStorageRepository: boolean
+}): boolean => {
+  const accessPath = getPropertyAccessPath(callExpression.expression)
+  const method = accessPath.at(-1)
+  if (!method || !STORAGE_MUTATION_METHODS.has(method)) {
+    return false
+  }
+
+  const receiverPath = accessPath.slice(0, -1)
+  if (receiverPath.join('.') === 'chrome.storage.local') {
+    return true
+  }
+  if (receiverPath.length === 1 && receiverPath[0] === 'storageLocal') {
+    return true
+  }
+
+  const receiver = receiverPath.at(-1)
+  return (
+    isChromeStorageRepository &&
+    (receiver === 'port' || receiver === 'storagePort')
+  )
+}
 
 export const containsStorageMutationBoundary = (
   sourceCode: string,
   relativePath: string,
 ): boolean => {
-  const code = stripCommentsAndStrings(sourceCode)
-  const directChromeStorageMutation =
-    /\bchrome\s*\.\s*storage\s*\.\s*local\s*\.\s*(?:clear|remove|set)\s*\(/
-  const resolvedStorageLocalMutation =
-    /\bstorageLocal\s*\.\s*(?:clear|remove|set)\s*\(/
-  const chromeStorageRepositoryPortMutation =
-    /\b(?:port|storagePort)\s*\.\s*(?:clear|remove|set)\s*\(/
-  const isChromeStorageRepository =
-    /(?:^|\/)chrome-storage\/Chrome[^/]*Repository\.[cm]?[jt]sx?$/.test(
-      normalizeRepoPath(relativePath),
-    )
-
-  return (
-    directChromeStorageMutation.test(code) ||
-    resolvedStorageLocalMutation.test(code) ||
-    (isChromeStorageRepository &&
-      chromeStorageRepositoryPortMutation.test(code))
+  const sourceFile = ts.createSourceFile(
+    relativePath,
+    sourceCode,
+    ts.ScriptTarget.Latest,
+    false,
+    relativePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   )
+  const isChromeStorageRepository = isChromeStorageRepositoryPath(relativePath)
+  let containsMutation = false
+
+  const visit = (node: ts.Node): void => {
+    if (containsMutation) {
+      return
+    }
+    if (
+      ts.isCallExpression(node) &&
+      isStorageMutationCall({
+        callExpression: node,
+        isChromeStorageRepository,
+      })
+    ) {
+      containsMutation = true
+      return
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+
+  return containsMutation
 }
 
 const isProductionSourceFile = (fileName: string): boolean =>
