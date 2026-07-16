@@ -1,6 +1,5 @@
 import { RotateCcw } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { z } from 'zod'
 
 import { ModeToggle } from '@/components/mode-toggle'
 import { Button } from '@/components/ui/button'
@@ -37,7 +36,10 @@ import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeIn
 import { getExtensionUrl } from '@/lib/browser/runtime'
 import type { UserSettings } from '@/types/storage'
 
-import { resetFontSizeInputState } from './optionsRoute.helpers'
+import {
+  parseClickBehavior,
+  resetFontSizeInputState,
+} from './optionsRoute.helpers'
 
 const resolveClickBehavior = (
   value: UserSettings['clickBehavior'] | undefined,
@@ -194,17 +196,7 @@ const useOptionsRouteView = () => {
 
   const handleClickBehaviorChange = useCallback(
     async (value: string) => {
-      await updateSetting(
-        'clickBehavior',
-        z
-          .enum([
-            'saveCurrentTab',
-            'saveWindowTabs',
-            'saveSameDomainTabs',
-            'saveAllWindowsTabs',
-          ])
-          .parse(value),
-      )
+      await updateSetting('clickBehavior', parseClickBehavior(value))
     },
     [updateSetting],
   )

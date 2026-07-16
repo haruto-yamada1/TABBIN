@@ -289,5 +289,5 @@ const OllamaErrorNotice = ({
   )
 }
 
-export type { OllamaErrorPlatform }
+export type { OllamaErrorDetails, OllamaErrorPlatform }
 export { OllamaErrorNotice }

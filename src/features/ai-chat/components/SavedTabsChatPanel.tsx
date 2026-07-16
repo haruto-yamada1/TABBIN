@@ -40,7 +40,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { AiChartRenderer } from '@/features/ai-chat/components/AiChartRenderer'
 import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
-import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
+import type {
+  OllamaErrorDetails,
+  OllamaErrorPlatform,
+} from '@/features/ai-chat/components/OllamaErrorNotice'
 import { SavedTabsChatAttachmentItem } from '@/features/ai-chat/components/SavedTabsChatAttachmentItem'
 import { SavedTabsChatComposer } from '@/features/ai-chat/components/SavedTabsChatComposer'
 import { SavedTabsChatHeader } from '@/features/ai-chat/components/SavedTabsChatHeader'
@@ -50,7 +53,6 @@ import type {
 } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
-import type { OllamaErrorDetails } from '@/types/background'
 
 import { getMessageSources, getSourcesLabel } from './savedTabsChat/messages'
 import type { ChatMessage, TranslateFn } from './savedTabsChat/messages'

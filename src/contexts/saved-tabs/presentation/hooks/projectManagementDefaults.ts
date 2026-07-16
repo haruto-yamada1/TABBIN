@@ -344,6 +344,28 @@ type UseProjectManagementReturn = {
   ) => Promise<void>
 }
 
+export type {
+  AddCategoryToCustomProjectUseCase,
+  AddUrlToCustomProjectUseCase,
+  CreateCustomProjectUseCase,
+  DeleteCustomProjectUseCase,
+  GetCustomProjectOrderQuery,
+  GetCustomProjectRawsQuery,
+  GetCustomProjectsQuery,
+  GetCustomProjectUndoSnapshotQuery,
+  RemoveCategoryFromCustomProjectUseCase,
+  RemoveUrlFromCustomProjectUseCase,
+  RemoveUrlsFromCustomProjectUseCase,
+  RenameCustomProjectCategoryUseCase,
+  ReorderCustomProjectUrlsUseCase,
+  RestoreCustomProjectsSnapshotUseCase,
+  SaveCustomProjectOrderUseCase,
+  SetCustomProjectUrlCategoryUseCase,
+  UpdateCustomProjectCategoryOrderUseCase,
+  UpdateCustomProjectKeywordsUseCase,
+  UpdateCustomProjectNameUseCase,
+}
+
 export type { UseProjectManagementReturn }
 export {
   asyncNoopAddCategoryToCustomProject,

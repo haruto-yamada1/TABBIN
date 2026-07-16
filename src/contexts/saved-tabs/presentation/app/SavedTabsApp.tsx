@@ -15,10 +15,6 @@ import type {
   SavedTabsUserSettingsDto as UserSettingsDto,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
-import {
-  buildPresentationCategoryLookup,
-  organizeTabGroupsWithCategories,
-} from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
 import { Header } from '@/contexts/saved-tabs/presentation/components/Header' // ヘッダーコンポーネントをインポート
 import { CustomModeContainer } from '@/contexts/saved-tabs/presentation/containers/CustomModeContainer'
@@ -30,19 +26,23 @@ import { useCategorySync } from '@/contexts/saved-tabs/presentation/hooks/useCat
 import { useFilteredCustomProjects } from '@/contexts/saved-tabs/presentation/hooks/useFilteredCustomProjects'
 import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
-import { createCategorizedDisplayState } from '@/contexts/saved-tabs/presentation/lib/categorized-display'
-import { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/modeSyncService'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import { useProjectMoveHandlers } from './handlers/useProjectMoveHandlers'
-import { useTabGroupDeletionHandlers } from './handlers/useTabGroupDeletionHandlers'
-import { useTabOpeningHandlers } from './handlers/useTabOpeningHandlers'
-import { useUncategorizedReorderHandlers } from './handlers/useUncategorizedReorderHandlers'
 import {
+  useProjectMoveHandlers,
+  useTabGroupDeletionHandlers,
+  useTabOpeningHandlers,
+  useUncategorizedReorderHandlers,
+} from './handlers'
+import {
+  buildPresentationCategoryLookup,
+  createCategorizedDisplayState,
+  organizeTabGroupsWithCategories,
   shouldWaitForInitialViewMode,
   syncSavedTabsViewModeLocation,
+  syncStorageChanges,
 } from './savedTabsApp.helpers'
 
 // eslint-disable-next-line import/no-unassigned-import
