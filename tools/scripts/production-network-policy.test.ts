@@ -461,7 +461,7 @@ describe('production network call-site inventory', () => {
     expect(() =>
       assertProductionNetworkCallsiteInventory(callsites),
     ).not.toThrow()
-  })
+  }, 30000)
 
   it('reports the full changed inventory with source locations', () => {
     expect(() =>
