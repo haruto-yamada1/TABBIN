@@ -32,6 +32,106 @@ const REQUIRED_WRITER_CATEGORIES = [
   'cleanup',
 ] as const
 
+const REQUIRED_WRITER_COLUMNS = [
+  'ID',
+  'Storage key',
+  'Category',
+  'Context',
+  'Entry point',
+  'Mutation boundary',
+  'Read keys',
+  'Write keys',
+  'RMW',
+  'Queue/lock',
+  'Cache',
+  'Preflight barrier',
+  'Migration barrier',
+  'Change notification',
+  'v2 target',
+] as const
+
+const CURRENT_WRITER_IDS = [
+  'UI-THEME',
+  'UI-COLOR-RESET',
+  'UI-ROUTE-CLEANUP',
+  'RELEASE-CONTROL',
+  'SETTINGS-REPAIR',
+  'SETTINGS-SAVE',
+  'SETTINGS-AUTO-DELETE',
+  'AI-HISTORY-REPAIR',
+  'AI-HISTORY-SAVE',
+  'ANALYTICS-VIEWS',
+  'ANALYTICS-UNDO',
+  'IMPORT-MERGE',
+  'IMPORT-OVERWRITE',
+  'DDD-URLS',
+  'DDD-TAB-GROUPS',
+  'DDD-CUSTOM-PROJECTS',
+  'DDD-CUSTOM-ORDER-UNDO',
+  'DDD-PARENT-CATEGORIES',
+  'DDD-DOMAIN-SETTINGS',
+  'DDD-DOMAIN-MAPPINGS',
+  'DDD-USER-SETTINGS',
+  'LEGACY-PARENT-CATEGORIES',
+  'LEGACY-DOMAIN-CATEGORIES',
+  'PARENT-CATEGORY-MIGRATION',
+  'SAVE-TABS-FACADE',
+  'HOSTNAME-MIGRATION',
+  'URL-MIGRATION',
+  'PROJECTS-REPAIR',
+  'PROJECTS-WRITE',
+  'PROJECTS-DOMAIN-SYNC',
+  'SAVED-TABS-WRITE',
+  'SAVED-TABS-AUTO',
+  'SAVED-TABS-DELETE-UNDO',
+  'URLS-WRITE',
+  'URLS-CLEANUP-DEDUPE',
+  'BACKGROUND-URL-REMOVE',
+  'EXPIRED-TABS-CLEANUP',
+  'TAB-TIMESTAMP-UPDATE',
+] as const
+
+const DEFAULT_MUTATION_FILE = 'src/lib/storage/listed.ts'
+
+const createWriterTable = ({
+  columns = REQUIRED_WRITER_COLUMNS,
+  ids = CURRENT_WRITER_IDS,
+  mutationFileById = () => 'src/lib/storage/listed.ts',
+  valueByCell,
+}: {
+  readonly columns?: readonly string[]
+  readonly ids?: readonly string[]
+  readonly mutationFileById?: (id: string, index: number) => string
+  readonly valueByCell?: (
+    column: string,
+    id: string,
+    rowIndex: number,
+  ) => string | undefined
+} = {}): string => {
+  const rows = ids.map((id, rowIndex) => {
+    const cells = columns.map((column) => {
+      const override = valueByCell?.(column, id, rowIndex)
+      if (override !== undefined) {
+        return override
+      }
+      if (column === 'ID') {
+        return id
+      }
+      if (column === 'Mutation boundary') {
+        return `\`${mutationFileById(id, rowIndex)}\`: mutation`
+      }
+      return `${column} value`
+    })
+    return `| ${cells.join(' | ')} |`
+  })
+
+  return [
+    `| ${columns.join(' | ')} |`,
+    `| ${columns.map(() => '---').join(' | ')} |`,
+    ...rows,
+  ].join('\n')
+}
+
 const fixtureRoots: string[] = []
 
 const createFixture = (): string => {
@@ -39,6 +139,12 @@ const createFixture = (): string => {
     path.join(tmpdir(), 'tabbin-storage-writer-inventory-'),
   )
   fixtureRoots.push(repoRoot)
+  const defaultMutationPath = path.join(repoRoot, DEFAULT_MUTATION_FILE)
+  mkdirSync(path.dirname(defaultMutationPath), { recursive: true })
+  writeFileSync(
+    defaultMutationPath,
+    'await chrome.storage.local.set({ urls: [] })\n',
+  )
   return repoRoot
 }
 
@@ -55,11 +161,13 @@ const writeFixtureFile = (
 const createInventory = ({
   storageKeys = REQUIRED_STORAGE_KEYS,
   writerCategories = REQUIRED_WRITER_CATEGORIES,
-  mutationFiles = [],
+  mutationFiles = [DEFAULT_MUTATION_FILE],
+  writerTable = createWriterTable(),
 }: {
   readonly storageKeys?: readonly string[]
   readonly writerCategories?: readonly string[]
   readonly mutationFiles?: readonly string[]
+  readonly writerTable?: string
 } = {}): string => `# Current storage writer inventory
 
 ## Storage keys
@@ -70,10 +178,22 @@ ${storageKeys.map((key) => `- \`${key}\``).join('\n')}
 
 ${writerCategories.map((category) => `- ${category}`).join('\n')}
 
+## Current writer inventory
+
+${writerTable}
+
 ## Mutation files
 
 ${mutationFiles.map((file) => `- \`${file}\``).join('\n')}
 `
+
+const createContractInventory = ({
+  mutationFiles,
+  writerTable = createWriterTable(),
+}: {
+  readonly mutationFiles: readonly string[]
+  readonly writerTable?: string
+}): string => createInventory({ mutationFiles, writerTable })
 
 const expectMissingScheduledMaintenance = (inventory: string): void => {
   const repoRoot = createFixture()
@@ -110,6 +230,230 @@ describe('verifyStorageWriterInventory', () => {
         sourceRoots: ['src'],
       }),
     ).not.toThrow()
+  })
+
+  test('rejects deletion of a writer row from the current baseline', () => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const mutationFile = 'src/lib/storage/listed.ts'
+    writeFixtureFile(
+      repoRoot,
+      inventoryPath,
+      createContractInventory({
+        mutationFiles: [mutationFile],
+        writerTable: createWriterTable({
+          ids: CURRENT_WRITER_IDS.slice(0, -1),
+        }),
+      }),
+    )
+    writeFixtureFile(
+      repoRoot,
+      mutationFile,
+      'await chrome.storage.local.set({ urls: [] })\n',
+    )
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow('Writer ID baseline mismatch: expected 38 rows, found 37')
+  })
+
+  test.each([
+    {
+      columns: REQUIRED_WRITER_COLUMNS.slice(0, -1),
+      name: 'missing required column',
+    },
+    {
+      columns: [...REQUIRED_WRITER_COLUMNS, 'Unexpected'],
+      name: 'malformed extra column',
+    },
+  ])('rejects a writer table with a $name', ({ columns }) => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const mutationFile = 'src/lib/storage/listed.ts'
+    writeFixtureFile(
+      repoRoot,
+      inventoryPath,
+      createContractInventory({
+        mutationFiles: [mutationFile],
+        writerTable: createWriterTable({ columns }),
+      }),
+    )
+    writeFixtureFile(
+      repoRoot,
+      mutationFile,
+      'await chrome.storage.local.set({ urls: [] })\n',
+    )
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow('Writer table columns mismatch')
+  })
+
+  test.each([
+    {
+      expected: 'Duplicate writer ID: UI-THEME',
+      ids: CURRENT_WRITER_IDS.map((id, index) =>
+        index === 1 ? 'UI-THEME' : id,
+      ),
+      name: 'duplicate ID',
+    },
+    {
+      expected: 'Writer row 1 has an empty ID',
+      ids: CURRENT_WRITER_IDS.map((id, index) => (index === 0 ? '' : id)),
+      name: 'empty ID',
+    },
+  ])('rejects a writer row with a $name', ({ expected, ids }) => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const mutationFile = 'src/lib/storage/listed.ts'
+    writeFixtureFile(
+      repoRoot,
+      inventoryPath,
+      createContractInventory({
+        mutationFiles: [mutationFile],
+        writerTable: createWriterTable({ ids }),
+      }),
+    )
+    writeFixtureFile(
+      repoRoot,
+      mutationFile,
+      'await chrome.storage.local.set({ urls: [] })\n',
+    )
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow(expected)
+  })
+
+  test('rejects an empty non-ID writer cell', () => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const mutationFile = 'src/lib/storage/listed.ts'
+    writeFixtureFile(
+      repoRoot,
+      inventoryPath,
+      createContractInventory({
+        mutationFiles: [mutationFile],
+        writerTable: createWriterTable({
+          valueByCell: (column, _id, rowIndex) =>
+            column === 'Context' && rowIndex === 0 ? '' : undefined,
+        }),
+      }),
+    )
+    writeFixtureFile(
+      repoRoot,
+      mutationFile,
+      'await chrome.storage.local.set({ urls: [] })\n',
+    )
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow('Writer row UI-THEME has an empty Context cell')
+  })
+
+  test('rejects a stale mutation file in the appendix', () => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const mutationFile = 'src/lib/storage/listed.ts'
+    const staleFile = 'src/lib/storage/stale.ts'
+    writeFixtureFile(
+      repoRoot,
+      inventoryPath,
+      createContractInventory({ mutationFiles: [mutationFile, staleFile] }),
+    )
+    writeFixtureFile(
+      repoRoot,
+      mutationFile,
+      'await chrome.storage.local.set({ urls: [] })\n',
+    )
+    writeFixtureFile(repoRoot, staleFile, 'export {}\n')
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow(`Stale mutation file in appendix: ${staleFile}`)
+  })
+
+  test('rejects a discovered mutation file without a writer row', () => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const listedFile = 'src/lib/storage/listed.ts'
+    const unmappedFile = 'src/lib/storage/unmapped.ts'
+    writeFixtureFile(
+      repoRoot,
+      inventoryPath,
+      createContractInventory({
+        mutationFiles: [listedFile, unmappedFile],
+      }),
+    )
+    for (const mutationFile of [listedFile, unmappedFile]) {
+      writeFixtureFile(
+        repoRoot,
+        mutationFile,
+        'await chrome.storage.local.set({ urls: [] })\n',
+      )
+    }
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow(`Storage mutation file has no writer row: ${unmappedFile}`)
+  })
+
+  test('rejects a writer row reference that is not a current mutation file', () => {
+    const repoRoot = createFixture()
+    const inventoryPath = 'docs/storage-writer-inventory.md'
+    const mutationFile = 'src/lib/storage/listed.ts'
+    const staleFile = 'src/lib/storage/stale.ts'
+    writeFixtureFile(
+      repoRoot,
+      inventoryPath,
+      createContractInventory({
+        mutationFiles: [mutationFile],
+        writerTable: createWriterTable({
+          mutationFileById: (_id, index) =>
+            index === 0 ? staleFile : mutationFile,
+        }),
+      }),
+    )
+    writeFixtureFile(
+      repoRoot,
+      mutationFile,
+      'await chrome.storage.local.set({ urls: [] })\n',
+    )
+    writeFixtureFile(repoRoot, staleFile, 'export {}\n')
+
+    expect(() =>
+      verifyStorageWriterInventory({
+        inventoryPath,
+        repoRoot,
+        sourceRoots: ['src'],
+      }),
+    ).toThrow(
+      `Writer row UI-THEME references a non-mutation file: ${staleFile}`,
+    )
   })
 
   test('requires every storage key and writer category', () => {
@@ -344,9 +688,13 @@ ${table(REQUIRED_STORAGE_KEYS.map((key) => `\`${key}\``))}
 
 ${table(REQUIRED_WRITER_CATEGORIES)}
 
+## Current writer inventory
+
+${createWriterTable()}
+
 ## Mutation files
 
-${table([])}
+${table([`\`${DEFAULT_MUTATION_FILE}\``])}
 `,
     )
     writeFixtureFile(repoRoot, 'src/empty.ts', 'export {}\n')

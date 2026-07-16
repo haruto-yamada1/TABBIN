@@ -13,6 +13,18 @@ export type ParsedStorageWriterInventory = {
   readonly storageKeys: ReadonlySet<string>
   readonly writerCategories: ReadonlySet<string>
   readonly mutationFiles: ReadonlySet<string>
+  readonly writerTable: {
+    readonly columns: readonly string[]
+    readonly found: boolean
+    readonly rows: readonly ParsedStorageWriterRow[]
+  }
+}
+
+export type ParsedStorageWriterRow = {
+  readonly cells: readonly string[]
+  readonly fileReferences: ReadonlySet<string>
+  readonly id: string
+  readonly rowNumber: number
 }
 
 const REQUIRED_STORAGE_KEYS = [
@@ -38,6 +50,65 @@ const REQUIRED_WRITER_CATEGORIES = [
   'cleanup',
 ] as const
 
+const REQUIRED_WRITER_COLUMNS = [
+  'ID',
+  'Storage key',
+  'Category',
+  'Context',
+  'Entry point',
+  'Mutation boundary',
+  'Read keys',
+  'Write keys',
+  'RMW',
+  'Queue/lock',
+  'Cache',
+  'Preflight barrier',
+  'Migration barrier',
+  'Change notification',
+  'v2 target',
+] as const
+
+const CURRENT_WRITER_IDS = [
+  'UI-THEME',
+  'UI-COLOR-RESET',
+  'UI-ROUTE-CLEANUP',
+  'RELEASE-CONTROL',
+  'SETTINGS-REPAIR',
+  'SETTINGS-SAVE',
+  'SETTINGS-AUTO-DELETE',
+  'AI-HISTORY-REPAIR',
+  'AI-HISTORY-SAVE',
+  'ANALYTICS-VIEWS',
+  'ANALYTICS-UNDO',
+  'IMPORT-MERGE',
+  'IMPORT-OVERWRITE',
+  'DDD-URLS',
+  'DDD-TAB-GROUPS',
+  'DDD-CUSTOM-PROJECTS',
+  'DDD-CUSTOM-ORDER-UNDO',
+  'DDD-PARENT-CATEGORIES',
+  'DDD-DOMAIN-SETTINGS',
+  'DDD-DOMAIN-MAPPINGS',
+  'DDD-USER-SETTINGS',
+  'LEGACY-PARENT-CATEGORIES',
+  'LEGACY-DOMAIN-CATEGORIES',
+  'PARENT-CATEGORY-MIGRATION',
+  'SAVE-TABS-FACADE',
+  'HOSTNAME-MIGRATION',
+  'URL-MIGRATION',
+  'PROJECTS-REPAIR',
+  'PROJECTS-WRITE',
+  'PROJECTS-DOMAIN-SYNC',
+  'SAVED-TABS-WRITE',
+  'SAVED-TABS-AUTO',
+  'SAVED-TABS-DELETE-UNDO',
+  'URLS-WRITE',
+  'URLS-CLEANUP-DEDUPE',
+  'BACKGROUND-URL-REMOVE',
+  'EXPIRED-TABS-CLEANUP',
+  'TAB-TIMESTAMP-UPDATE',
+] as const
+
 const PRODUCTION_SOURCE_EXTENSION = /\.(?:c|m)?[jt]sx?$/
 const EXCLUDED_FILE_NAME =
   /\.(?:d|fixture|generated|spec|stories?|test)\.[cm]?[jt]sx?$/
@@ -57,7 +128,11 @@ const EXCLUDED_DIRECTORY_NAMES = new Set([
   'tests',
 ])
 
-type InventorySection = keyof ParsedStorageWriterInventory
+type InventorySection =
+  | 'mutationFiles'
+  | 'storageKeys'
+  | 'writerCategories'
+  | 'writerTable'
 type MarkdownFence = {
   readonly character: '`' | '~'
   readonly length: number
@@ -65,7 +140,9 @@ type MarkdownFence = {
 
 const INVENTORY_SECTION_BY_HEADING: Readonly<Record<string, InventorySection>> =
   {
+    'current writer inventory': 'writerTable',
     'mutation files': 'mutationFiles',
+    'required storage keys': 'storageKeys',
     'storage keys': 'storageKeys',
     'writer categories': 'writerCategories',
   }
@@ -75,6 +152,7 @@ const MARKDOWN_LIST_ENTRY = /^\s*[-+*]\s+(.+?)\s*$/
 const MARKDOWN_TABLE_ROW = /^\s*\|(.+)\|\s*$/
 const MARKDOWN_TABLE_SEPARATOR = /^:?-{3,}:?$/
 const INLINE_CODE_ENTRY = /^`([^`\n]+)`$/
+const INLINE_CODE_SPAN = /`([^`\n]+)`/g
 const MARKDOWN_FENCE_OPENING = /^ {0,3}(`{3,}|~{3,})(.*)$/
 const MARKDOWN_FENCE_CLOSING = /^ {0,3}(`+|~+)[ \t]*$/
 const MARKDOWN_INDENTED_CODE = /^(?: {4}| {0,3}\t)/
@@ -103,6 +181,31 @@ const parseMarkdownEntries = (line: string): readonly string[] => {
 
   const cells = tableRow[1].split('|').map(parseMarkdownEntry)
   return cells.every((cell) => MARKDOWN_TABLE_SEPARATOR.test(cell)) ? [] : cells
+}
+
+const parseMarkdownTableCells = (
+  line: string,
+): readonly string[] | undefined => {
+  const tableRow = MARKDOWN_TABLE_ROW.exec(line)
+  return tableRow?.[1].split('|').map((cell) => cell.trim())
+}
+
+const extractMutationFileReferences = (
+  cells: readonly string[],
+): ReadonlySet<string> => {
+  const references = new Set<string>()
+  for (const cell of cells) {
+    for (const match of cell.matchAll(INLINE_CODE_SPAN)) {
+      const reference = match[1]
+      if (
+        reference.includes('/') &&
+        PRODUCTION_SOURCE_EXTENSION.test(reference)
+      ) {
+        references.add(reference)
+      }
+    }
+  }
+  return references
 }
 
 const parseMarkdownFenceOpening = (line: string): MarkdownFence | undefined => {
@@ -170,15 +273,30 @@ const addInventoryEntry = ({
   }
 }
 
-export const parseStorageWriterInventory = (
-  markdown: string,
-): ParsedStorageWriterInventory => {
-  const inventory = {
-    mutationFiles: new Set<string>(),
-    storageKeys: new Set<string>(),
-    writerCategories: new Set<string>(),
+type MutableStorageWriterInventory = {
+  readonly mutationFiles: Set<string>
+  readonly storageKeys: Set<string>
+  readonly writerCategories: Set<string>
+  readonly writerTable: {
+    readonly columns: string[]
+    found: boolean
+    readonly rows: ParsedStorageWriterRow[]
   }
-  let section: InventorySection | undefined
+}
+
+const createEmptyInventory = (): MutableStorageWriterInventory => ({
+  mutationFiles: new Set<string>(),
+  storageKeys: new Set<string>(),
+  writerCategories: new Set<string>(),
+  writerTable: {
+    columns: [],
+    found: false,
+    rows: [],
+  },
+})
+
+const getVisibleMarkdownLines = (markdown: string): readonly string[] => {
+  const lines: string[] = []
   let fence: MarkdownFence | undefined
 
   for (const line of markdown.split('\n')) {
@@ -188,22 +306,54 @@ export const parseStorageWriterInventory = (
       }
       continue
     }
-
-    const openingFence = parseMarkdownFenceOpening(line)
-    if (openingFence) {
-      fence = openingFence
-      continue
+    fence = parseMarkdownFenceOpening(line)
+    if (!fence && !MARKDOWN_INDENTED_CODE.test(line)) {
+      lines.push(line)
     }
-    if (MARKDOWN_INDENTED_CODE.test(line)) {
-      continue
-    }
+  }
+  return lines
+}
 
+const addWriterTableLine = (
+  line: string,
+  writerTable: MutableStorageWriterInventory['writerTable'],
+): void => {
+  const cells = parseMarkdownTableCells(line)
+  if (!cells || cells.every((cell) => MARKDOWN_TABLE_SEPARATOR.test(cell))) {
+    return
+  }
+  if (writerTable.columns.length === 0) {
+    writerTable.columns.push(...cells)
+    return
+  }
+  writerTable.rows.push({
+    cells,
+    fileReferences: extractMutationFileReferences(cells),
+    id: cells[0]?.trim() ?? '',
+    rowNumber: writerTable.rows.length + 1,
+  })
+}
+
+export const parseStorageWriterInventory = (
+  markdown: string,
+): ParsedStorageWriterInventory => {
+  const inventory = createEmptyInventory()
+  let section: InventorySection | undefined
+
+  for (const line of getVisibleMarkdownLines(markdown)) {
     const heading = MARKDOWN_HEADING.exec(line)
     if (heading) {
       section = INVENTORY_SECTION_BY_HEADING[heading[1].trim().toLowerCase()]
+      if (section === 'writerTable') {
+        inventory.writerTable.found = true
+      }
       continue
     }
     if (!section) {
+      continue
+    }
+    if (section === 'writerTable') {
+      addWriterTableLine(line, inventory.writerTable)
       continue
     }
     for (const entry of parseMarkdownEntries(line)) {
@@ -350,16 +500,10 @@ const collectStorageMutationFiles = ({
   return mutationFiles
 }
 
-export const verifyStorageWriterInventory = ({
-  inventoryPath,
-  repoRoot,
-  sourceRoots,
-}: StorageWriterInventoryVerificationOptions): void => {
-  const inventory = parseStorageWriterInventory(
-    readFileSync(resolveFromRepo(repoRoot, inventoryPath), 'utf8'),
-  )
+const collectRequiredInventoryErrors = (
+  inventory: ParsedStorageWriterInventory,
+): readonly string[] => {
   const errors: string[] = []
-
   for (const storageKey of REQUIRED_STORAGE_KEYS) {
     if (!inventory.storageKeys.has(storageKey)) {
       errors.push(`Missing required storage key: ${storageKey}`)
@@ -370,8 +514,162 @@ export const verifyStorageWriterInventory = ({
       errors.push(`Missing required writer category: ${writerCategory}`)
     }
   }
+  return errors
+}
 
-  const mutationFiles = sourceRoots
+const writerRowLabel = (row: ParsedStorageWriterRow): string | number =>
+  row.id === '' ? row.rowNumber : row.id
+
+const collectWriterRowErrors = (
+  row: ParsedStorageWriterRow,
+): readonly string[] => {
+  const errors: string[] = []
+  if (row.id === '') {
+    errors.push(`Writer row ${row.rowNumber} has an empty ID`)
+  }
+  if (row.cells.length !== REQUIRED_WRITER_COLUMNS.length) {
+    errors.push(
+      `Writer row ${writerRowLabel(row)} has ${row.cells.length} cells; expected ${REQUIRED_WRITER_COLUMNS.length}`,
+    )
+  }
+  for (const [index, column] of REQUIRED_WRITER_COLUMNS.entries()) {
+    if (column !== 'ID' && (row.cells[index]?.trim() ?? '') === '') {
+      errors.push(
+        `Writer row ${writerRowLabel(row)} has an empty ${column} cell`,
+      )
+    }
+  }
+  if (row.fileReferences.size === 0) {
+    errors.push(
+      `Writer row ${writerRowLabel(row)} has no code-spanned mutation file reference`,
+    )
+  }
+  return errors
+}
+
+const collectWriterIdentityErrors = (
+  rows: readonly ParsedStorageWriterRow[],
+): readonly string[] => {
+  const errors: string[] = []
+  const seenWriterIds = new Set<string>()
+  const duplicateWriterIds = new Set<string>()
+  const actualWriterIds = new Set<string>()
+
+  for (const row of rows) {
+    if (row.id === '') {
+      continue
+    }
+    actualWriterIds.add(row.id)
+    if (seenWriterIds.has(row.id)) {
+      duplicateWriterIds.add(row.id)
+    }
+    seenWriterIds.add(row.id)
+  }
+  for (const duplicateWriterId of [...duplicateWriterIds].toSorted()) {
+    errors.push(`Duplicate writer ID: ${duplicateWriterId}`)
+  }
+  for (const expectedWriterId of CURRENT_WRITER_IDS) {
+    if (!actualWriterIds.has(expectedWriterId)) {
+      errors.push(`Missing writer ID from baseline: ${expectedWriterId}`)
+    }
+  }
+  for (const actualWriterId of [...actualWriterIds].toSorted()) {
+    if (!CURRENT_WRITER_IDS.some((writerId) => writerId === actualWriterId)) {
+      errors.push(`Unexpected writer ID outside baseline: ${actualWriterId}`)
+    }
+  }
+  return errors
+}
+
+const hasExactWriterColumns = (columns: readonly string[]): boolean =>
+  columns.length === REQUIRED_WRITER_COLUMNS.length &&
+  columns.every((column, index) => column === REQUIRED_WRITER_COLUMNS[index])
+
+const collectWriterTableErrors = (
+  writerTable: ParsedStorageWriterInventory['writerTable'],
+): readonly string[] => {
+  const errors: string[] = []
+  if (!writerTable.found) {
+    errors.push('Missing designated writer table: Current writer inventory')
+  }
+  if (!hasExactWriterColumns(writerTable.columns)) {
+    errors.push(
+      `Writer table columns mismatch: expected "${REQUIRED_WRITER_COLUMNS.join(
+        ' | ',
+      )}", found "${writerTable.columns.join(' | ')}"`,
+    )
+  }
+  if (writerTable.rows.length !== CURRENT_WRITER_IDS.length) {
+    errors.push(
+      `Writer ID baseline mismatch: expected ${CURRENT_WRITER_IDS.length} rows, found ${writerTable.rows.length}`,
+    )
+  }
+  for (const row of writerTable.rows) {
+    errors.push(...collectWriterRowErrors(row))
+  }
+  errors.push(...collectWriterIdentityErrors(writerTable.rows))
+  return errors
+}
+
+const collectAppendixErrors = ({
+  appendixFiles,
+  mutationFiles,
+}: {
+  readonly appendixFiles: ReadonlySet<string>
+  readonly mutationFiles: readonly string[]
+}): readonly string[] => {
+  const errors: string[] = []
+  const mutationFileSet = new Set(mutationFiles)
+  for (const mutationFile of mutationFiles) {
+    if (!appendixFiles.has(mutationFile)) {
+      errors.push(`Unlisted storage mutation file: ${mutationFile}`)
+    }
+  }
+  for (const appendixFile of [...appendixFiles].toSorted()) {
+    if (!mutationFileSet.has(appendixFile)) {
+      errors.push(`Stale mutation file in appendix: ${appendixFile}`)
+    }
+  }
+  return errors
+}
+
+const collectWriterFileMappingErrors = ({
+  mutationFiles,
+  rows,
+}: {
+  readonly mutationFiles: readonly string[]
+  readonly rows: readonly ParsedStorageWriterRow[]
+}): readonly string[] => {
+  const errors: string[] = []
+  const mutationFileSet = new Set(mutationFiles)
+  const writerMappedFiles = new Set<string>()
+  for (const row of rows) {
+    for (const fileReference of [...row.fileReferences].toSorted()) {
+      if (!mutationFileSet.has(fileReference)) {
+        errors.push(
+          `Writer row ${writerRowLabel(row)} references a non-mutation file: ${fileReference}`,
+        )
+      } else {
+        writerMappedFiles.add(fileReference)
+      }
+    }
+  }
+  for (const mutationFile of mutationFiles) {
+    if (!writerMappedFiles.has(mutationFile)) {
+      errors.push(`Storage mutation file has no writer row: ${mutationFile}`)
+    }
+  }
+  return errors
+}
+
+const discoverStorageMutationFiles = ({
+  repoRoot,
+  sourceRoots,
+}: Pick<
+  StorageWriterInventoryVerificationOptions,
+  'repoRoot' | 'sourceRoots'
+>): readonly string[] =>
+  sourceRoots
     .flatMap((sourceRoot) =>
       collectStorageMutationFiles({
         directory: resolveFromRepo(repoRoot, sourceRoot),
@@ -379,11 +677,28 @@ export const verifyStorageWriterInventory = ({
       }),
     )
     .toSorted()
-  for (const mutationFile of mutationFiles) {
-    if (!inventory.mutationFiles.has(mutationFile)) {
-      errors.push(`Unlisted storage mutation file: ${mutationFile}`)
-    }
-  }
+
+export const verifyStorageWriterInventory = ({
+  inventoryPath,
+  repoRoot,
+  sourceRoots,
+}: StorageWriterInventoryVerificationOptions): void => {
+  const inventory = parseStorageWriterInventory(
+    readFileSync(resolveFromRepo(repoRoot, inventoryPath), 'utf8'),
+  )
+  const mutationFiles = discoverStorageMutationFiles({ repoRoot, sourceRoots })
+  const errors = [
+    ...collectRequiredInventoryErrors(inventory),
+    ...collectWriterTableErrors(inventory.writerTable),
+    ...collectAppendixErrors({
+      appendixFiles: inventory.mutationFiles,
+      mutationFiles,
+    }),
+    ...collectWriterFileMappingErrors({
+      mutationFiles,
+      rows: inventory.writerTable.rows,
+    }),
+  ]
 
   if (errors.length > 0) {
     throw new Error(
