@@ -21,6 +21,17 @@ export default defineConfig({
     // (Codex review P2)。`async-parallel` ルールはこの race を検出しない
     // ため、SavedTabsApp.tsx でのみ sequential await を許容する。
     rules: ['react-doctor/async-parallel'],
+    overrides: [
+      {
+        // Chrome 拡張 API の addListener/removeListener は
+        // React Doctor が cleanup として静的認識しない (DOM の
+        // addEventListener/removeEventListener のみ認識対象)。
+        // ThemeProvider では effect 内で removeListener を cleanup
+        // しているが、false positive になるため対象ファイルのみ抑制。
+        files: ['src/components/ThemeProvider.tsx'],
+        rules: ['react-doctor/effect-needs-cleanup'],
+      },
+    ],
   },
   // SavedTabsApp.tsx に絞って `async-parallel` を許容
   // (Codex review P2: prepareTabGroupDeletion は findRawTabGroupById を
