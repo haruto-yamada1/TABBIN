@@ -81,11 +81,15 @@ export const ThemeProvider = ({
 
   // 初期化時にChrome Storageから設定を読み込む
   useEffect(() => {
+    let cancelled = false
     const storageLocal = getChromeStorageLocal()
     if (storageLocal) {
       storageLocal
         .get(storageKey)
         .then((result) => {
+          if (cancelled) {
+            return
+          }
           const stored = result[storageKey]
           if (isTheme(stored)) {
             setThemeState(stored)
@@ -110,14 +114,17 @@ export const ThemeProvider = ({
       }
     }
     const storageOnChanged = getChromeStorageOnChanged()
-    if (!storageOnChanged) {
-      warnMissingChromeStorage('テーマ変更監視')
-    } else {
+    if (storageOnChanged) {
       storageOnChanged.addListener(handleStorageChange)
+    } else {
+      warnMissingChromeStorage('テーマ変更監視')
     }
 
     return () => {
-      storageOnChanged?.removeListener(handleStorageChange)
+      cancelled = true
+      if (storageOnChanged) {
+        storageOnChanged.removeListener(handleStorageChange)
+      }
     }
   }, [storageKey])
   useEffect(() => {
@@ -176,13 +183,15 @@ export const ThemeProvider = ({
       }
     }
     const storageOnChanged = getChromeStorageOnChanged()
-    if (!storageOnChanged) {
-      warnMissingChromeStorage('ユーザーテーマ色監視')
-    } else {
+    if (storageOnChanged) {
       storageOnChanged.addListener(listener)
+    } else {
+      warnMissingChromeStorage('ユーザーテーマ色監視')
     }
     return () => {
-      storageOnChanged?.removeListener(listener)
+      if (storageOnChanged) {
+        storageOnChanged.removeListener(listener)
+      }
     }
   }, [theme])
   const setTheme = useCallback(
