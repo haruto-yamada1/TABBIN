@@ -110,7 +110,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | `react-doctor` | React 変更後、早い段階で問題を検出します。 |
 | `requesting-code-review` | 実装完了後や merge 前にレビューを依頼するときに使います。 |
 | `receiving-code-review` | review feedback を受け取り、妥当性を確認して対応します。 |
-| `github-pr-review` | Open GitHub PR の review feedback を投稿者に依存せず検証し、許可範囲で修正、push、thread reply、学びの昇格まで行います。 |
+| `github-pr-review` | Open GitHub PR の review feedback を投稿者に依存せず検証し、修正、push、thread reply、resolve、学びの昇格まで行います。 |
 | `security-review` | Browser extension の権限、storage、user content、依存関係、release-sensitive code を確認します。 |
 | `web-design-guidelines` | UI、UX、accessibility、visual quality をレビューします。 |
 | `e2e-testing` | TABBIN の WXT browser extension flow に Playwright E2E を追加・修正・調査します。 |
