@@ -782,6 +782,16 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
         'const persistedState = getChromeStorageLocal()\nawait persistedState?.clear()',
     },
     {
+      name: 'getChromeStorageLocal arbitrary alias from a nested closure',
+      relativePath: 'src/lib/storage/resolved.ts',
+      sourceCode: [
+        'const chromeLocalStore = getChromeStorageLocal()',
+        'const removeStoredUrls = async () => {',
+        "  await chromeLocalStore?.remove('urls')",
+        '}',
+      ].join('\n'),
+    },
+    {
       name: 'optional chained resolved storageLocal call',
       relativePath: 'src/lib/storage/resolved.ts',
       sourceCode: 'await storageLocal?.remove?.(`urls`)',
@@ -837,6 +847,25 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
     {
       name: 'unrelated local alias setter',
       sourceCode: 'const local = otherFactory()\nawait local.set({ urls: [] })',
+    },
+    {
+      name: 'function parameter shadowing a storage alias',
+      sourceCode: [
+        'const chromeLocalStore = getChromeStorageLocal()',
+        'const updateMap = (chromeLocalStore: Map<string, unknown>) => {',
+        "  chromeLocalStore.set('urls', [])",
+        '}',
+      ].join('\n'),
+    },
+    {
+      name: 'block variable shadowing a storage alias',
+      sourceCode: [
+        'const browserStorage = getChromeStorageLocal()',
+        '{',
+        '  const browserStorage = new Map<string, unknown>()',
+        '  browserStorage.clear()',
+        '}',
+      ].join('\n'),
     },
   ])('does not match a $name', ({ sourceCode }) => {
     expect(

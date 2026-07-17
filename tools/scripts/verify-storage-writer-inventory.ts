@@ -390,35 +390,151 @@ const isChromeStorageRepositoryPath = (relativePath: string): boolean =>
     normalizeRepoPath(relativePath),
   )
 
-const collectChromeStorageLocalAliases = (
-  sourceFile: ts.SourceFile,
-): ReadonlySet<string> => {
-  const aliases = new Set<string>()
-  const visit = (node: ts.Node): void => {
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.initializer &&
-      ts.isCallExpression(node.initializer) &&
-      ts.isIdentifier(node.initializer.expression) &&
-      node.initializer.expression.text === 'getChromeStorageLocal'
-    ) {
-      aliases.add(node.name.text)
-    }
-    ts.forEachChild(node, visit)
+type StorageLexicalScope = {
+  readonly bindings: Map<string, boolean>
+  readonly parent: StorageLexicalScope | null
+  readonly type: 'block' | 'function' | 'source'
+}
+
+const collectBindingNames = (name: ts.BindingName): readonly string[] => {
+  if (ts.isIdentifier(name)) {
+    return [name.text]
   }
-  visit(sourceFile)
-  return aliases
+  return name.elements.flatMap((element) =>
+    ts.isOmittedExpression(element) ? [] : collectBindingNames(element.name),
+  )
+}
+
+const isChromeStorageLocalInitializer = (
+  initializer: ts.Expression | undefined,
+): boolean =>
+  initializer !== undefined &&
+  ts.isCallExpression(initializer) &&
+  ts.isIdentifier(initializer.expression) &&
+  initializer.expression.text === 'getChromeStorageLocal'
+
+const getStorageScopeType = (
+  node: ts.Node,
+): StorageLexicalScope['type'] | null => {
+  if (ts.isFunctionLike(node)) {
+    return 'function'
+  }
+  if (
+    ts.isBlock(node) ||
+    ts.isCatchClause(node) ||
+    ts.isForStatement(node) ||
+    ts.isForInStatement(node) ||
+    ts.isForOfStatement(node) ||
+    ts.isSwitchStatement(node)
+  ) {
+    return 'block'
+  }
+  return null
+}
+
+const findVariableScope = (scope: StorageLexicalScope): StorageLexicalScope => {
+  let current = scope
+  while (current.type === 'block' && current.parent !== null) {
+    current = current.parent
+  }
+  return current
+}
+
+const collectStorageLexicalScopes = (
+  sourceFile: ts.SourceFile,
+): WeakMap<ts.Node, StorageLexicalScope> => {
+  const scopes = new WeakMap<ts.Node, StorageLexicalScope>()
+  const sourceScope: StorageLexicalScope = {
+    bindings: new Map(),
+    parent: null,
+    type: 'source',
+  }
+  const visit = (node: ts.Node, parentScope: StorageLexicalScope): void => {
+    const scopeType = node === sourceFile ? null : getStorageScopeType(node)
+    const scope =
+      scopeType === null
+        ? parentScope
+        : {
+            bindings: new Map<string, boolean>(),
+            parent: parentScope,
+            type: scopeType,
+          }
+    scopes.set(node, scope)
+
+    if (ts.isFunctionLike(node)) {
+      for (const parameter of node.parameters) {
+        for (const name of collectBindingNames(parameter.name)) {
+          scope.bindings.set(name, false)
+        }
+      }
+    }
+    if (ts.isVariableDeclaration(node)) {
+      const declarationList = ts.isVariableDeclarationList(node.parent)
+        ? node.parent
+        : null
+      const isBlockScoped =
+        ts.isCatchClause(node.parent) ||
+        (declarationList !== null &&
+          (declarationList.flags & ts.NodeFlags.BlockScoped) !== 0)
+      const declarationScope = isBlockScoped ? scope : findVariableScope(scope)
+      const isChromeStorageLocal =
+        ts.isIdentifier(node.name) &&
+        isChromeStorageLocalInitializer(node.initializer)
+      for (const name of collectBindingNames(node.name)) {
+        const existing = declarationScope.bindings.get(name)
+        declarationScope.bindings.set(
+          name,
+          (existing ?? true) && isChromeStorageLocal,
+        )
+      }
+    }
+
+    ts.forEachChild(node, (child) => {
+      visit(child, scope)
+    })
+  }
+  visit(sourceFile, sourceScope)
+  return scopes
+}
+
+const unwrapParentheses = (expression: ts.Expression): ts.Expression =>
+  ts.isParenthesizedExpression(expression)
+    ? unwrapParentheses(expression.expression)
+    : expression
+
+const getSingleReceiverIdentifier = (
+  callExpression: ts.CallExpression,
+): ts.Identifier | null => {
+  const callee = unwrapParentheses(callExpression.expression)
+  if (!ts.isPropertyAccessExpression(callee)) {
+    return null
+  }
+  const receiver = unwrapParentheses(callee.expression)
+  return ts.isIdentifier(receiver) ? receiver : null
+}
+
+const isChromeStorageLocalAlias = (
+  identifier: ts.Identifier,
+  scopes: Readonly<WeakMap<ts.Node, StorageLexicalScope>>,
+): boolean => {
+  let scope: StorageLexicalScope | null = scopes.get(identifier) ?? null
+  while (scope !== null) {
+    if (scope.bindings.has(identifier.text)) {
+      return scope.bindings.get(identifier.text) === true
+    }
+    scope = scope.parent
+  }
+  return false
 }
 
 const isStorageMutationCall = ({
   callExpression,
-  chromeStorageLocalAliases,
   isChromeStorageRepository,
+  storageLexicalScopes,
 }: {
   readonly callExpression: ts.CallExpression
-  readonly chromeStorageLocalAliases: ReadonlySet<string>
   readonly isChromeStorageRepository: boolean
+  readonly storageLexicalScopes: Readonly<WeakMap<ts.Node, StorageLexicalScope>>
 }): boolean => {
   const accessPath = getPropertyAccessPath(callExpression.expression)
   const method = accessPath.at(-1)
@@ -433,9 +549,11 @@ const isStorageMutationCall = ({
   if (receiverPath.length === 1 && receiverPath[0] === 'storageLocal') {
     return true
   }
+  const receiverIdentifier = getSingleReceiverIdentifier(callExpression)
   if (
     receiverPath.length === 1 &&
-    chromeStorageLocalAliases.has(receiverPath[0])
+    receiverIdentifier !== null &&
+    isChromeStorageLocalAlias(receiverIdentifier, storageLexicalScopes)
   ) {
     return true
   }
@@ -455,11 +573,11 @@ export const containsStorageMutationBoundary = (
     relativePath,
     sourceCode,
     ts.ScriptTarget.Latest,
-    false,
+    true,
     relativePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   )
   const isChromeStorageRepository = isChromeStorageRepositoryPath(relativePath)
-  const chromeStorageLocalAliases = collectChromeStorageLocalAliases(sourceFile)
+  const storageLexicalScopes = collectStorageLexicalScopes(sourceFile)
   let containsMutation = false
 
   const visit = (node: ts.Node): void => {
@@ -470,8 +588,8 @@ export const containsStorageMutationBoundary = (
       ts.isCallExpression(node) &&
       isStorageMutationCall({
         callExpression: node,
-        chromeStorageLocalAliases,
         isChromeStorageRepository,
+        storageLexicalScopes,
       })
     ) {
       containsMutation = true
