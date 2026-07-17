@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -6,6 +12,7 @@ import { afterEach, describe, expect, test } from 'vitest'
 
 import {
   containsStorageMutationBoundary,
+  parseStorageWriterInventory,
   verifyStorageWriterInventory,
 } from './verify-storage-writer-inventory'
 
@@ -231,6 +238,38 @@ describe('verifyStorageWriterInventory', () => {
       }),
     ).not.toThrow()
   })
+
+  test.each([
+    'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+    'src/app/composition/createSavedTabsRepositories.ts',
+  ])(
+    'discovers and maps the real repository alias writer %s',
+    (relativePath) => {
+      const sourceCode = readFileSync(
+        path.join(process.cwd(), relativePath),
+        'utf8',
+      )
+      const inventory = parseStorageWriterInventory(
+        readFileSync(
+          path.join(
+            process.cwd(),
+            'docs/architecture/current-storage-writer-inventory.md',
+          ),
+          'utf8',
+        ),
+      )
+
+      expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(
+        true,
+      )
+      expect(
+        inventory.writerTable.rows.some((row) =>
+          row.fileReferences.has(relativePath),
+        ),
+      ).toBe(true)
+      expect(inventory.mutationFiles.has(relativePath)).toBe(true)
+    },
+  )
 
   test('rejects deletion of a writer row from the current baseline', () => {
     const repoRoot = createFixture()
@@ -725,6 +764,24 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
       sourceCode: 'await storageLocal.set({ urls: [] })',
     },
     {
+      name: 'getChromeStorageLocal local alias set',
+      relativePath: 'src/lib/storage/resolved.ts',
+      sourceCode:
+        'const local = getChromeStorageLocal()\nawait local?.set({ urls: [] })',
+    },
+    {
+      name: 'getChromeStorageLocal arbitrary alias remove',
+      relativePath: 'src/lib/storage/resolved.ts',
+      sourceCode:
+        "const browserStore = getChromeStorageLocal()\nawait browserStore?.remove('urls')",
+    },
+    {
+      name: 'getChromeStorageLocal arbitrary alias clear',
+      relativePath: 'src/lib/storage/resolved.ts',
+      sourceCode:
+        'const persistedState = getChromeStorageLocal()\nawait persistedState?.clear()',
+    },
+    {
       name: 'optional chained resolved storageLocal call',
       relativePath: 'src/lib/storage/resolved.ts',
       sourceCode: 'await storageLocal?.remove?.(`urls`)',
@@ -776,6 +833,10 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
     {
       name: 'unrelated state setters',
       sourceCode: 'state.set({ urls: [] })\nsetState({ urls: [] })',
+    },
+    {
+      name: 'unrelated local alias setter',
+      sourceCode: 'const local = otherFactory()\nawait local.set({ urls: [] })',
     },
   ])('does not match a $name', ({ sourceCode }) => {
     expect(

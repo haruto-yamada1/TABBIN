@@ -390,11 +390,34 @@ const isChromeStorageRepositoryPath = (relativePath: string): boolean =>
     normalizeRepoPath(relativePath),
   )
 
+const collectChromeStorageLocalAliases = (
+  sourceFile: ts.SourceFile,
+): ReadonlySet<string> => {
+  const aliases = new Set<string>()
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      ts.isCallExpression(node.initializer) &&
+      ts.isIdentifier(node.initializer.expression) &&
+      node.initializer.expression.text === 'getChromeStorageLocal'
+    ) {
+      aliases.add(node.name.text)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return aliases
+}
+
 const isStorageMutationCall = ({
   callExpression,
+  chromeStorageLocalAliases,
   isChromeStorageRepository,
 }: {
   readonly callExpression: ts.CallExpression
+  readonly chromeStorageLocalAliases: ReadonlySet<string>
   readonly isChromeStorageRepository: boolean
 }): boolean => {
   const accessPath = getPropertyAccessPath(callExpression.expression)
@@ -408,6 +431,12 @@ const isStorageMutationCall = ({
     return true
   }
   if (receiverPath.length === 1 && receiverPath[0] === 'storageLocal') {
+    return true
+  }
+  if (
+    receiverPath.length === 1 &&
+    chromeStorageLocalAliases.has(receiverPath[0])
+  ) {
     return true
   }
 
@@ -430,6 +459,7 @@ export const containsStorageMutationBoundary = (
     relativePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   )
   const isChromeStorageRepository = isChromeStorageRepositoryPath(relativePath)
+  const chromeStorageLocalAliases = collectChromeStorageLocalAliases(sourceFile)
   let containsMutation = false
 
   const visit = (node: ts.Node): void => {
@@ -440,6 +470,7 @@ export const containsStorageMutationBoundary = (
       ts.isCallExpression(node) &&
       isStorageMutationCall({
         callExpression: node,
+        chromeStorageLocalAliases,
         isChromeStorageRepository,
       })
     ) {
