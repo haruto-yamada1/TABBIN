@@ -493,6 +493,14 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
           ],
           manifest_version: 3,
+          permissions: [
+            'alarms',
+            'tabs',
+            'storage',
+            'contextMenus',
+            'notifications',
+            'unlimitedStorage',
+          ],
         },
         'manifest.json',
       ),
@@ -506,7 +514,12 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           content_security_policy: createProductionExtensionCsp(2),
           manifest_version: 2,
           permissions: [
+            'alarms',
+            'tabs',
             'storage',
+            'contextMenus',
+            'notifications',
+            'unlimitedStorage',
             'http://127.0.0.1:11434/*',
             'http://localhost:11434/*',
           ],
@@ -529,6 +542,60 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         'firefox-optional.json',
       ),
     ).toThrow(/firefox-optional\.json.*optional_permissions/)
+  })
+
+  it('rejects missing, added, or optional API permissions', () => {
+    const manifest = {
+      content_security_policy: {
+        extension_pages: createProductionExtensionCsp(3),
+      },
+      host_permissions: [
+        'http://127.0.0.1:11434/*',
+        'http://localhost:11434/*',
+      ],
+      manifest_version: 3,
+    }
+    const requiredPermissions = [
+      'alarms',
+      'tabs',
+      'storage',
+      'contextMenus',
+      'notifications',
+      'unlimitedStorage',
+    ]
+
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        {
+          ...manifest,
+          permissions: requiredPermissions.filter(
+            (permission) => permission !== 'unlimitedStorage',
+          ),
+        },
+        'missing-api-permission.json',
+      ),
+    ).toThrow(/missing-api-permission\.json.*permissions/)
+
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        {
+          ...manifest,
+          permissions: [...requiredPermissions, 'history'],
+        },
+        'added-api-permission.json',
+      ),
+    ).toThrow(/added-api-permission\.json.*permissions/)
+
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        {
+          ...manifest,
+          optional_permissions: ['downloads'],
+          permissions: requiredPermissions,
+        },
+        'optional-api-permission.json',
+      ),
+    ).toThrow(/optional-api-permission\.json.*optional_permissions/)
   })
 
   it('rejects added, missing, optional, or malformed host permissions', () => {
@@ -700,6 +767,14 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           ],
           manifest_version: 3,
           optional_host_permissions: [],
+          permissions: [
+            'alarms',
+            'tabs',
+            'storage',
+            'contextMenus',
+            'notifications',
+            'unlimitedStorage',
+          ],
         },
         'empty-optional.json',
       ),

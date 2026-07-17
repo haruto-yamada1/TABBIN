@@ -506,6 +506,19 @@ const messages = {
     'options.importExport.unresolvedWarning':
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
+    'options.persistenceRecovery.backup': 'Back up current data',
+    'options.persistenceRecovery.description':
+      'The update could not be completed. Your previous data has not been deleted.',
+    'options.persistenceRecovery.diskWriteFailed':
+      'Writing data to browser storage failed.',
+    'options.persistenceRecovery.preflightFailed':
+      'Available browser storage could not be confirmed.',
+    'options.persistenceRecovery.quotaExceeded':
+      'There is not enough browser storage to complete the update.',
+    'options.persistenceRecovery.retry': 'Retry',
+    'options.persistenceRecovery.storageUnavailable':
+      'Browser storage is currently unavailable.',
+    'options.persistenceRecovery.title': 'Storage recovery required',
     'options.previewColorCustomization': '(preview) Color customization',
     'options.previewColorCustomizationReset': 'Reset',
     'options.previewFontSizeCustomization': '(preview) Font size',
@@ -1351,6 +1364,19 @@ const messages = {
     'options.importExport.unresolvedWarning':
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',
+    'options.persistenceRecovery.backup': '現在のデータをバックアップ',
+    'options.persistenceRecovery.description':
+      'データの更新を完了できませんでした。以前のデータは削除されていません。',
+    'options.persistenceRecovery.diskWriteFailed':
+      'ブラウザの保存領域への書き込みに失敗しました。',
+    'options.persistenceRecovery.preflightFailed':
+      '利用可能なブラウザの保存領域を確認できませんでした。',
+    'options.persistenceRecovery.quotaExceeded':
+      'データの更新に必要なブラウザの保存領域を確保できませんでした。',
+    'options.persistenceRecovery.retry': '再試行',
+    'options.persistenceRecovery.storageUnavailable':
+      'ブラウザの保存領域を現在利用できません。',
+    'options.persistenceRecovery.title': '保存領域の復旧が必要です',
     'options.previewColorCustomization': '(preview)カラーカスタマイズ',
     'options.previewColorCustomizationReset': 'リセット',
     'options.previewFontSizeCustomization': '(preview)フォントサイズ',

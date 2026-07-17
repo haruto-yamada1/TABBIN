@@ -11,6 +11,13 @@ identity examples are in `urlIdentityCorpus.ts`.
 This contract does not create IndexedDB stores, migrate current data, or switch
 the runtime source of truth. Those changes remain separate Issues and PRs.
 
+The quota, eviction, permission, capacity-preflight, typed failure, and recovery
+boundary is defined by
+[`docs/security/persistence-durability.md`](../security/persistence-durability.md)
+and the executable contract in `src/lib/persistence/capacity.ts`. IndexedDB and
+migration implementations must consume that boundary rather than reclassifying
+storage failures locally.
+
 ## Aggregate boundary
 
 The normalized saved-tabs aggregate consists of `Url`, `Collection`,

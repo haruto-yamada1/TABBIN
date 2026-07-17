@@ -5,6 +5,7 @@
   "description": "An extension for organizing and categorizing browser tabs so cluttered tab lists stay manageable.",
   "type": "module",
   "imports": {
+    "#extension-permissions": "./src/constants/extensionPermissions.ts",
     "#harness-state": "./tools/harness/state/index.ts",
     "#production-network-policy": "./src/constants/productionNetworkPolicy.ts"
   },

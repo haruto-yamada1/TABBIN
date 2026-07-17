@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { PRODUCTION_EXTENSION_PERMISSIONS } from '#extension-permissions'
 import {
   PRODUCTION_OUTBOUND_ALLOWED_ORIGINS,
   PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
@@ -771,4 +772,32 @@ export const assertManifestMatchesProductionNetworkPolicy = (
     label,
     manifestVersion,
   )
+
+  const actualApiPermissions = readStringArray(manifest, 'permissions', label)
+    .filter((permission) => !isHostPermission(permission))
+    .toSorted()
+  const expectedApiPermissions = [
+    ...PRODUCTION_EXTENSION_PERMISSIONS,
+  ].toSorted()
+  if (
+    JSON.stringify(actualApiPermissions) !==
+    JSON.stringify(expectedApiPermissions)
+  ) {
+    throw new Error(
+      `${label} permissions do not match the approved extension permission allowlist: ${JSON.stringify(actualApiPermissions)}; expected ${JSON.stringify(expectedApiPermissions)}`,
+    )
+  }
+
+  if ('optional_permissions' in manifest) {
+    const optionalApiPermissions = readStringArray(
+      manifest,
+      'optional_permissions',
+      label,
+    ).filter((permission) => !isHostPermission(permission))
+    if (optionalApiPermissions.length !== 0) {
+      throw new Error(
+        `${label} optional_permissions API permissions must be empty: ${JSON.stringify(optionalApiPermissions)}`,
+      )
+    }
+  }
 }

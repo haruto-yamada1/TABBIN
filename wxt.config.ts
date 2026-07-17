@@ -6,6 +6,7 @@ import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 
 import '@wxt-dev/module-react' // eslint-disable-line
 
+import { PRODUCTION_EXTENSION_PERMISSIONS } from './src/constants/extensionPermissions'
 import {
   PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
   createProductionExtensionCsp,
@@ -45,7 +46,7 @@ export default defineConfig({
       extension_pages: createProductionExtensionCsp(env.manifestVersion),
     },
     host_permissions: PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
-    permissions: ['alarms', 'tabs', 'storage', 'contextMenus', 'notifications'],
+    permissions: [...PRODUCTION_EXTENSION_PERMISSIONS],
     action: {
       default_title: '__MSG_extensionName__',
     },
