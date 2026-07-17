@@ -179,6 +179,10 @@ checks, per manifest:
   permits the approved resources. The verifier pins resource paths; the
   `matches` / `extension_ids` exposure scope is part of the security review and
   must be justified in this document before an entry is approved.
+- `incognito` is exactly `not_allowed`, keeping private browsing events and data
+  outside TABBIN's persistence, backup, analytics, and AI boundaries. The
+  authoritative downstream scope is documented in
+  [`persistence-model-v2.md`](../architecture/persistence-model-v2.md#incognito-data-boundary).
 
 The `assertChromeFirefoxManifestDelta` verifier checks that Chrome MV3 and
 Firefox MV2 differ only on the expected manifest-version-driven structure.
@@ -189,8 +193,9 @@ manifest. `action` / `browser_action`, `background`, and
 (allowed action fields, `service_worker` -> `scripts`, the expected Firefox
 gecko data-collection structure) and compared, so an unexpected
 browser-specific change inside those keys fails verification instead of being
-skipped. Any other key divergence fails verification, so a change that only
-lands on one browser is detected.
+skipped. The shared `incognito` key must be `not_allowed` on both browsers. Any
+other key divergence fails verification, so a change that only lands on one
+browser is detected.
 
 ## Adding a new permission or privileged surface
 

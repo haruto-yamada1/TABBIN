@@ -331,6 +331,7 @@ describe('Persistence Model v2 architecture contract', () => {
       '## Timestamp semantics',
       '## Current to v2 mapping',
       '## Storage Placement Matrix',
+      '## Incognito data boundary',
       '## JSON-safe persistence boundary',
       '## Migration recoverability',
       '## Invariants for #712',
@@ -371,6 +372,23 @@ describe('Persistence Model v2 architecture contract', () => {
       "DynamicToolUIPart['output']",
     ]) {
       expect(modelDocument).toContain(guardrail)
+    }
+  })
+
+  it('defines one normal-only scope for every private browsing boundary', () => {
+    const normalizedModelDocument = normalizeProse(modelDocument)
+
+    for (const contract of [
+      /current manifests omit `incognito` and therefore use the browser default `spanning` mode/i,
+      /Chrome shares `chrome\.storage\.local` between regular and incognito processes/i,
+      /Firefox requires user opt-in for private browsing access/i,
+      /"incognito": "not_allowed"/i,
+      /PersistenceBootstrap state, migration lock, migration ownership, source snapshot, target database identity, and cleanup eligibility are normal-context-only/i,
+      /Backup V2 exports and imports normal-context data only/i,
+      /Analytics and AI saved-URL context builders consume normal-context data only/i,
+      /MIGRATION_COORDINATION_UNAVAILABLE/i,
+    ]) {
+      expect(normalizedModelDocument).toMatch(contract)
     }
   })
 

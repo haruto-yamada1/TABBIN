@@ -42,6 +42,7 @@ export default defineConfig({
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
     version: APP_VERSION,
+    incognito: 'not_allowed',
     content_security_policy: {
       extension_pages: createProductionExtensionCsp(env.manifestVersion),
     },

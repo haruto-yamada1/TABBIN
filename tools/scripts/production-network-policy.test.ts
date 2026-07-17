@@ -1121,6 +1121,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         'http://localhost:11434/*',
         'http://127.0.0.1:11434/*',
       ],
+      incognito: 'not_allowed',
       manifest_version: 3,
       name: 'TABBIN',
       permissions: [
@@ -1139,6 +1140,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         gecko: { data_collection_permissions: { required: ['none'] } },
       },
       content_security_policy: createProductionExtensionCsp(2),
+      incognito: 'not_allowed',
       manifest_version: 2,
       name: 'TABBIN',
       permissions: [
@@ -1164,6 +1166,20 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         ),
       ).not.toThrow()
     })
+
+    it.each(['spanning', 'split'])(
+      'rejects the shared %s incognito policy',
+      (incognito) => {
+        expect(() =>
+          assertChromeFirefoxManifestDelta(
+            { ...chromeBase, incognito },
+            { ...firefoxBase, incognito },
+            'chrome.json',
+            'firefox.json',
+          ),
+        ).toThrow(/incognito must be "not_allowed"/)
+      },
+    )
 
     it('rejects divergent API permissions between Chrome and Firefox', () => {
       expect(() =>

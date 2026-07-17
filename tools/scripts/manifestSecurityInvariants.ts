@@ -138,6 +138,17 @@ const canonicalJson = (value: unknown): string => {
   return JSON.stringify(value)
 }
 
+const assertManifestIncognitoPolicy = (
+  manifest: Record<string, unknown>,
+  label: string,
+): void => {
+  if (manifest.incognito !== 'not_allowed') {
+    throw new Error(
+      `${label} incognito must be "not_allowed"; found ${JSON.stringify(manifest.incognito)}`,
+    )
+  }
+}
+
 export const extractWebAccessibleResourcePaths = (
   manifest: Record<string, unknown>,
   label: string,
@@ -394,6 +405,9 @@ export const assertChromeFirefoxManifestDelta = (
       `${firefoxLabel} manifest_version must be 2, got ${JSON.stringify(firefoxManifest.manifest_version)}`,
     )
   }
+
+  assertManifestIncognitoPolicy(chromeManifest, chromeLabel)
+  assertManifestIncognitoPolicy(firefoxManifest, firefoxLabel)
 
   const chromeApiPermissions = readStringArray(
     chromeManifest,
