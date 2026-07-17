@@ -2,13 +2,14 @@ import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { PRODUCTION_EXTENSION_PERMISSIONS } from '#extension-permissions'
-import {
-  PRODUCTION_OUTBOUND_ALLOWED_ORIGINS,
-  PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
-  createProductionExtensionCsp,
-} from '#production-network-policy'
+import { PRODUCTION_OUTBOUND_HOST_PERMISSIONS } from '#production-network-policy'
 import ts from 'typescript'
 
+import { isHostPermission, readStringArray } from './manifestHelpers.ts'
+import {
+  assertExtensionCspMatchesProductionNetworkPolicy,
+  assertGeneratedManifestSecurityInvariants,
+} from './manifestSecurityInvariants.ts'
 import { collectPotentialNetworkAliasKinds } from './production-network-policy-aliases'
 import type { PotentialAliasSummary } from './production-network-policy-aliases'
 import {
@@ -611,120 +612,8 @@ export const assertProductionNetworkCallsiteInventory = (
   )
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
-
-const readStringArray = (
-  manifest: Record<string, unknown>,
-  property: string,
-  label: string,
-): string[] => {
-  const value = manifest[property]
-  if (
-    !Array.isArray(value) ||
-    !value.every((item) => typeof item === 'string')
-  ) {
-    throw new TypeError(`${label} ${property} is missing or not a string array`)
-  }
-  return value
-}
-
-const readExtensionPagesCsp = (
-  manifest: Record<string, unknown>,
-  label: string,
-): string => {
-  const value = manifest.content_security_policy
-  if (typeof value === 'string') {
-    return value
-  }
-  if (isRecord(value) && typeof value.extension_pages === 'string') {
-    return value.extension_pages
-  }
-  throw new TypeError(
-    `${label} content_security_policy is missing an extension policy`,
-  )
-}
-
-const parseCspDirectives = (
-  csp: string,
-  label: string,
-): Map<string, string[]> => {
-  const directives = new Map<string, string[]>()
-  const sections = csp
-    .split(';')
-    .map((section) => section.trim())
-    .filter((section) => section !== '')
-  for (const section of sections) {
-    const [directive, ...values] = section.split(/\s+/u)
-    if (directives.has(directive)) {
-      throw new Error(
-        `${label} content_security_policy contains duplicate directive ${directive}`,
-      )
-    }
-    directives.set(directive, values)
-  }
-  return directives
-}
-
-const assertExtensionCspMatchesProductionNetworkPolicy = (
-  manifest: Record<string, unknown>,
-  label: string,
-  manifestVersion: 2 | 3,
-): void => {
-  const directives = parseCspDirectives(
-    readExtensionPagesCsp(manifest, label),
-    label,
-  )
-  const expectedConnectSources = [
-    "'self'",
-    'blob:',
-    ...PRODUCTION_OUTBOUND_ALLOWED_ORIGINS,
-  ].toSorted()
-  const actualConnectSources = directives.get('connect-src')?.toSorted()
-  if (
-    actualConnectSources === undefined ||
-    JSON.stringify(actualConnectSources) !==
-      JSON.stringify(expectedConnectSources)
-  ) {
-    throw new Error(
-      `${label} connect-src does not match the production allowlist: ${JSON.stringify(actualConnectSources)}; expected ${JSON.stringify(expectedConnectSources)}`,
-    )
-  }
-  for (const directive of ['object-src', 'frame-src', 'form-action']) {
-    if (
-      JSON.stringify(directives.get(directive)) !== JSON.stringify(["'none'"])
-    ) {
-      throw new Error(`${label} ${directive} must be 'none'`)
-    }
-  }
-  const expectedDirectives = parseCspDirectives(
-    createProductionExtensionCsp(manifestVersion),
-    'production network policy',
-  )
-  for (const [directive, expectedValues] of expectedDirectives) {
-    if (directive === 'connect-src') {
-      continue
-    }
-    const actualValues = directives.get(directive)
-    if (
-      actualValues === undefined ||
-      JSON.stringify(actualValues.toSorted()) !==
-        JSON.stringify(expectedValues.toSorted())
-    ) {
-      throw new Error(
-        `${label} ${directive} does not match the production policy`,
-      )
-    }
-  }
-  const unexpectedDirectives = [...directives.keys()].filter(
-    (directive) => !expectedDirectives.has(directive),
-  )
-  if (unexpectedDirectives.length !== 0) {
-    throw new Error(
-      `${label} content_security_policy contains unexpected directives: ${unexpectedDirectives.join(', ')}`,
-    )
-  }
-}
 
 export const assertManifestMatchesProductionNetworkPolicy = (
   manifest: unknown,
@@ -744,8 +633,6 @@ export const assertManifestMatchesProductionNetworkPolicy = (
   const optionalHostPermissionProperty = isManifestV2
     ? 'optional_permissions'
     : 'optional_host_permissions'
-  const isHostPermission = (permission: string): boolean =>
-    permission === '<all_urls>' || permission.includes('://')
   const actual = readStringArray(manifest, hostPermissionProperty, label)
     .filter(isHostPermission)
     .toSorted()
@@ -800,4 +687,6 @@ export const assertManifestMatchesProductionNetworkPolicy = (
       )
     }
   }
+
+  assertGeneratedManifestSecurityInvariants(manifest, label)
 }
