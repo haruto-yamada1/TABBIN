@@ -7,6 +7,7 @@ import {
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
+import { assertBackupSerializedBytes } from '@/lib/persistence/backupResourcePolicy'
 import { loadSavedAnalyticsViews } from '@/lib/storage/analytics'
 import {
   getParentCategories,
@@ -211,10 +212,11 @@ const exportSettings = async (): Promise<BackupData> => {
  * @param filename ファイル名
  */
 const downloadAsJson = (data: BackupData, filename: string): void => {
-  const json = JSON.stringify(data, null, 2)
+  const json = JSON.stringify(data)
   const blob = new Blob([json], {
     type: 'application/json',
   })
+  assertBackupSerializedBytes(blob.size)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

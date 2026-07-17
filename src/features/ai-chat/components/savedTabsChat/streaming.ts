@@ -1,5 +1,5 @@
+import { AI_CHAT_MAX_ATTACHMENTS } from '@/constants/aiChatLimits'
 import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
-import { AI_CHAT_MAX_ATTACHMENTS } from '@/features/ai-chat/lib/attachments'
 import type {
   AiChatAttachment,
   AiChatConversationMessage,

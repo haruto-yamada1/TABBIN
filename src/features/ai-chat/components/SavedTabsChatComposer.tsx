@@ -8,6 +8,10 @@ import {
   PromptInputTextarea,
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputProps } from '@/components/ai-elements/prompt-input'
+import {
+  AI_CHAT_MAX_ATTACHMENTS,
+  AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES,
+} from '@/constants/aiChatLimits'
 import { ChatPromptAttachmentButton } from '@/features/ai-chat/components/ChatPromptAttachmentButton'
 import { ChatPromptAttachments } from '@/features/ai-chat/components/ChatPromptAttachments'
 import type { OllamaErrorPlatform } from '@/features/ai-chat/components/OllamaErrorNotice'
@@ -16,11 +20,7 @@ import {
   insertLineBreakAtCursor,
   requestPromptSubmit,
 } from '@/features/ai-chat/components/savedTabsChat/messages'
-import {
-  AI_CHAT_MAX_ATTACHMENTS,
-  AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES,
-  getAiChatAttachmentInputAccept,
-} from '@/features/ai-chat/lib/attachments'
+import { getAiChatAttachmentInputAccept } from '@/features/ai-chat/lib/attachments'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
 import type { OllamaErrorDetails } from '@/types/background'

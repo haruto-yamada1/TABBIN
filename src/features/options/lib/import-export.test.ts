@@ -134,6 +134,10 @@ vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
   ),
 }))
 
+import {
+  BACKUP_RESOURCE_LIMITS,
+  BackupResourceLimitError,
+} from '@/lib/persistence/backupResourcePolicy'
 import { saveParentCategories } from '@/lib/storage/categories'
 import { migrateToUrlsStorage } from '@/lib/storage/migration'
 import {
@@ -2204,11 +2208,11 @@ describe('import-export ユーティリティ', () => {
     expect(result.savedAnalyticsViews).toEqual([])
   })
 
-  it('downloadAsJson は一時的なアンカーを作成してクリーンアップする', () => {
+  it('downloadAsJson は compact JSON の一時アンカーを作成してクリーンアップする', async () => {
     const originalCreateObjectUrl = URL.createObjectURL
 
     const originalRevokeObjectUrl = URL.revokeObjectURL
-    const createObjectUrl = vi.fn(() => 'blob:mock-url')
+    const createObjectUrl = vi.fn((_blob: Blob) => 'blob:mock-url')
     const revokeObjectUrl = vi.fn()
 
     Object.defineProperty(URL, 'createObjectURL', {
@@ -2232,18 +2236,20 @@ describe('import-export ユーティリティ', () => {
         return 1
       })
 
-    downloadAsJson(
-      {
-        version: '1.0.0',
-        timestamp: '2026-02-16T00:00:00.000Z',
-        userSettings: buildFullUserSettings(),
-        parentCategories: [],
-        savedTabs: [],
-      },
-      'backup.json',
-    )
+    const backup = {
+      version: '1.0.0',
+      timestamp: '2026-02-16T00:00:00.000Z',
+      userSettings: buildFullUserSettings(),
+      parentCategories: [],
+      savedTabs: [],
+    }
+
+    downloadAsJson(backup, 'backup.json')
 
     expect(createObjectUrl).toHaveBeenCalledTimes(1)
+    const createdBlob = createObjectUrl.mock.calls[0]?.[0]
+    expect(createdBlob).toBeInstanceOf(Blob)
+    expect(await createdBlob?.text()).toBe(JSON.stringify(backup))
     expect(clickSpy).toHaveBeenCalledTimes(1)
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:mock-url')
     expect(document.querySelector('a[download="backup.json"]')).toBeNull()
@@ -2258,6 +2264,59 @@ describe('import-export ユーティリティ', () => {
       writable: true,
       value: originalRevokeObjectUrl,
     })
+  })
+
+  it('downloadAsJson は共有Backup上限超過をURL生成前にtyped errorで拒否する', () => {
+    const OriginalBlob = globalThis.Blob
+    const originalCreateObjectUrl = URL.createObjectURL
+    const createObjectUrl = vi.fn((_blob: Blob) => 'blob:unexpected')
+
+    class OversizedBlob extends OriginalBlob {
+      override get size(): number {
+        return BACKUP_RESOURCE_LIMITS.maxSerializedBytes + 1
+      }
+    }
+
+    vi.stubGlobal('Blob', OversizedBlob)
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      writable: true,
+      value: createObjectUrl,
+    })
+
+    let caughtError: unknown
+    try {
+      downloadAsJson(
+        {
+          version: '1.0.0',
+          timestamp: '2026-02-16T00:00:00.000Z',
+          userSettings: buildFullUserSettings(),
+          parentCategories: [],
+          savedTabs: [],
+        },
+        'backup.json',
+      )
+    } catch (error) {
+      caughtError = error
+    } finally {
+      vi.stubGlobal('Blob', OriginalBlob)
+      Object.defineProperty(URL, 'createObjectURL', {
+        configurable: true,
+        writable: true,
+        value: originalCreateObjectUrl,
+      })
+    }
+
+    expect(caughtError).toBeInstanceOf(BackupResourceLimitError)
+    expect(caughtError).toMatchObject({
+      code: 'BACKUP_FILE_TOO_LARGE',
+      diagnostic: {
+        actual: BACKUP_RESOURCE_LIMITS.maxSerializedBytes + 1,
+        limit: BACKUP_RESOURCE_LIMITS.maxSerializedBytes,
+        resource: 'serializedBytes',
+      },
+    })
+    expect(createObjectUrl).not.toHaveBeenCalled()
   })
 
   it('importSettings はスキーマ不正な JSON に対してバリデーションエラーを返す', async () => {

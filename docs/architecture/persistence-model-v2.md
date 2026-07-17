@@ -464,6 +464,99 @@ IndexedDB-cloneable object is not automatically Backup V2-safe.
 Violations produce `NON_JSON_SAFE_VALUE` with a safe field path and type class,
 not the user content itself.
 
+## Backup V2 resource and round-trip envelope
+
+The executable resource policy is
+`src/lib/persistence/backupResourcePolicy.ts`. A supported production state is a
+logical snapshot that is healthy under #712, contains only the logical data
+included by the Storage Placement Matrix, satisfies every resource limit below,
+and serializes to at most 128 MiB of UTF-8 JSON.
+
+For every supported state `x`, #730 must use the same
+`validateBackupResourceUsage` policy in both directions so that:
+
+```text
+import(export(x)) preserves required logical data, relation, ordering, and
+timestamp invariants
+```
+
+The Backup V2 mapper collects numeric usage metrics without copying user
+content into diagnostics. The supported envelope is:
+
+| Resource                               |                                 Maximum |
+| -------------------------------------- | --------------------------------------: |
+| Serialized Backup V2 JSON              |                                 128 MiB |
+| Logical URLs                           |                            100,000 URLs |
+| Collections                            |                                  10,000 |
+| Memberships                            |                     500,000 memberships |
+| Categories / groups                    |                        100,000 / 10,000 |
+| AI conversations / total messages      |                         1,000 / 100,000 |
+| Messages per conversation              |                                  10,000 |
+| Attachments / attachments per message  |                             100,000 / 5 |
+| Decoded attachment bytes               | 2 MiB each; 32 MiB attachment aggregate |
+| Saved analytics views                  |                                  10,000 |
+| Chart data points                      |         500,000 total; 50,000 per chart |
+| Tool traces                            |                                 100,000 |
+| Serialized tool-trace input/output     |  1 MiB each; 8 MiB tool-trace aggregate |
+| Keywords                               |       1,000 per owner; 1 KiB UTF-8 each |
+| URL / name / title UTF-8 bytes         |                  8 KiB / 4 KiB / 64 KiB |
+| Notes / AI message content UTF-8 bytes |                           1 MiB / 4 MiB |
+
+Every individual maximum need not be reachable simultaneously. The 128 MiB
+serialized-byte ceiling is an additional constraint on combinations of otherwise
+valid resources. Attachment count and per-file bytes reuse the production AI
+attachment constants; Backup V2 does not maintain a second copy.
+
+### Validation order and typed failures
+
+The required flow is:
+
+```text
+export: consistent logical snapshot -> #712 -> usage metrics -> resource policy
+        -> serialize -> serialized-byte policy -> file
+
+import: file-size preflight -> parse and schema validation -> usage metrics
+        -> resource policy -> normalize -> #712 -> transactional write
+```
+
+Limits are not embedded as independent Zod magic numbers. A validation failure
+returns a safe resource name, numeric actual value when valid, and numeric limit.
+It never returns a URL, name, title, note, keyword, prompt, attachment content,
+chart datum, or tool input/output.
+
+- `BACKUP_FILE_TOO_LARGE` identifies serialized-byte overflow.
+- `BACKUP_RESOURCE_LIMIT_EXCEEDED` identifies collection or aggregate count
+  overflow.
+- `BACKUP_NESTED_PAYLOAD_TOO_LARGE` identifies per-owner and nested byte/count
+  overflow.
+- `INVALID_BACKUP` identifies a non-finite, negative, fractional, or otherwise
+  unsafe usage metric and remains distinct from a valid over-limit backup.
+
+The current pre-IndexedDB importer uses the shared serialized-byte preflight
+instead of the former UI-local 10 MiB constant. Its mixed legacy shapes remain
+the compatibility importer's responsibility; #730 collects the complete Backup
+V2 resource metrics after format detection rather than guessing them from mixed
+legacy representations. AI data is not silently excluded to make a limit pass.
+
+### Benchmark and recovery capacity
+
+A local Node v24.18 synthetic benchmark used 100,000 representative URLs,
+10,000 collections, and 500,000 memberships. Compact JSON was 90.49 MiB;
+construction took 46.9 ms, stringify 103.0 ms, and parse 222.8 ms. RSS grew from
+31.9 MiB to 596.4 MiB after stringify and 718.3 MiB after parse. The production
+download path uses compact JSON so the measured representation and enforced Blob
+size match; whitespace-formatted JSON is not a supported export representation.
+This evidence rejects the old 10 MiB assumption and also rejects an unmeasured
+256 MiB cap. The remaining #730 schema, Zod, normalize, FileReader, and browser
+peak-memory benchmarks must run against its actual compact Backup V2 mapper
+before rollout.
+
+#740 may retain at most two recovery snapshots for seven days. Capacity
+preflight uses actual serialized snapshot bytes and #735 reserve/overhead rather
+than assuming every snapshot reaches 128 MiB. The hard policy still bounds two
+retained payloads at 256 MiB before IndexedDB overhead. Recovery snapshot failure
+blocks overwrite import; no snapshot is silently skipped.
+
 ## Migration recoverability
 
 | V2 field                            | Current source                                     | Recoverability                                                                  |
@@ -612,8 +705,10 @@ guarantees for general writers.
   a module-global Promise is not a correctness boundary.
 - #728 owns raw legacy snapshot parsing, pure v2 mapping, transactional target
   writes, read-back integrity verification, restart, and retry behavior.
-- #719/#730 own supported Backup V2 limits and round-trip behavior. Every matrix
-  row marked Backup V2 = Yes participates in `import(export(x))` invariants.
+- #719 defines the executable supported Backup V2 envelope and typed failures.
+  #730 collects metrics and calls `validateBackupResourceUsage` for both export
+  and import. Every matrix row marked Backup V2 = Yes participates in
+  `import(export(x))` invariants.
 - #738 owns read-only preflight, source fingerprints, and normal-write staleness
   invalidation. Its identity, timestamp, reference, capacity, and JSON-safety
   analysis must use a raw non-repairing reader without mutating the source.
