@@ -497,6 +497,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
             'http://localhost:11434/*',
           ],
+          incognito: 'not_allowed',
           manifest_version: 3,
           permissions: [
             'alarms',
@@ -512,11 +513,44 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
     ).not.toThrow()
   })
 
+  it.each([
+    ['missing', undefined],
+    ['unsupported', 'spanning'],
+  ])('rejects %s incognito policy', (label, incognito) => {
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        {
+          content_security_policy: {
+            extension_pages: createProductionExtensionCsp(3),
+          },
+          host_permissions: [
+            'http://127.0.0.1:11434/*',
+            'http://localhost:11434/*',
+          ],
+          ...(incognito === undefined ? {} : { incognito }),
+          manifest_version: 3,
+          permissions: [
+            'alarms',
+            'tabs',
+            'storage',
+            'contextMenus',
+            'notifications',
+            'unlimitedStorage',
+          ],
+        },
+        `${label}-incognito.json`,
+      ),
+    ).toThrow(
+      new RegExp(`${label}-incognito\\.json.*incognito must be "not_allowed"`),
+    )
+  })
+
   it('extracts host patterns from Firefox MV2 permissions', () => {
     expect(() =>
       assertManifestMatchesProductionNetworkPolicy(
         {
           content_security_policy: createProductionExtensionCsp(2),
+          incognito: 'not_allowed',
           manifest_version: 2,
           permissions: [
             'alarms',
@@ -786,6 +820,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
             'http://127.0.0.1:11434/*',
           ],
+          incognito: 'not_allowed',
           manifest_version: 3,
           optional_host_permissions: [],
           permissions: [
@@ -927,6 +962,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://localhost:11434/*',
             'http://127.0.0.1:11434/*',
           ],
+          incognito: 'not_allowed',
           manifest_version: 3,
           permissions: [
             'alarms',

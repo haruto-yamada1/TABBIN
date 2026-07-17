@@ -240,6 +240,7 @@ export const assertGeneratedManifestSecurityInvariants = (
     label,
     APPROVED_WEB_ACCESSIBLE_RESOURCES,
   )
+  assertManifestIncognitoPolicy(manifest, label)
 }
 
 const readOptionalRecord = (
