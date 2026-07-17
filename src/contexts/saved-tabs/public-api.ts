@@ -20,3 +20,35 @@ export {
   DEFAULT_EXCLUDE_PATTERNS,
   mergeStoredUserSettingsDefaults,
 } from './domain/services/userSettingsDefaultsMerge'
+
+export {
+  PERSISTENCE_V2_INVARIANT_CODES,
+  PERSISTENCE_V2_ORDERING_POLICY,
+} from './domain/entities/PersistenceModelV2'
+export type {
+  PersistenceV2Collection,
+  PersistenceV2CollectionCategory,
+  PersistenceV2CollectionDefinition,
+  PersistenceV2CollectionGroup,
+  PersistenceV2CollectionMembership,
+  PersistenceV2InvariantCode,
+  PersistenceV2ProjectKeywordSettings,
+  PersistenceV2Snapshot,
+  PersistenceV2Url,
+} from './domain/entities/PersistenceModelV2'
+export {
+  checkPersistenceIntegrity,
+  PERSISTENCE_V2_INVARIANT_POLICY,
+} from './domain/services/PersistenceIntegrityChecker'
+export type {
+  IntegrityIssueSeverity,
+  IntegrityRepairability,
+  StorageIntegrityIssue,
+  StorageIntegrityIssueDetails,
+  StorageIntegrityReport,
+} from './domain/services/PersistenceIntegrityChecker'
+export { createStorageRepairPlan } from './domain/services/PersistenceRepairPlanner'
+export type {
+  StorageRepairOperation,
+  StorageRepairPlan,
+} from './domain/services/PersistenceRepairPlanner'

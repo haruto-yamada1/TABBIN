@@ -449,6 +449,42 @@ The machine-readable code list is exported as
 The checker reports and classifies issues; repair remains a separate audit ->
 plan -> backup -> repair -> re-audit flow.
 
+### Pure checker boundary
+
+`checkPersistenceIntegrity(snapshot)` accepts only a logical
+`PersistenceV2Snapshot`. It does not import Chrome or IndexedDB APIs, normalize
+input, write storage, or repair the snapshot. It returns a deterministic
+`StorageIntegrityReport`; `isHealthy` is true only when the typed `issues` list
+is empty.
+
+Every code in `PERSISTENCE_V2_INVARIANT_CODES` has an exhaustive severity and
+repairability entry in `PERSISTENCE_V2_INVARIANT_POLICY`. The v2 checker emits
+only findings supported by the logical target snapshot. Source-only findings,
+including `URL_IDENTITY_COLLISION`, `URL_TITLE_CONFLICT`,
+`MISSING_TIMESTAMP_PROVENANCE`, and `INVALID_ACTIVE_CHAT_REFERENCE`, are kept in
+the shared typed contract for migration/import adapters and are not inferred
+without source evidence.
+
+Diagnostics include stable entity identifiers, field paths, occurrence counts,
+and type classes. They do not copy URL, title, domain, note, keyword, prompt, or
+other user content into the report.
+
+### Repair-plan boundary
+
+`createStorageRepairPlan(report)` is also pure. It converts only
+`automatic-safe` issues into typed dry-run operations and leaves every
+ambiguous or non-repairable issue in `unresolvedIssues`. Duplicate memberships
+produce `REMOVE_DUPLICATE_MEMBERSHIP` only when all non-key metadata is
+equivalent; conflicting category, note, ordering, or timestamp metadata requires
+review. An invalid active-chat selection can produce the non-destructive
+`RESET_ACTIVE_CHAT_REFERENCE` operation.
+
+`ORPHAN_URL` never produces an automatic deletion operation. The plan's
+`destructive` flag is derived from its operations, and executing those
+operations remains a caller-owned step after review and backup. Callers must
+re-run `checkPersistenceIntegrity` after any repair and must not cut over or
+clean up legacy storage while an `error` finding remains.
+
 ## Query and projection boundary
 
 Normalized stores are write models. UI, analytics, and AI features do not join
