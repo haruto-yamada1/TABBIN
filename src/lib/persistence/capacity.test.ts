@@ -7,6 +7,7 @@ import {
   measureSerializedBytes,
   runPersistenceCapacityPreflight,
 } from './capacity'
+import type { PersistenceCapacityPlan } from './capacity'
 
 const plan = {
   minimumReserveBytes: 200,
@@ -120,6 +121,33 @@ describe('persistence capacity policy', () => {
     ).toMatchObject({
       errorCode: 'PERSISTENCE_CAPACITY_PREFLIGHT_FAILED',
       status: 'blocked',
+    })
+  })
+
+  it('blocks unknown entity kinds and excludes them from diagnostics', () => {
+    const rawUserContent = 'https://private.example/saved-tab'
+    const sourceEntityCounts = {
+      urls: 10,
+      [rawUserContent]: 1,
+    } as unknown as PersistenceCapacityPlan['sourceEntityCounts']
+
+    const assessment = assessPersistenceCapacity(
+      {
+        ...plan,
+        sourceEntityCounts,
+      },
+      {
+        quota: 10_000,
+        usage: 4_000,
+      },
+    )
+
+    expect(assessment).toMatchObject({
+      errorCode: 'PERSISTENCE_CAPACITY_PREFLIGHT_FAILED',
+      status: 'blocked',
+    })
+    expect(assessment.diagnostics.sourceEntityCounts).toEqual({
+      urls: 10,
     })
   })
 

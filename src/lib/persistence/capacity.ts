@@ -11,17 +11,21 @@ export type PersistenceFailureStage =
   | 'target-write'
   | 'transaction-abort'
 
+export const PERSISTENCE_SOURCE_ENTITY_KINDS = [
+  'analyticsViews',
+  'attachments',
+  'categories',
+  'collections',
+  'conversations',
+  'groups',
+  'memberships',
+  'messages',
+  'settings',
+  'urls',
+] as const
+
 export type PersistenceSourceEntityKind =
-  | 'analyticsViews'
-  | 'attachments'
-  | 'categories'
-  | 'collections'
-  | 'conversations'
-  | 'groups'
-  | 'memberships'
-  | 'messages'
-  | 'settings'
-  | 'urls'
+  (typeof PERSISTENCE_SOURCE_ENTITY_KINDS)[number]
 
 export type PersistenceSourceEntityCounts = Readonly<
   Partial<Record<PersistenceSourceEntityKind, number>>
@@ -86,6 +90,9 @@ const unavailableStorageErrorNames = new Set([
   'SecurityError',
   'VersionError',
 ])
+const persistenceSourceEntityKindSet = new Set<string>(
+  PERSISTENCE_SOURCE_ENTITY_KINDS,
+)
 
 export const measureSerializedBytes = (value: unknown): number => {
   if (!isJsonValue(value)) {
@@ -104,11 +111,32 @@ const isSafeNonNegativeInteger = (value: unknown): value is number =>
 const isFinitePositive = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0
 
+const hasOnlyKnownSourceEntityKinds = (
+  sourceEntityCounts: PersistenceSourceEntityCounts,
+): boolean =>
+  Object.keys(sourceEntityCounts).every((kind) =>
+    persistenceSourceEntityKindSet.has(kind),
+  )
+
+const createSafeSourceEntityCounts = (
+  sourceEntityCounts: PersistenceSourceEntityCounts,
+): PersistenceSourceEntityCounts => {
+  const safeCounts: Partial<Record<PersistenceSourceEntityKind, number>> = {}
+  for (const kind of PERSISTENCE_SOURCE_ENTITY_KINDS) {
+    const count = sourceEntityCounts[kind]
+    if (isSafeNonNegativeInteger(count)) {
+      safeCounts[kind] = count
+    }
+  }
+  return safeCounts
+}
+
 const isValidPlan = (plan: PersistenceCapacityPlan): boolean =>
   isSafeNonNegativeInteger(plan.minimumReserveBytes) &&
   isFiniteNonNegative(plan.reserveRatio) &&
   isSafeNonNegativeInteger(plan.sourceSerializedBytes) &&
   isFinitePositive(plan.targetExpansionRatio) &&
+  hasOnlyKnownSourceEntityKinds(plan.sourceEntityCounts) &&
   Object.values(plan.sourceEntityCounts).every(isSafeNonNegativeInteger)
 
 const createDiagnostics = (
@@ -124,7 +152,7 @@ const createDiagnostics = (
   ...(isSafeNonNegativeInteger(estimate.usage)
     ? { estimatedUsageBytes: estimate.usage }
     : {}),
-  sourceEntityCounts: { ...plan.sourceEntityCounts },
+  sourceEntityCounts: createSafeSourceEntityCounts(plan.sourceEntityCounts),
 })
 
 export const assessPersistenceCapacity = (
