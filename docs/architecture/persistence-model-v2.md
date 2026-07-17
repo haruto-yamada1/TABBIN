@@ -312,7 +312,9 @@ The v2 persisted model does not contain `TabGroup.urls`, `TabGroup.urlIds`,
 
 ## Storage Placement Matrix
 
-The matrix records logical data, not only currently centralized constants. #711
+The matrix records logical data, not only currently centralized constants. The
+current implementation evidence is the
+[current storage writer inventory](./current-storage-writer-inventory.md). #711
 remains authoritative for writer/context inventory and may discover additional
 entrypoints; new rows must be classified before #726 is finalized.
 
@@ -472,15 +474,45 @@ later product requirement explicitly turns one into user-owned data.
 
 ## Handoff and review gates
 
-- #711 owns complete writer/context/implicit-writer inventory. A newly found
-  logical data class must be added to the matrix before schema finalization.
+#711 establishes current-state evidence, not v2 concurrency guarantees. Current
+module-local queues do not serialize writers in different extension contexts.
+The #711 regression suite
+deterministically reproduces a two-context read-modify-write lost update. It
+also proves that a recreated module reloads durable storage instead of depending
+on module globals.
+
+For `urls` only, each module context now lazily subscribes to its own local
+`chrome.storage.onChanged` event, removes and re-registers its listener when the
+available API object changes, and bypasses the cache when the API is unavailable.
+Invalidation or a storage API transition advances the cache generation. A
+resolved read is cached only when that generation and the registered API
+identity are unchanged.
+This closes that cache-coherence gap but does not provide cross-context
+transactional read-modify-write, migration readiness, or preflight-fingerprint
+guarantees for general writers.
+
+- #711 owns the linked complete writer/context/implicit-writer inventory. A
+  newly found logical data class must be added to the matrix before schema
+  finalization.
 - #712 owns the pure checker and issue severity/repairability.
-- #726 owns physical object stores, indexes, key paths, connection lifecycle,
-  transactions, and benchmarks. It must preserve this logical model.
+- #726 owns v2 physical schema and connection lifecycle, use-case transaction
+  boundaries, and cross-context write serialization. Use-case-sized multi-store
+  mutations must not be split into independent repository transactions.
+- #727 owns the PersistenceBootstrap readiness barrier and cross-context
+  migration coordination. Every domain read/write participates in this barrier;
+  a module-global Promise is not a correctness boundary.
+- #728 owns raw legacy snapshot parsing, pure v2 mapping, transactional target
+  writes, read-back integrity verification, restart, and retry behavior.
 - #719/#730 own supported Backup V2 limits and round-trip behavior. Every matrix
   row marked Backup V2 = Yes participates in `import(export(x))` invariants.
-- #738 must run identity, timestamp, reference, capacity, and JSON-safety
-  preflight without mutating the source.
+- #738 owns read-only preflight, source fingerprints, and normal-write staleness
+  invalidation. Its identity, timestamp, reference, capacity, and JSON-safety
+  analysis must use a raw non-repairing reader without mutating the source.
+- #739 owns post-commit cross-context change notification and invalidation,
+  current `chrome.storage.onChanged` consumer migration, and re-query
+  convergence. Consumers invalidate and re-query current persistence state.
+  Missed, duplicate, out-of-order events or restarts must converge by reading
+  that current state.
 
 Model review is complete for #725 when this document, the TypeScript proposal,
 the executable corpus, the JSON-safe guard, and the policy tests agree. This is

@@ -1,10 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 /** セッション中のインメモリキャッシュ */
 let urlRecordsCache: UrlRecord[] | null = null
 let urlRecordMutationQueue: Promise<void> = Promise.resolve()
+let registeredUrlStorageOnChanged: typeof chrome.storage.onChanged | null = null
+let urlCacheGeneration = 0
 
 type UrlRecordInput = {
   url: string
@@ -19,28 +22,73 @@ type CreateOrUpdateUrlRecordOptions = {
 /** キャッシュを無効化する（書き込み後・外部更新検知後に呼ぶ） */
 const invalidateUrlCache = (): void => {
   urlRecordsCache = null
+  urlCacheGeneration += 1
 }
+
+const handleUrlStorageChange = (
+  changes: Record<string, chrome.storage.StorageChange>,
+  areaName: string,
+): void => {
+  if (areaName === 'local' && Object.hasOwn(changes, 'urls')) {
+    invalidateUrlCache()
+  }
+}
+
+const ensureUrlCacheInvalidationListener = (): boolean => {
+  const storageOnChanged = getChromeStorageOnChanged()
+  if (registeredUrlStorageOnChanged === storageOnChanged) {
+    return storageOnChanged !== null
+  }
+
+  if (
+    registeredUrlStorageOnChanged !== null &&
+    typeof registeredUrlStorageOnChanged.removeListener === 'function'
+  ) {
+    registeredUrlStorageOnChanged.removeListener(handleUrlStorageChange)
+  }
+
+  invalidateUrlCache()
+  registeredUrlStorageOnChanged = null
+  if (storageOnChanged === null) {
+    return false
+  }
+
+  storageOnChanged.addListener(handleUrlStorageChange)
+  registeredUrlStorageOnChanged = storageOnChanged
+  return true
+}
+
 /**
  * すべてのURLレコードを取得する
  */
 const getUrlRecords = async (): Promise<UrlRecord[]> => {
-  if (urlRecordsCache !== null) {
+  const canUseCache = ensureUrlCacheInvalidationListener()
+  if (canUseCache && urlRecordsCache !== null) {
     return urlRecordsCache
   }
+  const readGeneration = urlCacheGeneration
+  const readStorageOnChanged = registeredUrlStorageOnChanged
   try {
     const { urls } = await chrome.storage.local.get('urls')
     const storedUrls: unknown = urls
     if (!Array.isArray(storedUrls)) {
       return []
     }
-    urlRecordsCache = storedUrls.filter(
+    const urlRecords = storedUrls.filter(
       (item): item is UrlRecord =>
         typeof item === 'object' &&
         item !== null &&
         'id' in item &&
         'url' in item,
     )
-    return urlRecordsCache
+    if (
+      canUseCache &&
+      urlCacheGeneration === readGeneration &&
+      registeredUrlStorageOnChanged === readStorageOnChanged
+    ) {
+      urlRecordsCache = urlRecords
+    }
+    return urlRecords
   } catch (error) {
     console.error('URLレコード取得エラー:', error)
     return []
