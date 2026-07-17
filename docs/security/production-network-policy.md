@@ -14,6 +14,12 @@ custom Ollama endpoints, cloud AI endpoints, HTTPS, WebSocket, and EventSource
 origins are not currently allowed. Adding one is a privacy-design change, not a
 routine allowlist update.
 
+The same generated-manifest verification also checks the exact reviewed API
+permission allowlist from `src/constants/extensionPermissions.ts`. The
+`unlimitedStorage` durability decision and its non-network security boundary are
+documented in
+[`docs/security/persistence-durability.md`](persistence-durability.md).
+
 ## Production network inventory
 
 The automated AST inventory in
