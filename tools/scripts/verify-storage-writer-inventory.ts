@@ -411,7 +411,8 @@ const isChromeStorageLocalInitializer = (
   initializer !== undefined &&
   ts.isCallExpression(initializer) &&
   ts.isIdentifier(initializer.expression) &&
-  initializer.expression.text === 'getChromeStorageLocal'
+  (initializer.expression.text === 'getChromeStorageLocal' ||
+    initializer.expression.text === 'getStorageLocalRemove')
 
 const getStorageScopeType = (
   node: ts.Node,
@@ -524,7 +525,7 @@ const isChromeStorageLocalAlias = (
     }
     scope = scope.parent
   }
-  return false
+  return identifier.text === 'storageLocal'
 }
 
 const isStorageMutationCall = ({
@@ -544,9 +545,6 @@ const isStorageMutationCall = ({
 
   const receiverPath = accessPath.slice(0, -1)
   if (receiverPath.join('.') === 'chrome.storage.local') {
-    return true
-  }
-  if (receiverPath.length === 1 && receiverPath[0] === 'storageLocal') {
     return true
   }
   const receiverIdentifier = getSingleReceiverIdentifier(callExpression)

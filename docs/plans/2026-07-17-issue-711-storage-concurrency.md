@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Add the writer-inventory verifier core
+## Task 1: Add the writer-inventory verifier core
 
 **Files:**
 
@@ -89,7 +89,7 @@ git add tools/scripts/verify-storage-writer-inventory.ts tools/scripts/verify-st
 git commit -m "storage writer inventory検証を追加"
 ```
 
-### Task 2: Build the authoritative current writer inventory
+## Task 2: Build the authoritative current writer inventory
 
 **Files:**
 
@@ -158,7 +158,7 @@ git add docs/architecture/current-storage-writer-inventory.md tools/scripts/veri
 git commit -m "current storage writerを一覧化"
 ```
 
-### Task 3: Make URL cache invalidation cross-context safe
+## Task 3: Make URL cache invalidation cross-context safe
 
 **Files:**
 
@@ -221,7 +221,7 @@ git add src/lib/storage/urls.ts src/lib/storage/urls.test.ts
 git commit -m "URL cacheを外部更新へ追従させる"
 ```
 
-### Task 4: Add queue, race, and restart evidence
+## Task 4: Add queue, race, and restart evidence
 
 **Files:**
 
@@ -283,7 +283,7 @@ git add src/lib/storage/urls.concurrency.test.ts
 git commit -m "cross-context storage競合を再現する"
 ```
 
-### Task 5: Record v2 handoffs and policy enforcement
+## Task 5: Record v2 handoffs and policy enforcement
 
 **Files:**
 
@@ -323,7 +323,7 @@ git add docs/architecture/persistence-model-v2.md src/lib/architecture/persisten
 git commit -m "Persistence v2へ競合要件を引き渡す"
 ```
 
-### Task 6: Verify, evaluate, and publish
+## Task 6: Verify, evaluate, and publish
 
 **Files:**
 

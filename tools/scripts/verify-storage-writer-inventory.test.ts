@@ -764,6 +764,14 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
       sourceCode: 'await storageLocal.set({ urls: [] })',
     },
     {
+      name: 'storageLocal bound to the remove-only storage adapter',
+      relativePath: 'src/features/navigation/app/AppRouter.tsx',
+      sourceCode: [
+        'const storageLocal = getStorageLocalRemove()',
+        "await storageLocal.remove('viewMode')",
+      ].join('\n'),
+    },
+    {
       name: 'getChromeStorageLocal local alias set',
       relativePath: 'src/lib/storage/resolved.ts',
       sourceCode:
@@ -847,6 +855,21 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
     {
       name: 'unrelated local alias setter',
       sourceCode: 'const local = otherFactory()\nawait local.set({ urls: [] })',
+    },
+    {
+      name: 'storageLocal parameter shadowing the resolved storage binding',
+      sourceCode: [
+        'const updateMap = (storageLocal: Map<string, unknown>) => {',
+        "  storageLocal.set('urls', [])",
+        '}',
+      ].join('\n'),
+    },
+    {
+      name: 'local Map named storageLocal',
+      sourceCode: [
+        'const storageLocal = new Map<string, unknown>()',
+        "storageLocal.set('urls', [])",
+      ].join('\n'),
     },
     {
       name: 'function parameter shadowing a storage alias',
