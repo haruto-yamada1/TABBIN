@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   APPROVED_WEB_ACCESSIBLE_RESOURCES,
   assertChromeFirefoxManifestDelta,
+  assertWebAccessibleResourcesOnAllowlist,
 } from './manifestSecurityInvariants'
 import {
   assertManifestMatchesProductionNetworkPolicy,
@@ -715,6 +716,22 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         {
           content_security_policy: {
             extension_pages: csp.replace(
+              "frame-src 'none'",
+              "frame-src 'self'",
+            ),
+          },
+          host_permissions,
+          manifest_version: 3,
+        },
+        'frame-src.json',
+      ),
+    ).toThrow(/frame-src\.json.*frame-src must be 'none'/)
+
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        {
+          content_security_policy: {
+            extension_pages: csp.replace(
               "script-src 'self' 'wasm-unsafe-eval'",
               "script-src 'self'",
             ),
@@ -929,6 +946,67 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
     expect(APPROVED_WEB_ACCESSIBLE_RESOURCES).toEqual([])
   })
 
+  it('web_accessible_resources on the approved allowlist is accepted (MV2 string form)', () => {
+    expect(() =>
+      assertWebAccessibleResourcesOnAllowlist(
+        { web_accessible_resources: ['options.html'] },
+        'allow.json',
+        ['options.html'],
+      ),
+    ).not.toThrow()
+  })
+
+  it('web_accessible_resources on the approved allowlist is accepted (MV3 object form)', () => {
+    expect(() =>
+      assertWebAccessibleResourcesOnAllowlist(
+        {
+          web_accessible_resources: [
+            {
+              matches: ['https://example.com/*'],
+              resources: ['options.html'],
+            },
+          ],
+        },
+        'allow-mv3.json',
+        ['options.html'],
+      ),
+    ).not.toThrow()
+  })
+
+  it('web_accessible_resources outside the approved allowlist is rejected', () => {
+    expect(() =>
+      assertWebAccessibleResourcesOnAllowlist(
+        { web_accessible_resources: ['other.html'] },
+        'mismatch.json',
+        ['options.html'],
+      ),
+    ).toThrow(/mismatch\.json.*web_accessible_resources.*allowlist/)
+  })
+
+  it('web_accessible_resources with an extra entry beyond the approved allowlist is rejected', () => {
+    expect(() =>
+      assertWebAccessibleResourcesOnAllowlist(
+        { web_accessible_resources: ['options.html', 'other.html'] },
+        'extra.json',
+        ['options.html'],
+      ),
+    ).toThrow(/extra\.json.*web_accessible_resources.*allowlist/)
+  })
+
+  it('rejects a malformed web_accessible_resources MV3 entry', () => {
+    expect(() =>
+      assertWebAccessibleResourcesOnAllowlist(
+        {
+          web_accessible_resources: [
+            { matches: ['https://example.com/*'], resources: [123] },
+          ],
+        },
+        'bad-mv3.json',
+        [],
+      ),
+    ).toThrow(/bad-mv3\.json.*MV3 entries.*string\[\] resources/)
+  })
+
   it('rejects a non-empty web_accessible_resources MV3 object form', () => {
     expect(() =>
       assertManifestMatchesProductionNetworkPolicy(
@@ -1011,7 +1089,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         },
         'malformed-war.json',
       ),
-    ).toThrow(/malformed-war\.json.*web_accessible_resources.*allowlist/)
+    ).toThrow(/malformed-war\.json.*web_accessible_resources.*array/)
   })
 
   it('rejects a permissions array containing non-string entries', () => {
@@ -1035,6 +1113,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
 
   describe('assertChromeFirefoxManifestDelta', () => {
     const chromeBase = {
+      action: { default_title: '__MSG_extensionName__' },
       content_security_policy: {
         extension_pages: createProductionExtensionCsp(3),
       },
@@ -1055,6 +1134,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
       version: '1.0.0',
     }
     const firefoxBase = {
+      browser_action: { default_title: '__MSG_extensionName__' },
       browser_specific_settings: {
         gecko: { data_collection_permissions: { required: ['none'] } },
       },
@@ -1166,6 +1246,126 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           'firefox.json',
         ),
       ).toThrow(/chrome and firefox manifests must be objects/)
+    })
+
+    it('rejects an unexpected field on the Chrome action surface', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          { ...chromeBase, action: { default_title: 'X', extra: true } },
+          firefoxBase,
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(/chrome\.json.*action surface.*unexpected field "extra"/)
+    })
+
+    it('rejects Chrome declaring browser_action', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          {
+            ...chromeBase,
+            browser_action: { default_title: '__MSG_extensionName__' },
+          },
+          firefoxBase,
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(/chrome\.json.*must not declare browser_action/)
+    })
+
+    it('rejects Firefox declaring action', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          chromeBase,
+          {
+            ...firefoxBase,
+            action: { default_title: '__MSG_extensionName__' },
+          },
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(/firefox\.json.*must not declare action/)
+    })
+
+    it('rejects a Chrome background extra field that Firefox does not have', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          {
+            ...chromeBase,
+            background: { service_worker: 'background.js', type: 'module' },
+          },
+          firefoxBase,
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(/Chrome and Firefox background diverge/)
+    })
+
+    it('rejects divergent action surface default_title between browsers', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          { ...chromeBase, action: { default_title: 'Chrome' } },
+          firefoxBase,
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(/Chrome and Firefox action surface diverge/)
+    })
+
+    it('rejects a non-string background.service_worker', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          { ...chromeBase, background: { service_worker: 123 } },
+          firefoxBase,
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(/chrome\.json.*background\.service_worker must be a string/)
+    })
+
+    it('rejects a non-string entry in background.scripts', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          chromeBase,
+          { ...firefoxBase, background: { scripts: ['background.js', 123] } },
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(/firefox\.json.*background\.scripts must be a string array/)
+    })
+
+    it('rejects Chrome declaring browser_specific_settings', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          {
+            ...chromeBase,
+            browser_specific_settings: { gecko: { id: 'x' } },
+          },
+          firefoxBase,
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(/chrome\.json.*must not declare browser_specific_settings/)
+    })
+
+    it('rejects a Firefox browser_specific_settings structure change', () => {
+      expect(() =>
+        assertChromeFirefoxManifestDelta(
+          chromeBase,
+          {
+            ...firefoxBase,
+            browser_specific_settings: {
+              gecko: {
+                data_collection_permissions: { required: ['tech.data'] },
+              },
+            },
+          },
+          'chrome.json',
+          'firefox.json',
+        ),
+      ).toThrow(
+        /firefox\.json.*browser_specific_settings.*expected Firefox structure/,
+      )
     })
   })
 })

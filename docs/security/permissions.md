@@ -172,15 +172,25 @@ checks, per manifest:
   external message senders.
 - `content_scripts` is empty (WXT may emit an empty array) until a trust-boundary
   review approves content-script injection.
-- `web_accessible_resources` matches the approved allowlist (currently empty) so
-  no extension asset is exposed to web pages without review.
+- `web_accessible_resources` matches the approved resource-path allowlist in
+  `APPROVED_WEB_ACCESSIBLE_RESOURCES` (currently empty). MV2 string arrays and
+  MV3 `{ resources, matches }` object arrays are normalized to their resource
+  paths and compared exactly against the allowlist, so updating the allowlist
+  permits the approved resources. The verifier pins resource paths; the
+  `matches` / `extension_ids` exposure scope is part of the security review and
+  must be justified in this document before an entry is approved.
 
 The `assertChromeFirefoxManifestDelta` verifier checks that Chrome MV3 and
-Firefox MV2 differ only on the expected manifest-version-driven keys
-(`manifest_version`, `permissions`, `host_permissions`,
-`content_security_policy`, `browser_specific_settings`, `action`/
-`browser_action`, `background`). Any other key divergence fails verification, so
-a change that only lands on one browser is detected.
+Firefox MV2 differ only on the expected manifest-version-driven structure.
+`manifest_version`, `permissions`, `host_permissions`, and
+`content_security_policy` differ by manifest version and are verified per
+manifest. `action` / `browser_action`, `background`, and
+`browser_specific_settings` are normalized to a common representation
+(allowed action fields, `service_worker` -> `scripts`, the expected Firefox
+gecko data-collection structure) and compared, so an unexpected
+browser-specific change inside those keys fails verification instead of being
+skipped. Any other key divergence fails verification, so a change that only
+lands on one browser is detected.
 
 ## Adding a new permission or privileged surface
 
@@ -191,7 +201,7 @@ security review, not a routine snapshot update.
 1. Update the typed allowlist in `src/constants/extensionPermissions.ts` or
    `src/constants/productionNetworkPolicy.ts` (and
    `APPROVED_WEB_ACCESSIBLE_RESOURCES` in
-   `tools/scripts/production-network-policy.ts` for web-accessible resources).
+   `tools/scripts/manifestSecurityInvariants.ts` for web-accessible resources).
 2. Add the permission's purpose, usage sites, and review notes to this document.
 3. If the addition is `content_scripts`, `externally_connectable`, or
    `onMessageExternal`, complete the trust-boundary review in
