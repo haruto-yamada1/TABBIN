@@ -350,6 +350,72 @@ entrypoints; new rows must be classified before #726 is finalized.
 No raw current key is a second authority after its logical cutover. Backup V2
 contains the logical model, not both legacy and v2 representations.
 
+## Incognito data boundary
+
+TABBIN does not support incognito/private-browsing persistence. Domain data and
+every control plane that governs it are normal-context-only. Both generated
+manifests declare:
+
+```json
+{
+  "incognito": "not_allowed"
+}
+```
+
+### Current behavior inventory and compatibility
+
+Before this decision, the current manifests omit `incognito` and therefore use
+the browser default `spanning` mode. There is no `tab.incognito` guard in the
+current writer inventory, so private-tab events are processed by the same
+background paths as normal tabs when a user grants private access.
+
+- Chrome runs the default spanning extension in one shared process and sends
+  incognito events to it. Chrome shares `chrome.storage.local` between regular
+  and incognito processes.
+- Firefox requires user opt-in for private browsing access. Its default
+  `spanning` mode also exposes private and non-private tab/window events to the
+  extension, distinguished only by the `incognito` property.
+- Both browsers support `not_allowed`; declaring it removes the user opt-in
+  surface and prevents private events from entering TABBIN persistence paths.
+
+This is a deliberate compatibility break for users who previously enabled
+private access. Existing private URLs were written into shared normal storage
+without provenance, so this change neither migrates nor guesses which existing
+records came from private browsing. Removing records without provenance would
+risk deleting normal user data.
+
+The browser behavior evidence is maintained against the official
+[Chrome incognito manifest](https://developer.chrome.com/docs/extensions/reference/manifest/incognito),
+[Chrome incognito access](https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions),
+and
+[Firefox incognito manifest](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/incognito)
+documentation.
+
+### Normal-only scope
+
+- PersistenceBootstrap state, migration lock, migration ownership, source
+  snapshot, target database identity, and cleanup eligibility are
+  normal-context-only.
+- Persistence v2 has one normal-context IndexedDB database identity. It does not
+  create a private database, private migration marker, or private bootstrap
+  state.
+- Migration coordination is acquired and verified only for the normal context.
+  If an unsupported private context reaches bootstrap in a development or
+  side-loaded build, it fails closed with `MIGRATION_COORDINATION_UNAVAILABLE`;
+  it must not read, write, cut over, or clean up either persistence source.
+- Backup V2 exports and imports normal-context data only. There is no private
+  backup envelope or implicit merge into a normal backup.
+- Analytics and AI saved-URL context builders consume normal-context data only.
+  They must not infer inclusion merely because a storage engine exposes a
+  record.
+- Migration notices, dismissal state, settings, recovery snapshots, and legacy
+  cleanup all use the normal-context control plane.
+
+Supporting private browsing later requires a dedicated product decision and
+separate migration, backup, analytics, AI, cleanup, and browser-compatibility
+contracts. Changing only the manifest mode or IndexedDB database name is not a
+supported rollout.
+
 ## JSON-safe persistence boundary
 
 The shared logical contract is:
