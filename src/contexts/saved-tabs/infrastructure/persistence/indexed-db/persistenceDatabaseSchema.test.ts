@@ -82,6 +82,24 @@ describe('IndexedDbConnectionManager', () => {
     manager.close()
   })
 
+  it('close 中に完了した open を破棄して再接続できる', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'close-during-open',
+      indexedDb: new IDBFactory(),
+    })
+
+    const staleOpening = manager.open()
+    manager.close()
+
+    await expect(staleOpening).rejects.toMatchObject({
+      code: 'OPEN_FAILED',
+      name: 'IndexedDbConnectionError',
+    })
+    const reopened = await manager.open()
+    await expect(manager.open()).resolves.toBe(reopened)
+    manager.close()
+  })
+
   it('versionchange で古い connection を閉じて upgrade を妨げない', async () => {
     const indexedDb = new IDBFactory()
     const onVersionChange = vi.fn()
@@ -185,11 +203,17 @@ describe('IndexedDbConnectionManager', () => {
   })
 
   it('IndexedDB factory不在をOPEN_FAILEDとして分類する', () => {
-    expect(() =>
+    let caught: unknown
+    try {
       Reflect.construct(IndexedDbConnectionManager, [
         { indexedDb: { open: 'not-a-function' } },
-      ]),
-    ).toThrow(IndexedDbConnectionError)
+      ])
+    } catch (error) {
+      caught = error
+    }
+
+    expect(caught).toBeInstanceOf(IndexedDbConnectionError)
+    expect(caught).toMatchObject({ code: 'OPEN_FAILED' })
   })
 
   it('schema upgrade callback failureをUPGRADE_FAILEDとして分類する', async () => {

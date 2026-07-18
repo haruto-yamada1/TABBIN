@@ -96,6 +96,10 @@ publish messages. An orchestrator may publish only after `commit()` resolves;
 an abort produces no commit result. A later publish failure does not pretend
 that committed data or its revision was rolled back.
 
+Change scopes are logical invalidation scopes, not physical object-store names.
+A `messages` mutation therefore reports `conversations`, matching the #739
+conversation aggregate scope so consumers requery the complete conversation.
+
 ## Durability and browser behavior
 
 Normal mutations use the browser's `default` durability. Critical migration,
@@ -131,7 +135,8 @@ Each extension context owns one `IndexedDbConnectionManager` instance:
 2. a successful connection is reused in that context;
 3. `versionchange` closes and forgets the old connection immediately;
 4. `blocked` reports the old and requested versions without hiding the upgrade;
-5. an explicit close forgets the cached connection; and
+5. an explicit close invalidates an in-flight open and forgets the cached
+   connection; and
 6. a new manager after an MV3 service-worker restart opens the same database.
 
 An upgrade exception aborts the upgrade transaction and becomes a typed
@@ -223,4 +228,5 @@ bun run test:indexeddb:browsers
 bun run benchmark:persistence -- --url-count=10000 --membership-multiplier=5
 bun run test:coverage
 bun run quality:check
+bun run release:check
 ```

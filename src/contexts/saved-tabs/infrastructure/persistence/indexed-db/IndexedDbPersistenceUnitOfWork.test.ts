@@ -69,6 +69,33 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
     manager.close()
   })
 
+  it('message mutationをlogical conversations scopeとして返す', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'message-change-scope',
+      indexedDb: new IDBFactory(),
+    })
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+
+    const result = await unitOfWork.commit({
+      messages: {
+        put: [
+          {
+            conversationId: 'conversation-1',
+            createdAt: 1,
+            id: 'message-1',
+            value: { role: 'user', text: 'hello' },
+          },
+        ],
+      },
+    })
+
+    expect(result).toEqual({
+      changedScopes: ['conversations'],
+      revision: 1,
+    })
+    manager.close()
+  })
+
   it('途中のunique index violationで全storeとrevisionをrollbackする', async () => {
     const manager = new IndexedDbConnectionManager({
       databaseName: 'rollback',

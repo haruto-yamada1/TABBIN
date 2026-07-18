@@ -46,6 +46,7 @@ const isIndexedDbFactory = (value: unknown): value is IDBFactory =>
 
 export class IndexedDbConnectionManager {
   private database: IDBDatabase | undefined
+  private generation = 0
   private opening: Promise<IDBDatabase> | undefined
 
   private readonly databaseName: string
@@ -91,6 +92,7 @@ export class IndexedDbConnectionManager {
       return this.opening
     }
 
+    const generation = this.generation
     const opening = new Promise<IDBDatabase>((resolve, reject) => {
       const request = this.indexedDb.open(
         this.databaseName,
@@ -123,7 +125,9 @@ export class IndexedDbConnectionManager {
         }
       })
       request.addEventListener('error', () => {
-        this.opening = undefined
+        if (generation === this.generation) {
+          this.opening = undefined
+        }
         reject(
           new IndexedDbConnectionError(
             upgradeError ? 'UPGRADE_FAILED' : 'OPEN_FAILED',
@@ -136,6 +140,16 @@ export class IndexedDbConnectionManager {
       })
       request.addEventListener('success', () => {
         const database = request.result
+        if (generation !== this.generation) {
+          database.close()
+          reject(
+            new IndexedDbConnectionError(
+              'OPEN_FAILED',
+              'IndexedDB connection open was invalidated by close().',
+            ),
+          )
+          return
+        }
         database.addEventListener('versionchange', (event) => {
           database.close()
           if (this.database === database) {
@@ -173,7 +187,9 @@ export class IndexedDbConnectionManager {
   }
 
   close(): void {
+    this.generation += 1
     this.database?.close()
     this.database = undefined
+    this.opening = undefined
   }
 }

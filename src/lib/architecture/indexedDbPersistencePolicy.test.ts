@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 const readRepositoryFile = (path: string): string =>
   readFileSync(resolve(process.cwd(), path), 'utf8')
 
+const indexedDbApiTypePattern = /\bIDB[A-Z]\w*\b/
+
 describe('IndexedDB persistence architecture policy', () => {
   it('application ports do not expose IndexedDB API types', () => {
     const ports = [
@@ -15,9 +17,21 @@ describe('IndexedDB persistence architecture policy', () => {
     ].map(readRepositoryFile)
 
     for (const port of ports) {
-      expect(port).not.toMatch(
-        /\bIDB(?:Database|ObjectStore|Request|Transaction)/,
-      )
+      expect(port).not.toMatch(indexedDbApiTypePattern)
+    }
+  })
+
+  it('all representative IndexedDB API types match the boundary guard', () => {
+    for (const apiType of [
+      'IDBCursor',
+      'IDBDatabase',
+      'IDBIndex',
+      'IDBKeyRange',
+      'IDBObjectStore',
+      'IDBRequest',
+      'IDBTransaction',
+    ]) {
+      expect(apiType).toMatch(indexedDbApiTypePattern)
     }
   })
 
@@ -48,6 +62,7 @@ describe('IndexedDB persistence architecture policy', () => {
       'PersistenceSnapshotIntegrityError',
       'Chromium',
       'Firefox',
+      'bun run release:check',
       'resumable migration plan',
     ]) {
       expect(document).toContain(requiredContract)

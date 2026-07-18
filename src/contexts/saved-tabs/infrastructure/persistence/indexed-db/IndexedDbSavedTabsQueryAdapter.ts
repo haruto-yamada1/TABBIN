@@ -137,23 +137,27 @@ export class IndexedDbSavedTabsQueryAdapter implements PersistenceV2QueryPort {
     const collections = new Map(
       snapshot.collections.map((collection) => [collection.id, collection]),
     )
+    const projections: PersistenceV2UrlCollectionProjection[] = []
 
-    return snapshot.memberships
-      .filter((membership) => membership.urlId === urlId)
-      .map((membership) => {
-        const collection = collections.get(membership.collectionId)
-        if (!collection) {
-          throw new PersistenceProjectionIntegrityError(
-            'collection',
-            membership.collectionId,
-          )
-        }
+    for (const membership of snapshot.memberships) {
+      if (membership.urlId !== urlId) {
+        continue
+      }
 
-        return { collection, membership }
-      })
-      .toSorted((left, right) =>
-        byOrderThenId(left.collection, right.collection),
-      )
+      const collection = collections.get(membership.collectionId)
+      if (!collection) {
+        throw new PersistenceProjectionIntegrityError(
+          'collection',
+          membership.collectionId,
+        )
+      }
+
+      projections.push({ collection, membership })
+    }
+
+    return projections.toSorted((left, right) =>
+      byOrderThenId(left.collection, right.collection),
+    )
   }
 
   async readAnalyticsRecords(): Promise<
