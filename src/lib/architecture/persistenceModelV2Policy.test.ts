@@ -333,6 +333,7 @@ describe('Persistence Model v2 architecture contract', () => {
       '## Storage Placement Matrix',
       '## Incognito data boundary',
       '## JSON-safe persistence boundary',
+      '## Backup V2 resource and round-trip envelope',
       '## Migration recoverability',
       '## Invariants for #712',
       '## Query and projection boundary',
@@ -372,6 +373,27 @@ describe('Persistence Model v2 architecture contract', () => {
       "DynamicToolUIPart['output']",
     ]) {
       expect(modelDocument).toContain(guardrail)
+    }
+  })
+
+  it('defines the supported Backup V2 resource and round-trip contract', () => {
+    for (const contract of [
+      '128 MiB',
+      '100,000 URLs',
+      '500,000 memberships',
+      '32 MiB attachment aggregate',
+      '8 MiB tool-trace aggregate',
+      'import(export(x))',
+      'validateBackupResourceUsage',
+      'BACKUP_FILE_TOO_LARGE',
+      'BACKUP_RESOURCE_LIMIT_EXCEEDED',
+      'BACKUP_NESTED_PAYLOAD_TOO_LARGE',
+      'INVALID_BACKUP',
+      '90.49 MiB',
+      'compact JSON',
+      'two recovery snapshots for seven days',
+    ]) {
+      expect(modelDocument).toContain(contract)
     }
   })
 

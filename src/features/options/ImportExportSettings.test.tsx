@@ -123,6 +123,7 @@ import {
   importSettings,
 } from '@/features/options/lib/import-export'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
+import { BACKUP_RESOURCE_LIMITS } from '@/lib/persistence/backupResourcePolicy'
 
 type ReaderMode = 'success' | 'empty' | 'error'
 
@@ -479,19 +480,43 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(importSettings).not.toHaveBeenCalled()
   })
 
-  it('10MB を超える JSON ファイルは読み込み前に拒否する', async () => {
+  it('旧10MiB上限を超えても共有Backup上限内なら読み込む', async () => {
     const { container } = render(<ImportExportSettings />)
+    const file = new File(['dummy'], 'supported.json', {
+      type: 'application/json',
+    })
+    Object.defineProperty(file, 'size', { value: 10 * 1024 * 1024 + 1 })
+    const readAsText = vi.spyOn(MockFileReader.prototype, 'readAsText')
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(getHiddenFileInput(container), {
-      target: {
-        files: [
-          new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'large.json', {
-            type: 'application/json',
-          }),
-        ],
-      },
+      target: { files: [file] },
+    })
+
+    await waitFor(() => {
+      expect(readAsText).toHaveBeenCalledWith(file)
+      expect(getImportPreview).toHaveBeenCalledWith(readerContent)
+    })
+    expect(toast.error).not.toHaveBeenCalledWith(
+      'options.importExport.fileTooLarge',
+    )
+  })
+
+  it('共有Backup上限を超えるJSONは読み込み前に拒否する', async () => {
+    const { container } = render(<ImportExportSettings />)
+    const file = new File(['dummy'], 'too-large.json', {
+      type: 'application/json',
+    })
+    Object.defineProperty(file, 'size', {
+      value: BACKUP_RESOURCE_LIMITS.maxSerializedBytes + 1,
+    })
+    const readAsText = vi.spyOn(MockFileReader.prototype, 'readAsText')
+
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(getHiddenFileInput(container), {
+      target: { files: [file] },
     })
 
     await waitFor(() => {
@@ -499,7 +524,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         'options.importExport.fileTooLarge',
       )
     })
-    expect(importSettings).not.toHaveBeenCalled()
+    expect(readAsText).not.toHaveBeenCalled()
   })
 
   it('プレビュー解析が失敗した場合はプレビューの失敗メッセージを表示する', async () => {

@@ -21,6 +21,10 @@ import {
   getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
+import {
+  BACKUP_MAX_SERIALIZED_SIZE_LABEL,
+  validateBackupSerializedBytes,
+} from '@/lib/persistence/backupResourcePolicy'
 
 import {
   createCloseImportDialogAction,
@@ -204,15 +208,11 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         return
       }
 
-      const MAX_IMPORT_FILE_SIZE_MB = 10
-      const BYTES_PER_KILOBYTE = 1024
-      const KILOBYTE = BYTES_PER_KILOBYTE
-      const MAX_IMPORT_FILE_SIZE_BYTES =
-        MAX_IMPORT_FILE_SIZE_MB * KILOBYTE * KILOBYTE // 10MB
-      if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+      const sizeValidation = validateBackupSerializedBytes(file.size)
+      if (!sizeValidation.success) {
         toast.error(
           t('options.importExport.fileTooLarge', undefined, {
-            maxSize: '10MB',
+            maxSize: BACKUP_MAX_SERIALIZED_SIZE_LABEL,
           }),
         )
         return
