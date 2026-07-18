@@ -25,6 +25,13 @@ local_deployed_files:
   - .agents/skills/babysit
   - .agents/skills/brainstorming
   - .agents/skills/canvas
+  - .agents/skills/cavecrew
+  - .agents/skills/caveman
+  - .agents/skills/caveman-commit
+  - .agents/skills/caveman-compress
+  - .agents/skills/caveman-help
+  - .agents/skills/caveman-review
+  - .agents/skills/caveman-stats
   - .agents/skills/check
   - .agents/skills/commit-push-pr
   - .agents/skills/create-hook
@@ -107,6 +114,13 @@ local_deployed_files:
   - .claude/skills/babysit
   - .claude/skills/brainstorming
   - .claude/skills/canvas
+  - .claude/skills/cavecrew
+  - .claude/skills/caveman
+  - .claude/skills/caveman-commit
+  - .claude/skills/caveman-compress
+  - .claude/skills/caveman-help
+  - .claude/skills/caveman-review
+  - .claude/skills/caveman-stats
   - .claude/skills/check
   - .claude/skills/commit-push-pr
   - .claude/skills/create-hook

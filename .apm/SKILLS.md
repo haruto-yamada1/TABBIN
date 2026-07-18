@@ -157,6 +157,21 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | --- | --- |
 | `remotion-best-practices` | Remotion で動画、composition、caption、audio、asset、animation を扱うときに使います。 |
 
+### トークン圧縮 / Caveman
+
+caveman 系 skill は出力・入力 token を圧縮しつつ技術的正確さを保つためのものです。
+`JuliusBrussee/caveman` 由来で `.apm/skills/` から APM 配布しています。
+
+| skill | 使う場面 |
+| --- | --- |
+| `caveman` | caveman mode で出力 token を圧縮します。`/caveman`、caveman mode、token 効率化の依頼で使います。lite / full / ultra / wenyan-* の強度があります。 |
+| `cavecrew` | caveman 圧縮された subagent へ作業を委譲する判断軸です。investigator / builder / reviewer の使い分けと tool-result 圧縮を扱います。 |
+| `caveman-commit` | commit message を conventional commits で圧縮生成します。`/caveman-commit`、staging 時に自動起動します。 |
+| `caveman-compress` | `CLAUDE.md` など memory file を caveman 形式へ圧縮します。`/caveman-compress FILEPATH` で実行し、backup を `.original.md` に残します。 |
+| `caveman-review` | PR / diff review comment を 1 行圧縮で出します。`/caveman-review`、PR review 時に使います。 |
+| `caveman-stats` | session log から実 token 使用量と推定削減効果を出します。`/caveman-stats` で起動します。 |
+| `caveman-help` | caveman 系 skill / mode / command の quick-reference を 1 shot で表示します。`/caveman-help` で使います。 |
+
 ## 使い分けの目安
 
 - 「作業全体を任せたい」なら `harness-orchestrate` または `ハーネスで開始して`。
