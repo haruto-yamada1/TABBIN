@@ -13,32 +13,7 @@ import { queueIndexedDbTransaction } from './IndexedDbTransaction'
 import { PERSISTENCE_STORE_NAMES } from './persistenceDatabaseSchema'
 import type { PersistenceStoreName } from './persistenceDatabaseSchema'
 import { readIndexedDbRequestResult } from './PersistenceRecordDecoders'
-
-type MetadataRecord = {
-  readonly key: 'revision'
-  readonly value: number
-}
-
-const isMetadataRecord = (value: unknown): value is MetadataRecord =>
-  typeof value === 'object' &&
-  value !== null &&
-  'key' in value &&
-  value.key === 'revision' &&
-  'value' in value &&
-  typeof value.value === 'number' &&
-  Number.isSafeInteger(value.value) &&
-  value.value >= 0
-
-const decodeMetadataRecord = (value: unknown): MetadataRecord | undefined => {
-  if (value === undefined) {
-    return undefined
-  }
-  if (isMetadataRecord(value)) {
-    return value
-  }
-
-  throw new TypeError('IndexedDB contains an invalid persistence revision.')
-}
+import { decodePersistenceRevision } from './PersistenceRevision'
 
 const PLAN_STORE_NAMES = {
   analyticsViews: PERSISTENCE_STORE_NAMES.analyticsViews,
@@ -176,10 +151,10 @@ export class IndexedDbPersistenceUnitOfWork implements PersistenceV2UnitOfWorkPo
         )
         const revisionRequest = metadata.get('revision')
         revisionRequest.addEventListener('success', () => {
-          const current = decodeMetadataRecord(
+          const current = decodePersistenceRevision(
             readIndexedDbRequestResult(revisionRequest),
           )
-          committedRevision = (current?.value ?? 0) + 1
+          committedRevision = current + 1
           metadata.put({ key: 'revision', value: committedRevision })
         })
       },
@@ -218,6 +193,6 @@ export class IndexedDbPersistenceUnitOfWork implements PersistenceV2UnitOfWorkPo
       })
     })
 
-    return decodeMetadataRecord(result)?.value ?? 0
+    return decodePersistenceRevision(result)
   }
 }

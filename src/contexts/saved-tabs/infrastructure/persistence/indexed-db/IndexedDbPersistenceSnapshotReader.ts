@@ -1,6 +1,7 @@
 import type {
   PersistenceLogicalSnapshot,
   PersistenceV2SnapshotReaderPort,
+  PersistenceVersionedSavedTabsSnapshot,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 import type { PersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
@@ -20,6 +21,7 @@ import {
   isPersistenceV2Url,
   readIndexedDbRequestResult,
 } from './PersistenceRecordDecoders'
+import { decodePersistenceRevision } from './PersistenceRevision'
 
 const SAVED_TABS_STORE_NAMES = [
   PERSISTENCE_STORE_NAMES.urls,
@@ -27,6 +29,7 @@ const SAVED_TABS_STORE_NAMES = [
   PERSISTENCE_STORE_NAMES.memberships,
   PERSISTENCE_STORE_NAMES.categories,
   PERSISTENCE_STORE_NAMES.groups,
+  PERSISTENCE_STORE_NAMES.metadata,
 ] as const
 
 const BACKUP_SOURCE_STORE_NAMES = [
@@ -47,6 +50,9 @@ const queueSavedTabsRequests = (transaction: IDBTransaction) => ({
   memberships: transaction
     .objectStore(PERSISTENCE_STORE_NAMES.memberships)
     .getAll(),
+  revision: transaction
+    .objectStore(PERSISTENCE_STORE_NAMES.metadata)
+    .get('revision'),
   urls: transaction.objectStore(PERSISTENCE_STORE_NAMES.urls).getAll(),
 })
 
@@ -82,12 +88,17 @@ const materializeSavedTabsSnapshot = (
 
 const readSavedTabsSnapshot = async (
   database: IDBDatabase,
-): Promise<PersistenceV2Snapshot> => {
+): Promise<PersistenceVersionedSavedTabsSnapshot> => {
   const transaction = database.transaction(SAVED_TABS_STORE_NAMES, 'readonly')
   const requests = queueSavedTabsRequests(transaction)
   await waitForIndexedDbTransaction(transaction)
 
-  return materializeSavedTabsSnapshot(requests)
+  return {
+    revision: decodePersistenceRevision(
+      readIndexedDbRequestResult(requests.revision),
+    ),
+    savedTabs: verifySavedTabsSnapshot(materializeSavedTabsSnapshot(requests)),
+  }
 }
 
 export class PersistenceSnapshotIntegrityError extends Error {
@@ -157,14 +168,15 @@ export class IndexedDbPersistenceSnapshotReader implements PersistenceV2Snapshot
         isPersistenceMessageRecord,
         PERSISTENCE_STORE_NAMES.messages,
       ),
+      revision: decodePersistenceRevision(
+        readIndexedDbRequestResult(savedTabsRequests.revision),
+      ),
       savedTabs,
     }
   }
 
-  async readVerifiedSavedTabsSnapshot(): Promise<PersistenceV2Snapshot> {
+  async readVerifiedSavedTabsSnapshot(): Promise<PersistenceVersionedSavedTabsSnapshot> {
     const database = await this.connectionManager.open()
-    const snapshot = await readSavedTabsSnapshot(database)
-
-    return verifySavedTabsSnapshot(snapshot)
+    return readSavedTabsSnapshot(database)
   }
 }

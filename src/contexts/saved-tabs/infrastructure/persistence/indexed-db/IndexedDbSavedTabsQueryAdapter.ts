@@ -98,7 +98,8 @@ export class IndexedDbSavedTabsQueryAdapter implements PersistenceV2QueryPort {
   async findCollection(
     collectionId: string,
   ): Promise<PersistenceV2CollectionProjection | undefined> {
-    const snapshot = await this.snapshotReader.readVerifiedSavedTabsSnapshot()
+    const { savedTabs: snapshot } =
+      await this.snapshotReader.readVerifiedSavedTabsSnapshot()
     const collection = snapshot.collections.find(
       ({ id }) => id === collectionId,
     )
@@ -109,7 +110,8 @@ export class IndexedDbSavedTabsQueryAdapter implements PersistenceV2QueryPort {
   }
 
   async readInitialLoad(): Promise<PersistenceV2InitialProjection> {
-    const snapshot = await this.snapshotReader.readVerifiedSavedTabsSnapshot()
+    const { revision, savedTabs: snapshot } =
+      await this.snapshotReader.readVerifiedSavedTabsSnapshot()
     const index = indexSnapshot(snapshot)
 
     return {
@@ -117,13 +119,15 @@ export class IndexedDbSavedTabsQueryAdapter implements PersistenceV2QueryPort {
         .toSorted(byOrderThenId)
         .map((collection) => projectCollection(index, collection)),
       groups: snapshot.groups.toSorted(byOrderThenId),
+      revision,
     }
   }
 
   async findCollectionsInGroup(
     groupId: string,
   ): Promise<readonly PersistenceV2Collection[]> {
-    const snapshot = await this.snapshotReader.readVerifiedSavedTabsSnapshot()
+    const { savedTabs: snapshot } =
+      await this.snapshotReader.readVerifiedSavedTabsSnapshot()
 
     return snapshot.collections
       .filter((collection) => collection.groupId === groupId)
@@ -133,7 +137,8 @@ export class IndexedDbSavedTabsQueryAdapter implements PersistenceV2QueryPort {
   async findCollectionsForUrl(
     urlId: string,
   ): Promise<readonly PersistenceV2UrlCollectionProjection[]> {
-    const snapshot = await this.snapshotReader.readVerifiedSavedTabsSnapshot()
+    const { savedTabs: snapshot } =
+      await this.snapshotReader.readVerifiedSavedTabsSnapshot()
     const collections = new Map(
       snapshot.collections.map((collection) => [collection.id, collection]),
     )
@@ -163,7 +168,8 @@ export class IndexedDbSavedTabsQueryAdapter implements PersistenceV2QueryPort {
   async readAnalyticsRecords(): Promise<
     readonly PersistenceV2AnalyticsRecord[]
   > {
-    const snapshot = await this.snapshotReader.readVerifiedSavedTabsSnapshot()
+    const { savedTabs: snapshot } =
+      await this.snapshotReader.readVerifiedSavedTabsSnapshot()
     const collectionIdsByUrl = new Map<string, Set<string>>()
     const membershipCountsByUrl = new Map<string, number>()
     for (const membership of snapshot.memberships) {
