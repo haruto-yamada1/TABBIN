@@ -1,0 +1,81 @@
+# Waza Skill 評価 PoC (手動・非 blocking)。
+# required check にはしない。`workflow_dispatch` でのみ実行。
+name: Waza Skill Eval (PoC)
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      waza_version:
+        description: 'Waza バージョン (固定)'
+        required: false
+        default: 'v0.38.3'
+      run_adversarial:
+        description: 'adversarial pack を実行する'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: waza-eval-poc-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  waza-eval:
+    name: Waza eval (check skill)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Install Waza (pinned v0.38.3 + checksum)
+        env:
+          # workflow_dispatch input は env 経由で受け取り、shell への直接展開を避ける
+          # (template-injection 対策)。
+          WAZA_VERSION: ${{ inputs.waza_version }}
+        run: |
+          set -euo pipefail
+          ASSET="waza-linux-amd64"
+          EXPECT_SHA="168e3562deeaa1958d44366b37d963b48b091c325c6c9b5b2613e5399ff077b9"
+          tmp="$(mktemp -d)"
+          curl -fSL -o "$tmp/$ASSET" \
+            "https://github.com/microsoft/waza/releases/download/${WAZA_VERSION}/${ASSET}"
+          echo "$EXPECT_SHA  $tmp/$ASSET" | sha256sum -c -
+          install -m 0755 "$tmp/$ASSET" "$HOME/.local/bin/waza"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          waza --version
+
+      - name: Skill readiness check
+        run: bun run waza:check
+
+      - name: Spec verify (eval coverage)
+        run: bun run waza:spec:verify
+
+      - name: Run eval (mock executor)
+        run: bun run waza:eval:check
+
+      - name: Run adversarial pack (optional)
+        if: ${{ github.event.inputs.run_adversarial == 'true' }}
+        run: bun run waza:adversarial
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: waza-eval-results
+          path: .waza-results/
+          if-no-files-found: ignore
+          retention-days: 7
