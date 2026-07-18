@@ -837,6 +837,10 @@
           {
             "name": "indexedDB",
             "message": "domain 層は indexedDB を直接利用できません"
+          },
+          {
+            "name": "fetch",
+            "message": "domain 層は fetch を直接利用できません（HttpClientPort / AiClientPort / adapter 経由）"
           }
         ],
         "eslint/no-restricted-properties": [
@@ -1001,6 +1005,10 @@
           {
             "name": "indexedDB",
             "message": "application 層は indexedDB を直接利用できません（repository / storage adapter 経由）"
+          },
+          {
+            "name": "fetch",
+            "message": "application 層は fetch を直接利用できません（HttpClientPort / AiClientPort / adapter 経由）"
           }
         ]
       }
