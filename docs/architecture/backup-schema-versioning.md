@@ -1,8 +1,8 @@
 # Backup Schema Versioning
 
-Status: public migration-kernel contract for Issue #713  
-Parent: Issue #724  
-Production Backup V2 owner: Issue #730
+- Status: public migration-kernel contract for Issue #713
+- Parent: Issue #724
+- Production Backup V2 owner: Issue #730
 
 ## Version domains
 
