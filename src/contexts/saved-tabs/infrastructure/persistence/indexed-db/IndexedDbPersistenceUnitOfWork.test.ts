@@ -310,7 +310,7 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
 
     const error = await unitOfWork
       .readRevision()
-      .catch((caught: unknown) => caught)
+      .catch((error: unknown) => error)
 
     expect(error).toBe(requestError)
   })

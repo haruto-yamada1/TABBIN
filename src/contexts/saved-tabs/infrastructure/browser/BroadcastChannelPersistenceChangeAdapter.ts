@@ -112,27 +112,21 @@ const createGlobalBroadcastChannel: BroadcastChannelFactory = (channelName) => {
   } catch {
     throw new PersistenceChangeTransportUnavailableError()
   }
-  const nativeListeners = new Map<
-    BroadcastChannelMessageListener,
-    EventListener
-  >()
+  let nativeListener: EventListener
 
   return {
     addEventListener: (type, listener) => {
-      const nativeListener: EventListener = (event) => {
+      nativeListener = (event) => {
         listener({ data: 'data' in event ? event.data : undefined })
       }
-      nativeListeners.set(listener, nativeListener)
       channel.addEventListener(type, nativeListener)
     },
     close: () => {
       channel.close()
     },
     postMessage: channel.postMessage.bind(channel),
-    removeEventListener: (type, listener) => {
-      const nativeListener = nativeListeners.get(listener) as EventListener
+    removeEventListener: (type, _listener) => {
       channel.removeEventListener(type, nativeListener)
-      nativeListeners.delete(listener)
     },
   }
 }

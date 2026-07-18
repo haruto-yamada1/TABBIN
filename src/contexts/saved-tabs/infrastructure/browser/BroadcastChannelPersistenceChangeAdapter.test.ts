@@ -511,6 +511,7 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
       )
       readonly close = vi.fn()
       readonly listeners = new Set<EventListener>()
+      readonly name: string
       readonly postMessage = vi.fn()
       readonly removeEventListener = vi.fn(
         (_type: string, listener: EventListener): void => {
@@ -518,7 +519,8 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
         },
       )
 
-      constructor(readonly name: string) {
+      constructor(name: string) {
+        this.name = name
         channels.push(this)
       }
     }
