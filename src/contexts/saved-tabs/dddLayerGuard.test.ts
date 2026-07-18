@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -1686,6 +1686,54 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       })
     }
   })
+  describe('issue #739: persistence invalidation contract', () => {
+    const persistenceChangePortPath = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/application/ports/PersistenceChangePort.ts',
+    )
+    const unitOfWorkPortPath = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort.ts',
+    )
+
+    it('PersistenceChangePort は invalidation hint のみを公開し、scope を UnitOfWork と共有する', () => {
+      expect(
+        existsSync(persistenceChangePortPath),
+        'PersistenceChangePort.ts should define the application invalidation contract',
+      ).toBe(true)
+
+      const changePortSource = readFileSync(persistenceChangePortPath, 'utf8')
+      const eventBody = changePortSource.match(
+        /export type PersistenceChangeEvent\s*=\s*\{([\s\S]*?)\}/,
+      )?.[1]
+      expect(eventBody).toBeDefined()
+      expect(eventBody?.match(/readonly\s+\w+\s*:/g)).toEqual([
+        'readonly changeId:',
+        'readonly revision:',
+        'readonly scopes:',
+      ])
+      expect(eventBody).toMatch(/readonly changeId:\s*string/)
+      expect(eventBody).toMatch(/readonly revision:\s*number/)
+      expect(eventBody).toMatch(
+        /readonly scopes:\s*readonly PersistenceChangeScope\[\]/,
+      )
+      expect(eventBody).not.toMatch(
+        /\b(?:url|title|notes|prompt|attachment|payload)\b/i,
+      )
+      expect(changePortSource).toContain('type PersistenceChangePort')
+      expect(changePortSource).toContain('publish:')
+      expect(changePortSource).toContain('subscribe:')
+
+      const unitOfWorkSource = readFileSync(unitOfWorkPortPath, 'utf8')
+      expect(unitOfWorkSource).toMatch(
+        /import type \{ PersistenceChangeScope \} from ['"]@\/contexts\/saved-tabs\/application\/ports\/PersistenceChangePort['"]/,
+      )
+      expect(unitOfWorkSource).not.toMatch(
+        /export type PersistenceChangeScope\s*=/,
+      )
+    })
+  })
+
   describe('issue #587: application boundary naming conventions', () => {
     // application 層が presentation に公開する contract の命名規約を定義する。
     // presentation が domain entity に直接依存せず、DTO / ViewModel /
