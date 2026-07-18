@@ -177,6 +177,24 @@ false positive が出たら `// oxlint-disable-next-line` のような局所回�
 
 1 つの PR につき 1 use-case または 1 層の移行に留め、UI 変更と DDD 移行を同じ PR で大きく混ぜないでください。`utils.ts` / `helpers.ts` のような曖昧なファイルを増やしてはいけません。
 
+### Persistence Model v2 の change invalidation 境界
+
+Persistence Model v2 の cross-context invalidation は
+[`persistence-change-invalidation.md`](persistence-change-invalidation.md) を
+authoritative contract とします。application 層は
+`PersistenceChangePort` を定義し、application service が transaction 完了後の
+revision / scope を受け取って change ID を生成し、publish を await します。
+transaction abort では publish せず、commit 後の ID / publish failure は rollback
+ではなく typed partial success です。infrastructure 層は同一 extension origin の
+`BroadcastChannel` publisher / subscriber adapter と inbound strict validation を
+担当し、composition 層が application service と consumer へ配線します。
+
+#729 で v2 projection が authoritative になるまでは、現在の
+`StorageChangePort` / `chrome.storage.onChanged` による domain UI sync を維持し、
+cutover 済みとは扱いません。#729 の後に domain-key branch を削除し、Saved Tabs
+は `PersistenceChangePort` と Query re-read へ移行します。settings は scope に含めず、
+settings-specific な `chrome.storage.local` control-plane boundary へ分離します。
+
 ## 関連 Issue
 
 - #454: DDD 構成へ段階移行するための全体設計と実装計画

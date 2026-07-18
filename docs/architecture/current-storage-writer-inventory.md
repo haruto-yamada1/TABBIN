@@ -62,8 +62,13 @@ writer rows below rather than treated as primary domain keys.
   coherence only: an in-flight read caches its snapshot only if the cache
   generation and event API identity remain unchanged. API transitions detach
   the prior listener when supported and invalidate the cache. This is not
-  transactional RMW or cross-context write serialization. #739 owns the v2
-  notification protocol.
+  transactional RMW or cross-context write serialization. #739 implements the
+  v2 boundary as a post-commit, revisioned scope event over `PersistenceChangePort`.
+  The event contains invalidation metadata only; consumers re-run their current
+  consistent Query and never treat the event as cache data. Settings remain on
+  a settings-specific `chrome.storage.local` control-plane change path and are
+  not a persistence-change scope. The authoritative protocol is
+  [`persistence-change-invalidation.md`](persistence-change-invalidation.md).
 
 ## Current writer inventory
 

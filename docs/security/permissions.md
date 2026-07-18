@@ -149,6 +149,32 @@ origins, so no other outbound destination is permitted from extension pages. See
 outbound network policy and call-site inventory. Adding any non-loopback or
 non-Ollama origin is a privacy-design change, not a routine allowlist update.
 
+## Internal persistence invalidation transport
+
+Persistence Model v2 cross-context invalidation uses the internal
+`BroadcastChannel` transport documented in
+[`persistence-change-invalidation.md`](../architecture/persistence-change-invalidation.md).
+The channel `tabbin:persistence-change:v1` is limited by origin to TABBIN's
+background/page contexts and carries only a change ID, committed revision, and
+allowlisted scopes. It carries no URL, title, note, prompt, attachment, domain,
+or other user content. Inbound messages are strictly validated and rejected
+diagnostics are redacted.
+
+`BroadcastChannel` is a web-platform API, not an extension API permission. This
+transport adds no API permission, host permission, `externally_connectable`,
+`web_accessible_resources`, content script, or network surface.
+
+| Security surface                   | Chrome MV3                                 | Firefox MV2                                |
+| ---------------------------------- | ------------------------------------------ | ------------------------------------------ |
+| Background context                 | Same-extension-origin service worker       | Same-extension-origin background page      |
+| Page contexts                      | Same-extension-origin extension pages      | Same-extension-origin extension pages      |
+| Protocol payload                   | Identical metadata-only JSON-safe contract | Identical metadata-only JSON-safe contract |
+| Added permission / host permission | None                                       | None                                       |
+| External, WAR, or network exposure | None                                       | None                                       |
+
+Settings remain on the `chrome.storage.local` control-plane boundary and are
+not sent through this persistence invalidation channel.
+
 ## Generated manifest security invariants
 
 The verifier `assertManifestMatchesProductionNetworkPolicy` in
