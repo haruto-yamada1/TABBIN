@@ -7,6 +7,7 @@ import type {
 
 import {
   createBroadcastChannelPersistenceChangeAdapter,
+  PERSISTENCE_CHANGE_BROADCAST_CHANNEL_NAME,
   PersistenceChangeCleanupError,
   PersistenceChangePublicationError,
   PersistenceChangeTransportUnavailableError,
@@ -498,6 +499,70 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     expect(caught).toMatchObject({
       code: 'PERSISTENCE_CHANGE_PUBLICATION_FAILED',
     })
+  })
+
+  it('既定の native BroadcastChannel を envelope の publish・subscribe・cleanup に使う', async () => {
+    const channels: NativeBroadcastChannelStub[] = []
+    class NativeBroadcastChannelStub {
+      readonly addEventListener = vi.fn(
+        (_type: string, listener: EventListener): void => {
+          this.listeners.add(listener)
+        },
+      )
+      readonly close = vi.fn()
+      readonly listeners = new Set<EventListener>()
+      readonly postMessage = vi.fn()
+      readonly removeEventListener = vi.fn(
+        (_type: string, listener: EventListener): void => {
+          this.listeners.delete(listener)
+        },
+      )
+
+      constructor(readonly name: string) {
+        channels.push(this)
+      }
+    }
+    vi.stubGlobal('BroadcastChannel', NativeBroadcastChannelStub)
+    const adapter = createBroadcastChannelPersistenceChangeAdapter()
+    const listener = vi.fn()
+
+    const unsubscribe = adapter.subscribe(listener)
+    const subscriptionChannel = channels[0]
+    const [nativeListener] = subscriptionChannel.listeners
+    nativeListener(new Event('message'))
+    nativeListener(new MessageEvent('message', { data: EVENT }))
+    await adapter.publish(EVENT)
+    unsubscribe()
+
+    expect(channels.map(({ name }) => name)).toEqual([
+      PERSISTENCE_CHANGE_BROADCAST_CHANNEL_NAME,
+      PERSISTENCE_CHANGE_BROADCAST_CHANNEL_NAME,
+    ])
+    expect(listener).toHaveBeenCalledOnce()
+    expect(listener).toHaveBeenCalledWith(EVENT)
+    expect(channels[1].postMessage).toHaveBeenCalledWith(EVENT)
+    expect(channels[1].close).toHaveBeenCalledOnce()
+    expect(subscriptionChannel.removeEventListener).toHaveBeenCalledOnce()
+    expect(subscriptionChannel.close).toHaveBeenCalledOnce()
+  })
+
+  it('native BroadcastChannel constructor failure を typed unavailable error に変換する', async () => {
+    vi.stubGlobal(
+      'BroadcastChannel',
+      class {
+        constructor() {
+          throw new Error('secret constructor failure')
+        }
+      },
+    )
+    const adapter = createBroadcastChannelPersistenceChangeAdapter()
+
+    await expect(adapter.publish(EVENT)).rejects.toBeInstanceOf(
+      PersistenceChangeTransportUnavailableError,
+    )
+    expect(() => adapter.subscribe(vi.fn())).toThrow(
+      PersistenceChangeTransportUnavailableError,
+    )
   })
 
   it('BroadcastChannel API がない場合は typed unavailable error を投げる', async () => {

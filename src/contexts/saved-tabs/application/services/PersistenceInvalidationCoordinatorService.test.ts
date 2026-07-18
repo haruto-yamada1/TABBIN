@@ -763,4 +763,93 @@ describe('PersistenceInvalidationCoordinator', () => {
     expect(changePort.unsubscribeCalls).toBe(1)
     expect(queryCalls).toBe(2)
   })
+
+  it('dispose 済みなら start と queue 済み operation を実行しない', async () => {
+    const changePort = new FakePersistenceChangePort()
+    const initialQuery = createDeferred<TestProjection>()
+    let queryCalls = 0
+    const coordinator = createPersistenceInvalidationCoordinator({
+      apply: () => {},
+      changePort,
+      query: async () => {
+        queryCalls += 1
+        return initialQuery.promise
+      },
+      readCurrentRevision: async () => 1,
+      relevantScopes: new Set(['collections']),
+    })
+
+    const startPromise = coordinator.start()
+    const queuedRefresh = coordinator.refresh()
+    coordinator.dispose()
+    initialQuery.resolve(createProjection(1))
+    await startPromise
+    await queuedRefresh
+    await coordinator.start()
+
+    expect(queryCalls).toBe(0)
+    expect(changePort.unsubscribeCalls).toBe(1)
+  })
+
+  it('event Query rejection 前に dispose されても hint を保持しない', async () => {
+    const changePort = new FakePersistenceChangePort()
+    const eventQueryStarted = createDeferred<undefined>()
+    const eventQuery = createDeferred<TestProjection>()
+    let queryCalls = 0
+    const coordinator = createPersistenceInvalidationCoordinator({
+      apply: () => {},
+      changePort,
+      query: async () => {
+        queryCalls += 1
+        if (queryCalls === 1) {
+          return createProjection(1)
+        }
+        eventQueryStarted.resolve(undefined)
+        return eventQuery.promise
+      },
+      readCurrentRevision: async () => 2,
+      relevantScopes: new Set(['collections']),
+    })
+    await coordinator.start()
+
+    changePort.emit(event(2))
+    await eventQueryStarted.promise
+    coordinator.dispose()
+    eventQuery.reject(new Error('query failed after dispose'))
+    await coordinator.refresh()
+
+    expect(queryCalls).toBe(2)
+    expect(changePort.unsubscribeCalls).toBe(1)
+  })
+
+  it('event hint より古い Query 結果は自動 retry せず focus check で収束する', async () => {
+    const changePort = new FakePersistenceChangePort()
+    const projections = [
+      createProjection(1),
+      createProjection(2),
+      createProjection(3),
+    ]
+    const applied: number[] = []
+    let queryCalls = 0
+    const coordinator = createPersistenceInvalidationCoordinator({
+      apply: ({ revision }: TestProjection) => {
+        applied.push(revision)
+      },
+      changePort,
+      query: async () => projections[queryCalls++],
+      readCurrentRevision: async () => 3,
+      relevantScopes: new Set(['collections']),
+    })
+    await coordinator.start()
+
+    changePort.emit(event(3))
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(queryCalls).toBe(2)
+
+    await coordinator.checkCurrentRevision()
+
+    expect(applied).toEqual([1, 2, 3])
+    expect(queryCalls).toBe(3)
+  })
 })

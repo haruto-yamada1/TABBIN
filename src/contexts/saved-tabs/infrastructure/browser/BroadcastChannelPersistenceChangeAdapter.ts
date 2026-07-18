@@ -130,10 +130,7 @@ const createGlobalBroadcastChannel: BroadcastChannelFactory = (channelName) => {
     },
     postMessage: channel.postMessage.bind(channel),
     removeEventListener: (type, listener) => {
-      const nativeListener = nativeListeners.get(listener)
-      if (!nativeListener) {
-        return
-      }
+      const nativeListener = nativeListeners.get(listener) as EventListener
       channel.removeEventListener(type, nativeListener)
       nativeListeners.delete(listener)
     },

@@ -57,9 +57,7 @@ export class PersistenceInvalidationCoordinatorService<
 
     const attempt = this.startOnce()
     const trackedAttempt = attempt.catch((error: unknown) => {
-      if (this.startPromise === trackedAttempt) {
-        this.startPromise = undefined
-      }
+      this.startPromise = undefined
       throw error
     })
     this.startPromise = trackedAttempt
@@ -210,9 +208,6 @@ export class PersistenceInvalidationCoordinatorService<
     this.eventDrainPromise = scheduled
 
     const finish = (): void => {
-      if (this.eventDrainPromise !== scheduled) {
-        return
-      }
       this.eventDrainPromise = undefined
       this.scheduleEventDrain()
     }
@@ -220,17 +215,10 @@ export class PersistenceInvalidationCoordinatorService<
   }
 
   private readonly drainPendingEvents = async (): Promise<void> => {
-    if (this.disposed) {
-      return
-    }
-
     const hintedRevision = this.pendingEventRevision
     this.pendingEventRevision = undefined
     if (hintedRevision === undefined) {
       return
-    }
-    if (hintedRevision <= this.lastAppliedRevision) {
-      return this.drainPendingEvents()
     }
 
     try {

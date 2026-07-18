@@ -378,4 +378,23 @@ describe('IndexedDbSavedTabsQueryAdapter', () => {
       items: [{ membership: firstByIdMembership }, { membership }],
     })
   })
+
+  it('Membership がない Collection と対象外 URL membership を空 projection として扱う', async () => {
+    const emptyCollection = { ...collection, id: 'empty' }
+    const query = new IndexedDbSavedTabsQueryAdapter(
+      createSnapshotReader({
+        categories: [],
+        collections: [collection, emptyCollection],
+        groups: [],
+        memberships: [membership],
+        urls: [url],
+      }),
+    )
+
+    await expect(query.findCollection(emptyCollection.id)).resolves.toEqual({
+      collection: emptyCollection,
+      items: [],
+    })
+    await expect(query.findCollectionsForUrl('other-url')).resolves.toEqual([])
+  })
 })
