@@ -9,39 +9,29 @@ import {
 } from './backupMigrationPipeline'
 import { BackupSchemaError } from './backupSchema'
 
-const envelopeMetadataSchema = z.object({
+const envelopeMetadataSchema = z.strictObject({
   appVersion: z.string().min(1),
   exportedAt: z.iso.datetime(),
 })
 
-const backupV2Schema = envelopeMetadataSchema
-  .extend({
-    data: z.object({ name: z.string().min(1) }).strict(),
-    schemaVersion: z.literal(2),
-  })
-  .strict()
+const backupV2Schema = envelopeMetadataSchema.extend({
+  data: z.strictObject({ name: z.string().min(1) }),
+  schemaVersion: z.literal(2),
+})
 
-const backupV3Schema = envelopeMetadataSchema
-  .extend({
-    data: z
-      .object({
-        collection: z.object({ name: z.string().min(1) }).strict(),
-      })
-      .strict(),
-    schemaVersion: z.literal(3),
-  })
-  .strict()
+const backupV3Schema = envelopeMetadataSchema.extend({
+  data: z.strictObject({
+    collection: z.strictObject({ name: z.string().min(1) }),
+  }),
+  schemaVersion: z.literal(3),
+})
 
-const backupV4Schema = envelopeMetadataSchema
-  .extend({
-    data: z
-      .object({
-        collections: z.array(z.object({ name: z.string().min(1) }).strict()),
-      })
-      .strict(),
-    schemaVersion: z.literal(4),
-  })
-  .strict()
+const backupV4Schema = envelopeMetadataSchema.extend({
+  data: z.strictObject({
+    collections: z.array(z.strictObject({ name: z.string().min(1) })),
+  }),
+  schemaVersion: z.literal(4),
+})
 
 type BackupV2 = z.output<typeof backupV2Schema>
 type BackupV3 = z.output<typeof backupV3Schema>
@@ -123,6 +113,20 @@ const captureSchemaError = (action: () => unknown): BackupSchemaError => {
 }
 
 describe('createBackupMigrationPipeline', () => {
+  it('rejects malformed versions accepted by a permissive step schema', () => {
+    const migrate = vi.fn((input: unknown) => input)
+    const step = defineBackupMigrationStep({
+      fromVersion: 2,
+      inputSchema: z.unknown(),
+      migrate,
+      outputSchema: z.unknown(),
+      toVersion: 3,
+    })
+
+    expect(step.execute({ schemaVersion: '2' })).toEqual({ success: false })
+    expect(migrate).not.toHaveBeenCalled()
+  })
+
   it.each([0, 1.5])(
     'rejects invalid current schema version %s',
     (currentVersion) => {
@@ -279,6 +283,39 @@ describe('createBackupMigrationPipeline', () => {
     })
   })
 
+  it('rejects schemas whose data version does not match the step boundary', () => {
+    const invalidV2ToV3 = defineBackupMigrationStep({
+      fromVersion: 2,
+      inputSchema: backupV2Schema,
+      migrate: (): BackupV4 => backupV4Schema.parse(backupCurrent),
+      outputSchema: backupV4Schema,
+      toVersion: 3,
+    })
+    const invalidV3ToV4 = defineBackupMigrationStep({
+      fromVersion: 3,
+      inputSchema: backupV4Schema,
+      migrate: (input: BackupV4): BackupV4 => input,
+      outputSchema: backupV4Schema,
+      toVersion: 4,
+    })
+    const pipeline = createBackupMigrationPipeline({
+      currentSchema: backupV4Schema,
+      currentVersion: 4,
+      migrations: new Map([
+        [2, invalidV2ToV3],
+        [3, invalidV3ToV4],
+      ]),
+    })
+
+    expect(
+      captureSchemaError(() => pipeline.migrateToCurrent(backupV2)),
+    ).toMatchObject({
+      code: 'INVALID_SCHEMA',
+      currentVersion: 4,
+      receivedVersion: 2,
+    })
+  })
+
   it('rejects a gap in the supported sequential registry', () => {
     const { v2ToV3 } = createTestPipeline()
 
@@ -376,6 +413,37 @@ describe('createBackupMigrationPipeline', () => {
 
     migrations.set(2, skippingStep)
     migrations.delete(3)
+
+    expect(pipeline.migrateToCurrent(backupV2)).toEqual({
+      backup: backupCurrent,
+      kind: 'current',
+      sourceVersion: 2,
+    })
+    expect(migrateV2ToV3).toHaveBeenCalledTimes(1)
+    expect(migrateV3ToV4).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses validated step snapshots after caller mutation', () => {
+    const { migrateV2ToV3, migrateV3ToV4, v2ToV3, v3ToV4 } =
+      createTestPipeline()
+    const mutableV2ToV3 = { ...v2ToV3 }
+    const mutableV3ToV4 = { ...v3ToV4 }
+    const pipeline = createBackupMigrationPipeline({
+      currentSchema: backupV4Schema,
+      currentVersion: 4,
+      migrations: new Map([
+        [2, mutableV2ToV3],
+        [3, mutableV3ToV4],
+      ]),
+    })
+
+    mutableV2ToV3.execute = () => ({
+      data: backupV4Schema.parse(backupCurrent),
+      success: true,
+    })
+    mutableV2ToV3.toVersion = 4
+    mutableV3ToV4.execute = (input) => ({ data: input, success: true })
+    mutableV3ToV4.fromVersion = 4
 
     expect(pipeline.migrateToCurrent(backupV2)).toEqual({
       backup: backupCurrent,

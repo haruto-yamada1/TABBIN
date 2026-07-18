@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Define envelope detection and typed schema errors with TDD
+## Task 1: Define envelope detection and typed schema errors with TDD
 
 **Files:**
 
@@ -171,7 +171,7 @@ git add src/lib/persistence/backupSchema.ts \
 git commit -m "feat: backup schema envelope を定義"
 ```
 
-### Task 2: Add golden fixtures and the sequential registry with TDD
+## Task 2: Add golden fixtures and the sequential registry with TDD
 
 **Files:**
 
@@ -320,7 +320,7 @@ git add src/lib/persistence/backupMigrationPipeline.ts \
 git commit -m "feat: backup schema migration pipeline を追加"
 ```
 
-### Task 3: Document and protect the compatibility policy
+## Task 3: Document and protect the compatibility policy
 
 **Files:**
 
@@ -401,7 +401,7 @@ git add docs/architecture/backup-schema-versioning.md \
 git commit -m "docs: backup schema compatibility policy を追加"
 ```
 
-### Task 4: Verify acceptance criteria and repository gates
+## Task 4: Verify acceptance criteria and repository gates
 
 **Files:**
 
@@ -464,7 +464,7 @@ Expected: schemas valid and no unresolved blocking findings.
 Stage only Issue-owned paths and use a scoped Japanese commit message. Do not
 create an empty commit.
 
-### Task 5: Publish the standalone Issue implementation
+## Task 5: Publish the standalone Issue implementation
 
 **Step 1: Verify the final diff and clean-tree commit state**
 

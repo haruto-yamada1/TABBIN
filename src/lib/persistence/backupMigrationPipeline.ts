@@ -22,6 +22,20 @@ type DefineBackupMigrationStepOptions<TFrom, TTo> = {
   readonly toVersion: number
 }
 
+const hasExpectedSchemaVersion = (
+  input: unknown,
+  expectedVersion: number,
+): boolean => {
+  try {
+    const format = detectBackupFormat(input)
+    return (
+      format.kind === 'versioned' && format.schemaVersion === expectedVersion
+    )
+  } catch {
+    return false
+  }
+}
+
 export const defineBackupMigrationStep = <TFrom, TTo>({
   fromVersion,
   inputSchema,
@@ -31,13 +45,17 @@ export const defineBackupMigrationStep = <TFrom, TTo>({
 }: DefineBackupMigrationStepOptions<TFrom, TTo>): BackupMigrationStep => ({
   execute: (input) => {
     const parsedInput = inputSchema.safeParse(input)
-    if (!parsedInput.success) {
+    if (
+      !parsedInput.success ||
+      !hasExpectedSchemaVersion(parsedInput.data, fromVersion)
+    ) {
       return { success: false }
     }
 
     const migrated = migrate(parsedInput.data)
     const parsedOutput = outputSchema.safeParse(migrated)
-    return parsedOutput.success
+    return parsedOutput.success &&
+      hasExpectedSchemaVersion(parsedOutput.data, toVersion)
       ? { data: parsedOutput.data, success: true }
       : { success: false }
   },
@@ -126,7 +144,14 @@ export const createBackupMigrationPipeline = <TCurrent>({
   currentVersion,
   migrations,
 }: CreateBackupMigrationPipelineOptions<TCurrent>): BackupMigrationPipeline<TCurrent> => {
-  const migrationRegistry = new Map(migrations)
+  const migrationRegistry = new Map<number, BackupMigrationStep>()
+  for (const [version, step] of migrations) {
+    migrationRegistry.set(version, {
+      execute: step.execute,
+      fromVersion: step.fromVersion,
+      toVersion: step.toVersion,
+    })
+  }
   const migrationSteps = assertValidRegistry(currentVersion, migrationRegistry)
 
   return {
