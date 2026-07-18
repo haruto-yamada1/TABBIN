@@ -123,6 +123,33 @@ const captureSchemaError = (action: () => unknown): BackupSchemaError => {
 }
 
 describe('createBackupMigrationPipeline', () => {
+  it.each([0, 1.5])(
+    'rejects invalid current schema version %s',
+    (currentVersion) => {
+      expect(() =>
+        createBackupMigrationPipeline({
+          currentSchema: backupV4Schema,
+          currentVersion,
+          migrations: new Map(),
+        }),
+      ).toThrow('Current backup schema version must be a positive integer')
+    },
+  )
+
+  it('supports a current-only registry with no migrations', () => {
+    const pipeline = createBackupMigrationPipeline({
+      currentSchema: backupV4Schema,
+      currentVersion: 4,
+      migrations: new Map(),
+    })
+
+    expect(pipeline.migrateToCurrent(backupCurrent)).toEqual({
+      backup: backupCurrent,
+      kind: 'current',
+      sourceVersion: 4,
+    })
+  })
+
   it('migrates V2 through every sequential step to the current schema', () => {
     const { migrateV2ToV3, migrateV3ToV4, pipeline } = createTestPipeline()
 
@@ -157,6 +184,26 @@ describe('createBackupMigrationPipeline', () => {
       backup: backupCurrent,
       kind: 'current',
       sourceVersion: 4,
+    })
+    expect(migrateV2ToV3).not.toHaveBeenCalled()
+    expect(migrateV3ToV4).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid current-schema input without migration', () => {
+    const { migrateV2ToV3, migrateV3ToV4, pipeline } = createTestPipeline()
+    const invalidCurrent = {
+      appVersion: '2.0.0',
+      data: { collections: [{ name: '' }] },
+      exportedAt: '2026-07-18T00:00:00.000Z',
+      schemaVersion: 4,
+    }
+
+    expect(
+      captureSchemaError(() => pipeline.migrateToCurrent(invalidCurrent)),
+    ).toMatchObject({
+      code: 'INVALID_SCHEMA',
+      currentVersion: 4,
+      receivedVersion: 4,
     })
     expect(migrateV2ToV3).not.toHaveBeenCalled()
     expect(migrateV3ToV4).not.toHaveBeenCalled()
@@ -244,6 +291,21 @@ describe('createBackupMigrationPipeline', () => {
     ).toThrow('Missing backup migration step for schema version 3')
   })
 
+  it('rejects a registry key that differs from its source version', () => {
+    const { v2ToV3, v3ToV4 } = createTestPipeline()
+
+    expect(() =>
+      createBackupMigrationPipeline({
+        currentSchema: backupV4Schema,
+        currentVersion: 4,
+        migrations: new Map([
+          [1, v2ToV3],
+          [3, v3ToV4],
+        ]),
+      }),
+    ).toThrow('Backup migration registry key must match its source version')
+  })
+
   it('rejects a migration that skips a schema version', () => {
     const { v3ToV4 } = createTestPipeline()
     const invalidStep = defineBackupMigrationStep({
@@ -264,6 +326,74 @@ describe('createBackupMigrationPipeline', () => {
         ]),
       }),
     ).toThrow('Backup migration steps must advance exactly one version')
+  })
+
+  it.each([
+    { fromVersion: 0, toVersion: 1 },
+    { fromVersion: 4, toVersion: 5 },
+  ])(
+    'rejects an out-of-range migration from $fromVersion to $toVersion',
+    ({ fromVersion, toVersion }) => {
+      const outOfRangeStep = defineBackupMigrationStep({
+        fromVersion,
+        inputSchema: backupV4Schema,
+        migrate: (input): BackupV4 => input,
+        outputSchema: backupV4Schema,
+        toVersion,
+      })
+
+      expect(() =>
+        createBackupMigrationPipeline({
+          currentSchema: backupV4Schema,
+          currentVersion: 4,
+          migrations: new Map([[fromVersion, outOfRangeStep]]),
+        }),
+      ).toThrow(
+        'Backup migration step must stay within the supported version range',
+      )
+    },
+  )
+
+  it('rejects a registry step removed after pipeline construction', () => {
+    const { v2ToV3, v3ToV4 } = createTestPipeline()
+    const migrations = new Map([
+      [2, v2ToV3],
+      [3, v3ToV4],
+    ])
+    const pipeline = createBackupMigrationPipeline({
+      currentSchema: backupV4Schema,
+      currentVersion: 4,
+      migrations,
+    })
+    migrations.delete(3)
+
+    expect(
+      captureSchemaError(() => pipeline.migrateToCurrent(backupV2)),
+    ).toMatchObject({
+      code: 'UNSUPPORTED_SCHEMA_VERSION',
+      currentVersion: 4,
+      receivedVersion: 2,
+    })
+  })
+
+  it('validates the final value with the declared current schema', () => {
+    const { v3ToV4 } = createTestPipeline()
+    const narrowedCurrentSchema = backupV4Schema.refine(
+      (backup) => backup.data.collections[0]?.name === 'Allowed',
+    )
+    const pipeline = createBackupMigrationPipeline({
+      currentSchema: narrowedCurrentSchema,
+      currentVersion: 4,
+      migrations: new Map([[3, v3ToV4]]),
+    })
+
+    expect(
+      captureSchemaError(() => pipeline.migrateToCurrent(backupV3)),
+    ).toMatchObject({
+      code: 'INVALID_SCHEMA',
+      currentVersion: 4,
+      receivedVersion: 3,
+    })
   })
 
   it('returns the dedicated legacy classification without migration', () => {
