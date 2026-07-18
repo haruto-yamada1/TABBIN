@@ -15,7 +15,7 @@ export type PersistenceChangeEvent = {
 }
 
 export type PersistenceChangePort = {
-  readonly publish: (event: PersistenceChangeEvent) => void
+  readonly publish: (event: PersistenceChangeEvent) => Promise<void>
   readonly subscribe: (
     listener: (event: PersistenceChangeEvent) => void,
   ) => () => void

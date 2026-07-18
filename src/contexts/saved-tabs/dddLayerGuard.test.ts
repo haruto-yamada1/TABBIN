@@ -1726,7 +1726,10 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       >()
 
       expectTypeOf<PersistenceChangePort['publish']>().toEqualTypeOf<
-        (event: PersistenceChangeEvent) => void
+        (event: PersistenceChangeEvent) => Promise<void>
+      >()
+      expectTypeOf<(event: PersistenceChangeEvent) => void>().not.toExtend<
+        PersistenceChangePort['publish']
       >()
       expectTypeOf<PersistenceChangePort['subscribe']>().toEqualTypeOf<
         (listener: (event: PersistenceChangeEvent) => void) => () => void
