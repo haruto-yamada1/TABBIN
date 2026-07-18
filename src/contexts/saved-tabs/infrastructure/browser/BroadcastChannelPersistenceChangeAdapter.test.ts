@@ -160,22 +160,31 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
   })
 
   it('unsubscribe は cleanup failure を外へ出さず 2 回目以降は何もしない', () => {
+    let retainedHandler:
+      | ((event: BroadcastChannelMessageEventLike) => void)
+      | undefined
     const removeEventListener = vi.fn(() => {
       throw new Error('secret remove failure')
     })
     const close = vi.fn(() => {
       throw new Error('secret close failure')
     })
+    const listener = vi.fn()
     const adapter = createAdapter(() => ({
-      addEventListener: vi.fn(),
+      addEventListener: (_type, handler) => {
+        retainedHandler = handler
+      },
       close,
       postMessage: vi.fn(),
       removeEventListener,
     }))
-    const unsubscribe = adapter.subscribe(vi.fn())
+    const unsubscribe = adapter.subscribe(listener)
 
     expect(() => unsubscribe()).not.toThrow()
     expect(() => unsubscribe()).not.toThrow()
+    retainedHandler?.({ data: EVENT })
+
+    expect(listener).not.toHaveBeenCalled()
     expect(removeEventListener).toHaveBeenCalledOnce()
     expect(close).toHaveBeenCalledOnce()
   })
@@ -372,17 +381,24 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
   })
 
   it('subscription registration failure は channel を閉じて unavailable error に変換する', () => {
+    let retainedHandler:
+      | ((event: BroadcastChannelMessageEventLike) => void)
+      | undefined
     const close = vi.fn()
+    const removeEventListener = vi.fn()
+    const listener = vi.fn()
     const adapter = createAdapter(() => ({
-      addEventListener: () => {
+      addEventListener: (_type, handler) => {
+        retainedHandler = handler
         throw new Error('secret registration failure')
       },
       close,
       postMessage: vi.fn(),
-      removeEventListener: vi.fn(),
+      removeEventListener,
     }))
 
-    const thrown = captureThrown(() => adapter.subscribe(vi.fn()))
+    const thrown = captureThrown(() => adapter.subscribe(listener))
+    retainedHandler?.({ data: EVENT })
 
     expect(thrown).toBeInstanceOf(PersistenceChangeTransportUnavailableError)
     expect(thrown).toMatchObject({
@@ -391,23 +407,34 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     })
     expect(JSON.stringify(thrown)).not.toContain('secret')
     expect(thrown).not.toHaveProperty('cause')
+    expect(listener).not.toHaveBeenCalled()
+    expect(removeEventListener).toHaveBeenCalledOnce()
     expect(close).toHaveBeenCalledOnce()
   })
 
   it('subscription registration と close が両方失敗しても unavailable error を維持する', () => {
+    let retainedHandler:
+      | ((event: BroadcastChannelMessageEventLike) => void)
+      | undefined
     const close = vi.fn(() => {
       throw new Error('secret setup close failure')
     })
+    const removeEventListener = vi.fn(() => {
+      throw new Error('secret setup remove failure')
+    })
+    const listener = vi.fn()
     const adapter = createAdapter(() => ({
-      addEventListener: () => {
+      addEventListener: (_type, handler) => {
+        retainedHandler = handler
         throw new Error('secret registration failure')
       },
       close,
       postMessage: vi.fn(),
-      removeEventListener: vi.fn(),
+      removeEventListener,
     }))
 
-    const thrown = captureThrown(() => adapter.subscribe(vi.fn()))
+    const thrown = captureThrown(() => adapter.subscribe(listener))
+    retainedHandler?.({ data: EVENT })
 
     expect(thrown).toBeInstanceOf(PersistenceChangeTransportUnavailableError)
     expect(thrown).toMatchObject({
@@ -416,6 +443,8 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     })
     expect(JSON.stringify(thrown)).not.toContain('secret')
     expect(thrown).not.toHaveProperty('cause')
+    expect(listener).not.toHaveBeenCalled()
+    expect(removeEventListener).toHaveBeenCalledOnce()
     expect(close).toHaveBeenCalledOnce()
   })
 

@@ -152,6 +152,17 @@ const closeChannelBestEffort = (channel: BroadcastChannelLike): boolean => {
   }
 }
 
+const removeMessageListenerBestEffort = (
+  channel: BroadcastChannelLike,
+  listener: BroadcastChannelMessageListener,
+): void => {
+  try {
+    channel.removeEventListener('message', listener)
+  } catch {
+    // Cleanup must not expose transport-specific errors.
+  }
+}
+
 export const createBroadcastChannelPersistenceChangeAdapter = (
   deps: BroadcastChannelPersistenceChangeAdapterDeps = {},
 ): PersistenceChangePort => {
@@ -186,7 +197,11 @@ export const createBroadcastChannelPersistenceChangeAdapter = (
       }
     },
     subscribe: (listener) => {
+      let active = false
       const handleMessage: BroadcastChannelMessageListener = (message) => {
+        if (!active) {
+          return
+        }
         const result = PersistenceChangeEventSchema.safeParse(message.data)
         if (!result.success) {
           return
@@ -198,25 +213,21 @@ export const createBroadcastChannelPersistenceChangeAdapter = (
       try {
         channel = channelFactory(channelName)
         channel.addEventListener('message', handleMessage)
+        active = true
       } catch {
         if (channel) {
+          removeMessageListenerBestEffort(channel, handleMessage)
           closeChannelBestEffort(channel)
         }
         throw new PersistenceChangeTransportUnavailableError()
       }
 
-      let subscribed = true
-
       return () => {
-        if (!subscribed) {
+        if (!active) {
           return
         }
-        subscribed = false
-        try {
-          channel.removeEventListener('message', handleMessage)
-        } catch {
-          // Unsubscribe is deterministic cleanup and never exposes raw errors.
-        }
+        active = false
+        removeMessageListenerBestEffort(channel, handleMessage)
         closeChannelBestEffort(channel)
       }
     },
