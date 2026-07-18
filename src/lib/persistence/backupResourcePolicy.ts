@@ -116,12 +116,14 @@ type BackupResourceLimitSpec = {
   readonly resource: BackupResourceName
 }
 
+const backupSerializedBytesLimitSpec: BackupResourceLimitSpec = {
+  code: 'BACKUP_FILE_TOO_LARGE',
+  limit: BACKUP_RESOURCE_LIMITS.maxSerializedBytes,
+  resource: 'serializedBytes',
+}
+
 const backupResourceLimitSpecs: readonly BackupResourceLimitSpec[] = [
-  {
-    code: 'BACKUP_FILE_TOO_LARGE',
-    limit: BACKUP_RESOURCE_LIMITS.maxSerializedBytes,
-    resource: 'serializedBytes',
-  },
+  backupSerializedBytesLimitSpec,
   {
     code: 'BACKUP_RESOURCE_LIMIT_EXCEEDED',
     limit: BACKUP_RESOURCE_LIMITS.maxUrls,
@@ -328,7 +330,7 @@ export const validateBackupResourceUsage = (
 export const validateBackupSerializedBytes = (
   serializedBytes: number,
 ): BackupResourceValidationResult =>
-  validateBackupResourceLimit(serializedBytes, backupResourceLimitSpecs[0])
+  validateBackupResourceLimit(serializedBytes, backupSerializedBytesLimitSpec)
 
 export class BackupResourceLimitError extends Error {
   readonly code: BackupImportErrorCode
