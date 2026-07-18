@@ -17,7 +17,9 @@ Issue #726 does not:
 
 - read or transform legacy `chrome.storage.local` data (#728);
 - switch the production source of truth or remove legacy keys (#729);
-- implement the cross-context notification transport (#739);
+- implement the cross-context notification transport itself (#739, now
+  implemented as the
+  [persistence change invalidation protocol](persistence-change-invalidation.md));
 - define the public Backup V2 mapper (#730); or
 - implement recovery snapshot retention and restore (#740).
 
@@ -91,10 +93,15 @@ type PersistenceCommitResult = {
 }
 ```
 
-This result is the boundary consumed by #739. The transaction adapter does not
-publish messages. An orchestrator may publish only after `commit()` resolves;
-an abort produces no commit result. A later publish failure does not pretend
-that committed data or its revision was rolled back.
+This result is the boundary consumed by the implemented #739
+[persistence change invalidation protocol](persistence-change-invalidation.md).
+The transaction adapter does not publish messages. The application post-commit
+service generates a change ID and awaits `PersistenceChangePort.publish()` only
+after `commit()` resolves; an abort produces no commit result and no event. An
+ID or publish failure after completion is typed partial success and never
+pretends that committed data or its revision was rolled back. Consumers repair
+missed events by re-reading the revisioned consistent Query snapshot described
+below, as required by the linked protocol.
 
 Change scopes are logical invalidation scopes, not physical object-store names.
 A `messages` mutation therefore reports `conversations`, matching the #739

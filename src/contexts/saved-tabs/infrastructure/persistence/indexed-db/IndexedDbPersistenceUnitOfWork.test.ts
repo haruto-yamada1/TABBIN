@@ -286,4 +286,67 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
     ).rejects.toThrow('invalid persistence revision')
     manager.close()
   })
+
+  it('metadata revision request failure を IndexedDB error として返す', async () => {
+    const requestError = new Error('request failed')
+    const request = {
+      addEventListener: (type: string, listener: () => void) => {
+        if (type === 'error') {
+          queueMicrotask(listener)
+        }
+      },
+      error: requestError,
+    }
+    const manager = {
+      open: async () => ({
+        transaction: () => ({
+          objectStore: () => ({ get: () => request }),
+        }),
+      }),
+    }
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager as unknown as IndexedDbConnectionManager,
+    )
+
+    const error = await unitOfWork
+      .readRevision()
+      .catch((error: unknown) => error)
+
+    expect(error).toBe(requestError)
+  })
+
+  it('transaction complete までに revision request が成功しない場合は fail closed にする', async () => {
+    const revisionRequest = {
+      addEventListener: vi.fn(),
+    }
+    const transaction = {
+      abort: vi.fn(),
+      addEventListener: (type: string, listener: () => void) => {
+        if (type === 'complete') {
+          queueMicrotask(listener)
+        }
+      },
+      objectStore: (storeName: string) =>
+        storeName === PERSISTENCE_STORE_NAMES.metadata
+          ? {
+              get: () => revisionRequest,
+              put: vi.fn(),
+            }
+          : { put: vi.fn() },
+    }
+    const manager = {
+      open: async () => ({ transaction: () => transaction }),
+    }
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager as unknown as IndexedDbConnectionManager,
+    )
+
+    await expect(
+      unitOfWork.commit({ urls: { put: [createUrl('url-1')] } }),
+    ).rejects.toThrow('Persistence revision was not committed.')
+    expect(revisionRequest.addEventListener).toHaveBeenCalledWith(
+      'success',
+      expect.any(Function),
+    )
+  })
 })

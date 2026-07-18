@@ -1,3 +1,4 @@
+import type { PersistenceChangeScope } from '@/contexts/saved-tabs/application/ports/PersistenceChangePort'
 import type {
   PersistenceV2Collection,
   PersistenceV2CollectionCategory,
@@ -6,6 +7,8 @@ import type {
   PersistenceV2Url,
 } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import type { JsonValue } from '@/lib/persistence/jsonValue'
+
+export type { PersistenceChangeScope }
 
 export type PersistenceV2MembershipKey = readonly [
   collectionId: string,
@@ -36,16 +39,6 @@ export type PersistenceRecoverySnapshotRecord = {
   readonly id: string
   readonly value: JsonValue
 }
-
-export type PersistenceChangeScope =
-  | 'analyticsViews'
-  | 'categories'
-  | 'collections'
-  | 'conversations'
-  | 'groups'
-  | 'memberships'
-  | 'recoverySnapshots'
-  | 'urls'
 
 export type PersistenceV2WritePlan = {
   readonly analyticsViews?: PersistenceRecordMutation<PersistenceJsonRecord>

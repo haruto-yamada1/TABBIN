@@ -44,14 +44,19 @@ const membership = {
 
 const createSnapshotReader = (
   snapshot: PersistenceV2Snapshot,
+  revision = 0,
 ): PersistenceV2SnapshotReaderPort => ({
   readConsistentSnapshot: async () => ({
     analyticsViews: [],
     conversations: [],
     messages: [],
+    revision,
     savedTabs: snapshot,
   }),
-  readVerifiedSavedTabsSnapshot: async () => snapshot,
+  readVerifiedSavedTabsSnapshot: async () => ({
+    revision,
+    savedTabs: snapshot,
+  }),
 })
 
 describe('IndexedDbPersistenceSnapshotReader', () => {
@@ -83,11 +88,16 @@ describe('IndexedDbPersistenceSnapshotReader', () => {
       urls: { put: [url] },
     })
 
-    const snapshot = await new IndexedDbPersistenceSnapshotReader(
-      manager,
-    ).readConsistentSnapshot()
+    const reader = new IndexedDbPersistenceSnapshotReader(manager)
+    const snapshot = await reader.readConsistentSnapshot()
+    const versionedSavedTabs = await reader.readVerifiedSavedTabsSnapshot()
 
     expect(checkPersistenceIntegrity(snapshot.savedTabs).isHealthy).toBe(true)
+    expect(snapshot.revision).toBe(1)
+    expect(versionedSavedTabs).toMatchObject({
+      revision: 1,
+      savedTabs: { urls: [url] },
+    })
     expect(snapshot.conversations).toEqual([
       expect.objectContaining({ id: 'conversation-1' }),
     ])
@@ -115,7 +125,7 @@ describe('IndexedDbPersistenceSnapshotReader', () => {
     })
     const reader = new IndexedDbPersistenceSnapshotReader(manager)
 
-    const reading = reader.readConsistentSnapshot()
+    const reading = reader.readVerifiedSavedTabsSnapshot()
     const writing = unitOfWork.commit({
       memberships: { delete: [['collection-1', 'url-1']] },
       urls: { delete: ['url-1'] },
@@ -127,6 +137,15 @@ describe('IndexedDbPersistenceSnapshotReader', () => {
       ({ urlId }) => urlId === 'url-1',
     )
     expect(containsUrl).toBe(containsMembership)
+    expect({
+      containsMembership,
+      containsUrl,
+      revision: snapshot.revision,
+    }).toEqual(
+      snapshot.revision === 1
+        ? { containsMembership: true, containsUrl: true, revision: 1 }
+        : { containsMembership: false, containsUrl: false, revision: 2 },
+    )
     manager.close()
   })
 
@@ -192,7 +211,8 @@ describe('IndexedDbSavedTabsQueryAdapter', () => {
       collection,
       items: [{ category: undefined, membership, url }],
     })
-    expect(getSpy).not.toHaveBeenCalled()
+    expect(getSpy).toHaveBeenCalledOnce()
+    expect(getSpy).toHaveBeenCalledWith('revision')
     getSpy.mockRestore()
     manager.close()
   })
@@ -244,14 +264,18 @@ describe('IndexedDbSavedTabsQueryAdapter', () => {
       normalizedUrl: 'https://example.com/unassigned',
       url: 'https://example.com/unassigned',
     }
+    const revision = 7
     const query = new IndexedDbSavedTabsQueryAdapter(
-      createSnapshotReader({
-        categories: [category],
-        collections: [secondCollection, groupedCollection],
-        groups: [groupB, groupA],
-        memberships: [secondMembership, categorizedMembership],
-        urls: [url, unassignedUrl],
-      }),
+      createSnapshotReader(
+        {
+          categories: [category],
+          collections: [secondCollection, groupedCollection],
+          groups: [groupB, groupA],
+          memberships: [secondMembership, categorizedMembership],
+          urls: [url, unassignedUrl],
+        },
+        revision,
+      ),
     )
 
     await expect(query.findCollection('missing')).resolves.toBeUndefined()
@@ -264,6 +288,7 @@ describe('IndexedDbSavedTabsQueryAdapter', () => {
         { collection: secondCollection },
       ],
       groups: [groupA, groupB],
+      revision,
     })
     await expect(query.findCollectionsInGroup(groupB.id)).resolves.toEqual([
       groupedCollection,
@@ -352,5 +377,24 @@ describe('IndexedDbSavedTabsQueryAdapter', () => {
     await expect(query.findCollection(collection.id)).resolves.toMatchObject({
       items: [{ membership: firstByIdMembership }, { membership }],
     })
+  })
+
+  it('Membership がない Collection と対象外 URL membership を空 projection として扱う', async () => {
+    const emptyCollection = { ...collection, id: 'empty' }
+    const query = new IndexedDbSavedTabsQueryAdapter(
+      createSnapshotReader({
+        categories: [],
+        collections: [collection, emptyCollection],
+        groups: [],
+        memberships: [membership],
+        urls: [url],
+      }),
+    )
+
+    await expect(query.findCollection(emptyCollection.id)).resolves.toEqual({
+      collection: emptyCollection,
+      items: [],
+    })
+    await expect(query.findCollectionsForUrl('other-url')).resolves.toEqual([])
   })
 })

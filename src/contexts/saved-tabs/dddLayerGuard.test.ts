@@ -1,7 +1,14 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+
+import type {
+  PersistenceChangeEvent,
+  PersistenceChangePort,
+  PersistenceChangeScope,
+} from '@/contexts/saved-tabs/application/ports/PersistenceChangePort'
+import type { PersistenceChangeScope as UnitOfWorkPersistenceChangeScope } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 
 type RuleEntry = string | [string, ...unknown[]]
 
@@ -1686,6 +1693,62 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       })
     }
   })
+  describe('issue #739: persistence invalidation contract', () => {
+    const unitOfWorkPortPath = resolve(
+      repoRoot,
+      'src/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort.ts',
+    )
+
+    it('PersistenceChangePort は exact な invalidation hint contract を公開する', () => {
+      expectTypeOf<keyof PersistenceChangeEvent>().toEqualTypeOf<
+        'changeId' | 'revision' | 'scopes'
+      >()
+      expectTypeOf<PersistenceChangeEvent['changeId']>().toEqualTypeOf<string>()
+      expectTypeOf<PersistenceChangeEvent['revision']>().toEqualTypeOf<number>()
+      expectTypeOf<PersistenceChangeEvent['scopes']>().toEqualTypeOf<
+        readonly PersistenceChangeScope[]
+      >()
+      expectTypeOf<PersistenceChangeEvent>().toEqualTypeOf<{
+        readonly changeId: string
+        readonly revision: number
+        readonly scopes: readonly PersistenceChangeScope[]
+      }>()
+
+      expectTypeOf<PersistenceChangeScope>().toEqualTypeOf<
+        | 'analyticsViews'
+        | 'categories'
+        | 'collections'
+        | 'conversations'
+        | 'groups'
+        | 'memberships'
+        | 'recoverySnapshots'
+        | 'urls'
+      >()
+
+      expectTypeOf<PersistenceChangePort['publish']>().toEqualTypeOf<
+        (event: PersistenceChangeEvent) => Promise<void>
+      >()
+      expectTypeOf<(event: PersistenceChangeEvent) => void>().not.toExtend<
+        PersistenceChangePort['publish']
+      >()
+      expectTypeOf<PersistenceChangePort['subscribe']>().toEqualTypeOf<
+        (listener: (event: PersistenceChangeEvent) => void) => () => void
+      >()
+    })
+
+    it('UnitOfWork は shared scope alias を import / re-export し、union を再定義しない', () => {
+      expectTypeOf<UnitOfWorkPersistenceChangeScope>().toEqualTypeOf<PersistenceChangeScope>()
+
+      const unitOfWorkSource = readFileSync(unitOfWorkPortPath, 'utf8')
+      expect(unitOfWorkSource).toMatch(
+        /import type \{ PersistenceChangeScope \} from ['"]@\/contexts\/saved-tabs\/application\/ports\/PersistenceChangePort['"]/,
+      )
+      expect(unitOfWorkSource).not.toMatch(
+        /export type PersistenceChangeScope\s*=/,
+      )
+    })
+  })
+
   describe('issue #587: application boundary naming conventions', () => {
     // application 層が presentation に公開する contract の命名規約を定義する。
     // presentation が domain entity に直接依存せず、DTO / ViewModel /
