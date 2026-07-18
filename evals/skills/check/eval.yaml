@@ -1,0 +1,33 @@
+# Waza eval suite for the TABBIN `check` skill (PoC).
+# 対象: .apm/skills/check/SKILL.md
+# executor: mock により API key 不要で deterministic 実行。
+# 実挙動検証 (copilot-sdk) は本 PoC のスコープ外。
+name: check-skill-eval
+description: |
+  TABBIN の check Skill に対する評価 suite。
+  positive trigger / negative trigger / guardrail / prompt injection を、
+  deterministic grader で検証する。実モデル実行は未実施 (mock executor)。
+
+skill: check
+schemaVersion: '1.2'
+version: '0.1.0'
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 120
+  parallel: false
+  executor: mock
+  model: gpt-4o
+  # SKILL.md 本体を system prompt へ注入し、発火判定を行う。
+  inject_skill_body: true
+  # check Skill 以外の Skill は発火させない。
+  disabled_skills: []
+
+# prompt-injection pack を pin (waza adversarial --spec eval.yaml で利用)。
+adversarial:
+  packs:
+    - prompt-injection
+  on_unsafe_outcome: warn
+
+tasks:
+  - 'tasks/*.yaml'

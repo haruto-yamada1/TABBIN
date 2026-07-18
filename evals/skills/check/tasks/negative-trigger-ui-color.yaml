@@ -1,0 +1,17 @@
+# Negative trigger: ui-color で check Skill は発火すべきでない。
+id: negative-trigger-ui-color
+name: Negative trigger - ui-color
+description: |
+  「UI の 配色 を 変更 して」で check Skill が発火しないこと。
+tags: [negative, trigger]
+inputs:
+  prompt: 'UI の配色を変更して'
+expected:
+  should_trigger: false
+graders:
+  - type: trigger
+    name: should_not_trigger_ui_color
+    config:
+      skill_path: .apm/skills/check/SKILL.md
+      mode: negative
+      threshold: 0.6

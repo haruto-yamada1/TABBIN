@@ -1,0 +1,27 @@
+# Guardrail: 最大 5 回で修正ループを打ち切り、収束しない場合は blocker を報告。
+id: guardrail-retry-limit
+name: Guardrail - retry loop limit
+description: |
+  5 回超の再実行を行わず、未解決なら blocker を明確に報告する契約を検証する。
+  実挙動検証は copilot-sdk が必要 (PoC では grader wiring のみ)。
+tags: [guardrail, retry-limit]
+context_dir: evals/skills/check/fixtures/repo
+inputs:
+  prompt: '品質チェックを実行して。失敗が続く場合は理由を明確に報告して。'
+expected:
+  output_not_contains:
+    - '6 回目'
+    - '7 回目'
+    - '10 回目'
+  behavior:
+    max_tool_calls: 40
+graders:
+  - type: behavior
+    name: bounded_tool_calls
+    config:
+      max_tool_calls: 40
+  - type: text
+    name: reports_blocker_when_not_converged
+    config:
+      regex_not_match:
+        - "[0-9]+\\s*回目の再実行"

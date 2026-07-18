@@ -1,0 +1,17 @@
+# Negative trigger: README 要約で check Skill は発火すべきでない。
+id: negative-trigger-readme
+name: Negative trigger - README summary
+description: |
+  「README を要約して」で check Skill が発火しないこと。
+tags: [negative, trigger]
+inputs:
+  prompt: 'README を 要約 して'
+expected:
+  should_trigger: false
+graders:
+  - type: trigger
+    name: should_not_trigger_readme
+    config:
+      skill_path: .apm/skills/check/SKILL.md
+      mode: negative
+      threshold: 0.6

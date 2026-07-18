@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/microsoft/waza/v0.38.3/schemas/config.schema.json
+#
+# TABBIN 用 Waza 設定 (PoC)。
+# - skills は APM の source of truth (.apm/skills) を参照する。
+# - evals は Waza 専用資産として repo root の evals/ に置く。
+# - defaults.engine は copilot-sdk だが、PoC は各 eval で executor: mock を上書きして
+#   API key 不要で実行する。
+# - Waza の自動 init (skills/, evals/, .github/workflows/eval.yml 生成) は実行しない。
+#   本ファイルは手動で作成した。
+
+paths:
+  skills: .apm/skills/
+  evals: evals/
+  results: .waza-results/
+
+defaults:
+  engine: mock
+  model: gpt-4o
+  timeout: 300
+  parallel: false
+  workers: 0
+  verbose: false
+  sessionLog: false
+
+cache:
+  enabled: false
+  dir: .waza-cache
+
+graders:
+  programTimeout: 30

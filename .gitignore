@@ -57,5 +57,10 @@ web-ext.config.ts
 # Worktree directory
 .worktrees/
 
+# Waza scratch (PoC)
+.waza-cache/
+.waza-results/
+.codex/waza-results/
+
 # APM dependencies
 apm_modules/
