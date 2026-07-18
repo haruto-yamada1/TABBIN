@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest'
 
 import { BackupSchemaError, detectBackupFormat } from './backupSchema'
 
+const captureError = (action: () => unknown): unknown => {
+  try {
+    action()
+  } catch (error) {
+    return error
+  }
+  return undefined
+}
+
 describe('detectBackupFormat', () => {
   it('detects a versioned envelope from an integer schemaVersion', () => {
     expect(
@@ -33,13 +42,11 @@ describe('detectBackupFormat', () => {
 
   it('keeps user data out of typed error messages', () => {
     const secret = 'private-user-backup-value'
+    const error = captureError(() =>
+      detectBackupFormat({ schemaVersion: secret }),
+    )
 
-    try {
-      detectBackupFormat({ schemaVersion: secret })
-      expect.unreachable('invalid schemaVersion must be rejected')
-    } catch (error) {
-      expect(error).toBeInstanceOf(BackupSchemaError)
-      expect((error as Error).message).not.toContain(secret)
-    }
+    expect(error).toBeInstanceOf(BackupSchemaError)
+    expect((error as Error).message).not.toContain(secret)
   })
 })
