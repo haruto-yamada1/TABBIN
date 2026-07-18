@@ -66,14 +66,22 @@ type BackupMigrationPipeline<TCurrent> = {
 const assertValidRegistry = (
   currentVersion: number,
   migrations: ReadonlyMap<number, BackupMigrationStep>,
-): void => {
+): readonly BackupMigrationStep[] => {
   if (!Number.isSafeInteger(currentVersion) || currentVersion < 1) {
     throw new TypeError(
       'Current backup schema version must be a positive integer',
     )
   }
 
-  for (const [registeredVersion, step] of migrations) {
+  if (migrations.size === 0) {
+    return []
+  }
+
+  const sortedEntries = [...migrations.entries()].toSorted(
+    ([leftVersion], [rightVersion]) => leftVersion - rightVersion,
+  )
+
+  for (const [registeredVersion, step] of sortedEntries) {
     if (registeredVersion !== step.fromVersion) {
       throw new TypeError(
         'Backup migration registry key must match its source version',
@@ -91,12 +99,8 @@ const assertValidRegistry = (
     }
   }
 
-  const registeredVersions = [...migrations.keys()]
-  if (registeredVersions.length === 0) {
-    return
-  }
-
-  const minimumVersion = Math.min(...registeredVersions)
+  const firstEntry = sortedEntries[0]
+  const [minimumVersion] = firstEntry
   for (let version = minimumVersion; version < currentVersion; version += 1) {
     if (!migrations.has(version)) {
       throw new TypeError(
@@ -104,6 +108,8 @@ const assertValidRegistry = (
       )
     }
   }
+
+  return sortedEntries.map(([, step]) => step)
 }
 
 const invalidSchemaError = (
@@ -120,7 +126,8 @@ export const createBackupMigrationPipeline = <TCurrent>({
   currentVersion,
   migrations,
 }: CreateBackupMigrationPipelineOptions<TCurrent>): BackupMigrationPipeline<TCurrent> => {
-  assertValidRegistry(currentVersion, migrations)
+  const migrationRegistry = new Map(migrations)
+  const migrationSteps = assertValidRegistry(currentVersion, migrationRegistry)
 
   return {
     migrateToCurrent: (input) => {
@@ -149,7 +156,7 @@ export const createBackupMigrationPipeline = <TCurrent>({
         }
       }
 
-      if (!migrations.has(sourceVersion)) {
+      if (!migrationRegistry.has(sourceVersion)) {
         throw new BackupSchemaError('UNSUPPORTED_SCHEMA_VERSION', {
           currentVersion,
           receivedVersion: sourceVersion,
@@ -157,14 +164,9 @@ export const createBackupMigrationPipeline = <TCurrent>({
       }
 
       let migrated: unknown = input
-      let version = sourceVersion
-      while (version < currentVersion) {
-        const step = migrations.get(version)
-        if (!step) {
-          throw new BackupSchemaError('UNSUPPORTED_SCHEMA_VERSION', {
-            currentVersion,
-            receivedVersion: sourceVersion,
-          })
+      for (const step of migrationSteps) {
+        if (step.fromVersion < sourceVersion) {
+          continue
         }
 
         const result = step.execute(migrated)
@@ -172,7 +174,6 @@ export const createBackupMigrationPipeline = <TCurrent>({
           throw invalidSchemaError(currentVersion, sourceVersion)
         }
         migrated = result.data
-        version = step.toVersion
       }
 
       const currentResult = currentSchema.safeParse(migrated)

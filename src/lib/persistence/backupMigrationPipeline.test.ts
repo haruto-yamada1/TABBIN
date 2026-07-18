@@ -354,8 +354,9 @@ describe('createBackupMigrationPipeline', () => {
     },
   )
 
-  it('rejects a registry step removed after pipeline construction', () => {
-    const { v2ToV3, v3ToV4 } = createTestPipeline()
+  it('uses the validated registry snapshot after caller mutation', () => {
+    const { migrateV2ToV3, migrateV3ToV4, v2ToV3, v3ToV4 } =
+      createTestPipeline()
     const migrations = new Map([
       [2, v2ToV3],
       [3, v3ToV4],
@@ -365,15 +366,24 @@ describe('createBackupMigrationPipeline', () => {
       currentVersion: 4,
       migrations,
     })
+    const skippingStep = defineBackupMigrationStep({
+      fromVersion: 2,
+      inputSchema: backupV2Schema,
+      migrate: (): BackupV4 => backupV4Schema.parse(backupCurrent),
+      outputSchema: backupV4Schema,
+      toVersion: 4,
+    })
+
+    migrations.set(2, skippingStep)
     migrations.delete(3)
 
-    expect(
-      captureSchemaError(() => pipeline.migrateToCurrent(backupV2)),
-    ).toMatchObject({
-      code: 'UNSUPPORTED_SCHEMA_VERSION',
-      currentVersion: 4,
-      receivedVersion: 2,
+    expect(pipeline.migrateToCurrent(backupV2)).toEqual({
+      backup: backupCurrent,
+      kind: 'current',
+      sourceVersion: 2,
     })
+    expect(migrateV2ToV3).toHaveBeenCalledTimes(1)
+    expect(migrateV3ToV4).toHaveBeenCalledTimes(1)
   })
 
   it('validates the final value with the declared current schema', () => {
