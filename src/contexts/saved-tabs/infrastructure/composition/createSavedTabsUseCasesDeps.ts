@@ -23,14 +23,12 @@ import { createChromeUrlRecordRepository } from '@/contexts/saved-tabs/infrastru
 import { createChromeUserSettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUserSettingsRepository'
 import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 import type { ChromeOnChangedListener } from '@/lib/browser/chrome-storage'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 import { createLibCategoriesCommandService } from './LibCategoriesCommandService'
 import { createLibCategoryAssignmentPort } from './LibCategoryAssignmentPort'
 import { createLibCustomProjectsCommandService } from './LibCustomProjectsCommandService'
+import { getPersistenceStorageLocal } from './persistenceBootstrapRuntime'
 
 export type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
 
@@ -102,7 +100,7 @@ const getChromeMessagingApi = (): ChromeMessagingApiLike | undefined => {
 export const createSavedTabsUseCasesDeps = (
   options: CreateSavedTabsUseCasesDepsOptions = {},
 ): SavedTabsUseCasesDeps => {
-  const local = getChromeStorageLocal()
+  const local = getPersistenceStorageLocal()
   if (!local) {
     warnMissingChromeStorage('createSavedTabsUseCasesDeps')
   }

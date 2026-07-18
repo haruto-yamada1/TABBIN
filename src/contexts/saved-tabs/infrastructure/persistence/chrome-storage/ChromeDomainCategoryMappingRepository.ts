@@ -1,10 +1,7 @@
 import { toStorageDomainCategoryMappings } from '@/contexts/saved-tabs/application/mappers/SavedTabsDtosMapper'
 import type { DomainCategoryMappingDto } from '@/contexts/saved-tabs/domain/dto/DomainCategoryMappingDto'
 import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategoryMappingRepository'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
@@ -15,17 +12,6 @@ type ChromeDomainCategoryMappingStoragePort = Pick<
   ChromeStorageLocalPort,
   'get' | 'set'
 >
-
-const getDefaultPort = (): ChromeDomainCategoryMappingStoragePort | null => {
-  const local = getChromeStorageLocal()
-  if (!local) {
-    return null
-  }
-  return {
-    get: async (key) => local.get(key),
-    set: async (value) => local.set(value),
-  }
-}
 
 const parseMappings = (raw: unknown): readonly DomainCategoryMappingDto[] => {
   if (!Array.isArray(raw)) {
@@ -79,7 +65,7 @@ const createChromeDomainCategoryMappingRepositoryImpl = (
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */
 export const createChromeDomainCategoryMappingRepository = (
-  port: ChromeDomainCategoryMappingStoragePort | null = getDefaultPort(),
+  port: ChromeDomainCategoryMappingStoragePort | null,
 ): DomainCategoryMappingRepository => {
   if (!port) {
     warnMissingChromeStorage('ChromeDomainCategoryMappingRepository')

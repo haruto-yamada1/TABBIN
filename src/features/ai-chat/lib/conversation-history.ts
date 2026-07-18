@@ -1,12 +1,10 @@
+import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import type {
   AiChatConversation,
   AiChatConversationMessage,
 } from '@/features/ai-chat/types'
 import { getMessage } from '@/features/i18n/lib/language'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 const AI_CHAT_CONVERSATIONS_KEY = 'aiChatConversations'
 const ACTIVE_AI_CHAT_CONVERSATION_ID_KEY = 'activeAiChatConversationId'
@@ -141,7 +139,7 @@ const loadConversationHistory = async (
   defaultTitle = DEFAULT_CONVERSATION_TITLE,
   interruptedMessage = DEFAULT_INTERRUPTED_RESPONSE_MESSAGE,
 ): Promise<ConversationHistoryState> => {
-  const storageLocal = getChromeStorageLocal()
+  const storageLocal = getPersistenceStorageLocal()
   if (!storageLocal) {
     warnMissingChromeStorage('AIチャット履歴の読み込み')
     return createDefaultConversationHistory(defaultTitle)
@@ -194,7 +192,7 @@ const saveConversationHistory = async ({
   activeConversationId,
   conversations,
 }: ConversationHistoryState): Promise<void> => {
-  const storageLocal = getChromeStorageLocal()
+  const storageLocal = getPersistenceStorageLocal()
   if (!storageLocal) {
     warnMissingChromeStorage('AIチャット履歴の保存')
     return

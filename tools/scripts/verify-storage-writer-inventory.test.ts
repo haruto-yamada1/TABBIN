@@ -62,6 +62,7 @@ const CURRENT_WRITER_IDS = [
   'UI-COLOR-RESET',
   'UI-ROUTE-CLEANUP',
   'RELEASE-CONTROL',
+  'PERSISTENCE-CONTROL-STATE',
   'SETTINGS-REPAIR',
   'SETTINGS-SAVE',
   'SETTINGS-AUTO-DELETE',
@@ -241,7 +242,6 @@ describe('verifyStorageWriterInventory', () => {
 
   test.each([
     'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
-    'src/app/composition/createSavedTabsRepositories.ts',
   ])(
     'discovers and maps the real repository alias writer %s',
     (relativePath) => {
@@ -271,6 +271,33 @@ describe('verifyStorageWriterInventory', () => {
     },
   )
 
+  test('does not classify the app repository composition as a writer after settings-port separation', () => {
+    const relativePath = 'src/app/composition/createSavedTabsRepositories.ts'
+    const sourceCode = readFileSync(
+      path.join(process.cwd(), relativePath),
+      'utf8',
+    )
+    const inventory = parseStorageWriterInventory(
+      readFileSync(
+        path.join(
+          process.cwd(),
+          'docs/architecture/current-storage-writer-inventory.md',
+        ),
+        'utf8',
+      ),
+    )
+
+    expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(
+      false,
+    )
+    expect(
+      inventory.writerTable.rows.some((row) =>
+        row.fileReferences.has(relativePath),
+      ),
+    ).toBe(false)
+    expect(inventory.mutationFiles.has(relativePath)).toBe(false)
+  })
+
   test('rejects deletion of a writer row from the current baseline', () => {
     const repoRoot = createFixture()
     const inventoryPath = 'docs/storage-writer-inventory.md'
@@ -297,7 +324,7 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 38 rows, found 37')
+    ).toThrow('Writer ID baseline mismatch: expected 39 rows, found 38')
   })
 
   test.each([
@@ -800,6 +827,17 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
       ].join('\n'),
     },
     {
+      name: 'gated persistence storage local alias set',
+      relativePath: 'src/lib/storage/resolved.ts',
+      sourceCode:
+        'const storage = getPersistenceStorageLocal()\nawait storage?.set({ urls: [] })',
+    },
+    {
+      name: 'required gated persistence storage direct remove',
+      relativePath: 'src/lib/storage/resolved.ts',
+      sourceCode: "await getRequiredPersistenceStorageLocal().remove('urls')",
+    },
+    {
       name: 'optional chained resolved storageLocal call',
       relativePath: 'src/lib/storage/resolved.ts',
       sourceCode: 'await storageLocal?.remove?.(`urls`)',
@@ -815,6 +853,12 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
       relativePath:
         'src/contexts/example/infrastructure/persistence/chrome-storage/ChromeExampleRepository.ts',
       sourceCode: 'await port.remove(`urls`)',
+    },
+    {
+      name: 'persistence control-state repository storage set',
+      relativePath:
+        'src/contexts/saved-tabs/infrastructure/persistence/control-plane/ChromePersistenceControlStateRepository.ts',
+      sourceCode: 'await storage.set({ controlState: next })',
     },
     {
       name: 'mutation inside a template expression',

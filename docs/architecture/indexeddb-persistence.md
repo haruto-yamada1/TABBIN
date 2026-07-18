@@ -27,6 +27,28 @@ Issue #726 does not:
 remain in `chrome.storage.local` as decided by the #725 Storage Placement
 Matrix. No cross-engine atomic transaction is claimed for those records.
 
+## Readiness and route gate
+
+Both `IndexedDbPersistenceSnapshotReader` and
+`IndexedDbPersistenceUnitOfWork` require a `PersistenceOperationGatePort`.
+Snapshot/query reads run through `runIndexedDbRead`; revision reads and commits
+use the corresponding IndexedDB read/write gate. The gate calls the single
+`PersistenceBootstrap`, acquires the shared cross-context barrier, and re-reads
+`tabbin:persistenceControlState:v2` before opening the database transaction.
+
+Only `indexeddb` authorizes these adapters. `legacy` authorizes the gated
+Chrome-storage facade instead; `migrating`, `verifying`, `cutover-pending`, and
+`failed` authorize neither route. `read-only-emergency` authorizes only the
+matching read source and rejects every write. Missing or rejected Web Locks are
+reported as `PERSISTENCE_COORDINATION_UNAVAILABLE`; no IndexedDB operation runs
+through a lockless fallback.
+
+The control repository initializes the whole Chrome storage area with
+`TRUSTED_CONTEXTS` before reading state. The control record is not persisted in
+this database, included in Backup V2, or emitted by the #739 change protocol.
+Actual legacy-to-v2 mapping and verification are injected from #728 and do not
+run in `onupgradeneeded`.
+
 ## Database and schema version
 
 The database name is `tabbin-persistence-v2`. Its physical schema version is

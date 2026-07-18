@@ -1,3 +1,4 @@
+import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import type {
   AiChartSpec,
   AiChatConversationMessage,
@@ -11,10 +12,7 @@ import {
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { isObjectLike } from '@/lib/browser/chrome-global'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import type { AiChatToolTrace } from '@/types/background'
@@ -344,7 +342,7 @@ type AnalyticsDeleteUndoPayload = {
 
 const getAnalyticsDeleteUndoSnapshot =
   async (): Promise<AnalyticsDeleteUndoSnapshot> => {
-    const storageLocal = getChromeStorageLocal()
+    const storageLocal = getPersistenceStorageLocal()
     if (!storageLocal) {
       warnMissingChromeStorage('分析削除アンドゥスナップショット')
       return {}

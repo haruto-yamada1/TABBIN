@@ -5,6 +5,7 @@ import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repo
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
+import { getPersistenceStorageLocal } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 import { createChromeCustomProjectRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeCustomProjectRepository'
 import { createChromeDomainCategoryMappingRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeDomainCategoryMappingRepository'
 import { createChromeDomainCategorySettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeDomainCategorySettingsRepository'
@@ -20,7 +21,9 @@ import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
  * `Repository` 実装のバンドル。
  *
  * 各 `Chrome*Repository` は `domain/repositories/` の interface だけを
- * 公開し、保存先は `chrome.storage.local` に閉じる。`chrome.storage.local`
+ * 公開する。移行対象の domain data は PersistenceBootstrap gate を通し、
+ * `userSettings` は cutover 後も authority を保つ settings port へ分離する。
+ * `chrome.storage.local`
  * が利用できない環境で repository 関数を呼び出すと
  * `SavedTabsRepositoryUnavailableError` が投げられる。
  */
@@ -34,8 +37,9 @@ export type SavedTabsRepositories = {
   readonly domainCategorySettingsRepository: DomainCategorySettingsRepository
 }
 
-const createChromeStorageLocalPort = (): ChromeStorageLocalPort | null => {
-  const local = getChromeStorageLocal()
+const createChromeStorageLocalPort = (
+  local: typeof chrome.storage.local | null,
+): ChromeStorageLocalPort | null => {
   if (!local) {
     return null
   }
@@ -49,9 +53,8 @@ const createChromeStorageLocalPort = (): ChromeStorageLocalPort | null => {
 /**
  * `chrome.storage.local` ベースの saved-tabs 用 repository 群を生成する。
  *
- * chrome.storage.local を 1 度だけ取得して 4 つの repository へ共有するため、
- * repository ごとの `getChromeStorageLocal()` 呼び出しと差異が出ない範囲で
- * 少しだけ効率的になっている。
+ * gated domain port は 6 つの domain repository へ共有し、raw settings port
+ * は UserSettingsRepository だけへ渡す。
  *
  * `chrome.storage.local` が無い環境（Storybook / テストなど chrome 不在）で
  * 呼び出された場合、各 repository 関数は
@@ -65,16 +68,17 @@ const createChromeStorageLocalPort = (): ChromeStorageLocalPort | null => {
  * ```
  */
 export const createSavedTabsRepositories = (): SavedTabsRepositories => {
-  const port = createChromeStorageLocalPort()
+  const domainPort = createChromeStorageLocalPort(getPersistenceStorageLocal())
+  const settingsPort = createChromeStorageLocalPort(getChromeStorageLocal())
   return {
-    customProjectRepository: createChromeCustomProjectRepository(port),
+    customProjectRepository: createChromeCustomProjectRepository(domainPort),
     domainCategoryMappingRepository:
-      createChromeDomainCategoryMappingRepository(port),
+      createChromeDomainCategoryMappingRepository(domainPort),
     domainCategorySettingsRepository:
-      createChromeDomainCategorySettingsRepository(port),
-    parentCategoryRepository: createChromeParentCategoryRepository(port),
-    tabGroupRepository: createChromeTabGroupRepository(port),
-    urlRecordRepository: createChromeUrlRecordRepository(port),
-    userSettingsRepository: createChromeUserSettingsRepository(port),
+      createChromeDomainCategorySettingsRepository(domainPort),
+    parentCategoryRepository: createChromeParentCategoryRepository(domainPort),
+    tabGroupRepository: createChromeTabGroupRepository(domainPort),
+    urlRecordRepository: createChromeUrlRecordRepository(domainPort),
+    userSettingsRepository: createChromeUserSettingsRepository(settingsPort),
   }
 }

@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
-import * as chromeStorageModule from '@/lib/browser/chrome-storage'
 
 import {
   SavedTabsRepositoryUnavailableError,
@@ -10,18 +9,6 @@ import {
 } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
 import { URLS_KEY } from './savedTabsStorageKeys'
-
-vi.mock('@/lib/browser/chrome-storage', async () => {
-  const actual = await vi.importActual<typeof chromeStorageModule>(
-    '@/lib/browser/chrome-storage',
-  )
-  return {
-    ...actual,
-    getChromeStorageLocal: vi.fn(),
-  }
-})
-
-const getChromeStorageLocal = chromeStorageModule.getChromeStorageLocal
 
 type StorageState = Record<string, unknown>
 
@@ -72,68 +59,6 @@ describe('ChromeUrlRecordRepository', () => {
         .mockImplementation(() => undefined)
       try {
         expect(() => createChromeUrlRecordRepository(null)).toThrow(
-          SavedTabsRepositoryUnavailableError,
-        )
-      } finally {
-        warnSpy.mockRestore()
-      }
-    })
-
-    it('port 未指定で getChromeStorageLocal が本物の storage を返す場合はそれを使う', async () => {
-      const state: StorageState = {}
-      vi.mocked(getChromeStorageLocal).mockReturnValue({
-        get: async (key: string) => ({ [key]: state[key] }),
-        remove: async (key: string) => {
-          delete state[key]
-        },
-        set: async (value: Record<string, unknown>) => {
-          Object.assign(state, value)
-        },
-        // eslint-disable-next-line typescript/no-explicit-any
-      } as any)
-      const repo = createChromeUrlRecordRepository()
-      const result = await repo.findAll()
-      expect(result).toStrictEqual([])
-    })
-
-    it('port 未指定で作った repository は default storage の set/remove wrapper を使う', async () => {
-      const state: StorageState = {
-        [URLS_KEY]: [
-          { id: 'url-1', savedAt: 1, title: 'A', url: 'https://example.com/a' },
-          { id: 'url-2', savedAt: 2, title: 'B', url: 'https://example.com/b' },
-        ],
-      }
-      const storage = {
-        get: vi.fn(async (key: string) => ({ [key]: state[key] })),
-        remove: vi.fn(async (key: string) => {
-          delete state[key]
-        }),
-        set: vi.fn(async (value: Record<string, unknown>) => {
-          Object.assign(state, value)
-        }),
-      }
-      vi.mocked(getChromeStorageLocal).mockReturnValue(storage as never)
-      const repo = createChromeUrlRecordRepository()
-
-      const record = createSampleRecord('url-3', 'https://example.com/c')
-      expect(record).not.toBeNull()
-      if (!record) {
-        return
-      }
-      await repo.saveAll([record])
-      await repo.removeByIds([createUrlRecordId('url-3')])
-
-      expect(storage.set).toHaveBeenCalledTimes(2)
-      expect(storage.get).toHaveBeenCalledWith(URLS_KEY)
-    })
-
-    it('port 未指定で getChromeStorageLocal が null を返す場合は throw する', () => {
-      const warnSpy = vi
-        .spyOn(console, 'warn')
-        .mockImplementation(() => undefined)
-      vi.mocked(getChromeStorageLocal).mockReturnValue(null)
-      try {
-        expect(() => createChromeUrlRecordRepository()).toThrow(
           SavedTabsRepositoryUnavailableError,
         )
       } finally {

@@ -48,14 +48,14 @@ describe('ChromeCustomProjectRepository', () => {
     vi.unstubAllGlobals()
   })
 
-  it('default chrome.storage.local port で read/write する', async () => {
+  it('注入された chrome.storage.local port で read/write する', async () => {
     const state: StorageState = {
       [CUSTOM_PROJECTS_KEY]: [],
       [CUSTOM_PROJECT_ORDER_KEY]: [],
     }
     const local = createPort(state)
     vi.stubGlobal('chrome', { storage: { local } })
-    const repository = createChromeCustomProjectRepository()
+    const repository = createChromeCustomProjectRepository(local)
     const sample = createSampleCustomProject('project-1', 'Docs')
     if (!sample) {
       throw new Error('sample custom project could not be created')
@@ -507,11 +507,11 @@ describe('ChromeCustomProjectRepository', () => {
     })
   })
 
-  it('chrome global が無い既定 port は利用不能エラーを投げる', () => {
+  it('null port は利用不能エラーを投げる', () => {
     vi.stubGlobal('chrome', undefined)
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
-    expect(() => createChromeCustomProjectRepository()).toThrow(
+    expect(() => createChromeCustomProjectRepository(null)).toThrow(
       SavedTabsRepositoryUnavailableError,
     )
   })

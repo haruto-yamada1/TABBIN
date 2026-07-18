@@ -3,6 +3,8 @@ import path from 'node:path'
 
 import ts from 'typescript'
 
+import { CURRENT_STORAGE_WRITER_IDS } from './storage-writer-inventory-policy'
+
 export type StorageWriterInventoryVerificationOptions = {
   readonly repoRoot: string
   readonly inventoryPath: string
@@ -66,47 +68,6 @@ const REQUIRED_WRITER_COLUMNS = [
   'Migration barrier',
   'Change notification',
   'v2 target',
-] as const
-
-const CURRENT_WRITER_IDS = [
-  'UI-THEME',
-  'UI-COLOR-RESET',
-  'UI-ROUTE-CLEANUP',
-  'RELEASE-CONTROL',
-  'SETTINGS-REPAIR',
-  'SETTINGS-SAVE',
-  'SETTINGS-AUTO-DELETE',
-  'AI-HISTORY-REPAIR',
-  'AI-HISTORY-SAVE',
-  'ANALYTICS-VIEWS',
-  'ANALYTICS-UNDO',
-  'IMPORT-MERGE',
-  'IMPORT-OVERWRITE',
-  'DDD-URLS',
-  'DDD-TAB-GROUPS',
-  'DDD-CUSTOM-PROJECTS',
-  'DDD-CUSTOM-ORDER-UNDO',
-  'DDD-PARENT-CATEGORIES',
-  'DDD-DOMAIN-SETTINGS',
-  'DDD-DOMAIN-MAPPINGS',
-  'DDD-USER-SETTINGS',
-  'LEGACY-PARENT-CATEGORIES',
-  'LEGACY-DOMAIN-CATEGORIES',
-  'PARENT-CATEGORY-MIGRATION',
-  'SAVE-TABS-FACADE',
-  'HOSTNAME-MIGRATION',
-  'URL-MIGRATION',
-  'PROJECTS-REPAIR',
-  'PROJECTS-WRITE',
-  'PROJECTS-DOMAIN-SYNC',
-  'SAVED-TABS-WRITE',
-  'SAVED-TABS-AUTO',
-  'SAVED-TABS-DELETE-UNDO',
-  'URLS-WRITE',
-  'URLS-CLEANUP-DEDUPE',
-  'BACKGROUND-URL-REMOVE',
-  'EXPIRED-TABS-CLEANUP',
-  'TAB-TIMESTAMP-UPDATE',
 ] as const
 
 const PRODUCTION_SOURCE_EXTENSION = /\.(?:c|m)?[jt]sx?$/
@@ -365,6 +326,12 @@ export const parseStorageWriterInventory = (
 }
 
 const STORAGE_MUTATION_METHODS = new Set(['clear', 'remove', 'set'])
+const STORAGE_LOCAL_FACTORY_NAMES = new Set([
+  'getChromeStorageLocal',
+  'getPersistenceStorageLocal',
+  'getRequiredPersistenceStorageLocal',
+  'getStorageLocalRemove',
+])
 
 const getPropertyAccessPath = (
   expression: ts.Expression,
@@ -386,7 +353,7 @@ const getPropertyAccessPath = (
 }
 
 const isChromeStorageRepositoryPath = (relativePath: string): boolean =>
-  /(?:^|\/)chrome-storage\/Chrome[^/]*Repository\.[cm]?[jt]sx?$/.test(
+  /(?:^|\/)(?:chrome-storage\/Chrome[^/]*Repository|persistence\/control-plane\/ChromePersistenceControlStateRepository)\.[cm]?[jt]sx?$/.test(
     normalizeRepoPath(relativePath),
   )
 
@@ -411,8 +378,7 @@ const isChromeStorageLocalInitializer = (
   initializer !== undefined &&
   ts.isCallExpression(initializer) &&
   ts.isIdentifier(initializer.expression) &&
-  (initializer.expression.text === 'getChromeStorageLocal' ||
-    initializer.expression.text === 'getStorageLocalRemove')
+  STORAGE_LOCAL_FACTORY_NAMES.has(initializer.expression.text)
 
 const getStorageScopeType = (
   node: ts.Node,
@@ -537,8 +503,11 @@ const isStorageMutationCall = ({
   readonly isChromeStorageRepository: boolean
   readonly storageLexicalScopes: Readonly<WeakMap<ts.Node, StorageLexicalScope>>
 }): boolean => {
+  const callee = unwrapParentheses(callExpression.expression)
   const accessPath = getPropertyAccessPath(callExpression.expression)
-  const method = accessPath.at(-1)
+  const method = ts.isPropertyAccessExpression(callee)
+    ? callee.name.text
+    : accessPath.at(-1)
   if (!method || !STORAGE_MUTATION_METHODS.has(method)) {
     return false
   }
@@ -556,10 +525,19 @@ const isStorageMutationCall = ({
     return true
   }
 
+  if (
+    ts.isPropertyAccessExpression(callee) &&
+    isChromeStorageLocalInitializer(unwrapParentheses(callee.expression))
+  ) {
+    return true
+  }
+
   const receiver = receiverPath.at(-1)
   return (
     isChromeStorageRepository &&
-    (receiver === 'port' || receiver === 'storagePort')
+    (receiver === 'port' ||
+      receiver === 'storage' ||
+      receiver === 'storagePort')
   )
 }
 
@@ -715,13 +693,17 @@ const collectWriterIdentityErrors = (
   for (const duplicateWriterId of [...duplicateWriterIds].toSorted()) {
     errors.push(`Duplicate writer ID: ${duplicateWriterId}`)
   }
-  for (const expectedWriterId of CURRENT_WRITER_IDS) {
+  for (const expectedWriterId of CURRENT_STORAGE_WRITER_IDS) {
     if (!actualWriterIds.has(expectedWriterId)) {
       errors.push(`Missing writer ID from baseline: ${expectedWriterId}`)
     }
   }
   for (const actualWriterId of [...actualWriterIds].toSorted()) {
-    if (!CURRENT_WRITER_IDS.some((writerId) => writerId === actualWriterId)) {
+    if (
+      !CURRENT_STORAGE_WRITER_IDS.some(
+        (writerId) => writerId === actualWriterId,
+      )
+    ) {
       errors.push(`Unexpected writer ID outside baseline: ${actualWriterId}`)
     }
   }
@@ -746,9 +728,9 @@ const collectWriterTableErrors = (
       )}", found "${writerTable.columns.join(' | ')}"`,
     )
   }
-  if (writerTable.rows.length !== CURRENT_WRITER_IDS.length) {
+  if (writerTable.rows.length !== CURRENT_STORAGE_WRITER_IDS.length) {
     errors.push(
-      `Writer ID baseline mismatch: expected ${CURRENT_WRITER_IDS.length} rows, found ${writerTable.rows.length}`,
+      `Writer ID baseline mismatch: expected ${CURRENT_STORAGE_WRITER_IDS.length} rows, found ${writerTable.rows.length}`,
     )
   }
   for (const row of writerTable.rows) {

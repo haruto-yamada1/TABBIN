@@ -679,6 +679,57 @@ Recently saved, this week, frequent URLs, expiring soon, and duplicates are
 derived views. They are queries/read models, not persisted Collections, unless a
 later product requirement explicitly turns one into user-owned data.
 
+## PersistenceBootstrap control plane
+
+Issue #727 defines one readiness entry and one authoritative control-plane
+record at `tabbin:persistenceControlState:v2` in `chrome.storage.local`. An
+absent record means `legacy`; IndexedDB database or object-store presence never
+implies cutover. The runtime decoder accepts only the explicit states `legacy`,
+`migrating`, `verifying`, `cutover-pending`, `indexeddb`, `failed`, and
+`read-only-emergency`, and every mutation uses a typed transition command.
+
+Normal persistence reads and writes acquire the stable cross-context Web Lock
+in shared mode, call `PersistenceBootstrap.ready()`, re-read the control state
+while still holding the lock, and execute only against the authorized route.
+Migration and restart recovery acquire that lock in exclusive mode. Missing or
+rejected Web Locks fail closed as `PERSISTENCE_COORDINATION_UNAVAILABLE`; there
+is no lockless production fallback. A module Promise is only a same-context
+single-flight optimization and never owns correctness.
+
+The legacy/indexeddb route is only for migrated domain data. Persistent
+settings such as `userSettings`, UI theme, release display controls, and the
+control record keep dedicated raw settings/control ports and remain available
+after an IndexedDB cutover; they are not misclassified as legacy domain reads.
+
+Before the control record is read, the Chrome adapter restricts
+`storage.local` to `TRUSTED_CONTEXTS`. When `setAccessLevel` is unavailable, it
+may continue only after the runtime manifest proves that no content script is
+declared; an uninspectable or content-script-enabled manifest fails closed.
+This is a whole-storage-area capability, so the no-content-script manifest
+invariant remains security-sensitive.
+
+`cutover-pending` is the only state that recovery may finalize without running
+verification again. `failed` authorizes no normal operation; a persisted
+migration ID may be retried only while the exclusive barrier is held, either by
+restart readiness recovery or an explicit migration retry.
+Every typed gate failure is also published to the app-level recovery controller.
+The extension app renders a persistent recovery notice that states legacy data
+was not deleted and exposes an explicit retry action; retry success clears the
+notice, while another typed failure replaces the visible recovery state.
+`read-only-emergency` permits only reads from its declared source. The
+bootstrap port has no legacy-delete capability. Raw legacy parsing, mapping,
+transactional copy, and semantic verification remain owned by #728. The #727
+lifecycle boundary requires the approved preflight source fingerprint and a
+fresh current-source fingerprint, compares them under exclusive ownership
+before any migration write, and persists `PERSISTENCE_PREFLIGHT_STALE` on a
+mismatch. #738 remains responsible for producing the read-only preflight
+fingerprint and invalidating its result after normal source writes.
+
+The control record contains no user data. It is excluded from Backup V2 and is
+not a #739 domain change event. #739 continues to notify consumers only after a
+committed domain mutation; bootstrap state transitions are internal barrier
+events.
+
 ## Handoff and review gates
 
 #711 establishes current-state evidence, not v2 concurrency guarantees. Current

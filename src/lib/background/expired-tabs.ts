@@ -2,6 +2,7 @@
  * 期限切れタブ管理モジュール
  */
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { logger } from '@/lib/logging/logger'
 import type { AutoDeletePeriod } from '@/types/background'
 import type { TabGroup, UserSettings } from '@/types/storage'
@@ -95,7 +96,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
     logger.debug('background_expired_tabs_check_started')
 
     // ストレージから直接取得する - より単純化した取得方法
-    const data = await chrome.storage.local.get<{
+    const data = await getRequiredPersistenceStorageLocal().get<{
       userSettings?: UserSettings
     }>(['userSettings'])
     const autoDeletePeriod = data.userSettings?.autoDeletePeriod ?? 'never'
@@ -117,7 +118,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
     const cutoffTime = currentTime - expirationPeriod
 
     // 保存されたタブを取得
-    const storageResult = await chrome.storage.local.get<{
+    const storageResult = await getRequiredPersistenceStorageLocal().get<{
       savedTabs?: TabGroup[]
     }>('savedTabs')
     const savedTabs: TabGroup[] = storageResult.savedTabs ?? []
@@ -176,7 +177,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
       updatedTabs.length !== savedTabs.length ||
       updatedUrlCount !== totalUrlCount
     ) {
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         savedTabs: updatedTabs,
       })
       logger.info('background_expired_tabs_removed', {
@@ -200,7 +201,7 @@ export const updateTabTimestamps = async (
 }> => {
   try {
     logger.debug('background_tab_timestamp_update_started')
-    const storageResult = await chrome.storage.local.get<{
+    const storageResult = await getRequiredPersistenceStorageLocal().get<{
       savedTabs?: TabGroup[]
     }>('savedTabs')
     const savedTabs: TabGroup[] = storageResult.savedTabs ?? []
@@ -230,7 +231,7 @@ export const updateTabTimestamps = async (
     }))
 
     // ストレージに保存
-    await chrome.storage.local.set({
+    await getRequiredPersistenceStorageLocal().set({
       savedTabs: updatedTabs,
     })
     logger.info('background_tab_timestamp_update_completed', {

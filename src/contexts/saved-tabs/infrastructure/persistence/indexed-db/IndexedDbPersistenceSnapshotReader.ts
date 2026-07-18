@@ -1,3 +1,4 @@
+import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type {
   PersistenceLogicalSnapshot,
   PersistenceV2SnapshotReaderPort,
@@ -126,57 +127,66 @@ const verifySavedTabsSnapshot = (
 
 export class IndexedDbPersistenceSnapshotReader implements PersistenceV2SnapshotReaderPort {
   private readonly connectionManager: IndexedDbConnectionManager
+  private readonly operationGate: PersistenceOperationGatePort
 
-  constructor(connectionManager: IndexedDbConnectionManager) {
+  constructor(
+    connectionManager: IndexedDbConnectionManager,
+    operationGate: PersistenceOperationGatePort,
+  ) {
     this.connectionManager = connectionManager
+    this.operationGate = operationGate
   }
 
   async readConsistentSnapshot(): Promise<PersistenceLogicalSnapshot> {
-    const database = await this.connectionManager.open()
-    const transaction = database.transaction(
-      BACKUP_SOURCE_STORE_NAMES,
-      'readonly',
-    )
-    const savedTabsRequests = queueSavedTabsRequests(transaction)
-    const conversations = transaction
-      .objectStore(PERSISTENCE_STORE_NAMES.conversations)
-      .getAll()
-    const messages = transaction
-      .objectStore(PERSISTENCE_STORE_NAMES.messages)
-      .getAll()
-    const analyticsViews = transaction
-      .objectStore(PERSISTENCE_STORE_NAMES.analyticsViews)
-      .getAll()
-    await waitForIndexedDbTransaction(transaction)
-    const savedTabs = verifySavedTabsSnapshot(
-      materializeSavedTabsSnapshot(savedTabsRequests),
-    )
+    return this.operationGate.runIndexedDbRead(async () => {
+      const database = await this.connectionManager.open()
+      const transaction = database.transaction(
+        BACKUP_SOURCE_STORE_NAMES,
+        'readonly',
+      )
+      const savedTabsRequests = queueSavedTabsRequests(transaction)
+      const conversations = transaction
+        .objectStore(PERSISTENCE_STORE_NAMES.conversations)
+        .getAll()
+      const messages = transaction
+        .objectStore(PERSISTENCE_STORE_NAMES.messages)
+        .getAll()
+      const analyticsViews = transaction
+        .objectStore(PERSISTENCE_STORE_NAMES.analyticsViews)
+        .getAll()
+      await waitForIndexedDbTransaction(transaction)
+      const savedTabs = verifySavedTabsSnapshot(
+        materializeSavedTabsSnapshot(savedTabsRequests),
+      )
 
-    return {
-      analyticsViews: decodePersistenceRecords(
-        readIndexedDbRequestResult(analyticsViews),
-        isPersistenceJsonRecord,
-        PERSISTENCE_STORE_NAMES.analyticsViews,
-      ),
-      conversations: decodePersistenceRecords(
-        readIndexedDbRequestResult(conversations),
-        isPersistenceJsonRecord,
-        PERSISTENCE_STORE_NAMES.conversations,
-      ),
-      messages: decodePersistenceRecords(
-        readIndexedDbRequestResult(messages),
-        isPersistenceMessageRecord,
-        PERSISTENCE_STORE_NAMES.messages,
-      ),
-      revision: decodePersistenceRevision(
-        readIndexedDbRequestResult(savedTabsRequests.revision),
-      ),
-      savedTabs,
-    }
+      return {
+        analyticsViews: decodePersistenceRecords(
+          readIndexedDbRequestResult(analyticsViews),
+          isPersistenceJsonRecord,
+          PERSISTENCE_STORE_NAMES.analyticsViews,
+        ),
+        conversations: decodePersistenceRecords(
+          readIndexedDbRequestResult(conversations),
+          isPersistenceJsonRecord,
+          PERSISTENCE_STORE_NAMES.conversations,
+        ),
+        messages: decodePersistenceRecords(
+          readIndexedDbRequestResult(messages),
+          isPersistenceMessageRecord,
+          PERSISTENCE_STORE_NAMES.messages,
+        ),
+        revision: decodePersistenceRevision(
+          readIndexedDbRequestResult(savedTabsRequests.revision),
+        ),
+        savedTabs,
+      }
+    })
   }
 
   async readVerifiedSavedTabsSnapshot(): Promise<PersistenceVersionedSavedTabsSnapshot> {
-    const database = await this.connectionManager.open()
-    return readSavedTabsSnapshot(database)
+    return this.operationGate.runIndexedDbRead(async () => {
+      const database = await this.connectionManager.open()
+      return readSavedTabsSnapshot(database)
+    })
   }
 }

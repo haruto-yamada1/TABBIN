@@ -6,10 +6,7 @@ import type {
 import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
@@ -24,17 +21,6 @@ type ChromeCustomProjectStoragePort = Pick<
   ChromeStorageLocalPort,
   'get' | 'set'
 >
-
-const getDefaultPort = (): ChromeCustomProjectStoragePort | null => {
-  const local = getChromeStorageLocal()
-  if (!local) {
-    return null
-  }
-  return {
-    get: async (key) => local.get(key),
-    set: async (value) => local.set(value),
-  }
-}
 
 const findAllRawCustomProjects = async (
   port: ChromeCustomProjectStoragePort,
@@ -212,7 +198,7 @@ const createChromeCustomProjectRepositoryImpl = (
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */
 export const createChromeCustomProjectRepository = (
-  port: ChromeCustomProjectStoragePort | null = getDefaultPort(),
+  port: ChromeCustomProjectStoragePort | null,
 ): CustomProjectRepository => {
   if (!port) {
     warnMissingChromeStorage('ChromeCustomProjectRepository')
