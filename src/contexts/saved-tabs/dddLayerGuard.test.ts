@@ -1,7 +1,14 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+
+import type {
+  PersistenceChangeEvent,
+  PersistenceChangePort,
+  PersistenceChangeScope,
+} from '@/contexts/saved-tabs/application/ports/PersistenceChangePort'
+import type { PersistenceChangeScope as UnitOfWorkPersistenceChangeScope } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 
 type RuleEntry = string | [string, ...unknown[]]
 
@@ -1687,42 +1694,47 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     }
   })
   describe('issue #739: persistence invalidation contract', () => {
-    const persistenceChangePortPath = resolve(
-      repoRoot,
-      'src/contexts/saved-tabs/application/ports/PersistenceChangePort.ts',
-    )
     const unitOfWorkPortPath = resolve(
       repoRoot,
       'src/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort.ts',
     )
 
-    it('PersistenceChangePort は invalidation hint のみを公開し、scope を UnitOfWork と共有する', () => {
-      expect(
-        existsSync(persistenceChangePortPath),
-        'PersistenceChangePort.ts should define the application invalidation contract',
-      ).toBe(true)
+    it('PersistenceChangePort は exact な invalidation hint contract を公開する', () => {
+      expectTypeOf<keyof PersistenceChangeEvent>().toEqualTypeOf<
+        'changeId' | 'revision' | 'scopes'
+      >()
+      expectTypeOf<PersistenceChangeEvent['changeId']>().toEqualTypeOf<string>()
+      expectTypeOf<PersistenceChangeEvent['revision']>().toEqualTypeOf<number>()
+      expectTypeOf<PersistenceChangeEvent['scopes']>().toEqualTypeOf<
+        readonly PersistenceChangeScope[]
+      >()
+      expectTypeOf<PersistenceChangeEvent>().toEqualTypeOf<{
+        readonly changeId: string
+        readonly revision: number
+        readonly scopes: readonly PersistenceChangeScope[]
+      }>()
 
-      const changePortSource = readFileSync(persistenceChangePortPath, 'utf8')
-      const eventBody = changePortSource.match(
-        /export type PersistenceChangeEvent\s*=\s*\{([\s\S]*?)\}/,
-      )?.[1]
-      expect(eventBody).toBeDefined()
-      expect(eventBody?.match(/readonly\s+\w+\s*:/g)).toEqual([
-        'readonly changeId:',
-        'readonly revision:',
-        'readonly scopes:',
-      ])
-      expect(eventBody).toMatch(/readonly changeId:\s*string/)
-      expect(eventBody).toMatch(/readonly revision:\s*number/)
-      expect(eventBody).toMatch(
-        /readonly scopes:\s*readonly PersistenceChangeScope\[\]/,
-      )
-      expect(eventBody).not.toMatch(
-        /\b(?:url|title|notes|prompt|attachment|payload)\b/i,
-      )
-      expect(changePortSource).toContain('type PersistenceChangePort')
-      expect(changePortSource).toContain('publish:')
-      expect(changePortSource).toContain('subscribe:')
+      expectTypeOf<PersistenceChangeScope>().toEqualTypeOf<
+        | 'analyticsViews'
+        | 'categories'
+        | 'collections'
+        | 'conversations'
+        | 'groups'
+        | 'memberships'
+        | 'recoverySnapshots'
+        | 'urls'
+      >()
+
+      expectTypeOf<PersistenceChangePort['publish']>().toEqualTypeOf<
+        (event: PersistenceChangeEvent) => void
+      >()
+      expectTypeOf<PersistenceChangePort['subscribe']>().toEqualTypeOf<
+        (listener: (event: PersistenceChangeEvent) => void) => () => void
+      >()
+    })
+
+    it('UnitOfWork は shared scope alias を import / re-export し、union を再定義しない', () => {
+      expectTypeOf<UnitOfWorkPersistenceChangeScope>().toEqualTypeOf<PersistenceChangeScope>()
 
       const unitOfWorkSource = readFileSync(unitOfWorkPortPath, 'utf8')
       expect(unitOfWorkSource).toMatch(
