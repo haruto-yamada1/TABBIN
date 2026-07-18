@@ -88,7 +88,7 @@ export const createPersistenceMutationCoordinator = ({
       scopes: commitResult.changedScopes,
     }
     try {
-      changePort.publish(event)
+      await changePort.publish(event)
     } catch {
       return createNotificationFailure(commitResult, 'change_publication')
     }

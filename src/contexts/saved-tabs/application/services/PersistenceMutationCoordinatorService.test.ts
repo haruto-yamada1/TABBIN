@@ -12,7 +12,7 @@ import type {
   PersistenceV2WritePlan,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 
-import { createPersistenceMutationCoordinator } from './PersistenceMutationCoordinator'
+import { createPersistenceMutationCoordinator } from './PersistenceMutationCoordinatorService'
 
 const plan: PersistenceV2WritePlan = {
   urls: { delete: ['url-1'] },
@@ -56,17 +56,19 @@ class FakePersistenceChangePort implements PersistenceChangePort {
   readonly publishedEvents: PersistenceChangeEvent[] = []
   private readonly publishImplementation: (
     event: PersistenceChangeEvent,
-  ) => void
+  ) => Promise<void>
 
   constructor(
-    publishImplementation: (event: PersistenceChangeEvent) => void = () => {},
+    publishImplementation: (
+      event: PersistenceChangeEvent,
+    ) => Promise<void> = async () => {},
   ) {
     this.publishImplementation = publishImplementation
   }
 
-  readonly publish = (event: PersistenceChangeEvent): void => {
+  readonly publish = async (event: PersistenceChangeEvent): Promise<void> => {
     this.publishedEvents.push(event)
-    this.publishImplementation(event)
+    return this.publishImplementation(event)
   }
 
   readonly subscribe = (): (() => void) => () => {}
@@ -88,10 +90,12 @@ class FakeIdGeneratorPort implements IdGeneratorPort {
 
 const createDeferred = <Value>() => {
   let resolve!: (value: Value) => void
-  const promise = new Promise<Value>((_resolve) => {
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<Value>((_resolve, _reject) => {
     resolve = _resolve
+    reject = _reject
   })
-  return { promise, resolve }
+  return { promise, reject, resolve }
 }
 
 describe('PersistenceMutationCoordinator', () => {
@@ -111,7 +115,7 @@ describe('PersistenceMutationCoordinator', () => {
       callOrder.push('generate')
       return changeId
     })
-    const changePort = new FakePersistenceChangePort(() => {
+    const changePort = new FakePersistenceChangePort(async () => {
       callOrder.push('publish')
     })
     const coordinator = createPersistenceMutationCoordinator({
@@ -163,7 +167,53 @@ describe('PersistenceMutationCoordinator', () => {
     expect(changePort.publishedEvents).toStrictEqual([])
   })
 
-  it('publish rejection は commit 済みの typed/redacted partial-success outcome にする', async () => {
+  it('publish 完了前に committed_and_published outcome を返さない', async () => {
+    const commitResult: PersistenceCommitResult = {
+      changedScopes: ['urls', 'memberships'],
+      revision: 43,
+    }
+    const publishDeferred = createDeferred<undefined>()
+    const publishStarted = createDeferred<undefined>()
+    const unitOfWork = new FakePersistenceV2UnitOfWorkPort(
+      async () => commitResult,
+    )
+    const idGenerator = new FakeIdGeneratorPort(() => changeId)
+    const changePort = new FakePersistenceChangePort(async () => {
+      publishStarted.resolve(undefined)
+      return publishDeferred.promise
+    })
+    const coordinator = createPersistenceMutationCoordinator({
+      changePort,
+      idGenerator,
+      unitOfWork,
+    })
+    let settled = false
+
+    const outcomePromise = coordinator.commit(plan).then((outcome) => {
+      settled = true
+      return outcome
+    })
+    await publishStarted.promise
+
+    expect(changePort.publishedEvents).toHaveLength(1)
+    expect(settled).toBe(false)
+
+    publishDeferred.resolve(undefined)
+    const outcome = await outcomePromise
+
+    expect(outcome).toStrictEqual({
+      commitResult,
+      event: {
+        changeId,
+        revision: 43,
+        scopes: ['urls', 'memberships'],
+      },
+      kind: 'committed_and_published',
+    })
+    expect(unitOfWork.commitCalls).toHaveLength(1)
+  })
+
+  it('publish の非同期 rejection は commit 済みの typed/redacted partial-success outcome にする', async () => {
     const commitResult: PersistenceCommitResult = {
       changedScopes: ['memberships', 'urls'],
       revision: 43,
@@ -176,7 +226,8 @@ describe('PersistenceMutationCoordinator', () => {
       async () => commitResult,
     )
     const idGenerator = new FakeIdGeneratorPort(() => changeId)
-    const changePort = new FakePersistenceChangePort(() => {
+    const changePort = new FakePersistenceChangePort(async () => {
+      await Promise.resolve()
       throw publishError
     })
     const coordinator = createPersistenceMutationCoordinator({
