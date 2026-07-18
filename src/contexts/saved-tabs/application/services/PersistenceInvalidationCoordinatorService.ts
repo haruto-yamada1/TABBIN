@@ -29,6 +29,7 @@ export class PersistenceInvalidationCoordinatorService<
 > implements PersistenceInvalidationCoordinator {
   private readonly dependencies: PersistenceInvalidationCoordinatorDependencies<Projection>
   private disposed = false
+  private eventDrainBlocked = false
   private eventDrainPromise: Promise<void> | undefined
   private lastAppliedRevision = Number.NEGATIVE_INFINITY
   private operationTail: Promise<void> = Promise.resolve()
@@ -40,7 +41,10 @@ export class PersistenceInvalidationCoordinatorService<
   constructor(
     dependencies: PersistenceInvalidationCoordinatorDependencies<Projection>,
   ) {
-    this.dependencies = dependencies
+    this.dependencies = {
+      ...dependencies,
+      relevantScopes: new Set(dependencies.relevantScopes),
+    }
   }
 
   readonly start = async (): Promise<void> => {
@@ -51,12 +55,19 @@ export class PersistenceInvalidationCoordinatorService<
       return this.startPromise
     }
 
-    this.startPromise = this.startOnce()
+    const attempt = this.startOnce()
+    const trackedAttempt = attempt.catch((error: unknown) => {
+      if (this.startPromise === trackedAttempt) {
+        this.startPromise = undefined
+      }
+      throw error
+    })
+    this.startPromise = trackedAttempt
     return this.startPromise
   }
 
   readonly checkCurrentRevision = async (): Promise<void> => {
-    if (this.disposed) {
+    if (this.isDisposed()) {
       return
     }
 
@@ -84,6 +95,7 @@ export class PersistenceInvalidationCoordinatorService<
 
     this.disposed = true
     this.pendingEventRevision = undefined
+    this.eventDrainBlocked = false
     const unsubscribe = this.unsubscribe
     this.unsubscribe = undefined
     unsubscribe?.()
@@ -105,6 +117,7 @@ export class PersistenceInvalidationCoordinatorService<
       this.pendingEventRevision ?? Number.NEGATIVE_INFINITY,
       event.revision,
     )
+    this.eventDrainBlocked = false
     this.scheduleEventDrain()
   }
 
@@ -115,26 +128,60 @@ export class PersistenceInvalidationCoordinatorService<
     }
 
     await this.dependencies.apply(projection)
+    if (this.isDisposed()) {
+      return
+    }
 
     this.lastAppliedRevision = Math.max(
       this.lastAppliedRevision,
       projection.revision,
     )
+    if (
+      this.pendingEventRevision !== undefined &&
+      this.pendingEventRevision <= this.lastAppliedRevision
+    ) {
+      this.pendingEventRevision = undefined
+      this.eventDrainBlocked = false
+    }
   }
 
   private async startOnce(): Promise<void> {
     this.starting = true
+    let installedUnsubscribe: (() => void) | undefined
     try {
-      this.unsubscribe = this.dependencies.changePort.subscribe(
+      installedUnsubscribe = this.dependencies.changePort.subscribe(
         this.handleChange,
       )
-    } finally {
+      this.unsubscribe = installedUnsubscribe
+      await this.enqueue(this.queryAndApply)
       this.starting = false
+      this.scheduleEventDrain()
+    } catch (error) {
+      this.pendingEventRevision = undefined
+      this.eventDrainBlocked = false
+      this.starting = false
+      if (installedUnsubscribe && this.unsubscribe === installedUnsubscribe) {
+        this.unsubscribe = undefined
+        try {
+          installedUnsubscribe()
+        } catch {
+          // Startup の元エラーを unsubscribe 失敗で隠さない。
+        }
+      }
+      throw error
     }
+  }
 
-    const initialQuery = this.enqueue(this.queryAndApply)
-    this.scheduleEventDrain()
-    await initialQuery
+  private isDisposed(): boolean {
+    return this.disposed
+  }
+
+  private retainPendingEventRevision(hintedRevision: number): void {
+    this.pendingEventRevision = Math.max(
+      this.pendingEventRevision ?? Number.NEGATIVE_INFINITY,
+      hintedRevision,
+    )
+    this.eventDrainBlocked = true
   }
 
   private async enqueue(operation: () => Promise<void>): Promise<void> {
@@ -152,6 +199,7 @@ export class PersistenceInvalidationCoordinatorService<
     if (
       this.disposed ||
       this.starting ||
+      this.eventDrainBlocked ||
       this.eventDrainPromise ||
       this.pendingEventRevision === undefined
     ) {
@@ -188,6 +236,18 @@ export class PersistenceInvalidationCoordinatorService<
     try {
       await this.queryAndApply()
     } catch {
+      if (this.isDisposed()) {
+        return
+      }
+      this.retainPendingEventRevision(hintedRevision)
+      return
+    }
+
+    if (this.isDisposed()) {
+      return
+    }
+    if (hintedRevision > this.lastAppliedRevision) {
+      this.retainPendingEventRevision(hintedRevision)
       return
     }
 
