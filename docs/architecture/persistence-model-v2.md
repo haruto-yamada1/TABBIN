@@ -466,6 +466,11 @@ not the user content itself.
 
 ## Backup V2 resource and round-trip envelope
 
+The public envelope and migration lifecycle follow the
+[backup schema versioning](./backup-schema-versioning.md) contract. The backup
+`schemaVersion` remains independent of the IndexedDB physical version and the
+extension release version.
+
 The executable resource policy is
 `src/lib/persistence/backupResourcePolicy.ts`. A supported production state is a
 logical snapshot that is healthy under #712, contains only the logical data
