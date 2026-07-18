@@ -56,24 +56,26 @@ export class PersistenceChangeTransportUnavailableError extends Error {
   }
 }
 
-const PersistenceChangeEventSchema = z.object({
-  changeId: z.string().min(1),
-  revision: z.number().int().positive(),
-  scopes: z
-    .array(
-      z.enum([
-        'analyticsViews',
-        'categories',
-        'collections',
-        'conversations',
-        'groups',
-        'memberships',
-        'recoverySnapshots',
-        'urls',
-      ]),
-    )
-    .min(1),
-})
+const PersistenceChangeEventSchema = z
+  .object({
+    changeId: z.string().min(1),
+    revision: z.number().int().positive(),
+    scopes: z
+      .array(
+        z.enum([
+          'analyticsViews',
+          'categories',
+          'collections',
+          'conversations',
+          'groups',
+          'memberships',
+          'recoverySnapshots',
+          'urls',
+        ]),
+      )
+      .min(1),
+  })
+  .strict()
 
 const createGlobalBroadcastChannel: BroadcastChannelFactory = (channelName) => {
   const BroadcastChannelConstructor = globalThis.BroadcastChannel

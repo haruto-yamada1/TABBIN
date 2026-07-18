@@ -174,6 +174,22 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     },
   )
 
+  it('unknown field を含む inbound message は無視する', () => {
+    const { factory } = createInMemoryChannelFactory()
+    const listener = vi.fn()
+    createAdapter(factory).subscribe(listener)
+    const externalPublisher = factory(CHANNEL_NAME)
+
+    postMessage(externalPublisher, {
+      changeId: 'change-2',
+      internalPayload: { privateValue: 'must-not-leak' },
+      revision: 2,
+      scopes: ['urls'],
+    })
+
+    expect(listener).not.toHaveBeenCalled()
+  })
+
   it('validated envelope だけをコピーして listener へ届ける', () => {
     const { factory } = createInMemoryChannelFactory()
     const listener = vi.fn()
@@ -182,7 +198,6 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     const scopes = ['urls']
     const rawMessage = {
       changeId: 'change-2',
-      internalPayload: { privateValue: 'must-not-leak' },
       revision: 2,
       scopes,
     }
