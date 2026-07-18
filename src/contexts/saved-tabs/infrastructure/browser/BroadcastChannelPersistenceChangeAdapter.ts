@@ -171,7 +171,9 @@ export const createBroadcastChannelPersistenceChangeAdapter = (
     deps.channelName ?? PERSISTENCE_CHANGE_BROADCAST_CHANNEL_NAME
 
   return {
-    publish: (event) => {
+    publish: async (event) => {
+      await Promise.resolve()
+
       let channel: BroadcastChannelLike | undefined
       let primaryError: 'publication' | 'unavailable' | undefined
       try {

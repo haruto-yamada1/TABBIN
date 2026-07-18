@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import type {
   PersistenceChangeEvent,
@@ -113,32 +113,44 @@ const captureThrown = (operation: () => void): unknown => {
   return undefined
 }
 
+const captureRejected = async (
+  operation: () => Promise<void>,
+): Promise<unknown> => {
+  try {
+    await operation()
+  } catch (error) {
+    return error
+  }
+  return undefined
+}
+
 describe('BroadcastChannelPersistenceChangeAdapter', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('別 context の publisher から subscriber へ変更 envelope を届ける', () => {
+  it('別 context の publisher から subscriber へ変更 envelope を届ける', async () => {
     const { factory } = createInMemoryChannelFactory()
     const publisher = createAdapter(factory)
     const subscriber = createAdapter(factory)
     const listener = vi.fn()
 
     subscriber.subscribe(listener)
-    publisher.publish(EVENT)
+    await publisher.publish(EVENT)
 
     expect(listener).toHaveBeenCalledExactlyOnceWith(EVENT)
   })
 
-  it('active subscriber や response がなくても publish を完了する', () => {
+  it('active subscriber や response がなくても publish を完了する', async () => {
     const { channels, factory } = createInMemoryChannelFactory()
     const publisher = createAdapter(factory)
 
-    expect(publisher.publish(EVENT)).toBeUndefined()
+    expectTypeOf(publisher.publish).returns.toEqualTypeOf<Promise<void>>()
+    await expect(publisher.publish(EVENT)).resolves.toBeUndefined()
     expect(channels.get(CHANNEL_NAME)?.size).toBe(0)
   })
 
-  it('unsubscribe は listener を外して自身が所有する channel だけを閉じる', () => {
+  it('unsubscribe は listener を外して自身が所有する channel だけを閉じる', async () => {
     const { channels, factory } = createInMemoryChannelFactory()
     const firstListener = vi.fn()
     const secondListener = vi.fn()
@@ -153,7 +165,7 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     expect(firstChannel).toMatchObject({ closed: true, listenerCount: 0 })
     expect(secondChannel).toMatchObject({ closed: false, listenerCount: 1 })
 
-    createAdapter(factory).publish(EVENT)
+    await createAdapter(factory).publish(EVENT)
 
     expect(firstListener).not.toHaveBeenCalled()
     expect(secondListener).toHaveBeenCalledExactlyOnceWith(EVENT)
@@ -289,7 +301,7 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     expect(delivered?.scopes).not.toBe(scopes)
   })
 
-  it('postMessage failure を payload 非保持の typed publication error に変換する', () => {
+  it('postMessage failure を payload 非保持の typed publication error に変換する', async () => {
     const failingFactory: BroadcastChannelFactory = () => ({
       addEventListener: vi.fn(),
       close: vi.fn(),
@@ -299,17 +311,22 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
       removeEventListener: vi.fn(),
     })
     const adapter = createAdapter(failingFactory)
-    let thrown: unknown
+    const event: PersistenceChangeEvent = {
+      changeId: 'secret-change-id',
+      revision: 1,
+      scopes: ['urls'],
+    }
 
-    try {
-      adapter.publish({
+    await expect(adapter.publish(event)).rejects.toBeInstanceOf(
+      PersistenceChangePublicationError,
+    )
+    const thrown = await captureRejected(async () => {
+      await adapter.publish({
         changeId: 'secret-change-id',
         revision: 1,
         scopes: ['urls'],
       })
-    } catch (error) {
-      thrown = error
-    }
+    })
 
     expect(thrown).toBeInstanceOf(PersistenceChangePublicationError)
     expect(thrown).toMatchObject({
@@ -335,7 +352,7 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     },
   ])(
     'postMessage と close が両方失敗しても primary error $code を維持する',
-    ({ code, errorFactory, errorType }) => {
+    async ({ code, errorFactory, errorType }) => {
       const close = vi.fn(() => {
         throw new Error('secret close failure')
       })
@@ -348,7 +365,9 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
         removeEventListener: vi.fn(),
       }))
 
-      const thrown = captureThrown(() => adapter.publish(EVENT))
+      const publishPromise = adapter.publish(EVENT)
+      await expect(publishPromise).rejects.toBeInstanceOf(errorType)
+      const thrown = await publishPromise.catch((error: unknown) => error)
 
       expect(thrown).toBeInstanceOf(errorType)
       expect(thrown).toMatchObject({ code })
@@ -358,7 +377,7 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     },
   )
 
-  it('close だけが失敗した publish は typed cleanup error に変換する', () => {
+  it('close だけが失敗した publish は typed cleanup error に変換する', async () => {
     const adapter = createAdapter(() => ({
       addEventListener: vi.fn(),
       close: () => {
@@ -368,7 +387,11 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
       removeEventListener: vi.fn(),
     }))
 
-    const thrown = captureThrown(() => adapter.publish(EVENT))
+    const publishPromise = adapter.publish(EVENT)
+    await expect(publishPromise).rejects.toBeInstanceOf(
+      PersistenceChangeCleanupError,
+    )
+    const thrown = await publishPromise.catch((error: unknown) => error)
 
     expect(thrown).toBeInstanceOf(PersistenceChangeCleanupError)
     expect(thrown).toMatchObject({
@@ -448,11 +471,34 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     expect(close).toHaveBeenCalledOnce()
   })
 
-  it('BroadcastChannel API がない場合は typed unavailable error を投げる', () => {
+  it('awaited publish の rejection を caller が catch できる', async () => {
+    const adapter = createAdapter(() => ({
+      addEventListener: vi.fn(),
+      close: vi.fn(),
+      postMessage: () => {
+        throw new Error('secret async publication failure')
+      },
+      removeEventListener: vi.fn(),
+    }))
+    let caught: unknown
+
+    try {
+      await adapter.publish(EVENT)
+    } catch (error) {
+      caught = error
+    }
+
+    expect(caught).toBeInstanceOf(PersistenceChangePublicationError)
+    expect(caught).toMatchObject({
+      code: 'PERSISTENCE_CHANGE_PUBLICATION_FAILED',
+    })
+  })
+
+  it('BroadcastChannel API がない場合は typed unavailable error を投げる', async () => {
     vi.stubGlobal('BroadcastChannel', undefined)
     const adapter = createBroadcastChannelPersistenceChangeAdapter()
 
-    expect(() => adapter.publish(EVENT)).toThrow(
+    await expect(adapter.publish(EVENT)).rejects.toBeInstanceOf(
       PersistenceChangeTransportUnavailableError,
     )
     expect(() => adapter.subscribe(vi.fn())).toThrow(
