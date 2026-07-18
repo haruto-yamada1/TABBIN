@@ -1705,7 +1705,6 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(repositoryFiles.length).toBeGreaterThan(0)
     })
 
-
     for (const absolutePath of repositoryFiles) {
       const relativePath = relative(repoRoot, absolutePath).split(sep).join('/')
 
