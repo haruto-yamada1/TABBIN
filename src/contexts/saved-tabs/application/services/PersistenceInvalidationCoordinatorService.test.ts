@@ -27,14 +27,6 @@ const createDeferred = <Value>() => {
   return { promise, reject, resolve }
 }
 
-const flushMicrotasks = async (remaining = 6): Promise<void> => {
-  if (remaining === 0) {
-    return
-  }
-  await Promise.resolve()
-  await flushMicrotasks(remaining - 1)
-}
-
 class FakePersistenceChangePort implements PersistenceChangePort {
   listener: ((event: PersistenceChangeEvent) => void) | undefined
   subscribeCalls = 0
@@ -726,7 +718,6 @@ describe('PersistenceInvalidationCoordinator', () => {
     coordinator.dispose()
     coordinator.dispose()
     secondQueryResult.resolve(createProjection(2))
-    await flushMicrotasks()
     changePort.emit(event(3))
     await coordinator.checkCurrentRevision()
     await coordinator.refresh()
