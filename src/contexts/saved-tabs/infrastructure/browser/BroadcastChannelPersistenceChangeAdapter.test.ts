@@ -223,8 +223,14 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
   it.each([
     { changeId: 'change-1', revision: 1, scopes: [] },
     { changeId: 'change-1', revision: 1, scopes: ['unknown'] },
+    { changeId: 'change-1', revision: 1, scopes: ['urls', 'urls'] },
     { changeId: 'change-1', revision: 0, scopes: ['urls'] },
     { changeId: 'change-1', revision: -1, scopes: ['urls'] },
+    {
+      changeId: 'change-1',
+      revision: Number.MAX_SAFE_INTEGER + 1,
+      scopes: ['urls'],
+    },
   ])(
     'invalid revision または scopes を持つ message %# を無視する',
     (message) => {

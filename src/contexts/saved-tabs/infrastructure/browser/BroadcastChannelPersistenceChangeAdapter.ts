@@ -93,7 +93,10 @@ const PersistenceChangeEventSchema = z
   .object({
     changeId: z.string().min(1),
     revision: z.number().int().positive(),
-    scopes: z.array(z.enum(PERSISTENCE_CHANGE_SCOPES)).min(1),
+    scopes: z
+      .array(z.enum(PERSISTENCE_CHANGE_SCOPES))
+      .min(1)
+      .refine((scopes) => new Set(scopes).size === scopes.length),
   })
   .strict()
 

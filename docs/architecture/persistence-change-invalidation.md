@@ -86,8 +86,9 @@ A consumer applies the following algorithm:
    between the initial read and listener registration.
 2. Strictly validate every inbound message, then keep only events whose scopes
    intersect the consumer's declared scopes.
-3. Ignore duplicate `changeId` values, stale revisions at or below the last
-   applied revision, and unrelated scopes.
+3. Ignore stale or duplicate revisions at or below the last applied revision,
+   and unrelated scopes. `changeId` is diagnostic metadata only; revision is
+   the authoritative ordering key.
 4. Serialize refresh work. While a Query is in flight, coalesce relevant events
    to the highest observed revision instead of starting parallel reads.
 5. Re-run the current consistent Query and replace the projection/cache with
