@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { PersistenceChangeEvent } from '@/contexts/saved-tabs/application/ports/PersistenceChangePort'
+import type {
+  PersistenceChangeEvent,
+  PersistenceChangeScope,
+} from '@/contexts/saved-tabs/application/ports/PersistenceChangePort'
 
 import {
   createBroadcastChannelPersistenceChangeAdapter,
+  PersistenceChangeCleanupError,
   PersistenceChangePublicationError,
   PersistenceChangeTransportUnavailableError,
 } from './BroadcastChannelPersistenceChangeAdapter'
@@ -19,6 +23,16 @@ const EVENT: PersistenceChangeEvent = {
   revision: 1,
   scopes: ['collections', 'urls'],
 }
+const PERSISTENCE_CHANGE_SCOPES = [
+  'analyticsViews',
+  'categories',
+  'collections',
+  'conversations',
+  'groups',
+  'memberships',
+  'recoverySnapshots',
+  'urls',
+] as const satisfies readonly PersistenceChangeScope[]
 
 type InMemoryChannel = BroadcastChannelLike & {
   readonly closed: boolean
@@ -90,6 +104,15 @@ const postMessage = (channel: BroadcastChannelLike, message: unknown) => {
   publish(message)
 }
 
+const captureThrown = (operation: () => void): unknown => {
+  try {
+    operation()
+  } catch (error) {
+    return error
+  }
+  return undefined
+}
+
 describe('BroadcastChannelPersistenceChangeAdapter', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -136,6 +159,27 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     expect(secondListener).toHaveBeenCalledExactlyOnceWith(EVENT)
   })
 
+  it('unsubscribe は cleanup failure を外へ出さず 2 回目以降は何もしない', () => {
+    const removeEventListener = vi.fn(() => {
+      throw new Error('secret remove failure')
+    })
+    const close = vi.fn(() => {
+      throw new Error('secret close failure')
+    })
+    const adapter = createAdapter(() => ({
+      addEventListener: vi.fn(),
+      close,
+      postMessage: vi.fn(),
+      removeEventListener,
+    }))
+    const unsubscribe = adapter.subscribe(vi.fn())
+
+    expect(() => unsubscribe()).not.toThrow()
+    expect(() => unsubscribe()).not.toThrow()
+    expect(removeEventListener).toHaveBeenCalledOnce()
+    expect(close).toHaveBeenCalledOnce()
+  })
+
   it.each([
     null,
     undefined,
@@ -171,6 +215,28 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
       postMessage(externalPublisher, message)
 
       expect(listener).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(PERSISTENCE_CHANGE_SCOPES)(
+    '定義済み scope %s を受理する',
+    (scope) => {
+      const { factory } = createInMemoryChannelFactory()
+      const listener = vi.fn()
+      createAdapter(factory).subscribe(listener)
+      const externalPublisher = factory(CHANNEL_NAME)
+
+      postMessage(externalPublisher, {
+        changeId: `change-${scope}`,
+        revision: 1,
+        scopes: [scope],
+      })
+
+      expect(listener).toHaveBeenCalledExactlyOnceWith({
+        changeId: `change-${scope}`,
+        revision: 1,
+        scopes: [scope],
+      })
     },
   )
 
@@ -245,6 +311,112 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     expect(JSON.stringify(thrown)).not.toContain('secret-change-id')
     expect(thrown).not.toHaveProperty('event')
     expect(thrown).not.toHaveProperty('payload')
+  })
+
+  it.each([
+    {
+      code: 'PERSISTENCE_CHANGE_PUBLICATION_FAILED',
+      errorFactory: () => new Error('secret postMessage failure'),
+      errorType: PersistenceChangePublicationError,
+    },
+    {
+      code: 'PERSISTENCE_CHANGE_TRANSPORT_UNAVAILABLE',
+      errorFactory: () => new PersistenceChangeTransportUnavailableError(),
+      errorType: PersistenceChangeTransportUnavailableError,
+    },
+  ])(
+    'postMessage と close が両方失敗しても primary error $code を維持する',
+    ({ code, errorFactory, errorType }) => {
+      const close = vi.fn(() => {
+        throw new Error('secret close failure')
+      })
+      const adapter = createAdapter(() => ({
+        addEventListener: vi.fn(),
+        close,
+        postMessage: () => {
+          throw errorFactory()
+        },
+        removeEventListener: vi.fn(),
+      }))
+
+      const thrown = captureThrown(() => adapter.publish(EVENT))
+
+      expect(thrown).toBeInstanceOf(errorType)
+      expect(thrown).toMatchObject({ code })
+      expect(JSON.stringify(thrown)).not.toContain('secret')
+      expect(thrown).not.toHaveProperty('cause')
+      expect(close).toHaveBeenCalledOnce()
+    },
+  )
+
+  it('close だけが失敗した publish は typed cleanup error に変換する', () => {
+    const adapter = createAdapter(() => ({
+      addEventListener: vi.fn(),
+      close: () => {
+        throw new Error('secret close-only failure')
+      },
+      postMessage: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+
+    const thrown = captureThrown(() => adapter.publish(EVENT))
+
+    expect(thrown).toBeInstanceOf(PersistenceChangeCleanupError)
+    expect(thrown).toMatchObject({
+      code: 'PERSISTENCE_CHANGE_CLEANUP_FAILED',
+      message: 'Persistence change transport cleanup failed.',
+      name: 'PersistenceChangeCleanupError',
+    })
+    expect(JSON.stringify(thrown)).not.toContain('secret')
+    expect(thrown).not.toHaveProperty('cause')
+  })
+
+  it('subscription registration failure は channel を閉じて unavailable error に変換する', () => {
+    const close = vi.fn()
+    const adapter = createAdapter(() => ({
+      addEventListener: () => {
+        throw new Error('secret registration failure')
+      },
+      close,
+      postMessage: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+
+    const thrown = captureThrown(() => adapter.subscribe(vi.fn()))
+
+    expect(thrown).toBeInstanceOf(PersistenceChangeTransportUnavailableError)
+    expect(thrown).toMatchObject({
+      code: 'PERSISTENCE_CHANGE_TRANSPORT_UNAVAILABLE',
+      message: 'Persistence change transport is unavailable.',
+    })
+    expect(JSON.stringify(thrown)).not.toContain('secret')
+    expect(thrown).not.toHaveProperty('cause')
+    expect(close).toHaveBeenCalledOnce()
+  })
+
+  it('subscription registration と close が両方失敗しても unavailable error を維持する', () => {
+    const close = vi.fn(() => {
+      throw new Error('secret setup close failure')
+    })
+    const adapter = createAdapter(() => ({
+      addEventListener: () => {
+        throw new Error('secret registration failure')
+      },
+      close,
+      postMessage: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+
+    const thrown = captureThrown(() => adapter.subscribe(vi.fn()))
+
+    expect(thrown).toBeInstanceOf(PersistenceChangeTransportUnavailableError)
+    expect(thrown).toMatchObject({
+      code: 'PERSISTENCE_CHANGE_TRANSPORT_UNAVAILABLE',
+      message: 'Persistence change transport is unavailable.',
+    })
+    expect(JSON.stringify(thrown)).not.toContain('secret')
+    expect(thrown).not.toHaveProperty('cause')
+    expect(close).toHaveBeenCalledOnce()
   })
 
   it('BroadcastChannel API がない場合は typed unavailable error を投げる', () => {

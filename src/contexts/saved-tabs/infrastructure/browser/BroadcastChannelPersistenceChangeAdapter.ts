@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type {
   PersistenceChangeEvent,
   PersistenceChangePort,
+  PersistenceChangeScope,
 } from '@/contexts/saved-tabs/application/ports/PersistenceChangePort'
 
 export const PERSISTENCE_CHANGE_BROADCAST_CHANNEL_NAME =
@@ -56,24 +57,43 @@ export class PersistenceChangeTransportUnavailableError extends Error {
   }
 }
 
+export class PersistenceChangeCleanupError extends Error {
+  readonly code = 'PERSISTENCE_CHANGE_CLEANUP_FAILED'
+
+  constructor() {
+    super('Persistence change transport cleanup failed.')
+    this.name = 'PersistenceChangeCleanupError'
+  }
+}
+
+const definePersistenceChangeScopes = <
+  const Scopes extends readonly PersistenceChangeScope[],
+>(
+  scopes: Scopes,
+  ..._missingScopes: Exclude<
+    PersistenceChangeScope,
+    Scopes[number]
+  > extends never
+    ? []
+    : [never]
+): Scopes => scopes
+
+const PERSISTENCE_CHANGE_SCOPES = definePersistenceChangeScopes([
+  'analyticsViews',
+  'categories',
+  'collections',
+  'conversations',
+  'groups',
+  'memberships',
+  'recoverySnapshots',
+  'urls',
+] as const)
+
 const PersistenceChangeEventSchema = z
   .object({
     changeId: z.string().min(1),
     revision: z.number().int().positive(),
-    scopes: z
-      .array(
-        z.enum([
-          'analyticsViews',
-          'categories',
-          'collections',
-          'conversations',
-          'groups',
-          'memberships',
-          'recoverySnapshots',
-          'urls',
-        ]),
-      )
-      .min(1),
+    scopes: z.array(z.enum(PERSISTENCE_CHANGE_SCOPES)).min(1),
   })
   .strict()
 
@@ -123,6 +143,15 @@ const copyEvent = (event: PersistenceChangeEvent): PersistenceChangeEvent => ({
   scopes: [...event.scopes],
 })
 
+const closeChannelBestEffort = (channel: BroadcastChannelLike): boolean => {
+  try {
+    channel.close()
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const createBroadcastChannelPersistenceChangeAdapter = (
   deps: BroadcastChannelPersistenceChangeAdapterDeps = {},
 ): PersistenceChangePort => {
@@ -133,22 +162,30 @@ export const createBroadcastChannelPersistenceChangeAdapter = (
   return {
     publish: (event) => {
       let channel: BroadcastChannelLike | undefined
+      let primaryError: 'publication' | 'unavailable' | undefined
       try {
         channel = channelFactory(channelName)
         const postMessage = channel.postMessage.bind(channel)
         postMessage(copyEvent(event))
       } catch (error) {
-        if (error instanceof PersistenceChangeTransportUnavailableError) {
-          throw error
-        }
+        primaryError =
+          error instanceof PersistenceChangeTransportUnavailableError
+            ? 'unavailable'
+            : 'publication'
+      }
+
+      const cleanupSucceeded = channel ? closeChannelBestEffort(channel) : true
+      if (primaryError === 'unavailable') {
+        throw new PersistenceChangeTransportUnavailableError()
+      }
+      if (primaryError === 'publication') {
         throw new PersistenceChangePublicationError()
-      } finally {
-        channel?.close()
+      }
+      if (!cleanupSucceeded) {
+        throw new PersistenceChangeCleanupError()
       }
     },
     subscribe: (listener) => {
-      const channel = channelFactory(channelName)
-      let subscribed = true
       const handleMessage: BroadcastChannelMessageListener = (message) => {
         const result = PersistenceChangeEventSchema.safeParse(message.data)
         if (!result.success) {
@@ -156,8 +193,19 @@ export const createBroadcastChannelPersistenceChangeAdapter = (
         }
         listener(copyEvent(result.data))
       }
+      let channel: BroadcastChannelLike | undefined
 
-      channel.addEventListener('message', handleMessage)
+      try {
+        channel = channelFactory(channelName)
+        channel.addEventListener('message', handleMessage)
+      } catch {
+        if (channel) {
+          closeChannelBestEffort(channel)
+        }
+        throw new PersistenceChangeTransportUnavailableError()
+      }
+
+      let subscribed = true
 
       return () => {
         if (!subscribed) {
@@ -166,9 +214,10 @@ export const createBroadcastChannelPersistenceChangeAdapter = (
         subscribed = false
         try {
           channel.removeEventListener('message', handleMessage)
-        } finally {
-          channel.close()
+        } catch {
+          // Unsubscribe is deterministic cleanup and never exposes raw errors.
         }
+        closeChannelBestEffort(channel)
       }
     },
   }
