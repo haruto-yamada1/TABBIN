@@ -89,16 +89,14 @@ const PERSISTENCE_CHANGE_SCOPES = definePersistenceChangeScopes([
   'urls',
 ] as const)
 
-const PersistenceChangeEventSchema = z
-  .object({
-    changeId: z.string().min(1),
-    revision: z.number().int().positive(),
-    scopes: z
-      .array(z.enum(PERSISTENCE_CHANGE_SCOPES))
-      .min(1)
-      .refine((scopes) => new Set(scopes).size === scopes.length),
-  })
-  .strict()
+const PersistenceChangeEventSchema = z.strictObject({
+  changeId: z.string().min(1),
+  revision: z.number().int().positive(),
+  scopes: z
+    .array(z.enum(PERSISTENCE_CHANGE_SCOPES))
+    .min(1)
+    .refine((scopes) => new Set(scopes).size === scopes.length),
+})
 
 const createGlobalBroadcastChannel: BroadcastChannelFactory = (channelName) => {
   const BroadcastChannelConstructor = globalThis.BroadcastChannel

@@ -18,7 +18,7 @@ Vitest, WXT, Playwright.
 
 ---
 
-### Task 1: Define the persistence change contract
+## Task 1: Define the persistence change contract
 
 **Files:**
 
@@ -75,7 +75,7 @@ git add src/contexts/saved-tabs/application/ports/PersistenceChangePort.ts \
 git commit -m "feat: persistence change port を定義"
 ```
 
-### Task 2: Implement the BroadcastChannel adapter
+## Task 2: Implement the BroadcastChannel adapter
 
 **Files:**
 
@@ -127,14 +127,14 @@ git add src/contexts/saved-tabs/infrastructure/browser/BroadcastChannelPersisten
 git commit -m "feat: BroadcastChannel invalidation adapter を追加"
 ```
 
-### Task 3: Sequence commit and publication explicitly
+## Task 3: Sequence commit and publication explicitly
 
 **Files:**
 
 - Create:
-  `src/contexts/saved-tabs/application/services/PersistenceMutationCoordinator.test.ts`
+  `src/contexts/saved-tabs/application/services/PersistenceMutationCoordinatorService.test.ts`
 - Create:
-  `src/contexts/saved-tabs/application/services/PersistenceMutationCoordinator.ts`
+  `src/contexts/saved-tabs/application/services/PersistenceMutationCoordinatorService.ts`
 
 **Step 1: Write failing coordinator tests**
 
@@ -154,7 +154,7 @@ Run:
 
 ```bash
 bunx vitest run \
-  src/contexts/saved-tabs/application/services/PersistenceMutationCoordinator.test.ts
+  src/contexts/saved-tabs/application/services/PersistenceMutationCoordinatorService.test.ts
 ```
 
 Expected: FAIL because the coordinator does not exist.
@@ -172,11 +172,11 @@ Run the same Vitest command. Expected: PASS.
 **Step 5: Commit**
 
 ```bash
-git add src/contexts/saved-tabs/application/services/PersistenceMutationCoordinator.*
+git add src/contexts/saved-tabs/application/services/PersistenceMutationCoordinatorService.*
 git commit -m "feat: commit 後の invalidation publish を調停"
 ```
 
-### Task 4: Make v2 query snapshots revision-aware
+## Task 4: Make v2 query snapshots revision-aware
 
 **Files:**
 
@@ -221,14 +221,14 @@ git add src/contexts/saved-tabs/application/ports/PersistenceV2QueryPort.ts \
 git commit -m "feat: initial projection に revision を含める"
 ```
 
-### Task 5: Implement scope- and revision-aware invalidation
+## Task 5: Implement scope- and revision-aware invalidation
 
 **Files:**
 
 - Create:
-  `src/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinator.test.ts`
+  `src/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinatorService.test.ts`
 - Create:
-  `src/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinator.ts`
+  `src/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinatorService.ts`
 
 **Step 1: Write failing consumer tests**
 
@@ -250,7 +250,7 @@ Run:
 
 ```bash
 bunx vitest run \
-  src/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinator.test.ts
+  src/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinatorService.test.ts
 ```
 
 Expected: FAIL because the coordinator does not exist.
@@ -269,11 +269,11 @@ Run the same Vitest command. Expected: PASS with deterministic ordering.
 **Step 5: Commit**
 
 ```bash
-git add src/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinator.*
+git add src/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinatorService.*
 git commit -m "feat: revision aware invalidation coordinator を追加"
 ```
 
-### Task 6: Prove background-to-Saved-Tabs convergence
+## Task 6: Prove background-to-Saved-Tabs convergence
 
 **Files:**
 
@@ -335,7 +335,7 @@ git add src/contexts/saved-tabs/infrastructure/persistence/persistenceChangeFlow
 git commit -m "test: cross-context persistence convergence を検証"
 ```
 
-### Task 7: Document the protocol and migration boundary
+## Task 7: Document the protocol and migration boundary
 
 **Files:**
 
@@ -379,7 +379,7 @@ git add docs/architecture/persistence-change-invalidation.md \
 git commit -m "docs: persistence invalidation protocol を明文化"
 ```
 
-### Task 8: Run browser and repository gates
+## Task 8: Run browser and repository gates
 
 **Files:**
 
@@ -431,7 +431,7 @@ Expected: schemas valid and no unresolved completion finding.
 Stage only Issue-owned paths and create a scoped Japanese commit. Confirm the
 worktree is clean afterward.
 
-### Task 9: Publish the Issue branch and Open PR
+## Task 9: Publish the Issue branch and Open PR
 
 **Files:** none.
 
