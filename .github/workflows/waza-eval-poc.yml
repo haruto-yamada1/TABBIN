@@ -42,9 +42,12 @@ jobs:
           bun-version-file: '.bun-version'
 
       - name: Install Waza (pinned v0.38.3 + checksum)
+        env:
+          # workflow_dispatch input は env 経由で受け取り、shell への直接展開を避ける
+          # (template-injection 対策)。
+          WAZA_VERSION: ${{ inputs.waza_version }}
         run: |
           set -euo pipefail
-          WAZA_VERSION="${{ github.event.inputs.waza_version }}"
           ASSET="waza-linux-amd64"
           EXPECT_SHA="168e3562deeaa1958d44366b37d963b48b091c325c6c9b5b2613e5399ff077b9"
           tmp="$(mktemp -d)"
