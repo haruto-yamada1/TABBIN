@@ -1,5 +1,5 @@
 import { IDBFactory } from 'fake-indexeddb'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { createPersistenceInvalidationCoordinator } from '@/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinatorService'
 import { createPersistenceMutationCoordinator } from '@/contexts/saved-tabs/application/services/PersistenceMutationCoordinatorService'
@@ -48,11 +48,11 @@ class InMemoryBroadcastChannelBus {
             continue
           }
           const deliveredMessage = structuredClone(message)
-          queueMicrotask(() => {
+          setTimeout(() => {
             for (const listener of target.listeners) {
               listener({ data: deliveredMessage })
             }
-          })
+          }, 0)
         }
       },
       removeEventListener: (_type, listener) =>
@@ -63,14 +63,6 @@ class InMemoryBroadcastChannelBus {
   dropNextPublication(): void {
     this.dropNextMessage = true
   }
-}
-
-const createSignal = () => {
-  let resolveSignal!: () => void
-  const promise = new Promise<void>((resolve) => {
-    resolveSignal = resolve
-  })
-  return { promise, resolve: resolveSignal }
 }
 
 const url = {
@@ -116,13 +108,19 @@ const createWritePlan = () => ({
 
 describe('persistence change flow regression', () => {
   it('background commit後にopen Saved Tabsがcurrent projectionを再取得する', async () => {
-    const manager = new IndexedDbConnectionManager({
+    const indexedDb = new IDBFactory()
+    const pageManager = new IndexedDbConnectionManager({
       databaseName: 'persistence-change-flow',
-      indexedDb: new IDBFactory(),
+      indexedDb,
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const writerManager = new IndexedDbConnectionManager({
+      databaseName: 'persistence-change-flow',
+      indexedDb,
+    })
+    const pageUnitOfWork = new IndexedDbPersistenceUnitOfWork(pageManager)
+    const writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(writerManager)
     const query = new IndexedDbSavedTabsQueryAdapter(
-      new IndexedDbPersistenceSnapshotReader(manager),
+      new IndexedDbPersistenceSnapshotReader(pageManager),
     )
     const bus = new InMemoryBroadcastChannelBus()
     const pageChanges = createBroadcastChannelPersistenceChangeAdapter({
@@ -132,17 +130,13 @@ describe('persistence change flow regression', () => {
       channelFactory: bus.factory,
     })
     const applied = [] as Awaited<ReturnType<typeof query.readInitialLoad>>[]
-    const revisionOneApplied = createSignal()
     const page = createPersistenceInvalidationCoordinator({
       apply: (projection) => {
         applied.push(projection)
-        if (projection.revision === 1) {
-          revisionOneApplied.resolve()
-        }
       },
       changePort: pageChanges,
       query: async () => query.readInitialLoad(),
-      readCurrentRevision: async () => unitOfWork.readRevision(),
+      readCurrentRevision: async () => pageUnitOfWork.readRevision(),
       relevantScopes: new Set([
         'categories',
         'collections',
@@ -154,13 +148,15 @@ describe('persistence change flow regression', () => {
     const background = createPersistenceMutationCoordinator({
       changePort: backgroundChanges,
       idGenerator: { generate: () => 'change-1' },
-      unitOfWork,
+      unitOfWork: writerUnitOfWork,
     })
 
     try {
       await page.start()
       const outcome = await background.commit(createWritePlan())
-      await revisionOneApplied.promise
+      await vi.waitFor(() => expect(applied.at(-1)?.revision).toBe(1), {
+        timeout: 1_000,
+      })
 
       expect(outcome).toMatchObject({
         commitResult: {
@@ -203,7 +199,8 @@ describe('persistence change flow regression', () => {
       expect(serializedEvent).not.toContain('attachment')
     } finally {
       page.dispose()
-      manager.close()
+      pageManager.close()
+      writerManager.close()
     }
   })
 
@@ -251,30 +248,32 @@ describe('persistence change flow regression', () => {
   })
 
   it('event欠落とwriter restart後もcurrent revision checkで収束する', async () => {
-    const manager = new IndexedDbConnectionManager({
+    const indexedDb = new IDBFactory()
+    const pageManager = new IndexedDbConnectionManager({
       databaseName: 'persistence-change-restart',
-      indexedDb: new IDBFactory(),
+      indexedDb,
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    let writerManager = new IndexedDbConnectionManager({
+      databaseName: 'persistence-change-restart',
+      indexedDb,
+    })
+    const pageUnitOfWork = new IndexedDbPersistenceUnitOfWork(pageManager)
+    let writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(writerManager)
     const query = new IndexedDbSavedTabsQueryAdapter(
-      new IndexedDbPersistenceSnapshotReader(manager),
+      new IndexedDbPersistenceSnapshotReader(pageManager),
     )
     const bus = new InMemoryBroadcastChannelBus()
     const pageChanges = createBroadcastChannelPersistenceChangeAdapter({
       channelFactory: bus.factory,
     })
     const applied = [] as Awaited<ReturnType<typeof query.readInitialLoad>>[]
-    const revisionTwoApplied = createSignal()
     const page = createPersistenceInvalidationCoordinator({
       apply: (projection) => {
         applied.push(projection)
-        if (projection.revision === 2) {
-          revisionTwoApplied.resolve()
-        }
       },
       changePort: pageChanges,
       query: async () => query.readInitialLoad(),
-      readCurrentRevision: async () => unitOfWork.readRevision(),
+      readCurrentRevision: async () => pageUnitOfWork.readRevision(),
       relevantScopes: new Set([
         'categories',
         'collections',
@@ -289,7 +288,7 @@ describe('persistence change flow regression', () => {
           channelFactory: bus.factory,
         }),
         idGenerator: { generate: () => changeId },
-        unitOfWork,
+        unitOfWork: writerUnitOfWork,
       })
 
     try {
@@ -301,6 +300,12 @@ describe('persistence change flow regression', () => {
       expect(applied.map(({ revision }) => revision)).toEqual([0])
       expect(bus.postedMessages).toHaveLength(1)
 
+      writerManager.close()
+      writerManager = new IndexedDbConnectionManager({
+        databaseName: 'persistence-change-restart',
+        indexedDb,
+      })
+      writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(writerManager)
       const restartedWriter = createWriter('change-after-restart')
       await page.checkCurrentRevision()
 
@@ -312,13 +317,16 @@ describe('persistence change flow regression', () => {
       expect(bus.postedMessages).toHaveLength(1)
 
       await restartedWriter.commit({ groups: { put: [group] } })
-      await revisionTwoApplied.promise
+      await vi.waitFor(() => expect(applied.at(-1)?.revision).toBe(2), {
+        timeout: 1_000,
+      })
 
       expect(applied.at(-1)).toMatchObject({ groups: [group], revision: 2 })
       expect(bus.postedMessages).toHaveLength(2)
     } finally {
       page.dispose()
-      manager.close()
+      pageManager.close()
+      writerManager.close()
     }
   })
 })
