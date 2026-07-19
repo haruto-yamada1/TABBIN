@@ -58,7 +58,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | `bun run harness:profile` | Planner / Generator / Evaluator / Optimizer の運用面を確認します。 |
 | `bun run harness:validate` | ACTIVE run の JSON 状態を schema 検証します。 |
 | `bun run harness:schemas` | `.apm/harness/schemas/` を再生成します。 |
-| `bun run harness:governance -- --kind <kind> --severity <level> --message <text>` | 判断、警告、再発防止候補を `governance.jsonl` に記録します。
+| `bun run harness:governance -- --kind <kind> --severity <level> --message <text>` | 判断、警告、再発防止候補を `governance.jsonl` に記録します。 |
 
 ## ハーネス prompt (workflow command)
 
