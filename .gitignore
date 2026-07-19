@@ -37,6 +37,7 @@ web-ext.config.ts
 .cursor/
 .gemini/
 .opencode/
+.commandcode/
 .github/hooks/
 .github/instructions/
 .github/copilot-instructions.md
