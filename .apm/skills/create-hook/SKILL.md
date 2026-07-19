@@ -20,6 +20,8 @@ hook の仕様はクライアントごとに異なります。利用中のクラ
 
 TABBIN では hook 資産の source of truth は `.apm/hooks/` であり、`bun run apm:sync` で各クライアントへ配布します。クライアント固有の path へ直接編集せず、原則 `.apm/hooks/` を更新して同期してください。
 
+> **本文の手順形式:** 以下の詳細手順は Cursor の `.cursor/hooks.json` + `.cursor/hooks/*` 形式を具体例として記述しています。Codex（`.codex/hooks.json` + `.codex/hooks/*`）と Claude Code（`.claude/settings.json` hooks / `.claude/hooks/*`）では、上記対応表の形式で同じ内容を記述してください。Cursor 形式を Codex / Claude Code 向けにそのまま出力しないでください。
+
 ## 要件の収集
 
 書き始める前に次を決めます:

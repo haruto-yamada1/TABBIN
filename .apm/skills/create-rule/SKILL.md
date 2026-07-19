@@ -18,6 +18,8 @@ description: 永続的な AI ガイダンス（rule / instruction）を作成し
 
 TABBIN では instruction の source of truth は `.apm/instructions/` であり、`bun run apm:sync` で各クライアントの AGENTS.md / CLAUDE.md 等へ配布します。クライアント固有の path へ直接編集せず、原則 `.apm/instructions/` を更新して同期してください。
 
+> **本文の手順形式:** 以下の詳細手順は Cursor の `.cursor/rules/*.mdc` 形式を具体例として記述しています。Codex（`AGENTS.md` / `.apm/instructions/` の markdown）と Claude Code（`CLAUDE.md` / `.claude/rules/` の markdown）では、上記対応表の形式で同じ内容を記述してください。Cursor の `.mdc` 形式を Codex / Claude Code 向けにそのまま出力しないでください。
+
 ## 要件の収集
 
 rule 作成前に次を決めます:

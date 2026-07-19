@@ -18,7 +18,7 @@ custom subagent / agent の仕様はクライアントごとに異なります�
 
 TABBIN では source of truth を `.apm/` 系へ置き、`bun run apm:sync` で各クライアントへ配布することを前提とします。クライアント固有の配布先へ直接編集せず、source 側を更新して同期してください。
 
-
+> **本文の手順形式:** 以下の詳細手順は Cursor の `.cursor/agents/*.md` 形式を具体例として記述しています。Codex（`.codex/agents/*.md`）と Claude Code（`.claude/agents/*.md`）でも frontmatter + markdown system prompt という形式は共通ですが、配布先 path は上記対応表に従ってください。
 
 ## Subagent を使うタイミング
 

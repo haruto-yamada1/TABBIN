@@ -26,21 +26,32 @@ export function App() {
 
 **適切（初期描画後に読み込み）:**
 
+`React.lazy` は別チャンク化するだけで初期描画と並行して読み込み始まるため、初期描画「後」に読み込みたい場合は mount 後に lazy component を取り付けます。
+
 ```tsx
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 
 const Analytics = lazy(() =>
   import('some-analytics-sdk').then(m => ({ default: m.Analytics }))
 )
 
 export function App() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    // 初期描画後に lazy chunk の読み込みを開始
+    setMounted(true)
+  }, [])
   return (
     <>
       <MainUI />
-      <Suspense fallback={null}>
-        <Analytics />
-      </Suspense>
+      {mounted && (
+        <Suspense fallback={null}>
+          <Analytics />
+        </Suspense>
+      )}
     </>
   )
 }
 ```
+
+即時ではなく idle 時に読み込みたい場合は `requestIdleCallback` で `setMounted` を遅らせます。
