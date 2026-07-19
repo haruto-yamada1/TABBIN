@@ -7,7 +7,7 @@ applyTo: "**/*"
 
 TABBIN の Vitest は `vitest.ci.config.ts` で `projects` 構成 (node / dom) を
 採用し、`pool: 'threads'` と `isolate: false` で高速化しています。
-ローカル開発では用途別に scripts を分けると、体感速度が大きく変わいます。
+ローカル開発では用途別に scripts を分けると、体感速度が大きく変わります。
 
 ## scripts 一覧 (package.json)
 

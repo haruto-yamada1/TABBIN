@@ -19,7 +19,7 @@ context-mode MCP ツールが利用できる環境では、コンテキストウ
 
 ### curl / wget — 禁止
 shell で `curl` / `wget` を使ってはいけません。生の HTTP レスポンスがコンテキストへ流れ込みます。
-代わりに `ctx_fetch_and_index(url, source)`、または `ctx_execute(language: "javascript", code: "const r = await fetch(...)")` を使ってください。MCP がない環境でも、`exec_command` 上で `node -e` 由由のインライン HTTP（後述）は sandbox 迂回になるため避け、必ずスクリプトファイルを介して stdout だけを出してください。
+代わりに `ctx_fetch_and_index(url, source)`、または `ctx_execute(language: "javascript", code: "const r = await fetch(...)")` を使ってください。MCP がない環境でも、`exec_command` 上で `node -e` 経由のインライン HTTP（後述）は sandbox 迂回になるため避け、必ずスクリプトファイルを介して stdout だけを出してください。
 
 ### インライン HTTP — 禁止
 `node -e "fetch(...)"` や `python -c "requests.get(...)"` は使わないでください。sandbox を迂回します。

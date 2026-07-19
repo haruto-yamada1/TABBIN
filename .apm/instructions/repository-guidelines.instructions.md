@@ -33,7 +33,7 @@ entrypoints → app/composition → contexts/*/presentation
 - `bun run e2e`: Playwright のブラウザテストを実行します。
 - `bun run quality:check`: format、lint、test、Knip、重複チェックを実行します。
 
-テストコマンドの使い分け（`test:node` / `test:dom` / `test:changed` / `test:related` / `test:coverage`）の詳細は `02-vitest-local-development` を参照してください。本ファイルではコマンド名だけ列挙し、詳細はそちらへ委ねます。
+テスト実行コマンドの使い分け（`test:node` / `test:dom` / `test:changed` / `test:related` / `test:coverage`）の詳細は `02-vitest-local-development` を参照してください。本ファイルではビルド・開発・品質ゲートの主要コマンドだけ列挙し、テスト実行コマンドの使い分けはそちらへ委ねます。
 
 ## コーディングスタイルと命名規則
 TypeScript + React を ES modules で使います。format は oxfmt（`.oxfmtrc.json`）、lint は Oxlint（`.oxlintrc.json`）で強制されます。2 スペースインデント、80 文字幅、シングルクォート、セミコロンなしです。import 整理は oxfmt の `sortImports` に任せてください。
