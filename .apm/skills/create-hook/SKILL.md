@@ -1,12 +1,26 @@
 ---
 name: create-hook
-description: Cursor hook を作成します。hook 作成、hooks.json 記述、hook script 追加、agent event 周辺の behavior 自動化時に使います。
+description: AI エージェント向けの hook を作成します。Codex (.codex/hooks.json)、Claude Code (.claude/settings.json hooks)、Cursor (.cursor/hooks.json) など、利用中クライアントの hook 仕様に合わせて hook file と設定を生成します。agent event 周辺の behavior 自動化時に使います。
 ---
-# Cursor hook の作成
+# AI エージェント向け hook の作成
 
 agent event の前後に custom logic を実行したい場合に hook を作成します。hook は stdin/stdout で JSON をやり取りする script または prompt-based check で、behavior を observe、block、modify、follow up できます。
 
 ユーザーが hook を依頼した場合、format の説明で止まらず、不足要件を収集し、hook file を直接 create または update します。
+
+## 対応クライアント
+
+hook の仕様はクライアントごとに異なります。利用中のクライアントに合わせて file と設定を生成します。本 skill の詳細例は Cursor 形式（`.cursor/hooks.json` + `.cursor/hooks/*`）を基本に書かれていますが、Codex / Claude Code では下記の対応先を使います。
+
+| クライアント | hook 設定 file | hook script の場所 |
+| --- | --- | --- |
+| Codex | `.codex/hooks.json` | `.codex/hooks/*` |
+| Claude Code | `.claude/settings.json` の hooks、`.claude/apm-hooks.json` | `.claude/hooks/*` |
+| Cursor | `.cursor/hooks.json` | `.cursor/hooks/*` |
+
+TABBIN では hook 資産の source of truth は `.apm/hooks/` であり、`bun run apm:sync` で各クライアントへ配布します。クライアント固有の path へ直接編集せず、原則 `.apm/hooks/` を更新して同期してください。
+
+> **本文の手順形式:** 以下の詳細手順は Cursor の `.cursor/hooks.json` + `.cursor/hooks/*` 形式を具体例として記述しています。Codex（`.codex/hooks.json` + `.codex/hooks/*`）と Claude Code（`.claude/settings.json` hooks / `.claude/hooks/*`）では、上記対応表の形式で同じ内容を記述してください。Cursor 形式を Codex / Claude Code 向けにそのまま出力しないでください。
 
 ## 要件の収集
 

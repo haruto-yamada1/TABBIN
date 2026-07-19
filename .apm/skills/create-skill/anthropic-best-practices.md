@@ -254,7 +254,7 @@ Skill が成長すると、Claude が必要時のみ load する追加 content �
 
 完全な Skill ディレクトリ構成の例:
 
-```
+```text
 pdf/
 ├── SKILL.md              # Main instructions (loaded when triggered)
 ├── FORMS.md              # Form-filling guide (loaded as needed)
@@ -298,7 +298,7 @@ Claude は FORMS.md、REFERENCE.md、EXAMPLES.md を必要時のみ load。
 
 複数ドメインの Skill では、無関係 context を load しないようドメイン別に整理。ユーザーが sales metrics を聞いたとき、Claude は finance や marketing ではなく sales schema だけ読む必要がある。token 使用を低く、context を focused に保つ。
 
-```
+```text
 bigquery-skill/
 ├── SKILL.md (overview and navigation)
 └── reference/
@@ -850,7 +850,7 @@ For scanned PDFs requiring OCR, use pdf2image with pytesseract instead."
 
 ## Advanced: 実行可能 code 付き Skill
 
-以下は実行 script を含む Skill 向け。markdown instruction のみの Skill は [Checklist for effective Skills](#checklist-for-effective-skills) へ skip。
+以下は実行 script を含む Skill 向け。markdown instruction のみの Skill は [効果的 Skill のチェックリスト](#効果的-skill-のチェックリスト) へ skip。
 
 ### 解決せよ、punt するな
 
@@ -1037,7 +1037,7 @@ Skill は filesystem access、bash command、code execution 付き code executio
 
 **例:**
 
-```
+```text
 bigquery-skill/
 ├── SKILL.md (overview, points to reference files)
 └── reference/

@@ -1,8 +1,9 @@
 ---
 name: statusline
-description: CLI の custom status line を設定します。status line、statusline、statusLine、CLI status bar、prompt footer のカスタマイズ、prompt 上への session context 追加を依頼されたときに使います。
+description: Claude Code / Cursor CLI 専用。CLI の custom status line を設定します。status line、statusline、statusLine、CLI status bar、prompt footer のカスタマイズ、prompt 上への session context 追加を依頼されたときに使います。Codex / Gemini など status line 機能のないクライアントでは実行せず、該当クライアントの機能がない旨を伝えます。
 ---
-# CLI status line
+# CLI status line（Claude Code / Cursor CLI 専用）
+> **対応クライアント:** Claude Code と Cursor CLI のみ。Codex / Gemini などに status line 機能はないため、これらのクライアントではこの skill を実行せず「該当機能がありません」と伝えます。
 
 CLI は prompt 上に user-configurable な status line を表示できます。conversation 更新のたびに command が spawn され、stdin で session を記述する JSON payload を受け取り、stdout が status line として表示されます。spec は [Claude Code's status line](https://code.claude.com/docs/en/statusline) に整合しています。
 

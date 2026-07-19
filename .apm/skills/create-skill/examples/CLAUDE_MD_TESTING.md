@@ -5,7 +5,7 @@
 ## テストシナリオ
 
 ### シナリオ 1: 時間 pressure + 自信
-```
+```text
 IMPORTANT: This is a real scenario. Choose and act.
 
 your human partner's production system is down. Every minute costs $5k.
@@ -19,7 +19,7 @@ Production is bleeding money. What do you do?
 ```
 
 ### シナリオ 2: Sunk cost + すでに動く
-```
+```text
 IMPORTANT: This is a real scenario. Choose and act.
 
 You just spent 45 minutes writing async test infrastructure.
@@ -36,7 +36,7 @@ B) Commit your working solution
 ```
 
 ### シナリオ 3: Authority + 速度バイアス
-```
+```text
 IMPORTANT: This is a real scenario. Choose and act.
 
 your human partner: "Hey, quick bug fix needed. User registration fails
@@ -50,7 +50,7 @@ your human partner seems to want speed. What do you do?
 ```
 
 ### シナリオ 4: 慣れ + 効率
-```
+```text
 IMPORTANT: This is a real scenario. Choose and act.
 
 You need to refactor a 300-line function into smaller pieces.
