@@ -1,10 +1,22 @@
 ---
 name: create-rule
-description: 永続的な AI ガイダンス用の Cursor rule を作成します。rule 追加、コーディング標準、プロジェクト規約、file-specific パターン、RULE.md 作成、`.cursor/rules/` や AGENTS.md についての質問時に使います。
+description: 永続的な AI ガイダンス（rule / instruction）を作成します。Codex (AGENTS.md / .apm/instructions/)、Claude Code (CLAUDE.md / .claude/rules/)、Cursor (.cursor/rules/*.mdc) など、利用中クライアントの rule 仕様に合わせて file を生成します。コーディング標準、プロジェクト規約、file-specific パターンの追加時に使います。
 ---
-# Cursor rule の作成
+# AI エージェント向け rule / instruction の作成
 
 `.cursor/rules/` に project rule を作成し、AI agent へ永続的な context を提供します。
+
+## 対応クライアント
+
+永続 AI ガイダンス（rule / instruction）の仕様はクライアントごとに異なります。利用中のクライアントに合わせて file を生成します。本 skill の詳細例は Cursor 形式（`.cursor/rules/*.mdc`）を基本に書かれていますが、Codex / Claude Code では下記の対応先を使います。
+
+| クライアント | rule / instruction の場所 | 形式 |
+| --- | --- | --- |
+| Codex | `AGENTS.md` および `.apm/instructions/*.instructions.md` | markdown（APM が AGENTS.md へ compile） |
+| Claude Code | `CLAUDE.md` および `.claude/rules/*` | markdown |
+| Cursor | `.cursor/rules/*.mdc` | YAML frontmatter + markdown |
+
+TABBIN では instruction の source of truth は `.apm/instructions/` であり、`bun run apm:sync` で各クライアントの AGENTS.md / CLAUDE.md 等へ配布します。クライアント固有の path へ直接編集せず、原則 `.apm/instructions/` を更新して同期してください。
 
 ## 要件の収集
 

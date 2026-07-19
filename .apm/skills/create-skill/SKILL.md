@@ -1,17 +1,17 @@
 ---
 name: create-skill
-description: Cursor Agent Skill を作成します。新しい skill の執筆、SKILL.md 構造についての質問時に使います。
+description: AI エージェント向けの skill を作成・編集します。新しい skill の執筆、既存 skill の改善、deploy 前の skill 検証、SKILL.md 構造についての質問時に使います。Codex / Claude Code / Cursor など各クライアントの skill 仕様に合わせて生成します（旧 writing-skills の TDD 執筆手法を統合済み）。
 ---
-# Cursor skill の作成
+# AI エージェント向け skill の作成
 
-Cursor 向けの effective Agent Skill 作成手順です。skill は markdown file で、agent に specific task の実行方法を教えます。例: team standard による PR review、好みの format での commit message 生成、database schema query、任意の specialized workflow など。
+AI エージェント向けの effective skill 作成手順です。skill は markdown file で、agent に specific task の実行方法を教えます。例: team standard による PR review、好みの format での commit message 生成、database schema query、任意の specialized workflow など。
 
 ## 開始前: 要件の収集
 
 skill 作成前に、ユーザーから次の essential information を収集します:
 
 1. **Purpose and scope**: この skill が支援すべき specific task または workflow は何か
-2. **Target location**: personal skill（~/.cursor/skills/）か project skill（.cursor/skills/）か
+2. **Target location**: どのクライアント向けか、personal か project か（Codex: ~/.agents/skills/ または .apm/skills/、Claude Code: ~/.claude/skills/、Cursor: ~/.cursor/skills/ と .cursor/skills/）
 3. **Trigger scenarios**: agent がいつ自動的にこの skill を適用すべきか
 4. **Key domain knowledge**: agent が既知でない specialized information は何か
 5. **Output format preferences**: 特定 template、format、style が必要か
@@ -31,7 +31,7 @@ clarification が必要な場合、AskQuestion tool が使えれば使用:
 
 ```
 Example AskQuestion usage:
-- "Where should this skill be stored?" with options like ["Personal (~/.cursor/skills/)", "Project (.cursor/skills/)"]
+- "Where should this skill be stored?" with options like ["Personal (Codex: ~/.agents/skills/, Claude: ~/.claude/skills/, Cursor: ~/.cursor/skills/)", "Project (.apm/skills/ via APM, or .cursor/skills/)"]
 - "Should this skill include executable scripts?" with options like ["Yes", "No"]
 ```
 
@@ -59,10 +59,13 @@ skill-name/
 
 | Type | Path | Scope |
 |------|------|-------|
-| Personal | ~/.cursor/skills/skill-name/ | Available across all your projects |
-| Project | .cursor/skills/skill-name/ | Shared with anyone using the repository |
+| Personal (Codex) | ~/.agents/skills/skill-name/ | Available across all your projects |
+| Personal (Claude Code) | ~/.claude/skills/skill-name/ | Available across all your projects |
+| Personal (Cursor) | ~/.cursor/skills/skill-name/ | Available across all your projects |
+| Project (TABBIN / APM) | .apm/skills/skill-name/ | APM で全クライアントへ配布。source of truth |
+| Project (Cursor 単体) | .cursor/skills/skill-name/ | Shared with anyone using the repository |
 
-**IMPORTANT**: `~/.cursor/skills-cursor/` に skill を作らない。この directory は Cursor internal built-in skill 用で system が自動管理。
+**IMPORTANT**: TABBIN では skill の source of truth を `.apm/skills/` に置き、`bun run apm:sync` で各クライアントへ配布します。クライアント固有の配布先へ直接編集せず原則 `.apm/skills/` を更新してください。Cursor の `~/.cursor/skills-cursor/` は Cursor internal built-in skill 用で system が自動管理するため使わないでください。
 
 ### SKILL.md Structure
 
@@ -502,3 +505,69 @@ skill finalize 前に verify:
 - [ ] Required packages are documented
 - [ ] Error handling is explicit and helpful
 - [ ] No Windows-style paths
+
+---
+
+## skill 執筆の TDD（旧 writing-skills 統合）
+
+**Skill の執筆は、プロセス文書への TDD 適用そのものです。** test case（subagent 付き pressure scenario）を書き、失敗を観察（baseline 行動）、skill（文書）を書き、pass を観察（compliance）、refactor（loophole を塞ぐ）。skill なしで agent が失敗するのを見ていなければ、skill が正しいことを教えているか分かりません。
+
+### RED-GREEN-REFACTOR
+
+| TDD 概念 | skill 執筆 |
+| --- | --- |
+| Test case | subagent 付き pressure scenario |
+| Production code | skill 文書（SKILL.md） |
+| RED（test fail） | skill なしで agent がルール違反（baseline） |
+| GREEN（test pass） | skill ありで compliance |
+| REFACTOR | compliance を維持しつつ loophole を塞ぐ |
+
+1. **RED**: skill なしで pressure scenario を実行し、agent の選択・rationalization・違反を誘発した pressure を verbatim 記録する。
+2. **GREEN**: その rationalization に対処する最小の skill を書く。仮説ケースの余計な内容は足さない。同じ scenario を skill ありで compliance を検証する。
+3. **REFACTOR**: 新たな rationalization が出たら明示的な counter を追加し、bulletproof まで再テストする。
+
+規律 skill（何かを「してはいけない」系）では 3+ の複合 pressure（time / sunk cost / authority / exhaustion）を使う。
+
+### 圧縮された執筆チェックリスト
+
+**RED:**
+- [ ] pressure scenario 作成（規律 skill は 3+ 複合 pressure）
+- [ ] skill なしで baseline を verbatim 記録
+- [ ] rationalization / 失敗パターン特定
+
+**GREEN:**
+- [ ] 名前は英字・数字・ハイフンのみ
+- [ ] frontmatter は name と description（max 1024 chars）
+- [ ] description は "Use when..." 開始、具体 trigger / symptom、三人称、検索 keyword 含む
+- [ ] 核心原則付き clear overview
+- [ ] RED の baseline 失敗に対処
+- [ ] 優れた 1 例（多言語不可）
+- [ ] skill ありで compliance 検証
+
+**REFACTOR:**
+- [ ] testing から新 rationalization 特定、明示 counter 追加
+- [ ] rationalization table / red flags list 作成
+- [ ] bulletproof まで再テスト
+
+### アンチパターン
+
+- ナラティブ例（"In session 2025-... we found..."）— 特定すぎて再利用不可。
+- 多言語 dilution（example-js.js / example-py.py / example-go.go）— 保守負担だけ増える。
+- Flowchart 内にコード（copy-paste 不可、読みにくい）。
+- 汎用 label（helper1 / step3 / pattern4）— label は意味を持つべき。
+- 未テスト skill の batch deploy — 未テスト code の deploy と同じ。
+
+### STOP: 次 skill へ進む前
+
+skill を書いたら STOP し、deploy checklist を完了してから次へ。各 skill で RED→GREEN→REFACTOR を必須とし、"batch の方が効率" で test を skip しない。
+
+### 参照ファイル（旧 writing-skills から統合）
+
+- [anthropic-best-practices.md](anthropic-best-practices.md) — Anthropic 公式 skill 執筆 best practice の完全版。
+- [testing-skills-with-subagents.md](testing-skills-with-subagents.md) — pressure scenario の書き方、pressure タイプ、体系的 hole 塞ぎ、meta-testing の完全方法論。
+- [persuasion-principles.md](persuasion-principles.md) — 規律 skill で rationalization を防ぐ説得原則。
+- [graphviz-conventions.dot](graphviz-conventions.dot) / [render-graphs.js](render-graphs.js) — skill 内 flowchart の graphviz 規約と描画補助。
+- [examples/](examples/) — 執筆例。
+
+> これらは progressive disclosure による参照資料です。SKILL.md から直接 link し、deeply nested な参照は避けてください。
+

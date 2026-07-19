@@ -1,49 +1,46 @@
 ---
 title: 非クリティカルなサードパーティライブラリを遅延読み込み
 impact: MEDIUM
-impactDescription: ハイドレーション後に読み込み
+impactDescription: 初期描画後に読み込み
 tags: bundle, third-party, analytics, defer
 ---
 
 ## 非クリティカルなサードパーティライブラリを遅延読み込み
 
-アナリティクス、ログ、エラートラッキングはユーザー操作をブロックしません。ハイドレーション後に読み込みます。
+アナリティクス、ログ、エラートラッキングはユーザー操作をブロックしません。初期描画後に読み込みます。
 
 **不適切（初期バンドルをブロック）:**
 
 ```tsx
-import { Analytics } from '@vercel/analytics/react'
+import { Analytics } from 'some-analytics-sdk'
 
-export default function RootLayout({ children }) {
+export function App() {
   return (
-    <html>
-      <body>
-        {children}
-        <Analytics />
-      </body>
-    </html>
+    <>
+      <MainUI />
+      <Analytics />
+    </>
   )
 }
 ```
 
-**適切（ハイドレーション後に読み込み）:**
+**適切（初期描画後に読み込み）:**
 
 ```tsx
-import dynamic from 'next/dynamic'
+import { lazy, Suspense } from 'react'
 
-const Analytics = dynamic(
-  () => import('@vercel/analytics/react').then(m => m.Analytics),
-  { ssr: false }
+const Analytics = lazy(() =>
+  import('some-analytics-sdk').then(m => ({ default: m.Analytics }))
 )
 
-export default function RootLayout({ children }) {
+export function App() {
   return (
-    <html>
-      <body>
-        {children}
+    <>
+      <MainUI />
+      <Suspense fallback={null}>
         <Analytics />
-      </body>
-    </html>
+      </Suspense>
+    </>
   )
 }
 ```

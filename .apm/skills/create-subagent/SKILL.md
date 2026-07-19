@@ -1,11 +1,24 @@
 ---
 name: create-subagent
-description: 専門タスク用の custom subagent を作成します。新しい subagent 種別、task-specific agent、code reviewer、debugger、domain-specific assistant の設定、custom prompt 作成時に使います。
+description: 専門タスク用の custom subagent / agent を作成します。Codex (.codex/agents/)、Claude Code (.claude/agents/)、Cursor (.cursor/agents/) など、利用中クライアントの agent 仕様に合わせて system prompt と設定 file を生成します。task-specific agent、code reviewer、debugger、domain-specific assistant の作成時に使います。
 disable-model-invocation: true
 ---
 # カスタム subagent の作成
 
-Cursor 用 custom subagent 作成の手順です。subagent は isolated context で custom system prompt 付きの specialized AI assistant として動作します。
+Cursor を基本にした custom subagent 作成の手順です。subagent は isolated context で custom system prompt 付きの specialized AI assistant として動作します。他クライアント（Codex / Claude Code）でも同等の agent 機構があり、対応先は下記表のとおりです。
+## 対応クライアント
+
+custom subagent / agent の仕様はクライアントごとに異なります。利用中のクライアントに合わせて system prompt と設定 file を生成します。本 skill の詳細例は Cursor 形式（`.cursor/agents/*.md`）を基本に書かれていますが、Codex / Claude Code では下記の対応先を使います。
+
+| クライアント | agent 定義の場所 | 形式 |
+| --- | --- | --- |
+| Codex | `.codex/agents/*.md`（配布先） | YAML frontmatter + markdown system prompt |
+| Claude Code | `.claude/agents/*.md` | YAML frontmatter + markdown system prompt |
+| Cursor | `.cursor/agents/*.md` | YAML frontmatter + markdown system prompt |
+
+TABBIN では source of truth を `.apm/` 系へ置き、`bun run apm:sync` で各クライアントへ配布することを前提とします。クライアント固有の配布先へ直接編集せず、source 側を更新して同期してください。
+
+
 
 ## Subagent を使うタイミング
 

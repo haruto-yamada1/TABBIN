@@ -102,6 +102,26 @@ target は `apm.yml` だけを source of truth とし、通常運用で raw の 
 
 ## Publish phase
 
+### 0. staged changes から新規 branch を切る場合 (staged-only)
+
+Issue URL がなく、現在の branch 上にすでに staged changes があるときは、それを起点に新規作業 branch を作って commit → push まで進めます。未 stage の変更やユーザーの別作業を混ぜないことを最優先にします。
+
+1. 現在地と staged を確認: `git status --short --branch`、`git branch --show-current`、`git diff --cached --stat`。staged がなければ停止し、勝手に `git add` しない。
+2. branch 名を決める: ユーザー指定があればそれ、なければ staged diff から短い `type/summary` 形式。既存 branch と衝突したら停止して別名を決める。
+3. 現 branch から新規 branch を作成: `git switch -c <new-branch>`。
+4. commit message は簡潔な日本語の命令形。必要な場合だけ body に検証内容や補足。
+5. staged changes だけ commit: `git commit -m "<message>"`。staged 以外の変更は戻さず対象にも含めない。
+6. push: `git push -u origin <new-branch>`。remote 名は通常 `origin`、存在しなければ停止。
+
+安全ルール:
+
+- `git add`、`git restore`、`git reset`、`git checkout --` はユーザーが明示しない限り実行しない。
+- staged diff に secret、credential、巨大な生成物、意図しない binary の疑いがあれば停止して報告。
+- branch 作成後に commit が失敗した場合、勝手に元 branch へ戻ったり branch を削除したりしない。
+- 完了時は作成 branch、commit hash と message、push 先、残っている未 stage / untracked の有無を報告。
+
+PR が必要なら引き続き ### 1〜3 を、不要なら push までで終了する。
+
 ### 1. 差分と branch を確認する
 
 ```bash

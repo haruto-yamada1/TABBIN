@@ -42,7 +42,6 @@ local_deployed_files:
   - .agents/skills/executing-plans
   - .agents/skills/find-skills
   - .agents/skills/finishing-a-development-branch
-  - .agents/skills/git-staged-branch-commit-push
   - .agents/skills/github-issue-implementation
   - .agents/skills/github-pr-review
   - .agents/skills/grill-with-docs
@@ -68,7 +67,6 @@ local_deployed_files:
   - .agents/skills/verification-before-completion
   - .agents/skills/web-design-guidelines
   - .agents/skills/writing-plans
-  - .agents/skills/writing-skills
   - .claude/commands/agent-automation-recommendations.md
   - .claude/commands/code-style.md
   - .claude/commands/comment-rule.md
@@ -115,7 +113,6 @@ local_deployed_files:
   - .claude/skills/executing-plans
   - .claude/skills/find-skills
   - .claude/skills/finishing-a-development-branch
-  - .claude/skills/git-staged-branch-commit-push
   - .claude/skills/github-issue-implementation
   - .claude/skills/github-pr-review
   - .claude/skills/grill-with-docs
@@ -141,7 +138,6 @@ local_deployed_files:
   - .claude/skills/verification-before-completion
   - .claude/skills/web-design-guidelines
   - .claude/skills/writing-plans
-  - .claude/skills/writing-skills
   - .codex/hooks/TABBIN/scripts/format-check-on-edit.sh
   - .codex/hooks/TABBIN/scripts/harness-config-protection.sh
   - .codex/hooks/TABBIN/scripts/harness-event-capture.sh

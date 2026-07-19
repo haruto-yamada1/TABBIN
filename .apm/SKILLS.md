@@ -105,7 +105,7 @@ Planner / Generator / Optimizer は prompt を持たず、skill として配布�
 
 | skill | 使う場面 |
 | --- | --- |
-| `brainstorming` | 新機能、挙動変更、設計が必要な作業の前に、目的と設計を固めます。 |
+| `brainstorming` | 設計が未確定の小〜中規模の新機能・挙動変更で、実装前に目的と設計を固めます。ハーネスを使う大規模作業では `harness-orchestrate` / `harness-planner` を優先します。 |
 | `writing-plans` | 仕様や要件から、実装可能な手順書を作るときに使います。 |
 | `grill-with-docs` | 計画を TABBIN のドメインモデルと照合し、用語を磨き、決定が固まったら CONTEXT.md / ADR を更新するグリリングセッションです。 |
 | `executing-plans` | 既存の実装計画を、検証 checkpoint 付きで実行します。 |
@@ -134,21 +134,19 @@ Planner / Generator / Optimizer は prompt を持たず、skill として配布�
 | --- | --- |
 | `github-issue-implementation` | GitHub Issue を live contract として確認し、隔離 worktree で根本原因の修正と検証を行う implementation phase です。 |
 | `split-to-prs` | 現在の変更や大きな作業を、小さく review しやすい PR に分割します。 |
-| `git-staged-branch-commit-push` | staged changes を確認し、現在の branch から新しい branch を作成して commit と push まで進めます。 |
-| `commit-push-pr` | Issue URL だけで調査・実装・検証から `develop` 向け Open PR まで進める入口です。実装済み変更の publish-only にも使います。 |
+| `commit-push-pr` | Issue URL だけで調査・実装・検証から `develop` 向け Open PR まで進める入口です。実装済み変更の publish-only、および staged changes から新規 branch を切って commit → push する staged-only モード（旧 `git-staged-branch-commit-push` を統合）にも使います。 |
 
 ### APM / 設定作成
 
 | skill | 使う場面 |
 | --- | --- |
-| `create-hook` | Cursor hook や hook script を作成・更新します。 |
-| `create-rule` | Cursor rule、`AGENTS.md`、`.cursor/rules/` などの永続 AI guidance を作ります。 |
-| `create-skill` | Cursor Agent Skill を新規作成します。 |
-| `create-subagent` | 専用 subagent の prompt や設定を作ります。 |
+| `create-hook` | Codex / Claude Code / Cursor 各クライアントの hook 仕様に合わせて hook file と設定を作成・更新します。 |
+| `create-rule` | Codex (`AGENTS.md` / `.apm/instructions/`)、Claude Code (`CLAUDE.md` / `.claude/rules/`)、Cursor (`.cursor/rules/*.mdc`) など各クライアントの永続 AI guidance を作ります。 |
+| `create-skill` | AI エージェント向け skill を作成・編集・検証します。旧 `writing-skills` の TDD 執筆手法（RED-GREEN-REFACTOR）と参照資料を統合済み。Codex / Claude Code / Cursor 共通で使えます。 |
+| `create-subagent` | Codex / Claude Code / Cursor 各クライアントの agent 定義（system prompt と設定）を作ります。 |
 | `migrate-to-skills` | Cursor rule や slash command を Agent Skill へ移行します。 |
-| `writing-skills` | skill の作成、編集、検証を行います。 |
 | `find-skills` | 目的に合う既存 skill や install 可能な skill を探します。 |
-| `statusline` | CLI status line / prompt footer をカスタマイズします。 |
+| `statusline` | Claude Code / Cursor CLI 専用。CLI status line / prompt footer をカスタマイズします。Codex / Gemini では該当機能がありません。 |
 | `shell` | `/shell` と明示された literal shell command を実行します。 |
 
 ### UI / React / Frontend
@@ -157,19 +155,21 @@ Planner / Generator / Optimizer は prompt を持たず、skill として配布�
 | --- | --- |
 | `animation-best-practices` | hover、tooltip、button feedback、transition、flicker 対策など CSS animation を扱います。 |
 | `vercel-composition-patterns` | React component composition、compound components、boolean props 解消、API 設計を扱います。 |
-| `vercel-react-best-practices` | React / Next.js の performance、rendering、data fetching、bundle 最適化を扱います。 |
+| `vercel-react-best-practices` | React の performance、rendering、data fetching、bundle 最適化を扱います（Next.js / RSC / SSR 固有ルールは除外済み、WXT 向け React 共通部分のみ）。 |
 
 ### トークン圧縮 / Caveman
 
 caveman 系 skill は出力・入力 token を圧縮しつつ技術的正確さを保つためのものです。
 `JuliusBrussee/caveman` 由来で `.apm/skills/` から APM 配布しています。
 
+TABBIN では shell 出力圧縮は `rtk`（`.apm/instructions/01-rtk`）、context window 圧縮は `context-mode`（`.apm/instructions/00-context-mode`）が担うため、caveman 系は明示的に `/caveman-*` や caveman mode を指定したときのみ使います。caveman 系は memory file 圧縮やコメント形式の圧縮など、RTK / context-mode が覆盖しない niche を補います。
+
 | skill | 使う場面 |
 | --- | --- |
 | `caveman` | caveman mode で出力 token を圧縮します。`/caveman`、caveman mode、token 効率化の依頼で使います。lite / full / ultra / wenyan-* の強度があります。 |
 | `cavecrew` | caveman 圧縮された subagent へ作業を委譲する判断軸です。investigator / builder / reviewer の使い分けと tool-result 圧縮を扱います。 |
 | `caveman-commit` | commit message を conventional commits で圧縮生成します。`/caveman-commit`、staging 時に自動起動します。 |
-| `caveman-compress` | `CLAUDE.md` など memory file を caveman 形式へ圧縮します。`/caveman-compress FILEPATH` で実行し、backup を `.original.md` に残します。 |
+| `caveman-compress` | `CLAUDE.md` など memory file を caveman 形式へ圧縮します。`/caveman-compress FILEPATH` で実行し、backup を `.original.md` に残します。shell 出力の圧縮は RTK、context流入の圧縮は context-mode の役割で、本 skill は memory file の圧縮のみを扱います。 |
 | `caveman-review` | PR / diff review comment を 1 行圧縮で出します。`/caveman-review`、PR review 時に使います。 |
 | `caveman-stats` | Claude Code 専用。session log から実 token 使用量と推定削減効果を出します。`/caveman-stats` で起動します。他クライアントでは動作しません。 |
 
@@ -205,7 +205,7 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 | UI の品質確認 | `web-design-guidelines` | `animation-best-practices`、`vercel-react-best-practices` |
 | React 実装の性能や構成確認 | `vercel-react-best-practices` | `vercel-composition-patterns`、`react-doctor` |
 | セキュリティ観点の確認 | `security-review` | `harness-evaluator`、`requesting-code-review` |
-| skill を探す / 作る / 整える | `find-skills` | `create-skill`、`writing-skills`、`migrate-to-skills` |
+| skill を探す / 作る / 整える | `find-skills` | `create-skill`、`migrate-to-skills`（`create-skill` が作成＋執筆品質の両方を担います） |
 | AI 運用そのものの改善 | `agent-automation-recommender` | `agent-introspection-debugging`、`harness-optimizer` |
 
 ### 被りやすい組み合わせ
@@ -217,7 +217,10 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 | `harness-evaluator` / `requesting-code-review` / `react-doctor` / `security-review` / `web-design-guidelines` | `harness-evaluator` は全体評価の器です。React、security、UI などの専門観点は必要に応じて専門 skill を併用します。 |
 | `check` / `verification-before-completion` / `react-doctor` | `check` は実コマンド実行、`verification-before-completion` は完了報告前の規律、`react-doctor` は React 専用の追加検査です。 |
 | `github-pr-review` / `receiving-code-review` / `babysit` | `github-pr-review` は Open PR の live thread から修正・push・返信までの workflow、`receiving-code-review` は指摘の技術的検証原則、`babysit` は PR 全体の継続監視です。 |
-| `create-skill` / `writing-skills` / `find-skills` / `migrate-to-skills` | `find-skills` は探す、`create-skill` は作る、`writing-skills` は品質よく書く、`migrate-to-skills` は既存 rule / command から移行する役割です。 |
+| `caveman-compress` / `rtk` / `context-mode` | `rtk` は shell 出力圧縮、`context-mode` は context window への流入圧縮・ルーティング、`caveman-compress` は `CLAUDE.md` 等 memory file の圧縮のみ。役割が被るときは RTK / context-mode を優先し、caveman 系は明示指定時のみ。 |
+| `caveman-commit` / `commit-push-pr` | `commit-push-pr` は Issue → PR / publish / staged-only の commit workflow の入口。`caveman-commit` は commit message を caveman 形式で圧縮生成する formatter で、workflow ではなく形式指定が欲しいときだけ併用します。 |
+| `caveman-review` / `github-pr-review` / `receiving-code-review` | `github-pr-review` は review workflow、`receiving-code-review` は指摘の検証原則、`caveman-review` は review comment を 1 行圧縮で出す formatter で、workflow ではなくコメント形式を圧縮したいときだけ併用します。 |
+| `create-skill` / `find-skills` / `migrate-to-skills` | `find-skills` は探す、`create-skill` は作る＋品質よく書く（旧 `writing-skills` の TDD 執筆手法を統合）、`migrate-to-skills` は既存 rule / command から移行する役割です。 |
 | `agent-automation-recommender` / `harness-optimizer` / `agent-introspection-debugging` | `agent-automation-recommender` は repo 全体の自動化提案、`harness-optimizer` は harness run 後の学習候補整理、`agent-introspection-debugging` は agent の失敗原因調査です。 |
 | `animation-best-practices` / `web-design-guidelines` / `vercel-react-best-practices` | `animation-best-practices` は動き、`web-design-guidelines` は UX / accessibility / visual quality、`vercel-react-best-practices` は React 性能と実装品質です。 |
 
