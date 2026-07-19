@@ -41,12 +41,14 @@ React コンポーネントは `PascalCase.tsx`（例: `ImportExportSettings.tsx
 実装前に既存の helper、型、wrapper、コンポーネント、テスト fixture を探してください。探索には context-mode の `ctx_batch_execute` / `ctx_search`、`rg`、Serena の symbol search を優先し、既存の source of truth を確認してから新しい抽象を追加します。KISS / DRY / YAGNI は守りますが、TABBIN 固有の WXT、APM、完了ゲートの規則を汎用ルールで置き換えないでください。
 
 ## テストガイドライン
-主要なテストランナーは Vitest（`vitest.ci.config.ts`）です。E2E フローは `e2e/` の Playwright が担当します。unit / integration テストには `*.test.ts(x)`、Playwright テストには `*.spec.ts` を使います。Vitest 設定上の明示的な coverage 閾値はありませんが、このリポジトリで AI / Codex が完了を報告するには、`bun run test:coverage` が coverage 100% を報告する必要があります。自明でない変更では、PR を開く前に regression test を追加または調整してください。
+主要なテストランナーは Vitest（`vitest.ci.config.ts`）、E2E は `e2e/` の Playwright（`*.spec.ts`）。unit / integration テストには `*.test.ts(x)` を使います。ローカルでの script 使い分けや node / dom project の判別は `.apm/instructions/02-vitest-local-development.instructions.md` を参照してください。
+
+完了ゲート（AI / Codex が完了を報告するための必須条件）は次の 1 箇所に集約します。コードが変わった場合は `bun run quality:check` を実行し、自明でない変更では `bun run test:coverage` が coverage 100% を報告することを確認してください。PR 前に regression test を追加または調整してください。
 
 ## タスク管理
 永続的なタスク管理は GitHub issue などリポジトリ外の issue tracker を使ってください。ローカルの Markdown TODO リストや生成 artifact を source of truth にしないでください。
 
-作業セッションを終えるときは、残った follow-up 作業を issue として残し、コードが変わった場合は broad quality gate の `bun run quality:check` を実行して、完了したブランチを push してください。release-sensitive な変更や Issue-to-PR workflow では、変更を commit して clean tree にした後で `bun run release:check` も実行します。`git push` が成功し、`git status` でブランチが origin と同期済みであることを確認するまで、作業は完了ではありません。issue tracker 操作や push がローカルツールや認証情報でブロックされた場合は、そのブロッカーを明示的に報告してください。
+作業セッションを終えるときは、残った follow-up 作業を issue として残し、上記完了ゲート（`bun run quality:check`、必要に応じて `bun run test:coverage`）を実行して、完了したブランチを push してください。release-sensitive な変更や Issue-to-PR workflow では、変更を commit して clean tree にした後で `bun run release:check` も実行します。`git push` が成功し、`git status` でブランチが origin と同期済みであることを確認するまで、作業は完了ではありません。issue tracker 操作や push がローカルツールや認証情報でブロックされた場合は、そのブロッカーを明示的に報告してください。
 
 ## Commit と Pull Request のガイドライン
 最近の履歴では、簡潔な件名（日本語が多い）と merge commit が使われています。1 つの変更を説明する、短く命令形の commit message を優先してください。PR は原則 `develop` を target にし、ユーザーが Draft を指定しない限り Open で作成します。本文には原因、採用した解決、主要変更、regression risk、実行した検証、acceptance criteria との対応をまとめてください。関連 issue をリンクし、UI 変更では screenshot / GIF を含めてください。

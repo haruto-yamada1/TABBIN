@@ -58,6 +58,19 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | `bun run harness:profile` | Planner / Generator / Evaluator / Optimizer の運用面を確認します。 |
 | `bun run harness:validate` | ACTIVE run の JSON 状態を schema 検証します。 |
 | `bun run harness:schemas` | `.apm/harness/schemas/` を再生成します。 |
+| `bun run harness:governance -- --kind <kind> --severity <level> --message <text>` | 判断、警告、再発防止候補を `governance.jsonl` に記録します。
+
+## ハーネス prompt (workflow command)
+
+APM prompt として配布する workflow command の入口です。`/plan` とは衝突させません。
+
+| prompt | 用途 |
+| --- | --- |
+| `harness-orchestrate` | ハーネス全体の入口。run 作成、計画、分担、検証、Evaluator 起動まで管理します。 |
+| `harness-evaluator` | fresh-context Evaluator として `evaluator.json` に判断を書きます。 |
+| `harness-ops` | status / loop-status / model-route / audit / quality-gate / security-audit / repo-status / learn を 1 つにまとめた運用操作入口です。旧 `harness-status`、`harness-loop-status`、`harness-model-route`、`harness-audit`、`harness-quality-gate`、`harness-security-audit`、`harness-repo-status`、`harness-learn` の 8 prompt を統合済みです。 |
+
+Planner / Generator / Optimizer は prompt を持たず、skill として配布します。
 
 ## よく使う依頼例
 
@@ -92,9 +105,9 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 
 | skill | 使う場面 |
 | --- | --- |
-| `using-superpowers` | 会話開始時に、適用すべき skill を必ず確認する基本ルールです。 |
 | `brainstorming` | 新機能、挙動変更、設計が必要な作業の前に、目的と設計を固めます。 |
 | `writing-plans` | 仕様や要件から、実装可能な手順書を作るときに使います。 |
+| `grill-with-docs` | 計画を TABBIN のドメインモデルと照合し、用語を磨き、決定が固まったら CONTEXT.md / ADR を更新するグリリングセッションです。 |
 | `executing-plans` | 既存の実装計画を、検証 checkpoint 付きで実行します。 |
 | `test-driven-development` | 機能追加、bugfix、refactor の前に failing test を作り、red-green で進めます。 |
 | `systematic-debugging` | test failure、bug、予期しない挙動の root cause を調べるときに使います。 |
@@ -124,7 +137,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | `git-staged-branch-commit-push` | staged changes を確認し、現在の branch から新しい branch を作成して commit と push まで進めます。 |
 | `commit-push-pr` | Issue URL だけで調査・実装・検証から `develop` 向け Open PR まで進める入口です。実装済み変更の publish-only にも使います。 |
 
-### APM / Cursor / 設定作成
+### APM / 設定作成
 
 | skill | 使う場面 |
 | --- | --- |
@@ -135,10 +148,7 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | `migrate-to-skills` | Cursor rule や slash command を Agent Skill へ移行します。 |
 | `writing-skills` | skill の作成、編集、検証を行います。 |
 | `find-skills` | 目的に合う既存 skill や install 可能な skill を探します。 |
-| `update-cli-config` | Cursor CLI 設定、permission、sandbox、表示設定などを変更します。 |
-| `update-cursor-settings` | Cursor / VSCode の user settings を変更します。 |
 | `statusline` | CLI status line / prompt footer をカスタマイズします。 |
-| `cursor-sdk` | `@cursor/sdk` を使った自動化、CI、bot、backend integration を作ります。 |
 | `shell` | `/shell` と明示された literal shell command を実行します。 |
 
 ### UI / React / Frontend
@@ -146,16 +156,8 @@ hook も Evaluator や Orchestrator を自動起動せず、状態表示、警�
 | skill | 使う場面 |
 | --- | --- |
 | `animation-best-practices` | hover、tooltip、button feedback、transition、flicker 対策など CSS animation を扱います。 |
-| `canvas` | 分析結果、監査、timeline、chart、table などを standalone canvas として作るときに使います。 |
 | `vercel-composition-patterns` | React component composition、compound components、boolean props 解消、API 設計を扱います。 |
 | `vercel-react-best-practices` | React / Next.js の performance、rendering、data fetching、bundle 最適化を扱います。 |
-| `vercel-react-native-skills` | React Native / Expo の performance、list、animation、native platform API を扱います。 |
-
-### コンテンツ / メディア
-
-| skill | 使う場面 |
-| --- | --- |
-| `remotion-best-practices` | Remotion で動画、composition、caption、audio、asset、animation を扱うときに使います。 |
 
 ### トークン圧縮 / Caveman
 
@@ -169,8 +171,7 @@ caveman 系 skill は出力・入力 token を圧縮しつつ技術的正確さ�
 | `caveman-commit` | commit message を conventional commits で圧縮生成します。`/caveman-commit`、staging 時に自動起動します。 |
 | `caveman-compress` | `CLAUDE.md` など memory file を caveman 形式へ圧縮します。`/caveman-compress FILEPATH` で実行し、backup を `.original.md` に残します。 |
 | `caveman-review` | PR / diff review comment を 1 行圧縮で出します。`/caveman-review`、PR review 時に使います。 |
-| `caveman-stats` | session log から実 token 使用量と推定削減効果を出します。`/caveman-stats` で起動します。 |
-| `caveman-help` | caveman 系 skill / mode / command の quick-reference を 1 shot で表示します。`/caveman-help` で使います。 |
+| `caveman-stats` | Claude Code 専用。session log から実 token 使用量と推定削減効果を出します。`/caveman-stats` で起動します。他クライアントでは動作しません。 |
 
 ## 使い分けの目安
 
