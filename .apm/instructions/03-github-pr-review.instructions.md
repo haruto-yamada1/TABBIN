@@ -5,6 +5,8 @@ applyTo: "**/*"
 
 # GitHub Pull Request review の処理
 
+> トリガー: Open PR の未対応レビュー対応依頼時のみ。PR がない / Closed・Merged / レビューがない / 実装前 review / CI failure・merge conflict 単独のときは使いません。
+
 Open PR の未対応レビューを調査、修正、push、または返信する依頼では
 `github-pr-review` skill を使ってください。投稿者が人間、CodeRabbit、その他の bot / service の
 どれであっても、投稿者の権威ではなく latest PR HEAD、現在の型、schema、test、runtime path、

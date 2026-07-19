@@ -54,6 +54,8 @@ reviewer は人間、CodeRabbit、その他の bot / service のどれでも構�
 
 ### 1. PR と repository を確定する
 
+sandbox が GitHub API へのネットワークや `.git` への書き込みを遮断している環境では、`gh auth status` / `gh api` が "error connecting to api.github.com"/"Failed to log in"、`git fetch` / `git checkout` / `git commit` / `git push` が "Operation not permitted" で失敗します。Codex CLI では `exec_command` に `sandbox_permissions: "require_escalated"` を付けると unsandboxed で実行でき、`prefix_rule` を併用すれば `gh` / `git` 系コマンドを再承認なしで続けられます。他のエージェントでも、それに相当するエスカレーション経路（sandbox 外し・ネットワーク許可・`.git` 書き込み許可）を通して `gh` / `git` を実行してください。これらが通らない状態で推測だけで分類するのは禁止で、blocker として報告します。
+
 1. `gh auth status` と `gh repo view --json nameWithOwner` を確認します。
 2. PR URL / number がなければ、current branch に対応する Open PR を一意に特定します。
 3. `state=OPEN`、repository、base、head branch、head repository、`headRefOid`、Draft 状態を記録します。
