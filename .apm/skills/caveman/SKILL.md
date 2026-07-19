@@ -4,7 +4,7 @@ description: >
   Ultra-compressed communication mode. Cuts output tokens 65% (measured) by speaking like caveman
   while keeping full technical accuracy. Supports intensity levels: lite, full (default), ultra,
   wenyan-lite, wenyan-full, wenyan-ultra.
-  Use when user says "caveman mode", "talk like caveman", "use caveman", "less tokens",
+  Use when user says "caveman mode", "caveman help", "what caveman commands", "talk like caveman", "use caveman", "less tokens",
   "be brief", or invokes /caveman. Also auto-triggers when token efficiency is requested.
 ---
 
@@ -76,3 +76,50 @@ Example — destructive op:
 ## Boundaries
 
 Code/commits/PRs: write normal. "stop caveman" or "normal mode": revert. Level persist until changed or session end.
+## Quick reference (caveman-help)
+
+One-shot reference card. `/caveman-help`、`caveman help`、`what caveman commands` で表示。
+モード変更や flag file 書き込みはしない。caveman style で出力。
+
+### Modes
+
+| Mode | Trigger | What change |
+|------|---------|-------------|
+| **Lite** | `/caveman lite` | Drop filler. Keep sentence structure. |
+| **Full** | `/caveman` | Drop articles, filler, pleasantries, hedging. Fragments OK. Default. |
+| **Ultra** | `/caveman ultra` | Extreme compression. Bare fragments. Tables over prose. |
+| **Wenyan-Lite** | `/caveman wenyan-lite` | Classical Chinese style, light compression. |
+| **Wenyan-Full** | `/caveman wenyan` | Full 文言文. Maximum classical terseness. |
+| **Wenyan-Ultra** | `/caveman wenyan-ultra` | Extreme. Ancient scholar on a budget. |
+
+Mode stick until changed or session end.
+
+### Skills
+
+| Skill | Trigger | What it do |
+|-------|---------|-----------|
+| **caveman-commit** | `/caveman-commit` | Terse commit messages. Conventional Commits. ≤50 char subject. |
+| **caveman-review** | `/caveman-review` | One-line PR comments: `L42: bug: user null. Add guard.` |
+| **caveman-compress** | `/caveman-compress <file>` | Compress .md files to caveman prose. Saves ~46% input tokens. |
+| **caveman-stats** | `/caveman-stats` | Show real token usage and estimated savings. Claude Code 専用 (session log 読み取り)。 |
+
+### Deactivate
+
+Say "stop caveman" or "normal mode". Resume anytime with `/caveman`.
+
+### Configure Default Mode
+
+Default = `full`. Resolution: env var > config file > `full`.
+
+```bash
+export CAVEMAN_DEFAULT_MODE=ultra
+```
+
+```json
+// ~/.config/caveman/config.json
+{ "defaultMode": "lite" }
+```
+
+Set `"off"` to disable auto-activation on session start. Manual `/caveman` 依然有効.
+
+Full docs: https://github.com/JuliusBrussee/caveman
