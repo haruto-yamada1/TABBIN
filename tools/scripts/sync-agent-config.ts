@@ -75,6 +75,16 @@ const GENERATED_AGENT_ARTIFACT_PATHS = [
 
 const GENERATED_MARKER = '*To regenerate: `apm compile`*'
 
+// Exact structure of the annotation that `apm compile --single-agents` (legacy
+// mode) appends after GENERATED_MARKER. stripKnownApmLegacyAnnotation removes
+// only a full match of this structure; any extra or differing content is left
+// in place so validateGeneratedSurfaceContamination fails fail-closed.
+const APM_LEGACY_ANNOTATION_FILE = String.raw`[^\n]+`
+const APM_LEGACY_ANNOTATION_BLOCK = `(?:${APM_LEGACY_ANNOTATION_FILE} Preview: Would generate \\d+ files?\\n  ${APM_LEGACY_ANNOTATION_FILE}|${APM_LEGACY_ANNOTATION_FILE} Preview: Would generate stub importing AGENTS\\.md)`
+const APM_LEGACY_ANNOTATION_PATTERN = new RegExp(
+  `^\\n+---\\n\\n${APM_LEGACY_ANNOTATION_BLOCK}(?:\\n\\n---\\n\\n${APM_LEGACY_ANNOTATION_BLOCK})*\\n*$`,
+)
+
 const FORBIDDEN_ARTIFACT_PATTERNS = [
   'Preview: Would generate',
   'Would generate stub',
@@ -350,6 +360,76 @@ export const validateGeneratedSurfaceContamination = (
   }
 }
 
+const hasUnsafeContamination = (text: string): boolean => {
+  for (const pattern of FORBIDDEN_ARTIFACT_PATTERNS) {
+    if (text.includes(pattern)) {
+      return true
+    }
+  }
+  for (const pattern of PERSONAL_ABSOLUTE_PATH_PATTERNS) {
+    if (pattern.test(text)) {
+      return true
+    }
+  }
+  return false
+}
+
+// Removes the exact annotation that `apm compile --single-agents` (legacy mode)
+// appends after GENERATED_MARKER. This is deterministic normalization of a
+// known APM annotation, not contamination repair: any content that is not a
+// full match of APM_LEGACY_ANNOTATION_PATTERN is left untouched so that
+// validateGeneratedSurfaceContamination fails fail-closed on real drift.
+export const stripKnownApmLegacyAnnotation = (
+  root: string,
+  onStrip?: (report: RepairReport) => void,
+): RepairReport[] => {
+  const reports: RepairReport[] = []
+  const report = (next: RepairReport): void => {
+    reports.push(next)
+    onStrip?.(next)
+  }
+  for (const relativePath of collectGeneratedSurfaceFiles(root)) {
+    if (isExcludedContaminationPath(relativePath)) {
+      continue
+    }
+    const absolutePath = path.join(root, relativePath)
+    let stat: { size: number }
+    try {
+      stat = statSync(absolutePath)
+    } catch {
+      continue
+    }
+    if (stat.size > CONTAMINATION_DEFAULT_MAX_SIZE) {
+      continue
+    }
+    if (!CONTAMINATION_CHECK_EXTENSIONS.has(path.extname(relativePath))) {
+      continue
+    }
+    const content = readFileSync(absolutePath, 'utf8')
+    const markerIndex = content.lastIndexOf(GENERATED_MARKER)
+    if (markerIndex === -1) {
+      continue
+    }
+    const markerEnd = markerIndex + GENERATED_MARKER.length
+    const afterMarker = content.slice(markerEnd)
+    if (afterMarker.trim().length === 0) {
+      continue
+    }
+    if (!APM_LEGACY_ANNOTATION_PATTERN.test(afterMarker)) {
+      continue
+    }
+    const line = content.slice(0, markerEnd).split('\n').length
+    writeFileSync(absolutePath, `${content.slice(0, markerEnd)}\n`)
+    report({
+      relativePath,
+      line,
+      reason: 'stripped known APM legacy annotation',
+      removedBytes: afterMarker.length,
+    })
+  }
+  return reports
+}
+
 export const repairArtifactContamination = (
   root: string,
   onRepair?: (report: RepairReport) => void,
@@ -383,16 +463,25 @@ export const repairArtifactContamination = (
     }
     const markerEnd = markerIndex + GENERATED_MARKER.length
     const afterMarker = content.slice(markerEnd)
-    if (afterMarker.trim().length > 0) {
-      const line = content.slice(0, markerEnd).split('\n').length
-      writeFileSync(absolutePath, `${content.slice(0, markerEnd)}\n`)
-      report({
-        relativePath,
-        line,
-        reason: 'removed unexpected content after generated marker',
-        removedBytes: afterMarker.trim().length,
-      })
+    if (afterMarker.trim().length === 0) {
+      continue
     }
+    // Repair only removes benign post-marker drift. Contamination that cannot
+    // be safely auto-repaired (preview/dry-run output, personal absolute
+    // paths) is left in place so validateGeneratedSurfaceContamination fails
+    // fail-closed even in --repair mode. Arbitrary removal is gated behind the
+    // explicit --repair flag by the caller.
+    if (hasUnsafeContamination(afterMarker)) {
+      continue
+    }
+    const line = content.slice(0, markerEnd).split('\n').length
+    writeFileSync(absolutePath, `${content.slice(0, markerEnd)}\n`)
+    report({
+      relativePath,
+      line,
+      reason: 'removed unexpected content after generated marker',
+      removedBytes: afterMarker.trim().length,
+    })
   }
   return reports
 }
@@ -564,24 +653,24 @@ export const syncAgentConfig = ({
       command: 'apm',
     })
 
-    // Strip the known APM legacy --single-agents preview annotation before
-    // validation. This is post-processing of a known annotation, not silent
-    // contamination repair; --repair additionally logs each stripped file.
-    // Personal absolute paths and forbidden preview strings in the body are
-    // still caught fail-closed by validateGeneratedSurfaceContamination below.
-    runDeployment(scratchRoot, runner, true)
-    repairArtifactContamination(scratchRoot, repair ? logRepair : undefined)
-    validateGeneratedSurfaceContamination(scratchRoot, contaminationOptions)
-    formatApmLockfile(projectRoot, scratchRoot, runner)
-    validateRequiredAgentArtifacts(scratchRoot)
-    const firstSnapshot = createAgentConfigSnapshot(scratchRoot)
+    // Normal mode is read-only / fail-closed: the known APM legacy annotation
+    // is normalized, then the generated surface is validated without removing
+    // arbitrary post-marker drift. Only explicit --repair removes benign drift
+    // and re-validates the full generated surface afterward.
+    const verifyScratch = (): string => {
+      runDeployment(scratchRoot, runner, true)
+      stripKnownApmLegacyAnnotation(scratchRoot, repair ? logRepair : undefined)
+      if (repair) {
+        repairArtifactContamination(scratchRoot, logRepair)
+      }
+      validateGeneratedSurfaceContamination(scratchRoot, contaminationOptions)
+      formatApmLockfile(projectRoot, scratchRoot, runner)
+      validateRequiredAgentArtifacts(scratchRoot)
+      return createAgentConfigSnapshot(scratchRoot)
+    }
 
-    runDeployment(scratchRoot, runner, true)
-    repairArtifactContamination(scratchRoot, repair ? logRepair : undefined)
-    validateGeneratedSurfaceContamination(scratchRoot, contaminationOptions)
-    formatApmLockfile(projectRoot, scratchRoot, runner)
-    validateRequiredAgentArtifacts(scratchRoot)
-    const secondSnapshot = createAgentConfigSnapshot(scratchRoot)
+    const firstSnapshot = verifyScratch()
+    const secondSnapshot = verifyScratch()
     if (secondSnapshot !== firstSnapshot) {
       throw new Error('APM agent configuration sync is not idempotent')
     }
@@ -591,7 +680,10 @@ export const syncAgentConfig = ({
     } else {
       removeGeneratedAgentArtifacts(projectRoot)
       runDeployment(projectRoot, runner, true)
-      repairArtifactContamination(projectRoot, repair ? logRepair : undefined)
+      stripKnownApmLegacyAnnotation(projectRoot, repair ? logRepair : undefined)
+      if (repair) {
+        repairArtifactContamination(projectRoot, logRepair)
+      }
       validateGeneratedSurfaceContamination(projectRoot, contaminationOptions)
       formatApmLockfile(projectRoot, projectRoot, runner)
       validateRequiredAgentArtifacts(projectRoot)
