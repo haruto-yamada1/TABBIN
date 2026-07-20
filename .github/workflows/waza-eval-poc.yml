@@ -1,5 +1,9 @@
 # Waza Skill 評価 PoC (手動・非 blocking)。
 # required check にはしない。`workflow_dispatch` でのみ実行。
+# version と checksum は本ファイル内で完全固定する (Issue #794, Option A)。
+#   - version input は廃止した。input で version を変えられる一方で checksum を
+#     v0.38.3 固定にすると version と checksum が矛盾して失敗するため。
+#   - version 更新は明示的な Issue / PR で本ファイルの両方を更新する。
 name: Waza Skill Eval (PoC)
 
 permissions:
@@ -8,10 +12,6 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
-      waza_version:
-        description: 'Waza バージョン (固定)'
-        required: false
-        default: 'v0.38.3'
       run_adversarial:
         description: 'adversarial pack を実行する'
         type: boolean
@@ -43,17 +43,18 @@ jobs:
 
       - name: Install Waza (pinned v0.38.3 + checksum)
         env:
-          # workflow_dispatch input は env 経由で受け取り、shell への直接展開を避ける
-          # (template-injection 対策)。
-          WAZA_VERSION: ${{ inputs.waza_version }}
+          # env 経由で受け取り shell への直接展開を避ける (template-injection 対策)。
+          # これらは本ファイルで固定した値のみであり、外部 input 由来ではない。
+          WAZA_VERSION: 'v0.38.3'
+          EXPECT_SHA: '168e3562deeaa1958d44366b37d963b48b091c325c6c9b5b2613e5399ff077b9'
         run: |
           set -euo pipefail
           ASSET="waza-linux-amd64"
-          EXPECT_SHA="168e3562deeaa1958d44366b37d963b48b091c325c6c9b5b2613e5399ff077b9"
           tmp="$(mktemp -d)"
           curl -fSL -o "$tmp/$ASSET" \
             "https://github.com/microsoft/waza/releases/download/${WAZA_VERSION}/${ASSET}"
           echo "$EXPECT_SHA  $tmp/$ASSET" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
           install -m 0755 "$tmp/$ASSET" "$HOME/.local/bin/waza"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           waza --version

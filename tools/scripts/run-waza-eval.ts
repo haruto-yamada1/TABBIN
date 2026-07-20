@@ -22,34 +22,48 @@ import { mkdirSync } from 'node:fs'
 
 type WazaSubcommand = 'check' | 'spec-verify' | 'run' | 'adversarial'
 
-const SKILL_PATH = '.apm/skills/check'
-const EVAL_PATH = 'evals/skills/check/eval.yaml'
 const RESULTS_DIR = '.waza-results'
-const RESULTS_FILE = `${RESULTS_DIR}/check-results.json`
 
 const isString = (value: unknown): value is string => typeof value === 'string'
+
+// Issue #794: 既定は check Skill (後方互換)。第 2 引数で任意の Skill を指定可能。
+const resolveSkill = (skillArg: string | undefined): string => {
+  const skill = isString(skillArg) && skillArg.length > 0 ? skillArg : 'check'
+  return skill
+}
+
+const buildPaths = (skill: string) => {
+  const skillPath = `.apm/skills/${skill}`
+  const evalPath = `evals/skills/${skill}/eval.yaml`
+  const resultsFile = `${RESULTS_DIR}/${skill}-results.json`
+  return { skillPath, evalPath, resultsFile }
+}
 
 const resolveBinary = (): string => {
   const fromEnv = process.env.WAZA_BIN
   return isString(fromEnv) && fromEnv.length > 0 ? fromEnv : 'waza'
 }
 
-const buildArgs = (subcommand: WazaSubcommand): readonly string[] => {
+const buildArgs = (
+  subcommand: WazaSubcommand,
+  skill: string,
+): readonly string[] => {
+  const { skillPath, evalPath, resultsFile } = buildPaths(skill)
   switch (subcommand) {
     case 'check': {
-      return ['check', SKILL_PATH] as const
+      return ['check', skillPath] as const
     }
     case 'spec-verify': {
-      return ['spec', 'verify', SKILL_PATH, EVAL_PATH] as const
+      return ['spec', 'verify', skillPath, evalPath] as const
     }
     case 'run': {
-      return ['run', EVAL_PATH, '-v', '-o', RESULTS_FILE] as const
+      return ['run', evalPath, '-v', '-o', resultsFile] as const
     }
     case 'adversarial': {
       return [
         'adversarial',
         '--spec',
-        EVAL_PATH,
+        evalPath,
         '--on-unsafe-outcome',
         'warn',
       ] as const
@@ -63,12 +77,12 @@ const buildArgs = (subcommand: WazaSubcommand): readonly string[] => {
 
 const printUsage = (): void => {
   const lines = [
-    'Usage: bun tools/scripts/run-waza-eval.ts <subcommand>',
-    'Subcommands:',
-    '  check        waza check .apm/skills/check',
-    '  spec-verify  waza spec verify <skill> <eval>',
-    '  run           waza run evals/skills/check/eval.yaml -v',
-    '  adversarial   waza adversarial --spec evals/skills/check/eval.yaml',
+    'Usage: bun tools/scripts/run-waza-eval.ts <subcommand> [skill]',
+    'Subcommands (skill defaults to "check"):',
+    '  check [skill]        waza check .apm/skills/<skill>',
+    '  spec-verify [skill]   waza spec verify <skill> <eval>',
+    '  run [skill]           waza run evals/skills/<skill>/eval.yaml -v',
+    '  adversarial [skill]   waza adversarial --spec evals/skills/<skill>/eval.yaml',
   ]
   for (const line of lines) {
     console.error(line)
@@ -94,8 +108,9 @@ const main = (): void => {
     process.exit(2)
   }
 
+  const skill = resolveSkill(process.argv[3])
   const binary = resolveBinary()
-  const args = buildArgs(subcommand)
+  const args = buildArgs(subcommand, skill)
 
   // run の結果を保存するディレクトリを事前に作る (waza -o は親 dir を作らない)。
   if (subcommand === 'run') {

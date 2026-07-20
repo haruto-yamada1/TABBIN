@@ -1,0 +1,108 @@
+# Waza Skill 評価 — Layer 2 (PR 自動・mock eval)。
+# Issue #794: `.apm/**` / `evals/**` / Waza 関連ファイル変更時にだけ mock eval を
+# 実行する。src のみの変更では起動しない。required check にはしない (非 blocking 設定可)。
+# 実モデル評価は waza-real-agent-eval.yml (手動 / 週次) で別途扱う。
+name: Waza Skill Eval (PR)
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    paths:
+      - '.apm/**'
+      - 'evals/**'
+      - '.waza.yaml'
+      - 'tools/scripts/run-waza-eval.ts'
+      - 'tools/scripts/waza-trace-evaluator.ts'
+      - '.github/workflows/waza-*.yml'
+      - 'package.json'
+      - 'bun.lock'
+      - '.bun-version'
+      - 'tools/scripts/waza-*.test.ts'
+
+concurrency:
+  group: waza-skill-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  waza-mock-eval:
+    name: Waza mock eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Install Waza (pinned v0.38.3 + checksum)
+        env:
+          WAZA_VERSION: 'v0.38.3'
+          EXPECT_SHA: '168e3562deeaa1958d44366b37d963b48b091c325c6c9b5b2613e5399ff077b9'
+        run: |
+          set -euo pipefail
+          ASSET="waza-linux-amd64"
+          tmp="$(mktemp -d)"
+          curl -fSL -o "$tmp/$ASSET" \
+            "https://github.com/microsoft/waza/releases/download/${WAZA_VERSION}/${ASSET}"
+          echo "$EXPECT_SHA  $tmp/$ASSET" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          install -m 0755 "$tmp/$ASSET" "$HOME/.local/bin/waza"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          waza --version
+
+      - name: Layer 1 — static / schema contract (vitest)
+        run: |
+          bunx vitest run --config vitest.ci.config.ts --project=node \
+            tools/scripts/waza-eval-contract.test.ts \
+            tools/scripts/waza-version-consistency.test.ts \
+            tools/scripts/waza-trace-evaluator.test.ts
+
+      - name: Layer 2 — waza check / spec verify / mock eval (all skills)
+        env:
+          SKILLS: 'check github-issue-implementation github-pr-review commit-push-pr harness-orchestrate'
+        run: |
+          set -euo pipefail
+          mkdir -p .waza-results
+          fail=0
+          {
+            echo '## Waza Skill Eval (mock)'
+            echo ''
+            echo '| skill | check | spec-verify | mock-eval | adversarial |'
+            echo '| --- | --- | --- | --- | --- |'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for skill in $SKILLS; do
+            c=ok; sv=ok; ev=ok; ad=ok
+            bun tools/scripts/run-waza-eval.ts check "$skill" >".waza-results/${skill}_check.log" 2>&1 || { c=FAIL; cat ".waza-results/${skill}_check.log"; }
+            bun tools/scripts/run-waza-eval.ts spec-verify "$skill" >".waza-results/${skill}_sv.log" 2>&1 || { sv=FAIL; cat ".waza-results/${skill}_sv.log"; }
+            bun tools/scripts/run-waza-eval.ts run "$skill" >".waza-results/${skill}_run.log" 2>&1 || { ev=FAIL; cat ".waza-results/${skill}_run.log"; }
+            bun tools/scripts/run-waza-eval.ts adversarial "$skill" >".waza-results/${skill}_ad.log" 2>&1 || { ad=FAIL; cat ".waza-results/${skill}_ad.log"; }
+            echo "| $skill | $c | $sv | $ev | $ad |" >> "$GITHUB_STEP_SUMMARY"
+            [ "$c" = FAIL ] && fail=1
+            [ "$sv" = FAIL ] && fail=1
+            [ "$ev" = FAIL ] && fail=1
+            [ "$ad" = FAIL ] && fail=1
+          done
+          exit "$fail"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: waza-skill-eval-results
+          path: .waza-results/
+          if-no-files-found: ignore
+          retention-days: 7
