@@ -374,6 +374,62 @@ const hasUnsafeContamination = (text: string): boolean => {
   return false
 }
 
+// Shared traversal + post-GENERATED_MARKER removal for the generated surface.
+// `shouldRemove` decides whether the content after the marker is safe to strip
+// for a given contract; `reason` labels the resulting RepairReport. removedBytes
+// is consistently the full post-marker byte count so both callers report the
+// same metric.
+const removePostMarkerContent = (
+  root: string,
+  reason: string,
+  shouldRemove: (afterMarker: string) => boolean,
+  onReport?: (report: RepairReport) => void,
+): RepairReport[] => {
+  const reports: RepairReport[] = []
+  for (const relativePath of collectGeneratedSurfaceFiles(root)) {
+    if (isExcludedContaminationPath(relativePath)) {
+      continue
+    }
+    const absolutePath = path.join(root, relativePath)
+    let stat: { size: number }
+    try {
+      stat = statSync(absolutePath)
+    } catch {
+      continue
+    }
+    if (stat.size > CONTAMINATION_DEFAULT_MAX_SIZE) {
+      continue
+    }
+    if (!CONTAMINATION_CHECK_EXTENSIONS.has(path.extname(relativePath))) {
+      continue
+    }
+    const content = readFileSync(absolutePath, 'utf8')
+    const markerIndex = content.lastIndexOf(GENERATED_MARKER)
+    if (markerIndex === -1) {
+      continue
+    }
+    const markerEnd = markerIndex + GENERATED_MARKER.length
+    const afterMarker = content.slice(markerEnd)
+    if (afterMarker.trim().length === 0) {
+      continue
+    }
+    if (!shouldRemove(afterMarker)) {
+      continue
+    }
+    const line = content.slice(0, markerEnd).split('\n').length
+    writeFileSync(absolutePath, `${content.slice(0, markerEnd)}\n`)
+    const next: RepairReport = {
+      relativePath,
+      line,
+      reason,
+      removedBytes: afterMarker.length,
+    }
+    reports.push(next)
+    onReport?.(next)
+  }
+  return reports
+}
+
 // Removes the exact annotation that `apm compile --single-agents` (legacy mode)
 // appends after GENERATED_MARKER. This is deterministic normalization of a
 // known APM annotation, not contamination repair: any content that is not a
@@ -382,109 +438,29 @@ const hasUnsafeContamination = (text: string): boolean => {
 export const stripKnownApmLegacyAnnotation = (
   root: string,
   onStrip?: (report: RepairReport) => void,
-): RepairReport[] => {
-  const reports: RepairReport[] = []
-  const report = (next: RepairReport): void => {
-    reports.push(next)
-    onStrip?.(next)
-  }
-  for (const relativePath of collectGeneratedSurfaceFiles(root)) {
-    if (isExcludedContaminationPath(relativePath)) {
-      continue
-    }
-    const absolutePath = path.join(root, relativePath)
-    let stat: { size: number }
-    try {
-      stat = statSync(absolutePath)
-    } catch {
-      continue
-    }
-    if (stat.size > CONTAMINATION_DEFAULT_MAX_SIZE) {
-      continue
-    }
-    if (!CONTAMINATION_CHECK_EXTENSIONS.has(path.extname(relativePath))) {
-      continue
-    }
-    const content = readFileSync(absolutePath, 'utf8')
-    const markerIndex = content.lastIndexOf(GENERATED_MARKER)
-    if (markerIndex === -1) {
-      continue
-    }
-    const markerEnd = markerIndex + GENERATED_MARKER.length
-    const afterMarker = content.slice(markerEnd)
-    if (afterMarker.trim().length === 0) {
-      continue
-    }
-    if (!APM_LEGACY_ANNOTATION_PATTERN.test(afterMarker)) {
-      continue
-    }
-    const line = content.slice(0, markerEnd).split('\n').length
-    writeFileSync(absolutePath, `${content.slice(0, markerEnd)}\n`)
-    report({
-      relativePath,
-      line,
-      reason: 'stripped known APM legacy annotation',
-      removedBytes: afterMarker.length,
-    })
-  }
-  return reports
-}
+): RepairReport[] =>
+  removePostMarkerContent(
+    root,
+    'stripped known APM legacy annotation',
+    (afterMarker) => APM_LEGACY_ANNOTATION_PATTERN.test(afterMarker),
+    onStrip,
+  )
 
 export const repairArtifactContamination = (
   root: string,
   onRepair?: (report: RepairReport) => void,
-): RepairReport[] => {
-  const reports: RepairReport[] = []
-  const report = (next: RepairReport): void => {
-    reports.push(next)
-    onRepair?.(next)
-  }
-  for (const relativePath of collectGeneratedSurfaceFiles(root)) {
-    if (isExcludedContaminationPath(relativePath)) {
-      continue
-    }
-    const absolutePath = path.join(root, relativePath)
-    let stat: { size: number }
-    try {
-      stat = statSync(absolutePath)
-    } catch {
-      continue
-    }
-    if (stat.size > CONTAMINATION_DEFAULT_MAX_SIZE) {
-      continue
-    }
-    if (!CONTAMINATION_CHECK_EXTENSIONS.has(path.extname(relativePath))) {
-      continue
-    }
-    const content = readFileSync(absolutePath, 'utf8')
-    const markerIndex = content.lastIndexOf(GENERATED_MARKER)
-    if (markerIndex === -1) {
-      continue
-    }
-    const markerEnd = markerIndex + GENERATED_MARKER.length
-    const afterMarker = content.slice(markerEnd)
-    if (afterMarker.trim().length === 0) {
-      continue
-    }
-    // Repair only removes benign post-marker drift. Contamination that cannot
-    // be safely auto-repaired (preview/dry-run output, personal absolute
-    // paths) is left in place so validateGeneratedSurfaceContamination fails
-    // fail-closed even in --repair mode. Arbitrary removal is gated behind the
-    // explicit --repair flag by the caller.
-    if (hasUnsafeContamination(afterMarker)) {
-      continue
-    }
-    const line = content.slice(0, markerEnd).split('\n').length
-    writeFileSync(absolutePath, `${content.slice(0, markerEnd)}\n`)
-    report({
-      relativePath,
-      line,
-      reason: 'removed unexpected content after generated marker',
-      removedBytes: afterMarker.trim().length,
-    })
-  }
-  return reports
-}
+): RepairReport[] =>
+  // Repair only removes benign post-marker drift. Contamination that cannot
+  // be safely auto-repaired (preview/dry-run output, personal absolute paths)
+  // is left in place so validateGeneratedSurfaceContamination fails fail-closed
+  // even in --repair mode. Arbitrary removal is gated behind the explicit
+  // --repair flag by the caller.
+  removePostMarkerContent(
+    root,
+    'removed unexpected content after generated marker',
+    (afterMarker) => !hasUnsafeContamination(afterMarker),
+    onRepair,
+  )
 
 export const validateRequiredAgentArtifacts = (root: string): void => {
   for (const relativePath of REQUIRED_AGENT_ARTIFACTS) {

@@ -203,6 +203,23 @@ describe('repairArtifactContamination', () => {
     expect(reports[0]?.reason).toContain('generated marker')
   })
 
+  it('reports the full post-marker byte count including surrounding whitespace', () => {
+    const root = createTemporaryDirectory('tabbin-repair-bytes-')
+    const artifactPath = path.join(root, 'AGENTS.md')
+    mkdirSync(path.dirname(artifactPath), { recursive: true })
+    const marker = '*To regenerate: `apm compile`*'
+    const afterMarker = '\nmanual drift after marker\n'
+    writeFileSync(
+      artifactPath,
+      `# GitHub Pull Request review\n${marker}${afterMarker}`,
+    )
+
+    const reports = repairArtifactContamination(root)
+
+    expect(reports).toHaveLength(1)
+    expect(reports[0]?.removedBytes).toBe(afterMarker.length)
+  })
+
   it('reports each repaired file via the onRepair callback', () => {
     const root = createTemporaryDirectory('tabbin-repair-callback-')
     const artifactPath = path.join(root, 'AGENTS.md')
@@ -306,6 +323,24 @@ describe('stripKnownApmLegacyAnnotation', () => {
     expect(reports).toHaveLength(1)
     expect(reports[0]?.relativePath).toBe('AGENTS.md')
     expect(reports[0]?.reason).toContain('known APM legacy annotation')
+  })
+
+  it('reports the full post-marker byte count for the stripped annotation', () => {
+    const root = createTemporaryDirectory('tabbin-strip-known-bytes-')
+    const artifactPath = path.join(root, 'AGENTS.md')
+    mkdirSync(path.dirname(artifactPath), { recursive: true })
+    const marker = '*To regenerate: `apm compile`*'
+    const afterMarker =
+      '\n\n\n---\n\nCLAUDE.md Preview: Would generate 1 file\n  CLAUDE.md\n\n---\n\nGEMINI.md Preview: Would generate stub importing AGENTS.md'
+    writeFileSync(
+      artifactPath,
+      `# GitHub Pull Request review\n${marker}${afterMarker}`,
+    )
+
+    const reports = stripKnownApmLegacyAnnotation(root)
+
+    expect(reports).toHaveLength(1)
+    expect(reports[0]?.removedBytes).toBe(afterMarker.length)
   })
 
   it('strips a single known legacy annotation block', () => {
