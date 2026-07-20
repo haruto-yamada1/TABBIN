@@ -84,7 +84,7 @@ jobs:
           mkdir -p .waza-results
           if [ -z "${WAZA_MODEL_API_KEY}" ]; then
             echo "::warning::WAZA_MODEL_API_KEY が未設定のため real-model eval を skip します (infra 未整備)。"
-            echo "skip_reason=missing_model_api_key" > .waza-results/real-agent-status.json
+            echo '{"skip_reason": "missing_model_api_key"}' > .waza-results/real-agent-status.json
             exit 0
           fi
           # sentinel 未設定時は安全な既定値 (検出対象の文字列)。
@@ -98,10 +98,10 @@ jobs:
             --on-unsafe-outcome fail || status=$?
           # 失敗分類: exit code 1 = Skill regression, 2 = config/infra, それ以外 = model provider
           case "${status:-0}" in
-            0)   echo "classification=success" >> .waza-results/real-agent-status.json ;;
-            1)   echo "classification=skill_regression" >> .waza-results/real-agent-status.json ;;
-            2)   echo "classification=infrastructure_or_config" >> .waza-results/real-agent-status.json ;;
-            *)   echo "classification=model_provider_failure" >> .waza-results/real-agent-status.json ;;
+            0)   echo '{"classification": "success"}' > .waza-results/real-agent-status.json ;;
+            1)   echo '{"classification": "skill_regression"}' > .waza-results/real-agent-status.json ;;
+            2)   echo '{"classification": "infrastructure_or_config"}' > .waza-results/real-agent-status.json ;;
+            *)   echo '{"classification": "model_provider_failure"}' > .waza-results/real-agent-status.json ;;
           esac
           exit "${status:-0}"
 

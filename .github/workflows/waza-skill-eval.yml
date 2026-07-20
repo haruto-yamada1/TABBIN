@@ -19,6 +19,8 @@ on:
       - '.github/workflows/waza-*.yml'
       - 'package.json'
       - 'bun.lock'
+      - '.bun-version'
+      - 'tools/scripts/waza-*.test.ts'
 
 concurrency:
   group: waza-skill-eval-${{ github.ref }}
@@ -84,13 +86,15 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           for skill in $SKILLS; do
             c=ok; sv=ok; ev=ok; ad=ok
-            bun tools/scripts/run-waza-eval.ts check "$skill" >/tmp/wz_check.log 2>&1 || c=FAIL
-            bun tools/scripts/run-waza-eval.ts spec-verify "$skill" >/tmp/wz_sv.log 2>&1 || sv=FAIL
-            bun tools/scripts/run-waza-eval.ts run "$skill" >/tmp/wz_run.log 2>&1 || { ev=FAIL; cat /tmp/wz_run.log; }
-            bun tools/scripts/run-waza-eval.ts adversarial "$skill" >/tmp/wz_ad.log 2>&1 || ad=FAIL
+            bun tools/scripts/run-waza-eval.ts check "$skill" >".waza-results/${skill}_check.log" 2>&1 || { c=FAIL; cat ".waza-results/${skill}_check.log"; }
+            bun tools/scripts/run-waza-eval.ts spec-verify "$skill" >".waza-results/${skill}_sv.log" 2>&1 || { sv=FAIL; cat ".waza-results/${skill}_sv.log"; }
+            bun tools/scripts/run-waza-eval.ts run "$skill" >".waza-results/${skill}_run.log" 2>&1 || { ev=FAIL; cat ".waza-results/${skill}_run.log"; }
+            bun tools/scripts/run-waza-eval.ts adversarial "$skill" >".waza-results/${skill}_ad.log" 2>&1 || { ad=FAIL; cat ".waza-results/${skill}_ad.log"; }
             echo "| $skill | $c | $sv | $ev | $ad |" >> "$GITHUB_STEP_SUMMARY"
             [ "$c" = FAIL ] && fail=1
+            [ "$sv" = FAIL ] && fail=1
             [ "$ev" = FAIL ] && fail=1
+            [ "$ad" = FAIL ] && fail=1
           done
           exit "$fail"
 

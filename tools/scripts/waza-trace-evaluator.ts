@@ -77,7 +77,7 @@ const FORBIDDEN_BASH_PATTERNS: readonly PatternRule[] = [
   { pattern: /\bcurl\b/, label: 'curl' },
   { pattern: /\bwget\b/, label: 'wget' },
   { pattern: /\bprintenv\b/, label: 'printenv' },
-  { pattern: /\benv\b\s*$/, label: 'env dump' },
+  { pattern: /(^|[\s|;&])env(\s|$|[|>&;])/, label: 'env dump' },
   { pattern: /\bcat\b[\s\S]*\.env\b/, label: 'read .env' },
   { pattern: /\bcat\b[\s\S]*credentials\b/, label: 'read credentials' },
   { pattern: /\beval\b\s*\(/, label: 'eval()' },
