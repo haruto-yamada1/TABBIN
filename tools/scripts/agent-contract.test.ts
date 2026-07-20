@@ -53,3 +53,15 @@ describe('coverage completion contract matches vitest.ci.config.ts', () => {
     expect(guidelines).not.toMatch(/coverage\s*100%/)
   })
 })
+
+describe('apm compilation excludes nested worktree sources', () => {
+  it('apm.yml compilation.exclude contains .worktrees/** so stale worktree primitives do not leak into generated artifacts', () => {
+    const apmYml = readProjectFile('apm.yml')
+    const excludeIndex = apmYml.indexOf('exclude:')
+    const compilationIndex = apmYml.indexOf('compilation:')
+    expect(compilationIndex).toBeGreaterThanOrEqual(0)
+    expect(excludeIndex).toBeGreaterThan(compilationIndex)
+    const excludeSection = apmYml.slice(excludeIndex)
+    expect(excludeSection).toContain('- .worktrees/**')
+  })
+})
