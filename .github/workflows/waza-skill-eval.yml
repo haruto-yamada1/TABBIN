@@ -69,7 +69,10 @@ jobs:
           bunx vitest run --config vitest.ci.config.ts --project=node \
             tools/scripts/waza-eval-contract.test.ts \
             tools/scripts/waza-version-consistency.test.ts \
-            tools/scripts/waza-trace-evaluator.test.ts
+            tools/scripts/waza-trace-evaluator.test.ts \
+            tools/scripts/waza-trace-adapter.test.ts \
+            tools/scripts/waza-cli-contract.test.ts \
+            tools/scripts/evaluate-waza-trace.test.ts
 
       - name: Layer 2 — waza check / spec verify / mock eval (all skills)
         env:
