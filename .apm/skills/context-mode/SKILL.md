@@ -1,11 +1,11 @@
 ---
-description: Codex エージェント向けの必須 context-mode ルーティング規則。
-applyTo: "**/*"
+name: context-mode
+description: shell コマンド実行、ファイル読み取り、検索、Web 取得、データ分析、コンテキスト管理を行うとき。コンテキストウィンドウの過剰消費を防ぐ context-mode MCP のルーティング規則。Codex CLI 向け。
 ---
 
 # context-mode — 必須ルーティング規則
 
-context-mode MCP ツールが利用できる環境では、コンテキストウィンドウの過剰消費を防ぐためこの規則に従います。ルーティングされていないコマンドを 1 回実行するだけで 56 KB がコンテキストへ流れ込むことがあります。Codex CLI の hook は `[features].hooks = true` のとき実行時に強制しますが、この指示はモデル側でも必須です。厳守してください。
+context-mode MCP ツールが利用できる環境では、コンテキストウィンドウの過剰消費を防ぐためこの規則に従います。ルーティングされていないコマンドを 1 回実行するだけで 56 KB がコンテキストへ流れ込むことがあります。Codex CLI の hook は `[features].hooks = true` のとき実行時に強制しますが、この skill はモデル側でも必須。厳守してください。
 
 ## 事前確認 — MCP の有無
 

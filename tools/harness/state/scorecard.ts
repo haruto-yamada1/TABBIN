@@ -50,12 +50,9 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
     'Context Efficiency': {
       ok:
         existsSync(
-          path.join(
-            projectRoot,
-            '.apm/instructions/00-context-mode.instructions.md',
-          ),
+          path.join(projectRoot, '.apm/skills/context-mode/SKILL.md'),
         ) && alwaysInjectedBytes <= ALWAYS_INJECTED_BYTES_LIMIT,
-      evidence: `context-mode routing + ${alwaysInjectedBytes} bytes always-injected (~${Math.ceil(alwaysInjectedBytes / 4)} tokens)`,
+      evidence: `context-mode skill + ${alwaysInjectedBytes} bytes always-injected (~${Math.ceil(alwaysInjectedBytes / 4)} tokens)`,
     },
     'Agent Context Health': {
       ok: checkAgentContextHealth(projectRoot),
@@ -103,17 +100,12 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
     },
     'Cost Efficiency': {
       ok:
+        existsSync(path.join(projectRoot, '.apm/skills/rtk/SKILL.md')) &&
         existsSync(
-          path.join(projectRoot, '.apm/instructions/01-rtk.instructions.md'),
-        ) &&
-        existsSync(
-          path.join(
-            projectRoot,
-            '.apm/instructions/00-context-mode.instructions.md',
-          ),
+          path.join(projectRoot, '.apm/skills/context-mode/SKILL.md'),
         ) &&
         agentsMdTokens <= 20_000,
-      evidence: `context-mode / RTK routing + AGENTS.md ~${agentsMdTokens} tokens`,
+      evidence: `context-mode / RTK skills + AGENTS.md ~${agentsMdTokens} tokens`,
     },
     'GitHub Integration': {
       ok:

@@ -40,7 +40,10 @@ TypeScript + React を ES modules で使います。format は oxfmt（`.oxfmtrc
 
 React コンポーネントは `PascalCase.tsx`（例: `ImportExportSettings.tsx`）、ユーティリティや定数は `camelCase.ts`（例: `autoDeleteOptions.ts`）を使います。現実的な範囲で、テストは検証対象のコードの近くに置いてください。
 
-実装前に既存の helper、型、wrapper、コンポーネント、テスト fixture を探してください。探索には context-mode の `ctx_batch_execute` / `ctx_search`、`rg`、Serena の symbol search を優先し、既存の source of truth を確認してから新しい抽象を追加します。KISS / DRY / YAGNI は守りますが、TABBIN 固有の WXT、APM、完了ゲートの規則を汎用ルールで置き換えないでください。
+実装前に既存の helper、型、wrapper、コンポーネント、テスト fixture を探してください。探索には `rg` と Serena の symbol search を優先し、既存の source of truth を確認してから新しい抽象を追加します。KISS / DRY / YAGNI は守りますが、TABBIN 固有の WXT、APM、完了ゲートの規則を汎用ルールで置き換えないでください。
+
+## ツールルーティング（Codex CLI）
+shell コマンド実行・ファイル分析・Web 取得・コンテキスト管理では、コンテキストウィンドウの過剰消費を防ぐため `$context-mode` skill のルーティング規則に従ってください。shell 出力を圧縮するときは `$rtk` skill を使います。これらは常時注入ではなく用途別 skill です。
 
 ## テストガイドライン
 主要なテストランナーは Vitest（`vitest.ci.config.ts`）、E2E は `e2e/` の Playwright（`*.spec.ts`）。unit / integration テストには `*.test.ts(x)` を使います。ローカルでの script 使い分けや node / dom project の判別は `02-vitest-local-development` を参照してください。

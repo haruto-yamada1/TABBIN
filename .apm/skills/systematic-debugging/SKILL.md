@@ -86,26 +86,7 @@ description: バグ、テスト失敗、予期しない挙動に遭遇したと�
    そのコンポーネントを調査
    ```
 
-   **例（多層システム）:**
-   ```bash
-   # Layer 1: Workflow
-   echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
-
-   # Layer 2: Build script
-   echo "=== Env vars in build script: ==="
-   env | grep IDENTITY || echo "IDENTITY not in environment"
-
-   # Layer 3: Signing script
-   echo "=== Keychain state: ==="
-   security list-keychains
-   security find-identity -v
-
-   # Layer 4: Actual signing
-   codesign --sign "$IDENTITY" --verbose=4 "$APP"
-   ```
-
-   **これが示す:** どのレイヤーが失敗（secrets → workflow ✓、workflow → build ✗）
+   多層システムの境界診断例は `multi-layer-diagnosis-example.md` を参照。
 
 5. **データフローのトレース**
 

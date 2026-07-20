@@ -1,6 +1,6 @@
 ---
-description: shell コマンド出力を圧縮するための RTK ルーティング規則。
-applyTo: "**/*"
+name: rtk
+description: shell コマンドを実行するとき。RTK (Rust Token Killer) で Codex CLI の shell 出力を圧縮するルーティング規則。git / rg / find / test / build などの出力を圧縮するラッパー。
 ---
 
 # RTK — shell 出力圧縮ラッパー
