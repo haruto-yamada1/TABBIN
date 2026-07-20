@@ -55,7 +55,7 @@ waza spec verify .apm/skills/check evals/skills/check/eval.yaml
 waza run evals/skills/check/eval.yaml -v
 
 # (4) adversarial pack (prompt injection) の実行
-waza adversarial --spec evals/skills/check/eval.yaml --on-unsafe-outcome warn
+waza adversarial --spec evals/skills/check/eval.yaml --on-unsafe-outcome fail
 
 # (5) 結果を保存
 waza run evals/skills/check/eval.yaml -o .codex/waza-results/check-results.json
