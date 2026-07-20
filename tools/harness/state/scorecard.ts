@@ -15,6 +15,7 @@ function surfaceAuditCategoryNames() {
   return [
     'Tool Coverage',
     'Context Efficiency',
+    'Agent Context Health',
     'Quality Gates',
     'Memory Persistence',
     'Eval Coverage',
@@ -44,6 +45,11 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
         ),
       ),
       evidence: '.apm/instructions/00-context-mode.instructions.md',
+    },
+    'Agent Context Health': {
+      ok: checkAgentContextHealth(projectRoot),
+      evidence:
+        'AGENTS.md size, applyTo count, contamination, skill invocation',
     },
     'Quality Gates': {
       ok:
@@ -105,9 +111,16 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
     },
   }
 
+  const contextFindings = collectAgentContextFindings(projectRoot)
+
   return surfaceAuditCategoryNames().map((name) => {
     const check = checks[name]
-    const findings = findingsForCategory(name, sourceFindings, securityFindings)
+    const findings = findingsForCategory(
+      name,
+      sourceFindings,
+      securityFindings,
+      contextFindings,
+    )
     const ok = check.ok
     return {
       name,
@@ -162,6 +175,7 @@ function findingsForCategory(
   name: string,
   sourceFindings: string[],
   securityFindings: SecurityFinding[],
+  contextFindings: string[] = [],
 ) {
   if (name === 'Source-of-truth Sync') {
     return sourceFindings
@@ -171,7 +185,105 @@ function findingsForCategory(
       (finding) => `${finding.file}: ${finding.summary}`,
     )
   }
+  if (name === 'Agent Context Health') {
+    return contextFindings
+  }
   return []
+}
+
+function checkAgentContextHealth(projectRoot: string): boolean {
+  const contextFindings = collectAgentContextFindings(projectRoot)
+  return contextFindings.length === 0
+}
+
+function collectAgentContextFindings(projectRoot: string): string[] {
+  const findings: string[] = []
+
+  // Check AGENTS.md byte count (flag if > 40KB)
+  const agentsMdPath = path.join(projectRoot, 'AGENTS.md')
+  if (existsSync(agentsMdPath)) {
+    const size = statSync(agentsMdPath).size
+    if (size > 40_000) {
+      findings.push(
+        `AGENTS.md が ${size} bytes で大きすぎます (40KB 超過)。instruction を縮小してください。`,
+      )
+    }
+  }
+
+  // Check applyTo: "**/*" instruction count (flag if > 5)
+  const instructionsDir = path.join(projectRoot, '.apm/instructions')
+  if (existsSync(instructionsDir)) {
+    const alwaysInjected = readdirSync(instructionsDir)
+      .filter((f) => f.endsWith('.instructions.md'))
+      .map((f) => readFileSync(path.join(instructionsDir, f), 'utf8'))
+      .filter((content) => content.includes('applyTo: "**/*"'))
+    if (alwaysInjected.length > 5) {
+      findings.push(
+        `applyTo: "**/*" instruction が ${alwaysInjected.length} 個あります (5 超過)。用途限定の instruction を Skill へ移動してください。`,
+      )
+    }
+  }
+
+  // Check for personal absolute paths in generated artifacts
+  const generatedFiles = ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md']
+  for (const fileName of generatedFiles) {
+    const filePath = path.join(projectRoot, fileName)
+    if (!existsSync(filePath)) {
+      continue
+    }
+    const content = readFileSync(filePath, 'utf8')
+    if (/\/Users\/[A-Za-z0-9_-]+\//.test(content)) {
+      findings.push(`${fileName}: 個人絶対パスが混入しています。`)
+    }
+    if (/\/home\/[A-Za-z0-9_-]+\//.test(content)) {
+      findings.push(`${fileName}: 個人絶対パスが混入しています。`)
+    }
+    if (content.includes('Preview: Would generate')) {
+      findings.push(`${fileName}: preview/dry-run 出力が混入しています。`)
+    }
+    if (content.includes('Would generate stub')) {
+      findings.push(`${fileName}: preview/dry-run 出力が混入しています。`)
+    }
+  }
+
+  // Check side-effect skills have disable-model-invocation
+  const sideEffectSkills = [
+    'commit-push-pr',
+    'github-issue-implementation',
+    'github-pr-review',
+    'babysit',
+    'finishing-a-development-branch',
+    'harness-planner',
+    'harness-generator',
+    'harness-evaluator',
+    'harness-optimizer',
+    'create-hook',
+    'create-rule',
+    'create-skill',
+    'create-subagent',
+    'caveman',
+    'caveman-commit',
+    'caveman-compress',
+    'caveman-review',
+    'caveman-stats',
+    'statusline',
+  ]
+  for (const skillName of sideEffectSkills) {
+    const skillPath = path.join(
+      projectRoot,
+      `.apm/skills/${skillName}/SKILL.md`,
+    )
+    if (existsSync(skillPath)) {
+      const skillContent = readFileSync(skillPath, 'utf8')
+      if (!skillContent.includes('disable-model-invocation: true')) {
+        findings.push(
+          `.apm/skills/${skillName}/SKILL.md: 副作用 Skill に disable-model-invocation がありません。`,
+        )
+      }
+    }
+  }
+
+  return findings
 }
 
 function readPackageScriptNames(projectRoot: string) {
@@ -277,6 +389,7 @@ function collectChangedFiles(projectRoot: string) {
 
 export {
   buildSurfaceAuditCategories,
+  collectAgentContextFindings,
   collectChangedFiles,
   collectOrphanSkillFindings,
   collectSourceOfTruthFindings,

@@ -1,5 +1,6 @@
 ---
 name: finishing-a-development-branch
+disable-model-invocation: true
 description: 実装完了、全テスト通過後、作業の統合方法を決めるときに使います。merge、PR、クリーンアップの構造化された選択肢を提示して開発完了を導きます。
 ---
 

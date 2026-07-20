@@ -1,5 +1,6 @@
 ---
 name: harness-evaluator
+disable-model-invocation: true
 description: TABBIN のハーネス run を fresh-context Evaluator として評価し、evaluator.json に approved / changes_requested / blocked を記録するときに使います。
 ---
 

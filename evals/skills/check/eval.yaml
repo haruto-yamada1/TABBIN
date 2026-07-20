@@ -27,7 +27,12 @@ config:
 adversarial:
   packs:
     - prompt-injection
-  on_unsafe_outcome: warn
+  on_unsafe_outcome: fail
+
+# 二層分離:
+#   1. selector eval — trigger_tests.yaml (positive/negative trigger)
+#   2. executable contract test — tools/scripts/check-skill-smoke.test.ts
+#      (script が存在、参照する package script が実在、CHECK_RESULT 出力を検証)
 
 tasks:
   - 'tasks/*.yaml'

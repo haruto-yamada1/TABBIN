@@ -52,11 +52,23 @@ coverage 100% は `vitest.ci.config.ts` の coverage threshold 設定に基づ�
 ## タスク管理
 永続的なタスク管理は GitHub issue などリポジトリ外の issue tracker を使ってください。ローカルの Markdown TODO リストや生成 artifact を source of truth にしないでください。
 
-作業セッションを終えるときは、残った follow-up 作業を issue として残し、上記完了ゲート（`bun run quality:check`、必要に応じて `bun run test:coverage`）を実行して、完了したブランチを push してください。release-sensitive な変更や Issue-to-PR workflow では、変更を commit して clean tree にした後で `bun run release:check` も実行します。`git push` が成功し、`git status` でブランチが origin と同期済みであることを確認するまで、作業は完了ではありません。issue tracker 操作や push がローカルツールや認証情報でブロックされた場合は、そのブロッカーを明示的に報告してください。
+作業セッションを終えるときは、残った follow-up 作業を issue として残し、上記完了ゲート（`bun run quality:check`、必要に応じて `bun run test:coverage`）を実行して、完了したブランチを push してください。commit / push / PR 作成の許可境界は下記「Commit / Push / PR 許可境界」セクションに統一されています。
 
-## Commit と Pull Request のガイドライン
-最近の履歴では、簡潔な件名（日本語が多い）と merge commit が使われています。1 つの変更を説明する、短く命令形の commit message を優先してください。commit 件名は日本語で書いてください（英語不可ではないですが、リポジトリ慣習に合わせます）。本文は必要十分な範囲で日本語で補足します。
+## Commit / Push / PR 許可境界
+commit、push、PR 作成は以下の条件を全て満たす場合のみ実行します。この境界は `commit-push-pr` / `github-issue-implementation` / `github-pr-review` / `finishing-a-development-branch` 等、副作用を持つ全ての Skill に共通する唯一のルールです。
 
-PR は原則 `develop` を target にし、ユーザーが Draft を指定しない限り Open で作成します。ただし hotfix は `main` / `release/*` ブランチを直接 target にしてよい場合があり、release 後追従変更は該当 release ブランチへ向けます。いずれの場合も base branch を PR 本文へ明記してください。本文には原因、採用した解決、主要変更、regression risk、実行した検証、acceptance criteria との対応をまとめてください。関連 issue をリンクし、UI 変更では screenshot / GIF を含めてください。
-
-PR 作成前には、base branch との差分、直近の関連 commit、生成 artifact の混入有無を確認してください。`.apm` で管理される内容は source 側の変更と生成先の同期が揃っていることを確認し、generated files だけの手編集を PR の根拠にしないでください。`.apm/` を編集した場合は `bun run apm:sync` で `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` 等の生成先を更新し、`bun run apm:check` で tracked 生成物と scratch 再生成結果が一致することを確認してください。
+- ユーザーが明示的に依頼した作業フロー内、または依頼に含まれる通常の実装ステップであること
+- stage するのは当該 Issue / タスクが所有する path だけ（他者変更を含まないこと）
+- commit 前に `bun run quality:check`（release-sensitive なら `bun run release:check`）が通っていること
+- commit 後の working tree が clean であること
+- force-push はユーザーが明示しない限り行わない
+- base branch (`develop` / `main` / `release/*`) への直接 push はしない
+- PR は原則 `develop` を target とし、ユーザーが Draft を指定しない限り Open で作成する（hotfix は例外）
+- merge、close、approve はユーザーが明示しない限り行わない
+- PR 本文に原因、採用した解決、主要変更、検証結果、regression risk、acceptance criteria 対応、`Closes #<issue>` を含める
+- UI 変更では screenshot / GIF を含める
+- `.apm/` を編集した場合は `bun run apm:sync` で生成先を更新し、`bun run apm:check` で一致を確認する
+- generated files だけの手編集を PR の根拠にしない
+- commit 件名は日本語で書く（英語不可ではないが、リポジトリ慣習に合わせる）
+- `git push` が成功し、`git status` で origin と同期済みであることを確認するまで作業は完了ではない
+- issue tracker 操作や push がローカルツールや認証情報でブロックされた場合は、ブロッカーを明示的に報告する

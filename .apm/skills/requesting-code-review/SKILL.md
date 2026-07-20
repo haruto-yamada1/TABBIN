@@ -7,6 +7,9 @@ description: タスク完了時、大きな機能実装後、merge 前に要件�
 
 superpowers:code-reviewer サブエージェントを dispatch し、問題が連鎖する前に捕捉します。
 
+> **境界:** これは開発中の pre-merge review です。ハーネス run の成果物評価は
+> harness-evaluator（fresh-context Evaluator）を使います。
+
 **核心原則:** 早く、頻繁にレビューする。
 
 ## レビューを依頼するタイミング

@@ -1,5 +1,6 @@
 ---
 name: statusline
+disable-model-invocation: true
 description: Claude Code / Cursor CLI 専用。CLI の custom status line を設定します。status line、statusline、statusLine、CLI status bar、prompt footer のカスタマイズ、prompt 上への session context 追加を依頼されたときに使います。Codex / Gemini など status line 機能のないクライアントでは実行せず、該当クライアントの機能がない旨を伝えます。
 ---
 # CLI status line（Claude Code / Cursor CLI 専用）

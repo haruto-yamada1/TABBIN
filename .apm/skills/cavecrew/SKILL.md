@@ -1,5 +1,6 @@
 ---
 name: cavecrew
+disable-model-invocation: true
 description: >
   Decision guide for delegating to caveman-style subagents. Tells the main
   thread WHEN to spawn `cavecrew-investigator` (locate code), `cavecrew-builder`

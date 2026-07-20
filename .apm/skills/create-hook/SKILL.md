@@ -1,5 +1,6 @@
 ---
 name: create-hook
+disable-model-invocation: true
 description: AI エージェント向けの hook を作成します。Codex (.codex/hooks.json)、Claude Code (.claude/settings.json hooks)、Cursor (.cursor/hooks.json) など、利用中クライアントの hook 仕様に合わせて hook file と設定を生成します。agent event 周辺の behavior 自動化時に使います。
 ---
 # AI エージェント向け hook の作成

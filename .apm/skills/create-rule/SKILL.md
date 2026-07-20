@@ -1,5 +1,6 @@
 ---
 name: create-rule
+disable-model-invocation: true
 description: 永続的な AI ガイダンス（rule / instruction）を作成します。Codex (AGENTS.md / .apm/instructions/)、Claude Code (CLAUDE.md / .claude/rules/)、Cursor (.cursor/rules/*.mdc) など、利用中クライアントの rule 仕様に合わせて file を生成します。コーディング標準、プロジェクト規約、file-specific パターンの追加時に使います。
 ---
 # AI エージェント向け rule / instruction の作成
