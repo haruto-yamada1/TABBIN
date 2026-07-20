@@ -54,6 +54,7 @@ jobs:
           curl -fSL -o "$tmp/$ASSET" \
             "https://github.com/microsoft/waza/releases/download/${WAZA_VERSION}/${ASSET}"
           echo "$EXPECT_SHA  $tmp/$ASSET" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
           install -m 0755 "$tmp/$ASSET" "$HOME/.local/bin/waza"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           waza --version
