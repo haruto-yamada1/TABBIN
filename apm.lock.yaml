@@ -248,8 +248,8 @@ local_deployed_file_hashes:
   .claude/rules/01-rtk.md: sha256:636fac26f8f9a57bc4b707480dabfbd5d60df0b095bbdcc8cf8da6177dbf8fd4
   .claude/rules/02-vitest-local-development.md: sha256:13860c83ab91205f33f126eaf2a774eda6603cd90bd56ebeb5788feb0e8dcacf
   .claude/rules/03-github-pr-review.md: sha256:f333259dd7142d56f25de8e34b32a35e8fbe2d10f6ef6681e8f5ba6ec7469006
-  .claude/rules/harness.md: sha256:2a45a75a1ec75e4ea7daeb9fe7e7434f5bdd9b6b74a9ab4644eb4c160486ad9d
-  .claude/rules/repository-guidelines.md: sha256:fbba4672ce9914110b55f6ee35309cf5b577dea85e779c0470791cbfb85d3419
+  .claude/rules/harness.md: sha256:abefd61c3774b88163f4cf9e8391df827a94e98cf32f897861866ee868f744b9
+  .claude/rules/repository-guidelines.md: sha256:720d389739f55d6893e0932f8445c6128625a3c4e30ae0080087250f5eafbd64
   .codex/hooks/TABBIN/scripts/format-check-on-edit.sh: sha256:c4e970c8bb9af84d52a33deb6831a2eec3847d16de0e95d038f64f4e3e618035
   .codex/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
   .codex/hooks/TABBIN/scripts/harness-event-capture.sh: sha256:3aa71ec6526e78a3c0f5afa8df2ee06d0f7b09477e91d8675d792e82713254b2
@@ -284,8 +284,8 @@ local_deployed_file_hashes:
   .cursor/rules/01-rtk.mdc: sha256:f9642d6c566b544efe8258ee4d1e03dea14aa2889ce350acf3b4201221a4fceb
   .cursor/rules/02-vitest-local-development.mdc: sha256:e160057e26c893c134e59b9e137956ad442e0be3d0b9cfde3c223a3947a0061f
   .cursor/rules/03-github-pr-review.mdc: sha256:b6494c7c943fdda6014790232677aac4b5a910fc618148c1fc7403694b5452ff
-  .cursor/rules/harness.mdc: sha256:2148c2ab909075244e4031c9a05dce377b1612734a9274364c35158997ad0d75
-  .cursor/rules/repository-guidelines.mdc: sha256:4c9c515074bb463a2d20b1af5d503353882657643390bb975d3936dbffcde433
+  .cursor/rules/harness.mdc: sha256:e8198848d5738a570d125e10b3222bff3c9ad2783b6a8bd3c8c5eb48672caf41
+  .cursor/rules/repository-guidelines.mdc: sha256:6a311024c763e9f8c36bc6826ba3646c838862adb934273a8b495c6043025d5b
   .gemini/commands/agent-automation-recommendations.toml: sha256:ce578d722cab82c16a65ed4a38696e8570a9205b38e99a84a8fbfc362375876a
   .gemini/commands/code-style.toml: sha256:997fa8f57d7d440eff082e262255697e8d7cf9613e4b4a23852f3665877dbb16
   .gemini/commands/comment-rule.toml: sha256:4a448d0c0d7234702958fd7a5dca43882a81a256a70b69021ae5306648480dcc
@@ -321,8 +321,8 @@ local_deployed_file_hashes:
   .github/instructions/01-rtk.instructions.md: sha256:4aacd30646bb9a32d96d5b006ff6a5f54bdd38c5ca60156ca25daef2ad9427ec
   .github/instructions/02-vitest-local-development.instructions.md: sha256:2c09e3c81ae78142d90e80206edb63dfcd7ff305f1676f361a719988cb8ddd19
   .github/instructions/03-github-pr-review.instructions.md: sha256:b44658cb3b040102f3c646c88d8be7ce0e03d755768b52dc3fbab0e99076d1fc
-  .github/instructions/harness.instructions.md: sha256:c58c0db562692078c6b1aecc4d35548bda06918f5d4631dd72780f625acaac7c
-  .github/instructions/repository-guidelines.instructions.md: sha256:ff4cdd6adb92cb42656f2d2674c814b22d738d6418f1f6e2e9d1cabb8975541b
+  .github/instructions/harness.instructions.md: sha256:60893c02ba2aa37b0e42466a73795672d9a64c314ba84c11df46e5acd285fdb1
+  .github/instructions/repository-guidelines.instructions.md: sha256:e983f3deae32d4316fd25971091d5579a7d28c52fa622a47bc52afba3dead45e
   .github/prompts/agent-automation-recommendations.prompt.md: sha256:4a5126ce538fa571ff76f84ca2e099a416ed4f00cde623fd498cbb62275f5d3c
   .github/prompts/code-style.prompt.md: sha256:bc5e6b6d5618fc04434f748cc0d121a5baaed2ff0b95992f0aa2301caf4ca0b9
   .github/prompts/comment-rule.prompt.md: sha256:891b46ab9aae6f4188397fad4b22425b55e928f0bcacb64007b4378912760f12

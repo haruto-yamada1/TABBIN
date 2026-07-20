@@ -65,7 +65,7 @@ commit、push、PR 作成は以下の条件を全て満たす場合のみ実行�
 - base branch (`develop` / `main` / `release/*`) への直接 push はしない
 - PR は原則 `develop` を target とし、ユーザーが Draft を指定しない限り Open で作成する（hotfix は例外）
 - merge、close、approve はユーザーが明示しない限り行わない
-- PR 本文に原因、主要変更、検証結果、regression risk、acceptance criteria 対応、`Closes #<issue>` を含める
+- PR 本文に原因、採用した解決、主要変更、検証結果、regression risk、acceptance criteria 対応、`Closes #<issue>` を含める
 - UI 変更では screenshot / GIF を含める
 - `.apm/` を編集した場合は `bun run apm:sync` で生成先を更新し、`bun run apm:check` で一致を確認する
 - generated files だけの手編集を PR の根拠にしない

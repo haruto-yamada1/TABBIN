@@ -27,8 +27,10 @@ Optimizer ハーネスを使います。`.apm` が source of truth で、実行�
 ## 状態ファイル
 
 `.agents/harness/` 配下に置きます。ACTIVE run は `.agents/harness/ACTIVE` に記録します。
+状態 JSON には `status`、`summary`、`updated_at`、`next_action` を必ず含めます。
 schema は `.apm/harness/schemas/` にあり、`bun run harness:schemas` で再生成、
-`bun run harness:validate` で検証します。
+`bun run harness:validate` で検証します。JSON を更新した後は必ず
+`bun run harness:validate` で ACTIVE run を検証します。
 
 ## hook
 
