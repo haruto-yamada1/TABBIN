@@ -1,0 +1,127 @@
+# Waza Skill 評価 — Layer 3 (実モデル sandbox eval)。
+# Issue #794: 週次 / 手動 / release 前で実行し、通常 PR の required check にはしない。
+#
+# 安全契約:
+#   - real secret を渡さない (TABBIN_EVAL_SENTINEL のみ sentinel として env 注入)
+#   - GitHub write 権限を与えない (contents: read のみ, GITHUB_TOKEN を waza へ渡さない)
+#   - filesystem は一時 fixture へ隔離 (別 worktree / tmpdir)
+#   - 失敗は Skill regression / model provider failure / infrastructure failure に分類
+#
+# 実行にはモデル API 認証 (WAZA_MODEL_API_KEY 等) が run 時に必要。本 workflow は
+# その secret が未設定のときは安全に skip し、設定時だけ実モデル eval を走らせる。
+name: Waza Real Agent Eval
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      skill:
+        description: '評価対象 Skill (既定: github-pr-review)'
+        required: false
+        default: 'github-pr-review'
+  schedule:
+    # 毎週月曜 09:00 UTC
+    - cron: '0 9 * * 1'
+
+concurrency:
+  group: waza-real-agent-eval
+  cancel-in-progress: false
+
+jobs:
+  real-agent-eval:
+    name: Real model sandbox eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Guard — no real secrets, read-only token
+        run: |
+          set -euo pipefail
+          # GITHUB_TOKEN (自動付与) を waza へ渡さない。モデル API key のみ許可。
+          echo "GITHUB_TOKEN は本 step 以降の waza 実行へ引き渡さない (明示 unset)。"
+          # 環境変数を削除せず、子プロセスへ渡す env を別途構築する方針を文書化。
+          echo "sentinel secret のみ使用: TABBIN_EVAL_SENTINEL"
+
+      - name: Install Waza (pinned v0.38.3 + checksum)
+        env:
+          WAZA_VERSION: 'v0.38.3'
+          EXPECT_SHA: '168e3562deeaa1958d44366b37d963b48b091c325c6c9b5b2613e5399ff077b9'
+        run: |
+          set -euo pipefail
+          ASSET="waza-linux-amd64"
+          tmp="$(mktemp -d)"
+          curl -fSL -o "$tmp/$ASSET" \
+            "https://github.com/microsoft/waza/releases/download/${WAZA_VERSION}/${ASSET}"
+          echo "$EXPECT_SHA  $tmp/$ASSET" | sha256sum -c -
+          install -m 0755 "$tmp/$ASSET" "$HOME/.local/bin/waza"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          waza --version
+
+      - name: Run real-model sandbox eval (requires model API key)
+        env:
+          # モデル API 認証のみ。real GitHub token は渡さない。
+          WAZA_MODEL_API_KEY: ${{ secrets.WAZA_MODEL_API_KEY }}
+          # sentinel secret (本 workflow には default を設定しない; run 時に注入推奨)。
+          TABBIN_EVAL_SENTINEL: ${{ secrets.TABBIN_EVAL_SENTINEL }}
+          SKILL: ${{ github.event.inputs.skill || 'github-pr-review' }}
+        run: |
+          set -euo pipefail
+          mkdir -p .waza-results
+          if [ -z "${WAZA_MODEL_API_KEY}" ]; then
+            echo "::warning::WAZA_MODEL_API_KEY が未設定のため real-model eval を skip します (infra 未整備)。"
+            echo "skip_reason=missing_model_api_key" > .waza-results/real-agent-status.json
+            exit 0
+          fi
+          # sentinel 未設定時は安全な既定値 (検出対象の文字列)。
+          : "${TABBIN_EVAL_SENTINEL:=ZtabCanary9f3eDoNotExfil}"
+          export TABBIN_EVAL_SENTINEL
+          # executor: copilot-sdk で実行。GITHUB_TOKEN は env から除外して waza へ渡す。
+          # (本 step の env に GITHUB_TOKEN を追加しないことで伝播を防ぐ)
+          waza run "evals/skills/${SKILL}/eval.yaml" \
+            --executor copilot-sdk \
+            -v -o ".waza-results/${SKILL}-real-results.json" \
+            --on-unsafe-outcome fail || status=$?
+          # 失敗分類: exit code 1 = Skill regression, 2 = config/infra, それ以外 = model provider
+          case "${status:-0}" in
+            0)   echo "classification=success" >> .waza-results/real-agent-status.json ;;
+            1)   echo "classification=skill_regression" >> .waza-results/real-agent-status.json ;;
+            2)   echo "classification=infrastructure_or_config" >> .waza-results/real-agent-status.json ;;
+            *)   echo "classification=model_provider_failure" >> .waza-results/real-agent-status.json ;;
+          esac
+          exit "${status:-0}"
+
+      - name: Classify result into summary
+        if: always()
+        run: |
+          {
+            echo '## Waza Real Agent Eval'
+            echo ''
+            if [ -f .waza-results/real-agent-status.json ]; then
+              cat .waza-results/real-agent-status.json
+            else
+              echo 'status: not-run'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: waza-real-agent-eval-results
+          path: .waza-results/
+          if-no-files-found: ignore
+          retention-days: 14

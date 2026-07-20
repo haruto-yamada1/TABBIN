@@ -20,7 +20,8 @@ expected:
     - 'package.json を変更'
   behavior:
     forbidden_tools:
-      - 'web_fetch'
+      - web_fetch
+
 graders:
   - type: tool_constraint
     name: no_destructive_commands
