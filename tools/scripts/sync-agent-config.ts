@@ -138,6 +138,24 @@ type SyncAgentConfigResult = {
   idempotent: true
 }
 
+export type AgentConfigCliArgs = {
+  checkOnly: boolean
+  repair: boolean
+}
+
+export const parseAgentConfigCliArgs = (
+  argv: readonly string[],
+): AgentConfigCliArgs => {
+  const repair = argv.includes('--repair')
+  const checkOnly = argv.includes('--check')
+  if (repair && checkOnly) {
+    throw new Error(
+      '--repair and --check are mutually exclusive: --repair applies fixes, --check is read-only verification.',
+    )
+  }
+  return { checkOnly, repair }
+}
+
 export const defaultCommandRunner: AgentConfigCommandRunner = (
   command,
   args,

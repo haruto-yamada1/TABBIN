@@ -17,6 +17,7 @@ import {
   createAgentConfigSnapshot,
   defaultCommandRunner,
   findArtifactContamination,
+  parseAgentConfigCliArgs,
   REQUIRED_AGENT_ARTIFACT_CONTENT,
   REQUIRED_AGENT_ARTIFACTS,
   repairArtifactContamination,
@@ -413,6 +414,34 @@ describe('createAgentConfigSnapshot', () => {
   })
 })
 
+describe('parseAgentConfigCliArgs', () => {
+  it('defaults to apply mode without flags', () => {
+    expect(parseAgentConfigCliArgs([])).toEqual({
+      checkOnly: false,
+      repair: false,
+    })
+  })
+
+  it('enables check-only mode with --check', () => {
+    expect(parseAgentConfigCliArgs(['--check'])).toEqual({
+      checkOnly: true,
+      repair: false,
+    })
+  })
+
+  it('enables repair mode with --repair', () => {
+    expect(parseAgentConfigCliArgs(['--repair'])).toEqual({
+      checkOnly: false,
+      repair: true,
+    })
+  })
+
+  it('rejects --repair and --check together', () => {
+    expect(() => parseAgentConfigCliArgs(['--repair', '--check'])).toThrow(
+      /mutually exclusive/,
+    )
+  })
+})
 describe('syncAgentConfig', () => {
   it('validates a two-pass scratch sync without changing the project in check mode', () => {
     const projectRoot = createProject()

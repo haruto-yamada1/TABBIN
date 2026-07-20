@@ -89,7 +89,7 @@ case $LOCATION in
     path="$LOCATION/$BRANCH_NAME"
     ;;
   ~/.config/worktrees/*)
-    path="~/.config/worktrees/$project/$BRANCH_NAME"
+    path="$HOME/.config/worktrees/$project/$BRANCH_NAME"
     ;;
 esac
 

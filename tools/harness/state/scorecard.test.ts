@@ -56,9 +56,11 @@ describe('collectAgentContextFindings — strengthened agent context health', ()
 
     const findings = collectAgentContextFindings(projectRoot)
 
-    expect(findings).not.toContain(
-      expect.stringContaining('disable-model-invocation: true がありません'),
-    )
+    expect(
+      findings.some((finding) =>
+        finding.includes('disable-model-invocation: true がありません'),
+      ),
+    ).toBe(false)
   })
 
   it('is not satisfied by disable-model-invocation mentioned only in the body', () => {
