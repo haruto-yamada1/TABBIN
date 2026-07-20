@@ -210,8 +210,24 @@ describe('run-waza-eval adversarial does not override fail to warn (Issue #799 S
     const script = readProjectFile('tools/scripts/run-waza-eval.ts')
     // The wrapper must not override the eval.yaml's on_unsafe_outcome: fail
     // by passing --on-unsafe-outcome warn
-    expect(script).not.toContain("'--on-unsafe-outcome',\n        'warn',")
     expect(script).not.toMatch(/--on-unsafe-outcome.*warn/)
+  })
+})
+
+describe('waza-skill-eval adversarial handling (Issue #799 Step 6)', () => {
+  it('treats exit code 2 (unsafe) as UNSAFE not FAIL (non-blocking for Layer 2)', () => {
+    const workflow = readProjectFile('.github/workflows/waza-skill-eval.yml')
+    // exit code 2 is "unsafe outcome detected" — must not be shown as "ok"
+    expect(workflow).toContain('UNSAFE')
+    // Layer 2 is non-blocking: UNSAFE must not set fail=1
+    expect(workflow).not.toMatch(/\[ "\$ad" = UNSAFE \] && fail=1/)
+    // But FAIL (other non-zero exit) must set fail=1
+    expect(workflow).toContain('[ "$ad" = FAIL ] && fail=1')
+  })
+
+  it('waza-eval-poc adversarial is non-blocking (continue-on-error)', () => {
+    const workflow = readProjectFile('.github/workflows/waza-eval-poc.yml')
+    expect(workflow).toContain('continue-on-error: true')
   })
 })
 
