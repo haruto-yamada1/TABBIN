@@ -44,7 +44,7 @@ command は stdin で JSON object を受け取ります。TypeScript interface �
   "session_name": "my session",
   "transcript_path": "/path/to/transcript.jsonl",
   "render_width_chars": 120,
-  "cwd": "/Users/me/project",
+  "cwd": "/Users/<user>/project",
   "model": {
     "id": "claude-4-opus",
     "display_name": "Claude 4 Opus",
@@ -52,8 +52,8 @@ command は stdin で JSON object を受け取ります。TypeScript interface �
     "max_mode": true
   },
   "workspace": {
-    "current_dir": "/Users/me/project",
-    "project_dir": "/Users/me/project/.cursor/transcripts",
+    "current_dir": "/Users/<user>/project",
+    "project_dir": "/Users/<user>/project/.cursor/transcripts",
     "added_dirs": []
   },
   "version": "1.2.3",
@@ -73,7 +73,7 @@ command は stdin で JSON object を受け取ります。TypeScript interface �
   },
   "worktree": {
     "name": "my-feature",
-    "path": "/Users/me/.cursor/worktrees/repo/my-feature"
+    "path": "/Users/<user>/.cursor/worktrees/repo/my-feature"
   }
 }
 ```

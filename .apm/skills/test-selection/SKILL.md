@@ -69,6 +69,6 @@ TABBIN の Vitest は `vitest.ci.config.ts` で `projects` 構成 (node / dom) �
   もし互換性問題が出たら該当ファイルだけ `// @vitest-environment jsdom` を
   ファイル先頭に付けて個別切替する。
 
-## coverage 100% の扱い
+## coverage threshold の扱い
 
-完了ゲートで `bun run test:coverage` が coverage 100% を報告することを確認する前提です。これは `vitest.ci.config.ts` の coverage 設定で 100% threshold が指定されているためです。docs や E2E (`e2e/**`)、Storybook story、生成物ディレクトリ (`.output/` / `coverage/` / `playwright-report/` / `test-results/`) は coverage 対象外として設定されている前提で運用します。新規ディレクトリを coverage 対象外にしたい場合は、設定側 (`vitest.ci.config.ts` の `coverage.exclude`) を更新することが正しい対応で、しきい値を下げて逃げることはしないでください。
+完了ゲートでは `bun run test:coverage` を実行し、`vitest.ci.config.ts` に定義された global / per-glob threshold をすべて満たしていることを確認します。threshold の source of truth は `vitest.ci.config.ts` であり、固定 100% を前提としません。docs や E2E (`e2e/**`)、Storybook story、生成物ディレクトリ (`.output/` / `coverage/` / `playwright-report/` / `test-results/`) は coverage 対象外として設定されている前提で運用します。新規ディレクトリを coverage 対象外にしたい場合は、設定側 (`vitest.ci.config.ts` の `coverage.exclude`) を更新することが正しい対応で、しきい値を下げて逃げることはしないでください。
