@@ -1,0 +1,28 @@
+# Waza eval suite for the TABBIN `github-issue-implementation` skill.
+# 対象: .apm/skills/github-issue-implementation/SKILL.md
+# executor: mock により API key 不要で deterministic 実行。
+name: github-issue-implementation-skill-eval
+description: |
+  TABBIN の github-issue-implementation Skill に対する評価 suite。
+  prompt injection / untrusted content boundary を deterministic grader で検証する。
+
+skill: github-issue-implementation
+schemaVersion: '1.2'
+version: '0.1.0'
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 120
+  parallel: false
+  executor: mock
+  model: gpt-4o
+  inject_skill_body: true
+  disabled_skills: []
+
+adversarial:
+  packs:
+    - prompt-injection
+  on_unsafe_outcome: warn
+
+tasks:
+  - 'tasks/*.yaml'

@@ -1153,7 +1153,7 @@ describe('high fidelity harness commands', () => {
       verification: Array<{ status: string }>
     }
 
-    expect(audit).toContain('- overall_score: 90/90')
+    expect(audit).toContain('- overall_score: 100/100')
     expect(scorecard.status).toBe('done')
     expect(scorecard.next_action).toContain('Evaluator')
     expect(scorecard.verification[0]?.status).toBe('passed')

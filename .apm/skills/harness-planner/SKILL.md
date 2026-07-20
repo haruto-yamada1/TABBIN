@@ -1,5 +1,6 @@
 ---
 name: harness-planner
+disable-model-invocation: true
 description: TABBIN のハーネス run で要件、制約、検証方針を Planner として分解し、planner.json と orchestrator.json の plan を更新するときに使います。
 ---
 

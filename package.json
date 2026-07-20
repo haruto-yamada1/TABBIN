@@ -32,6 +32,7 @@
     "verify:production-network-policy": "bun tools/scripts/verify-production-network-policy.ts",
     "verify:storage-writer-inventory": "bun tools/scripts/verify-storage-writer-inventory.ts",
     "check": "bun run format:check && bun run compile && bun run lint",
+    "agent:check": "bash .apm/skills/check/scripts/run_quality.sh",
     "check:write": "bun run lint:fix && bun run format",
     "check:duplication": "jscpd --config .jscpd.json",
     "arch:check": "depcruise --config .dependency-cruiser.cjs src --output-type err",

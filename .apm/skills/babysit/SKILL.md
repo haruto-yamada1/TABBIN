@@ -1,5 +1,6 @@
 ---
 name: babysit
+disable-model-invocation: true
 description: PR コメントの triage、明確な conflict 解消、CI 修正をループで行い、merge-ready 状態を維持するときに使います。
 ---
 # PR babysit

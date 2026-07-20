@@ -1,13 +1,13 @@
 ---
 name: check
-description: "品質チェックを実行し、format/lint/type/test の失敗を自動修正ループで収束させる。USE FOR: 品質チェックを実行して, npm run quality を 実行 して, CI の quality check 失敗を修正して. DO NOT USE FOR: README を要約して, 新機能の設計案を考えて, GitHub Issue を作成して."
+description: "品質チェックを実行し、format/lint/type/test の失敗を自動修正ループで収束させる。USE FOR: 品質チェックを実行して, quality check を 実行 して, CI の quality check 失敗を修正して. DO NOT USE FOR: README を要約して, 新機能の設計案を考えて, GitHub Issue を作成して."
 ---
 
 # 品質チェック
 
 ## 実行
 
-1. `bash scripts/run_quality.sh` を実行する（`.agents` が無くても skill ファイル基準で解決）。
+1. `bun run agent:check` を実行する。これが唯一の実行入口である。
 2. `CHECK_RESULT` と `CHECK_LOG` を読む。`OK` なら短く報告して終了、`ERROR` なら修正ループへ。
 
 ## 自動修正ループ
@@ -29,9 +29,9 @@ description: "品質チェックを実行し、format/lint/type/test の失敗�
 → 該当ファイルのみ修正して再実行し、✅ になるまで繰り返す。
 ```
 
-## Troubleshooting / トラブルシューティング
+## トラブルシューティング
 
-- `Missing script: quality` → 実在 `quality:check` 等に読み替える。
+- `Missing script: quality` → `bun run agent:check` を使う。`quality` は存在しない。
 - 反復が止まらない → 5 回で打ち切りブロッカー明示。
 
 ## ガードレール

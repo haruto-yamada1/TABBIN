@@ -1,4 +1,4 @@
 interface:
   display_name: "品質チェック"
-  short_description: "npm の品質チェックを実行し、失敗を自動修正します"
-  default_prompt: "このリポジトリで npm run quality を実行し、失敗を自動修正して、成功またはブロックまで再実行してください。"
+  short_description: "品質チェックを実行し、失敗を自動修正します"
+  default_prompt: "このリポジトリで bun run agent:check を実行し、失敗を自動修正して、成功またはブロックまで再実行してください。"
