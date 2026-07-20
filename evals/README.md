@@ -70,7 +70,7 @@ Waza v0.38.3 で検証した CLI 契約:
 
 mock (Layer 2) と real-model (Layer 3) の eval spec を分離する:
 
-```
+```text
 evals/skills/github-pr-review/
 ├── eval.yaml       # executor: mock (Layer 2, deterministic)
 └── eval.real.yaml  # executor: copilot-sdk (Layer 3, real model)

@@ -182,6 +182,70 @@ describe('waza-trace-adapter — real transcript with tool calls', () => {
     expect(result.traces[0].tool_invocations).toHaveLength(2)
     expect(result.traces[0].final_output).toBe('Done')
   })
+
+  it('maps results to correct invocations for parallel same-name tool calls (Issue #799 review)', () => {
+    // Two bash calls in the same assistant turn with different tool_call_ids
+    // and different commands/results. Results must not be swapped.
+    const parallelTranscript = [
+      { role: 'user', content: 'Run two checks' },
+      {
+        role: 'assistant',
+        content: 'Running both',
+        tool_calls: [
+          {
+            id: 'call-a',
+            name: 'bash',
+            arguments: { command: 'bun run test:node' },
+          },
+          {
+            id: 'call-b',
+            name: 'bash',
+            arguments: { command: 'bun run test:dom' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        tool_call_id: 'call-a',
+        name: 'bash',
+        content: 'node tests passed',
+      },
+      {
+        role: 'tool',
+        tool_call_id: 'call-b',
+        name: 'bash',
+        content: 'dom tests passed',
+      },
+    ]
+    const resultsPath = writeResults('parallel-results.json', {
+      tasks: [
+        {
+          test_id: 'parallel-task',
+          runs: [
+            {
+              status: 'passed',
+              final_output: 'done',
+              transcript: parallelTranscript,
+            },
+          ],
+        },
+      ],
+    })
+    const result = adaptWazaToTraces({
+      resultsPath,
+      requestIntent: 'read-only',
+    })
+    const invs = result.traces[0].tool_invocations
+    expect(invs).toHaveLength(2)
+    // call-a result must be 'node tests passed', not 'dom tests passed'
+    expect(invs[0].name).toBe('bash')
+    expect(invs[0].args).toEqual({ command: 'bun run test:node' })
+    expect(invs[0].result).toBe('node tests passed')
+    // call-b result must be 'dom tests passed', not 'node tests passed'
+    expect(invs[1].name).toBe('bash')
+    expect(invs[1].args).toEqual({ command: 'bun run test:dom' })
+    expect(invs[1].result).toBe('dom tests passed')
+  })
 })
 
 describe('waza-trace-adapter — outbound payloads and filesystem diffs', () => {

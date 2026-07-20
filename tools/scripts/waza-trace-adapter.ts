@@ -135,9 +135,12 @@ const normalizeOutboundKind = (kind: string): OutboundPayload['kind'] =>
 
 // ── extraction functions ─────────────────────────────────────────
 
+// Issue #799 review: tool_call_id → invocation index で厳密に結果を対応付ける。
+// 同名 tool の並列呼び出しで結果が取り違えられるのを防ぐ。
 const processToolCalls = (
   toolCalls: readonly unknown[],
   invocations: ToolInvocation[],
+  callIdToIndex: Map<string, number>,
   callIdToName: Map<string, string>,
 ): void => {
   for (const rawCall of toolCalls) {
@@ -147,43 +150,21 @@ const processToolCalls = (
     const call: ToolCall = rawCall
     const name = isString(call.name) ? call.name : 'unknown_tool'
     const args = normalizeToolArgs(call.arguments)
+    const index = invocations.length
+    invocations.push({ name, args })
     if (isString(call.id)) {
+      callIdToIndex.set(call.id, index)
       callIdToName.set(call.id, name)
     }
-    invocations.push({ name, args })
   }
 }
 
-const extractToolInvocationsFromTurns = (
-  turns: readonly ConversationTurn[],
-): ToolInvocation[] => {
-  const invocations: ToolInvocation[] = []
-  const callIdToName = new Map<string, string>()
-
-  for (const turn of turns) {
-    const role = turn.role ?? ''
-
-    if (role === 'assistant' && isArray(turn.tool_calls)) {
-      processToolCalls(turn.tool_calls, invocations, callIdToName)
-    }
-
-    if (role === 'tool') {
-      const toolName = isString(turn.name)
-        ? turn.name
-        : (callIdToName.get(turn.tool_call_id ?? '') ?? 'unknown_tool')
-      const result = stringifyUnknown(turn.content)
-      attachResultToInvocation(invocations, toolName, result)
-    }
-  }
-
-  return invocations
-}
-
-const attachResultToInvocation = (
+const attachResultByName = (
   invocations: ToolInvocation[],
   toolName: string,
   result: string,
 ): void => {
+  // fallback: tool_call_id がない場合のみ名前ベースで対応付ける
   const target = [...invocations]
     .toReversed()
     .find((inv) => inv.name === toolName && inv.result === undefined)
@@ -193,6 +174,65 @@ const attachResultToInvocation = (
   } else {
     invocations.push({ name: toolName, args: {}, result })
   }
+}
+
+const attachResultToInvocation = (
+  invocations: ToolInvocation[],
+  toolCallId: string | undefined,
+  callIdToIndex: Map<string, number>,
+  callIdToName: Map<string, string>,
+  turnName: string | undefined,
+  result: string,
+): void => {
+  // Issue #799 review: tool_call_id で厳密に invocation index を解決する
+  if (toolCallId && callIdToIndex.has(toolCallId)) {
+    const idx = callIdToIndex.get(toolCallId)
+    if (idx !== undefined) {
+      invocations[idx] = { ...invocations[idx], result }
+      return
+    }
+    return
+  }
+  // fallback: 名前ベースの対応付け
+  const toolName = isString(turnName)
+    ? turnName
+    : (callIdToName.get(toolCallId ?? '') ?? 'unknown_tool')
+  attachResultByName(invocations, toolName, result)
+}
+
+const extractToolInvocationsFromTurns = (
+  turns: readonly ConversationTurn[],
+): ToolInvocation[] => {
+  const invocations: ToolInvocation[] = []
+  const callIdToIndex = new Map<string, number>()
+  const callIdToName = new Map<string, string>()
+
+  for (const turn of turns) {
+    const role = turn.role ?? ''
+
+    if (role === 'assistant' && isArray(turn.tool_calls)) {
+      processToolCalls(
+        turn.tool_calls,
+        invocations,
+        callIdToIndex,
+        callIdToName,
+      )
+    }
+
+    if (role === 'tool') {
+      const result = stringifyUnknown(turn.content)
+      attachResultToInvocation(
+        invocations,
+        turn.tool_call_id,
+        callIdToIndex,
+        callIdToName,
+        turn.name,
+        result,
+      )
+    }
+  }
+
+  return invocations
 }
 
 const extractToolInvocations = (transcript: unknown): ToolInvocation[] => {
@@ -295,8 +335,13 @@ const findTranscriptFile = (
   if (!existsSync(transcriptDir)) {
     return null
   }
+  // Issue #799 review: prefix matching at filename boundary to avoid
+  // taskId "t1" matching "t10-....json". Waza transcript filenames follow
+  // the <taskId-slug>-<timestamp>.json convention.
   const files = readdirSync(transcriptDir).filter((f) => f.endsWith('.json'))
-  const exact = files.find((f) => f.includes(taskId))
+  const exact = files.find(
+    (f) => f.startsWith(taskId) || f.startsWith(taskId.replace(/_/g, '-')),
+  )
   if (!exact) {
     return null
   }

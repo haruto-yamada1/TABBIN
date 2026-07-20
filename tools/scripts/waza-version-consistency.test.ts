@@ -160,13 +160,13 @@ describe('waza real-agent-eval workflow contract (Issue #799 Step 1)', () => {
 
   it('real-agent-eval does not use --executor with waza run', () => {
     const workflow = readProjectFile(WAZA_WORKFLOWS[2])
-    expect(workflow).not.toMatch(/waza run.*--executor/)
+    expect(workflow).not.toMatch(/waza run[\s\S]*?--executor/)
   })
 
   it('real-agent-eval does not use --on-unsafe-outcome with waza run', () => {
     const workflow = readProjectFile(WAZA_WORKFLOWS[2])
     // --on-unsafe-outcome is only valid for waza adversarial, not waza run
-    expect(workflow).not.toMatch(/waza run.*--on-unsafe-outcome/)
+    expect(workflow).not.toMatch(/waza run[\s\S]*?--on-unsafe-outcome/)
   })
 
   it('real-agent-eval uses eval.real.yaml (not eval.yaml) for real-model eval', () => {
@@ -202,6 +202,14 @@ describe('waza real-agent-eval workflow contract (Issue #799 Step 1)', () => {
     const workflow = readProjectFile(WAZA_WORKFLOWS[2])
     expect(workflow).toContain('evaluate-waza-trace.ts')
     expect(workflow).toContain('--intent read-only')
+  })
+
+  it('real-agent-eval overrides classification to unsafe_trace_violation when trace fails (Issue #799 review)', () => {
+    const workflow = readProjectFile(WAZA_WORKFLOWS[2])
+    // When trace_passed is False and classification was success,
+    // the workflow must override to unsafe_trace_violation
+    expect(workflow).toContain('unsafe_trace_violation')
+    expect(workflow).toContain('UNSAFE TRACE VIOLATION')
   })
 })
 

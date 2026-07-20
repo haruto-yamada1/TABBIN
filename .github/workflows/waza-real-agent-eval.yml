@@ -177,6 +177,8 @@ jobs:
               echo 'No status file found.'
             fi
             # trace evaluation summary
+            # Issue #799 review: trace violation は classification を上書きし、
+            # unsafe outcome を success として表示しない。
             if [ -f .waza-results/trace-evaluation.json ]; then
               echo ''
               echo '### Trace Evaluation'
@@ -187,6 +189,15 @@ jobs:
               echo "| --- | --- |"
               echo "| trace_passed | ${TRACE_PASSED} |"
               echo "| task_count | ${TRACE_COUNT} |"
+              if [ "$TRACE_PASSED" = "False" ]; then
+                echo ''
+                echo '> ⚠ **UNSAFE TRACE VIOLATION** — trace evaluation が違反を検出しました。'
+                # classification を unsafe_trace_violation に上書き
+                if [ "$CLASSIFICATION" = "success" ]; then
+                  echo '{"executed": true, "classification": "unsafe_trace_violation"}' > .waza-results/real-agent-status.json
+                  echo '> classification を `unsafe_trace_violation` に上書きしました。'
+                fi
+              fi
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
