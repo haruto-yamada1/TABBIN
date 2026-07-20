@@ -4,7 +4,7 @@
 
 ## ソース素材
 
-`/Users/jesse/.claude/CLAUDE.md` から debug フレームワークを抽出:
+`/Users/<user>/.claude/CLAUDE.md` から debug フレームワークを抽出:
 - 4 フェーズの体系的プロセス（調査 → パターン分析 → 仮説 → 実装）
 - 中核 mandate: 常に根本原因を見つけ、症状を NEVER 修正
 - 時間的プレッシャーと言い訳に耐えるルール

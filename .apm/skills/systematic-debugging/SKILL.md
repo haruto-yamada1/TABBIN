@@ -176,7 +176,7 @@ description: バグ、テスト失敗、予期しない挙動に遭遇したと�
    - 可能なら自動テスト
    - フレームワークがなければ one-off スクリプト
    - 修正前 MUST
-   - 適切な失敗テストには `superpowers:test-driven-development` skill を使う
+   - 適切な失敗テストには `$test-driven-development` skill を使う
 
 2. **単一修正を実装**
    - 特定した根本原因に対処
@@ -284,8 +284,8 @@ description: バグ、テスト失敗、予期しない挙動に遭遇したと�
 - **`condition-based-waiting.md`** — 任意 timeout を条件ポーリングに置換
 
 **関連 skill:**
-- **superpowers:test-driven-development** — 失敗テストケース作成（フェーズ 4 ステップ 1）
-- **superpowers:verification-before-completion** — 成功主張前に修正を検証
+- **$test-driven-development** — 失敗テストケース作成（フェーズ 4 ステップ 1）
+- **$verification-before-completion** — 成功主張前に修正を検証
 
 ## 実世界への影響
 

@@ -1,5 +1,6 @@
 ---
 name: create-skill
+disable-model-invocation: true
 description: AI エージェント向けの skill を作成・編集します。新しい skill の執筆、既存 skill の改善、deploy 前の skill 検証、SKILL.md 構造についての質問時に使います。Codex / Claude Code / Cursor など各クライアントの skill 仕様に合わせて生成します（旧 writing-skills の TDD 執筆手法を統合済み）。
 ---
 # AI エージェント向け skill の作成

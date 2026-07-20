@@ -3,8 +3,9 @@ import path from 'node:path'
 import { syncAgentConfig } from './sync-agent-config.ts'
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..')
-const checkOnly = process.argv.includes('--check')
-const result = syncAgentConfig({ checkOnly, projectRoot })
+const repair = process.argv.includes('--repair')
+const checkOnly = !repair && process.argv.includes('--check')
+const result = syncAgentConfig({ checkOnly, projectRoot, repair })
 
 console.log(
   result.applied

@@ -10,7 +10,7 @@ skill なしでシナリオを走らせ（RED — 失敗を観察）、その失
 
 **核心原則:** skill なしでエージェントが失敗するのを見ていなければ、skill が正しい失敗を防いでいるか分からない。
 
-**必須前提:** この skill を使う前に superpowers:test-driven-development を理解すること。そちらが RED-GREEN-REFACTOR サイクルを定義。この skill は skill 固有のテスト形式（pressure scenario、rationalization table）を提供。
+**必須前提:** この skill を使う前に $test-driven-development を理解すること。そちらが RED-GREEN-REFACTOR サイクルを定義。この skill は skill 固有のテスト形式（pressure scenario、rationalization table）を提供。
 
 **完全な実例:** CLAUDE.md 文書 variant の full test campaign は examples/CLAUDE_MD_TESTING.md を参照。
 

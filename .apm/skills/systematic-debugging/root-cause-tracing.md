@@ -33,7 +33,7 @@ digraph when_to_use {
 
 ### 1. 症状の観察
 ```
-Error: git init failed in /Users/jesse/project/packages/core
+Error: git init failed in /Users/<user>/project/packages/core
 ```
 
 ### 2. 直接原因の特定
