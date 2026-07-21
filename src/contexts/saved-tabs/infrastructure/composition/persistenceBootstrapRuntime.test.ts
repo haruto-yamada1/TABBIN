@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type {
@@ -72,9 +72,11 @@ describe('persistenceBootstrapRuntime storage facade', () => {
       {
         clear: vi.fn(async () => undefined),
         get,
+        getBytesInUse: vi.fn(async () => 0),
+        getKeys: vi.fn(async () => []),
         remove: vi.fn(async (_keys: string | readonly string[]) => undefined),
         set: vi.fn(async (_items: Record<string, unknown>) => undefined),
-      },
+      } as unknown as typeof chrome.storage.local,
       gate,
     )
 
@@ -84,6 +86,47 @@ describe('persistenceBootstrapRuntime storage facade', () => {
     expect(get).toHaveBeenCalledWith('key')
   })
 
+  it('exposes only Promise-based storage operations to domain callers', () => {
+    const gate = createGate()
+    const rawStorage = {
+      clear: vi.fn(async () => undefined),
+      get: vi.fn(async () => ({})),
+      getBytesInUse: vi.fn(async () => 0),
+      getKeys: vi.fn(async () => []),
+      remove: vi.fn(async () => undefined),
+      set: vi.fn(async () => undefined),
+    } as unknown as typeof chrome.storage.local
+    const storage = createGatedPersistenceStorageLocal(rawStorage, gate)
+
+    expectTypeOf<[string, () => undefined]>().not.toExtend<
+      Parameters<typeof storage.get>
+    >()
+
+    expect(storage).toBeDefined()
+  })
+
+  it.each(['getBytesInUse', 'getKeys'] as const)(
+    'routes storage %s through the legacy read gate',
+    async (method) => {
+      const gate = createGate()
+      const rawStorage = {
+        clear: vi.fn(async () => undefined),
+        get: vi.fn(async () => ({})),
+        getBytesInUse: vi.fn(async () => 0),
+        getKeys: vi.fn(async () => []),
+        remove: vi.fn(async () => undefined),
+        set: vi.fn(async () => undefined),
+      } as unknown as typeof chrome.storage.local
+      const storage = createGatedPersistenceStorageLocal(rawStorage, gate)
+
+      await storage[method]()
+
+      expect(gate.runLegacyRead).toHaveBeenCalledTimes(1)
+      expect(gate.runLegacyWrite).not.toHaveBeenCalled()
+      expect(rawStorage[method]).toHaveBeenCalledTimes(1)
+    },
+  )
+
   it.each(['clear', 'remove', 'set'] as const)(
     'routes storage %s through the legacy write gate',
     async (method) => {
@@ -91,9 +134,11 @@ describe('persistenceBootstrapRuntime storage facade', () => {
       const rawStorage = {
         clear: vi.fn(async () => undefined),
         get: vi.fn(async () => ({})),
+        getBytesInUse: vi.fn(async () => 0),
+        getKeys: vi.fn(async () => []),
         remove: vi.fn(async (_keys: string | readonly string[]) => undefined),
         set: vi.fn(async (_items: Record<string, unknown>) => undefined),
-      }
+      } as unknown as typeof chrome.storage.local
       const storage = createGatedPersistenceStorageLocal(rawStorage, gate)
 
       if (method === 'clear') {
@@ -110,25 +155,24 @@ describe('persistenceBootstrapRuntime storage facade', () => {
     },
   )
 
-  it('does not route access-policy setup through the domain operation gate', async () => {
+  it('does not expose access-policy setup through the domain facade', () => {
     const gate = createGate()
-    const setAccessLevel = vi.fn(
-      async (_options: { readonly accessLevel: string }) => undefined,
-    )
+    const setAccessLevel = vi.fn(async () => undefined)
     const storage = createGatedPersistenceStorageLocal(
       {
         clear: vi.fn(async () => undefined),
         get: vi.fn(async () => ({})),
+        getBytesInUse: vi.fn(async () => 0),
+        getKeys: vi.fn(async () => []),
         remove: vi.fn(async (_keys: string | readonly string[]) => undefined),
         set: vi.fn(async (_items: Record<string, unknown>) => undefined),
         setAccessLevel,
-      },
+      } as unknown as typeof chrome.storage.local,
       gate,
     )
 
-    await storage.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' })
-
-    expect(setAccessLevel).toHaveBeenCalledTimes(1)
+    expect('setAccessLevel' in storage).toBe(false)
+    expect(setAccessLevel).not.toHaveBeenCalled()
     expect(gate.runLegacyRead).not.toHaveBeenCalled()
     expect(gate.runLegacyWrite).not.toHaveBeenCalled()
   })

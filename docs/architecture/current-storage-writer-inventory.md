@@ -146,9 +146,10 @@ The direct control-state repository is the sole raw local-storage exception
 inside migration/control plumbing; it must not call the gated facade
 recursively. Settings, UI theme, and release
 display controls remain outside the migrated domain-data route. In particular,
-`createSavedTabsRepositories` injects the gated domain port into the six domain
-repositories and a separate raw settings port into `UserSettingsRepository`, so
-an `indexeddb` cutover cannot turn a settings read into a legacy route mismatch.
+both `createSavedTabsRepositories` and `createSavedTabsUseCasesDeps` inject the
+gated domain port into domain repositories and a separate raw settings port
+into `UserSettingsRepository`, so an `indexeddb` cutover cannot turn a settings
+read into a legacy route mismatch.
 Production-equivalent background URL mutation and Options export tests execute
 their real call paths and assert that `PersistenceBootstrap.ready()` precedes
 the first raw domain storage read.

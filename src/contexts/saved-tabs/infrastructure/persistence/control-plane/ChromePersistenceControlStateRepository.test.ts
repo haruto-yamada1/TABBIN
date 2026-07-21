@@ -237,4 +237,41 @@ describe('ChromePersistenceControlStateRepository', () => {
       'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
     )
   })
+
+  it.each([
+    [
+      'initialize',
+      async (repository: ChromePersistenceControlStateRepository) =>
+        repository.initialize(),
+    ],
+    [
+      'read',
+      async (repository: ChromePersistenceControlStateRepository) =>
+        repository.read(),
+    ],
+    [
+      'transition',
+      async (repository: ChromePersistenceControlStateRepository) =>
+        repository.transition({
+          type: 'begin-migration',
+          migrationId: 'migration-1',
+        }),
+    ],
+  ] as const)(
+    'classifies storage acquisition exceptions from %s as unavailable',
+    async (_method, operation) => {
+      expect.hasAssertions()
+      const repository = new ChromePersistenceControlStateRepository({
+        getManifest: () => ({}),
+        getStorageLocal: () => {
+          throw new Error('storage acquisition failed')
+        },
+      })
+
+      await expectUnavailableCode(
+        operation(repository),
+        'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
+      )
+    },
+  )
 })

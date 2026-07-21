@@ -115,7 +115,15 @@ export class ChromePersistenceControlStateRepository
   }
 
   private readonly getStorageLocal = (): PersistenceControlStorageArea => {
-    const storage = this.options.getStorageLocal()
+    let storage: PersistenceControlStorageArea | null
+    try {
+      storage = this.options.getStorageLocal()
+    } catch (error) {
+      throw new PersistenceUnavailableError(
+        'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
+        { cause: error },
+      )
+    }
     if (!storage) {
       throw new PersistenceUnavailableError(
         'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',

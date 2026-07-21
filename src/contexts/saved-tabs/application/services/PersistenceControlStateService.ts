@@ -133,10 +133,20 @@ const decodeReadOnlyEmergencyState = (
   ) {
     return invalidControlState()
   }
+  if (value.readSource === 'indexeddb') {
+    if (!hasMigrationId || !isMigrationId(value.migrationId)) {
+      return invalidControlState()
+    }
+    return {
+      status: 'read-only-emergency',
+      readSource: 'indexeddb',
+      migrationId: value.migrationId,
+    }
+  }
   if (!hasMigrationId) {
     return {
       status: 'read-only-emergency',
-      readSource: value.readSource,
+      readSource: 'legacy',
     }
   }
   if (!isMigrationId(value.migrationId)) {
@@ -144,7 +154,7 @@ const decodeReadOnlyEmergencyState = (
   }
   return {
     status: 'read-only-emergency',
-    readSource: value.readSource,
+    readSource: 'legacy',
     migrationId: value.migrationId,
   }
 }
@@ -279,21 +289,36 @@ const enterReadOnlyEmergency = (
   ) {
     return invalidTransition()
   }
-  const readSource = current.status === 'indexeddb' ? 'indexeddb' : 'legacy'
+  if (current.status === 'indexeddb') {
+    if (
+      transition.readSource !== 'indexeddb' ||
+      transition.migrationId !== current.migrationId
+    ) {
+      return invalidTransition()
+    }
+    return {
+      status: 'read-only-emergency',
+      readSource: 'indexeddb',
+      migrationId: current.migrationId,
+    }
+  }
+
   const migrationId =
-    current.status === 'indexeddb' || current.status === 'failed'
-      ? current.migrationId
-      : undefined
+    current.status === 'failed' ? current.migrationId : undefined
   if (
-    transition.readSource !== readSource ||
+    transition.readSource !== 'legacy' ||
     (transition.migrationId !== undefined &&
       transition.migrationId !== migrationId)
   ) {
     return invalidTransition()
   }
   return migrationId === undefined
-    ? { status: 'read-only-emergency', readSource }
-    : { status: 'read-only-emergency', readSource, migrationId }
+    ? { status: 'read-only-emergency', readSource: 'legacy' }
+    : {
+        status: 'read-only-emergency',
+        readSource: 'legacy',
+        migrationId,
+      }
 }
 
 export const transitionPersistenceControlState = (

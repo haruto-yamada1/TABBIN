@@ -25,48 +25,45 @@ export type PersistenceBootstrapRuntime = {
   readonly recovery: PersistenceRecoveryControllerPort
 }
 
-const READ_METHODS = new Set<PropertyKey>(['get', 'getBytesInUse', 'getKeys'])
-const WRITE_METHODS = new Set<PropertyKey>(['clear', 'remove', 'set'])
+export type PersistenceStorageLocal = {
+  readonly clear: () => Promise<void>
+  readonly get: <T = Record<string, unknown>>(
+    keys?: NoInfer<keyof T> | NoInfer<keyof T>[] | Partial<NoInfer<T>> | null,
+  ) => Promise<T>
+  readonly getBytesInUse: <T = Record<string, unknown>>(
+    keys?: keyof T | (keyof T)[] | null,
+  ) => Promise<number>
+  readonly getKeys: () => Promise<string[]>
+  readonly remove: <T = Record<string, unknown>>(
+    keys: keyof T | (keyof T)[],
+  ) => Promise<void>
+  readonly set: <T = Record<string, unknown>>(
+    items: Partial<T>,
+  ) => Promise<void>
+}
 
-export const createGatedPersistenceStorageLocal = <Storage extends object>(
-  storage: Storage,
+export const createGatedPersistenceStorageLocal = (
+  storage: typeof chrome.storage.local,
   operationGate: PersistenceOperationGatePort,
-): Storage =>
-  new Proxy(storage, {
-    get: (target, property, receiver): unknown => {
-      const value: unknown = Reflect.get(target, property, receiver)
-      if (typeof value !== 'function') {
-        return value
-      }
-
-      const invoke = async (
-        ...arguments_: readonly unknown[]
-      ): Promise<unknown> => {
-        const applied: unknown = Reflect.apply(value, target, arguments_)
-        const result: unknown = await Promise.resolve(applied)
-        return result
-      }
-      if (READ_METHODS.has(property)) {
-        return async (...arguments_: readonly unknown[]) => {
-          const result = await operationGate.runLegacyRead(async () => {
-            const value = await invoke(...arguments_)
-            return value
-          })
-          return result
-        }
-      }
-      if (WRITE_METHODS.has(property)) {
-        return async (...arguments_: readonly unknown[]) => {
-          const result = await operationGate.runLegacyWrite(async () => {
-            const value = await invoke(...arguments_)
-            return value
-          })
-          return result
-        }
-      }
-      return value.bind(target)
-    },
-  })
+): PersistenceStorageLocal => ({
+  clear: async () => operationGate.runLegacyWrite(async () => storage.clear()),
+  get: async <T = Record<string, unknown>>(
+    keys?: NoInfer<keyof T> | NoInfer<keyof T>[] | Partial<NoInfer<T>> | null,
+  ): Promise<T> =>
+    operationGate.runLegacyRead(async () => storage.get<T>(keys)),
+  getBytesInUse: async <T = Record<string, unknown>>(
+    keys?: keyof T | (keyof T)[] | null,
+  ): Promise<number> =>
+    operationGate.runLegacyRead(async () => storage.getBytesInUse<T>(keys)),
+  getKeys: async (): Promise<string[]> =>
+    operationGate.runLegacyRead(async () => storage.getKeys()),
+  remove: async <T = Record<string, unknown>>(
+    keys: keyof T | (keyof T)[],
+  ): Promise<void> =>
+    operationGate.runLegacyWrite(async () => storage.remove<T>(keys)),
+  set: async <T = Record<string, unknown>>(items: Partial<T>): Promise<void> =>
+    operationGate.runLegacyWrite(async () => storage.set<T>(items)),
+})
 
 class TestPersistenceControlStateRepository implements PersistenceControlStateRepositoryPort {
   private state: PersistenceControlState = { status: 'legacy' }
@@ -200,21 +197,20 @@ export const getPersistenceBootstrapRuntime =
     return runtime
   }
 
-export const getPersistenceStorageLocal = ():
-  | typeof chrome.storage.local
-  | null => {
-  const storage = getChromeStorageLocal()
-  if (!storage) {
-    return null
+export const getPersistenceStorageLocal =
+  (): PersistenceStorageLocal | null => {
+    const storage = getChromeStorageLocal()
+    if (!storage) {
+      return null
+    }
+    return createGatedPersistenceStorageLocal(
+      storage,
+      getPersistenceBootstrapRuntime().operationGate,
+    )
   }
-  return createGatedPersistenceStorageLocal(
-    storage,
-    getPersistenceBootstrapRuntime().operationGate,
-  )
-}
 
 export const getRequiredPersistenceStorageLocal =
-  (): typeof chrome.storage.local => {
+  (): PersistenceStorageLocal => {
     const storage = getPersistenceStorageLocal()
     if (!storage) {
       throw new PersistenceUnavailableError(

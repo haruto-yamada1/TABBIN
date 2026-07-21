@@ -27,7 +27,9 @@ const shouldSkipUrlsMigrationByMemoryFlag = async (): Promise<boolean> => {
   }
 
   const { urlsMigrationCompleted } =
-    await getRequiredPersistenceStorageLocal().get('urlsMigrationCompleted')
+    await getRequiredPersistenceStorageLocal().get<{
+      urlsMigrationCompleted?: boolean
+    }>('urlsMigrationCompleted')
 
   if (urlsMigrationCompleted) {
     return true
@@ -39,9 +41,11 @@ const shouldSkipUrlsMigrationByMemoryFlag = async (): Promise<boolean> => {
 
 const isUrlsMigrationCompleted = async (): Promise<boolean> => {
   const { urlsMigrationCompleted } =
-    await getRequiredPersistenceStorageLocal().get('urlsMigrationCompleted')
+    await getRequiredPersistenceStorageLocal().get<{
+      urlsMigrationCompleted?: boolean
+    }>('urlsMigrationCompleted')
 
-  return urlsMigrationCompleted
+  return urlsMigrationCompleted === true
 }
 
 const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {

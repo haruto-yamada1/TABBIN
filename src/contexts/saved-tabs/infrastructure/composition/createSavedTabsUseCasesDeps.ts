@@ -23,7 +23,10 @@ import { createChromeUrlRecordRepository } from '@/contexts/saved-tabs/infrastru
 import { createChromeUserSettingsRepository } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUserSettingsRepository'
 import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 import type { ChromeOnChangedListener } from '@/lib/browser/chrome-storage'
-import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
+import {
+  getChromeStorageLocal,
+  warnMissingChromeStorage,
+} from '@/lib/browser/chrome-storage'
 
 import { createLibCategoriesCommandService } from './LibCategoriesCommandService'
 import { createLibCategoryAssignmentPort } from './LibCategoryAssignmentPort'
@@ -100,15 +103,23 @@ const getChromeMessagingApi = (): ChromeMessagingApiLike | undefined => {
 export const createSavedTabsUseCasesDeps = (
   options: CreateSavedTabsUseCasesDepsOptions = {},
 ): SavedTabsUseCasesDeps => {
-  const local = getPersistenceStorageLocal()
-  if (!local) {
+  const domainLocal = getPersistenceStorageLocal()
+  const settingsLocal = getChromeStorageLocal()
+  if (!domainLocal || !settingsLocal) {
     warnMissingChromeStorage('createSavedTabsUseCasesDeps')
   }
-  const port = local
+  const domainPort = domainLocal
     ? {
-        get: async (key: string) => local.get(key),
-        remove: async (key: string) => local.remove(key),
-        set: async (value: Record<string, unknown>) => local.set(value),
+        get: async (key: string) => domainLocal.get(key),
+        remove: async (key: string) => domainLocal.remove(key),
+        set: async (value: Record<string, unknown>) => domainLocal.set(value),
+      }
+    : null
+  const settingsPort = settingsLocal
+    ? {
+        get: async (key: string) => settingsLocal.get(key),
+        remove: async (key: string) => settingsLocal.remove(key),
+        set: async (value: Record<string, unknown>) => settingsLocal.set(value),
       }
     : null
 
@@ -124,30 +135,32 @@ export const createSavedTabsUseCasesDeps = (
     clock: createSystemClock(),
     idGenerator: createSystemIdGenerator(),
     categoryAssignmentPort: createLibCategoryAssignmentPort({
-      parentCategoryRepository: createChromeParentCategoryRepository(port),
-      tabGroupRepository: createChromeTabGroupRepository(port),
+      parentCategoryRepository:
+        createChromeParentCategoryRepository(domainPort),
+      tabGroupRepository: createChromeTabGroupRepository(domainPort),
     }),
-    customProjectRepository: createChromeCustomProjectRepository(port),
+    customProjectRepository: createChromeCustomProjectRepository(domainPort),
     customProjectsCommandService: createLibCustomProjectsCommandService(),
     domainCategoryMappingRepository:
-      createChromeDomainCategoryMappingRepository(port),
+      createChromeDomainCategoryMappingRepository(domainPort),
     domainCategorySettingsRepository:
-      createChromeDomainCategorySettingsRepository(port),
+      createChromeDomainCategorySettingsRepository(domainPort),
     migrationPort: createChromeMigrationAdapter(),
     messagingPort: createChromeMessagingAdapter({
       getApi: getChromeMessagingApi,
     }),
     notificationPort: createSonnerNotificationAdapter(),
-    parentCategoryRepository: createChromeParentCategoryRepository(port),
+    parentCategoryRepository: createChromeParentCategoryRepository(domainPort),
     removeSubCategoryFromTabGroupPort:
       createLibRemoveSubCategoryFromTabGroupAdapter(),
     setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
     storageChangePort: createChromeStorageChangeAdapter({
       getApi: () => getChromeApi(),
     }),
-    savedTabsTabGroupReadPort: createChromeSavedTabsTabGroupReadAdapter(port),
-    tabGroupRepository: createChromeTabGroupRepository(port),
-    urlRecordRepository: createChromeUrlRecordRepository(port),
-    userSettingsRepository: createChromeUserSettingsRepository(port),
+    savedTabsTabGroupReadPort:
+      createChromeSavedTabsTabGroupReadAdapter(domainPort),
+    tabGroupRepository: createChromeTabGroupRepository(domainPort),
+    urlRecordRepository: createChromeUrlRecordRepository(domainPort),
+    userSettingsRepository: createChromeUserSettingsRepository(settingsPort),
   }
 }

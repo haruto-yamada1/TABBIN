@@ -43,8 +43,13 @@ export type PersistenceControlState =
     }
   | {
       readonly status: 'read-only-emergency'
-      readonly readSource: PersistenceRoute
+      readonly readSource: 'legacy'
       readonly migrationId?: string
+    }
+  | {
+      readonly status: 'read-only-emergency'
+      readonly readSource: 'indexeddb'
+      readonly migrationId: string
     }
 
 export type PersistenceControlStateTransition =
@@ -71,8 +76,13 @@ export type PersistenceControlStateTransition =
     }
   | {
       readonly type: 'enter-read-only-emergency'
-      readonly readSource: PersistenceRoute
+      readonly readSource: 'legacy'
       readonly migrationId?: string
+    }
+  | {
+      readonly type: 'enter-read-only-emergency'
+      readonly readSource: 'indexeddb'
+      readonly migrationId: string
     }
 
 export type PersistenceControlStateAccessPort = {

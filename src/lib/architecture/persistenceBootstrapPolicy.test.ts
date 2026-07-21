@@ -127,6 +127,9 @@ describe('PersistenceBootstrap architecture policy', () => {
     const composition = readRepositoryFile(
       'src/app/composition/createSavedTabsRepositories.ts',
     )
+    const useCaseComposition = readRepositoryFile(
+      'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+    )
 
     expect(composition).toContain(
       'createChromeStorageLocalPort(getPersistenceStorageLocal())',
@@ -135,6 +138,15 @@ describe('PersistenceBootstrap architecture policy', () => {
       'createChromeStorageLocalPort(getChromeStorageLocal())',
     )
     expect(composition).toContain(
+      'createChromeUserSettingsRepository(settingsPort)',
+    )
+    expect(useCaseComposition).toContain(
+      'const domainLocal = getPersistenceStorageLocal()',
+    )
+    expect(useCaseComposition).toContain(
+      'const settingsLocal = getChromeStorageLocal()',
+    )
+    expect(useCaseComposition).toContain(
       'createChromeUserSettingsRepository(settingsPort)',
     )
   })

@@ -37,8 +37,14 @@ export type SavedTabsRepositories = {
   readonly domainCategorySettingsRepository: DomainCategorySettingsRepository
 }
 
+type ChromeStorageLocalSource = {
+  readonly get: (key: string) => Promise<Record<string, unknown>>
+  readonly remove: (key: string) => Promise<void>
+  readonly set: (value: Record<string, unknown>) => Promise<void>
+}
+
 const createChromeStorageLocalPort = (
-  local: typeof chrome.storage.local | null,
+  local: ChromeStorageLocalSource | null,
 ): ChromeStorageLocalPort | null => {
   if (!local) {
     return null

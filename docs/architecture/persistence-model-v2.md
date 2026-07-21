@@ -700,6 +700,9 @@ The legacy/indexeddb route is only for migrated domain data. Persistent
 settings such as `userSettings`, UI theme, release display controls, and the
 control record keep dedicated raw settings/control ports and remain available
 after an IndexedDB cutover; they are not misclassified as legacy domain reads.
+Both `createSavedTabsRepositories` and `createSavedTabsUseCasesDeps` inject the
+gated port only into migrated domain repositories and inject a separate raw
+port into `UserSettingsRepository`.
 
 Before the control record is read, the Chrome adapter restricts
 `storage.local` to `TRUSTED_CONTEXTS`. When `setAccessLevel` is unavailable, it
@@ -716,7 +719,9 @@ Every typed gate failure is also published to the app-level recovery controller.
 The extension app renders a persistent recovery notice that states legacy data
 was not deleted and exposes an explicit retry action; retry success clears the
 notice, while another typed failure replaces the visible recovery state.
-`read-only-emergency` permits only reads from its declared source. The
+`read-only-emergency` permits only reads from its declared source. An IndexedDB
+emergency-read state must retain its migration ID; the decoder rejects an
+IndexedDB source without that identity. The
 bootstrap port has no legacy-delete capability. Raw legacy parsing, mapping,
 transactional copy, and semantic verification remain owned by #728. The #727
 lifecycle boundary requires the approved preflight source fingerprint and a

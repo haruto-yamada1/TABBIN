@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type {
@@ -38,6 +38,13 @@ const expectInvalidTransition = (operation: () => unknown): void => {
 }
 
 describe('PersistenceControlStateService', () => {
+  it('requires migration identity for IndexedDB emergency state types', () => {
+    expectTypeOf<{
+      status: 'read-only-emergency'
+      readSource: 'indexeddb'
+    }>().not.toExtend<PersistenceControlState>()
+  })
+
   it.each([
     undefined,
     { status: 'legacy' },
@@ -92,6 +99,10 @@ describe('PersistenceControlStateService', () => {
     {
       status: 'read-only-emergency',
       readSource: 'unknown',
+    },
+    {
+      status: 'read-only-emergency',
+      readSource: 'indexeddb',
     },
   ])('rejects invalid authoritative state %#', (value) => {
     expect.hasAssertions()
