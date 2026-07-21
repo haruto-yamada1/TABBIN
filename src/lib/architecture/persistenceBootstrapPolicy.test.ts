@@ -159,10 +159,28 @@ describe('PersistenceBootstrap architecture policy', () => {
       'src/contexts/saved-tabs/application/services/PersistenceBootstrapService.ts',
     )
     const app = readRepositoryFile('src/entrypoints/app/main.tsx')
+    const preflightPort = readRepositoryFile(
+      'src/contexts/saved-tabs/application/ports/MigrationPreflightPort.ts',
+    )
+    const preflightRuntime = readRepositoryFile(
+      'src/contexts/saved-tabs/infrastructure/composition/migrationPreflightRuntime.ts',
+    )
+    const rawReader = readRepositoryFile(
+      'src/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeRawLegacyStorageReader.ts',
+    )
 
     expect(port).toContain('readCurrentSourceFingerprint')
     expect(port).toContain('readPreflightSourceFingerprint')
     expect(bootstrap).toContain('PERSISTENCE_PREFLIGHT_STALE')
     expect(app).toContain('<PersistenceRecoveryNotice />')
+    expect(app).toContain('<MigrationPreflightNotice />')
+    expect(preflightPort).toContain('readHealthySourceFingerprint')
+    expect(preflightRuntime).toContain(
+      'getPersistenceBootstrapRuntime().coordination',
+    )
+    expect(rawReader).toContain('MIGRATION_SOURCE_KEYS')
+    expect(rawReader).not.toContain('.set(')
+    expect(rawReader).not.toContain('getSavedTabs')
+    expect(rawReader).not.toContain('getCustomProjects')
   })
 })

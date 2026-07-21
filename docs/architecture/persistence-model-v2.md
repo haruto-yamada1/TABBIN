@@ -730,6 +730,18 @@ before any migration write, and persists `PERSISTENCE_PREFLIGHT_STALE` on a
 mismatch. #738 remains responsible for producing the read-only preflight
 fingerprint and invalidating its result after normal source writes.
 
+#738 stores that approval separately as `tabbin:migrationPreflight:v1`. The
+record contains only versioned issue codes, entity counts, collision count,
+capacity status, timestamps, and the SHA-256 source fingerprint; it contains no
+URL, title, notes, AI message, attachment, or other raw user content. Snapshot
+and recheck use the #727 exclusive Web Lock, while pure analysis and
+`navigator.storage.estimate()` run outside it. The production capacity policy
+uses the measured dry-target/source ratio plus a 1 MiB minimum reserve and 20%
+target reserve. `not-run`, `blocked`, and `stale` authorize no migration;
+`readHealthySourceFingerprint()` exposes an approval only after a current
+fingerprint match. The app notice keeps legacy data unchanged and offers safe
+diagnostic copy, local raw backup, and retry. No diagnostic is sent externally.
+
 The control record contains no user data. It is excluded from Backup V2 and is
 not a #739 domain change event. #739 continues to notify consumers only after a
 committed domain mutation; bootstrap state transitions are internal barrier

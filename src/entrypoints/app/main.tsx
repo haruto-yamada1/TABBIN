@@ -1,3 +1,4 @@
+import { MigrationPreflightNotice } from '@/app/composition/MigrationPreflightNotice'
 import { PersistenceRecoveryNotice } from '@/app/composition/PersistenceRecoveryNotice'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -12,6 +13,7 @@ const AppPage = () => (
   <I18nProvider>
     <TooltipProvider>
       <PersistenceRecoveryNotice />
+      <MigrationPreflightNotice />
       <AppRouter />
     </TooltipProvider>
   </I18nProvider>
