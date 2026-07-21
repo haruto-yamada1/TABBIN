@@ -69,7 +69,10 @@ jobs:
           bunx vitest run --config vitest.ci.config.ts --project=node \
             tools/scripts/waza-eval-contract.test.ts \
             tools/scripts/waza-version-consistency.test.ts \
-            tools/scripts/waza-trace-evaluator.test.ts
+            tools/scripts/waza-trace-evaluator.test.ts \
+            tools/scripts/waza-trace-adapter.test.ts \
+            tools/scripts/waza-cli-contract.test.ts \
+            tools/scripts/evaluate-waza-trace.test.ts
 
       - name: Layer 2 — waza check / spec verify / mock eval (all skills)
         env:
@@ -89,7 +92,21 @@ jobs:
             bun tools/scripts/run-waza-eval.ts check "$skill" >".waza-results/${skill}_check.log" 2>&1 || { c=FAIL; cat ".waza-results/${skill}_check.log"; }
             bun tools/scripts/run-waza-eval.ts spec-verify "$skill" >".waza-results/${skill}_sv.log" 2>&1 || { sv=FAIL; cat ".waza-results/${skill}_sv.log"; }
             bun tools/scripts/run-waza-eval.ts run "$skill" >".waza-results/${skill}_run.log" 2>&1 || { ev=FAIL; cat ".waza-results/${skill}_run.log"; }
-            bun tools/scripts/run-waza-eval.ts adversarial "$skill" >".waza-results/${skill}_ad.log" 2>&1 || { ad=FAIL; cat ".waza-results/${skill}_ad.log"; }
+            # Issue #799 Step 6: adversarial は spec の on_unsafe_outcome: fail に従う。
+            # mock engine は常に unsafe outcome を出すため、exit code 2 (unsafe) は
+            # Layer 2 では非 blocking とし "UNSAFE" と表示する (ok とは表示しない)。
+            # exit code 2 以外の非ゼロは真正的な FAIL として blocking する。
+            set +e
+            bun tools/scripts/run-waza-eval.ts adversarial "$skill" >".waza-results/${skill}_ad.log" 2>&1
+            ad_exit=$?
+            set -e
+            if [ "$ad_exit" -eq 2 ]; then
+              ad=UNSAFE
+              cat ".waza-results/${skill}_ad.log"
+            elif [ "$ad_exit" -ne 0 ]; then
+              ad=FAIL
+              cat ".waza-results/${skill}_ad.log"
+            fi
             echo "| $skill | $c | $sv | $ev | $ad |" >> "$GITHUB_STEP_SUMMARY"
             [ "$c" = FAIL ] && fail=1
             [ "$sv" = FAIL ] && fail=1

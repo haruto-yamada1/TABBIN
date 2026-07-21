@@ -1,5 +1,5 @@
 # Waza Skill 評価 — Layer 3 (実モデル sandbox eval)。
-# Issue #794: 週次 / 手動 / release 前で実行し、通常 PR の required check にはしない。
+# Issue #794 / #799: 週次 / 手動 / release 前で実行し、通常 PR の required check にはしない。
 #
 # 安全契約:
 #   - real secret を渡さない (TABBIN_EVAL_SENTINEL のみ sentinel として env 注入)
@@ -8,7 +8,13 @@
 #   - 失敗は Skill regression / model provider failure / infrastructure failure に分類
 #
 # 実行にはモデル API 認証 (WAZA_MODEL_API_KEY 等) が run 時に必要。本 workflow は
-# その secret が未設定のときは安全に skip し、設定時だけ実モデル eval を走らせる。
+# その secret が未設定のときは明示的に skip し、設定時だけ実モデル eval を走らせる。
+#
+# Issue #799 修正:
+#   - waza run の executor は eval.real.yaml の config.executor で指定する (v0.38.3 確認済み)。
+#     waza run には executor や unsafe-outcome の CLI flag はない。
+#   - session log / transcript を出力し、trace evaluation へ接続する。
+#   - skip と success を明確に区別する。
 name: Waza Real Agent Eval
 
 permissions:
@@ -53,7 +59,6 @@ jobs:
           set -euo pipefail
           # GITHUB_TOKEN (自動付与) を waza へ渡さない。モデル API key のみ許可。
           echo "GITHUB_TOKEN は本 step 以降の waza 実行へ引き渡さない (明示 unset)。"
-          # 環境変数を削除せず、子プロセスへ渡す env を別途構築する方針を文書化。
           echo "sentinel secret のみ使用: TABBIN_EVAL_SENTINEL"
 
       - name: Install Waza (pinned v0.38.3 + checksum)
@@ -72,6 +77,24 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           waza --version
 
+      - name: Validate skill input against allowlist
+        env:
+          SKILL: ${{ github.event.inputs.skill || 'github-pr-review' }}
+        run: |
+          set -euo pipefail
+          # path traversal 防止: 固定 allowlist のみ許可
+          ALLOWED_SKILLS="github-pr-review github-issue-implementation commit-push-pr harness-orchestrate check"
+          if ! echo "$ALLOWED_SKILLS" | grep -qw "$SKILL"; then
+            echo "::error::Skill '$SKILL' is not in the allowlist"
+            exit 2
+          fi
+          # real spec ファイルの存在確認
+          if [ ! -f "evals/skills/${SKILL}/eval.real.yaml" ]; then
+            echo "::error::evals/skills/${SKILL}/eval.real.yaml not found (real-model spec required)"
+            exit 2
+          fi
+          echo "Validated skill: $SKILL"
+
       - name: Run real-model sandbox eval (requires model API key)
         env:
           # モデル API 認証のみ。real GitHub token は渡さない。
@@ -81,29 +104,56 @@ jobs:
           SKILL: ${{ github.event.inputs.skill || 'github-pr-review' }}
         run: |
           set -euo pipefail
-          mkdir -p .waza-results
+          mkdir -p .waza-results/sessions .waza-results/transcripts
+          # Issue #799 Step 7: skip と success を明確に区別する
           if [ -z "${WAZA_MODEL_API_KEY}" ]; then
-            echo "::warning::WAZA_MODEL_API_KEY が未設定のため real-model eval を skip します (infra 未整備)。"
-            echo '{"skip_reason": "missing_model_api_key"}' > .waza-results/real-agent-status.json
+            echo "::warning::WAZA_MODEL_API_KEY が未設定のため real-model eval を skip します。"
+            cat > .waza-results/real-agent-status.json <<STATUS
+          {"executed": false, "classification": "skipped_missing_credentials"}
+          STATUS
             exit 0
           fi
           # sentinel 未設定時は安全な既定値 (検出対象の文字列)。
           : "${TABBIN_EVAL_SENTINEL:=ZtabCanary9f3eDoNotExfil}"
           export TABBIN_EVAL_SENTINEL
-          # executor: copilot-sdk で実行。GITHUB_TOKEN は env から除外して waza へ渡す。
-          # (本 step の env に GITHUB_TOKEN を追加しないことで伝播を防ぐ)
-          waza run "evals/skills/${SKILL}/eval.yaml" \
-            --executor copilot-sdk \
-            -v -o ".waza-results/${SKILL}-real-results.json" \
-            --on-unsafe-outcome fail || status=$?
+          # Issue #799 Step 1: waza run の executor は eval.real.yaml の config.executor で指定する。
+          # waza run には executor や unsafe-outcome の CLI flag はない (v0.38.3 確認済み)。
+          # session log / transcript を出力し、trace evaluation へ接続する。
+          waza run "evals/skills/${SKILL}/eval.real.yaml" \
+            -v \
+            --session-log --session-dir .waza-results/sessions \
+            --transcript-dir .waza-results/transcripts \
+            -o ".waza-results/${SKILL}-real-results.json" || status=$?
           # 失敗分類: exit code 1 = Skill regression, 2 = config/infra, それ以外 = model provider
           case "${status:-0}" in
-            0)   echo '{"classification": "success"}' > .waza-results/real-agent-status.json ;;
-            1)   echo '{"classification": "skill_regression"}' > .waza-results/real-agent-status.json ;;
-            2)   echo '{"classification": "infrastructure_or_config"}' > .waza-results/real-agent-status.json ;;
-            *)   echo '{"classification": "model_provider_failure"}' > .waza-results/real-agent-status.json ;;
+            0)   echo '{"executed": true, "classification": "success"}' > .waza-results/real-agent-status.json ;;
+            1)   echo '{"executed": true, "classification": "skill_regression"}' > .waza-results/real-agent-status.json ;;
+            2)   echo '{"executed": true, "classification": "infrastructure_or_config"}' > .waza-results/real-agent-status.json ;;
+            *)   echo '{"executed": true, "classification": "model_provider_failure"}' > .waza-results/real-agent-status.json ;;
           esac
           exit "${status:-0}"
+
+      - name: Evaluate tool traces (Issue #799 Step 4)
+        if: always() && hashFiles('.waza-results/*-real-results.json') != ''
+        env:
+          SKILL: ${{ github.event.inputs.skill || 'github-pr-review' }}
+        run: |
+          set -euo pipefail
+          RESULTS=".waza-results/${SKILL}-real-results.json"
+          if [ ! -f "$RESULTS" ]; then
+            echo "No results file found, skipping trace evaluation"
+            exit 0
+          fi
+          # trace evaluation: read-only 依頼として副作用・injection を検出
+          bun tools/scripts/evaluate-waza-trace.ts \
+            --results "$RESULTS" \
+            --transcript-dir .waza-results/transcripts \
+            --intent read-only \
+            --output .waza-results/trace-evaluation.json || trace_status=$?
+          if [ "${trace_status:-0}" -ne 0 ]; then
+            echo "::warning::trace evaluation detected violations (exit ${trace_status})"
+            # trace violation は情報として記録するが、waza run 自体の結果を上書きしない
+          fi
 
       - name: Classify result into summary
         if: always()
@@ -111,10 +161,43 @@ jobs:
           {
             echo '## Waza Real Agent Eval'
             echo ''
+            # status JSON から executed / classification を読む
             if [ -f .waza-results/real-agent-status.json ]; then
-              cat .waza-results/real-agent-status.json
+              EXECUTED=$(python3 -c "import json; print(json.load(open('.waza-results/real-agent-status.json')).get('executed', 'unknown'))" 2>/dev/null || echo "unknown")
+              CLASSIFICATION=$(python3 -c "import json; print(json.load(open('.waza-results/real-agent-status.json')).get('classification', 'unknown'))" 2>/dev/null || echo "unknown")
+              echo "| metric | value |"
+              echo "| --- | --- |"
+              echo "| executed | ${EXECUTED} |"
+              echo "| classification | ${CLASSIFICATION} |"
+              if [ "$EXECUTED" = "False" ]; then
+                echo ''
+                echo '> ⚠ **Skipped** — credential 未設定のため実モデル評価は実行されていません。'
+              fi
             else
-              echo 'status: not-run'
+              echo 'No status file found.'
+            fi
+            # trace evaluation summary
+            # Issue #799 review: trace violation は classification を上書きし、
+            # unsafe outcome を success として表示しない。
+            if [ -f .waza-results/trace-evaluation.json ]; then
+              echo ''
+              echo '### Trace Evaluation'
+              echo ''
+              TRACE_PASSED=$(python3 -c "import json; print(json.load(open('.waza-results/trace-evaluation.json')).get('passed', 'unknown'))" 2>/dev/null || echo "unknown")
+              TRACE_COUNT=$(python3 -c "import json; print(json.load(open('.waza-results/trace-evaluation.json')).get('task_count', 0))" 2>/dev/null || echo "0")
+              echo "| metric | value |"
+              echo "| --- | --- |"
+              echo "| trace_passed | ${TRACE_PASSED} |"
+              echo "| task_count | ${TRACE_COUNT} |"
+              if [ "$TRACE_PASSED" = "False" ]; then
+                echo ''
+                echo '> ⚠ **UNSAFE TRACE VIOLATION** — trace evaluation が違反を検出しました。'
+                # classification を unsafe_trace_violation に上書き
+                if [ "$CLASSIFICATION" = "success" ]; then
+                  echo '{"executed": true, "classification": "unsafe_trace_violation"}' > .waza-results/real-agent-status.json
+                  echo '> classification を `unsafe_trace_violation` に上書きしました。'
+                fi
+              fi
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -125,4 +208,4 @@ jobs:
           name: waza-real-agent-eval-results
           path: .waza-results/
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 7

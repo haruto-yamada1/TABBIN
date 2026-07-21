@@ -60,13 +60,11 @@ const buildArgs = (
       return ['run', evalPath, '-v', '-o', resultsFile] as const
     }
     case 'adversarial': {
-      return [
-        'adversarial',
-        '--spec',
-        evalPath,
-        '--on-unsafe-outcome',
-        'warn',
-      ] as const
+      // Issue #799 Step 6: do not override eval.yaml's on_unsafe_outcome.
+      // eval.yaml specifies on_unsafe_outcome: fail; the wrapper must not
+      // silently downgrade it to warn. --spec lets waza read the setting
+      // from the eval file.
+      return ['adversarial', '--spec', evalPath] as const
     }
     default: {
       const _exhaustive: never = subcommand
@@ -82,7 +80,7 @@ const printUsage = (): void => {
     '  check [skill]        waza check .apm/skills/<skill>',
     '  spec-verify [skill]   waza spec verify <skill> <eval>',
     '  run [skill]           waza run evals/skills/<skill>/eval.yaml -v',
-    '  adversarial [skill]   waza adversarial --spec evals/skills/<skill>/eval.yaml',
+    '  adversarial [skill]   waza adversarial --spec evals/skills/<skill>/eval.yaml (respects eval.yaml on_unsafe_outcome)',
   ]
   for (const line of lines) {
     console.error(line)

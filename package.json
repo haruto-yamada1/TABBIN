@@ -75,7 +75,8 @@
     "sync:toolchain-versions": "bun tools/scripts/sync-toolchain-versions.ts",
     "apm:check": "bun tools/scripts/sync-agent-config-cli.ts --check",
     "apm:sync": "bun tools/scripts/sync-agent-config-cli.ts",
-    "release:provenance": "bun tools/scripts/generate-release-provenance.ts"
+    "release:provenance": "bun tools/scripts/generate-release-provenance.ts",
+    "waza:trace-eval": "bun tools/scripts/evaluate-waza-trace.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -70,6 +70,9 @@ jobs:
 
       - name: Run adversarial pack (optional)
         if: ${{ github.event.inputs.run_adversarial == 'true' }}
+        # Issue #799: PoC は非 blocking。adversarial は spec の on_unsafe_outcome: fail
+        # に従い exit 2 (unsafe) を返すが、PoC では結果を記録するのみで build を落とさない。
+        continue-on-error: true
         run: bun run waza:adversarial
 
       - name: Upload results
