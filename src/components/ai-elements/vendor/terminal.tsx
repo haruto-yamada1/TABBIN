@@ -1,15 +1,97 @@
 'use client'
 
-import Ansi from 'ansi-to-react'
+import Anser from 'anser'
+import { escapeCarriageReturn } from 'escape-carriage'
 import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from 'lucide-react'
-import type { ComponentProps, HTMLAttributes } from 'react'
-import { createContext, use, useCallback, useMemo, useRef } from 'react'
+import type { ComponentProps, CSSProperties, HTMLAttributes } from 'react'
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 import { Shimmer } from '../shimmer'
 import { useCopyState } from '../use-copy-state'
+
+export type AnsiTextProps = {
+  children?: string
+  className?: string
+}
+
+const fixBackspace = (text: string): string => {
+  let previous: string
+
+  do {
+    previous = text
+    text = previous.replace(/[^\n]\x08/gm, '')
+  } while (text.length < previous.length)
+
+  return text
+}
+
+const createAnsiStyle = (entry: Anser.AnserJsonEntry): CSSProperties => {
+  const style: CSSProperties = {}
+
+  if (entry.bg) {
+    style.backgroundColor = `rgb(${entry.bg})`
+  }
+  if (entry.fg) {
+    style.color = `rgb(${entry.fg})`
+  }
+
+  switch (entry.decoration) {
+    case 'bold':
+      style.fontWeight = 'bold'
+      break
+    case 'dim':
+      style.opacity = 0.5
+      break
+    case 'italic':
+      style.fontStyle = 'italic'
+      break
+    case 'hidden':
+      style.visibility = 'hidden'
+      break
+    case 'strikethrough':
+      style.textDecoration = 'line-through'
+      break
+    case 'underline':
+      style.textDecoration = 'underline'
+      break
+    case 'blink':
+      style.textDecoration = 'blink'
+      break
+    default:
+      break
+  }
+
+  return style
+}
+
+export const AnsiText = ({ children = '', className }: AnsiTextProps) => {
+  const normalizedText = escapeCarriageReturn(fixBackspace(children))
+  const entries = Anser.ansiToJson(normalizedText, {
+    json: true,
+    remove_empty: true,
+    use_classes: false,
+  })
+
+  return (
+    <code className={className}>
+      {entries.map((entry, index) => (
+        <span key={index} style={createAnsiStyle(entry)}>
+          {entry.content}
+        </span>
+      ))}
+    </code>
+  )
+}
 
 type TerminalContextType = {
   output: string
@@ -236,7 +318,7 @@ export const TerminalContent = ({
     >
       {children ?? (
         <pre className='break-words whitespace-pre-wrap'>
-          <Ansi>{output}</Ansi>
+          <AnsiText>{output}</AnsiText>
           {isStreaming && (
             <span className='ml-0.5 inline-block h-4 w-2 animate-pulse bg-zinc-100' />
           )}
