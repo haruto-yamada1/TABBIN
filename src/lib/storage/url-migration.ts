@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
@@ -25,9 +26,10 @@ const shouldSkipUrlsMigrationByMemoryFlag = async (): Promise<boolean> => {
     return false
   }
 
-  const { urlsMigrationCompleted } = await chrome.storage.local.get(
-    'urlsMigrationCompleted',
-  )
+  const { urlsMigrationCompleted } =
+    await getRequiredPersistenceStorageLocal().get<{
+      urlsMigrationCompleted?: boolean
+    }>('urlsMigrationCompleted')
 
   if (urlsMigrationCompleted) {
     return true
@@ -38,21 +40,22 @@ const shouldSkipUrlsMigrationByMemoryFlag = async (): Promise<boolean> => {
 }
 
 const isUrlsMigrationCompleted = async (): Promise<boolean> => {
-  const { urlsMigrationCompleted } = await chrome.storage.local.get(
-    'urlsMigrationCompleted',
-  )
+  const { urlsMigrationCompleted } =
+    await getRequiredPersistenceStorageLocal().get<{
+      urlsMigrationCompleted?: boolean
+    }>('urlsMigrationCompleted')
 
-  return urlsMigrationCompleted
+  return urlsMigrationCompleted === true
 }
 
 const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
   const [existingUrlsResult, savedTabsResult, customProjectsResult] =
     await Promise.all([
-      chrome.storage.local.get('urls'),
-      chrome.storage.local.get<{
+      getRequiredPersistenceStorageLocal().get('urls'),
+      getRequiredPersistenceStorageLocal().get<{
         savedTabs?: TabGroup[]
       }>('savedTabs'),
-      chrome.storage.local.get<{
+      getRequiredPersistenceStorageLocal().get<{
         customProjects?: CustomProject[]
       }>('customProjects'),
     ])
@@ -226,7 +229,7 @@ const persistUrlsMigrationResult = async (
 ): Promise<void> => {
   const allUrlRecords = [...urlMap.values()].map((entry) => entry.record)
 
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     customProjects,
     savedTabs,
     urls: allUrlRecords,

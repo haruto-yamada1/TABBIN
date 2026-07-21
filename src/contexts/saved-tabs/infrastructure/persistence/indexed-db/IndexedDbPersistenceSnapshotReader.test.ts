@@ -2,6 +2,7 @@ import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { PersistenceV2SnapshotReaderPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
+import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
 import type { PersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 
@@ -16,6 +17,8 @@ import {
   PersistenceProjectionIntegrityError,
 } from './IndexedDbSavedTabsQueryAdapter'
 import { PERSISTENCE_STORE_NAMES } from './persistenceDatabaseSchema'
+
+const operationGate = createReadyPersistenceOperationGateStub()
 
 const url = {
   firstSavedAt: 1,
@@ -65,7 +68,10 @@ describe('IndexedDbPersistenceSnapshotReader', () => {
       databaseName: 'snapshot',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
     await unitOfWork.commit({
       analyticsViews: {
         put: [{ id: 'view-1', updatedAt: 1, value: { title: 'view' } }],
@@ -88,7 +94,10 @@ describe('IndexedDbPersistenceSnapshotReader', () => {
       urls: { put: [url] },
     })
 
-    const reader = new IndexedDbPersistenceSnapshotReader(manager)
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
     const snapshot = await reader.readConsistentSnapshot()
     const versionedSavedTabs = await reader.readVerifiedSavedTabsSnapshot()
 
@@ -117,13 +126,19 @@ describe('IndexedDbPersistenceSnapshotReader', () => {
       databaseName: 'consistent-read',
       indexedDb,
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
     await unitOfWork.commit({
       collections: { put: [collection] },
       memberships: { put: [membership] },
       urls: { put: [url] },
     })
-    const reader = new IndexedDbPersistenceSnapshotReader(manager)
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
 
     const reading = reader.readVerifiedSavedTabsSnapshot()
     const writing = unitOfWork.commit({
@@ -176,7 +191,10 @@ describe('IndexedDbPersistenceSnapshotReader', () => {
       })
     })
 
-    const reader = new IndexedDbPersistenceSnapshotReader(manager)
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
     await expect(reader.readConsistentSnapshot()).rejects.toBeInstanceOf(
       PersistenceSnapshotIntegrityError,
     )
@@ -194,7 +212,10 @@ describe('IndexedDbSavedTabsQueryAdapter', () => {
       databaseName: 'query-projection',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
     await unitOfWork.commit({
       collections: { put: [collection] },
       memberships: { put: [membership] },
@@ -203,7 +224,7 @@ describe('IndexedDbSavedTabsQueryAdapter', () => {
     getSpy.mockClear()
 
     const query = new IndexedDbSavedTabsQueryAdapter(
-      new IndexedDbPersistenceSnapshotReader(manager),
+      new IndexedDbPersistenceSnapshotReader(manager, operationGate),
     )
     const projection = await query.findCollection('collection-1')
 

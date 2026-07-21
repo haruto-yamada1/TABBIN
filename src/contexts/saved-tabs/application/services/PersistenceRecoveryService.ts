@@ -1,0 +1,72 @@
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
+import type {
+  PersistenceBootstrapErrorCode,
+  PersistenceRecoveryControllerPort,
+  PersistenceRecoveryState,
+} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+
+export type PersistenceRecoveryServiceOptions = {
+  readonly retry: () => Promise<void>
+}
+
+const AVAILABLE_STATE: PersistenceRecoveryState = { status: 'available' }
+
+export class PersistenceRecoveryService implements PersistenceRecoveryControllerPort {
+  private readonly listeners = new Set<() => void>()
+  private readonly options: PersistenceRecoveryServiceOptions
+  private state: PersistenceRecoveryState = AVAILABLE_STATE
+
+  constructor(options: PersistenceRecoveryServiceOptions) {
+    this.options = options
+  }
+
+  readonly clear = (): void => {
+    if (this.state.status === 'available') {
+      return
+    }
+    this.state = AVAILABLE_STATE
+    this.emit()
+  }
+
+  readonly getSnapshot = (): PersistenceRecoveryState => this.state
+
+  readonly reportUnavailable = (
+    errorCode: PersistenceBootstrapErrorCode,
+  ): void => {
+    if (
+      this.state.status === 'unavailable' &&
+      this.state.errorCode === errorCode
+    ) {
+      return
+    }
+    this.state = { status: 'unavailable', errorCode }
+    this.emit()
+  }
+
+  readonly retry = async (): Promise<void> => {
+    try {
+      await this.options.retry()
+      this.clear()
+    } catch (error) {
+      this.reportUnavailable(
+        error instanceof PersistenceUnavailableError
+          ? error.code
+          : 'PERSISTENCE_RECOVERY_REQUIRED',
+      )
+      throw error
+    }
+  }
+
+  readonly subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
+
+  private readonly emit = (): void => {
+    for (const listener of this.listeners) {
+      listener()
+    }
+  }
+}

@@ -1,8 +1,6 @@
+import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 const HEX_RADIX_AS = 16
 
@@ -33,7 +31,7 @@ const createSavedAnalyticsView = ({
 })
 
 const loadSavedAnalyticsViews = async (): Promise<SavedAnalyticsView[]> => {
-  const storageLocal = getChromeStorageLocal()
+  const storageLocal = getPersistenceStorageLocal()
 
   if (!storageLocal) {
     warnMissingChromeStorage('分析ビューの読み込み')
@@ -56,7 +54,7 @@ const loadSavedAnalyticsViews = async (): Promise<SavedAnalyticsView[]> => {
 const saveSavedAnalyticsViews = async (
   views: SavedAnalyticsView[],
 ): Promise<void> => {
-  const storageLocal = getChromeStorageLocal()
+  const storageLocal = getPersistenceStorageLocal()
 
   if (!storageLocal) {
     warnMissingChromeStorage('分析ビューの保存')

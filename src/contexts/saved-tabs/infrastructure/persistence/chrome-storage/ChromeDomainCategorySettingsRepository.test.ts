@@ -71,10 +71,10 @@ describe('ChromeDomainCategorySettingsRepository', () => {
     )
   })
 
-  it('既定 port は chrome.storage.local に委譲する', async () => {
+  it('注入 port に read/write を委譲する', async () => {
     const local = createPort([settings])
     vi.stubGlobal('chrome', { storage: { local } })
-    const repository = createChromeDomainCategorySettingsRepository()
+    const repository = createChromeDomainCategorySettingsRepository(local)
 
     await expect(repository.findAll()).resolves.toHaveLength(1)
     await repository.saveAll([])

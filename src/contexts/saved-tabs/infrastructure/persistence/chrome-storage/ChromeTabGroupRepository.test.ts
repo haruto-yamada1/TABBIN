@@ -215,13 +215,13 @@ describe('ChromeTabGroupRepository', () => {
     })
   })
 
-  it('default chrome.storage.local portでread/writeする', async () => {
+  it('注入された chrome.storage.local portでread/writeする', async () => {
     const state: StorageState = {
       [SAVED_TABS_KEY]: [{ domain: 'example.com', id: 'group-1' }],
     }
     const local = createPort(state)
     vi.stubGlobal('chrome', { storage: { local } })
-    const repo = createChromeTabGroupRepository()
+    const repo = createChromeTabGroupRepository(local)
     const sample = createSampleTabGroup('group-2', 'docs.example.com')
     if (!sample) {
       throw new Error('sample tab group could not be created')

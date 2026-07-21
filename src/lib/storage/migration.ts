@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { filterItemsBySavableUrl } from '@/lib/url-filter'
 import type {
@@ -78,10 +79,10 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     const [categories, savedTabsResult, domainCategoryMappingsResult] =
       await Promise.all([
         getParentCategories(),
-        chrome.storage.local.get<{
+        getRequiredPersistenceStorageLocal().get<{
           savedTabs?: TabGroup[]
         }>('savedTabs'),
-        chrome.storage.local.get<{
+        getRequiredPersistenceStorageLocal().get<{
           domainCategoryMappings?: DomainParentCategoryMapping[]
         }>('domainCategoryMappings'),
       ])
@@ -157,7 +158,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     console.log('更新後の親カテゴリ:', updatedCategories)
 
     // ストレージに保存
-    await chrome.storage.local.set({
+    await getRequiredPersistenceStorageLocal().set({
       parentCategories: updatedCategories,
     })
     console.log('親カテゴリのdomainNames移行が完了しました')
@@ -409,7 +410,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     initialParentCategories,
     settings,
   ] = await Promise.all([
-    chrome.storage.local.get<{
+    getRequiredPersistenceStorageLocal().get<{
       savedTabs?: TabGroup[]
     }>('savedTabs'),
     getDomainCategoryMappings(),
@@ -502,7 +503,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   console.log('保存前の重複チェック:', groupArray.length)
   const uniqueGroups = dedupeGroupsById(groupArray)
   console.log('重複除去後のタブグループ数:', uniqueGroups.length)
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     savedTabs: uniqueGroups,
   })
   const autoCategorizeTasks = uniqueGroups.reduce<Promise<void>[]>(
@@ -522,7 +523,7 @@ const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
   const filteredTabs = filterItemsBySavableUrl(tabs, settings.excludePatterns)
 
   // 保存したタブグループのIDを取得
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const uniqueDomains = getUniqueDomainsFromTabs(filteredTabs)
@@ -548,7 +549,7 @@ const updateCategoryDomains = async (
   await saveParentCategories(updatedCategories)
 } // TabGroup IDからグループを取得する関数
 const getTabGroupById = async (groupId: string): Promise<TabGroup | null> => {
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   return savedTabs.find((group: TabGroup) => group.id === groupId) ?? null
@@ -558,9 +559,10 @@ const getTabGroupById = async (groupId: string): Promise<TabGroup | null> => {
 let domainHostnameMigrationDone = false
 
 const isDomainHostnameMigrationCompleted = async (): Promise<boolean> => {
-  const { domainHostnameMigrationCompleted } = await chrome.storage.local.get(
-    'domainHostnameMigrationCompleted',
-  )
+  const { domainHostnameMigrationCompleted } =
+    await getRequiredPersistenceStorageLocal().get(
+      'domainHostnameMigrationCompleted',
+    )
   return Boolean(domainHostnameMigrationCompleted)
 }
 
@@ -726,19 +728,19 @@ const runDomainHostnameMigration = async (): Promise<void> => {
     // 各キーを「直前再読み込み → 正規化 → 書き込み」で順次処理し、並行保存
     // (context-menu save 等) との競合で新しいデータを巻き戻さない。
     // 正規化は冪等なので並行書き込み混入でも安全。
-    const savedTabsRes = await chrome.storage.local.get<{
+    const savedTabsRes = await getRequiredPersistenceStorageLocal().get<{
       savedTabs?: TabGroup[]
     }>('savedTabs')
     if (Array.isArray(savedTabsRes.savedTabs)) {
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         savedTabs: normalizeSavedTabsAndWarnDuplicates(savedTabsRes.savedTabs),
       })
     }
-    const parentCategoriesRes = await chrome.storage.local.get<{
+    const parentCategoriesRes = await getRequiredPersistenceStorageLocal().get<{
       parentCategories?: ParentCategory[]
     }>('parentCategories')
     if (Array.isArray(parentCategoriesRes.parentCategories)) {
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         parentCategories: parentCategoriesRes.parentCategories.map((category) =>
           Array.isArray(category.domainNames)
             ? {
@@ -752,21 +754,21 @@ const runDomainHostnameMigration = async (): Promise<void> => {
         ),
       })
     }
-    const settingsRes = await chrome.storage.local.get<{
+    const settingsRes = await getRequiredPersistenceStorageLocal().get<{
       domainCategorySettings?: DomainCategorySettings[]
     }>('domainCategorySettings')
     if (Array.isArray(settingsRes.domainCategorySettings)) {
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         domainCategorySettings: mergeDomainCategorySettings(
           settingsRes.domainCategorySettings,
         ),
       })
     }
-    const mappingsRes = await chrome.storage.local.get<{
+    const mappingsRes = await getRequiredPersistenceStorageLocal().get<{
       domainCategoryMappings?: DomainParentCategoryMapping[]
     }>('domainCategoryMappings')
     if (Array.isArray(mappingsRes.domainCategoryMappings)) {
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         domainCategoryMappings: dedupDomainCategoryMappings(
           mappingsRes.domainCategoryMappings,
         ),
@@ -774,7 +776,9 @@ const runDomainHostnameMigration = async (): Promise<void> => {
     }
     // データ正規化後に完了フラグを分離して書く。フラグ書き込み前に並行保存が
     // 入ってもデータは既に hostname 化済みなので安全。
-    await chrome.storage.local.set({ domainHostnameMigrationCompleted: true })
+    await getRequiredPersistenceStorageLocal().set({
+      domainHostnameMigrationCompleted: true,
+    })
     domainHostnameMigrationDone = true
     console.log(
       'ドメインストレージの hostname 化マイグレーションが完了しました',

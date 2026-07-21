@@ -1,3 +1,4 @@
+import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { getAppVersion } from '@/constants/app-version'
 import {
   ACTIVE_AI_CHAT_CONVERSATION_ID_KEY,
@@ -5,7 +6,6 @@ import {
   loadConversationHistory,
 } from '@/features/ai-chat/lib/conversation-history'
 import type { AiChatConversation } from '@/features/ai-chat/types'
-import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { assertBackupSerializedBytes } from '@/lib/persistence/backupResourcePolicy'
 import { loadSavedAnalyticsViews } from '@/lib/storage/analytics'
@@ -322,7 +322,7 @@ const importWithMerge = async ({
     saveUserSettings(mergedSettings),
     saveParentCategories(mergedCategories),
     (async () => {
-      const storageLocal = getChromeStorageLocal()
+      const storageLocal = getPersistenceStorageLocal()
       if (!storageLocal) {
         return
       }
@@ -408,7 +408,7 @@ const importWithOverwrite = async ({
     }),
     saveParentCategories(cleanParentCategories),
     (async () => {
-      const storageLocal = getChromeStorageLocal()
+      const storageLocal = getPersistenceStorageLocal()
       if (!storageLocal) {
         return
       }

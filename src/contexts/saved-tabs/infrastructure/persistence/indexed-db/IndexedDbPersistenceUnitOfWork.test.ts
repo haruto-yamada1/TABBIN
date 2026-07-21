@@ -1,6 +1,8 @@
 import { IDBFactory } from 'fake-indexeddb'
 import { describe, expect, it, vi } from 'vitest'
 
+import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
+
 import { IndexedDbConnectionManager } from './IndexedDbConnectionManager'
 import { IndexedDbPersistenceSnapshotReader } from './IndexedDbPersistenceSnapshotReader'
 import {
@@ -12,6 +14,8 @@ import {
   queueIndexedDbTransaction,
 } from './IndexedDbTransaction'
 import { PERSISTENCE_STORE_NAMES } from './persistenceDatabaseSchema'
+
+const operationGate = createReadyPersistenceOperationGateStub()
 
 const createUrl = (id: string) => ({
   firstSavedAt: 1,
@@ -38,7 +42,10 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       databaseName: 'unit-of-work',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
 
     const result = await unitOfWork.commit({
       collections: { put: [createDomainCollection('collection-1')] },
@@ -62,6 +69,7 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
     })
     const snapshot = await new IndexedDbPersistenceSnapshotReader(
       manager,
+      operationGate,
     ).readConsistentSnapshot()
     expect(snapshot.savedTabs.urls).toHaveLength(1)
     expect(snapshot.savedTabs.collections).toHaveLength(1)
@@ -74,7 +82,10 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       databaseName: 'message-change-scope',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
 
     const result = await unitOfWork.commit({
       messages: {
@@ -101,7 +112,10 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       databaseName: 'rollback',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
 
     await expect(
       unitOfWork.commit({
@@ -117,6 +131,7 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
 
     const snapshot = await new IndexedDbPersistenceSnapshotReader(
       manager,
+      operationGate,
     ).readConsistentSnapshot()
     expect(snapshot.savedTabs.urls).toEqual([])
     expect(snapshot.savedTabs.collections).toEqual([])
@@ -134,8 +149,14 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       databaseName: 'concurrent-revision',
       indexedDb,
     })
-    const first = new IndexedDbPersistenceUnitOfWork(firstManager)
-    const second = new IndexedDbPersistenceUnitOfWork(secondManager)
+    const first = new IndexedDbPersistenceUnitOfWork(
+      firstManager,
+      operationGate,
+    )
+    const second = new IndexedDbPersistenceUnitOfWork(
+      secondManager,
+      operationGate,
+    )
 
     const results = await Promise.all([
       first.commit({ urls: { put: [createUrl('url-1')] } }),
@@ -177,6 +198,7 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
 
     const snapshot = await new IndexedDbPersistenceSnapshotReader(
       manager,
+      operationGate,
     ).readConsistentSnapshot()
     expect(snapshot.savedTabs.urls).toEqual([])
     manager.close()
@@ -187,7 +209,10 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       databaseName: 'strict-durability',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
 
     await expect(
       unitOfWork.commit(
@@ -203,7 +228,10 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       databaseName: 'json-safe-boundary',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
     const openSpy = vi.spyOn(manager, 'open')
 
     await expect(
@@ -248,7 +276,10 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       databaseName: 'invalid-write-plan',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
 
     await expect(unitOfWork.commit({})).rejects.toBeInstanceOf(
       PersistenceEmptyWritePlanError,
@@ -282,7 +313,7 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
     )
 
     await expect(
-      new IndexedDbPersistenceUnitOfWork(manager).readRevision(),
+      new IndexedDbPersistenceUnitOfWork(manager, operationGate).readRevision(),
     ).rejects.toThrow('invalid persistence revision')
     manager.close()
   })
@@ -306,6 +337,7 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
     }
     const unitOfWork = new IndexedDbPersistenceUnitOfWork(
       manager as unknown as IndexedDbConnectionManager,
+      operationGate,
     )
 
     const error = await unitOfWork
@@ -339,6 +371,7 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
     }
     const unitOfWork = new IndexedDbPersistenceUnitOfWork(
       manager as unknown as IndexedDbConnectionManager,
+      operationGate,
     )
 
     await expect(

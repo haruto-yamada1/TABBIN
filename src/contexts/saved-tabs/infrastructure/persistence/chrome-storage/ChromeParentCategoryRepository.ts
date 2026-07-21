@@ -2,10 +2,7 @@ import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/Paren
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
@@ -17,17 +14,6 @@ type ChromeParentCategoryStoragePort = Pick<
   ChromeStorageLocalPort,
   'get' | 'set'
 >
-
-const getDefaultPort = (): ChromeParentCategoryStoragePort | null => {
-  const local = getChromeStorageLocal()
-  if (!local) {
-    return null
-  }
-  return {
-    get: async (key) => local.get(key),
-    set: async (value) => local.set(value),
-  }
-}
 
 const createChromeParentCategoryRepositoryImpl = (
   port: ChromeParentCategoryStoragePort,
@@ -111,7 +97,7 @@ const createChromeParentCategoryRepositoryImpl = (
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */
 export const createChromeParentCategoryRepository = (
-  port: ChromeParentCategoryStoragePort | null = getDefaultPort(),
+  port: ChromeParentCategoryStoragePort | null,
 ): ParentCategoryRepository => {
   if (!port) {
     warnMissingChromeStorage('ChromeParentCategoryRepository')

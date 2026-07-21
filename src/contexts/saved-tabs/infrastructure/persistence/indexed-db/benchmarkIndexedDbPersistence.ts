@@ -1,5 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb'
 
+import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 
 import { IndexedDbConnectionManager } from './IndexedDbConnectionManager'
@@ -13,6 +14,13 @@ import {
   PERSISTENCE_BENCHMARK_DEFAULT_MESSAGE_COUNT,
   PERSISTENCE_BENCHMARK_DEFAULT_URL_COUNT,
 } from './persistenceBenchmarkFixtures'
+
+const benchmarkOperationGate: PersistenceOperationGatePort = {
+  runIndexedDbRead: async (operation) => operation(),
+  runIndexedDbWrite: async (operation) => operation(),
+  runLegacyRead: async (operation) => operation(),
+  runLegacyWrite: async (operation) => operation(),
+}
 
 const readNumberOption = (name: string, fallback: number): number => {
   const argument = process.argv.find((value) => value.startsWith(`${name}=`))
@@ -78,7 +86,10 @@ const manager = new IndexedDbConnectionManager({
   databaseName: `tabbin-persistence-benchmark-${crypto.randomUUID()}`,
   indexedDb: new IDBFactory(),
 })
-const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+  manager,
+  benchmarkOperationGate,
+)
 const write = await measure(async () =>
   unitOfWork.commit({
     collections: { put: normalized.value.savedTabs.collections },
@@ -88,7 +99,10 @@ const write = await measure(async () =>
     urls: { put: normalized.value.savedTabs.urls },
   }),
 )
-const reader = new IndexedDbPersistenceSnapshotReader(manager)
+const reader = new IndexedDbPersistenceSnapshotReader(
+  manager,
+  benchmarkOperationGate,
+)
 const readBack = await measure(async () => reader.readConsistentSnapshot())
 const query = new IndexedDbSavedTabsQueryAdapter(reader)
 const initialLoad = await measure(async () => query.readInitialLoad())

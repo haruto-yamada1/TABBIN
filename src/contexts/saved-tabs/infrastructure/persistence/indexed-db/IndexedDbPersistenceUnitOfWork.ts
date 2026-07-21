@@ -1,3 +1,4 @@
+import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type {
   PersistenceChangeScope,
   PersistenceCommitOptions,
@@ -114,85 +115,94 @@ export class PersistenceWritePlanValidationError extends Error {
 
 export class IndexedDbPersistenceUnitOfWork implements PersistenceV2UnitOfWorkPort {
   private readonly connectionManager: IndexedDbConnectionManager
+  private readonly operationGate: PersistenceOperationGatePort
 
-  constructor(connectionManager: IndexedDbConnectionManager) {
+  constructor(
+    connectionManager: IndexedDbConnectionManager,
+    operationGate: PersistenceOperationGatePort,
+  ) {
     this.connectionManager = connectionManager
+    this.operationGate = operationGate
   }
 
   async commit(
     plan: PersistenceV2WritePlan,
     options: PersistenceCommitOptions = {},
   ): Promise<PersistenceCommitResult> {
-    assertJsonSafeValues(plan)
-    const { changedScopes, entries, storeNames } = collectPlan(plan)
-    if (entries.length === 0) {
-      throw new PersistenceEmptyWritePlanError()
-    }
+    return this.operationGate.runIndexedDbWrite(async () => {
+      assertJsonSafeValues(plan)
+      const { changedScopes, entries, storeNames } = collectPlan(plan)
+      if (entries.length === 0) {
+        throw new PersistenceEmptyWritePlanError()
+      }
 
-    const database = await this.connectionManager.open()
-    let committedRevision: number | undefined
-    await queueIndexedDbTransaction(
-      {
-        database,
-        durability: options.durability,
-        mode: 'readwrite',
-        storeNames: [...storeNames, PERSISTENCE_STORE_NAMES.metadata],
-      },
-      (transaction) => {
-        for (const key of entries) {
-          queueMutation(
-            transaction.objectStore(PLAN_STORE_NAMES[key]),
-            plan[key],
+      const database = await this.connectionManager.open()
+      let committedRevision: number | undefined
+      await queueIndexedDbTransaction(
+        {
+          database,
+          durability: options.durability,
+          mode: 'readwrite',
+          storeNames: [...storeNames, PERSISTENCE_STORE_NAMES.metadata],
+        },
+        (transaction) => {
+          for (const key of entries) {
+            queueMutation(
+              transaction.objectStore(PLAN_STORE_NAMES[key]),
+              plan[key],
+            )
+          }
+
+          const metadata = transaction.objectStore(
+            PERSISTENCE_STORE_NAMES.metadata,
           )
-        }
+          const revisionRequest = metadata.get('revision')
+          revisionRequest.addEventListener('success', () => {
+            const current = decodePersistenceRevision(
+              readIndexedDbRequestResult(revisionRequest),
+            )
+            committedRevision = current + 1
+            metadata.put({ key: 'revision', value: committedRevision })
+          })
+        },
+      )
 
-        const metadata = transaction.objectStore(
-          PERSISTENCE_STORE_NAMES.metadata,
-        )
-        const revisionRequest = metadata.get('revision')
-        revisionRequest.addEventListener('success', () => {
-          const current = decodePersistenceRevision(
-            readIndexedDbRequestResult(revisionRequest),
-          )
-          committedRevision = current + 1
-          metadata.put({ key: 'revision', value: committedRevision })
-        })
-      },
-    )
+      if (committedRevision === undefined) {
+        throw new Error('Persistence revision was not committed.')
+      }
 
-    if (committedRevision === undefined) {
-      throw new Error('Persistence revision was not committed.')
-    }
-
-    return {
-      changedScopes,
-      revision: committedRevision,
-    }
+      return {
+        changedScopes,
+        revision: committedRevision,
+      }
+    })
   }
 
   async readRevision(): Promise<number> {
-    const database = await this.connectionManager.open()
-    const transaction = database.transaction(
-      PERSISTENCE_STORE_NAMES.metadata,
-      'readonly',
-    )
-    const request = transaction
-      .objectStore(PERSISTENCE_STORE_NAMES.metadata)
-      .get('revision')
-    const result = await new Promise<unknown>((resolve, reject) => {
-      request.addEventListener('error', () => {
-        reject(
-          toIndexedDbError(
-            request.error,
-            'Failed to read the persistence revision.',
-          ),
-        )
+    return this.operationGate.runIndexedDbRead(async () => {
+      const database = await this.connectionManager.open()
+      const transaction = database.transaction(
+        PERSISTENCE_STORE_NAMES.metadata,
+        'readonly',
+      )
+      const request = transaction
+        .objectStore(PERSISTENCE_STORE_NAMES.metadata)
+        .get('revision')
+      const result = await new Promise<unknown>((resolve, reject) => {
+        request.addEventListener('error', () => {
+          reject(
+            toIndexedDbError(
+              request.error,
+              'Failed to read the persistence revision.',
+            ),
+          )
+        })
+        request.addEventListener('success', () => {
+          resolve(readIndexedDbRequestResult(request))
+        })
       })
-      request.addEventListener('success', () => {
-        resolve(readIndexedDbRequestResult(request))
-      })
-    })
 
-    return decodePersistenceRevision(result)
+      return decodePersistenceRevision(result)
+    })
   }
 }

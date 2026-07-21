@@ -1,6 +1,7 @@
 import { generateText, isStepCount } from 'ai'
 import { createOllama } from 'ai-sdk-ollama'
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { getAiChatToolTitle } from '@/constants/aiChatTools'
 import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
 import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
@@ -734,7 +735,7 @@ const runAiChatRequest = async (
       getUrlRecords(),
       getCustomProjects(),
       getParentCategories(),
-      chrome.storage.local.get<{
+      getRequiredPersistenceStorageLocal().get<{
         savedTabs?: TabGroup[]
       }>('savedTabs'),
     ])

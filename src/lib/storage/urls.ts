@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
@@ -69,7 +70,7 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
   const readGeneration = urlCacheGeneration
   const readStorageOnChanged = registeredUrlStorageOnChanged
   try {
-    const { urls } = await chrome.storage.local.get('urls')
+    const { urls } = await getRequiredPersistenceStorageLocal().get('urls')
     const storedUrls: unknown = urls
     if (!Array.isArray(storedUrls)) {
       return []
@@ -99,7 +100,7 @@ const getUrlRecords = async (): Promise<UrlRecord[]> => {
  */
 const saveUrlRecordsUnsafe = async (urlRecords: UrlRecord[]): Promise<void> => {
   try {
-    await chrome.storage.local.set({
+    await getRequiredPersistenceStorageLocal().set({
       urls: urlRecords,
     })
     invalidateUrlCache()
@@ -310,10 +311,10 @@ const isUrlRecordReferenced = async (urlId: string): Promise<boolean> => {
   try {
     // SavedTabsとCustomProjectsは独立しているため並列取得
     const [savedTabsResult, customProjectsResult] = await Promise.all([
-      chrome.storage.local.get<{
+      getRequiredPersistenceStorageLocal().get<{
         savedTabs?: TabGroup[]
       }>('savedTabs'),
-      chrome.storage.local.get<{
+      getRequiredPersistenceStorageLocal().get<{
         customProjects?: CustomProject[]
       }>('customProjects'),
     ])
@@ -338,10 +339,10 @@ const cleanupUnreferencedUrlsUnsafe = async (): Promise<number> => {
     const [urlRecords, savedTabsResult, customProjectsResult] =
       await Promise.all([
         getUrlRecords(),
-        chrome.storage.local.get<{
+        getRequiredPersistenceStorageLocal().get<{
           savedTabs?: TabGroup[]
         }>('savedTabs'),
-        chrome.storage.local.get<{
+        getRequiredPersistenceStorageLocal().get<{
           customProjects?: CustomProject[]
         }>('customProjects'),
       ])
@@ -476,7 +477,7 @@ const updateUrlReferencesUnsafe = async (
 ): Promise<void> => {
   try {
     // SavedTabsの参照を更新
-    const { savedTabs = [] } = await chrome.storage.local.get<{
+    const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
       savedTabs?: TabGroup[]
     }>('savedTabs')
     let tabsUpdated = false
@@ -506,15 +507,16 @@ const updateUrlReferencesUnsafe = async (
       }
     }
     if (tabsUpdated) {
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         savedTabs,
       })
     }
 
     // CustomProjectsの参照を更新
-    const { customProjects = [] } = await chrome.storage.local.get<{
-      customProjects?: CustomProject[]
-    }>('customProjects')
+    const { customProjects = [] } =
+      await getRequiredPersistenceStorageLocal().get<{
+        customProjects?: CustomProject[]
+      }>('customProjects')
     let projectsUpdated = false
     for (const project of customProjects) {
       const updatedIds = project.urlIds?.map((id: string) => {
@@ -543,7 +545,7 @@ const updateUrlReferencesUnsafe = async (
       }
     }
     if (projectsUpdated) {
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         customProjects,
       })
     }

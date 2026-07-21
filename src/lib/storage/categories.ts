@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import type {
   DomainCategorySettings,
   DomainParentCategoryMapping,
@@ -10,15 +11,16 @@ import { domainMatches, hasNormalizedDomain } from '@/utils/domain-normalize'
 
 // 親カテゴリを取得する関数
 export const getParentCategories = async (): Promise<ParentCategory[]> => {
-  const { parentCategories = [] } = await chrome.storage.local.get<{
-    parentCategories?: ParentCategory[]
-  }>('parentCategories')
+  const { parentCategories = [] } =
+    await getRequiredPersistenceStorageLocal().get<{
+      parentCategories?: ParentCategory[]
+    }>('parentCategories')
   return parentCategories
 } // 親カテゴリを保存する関数
 export const saveParentCategories = async (
   categories: ParentCategory[],
 ): Promise<void> => {
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     parentCategories: categories,
   })
 } // 新しい親カテゴリを作成する関数
@@ -56,15 +58,16 @@ export const findCategoryByDomainName = async (
 export const getDomainCategorySettings = async (): Promise<
   DomainCategorySettings[]
 > => {
-  const { domainCategorySettings = [] } = await chrome.storage.local.get<{
-    domainCategorySettings?: DomainCategorySettings[]
-  }>('domainCategorySettings')
+  const { domainCategorySettings = [] } =
+    await getRequiredPersistenceStorageLocal().get<{
+      domainCategorySettings?: DomainCategorySettings[]
+    }>('domainCategorySettings')
   return domainCategorySettings
 } // ドメインのカテゴリ設定を保存する関数
 export const saveDomainCategorySettings = async (
   settings: DomainCategorySettings[],
 ): Promise<void> => {
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     domainCategorySettings: settings,
   })
 } // ドメインのカテゴリ設定を更新する関数
@@ -99,15 +102,16 @@ export const updateDomainCategorySettings = async (
 export const getDomainCategoryMappings = async (): Promise<
   DomainParentCategoryMapping[]
 > => {
-  const { domainCategoryMappings = [] } = await chrome.storage.local.get<{
-    domainCategoryMappings?: DomainParentCategoryMapping[]
-  }>('domainCategoryMappings')
+  const { domainCategoryMappings = [] } =
+    await getRequiredPersistenceStorageLocal().get<{
+      domainCategoryMappings?: DomainParentCategoryMapping[]
+    }>('domainCategoryMappings')
   return domainCategoryMappings
 } // ドメイン-親カテゴリのマッピングを保存する関数
 export const saveDomainCategoryMappings = async (
   mappings: DomainParentCategoryMapping[],
 ): Promise<void> => {
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     domainCategoryMappings: mappings,
   })
 } // ドメイン-親カテゴリのマッピングを更新する関数

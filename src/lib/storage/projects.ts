@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type {
   CustomProject,
@@ -62,7 +63,7 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
     await migrateToUrlsStorage()
 
     // プロジェクトとプロジェクト順序を同時に取得
-    const data = await chrome.storage.local.get<{
+    const data = await getRequiredPersistenceStorageLocal().get<{
       customProjects?: CustomProject[]
       customProjectOrder?: string[]
     }>(['customProjects', 'customProjectOrder'])
@@ -117,7 +118,7 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
         `不正なプロジェクトデータが検出されました: ${customProjects.length - validProjects.length}個を修復`,
       )
       // 修復したデータを自動保存
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         customProjects: validProjects,
       })
     }
@@ -145,7 +146,7 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
 } // カスタムプロジェクト一覧を保存する関数
 const saveCustomProjects = async (projects: CustomProject[]): Promise<void> => {
   try {
-    await chrome.storage.local.set({
+    await getRequiredPersistenceStorageLocal().set({
       customProjects: projects,
     })
     console.log(`${projects.length}個のカスタムプロジェクトを保存しました`)
@@ -180,7 +181,7 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
 
   // 新規プロジェクトを常に先頭に配置し、既存順序は維持する
   const { customProjectOrder } =
-    await chrome.storage.local.get('customProjectOrder')
+    await getRequiredPersistenceStorageLocal().get('customProjectOrder')
   const currentIdsInDisplayOrder = projects.map((project) => project.id)
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
@@ -192,7 +193,7 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
     (id) => !normalizedOrder.includes(id),
   )
   const nextOrder = [newProject.id, ...normalizedOrder, ...missingIds]
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     customProjectOrder: nextOrder,
   })
 
@@ -201,14 +202,14 @@ const createCustomProject = async (name: string): Promise<CustomProject> => {
 
 const appendUncategorizedProjectToOrder = async (): Promise<void> => {
   const { customProjectOrder } =
-    await chrome.storage.local.get('customProjectOrder')
+    await getRequiredPersistenceStorageLocal().get('customProjectOrder')
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
     : []
   if (normalizedOrder.includes(CUSTOM_UNCATEGORIZED_PROJECT_ID)) {
     return
   }
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     // eslint-disable-next-line typescript/no-unsafe-assignment
     customProjectOrder: [...normalizedOrder, CUSTOM_UNCATEGORIZED_PROJECT_ID],
   })
@@ -317,7 +318,7 @@ const addUrlsToUncategorizedProject = async (
 
 const getCustomProjectOrder = async (): Promise<string[]> => {
   const { customProjectOrder } =
-    await chrome.storage.local.get('customProjectOrder')
+    await getRequiredPersistenceStorageLocal().get('customProjectOrder')
   return Array.isArray(customProjectOrder)
     ? customProjectOrder.filter(
         (projectId): projectId is string => typeof projectId === 'string',
@@ -405,7 +406,7 @@ const addUrlIdToDomainMode = async (
   urlId: string,
 ): Promise<void> => {
   const next = addUrlIdToDomainModeQueue.then(async () => {
-    const { savedTabs = [] } = await chrome.storage.local.get<{
+    const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
       savedTabs?: TabGroup[]
     }>('savedTabs')
     const domain = toHostname(url)
@@ -427,7 +428,7 @@ const addUrlIdToDomainMode = async (
         urlIds: [urlId],
       })
     }
-    await chrome.storage.local.set({
+    await getRequiredPersistenceStorageLocal().set({
       savedTabs,
     })
     console.log(
@@ -830,11 +831,11 @@ const findOrCreateUncategorizedProject = async (
 
 const removeProjectIdFromOrder = async (projectId: string): Promise<void> => {
   const { customProjectOrder } =
-    await chrome.storage.local.get('customProjectOrder')
+    await getRequiredPersistenceStorageLocal().get('customProjectOrder')
   const normalizedOrder = Array.isArray(customProjectOrder)
     ? customProjectOrder
     : []
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     customProjectOrder: normalizedOrder.filter((id) => id !== projectId),
   })
 }
@@ -1103,7 +1104,7 @@ const moveUrlBetweenCustomProjects = async (
 const updateProjectOrder = async (projectIds: string[]): Promise<void> => {
   try {
     // プロジェクト順序の保存
-    await chrome.storage.local.set({
+    await getRequiredPersistenceStorageLocal().set({
       customProjectOrder: projectIds,
     })
     console.log('プロジェクト順序を保存しました:', projectIds)

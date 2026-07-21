@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createPersistenceInvalidationCoordinator } from '@/contexts/saved-tabs/application/services/PersistenceInvalidationCoordinatorService'
 import { createPersistenceMutationCoordinator } from '@/contexts/saved-tabs/application/services/PersistenceMutationCoordinatorService'
+import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
 import type {
   BroadcastChannelFactory,
   BroadcastChannelMessageEventLike,
@@ -13,6 +14,8 @@ import { IndexedDbConnectionManager } from './indexed-db/IndexedDbConnectionMana
 import { IndexedDbPersistenceSnapshotReader } from './indexed-db/IndexedDbPersistenceSnapshotReader'
 import { IndexedDbPersistenceUnitOfWork } from './indexed-db/IndexedDbPersistenceUnitOfWork'
 import { IndexedDbSavedTabsQueryAdapter } from './indexed-db/IndexedDbSavedTabsQueryAdapter'
+
+const operationGate = createReadyPersistenceOperationGateStub()
 
 type MessageListener = (event: BroadcastChannelMessageEventLike) => void
 
@@ -117,10 +120,16 @@ describe('persistence change flow regression', () => {
       databaseName: 'persistence-change-flow',
       indexedDb,
     })
-    const pageUnitOfWork = new IndexedDbPersistenceUnitOfWork(pageManager)
-    const writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(writerManager)
+    const pageUnitOfWork = new IndexedDbPersistenceUnitOfWork(
+      pageManager,
+      operationGate,
+    )
+    const writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(
+      writerManager,
+      operationGate,
+    )
     const query = new IndexedDbSavedTabsQueryAdapter(
-      new IndexedDbPersistenceSnapshotReader(pageManager),
+      new IndexedDbPersistenceSnapshotReader(pageManager, operationGate),
     )
     const bus = new InMemoryBroadcastChannelBus()
     const pageChanges = createBroadcastChannelPersistenceChangeAdapter({
@@ -209,7 +218,10 @@ describe('persistence change flow regression', () => {
       databaseName: 'persistence-change-abort',
       indexedDb: new IDBFactory(),
     })
-    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager)
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
     const bus = new InMemoryBroadcastChannelBus()
     const background = createPersistenceMutationCoordinator({
       changePort: createBroadcastChannelPersistenceChangeAdapter({
@@ -237,6 +249,7 @@ describe('persistence change flow regression', () => {
       await expect(
         new IndexedDbPersistenceSnapshotReader(
           manager,
+          operationGate,
         ).readVerifiedSavedTabsSnapshot(),
       ).resolves.toMatchObject({
         revision: 0,
@@ -257,10 +270,16 @@ describe('persistence change flow regression', () => {
       databaseName: 'persistence-change-restart',
       indexedDb,
     })
-    const pageUnitOfWork = new IndexedDbPersistenceUnitOfWork(pageManager)
-    let writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(writerManager)
+    const pageUnitOfWork = new IndexedDbPersistenceUnitOfWork(
+      pageManager,
+      operationGate,
+    )
+    let writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(
+      writerManager,
+      operationGate,
+    )
     const query = new IndexedDbSavedTabsQueryAdapter(
-      new IndexedDbPersistenceSnapshotReader(pageManager),
+      new IndexedDbPersistenceSnapshotReader(pageManager, operationGate),
     )
     const bus = new InMemoryBroadcastChannelBus()
     const pageChanges = createBroadcastChannelPersistenceChangeAdapter({
@@ -305,7 +324,10 @@ describe('persistence change flow regression', () => {
         databaseName: 'persistence-change-restart',
         indexedDb,
       })
-      writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(writerManager)
+      writerUnitOfWork = new IndexedDbPersistenceUnitOfWork(
+        writerManager,
+        operationGate,
+      )
       const restartedWriter = createWriter('change-after-restart')
       await page.checkCurrentRevision()
 

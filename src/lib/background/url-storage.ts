@@ -2,6 +2,7 @@
  * URL・ストレージ操作モジュール
  */
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { getUserSettings } from '@/lib/storage/settings'
 import { invalidateUrlCache, withUrlRecordMutation } from '@/lib/storage/urls'
@@ -409,12 +410,13 @@ const getBulkUrlRemovalStorage = async (): Promise<{
   savedTabs: TabGroup[]
   urls: UrlRecord[]
 }> => {
-  const storageResult = await chrome.storage.local.get<BulkUrlRemovalStorage>([
-    'savedTabs',
-    'urls',
-    'customProjects',
-    'parentCategories',
-  ])
+  const storageResult =
+    await getRequiredPersistenceStorageLocal().get<BulkUrlRemovalStorage>([
+      'savedTabs',
+      'urls',
+      'customProjects',
+      'parentCategories',
+    ])
 
   return {
     customProjects: Array.isArray(storageResult.customProjects)
@@ -438,7 +440,7 @@ const writeBulkUrlRemovalPayload = async (
     return
   }
 
-  await chrome.storage.local.set(payload)
+  await getRequiredPersistenceStorageLocal().set(payload)
   if (hasUrlChanges) {
     invalidateUrlCache()
   }

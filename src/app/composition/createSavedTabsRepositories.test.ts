@@ -1,10 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import * as persistenceRuntimeModule from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 import type { ChromeStorageLocalPort } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUrlRecordRepository'
 import { SavedTabsRepositoryUnavailableError } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUrlRecordRepository'
 import * as chromeStorageModule from '@/lib/browser/chrome-storage'
 
 import { createSavedTabsRepositories } from './createSavedTabsRepositories'
+
+vi.mock(
+  '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime',
+  async () => {
+    const actual = await vi.importActual<typeof persistenceRuntimeModule>(
+      '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime',
+    )
+    return {
+      ...actual,
+      getPersistenceStorageLocal: vi.fn(),
+    }
+  },
+)
 
 vi.mock('@/lib/browser/chrome-storage', async () => {
   const actual = await vi.importActual<typeof chromeStorageModule>(
@@ -16,6 +30,8 @@ vi.mock('@/lib/browser/chrome-storage', async () => {
   }
 })
 
+const getPersistenceStorageLocal =
+  persistenceRuntimeModule.getPersistenceStorageLocal
 const getChromeStorageLocal = chromeStorageModule.getChromeStorageLocal
 
 type StorageState = Record<string, unknown>
@@ -60,9 +76,9 @@ describe('createSavedTabsRepositories (app/composition)', () => {
   describe('chrome.storage.local が利用可能な環境', () => {
     it('4 つの repository interface を返し、それぞれが 4 関数を持つ', () => {
       const state: StorageState = {}
-      vi.mocked(getChromeStorageLocal).mockReturnValue(
-        buildChromeStorageLocal(state),
-      )
+      const local = buildChromeStorageLocal(state)
+      vi.mocked(getPersistenceStorageLocal).mockReturnValue(local)
+      vi.mocked(getChromeStorageLocal).mockReturnValue(local)
 
       const repositories = createSavedTabsRepositories()
 
@@ -113,12 +129,14 @@ describe('createSavedTabsRepositories (app/composition)', () => {
         'tabbin:customProjects': [],
       }
       const port = createPort(state)
-      vi.mocked(getChromeStorageLocal).mockReturnValue({
+      const local = {
         get: port.get,
         remove: port.remove,
         set: port.set,
         // eslint-disable-next-line typescript/no-explicit-any
-      } as any)
+      } as any
+      vi.mocked(getPersistenceStorageLocal).mockReturnValue(local)
+      vi.mocked(getChromeStorageLocal).mockReturnValue(local)
 
       const repositories = createSavedTabsRepositories()
 
@@ -133,6 +151,34 @@ describe('createSavedTabsRepositories (app/composition)', () => {
       expect(port.get).toHaveBeenCalled()
       expect(port.set).toHaveBeenCalled()
     })
+
+    it('cutover 後も userSettings は domain legacy gate ではなく raw settings port を使う', async () => {
+      const gatedPort = createPort({})
+      vi.mocked(gatedPort.get).mockRejectedValueOnce(
+        new Error('legacy route is unavailable after cutover'),
+      )
+      const settingsPort = createPort({})
+      vi.mocked(getPersistenceStorageLocal).mockReturnValue({
+        get: gatedPort.get,
+        remove: gatedPort.remove,
+        set: gatedPort.set,
+        // eslint-disable-next-line typescript/no-explicit-any
+      } as any)
+      vi.mocked(getChromeStorageLocal).mockReturnValue({
+        get: settingsPort.get,
+        remove: settingsPort.remove,
+        set: settingsPort.set,
+        // eslint-disable-next-line typescript/no-explicit-any
+      } as any)
+
+      const repositories = createSavedTabsRepositories()
+
+      await expect(
+        repositories.userSettingsRepository.findAll(),
+      ).resolves.toBeDefined()
+      expect(settingsPort.get).toHaveBeenCalledWith('userSettings')
+      expect(gatedPort.get).not.toHaveBeenCalled()
+    })
   })
 
   describe('chrome.storage.local が利用できない環境', () => {
@@ -140,6 +186,7 @@ describe('createSavedTabsRepositories (app/composition)', () => {
 
     beforeEach(() => {
       warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      vi.mocked(getPersistenceStorageLocal).mockReturnValue(null)
       vi.mocked(getChromeStorageLocal).mockReturnValue(null)
     })
 

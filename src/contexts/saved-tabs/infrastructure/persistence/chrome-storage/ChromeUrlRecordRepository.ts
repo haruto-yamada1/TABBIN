@@ -2,10 +2,7 @@ import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 import { URLS_KEY } from './savedTabsStorageKeys'
 import type { UrlRecordRaw } from './savedTabsStorageSchema'
@@ -34,18 +31,6 @@ export class SavedTabsRepositoryUnavailableError extends Error {
   public constructor(message: string) {
     super(message)
     this.name = 'SavedTabsRepositoryUnavailableError'
-  }
-}
-
-const getDefaultPort = (): ChromeStorageLocalPort | null => {
-  const local = getChromeStorageLocal()
-  if (!local) {
-    return null
-  }
-  return {
-    get: async (key) => local.get(key),
-    remove: async (key) => local.remove(key),
-    set: async (value) => local.set(value),
   }
 }
 
@@ -91,9 +76,8 @@ const createChromeUrlRecordRepositoryImpl = (
  * `chrome.storage.local` 上の `URLS_KEY` を `UrlRecord` 永続化用に使う
  * `UrlRecordRepository` 実装を生成する。
  *
- * `port` を渡さない場合は production と同じ `chrome.storage.local` を使う。
- * `chrome.storage.local` が利用できない場合、初回呼び出し時に
- * `SavedTabsRepositoryUnavailableError` を投げる（lazy 検出）。
+ * composition は #727 の readiness gate を通した `port` を必ず注入する。
+ * `null` の場合は `SavedTabsRepositoryUnavailableError` を投げる。
  *
  * 例外: 旧 `src/lib/storage/urls.ts` のインメモリキャッシュは意図的に
  * 再現していない。`findAll` を何度呼んでも `chrome.storage.local.get` を
@@ -102,7 +86,7 @@ const createChromeUrlRecordRepositoryImpl = (
  * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
  */
 export const createChromeUrlRecordRepository = (
-  port: ChromeStorageLocalPort | null = getDefaultPort(),
+  port: ChromeStorageLocalPort | null,
 ): UrlRecordRepository => {
   if (!port) {
     warnMissingChromeStorage('ChromeUrlRecordRepository')
