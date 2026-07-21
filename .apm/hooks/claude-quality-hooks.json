@@ -5,17 +5,7 @@
         "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
         "hooks": [
           {
-            "command": "./scripts/harness-activity-track.sh",
-            "timeout": 10,
-            "type": "command"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|Edit|Write|MultiEdit|apply_patch",
-        "hooks": [
-          {
-            "command": "./scripts/harness-postflight-capture.sh",
+            "command": "./scripts/harness-event-capture.sh",
             "timeout": 10,
             "type": "command"
           }
@@ -27,12 +17,7 @@
           {
             "command": "./scripts/track-edit.sh",
             "type": "command"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write|MultiEdit|apply_patch",
-        "hooks": [
+          },
           {
             "command": "./scripts/format-check-on-edit.sh",
             "timeout": 60,

@@ -1,5 +1,6 @@
 ---
 name: harness-optimizer
+disable-model-invocation: true
 description: TABBIN の Evaluator 指摘や governance event から learning.json を作り、必要な follow-up issue または .apm/instructions 追記候補を整理するときに使います。
 ---
 

@@ -1,8 +1,10 @@
 ---
 name: statusline
-description: CLI の custom status line を設定します。status line、statusline、statusLine、CLI status bar、prompt footer のカスタマイズ、prompt 上への session context 追加を依頼されたときに使います。
+disable-model-invocation: true
+description: Claude Code / Cursor CLI 専用。CLI の custom status line を設定します。status line、statusline、statusLine、CLI status bar、prompt footer のカスタマイズ、prompt 上への session context 追加を依頼されたときに使います。Codex / Gemini など status line 機能のないクライアントでは実行せず、該当クライアントの機能がない旨を伝えます。
 ---
-# CLI status line
+# CLI status line（Claude Code / Cursor CLI 専用）
+> **対応クライアント:** Claude Code と Cursor CLI のみ。Codex / Gemini などに status line 機能はないため、これらのクライアントではこの skill を実行せず「該当機能がありません」と伝えます。
 
 CLI は prompt 上に user-configurable な status line を表示できます。conversation 更新のたびに command が spawn され、stdin で session を記述する JSON payload を受け取り、stdout が status line として表示されます。spec は [Claude Code's status line](https://code.claude.com/docs/en/statusline) に整合しています。
 
@@ -42,7 +44,7 @@ command は stdin で JSON object を受け取ります。TypeScript interface �
   "session_name": "my session",
   "transcript_path": "/path/to/transcript.jsonl",
   "render_width_chars": 120,
-  "cwd": "/Users/me/project",
+  "cwd": "/Users/<user>/project",
   "model": {
     "id": "claude-4-opus",
     "display_name": "Claude 4 Opus",
@@ -50,8 +52,8 @@ command は stdin で JSON object を受け取ります。TypeScript interface �
     "max_mode": true
   },
   "workspace": {
-    "current_dir": "/Users/me/project",
-    "project_dir": "/Users/me/project/.cursor/transcripts",
+    "current_dir": "/Users/<user>/project",
+    "project_dir": "/Users/<user>/project/.cursor/transcripts",
     "added_dirs": []
   },
   "version": "1.2.3",
@@ -71,7 +73,7 @@ command は stdin で JSON object を受け取ります。TypeScript interface �
   },
   "worktree": {
     "name": "my-feature",
-    "path": "/Users/me/.cursor/worktrees/repo/my-feature"
+    "path": "/Users/<user>/.cursor/worktrees/repo/my-feature"
   }
 }
 ```

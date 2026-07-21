@@ -112,13 +112,17 @@ function makeSurfaceReadyProject() {
     path.join(projectRoot, '.apm/hooks/scripts/harness-config-protection.sh'),
     '#!/bin/sh\n',
   )
+  mkdirSync(path.join(projectRoot, '.apm/skills/context-mode'), {
+    recursive: true,
+  })
+  mkdirSync(path.join(projectRoot, '.apm/skills/rtk'), { recursive: true })
   writeFileSync(
-    path.join(projectRoot, '.apm/instructions/00-context-mode.instructions.md'),
-    '# context-mode\n',
+    path.join(projectRoot, '.apm/skills/context-mode/SKILL.md'),
+    '---\nname: context-mode\n---\n# context-mode\n',
   )
   writeFileSync(
-    path.join(projectRoot, '.apm/instructions/01-rtk.instructions.md'),
-    '# rtk\n',
+    path.join(projectRoot, '.apm/skills/rtk/SKILL.md'),
+    '---\nname: rtk\n---\n# rtk\n',
   )
   writeFileSync(
     path.join(projectRoot, '.apm/prompts/harness-evaluator.prompt.md'),
@@ -1153,7 +1157,7 @@ describe('high fidelity harness commands', () => {
       verification: Array<{ status: string }>
     }
 
-    expect(audit).toContain('- overall_score: 90/90')
+    expect(audit).toContain('- overall_score: 100/100')
     expect(scorecard.status).toBe('done')
     expect(scorecard.next_action).toContain('Evaluator')
     expect(scorecard.verification[0]?.status).toBe('passed')

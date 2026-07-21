@@ -5,7 +5,10 @@ description: タスク完了時、大きな機能実装後、merge 前に要件�
 
 # コードレビューの依頼
 
-superpowers:code-reviewer サブエージェントを dispatch し、問題が連鎖する前に捕捉します。
+code-reviewer サブエージェントを dispatch し、問題が連鎖する前に捕捉します。
+
+> **境界:** これは開発中の pre-merge review です。ハーネス run の成果物評価は
+> harness-evaluator（fresh-context Evaluator）を使います。
 
 **核心原則:** 早く、頻繁にレビューする。
 
@@ -32,7 +35,7 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **2. code-reviewer サブエージェントを dispatch:**
 
-Task tool で superpowers:code-reviewer タイプを使い、`code-reviewer.md` のテンプレートを埋める。
+Task tool で code-reviewer タイプを使い、`code-reviewer.md` のテンプレートを埋める。
 
 **プレースホルダー:**
 - `{WHAT_WAS_IMPLEMENTED}` - 今作った内容
@@ -57,7 +60,7 @@ You: Let me request code review before proceeding.
 BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
 HEAD_SHA=$(git rev-parse HEAD)
 
-[Dispatch superpowers:code-reviewer subagent]
+[Dispatch code-reviewer subagent]
   WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
   PLAN_OR_REQUIREMENTS: Task 2 from docs/plans/deployment-plan.md
   BASE_SHA: a7981ec

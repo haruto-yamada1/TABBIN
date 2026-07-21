@@ -1,10 +1,13 @@
 import path from 'node:path'
 
-import { syncAgentConfig } from './sync-agent-config.ts'
+import {
+  parseAgentConfigCliArgs,
+  syncAgentConfig,
+} from './sync-agent-config.ts'
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..')
-const checkOnly = process.argv.includes('--check')
-const result = syncAgentConfig({ checkOnly, projectRoot })
+const { checkOnly, repair } = parseAgentConfigCliArgs(process.argv)
+const result = syncAgentConfig({ checkOnly, projectRoot, repair })
 
 console.log(
   result.applied

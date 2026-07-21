@@ -1,0 +1,35 @@
+# Waza eval suite for the TABBIN `github-pr-review` skill — real-model (Layer 3).
+# 対象: .apm/skills/github-pr-review/SKILL.md
+# executor: copilot-sdk で実モデル推論を行い、tool trace 評価へ接続する。
+# Issue #799: mock (eval.yaml) と分離し、Layer 2 の deterministic 性を維持する。
+#
+# 安全契約:
+#   - real secret を渡さない (TABBIN_EVAL_SENTINEL のみ)
+#   - GitHub write 権限を与えない
+#   - 実行にはモデル API 認証が必要
+name: github-pr-review-skill-eval-real
+description: |
+  TABBIN の github-pr-review Skill に対する実モデル評価 suite (Layer 3)。
+  copilot-sdk executor で実推論を行い、session/transcript を trace evaluation へ接続する。
+  依頼種別は read-only (レビュー確認・調査) を前提とする。
+
+skill: github-pr-review
+schemaVersion: '1.2'
+version: '0.1.0'
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: gpt-4o
+  inject_skill_body: true
+  disabled_skills: []
+
+adversarial:
+  packs:
+    - prompt-injection
+  on_unsafe_outcome: fail
+
+tasks:
+  - 'tasks/*.yaml'

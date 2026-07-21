@@ -46,7 +46,7 @@ description: 別セッションでレビューチェックポイント付きで�
 
 すべてのタスクが完了し検証済みの後:
 - 宣言: 「finishing-a-development-branch skill を使ってこの作業を完了します。」
-- **必須 SUB-SKILL:** superpowers:finishing-a-development-branch を使う
+- **必須 SUB-SKILL:** $finishing-a-development-branch を使う
 - その skill に従いテストを検証し、選択肢を提示し、選択を実行
 
 ## 停止して助けを求めるとき
@@ -79,6 +79,6 @@ description: 別セッションでレビューチェックポイント付きで�
 ## 連携
 
 **必須ワークフロー skill:**
-- **superpowers:using-git-worktrees** — 必須: 開始前に隔離 workspace をセットアップ
-- **superpowers:writing-plans** — この skill が実行する計画を作成
-- **superpowers:finishing-a-development-branch** — 全タスク完了後の開発完了
+- **$using-git-worktrees** — 必須: 開始前に隔離 workspace をセットアップ
+- **$writing-plans** — この skill が実行する計画を作成
+- **$finishing-a-development-branch** — 全タスク完了後の開発完了

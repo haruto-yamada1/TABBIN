@@ -187,6 +187,12 @@ const collectTestFiles = (dir: string): string[] => {
   return result
 }
 
+// JSDoc / コメント内の言及は対象外とするため、検査対象 source から
+// ブロックコメント / 行コメントを除去する純粋関数 (issue #582 と同方針)。
+// 各テストで定義していた重複 helper を module-level に集約した (issue #648 review)。
+const stripComments = (source: string): string =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+
 describe('src/contexts/saved-tabs DDD layer guard', () => {
   const config = loadOxlintConfig()
   const dependencyCruiserSource = readFileSync(
@@ -396,8 +402,6 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('issue #642: domain 層のソースファイルが Math.random( / crypto.randomUUID( を直接使わない', () => {
-      const stripComments = (source: string): string =>
-        source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
       const domainRoot = resolve(repoRoot, 'src/contexts/saved-tabs/domain')
       const domainSourceFiles = collectSourceFiles(domainRoot)
       expect(domainSourceFiles.length).toBeGreaterThan(0)
@@ -421,8 +425,6 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       // JSDoc やコメント内の言及は対象外とする。
       // 検出したいのは「現在時刻の取得」という
       // 副作用での実際のコード呼び出しのみ。
-      const stripComments = (source: string): string =>
-        source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
       const domainRoot = resolve(repoRoot, 'src/contexts/saved-tabs/domain')
       const domainSourceFiles = collectSourceFiles(domainRoot)
       expect(domainSourceFiles.length).toBeGreaterThan(0)
@@ -439,6 +441,30 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
           source,
           `${relativePath} should not call new Date() directly (use ClockPort)`,
         ).not.toMatch(/\bnew\s+Date\s*\(/)
+      }
+    })
+
+    it('issue #648: fetch の直接利用を no-restricted-globals で禁止している', () => {
+      const names = getRestrictedGlobals(globalsOverride)
+      expect(names).toContain('fetch')
+    })
+
+    it('issue #648: domain 層のソースファイルが fetch( を直接呼ばない', () => {
+      // JSDoc / コメント内の言及は対象外とする (issue #582 と同じ stripComments 方針)。
+      // domain 層は fetch を直接呼ばず、HttpClientPort / AiClientPort /
+      // repository / adapter 経由で外部通信する (issue #648)。
+      const domainRoot = resolve(repoRoot, 'src/contexts/saved-tabs/domain')
+      const domainSourceFiles = collectSourceFiles(domainRoot)
+      expect(domainSourceFiles.length).toBeGreaterThan(0)
+      for (const absolutePath of domainSourceFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} should not call fetch() directly (use HttpClientPort / AiClientPort / adapter 経由)`,
+        ).not.toMatch(/\bfetch\s*\(/)
       }
     })
   })
@@ -513,8 +539,6 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     })
 
     it('issue #642: application 層のソースファイルが Date.now( / new Date( / Math.random( / crypto.randomUUID( を直接使わない', () => {
-      const stripComments = (source: string): string =>
-        source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
       const appRoot = resolve(repoRoot, 'src/contexts/saved-tabs/application')
       const appSourceFiles = collectSourceFiles(appRoot)
       expect(appSourceFiles.length).toBeGreaterThan(0)
@@ -539,6 +563,30 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
           source,
           `${relativePath} should not call crypto.randomUUID() directly (use IdGeneratorPort)`,
         ).not.toMatch(/\bcrypto\.randomUUID\s*\(/)
+      }
+    })
+
+    it('issue #648: fetch の直接利用を no-restricted-globals で禁止している', () => {
+      const names = getRestrictedGlobals(globalsOverride)
+      expect(names).toContain('fetch')
+    })
+
+    it('issue #648: application 層のソースファイルが fetch( を直接呼ばない', () => {
+      // JSDoc / コメント内の言及は対象外とする (issue #582 と同じ stripComments 方針)。
+      // application 層は fetch を直接呼ばず、HttpClientPort / AiClientPort /
+      // repository / adapter 経由で外部通信する (issue #648)。
+      const appRoot = resolve(repoRoot, 'src/contexts/saved-tabs/application')
+      const appSourceFiles = collectSourceFiles(appRoot)
+      expect(appSourceFiles.length).toBeGreaterThan(0)
+      for (const absolutePath of appSourceFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} should not call fetch() directly (use HttpClientPort / AiClientPort / adapter 経由)`,
+        ).not.toMatch(/\bfetch\s*\(/)
       }
     })
   })
@@ -1656,9 +1704,6 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     it('検査対象の repository contract ファイルが存在する', () => {
       expect(repositoryFiles.length).toBeGreaterThan(0)
     })
-
-    const stripComments = (source: string): string =>
-      source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
 
     for (const absolutePath of repositoryFiles) {
       const relativePath = relative(repoRoot, absolutePath).split(sep).join('/')

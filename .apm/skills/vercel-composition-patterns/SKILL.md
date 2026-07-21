@@ -1,10 +1,6 @@
 ---
 name: vercel-composition-patterns
-description:
-  スケールするReactコンポジションパターン。boolean propsの増殖があるコンポーネントのリファクタリング、
-  柔軟なコンポーネントライブラリの構築、再利用可能なAPIの設計に使用します。
-  複合コンポーネント、render props、contextプロバイダー、コンポーネントアーキテクチャに
-  関するタスクで使用されます。React 19のAPI変更も含みます。
+description: スケールする React コンポジションパターン。boolean props の増殖があるコンポーネントのリファクタリング、柔軟なコンポーネントライブラリの構築、再利用可能な API の設計に使用します。複合コンポーネント、render props、context プロバイダー、コンポーネントアーキテクチャに関するタスクで使用されます。React 19 の API 変更も含みます。
 license: MIT
 metadata:
   author: vercel

@@ -1,0 +1,17 @@
+# Positive trigger (CI 失敗): CI の quality check 失敗修正で check Skill が発火すべき。
+id: positive-trigger-ci-failure
+name: Positive trigger - CI quality failure fix
+description: |
+  「CI の quality check 失敗を修正して」で check Skill が発火候補になるか。
+tags: [positive, trigger, ci]
+inputs:
+  prompt: 'npm run quality 失敗 修正'
+expected:
+  should_trigger: true
+graders:
+  - type: trigger
+    name: should_trigger_ci_fix
+    config:
+      skill_path: .apm/skills/check/SKILL.md
+      mode: positive
+      threshold: 0.6

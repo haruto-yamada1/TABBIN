@@ -1,0 +1,17 @@
+# Negative trigger: 新機能設計案で check Skill は発火すべきでない。
+id: negative-trigger-feature-design
+name: Negative trigger - feature design
+description: |
+  「新機能の設計案を考えて」で check Skill が発火しないこと。
+tags: [negative, trigger]
+inputs:
+  prompt: '新機能 の 設計案 を 考えて'
+expected:
+  should_trigger: false
+graders:
+  - type: trigger
+    name: should_not_trigger_design
+    config:
+      skill_path: .apm/skills/check/SKILL.md
+      mode: negative
+      threshold: 0.6

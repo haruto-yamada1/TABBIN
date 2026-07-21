@@ -32,6 +32,7 @@
     "verify:production-network-policy": "bun tools/scripts/verify-production-network-policy.ts",
     "verify:storage-writer-inventory": "bun tools/scripts/verify-storage-writer-inventory.ts",
     "check": "bun run format:check && bun run compile && bun run lint",
+    "agent:check": "bash .apm/skills/check/scripts/run_quality.sh",
     "check:write": "bun run lint:fix && bun run format",
     "check:duplication": "jscpd --config .jscpd.json",
     "arch:check": "depcruise --config .dependency-cruiser.cjs src --output-type err",
@@ -59,6 +60,10 @@
     "harness:profile": "bun tools/scripts/harness.ts profile",
     "harness:governance": "bun tools/scripts/harness.ts governance",
     "harness:schemas": "bun tools/scripts/harness.ts schemas",
+    "waza:check": "bun tools/scripts/run-waza-eval.ts check",
+    "waza:spec:verify": "bun tools/scripts/run-waza-eval.ts spec-verify",
+    "waza:eval:check": "bun tools/scripts/run-waza-eval.ts run",
+    "waza:adversarial": "bun tools/scripts/run-waza-eval.ts adversarial",
     "storybook": "BROWSER=none storybook dev -p 6006",
     "build-storybook": "storybook build",
     "e2e": "playwright test e2e",
@@ -70,7 +75,8 @@
     "sync:toolchain-versions": "bun tools/scripts/sync-toolchain-versions.ts",
     "apm:check": "bun tools/scripts/sync-agent-config-cli.ts --check",
     "apm:sync": "bun tools/scripts/sync-agent-config-cli.ts",
-    "release:provenance": "bun tools/scripts/generate-release-provenance.ts"
+    "release:provenance": "bun tools/scripts/generate-release-provenance.ts",
+    "waza:trace-eval": "bun tools/scripts/evaluate-waza-trace.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -186,7 +192,8 @@
     "typescript": "^6.0.3",
     "vite": "^8.1.3",
     "vitest": "^4.1.10",
-    "wxt": "^0.20.27"
+    "wxt": "^0.20.27",
+    "yaml": "^2.9.0"
   },
   "overrides": {
     "adm-zip": "0.6.0",

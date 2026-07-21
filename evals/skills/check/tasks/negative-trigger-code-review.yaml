@@ -1,0 +1,17 @@
+# Negative trigger: code-review で check Skill は発火すべきでない。
+id: negative-trigger-code-review
+name: Negative trigger - code-review
+description: |
+  「コードレビュー だけ して」で check Skill が発火しないこと。
+tags: [negative, trigger]
+inputs:
+  prompt: 'コードレビューだけして'
+expected:
+  should_trigger: false
+graders:
+  - type: trigger
+    name: should_not_trigger_code_review
+    config:
+      skill_path: .apm/skills/check/SKILL.md
+      mode: negative
+      threshold: 0.6

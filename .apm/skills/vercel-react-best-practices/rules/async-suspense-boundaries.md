@@ -2,19 +2,19 @@
 title: 戦略的な Suspense 境界
 impact: HIGH
 impactDescription: 初期描画の高速化
-tags: async, suspense, streaming, layout-shift
+tags: async, suspense, react-use, layout-shift
 ---
 
 ## 戦略的な Suspense 境界
 
-async コンポーネントで JSX を返す前にデータを await する代わりに、Suspense 境界を使ってデータ読み込み中もラッパー UI を早く表示します。
+データ待ちで UI 全体をブロックする代わりに、Suspense 境界を使ってデータを読み込む部分だけを後回しにし、残りの UI を即座に表示します。React 19 の `use(promise)` で Promise を unwrap しつつ、フェッチはコンポーネント外で即座に開始します。
 
-**不適切（データフェッチがラッパーをブロック）:**
+**不適切（データフェッチが UI 全体をブロック）:**
 
 ```tsx
-async function Page() {
-  const data = await fetchData() // Blocks entire page
-  
+function Page() {
+  const data = use(fetchData()) // Promise をその場で作って await 相当 → 全体が待たされる
+
   return (
     <div>
       <div>Sidebar</div>
@@ -30,39 +30,40 @@ async function Page() {
 
 中間セクションだけがデータを必要とするのに、レイアウト全体がデータを待ちます。
 
-**適切（ラッパーは即座に表示、データはストリーミング）:**
+**適切（ラッパーは即座に表示、データ部分だけ Suspense）:**
 
 ```tsx
+import { Suspense, use } from 'react'
+
 function Page() {
+  const dataPromise = fetchData() // Start immediately, don't await here
+
   return (
     <div>
       <div>Sidebar</div>
       <div>Header</div>
-      <div>
-        <Suspense fallback={<Skeleton />}>
-          <DataDisplay />
-        </Suspense>
-      </div>
+      <Suspense fallback={<Skeleton />}>
+        <DataDisplay dataPromise={dataPromise} />
+      </Suspense>
       <div>Footer</div>
     </div>
   )
 }
 
-async function DataDisplay() {
-  const data = await fetchData() // Only blocks this component
+function DataDisplay({ dataPromise }: { dataPromise: Promise<Data> }) {
+  const data = use(dataPromise) // Suspends until resolved
   return <div>{data.content}</div>
 }
 ```
 
 Sidebar、Header、Footer は即座にレンダリングされます。DataDisplay だけがデータを待ちます。
 
-**代替案（コンポーネント間で Promise を共有）:**
+**コンポーネント間で Promise を共有:**
 
 ```tsx
 function Page() {
-  // Start fetch immediately, but don't await
   const dataPromise = fetchData()
-  
+
   return (
     <div>
       <div>Sidebar</div>
@@ -87,12 +88,11 @@ function DataSummary({ dataPromise }: { dataPromise: Promise<Data> }) {
 }
 ```
 
-両コンポーネントが同じ Promise を共有するため、フェッチは 1 回だけです。レイアウトは即座にレンダリングされ、両コンポーネントが一緒に待ちます。
+両コンポーネントが同じ Promise を共有するため、フェッチは 1 回だけです。
 
 **このパターンを使わない場合:**
 
 - レイアウト判断に必要なクリティカルなデータ（配置に影響）
-- ファーストビューで SEO 上重要なコンテンツ
 - Suspense のオーバーヘッドに見合わない小さく高速なクエリ
 - レイアウトシフト（読み込み → コンテンツのジャンプ）を避けたい場合
 

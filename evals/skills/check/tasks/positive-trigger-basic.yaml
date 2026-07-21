@@ -1,0 +1,18 @@
+# Positive trigger (基本): 品質チェック実行の依頼で check Skill が発火すべき。
+id: positive-trigger-basic
+name: Positive trigger - quality check request
+description: |
+  「品質チェックを実行して」で check Skill が発火候補になるか。
+  trigger grader (heuristic) で prompt と SKILL.md の関連度を測る。
+tags: [positive, trigger]
+inputs:
+  prompt: 'npm run quality を 実行 して'
+expected:
+  should_trigger: true
+graders:
+  - type: trigger
+    name: should_trigger_quality_check
+    config:
+      skill_path: .apm/skills/check/SKILL.md
+      mode: positive
+      threshold: 0.6
