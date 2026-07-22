@@ -274,6 +274,44 @@ describe('MigrationPreflightService', () => {
     expect(repository.record.status).toBe('stale')
   })
 
+  it('keeps a source read failure blocked when rechecking a persisted result', async () => {
+    const repository = new MemoryRepository()
+    repository.record = {
+      checkedAt: 100,
+      diagnostic: {
+        capacityStatus: 'ready',
+        collisionCount: 0,
+        entityCounts: {},
+        issueCodes: [],
+        preflightVersion: 1,
+        sourceFingerprintVersion: 1,
+      },
+      sourceFingerprint: 'fp-before',
+      status: 'healthy',
+    }
+    const reader: RawLegacyStorageReaderPort = {
+      readSnapshot: vi.fn(async () => {
+        throw new MigrationSourceReadError('MIGRATION_SOURCE_READ_FAILED')
+      }),
+    }
+    const { service } = createService({ reader, repository })
+
+    const result = await service.readStatus()
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        issueCodes: ['MIGRATION_SOURCE_READ_FAILED'],
+        status: 'blocked',
+      }),
+    )
+    expect(repository.record).toEqual(
+      expect.objectContaining({
+        sourceFingerprint: 'unavailable',
+        status: 'blocked',
+      }),
+    )
+  })
+
   it('returns an approval fingerprint only for a current healthy preflight', async () => {
     const { service } = createService()
     await service.run()

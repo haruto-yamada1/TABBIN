@@ -730,7 +730,8 @@ before any migration write, and persists `PERSISTENCE_PREFLIGHT_STALE` on a
 mismatch. #738 remains responsible for producing the read-only preflight
 fingerprint and invalidating its result after normal source writes.
 
-#738 stores that approval separately as `tabbin:migrationPreflight:v1`. The
+Issue `#738` stores that approval separately as
+`tabbin:migrationPreflight:v1`. The
 record contains only versioned issue codes, entity counts, collision count,
 capacity status, timestamps, and the SHA-256 source fingerprint; it contains no
 URL, title, notes, AI message, attachment, or other raw user content. Snapshot

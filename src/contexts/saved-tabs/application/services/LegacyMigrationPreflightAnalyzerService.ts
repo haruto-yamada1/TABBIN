@@ -405,7 +405,8 @@ const parseDomainCategorySettings = (
     ) {
       addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
     }
-    if ([...keywords.keys()].some((name) => !names.includes(name))) {
+    const nameSet = new Set(names)
+    if ([...keywords.keys()].some((name) => !nameSet.has(name))) {
       addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
     }
     if (result.has(domain)) {
@@ -627,14 +628,17 @@ const checkParallelUrlRepresentations = (
   if (!input.urlIds || !input.nestedUrls) {
     return
   }
-  const nestedIds = input.nestedUrls
-    .filter(isRecord)
-    .map((item) => item.id)
-    .filter((id): id is string => typeof id === 'string')
+  const nestedIds: string[] = []
+  for (const item of input.nestedUrls) {
+    if (isRecord(item) && typeof item.id === 'string') {
+      nestedIds.push(item.id)
+    }
+  }
+  const nestedIdSet = new Set(nestedIds)
   if (
     nestedIds.length !== input.nestedUrls.length ||
     input.urlIds.length !== nestedIds.length ||
-    input.urlIds.some((id) => !nestedIds.includes(id))
+    input.urlIds.some((id) => !nestedIdSet.has(id))
   ) {
     addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
   }
@@ -646,6 +650,7 @@ const appendSavedTabMemberships = (
   state: AnalyzerState,
 ): void => {
   const ids = input.urlIds ?? []
+  const idSet = new Set(ids)
   ids.forEach((urlId, index) => {
     if (!state.urlsById.has(urlId)) {
       addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
@@ -668,7 +673,7 @@ const appendSavedTabMemberships = (
     })
   })
   for (const metadataUrlId of Object.keys(input.urlSubCategories)) {
-    if (!ids.includes(metadataUrlId)) {
+    if (!idSet.has(metadataUrlId)) {
       addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
     }
   }
@@ -679,6 +684,7 @@ const appendNestedSavedTabUrls = (
   state: AnalyzerState,
 ): void => {
   const ids = input.urlIds ?? []
+  const idSet = new Set(ids)
   ;(input.nestedUrls ?? []).forEach((item, index) => {
     const decoded = decodeNestedUrl(
       item,
@@ -690,7 +696,7 @@ const appendNestedSavedTabUrls = (
     }
     if (state.urlsById.has(decoded.id)) {
       checkNestedCanonicalUrl(decoded, decoded.id, state)
-      if (!ids.includes(decoded.id)) {
+      if (!idSet.has(decoded.id)) {
         const canonical = state.urls.find((url) => url.id === decoded.id)
         if (canonical) {
           addMembership(state, {
@@ -704,7 +710,7 @@ const appendNestedSavedTabUrls = (
       return
     }
     const url = addUrl(state, decoded)
-    if (url && !ids.includes(url.id)) {
+    if (url && !idSet.has(url.id)) {
       addMembership(state, {
         collectionId: input.collectionId,
         index: ids.length + index,
@@ -747,6 +753,7 @@ const resolveDomainCategories = (
   const names = [
     ...new Set([...(setting?.names ?? []), ...input.subCategories]),
   ]
+  const nameSet = new Set(names)
   const keywords = new Map(setting?.keywords)
   for (const [name, values] of embeddedKeywords) {
     const existing = keywords.get(name)
@@ -755,7 +762,7 @@ const resolveDomainCategories = (
     }
     keywords.set(name, values)
   }
-  if ([...keywords.keys()].some((name) => !names.includes(name))) {
+  if ([...keywords.keys()].some((name) => !nameSet.has(name))) {
     addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
   }
   return { keywords, names }
@@ -984,6 +991,7 @@ const appendCustomProjectMemberships = (
   state: AnalyzerState,
 ): void => {
   const ids = input.urlIds ?? []
+  const idSet = new Set(ids)
   ids.forEach((urlId, index) => {
     if (!state.urlsById.has(urlId)) {
       addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
@@ -1008,7 +1016,7 @@ const appendCustomProjectMemberships = (
     })
   })
   for (const metadataUrlId of Object.keys(input.metadata)) {
-    if (!ids.includes(metadataUrlId)) {
+    if (!idSet.has(metadataUrlId)) {
       addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
     }
   }
@@ -1053,12 +1061,12 @@ const parseCustomProjects = (
   orderValues: readonly unknown[],
   state: AnalyzerState,
 ): void => {
-  const projectIds = new Set(
-    values
-      .filter(isRecord)
-      .map((value) => value.id)
-      .filter((id): id is string => typeof id === 'string'),
-  )
+  const projectIds = new Set<string>()
+  for (const value of values) {
+    if (isRecord(value) && typeof value.id === 'string') {
+      projectIds.add(value.id)
+    }
+  }
   const order = parseCustomProjectOrder(orderValues, projectIds, state)
 
   values.forEach((value, collectionIndex) => {
@@ -1259,11 +1267,16 @@ export const analyzeLegacyMigrationPreflight = (
   } catch {
     addIssue(state, 'NON_JSON_SAFE_VALUE', 'error')
   }
-  const targetSerializedBytes = measureSerializedBytes({
-    analyticsViews,
-    conversations,
-    snapshot,
-  })
+  let targetSerializedBytes = 0
+  try {
+    targetSerializedBytes = measureSerializedBytes({
+      analyticsViews,
+      conversations,
+      snapshot,
+    })
+  } catch {
+    addIssue(state, 'NON_JSON_SAFE_VALUE', 'error')
+  }
   const issues = [...state.issues.values()].toSorted((left, right) =>
     left.code.localeCompare(right.code),
   )

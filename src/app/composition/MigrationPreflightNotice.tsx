@@ -56,6 +56,17 @@ export const MigrationPreflightNotice = ({
     return null
   }
 
+  const description =
+    state.status === 'stale'
+      ? t(
+          'options.migrationPreflight.staleDescription',
+          '現在のデータは変更されています。',
+        )
+      : t(
+          'options.migrationPreflight.description',
+          '現在のデータは変更されていません。',
+        )
+
   return (
     <section
       aria-live='assertive'
@@ -66,12 +77,7 @@ export const MigrationPreflightNotice = ({
         <h2 className='font-semibold'>
           {t('options.migrationPreflight.title', '移行前チェックが必要です')}
         </h2>
-        <p className='text-sm text-muted-foreground'>
-          {t(
-            'options.migrationPreflight.description',
-            '現在のデータは変更されていません。',
-          )}
-        </p>
+        <p className='text-sm'>{description}</p>
       </div>
       <div className='flex flex-wrap gap-2'>
         <Button onClick={copyDiagnostic} type='button' variant='outline'>

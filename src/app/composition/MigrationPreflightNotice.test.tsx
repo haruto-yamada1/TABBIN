@@ -41,14 +41,6 @@ class FakeMigrationPreflightController implements MigrationPreflightNoticeContro
   })
 }
 
-const visibleStates: readonly MigrationPreflightNoticeState[] = [
-  { status: 'stale' },
-  {
-    status: 'blocked',
-    issueCodes: ['MIGRATION_SOURCE_READ_FAILED'],
-  },
-]
-
 describe('MigrationPreflightNotice', () => {
   it('runs a not-run preflight on mount and shows its blocked result', async () => {
     const controller = new FakeMigrationPreflightController(
@@ -76,29 +68,40 @@ describe('MigrationPreflightNotice', () => {
     expect(controller.run).not.toHaveBeenCalled()
   })
 
-  it.each(visibleStates)(
-    'shows preserved-data guidance and recovery actions for $status',
-    (state) => {
-      render(
-        <MigrationPreflightNotice
-          controller={new FakeMigrationPreflightController(state)}
-        />,
-      )
+  it('shows changed-data guidance for a stale result', () => {
+    render(
+      <MigrationPreflightNotice
+        controller={new FakeMigrationPreflightController({ status: 'stale' })}
+      />,
+    )
 
-      expect(screen.getByRole('alert')).toBeTruthy()
-      expect(
-        screen.getByText('現在のデータは変更されていません。'),
-      ).toBeTruthy()
-      expect(
-        screen.getByRole('button', { name: '診断情報をコピー' }),
-      ).toBeTruthy()
-      expect(
-        screen.getByRole('button', { name: '現在のデータをバックアップ' }),
-      ).toBeTruthy()
-      expect(screen.getByRole('button', { name: '再試行' })).toBeTruthy()
-      expect(screen.queryByText('MIGRATION_SOURCE_READ_FAILED')).toBeNull()
-    },
-  )
+    expect(screen.getByText('現在のデータは変更されています。')).toBeTruthy()
+    expect(screen.queryByText('現在のデータは変更されていません。')).toBeNull()
+  })
+
+  it('shows preserved-data guidance and recovery actions for a blocked result', () => {
+    render(
+      <MigrationPreflightNotice
+        controller={
+          new FakeMigrationPreflightController({
+            status: 'blocked',
+            issueCodes: ['MIGRATION_SOURCE_READ_FAILED'],
+          })
+        }
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByText('現在のデータは変更されていません。')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: '診断情報をコピー' }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: '現在のデータをバックアップ' }),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: '再試行' })).toBeTruthy()
+    expect(screen.queryByText('MIGRATION_SOURCE_READ_FAILED')).toBeNull()
+  })
 
   it('delegates copy, backup, and retry actions to the controller', async () => {
     const user = userEvent.setup()

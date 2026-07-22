@@ -145,9 +145,10 @@ by omitting an argument.
 
 The direct control-state repository and #738's raw reader/preflight repository
 are the raw local-storage exceptions inside migration/control plumbing; they
-must not call the gated facade recursively. Both are invoked only while the
-shared #727 coordination adapter holds the exclusive lock. Settings, UI theme,
-and release
+must not call the gated facade recursively. Raw source snapshot/recheck and
+preflight record writes run while the shared #727 coordination adapter holds
+the exclusive lock. Control/preflight record reads may run outside that lock
+because they contain no user data. Settings, UI theme, and release
 display controls remain outside the migrated domain-data route. In particular,
 both `createSavedTabsRepositories` and `createSavedTabsUseCasesDeps` inject the
 gated domain port into domain repositories and a separate raw settings port

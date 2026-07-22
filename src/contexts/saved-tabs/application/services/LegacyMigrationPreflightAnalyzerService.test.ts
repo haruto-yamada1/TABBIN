@@ -63,6 +63,18 @@ describe('analyzeLegacyMigrationPreflight', () => {
     expect(result.targetSerializedBytes).toBeGreaterThan(0)
   })
 
+  it('reports non-JSON-safe target values without throwing', () => {
+    const source = withSource(createEmptySnapshot(), 'savedAnalyticsViews', [
+      1n,
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(result.issueCodes).toContain('NON_JSON_SAFE_VALUE')
+    expect(result.approximateSourceBytes).toBe(0)
+    expect(result.targetSerializedBytes).toBe(0)
+  })
+
   it('distinguishes a missing key from an invalid stored value', () => {
     const source = {
       ...createEmptySnapshot(),

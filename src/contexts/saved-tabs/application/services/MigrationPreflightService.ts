@@ -109,10 +109,8 @@ export class MigrationPreflightService implements MigrationPreflightServicePort 
         }
         return this.saveStale(record)
       })
-    } catch {
-      return this.options.coordination.runExclusive(async () =>
-        this.saveStale(record),
-      )
+    } catch (error) {
+      return this.saveReadFailure(error)
     }
   }
 
@@ -156,12 +154,13 @@ export class MigrationPreflightService implements MigrationPreflightServicePort 
     const capacityIssueCodes =
       capacity.status === 'blocked' ? [capacity.errorCode] : []
     const issueCodes = [...analysis.issueCodes, ...capacityIssueCodes]
-    const blockingIssueCodes = [
-      ...analysis.issues
-        .filter((issue) => issue.code !== 'MIGRATION_SOURCE_MISSING_KEY')
-        .map((issue) => issue.code),
-      ...capacityIssueCodes,
-    ]
+    const blockingIssueCodes: MigrationPreflightIssueCode[] = []
+    for (const issue of analysis.issues) {
+      if (issue.code !== 'MIGRATION_SOURCE_MISSING_KEY') {
+        blockingIssueCodes.push(issue.code)
+      }
+    }
+    blockingIssueCodes.push(...capacityIssueCodes)
     const diagnostic: MigrationPreflightDiagnostic = {
       capacityStatus: capacity.status,
       collisionCount: analysis.collisionCount,

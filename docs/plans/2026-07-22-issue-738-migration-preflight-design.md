@@ -64,13 +64,14 @@ merges or drops a record. Missing timestamp provenance is reported; current
 time is not substituted for historical data.
 
 The copied diagnostic contains only fixed issue codes, entity counts, collision
-count, approximate bytes, capacity status, and version identifiers. It excludes
+count, capacity status, and version identifiers. It excludes
 URLs, titles, notes, keywords, prompts, conversation/attachment content, raw
 errors, and raw fingerprints. No external telemetry is added.
 
 ## Recovery UX
 
-`blocked` and `stale` states state that current data was not changed and offer:
+`blocked` states state that preflight did not change current data, while `stale`
+states report that the source changed after preflight. Both offer:
 
 - copy safe diagnostic;
 - download the raw current-data snapshot without forgiving getters or implicit
