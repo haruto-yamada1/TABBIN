@@ -20,6 +20,7 @@ import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 
 export type PersistenceBootstrapRuntime = {
   readonly bootstrap: PersistenceBootstrapPort
+  readonly coordination: PersistenceCoordinationPort
   readonly controlStateRepository: PersistenceControlStateRepositoryPort
   readonly operationGate: PersistenceOperationGatePort
   readonly recovery: PersistenceRecoveryControllerPort
@@ -160,7 +161,13 @@ export const createPersistenceBootstrapRuntime = (
     coordination,
     recovery,
   })
-  return { bootstrap, controlStateRepository, operationGate, recovery }
+  return {
+    bootstrap,
+    coordination,
+    controlStateRepository,
+    operationGate,
+    recovery,
+  }
 }
 
 const createDefaultRuntime = (): PersistenceBootstrapRuntime => {

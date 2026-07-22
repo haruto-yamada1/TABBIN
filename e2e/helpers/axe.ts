@@ -66,10 +66,16 @@ export const assertNoAxeViolations = async (
 
   if (results.violations.length > 0) {
     const summary = results.violations
-      .map(
-        (v) =>
-          `  - ${v.id} (${v.impact ?? 'unknown'}): ${v.help} — ${v.nodes.length} node(s)`,
-      )
+      .map((violation) => {
+        const nodes = violation.nodes
+          .map(
+            (node) =>
+              `    - target: ${node.target.join(' > ')}\n      html: ${node.html}\n      ${node.failureSummary ?? 'No failure summary'}`,
+          )
+          .join('\n')
+
+        return `  - ${violation.id} (${violation.impact ?? 'unknown'}): ${violation.help} — ${violation.nodes.length} node(s)\n${nodes}`
+      })
       .join('\n')
 
     throw new Error(
