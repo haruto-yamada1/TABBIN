@@ -57,7 +57,9 @@ extension app version and the public backup `schemaVersion`.
 
 Upgrade work runs only in `onupgradeneeded`. A legacy Chrome Storage migration
 must never be placed in this callback; it is a separate, coordinated operation
-owned by #728.
+owned by #728. Its bounded transaction, restart, fingerprint, and read-back
+contract is defined in
+[`legacy-persistence-v2-migration.md`](legacy-persistence-v2-migration.md).
 
 ## Object stores, keys, and indexes
 

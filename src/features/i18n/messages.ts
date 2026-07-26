@@ -507,14 +507,19 @@ const messages = {
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
     'options.persistenceRecovery.backup': 'Back up current data',
+    'options.persistenceRecovery.backupPrivacy':
+      'The emergency backup contains private URLs, titles, notes, and AI content. Store it securely.',
+    'options.persistenceRecovery.copyDiagnostic': 'Copy diagnostics',
     'options.persistenceRecovery.description':
       'The update could not be completed. Your previous data has not been deleted.',
+    'options.persistenceRecovery.diagnostic': 'Safe migration diagnostics',
     'options.persistenceRecovery.diskWriteFailed':
       'Writing data to browser storage failed.',
     'options.persistenceRecovery.preflightFailed':
       'Available browser storage could not be confirmed.',
     'options.persistenceRecovery.quotaExceeded':
       'There is not enough browser storage to complete the update.',
+    'options.persistenceRecovery.recheck': 'Run checks and retry',
     'options.persistenceRecovery.retry': 'Retry',
     'options.persistenceRecovery.storageUnavailable':
       'Browser storage is currently unavailable.',
@@ -1365,14 +1370,19 @@ const messages = {
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',
     'options.persistenceRecovery.backup': '現在のデータをバックアップ',
+    'options.persistenceRecovery.backupPrivacy':
+      '緊急バックアップには非公開のURL、タイトル、メモ、AIの内容が含まれます。安全な場所に保管してください。',
+    'options.persistenceRecovery.copyDiagnostic': '診断情報をコピー',
     'options.persistenceRecovery.description':
       'データの更新を完了できませんでした。以前のデータは削除されていません。',
+    'options.persistenceRecovery.diagnostic': '安全な移行診断情報',
     'options.persistenceRecovery.diskWriteFailed':
       'ブラウザの保存領域への書き込みに失敗しました。',
     'options.persistenceRecovery.preflightFailed':
       '利用可能なブラウザの保存領域を確認できませんでした。',
     'options.persistenceRecovery.quotaExceeded':
       'データの更新に必要なブラウザの保存領域を確保できませんでした。',
+    'options.persistenceRecovery.recheck': '事前確認を再実行して再試行',
     'options.persistenceRecovery.retry': '再試行',
     'options.persistenceRecovery.storageUnavailable':
       'ブラウザの保存領域を現在利用できません。',

@@ -14,6 +14,7 @@ export default {
   },
   refs: {},
   stories: [
+    '../src/app/**/*.stories.@(js|jsx|mjs|ts|tsx)',
     '../src/components/**/*.stories.@(js|jsx|mjs|ts|tsx)',
     '../src/features/**/*.stories.@(js|jsx|mjs|ts|tsx)',
   ],

@@ -1,3 +1,4 @@
+import { analyzeLegacyMigrationPreflight } from '@/contexts/saved-tabs/application/mappers/LegacyStorageToPersistenceV2Mapper'
 import {
   MIGRATION_PREFLIGHT_VERSION,
   MIGRATION_SOURCE_FINGERPRINT_VERSION,
@@ -22,8 +23,6 @@ import type {
   PersistenceStorageEstimatePort,
 } from '@/lib/persistence/capacity'
 import { runPersistenceCapacityPreflight } from '@/lib/persistence/capacity'
-
-import { analyzeLegacyMigrationPreflight } from './LegacyMigrationPreflightAnalyzerService'
 
 export type MigrationPreflightServiceOptions = {
   readonly capacityPolicy: Pick<

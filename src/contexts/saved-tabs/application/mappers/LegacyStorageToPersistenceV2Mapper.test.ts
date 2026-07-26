@@ -6,7 +6,10 @@ import type {
   RawLegacyStorageSnapshot,
 } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 
-import { analyzeLegacyMigrationPreflight } from './LegacyMigrationPreflightAnalyzerService'
+import {
+  analyzeLegacyMigrationPreflight,
+  mapLegacyStorageToPersistenceV2,
+} from './LegacyStorageToPersistenceV2Mapper'
 
 const arraySourceKeys = MIGRATION_SOURCE_KEYS.filter(
   (key) => key !== 'activeAiChatConversationId',
@@ -35,6 +38,14 @@ const withSource = (
 })
 
 describe('analyzeLegacyMigrationPreflight', () => {
+  it('uses the dedicated pure legacy-to-v2 mapper as the preflight source of truth', () => {
+    const source = createEmptySnapshot()
+
+    expect(analyzeLegacyMigrationPreflight(source)).toStrictEqual(
+      mapLegacyStorageToPersistenceV2(source),
+    )
+  })
+
   it('treats present empty sources as a healthy empty snapshot', () => {
     const result = analyzeLegacyMigrationPreflight(createEmptySnapshot())
 
@@ -178,6 +189,133 @@ describe('analyzeLegacyMigrationPreflight', () => {
     expect(result.snapshot.urls).toHaveLength(1)
   })
 
+  it('preserves membership metadata that exists only on nested legacy URLs', () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'savedTabs', [
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        savedAt: 1,
+        subCategories: ['docs'],
+        urls: [
+          {
+            savedAt: 2,
+            subCategory: 'docs',
+            title: 'Domain nested',
+            url: 'https://example.com/domain',
+          },
+        ],
+      },
+    ])
+    source = withSource(source, 'customProjects', [
+      {
+        categories: ['research'],
+        categoryOrder: ['research'],
+        createdAt: 3,
+        id: 'project-1',
+        name: 'Project',
+        updatedAt: 4,
+        urls: [
+          {
+            category: 'research',
+            notes: 'private note',
+            savedAt: 5,
+            title: 'Custom nested',
+            url: 'https://example.com/custom',
+          },
+        ],
+      },
+    ])
+    source = withSource(source, 'customProjectOrder', ['project-1'])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(result.snapshot.memberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          categoryId: 'group-1:category:0',
+          collectionId: 'group-1',
+        }),
+        expect.objectContaining({
+          categoryId: 'project-1:category:0',
+          collectionId: 'project-1',
+          notes: 'private note',
+        }),
+      ]),
+    )
+  })
+
+  it('blocks conflicting top-level and nested membership metadata', () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'urls', [
+      {
+        id: 'url-1',
+        savedAt: 1,
+        title: 'Custom',
+        url: 'https://example.com/custom',
+      },
+    ])
+    source = withSource(source, 'customProjects', [
+      {
+        categories: ['docs', 'news'],
+        categoryOrder: ['docs', 'news'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Project',
+        updatedAt: 1,
+        urlIds: ['url-1'],
+        urlMetadata: {
+          'url-1': { category: 'docs', notes: 'top-level note' },
+        },
+        urls: [
+          {
+            category: 'news',
+            id: 'url-1',
+            notes: 'nested note',
+            savedAt: 1,
+            title: 'Custom',
+            url: 'https://example.com/custom',
+          },
+        ],
+      },
+    ])
+    source = withSource(source, 'customProjectOrder', ['project-1'])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(result.issueCodes).toContain('LEGACY_URL_REFERENCE_CONFLICT')
+    expect(result.snapshot.memberships).toContainEqual(
+      expect.objectContaining({
+        categoryId: 'project-1:category:0',
+        notes: 'top-level note',
+      }),
+    )
+  })
+
+  it('blocks incomplete custom category order without dropping categories', () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'customProjects', [
+      {
+        categories: ['docs', 'news'],
+        categoryOrder: ['docs'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Project',
+        updatedAt: 1,
+        urlIds: [],
+      },
+    ])
+    source = withSource(source, 'customProjectOrder', ['project-1'])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(result.issueCodes).toContain('LEGACY_CUSTOM_PROJECT_ORDER_CONFLICT')
+    expect(result.snapshot.categories.map(({ name }) => name)).toEqual([
+      'docs',
+      'news',
+    ])
+  })
+
   it('blocks urlSubCategories that reference a missing collection category', () => {
     let source = createEmptySnapshot()
     source = withSource(source, 'urls', [
@@ -291,6 +429,45 @@ describe('analyzeLegacyMigrationPreflight', () => {
         name: 'docs',
       }),
     ])
+  })
+
+  it('preserves legacy domain subCategoryOrder in category sortOrder', () => {
+    const source = withSource(createEmptySnapshot(), 'savedTabs', [
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        savedAt: 1,
+        subCategories: ['docs', 'news'],
+        subCategoryOrder: ['news', 'docs'],
+        urlIds: [],
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(result.snapshot.categories).toEqual([
+      expect.objectContaining({ name: 'news', sortOrder: 0 }),
+      expect.objectContaining({ name: 'docs', sortOrder: 1024 }),
+    ])
+  })
+
+  it('blocks duplicate or incomplete legacy domain category order', () => {
+    const source = withSource(createEmptySnapshot(), 'savedTabs', [
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        savedAt: 1,
+        subCategories: ['docs', 'news'],
+        subCategoryOrder: ['docs', 'docs'],
+        urlIds: [],
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(result.issueCodes).toContain(
+      'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT',
+    )
   })
 
   it.each([
@@ -407,6 +584,75 @@ describe('analyzeLegacyMigrationPreflight', () => {
         updatedAt: 0,
       }),
     ])
+  })
+
+  it('maps AI history and analytics views into the logical v2 target without inventing timestamps', () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'aiChatConversations', [
+      {
+        createdAt: 10,
+        id: 'conversation-1',
+        messages: [
+          {
+            content: 'private prompt',
+            id: 'message-1',
+            role: 'user',
+          },
+        ],
+        title: 'Conversation',
+        updatedAt: 20,
+      },
+    ])
+    source = withSource(source, 'savedAnalyticsViews', [
+      {
+        createdAt: 30,
+        id: 'analytics-1',
+        name: 'Recent',
+        query: { dateRange: 'all' },
+        updatedAt: 40,
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(Reflect.get(result, 'target')).toEqual({
+      analyticsViews: [
+        {
+          id: 'analytics-1',
+          updatedAt: 40,
+          value: {
+            createdAt: 30,
+            id: 'analytics-1',
+            name: 'Recent',
+            query: { dateRange: 'all' },
+            updatedAt: 40,
+          },
+        },
+      ],
+      conversations: [
+        {
+          id: 'conversation-1',
+          updatedAt: 20,
+          value: {
+            createdAt: 10,
+            title: 'Conversation',
+          },
+        },
+      ],
+      messages: [
+        {
+          conversationId: 'conversation-1',
+          createdAt: 10,
+          id: 'message-1',
+          value: {
+            content: 'private prompt',
+            id: 'message-1',
+            role: 'user',
+          },
+        },
+      ],
+      savedTabs: result.snapshot,
+    })
   })
 
   it('returns only safe aggregate issues and does not mutate raw user content', () => {

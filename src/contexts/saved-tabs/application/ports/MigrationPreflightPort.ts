@@ -75,6 +75,11 @@ export type MigrationPreflightRepositoryPort = {
   readonly save: (record: StoredMigrationPreflight) => Promise<void>
 }
 
+export type MigrationPreflightReaderPort = Pick<
+  MigrationPreflightRepositoryPort,
+  'read'
+>
+
 export type MigrationSourceFingerprintPort = {
   readonly create: (source: RawLegacyStorageSnapshot) => Promise<string>
 }

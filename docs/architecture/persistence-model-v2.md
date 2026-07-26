@@ -10,6 +10,8 @@ identity examples are in `urlIdentityCorpus.ts`.
 
 This contract does not create IndexedDB stores, migrate current data, or switch
 the runtime source of truth. Those changes remain separate Issues and PRs.
+The implemented #728 conversion and verification rules are documented in
+[`legacy-persistence-v2-migration.md`](legacy-persistence-v2-migration.md).
 
 The quota, eviction, permission, capacity-preflight, typed failure, and recovery
 boundary is defined by
@@ -282,8 +284,9 @@ Required relations:
 - Collection membership activity does not update `Collection.updatedAt`.
 
 A missing legacy timestamp is not replaced with migration time. It produces
-`MISSING_TIMESTAMP_PROVENANCE`; the actual #728 mapper must apply an explicitly
-reviewed fallback policy before creating a valid required field.
+`MISSING_TIMESTAMP_PROVENANCE`; the #728 mapper uses the explicitly reviewed
+sentinel `0`. Legacy AI messages use their conversation's source `createdAt`
+because the message shape has no historical timestamp.
 
 ## Current to v2 mapping
 
