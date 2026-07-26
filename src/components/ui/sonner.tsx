@@ -13,7 +13,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={sonnerTheme}
       className='toaster group'
-      // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
       toastOptions={{
         classNames: {
           actionButton:

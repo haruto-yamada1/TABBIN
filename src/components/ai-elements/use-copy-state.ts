@@ -2,11 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-export interface UseCopyStateOptions {
+export type UseCopyStateOptions = {
   onCopy?: () => void
   onError?: (error: Error) => void
   timeout?: number
 }
+
+type ClipboardWriter = Pick<Clipboard, 'writeText'>
+
+const hasClipboardWrite = (value: unknown): value is ClipboardWriter =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'writeText') === 'function'
 
 export const useCopyState = ({
   onCopy,
@@ -17,9 +24,11 @@ export const useCopyState = ({
   const timeoutRef = useRef<number>(0)
 
   const copyText = useCallback(
-    // eslint-disable-next-line eslint/complexity
     async (text: string, { skipIfCopied = false } = {}) => {
-      if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
+      if (
+        typeof window === 'undefined' ||
+        !hasClipboardWrite(Reflect.get(navigator, 'clipboard'))
+      ) {
         onError?.(new Error('Clipboard API not available'))
         return
       }

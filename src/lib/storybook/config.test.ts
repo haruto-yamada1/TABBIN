@@ -1,8 +1,9 @@
 // @vitest-environment node
+// oxlint-disable import/no-relative-parent-imports -- Storybook config lives outside src.
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it } from 'vitest'
 
 import mainConfig from '../../../.storybook/main'
 

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-
 
 import { openSavedTabsPage, resetSavedTabsPageId } from './saved-tabs-page'
 
-interface TabsHarness {
+type TabsHarness = {
   create: ReturnType<typeof vi.fn>
   get: ReturnType<typeof vi.fn>
   query: ReturnType<typeof vi.fn>
@@ -12,7 +12,6 @@ interface TabsHarness {
 
 const createChromeHarness = (): TabsHarness => {
   const create = vi.fn(
-    // eslint-disable-next-line typescript/require-await
     async (createProperties: chrome.tabs.CreateProperties) =>
       ({
         id: 900,
@@ -21,12 +20,11 @@ const createChromeHarness = (): TabsHarness => {
       }) as chrome.tabs.Tab,
   )
   const get = vi.fn()
-  // eslint-disable-next-line typescript/require-await
+
   const query = vi.fn(async () => [])
-  // eslint-disable-next-line typescript/require-await
+
   const remove = vi.fn(async () => undefined)
   const update = vi.fn(
-    // eslint-disable-next-line typescript/require-await
     async (tabId: number, updateProperties: chrome.tabs.UpdateProperties) =>
       ({
         id: tabId,
@@ -284,7 +282,7 @@ describe('saved-tabs-page', () => {
     chromeTabs.get.mockRejectedValue(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
       // eslint-disable-next-line typescript/no-misused-promises
-      () =>
+      async () =>
         new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve
         }),
@@ -299,7 +297,7 @@ describe('saved-tabs-page', () => {
 
     chromeTabs.get.mockImplementationOnce(
       // eslint-disable-next-line typescript/no-misused-promises
-      () =>
+      async () =>
         new Promise<chrome.tabs.Tab>((resolve) => {
           resolveGet = resolve
         }),
@@ -320,7 +318,7 @@ describe('saved-tabs-page', () => {
     chromeTabs.get.mockRejectedValueOnce(new Error('missing'))
     chromeTabs.query.mockImplementationOnce(
       // eslint-disable-next-line typescript/no-misused-promises
-      () =>
+      async () =>
         new Promise<chrome.tabs.Tab[]>((resolve) => {
           resolveQuery = resolve
         }),

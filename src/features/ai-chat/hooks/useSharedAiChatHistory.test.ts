@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
@@ -462,7 +461,7 @@ describe('useSharedAiChatHistory', () => {
 
     expect(result.current.isLoading).toBe(true)
     unmount()
-    // eslint-disable-next-line typescript/require-await
+
     await act(async () => {
       resolveHistory?.({
         activeConversationId: 'conversation-1',

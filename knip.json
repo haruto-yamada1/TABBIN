@@ -2,19 +2,21 @@
   "$schema": "./node_modules/knip/schema.json",
   "entry": [
     "src/entrypoints/**/*.{ts,tsx}",
+    "src/app/**/*.{test,stories}.{ts,tsx}",
     "src/components/**/*.{test,stories}.{ts,tsx}",
+    "src/contexts/**/*.{test,stories}.{ts,tsx}",
     "src/features/**/*.{test,stories}.{ts,tsx}",
     "src/lib/**/*.{test,stories}.{ts,tsx}",
     "src/utils/**/*.{test,stories}.{ts,tsx}",
     "e2e/**/*.{ts,tsx}",
     "tools/**/*.{ts,tsx}",
-    ".storybook/**/*.{ts,tsx}",
-    "vitest.config.ts",
-    "vitest.workspace.ts"
+    ".storybook/**/*.{ts,tsx}"
   ],
   "project": [
+    "src/app/**/*.{ts,tsx}",
     "src/components/**/*.{ts,tsx}",
     "src/constants/**/*.ts",
+    "src/contexts/**/*.{ts,tsx}",
     "src/entrypoints/**/*.{ts,tsx}",
     "e2e/**/*.{ts,tsx}",
     "src/features/**/*.{ts,tsx}",
@@ -39,16 +41,14 @@
   ],
   "ignoreFiles": ["src/stories/**", "tests/**"],
   "ignoreDependencies": [
-    "@ai-sdk/react",
     "@storybook/addon-onboarding",
-    "@storybook/builder-vite",
-    "@testing-library/jest-dom",
     "autoprefixer",
     "path",
-    "postcss"
+    "postcss",
+    "@secretlint/secretlint-rule-preset-recommend"
   ],
   "lefthook": true,
   "playwright": true,
   "storybook": true,
-  "vitest": false
+  "vitest": true
 }

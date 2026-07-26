@@ -1,13 +1,12 @@
 import { MessageCircleMore } from 'lucide-react'
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useCallback, useState } from 'react'
 import type { ComponentType } from 'react'
 
 import { Button } from '@/components/ui/button'
+import type { AiChatConversationMessage } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import type { AiChatConversationMessage } from '../types'
-
-interface LazySavedTabsChatWidgetProps {
+type LazySavedTabsChatWidgetProps = {
   defaultOpen?: boolean
   historyVariant?: 'dropdown' | 'none' | 'sidebar-toggle'
   mode?: 'floating' | 'page'
@@ -23,7 +22,7 @@ const SavedTabsChatWidgetWithHistory = lazy(async () => {
   const [{ SavedTabsChatWidget }, { useSharedAiChatHistory }] =
     await Promise.all([
       import('./SavedTabsChatWidget'),
-      import('../hooks/useSharedAiChatHistory'),
+      import('@/features/ai-chat/hooks/useSharedAiChatHistory'),
     ])
 
   const LoadedSavedTabsChatWidget: ComponentType<
@@ -38,11 +37,13 @@ const SavedTabsChatWidgetWithHistory = lazy(async () => {
       updateMessages,
     } = useSharedAiChatHistory()
 
-    // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-    const handleMessagesChange = (messages: AiChatConversationMessage[]) => {
-      updateMessages(messages)
-      onMessagesChange?.(messages)
-    }
+    const handleMessagesChange = useCallback(
+      (messages: AiChatConversationMessage[]) => {
+        updateMessages(messages)
+        onMessagesChange?.(messages)
+      },
+      [updateMessages, onMessagesChange],
+    )
 
     return (
       <SavedTabsChatWidget
@@ -72,6 +73,11 @@ export const LazySavedTabsChatWidget = ({
   const shouldLoadImmediately = defaultOpen || mode === 'page'
   const [shouldLoad, setShouldLoad] = useState(shouldLoadImmediately)
   const [openOnLoad, setOpenOnLoad] = useState(defaultOpen)
+  const handleFloatingClick = useCallback(() => {
+    setOpenOnLoad(true)
+    setShouldLoad(true)
+    onOpenChange?.(true)
+  }, [onOpenChange])
 
   if (shouldLoad) {
     return (
@@ -90,12 +96,7 @@ export const LazySavedTabsChatWidget = ({
     <Button
       aria-label={t('aiChat.open')}
       className='fixed right-4 bottom-4 z-50 size-10 cursor-pointer rounded-full shadow-lg'
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-      onClick={() => {
-        setOpenOnLoad(true)
-        setShouldLoad(true)
-        onOpenChange?.(true)
-      }}
+      onClick={handleFloatingClick}
       type='button'
     >
       <MessageCircleMore className='size-5' />

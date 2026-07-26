@@ -1,0 +1,83 @@
+/**
+ * `chrome.tabs` 依存を `BrowserTabPort` interface に適合させる adapter。
+ *
+ * `presentation` 層は `chrome.tabs` を直接参照できないため、
+ * `composition` 層からこの adapter を `BrowserTabPort` として use-case へ注入する。
+ *
+ * `active` / `url` のみを port の最小 interface として公開し、それ以外の
+ * 拡張機能固有のフィールドは port 仕様変更まで持ち込まない。
+ *
+ * @example
+ * ```ts
+ * const port: BrowserTabPort = createChromeBrowserTabAdapter({
+ *   getApi: () => chrome,
+ * })
+ * await port.open({ url: 'https://example.com' })
+ * ```
+ */
+
+export type ChromeBrowserTabAdapterDeps = {
+  /**
+   * `chrome.tabs` を提供する chrome API 全体。テスト時は
+   * `chrome.tabs.create` を持つモックオブジェクトを渡す。
+   */
+  readonly getApi: () => ChromeApiLike | undefined
+}
+
+export type ChromeApiLike = {
+  readonly tabs?: ChromeTabsLike
+}
+
+export type ChromeTabsLike = {
+  readonly create?: (createProperties: {
+    readonly active?: boolean
+    readonly url: string
+  }) => Promise<{ readonly url?: string } | undefined> | undefined
+}
+
+type ChromeBrowserTabAdapterOptions = {
+  /**
+   * 新規タブをアクティブ（前面）にするかを port 利用側（open saved url use-case）が
+   * 決められるよう、`active` を返す関数を委譲できる。
+   * 未指定なら `active: true` で開く。
+   */
+  readonly resolveActive?: () => boolean
+}
+
+/**
+ * `createChromeBrowserTabAdapter` が生成した port に付くマーカー。
+ *
+ * `SavedTabsPage` などの composition 層が「chrome 由来の port であるか」
+ * を識別し、動的 `resolveActive` ラップへの差し替え可否を判断するために使う。
+ * テストや SSR 用途の独自 port は本マーカーを持たないため、そのまま保持される。
+ */
+export const CHROME_BROWSER_TAB_ADAPTER_MARKER = Symbol.for(
+  'tabbin.chromeBrowserTabAdapter',
+)
+
+/**
+ * `chrome.tabs.create` を利用する `BrowserTabPort` 実装を生成する。
+ *
+ * `chrome` API が見つからない環境（テスト / SSR など）では
+ * 即座に `Error` を投げ、use-case 側で失敗を通知する。
+ * 「サイレントに何もしない」よりも、副作用が必要な操作は
+ * 失敗を可視化することが重要という DDD の方針に従う。
+ */
+export const createChromeBrowserTabAdapter = (
+  deps: ChromeBrowserTabAdapterDeps,
+  options: ChromeBrowserTabAdapterOptions = {},
+) => {
+  return {
+    [CHROME_BROWSER_TAB_ADAPTER_MARKER]: true,
+    open: async (input: { readonly url: string }) => {
+      const api = deps.getApi()
+      const tabs = api?.tabs
+      const active = options.resolveActive?.() ?? true
+      if (!tabs?.create) {
+        throw new Error('chrome.tabs.create is not available')
+      }
+      const result = await tabs.create({ active, url: input.url })
+      return { url: result?.url ?? input.url }
+    },
+  }
+}

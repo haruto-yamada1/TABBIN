@@ -1,6 +1,12 @@
 import { ArrowUpRight, FileText } from 'lucide-react'
 
 import {
+  JSXPreview,
+  JSXPreviewContent,
+  JSXPreviewError,
+} from '@/components/ai-elements/jsx-preview'
+import { Shimmer } from '@/components/ai-elements/shimmer'
+import {
   ChainOfThought,
   ChainOfThoughtContent,
   ChainOfThoughtHeader,
@@ -8,7 +14,7 @@ import {
   ChainOfThoughtSearchResult,
   ChainOfThoughtSearchResults,
   ChainOfThoughtStep,
-} from '@/components/ai-elements/chain-of-thought'
+} from '@/components/ai-elements/vendor/chain-of-thought'
 import {
   Context,
   ContextCacheUsage,
@@ -20,7 +26,7 @@ import {
   ContextOutputUsage,
   ContextReasoningUsage,
   ContextTrigger,
-} from '@/components/ai-elements/context'
+} from '@/components/ai-elements/vendor/context'
 import {
   EnvironmentVariable,
   EnvironmentVariableCopyButton,
@@ -33,15 +39,15 @@ import {
   EnvironmentVariablesHeader,
   EnvironmentVariablesTitle,
   EnvironmentVariablesToggle,
-} from '@/components/ai-elements/environment-variables'
+} from '@/components/ai-elements/vendor/environment-variables'
 import {
   FileTree,
   FileTreeActions,
   FileTreeFile,
   FileTreeFolder,
   FileTreeName,
-} from '@/components/ai-elements/file-tree'
-import { Image } from '@/components/ai-elements/image'
+} from '@/components/ai-elements/vendor/file-tree'
+import { Image } from '@/components/ai-elements/vendor/image'
 import {
   InlineCitation,
   InlineCitationCard,
@@ -57,12 +63,7 @@ import {
   InlineCitationQuote,
   InlineCitationSource,
   InlineCitationText,
-} from '@/components/ai-elements/inline-citation'
-import {
-  JSXPreview,
-  JSXPreviewContent,
-  JSXPreviewError,
-} from '@/components/ai-elements/jsx-preview'
+} from '@/components/ai-elements/vendor/inline-citation'
 import {
   PackageInfo,
   PackageInfoChangeType,
@@ -73,7 +74,7 @@ import {
   PackageInfoHeader,
   PackageInfoName,
   PackageInfoVersion,
-} from '@/components/ai-elements/package-info'
+} from '@/components/ai-elements/vendor/package-info'
 import {
   SchemaDisplay,
   SchemaDisplayContent,
@@ -86,8 +87,7 @@ import {
   SchemaDisplayProperty,
   SchemaDisplayRequest,
   SchemaDisplayResponse,
-} from '@/components/ai-elements/schema-display'
-import { Shimmer } from '@/components/ai-elements/shimmer'
+} from '@/components/ai-elements/vendor/schema-display'
 
 const samplePng =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP7m8kG6QAAAABJRU5ErkJggg=='
@@ -106,7 +106,6 @@ const Section = ({
 )
 
 const DataSurfaces = () => (
-  // eslint-disable-line eslint/max-lines-per-function
   <div className='grid gap-6 xl:grid-cols-2'>
     <Section title='Context + Chain of Thought'>
       <div className='gap-y-4'>
@@ -199,7 +198,6 @@ const DataSurfaces = () => (
         <SchemaDisplay
           description='Creates or updates a saved-tab review batch.'
           method='POST'
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           parameters={[
             {
               description: 'Workspace id',
@@ -210,7 +208,6 @@ const DataSurfaces = () => (
             },
           ]}
           path='/api/workspaces/{workspaceId}/review-batches'
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           requestBody={[
             {
               description: 'Model to use',
@@ -225,7 +222,6 @@ const DataSurfaces = () => (
               type: 'array',
             },
           ]}
-          // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
           responseBody={[
             {
               description: 'Review batch id',
@@ -339,7 +335,6 @@ const DataSurfaces = () => (
           </InlineCitationText>
           <InlineCitationCard>
             <InlineCitationCardTrigger
-              // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
               sources={[
                 'https://tabbin.app/blog/storybook-workflow',
                 'https://docs.storybook.js.org',
@@ -370,7 +365,6 @@ const DataSurfaces = () => (
         </InlineCitation>
 
         <JSXPreview
-          // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
           bindings={{ count: 12 }}
           className='gap-y-3 rounded-lg border p-3'
           jsx='<div><strong>{count}</strong> saved tabs ready for review.</div>'

@@ -15,16 +15,14 @@ vi.mock('react-dom/client', () => ({
   createRoot: mocked.createRoot,
 }))
 
-vi.mock('@/components/theme-provider', () => ({
+vi.mock('@/components/ThemeProvider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   I18nProvider: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   useI18n: () => ({
@@ -77,14 +75,15 @@ describe('changelog bootstrap', () => {
     domReadyHandler?.(new Event('DOMContentLoaded'))
 
     expect(mocked.createRoot).toHaveBeenCalledWith(
-      document.querySelector('#app'),
+      document.querySelector('#app'), // eslint-disable-line testing-library/no-node-access -- createRoot のマウント先要素の検証には DOM ノード参照が必須
     )
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
   })
 
   it('英語のリリースノート見出しと本文を描画できる', async () => {
     mocked.currentLanguage = 'en'
-    const { App, getChangelogFeatureClassName } = await importModule()
+    const { App } = await importModule()
+    const { getChangelogFeatureClassName } = await import('./main.styles')
 
     render(createElement(App))
 

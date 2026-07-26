@@ -10,4 +10,4 @@ export const autoDeleteOptions = [
   { labelKey: 'options.autoDelete.30days', value: '30days' },
   { labelKey: 'options.autoDelete.180days', value: '180days' },
   { labelKey: 'options.autoDelete.365days', value: '365days' },
-] as const
+]

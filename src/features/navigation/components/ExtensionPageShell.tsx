@@ -2,7 +2,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { ExtensionSidebar } from '@/features/navigation/components/ExtensionSidebar'
 import { getSidebarStateFromLocation } from '@/features/navigation/lib/pageNavigation'
 
-interface ExtensionPageShellProps {
+type ExtensionPageShellProps = {
   children: React.ReactNode
   pathname?: string
   search?: string

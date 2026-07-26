@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
@@ -36,16 +35,16 @@ import {
   handleSaveWindowTabs,
 } from './extension-actions'
 
-interface TabsHarness {
+type TabsHarness = {
   query: ReturnType<typeof vi.fn>
   remove: ReturnType<typeof vi.fn>
   getAllWindows: ReturnType<typeof vi.fn>
 }
 const createChromeTabsHarness = (): TabsHarness => {
   const query = vi.fn()
-  // eslint-disable-next-line typescript/require-await
+
   const remove = vi.fn(async () => undefined)
-  // eslint-disable-next-line typescript/require-await
+
   const getAllWindows = vi.fn(async () => [])
   ;(
     globalThis as {
@@ -99,7 +98,6 @@ describe('extension-actions モジュール', () => {
     mocked.getUserSettings.mockResolvedValue(buildSettings())
     mocked.openSavedTabsPage.mockResolvedValue(9999)
     mocked.filterTabsByUserSettings.mockImplementation(
-      // eslint-disable-next-line typescript/require-await
       async (tabs: unknown) => tabs,
     )
     mocked.showNotification.mockResolvedValue(undefined)
@@ -151,6 +149,10 @@ describe('extension-actions モジュール', () => {
           title: 'Current',
         },
       ])
+      const loggedValues = JSON.stringify(vi.mocked(console.log).mock.calls)
+      expect(loggedValues).toContain('[redacted-url]')
+      expect(loggedValues).not.toContain('current.example')
+      expect(loggedValues).not.toContain('/path')
     })
     it('タブを閉じる処理が失敗した場合はログ出力して継続する', async () => {
       const chromeTabs = createChromeTabsHarness()
@@ -723,7 +725,7 @@ describe('extension-actions モジュール', () => {
     })
     it('windows API が使えない場合は tabs.query で全タブを取得する', async () => {
       const query = vi.fn()
-      // eslint-disable-next-line typescript/require-await
+
       const remove = vi.fn(async () => undefined)
       ;(
         globalThis as {
@@ -1003,6 +1005,48 @@ describe('extension-actions モジュール', () => {
     })
   })
   describe('handleExtensionActionClick関数', () => {
+    it('全ウィンドウ保存はドメイン保存完了後にカスタム保存を開始する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      const tabs = [
+        tab({
+          id: 81,
+          url: 'https://a.example/1',
+          title: 'A',
+        }),
+        tab({
+          id: 82,
+          url: 'https://b.example/2',
+          title: 'B',
+        }),
+      ]
+      chromeTabs.getAllWindows.mockResolvedValueOnce([{ tabs }])
+      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
+      mocked.getUserSettings.mockResolvedValueOnce(
+        buildSettings({ excludePatterns: [] }),
+      )
+      let resolveDomainSave: (() => void) | undefined
+      mocked.saveTabsWithAutoCategory.mockImplementationOnce(
+        async () =>
+          new Promise<void>((resolve) => {
+            resolveDomainSave = resolve
+          }),
+      )
+
+      const saving = handleSaveAllWindowsTabs()
+      await vi.waitFor(() => {
+        expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith(tabs)
+      })
+      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
+
+      resolveDomainSave?.()
+      await saving
+
+      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([
+        { title: 'A', url: 'https://a.example/1' },
+        { title: 'B', url: 'https://b.example/2' },
+      ])
+    })
+
     it('clickBehavior に従って saveCurrentTab フローを実行する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const activeTab = tab({
@@ -1013,17 +1057,11 @@ describe('extension-actions モジュール', () => {
       chromeTabs.query.mockResolvedValueOnce([activeTab])
       mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
       mocked.getUserSettings.mockReset()
-      mocked.getUserSettings
-        .mockResolvedValueOnce(
-          buildSettings({
-            clickBehavior: 'saveCurrentTab',
-          }),
-        )
-        .mockResolvedValueOnce(
-          buildSettings({
-            clickBehavior: 'saveCurrentTab',
-          }),
-        )
+      mocked.getUserSettings.mockResolvedValue(
+        buildSettings({
+          clickBehavior: 'saveCurrentTab',
+        }),
+      )
       await expect(handleExtensionActionClick()).resolves.toBeUndefined()
       expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith([activeTab])
       expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([

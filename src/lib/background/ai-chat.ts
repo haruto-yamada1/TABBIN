@@ -1,7 +1,9 @@
-import { generateText, stepCountIs } from 'ai'
+import { generateText, isStepCount } from 'ai'
 import { createOllama } from 'ai-sdk-ollama'
 
-import { AI_CHAT_TOOL_TITLES } from '@/constants/aiChatTools'
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getAiChatToolTitle } from '@/constants/aiChatTools'
+import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
 import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
 import { buildAiSavedUrlRecords } from '@/features/ai-chat/lib/buildAiContext'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
@@ -12,52 +14,82 @@ import {
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
 import type {
+  AiChartAxisFormat,
+  AiChartDatum,
+  AiChartSeries,
   AiChartSpec,
+  AiChartType,
   AiChatAttachment,
   AiSavedUrlRecord,
 } from '@/features/ai-chat/types'
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 import { getParentCategories } from '@/lib/storage/categories'
 import { getCustomProjects } from '@/lib/storage/projects'
-import { getUserSettings } from '@/lib/storage/settings'
+import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
 import { getUrlRecords } from '@/lib/storage/urls'
 import type { AiChatToolTrace, OllamaErrorDetails } from '@/types/background'
-import type { TabGroup } from '@/types/storage'
+import type { TabGroup, UserSettings } from '@/types/storage'
 
 import { createAiChatTools } from './ai-chat-tools'
 
 const HTTP_FORBIDDEN = 403
 const MAX_AI_CHAT_STEPS = 5
 
+const aiChartTypeValues = [
+  'area',
+  'bar',
+  'line',
+  'pie',
+  'radar',
+] as const satisfies readonly AiChartType[]
+const aiChartTypes: ReadonlySet<string> = new Set(aiChartTypeValues)
+
+const aiChartAxisFormatValues = [
+  'count',
+  'date',
+  'label',
+  'percent',
+] as const satisfies readonly AiChartAxisFormat[]
+const aiChartAxisFormats: ReadonlySet<string> = new Set(aiChartAxisFormatValues)
+
+const isRecordLike = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
 const parseRecord = (v: unknown): Record<string, unknown> => {
-  if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+  if (!isRecordLike(v)) {
     return {}
   }
-  // OK: structuredClone preserves 'object' type; narrow to Record<string, unknown> after runtime type guard
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  return structuredClone(v) as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+  for (const key of Object.keys(v)) {
+    result[key] = structuredClone(Reflect.get(v, key))
+  }
+  return result
 }
 
-interface OllamaModelOption {
+type OllamaModelOption = {
   name: string
   label: string
   modifiedAt?: string
 }
 
-interface AiChatHistoryMessage {
+type AiChatHistoryMessage = {
   role: 'user' | 'assistant'
   content: string
   attachments?: AiChatAttachment[]
 }
 
-interface AiChatRequest {
+type AiChatRequest = {
   prompt: string
   history: AiChatHistoryMessage[]
   attachments?: AiChatAttachment[]
 }
 
-interface AiChatResult {
+type AiChatResult = {
   answer: string
   charts: AiChartSpec[]
   recordCount: number
@@ -65,24 +97,23 @@ interface AiChatResult {
   toolTraces: AiChatToolTrace[]
 }
 
-interface AiChatStepUpdate {
+type AiChatStepUpdate = {
   charts?: AiChartSpec[]
   reasoning: string
   toolTraces: AiChatToolTrace[]
 }
 
-interface RunAiChatRequestOptions {
+type RunAiChatRequestOptions = {
   onStepUpdate?: (update: AiChatStepUpdate) => void
+  signal?: AbortSignal
 }
 
-const getAiChatUiLocale = () =>
-  typeof chrome !== 'undefined'
-    ? (chrome.i18n?.getUILanguage?.() ?? 'ja')
-    : 'ja'
+const getAiChatUiLocale = () => getBrowserUiLocale('ja')
+const normalizeLoadedAiChatSettings = (settings: UserSettings | undefined) =>
+  normalizeAiSystemPromptSettings(settings ?? defaultSettings)
 const getNormalizedAiChatSettings = async () =>
-  normalizeAiSystemPromptSettings((await getUserSettings()) ?? {})
+  normalizeLoadedAiChatSettings(await getUserSettings())
 
-const OLLAMA_BASE_URL = 'http://localhost:11434'
 const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`
 const OLLAMA_DOWNLOAD_URL = 'https://ollama.com/download'
 const OLLAMA_FAQ_URL =
@@ -94,7 +125,7 @@ type OllamaStructuredError = Error & {
 
 const getExtensionOrigin = (): string | null => {
   try {
-    const extensionUrl = chrome?.runtime?.getURL?.('')
+    const extensionUrl = chrome.runtime.getURL('')
     if (extensionUrl) {
       const parsedUrl = new URL(extensionUrl)
       if (parsedUrl.protocol && parsedUrl.host) {
@@ -105,7 +136,7 @@ const getExtensionOrigin = (): string | null => {
     // Fallback to runtime.id
   }
 
-  const extensionId = chrome?.runtime?.id
+  const extensionId = chrome.runtime.id
   return extensionId ? `chrome-extension://${extensionId}` : null
 }
 
@@ -272,21 +303,19 @@ const getStringValue = (
   return typeof value === 'string' ? value : undefined
 }
 
-const getToolTitle = (toolName: string): string =>
-  AI_CHAT_TOOL_TITLES[toolName] || toolName
+const getToolTitle = (language: AppLanguage, toolName: string): string =>
+  getAiChatToolTitle(language, toolName)
 
 const getToolResultCount = (output: unknown): number | null => {
   if (Array.isArray(output)) {
     return output.length
   }
 
-  if (
-    output &&
-    typeof output === 'object' &&
-    'items' in output &&
-    Array.isArray(output.items)
-  ) {
-    return output.items.length
+  if (output && typeof output === 'object') {
+    const items: unknown = Reflect.get(output, 'items')
+    if (Array.isArray(items)) {
+      return items.length
+    }
   }
 
   return null
@@ -297,24 +326,24 @@ const getPaginatedToolTotalCount = (output: unknown): number | null => {
     return null
   }
 
-  const { totalItems } = output as { totalItems?: unknown }
+  const totalItems: unknown = Reflect.get(output, 'totalItems')
   return typeof totalItems === 'number' ? totalItems : null
 }
 
 const getToolListSeparator = (language: AppLanguage) =>
   language === 'en' ? ', ' : '、'
-interface GenerateTextToolCallLike {
+type GenerateTextToolCallLike = {
   input: unknown
   toolCallId: string
   toolName: string
 }
 
-interface GenerateTextToolResultLike {
+type GenerateTextToolResultLike = {
   output?: unknown
   toolCallId: string
 }
 
-interface GenerateTextResultLike {
+type GenerateTextResultLike = {
   steps?: {
     toolCalls?: GenerateTextToolCallLike[]
     toolResults?: GenerateTextToolResultLike[]
@@ -362,17 +391,21 @@ const getAllToolResults = (
 }
 
 const createToolTracesFromParts = ({
+  language,
   toolCalls,
   toolResults,
 }: {
-  toolCalls: GenerateTextToolCallLike[]
-  toolResults: GenerateTextToolResultLike[]
+  language: AppLanguage
+  toolCalls?: GenerateTextToolCallLike[]
+  toolResults?: GenerateTextToolResultLike[]
 }): AiChatToolTrace[] => {
+  const safeToolCalls = toolCalls ?? []
+  const safeToolResults = toolResults ?? []
   const toolResultsById = new Map(
-    toolResults.map((toolResult) => [toolResult.toolCallId, toolResult]),
+    safeToolResults.map((toolResult) => [toolResult.toolCallId, toolResult]),
   )
 
-  return toolCalls.map((toolCall) => {
+  return safeToolCalls.map((toolCall) => {
     const toolResult = toolResultsById.get(toolCall.toolCallId)
 
     return {
@@ -380,7 +413,7 @@ const createToolTracesFromParts = ({
       input: toolCall.input,
       output: toolResult?.output,
       state: toolResult ? 'output-available' : 'input-available',
-      title: getToolTitle(toolCall.toolName),
+      title: getToolTitle(language, toolCall.toolName),
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
       type: 'dynamic-tool',
@@ -388,8 +421,12 @@ const createToolTracesFromParts = ({
   })
 }
 
-const createToolTraces = (result: GenerateTextResultLike): AiChatToolTrace[] =>
+const createToolTraces = (
+  result: GenerateTextResultLike,
+  language: AppLanguage,
+): AiChatToolTrace[] =>
   createToolTracesFromParts({
+    language,
     toolCalls: getAllToolCalls(result),
     toolResults: getAllToolResults(result),
   })
@@ -506,27 +543,92 @@ const mergeToolTraces = (
   return mergedToolTraces
 }
 
+const isAiChartType = (value: unknown): value is AiChartType =>
+  typeof value === 'string' && aiChartTypes.has(value)
+
+const isAiChartAxisFormat = (value: unknown): value is AiChartAxisFormat =>
+  typeof value === 'string' && aiChartAxisFormats.has(value)
+
+const isChartDatum = (value: unknown): value is AiChartDatum => {
+  if (!isRecordLike(value)) {
+    return false
+  }
+  return Object.values(value).every(
+    (item) =>
+      typeof item === 'number' || typeof item === 'string' || item === null,
+  )
+}
+
+const isChartSeries = (value: unknown): value is AiChartSeries => {
+  if (!isRecordLike(value)) {
+    return false
+  }
+  return (
+    typeof Reflect.get(value, 'colorToken') === 'string' &&
+    typeof Reflect.get(value, 'dataKey') === 'string' &&
+    typeof Reflect.get(value, 'label') === 'string'
+  )
+}
+
+const hasOptionalStringProperty = (
+  value: Record<string, unknown>,
+  key: string,
+): boolean => {
+  const item: unknown = Reflect.get(value, key)
+  return item === undefined || typeof item === 'string'
+}
+
+const hasOptionalBooleanProperty = (
+  value: Record<string, unknown>,
+  key: string,
+): boolean => {
+  const item: unknown = Reflect.get(value, key)
+  return item === undefined || typeof item === 'boolean'
+}
+
+const hasValidOptionalChartProperties = (
+  value: Record<string, unknown>,
+): boolean => {
+  const valueFormat: unknown = Reflect.get(value, 'valueFormat')
+
+  return (
+    hasOptionalStringProperty(value, 'categoryKey') &&
+    hasOptionalStringProperty(value, 'description') &&
+    hasOptionalStringProperty(value, 'emptyMessage') &&
+    hasOptionalBooleanProperty(value, 'showLegend') &&
+    hasOptionalBooleanProperty(value, 'stacked') &&
+    (valueFormat === undefined || isAiChartAxisFormat(valueFormat)) &&
+    hasOptionalStringProperty(value, 'xKey')
+  )
+}
+
 const isChartSpec = (value: unknown): value is AiChartSpec => {
-  if (!value || typeof value !== 'object') {
+  if (!isRecordLike(value)) {
     return false
   }
 
-  const spec = value as Partial<AiChartSpec>
+  const title: unknown = Reflect.get(value, 'title')
+  const type: unknown = Reflect.get(value, 'type')
+  const data: unknown = Reflect.get(value, 'data')
+  const series: unknown = Reflect.get(value, 'series')
 
   return (
-    typeof spec.title === 'string' &&
-    typeof spec.type === 'string' &&
-    Array.isArray(spec.data) &&
-    Array.isArray(spec.series)
+    typeof title === 'string' &&
+    isAiChartType(type) &&
+    Array.isArray(data) &&
+    data.every(isChartDatum) &&
+    Array.isArray(series) &&
+    series.every(isChartSeries) &&
+    hasValidOptionalChartProperties(value)
   )
 }
 
 const getChartSpecsFromOutput = (output: unknown): AiChartSpec[] => {
-  if (!output || typeof output !== 'object') {
+  if (!isRecordLike(output)) {
     return []
   }
 
-  const { chartSpecs } = output as { chartSpecs?: unknown }
+  const chartSpecs: unknown = Reflect.get(output, 'chartSpecs')
   if (!Array.isArray(chartSpecs)) {
     return []
   }
@@ -633,7 +735,7 @@ const runAiChatRequest = async (
       getUrlRecords(),
       getCustomProjects(),
       getParentCategories(),
-      chrome.storage.local.get<{
+      getRequiredPersistenceStorageLocal().get<{
         savedTabs?: TabGroup[]
       }>('savedTabs'),
     ])
@@ -657,6 +759,7 @@ const runAiChatRequest = async (
   const result = await (async () => {
     try {
       return await generateText({
+        abortSignal: options.signal,
         messages: [
           ...history.map((message) =>
             message.role === 'user'
@@ -679,10 +782,11 @@ const runAiChatRequest = async (
           },
         ],
         model: ollama(ollamaModel),
-        onStepFinish: (stepResult) => {
+        onStepEnd: (stepResult) => {
           const stepToolTraces = createToolTracesFromParts({
-            toolCalls: stepResult.toolCalls ?? [],
-            toolResults: stepResult.toolResults ?? [],
+            language,
+            toolCalls: stepResult.toolCalls,
+            toolResults: stepResult.toolResults,
           })
 
           streamedToolTraces = mergeToolTraces(
@@ -700,11 +804,11 @@ const runAiChatRequest = async (
             toolTraces: streamedToolTraces,
           })
         },
-        stopWhen: stepCountIs(MAX_AI_CHAT_STEPS),
-        system: buildFinalSystemPrompt({
+        instructions: buildFinalSystemPrompt({
           savedUrlContext: createContextSummary(records, language),
           template: activeSystemPrompt.template,
         }),
+        stopWhen: isStepCount(MAX_AI_CHAT_STEPS),
         tools,
       })
     } catch (error) {
@@ -720,7 +824,7 @@ const runAiChatRequest = async (
 
   const toolTraces = mergeToolTraces(
     streamedToolTraces,
-    createToolTraces(result),
+    createToolTraces(result, language),
   )
   const toolCharts = getChartsFromToolTraces(toolTraces)
   const fallbackCharts =

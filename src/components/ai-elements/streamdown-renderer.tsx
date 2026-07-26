@@ -1,11 +1,7 @@
 'use client'
 
 import { cjk } from '@streamdown/cjk'
-import type {
-  CodeHighlighterPlugin,
-  HighlightResult,
-  ThemeInput,
-} from '@streamdown/code'
+import type { CodeHighlighterPlugin, ThemeInput } from '@streamdown/code'
 import { math } from '@streamdown/math'
 import { Suspense, lazy, memo } from 'react'
 import type { ComponentProps } from 'react'
@@ -21,24 +17,25 @@ export type StreamdownMarkdownProps = Omit<
 }
 
 const streamdownCodePlugin: CodeHighlighterPlugin = {
-  getSupportedLanguages: () =>
-    [
-      'bash',
-      'css',
-      'diff',
-      'html',
-      'javascript',
-      'json',
-      'jsx',
-      'markdown',
-      'python',
-      'tsx',
-      'typescript',
-      'yaml',
-    ] as ReturnType<CodeHighlighterPlugin['getSupportedLanguages']>,
-  getThemes: () => ['github-light', 'github-dark'] as [ThemeInput, ThemeInput],
+  getSupportedLanguages: (): ReturnType<
+    CodeHighlighterPlugin['getSupportedLanguages']
+  > => [
+    'bash',
+    'css',
+    'diff',
+    'html',
+    'javascript',
+    'json',
+    'jsx',
+    'markdown',
+    'python',
+    'tsx',
+    'typescript',
+    'yaml',
+  ],
+  getThemes: (): [ThemeInput, ThemeInput] => ['github-light', 'github-dark'],
   highlight: ({ code, language }, callback) =>
-    highlightCode(code, language, callback) as HighlightResult | null,
+    highlightCode(code, language, callback),
   name: 'shiki',
   supportsLanguage: (language) => getSupportedCodeLanguage(language) !== 'text',
   type: 'code-highlighter',
@@ -46,13 +43,11 @@ const streamdownCodePlugin: CodeHighlighterPlugin = {
 
 const baseStreamdownPlugins = { cjk, code: streamdownCodePlugin, math }
 const mermaidFencePattern = /(^|\n)\s*```(?:mermaid|mmd)(?:\s|\n|$)/i
-
 export const hasMermaidBlock = (markdown: string) =>
   mermaidFencePattern.test(markdown)
 
 const MermaidStreamdown = lazy(async () => {
   const { mermaid } = await import('@streamdown/mermaid')
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const plugins = { ...baseStreamdownPlugins, mermaid }
   const MermaidStreamdownRenderer = (props: StreamdownMarkdownProps) => (
     <Streamdown plugins={plugins} {...props} />
@@ -76,7 +71,6 @@ export const StreamdownMarkdown = memo(
     return (
       <Suspense
         fallback={
-          // eslint-disable-next-line react-perf/jsx-no-jsx-as-prop
           <Streamdown plugins={baseStreamdownPlugins} {...props}>
             {children}
           </Streamdown>

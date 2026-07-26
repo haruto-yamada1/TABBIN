@@ -22,7 +22,6 @@ const TabsList = ({
   />
 )
 TabsList.displayName = TabsPrimitive.List.displayName
-
 const TabsTrigger = ({
   className,
   ref,
@@ -38,7 +37,6 @@ const TabsTrigger = ({
   />
 )
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
-
 const TabsContent = ({
   className,
   ref,

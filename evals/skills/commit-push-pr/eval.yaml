@@ -1,0 +1,28 @@
+# Waza eval suite for the TABBIN `commit-push-pr` skill.
+# 対象: .apm/skills/commit-push-pr/SKILL.md
+# executor: mock により API key 不要で deterministic 実行。
+name: commit-push-pr-skill-eval
+description: |
+  TABBIN の commit-push-pr Skill に対する評価 suite。
+  prompt injection / untrusted content boundary を deterministic grader で検証する。
+
+skill: commit-push-pr
+schemaVersion: '1.2'
+version: '0.1.0'
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 120
+  parallel: false
+  executor: mock
+  model: gpt-4o
+  inject_skill_body: true
+  disabled_skills: []
+
+adversarial:
+  packs:
+    - prompt-injection
+  on_unsafe_outcome: fail
+
+tasks:
+  - 'tasks/*.yaml'

@@ -11,7 +11,6 @@ function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot='input-group'
-      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='group'
       className={cn(
         'group/input-group relative flex w-full items-center rounded-md border border-input shadow-xs transition-[color,box-shadow] outline-none dark:bg-input/30',
@@ -56,28 +55,23 @@ const inputGroupAddonVariants = cva(
     },
   },
 )
-
 function InputGroupAddon({
   className,
   align = 'inline-start',
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof inputGroupAddonVariants>) {
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
-      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='group'
       data-slot='input-group-addon'
       data-align={align}
       className={cn(inputGroupAddonVariants({ align }), className)}
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onClick={(e) => {
         if (e.target instanceof HTMLElement && e.target.closest('button')) {
           return
         }
         e.currentTarget.parentElement?.querySelector('input')?.focus()
       }}
-      // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
       onKeyDown={(e) => {
         if (e.key !== 'Enter' && e.key !== ' ') {
           return
@@ -129,7 +123,6 @@ function InputGroupButton({
     />
   )
 }
-
 function InputGroupText({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span

@@ -3,6 +3,7 @@
  */
 
 import type { AiChatAttachment } from '@/features/ai-chat/types'
+import { logger } from '@/lib/logging/logger'
 import type {
   AiChatResponse,
   AiChatStreamClientMessage,
@@ -14,8 +15,11 @@ import type {
   StatusResponse,
   TimeRemainingResponse,
 } from '@/types/background'
-import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
-import type { UserSettings } from '@/types/storage'
+import {
+  AI_CHAT_STREAM_PORT_NAME,
+  backgroundMessageSchema,
+  messageActionSchema,
+} from '@/types/background'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
 import {
@@ -31,6 +35,20 @@ import {
   removeUrlRecordsFromStorage,
 } from './url-storage'
 
+const isOllamaErrorDetails = (value: unknown): value is OllamaErrorDetails => {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  return (
+    (Reflect.get(value, 'kind') === 'forbidden' ||
+      Reflect.get(value, 'kind') === 'notInstalledOrNotRunning') &&
+    typeof Reflect.get(value, 'faqUrl') === 'string' &&
+    typeof Reflect.get(value, 'downloadUrl') === 'string' &&
+    typeof Reflect.get(value, 'baseUrl') === 'string' &&
+    typeof Reflect.get(value, 'tagsUrl') === 'string'
+  )
+}
+
 const getOllamaErrorDetails = (
   error: unknown,
 ): OllamaErrorDetails | undefined => {
@@ -38,14 +56,59 @@ const getOllamaErrorDetails = (
     return undefined
   }
 
-  const maybeOllamaError = (
-    error as Error & {
-      ollamaError?: OllamaErrorDetails
-    }
-  ).ollamaError
+  const maybeOllamaError: unknown = Reflect.get(error, 'ollamaError')
 
-  return maybeOllamaError
+  return isOllamaErrorDetails(maybeOllamaError) ? maybeOllamaError : undefined
 }
+
+type RuntimeOnConnect = {
+  addListener: (listener: (port: chrome.runtime.Port) => void) => void
+}
+
+const isRuntimeOnConnect = (value: unknown): value is RuntimeOnConnect =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'addListener') === 'function'
+
+const parseBackgroundMessage = (
+  message: unknown,
+):
+  | { status: 'valid'; message: BackgroundMessage }
+  | { action: string; status: 'unknown_action' }
+  | { status: 'invalid_message' } => {
+  if (typeof message !== 'object' || message === null) {
+    return { status: 'invalid_message' }
+  }
+
+  const action: unknown = Reflect.get(message, 'action')
+  if (typeof action !== 'string') {
+    return { status: 'invalid_message' }
+  }
+
+  if (!messageActionSchema.safeParse(action).success) {
+    return {
+      action,
+      status: 'unknown_action',
+    }
+  }
+
+  const result = backgroundMessageSchema.safeParse(message)
+  if (!result.success) {
+    return { status: 'invalid_message' }
+  }
+
+  return {
+    message: result.data,
+    status: 'valid',
+  }
+}
+
+const isAiChatStreamRunMessage = (
+  message: unknown,
+): message is AiChatStreamClientMessage =>
+  typeof message === 'object' &&
+  message !== null &&
+  Reflect.get(message, 'type') === 'run'
 
 /**
  * メッセージリスナーを設定
@@ -53,19 +116,31 @@ const getOllamaErrorDetails = (
 const setupMessageListener = (): void => {
   // eslint-disable-next-line eslint/complexity
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    console.log('バックグラウンドがメッセージを受信:', message)
-    const isValidMessage = (msg: unknown): msg is BackgroundMessage =>
-      typeof msg === 'object' &&
-      msg !== null &&
-      'action' in msg &&
-      typeof msg.action === 'string'
-    if (!isValidMessage(message)) {
+    const parsedMessage = parseBackgroundMessage(message)
+    if (parsedMessage.status === 'invalid_message') {
+      logger.warn('background_message_rejected', {
+        errorCode: 'INVALID_MESSAGE',
+      })
       sendResponse({
         status: 'invalid_message',
       })
       return false
     }
-    const typedMessage = message
+
+    if (parsedMessage.status === 'unknown_action') {
+      logger.warn('background_message_rejected', {
+        errorCode: 'UNKNOWN_ACTION',
+      })
+      sendResponse({
+        status: 'unknown_action',
+      })
+      return false
+    }
+
+    const typedMessage = parsedMessage.message
+    logger.info('background_message_received', {
+      action: typedMessage.action,
+    })
     switch (typedMessage.action) {
       case 'urlDragStarted': {
         handleUrlDragStartedMessage(typedMessage.url, sendResponse)
@@ -108,22 +183,24 @@ const setupMessageListener = (): void => {
         return true
       }
       default: {
-        // eslint-disable-next-line typescript/no-unsafe-member-access
-        console.warn('未知のメッセージアクション:', message.action)
-        sendResponse({
-          status: 'unknown_action',
-        })
+        const exhaustiveMessage: never = typedMessage
+        void exhaustiveMessage
         return false
       }
     }
   })
 
-  chrome.runtime.onConnect?.addListener((port) => {
+  const onConnect: unknown = Reflect.get(chrome.runtime, 'onConnect')
+  if (!isRuntimeOnConnect(onConnect)) {
+    return
+  }
+
+  onConnect.addListener((port) => {
     if (port.name !== AI_CHAT_STREAM_PORT_NAME) {
       return
     }
 
-    port.onMessage.addListener((message: AiChatStreamClientMessage) => {
+    port.onMessage.addListener((message: unknown) => {
       handleAiChatStreamPortMessage(port, message)
     })
   })
@@ -150,7 +227,7 @@ const handleUrlDroppedMessage = (
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  console.log('URLドロップを検知:', message.url)
+  logger.debug('background_url_drop_received', { url: message.url })
 
   // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (message.fromExternal === true) {
@@ -160,16 +237,15 @@ const handleUrlDroppedMessage = (
           status,
         })
       })
-      .catch((error) => {
-        console.error('URL削除エラー:', error)
+      .catch((error: unknown) => {
+        logger.error('background_url_drop_removal_failed', error)
         sendResponse({
-          // eslint-disable-next-line typescript/no-unsafe-assignment
-          error: error.toString(), // eslint-disable-line typescript/no-unsafe-call, typescript/no-unsafe-member-access
+          error: error instanceof Error ? error.message : String(error),
           status: 'error',
         })
       })
   } else {
-    console.log('内部操作のため削除をスキップ')
+    logger.debug('background_url_drop_internal_skipped')
     sendResponse({
       status: 'internal_operation',
     })
@@ -188,10 +264,9 @@ const handleRemoveUrlMessage = (
         status: 'removed',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       sendResponse({
-        // eslint-disable-next-line typescript/no-unsafe-assignment
-        error,
+        error: error instanceof Error ? error.message : String(error),
         status: 'error',
       })
     })
@@ -208,7 +283,7 @@ const handleRemoveUrlRecordsMessage = (
         status: 'removed',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       sendResponse({
         status: 'error',
         error: error instanceof Error ? error.message : String(error),
@@ -254,7 +329,7 @@ const handleCalculateTimeRemainingMessage = (
       timeRemaining: remainingMs,
     })
   } catch (error) {
-    console.error('残り時間計算エラー:', error)
+    logger.error('background_time_remaining_calculation_failed', error)
     sendResponse({
       error: error?.toString(),
       timeRemaining: null,
@@ -271,43 +346,37 @@ const handleCheckExpiredTabsMessage = (
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  console.log('明示的な期限切れチェックリクエストを受信:', message)
-
-  // 設定情報も出力
-  chrome.storage.local.get<{
-    userSettings?: UserSettings
-  }>(['userSettings'], (data) => {
-    console.log('現在のストレージ内の設定:', data)
+  logger.info('background_expired_tabs_check_requested', {
+    action: 'checkExpiredTabs',
   })
 
   // UpdateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
   if (message.updateTimestamps) {
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty string fallback
-    console.log(`タブの保存時刻を更新します (${message.period || '不明'})`)
+    logger.debug('background_tab_timestamp_update_started')
     // 処理の簡略化 - まずタイムスタンプを更新し、待機せずにチェック実行
     updateTabTimestamps(message.period)
       .then((_result) => {
-        console.log('タブの時刻更新完了。チェックを実行します。')
+        logger.debug('background_tab_timestamp_update_completed')
 
         // 設定を再読み込みし、チェック実行
         checkAndRemoveExpiredTabs()
           .then(() => {
-            console.log('期限切れチェック完了')
+            logger.debug('background_expired_tabs_check_completed')
             sendResponse({
               status: 'completed',
               success: true,
             })
           })
-          .catch((error) => {
-            console.error('チェックエラー:', error)
+          .catch((error: unknown) => {
+            logger.error('background_expired_tabs_check_failed', error)
             sendResponse({
               error: String(error),
               status: 'error',
             })
           })
       })
-      .catch((error) => {
-        console.error('タイムスタンプ更新エラー:', error)
+      .catch((error: unknown) => {
+        logger.error('background_tab_timestamp_update_failed', error)
         sendResponse({
           error: String(error),
           status: 'error',
@@ -317,12 +386,13 @@ const handleCheckExpiredTabsMessage = (
     // 単純化 - 常に強制リロードする
     checkAndRemoveExpiredTabs()
       .then(() => {
-        console.log('期限切れチェック完了')
+        logger.debug('background_expired_tabs_check_completed')
         sendResponse({
           status: 'completed',
         })
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
+        logger.error('background_expired_tabs_check_failed', error)
         sendResponse({
           error: String(error),
           status: 'error',
@@ -339,7 +409,7 @@ const handleUpdateTabTimestampsMessage = (
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
-  console.log('タブの保存時刻を強制的に更新:', message.period)
+  logger.debug('background_tab_timestamp_force_update_started')
   updateTabTimestamps(message.period)
     .then((result) => {
       sendResponse({
@@ -347,8 +417,8 @@ const handleUpdateTabTimestampsMessage = (
         status: 'completed',
       })
     })
-    .catch((error) => {
-      console.error('時刻更新エラー:', error)
+    .catch((error: unknown) => {
+      logger.error('background_tab_timestamp_force_update_failed', error)
       sendResponse({
         error: String(error),
         status: 'error',
@@ -370,7 +440,9 @@ const handleGetAlarmStatusMessage = (
       : {
           exists: false,
         }
-    console.log('アラーム状態:', status)
+    logger.debug('background_alarm_status_loaded', {
+      action: 'getAlarmStatus',
+    })
     sendResponse(status)
   })
 }
@@ -385,7 +457,7 @@ const handleListOllamaModelsMessage = (
         status: 'ok',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       sendResponse({
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),
@@ -421,7 +493,7 @@ const handleRunAiChatMessage = (
         toolTraces: result.toolTraces,
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       sendResponse({
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),
@@ -432,13 +504,18 @@ const handleRunAiChatMessage = (
 
 const handleAiChatStreamPortMessage = (
   port: chrome.runtime.Port,
-  message: AiChatStreamClientMessage,
+  message: unknown,
 ): void => {
-  if (message.type !== 'run') {
+  if (!isAiChatStreamRunMessage(message)) {
     return
   }
 
   const runMessage = message
+  const controller = new AbortController()
+
+  port.onDisconnect.addListener(() => {
+    controller.abort()
+  })
 
   runAiChatRequest(
     {
@@ -448,15 +525,24 @@ const handleAiChatStreamPortMessage = (
     },
     {
       onStepUpdate: (stepUpdate) => {
+        if (controller.signal.aborted) {
+          return
+        }
+
         port.postMessage({
           reasoning: stepUpdate.reasoning,
           toolTraces: stepUpdate.toolTraces,
           type: 'step',
         })
       },
+      signal: controller.signal,
     },
   )
     .then((result) => {
+      if (controller.signal.aborted) {
+        return
+      }
+
       port.postMessage({
         answer: result.answer,
         charts: result.charts,
@@ -466,7 +552,11 @@ const handleAiChatStreamPortMessage = (
         type: 'complete',
       })
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
+      if (controller.signal.aborted) {
+        return
+      }
+
       const errorMessage: AiChatStreamErrorMessage = {
         error: error instanceof Error ? error.message : String(error),
         ollamaError: getOllamaErrorDetails(error),

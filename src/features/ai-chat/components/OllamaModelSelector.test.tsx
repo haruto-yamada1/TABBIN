@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/components/ui/button', () => ({
@@ -28,11 +29,10 @@ vi.mock('@/components/ai-elements/prompt-input', () => ({
     onValueChange?: (value: string) => void
   }) => (
     <div>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
       <button onClick={() => onOpenChange?.(true)} type='button'>
         open-select
       </button>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
+
       <button onClick={() => onValueChange?.('llama3.2')} type='button'>
         select-model
       </button>
@@ -106,11 +106,9 @@ describe('OllamaModelSelector', () => {
   it('renders spinner-only loading UI in the fetch button and empty option row', () => {
     render(
       <OllamaModelSelector
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         models={[]}
         onFetchModels={vi.fn()}
         onSelectModel={vi.fn()}
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         status={{ isLoading: true }}
       />,
     )
@@ -120,23 +118,21 @@ describe('OllamaModelSelector', () => {
     expect(screen.queryByText('Loading model list...')).toBeNull()
   })
 
-  it('fetches models when opening the select in fetchOnOpen mode', () => {
+  it('fetches models when opening the select in fetchOnOpen mode', async () => {
+    const user = userEvent.setup()
     const onFetchModels = vi.fn()
 
     render(
       <OllamaModelSelector
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         behavior={{ fetchOnOpen: true }}
-        // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
         models={[]}
         onFetchModels={onFetchModels}
         onSelectModel={vi.fn()}
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         status={{ isLoading: false }}
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'open-select' }))
+    await user.click(screen.getByRole('button', { name: 'open-select' }))
 
     expect(onFetchModels).toHaveBeenCalledTimes(1)
   })

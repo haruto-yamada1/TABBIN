@@ -1,0 +1,15 @@
+{
+  "name": "tabbin-check-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated fixture repo for the check skill eval. Not the real TABBIN package.json.",
+  "type": "module",
+  "scripts": {
+    "format:check": "oxfmt --check .",
+    "compile": "tsgo --noEmit",
+    "lint": "oxlint .",
+    "quality:check": "bun run format:check && bun run compile && bun run lint",
+    "test": "vitest run"
+  },
+  "comment": "意図的に `quality` script を欠かせる。check Skill が npm run quality を呼ぶと Missing script で失敗する。これは本物 TABBIN の挙動を再現した検出対象。"
+}

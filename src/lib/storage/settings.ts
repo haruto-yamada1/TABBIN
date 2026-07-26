@@ -1,5 +1,10 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
 import {
+  DEFAULT_EXCLUDE_PATTERNS,
+  mergeStoredUserSettingsDefaults,
+  savedTabsActionSettingsDefaults,
+} from '@/contexts/saved-tabs/public-api'
+import {
   DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
   DEFAULT_AI_SYSTEM_PROMPT_TEMPLATE,
   normalizeAiSystemPromptSettings,
@@ -8,13 +13,8 @@ import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
+import { parseStoredUserSettings } from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
-
-const DEFAULT_EXCLUDE_PATTERNS = [
-  'about:',
-  'chrome-extension://',
-  'chrome://',
-] as const
 
 const stripLegacyUserSettings = (settings: unknown): Partial<UserSettings> => {
   if (!isStrippableSettings(settings)) {
@@ -34,39 +34,14 @@ const hasLegacyUserSettingsKeys = (settings: unknown): boolean =>
   typeof settings === 'object' &&
   settings !== null &&
   ('aiChatEnabled' in settings || 'aiProvider' in settings)
-const mergeExcludePatterns = (
-  excludePatterns: string[] | undefined,
-): string[] => {
-  const mergedPatterns = new Set<string>(DEFAULT_EXCLUDE_PATTERNS)
-
-  for (const pattern of excludePatterns ?? []) {
-    if (typeof pattern !== 'string') {
-      continue
-    }
-    const normalizedPattern = pattern.trim()
-    if (normalizedPattern) {
-      mergedPatterns.add(normalizedPattern)
-    }
-  }
-
-  return [...mergedPatterns]
-}
-
 const mergeStoredUserSettings = (
   settings: Partial<UserSettings>,
-): UserSettings =>
-  // OK: callers always spread result with defaultSettings which provides all required fields
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion
-  ({
-    ...settings,
-    excludePatterns: mergeExcludePatterns(settings.excludePatterns),
-  }) as UserSettings
+): UserSettings => mergeStoredUserSettingsDefaults(defaultSettings, settings)
 
 // デフォルト設定
 export const defaultSettings: UserSettings = {
   language: 'system',
-  removeTabAfterOpen: true,
-  removeTabAfterExternalDrop: true,
+  ...savedTabsActionSettingsDefaults,
   excludePatterns: [...DEFAULT_EXCLUDE_PATTERNS],
   enableCategories: true,
   // デフォルトは有効
@@ -80,13 +55,7 @@ export const defaultSettings: UserSettings = {
   // デフォルトでは固定タブを除外する
   openUrlInBackground: true,
   // デフォルト: URLをバックグラウンドで開く
-  openAllInNewWindow: false,
-  // デフォルト: 「すべてのタブを開く」を現在のウィンドウで開く
-  confirmDeleteAll: false,
-  // デフォルト: 確認しない
-  confirmDeleteEach: false,
   fontSizePercent: DEFAULT_FONT_SIZE_PERCENT,
-  // デフォルト: 確認しない
   colors: {}, // デフォルト: カラー設定まとめ
   ollamaModel: '',
   activeAiSystemPromptId: DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
@@ -114,9 +83,11 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     }
     const data = await storageLocal.get(['userSettings'])
     console.log('取得した設定データ:', data)
-    if (data.userSettings) {
+    if (Object.hasOwn(data, 'userSettings')) {
       console.log('保存された設定を使用:', data.userSettings)
-      const sanitizedStoredSettings = stripLegacyUserSettings(data.userSettings)
+      const sanitizedStoredSettings = parseStoredUserSettings(
+        stripLegacyUserSettings(data.userSettings),
+      )
       const mergedStoredSettings = mergeStoredUserSettings(
         sanitizedStoredSettings,
       )
@@ -155,8 +126,9 @@ export const saveUserSettings = async (
   settings: UserSettings,
 ): Promise<void> => {
   try {
+    const validatedSettings = parseStoredUserSettings(settings)
     const normalizedSettings = normalizeAiSystemPromptSettings(
-      mergeStoredUserSettings(settings),
+      mergeStoredUserSettings(validatedSettings),
     )
     console.log('ユーザー設定を保存:', normalizedSettings)
     const storageLocal = getChromeStorageLocal()

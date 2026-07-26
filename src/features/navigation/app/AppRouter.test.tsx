@@ -1,28 +1,25 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const routeModuleLoads = vi.hoisted(() => ({
   aiChat: 0,
 }))
 
-vi.mock('@/hooks/use-mobile', () => ({
+vi.mock('@/hooks/useMobile', () => ({
   useIsMobile: () => false,
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -51,7 +48,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   }),
 }))
 
-vi.mock('@/features/saved-tabs/routes/SavedTabsRoute', () => ({
+vi.mock('@/contexts/saved-tabs/presentation/routes/SavedTabsRoute', () => ({
   SavedTabsRoute: ({
     onViewModeNavigate,
     search,
@@ -61,11 +58,11 @@ vi.mock('@/features/saved-tabs/routes/SavedTabsRoute', () => ({
   }) => (
     <div>
       <div>{`saved-tabs-route:${search ?? ''}`}</div>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
+
       <button onClick={() => onViewModeNavigate?.('custom')} type='button'>
         navigate-custom
       </button>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
+
       <button onClick={() => onViewModeNavigate?.('domain')} type='button'>
         navigate-domain
       </button>
@@ -96,17 +93,20 @@ import { AppRouter } from './AppRouter'
 
 describe('AppRouter', () => {
   beforeEach(() => {
+    // The lazy route-module load counter is module-level and accumulates
+    // across tests; reset it so load-count assertions are order-independent.
+    routeModuleLoads.aiChat = 0
     window.history.replaceState({}, '', '/')
   })
 
   afterEach(() => {
     cleanup()
+    vi.unstubAllGlobals()
   })
 
   it('saved-tabs 初期表示では ai-chat route module を読み込まない', async () => {
     expect(routeModuleLoads.aiChat).toBe(0)
 
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     await expect(
@@ -116,7 +116,6 @@ describe('AppRouter', () => {
   })
 
   it('ルートパスは domain mode の saved-tabs に redirect する', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/']} />)
 
     await expect(
@@ -125,7 +124,7 @@ describe('AppRouter', () => {
   })
 
   it('サイドバークリックで SPA 遷移する', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     const analyticsLink = screen.getAllByRole('link', {
@@ -135,16 +134,16 @@ describe('AppRouter', () => {
       throw new Error('分析リンクが見つかりません')
     }
 
-    fireEvent.click(analyticsLink)
+    await user.click(analyticsLink)
 
     await expect(screen.findByText('analytics-route')).resolves.toBeTruthy()
   })
 
-  it('router context では内部リンクが app.html ではなく route を指す', () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+  it('router context では内部リンクが app.html ではなく route を指す', async () => {
+    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=custom']} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
+    await user.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
 
     expect(
       screen
@@ -162,28 +161,24 @@ describe('AppRouter', () => {
   })
 
   it('analytics route を開ける', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/analytics']} />)
 
     await expect(screen.findByText('analytics-route')).resolves.toBeTruthy()
   })
 
   it('options route を開ける', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/options']} />)
 
     await expect(screen.findByText('options-route')).resolves.toBeTruthy()
   })
 
   it('ai-chat route を開ける', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/ai-chat']} />)
 
     await expect(screen.findByText('ai-chat-route')).resolves.toBeTruthy()
   })
 
   it('periodic-execution route を開ける', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/periodic-execution']} />)
 
     await expect(
@@ -192,11 +187,11 @@ describe('AppRouter', () => {
   })
 
   it('SavedTabsRoute から別 mode を選ぶと replace navigate する', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     await screen.findByText('saved-tabs-route:?mode=domain')
-    fireEvent.click(screen.getByRole('button', { name: 'navigate-custom' }))
+    await user.click(screen.getByRole('button', { name: 'navigate-custom' }))
 
     await expect(
       screen.findByText('saved-tabs-route:?mode=custom'),
@@ -204,11 +199,11 @@ describe('AppRouter', () => {
   })
 
   it('SavedTabsRoute から同じ mode を選んだ場合は再 navigate しない', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
+    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=domain']} />)
 
     await screen.findByText('saved-tabs-route:?mode=domain')
-    fireEvent.click(screen.getByRole('button', { name: 'navigate-domain' }))
+    await user.click(screen.getByRole('button', { name: 'navigate-domain' }))
 
     await expect(
       screen.findByText('saved-tabs-route:?mode=domain'),
@@ -216,7 +211,6 @@ describe('AppRouter', () => {
   })
 
   it('mode 指定が無い saved-tabs route は domain で開く', async () => {
-    // eslint-disable-next-line typescript/require-await
     const remove = vi.fn(async () => undefined)
     globalThis.chrome = {
       storage: {
@@ -226,7 +220,6 @@ describe('AppRouter', () => {
       },
     } as unknown as typeof chrome
 
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/saved-tabs']} />)
 
     await expect(
@@ -235,8 +228,17 @@ describe('AppRouter', () => {
     expect(remove).toHaveBeenCalledWith('viewMode')
   })
 
+  it('部分的な chrome API でも saved-tabs route を初期化できる', async () => {
+    vi.stubGlobal('chrome', { storage: {} })
+
+    render(<AppRouter initialEntries={['/saved-tabs']} />)
+
+    await expect(
+      screen.findByText('saved-tabs-route:?mode=domain'),
+    ).resolves.toBeTruthy()
+  })
+
   it('不明なルートは domain で開く', async () => {
-    // eslint-disable-next-line react-perf/jsx-no-new-array-as-prop
     render(<AppRouter initialEntries={['/unknown']} />)
 
     await expect(

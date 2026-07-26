@@ -1,9 +1,29 @@
+import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
+
 type ChromeStorageApi = typeof chrome.storage
+
+/**
+ * `chrome.storage.onChanged` listener に渡される変更エントリ。
+ * `chrome.storage.StorageChange` 互換だが、`chrome.*` 型を利用側に
+ * 露出しないための infrastructure 側の型境界。
+ */
+export type StorageChange = {
+  newValue?: unknown
+  oldValue?: unknown
+}
+
+export type ChromeOnChangedListener = (
+  changes: Record<string, StorageChange>,
+  areaName: string,
+) => void
 
 const warnedContexts = new Set<string>()
 
+const isChromeApi = (value: unknown): value is typeof chrome =>
+  isObjectLike(value) && isObjectLike(Reflect.get(value, 'storage'))
+
 const getChromeApi = (): typeof chrome | undefined =>
-  (globalThis as typeof globalThis & { chrome?: typeof chrome }).chrome
+  getChromeGlobal(isChromeApi)
 
 export const getChromeStorage = (): ChromeStorageApi | null =>
   getChromeApi()?.storage ?? null

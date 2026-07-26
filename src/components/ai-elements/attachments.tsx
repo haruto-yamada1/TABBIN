@@ -52,14 +52,12 @@ const mediaCategoryIcons: Record<AttachmentMediaCategory, typeof ImageIcon> = {
 // Utility Functions
 // ============================================================================
 
-export const getMediaCategory = (
-  data: AttachmentData,
-): AttachmentMediaCategory => {
+const getMediaCategory = (data: AttachmentData): AttachmentMediaCategory => {
   if (data.type === 'source-document') {
     return 'source'
   }
 
-  const mediaType = data.mediaType ?? ''
+  const mediaType = data.mediaType
 
   if (mediaType.startsWith('image/')) {
     return 'image'
@@ -77,13 +75,13 @@ export const getMediaCategory = (
   return 'unknown'
 }
 
-export const getAttachmentLabel = (data: AttachmentData): string => {
+const getAttachmentLabel = (data: AttachmentData): string => {
   if (data.type === 'source-document') {
-    return data.title || data.filename || 'Source' // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty title/filename should fall through
+    return data.title
   }
 
   const category = getMediaCategory(data)
-  return data.filename || (category === 'image' ? 'Image' : 'Attachment') // eslint-disable-line typescript/prefer-nullish-coalescing -- empty filename should fall through
+  return data.filename ?? (category === 'image' ? 'Image' : 'Attachment')
 }
 
 const renderAttachmentImage = (
@@ -93,7 +91,7 @@ const renderAttachmentImage = (
 ) =>
   isGrid ? (
     <img
-      alt={filename || 'Image'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty filename should use default alt
+      alt={filename ?? 'Image'}
       className='size-full object-cover'
       height={96}
       src={url}
@@ -101,7 +99,7 @@ const renderAttachmentImage = (
     />
   ) : (
     <img
-      alt={filename || 'Image'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty filename should use default alt
+      alt={filename ?? 'Image'}
       className='size-full rounded object-cover'
       height={20}
       src={url}
@@ -113,13 +111,13 @@ const renderAttachmentImage = (
 // Contexts
 // ============================================================================
 
-interface AttachmentsContextValue {
+type AttachmentsContextValue = {
   variant: AttachmentVariant
 }
 
 const AttachmentsContext = createContext<AttachmentsContextValue | null>(null)
 
-interface AttachmentContextValue {
+type AttachmentContextValue = {
   data: AttachmentData
   mediaCategory: AttachmentMediaCategory
   onRemove?: () => void
@@ -132,10 +130,10 @@ const AttachmentContext = createContext<AttachmentContextValue | null>(null)
 // Hooks
 // ============================================================================
 
-export const useAttachmentsContext = () =>
+const useAttachmentsContext = () =>
   use(AttachmentsContext) ?? { variant: 'grid' as const }
 
-export const useAttachmentContext = () => {
+const useAttachmentContext = () => {
   const ctx = use(AttachmentContext)
   if (!ctx) {
     throw new Error('Attachment components must be used within <Attachment>')
@@ -247,15 +245,14 @@ const AttachmentPreviewContent = ({
   }
 
   if (mediaCategory === 'video' && data.type === 'file' && data.url) {
-    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     return <video className='size-full object-cover' muted src={data.url} />
   }
 
   const Icon = mediaCategoryIcons[mediaCategory]
   const iconSize = variant === 'inline' ? 'size-3' : 'size-4'
-  return (
-    fallbackIcon ?? <Icon className={cn(iconSize, 'text-muted-foreground')} />
-  )
+  const defaultIcon = <Icon className={cn(iconSize, 'text-muted-foreground')} />
+  // eslint-disable-next-line react/jsx-no-useless-fragment -- Fragment coerces the ReactNode fallback prop to a ReactElement return type so the component is not inferred as promise-returning under React 19's ReactNode union
+  return <>{fallbackIcon ?? defaultIcon}</>
 }
 
 export const AttachmentPreview = ({

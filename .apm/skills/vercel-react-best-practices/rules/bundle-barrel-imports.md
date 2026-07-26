@@ -37,23 +37,7 @@ import TextField from '@mui/material/TextField'
 // Loads only what you use
 ```
 
-**代替案（Next.js 13.5+）:**
-
-```js
-// next.config.js - use optimizePackageImports
-module.exports = {
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@mui/material']
-  }
-}
-
-// Then you can keep the ergonomic barrel imports:
-import { Check, X, Menu } from 'lucide-react'
-// Automatically transformed to direct imports at build time
-```
-
 直接インポートにより、dev 起動が 15〜70% 高速化、ビルドが 28% 高速化、コールドスタートが 40% 高速化、HMR が大幅に高速化されます。
 
 よく影響を受けるライブラリ: `lucide-react`、`@mui/material`、`@mui/icons-material`、`@tabler/icons-react`、`react-icons`、`@headlessui/react`、`@radix-ui/react-*`、`lodash`、`ramda`、`date-fns`、`rxjs`、`react-use`。
 
-参考: [How we optimized package imports in Next.js](https://vercel.com/blog/how-we-optimized-package-imports-in-next-js)

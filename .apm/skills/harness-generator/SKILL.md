@@ -1,5 +1,6 @@
 ---
 name: harness-generator
+disable-model-invocation: true
 description: TABBIN のハーネス run で Generator として実装し、checkpoint と検証証跡を generator.json に記録するときに使います。
 ---
 

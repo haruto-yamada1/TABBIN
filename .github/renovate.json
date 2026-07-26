@@ -1,0 +1,136 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":configMigration",
+    "abandonments:recommended"
+  ],
+  "enabledManagers": [
+    "bun",
+    "bun-version",
+    "custom.regex",
+    "github-actions",
+    "nodenv"
+  ],
+  "timezone": "Asia/Tokyo",
+  "schedule": ["before 6am on monday"],
+  "dependencyDashboard": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "prCreation": "not-pending",
+  "internalChecksFilter": "strict",
+  "automerge": false,
+  "ignoreScripts": true,
+  "rangeStrategy": "pin",
+  "separateMajorMinor": true,
+  "separateMinorPatch": true,
+  "rebaseWhen": "behind-base-branch",
+  "osvVulnerabilityAlerts": true,
+  "major": {
+    "dependencyDashboardApproval": true
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "automerge": false,
+    "labels": ["security"],
+    "vulnerabilityFixStrategy": "lowest"
+  },
+  "prBodyNotes": [
+    "## Dependency security review\n\n- [ ] Release notes / changelog を確認した\n- [ ] major update の migration guide を確認した\n- [ ] package owner / repository / rename に不自然な変更がない\n- [ ] lifecycle script の追加・変更を確認した\n- [ ] `bun.lock` に予期しない transitive dependency 増加がない\n- [ ] third-party GitHub Action の owner / permissions 変更を確認した\n- [ ] CI を通すために `any` / `@ts-ignore` / lint disable / test skip を追加していない\n\n詳細: `docs/maintenance/dependency-updates.md`"
+  ],
+  "packageRules": [
+    {
+      "description": "Wait before proposing npm-sourced dependency updates",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "description": "Keep the initial exact-version migration separate",
+      "matchUpdateTypes": ["pin"],
+      "groupName": "Pin dependency versions",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Keep high-impact dependencies out of broad custom groups",
+      "matchPackageNames": [
+        "typescript",
+        "@typescript/native-preview",
+        "react",
+        "react-dom",
+        "wxt",
+        "vite",
+        "vitest",
+        "playwright",
+        "@playwright/test",
+        "storybook",
+        "ai",
+        "ai-sdk-ollama"
+      ],
+      "groupName": null
+    },
+    {
+      "description": "Handle TypeScript native preview separately",
+      "matchPackageNames": ["@typescript/native-preview"],
+      "schedule": ["before 6am on the first day of the month"],
+      "dependencyDashboardApproval": true,
+      "groupName": null
+    },
+    {
+      "description": "Group Node runtime updates",
+      "matchManagers": ["nodenv", "custom.regex"],
+      "matchDatasources": ["node-version"],
+      "groupName": "Node runtime",
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "minimumGroupSize": 2
+    },
+    {
+      "description": "Group Bun runtime updates",
+      "matchManagers": ["bun-version", "custom.regex"],
+      "matchDatasources": ["npm"],
+      "matchPackageNames": ["bun"],
+      "groupName": "Bun runtime",
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "minimumGroupSize": 3
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Sync Node runtime version into package.json engines.node",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": ["\"node\":\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "node",
+      "versioningTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "autoReplaceStringTemplate": "\"node\": \"{{{newMajor}}}.x\""
+    },
+    {
+      "customType": "regex",
+      "description": "Sync Bun runtime version into package.json engines.bun",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": ["\"bun\":\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "bun",
+      "packageNameTemplate": "bun",
+      "versioningTemplate": "npm",
+      "datasourceTemplate": "npm",
+      "autoReplaceStringTemplate": "\"bun\": \"{{{newVersion}}}\""
+    },
+    {
+      "customType": "regex",
+      "description": "Sync Bun runtime version into package.json packageManager",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": [
+        "\"packageManager\":\\s*\"bun@(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "bun",
+      "packageNameTemplate": "bun",
+      "versioningTemplate": "npm",
+      "datasourceTemplate": "npm",
+      "autoReplaceStringTemplate": "\"packageManager\": \"bun@{{{newVersion}}}\""
+    }
+  ]
+}

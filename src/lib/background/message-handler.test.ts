@@ -1,5 +1,6 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+
+import { logger } from '@/lib/logging/logger'
 
 const mocked = vi.hoisted(() => ({
   checkAndRemoveExpiredTabs: vi.fn(),
@@ -226,9 +227,56 @@ describe('setupMessageListener', () => {
     })
   })
 
+  it('runAiChat の user content を log context に含めない', () => {
+    const infoSpy = vi.spyOn(logger, 'info').mockImplementation(() => {})
+    const { listener } = setupListener()
+    mocked.runAiChatRequest.mockResolvedValue({
+      answer: 'assistant answer',
+      recordCount: 0,
+    })
+
+    try {
+      listener(
+        {
+          action: 'runAiChat',
+          attachments: [
+            {
+              content: 'secret attachment',
+              filename: 'secret.txt',
+              kind: 'text',
+              mediaType: 'text/plain',
+            },
+          ],
+          history: [
+            {
+              content: 'secret history',
+              role: 'user',
+            },
+          ],
+          prompt: 'secret prompt',
+        },
+        {} as chrome.runtime.MessageSender,
+        vi.fn(),
+      )
+
+      expect(infoSpy).toHaveBeenCalledWith('background_message_received', {
+        action: 'runAiChat',
+      })
+      expect(JSON.stringify(infoSpy.mock.calls)).not.toMatch(
+        /secret prompt|secret history|secret attachment/,
+      )
+    } finally {
+      infoSpy.mockRestore()
+    }
+  })
+
   it('不正メッセージと未知 action を弾く', () => {
     const { listener } = setupListener()
     const invalidResponse = vi.fn()
+    const invalidRemoveResponse = vi.fn()
+    const invalidBulkRemoveResponse = vi.fn()
+    const invalidAiChatPromptResponse = vi.fn()
+    const invalidAiChatHistoryResponse = vi.fn()
     const unknownResponse = vi.fn()
 
     expect(
@@ -237,6 +285,62 @@ describe('setupMessageListener', () => {
     expect(invalidResponse).toHaveBeenCalledWith({
       status: 'invalid_message',
     })
+
+    expect(
+      listener(
+        { action: 'removeUrlFromStorage', url: 1 },
+        {} as chrome.runtime.MessageSender,
+        invalidRemoveResponse,
+      ),
+    ).toBe(false)
+    expect(invalidRemoveResponse).toHaveBeenCalledWith({
+      status: 'invalid_message',
+    })
+    expect(mocked.removeUrlFromStorage).not.toHaveBeenCalled()
+
+    expect(
+      listener(
+        { action: 'removeUrlRecordsFromStorage', urlIds: 'invalid' },
+        {} as chrome.runtime.MessageSender,
+        invalidBulkRemoveResponse,
+      ),
+    ).toBe(false)
+    expect(invalidBulkRemoveResponse).toHaveBeenCalledWith({
+      status: 'invalid_message',
+    })
+    expect(mocked.removeUrlRecordsFromStorage).not.toHaveBeenCalled()
+
+    expect(
+      listener(
+        {
+          action: 'runAiChat',
+          history: [],
+          prompt: 1,
+        },
+        {} as chrome.runtime.MessageSender,
+        invalidAiChatPromptResponse,
+      ),
+    ).toBe(false)
+    expect(invalidAiChatPromptResponse).toHaveBeenCalledWith({
+      status: 'invalid_message',
+    })
+    expect(mocked.runAiChatRequest).not.toHaveBeenCalled()
+
+    expect(
+      listener(
+        {
+          action: 'runAiChat',
+          history: 'invalid',
+          prompt: 'test',
+        },
+        {} as chrome.runtime.MessageSender,
+        invalidAiChatHistoryResponse,
+      ),
+    ).toBe(false)
+    expect(invalidAiChatHistoryResponse).toHaveBeenCalledWith({
+      status: 'invalid_message',
+    })
+    expect(mocked.runAiChatRequest).not.toHaveBeenCalled()
 
     expect(
       listener(
@@ -353,11 +457,9 @@ describe('setupMessageListener', () => {
     const { listener } = setupListener()
     const bulkRemoveResponse = vi.fn()
     const emptyBulkRemoveResponse = vi.fn()
-    const invalidBulkRemoveResponse = vi.fn()
     const bulkRemoveErrorResponse = vi.fn()
     const errorObjectResponse = vi.fn()
     mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(2)
-    mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(0)
     mocked.removeUrlRecordsFromStorage.mockResolvedValueOnce(0)
     mocked.removeUrlRecordsFromStorage.mockRejectedValueOnce('bulk failed')
     mocked.removeUrlRecordsFromStorage.mockRejectedValueOnce(
@@ -397,22 +499,6 @@ describe('setupMessageListener', () => {
         status: 'removed',
       })
     })
-
-    listener(
-      {
-        action: 'removeUrlRecordsFromStorage',
-        urlIds: 'invalid',
-      },
-      {} as chrome.runtime.MessageSender,
-      invalidBulkRemoveResponse,
-    )
-    await vi.waitFor(() => {
-      expect(invalidBulkRemoveResponse).toHaveBeenCalledWith({
-        removedCount: 0,
-        status: 'removed',
-      })
-    })
-    expect(mocked.removeUrlRecordsFromStorage).toHaveBeenCalledWith([])
 
     listener(
       {
@@ -641,22 +727,30 @@ describe('setupMessageListener', () => {
       })
     })
 
-    mocked.checkAndRemoveExpiredTabs.mockRejectedValue(
-      new Error('check failed'),
-    )
-    listener(
-      {
-        action: 'checkExpiredTabs',
-      },
-      {} as chrome.runtime.MessageSender,
-      checkErrorResponse,
-    )
-    await vi.waitFor(() => {
-      expect(checkErrorResponse).toHaveBeenCalledWith({
-        error: 'Error: check failed',
-        status: 'error',
+    const checkError = new Error('check failed')
+    mocked.checkAndRemoveExpiredTabs.mockRejectedValue(checkError)
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {})
+    try {
+      listener(
+        {
+          action: 'checkExpiredTabs',
+        },
+        {} as chrome.runtime.MessageSender,
+        checkErrorResponse,
+      )
+      await vi.waitFor(() => {
+        expect(checkErrorResponse).toHaveBeenCalledWith({
+          error: 'Error: check failed',
+          status: 'error',
+        })
+        expect(errorSpy).toHaveBeenCalledWith(
+          'background_expired_tabs_check_failed',
+          checkError,
+        )
       })
-    })
+    } finally {
+      errorSpy.mockRestore()
+    }
 
     mocked.updateTabTimestamps.mockRejectedValue(new Error('update failed'))
     listener(
@@ -900,7 +994,6 @@ describe('setupMessageListener', () => {
             toolTraces: unknown[]
           }) => void
         },
-        // eslint-disable-next-line typescript/require-await
       ) => {
         options?.onStepUpdate?.({
           reasoning: '- 使用ツール: 保存済み URL 一覧',
@@ -1011,6 +1104,216 @@ describe('setupMessageListener', () => {
     })
   })
 
+  it('ai-chat-stream port 切断時は request を abort して遅延した step と完了を送らない', async () => {
+    const { portListener } = setupListener()
+    let onPortDisconnect: (() => void) | undefined
+    let onPortMessage: ((message: unknown) => void) | undefined
+    let resolveRequest:
+      | ((result: {
+          answer: string
+          charts: never[]
+          reasoning: string
+          recordCount: number
+          toolTraces: never[]
+        }) => void)
+      | undefined
+    let requestOptions:
+      | {
+          onStepUpdate?: (step: {
+            reasoning: string
+            toolTraces: never[]
+          }) => void
+          signal?: AbortSignal
+        }
+      | undefined
+    const port = {
+      disconnect: vi.fn(),
+      name: 'ai-chat-stream',
+      onDisconnect: {
+        addListener: vi.fn((listener: () => void) => {
+          onPortDisconnect = listener
+        }),
+      },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          onPortMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    } as unknown as chrome.runtime.Port
+
+    mocked.runAiChatRequest.mockImplementation(
+      async (_request: unknown, options: typeof requestOptions) => {
+        requestOptions = options
+        return new Promise((resolve) => {
+          resolveRequest = resolve
+        })
+      },
+    )
+
+    portListener(port)
+    onPortMessage?.({ history: [], prompt: 'test', type: 'run' })
+
+    expect(requestOptions?.signal?.aborted).toBe(false)
+    onPortDisconnect?.()
+    expect(requestOptions?.signal?.aborted).toBe(true)
+
+    requestOptions?.onStepUpdate?.({
+      reasoning: 'late step',
+      toolTraces: [],
+    })
+    resolveRequest?.({
+      answer: 'late answer',
+      charts: [],
+      reasoning: 'late completion',
+      recordCount: 0,
+      toolTraces: [],
+    })
+    await expect(
+      mocked.runAiChatRequest.mock.results[0]?.value,
+    ).resolves.toEqual(expect.objectContaining({ answer: 'late answer' }))
+
+    expect(mocked.runAiChatRequest).toHaveBeenCalledOnce()
+    expect(port.postMessage).not.toHaveBeenCalled()
+  })
+
+  it('ai-chat-stream port 切断後に request が失敗しても error を送らない', async () => {
+    const { portListener } = setupListener()
+    let onPortDisconnect: (() => void) | undefined
+    let onPortMessage: ((message: unknown) => void) | undefined
+    let rejectRequest: ((reason?: unknown) => void) | undefined
+    const port = {
+      disconnect: vi.fn(),
+      name: 'ai-chat-stream',
+      onDisconnect: {
+        addListener: vi.fn((listener: () => void) => {
+          onPortDisconnect = listener
+        }),
+      },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          onPortMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    } as unknown as chrome.runtime.Port
+
+    mocked.runAiChatRequest.mockImplementation(async () => {
+      return new Promise((_resolve, reject) => {
+        rejectRequest = reject
+      })
+    })
+
+    portListener(port)
+    onPortMessage?.({ history: [], prompt: 'test', type: 'run' })
+    onPortDisconnect?.()
+    rejectRequest?.(new DOMException('aborted', 'AbortError'))
+    await expect(
+      mocked.runAiChatRequest.mock.results[0]?.value,
+    ).rejects.toThrow('aborted')
+
+    expect(mocked.runAiChatRequest).toHaveBeenCalledOnce()
+    expect(port.postMessage).not.toHaveBeenCalled()
+  })
+
+  it('同時に実行する ai-chat-stream request は port ごとに独立した controller を持つ', async () => {
+    const { portListener } = setupListener()
+    let firstOnDisconnect: (() => void) | undefined
+    let firstOnMessage: ((message: unknown) => void) | undefined
+    let secondOnDisconnect: (() => void) | undefined
+    let secondOnMessage: ((message: unknown) => void) | undefined
+    const optionsList: { signal?: AbortSignal }[] = []
+    const resolveList: ((result: {
+      answer: string
+      charts: never[]
+      reasoning: string
+      recordCount: number
+      toolTraces: never[]
+    }) => void)[] = []
+    const firstPort = {
+      disconnect: vi.fn(),
+      name: 'ai-chat-stream',
+      onDisconnect: {
+        addListener: vi.fn((listener: () => void) => {
+          firstOnDisconnect = listener
+        }),
+      },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          firstOnMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    } as unknown as chrome.runtime.Port
+    const secondPort = {
+      disconnect: vi.fn(),
+      name: 'ai-chat-stream',
+      onDisconnect: {
+        addListener: vi.fn((listener: () => void) => {
+          secondOnDisconnect = listener
+        }),
+      },
+      onMessage: {
+        addListener: vi.fn((listener: (message: unknown) => void) => {
+          secondOnMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    } as unknown as chrome.runtime.Port
+
+    mocked.runAiChatRequest.mockImplementation(
+      async (_request: unknown, options: { signal?: AbortSignal }) => {
+        optionsList.push(options)
+        return new Promise((resolve) => {
+          resolveList.push(resolve)
+        })
+      },
+    )
+
+    portListener(firstPort)
+    portListener(secondPort)
+    firstOnMessage?.({ history: [], prompt: 'first', type: 'run' })
+    secondOnMessage?.({ history: [], prompt: 'second', type: 'run' })
+
+    expect(optionsList).toHaveLength(2)
+    expect(optionsList[0]?.signal).not.toBe(optionsList[1]?.signal)
+    expect(optionsList[0]?.signal?.aborted).toBe(false)
+    expect(optionsList[1]?.signal?.aborted).toBe(false)
+
+    firstOnDisconnect?.()
+
+    expect(optionsList[0]?.signal?.aborted).toBe(true)
+    expect(optionsList[1]?.signal?.aborted).toBe(false)
+
+    resolveList[0]?.({
+      answer: 'first answer',
+      charts: [],
+      reasoning: '',
+      recordCount: 0,
+      toolTraces: [],
+    })
+    resolveList[1]?.({
+      answer: 'second answer',
+      charts: [],
+      reasoning: '',
+      recordCount: 0,
+      toolTraces: [],
+    })
+    await Promise.all(
+      mocked.runAiChatRequest.mock.results.map((result) => result.value),
+    )
+
+    expect(firstPort.postMessage).not.toHaveBeenCalled()
+    expect(secondPort.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answer: 'second answer',
+        type: 'complete',
+      }),
+    )
+    secondOnDisconnect?.()
+    expect(optionsList[1]?.signal?.aborted).toBe(true)
+  })
+
   it('ai-chat-stream 以外の port は無視し、stream error は error payload を返す', async () => {
     const { portListener } = setupListener()
     const ignoredPort = {
@@ -1021,7 +1324,7 @@ describe('setupMessageListener', () => {
     } as unknown as chrome.runtime.Port
 
     portListener(ignoredPort)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(ignoredPort.onMessage.addListener).not.toHaveBeenCalled()
 
     let onPortMessage: ((message: unknown) => void) | undefined

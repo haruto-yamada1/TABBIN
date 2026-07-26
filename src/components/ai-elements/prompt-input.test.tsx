@@ -136,7 +136,6 @@ describe('PromptInput', () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  // eslint-disable-next-line typescript/require-await
   it('空入力で Backspace を押すと最後の添付ファイルを削除する', async () => {
     const onSubmit = vi.fn()
 
@@ -151,7 +150,6 @@ describe('PromptInput', () => {
       </PromptInput>,
     )
 
-    // eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement
@@ -187,7 +185,6 @@ describe('PromptInput', () => {
 
     const { unmount } = renderPromptInput(onSubmit)
 
-    // eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement
@@ -215,7 +212,6 @@ describe('PromptInput', () => {
       </PromptInput>,
     )
 
-    // eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement
@@ -245,7 +241,6 @@ describe('PromptInput', () => {
       </PromptInput>,
     )
 
-    // eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement
@@ -275,7 +270,6 @@ describe('PromptInput', () => {
       </PromptInput>,
     )
 
-    // eslint-disable-next-line typescript/non-nullable-type-assertion-style
     const fileInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement

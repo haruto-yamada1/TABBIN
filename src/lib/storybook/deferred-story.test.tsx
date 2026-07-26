@@ -1,17 +1,18 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { lazy } from 'react'
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it } from 'vitest'
 
 import { DeferredStoryLoader } from './deferred-story'
 
-// eslint-disable-next-line typescript/require-await
 const HeavyStory = lazy(async () => ({
   default: () => <div>heavy story content</div>,
 }))
 
 describe('DeferredStoryLoader', () => {
   it('does not load the heavy story until requested', async () => {
+    const user = userEvent.setup()
     render(
       <DeferredStoryLoader
         buttonLabel='Load heavy story'
@@ -24,7 +25,7 @@ describe('DeferredStoryLoader', () => {
     expect(screen.getByText('Heavy story')).toBeTruthy()
     expect(screen.queryByText('heavy story content')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load heavy story' }))
+    await user.click(screen.getByRole('button', { name: 'Load heavy story' }))
 
     await expect(screen.findByText('heavy story content')).resolves.toBeTruthy()
   })

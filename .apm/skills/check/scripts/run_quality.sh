@@ -30,8 +30,8 @@ while (($#)); do
   shift
 done
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo 'CHECK_RESULT status=ERROR reason="npm command not found"'
+if ! command -v bun >/dev/null 2>&1; then
+  echo 'CHECK_RESULT status=ERROR reason="bun command not found"'
   exit 127
 fi
 
@@ -78,7 +78,7 @@ extract_reason() {
   printf '%s' "$line"
 }
 
-run_cmd=(npm run quality)
+run_cmd=(bun run quality:check)
 
 if [[ "$verbose" -eq 1 ]]; then
   set +e

@@ -132,6 +132,39 @@ describe('buildAiSavedUrlRecords', () => {
     expect(records[0]?.parentCategories).toStrictEqual(['Domain Match'])
   })
 
+  // 回帰 (Finding B): ストレージ形 (スキーム付き domainNames) と
+  // hostname 形 (group.domain) が混在しても normalizeDomainLookupKey で一致する。
+  it('domainNames (スキーム付き) と group.domain (hostname) の形式差を吸収して一致する', () => {
+    const records = buildAiSavedUrlRecords({
+      urlRecords: [
+        {
+          id: 'url-1',
+          url: 'https://react.dev/learn',
+          title: 'React Learn',
+          savedAt: 1,
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'group-1',
+          domain: 'react.dev',
+          urlIds: ['url-1'],
+        },
+      ],
+      customProjects: [],
+      parentCategories: [
+        {
+          id: 'cat-1',
+          name: 'Mixed Form Match',
+          domains: [],
+          domainNames: ['https://react.dev'],
+        },
+      ],
+    })
+
+    expect(records[0]?.parentCategories).toStrictEqual(['Mixed Form Match'])
+  })
+
   it('project metadata と parent category が一致しない場合はカテゴリ配列を空にする', () => {
     const records = buildAiSavedUrlRecords({
       urlRecords: [
@@ -171,7 +204,7 @@ describe('buildAiSavedUrlRecords', () => {
 
     expect(records[0]).toStrictEqual(
       expect.objectContaining({
-        domain: 'not-a-url',
+        domain: '',
         parentCategories: [],
         projectCategories: [],
         savedInProjects: ['Project without metadata'],
@@ -279,7 +312,7 @@ describe('searchSavedUrls', () => {
     expect(searchSavedUrls(records, 'reading')).toStrictEqual([records[1]])
   })
 
-  it('空クエリなら全件を返し、不正URLは domain に元文字列を使う', () => {
+  it('空クエリなら全件を返し、不正URLは domain を空にする', () => {
     const records = buildAiSavedUrlRecords({
       urlRecords: [
         {
@@ -294,7 +327,7 @@ describe('searchSavedUrls', () => {
       parentCategories: [],
     })
 
-    expect(records[0]?.domain).toBe('not a url')
+    expect(records[0]?.domain).toBe('')
     expect(searchSavedUrls(records, '   ')).toStrictEqual(records)
   })
 })

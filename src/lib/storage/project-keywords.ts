@@ -1,11 +1,12 @@
 import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
+import { toHostname } from '@/utils/domain-normalize'
 
-interface SavedTabKeywordMatchTarget {
+type SavedTabKeywordMatchTarget = {
   title: string
   url: string
 }
 
-interface FindMatchingProjectIdForSavedTabParams {
+type FindMatchingProjectIdForSavedTabParams = {
   projects: CustomProject[]
   savedTab: SavedTabKeywordMatchTarget
   projectOrder: string[]
@@ -38,14 +39,6 @@ const normalizeKeywordArray = (keywords: string[] | undefined): string[] => {
   return normalizedKeywords
 }
 
-const getDomainFromUrl = (url: string): string => {
-  try {
-    return new URL(url).hostname
-  } catch {
-    return ''
-  }
-}
-
 const includesKeyword = (target: string, keywords: string[]): boolean => {
   const normalizedTarget = target.toLowerCase()
   return keywords.some((keyword) =>
@@ -69,10 +62,7 @@ const projectMatchesSavedTab = (
   return (
     includesKeyword(savedTab.title, projectKeywords.titleKeywords) ||
     includesKeyword(savedTab.url, projectKeywords.urlKeywords) ||
-    includesKeyword(
-      getDomainFromUrl(savedTab.url),
-      projectKeywords.domainKeywords,
-    )
+    includesKeyword(toHostname(savedTab.url), projectKeywords.domainKeywords)
   )
 }
 

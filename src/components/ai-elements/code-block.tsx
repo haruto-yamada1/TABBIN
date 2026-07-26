@@ -40,11 +40,11 @@ const isUnderline = (fontStyle: number | undefined) =>
   fontStyle && fontStyle & FONT_STYLE_UNDERLINE
 
 // Transform tokens to include pre-computed keys to avoid noArrayIndexKey lint
-interface KeyedToken {
+type KeyedToken = {
   token: ThemedToken
   key: string
 }
-interface KeyedLine {
+type KeyedLine = {
   tokens: KeyedToken[]
   key: string
 }
@@ -60,7 +60,6 @@ const addKeysToTokens = (lines: ThemedToken[][]): KeyedLine[] =>
 
 // Token rendering component
 const TokenSpan = ({ token }: { token: ThemedToken }) => {
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const tokenStyle: CSSProperties = {
     backgroundColor: token.bgColor,
     color: token.color,
@@ -122,13 +121,13 @@ type SupportedCodeLanguage =
 
 type HighlightLanguage = Exclude<SupportedCodeLanguage, 'text'>
 
-interface TokenizedCode {
+type TokenizedCode = {
   tokens: ThemedToken[][]
   fg: string
   bg: string
 }
 
-interface CodeBlockContextType {
+type CodeBlockContextType = {
   code: string
 }
 
@@ -171,7 +170,6 @@ const codeLanguageAliases: Record<string, SupportedCodeLanguage> = {
   yaml: 'yaml',
   zsh: 'bash',
 }
-
 export const getSupportedCodeLanguage = (
   language: string,
 ): SupportedCodeLanguage => {
@@ -199,7 +197,7 @@ const languageLoaders: Record<
 
 let themesPromise: Promise<ThemeRegistration[]> | null = null
 
-const loadThemes = () => {
+const loadThemes = async () => {
   themesPromise ??= Promise.all([
     import('shiki/themes/github-light.mjs'),
     import('shiki/themes/github-dark.mjs'),
@@ -220,7 +218,7 @@ const getTokensCacheKey = (code: string, language: SupportedCodeLanguage) => {
   return `${language}:${code.length}:${start}:${end}`
 }
 
-const getHighlighter = (
+const getHighlighter = async (
   language: HighlightLanguage,
 ): Promise<HighlighterCore> => {
   const cached = highlighterCache.get(language)
@@ -231,7 +229,7 @@ const getHighlighter = (
   const highlighterPromise = Promise.all([
     languageLoaders[language](),
     loadThemes(),
-  ]).then(([langs, themes]) =>
+  ]).then(async ([langs, themes]) =>
     createHighlighterCore({
       engine: createJavaScriptRegexEngine({ forgiving: true }),
       langs,
@@ -259,7 +257,6 @@ const createRawTokens = (code: string): TokenizedCode => ({
         ],
   ),
 })
-
 // Synchronous highlight with callback for async results
 export const highlightCode = (
   code: string,
@@ -321,7 +318,7 @@ export const highlightCode = (
         subscribers.delete(tokensCacheKey)
       }
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Failed to highlight code:', error)
       subscribers.delete(tokensCacheKey)
     })
@@ -403,13 +400,12 @@ const CodeBlockBody = memo(
 
 CodeBlockBody.displayName = 'CodeBlockBody'
 
-export const CodeBlockContainer = ({
+const CodeBlockContainer = ({
   className,
   language,
   style,
   ...props
 }: HTMLAttributes<HTMLDivElement> & { language: string }) => {
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   const containerStyle: CSSProperties = {
     containIntrinsicSize: 'auto 200px',
     contentVisibility: 'auto',
@@ -478,7 +474,7 @@ export const CodeBlockActions = ({
   </div>
 )
 
-export const CodeBlockContent = ({
+const CodeBlockContent = ({
   code,
   language,
   showLineNumbers = false,
@@ -501,6 +497,7 @@ export const CodeBlockContent = ({
     let cancelled = false
 
     // Reset to raw tokens when code changes (shows current code, not stale tokens)
+    // eslint-disable-next-line react-hooks-compiler/set-state-in-effect -- vendored shiki highlighter resets cached tokens when code/language changes before subscribing to async highlight
     setTokenized(highlightCode(code, language) ?? rawTokens)
 
     // Subscribe to async highlighting result

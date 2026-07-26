@@ -5,13 +5,8 @@ import { dirname, resolve } from 'node:path'
 // eslint-disable-next-line eslint/no-unused-vars
 import { fileURLToPath } from 'node:url'
 
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const sidebarContextValue = {
@@ -35,7 +30,7 @@ vi.mock('@/components/ui/sidebar', () => ({
     <footer data-testid='sidebar-footer'>{children}</footer>
   ),
   SidebarGroup: ({ children }: { children: React.ReactNode }) => (
-    <section>{children}</section>
+    <section data-testid='sidebar-group'>{children}</section>
   ),
   SidebarGroupContent: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
@@ -78,14 +73,11 @@ vi.mock('@/components/ui/sidebar', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -132,7 +124,6 @@ describe('ExtensionSidebar', () => {
   it('タブ一覧を先頭に表示し、オプションをフッター最下部の内部ナビとして表示する', () => {
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -143,8 +134,8 @@ describe('ExtensionSidebar', () => {
     const content = screen.getByTestId('sidebar-content')
     const footer = screen.getByTestId('sidebar-footer')
 
-    expect(content.querySelectorAll('section')).toHaveLength(1)
-    expect(content.firstChild?.textContent).toContain('タブ一覧')
+    expect(screen.getAllByTestId('sidebar-group')).toHaveLength(1)
+    expect(screen.getByTestId('sidebar-group')).toHaveTextContent('タブ一覧')
     expect(content.textContent).toContain('チャット')
     expect(content.textContent).toContain('分析')
     expect(content.textContent).toContain('定期実行')
@@ -157,7 +148,6 @@ describe('ExtensionSidebar', () => {
   it('options が active のときオプションだけを current page にする', () => {
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'options',
@@ -176,9 +166,8 @@ describe('ExtensionSidebar', () => {
   })
 
   it('タブ一覧の親アイコンは共通入口へ飛ぶ', () => {
-    const { container } = render(
+    render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-custom',
@@ -186,15 +175,15 @@ describe('ExtensionSidebar', () => {
       />,
     )
 
-    const tabListLinks = container.querySelectorAll('a[href^="app.html#"]')
-
-    expect(tabListLinks[0]?.getAttribute('href')).toBe('app.html#/saved-tabs')
+    expect(screen.getByRole('link', { name: 'タブ一覧' })).toHaveAttribute(
+      'href',
+      'app.html#/saved-tabs',
+    )
   })
 
   it('saved tabs submenu labels also come from i18n keys', () => {
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -211,7 +200,6 @@ describe('ExtensionSidebar', () => {
 
     const { container } = render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -261,13 +249,13 @@ describe('ExtensionSidebar', () => {
     sidebarContextValue.sidebarWidth = 256
   })
 
-  it('縮小ヘッダーの開くボタンは固定でサイドバーを開いて幅を通常幅へ戻す', () => {
+  it('縮小ヘッダーの開くボタンは固定でサイドバーを開いて幅を通常幅へ戻す', async () => {
+    const user = userEvent.setup()
     sidebarContextValue.sidebarWidth = 48
     sidebarContextValue.open = true
 
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -275,7 +263,7 @@ describe('ExtensionSidebar', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
+    await user.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
 
     expect(sidebarContextValue.setSidebarWidth).toHaveBeenCalledWith(256)
     expect(sidebarContextValue.setOpen).toHaveBeenCalledWith(true)
@@ -288,9 +276,8 @@ describe('ExtensionSidebar', () => {
   it('通常幅ではヘッダーに開くボタンを表示しない', () => {
     sidebarContextValue.sidebarWidth = 256
 
-    const { container } = render(
+    render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -304,17 +291,17 @@ describe('ExtensionSidebar', () => {
     expect(
       screen.getByRole('button', { name: 'サイドバーを小さくする' }),
     ).not.toBeNull()
-    expect(container.querySelector('header > div')?.className).toContain(
+    expect(screen.getByTestId('sidebar-header-row')).toHaveClass(
       'justify-between',
     )
   })
 
-  it('通常幅ヘッダーの縮小ボタンは icon rail 幅まで戻す', () => {
+  it('通常幅ヘッダーの縮小ボタンは icon rail 幅まで戻す', async () => {
+    const user = userEvent.setup()
     sidebarContextValue.sidebarWidth = 256
 
     render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'saved-tabs-domain',
@@ -322,7 +309,7 @@ describe('ExtensionSidebar', () => {
       />,
     )
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', { name: 'サイドバーを小さくする' }),
     )
 
@@ -336,7 +323,6 @@ describe('ExtensionSidebar', () => {
 
     const { container, rerender } = render(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'analytics',
@@ -361,7 +347,6 @@ describe('ExtensionSidebar', () => {
 
     rerender(
       <ExtensionSidebar
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         state={{
           expandedGroup: 'tab-list',
           item: 'periodic-execution',

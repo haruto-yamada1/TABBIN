@@ -3,6 +3,7 @@
  */
 
 import { getMessage } from '@/features/i18n/lib/language'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { saveTabsWithAutoCategory } from '@/lib/storage/migration'
 import { saveUrlsToCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
@@ -10,10 +11,15 @@ import {
   filterItemsBySavableUrl,
   normalizeUrlCandidate,
 } from '@/lib/url-filter'
+import type { UserSettings } from '@/types/storage'
 
 import { getBackgroundLanguage } from './i18n'
 import { openSavedTabsPage } from './saved-tabs-page'
 import { filterTabsByUserSettings, showNotification } from './utils'
+
+const resolveClickBehavior = (
+  value: UserSettings['clickBehavior'] | undefined,
+): UserSettings['clickBehavior'] => value ?? 'saveWindowTabs'
 
 const getBackgroundText = async (
   key: string,
@@ -25,13 +31,24 @@ const getBackgroundText = async (
   return getMessage(language, key, fallback, values)
 }
 
+const isWindowsGetAll = (
+  value: unknown,
+): value is (options: {
+  populate: true
+}) => Promise<{ tabs?: chrome.tabs.Tab[] }[]> => typeof value === 'function'
+
 const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
-  if (!chrome.windows?.getAll) {
+  const windowsValue: unknown = Reflect.get(chrome, 'windows')
+  if (typeof windowsValue !== 'object' || windowsValue === null) {
+    return chrome.tabs.query({})
+  }
+  const getAllValue: unknown = Reflect.get(windowsValue, 'getAll')
+  if (!isWindowsGetAll(getAllValue)) {
     return chrome.tabs.query({})
   }
 
   try {
-    const windows = await chrome.windows.getAll({
+    const windows = await getAllValue({
       populate: true,
     })
     const tabs = windows.flatMap((window) => window.tabs ?? [])
@@ -61,7 +78,7 @@ const toSavedTabItems = async (
 > => {
   const { excludePatterns } = await getUserSettings()
 
-  return filterItemsBySavableUrl(tabs, excludePatterns ?? []).reduce<
+  return filterItemsBySavableUrl(tabs, excludePatterns).reduce<
     { title: string; url: string }[]
   >((items, tab) => {
     items.push({
@@ -109,24 +126,29 @@ const syncSavedTabsToCustomMode = async (
   }
 }
 
+const saveTabsInBothModes = async (tabs: chrome.tabs.Tab[]): Promise<void> => {
+  // Both paths upsert the shared `urls` collection. Keep them sequential so
+  // their read-modify-write cycles cannot create divergent IDs or lose URLs.
+  await saveTabsWithAutoCategory(tabs)
+  await syncSavedTabsToCustomMode(tabs)
+}
+
 const notifyAndCloseTabs = async (
   notificationTitle: string,
   notificationMessage: string,
   tabIdsToClose: number[],
 ): Promise<void> => {
-  await Promise.all([
-    showNotification(notificationTitle, notificationMessage),
-    tabIdsToClose.length > 0
-      ? chrome.tabs
-          .remove(tabIdsToClose)
-          .then(() => {
-            console.log(`${tabIdsToClose.length}個のタブを一括で閉じました`)
-          })
-          .catch((error) => {
-            console.error('タブを閉じる際にエラー:', error)
-          })
-      : Promise.resolve(),
-  ])
+  await showNotification(notificationTitle, notificationMessage)
+  if (tabIdsToClose.length > 0) {
+    await chrome.tabs
+      .remove(tabIdsToClose)
+      .then(() => {
+        console.log(`${tabIdsToClose.length}個のタブを一括で閉じました`)
+      })
+      .catch((error: unknown) => {
+        console.error('タブを閉じる際にエラー:', error)
+      })
+  }
 }
 
 /**
@@ -139,7 +161,7 @@ export const handleExtensionActionClick = async (): Promise<void> => {
     const settings = await getUserSettings()
 
     // クリック挙動を取得（デフォルトはウィンドウのタブ保存）
-    const clickBehavior = settings.clickBehavior || 'saveWindowTabs'
+    const clickBehavior = resolveClickBehavior(settings.clickBehavior)
     console.log(`選択されたクリック挙動: ${clickBehavior}`)
 
     // 選択された挙動に基づいて処理を実行
@@ -194,29 +216,26 @@ export const handleSaveCurrentTab = async (): Promise<
     return []
   }
   const activeTab = filteredTabs[0]
-  console.log(`現在のタブを保存: ${activeTab.url}`)
+  console.log(`現在のタブを保存: ${redactUrlForLog(activeTab.url)}`)
 
   // タブを保存
-  const [, , notificationTitle, notificationMessage] = await Promise.all([
-    saveTabsWithAutoCategory([activeTab]),
-    syncSavedTabsToCustomMode([activeTab]),
+  const [, notificationTitle, notificationMessage] = await Promise.all([
+    saveTabsInBothModes([activeTab]),
     getBackgroundText('background.saveTabs.notificationTitle'),
     getBackgroundText('background.saveTabs.currentTabSaved'),
   ])
 
-  await Promise.all([
-    showNotification(notificationTitle, notificationMessage),
-    activeTab.id
-      ? chrome.tabs
-          .remove(activeTab.id)
-          .then(() => {
-            console.log(`タブ ${activeTab.id} を閉じました`)
-          })
-          .catch((error) => {
-            console.error('タブを閉じる際にエラー:', error)
-          })
-      : Promise.resolve(),
-  ])
+  await showNotification(notificationTitle, notificationMessage)
+  if (activeTab.id) {
+    await chrome.tabs
+      .remove(activeTab.id)
+      .then(() => {
+        console.log(`タブ ${String(activeTab.id)} を閉じました`)
+      })
+      .catch((error: unknown) => {
+        console.error('タブを閉じる際にエラー:', error)
+      })
+  }
   return toResultItems([activeTab])
 }
 /**
@@ -268,10 +287,9 @@ export const handleSaveSameDomainTabs = async (): Promise<
     console.log(`同じドメインのタブ数: ${filteredTabs.length}`)
 
     // タブを保存
-    const [, , settings, notificationTitle, notificationMessage] =
+    const [, settings, notificationTitle, notificationMessage] =
       await Promise.all([
-        saveTabsWithAutoCategory(filteredTabs),
-        syncSavedTabsToCustomMode(filteredTabs),
+        saveTabsInBothModes(filteredTabs),
         getUserSettings(),
         getBackgroundText('background.saveTabs.notificationTitle'),
         getBackgroundText('background.saveTabs.sameDomainSaved', undefined, {
@@ -281,19 +299,15 @@ export const handleSaveSameDomainTabs = async (): Promise<
       ])
 
     // 保存したタブを閉じる（一括処理）
-    const tabIdsToClose = filteredTabs
-      .reduce<number[]>((ids, tab) => {
-        if (
-          tab.id &&
-          !settings.excludePatterns.some((pattern) =>
-            tab.url?.includes(pattern),
-          )
-        ) {
-          ids.push(tab.id)
-        }
-        return ids
-      }, [])
-      .filter((id): id is number => id !== undefined)
+    const tabIdsToClose = filteredTabs.reduce<number[]>((ids, tab) => {
+      if (
+        tab.id &&
+        !settings.excludePatterns.some((pattern) => tab.url?.includes(pattern))
+      ) {
+        ids.push(tab.id)
+      }
+      return ids
+    }, [])
     await notifyAndCloseTabs(
       notificationTitle,
       notificationMessage,
@@ -330,10 +344,9 @@ export const handleSaveAllWindowsTabs = async (): Promise<
     console.log(`保存対象タブ数: ${filteredTabs.length}`)
 
     // タブを保存
-    const [, , notificationTitle, notificationMessage, savedTabsTabId] =
+    const [, notificationTitle, notificationMessage, savedTabsTabId] =
       await Promise.all([
-        saveTabsWithAutoCategory(filteredTabs),
-        syncSavedTabsToCustomMode(filteredTabs),
+        saveTabsInBothModes(filteredTabs),
         getBackgroundText('background.saveTabs.notificationTitle'),
         getBackgroundText('background.saveTabs.allWindowsSaved', undefined, {
           count: String(filteredTabs.length),
@@ -384,8 +397,7 @@ export const handleSaveWindowTabs = async (): Promise<
   console.log(`保存対象タブ: ${filteredTabs.length}個`)
 
   // タブを保存して自動カテゴライズする
-  await saveTabsWithAutoCategory(filteredTabs)
-  await syncSavedTabsToCustomMode(filteredTabs)
+  await saveTabsInBothModes(filteredTabs)
   console.log('タブの保存と自動カテゴライズが完了しました')
   const [savedTabsTabId, settings, notificationTitle, notificationMessage] =
     await Promise.all([

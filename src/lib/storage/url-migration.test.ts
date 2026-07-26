@@ -25,7 +25,7 @@ vi.mock('./urls', () => ({
   invalidateUrlCache: mocks.invalidateUrlCache,
 }))
 
-interface StorageState {
+type StorageState = {
   customProjects?: CustomProject[]
   savedTabs?: TabGroup[]
   urls?: UrlRecord[]
@@ -33,7 +33,6 @@ interface StorageState {
 }
 
 const createChromeStorageLocal = (state: StorageState) => ({
-  // eslint-disable-next-line typescript/require-await
   get: vi.fn(async (keys?: string | string[]) => {
     if (!keys) {
       return state
@@ -49,7 +48,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
       [keys]: state[keys as keyof StorageState],
     }
   }),
-  // eslint-disable-next-line typescript/require-await
+
   set: vi.fn(async (value: Record<string, unknown>) => {
     Object.assign(state, value)
   }),
@@ -75,15 +74,26 @@ describe('url-migration', () => {
           id: 'project-1',
           name: 'Project',
           updatedAt: 1,
-          urls: [
-            {
+          urlIds: ['legacy-shared', 'legacy-project'],
+          urlMetadata: {
+            'legacy-project': {
+              category: 'research',
+              notes: 'imported memo',
+            },
+            'legacy-shared': {
               category: 'docs',
               notes: 'keep',
+            },
+          },
+          urls: [
+            {
               savedAt: 70,
               title: 'Short',
               url: 'https://shared.test',
             },
             {
+              category: 'raw research',
+              notes: 'raw memo',
               title: 'Unique',
               url: 'https://project.test',
             },
@@ -94,10 +104,14 @@ describe('url-migration', () => {
         {
           domain: 'https://shared.test',
           id: 'group-1',
+          urlIds: ['legacy-shared', 'legacy-tab'],
+          urlSubCategories: {
+            'legacy-shared': 'news',
+            'legacy-tab': 'guides',
+          },
           urls: [
             {
               savedAt: 50,
-              subCategory: 'news',
               title: 'Longer title',
               url: 'https://shared.test',
             },
@@ -160,6 +174,7 @@ describe('url-migration', () => {
         urlIds: ['existing-1', 'uuid-1'],
         urlSubCategories: {
           'existing-1': 'news',
+          'uuid-1': 'guides',
         },
         urls: undefined,
       },
@@ -176,6 +191,10 @@ describe('url-migration', () => {
           'existing-1': {
             category: 'docs',
             notes: 'keep',
+          },
+          'uuid-2': {
+            category: 'raw research',
+            notes: 'raw memo',
           },
         },
         urls: undefined,

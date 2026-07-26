@@ -1,4 +1,7 @@
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { SubCategoryKeyword, TabGroup, UrlRecord } from '@/types/storage'
+import { domainMatches } from '@/utils/domain-normalize'
 
 import {
   getDomainCategorySettings,
@@ -19,9 +22,91 @@ type ResolvedTabGroupUrl = UrlRecord & {
   subCategory?: string
 }
 
-interface DeleteSyncOptions {
+/**
+ * `chrome.storage.local` から `savedTabs` 全件を読み出す。
+ * infrastructure 境界の関数で、features / components 層が
+ * `chrome.storage.local.get` を直接呼ぶ代わりに利用する。
+ */
+const getSavedTabs = async (): Promise<TabGroup[]> => {
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
+    savedTabs?: TabGroup[]
+  }>('savedTabs')
+  return savedTabs
+}
+
+/**
+ * `savedTabs` 全件を `chrome.storage.local` へ書き戻す。
+ * `getSavedTabs` と対になる永続化関数。
+ */
+const saveTabGroups = async (tabGroups: TabGroup[]): Promise<void> => {
+  await getRequiredPersistenceStorageLocal().set({ savedTabs: tabGroups })
+}
+
+/**
+ * 指定タブグループ内の子カテゴリ名をリネームし、関連する
+ * `categoryKeywords`, `urls[].subCategory`, `subCategoryOrder`,
+ * `subCategoryOrderWithUncategorized` も一括更新する。
+ * `SubCategoryKeywordManager` のリネーム操作を
+ * `chrome.storage.local` 直叩きから置換するために追加。
+ */
+const renameSubCategoryInTabGroup = async (
+  groupId: string,
+  oldName: string,
+  newName: string,
+): Promise<TabGroup[]> => {
+  const savedTabs = await getSavedTabs()
+  const updatedTabs = savedTabs.map((tab: TabGroup) => {
+    if (tab.id !== groupId) {
+      return tab
+    }
+    const updatedSubCategories =
+      tab.subCategories?.map((cat) => (cat === oldName ? newName : cat)) ?? []
+    const updatedCategoryKeywords =
+      tab.categoryKeywords?.map((ck) =>
+        ck.categoryName === oldName ? { ...ck, categoryName: newName } : ck,
+      ) ?? []
+    const updatedUrls = (tab.urls ?? []).map((url) =>
+      url.subCategory === oldName ? { ...url, subCategory: newName } : url,
+    )
+    const updatedUrlSubCategories: Record<string, string> = {}
+    let urlSubCategoriesChanged = false
+    for (const [urlId, cat] of Object.entries(tab.urlSubCategories ?? {})) {
+      if (cat === oldName) {
+        updatedUrlSubCategories[urlId] = newName
+        urlSubCategoriesChanged = true
+      } else {
+        updatedUrlSubCategories[urlId] = cat
+      }
+    }
+    const updatedSubCategoryOrder =
+      tab.subCategoryOrder?.map((cat) => (cat === oldName ? newName : cat)) ??
+      []
+    const updatedSubCategoryOrderWithUncategorized =
+      tab.subCategoryOrderWithUncategorized?.map((cat) =>
+        cat === oldName ? newName : cat,
+      ) ?? []
+    return {
+      ...tab,
+      categoryKeywords: updatedCategoryKeywords,
+      subCategories: updatedSubCategories,
+      subCategoryOrder: updatedSubCategoryOrder,
+      subCategoryOrderWithUncategorized:
+        updatedSubCategoryOrderWithUncategorized,
+      urlSubCategories: urlSubCategoriesChanged
+        ? updatedUrlSubCategories
+        : tab.urlSubCategories,
+      urls: updatedUrls,
+    }
+  })
+  await saveTabGroups(updatedTabs)
+  return updatedTabs
+}
+
+type DeleteSyncOptions = {
   throwOnSyncError?: boolean
 }
+
+let autoCategorizeTabsQueue: Promise<void> = Promise.resolve()
 
 const resolveTabGroupUrlsFromMap = (
   tabGroup: TabGroup,
@@ -92,7 +177,7 @@ const getMigratedTabGroupById = async (
   group: TabGroup
 } | null> => {
   await migrateToUrlsStorage()
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((group) => group.id === groupId)
@@ -117,7 +202,7 @@ const addUrlToTabGroup = async (
 ): Promise<void> => {
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
@@ -149,7 +234,7 @@ const addUrlToTabGroup = async (
     group.urlSubCategories[urlRecord.id] = subCategory
   }
   savedTabs[groupIndex] = group
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     savedTabs,
   })
 } // 子カテゴリを追加する関数（永続設定にも保存）
@@ -157,7 +242,7 @@ const addSubCategoryToGroup = async (
   groupId: string,
   subCategoryName: string,
 ): Promise<void> => {
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const group = savedTabs.find((g: TabGroup) => g.id === groupId)
@@ -178,17 +263,26 @@ const addSubCategoryToGroup = async (
   })
 
   // タブグループの更新
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     savedTabs: updatedGroups,
   })
 
   // ドメイン別設定にも保存して永続化
   const settings = await getDomainCategorySettings()
-  const existingSetting = settings.find((s) => s.domain === group.domain)
+  const existingSetting = settings.find((s) =>
+    domainMatches(s.domain, group.domain),
+  )
   if (existingSetting) {
-    // 既存の設定がある場合は更新
-    if (!existingSetting.subCategories.includes(subCategoryName)) {
+    // 既存の設定がある場合は更新。触ったレコードの domain を現在の
+    // group.domain (hostname) へ書き換えて legacy スキーム付き形式を漸進的に
+    // 解消する (CodeRabbit PR #626 review)。
+    const domainChanged = existingSetting.domain !== group.domain
+    existingSetting.domain = group.domain
+    const subAdded = !existingSetting.subCategories.includes(subCategoryName)
+    if (subAdded) {
       existingSetting.subCategories.push(subCategoryName)
+    }
+    if (domainChanged || subAdded) {
       await saveDomainCategorySettings(settings)
     }
   } else {
@@ -223,7 +317,7 @@ const setUrlSubCategory = async (
       }
       group.urlSubCategories[urlRecord.id] = subCategory
       savedTabs[groupIndex] = group
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         savedTabs,
       })
     }
@@ -249,7 +343,7 @@ const setCategoryKeywords = async (
   categoryName: string,
   keywords: string[],
 ): Promise<void> => {
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const group = savedTabs.find((g: TabGroup) => g.id === groupId)
@@ -292,15 +386,18 @@ const setCategoryKeywords = async (
   })
 
   // タブグループの更新
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     savedTabs: updatedGroups,
   })
 
   // ドメイン別設定にも保存して永続化
   const settings = await getDomainCategorySettings()
-  const existingSetting = settings.find((s) => s.domain === group.domain)
+  const existingSetting = settings.find((s) =>
+    domainMatches(s.domain, group.domain),
+  )
   if (existingSetting) {
-    // 既存の設定がある場合は更新
+    // 既存の設定がある場合は更新。触ったレコードの domain を hostname へ書き換え
+    existingSetting.domain = group.domain
     const keywordIndex = existingSetting.categoryKeywords.findIndex(
       (ck) => ck.categoryName === categoryName,
     )
@@ -324,13 +421,69 @@ const setCategoryKeywords = async (
   // キーワードが更新されたら、既存の全タブに対して自動的に再カテゴライズを実行
   await autoCategorizeTabs(groupId)
 }
+
+/**
+ * 指定 `groupId` の `TabGroup` から `categoryName` を 1 件削除し、
+ * rich 補助フィールド (`subCategories` / `urlSubCategories` /
+ * `categoryKeywords`) を更新して `chrome.storage.local` へ書き戻す
+ * (issue #519)。
+ *
+ * 旧 `src/contexts/saved-tabs/presentation/hooks/useCategoryManagement.ts`
+ * の `removeSubCategoryFromGroup` + `categoryAssignmentPort.saveTabGroups`
+ * 直叩きを port 経由へ移設するために新設。 domain `TabGroup` エンティティ
+ * は rich 補助フィールドを持たないため、 `tabGroupRepository.saveAll`
+ * 経由では更新できない既存問題に対応する。
+ *
+ * 戻り値は更新後の `savedTabs` 全体 (storage 層 `TabGroup` shape)。
+ * presentation 層が `refreshTabGroupsWithUrls(updatedGroups)` で
+ * UI state へ反映できる。
+ */
+const removeSubCategoryFromTabGroup = async (
+  groupId: string,
+  categoryName: string,
+): Promise<TabGroup[]> => {
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
+    savedTabs?: TabGroup[]
+  }>('savedTabs')
+  const updatedGroups = savedTabs.map((currentGroup: TabGroup) => {
+    if (currentGroup.id !== groupId) {
+      return currentGroup
+    }
+    const nextSubCategories = (currentGroup.subCategories ?? []).filter(
+      (cat) => cat !== categoryName,
+    )
+    const nextUrlSubCategories: Record<string, string> =
+      currentGroup.urlSubCategories ? { ...currentGroup.urlSubCategories } : {}
+    let urlSubCategoriesChanged = false
+    for (const [urlId, cat] of Object.entries(nextUrlSubCategories)) {
+      if (cat === categoryName) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        Reflect.deleteProperty(nextUrlSubCategories, urlId)
+        urlSubCategoriesChanged = true
+      }
+    }
+    const nextCategoryKeywords = (currentGroup.categoryKeywords ?? []).filter(
+      (ck) => ck.categoryName !== categoryName,
+    )
+    return {
+      ...currentGroup,
+      categoryKeywords: nextCategoryKeywords,
+      subCategories: nextSubCategories,
+      urlSubCategories: urlSubCategoriesChanged
+        ? nextUrlSubCategories
+        : currentGroup.urlSubCategories,
+    }
+  })
+  await getRequiredPersistenceStorageLocal().set({ savedTabs: updatedGroups })
+  return updatedGroups
+}
 const dedupeTabGroups = (savedTabs: TabGroup[]): TabGroup[] => {
   const uniqueIds = new Set<string>()
   const uniqueGroups: TabGroup[] = []
   for (const group of savedTabs) {
     if (uniqueIds.has(group.id)) {
       console.warn(
-        `自動カテゴリ実行前に重複検出: ${group.id} (${group.domain})`,
+        `自動カテゴリ実行前に重複検出: ${group.id} (${redactUrlForLog(group.domain)})`,
       )
       continue
     }
@@ -379,10 +532,10 @@ const applySubCategoryMapping = (
     groups[groupIndex].urlSubCategories = mapping
   }
 } // キーワードに基づいて自動的にURLを分類する（新形式対応）
-const autoCategorizeTabs = async (groupId: string): Promise<void> => {
+const autoCategorizeTabsUnsafe = async (groupId: string): Promise<void> => {
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const uniqueGroups = dedupeTabGroups(savedTabs)
@@ -405,9 +558,19 @@ const autoCategorizeTabs = async (groupId: string): Promise<void> => {
     )
     applySubCategoryMapping(uniqueGroups, groupId, updatedSubCategories)
   }
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     savedTabs: uniqueGroups,
   })
+}
+
+const autoCategorizeTabs = async (groupId: string): Promise<void> => {
+  const next = autoCategorizeTabsQueue.then(async () =>
+    autoCategorizeTabsUnsafe(groupId),
+  )
+  autoCategorizeTabsQueue = next.catch(() => {
+    // A failed classification must not block later groups in the queue.
+  })
+  return next
 } // 新しい子カテゴリを追加時、キーワード設定も初期化する拡張版関数
 const addSubCategoryWithKeywords = async (
   groupId: string,
@@ -426,7 +589,9 @@ const restoreCategorySettings = async (
   tabGroup: TabGroup,
 ): Promise<TabGroup> => {
   const settings = await getDomainCategorySettings()
-  const domainSettings = settings.find((s) => s.domain === tabGroup.domain)
+  const domainSettings = settings.find((s) =>
+    domainMatches(s.domain, tabGroup.domain),
+  )
   if (domainSettings) {
     return {
       ...tabGroup,
@@ -477,7 +642,7 @@ const reorderTabGroupUrls = async (
     // 並び替えたURLIDsを保存
     group.urlIds = reorderedUrlIds
     savedTabs[groupIndex] = group
-    await chrome.storage.local.set({
+    await getRequiredPersistenceStorageLocal().set({
       savedTabs,
     })
     console.log(
@@ -486,6 +651,31 @@ const reorderTabGroupUrls = async (
     )
   }
 }
+/**
+ * カスタムプロジェクトからURLを削除し、エラー時にロールバックする
+ */
+const syncRemoveFromCustomProjects = async (
+  url: string,
+  rollbackSavedTabs: TabGroup[],
+  options: DeleteSyncOptions,
+): Promise<void> => {
+  try {
+    if (options.throwOnSyncError) {
+      await removeUrlFromAllCustomProjects(url, { throwOnError: true })
+    } else {
+      await removeUrlFromAllCustomProjects(url)
+    }
+  } catch (error) {
+    if (!options.throwOnSyncError) {
+      return
+    }
+    await getRequiredPersistenceStorageLocal().set({
+      savedTabs: rollbackSavedTabs,
+    })
+    throw error
+  }
+}
+
 /**
  * TabGroupからURLを削除する（新形式対応）
  */
@@ -511,8 +701,7 @@ const removeUrlFromTabGroup = async (
 
       // サブカテゴリ情報も削除
       if (group.urlSubCategories?.[urlRecord.id]) {
-        // eslint-disable-next-line typescript/no-dynamic-delete
-        delete group.urlSubCategories[urlRecord.id]
+        Reflect.deleteProperty(group.urlSubCategories, urlRecord.id)
       }
 
       // グループにURLが無くなった場合はグループ自体を削除
@@ -524,28 +713,15 @@ const removeUrlFromTabGroup = async (
       } else {
         savedTabs[groupIndex] = group
       }
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         savedTabs,
       })
-      console.log(`URL ${url} をグループ ${groupId} から削除しました`)
+      console.log(
+        `URL ${redactUrlForLog(url)} をグループ ${groupId} から削除しました`,
+      )
 
       // 同期してカスタムプロジェクトからも削除
-      try {
-        if (options.throwOnSyncError) {
-          await removeUrlFromAllCustomProjects(url, {
-            throwOnError: true,
-          })
-        } else {
-          await removeUrlFromAllCustomProjects(url)
-        }
-      } catch (error) {
-        if (options.throwOnSyncError) {
-          await chrome.storage.local.set({
-            savedTabs: rollbackSavedTabs,
-          })
-          throw error
-        }
-      }
+      await syncRemoveFromCustomProjects(url, rollbackSavedTabs, options)
     }
   }
 }
@@ -569,8 +745,7 @@ const processTabGroupForBulkDelete = (
   if (group.urlSubCategories) {
     for (const id of idsToDelete) {
       if (group.urlSubCategories[id]) {
-        // eslint-disable-next-line typescript/no-dynamic-delete
-        delete group.urlSubCategories[id]
+        Reflect.deleteProperty(group.urlSubCategories, id)
       }
     }
   }
@@ -608,7 +783,7 @@ const persistBulkDeleteForGroup = async ({
     savedTabs[groupIndex] = group
   }
 
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     savedTabs,
   })
   console.log(`${deletedCount}件のURLをグループ ${groupId} から削除しました`)
@@ -623,7 +798,7 @@ const persistBulkDeleteForGroup = async ({
     }
   } catch (error) {
     if (throwOnSyncError) {
-      await chrome.storage.local.set({
+      await getRequiredPersistenceStorageLocal().set({
         savedTabs: rollbackSavedTabs,
       })
       throw error
@@ -644,7 +819,7 @@ const removeUrlIdsFromTabGroup = async (
   }
 
   await migrateToUrlsStorage()
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
@@ -685,7 +860,7 @@ const removeUrlsFromTabGroup = async (
 
   // マイグレーションを実行（未実行の場合）
   await migrateToUrlsStorage()
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
@@ -721,6 +896,9 @@ const removeUrlsFromTabGroup = async (
 
 export {
   addSubCategoryToGroup,
+  getSavedTabs,
+  renameSubCategoryInTabGroup,
+  saveTabGroups,
   addSubCategoryWithKeywords,
   addUrlToTabGroup,
   applySubCategoryMapping,
@@ -729,6 +907,7 @@ export {
   categorizeUrlIdsByKeywords,
   getTabGroupUrls,
   processTabGroupForBulkDelete,
+  removeSubCategoryFromTabGroup,
   removeUrlFromTabGroup,
   removeUrlIdsFromTabGroup,
   removeUrlsFromTabGroup,

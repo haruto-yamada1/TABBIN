@@ -2,7 +2,7 @@ import type { Decorator, Preview } from '@storybook/react'
 import { useEffect } from 'react'
 import { Toaster } from 'sonner'
 
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import {
@@ -13,16 +13,10 @@ import { storybookThemeStorage } from './fixtures'
 
 type StoryTheme = 'dark' | 'light' | 'system' | 'user'
 
-interface StorybookHarnessProps {
+type StorybookHarnessProps = {
   children: React.ReactNode
   storage?: Record<string, unknown>
   theme?: StoryTheme
-}
-
-interface StorybookParameters {
-  storybook?: {
-    storage?: Record<string, unknown>
-  }
 }
 
 const applyThemeClass = (theme: StoryTheme) => {
@@ -83,14 +77,31 @@ const isStoryTheme = (value: string): value is StoryTheme =>
   value === 'system' ||
   value === 'user'
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const getStorybookStorage = (
+  parameters: unknown,
+): Record<string, unknown> | undefined => {
+  if (!isRecord(parameters)) {
+    return undefined
+  }
+  const storybook: unknown = Reflect.get(parameters, 'storybook')
+  if (!isRecord(storybook)) {
+    return undefined
+  }
+  const storage: unknown = Reflect.get(storybook, 'storage')
+  return isRecord(storage) ? storage : undefined
+}
+
 const withAppShell: Decorator = (Story, context) => {
-  const parameters = context.parameters as StorybookParameters
+  const storybookStorage = getStorybookStorage(context.parameters)
   const rawTheme: unknown = context.globals.theme
   const theme =
     typeof rawTheme === 'string' && isStoryTheme(rawTheme) ? rawTheme : 'light'
 
   return (
-    <StorybookTestHarness storage={parameters.storybook?.storage} theme={theme}>
+    <StorybookTestHarness storage={storybookStorage} theme={theme}>
       <Story />
     </StorybookTestHarness>
   )
@@ -137,5 +148,4 @@ export {
   previewDecorators,
   previewGlobalTypes,
   previewParameters,
-  withAppShell,
 }

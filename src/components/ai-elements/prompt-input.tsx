@@ -86,19 +86,14 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     const response = await fetch(url)
     const blob = await response.blob()
     // FileReader uses callback-based API, wrapping in Promise is necessary
-    // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
-    // eslint-disable-next-line typescript/return-await
-    return new Promise((resolve) => {
+    return await new Promise((resolve) => {
       const reader = new FileReader()
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      reader.onloadend = () => {
+      reader.addEventListener('loadend', () => {
         resolve(typeof reader.result === 'string' ? reader.result : '')
-      }
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
-      // eslint-disable-next-line unicorn/prefer-add-event-listener
-      reader.onerror = () => {
+      })
+      reader.addEventListener('error', () => {
         resolve(null)
-      }
+      })
       reader.readAsDataURL(blob)
     })
   } catch {
@@ -110,7 +105,7 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
 // Provider Context & Types
 // ============================================================================
 
-export interface AttachmentsContext {
+export type AttachmentsContext = {
   files: (FileUIPart & { id: string })[]
   add: (files: File[] | FileList) => void
   remove: (id: string) => void
@@ -119,13 +114,13 @@ export interface AttachmentsContext {
   fileInputRef: RefObject<HTMLInputElement | null>
 }
 
-export interface TextInputContext {
+export type TextInputContext = {
   value: string
   setInput: (v: string) => void
   clear: () => void
 }
 
-export interface PromptInputControllerProps {
+export type PromptInputControllerProps = {
   textInput: TextInputContext
   attachments: AttachmentsContext
   /** INTERNAL: Allows PromptInput to register its file textInput + "open" callback */
@@ -193,7 +188,6 @@ export const PromptInputProvider = ({
     (FileUIPart & { id: string })[]
   >([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  // oxlint-disable-next-line eslint(no-empty-function)
   const openRef = useRef<() => void>(() => {})
 
   const add = useCallback((files: File[] | FileList) => {
@@ -255,7 +249,7 @@ export const PromptInputProvider = ({
   )
 
   const openFileDialog = useCallback(() => {
-    openRef.current?.()
+    openRef.current()
   }, [])
 
   const attachments = useMemo<AttachmentsContext>(
@@ -323,13 +317,12 @@ export const usePromptInputAttachments = () => {
 // Referenced Sources (Local to PromptInput)
 // ============================================================================
 
-export interface ReferencedSourcesContext {
+export type ReferencedSourcesContext = {
   sources: (SourceDocumentUIPart & { id: string })[]
   add: (sources: SourceDocumentUIPart[] | SourceDocumentUIPart) => void
   remove: (id: string) => void
   clear: () => void
 }
-
 export const LocalReferencedSourcesContext =
   createContext<ReferencedSourcesContext | null>(null)
 
@@ -370,7 +363,7 @@ export const PromptInputActionAddAttachments = ({
   )
 }
 
-export interface PromptInputMessage {
+export type PromptInputMessage = {
   text: string
   files: FileUIPart[]
 }
@@ -396,13 +389,11 @@ export type PromptInputProps = Omit<
   }) => void
   onSubmit: (
     message: PromptInputMessage,
-    // eslint-disable-next-line typescript/no-deprecated
     event: FormEvent<HTMLFormElement>,
   ) => void | Promise<void>
 }
 
 const usePromptInputView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   className,
   accept,
   multiple,
@@ -533,7 +524,6 @@ const usePromptInputView = ({
 
   // Wrapper that validates files before calling provider's add
   const addWithProviderValidation = useCallback(
-    // eslint-disable-next-line eslint/complexity
     (fileList: File[] | FileList) => {
       const incoming = [...fileList]
       const accepted = incoming.filter((f) => matchesAccept(f))
@@ -577,17 +567,18 @@ const usePromptInputView = ({
   )
 
   const clearAttachments = useCallback(() => {
-    // eslint-disable-next-line eslint/no-unused-expressions
-    usingProvider
-      ? controller?.attachments.clear()
-      : setItems((prev) => {
-          for (const file of prev) {
-            if (file.url) {
-              URL.revokeObjectURL(file.url)
-            }
+    if (usingProvider) {
+      controller?.attachments.clear()
+    } else {
+      setItems((prev) => {
+        for (const file of prev) {
+          if (file.url) {
+            URL.revokeObjectURL(file.url)
           }
-          return []
-        })
+        }
+        return []
+      })
+    }
   }, [usingProvider, controller])
 
   const clearReferencedSources = useCallback(() => {
@@ -623,21 +614,18 @@ const usePromptInputView = ({
   // Attach drop handlers on nearest form and document (opt-in)
   useEffect(() => {
     const form = formRef.current
-    if (!form) {
-      return
-    }
-    if (globalDrop) {
+    if (!form || globalDrop) {
       // When global drop is on, let the document-level handler own drops
-      return
+      return undefined
     }
 
     const onDragOver = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes('Files')) {
+      if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
       }
     }
     const onDrop = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes('Files')) {
+      if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
       }
       if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
@@ -646,7 +634,6 @@ const usePromptInputView = ({
     }
     form.addEventListener('dragover', onDragOver)
     form.addEventListener('drop', onDrop)
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
       form.removeEventListener('dragover', onDragOver)
       form.removeEventListener('drop', onDrop)
@@ -655,16 +642,16 @@ const usePromptInputView = ({
 
   useEffect(() => {
     if (!globalDrop) {
-      return
+      return undefined
     }
 
     const onDragOver = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes('Files')) {
+      if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
       }
     }
     const onDrop = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes('Files')) {
+      if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
       }
       if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
@@ -673,7 +660,6 @@ const usePromptInputView = ({
     }
     document.addEventListener('dragover', onDragOver)
     document.addEventListener('drop', onDrop)
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
       document.removeEventListener('dragover', onDragOver)
       document.removeEventListener('drop', onDrop)
@@ -690,7 +676,6 @@ const usePromptInputView = ({
         }
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup only on unmount; filesRef always current
     [usingProvider],
   )
 
@@ -735,10 +720,8 @@ const usePromptInputView = ({
     [referencedSources, clearReferencedSources],
   )
 
-  // eslint-disable-next-line typescript/no-misused-promises
-  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
-    // eslint-disable-line typescript/no-deprecated
-    async (event) => {
+  const runSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
 
       const form = event.currentTarget
@@ -756,11 +739,16 @@ const usePromptInputView = ({
         form.reset()
       }
 
+      const clearInputs = () => {
+        clear()
+        controller?.textInput.clear()
+      }
+
       try {
         // Convert blob URLs to data URLs asynchronously
         const convertedFiles: FileUIPart[] = await Promise.all(
           files.map(async ({ id: _id, ...item }) => {
-            if (item.url?.startsWith('blob:')) {
+            if (item.url.startsWith('blob:')) {
               const dataUrl = await convertBlobUrlToDataUrl(item.url)
               // If conversion failed, keep the original blob URL
               return {
@@ -776,27 +764,24 @@ const usePromptInputView = ({
 
         // Handle both sync and async onSubmit
         if (result instanceof Promise) {
-          try {
-            await result
-            clear()
-            if (controller) {
-              controller.textInput.clear()
-            }
-          } catch {
-            // Don't clear on error - user may want to retry
-          }
+          // Don't clear on error - user may want to retry
+          void result.then(clearInputs).catch(() => {})
         } else {
           // Sync function completed without throwing, clear inputs
-          clear()
-          if (controller) {
-            controller.textInput.clear()
-          }
+          clearInputs()
         }
       } catch {
         // Don't clear on error - user may want to retry
       }
     },
     [usingProvider, controller, files, onSubmit, clear],
+  )
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
+    (event) => {
+      void runSubmit(event)
+    },
+    [runSubmit],
   )
 
   // Render with or without local provider
@@ -863,7 +848,6 @@ export const PromptInputTextarea = ({
   const isComposingRef = useRef(false)
 
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = useCallback(
-    // eslint-disable-next-line eslint/complexity
     (e) => {
       // Call the external onKeyDown handler first
       onKeyDown?.(e)
@@ -912,11 +896,7 @@ export const PromptInputTextarea = ({
 
   const handlePaste: ClipboardEventHandler<HTMLTextAreaElement> = useCallback(
     (event) => {
-      const items = event.clipboardData?.items
-
-      if (!items) {
-        return
-      }
+      const items = event.clipboardData.items
 
       const files: File[] = []
 

@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 type MockStore = Record<string, unknown>
@@ -56,7 +57,7 @@ const createChromeMock = () => {
 
   // eslint-disable-next-line typescript/require-await
   const get = async (keys?: string | string[] | Record<string, unknown>) => {
-    if (keys == null) {
+    if (keys === undefined) {
       return clone(store)
     }
 
@@ -173,6 +174,7 @@ describe('SavedTabs プロファイラのベースライン', () => {
   })
 
   it('検索操作中のコミット回数を記録する', async () => {
+    const user = userEvent.setup()
     await import('@/entrypoints/saved-tabs/main.tsx')
 
     document.dispatchEvent(new Event('DOMContentLoaded'))
@@ -196,9 +198,10 @@ describe('SavedTabs プロファイラのベースライン', () => {
         }
       ).savedTabsProfiler?.commits ?? 0
 
-    fireEvent.change(searchInput, { target: { value: 'exa' } })
-    fireEvent.change(searchInput, { target: { value: 'example' } })
-    fireEvent.change(searchInput, { target: { value: '' } })
+    await user.type(searchInput, 'exa')
+    await user.clear(searchInput)
+    await user.type(searchInput, 'example')
+    await user.clear(searchInput)
 
     await waitFor(() => {
       const commits =

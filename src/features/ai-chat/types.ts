@@ -16,7 +16,7 @@ export type {
   OllamaErrorDetails,
 } from '@/types/ai-chat-protocol'
 
-export interface AiSavedUrlRecord {
+export type AiSavedUrlRecord = {
   id: string
   url: string
   title: string
@@ -31,13 +31,13 @@ export interface AiSavedUrlRecord {
 
 export type AiSavedUrlSortDirection = 'asc' | 'desc'
 
-export interface AiSavedUrlPageOptions {
+export type AiSavedUrlPageOptions = {
   page?: number
   pageSize?: number
   sortDirection?: AiSavedUrlSortDirection
 }
 
-export interface AiSavedUrlToolItem {
+export type AiSavedUrlToolItem = {
   url: string
   title: string
   domain: string
@@ -46,7 +46,7 @@ export interface AiSavedUrlToolItem {
   parentCategories: string[]
 }
 
-export interface AiSavedUrlPage<T> {
+export type AiSavedUrlPage<T> = {
   items: T[]
   page: number
   pageSize: number
@@ -57,7 +57,7 @@ export interface AiSavedUrlPage<T> {
   sortDirection: AiSavedUrlSortDirection
 }
 
-export interface AiChatConversationMessage {
+export type AiChatConversationMessage = {
   attachments?: AiChatAttachment[]
   charts?: AiChartSpec[]
   content: string
@@ -69,7 +69,7 @@ export interface AiChatConversationMessage {
   toolTraces?: AiChatToolTrace[]
 }
 
-export interface AiChatConversation {
+export type AiChatConversation = {
   createdAt: number
   id: string
   messages: AiChatConversationMessage[]
@@ -77,34 +77,19 @@ export interface AiChatConversation {
   updatedAt: number
 }
 
-export interface AiChatHistoryItem {
+export type AiChatHistoryItem = {
   id: string
   isActive: boolean
   preview: string
   title: string
 }
 
-export interface InterestEvidenceEntry {
+export type InterestEvidenceEntry = {
   value: string
   count: number
 }
 
-export interface AiChatConversation {
-  createdAt: number
-  id: string
-  messages: AiChatConversationMessage[]
-  title: string
-  updatedAt: number
-}
-
-export interface AiChatHistoryItem {
-  id: string
-  isActive: boolean
-  preview: string
-  title: string
-}
-
-export interface InterestInferenceResult {
+export type InterestInferenceResult = {
   summary: string
   isTentative: boolean
   evidence: {

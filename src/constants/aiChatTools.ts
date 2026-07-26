@@ -1,60 +1,110 @@
+import { getMessage } from '@/features/i18n/lib/language'
+import type { AppLanguage } from '@/features/i18n/messages'
+
+type AiChatToolDefinition = {
+  descriptionKey: string
+  name: string
+  titleKey: string
+}
+
 const AI_CHAT_TOOL_DEFINITIONS = [
   {
-    description:
-      '現在時刻を取得する。今日、今月、何日前、相対日付を扱う前に使う',
+    descriptionKey: 'aiChat.tool.getCurrentDateTime.description',
     name: 'getCurrentDateTime',
-    title: '現在時刻確認',
+    titleKey: 'aiChat.tool.getCurrentDateTime.title',
   },
   {
-    description:
-      '現在保存されているタブを保存日時順に一覧化する。page/pageSize/sortDirection を指定できる',
+    descriptionKey: 'aiChat.tool.listSavedUrls.description',
     name: 'listSavedUrls',
-    title: '保存済みタブ一覧',
+    titleKey: 'aiChat.tool.listSavedUrls.title',
   },
   {
-    description:
-      '指定した年月に保存されたタブを一覧化する。page/pageSize/sortDirection を指定できる',
+    descriptionKey: 'aiChat.tool.findUrlsByMonth.description',
     name: 'findUrlsByMonth',
-    title: '月別タブ検索',
+    titleKey: 'aiChat.tool.findUrlsByMonth.title',
   },
   {
-    description:
-      'キーワードで保存済みタブを検索する。page/pageSize/sortDirection を指定できる',
+    descriptionKey: 'aiChat.tool.searchSavedUrls.description',
     name: 'searchSavedUrls',
-    title: 'キーワードタブ検索',
+    titleKey: 'aiChat.tool.searchSavedUrls.title',
   },
   {
-    description:
-      '保存済みタブをドメイン、カテゴリ、プロジェクト、時系列で集計し、chartSpecs を返す。チャートや分析を求められたら優先して使う',
+    descriptionKey: 'aiChat.tool.generateSavedTabsAnalytics.description',
     name: 'generateSavedTabsAnalytics',
-    title: '保存分析',
+    titleKey: 'aiChat.tool.generateSavedTabsAnalytics.title',
   },
   {
-    description: '保存傾向から興味のありそうなテーマを推定する',
+    descriptionKey: 'aiChat.tool.inferUserInterests.description',
     name: 'inferUserInterests',
-    title: '興味推定',
+    titleKey: 'aiChat.tool.inferUserInterests.title',
   },
-] as const
+] as const satisfies readonly AiChatToolDefinition[]
 
-type AiChatToolDefinition = (typeof AI_CHAT_TOOL_DEFINITIONS)[number]
+type AiChatToolDefinitionEntry = (typeof AI_CHAT_TOOL_DEFINITIONS)[number]
+type AiChatToolName = AiChatToolDefinitionEntry['name']
 
-const AI_CHAT_TOOL_TITLES: Record<string, string> = Object.fromEntries(
-  AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => [
-    toolDefinition.name,
-    toolDefinition.title,
-  ]),
-)
+const AI_CHAT_TOOL_NAMES: readonly AiChatToolName[] =
+  AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => toolDefinition.name)
 
-const AI_CHAT_TOOL_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
-  AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => [
-    toolDefinition.name,
-    toolDefinition.description,
-  ]),
-)
+const getAiChatToolDefinition = (
+  toolName: string,
+): AiChatToolDefinition | undefined =>
+  AI_CHAT_TOOL_DEFINITIONS.find(
+    (toolDefinition) => toolDefinition.name === toolName,
+  )
 
-export type { AiChatToolDefinition }
+const getAiChatToolTitle = (
+  language: AppLanguage,
+  toolName: string,
+): string => {
+  const toolDefinition = getAiChatToolDefinition(toolName)
+  if (!toolDefinition) {
+    return toolName
+  }
+  return getMessage(language, toolDefinition.titleKey, toolName)
+}
+
+const getAiChatToolDescription = (
+  language: AppLanguage,
+  toolName: string,
+): string => {
+  const toolDefinition = getAiChatToolDefinition(toolName)
+  if (!toolDefinition) {
+    return toolName
+  }
+  return getMessage(language, toolDefinition.descriptionKey, toolName)
+}
+
+type ResolvedAiChatToolDefinition = {
+  description: string
+  name: string
+  title: string
+}
+
+const getAiChatToolDefinitions = (
+  language: AppLanguage,
+): readonly ResolvedAiChatToolDefinition[] =>
+  AI_CHAT_TOOL_DEFINITIONS.map((toolDefinition) => ({
+    description: getMessage(
+      language,
+      toolDefinition.descriptionKey,
+      toolDefinition.name,
+    ),
+    name: toolDefinition.name,
+    title: getMessage(language, toolDefinition.titleKey, toolDefinition.name),
+  }))
+
+export type {
+  AiChatToolDefinition,
+  AiChatToolDefinitionEntry,
+  AiChatToolName,
+  ResolvedAiChatToolDefinition,
+}
 export {
   AI_CHAT_TOOL_DEFINITIONS,
-  AI_CHAT_TOOL_DESCRIPTIONS,
-  AI_CHAT_TOOL_TITLES,
+  AI_CHAT_TOOL_NAMES,
+  getAiChatToolDefinition,
+  getAiChatToolDefinitions,
+  getAiChatToolDescription,
+  getAiChatToolTitle,
 }

@@ -21,6 +21,10 @@ import {
   getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
+import {
+  BACKUP_MAX_SERIALIZED_SIZE_LABEL,
+  validateBackupSerializedBytes,
+} from '@/lib/persistence/backupResourcePolicy'
 
 import {
   createCloseImportDialogAction,
@@ -31,7 +35,7 @@ import {
 } from './importFileDialog.helpers'
 import type { PreviewData } from './importFileDialog.helpers'
 
-interface ImportSelectStepProps {
+type ImportSelectStepProps = {
   mergeData: boolean
   onMergeChange: (mergeData: boolean) => void
   isDragActive: boolean
@@ -47,6 +51,12 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
   getInputProps,
 }) => {
   const { t } = useI18n()
+  const handleMergeCheckedChange = useCallback(
+    (checked: boolean | 'indeterminate') => {
+      onMergeChange(checked === true)
+    },
+    [onMergeChange],
+  )
 
   return (
     <>
@@ -54,10 +64,7 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
         <Checkbox
           id='merge-data'
           checked={mergeData}
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-          onCheckedChange={(checked) => {
-            onMergeChange(checked === true)
-          }}
+          onCheckedChange={handleMergeCheckedChange}
         />
         <Label htmlFor='merge-data' className='cursor-pointer'>
           {t('options.importExport.merge')}
@@ -74,13 +81,14 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
 
       <div
         {...getRootProps()}
+        data-testid='import-dropzone'
         className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
           isDragActive
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/20'
         }`}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} data-testid='dropzone-file-input' />
         <Upload className='mx-auto mb-2 size-12 text-muted-foreground' />
         <p className='mb-1 text-sm font-medium'>
           {isDragActive
@@ -95,7 +103,7 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
   )
 }
 
-interface ImportPreviewStepProps {
+type ImportPreviewStepProps = {
   previewData: PreviewData
   mergeData: boolean
 }
@@ -172,7 +180,7 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
   )
 }
 
-interface ImportFileDialogProps {
+type ImportFileDialogProps = {
   onImportSuccess: () => Promise<void>
 }
 
@@ -189,20 +197,9 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   )
   const selectedFileRef = useRef<File | null>(null)
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleOpenImportDialog = () => {
+  const handleOpenImportDialog = useCallback(() => {
     dispatchImportDialog({ type: 'OPEN' })
-  }
-
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) {
-      return
-    }
-
-    processFile(file)
-  }
+  }, [])
 
   const processFile = useCallback(
     (file: File) => {
@@ -211,15 +208,11 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         return
       }
 
-      const MAX_IMPORT_FILE_SIZE_MB = 10
-      const BYTES_PER_KILOBYTE = 1024
-      const KILOBYTE = BYTES_PER_KILOBYTE
-      const MAX_IMPORT_FILE_SIZE_BYTES =
-        MAX_IMPORT_FILE_SIZE_MB * KILOBYTE * KILOBYTE // 10MB
-      if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+      const sizeValidation = validateBackupSerializedBytes(file.size)
+      if (!sizeValidation.success) {
         toast.error(
           t('options.importExport.fileTooLarge', undefined, {
-            maxSize: '10MB',
+            maxSize: BACKUP_MAX_SERIALIZED_SIZE_LABEL,
           }),
         )
         return
@@ -265,6 +258,18 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     [t],
   )
 
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) {
+        return
+      }
+
+      processFile(file)
+    },
+    [processFile],
+  )
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
@@ -283,13 +288,24 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     onDrop,
   })
 
-  const resetFileInput = () => {
+  const resetFileInput = useCallback(() => {
     selectedFileRef.current = null
     resetImportFileInput(fileInputRef.current)
-  }
+  }, [])
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleConfirmImport = () => {
+  const handleSetMerge = useCallback(
+    (mergeData: boolean) => {
+      dispatchImportDialog({ type: 'SET_MERGE', mergeData })
+    },
+    [dispatchImportDialog],
+  )
+
+  const handleResetAndBack = useCallback(() => {
+    dispatchImportDialog({ type: 'RESET' })
+    resetFileInput()
+  }, [dispatchImportDialog, resetFileInput])
+
+  const handleConfirmImport = useCallback(() => {
     setIsImporting(true)
     try {
       const reader = new FileReader()
@@ -341,7 +357,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       toast.error(t('options.importExport.importError'))
       setIsImporting(false)
     }
-  }
+  }, [importDialog.mergeData, onImportSuccess, t])
 
   return (
     <>
@@ -359,6 +375,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
 
       <input
         aria-label={t('options.importExport.import')}
+        data-testid='hidden-file-input'
         type='file'
         ref={fileInputRef}
         accept='.json'
@@ -392,10 +409,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
               {importDialog.step === 'select' && (
                 <ImportSelectStep
                   mergeData={importDialog.mergeData}
-                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                  onMergeChange={(mergeData) => {
-                    dispatchImportDialog({ type: 'SET_MERGE', mergeData })
-                  }}
+                  onMergeChange={handleSetMerge}
                   isDragActive={isDragActive}
                   getRootProps={getRootProps}
                   getInputProps={getInputProps}
@@ -415,11 +429,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             {importDialog.step === 'preview' && (
               <Button
                 variant='outline'
-                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                onClick={() => {
-                  dispatchImportDialog({ type: 'RESET' })
-                  resetFileInput()
-                }}
+                onClick={handleResetAndBack}
                 disabled={isImporting}
                 className='w-full cursor-pointer sm:w-auto'
               >

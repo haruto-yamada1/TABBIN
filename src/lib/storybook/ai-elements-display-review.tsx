@@ -3,25 +3,6 @@ import type { Tool as AiTool } from 'ai'
 import { Copy, ExternalLink } from 'lucide-react'
 
 import {
-  Agent,
-  AgentContent,
-  AgentHeader,
-  AgentInstructions,
-  AgentOutput,
-  AgentTool,
-  AgentTools,
-} from '@/components/ai-elements/agent'
-import {
-  Artifact,
-  ArtifactAction,
-  ArtifactActions,
-  ArtifactClose,
-  ArtifactContent,
-  ArtifactDescription,
-  ArtifactHeader,
-  ArtifactTitle,
-} from '@/components/ai-elements/artifact'
-import {
   Attachment,
   AttachmentEmpty,
   AttachmentHoverCard,
@@ -32,12 +13,32 @@ import {
   AttachmentRemove,
   Attachments,
 } from '@/components/ai-elements/attachments'
+import type { AttachmentData } from '@/components/ai-elements/attachments'
+import {
+  Agent,
+  AgentContent,
+  AgentHeader,
+  AgentInstructions,
+  AgentOutput,
+  AgentTool,
+  AgentTools,
+} from '@/components/ai-elements/vendor/agent'
+import {
+  Artifact,
+  ArtifactAction,
+  ArtifactActions,
+  ArtifactClose,
+  ArtifactContent,
+  ArtifactDescription,
+  ArtifactHeader,
+  ArtifactTitle,
+} from '@/components/ai-elements/vendor/artifact'
 import {
   Checkpoint,
   CheckpointIcon,
   CheckpointTrigger,
-} from '@/components/ai-elements/checkpoint'
-import { Persona } from '@/components/ai-elements/persona'
+} from '@/components/ai-elements/vendor/checkpoint'
+import { Persona } from '@/components/ai-elements/vendor/persona'
 import {
   Plan,
   PlanAction,
@@ -47,18 +48,18 @@ import {
   PlanHeader,
   PlanTitle,
   PlanTrigger,
-} from '@/components/ai-elements/plan'
+} from '@/components/ai-elements/vendor/plan'
 import {
   Snippet,
   SnippetAddon,
   SnippetCopyButton,
   SnippetInput,
   SnippetText,
-} from '@/components/ai-elements/snippet'
+} from '@/components/ai-elements/vendor/snippet'
 import {
   Transcription,
   TranscriptionSegment,
-} from '@/components/ai-elements/transcription'
+} from '@/components/ai-elements/vendor/transcription'
 
 const samplePng =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+AP7m8kG6QAAAABJRU5ErkJggg=='
@@ -75,23 +76,22 @@ const sampleTool = {
   }),
 } satisfies AiTool
 
-const sampleAttachment = {
+const sampleAttachment: AttachmentData = {
   filename: 'review.png',
   id: 'file-1',
   mediaType: 'image/png',
   type: 'file',
   url: `data:image/png;base64,${samplePng}`,
-} as const
+}
 
-const sampleSource = {
+const sampleSource: AttachmentData = {
   filename: 'migration-guide.md',
   id: 'source-1',
   mediaType: 'text/markdown',
   sourceId: 'source-1',
   title: 'Migration guide',
   type: 'source-document',
-  url: 'https://tabbin.app/docs/migration',
-} as const
+}
 
 const Section = ({
   children,
@@ -186,7 +186,6 @@ const ReviewArtifacts = () => (
     <Section title='Attachments + Snippet'>
       <div className='gap-y-4'>
         <Attachments variant='grid'>
-          {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
           <Attachment data={sampleAttachment} onRemove={() => undefined}>
             <AttachmentHoverCard>
               <AttachmentHoverCardTrigger asChild>
@@ -230,7 +229,6 @@ const ReviewArtifacts = () => (
         <Transcription
           className='rounded-lg border p-3'
           currentTime={4}
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onSeek={() => undefined}
           segments={[
             { endSecond: 2, startSecond: 0, text: 'Pinned tabs grouped.' },

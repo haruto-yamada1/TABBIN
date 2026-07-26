@@ -1,8 +1,12 @@
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
 import { getUserSettings } from '@/lib/storage/settings'
 
-const getBackgroundUiLocale = () => chrome.i18n?.getUILanguage?.() ?? 'ja'
+const getBackgroundUiLocale = () => getBrowserUiLocale('ja')
 
 const getBackgroundLanguage = async (): Promise<AppLanguage> => {
   try {

@@ -3,9 +3,9 @@ import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
 import { getParentCategories } from '@/lib/storage/categories'
 import { getCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
+import { getSavedTabs } from '@/lib/storage/tabs'
 import { getUrlRecords } from '@/lib/storage/urls'
 import { filterItemsBySavableUrl } from '@/lib/url-filter'
-import type { TabGroup } from '@/types/storage'
 
 const loadAnalyticsRecords = async (): Promise<AiSavedUrlRecord[]> => {
   const [
@@ -18,22 +18,15 @@ const loadAnalyticsRecords = async (): Promise<AiSavedUrlRecord[]> => {
     getUrlRecords(),
     getCustomProjects(),
     getParentCategories(),
-    chrome.storage.local.get<{
-      savedTabs?: TabGroup[]
-    }>('savedTabs'),
+    getSavedTabs(),
     getUserSettings(),
   ])
 
   return buildAiSavedUrlRecords({
     customProjects,
     parentCategories,
-    savedTabs: Array.isArray(savedTabsResult.savedTabs)
-      ? savedTabsResult.savedTabs
-      : [],
-    urlRecords: filterItemsBySavableUrl(
-      urlRecords,
-      settings.excludePatterns ?? [],
-    ),
+    savedTabs: savedTabsResult,
+    urlRecords: filterItemsBySavableUrl(urlRecords, settings.excludePatterns),
   })
 }
 

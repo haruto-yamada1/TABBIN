@@ -15,7 +15,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useIsMobile } from '@/hooks/useMobile'
+import {
+  readLocalStorage,
+  writeLocalStorage,
+} from '@/lib/storage/local-storage-adapter'
 import { cn } from '@/lib/utils'
 
 const SECONDS_IN_MINUTE_SB = 60
@@ -52,7 +56,7 @@ const loadSidebarWidth = (): number => {
     return SIDEBAR_WIDTH_ICON_PX
   }
 
-  const storedWidth = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
+  const storedWidth = readLocalStorage(SIDEBAR_WIDTH_STORAGE_KEY)
   if (!storedWidth) {
     return clampSidebarWidth(SIDEBAR_WIDTH_ICON_PX)
   }
@@ -69,17 +73,10 @@ const persistSidebarWidth = (width: number): void => {
     return
   }
 
-  try {
-    window.localStorage.setItem(
-      SIDEBAR_WIDTH_STORAGE_KEY,
-      String(clampSidebarWidth(width)),
-    )
-  } catch {
-    // LocalStorage が使えない環境では保持をスキップする
-  }
+  writeLocalStorage(SIDEBAR_WIDTH_STORAGE_KEY, String(clampSidebarWidth(width)))
 }
 
-interface SidebarContextProps {
+type SidebarContextProps = {
   state: 'expanded' | 'collapsed'
   open: boolean
   setOpen: (open: boolean) => void
@@ -134,7 +131,6 @@ const SidebarProvider = ({
       }
 
       // This sets the cookie to keep the sidebar state.
-      // oxlint-disable-next-line unicorn/no-document-cookie -- shadcn sidebar persists open state with a cookie
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
     [setOpenProp, open],
@@ -229,7 +225,6 @@ const SidebarProvider = ({
 }
 SidebarProvider.displayName = 'SidebarProvider'
 
-// eslint-disable-next-line eslint/complexity
 const Sidebar = ({
   children,
   className,
@@ -363,7 +358,10 @@ const Sidebar = ({
         )}
         onPointerDown={handleResizeStart}
       >
-        <div className='absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/80' />
+        <span
+          aria-hidden='true'
+          className='absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/80'
+        />
       </button>
     </div>
   )

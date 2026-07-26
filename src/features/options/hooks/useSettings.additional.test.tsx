@@ -47,7 +47,7 @@ type StorageListener = (
   areaName: string,
 ) => void
 
-interface RetryToastOptions {
+type RetryToastOptions = {
   action?: {
     label: string
     onClick: () => Promise<void> | void
@@ -88,14 +88,13 @@ describe('useSettings の追加分岐', () => {
     vi.mocked(getUserSettings).mockResolvedValue(defaultSettings)
 
     const { result, unmount } = renderHook(() => useSettings())
-    // eslint-disable-next-line typescript/unbound-method
+
     const addListener = vi.mocked(chrome.storage.onChanged.addListener)
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    // eslint-disable-next-line typescript/unbound-method
     const removeListener = vi.mocked(chrome.storage.onChanged.removeListener)
     const listener = addListener.mock.calls[0]?.[0]
 

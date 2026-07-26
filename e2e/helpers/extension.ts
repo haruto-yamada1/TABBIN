@@ -5,9 +5,11 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { test as base, chromium, expect } from '@playwright/test'
-import type { BrowserContext, Page, Worker } from '@playwright/test'
+import type { BrowserContext, Page, Request, Worker } from '@playwright/test'
 
-interface ExtensionFixtures {
+import { getUnexpectedPlaywrightExtensionOutboundRequest } from './network-policy'
+
+type ExtensionFixtures = {
   extensionContext: BrowserContext
   extensionId: string
   serviceWorker: Worker
@@ -33,14 +35,30 @@ export const test = base.extend<ExtensionFixtures>({
         ],
       },
     )
+    const violations = new Set<string>()
+    const handleRequest = (request: Request) => {
+      const violation = getUnexpectedPlaywrightExtensionOutboundRequest(request)
+      if (violation !== null) {
+        violations.add(violation)
+      }
+    }
+    extensionContext.on('request', handleRequest)
 
-    await runFixture(extensionContext)
+    try {
+      await runFixture(extensionContext)
+    } finally {
+      extensionContext.off('request', handleRequest)
+      await extensionContext.close()
+      await rm(userDataDir, {
+        force: true,
+        recursive: true,
+      })
+    }
 
-    await extensionContext.close()
-    await rm(userDataDir, {
-      force: true,
-      recursive: true,
-    })
+    expect(
+      [...violations],
+      'unexpected outbound request from an extension page or service worker',
+    ).toEqual([])
   },
   extensionId: async ({ serviceWorker }, runFixture) => {
     const extensionId = new URL(serviceWorker.url()).host
@@ -65,6 +83,38 @@ export const test = base.extend<ExtensionFixtures>({
 
 export { expect }
 
+export const defaultUserSettings = {
+  autoDeletePeriod: 'never',
+  clickBehavior: 'saveSameDomainTabs',
+  colors: {},
+  confirmDeleteAll: false,
+  confirmDeleteEach: false,
+  enableCategories: true,
+  excludePatterns: ['chrome-extension://', 'chrome://'],
+  excludePinnedTabs: true,
+  language: 'en',
+  ollamaModel: '',
+  openAllInNewWindow: false,
+  openUrlInBackground: true,
+  removeTabAfterExternalDrop: true,
+  removeTabAfterOpen: true,
+  showSavedTime: false,
+}
+
+export const createBaseSeed = (overrides?: Record<string, unknown>) => ({
+  customProjectOrder: [],
+  customProjects: [],
+  domainCategoryMappings: [],
+  domainCategorySettings: [],
+  parentCategories: [],
+  savedTabs: [],
+  'tab-manager-theme': 'system',
+  urls: [],
+  userSettings: { ...defaultUserSettings },
+  viewMode: 'domain',
+  ...overrides,
+})
+
 export const getExtensionUrl = (extensionId: string, pathname: string) =>
   `chrome-extension://${extensionId}/${pathname}`
 
@@ -88,7 +138,7 @@ export const readStorage = async <T>(
       query?: Record<string, unknown> | string | string[],
     ): Promise<Record<string, unknown>> =>
       new Promise((resolve) => {
-        if (query == null) {
+        if (query === undefined) {
           chrome.storage.local.get((items: Record<string, unknown>) => {
             // eslint-disable-line typescript/TS7006
             resolve(items)
@@ -101,7 +151,7 @@ export const readStorage = async <T>(
         })
       })
 
-    if (value == null) {
+    if (value === undefined) {
       return getItems()
     }
 

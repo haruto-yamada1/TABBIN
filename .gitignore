@@ -14,6 +14,7 @@ stats-*.json
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+src/contexts/__oxlint-fixture-*/
 
 # Logs
 logs/
@@ -35,8 +36,11 @@ web-ext.config.ts
 .codex/
 .cursor/
 .gemini/
+.opencode/
+.commandcode/
 .github/hooks/
 .github/instructions/
+.github/copilot-instructions.md
 .github/prompts/*.prompt.md
 .github/skills/
 
@@ -51,6 +55,13 @@ web-ext.config.ts
 *.sln
 *.sw?
 
+# Worktree directory
+.worktrees/
+
+# Waza scratch (PoC)
+.waza-cache/
+.waza-results/
+.codex/waza-results/
 
 # APM dependencies
 apm_modules/

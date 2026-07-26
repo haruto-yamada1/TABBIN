@@ -1,5 +1,12 @@
+import type { z } from 'zod'
+
+import type {
+  UserSettingsSchema,
+  aiSystemPromptPresetSchema,
+} from '@/lib/storage/zod-storage'
+
 // URLレコードのインターフェース（共通URL管理用）
-export interface UrlRecord {
+export type UrlRecord = {
   id: string
   url: string
   title: string
@@ -8,7 +15,7 @@ export interface UrlRecord {
 }
 
 // 親カテゴリのインターフェース
-export interface ParentCategory {
+export type ParentCategory = {
   id: string
   name: string
   domains: string[] // このカテゴリに属するドメインIDのリスト
@@ -16,18 +23,18 @@ export interface ParentCategory {
 }
 
 // 子カテゴリのキーワード設定のインターフェース
-export interface SubCategoryKeyword {
+export type SubCategoryKeyword = {
   categoryName: string // カテゴリ名
   keywords: string[] // 関連キーワードリスト
 }
 
-export interface ProjectKeywordSettings {
+export type ProjectKeywordSettings = {
   titleKeywords: string[]
   urlKeywords: string[]
   domainKeywords: string[]
 }
 
-export interface TabGroup {
+export type TabGroup = {
   id: string
   domain: string
   parentCategoryId?: string // 親カテゴリのID
@@ -50,46 +57,29 @@ export interface TabGroup {
   savedAt?: number // グループ全体の保存時刻を追加
 }
 
-export interface UserSettings {
-  language?: 'system' | 'ja' | 'en'
-  removeTabAfterOpen: boolean
-  removeTabAfterExternalDrop: boolean
-  excludePatterns: string[]
-  enableCategories: boolean // カテゴリ機能の有効/無効
-  autoDeletePeriod?: string // Never, 1hour, 1day, 7days, 14days, 30days, 180days, 365days
-  showSavedTime: boolean // 保存日時を表示するかどうか
-  clickBehavior:
-    | 'saveCurrentTab'
-    | 'saveWindowTabs'
-    | 'saveSameDomainTabs'
-    | 'saveAllWindowsTabs' // 新しいオプション: クリック時の挙動
-  excludePinnedTabs: boolean // 固定タブ（ピン留め）を除外するかどうか
-  openUrlInBackground: boolean // URLクリック時に別タブで開くかどうか
-  openAllInNewWindow: boolean // 「すべてのタブを開く」を別ウィンドウで開くかどうか
-  confirmDeleteAll: boolean // すべて削除前に確認するかどうか
-  confirmDeleteEach: boolean // URL削除前に個別確認するかどうか
-  fontSizePercent?: number
-  colors?: Record<string, string> // ユーザー設定: カラー設定まとめ
-  ollamaModel?: string
-  aiSystemPrompts?: AiSystemPromptPreset[]
-  activeAiSystemPromptId?: string
-}
+/**
+ * `UserSettings` の runtime schema から導出する型 (issue #672)。
+ *
+ * `z.infer<typeof UserSettingsSchema>` と構造一致するため、schema と
+ * TypeScript interface の二重管理を回避できる。
+ */
+export type UserSettings = z.infer<typeof UserSettingsSchema>
 
 // ドメイン別のカテゴリ設定を保存するためのインターフェース
-export interface DomainCategorySettings {
+export type DomainCategorySettings = {
   domain: string // ドメイン
   subCategories: string[] // このドメインで設定された子カテゴリリスト
   categoryKeywords: SubCategoryKeyword[] // カテゴリキーワード設定
 }
 
 // ドメインと親カテゴリのマッピングを保存するインターフェース
-export interface DomainParentCategoryMapping {
+export type DomainParentCategoryMapping = {
   domain: string // ドメイン（URL）
   categoryId: string // 親カテゴリID
 }
 
 // カスタムプロジェクト（PJ単位）のデータ構造
-export interface CustomProject {
+export type CustomProject = {
   id: string
   name: string
   projectKeywords?: ProjectKeywordSettings
@@ -117,13 +107,10 @@ export interface CustomProject {
   updatedAt: number
 }
 
-export interface AiSystemPromptPreset {
-  id: string
-  name: string
-  template: string
-  createdAt: number
-  updatedAt: number
-}
+/**
+ * AI system prompt preset の runtime schema から導出する型 (issue #672)。
+ */
+export type AiSystemPromptPreset = z.infer<typeof aiSystemPromptPresetSchema>
 
 // ビューモード（表示モード）の型定義
 export type ViewMode = 'domain' | 'custom'

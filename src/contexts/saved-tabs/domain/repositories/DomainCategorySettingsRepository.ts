@@ -1,0 +1,35 @@
+import type { DomainCategorySettingsDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
+
+/**
+ * `DomainCategorySettingsDto` の永続化責務だけを抽出した repository
+ * interface。
+ *
+ * 旧 `src/lib/storage/categories.getDomainCategorySettings` /
+ * `updateDomainCategorySettings` の DDD 境界。`chrome.storage.local` への
+ * 直接アクセスは禁止。実装は
+ * `src/contexts/saved-tabs/infrastructure/persistence/chrome-storage/` 側に置く。
+ *
+ * `domain` を主キーとしたドメイン別の子カテゴリ / キーワード設定を保存する。
+ * `TabGroup.subCategories` / `TabGroup.categoryKeywords` と並列に
+ * 保持され、削除時復元などで参照される。
+ *
+ * presentation 層から `@/lib/storage/categories` を import しない
+ * 方針 (issue #509) に揃える。
+ *
+ * `@/types/storage` には依存せず、domain DTO `DomainCategorySettingsDto`
+ * だけを返す/受け取る (issue #511)。
+ *
+ * @example
+ * ```ts
+ * const settings = await settingsRepository.findAll()
+ * await settingsRepository.saveAll(
+ *   settings.map((s) =>
+ *     s.domain === domain ? { ...s, subCategories } : s,
+ *   ),
+ * )
+ * ```
+ */
+export type DomainCategorySettingsRepository = {
+  findAll: () => Promise<readonly DomainCategorySettingsDto[]>
+  saveAll: (settings: readonly DomainCategorySettingsDto[]) => Promise<void>
+}

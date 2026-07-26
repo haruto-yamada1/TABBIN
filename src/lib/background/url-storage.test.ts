@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* eslint-disable typescript/no-misused-promises, typescript/require-await, typescript/unbound-method -- chrome.storage.local.get の mock 実装が interface シグネチャに async を要求し、かつ同期分岐を持つテスト idiom */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/lib/storage/settings', () => ({
@@ -12,6 +12,7 @@ vi.mock('@/lib/storage/projects', () => ({
 vi.mock('@/lib/storage/urls', () => ({
   deleteUrlRecord: vi.fn(),
   invalidateUrlCache: vi.fn(),
+  withUrlRecordMutation: vi.fn(async (mutation) => mutation()),
 }))
 
 import { removeUrlFromAllCustomProjects } from '@/lib/storage/projects'
@@ -20,11 +21,11 @@ import { deleteUrlRecord, invalidateUrlCache } from '@/lib/storage/urls'
 
 import {
   clearDraggedUrlInfo,
+  createComparableUrlKey,
   getDraggedUrlInfo,
   handleTabCreated,
   handleUrlDragStarted,
   handleUrlDropped,
-  normalizeUrl,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,
   setDraggedUrlInfo,
@@ -48,7 +49,7 @@ const createSettings = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   }) as Awaited<ReturnType<typeof getUserSettings>>
 
-interface StorageState {
+type StorageState = {
   customProjects?: {
     id: string
     name: string
@@ -62,7 +63,7 @@ interface StorageState {
     id: string
     domain: string
     parentCategoryId?: string
-    urls?: { url: string; title: string }[]
+    urls?: { id?: string; url: string; title: string; savedAt?: number }[]
     urlIds?: string[]
     urlSubCategories?: Record<string, string>
   }[]
@@ -75,7 +76,8 @@ interface StorageState {
   }[]
 }
 
-interface ChromeMockOptions {
+type ChromeMockOptions = {
+  cloneReads?: boolean
   rejectGet?: boolean
   rejectSet?: boolean
 }
@@ -83,19 +85,26 @@ interface ChromeMockOptions {
 let storageState: StorageState
 
 const setupChromeMock = (options: ChromeMockOptions = {}) => {
-  // eslint-disable-next-line typescript/require-await
+  const readValue = <T>(value: T): T =>
+    options.cloneReads ? structuredClone(value) : value
+
   const getMock = vi.fn(async (keys?: unknown) => {
     if (options.rejectGet) {
       throw new Error('storage get failed')
     }
 
     if (typeof (keys as unknown as string) === 'string') {
-      return { [keys as string]: storageState[keys as keyof StorageState] }
+      return {
+        [keys as string]: readValue(storageState[keys as keyof StorageState]),
+      }
     }
 
     if (Array.isArray(keys)) {
       return Object.fromEntries(
-        keys.map((key) => [key, storageState[key as keyof StorageState]]),
+        keys.map((key) => [
+          key,
+          readValue(storageState[key as keyof StorageState]),
+        ]),
       )
     }
 
@@ -105,16 +114,15 @@ const setupChromeMock = (options: ChromeMockOptions = {}) => {
         Object.entries(defaults).map(([key, fallback]) => [
           key,
           key in storageState
-            ? storageState[key as keyof StorageState]
-            : fallback,
+            ? readValue(storageState[key as keyof StorageState])
+            : readValue(fallback),
         ]),
       )
     }
 
-    return { ...storageState }
+    return readValue({ ...storageState })
   })
 
-  // eslint-disable-next-line typescript/require-await
   const setMock = vi.fn(async (next: Record<string, unknown>) => {
     if (options.rejectSet) {
       throw new Error('storage set failed')
@@ -173,8 +181,24 @@ describe('url-storage', () => {
     const result = await handleUrlDropped('https://example.com', true)
 
     expect(result).toBe('skipped')
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
+  })
+
+  it('ユーザーURLのhost・path・queryをログへ出力しない', async () => {
+    vi.mocked(getUserSettings).mockResolvedValue(
+      createSettings({ removeTabAfterExternalDrop: false }),
+    )
+    const privateUrl =
+      'https://private.example.com/account/settings?token=top-secret'
+
+    await handleUrlDropped(privateUrl, true)
+
+    const loggedValues = JSON.stringify(vi.mocked(console.log).mock.calls)
+    expect(loggedValues).toContain('[redacted-url]')
+    expect(loggedValues).not.toContain('private.example.com')
+    expect(loggedValues).not.toContain('/account/settings')
+    expect(loggedValues).not.toContain('top-secret')
   })
 
   it('外部ドロップかつ専用設定がONならURLを削除する', async () => {
@@ -183,7 +207,7 @@ describe('url-storage', () => {
     const result = await handleUrlDropped('https://example.com', true)
 
     expect(result).toBe('removed')
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -226,6 +250,20 @@ describe('url-storage', () => {
     expect(getDraggedUrlInfo()).toBeNull()
   })
 
+  it('古いドラッグのタイムアウトで新しいドラッグ情報を消さない', () => {
+    vi.useFakeTimers()
+
+    handleUrlDragStarted('https://first.example.com')
+    vi.advanceTimersByTime(5_000)
+    handleUrlDragStarted('https://second.example.com')
+    vi.advanceTimersByTime(5_000)
+
+    expect(getDraggedUrlInfo()?.url).toBe('https://second.example.com')
+
+    vi.advanceTimersByTime(5_000)
+    expect(getDraggedUrlInfo()).toBeNull()
+  })
+
   it('新規タブURLが一致し removeTabAfterOpen=true ならURLを削除する', async () => {
     vi.mocked(getUserSettings).mockResolvedValue(
       createSettings({ removeTabAfterOpen: true }),
@@ -236,7 +274,6 @@ describe('url-storage', () => {
       url: 'https://example.com#hash',
     } as chrome.tabs.Tab)
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -249,6 +286,73 @@ describe('url-storage', () => {
     expect(getDraggedUrlInfo()).toBeNull()
   })
 
+  it('新規タブURLの hash だけが違う場合は同じURLとして削除する', async () => {
+    storageState = {
+      savedTabs: [
+        {
+          id: 'group-1',
+          domain: 'example.com',
+          urls: [
+            { url: 'https://example.com/page#saved', title: 'Saved' },
+            { url: 'https://example.org/keep', title: 'Other' },
+          ],
+        },
+      ],
+      parentCategories: [],
+      urls: [],
+    }
+    setupChromeMock()
+    vi.mocked(getUserSettings).mockResolvedValue(
+      createSettings({ removeTabAfterOpen: true }),
+    )
+    handleUrlDragStarted('https://example.com/page#saved')
+
+    await handleTabCreated({
+      url: 'https://example.com/page#opened',
+    } as chrome.tabs.Tab)
+
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      savedTabs: [
+        {
+          id: 'group-1',
+          domain: 'example.com',
+          urls: [{ url: 'https://example.org/keep', title: 'Other' }],
+        },
+      ],
+    })
+    expect(getDraggedUrlInfo()).toBeNull()
+  })
+
+  it('新規タブURLの query が違う場合は削除しない', async () => {
+    vi.mocked(getUserSettings).mockResolvedValue(
+      createSettings({ removeTabAfterOpen: true }),
+    )
+    handleUrlDragStarted('https://example.com/page?mode=edit')
+
+    await handleTabCreated({
+      url: 'https://example.com/page?mode=view',
+    } as chrome.tabs.Tab)
+
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+    expect(getUserSettings).not.toHaveBeenCalled()
+    expect(getDraggedUrlInfo()?.url).toBe('https://example.com/page?mode=edit')
+  })
+
+  it('新規タブURLが部分一致しても別URLなら削除しない', async () => {
+    vi.mocked(getUserSettings).mockResolvedValue(
+      createSettings({ removeTabAfterOpen: true }),
+    )
+    handleUrlDragStarted('https://example.com/page')
+
+    await handleTabCreated({
+      url: 'https://example.com/page-2',
+    } as chrome.tabs.Tab)
+
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+    expect(getUserSettings).not.toHaveBeenCalled()
+    expect(getDraggedUrlInfo()?.url).toBe('https://example.com/page')
+  })
+
   it('新規タブURLが一致しても removeTabAfterOpen=false なら削除しない', async () => {
     vi.mocked(getUserSettings).mockResolvedValue(
       createSettings({ removeTabAfterOpen: false }),
@@ -256,10 +360,9 @@ describe('url-storage', () => {
     handleUrlDragStarted('https://example.com/path?query=1')
 
     await handleTabCreated({
-      url: 'https://example.com/path',
+      url: 'https://example.com/path?query=1',
     } as chrome.tabs.Tab)
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
     expect(getDraggedUrlInfo()).toBeNull()
   })
@@ -280,11 +383,11 @@ describe('url-storage', () => {
     vi.mocked(getUserSettings).mockResolvedValue(
       createSettings({ removeTabAfterOpen: true }),
     )
-    handleUrlDragStarted('https://example.com/path')
+    handleUrlDragStarted('https://example.com')
 
     await expect(
       handleTabCreated({
-        url: 'https://example.com/path',
+        url: 'https://example.com',
       } as chrome.tabs.Tab),
     ).resolves.toBeUndefined()
 
@@ -306,17 +409,48 @@ describe('url-storage', () => {
     expect(getDraggedUrlInfo()).toBeNull()
   })
 
-  it('normalizeUrl は trim 失敗時にフォールバック値を返す', () => {
-    const malformed = {
-      trim() {
-        throw new Error('trim failed')
-      },
-      toLowerCase() {
-        return 'fallback-url'
-      },
-    } as unknown as string
+  it('createComparableUrlKey は URL API で host を正規化し hash を明示的に無視できる', () => {
+    expect(
+      createComparableUrlKey('https://Example.com/path?x=1#top', {
+        ignoreHash: true,
+      }),
+    ).toBe('https://example.com/path?x=1')
+  })
 
-    expect(normalizeUrl(malformed)).toBe('fallback-url')
+  it('createComparableUrlKey は query を明示的に無視しない限り比較 key に残す', () => {
+    expect(createComparableUrlKey('https://example.com/path?mode=edit')).toBe(
+      'https://example.com/path?mode=edit',
+    )
+    expect(
+      createComparableUrlKey('https://example.com/path?mode=edit', {
+        ignoreSearch: true,
+      }),
+    ).toBe('https://example.com/path')
+  })
+
+  it('createComparableUrlKey は不正URLで null を返す', () => {
+    expect(createComparableUrlKey('not a url')).toBeNull()
+  })
+
+  it('不正URLの削除要求は保存済みデータを変更しない', async () => {
+    storageState = {
+      savedTabs: [
+        {
+          id: 'group-invalid',
+          domain: 'invalid.example.com',
+          urls: [{ url: 'not a url', title: 'Invalid' }],
+        },
+      ],
+      parentCategories: [],
+      urls: [],
+    }
+    setupChromeMock()
+
+    await removeUrlFromStorage('not a url')
+
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+    expect(removeUrlFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(deleteUrlRecord).not.toHaveBeenCalled()
   })
 
   it('URL削除でグループが空になったとき parentCategories からIDを外す', async () => {
@@ -344,10 +478,8 @@ describe('url-storage', () => {
     await Promise.resolve()
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      savedTabs: [],
       parentCategories: [
         {
           id: 'cat-1',
@@ -357,6 +489,44 @@ describe('url-storage', () => {
         },
       ],
     })
+  })
+
+  it('同じURLで複数グループが空になっても全IDを親カテゴリから外す', async () => {
+    storageState = {
+      savedTabs: [
+        {
+          id: 'group-empty-1',
+          domain: 'first.example.com',
+          urls: [{ url: 'https://shared.example.com', title: 'Shared' }],
+        },
+        {
+          id: 'group-empty-2',
+          domain: 'second.example.com',
+          urls: [{ url: 'https://shared.example.com', title: 'Shared' }],
+        },
+      ],
+      parentCategories: [
+        {
+          id: 'cat-1',
+          name: 'Category 1',
+          domains: ['group-empty-1', 'group-empty-2', 'group-keep'],
+          domainNames: ['first.example.com', 'second.example.com'],
+        },
+      ],
+    }
+    setupChromeMock({ cloneReads: true })
+
+    await removeUrlFromStorage('https://shared.example.com')
+
+    expect(storageState.savedTabs).toStrictEqual([])
+    expect(storageState.parentCategories).toStrictEqual([
+      {
+        id: 'cat-1',
+        name: 'Category 1',
+        domains: ['group-keep'],
+        domainNames: ['first.example.com', 'second.example.com'],
+      },
+    ])
   })
 
   it('グループのドメイン情報が欠損しているときカテゴリ更新をスキップする', async () => {
@@ -382,13 +552,12 @@ describe('url-storage', () => {
     await removeUrlFromStorage('https://single.example.com')
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).not.toHaveBeenCalledWith({
       parentCategories: expect.anything(),
     })
   })
 
-  it('parentCategories 更新時に例外が起きても削除処理は継続する', async () => {
+  it('一括取得で失敗した場合は removeUrlFromStorage がエラーを再スローする', async () => {
     storageState = {
       savedTabs: [
         {
@@ -401,27 +570,10 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
-      // eslint-disable-line
-      // eslint-disable-line
-      // eslint-disable-line
       async (key: unknown) => {
-        // eslint-disable-line
-        // eslint-disable-line
-        // eslint-disable-line
-        // eslint-disable-line
         if (Array.isArray(key)) {
-          return {
-            savedTabs: storageState.savedTabs,
-            urls: storageState.urls,
-          }
-        }
-        if (key === 'savedTabs') {
-          return { savedTabs: storageState.savedTabs }
-        }
-        if (key === 'parentCategories') {
-          throw new Error('parent category read failed')
+          throw new TypeError('storage read failed')
         }
         return {}
       },
@@ -429,14 +581,11 @@ describe('url-storage', () => {
 
     await expect(
       removeUrlFromStorage('https://single.example.com'),
-    ).resolves.toBeUndefined()
-    await Promise.resolve()
+    ).rejects.toThrow('storage read failed')
 
-    // eslint-disable-next-line typescript/unbound-method
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
     expect(console.error).toHaveBeenCalledWith(
-      '親カテゴリからの削除中にエラーが発生しました:',
-      'parent category read failed',
+      'URLの削除中にエラーが発生しました:',
+      expect.any(Error),
     )
   })
 
@@ -458,7 +607,7 @@ describe('url-storage', () => {
     )
   })
 
-  it('savedTabs が未定義でも空配列として保存する', async () => {
+  it('savedTabs が未定義で削除対象がない場合は保存しない', async () => {
     storageState = {
       parentCategories: [],
     }
@@ -466,8 +615,7 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://example.com')
 
-    // eslint-disable-next-line typescript/unbound-method
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
   })
 
   it('urls/urlIds 未定義グループは保持し、カテゴリ更新を行わない', async () => {
@@ -491,19 +639,7 @@ describe('url-storage', () => {
     await removeUrlFromStorage('https://does-not-exist.example.com')
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({
-      savedTabs: [
-        {
-          id: 'group-no-urls',
-          domain: 'no-urls.example.com',
-        },
-      ],
-    })
-    // eslint-disable-next-line typescript/unbound-method
-    expect(chrome.storage.local.set).not.toHaveBeenCalledWith({
-      parentCategories: expect.anything(),
-    })
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
   })
 
   it('domainNames に対象ドメインがない場合の分岐を通る', async () => {
@@ -529,8 +665,8 @@ describe('url-storage', () => {
     await removeUrlFromStorage('https://target.example.com')
     await Promise.resolve()
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      savedTabs: [],
       parentCategories: [
         {
           id: 'cat-1',
@@ -556,7 +692,7 @@ describe('url-storage', () => {
     setupChromeMock()
 
     let callCount = 0
-    // eslint-disable-next-line typescript/require-await
+
     vi.mocked(chrome.storage.local.get).mockImplementation(
       // eslint-disable-line
       // eslint-disable-line
@@ -579,7 +715,7 @@ describe('url-storage', () => {
     ).resolves.toBeUndefined()
   })
 
-  it('removeFromParentCategories で非Error例外が発生しても処理を継続する', async () => {
+  it('一括取得で非Error例外が発生しても再スローする', async () => {
     storageState = {
       savedTabs: [
         {
@@ -592,26 +728,9 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
-      // eslint-disable-line
-      // eslint-disable-line
-      // eslint-disable-line
       async (key: unknown) => {
-        // eslint-disable-line
-        // eslint-disable-line
-        // eslint-disable-line
-        // eslint-disable-line
         if (Array.isArray(key)) {
-          return {
-            savedTabs: storageState.savedTabs,
-            urls: storageState.urls,
-          }
-        }
-        if (key === 'savedTabs') {
-          return { savedTabs: storageState.savedTabs }
-        }
-        if (key === 'parentCategories') {
           // eslint-disable-next-line eslint/no-throw-literal
           throw 'non-error-thrown' // eslint-disable-line
         }
@@ -619,11 +738,12 @@ describe('url-storage', () => {
       },
     )
 
-    await removeUrlFromStorage('https://non-error.example.com')
-    await Promise.resolve()
+    await expect(
+      removeUrlFromStorage('https://non-error.example.com'),
+    ).rejects.toBe('non-error-thrown')
 
     expect(console.error).toHaveBeenCalledWith(
-      '親カテゴリからの削除中にエラーが発生しました:',
+      'URLの削除中にエラーが発生しました:',
       'non-error-thrown',
     )
   })
@@ -715,7 +835,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -725,10 +844,18 @@ describe('url-storage', () => {
           urlSubCategories: { 'url-id-2': 'catB' },
         },
       ],
+      urls: [
+        {
+          id: 'url-id-2',
+          url: 'https://other.example.com/page',
+          title: 'Other',
+          savedAt: 2,
+        },
+      ],
     })
   })
 
-  it('urlIdsベース削除ではカスタムプロジェクト同期後に未参照URLレコードも削除する', async () => {
+  it('urlIdsベース削除では同一mutation内で未参照URLレコードも削除する', async () => {
     storageState = {
       savedTabs: [
         {
@@ -748,14 +875,160 @@ describe('url-storage', () => {
       ],
     }
     setupChromeMock()
-    vi.mocked(deleteUrlRecord).mockResolvedValue(true)
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    expect(removeUrlFromAllCustomProjects).toHaveBeenCalledWith(
-      'https://target.example.com/page',
-    )
-    expect(deleteUrlRecord).toHaveBeenCalledWith('url-id-1')
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      savedTabs: [],
+      urls: [],
+    })
+    expect(removeUrlFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(deleteUrlRecord).not.toHaveBeenCalled()
+  })
+
+  it('同時URL削除でもsavedTabs関連ストレージを古いsnapshotで上書きしない', async () => {
+    storageState = {
+      customProjects: [
+        {
+          id: 'project-1',
+          name: 'Project 1',
+          urlIds: ['url-a', 'url-b', 'url-keep'],
+          urlMetadata: {
+            'url-a': { category: 'Remove A' },
+            'url-b': { category: 'Remove B' },
+            'url-keep': { category: 'Keep' },
+          },
+          categories: [],
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'group-a',
+          domain: 'a.example.com',
+          urlIds: ['url-a'],
+          urlSubCategories: { 'url-a': 'Remove A' },
+        },
+        {
+          id: 'group-b',
+          domain: 'b.example.com',
+          urlIds: ['url-b'],
+          urlSubCategories: { 'url-b': 'Remove B' },
+        },
+        {
+          id: 'group-keep',
+          domain: 'keep.example.com',
+          urlIds: ['url-keep'],
+          urlSubCategories: { 'url-keep': 'Keep' },
+        },
+      ],
+      parentCategories: [
+        {
+          id: 'cat-1',
+          name: 'Category 1',
+          domains: ['group-a', 'group-b', 'group-keep'],
+          domainNames: ['a.example.com', 'b.example.com', 'keep.example.com'],
+        },
+      ],
+      urls: [
+        {
+          id: 'url-a',
+          url: 'https://a.example.com/page',
+          title: 'A',
+          savedAt: 1,
+        },
+        {
+          id: 'url-b',
+          url: 'https://b.example.com/page',
+          title: 'B',
+          savedAt: 2,
+        },
+        {
+          id: 'url-keep',
+          url: 'https://keep.example.com/page',
+          title: 'Keep',
+          savedAt: 3,
+        },
+      ],
+    }
+    setupChromeMock({ cloneReads: true })
+
+    await Promise.all([
+      removeUrlFromStorage('https://a.example.com/page'),
+      removeUrlFromStorage('https://b.example.com/page'),
+    ])
+
+    expect(storageState.savedTabs).toStrictEqual([
+      {
+        id: 'group-keep',
+        domain: 'keep.example.com',
+        urlIds: ['url-keep'],
+        urlSubCategories: { 'url-keep': 'Keep' },
+      },
+    ])
+    expect(storageState.parentCategories).toStrictEqual([
+      {
+        id: 'cat-1',
+        name: 'Category 1',
+        domains: ['group-keep'],
+        domainNames: ['a.example.com', 'b.example.com', 'keep.example.com'],
+      },
+    ])
+    expect(storageState.customProjects).toStrictEqual([
+      {
+        id: 'project-1',
+        name: 'Project 1',
+        urlIds: ['url-keep'],
+        urlMetadata: {
+          'url-keep': { category: 'Keep' },
+        },
+        categories: [],
+        createdAt: 1,
+        updatedAt: expect.any(Number),
+      },
+    ])
+    expect(storageState.urls).toStrictEqual([
+      {
+        id: 'url-keep',
+        url: 'https://keep.example.com/page',
+        title: 'Keep',
+        savedAt: 3,
+      },
+    ])
+    expect(removeUrlFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(deleteUrlRecord).not.toHaveBeenCalled()
+  })
+
+  it('urlIdsベース削除は URL API の比較 key で対象レコードを特定する', async () => {
+    storageState = {
+      savedTabs: [
+        {
+          id: 'group-target',
+          domain: 'target.example.com',
+          urlIds: ['url-id-1'],
+        },
+      ],
+      parentCategories: [],
+      urls: [
+        {
+          id: 'url-id-1',
+          url: 'https://Target.example.com/page',
+          title: 'Target',
+          savedAt: 1,
+        },
+      ],
+    }
+    setupChromeMock()
+
+    await removeUrlFromStorage('https://target.example.com/page')
+
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      savedTabs: [],
+      urls: [],
+    })
+    expect(removeUrlFromAllCustomProjects).not.toHaveBeenCalled()
+    expect(deleteUrlRecord).not.toHaveBeenCalled()
   })
 
   it('urlIdsベースで対象URLを削除しても他URLが残る場合はグループを維持する', async () => {
@@ -791,7 +1064,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -801,6 +1073,14 @@ describe('url-storage', () => {
           urlSubCategories: {
             'url-id-3': 'catC',
           },
+        },
+      ],
+      urls: [
+        {
+          id: 'url-id-3',
+          url: 'https://target.example.com/keep',
+          title: 'Keep',
+          savedAt: 3,
         },
       ],
     })
@@ -838,7 +1118,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -846,6 +1125,14 @@ describe('url-storage', () => {
           domain: 'target.example.com',
           urlIds: ['url-id-2'],
           urlSubCategories: undefined,
+        },
+      ],
+      urls: [
+        {
+          id: 'url-id-2',
+          url: 'https://target.example.com/keep',
+          title: 'Keep',
+          savedAt: 2,
         },
       ],
     })
@@ -880,7 +1167,6 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -888,6 +1174,14 @@ describe('url-storage', () => {
           domain: 'target.example.com',
           urlIds: ['url-id-2'],
           urlSubCategories: undefined,
+        },
+      ],
+      urls: [
+        {
+          id: 'url-id-2',
+          url: 'https://target.example.com/keep',
+          title: 'Keep',
+          savedAt: 2,
         },
       ],
     })
@@ -917,17 +1211,80 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://target.example.com/page')
 
-    // eslint-disable-next-line typescript/unbound-method
-    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+    expect(chrome.storage.local.set).not.toHaveBeenCalled()
+  })
+
+  it('単一URL削除でsavedTabsが変わらない場合はsavedTabsを書き戻さない', async () => {
+    storageState = {
+      customProjects: [
+        {
+          id: 'project-1',
+          name: 'Project 1',
+          urlIds: ['url-id-1', 'url-id-keep'],
+          urlMetadata: {
+            'url-id-1': { category: 'Remove' },
+            'url-id-keep': { category: 'Keep' },
+          },
+          categories: [],
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ],
+      parentCategories: [],
       savedTabs: [
         {
-          id: 'group-target',
-          domain: 'target.example.com',
-          urlIds: ['url-id-1'],
-          urlSubCategories: { 'url-id-1': 'catA' },
+          id: 'group-keep',
+          domain: 'keep.example.com',
+          urlIds: ['url-id-keep'],
+        },
+      ],
+      urls: [
+        {
+          id: 'url-id-1',
+          url: 'https://project.example.com/remove',
+          title: 'Remove',
+          savedAt: 1,
+        },
+        {
+          id: 'url-id-keep',
+          url: 'https://keep.example.com/page',
+          title: 'Keep',
+          savedAt: 2,
+        },
+      ],
+    }
+    setupChromeMock({ cloneReads: true })
+
+    await removeUrlFromStorage('https://project.example.com/remove')
+
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      customProjects: [
+        {
+          id: 'project-1',
+          name: 'Project 1',
+          urlIds: ['url-id-keep'],
+          urlMetadata: {
+            'url-id-keep': { category: 'Keep' },
+          },
+          categories: [],
+          createdAt: 1,
+          updatedAt: expect.any(Number),
+        },
+      ],
+      urls: [
+        {
+          id: 'url-id-keep',
+          url: 'https://keep.example.com/page',
+          title: 'Keep',
+          savedAt: 2,
         },
       ],
     })
+    expect(chrome.storage.local.set).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        savedTabs: expect.anything(),
+      }),
+    )
   })
 
   it('カテゴリ削除処理で parentCategories/savedTabs 未定義でもフォールバックする', async () => {
@@ -944,7 +1301,6 @@ describe('url-storage', () => {
     }
     setupChromeMock()
 
-    // eslint-disable-next-line typescript/require-await
     vi.mocked(chrome.storage.local.get).mockImplementation(
       // eslint-disable-line
       // eslint-disable-line
@@ -971,7 +1327,7 @@ describe('url-storage', () => {
     )
 
     await removeUrlFromStorage('https://fallback.example.com')
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({ savedTabs: [] })
   })
 
@@ -1000,8 +1356,8 @@ describe('url-storage', () => {
 
     await removeUrlFromStorage('https://domainnames.example.com')
 
-    // eslint-disable-next-line typescript/unbound-method
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      savedTabs: [],
       parentCategories: [
         {
           id: 'cat-1',
@@ -1084,18 +1440,18 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['url-1', 'url-2'])
 
     expect(removedCount).toBe(2)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.get).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.get).toHaveBeenCalledWith([
       'savedTabs',
       'urls',
       'customProjects',
       'parentCategories',
     ])
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       customProjects: [
         {
@@ -1144,7 +1500,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage([''])
 
     expect(removedCount).toBe(0)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.get).not.toHaveBeenCalled()
   })
 
@@ -1161,7 +1517,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['url-1'])
 
     expect(removedCount).toBe(0)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
   })
 
@@ -1208,7 +1564,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['url-1'])
 
     expect(removedCount).toBe(1)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {
@@ -1292,7 +1648,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['url-1'])
 
     expect(removedCount).toBe(1)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       customProjects: [
         {
@@ -1317,6 +1673,93 @@ describe('url-storage', () => {
           savedAt: 2,
           title: 'Keep',
           url: 'https://project.example.com/2',
+        },
+      ],
+    })
+  })
+
+  it('一括削除は旧形式urlsだけのグループと親カテゴリ参照も更新する', async () => {
+    storageState = {
+      customProjects: [],
+      parentCategories: [
+        {
+          id: 'cat-1',
+          name: 'Category 1',
+          domains: ['legacy-empty', 'group-keep'],
+          domainNames: ['legacy.example.com', 'keep.example.com'],
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'legacy-empty',
+          domain: 'legacy.example.com',
+          urls: [
+            {
+              url: 'https://legacy.example.com/remove',
+              title: 'Remove',
+            },
+          ],
+        },
+        {
+          id: 'group-keep',
+          domain: 'keep.example.com',
+          urls: [
+            {
+              id: 'keep-url',
+              url: 'https://keep.example.com/page',
+              title: 'Keep',
+            },
+          ],
+        },
+      ],
+      urls: [
+        {
+          id: 'legacy-url',
+          savedAt: 1,
+          title: 'Remove',
+          url: 'https://legacy.example.com/remove',
+        },
+        {
+          id: 'keep-url',
+          savedAt: 2,
+          title: 'Keep',
+          url: 'https://keep.example.com/page',
+        },
+      ],
+    }
+    setupChromeMock({ cloneReads: true })
+
+    const removedCount = await removeUrlRecordsFromStorage(['legacy-url'])
+
+    expect(removedCount).toBe(1)
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      parentCategories: [
+        {
+          id: 'cat-1',
+          name: 'Category 1',
+          domains: ['group-keep'],
+          domainNames: ['legacy.example.com', 'keep.example.com'],
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'group-keep',
+          domain: 'keep.example.com',
+          urls: [
+            {
+              id: 'keep-url',
+              url: 'https://keep.example.com/page',
+              title: 'Keep',
+            },
+          ],
+        },
+      ],
+      urls: [
+        {
+          id: 'keep-url',
+          savedAt: 2,
+          title: 'Keep',
+          url: 'https://keep.example.com/page',
         },
       ],
     })
@@ -1356,7 +1799,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['missing-url'])
 
     expect(removedCount).toBe(0)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).not.toHaveBeenCalled()
     expect(invalidateUrlCache).not.toHaveBeenCalled()
   })
@@ -1386,7 +1829,7 @@ describe('url-storage', () => {
     const removedCount = await removeUrlRecordsFromStorage(['stale-url'])
 
     expect(removedCount).toBe(0)
-    // eslint-disable-next-line typescript/unbound-method
+
     expect(chrome.storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         {

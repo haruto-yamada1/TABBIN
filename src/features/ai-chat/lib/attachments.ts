@@ -15,13 +15,6 @@ const IMAGE_ATTACHMENT_MEDIA_TYPE_PREFIX = 'image/'
 const TEXT_ATTACHMENT_MEDIA_TYPE_PREFIX = 'text/'
 
 const AI_CHAT_ATTACHMENT_FALLBACK_FILENAME = 'attachment'
-const KILOBYTE = 1024
-const MEGABYTE = KILOBYTE * KILOBYTE
-const AI_CHAT_MAX_ATTACHMENTS = 5
-const AI_CHAT_MAX_ATTACHMENT_SIZE_MB = 2
-const AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES =
-  AI_CHAT_MAX_ATTACHMENT_SIZE_MB * MEGABYTE
-
 const decodeBase64 = (value: string): Uint8Array => {
   const binaryValue =
     typeof atob === 'function'
@@ -116,11 +109,10 @@ const getUnsupportedAttachmentError = (
     mediaType,
   })
 
-// eslint-disable-next-line typescript/require-await
 const convertPromptInputFilesToAiChatAttachments = async (
   files: FileUIPart[],
   language: AppLanguage = 'ja',
-  // eslint-disable-next-line typescript/require-await
+  // eslint-disable-next-line typescript/require-await -- AI SDK attachments 仕様に同期
 ): Promise<AiChatAttachment[]> =>
   files.map((file) => {
     const filename = getAttachmentFilename(file)
@@ -177,8 +169,6 @@ const getAiChatAttachmentInputAccept = (): string =>
   ].join(',')
 
 export {
-  AI_CHAT_MAX_ATTACHMENTS,
-  AI_CHAT_MAX_ATTACHMENT_SIZE_BYTES,
   buildTextAttachmentContext,
   convertPromptInputFilesToAiChatAttachments,
   getAiChatAttachmentInputAccept,

@@ -1,45 +1,10 @@
-import { ExternalLink, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Toaster } from '@/components/ui/sonner'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { AiChartRenderer } from '@/features/ai-chat/components/AiChartRenderer'
 import type { AiChartPointSelection } from '@/features/ai-chat/components/AiChartRenderer'
 import { LazySavedTabsChatWidget } from '@/features/ai-chat/components/LazySavedTabsChatWidget'
@@ -55,7 +20,8 @@ import {
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
-import { AnalyticsRecordActionButtons } from '@/features/analytics/routes/AnalyticsRecordActionButtons'
+import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
+import { AnalyticsDrilldownPanel } from '@/features/analytics/routes/AnalyticsDrilldownPanel'
 import type {
   AnalyticsChartMessages,
   AnalyticsDeleteUndoSnapshot,
@@ -68,7 +34,6 @@ import type {
 import {
   awaitableEmptyRecords,
   createAnalyticsDeleteUndoPayload,
-  getAnalyticsDateLocale,
   getAnalyticsDeleteUndoSnapshot,
   getDeleteAllAction,
   getDeleteClickAction,
@@ -81,8 +46,6 @@ import {
   matchesDrilldownLabel,
   noop,
   normalizeAnalyticsRouteQuery,
-  parseChartType,
-  parseGroupBy,
   rebuildAnalyticsDrilldownSelection,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,
@@ -90,7 +53,9 @@ import {
   runConfirmedDelete,
   runSingleDeleteWhenAllowed,
 } from '@/features/analytics/routes/analyticsRoute.helpers'
+import { AnalyticsSidebar } from '@/features/analytics/routes/AnalyticsSidebar'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 import {
   createSavedAnalyticsView,
   deleteSavedAnalyticsView,
@@ -99,46 +64,83 @@ import {
 } from '@/lib/storage/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
-import { formatLocaleDateTime } from '@/utils/localDateTime'
 
 const defaultAnalyticsQuery = getDefaultAnalyticsQuery()
-const deferredDrilldownCardStyle: CSSProperties = {
-  containIntrinsicSize: '96px',
-  contentVisibility: 'auto',
-}
 
-const useAnalyticsRouteView = () => {
-  // eslint-disable-line eslint/max-lines-per-function
-  const { language, t } = useI18n()
-  const [analyticsData, setAnalyticsData] = useState(() => ({
-    records: awaitableEmptyRecords,
-    savedViews: [] as SavedAnalyticsView[],
-    settings: defaultSettings,
-  }))
-  const { records, savedViews, settings } = analyticsData
-  const setRecords = (records: typeof awaitableEmptyRecords) => {
-    setAnalyticsData((current) => ({ ...current, records }))
+const CanvasPane = ({
+  aiChartSpecs,
+  deletingUrl,
+  drilldownSelection,
+  generatedChartSpecs,
+  handleChartPointClick,
+  handleDeleteAllClick,
+  handleDeleteClick,
+  handleOpenAllClick,
+  isDeleteActionDisabled,
+  isUsingAiCharts,
+  language,
+  summary,
+  t,
+}: {
+  aiChartSpecs: AiChartSpec[]
+  deletingUrl: string | null
+  drilldownSelection: AnalyticsDrilldownSelection | null
+  generatedChartSpecs: {
+    charts: AiChartSpec[]
+    summary: string
   }
-  const setSavedViews = (savedViews: SavedAnalyticsView[]) => {
-    setAnalyticsData((current) => ({ ...current, savedViews }))
-  }
-  const [query, setQuery] = useState<AnalyticsQuery>(() =>
-    normalizeAnalyticsRouteQuery(defaultAnalyticsQuery),
-  )
-  const [viewName, setViewName] = useState('')
-  const [viewNameError, setViewNameError] =
-    useState<ViewNameValidationError | null>(null)
-  const [aiChartSpecs, setAiChartSpecs] = useState<AiChartSpec[]>([])
-  const [drilldownSelection, setDrilldownSelection] =
-    useState<AnalyticsDrilldownSelection | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<AiSavedUrlRecord | null>(
-    null,
-  )
-  const [deletingUrl, setDeletingUrl] = useState<string | null>(null)
-  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false)
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
-  const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
-  const [isUsingAiCharts, setIsUsingAiCharts] = useState(false)
+  handleChartPointClick: (selection: AiChartPointSelection) => void
+  handleDeleteAllClick: () => void
+  handleDeleteClick: (record: AiSavedUrlRecord) => void
+  handleOpenAllClick: () => void
+  isDeleteActionDisabled: boolean
+  isUsingAiCharts: boolean
+  language: string
+  summary: string
+  t: (key: string) => string
+}) => (
+  <ScrollArea
+    className='min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card shadow-none'
+    data-testid='analytics-canvas-pane'
+  >
+    <div className='min-w-0 p-5'>
+      <div className='flex flex-wrap items-start justify-between gap-3'>
+        <div>
+          <h2 className='text-lg font-semibold'>
+            {t('analytics.canvasTitle')}
+          </h2>
+          <p className='mt-1 text-sm text-muted-foreground'>{summary}</p>
+        </div>
+      </div>
+      <div
+        className='sticky top-0 z-10 min-w-0 bg-card/95 pb-4 backdrop-blur supports-backdrop-filter:bg-card/80'
+        data-testid='analytics-sticky-chart-panel'
+      >
+        <Card className='min-w-0 rounded-3xl border-dashed bg-background/70 p-4 shadow-none'>
+          <AiChartRenderer
+            charts={
+              isUsingAiCharts && aiChartSpecs.length > 0
+                ? aiChartSpecs
+                : generatedChartSpecs.charts
+            }
+            onChartPointClick={handleChartPointClick}
+          />
+        </Card>
+      </div>
+      <AnalyticsDrilldownPanel
+        deletingUrl={deletingUrl}
+        drilldownSelection={drilldownSelection}
+        isDeleteActionDisabled={isDeleteActionDisabled}
+        language={language}
+        onDeleteAllClick={handleDeleteAllClick}
+        onDeleteClick={handleDeleteClick}
+        onOpenAllClick={handleOpenAllClick}
+      />
+    </div>
+  </ScrollArea>
+)
+
+const useAnalyticsRouteOptions = (t: (key: string) => string) => {
   const chartMessages = useMemo<AnalyticsChartMessages>(
     () => ({
       chartDailySavedTrend: t('analytics.chart.dailySavedTrend'),
@@ -187,6 +189,46 @@ const useAnalyticsRouteView = () => {
     label: string
     value: AnalyticsQuery['chartType']
   }[]
+  return { analyticsChartTypeOptions, analyticsGroupByOptions, chartMessages }
+}
+
+const useAnalyticsRouteView = () => {
+  const { language, t } = useI18n()
+  const [analyticsData, setAnalyticsData] = useState<{
+    records: typeof awaitableEmptyRecords
+    savedViews: SavedAnalyticsView[]
+    settings: typeof defaultSettings
+  }>(() => ({
+    records: awaitableEmptyRecords,
+    savedViews: [],
+    settings: defaultSettings,
+  }))
+  const { records, savedViews, settings } = analyticsData
+  const setRecords = (records: typeof awaitableEmptyRecords) => {
+    setAnalyticsData((current) => ({ ...current, records }))
+  }
+  const setSavedViews = (savedViews: SavedAnalyticsView[]) => {
+    setAnalyticsData((current) => ({ ...current, savedViews }))
+  }
+  const [query, setQuery] = useState<AnalyticsQuery>(() =>
+    normalizeAnalyticsRouteQuery(defaultAnalyticsQuery),
+  )
+  const [viewName, setViewName] = useState('')
+  const [viewNameError, setViewNameError] =
+    useState<ViewNameValidationError | null>(null)
+  const [aiChartSpecs, setAiChartSpecs] = useState<AiChartSpec[]>([])
+  const [drilldownSelection, setDrilldownSelection] =
+    useState<AnalyticsDrilldownSelection | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AiSavedUrlRecord | null>(
+    null,
+  )
+  const [deletingUrl, setDeletingUrl] = useState<string | null>(null)
+  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
+  const [isUsingAiCharts, setIsUsingAiCharts] = useState(false)
+  const { analyticsChartTypeOptions, analyticsGroupByOptions, chartMessages } =
+    useAnalyticsRouteOptions(t)
 
   useEffect(() => {
     let cancelled = false
@@ -220,6 +262,13 @@ const useAnalyticsRouteView = () => {
     [chartMessages, query, records],
   )
   const generatedChartSpecs = generatedAnalyticsResult.chartSpecs
+  const canvasChartSpecs = useMemo(
+    () => ({
+      charts: generatedChartSpecs,
+      summary: generatedAnalyticsResult.summary,
+    }),
+    [generatedChartSpecs, generatedAnalyticsResult.summary],
+  )
   const summary = isUsingAiCharts
     ? t('analytics.aiSummary')
     : generatedAnalyticsResult.summary
@@ -232,18 +281,20 @@ const useAnalyticsRouteView = () => {
     [chartMessages, query, records],
   )
 
-  const applyQuery = (nextQuery: AnalyticsQuery, nextViewName?: string) => {
-    setIsUsingAiCharts(false)
-    setAiChartSpecs([])
-    setDrilldownSelection(null)
-    setQuery(normalizeAnalyticsRouteQuery(nextQuery))
-    if (nextViewName) {
-      setViewName(nextViewName)
-    }
-  }
+  const applyQuery = useCallback(
+    (nextQuery: AnalyticsQuery, nextViewName?: string) => {
+      setIsUsingAiCharts(false)
+      setAiChartSpecs([])
+      setDrilldownSelection(null)
+      setQuery(normalizeAnalyticsRouteQuery(nextQuery))
+      if (nextViewName) {
+        setViewName(nextViewName)
+      }
+    },
+    [],
+  )
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleSaveView = async () => {
+  const handleSaveView = useCallback(async () => {
     const trimmedName = viewName.trim()
     const nextError = getViewNameValidationError({
       savedViews,
@@ -263,163 +314,189 @@ const useAnalyticsRouteView = () => {
     setSavedViews(nextViews)
     await saveSavedAnalyticsViews(nextViews)
     setViewName('')
-  }
+  }, [viewName, savedViews, query])
 
-  const handleDeleteView = async (viewId: string) => {
-    const nextViews = savedViews.filter((view) => view.id !== viewId)
-    setSavedViews(nextViews)
-    await deleteSavedAnalyticsView(viewId)
-  }
+  const handleDeleteView = useCallback(
+    async (viewId: string) => {
+      const nextViews = savedViews.filter((view) => view.id !== viewId)
+      setSavedViews(nextViews)
+      await deleteSavedAnalyticsView(viewId)
+    },
+    [savedViews],
+  )
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleMessagesChange = (messages: AiChatConversationMessage[]) => {
-    const latestAssistantCharts = getLatestAssistantCharts(messages)
-    if (!latestAssistantCharts) {
-      return
-    }
+  const handleMessagesChange = useCallback(
+    (messages: AiChatConversationMessage[]) => {
+      const latestAssistantCharts = getLatestAssistantCharts(messages)
+      if (!latestAssistantCharts) {
+        return
+      }
 
-    if (latestAssistantCharts.query) {
-      setQuery(normalizeAnalyticsRouteQuery(latestAssistantCharts.query))
-    }
-    setIsUsingAiCharts(true)
-    setAiChartSpecs(latestAssistantCharts.charts)
-    setDrilldownSelection(null)
-  }
+      if (latestAssistantCharts.query) {
+        setQuery(normalizeAnalyticsRouteQuery(latestAssistantCharts.query))
+      }
+      setIsUsingAiCharts(true)
+      setAiChartSpecs(latestAssistantCharts.charts)
+      setDrilldownSelection(null)
+    },
+    [],
+  )
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleChartPointClick = ({
-    label,
-    seriesKey,
-    spec,
-  }: AiChartPointSelection) => {
-    const matchingRecords = filteredRecords.filter((record) =>
-      matchesDrilldownLabel({
-        chartMessages,
+  const handleChartPointClick = useCallback(
+    ({ label, seriesKey, spec }: AiChartPointSelection) => {
+      const matchingRecords = filteredRecords.filter((record) =>
+        matchesDrilldownLabel({
+          chartMessages,
+          label,
+          query,
+          record,
+          seriesKey,
+          uncategorizedLabel: t('analytics.uncategorized'),
+        }),
+      )
+
+      setDrilldownSelection({
         label,
-        query,
-        record,
+        matchingRecords,
         seriesKey,
-        uncategorizedLabel: t('analytics.uncategorized'),
-      }),
-    )
+        specTitle: spec.title,
+      })
+    },
+    [filteredRecords, chartMessages, query, t],
+  )
 
-    setDrilldownSelection({
-      label,
-      matchingRecords,
-      seriesKey,
-      specTitle: spec.title,
-    })
-  }
-
-  const refreshRecords = async () => {
+  const refreshRecords = useCallback(async () => {
     const nextRecords = await loadAnalyticsRecords()
     setRecords(nextRecords)
     return nextRecords
-  }
+  }, [])
 
-  const rebuildDrilldownSelection = (nextRecords: AiSavedUrlRecord[]) => {
-    setDrilldownSelection((currentSelection) =>
-      rebuildAnalyticsDrilldownSelection({
-        chartMessages,
-        currentSelection,
-        nextRecords,
-        query,
-        uncategorizedLabel: t('analytics.uncategorized'),
-      }),
-    )
-  }
+  const rebuildDrilldownSelection = useCallback(
+    (nextRecords: AiSavedUrlRecord[]) => {
+      setDrilldownSelection((currentSelection) =>
+        rebuildAnalyticsDrilldownSelection({
+          chartMessages,
+          currentSelection,
+          nextRecords,
+          query,
+          uncategorizedLabel: t('analytics.uncategorized'),
+        }),
+      )
+    },
+    [chartMessages, query, t],
+  )
 
-  const showDeleteUndoToast = ({
-    count,
-    snapshot,
-  }: {
-    count: number
-    snapshot: AnalyticsDeleteUndoSnapshot
-  }) => {
-    toast.info(
-      t('savedTabs.undo.deletedTabs', undefined, {
-        count: String(count),
-      }),
-      {
-        action: {
-          label: t('common.undo'),
-          // eslint-disable-next-line typescript/no-misused-promises
-          onClick: async () => {
-            try {
-              await chrome.storage.local.set(
-                createAnalyticsDeleteUndoPayload(snapshot),
-              )
-              const nextRecords = await refreshRecords()
-              rebuildDrilldownSelection(nextRecords)
-              toast.success(t('savedTabs.undo.restored'))
-            } catch (error) {
-              console.error(
-                'Failed to restore analytics drilldown urls:',
-                error,
-              )
-              toast.error(t('savedTabs.undo.restoreError'))
-            }
+  const showDeleteUndoToast = useCallback(
+    ({
+      count,
+      snapshot,
+    }: {
+      count: number
+      snapshot: AnalyticsDeleteUndoSnapshot
+    }) => {
+      toast.info(
+        t('savedTabs.undo.deletedTabs', undefined, {
+          count: String(count),
+        }),
+        {
+          action: {
+            label: t('common.undo'),
+            // eslint-disable-next-line typescript/no-misused-promises
+            onClick: async () => {
+              try {
+                const storageLocal = getPersistenceStorageLocal()
+                if (!storageLocal) {
+                  warnMissingChromeStorage('分析削除アンドゥ復元')
+                  toast.error(t('savedTabs.undo.restoreError'))
+                  return
+                }
+                await storageLocal.set(
+                  createAnalyticsDeleteUndoPayload(snapshot),
+                )
+                const nextRecords = await refreshRecords()
+                rebuildDrilldownSelection(nextRecords)
+                toast.success(t('savedTabs.undo.restored'))
+              } catch (error) {
+                console.error(
+                  'Failed to restore analytics drilldown urls:',
+                  error,
+                )
+                toast.error(t('savedTabs.undo.restoreError'))
+              }
+            },
           },
         },
-      },
-    )
-  }
+      )
+    },
+    [t, refreshRecords, rebuildDrilldownSelection],
+  )
 
-  const performDelete = async (record: AiSavedUrlRecord) => {
-    await runSingleDeleteWhenAllowed({
+  const performDelete = useCallback(
+    async (record: AiSavedUrlRecord) => {
+      await runSingleDeleteWhenAllowed({
+        deletingUrl,
+        isBulkDeleting,
+        onRun: async () => {
+          try {
+            setDeletingUrl(record.url)
+            const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
+            const nextRecords = await removeUrlFromStorage(record.url).then(
+              async () => refreshRecords(),
+            )
+            rebuildDrilldownSelection(nextRecords)
+            showDeleteUndoToast({
+              count: 1,
+              snapshot: undoSnapshot,
+            })
+          } catch (error) {
+            console.error('Failed to delete analytics drilldown url:', error)
+            toast.error(t('savedTabs.tab.deleteError'))
+          } finally {
+            setDeletingUrl(null)
+            setDeleteTarget(null)
+          }
+        },
+      })
+    },
+    [
       deletingUrl,
       isBulkDeleting,
-      onRun: async () => {
-        try {
-          setDeletingUrl(record.url)
-          const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
-          const nextRecords = await removeUrlFromStorage(record.url).then(() =>
-            refreshRecords(),
-          )
-          rebuildDrilldownSelection(nextRecords)
-          showDeleteUndoToast({
-            count: 1,
-            snapshot: undoSnapshot,
-          })
-        } catch (error) {
-          console.error('Failed to delete analytics drilldown url:', error)
-          toast.error(t('savedTabs.tab.deleteError'))
-        } finally {
-          setDeletingUrl(null)
-          setDeleteTarget(null)
-        }
-      },
-    })
-  }
+      refreshRecords,
+      rebuildDrilldownSelection,
+      showDeleteUndoToast,
+      t,
+    ],
+  )
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleDeleteClick = (record: AiSavedUrlRecord) => {
-    const action = getDeleteClickAction({
-      confirmDeleteEach: settings.confirmDeleteEach,
-      deletingUrl,
-      isBulkDeleting,
-    })
-    const actions: Record<DeleteClickAction, () => void> = {
-      confirm: () => {
-        setDeleteTarget(record)
-      },
-      delete: () => {
-        void performDelete(record)
-      },
-      skip: noop,
-    }
-    actions[action]()
-  }
+  const handleDeleteClick = useCallback(
+    (record: AiSavedUrlRecord) => {
+      const action = getDeleteClickAction({
+        confirmDeleteEach: settings.confirmDeleteEach,
+        deletingUrl,
+        isBulkDeleting,
+      })
+      const actions: Record<DeleteClickAction, () => void> = {
+        confirm: () => {
+          setDeleteTarget(record)
+        },
+        delete: () => {
+          void performDelete(record)
+        },
+        skip: noop,
+      }
+      actions[action]()
+    },
+    [settings, deletingUrl, isBulkDeleting, performDelete],
+  )
 
-  const handleOpenAllDrilldownRecords = () => {
+  const handleOpenAllDrilldownRecords = useCallback(() => {
     const matchingRecords = getDrilldownMatchingRecords(drilldownSelection)
     for (const record of matchingRecords) {
       window.open(record.url, '_blank', 'noopener,noreferrer')
     }
-  }
+  }, [drilldownSelection])
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleOpenAllClick = () => {
+  const handleOpenAllClick = useCallback(() => {
     const action = getOpenAllAction(
       getDrilldownMatchingRecords(drilldownSelection).length,
     )
@@ -431,9 +508,9 @@ const useAnalyticsRouteView = () => {
       skip: noop,
     }
     actions[action]()
-  }
+  }, [drilldownSelection, handleOpenAllDrilldownRecords])
 
-  const performBulkDelete = async () => {
+  const performBulkDelete = useCallback(async () => {
     const matchingRecords = getDrilldownMatchingRecords(drilldownSelection)
     await runBulkDeleteWhenAllowed({
       deletingUrl,
@@ -445,7 +522,7 @@ const useAnalyticsRouteView = () => {
           const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
           const nextRecords = await removeUrlRecordsFromStorage(
             matchingRecords.map((record) => record.id),
-          ).then(() => refreshRecords())
+          ).then(async () => refreshRecords())
           rebuildDrilldownSelection(nextRecords)
           showDeleteUndoToast({
             count: matchingRecords.length,
@@ -463,10 +540,17 @@ const useAnalyticsRouteView = () => {
         }
       },
     })
-  }
+  }, [
+    drilldownSelection,
+    deletingUrl,
+    isBulkDeleting,
+    refreshRecords,
+    rebuildDrilldownSelection,
+    showDeleteUndoToast,
+    t,
+  ])
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleDeleteAllClick = () => {
+  const handleDeleteAllClick = useCallback(() => {
     const action = getDeleteAllAction({
       confirmDeleteAll: settings.confirmDeleteAll,
       deletingUrl,
@@ -484,9 +568,61 @@ const useAnalyticsRouteView = () => {
       skip: noop,
     }
     actions[action]()
-  }
+  }, [
+    settings,
+    deletingUrl,
+    isBulkDeleting,
+    drilldownSelection,
+    performBulkDelete,
+  ])
 
   const isDeleteActionDisabled = deletingUrl !== null || isBulkDeleting
+
+  const handleResetQuery = useCallback(() => {
+    applyQuery(defaultAnalyticsQuery)
+  }, [applyQuery])
+
+  const handleViewNameChange = useCallback(
+    (value: string) => {
+      setViewName(value)
+      setViewNameError((currentError) =>
+        currentError
+          ? getViewNameValidationError({ savedViews, viewName: value })
+          : currentError,
+      )
+    },
+    [savedViews],
+  )
+
+  const handleBulkDeleteConfirmOpenChange = useCallback(
+    (isOpen: boolean) => {
+      setIsBulkDeleteConfirmOpen((currentOpen) =>
+        getNextBulkDeleteDialogOpen({
+          currentOpen,
+          isBulkDeleting,
+          isOpen,
+        }),
+      )
+    },
+    [isBulkDeleting],
+  )
+
+  const handleDeleteTargetChange = useCallback(
+    (isOpen: boolean) => {
+      setDeleteTarget((currentTarget) =>
+        getNextDeleteTargetAfterDialogOpenChange({
+          currentTarget,
+          deletingUrl,
+          isOpen,
+        }),
+      )
+    },
+    [deletingUrl],
+  )
+
+  const handleRunConfirmedDelete = useCallback(() => {
+    runConfirmedDelete(deleteTarget, performDelete)
+  }, [deleteTarget, performDelete])
 
   return (
     <div
@@ -499,398 +635,37 @@ const useAnalyticsRouteView = () => {
             className='grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[240px_minmax(0,1fr)]'
             data-testid='analytics-layout-grid'
           >
-            <aside
-              className='min-h-0 min-w-0'
-              data-testid='analytics-sidebar-pane-container'
-            >
-              <ScrollArea
-                className='h-full overflow-y-auto overscroll-contain'
-                data-testid='analytics-sidebar-pane'
-              >
-                <div className='space-y-4 pr-3'>
-                  <Card className='rounded-3xl border-border p-5 shadow-none'>
-                    <CardHeader className='gap-1 p-0'>
-                      <CardTitle className='text-lg'>
-                        {t('analytics.conditionsTitle')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className='mt-4 grid gap-3 p-0'>
-                      <Field
-                        className='gap-1.5'
-                        data-invalid={viewNameError !== null}
-                      >
-                        <FieldLabel
-                          className='text-sm'
-                          htmlFor='analytics-view-name'
-                        >
-                          {t('analytics.viewName')}
-                        </FieldLabel>
-                        <Input
-                          aria-label={t('analytics.viewName')}
-                          aria-describedby={
-                            viewNameError
-                              ? 'analytics-view-name-error'
-                              : undefined
-                          }
-                          aria-invalid={viewNameError !== null}
-                          className='rounded-xl bg-background'
-                          id='analytics-view-name'
-                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                          onChange={(event) => {
-                            const nextValue = event.target.value
-                            setViewName(nextValue)
-                            setViewNameError((currentError) =>
-                              currentError
-                                ? getViewNameValidationError({
-                                    savedViews,
-                                    viewName: nextValue,
-                                  })
-                                : currentError,
-                            )
-                          }}
-                          value={viewName}
-                        />
-                        {viewNameError ? (
-                          <FieldError id='analytics-view-name-error'>
-                            {viewNameError === 'required'
-                              ? t('analytics.viewNameRequired')
-                              : t('analytics.viewNameDuplicate')}
-                          </FieldError>
-                        ) : null}
-                      </Field>
-                      <div className='grid gap-1.5'>
-                        <Label className='text-sm' htmlFor='analytics-group-by'>
-                          {t('analytics.groupByLabel')}
-                        </Label>
-                        <Select
-                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                          onValueChange={(value) => {
-                            applyQuery({
-                              ...query,
-                              groupBy: parseGroupBy(value),
-                            })
-                          }}
-                          value={query.groupBy}
-                        >
-                          <SelectTrigger
-                            aria-label={t('analytics.groupByLabel')}
-                            className='rounded-xl bg-background'
-                            id='analytics-group-by'
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {analyticsGroupByOptions.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className='grid gap-1.5'>
-                        <Label
-                          className='text-sm'
-                          htmlFor='analytics-chart-type'
-                        >
-                          {t('analytics.chartTypeLabel')}
-                        </Label>
-                        <Select
-                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                          onValueChange={(value) => {
-                            applyQuery({
-                              ...query,
-                              chartType: parseChartType(value),
-                            })
-                          }}
-                          value={query.chartType}
-                        >
-                          <SelectTrigger
-                            aria-label={t('analytics.chartTypeLabel')}
-                            className='rounded-xl bg-background'
-                            id='analytics-chart-type'
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {analyticsChartTypeOptions.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className='grid gap-1.5'>
-                        <Label className='text-sm' htmlFor='analytics-limit'>
-                          {t('analytics.limitLabel')}
-                        </Label>
-                        <Input
-                          aria-label={t('analytics.limitLabel')}
-                          className='rounded-xl bg-background'
-                          id='analytics-limit'
-                          min={1}
-                          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                          onChange={(event) => {
-                            applyQuery({
-                              ...query,
-                              limit: Math.max(
-                                1,
-                                Number(event.target.value) || 1,
-                              ),
-                            })
-                          }}
-                          type='number'
-                          value={query.limit}
-                        />
-                      </div>
-                    </CardContent>
-                    <div className='mt-4 grid grid-cols-2 gap-2'>
-                      <Button
-                        className='w-full cursor-pointer rounded-xl'
-                        // eslint-disable-next-line typescript/no-misused-promises
-                        onClick={handleSaveView}
-                        type='button'
-                      >
-                        {t('analytics.saveView')}
-                      </Button>
-                      <Button
-                        className='w-full cursor-pointer rounded-xl'
-                        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                        onClick={() => {
-                          applyQuery(defaultAnalyticsQuery)
-                        }}
-                        type='button'
-                        variant='outline'
-                      >
-                        {t('common.reset')}
-                      </Button>
-                    </div>
-                  </Card>
+            <AnalyticsSidebar
+              analyticsChartTypeOptions={analyticsChartTypeOptions}
+              analyticsGroupByOptions={analyticsGroupByOptions}
+              onApplyQuery={applyQuery}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onDeleteView={handleDeleteView}
+              onResetQuery={handleResetQuery}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onSaveView={handleSaveView}
+              onViewNameChange={handleViewNameChange}
+              query={query}
+              savedViews={savedViews}
+              viewName={viewName}
+              viewNameError={viewNameError}
+            />
 
-                  <Card className='rounded-3xl border-border p-5 shadow-none'>
-                    <CardHeader className='gap-1 p-0'>
-                      <CardTitle className='text-lg'>
-                        {t('analytics.savedViewsTitle')}
-                      </CardTitle>
-                      <CardDescription>
-                        {t('analytics.savedViewsDescription')}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className='mt-4 p-0'>
-                      {savedViews.length === 0 ? (
-                        <p className='text-sm text-muted-foreground'>
-                          {t('analytics.savedViewsEmpty')}
-                        </p>
-                      ) : (
-                        <div className='space-y-2'>
-                          {savedViews.map((view) => (
-                            <Card
-                              className='rounded-2xl border-border p-3 shadow-none'
-                              key={view.id}
-                            >
-                              <div className='flex items-center justify-between gap-2'>
-                                <Button
-                                  className='min-w-0 flex-1 justify-start px-0 text-left hover:bg-transparent'
-                                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                                  onClick={() => {
-                                    applyQuery(view.query, view.name)
-                                  }}
-                                  type='button'
-                                  variant='ghost'
-                                >
-                                  <span className='truncate text-sm font-medium'>
-                                    {view.name}
-                                  </span>
-                                </Button>
-                                <Button
-                                  aria-label={t(
-                                    'analytics.deleteViewAria',
-                                    undefined,
-                                    { name: view.name },
-                                  )}
-                                  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                                  onClick={() => void handleDeleteView(view.id)}
-                                  size='sm'
-                                  type='button'
-                                  variant='outline'
-                                  className='cursor-pointer rounded-lg'
-                                >
-                                  {t('common.delete')}
-                                </Button>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </ScrollArea>
-            </aside>
-
-            <ScrollArea
-              className='min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card shadow-none'
-              data-testid='analytics-canvas-pane'
-            >
-              <div className='min-w-0 p-5'>
-                <div className='flex flex-wrap items-start justify-between gap-3'>
-                  <div>
-                    <h2 className='text-lg font-semibold'>
-                      {t('analytics.canvasTitle')}
-                    </h2>
-                    <p className='mt-1 text-sm text-muted-foreground'>
-                      {summary}
-                    </p>
-                  </div>
-                </div>
-                <div
-                  className='sticky top-0 z-10 min-w-0 bg-card/95 pb-4 backdrop-blur supports-backdrop-filter:bg-card/80'
-                  data-testid='analytics-sticky-chart-panel'
-                >
-                  <Card className='min-w-0 rounded-3xl border-dashed bg-background/70 p-4 shadow-none'>
-                    <AiChartRenderer
-                      charts={
-                        isUsingAiCharts && aiChartSpecs.length > 0
-                          ? aiChartSpecs
-                          : generatedChartSpecs
-                      }
-                      onChartPointClick={handleChartPointClick}
-                    />
-                  </Card>
-                </div>
-                {drilldownSelection ? (
-                  <Card className='mt-4 rounded-3xl bg-background p-4 shadow-none'>
-                    <div className='flex flex-wrap items-start justify-between gap-3'>
-                      <div>
-                        <h3 className='text-base font-semibold'>
-                          {t('analytics.drilldownTitle')}
-                        </h3>
-                        <p className='mt-1 text-sm text-muted-foreground'>
-                          {drilldownSelection.specTitle} /{' '}
-                          {drilldownSelection.label} /{' '}
-                          {t('analytics.drilldownCount', undefined, {
-                            count: String(
-                              drilldownSelection.matchingRecords.length,
-                            ),
-                          })}
-                        </p>
-                      </div>
-                      {drilldownSelection.matchingRecords.length > 0 ? (
-                        <TooltipProvider delayDuration={0}>
-                          <div className='flex shrink-0 items-center gap-1'>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  aria-label={t('analytics.openAllAria')}
-                                  onClick={handleOpenAllClick}
-                                  size='icon-sm'
-                                  type='button'
-                                  variant='ghost'
-                                >
-                                  <ExternalLink className='size-4' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side='top'>
-                                {t('savedTabs.openAll')}
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  aria-label={t('analytics.deleteAllAria')}
-                                  disabled={isDeleteActionDisabled}
-                                  onClick={handleDeleteAllClick}
-                                  size='icon-sm'
-                                  type='button'
-                                  variant='ghost'
-                                >
-                                  <Trash2 className='size-4' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side='top'>
-                                {t('savedTabs.deleteAll')}
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TooltipProvider>
-                      ) : null}
-                    </div>
-                    <div className='mt-4 space-y-3'>
-                      {drilldownSelection.matchingRecords.length === 0 ? (
-                        <p className='text-sm text-muted-foreground'>
-                          {t('analytics.drilldownEmpty')}
-                        </p>
-                      ) : (
-                        drilldownSelection.matchingRecords.map((record) => (
-                          <Card
-                            className='rounded-2xl border-border bg-card p-3 shadow-none'
-                            key={record.id}
-                            style={deferredDrilldownCardStyle}
-                          >
-                            <div className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'>
-                              <div className='min-w-0 flex-1'>
-                                <p className='truncate text-sm font-medium'>
-                                  {record.title}
-                                </p>
-                                <div className='mt-2 flex flex-wrap gap-2 text-xs'>
-                                  <Badge
-                                    className='rounded-full'
-                                    variant='secondary'
-                                  >
-                                    {record.domain}
-                                  </Badge>
-                                  {record.parentCategories.map((category) => (
-                                    <Badge
-                                      className='rounded-full'
-                                      key={`${record.id}-${category}`}
-                                      variant='secondary'
-                                    >
-                                      {category}
-                                    </Badge>
-                                  ))}
-                                  {record.savedInProjects.map((project) => (
-                                    <Badge
-                                      className='rounded-full'
-                                      key={`${record.id}-${project}`}
-                                      variant='secondary'
-                                    >
-                                      {project}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className='flex shrink-0 flex-col gap-2 sm:items-end'>
-                                <time className='text-xs text-muted-foreground'>
-                                  {formatLocaleDateTime(
-                                    record.savedAt,
-                                    getAnalyticsDateLocale(language),
-                                  )}
-                                </time>
-                                <AnalyticsRecordActionButtons
-                                  deletingUrl={deletingUrl}
-                                  handleDeleteClick={handleDeleteClick}
-                                  isDeleteActionDisabled={
-                                    isDeleteActionDisabled
-                                  }
-                                  record={record}
-                                />
-                              </div>
-                            </div>
-                          </Card>
-                        ))
-                      )}
-                    </div>
-                  </Card>
-                ) : null}
-              </div>
-            </ScrollArea>
+            <CanvasPane
+              aiChartSpecs={aiChartSpecs}
+              deletingUrl={deletingUrl}
+              drilldownSelection={drilldownSelection}
+              generatedChartSpecs={canvasChartSpecs}
+              handleChartPointClick={handleChartPointClick}
+              handleDeleteAllClick={handleDeleteAllClick}
+              handleDeleteClick={handleDeleteClick}
+              handleOpenAllClick={handleOpenAllClick}
+              isDeleteActionDisabled={isDeleteActionDisabled}
+              isUsingAiCharts={isUsingAiCharts}
+              language={language}
+              summary={summary}
+              t={t}
+            />
           </section>
         </div>
       </main>
@@ -902,110 +677,18 @@ const useAnalyticsRouteView = () => {
 
       <Toaster />
 
-      <AlertDialog
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-        onOpenChange={(isOpen) => {
-          setIsBulkDeleteConfirmOpen((currentOpen) =>
-            getNextBulkDeleteDialogOpen({
-              currentOpen,
-              isBulkDeleting,
-              isOpen,
-            }),
-          )
-        }}
-        open={isBulkDeleteConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.deleteAllConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.deleteAllDefaultWarning')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-              onClick={(event) => {
-                event.preventDefault()
-                void performBulkDelete()
-              }}
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        onOpenChange={setIsOpenAllConfirmOpen}
-        open={isOpenAllConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.openAllConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.openAllConfirmDescription', undefined, {
-                count: '10',
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-              onClick={() => {
-                handleOpenAllDrilldownRecords()
-              }}
-            >
-              {t('common.open')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-        onOpenChange={(isOpen) => {
-          setDeleteTarget((currentTarget) =>
-            getNextDeleteTargetAfterDialogOpenChange({
-              currentTarget,
-              deletingUrl,
-              isOpen,
-            }),
-          )
-        }}
-        open={Boolean(deleteTarget)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.url.deleteConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.url.deleteConfirmDescription')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-              onClick={(event) => {
-                event.preventDefault()
-                runConfirmedDelete(deleteTarget, performDelete)
-              }}
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AnalyticsDialogs
+        deleteTarget={deleteTarget}
+        isBulkDeleteConfirmOpen={isBulkDeleteConfirmOpen}
+        isOpenAllConfirmOpen={isOpenAllConfirmOpen}
+        onBulkDeleteConfirmOpenChange={handleBulkDeleteConfirmOpenChange}
+        onDeleteTargetChange={handleDeleteTargetChange}
+        onOpenAllConfirmOpenChange={setIsOpenAllConfirmOpen}
+        onOpenAllDrilldownRecords={handleOpenAllDrilldownRecords}
+        // eslint-disable-next-line typescript/no-misused-promises
+        onPerformBulkDelete={performBulkDelete}
+        onRunConfirmedDelete={handleRunConfirmedDelete}
+      />
     </div>
   )
 }

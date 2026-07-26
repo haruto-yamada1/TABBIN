@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => {
   let uuidIndex = 0
 
   return {
-    // eslint-disable-next-line typescript/require-await
     migrateToUrlsStorage: vi.fn(async () => undefined),
     reset: () => {
       uuidIndex = 0
@@ -27,7 +26,7 @@ vi.mock('./url-migration', () => ({
   migrateToUrlsStorage: mocks.migrateToUrlsStorage,
 }))
 
-interface StorageState {
+type StorageState = {
   customProjectOrder?: string[]
   customProjects?: CustomProject[]
   savedTabs?: TabGroup[]
@@ -35,7 +34,6 @@ interface StorageState {
 }
 
 const createChromeStorageLocal = (state: StorageState) => ({
-  // eslint-disable-next-line typescript/require-await
   get: vi.fn(async (keys?: string | string[]) => {
     if (!keys) {
       return state
@@ -51,7 +49,7 @@ const createChromeStorageLocal = (state: StorageState) => ({
       [keys]: state[keys as unknown as keyof StorageState],
     }
   }),
-  // eslint-disable-next-line typescript/require-await
+
   set: vi.fn(async (value: Record<string, unknown>) => {
     Object.assign(state, value)
   }),
@@ -118,22 +116,21 @@ describe('projects storage', () => {
       updateProjectUrlIdsAndMetadata,
     } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjectOrder()).resolves.toEqual([
       'project-1',
       'project-2',
     ])
     delete state.customProjectOrder
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     await expect(getCustomProjectOrder()).resolves.toEqual([])
     state.customProjectOrder = { invalid: true } as unknown as string[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     await expect(getCustomProjectOrder()).resolves.toEqual([])
     expect(removeUrlIdFromProject(projectWithoutUrlIds, 'url-1', 1000)).toBe(
       false,
     )
     expect(removeUrlIdFromProject(projectWithUrl, 'url-1', 1000)).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(projectWithUrl).toEqual(
       expect.objectContaining({
         updatedAt: 1000,
@@ -157,13 +154,13 @@ describe('projects storage', () => {
         1001,
       ),
     ).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(projectWithUrl.urlIds).toEqual(['url-2'])
     setProjectUrlMetadata(projectWithUrl, 'url-2')
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(projectWithUrl.urlMetadata).toEqual({})
     setProjectUrlMetadata(projectWithUrl, 'url-2', 'note')
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(projectWithUrl.urlMetadata).toEqual({
       'url-2': {
         category: undefined,
@@ -173,7 +170,7 @@ describe('projects storage', () => {
     const metadataProject = createProject()
     ensureProjectMetadataEntry(metadataProject, 'url-1')
     ensureProjectMetadataEntry(metadataProject, 'url-1')
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(metadataProject.urlMetadata).toEqual({
       'url-1': {},
     })
@@ -189,7 +186,7 @@ describe('projects storage', () => {
     expect(
       updateProjectUrlIdsAndMetadata(metadataProject, new Set(['url-1'])),
     ).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(metadataProject).toEqual(
       expect.objectContaining({
         updatedAt: 1000,
@@ -201,7 +198,7 @@ describe('projects storage', () => {
     expect(
       updateProjectUrlIdsAndMetadata(metadataProject, new Set(['url-2'])),
     ).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(metadataProject.urlMetadata).toEqual({})
     const uncategorized = createProject({
       id: 'custom-uncategorized',
@@ -224,9 +221,9 @@ describe('projects storage', () => {
       }),
       uncategorized,
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(uncategorized.urlIds).toEqual(['url-1', 'url-2'])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(uncategorized.urlMetadata).toEqual({
       'url-2': {
         notes: 'move',
@@ -236,7 +233,6 @@ describe('projects storage', () => {
     state.customProjectOrder = { invalid: true } as unknown as string[]
     await removeProjectIdFromOrder('project-1')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual([])
   })
 
@@ -306,7 +302,7 @@ describe('projects storage', () => {
     } = await loadModule()
 
     await removeUrlFromCustomProject('source', 'https://docs.example.com/miss')
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
@@ -322,11 +318,11 @@ describe('projects storage', () => {
     await removeUrlsFromCustomProject('source', [
       'https://docs.example.com/miss',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
     await reorderProjectUrls('source', undefined)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
@@ -340,7 +336,7 @@ describe('projects storage', () => {
         url: 'https://docs.example.com/missing-order',
       },
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
     await moveUrlBetweenCustomProjects(
@@ -348,7 +344,7 @@ describe('projects storage', () => {
       'target',
       'https://docs.example.com/a',
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects?.[1]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
@@ -361,7 +357,7 @@ describe('projects storage', () => {
     )
 
     await renameCategoryInProject('plain', 'old', 'new')
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects?.[2]).toEqual(
       expect.objectContaining({
         categories: ['new'],
@@ -370,7 +366,7 @@ describe('projects storage', () => {
     )
   })
 
-  it('removeUrlsFromCustomProject は URL ID 欠損と空グループ削除を扱う', async () => {
+  it('removeUrlsFromCustomProject は URL ID 欠損を扱いドメイン保存を維持する', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -409,17 +405,22 @@ describe('projects storage', () => {
     await removeUrlsFromCustomProject('without-url-ids', [
       'https://docs.example.com/a',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects?.[0]?.urlIds).toEqual([])
 
     await removeUrlsFromCustomProject('with-url', [
       'https://docs.example.com/a',
     ])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[1]?.urlIds).toEqual([])
-    // eslint-disable-next-line vitest/prefer-strict-equal
-    expect(state.savedTabs).toEqual([])
+
+    expect(state.savedTabs).toEqual([
+      {
+        id: 'domain-group',
+        domain: 'https://docs.example.com',
+        urlIds: ['url-1'],
+      },
+    ])
   })
 
   it('saveUrlsToCustomProjects は未分類から一致プロジェクトへURLを移す', async () => {
@@ -466,7 +467,6 @@ describe('projects storage', () => {
       },
     ])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'matched-project',
@@ -477,6 +477,231 @@ describe('projects storage', () => {
         urlIds: [],
       }),
     ])
+  })
+
+  it('saveUrlsToCustomProjects は同一プロジェクトへ複数URLを保存しても全て保持する (issue #548)', async () => {
+    // 同一ドメインの複数 URL をまとめて保存したときに
+    // `addUrlIdToDomainMode` の read-modify-write 競合で
+    // `savedTabs` の urlIds が 1 件に縮む現象の回帰テスト。
+    mocks.reset()
+    const state: StorageState = {
+      customProjectOrder: ['matched-project'],
+      customProjects: [
+        createProject({
+          id: 'matched-project',
+          name: 'Matched',
+          projectKeywords: {
+            titleKeywords: [],
+            urlKeywords: [],
+            domainKeywords: ['docs.example.com'],
+          },
+        }),
+      ],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { saveUrlsToCustomProjects } = await loadModule()
+
+    await saveUrlsToCustomProjects([
+      { title: 'A', url: 'https://docs.example.com/a' },
+      { title: 'B', url: 'https://docs.example.com/b' },
+      { title: 'C', url: 'https://docs.example.com/c' },
+    ])
+
+    // 3 件すべてが customProjects に urlId として保持される
+
+    expect(state.customProjects?.[0]?.urlIds).toHaveLength(3)
+    // 3 件すべてが urls ストレージへ書き戻される
+
+    expect(state.urls).toEqual([
+      expect.objectContaining({ url: 'https://docs.example.com/a' }),
+      expect.objectContaining({ url: 'https://docs.example.com/b' }),
+      expect.objectContaining({ url: 'https://docs.example.com/c' }),
+    ])
+    // savedTabs の同一ドメイン group に 3 件の urlIds が保持される
+
+    expect(state.savedTabs).toEqual([
+      expect.objectContaining({
+        domain: 'docs.example.com',
+        urlIds: expect.arrayContaining([
+          state.urls?.[0]?.id,
+          state.urls?.[1]?.id,
+          state.urls?.[2]?.id,
+        ]),
+      }),
+    ])
+    expect(state.savedTabs?.[0]?.urlIds).toHaveLength(3)
+  })
+
+  it('saveUrlsToCustomProjects は複数ドメインの URL をそれぞれ正しいグループへ保存する (issue #548)', async () => {
+    // 異なるドメインを同時に保存したときに、ドメインモードの savedTabs に
+    // ドメインごとにグループが作成/更新されることを保証する回帰テスト。
+    mocks.reset()
+    const state: StorageState = {
+      customProjectOrder: ['project-docs', 'project-news'],
+      customProjects: [
+        createProject({
+          id: 'project-docs',
+          name: 'Docs',
+          projectKeywords: {
+            titleKeywords: [],
+            urlKeywords: [],
+            domainKeywords: ['docs.example.com'],
+          },
+        }),
+        createProject({
+          id: 'project-news',
+          name: 'News',
+          projectKeywords: {
+            titleKeywords: [],
+            urlKeywords: [],
+            domainKeywords: ['news.example.com'],
+          },
+        }),
+      ],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { saveUrlsToCustomProjects } = await loadModule()
+
+    await saveUrlsToCustomProjects([
+      { title: 'Doc', url: 'https://docs.example.com/a' },
+      { title: 'News', url: 'https://news.example.com/x' },
+      { title: 'Doc2', url: 'https://docs.example.com/b' },
+    ])
+
+    expect(state.savedTabs).toEqual([
+      expect.objectContaining({
+        domain: 'docs.example.com',
+        urlIds: expect.arrayContaining([
+          state.urls?.find(
+            (record) => record.url === 'https://docs.example.com/a',
+          )?.id,
+          state.urls?.find(
+            (record) => record.url === 'https://docs.example.com/b',
+          )?.id,
+        ]),
+      }),
+      expect.objectContaining({
+        domain: 'news.example.com',
+        urlIds: [
+          state.urls?.find(
+            (record) => record.url === 'https://news.example.com/x',
+          )?.id,
+        ],
+      }),
+    ])
+    expect(state.savedTabs?.[0]?.urlIds).toHaveLength(2)
+    expect(state.savedTabs?.[1]?.urlIds).toHaveLength(1)
+  })
+
+  it('saveUrlsToCustomProjects は異なる保存イベントが同時に走っても全URLと参照を保持する', async () => {
+    const state: StorageState = {
+      customProjectOrder: [],
+      customProjects: [],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: {
+          get: vi.fn(async (keys?: string | string[]) => {
+            const snapshot = structuredClone(state)
+            if (!keys) {
+              return snapshot
+            }
+            if (Array.isArray(keys)) {
+              return Object.fromEntries(
+                keys.map((key) => [key, snapshot[key as keyof StorageState]]),
+              )
+            }
+            return {
+              [keys]: snapshot[keys as keyof StorageState],
+            }
+          }),
+
+          set: vi.fn(async (value: Record<string, unknown>) => {
+            Object.assign(state, structuredClone(value))
+          }),
+        },
+      },
+    } as unknown as typeof chrome
+
+    const { saveUrlsToCustomProjects } = await loadModule()
+
+    await Promise.all([
+      saveUrlsToCustomProjects([
+        { title: 'Docs', url: 'https://docs.example.com/a' },
+      ]),
+      saveUrlsToCustomProjects([
+        { title: 'Issues', url: 'https://issues.example.com/b' },
+      ]),
+    ])
+
+    expect(state.urls?.map((record) => record.url)).toStrictEqual([
+      'https://docs.example.com/a',
+      'https://issues.example.com/b',
+    ])
+    const uncategorized = state.customProjects?.find(
+      (project) => project.id === 'custom-uncategorized',
+    )
+    expect(uncategorized?.urlIds).toStrictEqual(
+      state.urls?.map((record) => record.id),
+    )
+    expect(state.savedTabs).toStrictEqual([
+      expect.objectContaining({
+        domain: 'docs.example.com',
+        urlIds: [state.urls?.[0]?.id],
+      }),
+      expect.objectContaining({
+        domain: 'issues.example.com',
+        urlIds: [state.urls?.[1]?.id],
+      }),
+    ])
+  })
+
+  it('addUrlIdToDomainMode は連続呼び出しで urlIds を全て保持する (issue #548)', async () => {
+    // `addUrlIdToDomainMode` 単体の read-modify-write 直列化キュー
+    // 保険が機能していることを保証する。
+    mocks.reset()
+    const state: StorageState = {
+      customProjects: [createProject({ id: 'project', name: 'Project' })],
+      savedTabs: [
+        {
+          domain: 'https://docs.example.com',
+          id: 'group-1',
+        } as TabGroup,
+      ],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { addUrlToCustomProject } = await loadModule()
+
+    await Promise.all([
+      addUrlToCustomProject('project', 'https://docs.example.com/a', 'A'),
+      addUrlToCustomProject('project', 'https://docs.example.com/b', 'B'),
+      addUrlToCustomProject('project', 'https://docs.example.com/c', 'C'),
+    ])
+
+    // 3 件すべてが savedTabs の同一ドメイン group に保持される
+    expect(state.savedTabs?.[0]?.urlIds).toHaveLength(3)
   })
 
   it('addUrlToCustomProject は同じURLを他プロジェクトへ重複所属させない', async () => {
@@ -522,7 +747,6 @@ describe('projects storage', () => {
       'Doc',
     )
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'source-project',
@@ -562,7 +786,6 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([
       expect.objectContaining({
         id: 'project-b',
@@ -604,7 +827,6 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([
       expect.objectContaining({ id: 'project-ok', name: 'OK' }),
       expect.objectContaining({ id: 'project-also-ok', name: 'Also OK' }),
@@ -628,7 +850,6 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([
       expect.objectContaining({ id: 'project-a' }),
       expect.objectContaining({ id: 'project-b' }),
@@ -652,7 +873,6 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([
       expect.objectContaining({ id: 'project-c' }),
       expect.objectContaining({ id: 'project-a' }),
@@ -670,7 +890,6 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([])
   })
 
@@ -693,7 +912,6 @@ describe('projects storage', () => {
 
     const { getProjectUrls } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getProjectUrls(createProject())).resolves.toEqual([])
     await expect(
       getProjectUrls(
@@ -707,7 +925,6 @@ describe('projects storage', () => {
           },
         }),
       ),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).resolves.toEqual([
       {
         category: 'docs',
@@ -724,7 +941,6 @@ describe('projects storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => {
             throw new Error('storage unavailable')
           }),
@@ -735,7 +951,6 @@ describe('projects storage', () => {
 
     const { getCustomProjects } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getCustomProjects()).resolves.toEqual([])
   })
 
@@ -744,7 +959,7 @@ describe('projects storage', () => {
       storage: {
         local: {
           get: vi.fn(),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async () => {
             throw new Error('write unavailable')
           }),
@@ -778,7 +993,7 @@ describe('projects storage', () => {
     await expect(createCustomProject('alpha')).rejects.toThrow(
       'DUPLICATE_PROJECT_NAME:alpha',
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     await expect(createCustomProject('Gamma')).resolves.toEqual(
       expect.objectContaining({
         id: 'uuid-1',
@@ -786,7 +1001,7 @@ describe('projects storage', () => {
         urlIds: [],
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjectOrder).toEqual([
       'uuid-1',
       'project-2',
@@ -813,7 +1028,6 @@ describe('projects storage', () => {
 
     await createCustomProject('Gamma')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual([
       'uuid-1',
       'project-1',
@@ -834,19 +1048,18 @@ describe('projects storage', () => {
 
     const { getOrCreateUncategorizedProject } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getOrCreateUncategorizedProject()).resolves.toEqual(
       expect.objectContaining({
         id: 'custom-uncategorized',
         name: '未分類',
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects?.map((project) => project.id)).toEqual([
       'project-1',
       'custom-uncategorized',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjectOrder).toEqual([
       'project-1',
       'custom-uncategorized',
@@ -868,7 +1081,6 @@ describe('projects storage', () => {
 
     await getOrCreateUncategorizedProject()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -887,7 +1099,6 @@ describe('projects storage', () => {
 
     await getOrCreateUncategorizedProject()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -909,11 +1120,10 @@ describe('projects storage', () => {
 
     const { getOrCreateUncategorizedProject } = await loadModule()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     await expect(getOrCreateUncategorizedProject()).resolves.toEqual(
       existingUncategorized,
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects).toEqual([existingUncategorized])
   })
 
@@ -956,22 +1166,23 @@ describe('projects storage', () => {
       { title: 'Blank ignored', url: ' ' },
     ])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls).toEqual([
       {
+        favIconUrl: undefined,
         id: 'url-1',
         savedAt: 1000,
         title: 'Updated',
         url: 'https://example.test/a',
       },
       {
+        favIconUrl: undefined,
         id: 'uuid-1',
-        savedAt: 1000,
+        savedAt: 1001,
         title: 'New',
         url: 'https://example.test/b',
       },
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'source',
@@ -1000,14 +1211,13 @@ describe('projects storage', () => {
     const { saveUrlsToCustomProjects } = await loadModule()
 
     await saveUrlsToCustomProjects([{ title: 'Blank', url: ' ' }])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects).toEqual([])
 
     await saveUrlsToCustomProjects([
       { title: 'Unmatched', url: 'https://unmatched.example/a' },
     ])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -1036,21 +1246,20 @@ describe('projects storage', () => {
     const { addUrlsToUncategorizedProject } = await loadModule()
 
     await addUrlsToUncategorizedProject([{ title: 'Blank', url: ' ' }])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.urls).toEqual([])
 
     await addUrlsToUncategorizedProject([
       { title: '', url: 'https://example.test/new' },
     ])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         id: 'custom-uncategorized',
         urlIds: ['uuid-1'],
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -1088,9 +1297,8 @@ describe('projects storage', () => {
       },
     ])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.urls?.[0]).toEqual(
       expect.objectContaining({
         id: 'url-1',
@@ -1134,9 +1342,8 @@ describe('projects storage', () => {
       },
     ])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.urls?.[0]).toEqual({
       id: 'url-1',
       savedAt: 1000,
@@ -1164,7 +1371,6 @@ describe('projects storage', () => {
       notes: 'note',
     })
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.urls).toEqual([
       {
         id: 'uuid-1',
@@ -1173,7 +1379,7 @@ describe('projects storage', () => {
         url: 'https://docs.example.com/a',
       },
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'target',
@@ -1186,15 +1392,39 @@ describe('projects storage', () => {
         },
       }),
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.savedTabs).toEqual([
       {
-        domain: 'https://docs.example.com',
+        domain: 'docs.example.com',
         id: 'uuid-2',
         savedAt: 1000,
         urlIds: ['uuid-1'],
       },
     ])
+  })
+
+  // 回帰 (CodeRabbit PR #626): host が取れない URL はドメインモードの
+  // savedTabs へ空ドメイングループを作らず、他の不正 URL を誤マージしない。
+  it('addUrlToCustomProject は host が取れない URL をドメインモードへ追加しない', async () => {
+    const state: StorageState = {
+      customProjects: [createProject({ id: 'target' })],
+      savedTabs: [],
+      urls: [],
+    }
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { addUrlToCustomProject } = await loadModule()
+
+    await addUrlToCustomProject('target', 'not a url', 'Broken')
+
+    // カスタムプロジェクトには URL が保持されるが、ドメインモードの
+    // savedTabs には空ドメイングループが作られない
+    expect(state.customProjects?.[0]?.urlIds).toEqual(['uuid-1'])
+    expect(state.savedTabs).toEqual([])
   })
 
   it('addUrlToCustomProject は既存ドメイングループの URL IDs を補完する', async () => {
@@ -1220,9 +1450,8 @@ describe('projects storage', () => {
 
     await addUrlToCustomProject('target', 'https://docs.example.com/a', '')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['uuid-1'])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://docs.example.com',
@@ -1266,14 +1495,13 @@ describe('projects storage', () => {
 
     await addUrlToCustomProject('target', 'https://docs.example.com/a', '')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
         urlMetadata: undefined,
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://docs.example.com',
@@ -1281,7 +1509,7 @@ describe('projects storage', () => {
         urlIds: ['url-1'],
       },
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.urls?.[0]).toEqual(
       expect.objectContaining({
         savedAt: 1000,
@@ -1307,7 +1535,7 @@ describe('projects storage', () => {
     ).rejects.toThrow('Project with ID missing not found')
   })
 
-  it('removeUrlFromCustomProject はURLとメタデータを消し空のドメイングループも削除する', async () => {
+  it('removeUrlFromCustomProject はプロジェクト内のURLとメタデータだけを削除する', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -1347,18 +1575,63 @@ describe('projects storage', () => {
 
     await removeUrlFromCustomProject('target', 'https://docs.example.com/a')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: [],
         urlMetadata: {},
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
-    expect(state.savedTabs).toEqual([])
+
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'https://docs.example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      },
+    ])
   })
 
-  it('removeUrlFromCustomProject は存在しないプロジェクトを拒否し同期失敗は握りつぶす', async () => {
+  it('removeUrlFromCustomProject は URL IDs 未定義でもドメイン保存を維持する', async () => {
+    const state: StorageState = {
+      customProjects: [createProject({ id: 'target' })],
+      savedTabs: [
+        {
+          domain: 'https://docs.example.com',
+          id: 'group-1',
+          urlIds: ['url-1'],
+        },
+      ],
+      urls: [
+        {
+          id: 'url-1',
+          savedAt: 1,
+          title: 'Doc',
+          url: 'https://docs.example.com/a',
+        },
+      ],
+    }
+    delete state.customProjects?.[0]?.urlIds
+    globalThis.chrome = {
+      storage: {
+        local: createChromeStorageLocal(state),
+      },
+    } as unknown as typeof chrome
+
+    const { removeUrlFromCustomProject } = await loadModule()
+
+    await removeUrlFromCustomProject('target', 'https://docs.example.com/a')
+
+    expect(state.customProjects?.[0]?.urlIds).toEqual([])
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'https://docs.example.com',
+        id: 'group-1',
+        urlIds: ['url-1'],
+      },
+    ])
+  })
+
+  it('removeUrlFromCustomProject は存在しないプロジェクトを拒否しドメイン保存を維持する', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -1406,7 +1679,6 @@ describe('projects storage', () => {
 
     await removeUrlFromCustomProject('target', 'https://docs.example.com/a')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://docs.example.com',
@@ -1415,33 +1687,12 @@ describe('projects storage', () => {
       {
         domain: 'https://docs.example.com',
         id: 'group-with-ids',
-        urlIds: ['url-2'],
+        urlIds: ['url-1', 'url-2'],
       },
     ])
-
-    // eslint-disable-next-line typescript/unbound-method
-    vi.mocked(chrome.storage.local.get)
-      // eslint-disable-next-line typescript/require-await
-      .mockImplementationOnce(async (keys) => {
-        // eslint-disable-line
-        if (Array.isArray(keys)) {
-          return Object.fromEntries(
-            keys.map((key) => [key, state[key as keyof StorageState]]),
-          )
-        }
-        return {
-          [keys as unknown as string]:
-            state[keys as unknown as keyof StorageState],
-        }
-      })
-      .mockRejectedValueOnce(new Error('sync failed'))
-
-    await expect(
-      removeUrlFromCustomProject('target', 'https://docs.example.com/missing'),
-    ).resolves.toBeUndefined()
   })
 
-  it('bulk remove APIs はURL/ID指定でプロジェクトとドメインモードを同期削除する', async () => {
+  it('bulk remove APIs はURL/ID指定でプロジェクトだけを削除する', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -1504,14 +1755,13 @@ describe('projects storage', () => {
     await removeUrlsFromAllCustomProjects(['https://docs.example.com/two'])
     await removeUrlIdsFromAllCustomProjects(['url-3'])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: [],
         urlMetadata: {},
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.savedTabs).toEqual([
       {
         domain: 'https://untouched.example.com',
@@ -1520,12 +1770,12 @@ describe('projects storage', () => {
       {
         domain: 'https://docs.example.com',
         id: 'group-1',
-        urlIds: ['url-2', 'url-3'],
+        urlIds: ['url-1', 'url-2', 'url-3'],
       },
     ])
   })
 
-  it('bulk remove APIs は空入力・対象なし・同期エラーを扱う', async () => {
+  it('bulk remove APIs は空入力・対象なし・存在しないプロジェクトを扱う', async () => {
     const state: StorageState = {
       customProjects: [
         createProject({
@@ -1568,28 +1818,18 @@ describe('projects storage', () => {
     await removeUrlIdsFromAllCustomProjects([])
     await removeUrlFromAllCustomProjects('https://example.test/none')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]?.urlIds).toEqual(['url-1'])
 
-    // eslint-disable-next-line typescript/unbound-method
-    vi.mocked(chrome.storage.local.get)
-      // eslint-disable-next-line typescript/require-await
-      .mockImplementationOnce(async (keys) => {
-        // eslint-disable-line
-        if (Array.isArray(keys)) {
-          return Object.fromEntries(
-            keys.map((key) => [key, state[key as keyof StorageState]]),
-          )
-        }
-        return {
-          [keys as unknown as string]:
-            state[keys as unknown as keyof StorageState],
-        }
-      })
-      .mockRejectedValueOnce(new Error('storage failed'))
-    await expect(
-      removeUrlsFromCustomProject('target', ['https://docs.example.com/one']),
-    ).resolves.toBeUndefined()
+    await removeUrlsFromCustomProject('target', [
+      'https://docs.example.com/one',
+    ])
+    expect(state.customProjects?.[0]?.urlIds).toEqual([])
+    expect(state.savedTabs).toEqual([
+      {
+        domain: 'https://docs.example.com',
+        id: 'group-1',
+      },
+    ])
 
     await expect(
       removeUrlsFromCustomProject('missing', ['https://docs.example.com/one']),
@@ -1633,7 +1873,7 @@ describe('projects storage', () => {
     await removeUrlIdsFromAllCustomProjects(['url-1'])
 
     expect(storage.set).not.toHaveBeenCalled()
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'without-ids',
@@ -1650,7 +1890,6 @@ describe('projects storage', () => {
     globalThis.chrome = {
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => {
             throw new Error('storage failed')
           }),
@@ -1696,7 +1935,7 @@ describe('projects storage', () => {
       storage: {
         local: {
           ...createChromeStorageLocal(state),
-          // eslint-disable-next-line typescript/require-await
+
           set: vi.fn(async () => {
             throw new Error('write failed')
           }),
@@ -1806,7 +2045,6 @@ describe('projects storage', () => {
 
     await removeUrlFromAllCustomProjects('https://docs.example.com/one')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: [],
@@ -1814,7 +2052,6 @@ describe('projects storage', () => {
       }),
     )
 
-    // eslint-disable-next-line typescript/unbound-method
     vi.mocked(chrome.storage.local.get).mockRejectedValueOnce(
       new Error('storage failed'),
     )
@@ -1862,7 +2099,6 @@ describe('projects storage', () => {
 
     await removeUrlFromAllCustomProjects('https://docs.example.com/a')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'without-url-ids',
@@ -1905,7 +2141,6 @@ describe('projects storage', () => {
 
     await deleteCustomProject('delete-me')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -1917,7 +2152,7 @@ describe('projects storage', () => {
         },
       }),
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -1946,14 +2181,13 @@ describe('projects storage', () => {
     )
     await deleteCustomProject('delete-me')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
         urlIds: [],
       }),
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjectOrder).toEqual(['custom-uncategorized'])
   })
 
@@ -1987,7 +2221,6 @@ describe('projects storage', () => {
 
     await deleteCustomProject('delete-me')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -2029,7 +2262,6 @@ describe('projects storage', () => {
 
     await deleteCustomProject('delete-me')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -2105,7 +2337,6 @@ describe('projects storage', () => {
     })
     await updateProjectOrder(['target', 'other'])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categoryOrder: ['new', 'renamed'],
@@ -2127,7 +2358,7 @@ describe('projects storage', () => {
         },
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(state.customProjectOrder).toEqual(['target', 'other'])
   })
 
@@ -2157,7 +2388,6 @@ describe('projects storage', () => {
     await addCategoryToProject('target', 'new')
     await removeCategoryFromProject('target', 'old')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categories: ['new'],
@@ -2191,7 +2421,6 @@ describe('projects storage', () => {
 
     await addCategoryToProject('target', 'new')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categories: ['new'],
@@ -2219,7 +2448,6 @@ describe('projects storage', () => {
 
     await addCategoryToProject('target', 'Inbox')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categories: ['Existing', 'Inbox'],
@@ -2249,7 +2477,6 @@ describe('projects storage', () => {
 
     await removeCategoryFromProject('target', 'old')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         categories: [],
@@ -2355,7 +2582,6 @@ describe('projects storage', () => {
       { title: 'Same Again', url: 'https://example.test/same' },
     ])
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1', 'url-2', 'url-3'],
@@ -2400,7 +2626,6 @@ describe('projects storage', () => {
     await setUrlCategory('empty', 'https://example.test/one', 'new')
     await setUrlCategory('target', 'https://example.test/missing', 'new')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'empty',
@@ -2459,7 +2684,6 @@ describe('projects storage', () => {
       'https://example.test/move',
     )
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'source',
@@ -2521,7 +2745,6 @@ describe('projects storage', () => {
       'https://example.test/move',
     )
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'source',
@@ -2618,7 +2841,6 @@ describe('projects storage', () => {
       }),
     ).rejects.toThrow('Project with ID missing not found')
 
-    // eslint-disable-next-line typescript/unbound-method
     const setMock = vi.mocked(chrome.storage.local.set)
     setMock.mockRejectedValueOnce(new Error('write failed'))
     await expect(updateProjectOrder(['source'])).rejects.toThrow('write failed')

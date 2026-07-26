@@ -1,22 +1,53 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+
 import tailwindcss from '@tailwindcss/vite'
 import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 
 import '@wxt-dev/module-react' // eslint-disable-line
 
-const vitePlugins = tailwindcss() as unknown as NonNullable< // eslint-disable-line
-  WxtViteConfig['plugins']
->
+import { PRODUCTION_EXTENSION_PERMISSIONS } from './src/constants/extensionPermissions'
+import {
+  PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
+  createProductionExtensionCsp,
+} from './src/constants/productionNetworkPolicy'
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const readPackageVersion = (): string => {
+  const packageJsonPath = path.resolve(import.meta.dirname, 'package.json')
+  const parsed: unknown = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
+  if (!isRecord(parsed)) {
+    throw new TypeError('package.json is not an object')
+  }
+  const version: unknown = parsed.version
+  if (typeof version !== 'string' || version === '') {
+    throw new TypeError(
+      'package.json version is missing, not a string, or empty',
+    )
+  }
+  return version
+}
+
+const APP_VERSION = readPackageVersion()
+
+const vitePlugins = tailwindcss()
 
 export default defineConfig({
   srcDir: 'src',
   publicDir: 'src/public',
-  manifest: {
+  manifest: (env) => ({
     default_locale: 'ja',
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
-    version: '2.0.7',
-    host_permissions: ['http://localhost:11434/*', 'http://127.0.0.1:11434/*'],
-    permissions: ['alarms', 'tabs', 'storage', 'contextMenus', 'notifications'],
+    version: APP_VERSION,
+    incognito: 'not_allowed',
+    content_security_policy: {
+      extension_pages: createProductionExtensionCsp(env.manifestVersion),
+    },
+    host_permissions: PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
+    permissions: [...PRODUCTION_EXTENSION_PERMISSIONS],
     action: {
       default_title: '__MSG_extensionName__',
     },
@@ -24,9 +55,32 @@ export default defineConfig({
       page: 'options.html',
       open_in_tab: true,
     },
-  },
-  modules: ['@wxt-dev/module-react', '@wxt-dev/i18n/module'],
-  vite: () => ({
-    plugins: vitePlugins,
+    // Firefox requires data_collection_permissions from Nov 3, 2025.
+    // TABBIN does not collect personal data - all data stays local
+    // and the only external call is to the user's local Ollama server.
+    ...(env.browser === 'firefox'
+      ? {
+          browser_specific_settings: {
+            gecko: {
+              data_collection_permissions: {
+                required: ['none'],
+              },
+            },
+          },
+        }
+      : {}),
   }),
+  modules: ['@wxt-dev/module-react', '@wxt-dev/i18n/module'],
+  vite: (env) => {
+    const isProduction = env.mode === 'production'
+
+    return {
+      build: isProduction ? { minify: 'esbuild' } : undefined,
+      define: {
+        __APP_VERSION__: JSON.stringify(APP_VERSION),
+      },
+      esbuild: isProduction ? { drop: ['console', 'debugger'] } : undefined,
+      plugins: vitePlugins,
+    }
+  },
 })

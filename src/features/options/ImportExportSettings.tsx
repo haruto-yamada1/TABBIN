@@ -1,5 +1,5 @@
 import { AlertCircle, Download } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -20,8 +20,7 @@ export const ImportExportSettings: React.FC = () => {
   const { t } = useI18n()
   const [isExporting, setIsExporting] = useState(false)
 
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     try {
       setIsExporting(true)
       const data = await exportSettings()
@@ -38,7 +37,7 @@ export const ImportExportSettings: React.FC = () => {
     } finally {
       setIsExporting(false)
     }
-  }
+  }, [t])
 
   return (
     <div className='gap-y-4'>

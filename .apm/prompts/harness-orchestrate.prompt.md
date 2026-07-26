@@ -14,7 +14,7 @@ ECC の workflow command のように、実装前に run を開始し、計画�
 
 - 新機能、複数ファイル変更、長時間作業、設計判断が必要な作業。
 - サブエージェントで調査、実装、レビューを分担できる作業。
-- 完了判断に `bun run quality`、`bun run test:coverage`、Evaluator review が必要な作業。
+- 完了判断に `bun run quality:check`、`bun run test:coverage`、Evaluator review が必要な作業。
 - ユーザーが `harness`、`orchestrate`、`ECC っぽく`、`サブエージェント` と言及した作業。
 
 小さい一問一答、単発の読み取り、明確な 1 ファイル修正では使わなくて構いません。

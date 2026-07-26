@@ -25,7 +25,7 @@ TABBIN の browser extension threat model に照らして変更を確認しま�
 - log と error が token、prompt content、private URL、imported tab data を
   漏らしていない。
 - dependency と dynamic import が必要で、active に維持されており、既存の
-  `bun run quality` / `bun run test:coverage` gate を弱めていない。
+`bun run quality:check` / `bun run test:coverage` gate を弱めていない。
 
 ## ワークフロー
 

@@ -1,14 +1,12 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import {
-  I18nProvider,
-  getFallbackText,
-  useI18n,
-  useI18nText,
-  useOptionalI18n,
-} from './I18nProvider'
+import { useI18nText } from '@/features/i18n/lib/useI18nText'
+
+import { I18nProvider, useI18n, useOptionalI18n } from './I18nProvider'
+import { getFallbackText } from './I18nProvider.utils'
 
 const mocks = vi.hoisted(() => ({
   getChromeStorageOnChanged: vi.fn(),
@@ -50,7 +48,6 @@ const Consumer = () => {
       </span>
       <button
         type='button'
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => {
           void setLanguageSetting('en')
         }}
@@ -96,6 +93,7 @@ describe('I18nProvider', () => {
   })
 
   it('設定を読み込み system 言語をUIロケールから解決し保存変更できる', async () => {
+    const user = userEvent.setup()
     render(
       <I18nProvider>
         <Consumer />
@@ -109,10 +107,7 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('message').textContent).toContain('キャンセル')
     expect(screen.getByTestId('message').textContent).toContain('Hello Taro')
 
-    // eslint-disable-next-line typescript/require-await
-    await act(async () => {
-      screen.getByText('set-en').click()
-    })
+    await user.click(screen.getByText('set-en'))
 
     expect(mocks.saveUserSettings).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -217,7 +212,6 @@ describe('I18nProvider', () => {
 
     unmount()
 
-    // eslint-disable-next-line typescript/require-await
     await act(async () => {
       resolveSettings?.({ language: 'en' })
     })

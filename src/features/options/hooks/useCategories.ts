@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  getStoredLanguageSetting,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
+import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -21,16 +27,17 @@ import type { ParentCategory } from '@/types/storage'
 const MAX_CATEGORY_NAME_LENGTH = 25
 const ERROR_TOAST_DURATION_MS = 3000
 
-const getUiLocale = () => chrome.i18n?.getUILanguage?.() ?? 'ja'
+const getUiLocale = () => getBrowserUiLocale('ja')
 
 export const useCategories = () => {
-  const [{ parentCategories, language }, setCategoryState] = useState<{
+  const [categoryState, setCategoryState] = useState<{
     language: AppLanguage
     parentCategories: ParentCategory[]
   }>({
     language: 'ja',
     parentCategories: [],
   })
+  const { parentCategories, language } = categoryState
   const [newCategoryName, setNewCategoryName] = useState('')
   const [categoryError, setCategoryError] = useState<string | null>(null) // エラーメッセージ用の状態変数
 
@@ -56,13 +63,12 @@ export const useCategories = () => {
       }
     }
 
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadCategories()
+    void loadCategories()
   }, [])
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Partial<Record<string, StorageChange>>,
       areaName: string,
     ) => {
       if (areaName === 'local' && changes.parentCategories) {
@@ -77,15 +83,12 @@ export const useCategories = () => {
       }
 
       if (areaName === 'local' && changes.userSettings?.newValue) {
-        const nextSettings = changes.userSettings.newValue as {
-          language?: 'en' | 'ja' | 'system'
-        }
+        const nextLanguageSetting = getStoredLanguageSetting(
+          changes.userSettings.newValue,
+        )
         setCategoryState((prev) => ({
           ...prev,
-          language: resolveLanguage(
-            nextSettings.language ?? 'system',
-            getUiLocale(),
-          ),
+          language: resolveLanguage(nextLanguageSetting, getUiLocale()),
         }))
       }
     }
@@ -163,8 +166,7 @@ export const useCategories = () => {
       e.preventDefault()
       // エラーがなければ追加を実行
       if (!categoryError) {
-        // eslint-disable-next-line typescript/no-floating-promises
-        handleAddCategory()
+        void handleAddCategory()
       }
     }
   }

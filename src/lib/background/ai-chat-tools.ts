@@ -1,7 +1,8 @@
+/* eslint-disable typescript/require-await -- AI SDK tool() の execute シグネチャは async を要求するが、本ファイルでは同期値を返すだけ */
 import { tool } from 'ai'
 import { z } from 'zod'
 
-import { AI_CHAT_TOOL_DESCRIPTIONS } from '@/constants/aiChatTools'
+import { getAiChatToolDescription } from '@/constants/aiChatTools'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
 import {
   DEFAULT_SAVED_URL_PAGE,
@@ -74,7 +75,7 @@ const createCurrentDateTimeOutput = (now = new Date()) => {
       },
       [],
     ),
-  ) as Record<string, string>
+  )
 
   const localDate = `${parts.year}-${parts.month}-${parts.day}`
   const localTime = `${parts.hour}:${parts.minute}:${parts.second}`
@@ -154,17 +155,20 @@ const createAiChatTools = (
   language: AppLanguage = 'ja',
 ) => ({
   findUrlsByMonth: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.findUrlsByMonth,
+    description: getAiChatToolDescription(language, 'findUrlsByMonth'),
     inputSchema: paginationSchema.extend({
       year: z.number().int(),
       month: z.number().int().min(MIN_MONTH).max(MAX_MONTH),
     }),
-    // eslint-disable-next-line typescript/require-await
+
     execute: async (input) =>
       mapPageForToolOutput(findSavedUrlsAddedInMonthPage(records, input)),
   }),
   generateSavedTabsAnalytics: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.generateSavedTabsAnalytics,
+    description: getAiChatToolDescription(
+      language,
+      'generateSavedTabsAnalytics',
+    ),
     inputSchema: z.object({
       chartType: z.enum(['area', 'bar', 'line', 'pie', 'radar']).default('bar'),
       compareBy: z.enum(['mode', 'none']).default('none'),
@@ -217,43 +221,40 @@ const createAiChatTools = (
         .enum(['30d', '365d', '7d', '90d', 'all', 'custom'])
         .default('all'),
       title: z.string().trim().optional(),
-      // eslint-disable-next-line typescript/require-await
     }),
-    // eslint-disable-next-line typescript/require-await
+
     execute: async (input) =>
       generateAnalyticsResult(records, normalizeAnalyticsQuery(input), {
         messages: createAnalyticsMessages(language),
       }),
   }),
   getCurrentDateTime: tool({
-    // eslint-disable-next-line typescript/require-await
-    description: AI_CHAT_TOOL_DESCRIPTIONS.getCurrentDateTime,
+    description: getAiChatToolDescription(language, 'getCurrentDateTime'),
     inputSchema: z.object({}),
-    // eslint-disable-next-line typescript/require-await
+
     execute: async () => createCurrentDateTimeOutput(),
   }),
-  // eslint-disable-next-line typescript/require-await
+
   inferUserInterests: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.inferUserInterests,
+    description: getAiChatToolDescription(language, 'inferUserInterests'),
     inputSchema: z.object({}),
-    // eslint-disable-next-line typescript/require-await
+
     execute: async () => inferUserInterests(records, language),
-    // eslint-disable-next-line typescript/require-await
   }),
   listSavedUrls: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.listSavedUrls,
+    description: getAiChatToolDescription(language, 'listSavedUrls'),
     inputSchema: paginationSchema,
-    // eslint-disable-next-line typescript/require-await
+
     execute: async (input) =>
       mapPageForToolOutput(listSavedUrlPage(records, input)),
   }),
-  // eslint-disable-next-line typescript/require-await
+
   searchSavedUrls: tool({
-    description: AI_CHAT_TOOL_DESCRIPTIONS.searchSavedUrls,
+    description: getAiChatToolDescription(language, 'searchSavedUrls'),
     inputSchema: paginationSchema.extend({
       query: z.string().min(1),
     }),
-    // eslint-disable-next-line typescript/require-await
+
     execute: async (input) =>
       mapPageForToolOutput(searchSavedUrlsPage(records, input)),
   }),

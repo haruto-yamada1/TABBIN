@@ -2,7 +2,12 @@
 
 import type { UIMessage } from 'ai'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
-import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'
+import type {
+  ComponentProps,
+  HTMLAttributes,
+  ReactElement,
+  ReactNode,
+} from 'react'
 import {
   createContext,
   memo,
@@ -26,6 +31,11 @@ import { useI18nText } from '@/features/i18n/lib/useI18nText'
 import { cn } from '@/lib/utils'
 
 import { StreamdownMarkdown } from './streamdown-renderer'
+
+type ReactBranch = ReactElement
+
+const isReactBranch = (node: ReactNode): node is ReactBranch =>
+  typeof node === 'object' && node !== null && '$$typeof' in node
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage['role']
@@ -110,7 +120,7 @@ export const MessageAction = ({
   return button
 }
 
-interface MessageBranchContextType {
+type MessageBranchContextType = {
   currentBranch: number
   totalBranches: number
   goToPrevious: () => void
@@ -201,16 +211,15 @@ export const MessageBranchContent = ({
   ...props
 }: MessageBranchContentProps) => {
   const { currentBranch, setBranches, branches } = useMessageBranch()
-  const childrenArray = useMemo(
-    // eslint-disable-next-line typescript/no-unsafe-return
-    () => (Array.isArray(children) ? children : [children]),
+  const childrenArray = useMemo<ReactBranch[]>(
+    () =>
+      (Array.isArray(children) ? children : [children]).filter(isReactBranch),
     [children],
   )
 
   // Use useEffect to update branches when they change
   useEffect(() => {
     if (branches.length !== childrenArray.length) {
-      // eslint-disable-next-line typescript/no-unsafe-argument
       setBranches(childrenArray)
     }
   }, [childrenArray, branches, setBranches])
@@ -221,8 +230,7 @@ export const MessageBranchContent = ({
         'grid gap-2 overflow-hidden [&>div]:pb-0',
         index === currentBranch ? 'block' : 'hidden',
       )}
-      // eslint-disable-next-line typescript/no-unsafe-assignment
-      key={branch.key} // eslint-disable-line typescript/no-unsafe-member-access
+      key={branch.key}
       {...props}
     >
       {branch}
@@ -344,21 +352,3 @@ export const MessageResponse = memo(
 )
 
 MessageResponse.displayName = 'MessageResponse'
-
-export type MessageToolbarProps = ComponentProps<'div'>
-
-export const MessageToolbar = ({
-  className,
-  children,
-  ...props
-}: MessageToolbarProps) => (
-  <div
-    className={cn(
-      'mt-4 flex w-full items-center justify-between gap-4',
-      className,
-    )}
-    {...props}
-  >
-    {children}
-  </div>
-)

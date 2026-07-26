@@ -1,0 +1,17 @@
+# Negative trigger: github-issue で check Skill は発火すべきでない。
+id: negative-trigger-github-issue
+name: Negative trigger - github-issue
+description: |
+  「GitHub Issue を 作成 して」で check Skill が発火しないこと。
+tags: [negative, trigger]
+inputs:
+  prompt: 'GitHub Issue を作成して'
+expected:
+  should_trigger: false
+graders:
+  - type: trigger
+    name: should_not_trigger_github_issue
+    config:
+      skill_path: .apm/skills/check/SKILL.md
+      mode: negative
+      threshold: 0.6

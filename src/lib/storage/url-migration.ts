@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 import { invalidateUrlCache } from './urls'
@@ -7,13 +9,13 @@ import { invalidateUrlCache } from './urls'
 /** モジュールスコープのメモ化フラグ（ページセッション中の重複ストレージアクセスを防ぐ） */
 let urlsMigrationDone = false
 
-interface UrlMapEntry {
+type UrlMapEntry = {
   id: string
   record: UrlRecord
 }
 
 type UrlMap = Map<string, UrlMapEntry>
-interface UrlMigrationData {
+type UrlMigrationData = {
   existingUrls: UrlRecord[]
   savedTabs: TabGroup[]
   customProjects: CustomProject[]
@@ -24,9 +26,10 @@ const shouldSkipUrlsMigrationByMemoryFlag = async (): Promise<boolean> => {
     return false
   }
 
-  const { urlsMigrationCompleted } = await chrome.storage.local.get(
-    'urlsMigrationCompleted',
-  )
+  const { urlsMigrationCompleted } =
+    await getRequiredPersistenceStorageLocal().get<{
+      urlsMigrationCompleted?: boolean
+    }>('urlsMigrationCompleted')
 
   if (urlsMigrationCompleted) {
     return true
@@ -37,28 +40,31 @@ const shouldSkipUrlsMigrationByMemoryFlag = async (): Promise<boolean> => {
 }
 
 const isUrlsMigrationCompleted = async (): Promise<boolean> => {
-  const { urlsMigrationCompleted } = await chrome.storage.local.get(
-    'urlsMigrationCompleted',
-  )
+  const { urlsMigrationCompleted } =
+    await getRequiredPersistenceStorageLocal().get<{
+      urlsMigrationCompleted?: boolean
+    }>('urlsMigrationCompleted')
 
-  return urlsMigrationCompleted
+  return urlsMigrationCompleted === true
 }
 
 const loadUrlMigrationData = async (): Promise<UrlMigrationData> => {
   const [existingUrlsResult, savedTabsResult, customProjectsResult] =
     await Promise.all([
-      chrome.storage.local.get('urls'),
-      chrome.storage.local.get<{
+      getRequiredPersistenceStorageLocal().get('urls'),
+      getRequiredPersistenceStorageLocal().get<{
         savedTabs?: TabGroup[]
       }>('savedTabs'),
-      chrome.storage.local.get<{
+      getRequiredPersistenceStorageLocal().get<{
         customProjects?: CustomProject[]
       }>('customProjects'),
     ])
 
+  const existingUrls: unknown = existingUrlsResult.urls
+
   return {
-    existingUrls: Array.isArray(existingUrlsResult.urls)
-      ? existingUrlsResult.urls.filter(
+    existingUrls: Array.isArray(existingUrls)
+      ? existingUrls.filter(
           (item): item is UrlRecord =>
             typeof item === 'object' &&
             item !== null &&
@@ -135,15 +141,21 @@ const migrateTabGroupUrls = (tabGroup: TabGroup, urlMap: UrlMap): void => {
     return
   }
 
+  const existingUrlIds = tabGroup.urlIds ?? []
+  const existingSubCategories = tabGroup.urlSubCategories ?? {}
   const urlIds: string[] = []
   const urlSubCategories: Record<string, string> = {}
 
-  for (const urlItem of tabGroup.urls) {
+  for (const [index, urlItem] of tabGroup.urls.entries()) {
     const urlEntry = upsertUrlEntry(urlMap, urlItem)
     urlIds.push(urlEntry.id)
 
-    if (urlItem.subCategory) {
-      urlSubCategories[urlEntry.id] = urlItem.subCategory
+    const existingId = existingUrlIds[index]
+    const subCategory =
+      urlItem.subCategory ??
+      (existingId ? existingSubCategories[existingId] : undefined)
+    if (subCategory) {
+      urlSubCategories[urlEntry.id] = subCategory
     }
   }
 
@@ -154,7 +166,9 @@ const migrateTabGroupUrls = (tabGroup: TabGroup, urlMap: UrlMap): void => {
   }
 
   tabGroup.urls = undefined
-  console.log(`TabGroup ${tabGroup.domain}: ${urlIds.length}個のURLを移行`)
+  console.log(
+    `TabGroup ${redactUrlForLog(tabGroup.domain)}: ${urlIds.length}個のURLを移行`,
+  )
 }
 
 const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
@@ -164,6 +178,8 @@ const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
     return
   }
 
+  const existingUrlIds = project.urlIds ?? []
+  const existingMetadata = project.urlMetadata ?? {}
   const urlIds: string[] = []
   const urlMetadata: Record<
     string,
@@ -173,14 +189,15 @@ const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
     }
   > = {}
 
-  for (const urlItem of project.urls) {
+  for (const [index, urlItem] of project.urls.entries()) {
     const urlEntry = upsertUrlEntry(urlMap, urlItem)
     urlIds.push(urlEntry.id)
 
+    const existingId = existingUrlIds[index]
     const metadata: {
       notes?: string
       category?: string
-    } = {}
+    } = existingId ? { ...existingMetadata[existingId] } : {}
 
     if (urlItem.notes) {
       metadata.notes = urlItem.notes
@@ -212,7 +229,7 @@ const persistUrlsMigrationResult = async (
 ): Promise<void> => {
   const allUrlRecords = [...urlMap.values()].map((entry) => entry.record)
 
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     customProjects,
     savedTabs,
     urls: allUrlRecords,

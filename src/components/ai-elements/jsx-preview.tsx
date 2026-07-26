@@ -1,5 +1,20 @@
 'use client'
 
+// ──────────────────────────────────────────────────────────────────────
+// JSXPreview is a Storybook / dev-only component (issue #658).
+//
+// react-jsx-parser is a devDependency and this component must NEVER be
+// imported from production code.  A dependency-cruiser rule
+// (no-jsx-preview-outside-storybook) enforces that only files under
+// src/lib/storybook/ may import this module.
+//
+// NEVER pass AI output, user input, or any other untrusted string to
+// JSXPreview.  Only trusted Storybook fixtures and dev-only data are
+// permitted.  If structured rendering of AI output is needed in the
+// future, use Markdown / plain text / a constrained schema renderer
+// instead of a JSX parser.
+// ──────────────────────────────────────────────────────────────────────
+
 import { AlertCircle } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import {
@@ -17,7 +32,7 @@ import JsxParser from 'react-jsx-parser'
 
 import { cn } from '@/lib/utils'
 
-interface JSXPreviewContextValue {
+type JSXPreviewContextValue = {
   jsx: string
   processedJsx: string
   error: Error | null
@@ -29,14 +44,14 @@ interface JSXPreviewContextValue {
 
 const JSXPreviewContext = createContext<JSXPreviewContextValue | null>(null)
 
-interface JSXPreviewErrorState {
+type JSXPreviewErrorState = {
   processedJsx: string
   error: Error
 }
 
 const TAG_REGEX = /<\/?([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*?)(\/)?>/
 
-export const useJSXPreview = () => {
+const useJSXPreview = () => {
   const context = use(JSXPreviewContext)
   if (!context) {
     throw new Error('JSXPreview components must be used within JSXPreview')
@@ -180,7 +195,6 @@ export const JSXPreview = memo(
 JSXPreview.displayName = 'JSXPreview'
 
 export type JSXPreviewContentProps = Omit<ComponentProps<'div'>, 'children'>
-
 export const JSXPreviewContent = memo(
   ({ className, ...props }: JSXPreviewContentProps) => {
     const { processedJsx, components, bindings, setError, onErrorProp } =
@@ -233,7 +247,6 @@ const renderChildren = (
   }
   return children
 }
-
 export const JSXPreviewError = memo(
   ({ className, children, ...props }: JSXPreviewErrorProps) => {
     const { error } = useJSXPreview()

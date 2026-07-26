@@ -119,6 +119,24 @@ const messages = {
     'aiChat.streaming.receivedQuestion': '- Received question: {{prompt}}',
     'aiChat.streaming.toolsFollow':
       '- Tools and reasoning update after each completed step.',
+    'aiChat.tool.findUrlsByMonth.description':
+      'List tabs saved in the specified year and month. page/pageSize/sortDirection are configurable.',
+    'aiChat.tool.findUrlsByMonth.title': 'Search tabs by month',
+    'aiChat.tool.generateSavedTabsAnalytics.description':
+      'Aggregate saved tabs by domain, category, project, and time series, then return chartSpecs. Prefer this when charts or analysis are requested.',
+    'aiChat.tool.generateSavedTabsAnalytics.title': 'Saved tabs analytics',
+    'aiChat.tool.getCurrentDateTime.description':
+      'Get the current time. Use this before handling today, this month, days ago, or relative dates.',
+    'aiChat.tool.getCurrentDateTime.title': 'Check current time',
+    'aiChat.tool.inferUserInterests.description':
+      'Estimate themes that may match your interests from saved trends.',
+    'aiChat.tool.inferUserInterests.title': 'Infer interests',
+    'aiChat.tool.listSavedUrls.description':
+      'List currently saved tabs in order of saved time. page/pageSize/sortDirection are configurable.',
+    'aiChat.tool.listSavedUrls.title': 'List saved tabs',
+    'aiChat.tool.searchSavedUrls.description':
+      'Search saved tabs by keyword. page/pageSize/sortDirection are configurable.',
+    'aiChat.tool.searchSavedUrls.title': 'Search tabs by keyword',
     'aiChat.suggestion.favoriteContent':
       'What kinds of content do I save most often?',
     'aiChat.suggestion.recentTabs': 'Show me the tabs I added this month',
@@ -488,6 +506,19 @@ const messages = {
     'options.importExport.unresolvedWarning':
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
+    'options.persistenceRecovery.backup': 'Back up current data',
+    'options.persistenceRecovery.description':
+      'The update could not be completed. Your previous data has not been deleted.',
+    'options.persistenceRecovery.diskWriteFailed':
+      'Writing data to browser storage failed.',
+    'options.persistenceRecovery.preflightFailed':
+      'Available browser storage could not be confirmed.',
+    'options.persistenceRecovery.quotaExceeded':
+      'There is not enough browser storage to complete the update.',
+    'options.persistenceRecovery.retry': 'Retry',
+    'options.persistenceRecovery.storageUnavailable':
+      'Browser storage is currently unavailable.',
+    'options.persistenceRecovery.title': 'Storage recovery required',
     'options.previewColorCustomization': '(preview) Color customization',
     'options.previewColorCustomizationReset': 'Reset',
     'options.previewFontSizeCustomization': '(preview) Font size',
@@ -498,6 +529,7 @@ const messages = {
     'options.title': 'Options',
     'periodicExecution.title': 'Scheduled tasks',
     'savedTabs.addProject': 'Add project',
+    'savedTabs.category.dragHandleAria': 'Drag to reorder category "{{name}}"',
     'savedTabs.category.deleteAllItemName': 'domains in this category',
     'savedTabs.category.deleteAllWarning':
       'Delete all domains in this category. This action cannot be undone.',
@@ -798,6 +830,7 @@ const messages = {
       'Removed {{count}} opened tabs from saved data',
     'savedTabs.undo.restoreError': 'Could not restore saved data',
     'savedTabs.undo.restored': 'Restored saved data',
+    'savedTabs.url.dragHandleAria': 'Drag to reorder tab "{{name}}"',
     'savedTabs.url.deleteAria': 'Delete tab',
     'savedTabs.url.deleteConfirmDescription':
       'Delete this tab. This action cannot be undone.',
@@ -947,6 +980,24 @@ const messages = {
     'aiChat.streaming.receivedQuestion': '- 質問を受け取りました: {{prompt}}',
     'aiChat.streaming.toolsFollow':
       '- ステップ完了ごとにツール実行結果と推論を更新します。',
+    'aiChat.tool.findUrlsByMonth.description':
+      '指定した年月に保存されたタブを一覧化する。page/pageSize/sortDirection を指定できる',
+    'aiChat.tool.findUrlsByMonth.title': '月別タブ検索',
+    'aiChat.tool.generateSavedTabsAnalytics.description':
+      '保存済みタブをドメイン、カテゴリ、プロジェクト、時系列で集計し、chartSpecs を返す。チャートや分析を求められたら優先して使う',
+    'aiChat.tool.generateSavedTabsAnalytics.title': '保存分析',
+    'aiChat.tool.getCurrentDateTime.description':
+      '現在時刻を取得する。今日、今月、何日前、相対日付を扱う前に使う',
+    'aiChat.tool.getCurrentDateTime.title': '現在時刻確認',
+    'aiChat.tool.inferUserInterests.description':
+      '保存傾向から興味のありそうなテーマを推定する',
+    'aiChat.tool.inferUserInterests.title': '興味推定',
+    'aiChat.tool.listSavedUrls.description':
+      '現在保存されているタブを保存日時順に一覧化する。page/pageSize/sortDirection を指定できる',
+    'aiChat.tool.listSavedUrls.title': '保存済みタブ一覧',
+    'aiChat.tool.searchSavedUrls.description':
+      'キーワードで保存済みタブを検索する。page/pageSize/sortDirection を指定できる',
+    'aiChat.tool.searchSavedUrls.title': 'キーワードタブ検索',
     'aiChat.suggestion.favoriteContent': '最近よく保存しているジャンルは？',
     'aiChat.suggestion.recentTabs': '今月追加したタブを教えて',
     'aiChat.suggestion.recommendation': 'どんなコンテンツが好きそうか教えて',
@@ -1287,6 +1338,7 @@ const messages = {
     'options.importExport.mergeWarning':
       'マージの際、同じIDのデータは更新されます。',
     'options.importExport.placeholderUrlTitle': '復元データ（元URL欠損）',
+    'options.importExport.previewAiChat': 'AIチャット履歴: {{hasAiChat}}',
     'options.importExport.previewAiChatLabel': 'AIチャット履歴',
     'options.importExport.previewAnalytics': '分析ビュー: {{hasAnalytics}}',
     'options.importExport.previewCategoriesLabel': 'カテゴリ数',
@@ -1312,6 +1364,19 @@ const messages = {
     'options.importExport.unresolvedWarning':
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',
+    'options.persistenceRecovery.backup': '現在のデータをバックアップ',
+    'options.persistenceRecovery.description':
+      'データの更新を完了できませんでした。以前のデータは削除されていません。',
+    'options.persistenceRecovery.diskWriteFailed':
+      'ブラウザの保存領域への書き込みに失敗しました。',
+    'options.persistenceRecovery.preflightFailed':
+      '利用可能なブラウザの保存領域を確認できませんでした。',
+    'options.persistenceRecovery.quotaExceeded':
+      'データの更新に必要なブラウザの保存領域を確保できませんでした。',
+    'options.persistenceRecovery.retry': '再試行',
+    'options.persistenceRecovery.storageUnavailable':
+      'ブラウザの保存領域を現在利用できません。',
+    'options.persistenceRecovery.title': '保存領域の復旧が必要です',
     'options.previewColorCustomization': '(preview)カラーカスタマイズ',
     'options.previewColorCustomizationReset': 'リセット',
     'options.previewFontSizeCustomization': '(preview)フォントサイズ',
@@ -1322,6 +1387,8 @@ const messages = {
     'options.title': 'オプション',
     'periodicExecution.title': '定期実行',
     'savedTabs.addProject': 'プロジェクト追加',
+    'savedTabs.category.dragHandleAria':
+      'ドラッグしてカテゴリ「{{name}}」を並べ替える',
     'savedTabs.category.deleteAllItemName': 'このカテゴリのドメイン',
     'savedTabs.category.deleteAllWarning':
       'カテゴリ内のすべてのドメインを削除します。この操作は元に戻せません。',
@@ -1619,6 +1686,7 @@ const messages = {
       '開いた{{count}}件のタブを保存データから削除しました',
     'savedTabs.undo.restoreError': '保存データを復元できませんでした',
     'savedTabs.undo.restored': '保存データを復元しました',
+    'savedTabs.url.dragHandleAria': 'ドラッグしてタブ「{{name}}」を並べ替える',
     'savedTabs.url.deleteAria': 'タブを削除',
     'savedTabs.url.deleteConfirmDescription':
       'このタブを削除します。この操作は元に戻せません。',
@@ -1657,12 +1725,12 @@ const getMessages = (language: AppLanguage) => messages[language]
 type AppLanguage = 'ja' | 'en'
 type LanguageSetting = 'system' | AppLanguage
 
-interface ChangelogFeature {
+type ChangelogFeature = {
   text: string
   highlight?: boolean
 }
 
-interface ChangelogItem {
+type ChangelogItem = {
   version: string
   date: string
   features: ChangelogFeature[]

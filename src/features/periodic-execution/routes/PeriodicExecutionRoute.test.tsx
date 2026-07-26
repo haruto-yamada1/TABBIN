@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
@@ -74,7 +75,6 @@ vi.mock('@/components/ui/select', () => ({
     <div>
       <button
         data-testid='mock-select-change'
-        // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
         onClick={() => onValueChange?.(value === 'never' ? '30days' : 'never')}
         type='button'
       >
@@ -111,18 +111,14 @@ vi.mock('@/components/ui/select', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
-  // eslint-disable-next-line react/jsx-no-useless-fragment
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipProvider: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>{children}</>
   ),
 }))
@@ -261,7 +257,8 @@ describe('PeriodicExecutionRoute', () => {
     ).toBeTruthy()
   })
 
-  it('自動削除期間が未設定なら never を選択値として扱う', () => {
+  it('自動削除期間が未設定なら never を選択値として扱う', async () => {
+    const user = userEvent.setup()
     mocked.settings = {
       ...mocked.settings,
       autoDeletePeriod: undefined,
@@ -269,7 +266,7 @@ describe('PeriodicExecutionRoute', () => {
 
     render(createElement(PeriodicExecutionRoute))
 
-    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
+    await user.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
   })
 
@@ -282,17 +279,18 @@ describe('PeriodicExecutionRoute', () => {
     expect(screen.queryByText('Loading...')).toBeNull()
   })
 
-  it('自動削除期間の変更と確認操作を処理する', () => {
+  it('自動削除期間の変更と確認操作を処理する', async () => {
+    const user = userEvent.setup()
     render(createElement(PeriodicExecutionRoute))
 
-    fireEvent.click(screen.getAllByTestId('mock-select-change')[0])
+    await user.click(screen.getAllByTestId('mock-select-change')[0])
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
     expect(mocked.prepareAutoDeletePeriod).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(mocked.hideConfirmation).toHaveBeenCalledTimes(1)
     expect(mocked.confirmationConfirm).toHaveBeenCalledTimes(1)
   })
@@ -302,19 +300,9 @@ describe('PeriodicExecutionRoute', () => {
 
     const dialog = screen.getByRole('alertdialog')
     const cancelButton = screen.getByRole('button', { name: 'Cancel' })
-    const labelledBy = dialog.getAttribute('aria-labelledby')
-    const describedBy = dialog.getAttribute('aria-describedby')
 
-    expect(labelledBy).toBeTruthy()
-    expect(describedBy).toBeTruthy()
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    expect(document.getElementById(labelledBy ?? '')?.textContent).toBe(
-      'Auto delete',
-    )
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    expect(document.getElementById(describedBy ?? '')?.textContent).toBe(
-      '確認メッセージ',
-    )
-    expect(document.activeElement).toBe(cancelButton)
+    expect(dialog).toHaveAccessibleName('Auto delete')
+    expect(dialog).toHaveAccessibleDescription('確認メッセージ')
+    expect(cancelButton).toHaveFocus()
   })
 })

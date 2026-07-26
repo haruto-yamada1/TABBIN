@@ -1,5 +1,5 @@
 import { Check, Copy } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,19 @@ import type { OllamaErrorDetails } from '@/types/background'
 type OllamaErrorPlatform = 'mac' | 'unknown' | 'win'
 const COPIED_ICON_TIMEOUT = 2000
 
-interface OllamaErrorNoticeProps {
+const hasClipboardWrite = (
+  value: unknown,
+): value is Pick<Clipboard, 'writeText'> =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'writeText') === 'function'
+
+const getClipboard = (): Pick<Clipboard, 'writeText'> | null => {
+  const clipboard: unknown = Reflect.get(navigator, 'clipboard')
+  return hasClipboardWrite(clipboard) ? clipboard : null
+}
+
+type OllamaErrorNoticeProps = {
   className?: string
   error: OllamaErrorDetails
   platform: OllamaErrorPlatform
@@ -44,8 +56,9 @@ const CopyableValueRow = ({
     [],
   )
 
-  const copyToClipboard = async () => {
-    if (typeof window === 'undefined' || !navigator?.clipboard?.writeText) {
+  const copyToClipboard = useCallback(async () => {
+    const clipboard = typeof window === 'undefined' ? null : getClipboard()
+    if (!clipboard) {
       toast.error(
         t('aiChat.ollama.copyError', undefined, {
           label: buttonLabel,
@@ -55,7 +68,7 @@ const CopyableValueRow = ({
     }
 
     try {
-      await navigator.clipboard.writeText(value)
+      await clipboard.writeText(value)
       if (copiedTimeoutRef.current) {
         window.clearTimeout(copiedTimeoutRef.current)
       }
@@ -76,7 +89,11 @@ const CopyableValueRow = ({
         }),
       )
     }
-  }
+  }, [buttonLabel, t, value])
+
+  const handleCopyClick = useCallback(() => {
+    void copyToClipboard()
+  }, [copyToClipboard])
 
   return (
     <div className='flex items-center gap-2'>
@@ -95,10 +112,7 @@ const CopyableValueRow = ({
             aria-label={buttonLabel}
             className='size-8 shrink-0'
             data-state={isCopied ? 'copied' : 'idle'}
-            // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-            onClick={() => {
-              void copyToClipboard()
-            }}
+            onClick={handleCopyClick}
             size='icon-sm'
             title={
               isCopied ? t('aiChat.ollama.copied') : t('aiChat.ollama.copy')
@@ -187,6 +201,7 @@ const OllamaErrorNotice = ({
   return (
     <TooltipProvider delayDuration={0}>
       <div
+        data-testid='ollama-error-notice'
         className={cn(
           'max-h-40 space-y-2 overflow-x-hidden overflow-y-auto pr-1 wrap-break-word',
           '[&_a]:break-all',
@@ -274,5 +289,5 @@ const OllamaErrorNotice = ({
   )
 }
 
-export type { OllamaErrorPlatform }
+export type { OllamaErrorDetails, OllamaErrorPlatform }
 export { OllamaErrorNotice }

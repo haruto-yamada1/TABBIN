@@ -1,4 +1,4 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
+/* eslint-disable eslint/max-lines-per-function -- 1 つの describe ブロックに 4130 行の統合テストがあり、分割すると beforeEach / afterEach の mock 状態が散逸するため */
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -12,7 +12,13 @@ import type { AiChatToolTrace } from '@/types/background'
 import type { CustomProject, UserSettings } from '@/types/storage'
 
 vi.mock('@/lib/storage/categories', () => ({
-  saveParentCategories: vi.fn(),
+  getParentCategories: vi.fn(async () => {
+    const result = await chrome.storage.local.get('parentCategories')
+    return Array.isArray(result.parentCategories) ? result.parentCategories : []
+  }),
+  saveParentCategories: vi.fn(async (categories: unknown) => {
+    await chrome.storage.local.set({ parentCategories: categories })
+  }),
 }))
 
 vi.mock('@/lib/storage/migration', () => ({
@@ -47,8 +53,91 @@ vi.mock('@/lib/storage/settings', () => {
 vi.mock('@/lib/storage/urls', () => ({
   createOrUpdateUrlRecord: vi.fn(),
   createOrUpdateUrlRecordsBatch: vi.fn(),
+  getUrlRecords: vi.fn(async () => {
+    const result = await chrome.storage.local.get({ urls: [] })
+    return Array.isArray(result.urls) ? result.urls : []
+  }),
+  saveUrlRecords: vi.fn(async (records: unknown[]) => {
+    await chrome.storage.local.set({ urls: records })
+  }),
+  invalidateUrlCache: vi.fn(),
 }))
 
+vi.mock('@/lib/storage/tabs', () => ({
+  getSavedTabs: vi.fn(async () => {
+    const result = await chrome.storage.local.get('savedTabs')
+    return Array.isArray(result.savedTabs) ? result.savedTabs : []
+  }),
+  saveTabGroups: vi.fn(async (tabs: unknown[]) => {
+    await chrome.storage.local.set({ savedTabs: tabs })
+  }),
+}))
+
+vi.mock('@/lib/storage/projects', () => ({
+  getCustomProjects: vi.fn(async () => {
+    const result = await chrome.storage.local.get('customProjects')
+    return Array.isArray(result.customProjects) ? result.customProjects : []
+  }),
+  getCustomProjectOrder: vi.fn(async () => {
+    const result = await chrome.storage.local.get('customProjectOrder')
+    return Array.isArray(result.customProjectOrder)
+      ? result.customProjectOrder
+      : []
+  }),
+  saveCustomProjects: vi.fn(async (projects: unknown[]) => {
+    await chrome.storage.local.set({ customProjects: projects })
+  }),
+  updateProjectOrder: vi.fn(async (order: string[]) => {
+    await chrome.storage.local.set({ customProjectOrder: order })
+  }),
+}))
+
+vi.mock('@/lib/storage/analytics', () => ({
+  loadSavedAnalyticsViews: vi.fn(async () => {
+    const result = await chrome.storage.local.get('savedAnalyticsViews')
+    return Array.isArray(result.savedAnalyticsViews)
+      ? result.savedAnalyticsViews
+      : []
+  }),
+  saveSavedAnalyticsViews: vi.fn(async (views: unknown[]) => {
+    await chrome.storage.local.set({ savedAnalyticsViews: views })
+  }),
+}))
+
+vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
+  ACTIVE_AI_CHAT_CONVERSATION_ID_KEY: 'activeAiChatConversationId',
+  AI_CHAT_CONVERSATIONS_KEY: 'aiChatConversations',
+  loadConversationHistory: vi.fn(async () => {
+    const result = await chrome.storage.local.get([
+      'activeAiChatConversationId',
+      'aiChatConversations',
+    ])
+    const conversations = Array.isArray(result.aiChatConversations)
+      ? result.aiChatConversations
+      : []
+    const activeId =
+      typeof result.activeAiChatConversationId === 'string'
+        ? result.activeAiChatConversationId
+        : (conversations[0]?.id ?? '')
+    return { activeConversationId: activeId, conversations }
+  }),
+  saveConversationHistory: vi.fn(
+    async (state: {
+      activeConversationId: string
+      conversations: unknown[]
+    }) => {
+      await chrome.storage.local.set({
+        activeAiChatConversationId: state.activeConversationId,
+        aiChatConversations: state.conversations,
+      })
+    },
+  ),
+}))
+
+import {
+  BACKUP_RESOURCE_LIMITS,
+  BackupResourceLimitError,
+} from '@/lib/persistence/backupResourcePolicy'
 import { saveParentCategories } from '@/lib/storage/categories'
 import { migrateToUrlsStorage } from '@/lib/storage/migration'
 import {
@@ -80,121 +169,11 @@ import {
   resolveCurrentLanguage,
   restoreImportedCustomProjectUrlsFromIds,
 } from './import-export'
-
-type StorageStore = Record<string, unknown>
-
-const clone = <T>(value: T): T => {
-  if (value === undefined) {
-    return value
-  }
-  // eslint-disable-next-line unicorn/prefer-structured-clone
-  return JSON.parse(JSON.stringify(value)) as T
-}
-
-const readStorageByKeys = (
-  store: StorageStore,
-  keys?: string | string[] | Record<string, unknown>,
-) => {
-  if (keys == null) {
-    return clone(store)
-  }
-
-  if (typeof keys === 'string') {
-    return { [keys]: clone(store[keys]) }
-  }
-
-  if (Array.isArray(keys)) {
-    const result: Record<string, unknown> = {}
-    for (const key of keys) {
-      result[key] = clone(store[key])
-    }
-    return result
-  }
-
-  const result: Record<string, unknown> = {}
-  for (const [key, fallback] of Object.entries(keys)) {
-    result[key] = store[key] === undefined ? clone(fallback) : clone(store[key])
-  }
-  return result
-}
-
-const createChromeMock = (
-  initialStore: StorageStore = {},
-  options: {
-    manifestVersion?: string
-    failGet?: boolean
-  } = {},
-) => {
-  const store = clone(initialStore)
-
-  const get = vi.fn(
-    // eslint-disable-next-line typescript/require-await
-    async (keys?: string | string[] | Record<string, unknown>) => {
-      if (options.failGet) {
-        throw new Error('storage get failed')
-      }
-      return readStorageByKeys(store, keys)
-    },
-  )
-
-  // eslint-disable-next-line typescript/require-await
-  const set = vi.fn(async (next: Record<string, unknown>) => {
-    for (const [key, value] of Object.entries(next)) {
-      store[key] = clone(value)
-    }
-  })
-
-  ;(globalThis as unknown as { chrome: typeof chrome }).chrome = {
-    storage: {
-      local: { get, set },
-    },
-    i18n: {
-      getUILanguage: () => 'ja',
-    },
-    runtime: {
-      getManifest: () => ({ version: options.manifestVersion ?? '9.9.9' }),
-    },
-  } as unknown as typeof chrome
-
-  return { store, get, set }
-}
-
-const buildFullUserSettings = (
-  override: Partial<UserSettings> = {},
-): UserSettings => ({
-  removeTabAfterOpen: true,
-  removeTabAfterExternalDrop: true,
-  excludePatterns: ['existing-pattern'],
-  enableCategories: true,
-  autoDeletePeriod: 'never',
-  showSavedTime: false,
-  clickBehavior: 'saveSameDomainTabs',
-  excludePinnedTabs: true,
-  openUrlInBackground: true,
-  openAllInNewWindow: false,
-  confirmDeleteAll: false,
-  confirmDeleteEach: false,
-  colors: {},
-  ollamaModel: '',
-  ...override,
-})
-
-const buildCustomProject = (
-  override: Partial<CustomProject> = {},
-): CustomProject => ({
-  id: 'project-1',
-  name: 'Project 1',
-  projectKeywords: {
-    titleKeywords: [],
-    urlKeywords: [],
-    domainKeywords: [],
-  },
-  urlIds: [],
-  categories: [],
-  createdAt: 1,
-  updatedAt: 1,
-  ...override,
-})
+import {
+  buildCustomProject,
+  buildFullUserSettings,
+  createChromeMock,
+} from './importExportTestFixtures'
 
 const buildAnalyticsQuery = (
   override: Partial<AnalyticsQuery> = {},
@@ -307,6 +286,12 @@ const buildAiChatConversation = (
   ...override,
 })
 
+const findSetCallByKey = (
+  calls: [Record<string, unknown> | undefined][],
+  key: string,
+): Record<string, unknown> | undefined =>
+  calls.find((c) => c[0] && key in c[0])?.[0]
+
 describe('import-export ユーティリティ', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -323,7 +308,6 @@ describe('import-export ユーティリティ', () => {
     vi.restoreAllMocks()
   })
 
-  // eslint-disable-next-line typescript/require-await
   it('内部 helper は custom project の欠損値と legacy urlIds 復元を正規化する', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-02-16T00:01:00.000Z'))
@@ -346,7 +330,6 @@ describe('import-export ユーティリティ', () => {
           >[number],
         ],
       }),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(
       expect.objectContaining({
         categories: ['Docs'],
@@ -401,7 +384,6 @@ describe('import-export ユーティリティ', () => {
         importedUrlMap,
         currentUrlMap,
       ),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([
       {
         category: undefined,
@@ -424,7 +406,6 @@ describe('import-export ユーティリティ', () => {
         importedUrlMap,
         currentUrlMap,
       ),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
     expect(
       normalizeImportedCustomProjectsForImport(
@@ -432,8 +413,37 @@ describe('import-export ユーティリティ', () => {
         importedUrlMap,
         currentUrlMap,
       ),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual([])
+    expect(
+      normalizeImportedCustomProjectsForImport(
+        [
+          {
+            id: 'project-invalid-urls',
+            name: 'Project Invalid URLs',
+            urls: [
+              null,
+              undefined,
+              { url: '' },
+              { title: 'Missing URL' },
+              { title: 'Valid', url: 'https://valid.example.com' },
+            ],
+          },
+        ] as unknown as Parameters<
+          typeof normalizeImportedCustomProjectsForImport
+        >[0],
+        importedUrlMap,
+        currentUrlMap,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        urls: [
+          {
+            title: 'Valid',
+            url: 'https://valid.example.com',
+          },
+        ],
+      }),
+    ])
   })
 
   it('内部 helper は custom project の整列、追加、上書きを正規化する', () => {
@@ -456,23 +466,22 @@ describe('import-export ユーティリティ', () => {
       language: 'en',
       tabGroups: [
         {
-          domain: 'https://empty.example.com',
+          domain: 'empty.example.com',
           id: 'group-empty',
         },
         {
-          domain: 'https://aligned.example.com',
+          domain: 'aligned.example.com',
           id: 'group-1',
           urlIds: ['url-a', 'url-b'],
         },
       ],
     })
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(aligned.customProjectOrder).toEqual([
       'project-existing',
       'custom-uncategorized',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(aligned.customProjects).toEqual([
       expect.objectContaining({
         id: 'project-existing',
@@ -497,13 +506,13 @@ describe('import-export ユーティリティ', () => {
       language: 'en',
       tabGroups: [
         {
-          domain: 'https://legacy-uncategorized.example.com',
+          domain: 'legacy-uncategorized.example.com',
           id: 'legacy-group',
           urlIds: ['legacy-url'],
         },
       ],
     })
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(alignedWithLegacyUncategorized.customProjects).toEqual([
       expect.objectContaining({
         id: 'custom-uncategorized',
@@ -521,7 +530,7 @@ describe('import-export ユーティリティ', () => {
       ],
       ['imported-project'],
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(appended.customProjectOrder).toEqual([
       'current-project',
       'imported-project',
@@ -536,7 +545,6 @@ describe('import-export ユーティリティ', () => {
         [buildCustomProject({ id: 'new-project', name: 'New' })],
         [],
       ).customProjectOrder,
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['new-project'])
 
     expect(
@@ -547,7 +555,6 @@ describe('import-export ユーティリティ', () => {
         ],
         ['overwrite-project'],
       ).customProjectOrder,
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual(['overwrite-project', 'unordered-project'])
   })
 
@@ -577,7 +584,7 @@ describe('import-export ユーティリティ', () => {
       new Map(),
       'Missing custom project URL',
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(exportedUrls).toEqual([
       expect.objectContaining({
         savedAt: new Date('2026-02-16T00:03:00.000Z').getTime(),
@@ -626,13 +633,12 @@ describe('import-export ユーティリティ', () => {
       undefined,
     )
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(converted.urlIds).toEqual([
       'created-url-id',
       'created-url-id',
       'created-url-id',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(converted.urlMetadata).toEqual({
       'created-url-id': {
         notes: 'note only',
@@ -665,7 +671,7 @@ describe('import-export ユーティリティ', () => {
         ],
       },
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(resolvedProjects).toEqual([
       expect.objectContaining({
         createdAt: new Date('2026-02-16T00:04:00.000Z').getTime(),
@@ -691,7 +697,6 @@ describe('import-export ユーティリティ', () => {
           savedTabs: [],
         },
       }),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual({
       activeConversationId: 'conversation-current',
       conversations: [currentConversation],
@@ -705,7 +710,6 @@ describe('import-export ユーティリティ', () => {
         parentCategories: [],
         savedTabs: [],
       }),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).toEqual({
       activeConversationId: '',
       conversations: [],
@@ -717,7 +721,7 @@ describe('import-export ユーティリティ', () => {
     const parentCategories = [
       { id: 'cat-1', name: 'Work', domains: [], domainNames: [] },
     ]
-    const savedTabs = [{ id: 'tab-1', domain: 'https://example.com', urls: [] }]
+    const savedTabs = [{ id: 'tab-1', domain: 'example.com', urls: [] }]
 
     createChromeMock({
       customProjectOrder: [],
@@ -732,7 +736,6 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result).toEqual({
       activeAiChatConversationId: '',
       aiChatConversations: [],
@@ -775,7 +778,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'project-urlids-group',
-          domain: 'https://project-urlids.example.com',
+          domain: 'project-urlids.example.com',
           urlIds: ['imported-project-url', 'current-project-url'],
         },
       ],
@@ -785,7 +788,6 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.aiChatConversations).toEqual(aiChatConversations)
     expect(result.activeAiChatConversationId).toBe('conversation-2')
   })
@@ -827,7 +829,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'saved-group',
-          domain: 'https://example.com',
+          domain: 'example.com',
           urls: [
             {
               url: 'https://example.com/docs',
@@ -866,7 +868,6 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjects).toEqual([
       {
         id: 'project-1',
@@ -912,7 +913,7 @@ describe('import-export ユーティリティ', () => {
         updatedAt: 13,
       },
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.customProjectOrder).toEqual(['project-2', 'project-1'])
   })
 
@@ -950,7 +951,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'dedupe-group',
-          domain: 'https://dedupe.example.com',
+          domain: 'dedupe.example.com',
           urlIds: ['url-known', 'url-known', 'missing-tab-id'],
         },
       ],
@@ -972,9 +973,8 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjectOrder).toEqual(['edge-project'])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.customProjects?.[0]).toEqual(
       expect.objectContaining({
         id: 'edge-project',
@@ -1011,7 +1011,7 @@ describe('import-export ユーティリティ', () => {
       }),
     )
     expect(result.savedTabs[0]?.urls).toHaveLength(3)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.urls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1035,7 +1035,7 @@ describe('import-export ユーティリティ', () => {
       parentCategories: [],
       savedTabs: [
         {
-          domain: 'https://fallback-language.example.com',
+          domain: 'fallback-language.example.com',
           id: 'fallback-language-group',
           urlIds: ['fallback-url'],
         },
@@ -1090,7 +1090,6 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.customProjects).toEqual([
       expect.objectContaining({
         id: 'legacy-project',
@@ -1138,7 +1137,6 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedAnalyticsViews).toEqual(savedAnalyticsViews)
   })
 
@@ -1194,8 +1192,12 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'project-urlids-group',
-          domain: 'https://project-urlids.example.com',
-          urlIds: ['imported-project-url', 'current-project-url'],
+          domain: 'project-urlids.example.com',
+          urlIds: ['url-2', 'url-3', 'url-1'],
+          urlSubCategories: {
+            'url-1': 'Docs',
+            'url-2': 'Backlog',
+          },
         },
       ],
       urls: [
@@ -1231,62 +1233,65 @@ describe('import-export ユーティリティ', () => {
       urls: [],
     }).store
 
-    vi.mocked(createOrUpdateUrlRecordsBatch).mockResolvedValue(
-      new Map([
-        [
-          'https://example.com/docs',
-          {
-            id: 'url-1',
-            url: 'https://example.com/docs',
-            title: 'Docs',
-            savedAt: 200,
-          },
-        ],
-        [
-          'https://example.com/backlog',
-          {
-            id: 'url-2',
-            url: 'https://example.com/backlog',
-            title: 'Backlog',
-            savedAt: 201,
-          },
-        ],
-        [
-          'https://example.com/uncategorized',
-          {
-            id: 'url-3',
-            url: 'https://example.com/uncategorized',
-            title: 'Uncategorized',
-            savedAt: 202,
-          },
-        ],
-      ]),
-    )
+    const docsUrlRecord = {
+      id: 'url-1',
+      url: 'https://example.com/docs',
+      title: 'Docs',
+      savedAt: 200,
+    }
+    const backlogUrlRecord = {
+      id: 'url-2',
+      url: 'https://example.com/backlog',
+      title: 'Backlog',
+      savedAt: 201,
+    }
+    const uncategorizedUrlRecord = {
+      id: 'url-3',
+      url: 'https://example.com/uncategorized',
+      title: 'Uncategorized',
+      savedAt: 202,
+    }
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockImplementation(async () => {
+      await chrome.storage.local.set({
+        urls: [docsUrlRecord, backlogUrlRecord, uncategorizedUrlRecord],
+      })
+      return new Map([
+        ['https://example.com/docs', docsUrlRecord],
+        ['https://example.com/backlog', backlogUrlRecord],
+        ['https://example.com/uncategorized', uncategorizedUrlRecord],
+      ])
+    })
 
     const result = await importSettings(JSON.stringify(backup), false)
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(importedStore.customProjectOrder).toEqual([
       'project-2',
       'custom-uncategorized',
       'project-1',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(importedStore.customProjects).toEqual([
       buildCustomProject({
         id: 'project-2',
         name: 'Project 2',
-        urlIds: [],
+        urlIds: ['url-2'],
         categories: ['Backlog'],
         categoryOrder: ['Backlog'],
+        urlMetadata: {
+          'url-2': {
+            category: 'Backlog',
+            notes: 'memo-2',
+          },
+        },
         createdAt: 12,
         updatedAt: 13,
       }),
       buildCustomProject({
         id: 'custom-uncategorized',
         name: '未分類',
-        urlIds: [],
+        urlIds: ['url-3'],
         categories: [],
         createdAt: 14,
         updatedAt: 15,
@@ -1294,7 +1299,7 @@ describe('import-export ユーティリティ', () => {
       buildCustomProject({
         id: 'project-1',
         name: 'Project 1',
-        urlIds: [],
+        urlIds: ['url-1'],
         projectKeywords: {
           titleKeywords: ['release'],
           urlKeywords: ['docs'],
@@ -1302,8 +1307,264 @@ describe('import-export ユーティリティ', () => {
         },
         categories: ['Docs'],
         categoryOrder: ['Docs'],
+        urlMetadata: {
+          'url-1': {
+            category: 'Docs',
+            notes: 'memo-1',
+          },
+        },
         createdAt: 10,
         updatedAt: 11,
+      }),
+    ])
+
+    expect(importedStore.savedTabs).toEqual([
+      {
+        id: 'project-urlids-group',
+        domain: 'project-urlids.example.com',
+        urlIds: ['url-2', 'url-3', 'url-1'],
+        urlSubCategories: {
+          'url-1': 'Docs',
+          'url-2': 'Backlog',
+        },
+        categoryKeywords: [],
+        subCategories: [],
+      },
+    ])
+    expect(importedStore.urls).toEqual([
+      docsUrlRecord,
+      backlogUrlRecord,
+      uncategorizedUrlRecord,
+    ])
+  })
+
+  it('merge モードの復元は legacy/modern 混在バックアップでも既存データと URL 関係を壊さない', async () => {
+    const { store } = createChromeMock({
+      customProjectOrder: ['current-project'],
+      customProjects: [
+        buildCustomProject({
+          id: 'current-project',
+          name: 'Current Project',
+          urlIds: ['current-url'],
+          categories: ['Current'],
+          categoryOrder: ['Current'],
+          urlMetadata: {
+            'current-url': {
+              category: 'Current',
+              notes: 'current-note',
+            },
+          },
+          createdAt: 1,
+          updatedAt: 2,
+        }),
+      ],
+      parentCategories: [],
+      savedTabs: [
+        {
+          id: 'current-group',
+          domain: 'current.example.com',
+          urlIds: ['current-url'],
+          urlSubCategories: {
+            'current-url': 'Current',
+          },
+          savedAt: 10,
+        },
+      ],
+      urls: [
+        {
+          id: 'current-url',
+          url: 'https://current.example.com/home',
+          title: 'Current Home',
+          savedAt: 10,
+        },
+      ],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
+    const currentUrlRecord = {
+      id: 'current-url',
+      url: 'https://current.example.com/home',
+      title: 'Current Home',
+      savedAt: 10,
+    }
+    const modernUrlRecord = {
+      id: 'modern-url',
+      url: 'https://modern.example.com/spec',
+      title: 'Modern Spec',
+      savedAt: 40,
+    }
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockImplementation(async () => {
+      await chrome.storage.local.set({
+        urls: [currentUrlRecord, modernUrlRecord],
+      })
+      return new Map([['https://modern.example.com/spec', modernUrlRecord]])
+    })
+
+    const result = await importSettings(
+      JSON.stringify({
+        customProjectOrder: ['legacy-project', 'modern-project'],
+        customProjects: [
+          buildCustomProject({
+            id: 'legacy-project',
+            name: 'Legacy Project',
+            urlIds: ['missing-legacy-url'],
+            categories: ['Legacy'],
+            categoryOrder: ['Legacy'],
+            urlMetadata: {
+              'missing-legacy-url': {
+                category: 'Legacy',
+                notes: 'legacy-note',
+              },
+            },
+            createdAt: 20,
+            updatedAt: 21,
+          }),
+          buildCustomProject({
+            id: 'modern-project',
+            name: 'Modern Project',
+            urls: [
+              {
+                url: 'https://modern.example.com/spec',
+                title: 'Modern Spec',
+                notes: 'modern-note',
+                savedAt: 40,
+                category: 'Spec',
+              },
+            ],
+            urlIds: [],
+            categories: ['Spec'],
+            categoryOrder: ['Spec'],
+            createdAt: 30,
+            updatedAt: 31,
+          }),
+        ],
+        parentCategories: [],
+        savedTabs: [
+          {
+            id: 'legacy-group',
+            domain: 'legacy.example.com',
+            urlIds: ['missing-legacy-url'],
+            urlSubCategories: {
+              'missing-legacy-url': 'Legacy',
+            },
+            savedAt: 20,
+          },
+          {
+            id: 'modern-group',
+            domain: 'modern.example.com',
+            urls: [
+              {
+                url: 'https://modern.example.com/spec',
+                title: 'Modern Spec',
+                savedAt: 40,
+                subCategory: 'Spec',
+              },
+            ],
+            savedAt: 40,
+          },
+        ],
+        timestamp: '2026-03-21T00:00:00.000Z',
+        urls: [],
+        userSettings: buildFullUserSettings(),
+        version: '9.9.9',
+      }),
+      true,
+    )
+
+    expect(result.success).toBe(true)
+
+    expect(store.savedTabs).toEqual([
+      {
+        id: 'current-group',
+        domain: 'current.example.com',
+        urlIds: ['current-url'],
+        urlSubCategories: {
+          'current-url': 'Current',
+        },
+        savedAt: 10,
+      },
+      {
+        id: 'legacy-group',
+        domain: 'legacy.example.com',
+        urlIds: ['missing-legacy-url'],
+        urlSubCategories: {
+          'missing-legacy-url': 'Legacy',
+        },
+        categoryKeywords: [],
+        savedAt: 20,
+        subCategories: [],
+      },
+      {
+        id: 'modern-group',
+        domain: 'modern.example.com',
+        urlIds: ['modern-url'],
+        urlSubCategories: {
+          'modern-url': 'Spec',
+        },
+        categoryKeywords: [],
+        savedAt: 40,
+        subCategories: [],
+      },
+    ])
+    expect(store.urls).toEqual([
+      currentUrlRecord,
+      modernUrlRecord,
+      {
+        id: 'missing-legacy-url',
+        url: 'https://legacy.example.com/#tabbin-restored-missing-legacy-url',
+        title: '復元データ（元URL欠損）',
+        savedAt: 20,
+      },
+    ])
+    expect(store.customProjectOrder).toEqual([
+      'current-project',
+      'legacy-project',
+      'modern-project',
+    ])
+    expect(store.customProjects).toEqual([
+      buildCustomProject({
+        id: 'current-project',
+        name: 'Current Project',
+        urlIds: ['current-url'],
+        categories: ['Current'],
+        categoryOrder: ['Current'],
+        urlMetadata: {
+          'current-url': {
+            category: 'Current',
+            notes: 'current-note',
+          },
+        },
+        createdAt: 1,
+        updatedAt: 2,
+      }),
+      buildCustomProject({
+        id: 'legacy-project',
+        name: 'Legacy Project',
+        urlIds: ['missing-legacy-url'],
+        categories: ['Legacy'],
+        categoryOrder: ['Legacy'],
+        urlMetadata: {
+          'missing-legacy-url': {
+            category: 'Legacy',
+            notes: 'legacy-note',
+          },
+        },
+        createdAt: 20,
+        updatedAt: 21,
+      }),
+      buildCustomProject({
+        id: 'modern-project',
+        name: 'Modern Project',
+        urlIds: ['modern-url'],
+        categories: ['Spec'],
+        categoryOrder: ['Spec'],
+        urlMetadata: {
+          'modern-url': {
+            category: 'Spec',
+            notes: 'modern-note',
+          },
+        },
+        createdAt: 30,
+        updatedAt: 31,
       }),
     ])
   })
@@ -1420,7 +1681,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.savedAnalyticsViews).toEqual([
       importedAnalyticsView,
       addedAnalyticsView,
@@ -1458,7 +1719,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.savedAnalyticsViews).toEqual([importedAnalyticsView])
   })
 
@@ -1522,7 +1783,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.aiChatConversations).toEqual([
       importedConversation,
       addedConversation,
@@ -1604,7 +1865,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.aiChatConversations).toEqual([importedConversation])
     expect(store.activeAiChatConversationId).toBe('conversation-imported')
   })
@@ -1653,7 +1914,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'group-1',
-          domain: 'https://portable.example.com',
+          domain: 'portable.example.com',
           urlIds: ['url-1', 'url-2'],
           urlSubCategories: { 'url-2': 'Docs' },
         },
@@ -1677,11 +1938,10 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedTabs[0]).toEqual(
       expect.objectContaining({
         id: 'group-1',
-        domain: 'https://portable.example.com',
+        domain: 'portable.example.com',
         urls: [
           {
             url: 'https://portable.example.com/home',
@@ -1708,7 +1968,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'missing-group',
-          domain: 'https://missing-export.example.com',
+          domain: 'missing-export.example.com',
           urlIds: ['missing-id-1', 'missing-id-2'],
           urlSubCategories: { 'missing-id-2': 'RecoveredSub' },
           savedAt: 100,
@@ -1720,11 +1980,10 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedTabs[0]).toEqual(
       expect.objectContaining({
         id: 'missing-group',
-        domain: 'https://missing-export.example.com',
+        domain: 'missing-export.example.com',
         urls: [
           {
             url: 'https://missing-export.example.com/#tabbin-export-missing-missing-id-1',
@@ -1741,7 +2000,7 @@ describe('import-export ユーティリティ', () => {
         ],
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.urls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1762,7 +2021,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'missing-en-group',
-          domain: 'https://missing-en.example.com',
+          domain: 'missing-en.example.com',
           urlIds: ['missing-en-id'],
         },
       ],
@@ -1786,7 +2045,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'legacy-group',
-          domain: 'https://legacy.example.com',
+          domain: 'legacy.example.com',
           urls: [
             { url: 'https://legacy.example.com/ok', title: 'ok' },
             { title: 'missing-url' },
@@ -1800,7 +2059,6 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.savedTabs[0]).toEqual(
       expect.objectContaining({
         urls: [{ url: 'https://legacy.example.com/ok', title: 'ok' }],
@@ -1814,12 +2072,12 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'placeholder-no-savedat',
-          domain: 'https://placeholder-branch.example.com/',
+          domain: 'placeholder-branch.example.com',
           urlIds: ['missing-no-savedat'],
         },
         {
           id: 'titleless-record-group',
-          domain: 'https://titleless-record.example.com',
+          domain: 'titleless-record.example.com',
           urlIds: ['titleless-record-id'],
         },
       ],
@@ -1841,7 +2099,7 @@ describe('import-export ユーティリティ', () => {
     const placeholderGroup = result.savedTabs.find(
       (tab) => tab.id === 'placeholder-no-savedat',
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(placeholderGroup?.urls?.[0]).toEqual(
       expect.objectContaining({
         url: 'https://placeholder-branch.example.com/#tabbin-export-missing-missing-no-savedat',
@@ -1852,7 +2110,7 @@ describe('import-export ユーティリティ', () => {
     const titlelessGroup = result.savedTabs.find(
       (tab) => tab.id === 'titleless-record-group',
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(titlelessGroup?.urls?.[0]).toEqual(
       expect.objectContaining({
         url: 'https://titleless-record.example.com/path',
@@ -1862,7 +2120,6 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('マージ済みプレースホルダーマップの has() が予期せず true を返しても処理できる', async () => {
-    // eslint-disable-next-line typescript/unbound-method
     const originalHas = Map.prototype.has
     let hasCallCount = 0
     using hasSpy = vi.spyOn(Map.prototype, 'has')
@@ -1883,7 +2140,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'forced-skip-group',
-          domain: 'https://forced-skip.example.com',
+          domain: 'forced-skip.example.com',
           urlIds: ['forced-skip-placeholder-id'],
         },
       ],
@@ -1935,29 +2192,27 @@ describe('import-export ユーティリティ', () => {
 
     const result = await exportSettings()
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.parentCategories).toEqual([])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.savedTabs).toEqual([])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.urls).toEqual([])
     expect(result.activeAiChatConversationId).toBe('')
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.aiChatConversations).toEqual([])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.customProjectOrder).toEqual([])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.customProjects).toEqual([])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(result.savedAnalyticsViews).toEqual([])
   })
 
-  it('downloadAsJson は一時的なアンカーを作成してクリーンアップする', () => {
-    // eslint-disable-next-line typescript/unbound-method
+  it('downloadAsJson は compact JSON の一時アンカーを作成してクリーンアップする', async () => {
     const originalCreateObjectUrl = URL.createObjectURL
-    // eslint-disable-next-line typescript/unbound-method
+
     const originalRevokeObjectUrl = URL.revokeObjectURL
-    const createObjectUrl = vi.fn(() => 'blob:mock-url')
+    const createObjectUrl = vi.fn((_blob: Blob) => 'blob:mock-url')
     const revokeObjectUrl = vi.fn()
 
     Object.defineProperty(URL, 'createObjectURL', {
@@ -1981,18 +2236,20 @@ describe('import-export ユーティリティ', () => {
         return 1
       })
 
-    downloadAsJson(
-      {
-        version: '1.0.0',
-        timestamp: '2026-02-16T00:00:00.000Z',
-        userSettings: buildFullUserSettings(),
-        parentCategories: [],
-        savedTabs: [],
-      },
-      'backup.json',
-    )
+    const backup = {
+      version: '1.0.0',
+      timestamp: '2026-02-16T00:00:00.000Z',
+      userSettings: buildFullUserSettings(),
+      parentCategories: [],
+      savedTabs: [],
+    }
+
+    downloadAsJson(backup, 'backup.json')
 
     expect(createObjectUrl).toHaveBeenCalledTimes(1)
+    const createdBlob = createObjectUrl.mock.calls[0]?.[0]
+    expect(createdBlob).toBeInstanceOf(Blob)
+    expect(await createdBlob?.text()).toBe(JSON.stringify(backup))
     expect(clickSpy).toHaveBeenCalledTimes(1)
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:mock-url')
     expect(document.querySelector('a[download="backup.json"]')).toBeNull()
@@ -2009,12 +2266,64 @@ describe('import-export ユーティリティ', () => {
     })
   })
 
+  it('downloadAsJson は共有Backup上限超過をURL生成前にtyped errorで拒否する', () => {
+    const OriginalBlob = globalThis.Blob
+    const originalCreateObjectUrl = URL.createObjectURL
+    const createObjectUrl = vi.fn((_blob: Blob) => 'blob:unexpected')
+
+    class OversizedBlob extends OriginalBlob {
+      override get size(): number {
+        return BACKUP_RESOURCE_LIMITS.maxSerializedBytes + 1
+      }
+    }
+
+    vi.stubGlobal('Blob', OversizedBlob)
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      writable: true,
+      value: createObjectUrl,
+    })
+
+    let caughtError: unknown
+    try {
+      downloadAsJson(
+        {
+          version: '1.0.0',
+          timestamp: '2026-02-16T00:00:00.000Z',
+          userSettings: buildFullUserSettings(),
+          parentCategories: [],
+          savedTabs: [],
+        },
+        'backup.json',
+      )
+    } catch (error) {
+      caughtError = error
+    } finally {
+      vi.stubGlobal('Blob', OriginalBlob)
+      Object.defineProperty(URL, 'createObjectURL', {
+        configurable: true,
+        writable: true,
+        value: originalCreateObjectUrl,
+      })
+    }
+
+    expect(caughtError).toBeInstanceOf(BackupResourceLimitError)
+    expect(caughtError).toMatchObject({
+      code: 'BACKUP_FILE_TOO_LARGE',
+      diagnostic: {
+        actual: BACKUP_RESOURCE_LIMITS.maxSerializedBytes + 1,
+        limit: BACKUP_RESOURCE_LIMITS.maxSerializedBytes,
+        resource: 'serializedBytes',
+      },
+    })
+    expect(createObjectUrl).not.toHaveBeenCalled()
+  })
+
   it('importSettings はスキーマ不正な JSON に対してバリデーションエラーを返す', async () => {
     createChromeMock()
 
     const result = await importSettings(JSON.stringify({ foo: 'bar' }))
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result).toEqual({
       success: false,
       message: 'インポートされたデータの形式が正しくありません',
@@ -2028,7 +2337,6 @@ describe('import-export ユーティリティ', () => {
 
     const result = await importSettings('{malformed-json')
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result).toEqual({
       success: false,
       message: 'データのインポート中にエラーが発生しました',
@@ -2041,14 +2349,12 @@ describe('import-export ユーティリティ', () => {
 
     await expect(
       importSettings(JSON.stringify({ foo: 'bar' }), true, translate),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).resolves.toEqual({
       success: false,
       message: 'translated:options.importExport.importFormatError',
     })
     await expect(
       importSettings('{malformed-json', true, translate),
-      // eslint-disable-next-line vitest/prefer-strict-equal
     ).resolves.toEqual({
       success: false,
       message: 'translated:options.importExport.importError',
@@ -2078,7 +2384,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'translated-missing-group',
-            domain: 'https://translated-missing.example.com',
+            domain: 'translated-missing.example.com',
             urlIds: ['translated-missing-id'],
           },
         ],
@@ -2148,14 +2454,13 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'preview-group',
-            domain: 'https://preview.example.com',
+            domain: 'preview.example.com',
             urls: [],
           },
         ],
       }),
     )
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(valid).toEqual({
       success: true,
       message: 'データの解析に成功しました',
@@ -2169,12 +2474,12 @@ describe('import-export ユーティリティ', () => {
         version: '7.0.0',
       },
     })
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(getImportPreview(JSON.stringify({ foo: 'bar' }))).toEqual({
       success: false,
       message: 'インポートされたデータの形式が正しくありません',
     })
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(getImportPreview('{malformed-json')).toEqual({
       success: false,
       message: 'データの解析中にエラーが発生しました',
@@ -2192,7 +2497,6 @@ describe('import-export ユーティリティ', () => {
       }),
     )
 
-    // eslint-disable-next-line vitest/prefer-strict-equal
     expect(result.preview).toEqual(
       expect.objectContaining({
         hasAiChat: false,
@@ -2245,16 +2549,17 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-    const payload = set.mock.calls[0]?.[0] as {
+    const payload = (findSetCallByKey(set.mock.calls, 'customProjectOrder') ??
+      {}) as {
       customProjectOrder?: string[]
       customProjects?: CustomProject[]
     }
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(payload.customProjectOrder).toEqual([
       'legacy-urlids-project',
       'empty-urlids-project',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(payload.customProjects).toEqual([
       expect.objectContaining({
         id: 'legacy-urlids-project',
@@ -2299,7 +2604,7 @@ describe('import-export ユーティリティ', () => {
     )
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([])
     expect(store.activeAiChatConversationId).toBe('conversation-current')
     expect(store.aiChatConversations).toHaveLength(1)
@@ -2335,7 +2640,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'restored-group',
-          domain: 'https://restored.example.com',
+          domain: 'restored.example.com',
           urlIds: ['backup-url-1'],
           urlSubCategories: { 'backup-url-1': 'FromBackup' },
         },
@@ -2362,15 +2667,13 @@ describe('import-export ユーティリティ', () => {
       },
     )
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'restored-group',
-        domain: 'https://restored.example.com',
+        domain: 'restored.example.com',
         urlIds: ['restored-url-id'],
         urlSubCategories: { 'restored-url-id': 'FromBackup' },
       }),
@@ -2406,7 +2709,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'restored-titleless-group',
-          domain: 'https://restored-titleless.example.com',
+          domain: 'restored-titleless.example.com',
           urlIds: ['backup-titleless-url-1'],
         },
       ],
@@ -2440,7 +2743,6 @@ describe('import-export ユーティリティ', () => {
     })
     vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
     vi.mocked(createOrUpdateUrlRecord).mockImplementation(
-      // eslint-disable-next-line typescript/require-await
       async (url: string, title: string) => ({
         id: url.includes('imported-project')
           ? 'imported-project-url'
@@ -2466,7 +2768,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'missing-group',
-          domain: 'https://missing.example.com',
+          domain: 'missing.example.com',
           urlIds: ['missing-url-id'],
         },
       ],
@@ -2495,7 +2797,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'missing-group',
-            domain: 'https://missing.example.com',
+            domain: 'missing.example.com',
             urlIds: ['missing-url-id'],
             urlSubCategories: undefined,
             parentCategoryId: undefined,
@@ -2539,7 +2841,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'missing-overwrite-group',
-          domain: 'https://missing-overwrite.example.com',
+          domain: 'missing-overwrite.example.com',
           urlIds: ['missing-overwrite-url-id'],
         },
       ],
@@ -2566,7 +2868,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'missing-overwrite-group',
-            domain: 'https://missing-overwrite.example.com',
+            domain: 'missing-overwrite.example.com',
             urlIds: ['missing-overwrite-url-id'],
             urlSubCategories: undefined,
             parentCategoryId: undefined,
@@ -2621,7 +2923,7 @@ describe('import-export ユーティリティ', () => {
     const buildUndefinedResponse = (
       keys?: string | string[] | Record<string, unknown>,
     ) => {
-      if (keys == null) {
+      if (keys === undefined) {
         return {}
       }
       if (typeof keys === 'string') {
@@ -2635,7 +2937,6 @@ describe('import-export ユーティリティ', () => {
 
     let urlsGetCount = 0
     get.mockImplementation(
-      // eslint-disable-next-line typescript/require-await
       async (keys?: string | string[] | Record<string, unknown>) => {
         if (isUrlsDefaultRequest(keys)) {
           urlsGetCount += 1
@@ -2665,7 +2966,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'raw-fallback-group',
-          domain: 'https://fallback.example.com/',
+          domain: 'fallback.example.com',
           urlIds: ['raw-fallback-id', 'raw-fallback-id'],
           urlSubCategories: {
             'raw-fallback-id': 'KeepMe',
@@ -2681,15 +2982,13 @@ describe('import-export ユーティリティ', () => {
     expect(result.message).toContain('設定とタブデータを置き換えました')
     expect(createOrUpdateUrlRecord).not.toHaveBeenCalled()
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'raw-fallback-group',
-        domain: 'https://fallback.example.com/',
+        domain: 'fallback.example.com',
         urlIds: ['raw-fallback-id'],
         urlSubCategories: { 'raw-fallback-id': 'KeepMe' },
       }),
@@ -2739,7 +3038,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'empty-group',
-          domain: 'https://empty.example.com',
+          domain: 'empty.example.com',
         },
       ],
     }
@@ -2749,15 +3048,13 @@ describe('import-export ユーティリティ', () => {
     expect(result.success).toBe(true)
     expect(createOrUpdateUrlRecord).not.toHaveBeenCalled()
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'empty-group',
-        domain: 'https://empty.example.com',
+        domain: 'empty.example.com',
         urlIds: [],
         urlSubCategories: undefined,
         subCategories: [],
@@ -2789,7 +3086,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'invalid-current-urls-group',
-          domain: 'https://invalid-current-urls.example.com',
+          domain: 'invalid-current-urls.example.com',
           urlIds: ['invalid-current-urls-id'],
         },
       ],
@@ -2844,7 +3141,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'safe-group',
-          domain: 'https://safe.example.com',
+          domain: 'safe.example.com',
           urls: [{ url: 'https://safe.example.com/path' }],
         },
       ],
@@ -2878,7 +3175,7 @@ describe('import-export ユーティリティ', () => {
         savedTabs: [
           {
             id: 'safe-group',
-            domain: 'https://safe.example.com',
+            domain: 'safe.example.com',
             urlIds: ['new-url-id'],
             urlSubCategories: undefined,
             parentCategoryId: undefined,
@@ -2897,7 +3194,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'existing-group',
-          domain: 'https://existing-fallback.example.com',
+          domain: 'existing-fallback.example.com',
           parentCategoryId: 'parent-old',
           savedAt: 777,
         },
@@ -2926,7 +3223,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-existing',
-          domain: 'https://existing-fallback.example.com',
+          domain: 'existing-fallback.example.com',
           urls: [{ url: 'https://existing-fallback.example.com/path' }],
         },
       ],
@@ -2936,15 +3233,13 @@ describe('import-export ユーティリティ', () => {
 
     expect(result.success).toBe(true)
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'existing-group',
-        domain: 'https://existing-fallback.example.com',
+        domain: 'existing-fallback.example.com',
         parentCategoryId: 'parent-old',
         savedAt: 777,
         urlIds: ['new-id'],
@@ -2961,7 +3256,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'dup-group',
-          domain: 'https://dup.example.com',
+          domain: 'dup.example.com',
           urlIds: ['dup-id'],
           urlSubCategories: {},
           categoryKeywords: [{ categoryName: 'news', keywords: ['old'] }],
@@ -2992,7 +3287,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'dup-group-imported',
-          domain: 'https://dup.example.com',
+          domain: 'dup.example.com',
           urls: [{ url: 'https://dup.example.com/path' }],
           categoryKeywords: [
             { categoryName: 'news', keywords: 'not-array' },
@@ -3014,11 +3309,9 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         urlIds: ['dup-id'],
@@ -3059,7 +3352,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'new-domain-edge-group',
-          domain: 'https://new-edge.example.com',
+          domain: 'new-edge.example.com',
           urls: [{ url: 'https://new-edge.example.com' }],
           categoryKeywords: [{ categoryName: 'edge', keywords: 'not-array' }],
           subCategories: [{ name: 'Obj' }, { name: 'Obj' }, 'Str', 'Str', 0],
@@ -3070,11 +3363,9 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         categoryKeywords: [{ categoryName: 'edge', keywords: [] }],
@@ -3089,7 +3380,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'ordered-group',
-          domain: 'https://ordered.example.com',
+          domain: 'ordered.example.com',
           urlIds: ['ordered-url-id'],
           subCategories: ['ExistingA', 'ExistingB'],
           subCategoryOrder: ['ExistingA', 'ExistingB'],
@@ -3124,7 +3415,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'ordered-group-imported',
-          domain: 'https://ordered.example.com',
+          domain: 'ordered.example.com',
           urls: [{ url: 'https://ordered.example.com/path' }],
           subCategories: ['ImportedB', 'ExistingB', 'ImportedA'],
           subCategoryOrder: ['ImportedB', 'ExistingB', 'ImportedA'],
@@ -3141,11 +3432,9 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         subCategories: ['ExistingA', 'ExistingB', 'ImportedB', 'ImportedA'],
@@ -3162,7 +3451,6 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('merge モードでは has() 後の keyword map 参照が undefined を返しても処理できる', async () => {
-    // eslint-disable-next-line typescript/unbound-method
     const originalGet = Map.prototype.get
     using getSpy = vi.spyOn(Map.prototype, 'get')
     getSpy.mockImplementation((key: unknown) => {
@@ -3182,7 +3470,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'force-group',
-          domain: 'https://force.example.com',
+          domain: 'force.example.com',
           categoryKeywords: [
             {
               categoryName: 'force-undefined-existing-item',
@@ -3215,7 +3503,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'force-group-imported',
-          domain: 'https://force.example.com',
+          domain: 'force.example.com',
           urls: [{ url: 'https://force.example.com' }],
           categoryKeywords: [
             {
@@ -3251,7 +3539,7 @@ describe('import-export ユーティリティ', () => {
     const currentTabs = [
       {
         id: 'group-1',
-        domain: 'https://existing.example.com',
+        domain: 'existing.example.com',
         urlIds: ['url-existing'],
         urlSubCategories: { 'url-existing': 'OldSub' },
         parentCategoryId: 'cat-1',
@@ -3315,7 +3603,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-existing-group',
-          domain: 'https://existing.example.com',
+          domain: 'existing.example.com',
           urls: [
             {
               url: 'https://existing.example.com/new',
@@ -3337,7 +3625,7 @@ describe('import-export ユーティリティ', () => {
         },
         {
           id: 'imported-new-group',
-          domain: 'https://new.example.com',
+          domain: 'new.example.com',
           urls: [
             {
               url: 'https://new.example.com/path',
@@ -3371,7 +3659,7 @@ describe('import-export ユーティリティ', () => {
 
     const savedCategoryArg = vi.mocked(saveParentCategories).mock.calls[0]?.[0]
     expect(savedCategoryArg).toHaveLength(2)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(savedCategoryArg).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -3390,60 +3678,134 @@ describe('import-export ユーティリティ', () => {
       ]),
     )
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
     expect(savedTabsArg).toHaveLength(2)
 
     const mergedExisting = savedTabsArg.find(
-      (tab) => tab.domain === 'https://existing.example.com',
+      (tab) => tab.domain === 'existing.example.com',
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(mergedExisting).toEqual(
       expect.objectContaining({
         id: 'group-1',
-        domain: 'https://existing.example.com',
+        domain: 'existing.example.com',
         parentCategoryId: 'cat-2',
         savedAt: 50,
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(mergedExisting?.urlIds).toEqual([
       'url-existing',
       'url-imported-existing',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(mergedExisting?.urlSubCategories).toEqual({
       'url-existing': 'OldSub',
       'url-imported-existing': 'ImportedSub',
     })
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(mergedExisting?.subCategories).toEqual([
       'ExistingObjSub',
       'ExistingStrSub',
       'ImportedObjSub',
       'ImportedStringSub',
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(mergedExisting?.categoryKeywords).toEqual([
       { categoryName: 'news', keywords: ['old', 'new'] },
       { categoryName: 'tech', keywords: ['ai'] },
     ])
 
     const mergedNewDomain = savedTabsArg.find(
-      (tab) => tab.domain === 'https://new.example.com',
+      (tab) => tab.domain === 'new.example.com',
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(mergedNewDomain).toEqual(
       expect.objectContaining({
         id: 'imported-new-group',
-        domain: 'https://new.example.com',
+        domain: 'new.example.com',
         urlIds: ['url-imported-new-domain'],
         subCategories: ['ProjectObj', 'ProjectStr'],
         categoryKeywords: [{ categoryName: 'topic', keywords: ['keyword'] }],
       }),
     )
+  })
+
+  it('importSettings は merge 時に urlSubCategories の孤児 urlId を urlIds でフィルタする (issue #548)', async () => {
+    // 既存タブの urlSubCategories に urlIds に存在しない孤児エントリが
+    // 含まれているケースをカバーする。孤児を残すと
+    // `tabGroupRepository.saveAll` 経路で mapper が `preservedUrlIds`
+    // 基準で再保存する際に subCategory が落ちるため、インポート時に
+    // filter しておく必要がある (issue #548)。
+    const currentSettings = buildFullUserSettings()
+    const currentTabs = [
+      {
+        id: 'group-1',
+        domain: 'existing.example.com',
+        urlIds: ['url-existing'],
+        // 孤児 urlId (url-existing-orphan) を含む
+        urlSubCategories: {
+          'url-existing': 'OldSub',
+          'url-existing-orphan': 'ShouldBeRemoved',
+        },
+        subCategories: ['old'],
+        savedAt: 100,
+      },
+    ]
+
+    const { set } = createChromeMock({
+      parentCategories: [],
+      savedTabs: currentTabs,
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(currentSettings)
+    vi.mocked(createOrUpdateUrlRecord).mockResolvedValueOnce({
+      id: 'url-imported-existing',
+      url: 'https://existing.example.com/new',
+      title: 'Existing New',
+      savedAt: 1,
+    })
+
+    const imported = {
+      version: '2.0.0',
+      timestamp: '2026-02-16T00:00:00.000Z',
+      userSettings: currentSettings,
+      parentCategories: [],
+      savedTabs: [
+        {
+          id: 'imported-existing-group',
+          domain: 'existing.example.com',
+          urls: [
+            {
+              url: 'https://existing.example.com/new',
+              title: 'Existing New',
+              subCategory: 'ImportedSub',
+            },
+          ],
+        },
+      ],
+    }
+
+    const result = await importSettings(JSON.stringify(imported), true)
+
+    expect(result.success).toBe(true)
+
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+    const mergedExisting = savedTabsArg.find(
+      (tab) => tab.domain === 'existing.example.com',
+    )
+
+    expect(mergedExisting?.urlIds).toEqual([
+      'url-existing',
+      'url-imported-existing',
+    ])
+    // urlIds に含まれる urlId の subCategory だけが残る
+
+    expect(mergedExisting?.urlSubCategories).toEqual({
+      'url-existing': 'OldSub',
+      'url-imported-existing': 'ImportedSub',
+    })
   })
 
   it('importSettings は merge モードで customProjects を既存順維持で追加する', async () => {
@@ -3463,7 +3825,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'current-group',
-          domain: 'https://current.example.com',
+          domain: 'current.example.com',
           urlIds: ['url-current'],
         },
       ],
@@ -3547,7 +3909,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-group',
-          domain: 'https://imported.example.com',
+          domain: 'imported.example.com',
           urls: [
             {
               url: 'https://duplicate.example.com/1',
@@ -3566,7 +3928,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'current-project',
@@ -3600,7 +3962,7 @@ describe('import-export ユーティリティ', () => {
         updatedAt: expect.any(Number),
       }),
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjectOrder).toEqual([
       'current-project',
       'imported-project',
@@ -3616,7 +3978,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'saved-group',
-          domain: 'https://example.com',
+          domain: 'example.com',
           urls: [
             { url: 'https://example.com/a', title: 'A' },
             { url: 'https://example.com/b', title: 'B' },
@@ -3696,7 +4058,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'saved-group',
-          domain: 'https://example.com',
+          domain: 'example.com',
           urls: [
             { url: 'https://example.com/a', title: 'A' },
             { url: 'https://example.com/b', title: 'B' },
@@ -3717,7 +4079,7 @@ describe('import-export ユーティリティ', () => {
       },
     )
     expect(createOrUpdateUrlRecord).not.toHaveBeenCalled()
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'project-a',
@@ -3781,7 +4143,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'replace-group',
-          domain: 'https://replace.example.com',
+          domain: 'replace.example.com',
           urls: [
             { url: 'https://replace.example.com/fail', title: 'fail' },
             {
@@ -3830,16 +4192,14 @@ describe('import-export ユーティリティ', () => {
       },
     ])
 
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
     expect(savedTabsArg).toHaveLength(1)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'replace-group',
-        domain: 'https://replace.example.com',
+        domain: 'replace.example.com',
         urlIds: ['url-overwrite-2'],
         urlSubCategories: { 'url-overwrite-2': 'SubA' },
         subCategories: ['ObjectSub', 'StringSub'],
@@ -3847,8 +4207,10 @@ describe('import-export ユーティリティ', () => {
         savedAt: 999,
       }),
     )
-    // eslint-disable-next-line vitest/prefer-strict-equal
-    expect(set.mock.calls[0]?.[0]?.customProjects).toEqual([
+
+    expect(
+      findSetCallByKey(set.mock.calls, 'customProjects')?.customProjects,
+    ).toEqual([
       buildCustomProject({
         id: 'custom-uncategorized',
         name: '未分類',
@@ -3939,7 +4301,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'saved-group',
-          domain: 'https://restored.example.com',
+          domain: 'restored.example.com',
           urls: [
             {
               url: 'https://restored.example.com/1',
@@ -3954,7 +4316,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'restored-project',
@@ -3972,7 +4334,7 @@ describe('import-export ユーティリティ', () => {
         updatedAt: 21,
       }),
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjectOrder).toEqual(['restored-project'])
   })
 
@@ -4046,7 +4408,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'project-from-urlids',
@@ -4113,7 +4475,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'project-with-failed-url',
@@ -4216,7 +4578,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'group-main',
-          domain: 'https://example.com',
+          domain: 'example.com',
           urls: [
             { url: 'https://example.com/a', title: 'A' },
             { url: 'https://example.com/b', title: 'B' },
@@ -4229,7 +4591,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'project-main',
@@ -4255,10 +4617,248 @@ describe('import-export ユーティリティ', () => {
         updatedAt: 13,
       }),
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjectOrder).toEqual([
       'project-main',
       'custom-uncategorized',
+    ])
+  })
+
+  it('overwrite モードの復元は legacy/modern 混在バックアップでも savedTabs と customProjects の URL 関係を保持する', async () => {
+    const restoredAt = new Date('2026-03-10T00:00:00.000Z')
+    vi.useFakeTimers()
+    vi.setSystemTime(restoredAt)
+
+    const { store } = createChromeMock({
+      customProjectOrder: ['stale-project'],
+      customProjects: [
+        buildCustomProject({
+          id: 'stale-project',
+          name: 'Stale',
+          urlIds: ['stale-url'],
+          createdAt: 1,
+          updatedAt: 1,
+        }),
+      ],
+      parentCategories: [],
+      savedTabs: [],
+      urls: [],
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
+    const docsUrlRecord = {
+      id: 'url-docs',
+      url: 'https://docs.example.com/spec',
+      title: 'Docs Spec',
+      savedAt: 101,
+    }
+    const appUrlRecord = {
+      id: 'url-app',
+      url: 'https://app.example.com/login',
+      title: 'App Login',
+      savedAt: 102,
+    }
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockImplementation(async () => {
+      await chrome.storage.local.set({
+        urls: [docsUrlRecord, appUrlRecord],
+      })
+      return new Map([
+        ['https://docs.example.com/spec', docsUrlRecord],
+        ['https://app.example.com/login', appUrlRecord],
+      ])
+    })
+
+    const imported = {
+      version: '6.0.0',
+      timestamp: '2026-03-09T12:00:00.000Z',
+      userSettings: {
+        removeTabAfterOpen: true,
+        removeTabAfterExternalDrop: true,
+        excludePatterns: [],
+        enableCategories: true,
+        showSavedTime: false,
+        clickBehavior: 'saveWindowTabs',
+      },
+      parentCategories: [
+        {
+          id: 'parent-work',
+          name: 'Work',
+          domains: [],
+          domainNames: ['docs.example.com'],
+          keywords: [],
+        },
+      ],
+      savedTabs: [
+        {
+          id: 'group-docs',
+          domain: 'docs.example.com',
+          urlIds: ['legacy-doc-url'],
+          urlSubCategories: {
+            'legacy-doc-url': 'Research',
+          },
+          parentCategoryId: 'parent-work',
+          subCategories: ['Research'],
+          savedAt: 201,
+        },
+        {
+          id: 'group-missing',
+          domain: 'missing.example.com',
+          urlIds: ['missing-tab-url'],
+          savedAt: 202,
+        },
+        {
+          id: 'group-app',
+          domain: 'app.example.com',
+          urls: [
+            {
+              url: 'https://app.example.com/login',
+              title: 'App Login',
+              subCategory: 'Apps',
+            },
+          ],
+          subCategories: ['Apps'],
+          savedAt: 203,
+        },
+      ],
+      urls: [
+        {
+          id: 'legacy-doc-url',
+          url: 'https://docs.example.com/spec',
+          title: 'Docs Spec',
+          savedAt: 101,
+        },
+      ],
+      customProjects: [
+        buildCustomProject({
+          id: 'project-docs',
+          name: 'Docs',
+          urlIds: ['legacy-doc-url'],
+          urlMetadata: {
+            'legacy-doc-url': {
+              notes: 'legacy docs memo',
+              category: 'Research',
+            },
+          },
+          categories: ['Research', 'Backlog'],
+          categoryOrder: ['Backlog', 'Research'],
+          createdAt: 301,
+          updatedAt: 302,
+        }),
+        buildCustomProject({
+          id: 'project-apps',
+          name: 'Apps',
+          urls: [
+            {
+              url: 'https://app.example.com/login',
+              title: 'App Login',
+              notes: 'modern app memo',
+              category: 'Apps',
+            },
+          ],
+          categories: ['Apps'],
+          categoryOrder: ['Apps'],
+          createdAt: 303,
+          updatedAt: 304,
+        }),
+      ],
+      customProjectOrder: ['project-docs', 'project-apps'],
+    }
+
+    const result = await importSettings(JSON.stringify(imported), false)
+
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('設定とタブデータを置き換えました')
+
+    expect(store.savedTabs).toEqual([
+      {
+        id: 'group-docs',
+        domain: 'docs.example.com',
+        urlIds: ['url-docs'],
+        urlSubCategories: {
+          'url-docs': 'Research',
+        },
+        parentCategoryId: 'parent-work',
+        categoryKeywords: [],
+        subCategories: ['Research'],
+        savedAt: 201,
+      },
+      {
+        id: 'group-missing',
+        domain: 'missing.example.com',
+        urlIds: ['missing-tab-url'],
+        urlSubCategories: undefined,
+        parentCategoryId: undefined,
+        categoryKeywords: [],
+        subCategories: [],
+        savedAt: 202,
+      },
+      {
+        id: 'group-app',
+        domain: 'app.example.com',
+        urlIds: ['url-app'],
+        urlSubCategories: {
+          'url-app': 'Apps',
+        },
+        parentCategoryId: undefined,
+        categoryKeywords: [],
+        subCategories: ['Apps'],
+        savedAt: 203,
+      },
+    ])
+
+    expect(store.customProjects).toEqual([
+      buildCustomProject({
+        id: 'project-docs',
+        name: 'Docs',
+        urlIds: ['url-docs'],
+        urlMetadata: {
+          'url-docs': {
+            notes: 'legacy docs memo',
+            category: 'Research',
+          },
+        },
+        categories: ['Research', 'Backlog'],
+        categoryOrder: ['Backlog', 'Research'],
+        createdAt: 301,
+        updatedAt: 302,
+      }),
+      buildCustomProject({
+        id: 'project-apps',
+        name: 'Apps',
+        urlIds: ['url-app'],
+        urlMetadata: {
+          'url-app': {
+            notes: 'modern app memo',
+            category: 'Apps',
+          },
+        },
+        categories: ['Apps'],
+        categoryOrder: ['Apps'],
+        createdAt: 303,
+        updatedAt: 304,
+      }),
+      buildCustomProject({
+        id: 'custom-uncategorized',
+        name: '未分類',
+        urlIds: ['missing-tab-url'],
+        categories: [],
+        createdAt: restoredAt.getTime(),
+        updatedAt: restoredAt.getTime(),
+      }),
+    ])
+    expect(store.customProjectOrder).toEqual([
+      'project-docs',
+      'project-apps',
+      'custom-uncategorized',
+    ])
+    expect(store.urls).toEqual([
+      docsUrlRecord,
+      appUrlRecord,
+      {
+        id: 'missing-tab-url',
+        url: 'https://missing.example.com/#tabbin-restored-missing-tab-url',
+        title: '復元データ（元URL欠損）',
+        savedAt: 202,
+      },
     ])
   })
 
@@ -4279,44 +4879,41 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'current-group',
-          domain: 'https://current.example.com',
+          domain: 'current.example.com',
           urlIds: ['url-current'],
         },
       ],
       urls: [],
     })
     vi.mocked(getUserSettings).mockResolvedValue(buildFullUserSettings())
-    vi.mocked(createOrUpdateUrlRecordsBatch).mockResolvedValue(
-      new Map([
-        [
-          'https://imported.example.com/a',
-          {
-            id: 'url-imported-a',
-            url: 'https://imported.example.com/a',
-            title: 'Imported A',
-            savedAt: 100,
-          },
-        ],
-        [
-          'https://imported.example.com/b',
-          {
-            id: 'url-imported-b',
-            url: 'https://imported.example.com/b',
-            title: 'Imported B',
-            savedAt: 101,
-          },
-        ],
-        [
-          'https://imported.example.com/extra',
-          {
-            id: 'url-imported-extra',
-            url: 'https://imported.example.com/extra',
-            title: 'Imported Extra',
-            savedAt: 102,
-          },
-        ],
-      ]),
-    )
+    const importedAUrlRecord = {
+      id: 'url-imported-a',
+      url: 'https://imported.example.com/a',
+      title: 'Imported A',
+      savedAt: 100,
+    }
+    const importedBUrlRecord = {
+      id: 'url-imported-b',
+      url: 'https://imported.example.com/b',
+      title: 'Imported B',
+      savedAt: 101,
+    }
+    const importedExtraUrlRecord = {
+      id: 'url-imported-extra',
+      url: 'https://imported.example.com/extra',
+      title: 'Imported Extra',
+      savedAt: 102,
+    }
+    vi.mocked(createOrUpdateUrlRecordsBatch).mockImplementation(async () => {
+      await chrome.storage.local.set({
+        urls: [importedAUrlRecord, importedBUrlRecord, importedExtraUrlRecord],
+      })
+      return new Map([
+        ['https://imported.example.com/a', importedAUrlRecord],
+        ['https://imported.example.com/b', importedBUrlRecord],
+        ['https://imported.example.com/extra', importedExtraUrlRecord],
+      ])
+    })
 
     const imported = {
       version: '4.0.1',
@@ -4374,7 +4971,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'imported-group',
-          domain: 'https://imported.example.com',
+          domain: 'imported.example.com',
           urls: [
             {
               url: 'https://imported.example.com/a',
@@ -4393,7 +4990,7 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'current-project',
@@ -4436,12 +5033,17 @@ describe('import-export ユーティリティ', () => {
         updatedAt: expect.any(Number),
       }),
     ])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjectOrder).toEqual([
       'current-project',
       'project-main',
       'project-secondary',
       'custom-uncategorized',
+    ])
+    expect(store.urls).toEqual([
+      importedAUrlRecord,
+      importedBUrlRecord,
+      importedExtraUrlRecord,
     ])
   })
 
@@ -4475,7 +5077,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'sync-failure-group',
-          domain: 'https://sync-failure.example.com',
+          domain: 'sync-failure.example.com',
           urls: [
             {
               url: 'https://sync-failure.example.com',
@@ -4489,9 +5091,9 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), true)
 
     expect(result.success).toBe(true)
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjectOrder).toEqual(['custom-uncategorized'])
-    // eslint-disable-next-line vitest/prefer-strict-equal
+
     expect(store.customProjects).toEqual([
       buildCustomProject({
         id: 'custom-uncategorized',
@@ -4556,7 +5158,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'bulk-group',
-          domain: 'https://bulk.example.com',
+          domain: 'bulk.example.com',
           urls: importedUrls,
         },
       ],
@@ -4567,10 +5169,8 @@ describe('import-export ユーティリティ', () => {
     expect(result.success).toBe(true)
     expect(createOrUpdateUrlRecordsBatch).toHaveBeenCalledTimes(1)
     expect(createOrUpdateUrlRecord).not.toHaveBeenCalled()
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
     expect(savedTabsArg[0]?.urlIds).toHaveLength(100)
   })
 
@@ -4606,7 +5206,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'normalize-group',
-          domain: 'https://normalize.example.com',
+          domain: 'normalize.example.com',
           urls: [{ url: 'https://normalize.example.com', title: 'Normalize' }],
           subCategories: [{ name: 'ObjSub' }, 123, 'StrSub', { name: 999 }],
           categoryKeywords: [
@@ -4622,11 +5222,9 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         subCategories: ['ObjSub', 'StrSub'],
@@ -4660,7 +5258,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'ordered-overwrite-group',
-          domain: 'https://ordered-overwrite.example.com',
+          domain: 'ordered-overwrite.example.com',
           urls: [
             {
               url: 'https://ordered-overwrite.example.com',
@@ -4682,11 +5280,9 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         subCategories: ['Alpha', 'Beta'],
@@ -4721,7 +5317,7 @@ describe('import-export ユーティリティ', () => {
       savedTabs: [
         {
           id: 'minimal-group',
-          domain: 'https://minimal.example.com',
+          domain: 'minimal.example.com',
           urls: [{ url: 'https://minimal.example.com' }],
         },
       ],
@@ -4730,15 +5326,13 @@ describe('import-export ユーティリティ', () => {
     const result = await importSettings(JSON.stringify(imported), false)
 
     expect(result.success).toBe(true)
-    const savedTabsArg = set.mock.calls[0]?.[0]?.savedTabs as Record<
-      string,
-      unknown
-    >[]
-    // eslint-disable-next-line vitest/prefer-strict-equal
+    const savedTabsArg = findSetCallByKey(set.mock.calls, 'savedTabs')
+      ?.savedTabs as Record<string, unknown>[]
+
     expect(savedTabsArg[0]).toEqual(
       expect.objectContaining({
         id: 'minimal-group',
-        domain: 'https://minimal.example.com',
+        domain: 'minimal.example.com',
         urlIds: ['url-minimal'],
         subCategories: [],
         categoryKeywords: [],

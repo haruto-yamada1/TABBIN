@@ -1,0 +1,50 @@
+# Trigger accuracy tests for the TABBIN `check` skill.
+# `waza check` / `waza spec verify` が trigger 例として読み込む。
+# これらは SKILL.md の description に構造化 USE FOR / DO NOT USE FOR が無いため、
+# keyword heuristic の検証データとして使う。
+
+skill: check
+
+# check Skill を使うべき prompt
+should_trigger_prompts:
+  - prompt: '品質チェックを実行して'
+    reason: '品質チェック実行の直接依頼'
+    confidence: high
+
+  - prompt: 'lint、型エラー、テストエラーを直して'
+    reason: 'lint/type/test 失敗の自動修正依頼'
+    confidence: high
+
+  - prompt: 'CI の quality check 失敗を修正して'
+    reason: 'CI 品質ゲート失敗の修正依頼'
+    confidence: high
+
+  - prompt: 'format、lint、type、test を確認して'
+    reason: '品質確認の明示依頼'
+    confidence: high
+
+  - prompt: 'npm run quality が落ちているので直して'
+    reason: 'quality 実行失敗の修正'
+    confidence: high
+
+# check Skill を使うべきでない prompt
+should_not_trigger_prompts:
+  - prompt: 'README を要約して'
+    reason: '要約タスク。品質チェック無関係'
+    confidence: high
+
+  - prompt: '新機能の設計案を考えて'
+    reason: '設計。品質チェック無関係'
+    confidence: high
+
+  - prompt: 'GitHub Issue を作成して'
+    reason: 'Issue 作成。品質チェック無関係'
+    confidence: high
+
+  - prompt: 'UI の配色を変更して'
+    reason: 'UI 変更。品質チェック無関係'
+    confidence: high
+
+  - prompt: 'コードレビューだけして'
+    reason: 'レビューのみ。修正ループ不要'
+    confidence: high

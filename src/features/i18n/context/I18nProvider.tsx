@@ -1,11 +1,13 @@
 import { createContext, use, useEffect, useMemo, useState } from 'react'
 
 import {
+  getBrowserUiLocale,
   getMessage,
+  getStoredLanguageSetting,
   resolveLanguage,
-  resolveUiLanguage,
 } from '@/features/i18n/lib/language'
 import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
+import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -16,7 +18,7 @@ import {
   saveUserSettings,
 } from '@/lib/storage/settings'
 
-interface I18nContextValue {
+type I18nContextValue = {
   language: AppLanguage
   languageSetting: LanguageSetting
   setLanguageSetting: (language: LanguageSetting) => Promise<void>
@@ -25,28 +27,20 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null)
 
-const getUiLocale = () => {
-  if (typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage) {
-    return chrome.i18n.getUILanguage()
-  }
-
-  return navigator.language
-}
-
-export const getFallbackText = (
-  key: string,
-  fallback?: string,
-  values?: Record<string, string>,
-) => getMessage(resolveUiLanguage(getUiLocale()), key, fallback, values)
+const getUiLocale = () =>
+  getBrowserUiLocale(
+    typeof navigator === 'undefined' ? undefined : navigator.language,
+  )
 
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
-  const [{ languageSetting, uiLocale }, setI18nState] = useState<{
+  const [i18nState, setI18nState] = useState<{
     languageSetting: LanguageSetting
     uiLocale: string | undefined
   }>(() => ({
     languageSetting: defaultSettings.language ?? 'system',
     uiLocale: getUiLocale(),
   }))
+  const { languageSetting, uiLocale } = i18nState
 
   useEffect(() => {
     let cancelled = false
@@ -76,18 +70,18 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const handleStorageChange = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Partial<Record<string, StorageChange>>,
       areaName: string,
     ) => {
       if (areaName !== 'local' || !changes.userSettings?.newValue) {
         return
       }
 
-      const nextSettings = changes.userSettings.newValue as {
-        language?: LanguageSetting
-      }
+      const nextLanguageSetting = getStoredLanguageSetting(
+        changes.userSettings.newValue,
+      )
       setI18nState({
-        languageSetting: nextSettings.language ?? 'system',
+        languageSetting: nextLanguageSetting,
         uiLocale: getUiLocale(),
       })
     }
@@ -136,15 +130,6 @@ export const useI18n = () => {
   return context
 }
 
+export type TranslateFn = I18nContextValue['t']
+
 export const useOptionalI18n = () => use(I18nContext)
-
-export const useI18nText = () => {
-  const context = useOptionalI18n()
-
-  return useMemo(
-    () => (key: string, fallback?: string, values?: Record<string, string>) =>
-      context?.t(key, fallback, values) ??
-      getFallbackText(key, fallback, values),
-    [context],
-  )
-}

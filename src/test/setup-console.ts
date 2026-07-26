@@ -1,5 +1,7 @@
 import { afterEach, beforeEach } from 'vitest'
 
+import '@testing-library/jest-dom/vitest'
+
 const allowedConsoleMessagePrefixes = [
   'The width(-1) and height(-1) of chart should be greater than 0,',
   '[カテゴリ同期] ストレージ同期エラー:',
@@ -33,7 +35,9 @@ const allowedConsoleMessagePrefixes = [
   'カスタムプロジェクト保存エラー:',
   'カスタムプロジェクト取得エラー:',
   'グループ削除エラー:',
+  'ストレージ変更を検出:',
   'タイムスタンプ更新エラー:',
+  '[storage] 配列要素',
   'タブを開く処理エラー:',
   'タブ一括オープンエラー:',
   'チェックエラー:',
@@ -92,12 +96,10 @@ const createConsoleGuard =
 console.error = createConsoleGuard('error')
 console.warn = createConsoleGuard('warn')
 
-// eslint-disable-next-line vitest/require-top-level-describe
 beforeEach(() => {
   unexpectedConsoleMessages = []
 })
 
-// eslint-disable-next-line vitest/require-top-level-describe
 afterEach(() => {
   console.error = createConsoleGuard('error')
   console.warn = createConsoleGuard('warn')

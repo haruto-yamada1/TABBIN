@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
@@ -21,10 +22,11 @@ const SETTINGS_SAVE_ERROR_MESSAGE = '設定の保存に失敗しました'
 
 export const useSettings = () => {
   // eslint-disable-line eslint/max-lines-per-function
-  const [{ isLoading, settings }, setSettingsState] = useState({
+  const [settingsState, setSettingsState] = useState({
     isLoading: true,
     settings: defaultSettings,
   })
+  const { isLoading, settings } = settingsState
   const [excludePatternInput, setExcludePatternInput] = useState('')
   const settingsRef = useRef(settings)
   const persistedSettingsRef = useRef(settings)
@@ -72,7 +74,8 @@ export const useSettings = () => {
       action: {
         label: '再試行',
         // eslint-disable-next-line typescript/no-misused-promises
-        onClick: () => retrySaveSettings(failedSettings, rollbackSettings),
+        onClick: async () =>
+          retrySaveSettings(failedSettings, rollbackSettings),
       },
     })
   }
@@ -108,16 +111,15 @@ export const useSettings = () => {
       }
     }
 
-    // eslint-disable-next-line typescript/no-floating-promises
-    loadSettings()
+    void loadSettings()
   }, [])
 
   useEffect(() => {
     const storageChangeListener = (
-      changes: Record<string, chrome.storage.StorageChange>,
+      changes: Record<string, StorageChange>,
       areaName: string,
     ) => {
-      if (areaName === 'local' && changes.userSettings) {
+      if (areaName === 'local' && Object.hasOwn(changes, 'userSettings')) {
         if (changes.userSettings.newValue) {
           // NewValue は完全な UserSettings オブジェクトであると期待
           const nextSettings = fromStorageChange(
@@ -218,8 +220,7 @@ export const useSettings = () => {
   }
 
   const handleExcludePatternsBlur = () => {
-    // eslint-disable-next-line typescript/no-floating-promises
-    handleSaveSettings()
+    void handleSaveSettings()
   }
 
   const handleExcludePatternInputChange = (

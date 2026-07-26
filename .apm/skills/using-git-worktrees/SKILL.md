@@ -43,7 +43,7 @@ grep -i "worktree.*director" CLAUDE.md 2>/dev/null
 worktree ディレクトリが見つかりません。どこに作成しますか？
 
 1. .worktrees/（プロジェクトローカル、非表示）
-2. ~/.config/superpowers/worktrees/<project-name>/（グローバル）
+2. ~/.config/worktrees/<project-name>/（グローバル）
 
 どちらにしますか？
 ```
@@ -68,7 +68,7 @@ Jesse のルール「壊れているものは即修正」に従い:
 
 **なぜ重要:** worktree 内容の誤 commit を防ぐ。
 
-### グローバル（~/.config/superpowers/worktrees）
+### グローバル（~/.config/worktrees）
 
 プロジェクト外のため .gitignore 検証不要。
 
@@ -88,8 +88,8 @@ case $LOCATION in
   .worktrees|worktrees)
     path="$LOCATION/$BRANCH_NAME"
     ;;
-  ~/.config/superpowers/worktrees/*)
-    path="~/.config/superpowers/worktrees/$project/$BRANCH_NAME"
+  ~/.config/worktrees/*)
+    path="$HOME/.config/worktrees/$project/$BRANCH_NAME"
     ;;
 esac
 
@@ -186,7 +186,7 @@ You: using-git-worktrees skill を使って隔離 workspace をセットアッ�
 [npm install 実行]
 [npm test 実行 — 47 passing]
 
-Worktree ready at /Users/jesse/myproject/.worktrees/auth
+Worktree ready at /Users/<user>/myproject/.worktrees/auth
 Tests passing (47 tests, 0 failures)
 Ready to implement auth feature
 ```

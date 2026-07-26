@@ -1,11 +1,20 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { filterItemsBySavableUrl } from '@/lib/url-filter'
 import type {
+  DomainCategorySettings,
   DomainParentCategoryMapping,
   ParentCategory,
+  SubCategoryKeyword,
   TabGroup,
 } from '@/types/storage'
+import {
+  domainMatches,
+  hasNormalizedDomain,
+  normalizeDomainLookupKey,
+} from '@/utils/domain-normalize'
 
 import {
   getDomainCategoryMappings,
@@ -15,7 +24,7 @@ import {
 } from './categories'
 import { getUserSettings } from './settings'
 import { autoCategorizeTabs, restoreCategorySettings } from './tabs'
-import { createOrUpdateUrlRecord } from './urls'
+import { createOrUpdateUrlRecordsBatch } from './urls'
 
 // ドメインを親カテゴリに割り当てる関数
 const assignDomainToCategory = async (
@@ -38,28 +47,29 @@ const assignDomainToCategory = async (
     }
   }
   const updatedCategories = categories.map((category: ParentCategory) => {
+    const domainNames = getCategoryDomainNames(category)
     if (category.id === categoryId) {
-      // すでに含まれていなければ追加
-      if (!category.domains.includes(domainId)) {
-        return {
-          ...category,
-          domains: [...category.domains, domainId],
-          domainNames: category.domainNames?.includes(tabGroup?.domain ?? '')
-            ? category.domainNames
-            : [...(category.domainNames || []), tabGroup?.domain ?? ''],
-        }
+      if (!tabGroup || category.domains.includes(domainId)) {
+        return category
       }
-    } else {
-      // 他のカテゴリからは削除（重複を避けるため）
       return {
         ...category,
-        domains: category.domains.filter((id) => id !== domainId),
-        domainNames: (category.domainNames || []).filter((domain) =>
-          tabGroup ? domain !== tabGroup.domain : true,
-        ),
+        domains: [...category.domains, domainId],
+        domainNames: hasNormalizedDomain(domainNames, tabGroup.domain)
+          ? domainNames
+          : [...domainNames, tabGroup.domain],
       }
     }
-    return category
+    // 他のカテゴリからは削除（重複を避けるため）
+    return {
+      ...category,
+      domains: category.domains.filter((id) => id !== domainId),
+      domainNames: tabGroup
+        ? domainNames.filter(
+            (domain) => !domainMatches(domain, tabGroup.domain),
+          )
+        : domainNames,
+    }
   })
   await saveParentCategories(updatedCategories)
 } // 既存のデータを更新し、domainNamesプロパティを追加する移行関数
@@ -69,10 +79,10 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     const [categories, savedTabsResult, domainCategoryMappingsResult] =
       await Promise.all([
         getParentCategories(),
-        chrome.storage.local.get<{
+        getRequiredPersistenceStorageLocal().get<{
           savedTabs?: TabGroup[]
         }>('savedTabs'),
-        chrome.storage.local.get<{
+        getRequiredPersistenceStorageLocal().get<{
           domainCategoryMappings?: DomainParentCategoryMapping[]
         }>('domainCategoryMappings'),
       ])
@@ -90,7 +100,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       console.log(`カテゴリ「${category.name}」の状態:`, {
         id: category.id,
         domains: category.domains,
-        domainNames: category.domainNames || [],
+        domainNames: category.domainNames,
       })
 
       // マッピングから検索
@@ -98,17 +108,17 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
         (m: DomainParentCategoryMapping) => m.categoryId === category.id,
       )
       console.log(
-        `  マッピングから見つかったドメイン: ${mappingsForCategory.map((m: DomainParentCategoryMapping) => m.domain).join(', ')}`,
+        `  マッピングから見つかったドメイン: ${mappingsForCategory.length}件`,
       )
 
       // SavedTabsからドメイン名を検索
-      const domainsFromTabs = []
-      for (const domainId of category.domains) {
-        const tab = savedTabById.get(domainId)
-        if (tab) {
-          domainsFromTabs.push(tab.domain)
-        }
-      }
+      const domainsFromTabs = category.domains
+        .map((domainId) => {
+          // eslint-disable-next-line eslint/max-depth
+          const tab = savedTabById.get(domainId)
+          return tab?.domain
+        })
+        .filter((domain): domain is string => domain !== undefined)
       console.log(`  タブから見つかったドメイン: ${domainsFromTabs.join(', ')}`)
     }
 
@@ -129,7 +139,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
       // 既存のdomainNamesと結合して重複排除
       const allDomains = [
         ...new Set([
-          ...(category.domainNames || []),
+          ...getCategoryDomainNames(category),
           ...domainNames,
           ...mappingDomains,
         ]),
@@ -148,7 +158,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     console.log('更新後の親カテゴリ:', updatedCategories)
 
     // ストレージに保存
-    await chrome.storage.local.set({
+    await getRequiredPersistenceStorageLocal().set({
       parentCategories: updatedCategories,
     })
     console.log('親カテゴリのdomainNames移行が完了しました')
@@ -163,7 +173,7 @@ const migrateParentCategoriesToDomainNames = async (): Promise<void> => {
     throw error
   }
 }
-interface DomainCategoryMatch {
+type DomainCategoryMatch = {
   category: ParentCategory
   method: 'mapping' | 'domainNames'
 }
@@ -176,6 +186,26 @@ const buildGroupedTabsByDomain = (
   }
   return groupedTabs
 }
+const buildGroupedTabsLookup = (
+  savedTabs: TabGroup[],
+): Map<string, TabGroup> => {
+  const groupedTabs = new Map<string, TabGroup>()
+  for (const group of savedTabs) {
+    const key = normalizeDomainLookupKey(group.domain)
+    if (!groupedTabs.has(key)) {
+      groupedTabs.set(key, group)
+    }
+  }
+  return groupedTabs
+}
+const getCategoryDomainNames = (category: {
+  domainNames?: unknown
+}): string[] =>
+  Array.isArray(category.domainNames)
+    ? category.domainNames.filter(
+        (domainName): domainName is string => typeof domainName === 'string',
+      )
+    : []
 const logParentCategorySnapshot = (
   parentCategories: ParentCategory[],
 ): void => {
@@ -183,7 +213,7 @@ const logParentCategorySnapshot = (
   for (const category of parentCategories) {
     console.log(
       `カテゴリ「${category.name}」のドメイン名一覧:`,
-      category.domainNames || [],
+      getCategoryDomainNames(category),
     )
   }
 }
@@ -191,7 +221,7 @@ const normalizeParentCategoriesIfNeeded = async (
   parentCategories: ParentCategory[],
 ): Promise<ParentCategory[]> => {
   const hasEmptyDomainNames = parentCategories.some(
-    (cat) => !cat.domainNames || cat.domainNames.length === 0,
+    (cat) => getCategoryDomainNames(cat).length === 0,
   )
   if (!hasEmptyDomainNames) {
     return parentCategories
@@ -207,7 +237,9 @@ const findCategoryByDomainMapping = (
   domainCategoryMappings: DomainParentCategoryMapping[],
   parentCategories: ParentCategory[],
 ): DomainCategoryMatch | null => {
-  const domainMapping = domainCategoryMappings.find((m) => m.domain === domain)
+  const domainMapping = domainCategoryMappings.find((m) =>
+    domainMatches(m.domain, domain),
+  )
   if (!domainMapping) {
     return null
   }
@@ -218,7 +250,7 @@ const findCategoryByDomainMapping = (
     return null
   }
   console.log(
-    `ドメイン ${domain} は親カテゴリ「${category.name}」のマッピングに見つかりました`,
+    `ドメイン ${redactUrlForLog(domain)} は親カテゴリ「${category.name}」のマッピングに見つかりました`,
   )
   return {
     category,
@@ -235,12 +267,12 @@ const findCategoryByDomainNames = (
       continue
     }
     console.log(`カテゴリ「${category.name}」のdomainNamesで検索:`, {
-      domainNames: category.domainNames,
-      searchDomain: domain,
+      domainCount: category.domainNames.length,
+      searchDomain: redactUrlForLog(domain),
     })
-    if (category.domainNames.some((d) => d === domain)) {
+    if (hasNormalizedDomain(category.domainNames, domain)) {
       console.log(
-        `ドメイン ${domain} は親カテゴリ「${category.name}」のdomainNamesに見つかりました`,
+        `ドメイン ${redactUrlForLog(domain)} は親カテゴリ「${category.name}」のdomainNamesに見つかりました`,
       )
       return {
         category,
@@ -266,7 +298,7 @@ const assignGroupToCategory = async (
   match: DomainCategoryMatch,
 ): Promise<void> => {
   console.log(
-    `ドメイン ${domain} を親カテゴリ「${match.category.name}」に割り当てます (検出方法: ${match.method})`,
+    `ドメイン ${redactUrlForLog(domain)} を親カテゴリ「${match.category.name}」に割り当てます (検出方法: ${match.method})`,
   )
   group.parentCategoryId = match.category.id
   const domainNames = Array.isArray(match.category.domainNames)
@@ -274,7 +306,7 @@ const assignGroupToCategory = async (
     : []
   const updatedCategory: ParentCategory = {
     ...match.category,
-    domainNames: domainNames.includes(domain)
+    domainNames: hasNormalizedDomain(domainNames, domain)
       ? domainNames
       : [...domainNames, domain],
     domains: [...match.category.domains, group.id],
@@ -283,7 +315,9 @@ const assignGroupToCategory = async (
     updateCategoryDomains(updatedCategory),
     updateDomainCategoryMapping(domain, match.category.id),
   ])
-  console.log(`ドメイン ${domain} と親カテゴリのマッピングを更新しました`)
+  console.log(
+    `ドメイン ${redactUrlForLog(domain)} と親カテゴリのマッピングを更新しました`,
+  )
 }
 const createGroupForDomain = async (
   domain: string,
@@ -304,7 +338,9 @@ const createGroupForDomain = async (
     parentCategories,
   )
   if (!match) {
-    console.log(`ドメイン ${domain} の親カテゴリが見つからないため未分類です`)
+    console.log(
+      `ドメイン ${redactUrlForLog(domain)} の親カテゴリが見つからないため未分類です`,
+    )
     return restoredGroup
   }
   await assignGroupToCategory(restoredGroup, domain, match)
@@ -314,19 +350,23 @@ const dedupeGroupsById = (groupArray: TabGroup[]): TabGroup[] => {
   const idSet = new Set<string>()
   return groupArray.filter((group) => {
     if (idSet.has(group.id)) {
-      console.warn(`重複ID検出: ${group.id} (${group.domain})`)
+      console.warn(`重複ID検出: ${group.id} (${redactUrlForLog(group.domain)})`)
       return false
     }
     idSet.add(group.id)
     return true
   })
 }
+// hostname 形 (`example.com`) を返す。host が取れない URL は保存対象外として null を返す。
+// 既有のスキーム付きデータとの混在は normalizeDomainLookupKey 経由の比較で吸収し、
+// 保存データは別途 migrateDomainStorageToHostname で hostname へ統一する。
 const getTabDomain = (tabUrl: string): string | null => {
   try {
     const parsedUrl = new URL(tabUrl)
-    return `${parsedUrl.protocol}//${parsedUrl.hostname}`
+    const hostname = parsedUrl.hostname
+    return hostname.length > 0 ? hostname : null
   } catch (error) {
-    console.error(`Invalid URL: ${tabUrl}`, error)
+    console.error(`Invalid URL: ${redactUrlForLog(tabUrl)}`, error)
     return null
   }
 }
@@ -354,7 +394,8 @@ const getUniqueDomainsFromTabs = (tabs: chrome.tabs.Tab[]): Set<string> =>
     tabs.flatMap((tab) => {
       try {
         const url = new URL(tab.url ?? '')
-        return [`${url.protocol}//${url.hostname}`]
+        const hostname = url.hostname
+        return hostname.length > 0 ? [hostname] : []
       } catch {
         return []
       }
@@ -369,7 +410,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     initialParentCategories,
     settings,
   ] = await Promise.all([
-    chrome.storage.local.get<{
+    getRequiredPersistenceStorageLocal().get<{
       savedTabs?: TabGroup[]
     }>('savedTabs'),
     getDomainCategoryMappings(),
@@ -377,11 +418,9 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
     getUserSettings(),
   ])
   const { savedTabs = [] } = savedTabsResult
-  const filteredTabs = filterItemsBySavableUrl(
-    tabs,
-    settings.excludePatterns ?? [],
-  )
+  const filteredTabs = filterItemsBySavableUrl(tabs, settings.excludePatterns)
   const groupedTabs = buildGroupedTabsByDomain(savedTabs)
+  const groupedTabsLookup = buildGroupedTabsLookup(savedTabs)
   console.log('既存タブグループ数:', savedTabs.length)
   console.log('重複除外済みタブグループ数:', groupedTabs.size)
   console.log('ドメインマッピング:', domainCategoryMappings)
@@ -390,45 +429,66 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   )
   logParentCategorySnapshot(parentCategories)
   const tabsWithDomains = getTabsWithDomains(filteredTabs)
+  const missingDomainKeys = new Set<string>()
   const missingDomainSet = tabsWithDomains.reduce<Set<string>>(
     (domains, { domain }) => {
-      if (!groupedTabs.has(domain)) {
+      const domainKey = normalizeDomainLookupKey(domain)
+      if (
+        !groupedTabsLookup.has(domainKey) &&
+        !missingDomainKeys.has(domainKey)
+      ) {
         domains.add(domain)
+        missingDomainKeys.add(domainKey)
       }
       return domains
     },
     new Set(),
   )
   const missingDomains = [...missingDomainSet]
-  const createdGroups = await Promise.all(
-    missingDomains.map(async (domain) => {
-      console.log(`新しいドメインを処理: ${domain}`)
-      const group = await createGroupForDomain(
-        domain,
-        domainCategoryMappings,
-        parentCategories,
-      )
-      return { domain, group }
-    }),
-  )
+  const createdGroups: { domain: string; group: TabGroup }[] = []
+  let currentParentCategories = parentCategories
+  for (const domain of missingDomains) {
+    console.log(`新しいドメインを処理: ${redactUrlForLog(domain)}`)
+    // Parent category assignment updates `domains` and `domainNames` through
+    // storage read-modify-write. Process classified domains sequentially and
+    // feed the latest category state into the next assignment.
+    // eslint-disable-next-line no-await-in-loop
+    const group = await createGroupForDomain(
+      domain,
+      domainCategoryMappings,
+      currentParentCategories,
+    )
+    createdGroups.push({ domain, group })
+    if (group.parentCategoryId) {
+      // eslint-disable-next-line no-await-in-loop
+      currentParentCategories = await getParentCategories()
+    }
+  }
   for (const { domain, group } of createdGroups) {
     groupedTabs.set(domain, group)
+    groupedTabsLookup.set(normalizeDomainLookupKey(domain), group)
   }
-  const urlRecords = await Promise.all(
-    tabsWithDomains.map(async ({ domain, tab, url }) => {
-      const group = groupedTabs.get(domain)
-      if (!group) {
-        throw new Error(`Domain group not found: ${domain}`)
-      }
-      if (!missingDomainSet.has(domain)) {
-        console.log(`既存のドメインに追加: ${domain}`)
-      }
-      const urlRecord = await createOrUpdateUrlRecord(url, tab.title ?? '')
-      return { group, urlRecord }
-    }),
+  const urlRecordByUrl = await createOrUpdateUrlRecordsBatch(
+    tabsWithDomains.map(({ tab, url }) => ({
+      title: tab.title ?? '',
+      url,
+    })),
   )
-  for (const item of urlRecords) {
-    const { group, urlRecord } = item
+  for (const { domain, url } of tabsWithDomains) {
+    const domainKey = normalizeDomainLookupKey(domain)
+    const group = groupedTabsLookup.get(domainKey)
+    if (!group) {
+      throw new Error(`Domain group not found: ${redactUrlForLog(domain)}`)
+    }
+    if (!missingDomainKeys.has(domainKey)) {
+      console.log(`既存のドメインに追加: ${redactUrlForLog(domain)}`)
+    }
+    const urlRecord = urlRecordByUrl.get(url)
+    if (!urlRecord) {
+      throw new Error(
+        `URL record not found after batch update: ${redactUrlForLog(url)}`,
+      )
+    }
     // eslint-disable-next-line typescript/prefer-nullish-coalescing
     if (!group.urlIds) {
       group.urlIds = []
@@ -443,7 +503,7 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
   console.log('保存前の重複チェック:', groupArray.length)
   const uniqueGroups = dedupeGroupsById(groupArray)
   console.log('重複除去後のタブグループ数:', uniqueGroups.length)
-  await chrome.storage.local.set({
+  await getRequiredPersistenceStorageLocal().set({
     savedTabs: uniqueGroups,
   })
   const autoCategorizeTasks = uniqueGroups.reduce<Promise<void>[]>(
@@ -460,22 +520,19 @@ const saveTabs = async (tabs: chrome.tabs.Tab[]) => {
 const saveTabsWithAutoCategory = async (tabs: chrome.tabs.Tab[]) => {
   await saveTabs(tabs)
   const settings = await getUserSettings()
-  const filteredTabs = filterItemsBySavableUrl(
-    tabs,
-    settings.excludePatterns ?? [],
-  )
+  const filteredTabs = filterItemsBySavableUrl(tabs, settings.excludePatterns)
 
   // 保存したタブグループのIDを取得
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const uniqueDomains = getUniqueDomainsFromTabs(filteredTabs)
 
   // 各ドメインで自動カテゴライズを実行
-  const groupByDomain = new Map(savedTabs.map((group) => [group.domain, group]))
+  const groupByDomain = buildGroupedTabsLookup(savedTabs)
   await Promise.all(
     [...uniqueDomains].flatMap((domain) => {
-      const group = groupByDomain.get(domain)
+      const group = groupByDomain.get(normalizeDomainLookupKey(domain))
       return group && (group.categoryKeywords?.length ?? 0) > 0
         ? [autoCategorizeTabs(group.id)]
         : []
@@ -492,10 +549,266 @@ const updateCategoryDomains = async (
   await saveParentCategories(updatedCategories)
 } // TabGroup IDからグループを取得する関数
 const getTabGroupById = async (groupId: string): Promise<TabGroup | null> => {
-  const { savedTabs = [] } = await chrome.storage.local.get<{
+  const { savedTabs = [] } = await getRequiredPersistenceStorageLocal().get<{
     savedTabs?: TabGroup[]
   }>('savedTabs')
   return savedTabs.find((group: TabGroup) => group.id === groupId) ?? null
+}
+
+/** モジュールスコープのメモ化フラグ (ページセッション中の重複ストレージアクセスを防ぐ) */
+let domainHostnameMigrationDone = false
+
+const isDomainHostnameMigrationCompleted = async (): Promise<boolean> => {
+  const { domainHostnameMigrationCompleted } =
+    await getRequiredPersistenceStorageLocal().get(
+      'domainHostnameMigrationCompleted',
+    )
+  return Boolean(domainHostnameMigrationCompleted)
+}
+
+/**
+ * スキーム付きドメイン (`https://example.com`) を hostname (`example.com`) へ
+ * 正規化し、既存ユーザーのストレージを hostname 形式へ冪等に統一する。
+ *
+ * 対象: `savedTabs[].domain` / `parentCategories[].domainNames` /
+ * `domainCategorySettings[].domain` / `domainCategoryMappings[].domain`。
+ * 書き込み経路 (getTabDomain / getDomainFromUrl) は hostname を返すよう
+ * 修正済みのため、本 migration で既有のスキーム付きデータを hostname 化して
+ * 形式を一本化する (Finding B の根本治療)。
+ *
+ * 安全性:
+ * - 冪等: `normalizeDomainLookupKey` は hostname→hostname で変化なし。完了
+ *   フラグ `domainHostnameMigrationCompleted` で再実行を抑制する。
+ * - 保守: 正規化結果が有効な hostname (空でなく `://` を含まない) なら採用、
+ *   不正値なら元の値を保持してデータを悪化させない。
+ * - 対象キーが配列でない場合は書き換えを行わない (存在しないキーは触らない)。
+ */
+const toHostnameOrKeep = (value: string): string => {
+  const key = normalizeDomainLookupKey(value)
+  return key.length > 0 && !key.includes('://') ? key : value
+}
+
+const mergeCategoryKeywords = (
+  a: readonly SubCategoryKeyword[] | undefined,
+  b: readonly SubCategoryKeyword[] | undefined,
+): SubCategoryKeyword[] => {
+  const byName = new Map<string, Set<string>>()
+  for (const ck of [...(a ?? []), ...(b ?? [])]) {
+    let set = byName.get(ck.categoryName)
+    if (!set) {
+      set = new Set()
+      byName.set(ck.categoryName, set)
+    }
+    for (const keyword of ck.keywords) {
+      set.add(keyword)
+    }
+  }
+  return [...byName.entries()].map(([categoryName, keywords]) => ({
+    categoryName,
+    keywords: [...keywords],
+  }))
+}
+
+/**
+ * `domainCategorySettings` を正規化ドメインキーでマージする。
+ * 同一ドメインの重複エントリ (legacy スキーム付き + hostname 等) は
+ * subCategories / categoryKeywords を union して 1 件に統合し、
+ * `.find()` で 2 件目が到達不能の dead data になるのを防ぐ
+ * (CodeRabbit PR #626 review)。
+ */
+const mergeDomainCategorySettings = (
+  settings: DomainCategorySettings[],
+): DomainCategorySettings[] => {
+  const byKey = new Map<string | symbol, DomainCategorySettings>()
+  let merged = 0
+  for (const entry of settings) {
+    const normalized = { ...entry, domain: toHostnameOrKeep(entry.domain) }
+    const key = normalizeDomainLookupKey(normalized.domain)
+    if (key === '') {
+      byKey.set(Symbol('unkeyed-domain-category-setting'), normalized)
+      continue
+    }
+    const existing = byKey.get(key)
+    if (!existing) {
+      byKey.set(key, normalized)
+      continue
+    }
+    merged += 1
+    existing.subCategories = Array.from(
+      new Set([...existing.subCategories, ...normalized.subCategories]),
+    )
+    existing.categoryKeywords = mergeCategoryKeywords(
+      existing.categoryKeywords,
+      normalized.categoryKeywords,
+    )
+  }
+  if (merged > 0) {
+    console.log(
+      `domainCategorySettings の hostname 正規化で ${merged} 件の重複エントリをマージしました`,
+    )
+  }
+  return [...byKey.values()]
+}
+
+/**
+ * `domainCategoryMappings` を正規化ドメインキーで dedup する。
+ * 同一ドメインの競合 (異なる categoryId) は最初のエントリを保持し、
+ * 競合を warn して silent に破棄しない (CodeRabbit PR #626 review)。
+ */
+const dedupDomainCategoryMappings = (
+  mappings: DomainParentCategoryMapping[],
+): DomainParentCategoryMapping[] => {
+  const byKey = new Map<string | symbol, DomainParentCategoryMapping>()
+  let conflicts = 0
+  for (const mapping of mappings) {
+    const normalized = { ...mapping, domain: toHostnameOrKeep(mapping.domain) }
+    const key = normalizeDomainLookupKey(normalized.domain)
+    if (key === '') {
+      byKey.set(Symbol('unkeyed-domain-category-mapping'), normalized)
+      continue
+    }
+    const existing = byKey.get(key)
+    if (!existing) {
+      byKey.set(key, normalized)
+      continue
+    }
+    if (existing.categoryId !== normalized.categoryId) {
+      conflicts += 1
+      console.warn(
+        `domainCategoryMappings でドメイン ${key} の競合を検出: categoryId ${normalized.categoryId} を破棄し ${existing.categoryId} を保持します`,
+      )
+    }
+  }
+  if (conflicts > 0) {
+    console.log(
+      `domainCategoryMappings の hostname 正規化で ${conflicts} 件の競合を解決しました`,
+    )
+  }
+  return [...byKey.values()]
+}
+
+/**
+ * `savedTabs` を正規化し、同一正規化ドメインの重複グループを検出して warn する。
+ * マージは parentCategories[].domains (TabGroupId 参照) との整合を壊さないよう
+ * 行わず、重複を検出した場合のみ警告してユーザー判断に委ねる
+ * (CodeRabbit PR #626 review)。
+ */
+const normalizeSavedTabsAndWarnDuplicates = (
+  groups: TabGroup[],
+): TabGroup[] => {
+  const seen = new Set<string>()
+  let duplicates = 0
+  const normalized = groups.map((group) => {
+    const domain = toHostnameOrKeep(group.domain)
+    const key = normalizeDomainLookupKey(domain)
+    if (key !== '' && seen.has(key)) {
+      duplicates += 1
+    } else {
+      seen.add(key)
+    }
+    return { ...group, domain }
+  })
+  if (duplicates > 0) {
+    console.warn(
+      `savedTabs に hostname 正規化後も重複するドメイングループが ${duplicates} 件検出されました。手動で統合してください`,
+    )
+  }
+  return normalized
+}
+
+const runDomainHostnameMigration = async (): Promise<void> => {
+  if (domainHostnameMigrationDone) {
+    return
+  }
+  if (await isDomainHostnameMigrationCompleted()) {
+    domainHostnameMigrationDone = true
+    return
+  }
+  try {
+    // 各キーを「直前再読み込み → 正規化 → 書き込み」で順次処理し、並行保存
+    // (context-menu save 等) との競合で新しいデータを巻き戻さない。
+    // 正規化は冪等なので並行書き込み混入でも安全。
+    const savedTabsRes = await getRequiredPersistenceStorageLocal().get<{
+      savedTabs?: TabGroup[]
+    }>('savedTabs')
+    if (Array.isArray(savedTabsRes.savedTabs)) {
+      await getRequiredPersistenceStorageLocal().set({
+        savedTabs: normalizeSavedTabsAndWarnDuplicates(savedTabsRes.savedTabs),
+      })
+    }
+    const parentCategoriesRes = await getRequiredPersistenceStorageLocal().get<{
+      parentCategories?: ParentCategory[]
+    }>('parentCategories')
+    if (Array.isArray(parentCategoriesRes.parentCategories)) {
+      await getRequiredPersistenceStorageLocal().set({
+        parentCategories: parentCategoriesRes.parentCategories.map((category) =>
+          Array.isArray(category.domainNames)
+            ? {
+                ...category,
+                // 正規化後に同ドメインになる重複を除去 (CodeRabbit PR #626 review)
+                domainNames: Array.from(
+                  new Set(category.domainNames.map(toHostnameOrKeep)),
+                ),
+              }
+            : category,
+        ),
+      })
+    }
+    const settingsRes = await getRequiredPersistenceStorageLocal().get<{
+      domainCategorySettings?: DomainCategorySettings[]
+    }>('domainCategorySettings')
+    if (Array.isArray(settingsRes.domainCategorySettings)) {
+      await getRequiredPersistenceStorageLocal().set({
+        domainCategorySettings: mergeDomainCategorySettings(
+          settingsRes.domainCategorySettings,
+        ),
+      })
+    }
+    const mappingsRes = await getRequiredPersistenceStorageLocal().get<{
+      domainCategoryMappings?: DomainParentCategoryMapping[]
+    }>('domainCategoryMappings')
+    if (Array.isArray(mappingsRes.domainCategoryMappings)) {
+      await getRequiredPersistenceStorageLocal().set({
+        domainCategoryMappings: dedupDomainCategoryMappings(
+          mappingsRes.domainCategoryMappings,
+        ),
+      })
+    }
+    // データ正規化後に完了フラグを分離して書く。フラグ書き込み前に並行保存が
+    // 入ってもデータは既に hostname 化済みなので安全。
+    await getRequiredPersistenceStorageLocal().set({
+      domainHostnameMigrationCompleted: true,
+    })
+    domainHostnameMigrationDone = true
+    console.log(
+      'ドメインストレージの hostname 化マイグレーションが完了しました',
+    )
+  } catch (error) {
+    console.error('ドメイン hostname 化マイグレーションエラー:', error)
+    throw error
+  }
+}
+
+const isLockManager = (
+  value: unknown,
+): value is { request: LockManager['request'] } =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, 'request') === 'function'
+
+const migrateDomainStorageToHostname = async (): Promise<void> => {
+  // 複数コンテキスト (saved-tabs page 複数起動等) での同時実行を Web Locks で直列化する。
+  // Locks API は型上は常に存在する扱いだが実行環境によっては未実装なので、
+  // Reflect.get + 型ガードで feature-detect し、取得不可なら直接実行する。
+  const locksApi = Reflect.get(navigator, 'locks')
+  if (isLockManager(locksApi)) {
+    await locksApi.request(
+      'domainHostnameMigration',
+      runDomainHostnameMigration,
+    )
+  } else {
+    await runDomainHostnameMigration()
+  }
 }
 
 export { migrateToUrlsStorage } from './url-migration'
@@ -504,6 +817,7 @@ export {
   getTabDomain,
   getTabsWithDomains,
   getUniqueDomainsFromTabs,
+  migrateDomainStorageToHostname,
   migrateParentCategoriesToDomainNames,
   saveTabs,
   saveTabsWithAutoCategory,

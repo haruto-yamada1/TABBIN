@@ -1,7 +1,6 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import { AI_CHAT_TOOL_DEFINITIONS } from '@/constants/aiChatTools'
+import { getAiChatToolDefinitions } from '@/constants/aiChatTools'
 
 const mocked = vi.hoisted(() => ({
   createOllama: vi.fn(),
@@ -18,11 +17,12 @@ vi.mock('ai-sdk-ollama', () => ({
 
 vi.mock('ai', () => ({
   generateText: mocked.generateText,
-  stepCountIs: vi.fn((count: number) => count),
+  isStepCount: vi.fn((count: number) => count),
   tool: vi.fn((definition: unknown) => definition),
 }))
 
 vi.mock('@/lib/storage/settings', () => ({
+  defaultSettings: {},
   getUserSettings: mocked.getUserSettings,
 }))
 
@@ -80,7 +80,7 @@ describe('listLocalOllamaModels', () => {
   it('localhost の /api/tags を読んでモデル名を正規化する', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      // eslint-disable-next-line typescript/require-await
+
       json: async () =>
         JSON.parse(
           '{"models":[{"details":{"parameter_size":"8B"},"modified_at":"2026-03-01T00:00:00.000Z","name":"llama3.2"}]}',
@@ -107,7 +107,7 @@ describe('listLocalOllamaModels', () => {
   it('異常レスポンスは除外し、parameter_size が無ければ name をそのまま使う', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      // eslint-disable-next-line typescript/require-await
+
       json: async () => ({
         models: [
           null,
@@ -164,7 +164,7 @@ describe('listLocalOllamaModels', () => {
       'launchctl setenv OLLAMA_ORIGINS "chrome-extension://test-extension-id"',
     )
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as Error
     expect(error.message).not.toContain('ollama serve')
   })
@@ -176,7 +176,7 @@ describe('listLocalOllamaModels', () => {
     })
 
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
@@ -208,7 +208,7 @@ describe('listLocalOllamaModels', () => {
     } as unknown as typeof chrome
 
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as OllamaErrorLike
 
     expect(error.ollamaError).toStrictEqual(
@@ -236,7 +236,7 @@ describe('listLocalOllamaModels', () => {
     } as unknown as typeof chrome
 
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as OllamaErrorLike
 
     expect(error.ollamaError).toStrictEqual(
@@ -268,7 +268,7 @@ describe('listLocalOllamaModels', () => {
   it('models が配列でなければ空配列を返す', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      // eslint-disable-next-line typescript/require-await
+
       json: async () => ({
         models: 'invalid',
       }),
@@ -302,7 +302,7 @@ describe('listLocalOllamaModels', () => {
       .mockRejectedValue(new TypeError('Failed to fetch'))
 
     const error = (await listLocalOllamaModels(fetchMock).catch(
-      (caughtError) => caughtError,
+      (caughtError: unknown) => caughtError,
     )) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
@@ -401,7 +401,6 @@ describe('runAiChatRequest', () => {
       },
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async (key: string) =>
             key === 'savedTabs'
               ? {
@@ -450,7 +449,7 @@ describe('runAiChatRequest', () => {
           modelId: 'llama3.2',
           provider: 'ollama',
         },
-        system: expect.stringContaining('保存済みタブ 1 件'),
+        instructions: expect.stringContaining('保存済みタブ 1 件'),
         tools: expect.objectContaining({
           findUrlsByMonth: expect.any(Object),
           getCurrentDateTime: expect.any(Object),
@@ -464,7 +463,7 @@ describe('runAiChatRequest', () => {
       tools: Record<string, { description: string }>
     }
 
-    for (const toolDefinition of AI_CHAT_TOOL_DEFINITIONS) {
+    for (const toolDefinition of getAiChatToolDefinitions('ja')) {
       expect(generateArgs.tools[toolDefinition.name]?.description).toBe(
         toolDefinition.description,
       )
@@ -493,6 +492,59 @@ describe('runAiChatRequest', () => {
         type: 'dynamic-tool',
       }),
     ])
+  })
+  it('言語設定が en のとき AI SDK へ英語 description を渡し reasoning も英語タイトルになる', async () => {
+    ;(
+      globalThis as typeof globalThis & {
+        chrome?: typeof chrome
+      }
+    ).chrome = {
+      i18n: {
+        getUILanguage: () => 'en-US',
+      },
+      runtime: {
+        id: 'test-extension-id',
+      },
+      storage: {
+        local: {
+          get: vi.fn(async (key: string) =>
+            key === 'savedTabs'
+              ? {
+                  savedTabs: [
+                    {
+                      domain: 'react.dev',
+                      id: 'group-1',
+                      urlIds: ['url-1'],
+                    },
+                  ],
+                }
+              : {},
+          ),
+        },
+      },
+    } as unknown as typeof chrome
+
+    mocked.getUserSettings.mockResolvedValue({
+      language: 'en',
+      ollamaModel: 'llama3.2',
+    })
+
+    const result = await runAiChatRequest({
+      history: [],
+      prompt: 'What tabs did I add this month?',
+    })
+
+    const generateArgs = mocked.generateText.mock.calls[0]?.[0] as {
+      tools: Record<string, { description: string }>
+    }
+
+    for (const toolDefinition of getAiChatToolDefinitions('en')) {
+      expect(generateArgs.tools[toolDefinition.name]?.description).toBe(
+        toolDefinition.description,
+      )
+    }
+    expect(result.reasoning).toContain('List saved tabs')
+    expect(result.toolTraces[0]?.title).toBe('List saved tabs')
   })
 
   it('active system prompt template を使い、placeholder に context を差し込む', async () => {
@@ -528,22 +580,22 @@ describe('runAiChatRequest', () => {
 
     expect(mocked.generateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        system: expect.stringContaining('以下の前提を厳守してください。'),
+        instructions: expect.stringContaining('以下の前提を厳守してください。'),
       }),
     )
     expect(mocked.generateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        system: expect.stringContaining('保存済みタブ 1 件'),
+        instructions: expect.stringContaining('保存済みタブ 1 件'),
       }),
     )
     expect(mocked.generateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        system: expect.stringContaining('最後に簡潔に答えてください。'),
+        instructions: expect.stringContaining('最後に簡潔に答えてください。'),
       }),
     )
     expect(mocked.generateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        system: expect.not.stringContaining('{{saved_url_context}}'),
+        instructions: expect.not.stringContaining('{{saved_url_context}}'),
       }),
     )
   })
@@ -697,7 +749,7 @@ describe('runAiChatRequest', () => {
     const onStepUpdate = vi.fn()
     mocked.generateText.mockImplementationOnce(
       async (options: {
-        onStepFinish?: (result: {
+        onStepEnd?: (result: {
           toolCalls?: {
             input: {
               page: number
@@ -720,9 +772,8 @@ describe('runAiChatRequest', () => {
             toolName: string
           }[]
         }) => void
-        // eslint-disable-next-line typescript/require-await
       }) => {
-        options.onStepFinish?.({
+        options.onStepEnd?.({
           toolCalls: [
             {
               input: {
@@ -808,14 +859,33 @@ describe('runAiChatRequest', () => {
     )
   })
 
-  it('onStepFinish に tool 情報が無くても空 trace で更新する', async () => {
+  it('request の abort signal を generateText へ渡す', async () => {
+    const controller = new AbortController()
+
+    await runAiChatRequest(
+      {
+        history: [],
+        prompt: 'どんな URL がある？',
+      },
+      {
+        signal: controller.signal,
+      },
+    )
+
+    expect(mocked.generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abortSignal: controller.signal,
+      }),
+    )
+  })
+
+  it('onStepEnd に tool 情報が無くても空 trace で更新する', async () => {
     const onStepUpdate = vi.fn()
     mocked.generateText.mockImplementationOnce(
       async (options: {
-        onStepFinish?: (result: Record<string, unknown>) => void
-        // eslint-disable-next-line typescript/require-await
+        onStepEnd?: (result: Record<string, unknown>) => void
       }) => {
-        options.onStepFinish?.({})
+        options.onStepEnd?.({})
 
         return {
           text: '保存済みタブを要約しました。',
@@ -1059,7 +1129,13 @@ describe('runAiChatRequest', () => {
               },
               {
                 data: [{ count: 1, label: 'React' }],
-                series: [{ dataKey: 'count', label: 'Count' }],
+                series: [
+                  {
+                    colorToken: 'chart-1',
+                    dataKey: 'count',
+                    label: 'Count',
+                  },
+                ],
                 title: 'Valid chart',
                 type: 'bar',
                 xKey: 'label',
@@ -1080,7 +1156,7 @@ describe('runAiChatRequest', () => {
     expect(result.charts).toStrictEqual([
       {
         data: [{ count: 1, label: 'React' }],
-        series: [{ dataKey: 'count', label: 'Count' }],
+        series: [{ colorToken: 'chart-1', dataKey: 'count', label: 'Count' }],
         title: 'Valid chart',
         type: 'bar',
         xKey: 'label',
@@ -1314,7 +1390,6 @@ describe('runAiChatRequest', () => {
       },
       storage: {
         local: {
-          // eslint-disable-next-line typescript/require-await
           get: vi.fn(async () => ({
             savedTabs: 'invalid',
           })),
@@ -1328,7 +1403,7 @@ describe('runAiChatRequest', () => {
     })
 
     const generateArgs = mocked.generateText.mock.calls[0]?.[0] as {
-      system: string
+      instructions: string
       tools: {
         findUrlsByMonth: { execute: (input: unknown) => Promise<unknown> }
         inferUserInterests: { execute: () => Promise<unknown> }
@@ -1337,7 +1412,7 @@ describe('runAiChatRequest', () => {
       }
     }
 
-    expect(generateArgs.system).toContain('https://react.dev/learn')
+    expect(generateArgs.instructions).toContain('https://react.dev/learn')
 
     await expect(
       generateArgs.tools.findUrlsByMonth.execute({
@@ -1454,7 +1529,7 @@ describe('runAiChatRequest', () => {
     const error = (await runAiChatRequest({
       history: [],
       prompt: 'test',
-    }).catch((caughtError) => caughtError)) as OllamaErrorLike
+    }).catch((caughtError: unknown) => caughtError)) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
     expect(error.ollamaError).toStrictEqual({
@@ -1521,7 +1596,7 @@ describe('runAiChatRequest', () => {
     const error = (await runAiChatRequest({
       history: [],
       prompt: 'test',
-    }).catch((caughtError) => caughtError)) as Error
+    }).catch((caughtError: unknown) => caughtError)) as Error
     expect(error.message).not.toContain('ollama serve')
   })
 
@@ -1531,7 +1606,7 @@ describe('runAiChatRequest', () => {
     const error = (await runAiChatRequest({
       history: [],
       prompt: 'test',
-    }).catch((caughtError) => caughtError)) as OllamaErrorLike
+    }).catch((caughtError: unknown) => caughtError)) as OllamaErrorLike
 
     expect(error).toBeInstanceOf(Error)
     expect(error.ollamaError).toStrictEqual({

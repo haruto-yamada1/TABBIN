@@ -1,0 +1,17 @@
+# Positive trigger: format/lint/type/test 確認で check Skill が発火すべき。
+id: positive-trigger-format-lint
+name: Positive trigger - format/lint/type/test verify
+description: |
+  「format lint type test を確認して」で check Skill が発火候補になるか。
+tags: [positive, trigger]
+inputs:
+  prompt: 'npm run quality format lint type test を 確認 して'
+expected:
+  should_trigger: true
+graders:
+  - type: trigger
+    name: should_trigger_format_lint
+    config:
+      skill_path: .apm/skills/check/SKILL.md
+      mode: positive
+      threshold: 0.6

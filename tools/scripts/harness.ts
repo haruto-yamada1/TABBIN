@@ -16,48 +16,36 @@ import {
   validateHarnessRun,
   writeHarnessStatusSnapshot,
   writeHarnessSchemaFiles,
-} from '../../src/lib/harness/harnessState'
+} from '#harness-state'
 
-type CommandName =
-  | 'audit'
-  | 'checkpoint'
-  | 'evaluate'
-  | 'governance'
-  | 'learn'
-  | 'plan'
-  | 'profile'
-  | 'repo-status'
-  | 'schemas'
-  | 'security-audit'
-  | 'start'
-  | 'status'
-  | 'surface-audit'
-  | 'validate'
+const COMMAND_NAMES = [
+  'audit',
+  'checkpoint',
+  'evaluate',
+  'governance',
+  'learn',
+  'plan',
+  'profile',
+  'repo-status',
+  'schemas',
+  'security-audit',
+  'start',
+  'status',
+  'surface-audit',
+  'validate',
+] as const
+
+type CommandName = (typeof COMMAND_NAMES)[number]
+
+const isCommandName = (value: unknown): value is CommandName =>
+  typeof value === 'string' && COMMAND_NAMES.some((name) => name === value)
 
 const args = process.argv.slice(2)
-const command = args[0] as CommandName | undefined // eslint-disable-line typescript/no-unsafe-type-assertion
+const command = isCommandName(args[0]) ? args[0] : undefined
 const projectRoot = process.cwd()
 const runId = readOption('--run')
 
-if (
-  !command ||
-  ![
-    'audit',
-    'checkpoint',
-    'evaluate',
-    'governance',
-    'learn',
-    'plan',
-    'profile',
-    'repo-status',
-    'schemas',
-    'security-audit',
-    'start',
-    'status',
-    'surface-audit',
-    'validate',
-  ].includes(command)
-) {
+if (!command) {
   printUsage()
   process.exit(1)
 }
@@ -97,7 +85,7 @@ if (command === 'start') {
 if (command === 'validate') {
   const result = validateHarnessRun({ projectRoot, runId })
   if (result.ok) {
-    console.log(`harness: valid (${result.runId})`)
+    console.log(`harness: valid (${result.runId ?? 'unknown'})`)
     process.exit(0)
   }
 

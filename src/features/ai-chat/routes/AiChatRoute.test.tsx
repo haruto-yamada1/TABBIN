@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -20,6 +21,19 @@ const mocked = vi.hoisted(() => ({
 
 vi.mock('@/features/ai-chat/hooks/useSharedAiChatHistory', () => ({
   useSharedAiChatHistory: mocked.useSharedAiChatHistory,
+}))
+
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid='tooltip-content'>{children}</div>
+  ),
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }))
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
@@ -62,7 +76,7 @@ vi.mock('@/features/ai-chat/components/SavedTabsChatWidget', () => ({
     <div data-testid='saved-tabs-chat-widget'>
       <div>{`history-variant:${historyVariant ?? 'none'}`}</div>
       <div>{`active-title:${title ?? ''}`}</div>
-      {/* eslint-disable-next-line react-perf/jsx-no-new-function-as-prop */}
+
       <button onClick={() => onToggleHistory?.()} type='button'>
         toggle-history
       </button>
@@ -98,6 +112,14 @@ describe('AiChatRoute', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
     mocked.useSharedAiChatHistory.mockReturnValue({
       activeConversation: {
         createdAt: 1,
@@ -141,6 +163,7 @@ describe('AiChatRoute', () => {
 
   afterEach(() => {
     cleanup()
+    vi.unstubAllGlobals()
   })
 
   it('履歴一覧の操作に shared ui button を使い、生の button 要素を残さない', () => {
@@ -160,14 +183,15 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('history-variant:sidebar-toggle')).toBeTruthy()
   })
 
-  it('履歴項目クリックで会話を選択し、breakpoint 跨ぎの resize で履歴表示を切り替える', () => {
+  it('履歴項目クリックで会話を選択し、breakpoint 跨ぎの resize で履歴表示を切り替える', async () => {
+    const user = userEvent.setup()
     render(createElement(AiChatRoute))
 
     window.innerWidth = 1100
     fireEvent(window, new Event('resize'))
     expect(screen.getByText('Recent conversations')).toBeTruthy()
 
-    fireEvent.click(
+    await user.click(
       // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       screen
         .getAllByRole('button', { name: /別の会話/ })
@@ -188,33 +212,43 @@ describe('AiChatRoute', () => {
   it('履歴項目の本文ボタンは縦積みレイアウトで削除ボタンを押し出さない', () => {
     render(createElement(AiChatRoute))
 
-    const conversationButton = screen
-      .getAllByRole('button', { name: /最初の会話/ })
-      .find((button) => button.className.includes('flex-col'))
-    const conversationRow = conversationButton?.parentElement
-    const textRows = conversationButton?.querySelectorAll('p')
-    const title = textRows?.[0]
-    const preview = textRows?.[1]
-
-    expect(conversationButton).toBeTruthy()
-
-    expect(conversationButton?.className).toContain('flex-col')
-    expect(conversationButton?.className).toContain('items-start')
-    expect(conversationButton?.className).toContain('whitespace-normal')
-    expect(conversationButton?.className).toContain('w-full')
-    expect(conversationButton?.className).toContain('overflow-hidden')
-    expect(conversationButton?.className).not.toContain('flex-1')
-    expect(conversationRow?.className).toContain('min-w-0')
-    expect(conversationRow?.className).toContain('grid')
-    expect(conversationRow?.className).toContain(
-      'grid-cols-[minmax(0,1fr)_auto]',
+    const conversationButton = screen.getByTestId(
+      'conversation-button-conversation-1',
     )
-    expect(title?.className).toContain('w-full')
-    expect(title?.className).toContain('min-w-0')
-    expect(preview?.className).toContain('w-full')
-    expect(preview?.className).toContain('min-w-0')
-    expect(preview?.className).toContain('wrap-anywhere')
-    expect(preview?.className).toContain('overflow-hidden')
+    const conversationRow = screen.getByTestId(
+      'conversation-row-conversation-1',
+    )
+    const title = screen.getByTestId('conversation-title-conversation-1')
+    const preview = screen.getByTestId('conversation-preview-conversation-1')
+
+    expect(conversationButton).toHaveTextContent('最初の会話')
+
+    expect(conversationButton).toHaveClass('flex-col')
+    expect(conversationButton).toHaveClass('items-start')
+    expect(conversationButton).toHaveClass('whitespace-normal')
+    expect(conversationButton).toHaveClass('w-full')
+    expect(conversationButton).toHaveClass('overflow-hidden')
+    expect(conversationButton).not.toHaveClass('flex-1')
+    expect(conversationRow).toHaveClass('min-w-0')
+    expect(conversationRow).toHaveClass('grid')
+    expect(conversationRow).toHaveClass('grid-cols-[minmax(0,1fr)_auto]')
+    expect(title).toHaveClass('w-full')
+    expect(title).toHaveClass('min-w-0')
+    expect(preview).toHaveClass('w-full')
+    expect(preview).toHaveClass('min-w-0')
+    expect(preview).toHaveClass('line-clamp-3')
+    expect(preview).toHaveClass('wrap-anywhere')
+    expect(preview).not.toHaveClass('block')
+  })
+
+  it('履歴説明文は 3 行で省略し、説明文 hover 用 tooltip に全文を載せる', () => {
+    render(createElement(AiChatRoute))
+
+    const preview = screen.getByTestId('conversation-preview-conversation-1')
+    expect(preview).toHaveClass('line-clamp-3')
+
+    const tooltipContents = screen.getAllByTestId('tooltip-content')
+    expect(tooltipContents[0]).toHaveTextContent('最初の会話')
   })
 
   it('狭い画面では左履歴を完全非表示にしてチャットを残り幅へ広げる', () => {
@@ -224,20 +258,19 @@ describe('AiChatRoute', () => {
 
     expect(screen.queryByText('Recent conversations')).toBeNull()
 
-    const widgetShell = screen.getByTestId(
-      'saved-tabs-chat-widget',
-    ).parentElement
-    expect(widgetShell?.className.includes('min-h-0')).toBe(true)
-    expect(widgetShell?.className.includes('flex-1')).toBe(true)
-    expect(widgetShell?.className.includes('overflow-hidden')).toBe(true)
+    const widgetShell = screen.getByTestId('chat-widget-shell')
+    expect(widgetShell).toHaveClass('min-h-0')
+    expect(widgetShell).toHaveClass('flex-1')
+    expect(widgetShell).toHaveClass('overflow-hidden')
   })
 
-  it('狭い画面でも履歴ボタンで左履歴を再表示できる', () => {
+  it('狭い画面でも履歴ボタンで左履歴を再表示できる', async () => {
+    const user = userEvent.setup()
     window.innerWidth = 800
 
     render(createElement(AiChatRoute))
 
-    fireEvent.click(screen.getByText('toggle-history'))
+    await user.click(screen.getByText('toggle-history'))
 
     expect(screen.getByText('Recent conversations')).toBeTruthy()
   })
@@ -275,10 +308,11 @@ describe('AiChatRoute', () => {
     expect(screen.getByRole('status')).toBeTruthy()
   })
 
-  it('履歴削除ボタンから確認モーダルを開き、削除を実行できる', () => {
+  it('履歴削除ボタンから確認モーダルを開き、削除を実行できる', async () => {
+    const user = userEvent.setup()
     render(createElement(AiChatRoute))
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'Delete 最初の会話',
       }),
@@ -286,15 +320,16 @@ describe('AiChatRoute', () => {
 
     expect(screen.getByText('Delete this conversation?')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
 
     expect(mocked.deleteConversation).toHaveBeenCalledWith('conversation-1')
   })
 
-  it('履歴削除確認はキャンセルできる', () => {
+  it('履歴削除確認はキャンセルできる', async () => {
+    const user = userEvent.setup()
     render(createElement(AiChatRoute))
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'Delete 最初の会話',
       }),
@@ -302,21 +337,22 @@ describe('AiChatRoute', () => {
 
     expect(screen.getByText('Delete this conversation?')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByText('Delete this conversation?')).toBeNull()
     expect(mocked.deleteConversation).not.toHaveBeenCalled()
   })
 
-  it('履歴削除確認はキャンセルで削除されない', () => {
+  it('履歴削除確認はキャンセルで削除されない', async () => {
+    const user = userEvent.setup()
     render(createElement(AiChatRoute))
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole('button', {
         name: 'Delete 最初の会話',
       }),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(mocked.deleteConversation).not.toHaveBeenCalled()
   })

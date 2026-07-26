@@ -14,7 +14,6 @@ const storageMocks = vi.hoisted(() => {
 
   return {
     getChromeStorageLocal: vi.fn(() => ({
-      // eslint-disable-next-line typescript/require-await
       get: vi.fn(async (keys: string | string[]) => {
         if (Array.isArray(keys)) {
           return Object.fromEntries(keys.map((key) => [key, state[key]]))
@@ -24,14 +23,13 @@ const storageMocks = vi.hoisted(() => {
           [keys]: state[keys],
         }
       }),
-      // eslint-disable-next-line typescript/require-await
+
       set: vi.fn(async (value: Record<string, unknown>) => {
         Object.assign(state, value)
       }),
     })),
     reset: () => {
       for (const key of Object.keys(state)) {
-        // eslint-disable-next-line typescript/no-dynamic-delete
         delete state[key]
       }
     },

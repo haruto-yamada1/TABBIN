@@ -13,6 +13,28 @@
     "oxc",
     "jsdoc"
   ],
+  "jsPlugins": [
+    {
+      "name": "eslint-react",
+      "specifier": "@eslint-react/eslint-plugin"
+    },
+    {
+      "name": "react-hooks-compiler",
+      "specifier": "eslint-plugin-react-hooks"
+    },
+    {
+      "name": "testing-library",
+      "specifier": "eslint-plugin-testing-library"
+    },
+    {
+      "name": "playwright",
+      "specifier": "eslint-plugin-playwright"
+    },
+    {
+      "name": "storybook",
+      "specifier": "eslint-plugin-storybook"
+    }
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -37,7 +59,7 @@
   },
   "settings": {
     "react": {
-      "version": "19.2.5"
+      "version": "19.2.7"
     }
   },
   "ignorePatterns": [
@@ -58,7 +80,10 @@
     "playwright-report/**",
     "blob-report/**",
     "storybook-static/**",
-    "tmp-profile-saved-tabs.cjs"
+    "*.log",
+    "logs/**",
+    "src/components/ui/**",
+    "src/components/ai-elements/vendor/**"
   ],
   "rules": {
     "eslint/arrow-body-style": "off",
@@ -66,19 +91,27 @@
     "eslint/func-style": "off",
     "eslint/id-length": "off",
     "eslint/init-declarations": "off",
-    "eslint/complexity": ["error", 20],
-    "eslint/max-depth": ["error", 4],
+    "eslint/complexity": ["error", 15],
+    "eslint/max-depth": ["error", 3],
+    "eslint/max-lines": [
+      "error",
+      {
+        "max": 2000,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
     "eslint/max-lines-per-function": [
       "error",
       {
-        "max": 1000,
+        "max": 500,
         "skipBlankLines": true,
         "skipComments": true
       }
     ],
     "eslint/max-nested-callbacks": ["error", 3],
     "eslint/max-params": ["error", 4],
-    "eslint/max-statements": "off",
+    "eslint/max-statements": ["error", 60],
     "eslint/new-cap": "off",
     "eslint/no-continue": "off",
     "eslint/no-duplicate-imports": "off",
@@ -95,6 +128,7 @@
     "eslint/no-use-before-define": "off",
     "eslint/require-unicode-regexp": "off",
     "eslint/no-inline-comments": "off",
+    "eslint/no-warning-comments": "off",
     "eslint/no-magic-numbers": [
       "error",
       {
@@ -116,15 +150,22 @@
     "eslint/no-bitwise": "off",
     "eslint/no-param-reassign": "off",
     "eslint/no-promise-executor-return": "off",
-    "eslint/max-lines": "off",
     "eslint/default-case-last": "error",
     "eslint/default-param-last": "error",
-    "eslint/eqeqeq": ["error", "smart"],
+    "eslint/eqeqeq": ["error", "always"],
     "eslint/guard-for-in": "error",
     "eslint/no-await-in-loop": "error",
+    "eslint/no-alert": "off",
     "eslint/no-debugger": "error",
     "eslint/no-eval": "error",
     "eslint/no-new-func": "error",
+    "typescript/no-empty-object-type": [
+      "error",
+      {
+        "allowInterfaces": "never",
+        "allowObjectTypes": "never"
+      }
+    ],
     "eslint/sort-imports": "off",
     "eslint/sort-keys": "off",
     "eslint/prefer-named-capture-group": "off",
@@ -139,7 +180,6 @@
     "import/newline-after-import": "error",
     "import/no-absolute-path": "error",
     "import/no-amd": "error",
-    "import/no-cycle": "error",
     "import/no-default-export": "error",
     "import/no-duplicates": "error",
     "import/no-dynamic-require": "error",
@@ -147,10 +187,23 @@
     "import/no-named-as-default": "error",
     "import/no-named-as-default-member": "error",
     "import/no-unassigned-import": "error",
-    "import/no-relative-parent-imports": "off",
-    "import/max-dependencies": "off",
+    "import/no-relative-parent-imports": "error",
+    "import/max-dependencies": [
+      "error",
+      {
+        "max": 25
+      }
+    ],
     "import/no-commonjs": "off",
     "import/unambiguous": "off",
+    "import/no-cycle": [
+      "error",
+      {
+        "ignoreTypes": true,
+        "ignoreExternal": true,
+        "maxDepth": 10
+      }
+    ],
     "promise/always-return": "off",
     "promise/avoid-new": "off",
     "promise/no-callback-in-promise": "off",
@@ -173,11 +226,17 @@
     "react/forbid-component-props": "off",
     "react/no-multi-comp": "off",
     "react/jsx-filename-extension": "off",
-    "react/only-export-components": "off",
+    "react/only-export-components": "error",
     "react/no-react-children": "off",
-    "react/hook-use-state": "off",
+    "react/hook-use-state": "error",
     "react/jsx-handler-names": "error",
-    "react/jsx-max-depth": "off",
+    "react/jsx-max-depth": [
+      "error",
+      {
+        "max": 5
+      }
+    ],
+    "react/jsx-no-literals": "off",
     "react/jsx-no-constructed-context-values": "error",
     "react/jsx-props-no-spreading": "off",
     "react/react-in-jsx-scope": "off",
@@ -189,16 +248,39 @@
     "react/no-array-index-key": "error",
     "react/no-danger": "error",
     "react/no-danger-with-children": "error",
+    "react/react-compiler": "off",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
+    "eslint-react/dom-no-void-elements-with-children": "error",
+    "eslint-react/dom-no-unsafe-iframe-sandbox": "error",
+    "eslint-react/dom-no-unknown-property": "error",
+    "eslint-react/no-nested-component-definitions": "error",
+    "eslint-react/no-missing-key": "error",
+    "eslint-react/no-duplicate-key": "error",
+    "eslint-react/jsx-no-children-prop-with-children": "error",
+    "eslint-react/web-api-no-leaked-event-listener": "error",
+    "eslint-react/web-api-no-leaked-timeout": "error",
+    "eslint-react/web-api-no-leaked-interval": "error",
+    "eslint-react/web-api-no-leaked-resize-observer": "error",
+    "eslint-react/web-api-no-leaked-intersection-observer": "error",
     "react-perf/jsx-no-jsx-as-prop": "error",
     "react-perf/jsx-no-new-array-as-prop": "error",
     "react-perf/jsx-no-new-function-as-prop": "error",
     "react-perf/jsx-no-new-object-as-prop": "error",
     "typescript/array-type": "error",
+    "typescript/no-explicit-any": "error",
     "typescript/await-thenable": "error",
     "typescript/consistent-indexed-object-style": "error",
     "typescript/consistent-return": "error",
+    "typescript/consistent-type-assertions": [
+      "error",
+      {
+        "assertionStyle": "never",
+        "objectLiteralTypeAssertions": "never",
+        "arrayLiteralTypeAssertions": "never"
+      }
+    ],
+    "typescript/consistent-type-definitions": ["error", "type"],
     "typescript/consistent-type-imports": "error",
     "typescript/method-signature-style": "error",
     "typescript/no-base-to-string": "error",
@@ -206,19 +288,28 @@
     "typescript/prefer-readonly-parameter-types": "off",
     "typescript/explicit-function-return-type": "off",
     "typescript/explicit-module-boundary-types": "off",
-    "typescript/no-unnecessary-condition": "off",
+    "typescript/no-unnecessary-condition": "error",
     "typescript/strict-void-return": "off",
     "typescript/strict-boolean-expressions": "off",
-    "typescript/promise-function-async": "off",
+    "typescript/promise-function-async": "error",
     "typescript/explicit-member-accessibility": "off",
-    "typescript/use-unknown-in-catch-callback-variable": "off",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
     "typescript/no-floating-promises": "error",
     "typescript/no-redundant-type-constituents": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-type-conversion": "error",
     "typescript/no-unsafe-type-assertion": "error",
     "typescript/no-useless-default-assignment": "error",
-    "typescript/restrict-template-expressions": "off",
+    "typescript/restrict-template-expressions": [
+      "error",
+      {
+        "allowNumber": true,
+        "allowBoolean": false,
+        "allowAny": false,
+        "allowNullish": false,
+        "allowRegExp": false
+      }
+    ],
     "typescript/unified-signatures": "error",
     "typescript/unbound-method": "error",
     "typescript/no-misused-promises": "error",
@@ -238,8 +329,18 @@
     "typescript/no-unsafe-member-access": "error",
     "typescript/no-unsafe-return": "error",
     "typescript/no-unsafe-argument": "error",
-    "typescript/ban-ts-comment": "off",
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "ts-ignore": true,
+        "ts-nocheck": true,
+        "ts-check": false,
+        "ts-expect-error": "allow-with-description",
+        "minimumDescriptionLength": 10
+      }
+    ],
     "typescript/non-nullable-type-assertion-style": "off",
+    "typescript/dot-notation": "error",
     "unicorn/consistent-existence-index-check": "off",
     "unicorn/consistent-function-scoping": "off",
     "unicorn/no-await-expression-member": "off",
@@ -263,7 +364,19 @@
     "unicorn/prefer-string-slice": "off",
     "unicorn/explicit-length-check": "off",
     "unicorn/prefer-ternary": "off",
-    "unicorn/filename-case": "off",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "cases": {
+          "camelCase": true,
+          "pascalCase": true,
+          "kebabCase": true
+        }
+      }
+    ],
+    "unicorn/max-nested-calls": "off",
+    "unicorn/prefer-export-from": "off",
+    "unicorn/prefer-single-call": "off",
     "unicorn/no-abusive-eslint-disable": "error",
     "unicorn/no-useless-spread": "error",
     "unicorn/no-useless-collection-argument": "error",
@@ -364,7 +477,35 @@
     "jsdoc/check-tag-names": "error",
     "jsdoc/check-property-names": "error",
     "jsdoc/empty-tags": "error",
-    "jsdoc/implements-on-classes": "error"
+    "jsdoc/implements-on-classes": "error",
+    "react-hooks-compiler/static-components": "error",
+    "react-hooks-compiler/use-memo": "error",
+    "react-hooks-compiler/preserve-manual-memoization": "error",
+    "react-hooks-compiler/immutability": "error",
+    "react-hooks-compiler/globals": "error",
+    "react-hooks-compiler/set-state-in-effect": "error",
+    "react-hooks-compiler/error-boundaries": "error",
+    "react-hooks-compiler/purity": "error",
+    "react-hooks-compiler/set-state-in-render": "error",
+    "react-hooks-compiler/unsupported-syntax": "error",
+    "react-hooks-compiler/config": "error",
+    "react-hooks-compiler/gating": "error",
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "@/contexts/*/domain/**",
+              "@/contexts/*/application/**",
+              "@/contexts/*/infrastructure/**",
+              "@/contexts/*/presentation/**"
+            ],
+            "message": "別 context の内部実装を直接 import しないでください。@/contexts/<context>/public-api 経由にしてください。"
+          }
+        ]
+      }
+    ]
   },
   "overrides": [
     {
@@ -382,48 +523,219 @@
         "vitest.workspace.ts",
         "src/entrypoints/**"
       ],
-      "env": { "node": true, "es2024": true },
+      "env": {
+        "node": true,
+        "es2024": true
+      },
       "rules": {
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
         "eslint/no-magic-numbers": "off",
-        "unicorn/no-abusive-eslint-disable": "off"
+        "unicorn/no-abusive-eslint-disable": "off",
+        "eslint/max-lines": [
+          "error",
+          {
+            "max": 800,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ],
+        "eslint/max-lines-per-function": [
+          "error",
+          {
+            "max": 250,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ],
+        "eslint/max-statements": ["error", 100],
+        "eslint/max-params": "off",
+        "import/max-dependencies": "off"
       }
     },
     {
       "files": [
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/*.spec.ts",
-        "**/*.spec.tsx"
+        "src/features/navigation/components/ExtensionSidebar.test.tsx",
+        "src/contexts/saved-tabs/presentation/components/SortableCategorySection.test.tsx"
       ],
       "rules": {
-        "typescript/no-unsafe-assignment": "off",
-        "typescript/no-unsafe-call": "off",
-        "typescript/no-unsafe-member-access": "off",
-        "typescript/no-unsafe-argument": "off",
-        "typescript/no-unsafe-return": "off",
-        "typescript/no-unsafe-type-assertion": "off",
-        "eslint/no-magic-numbers": "off",
-        "eslint/max-lines-per-function": [
+        "typescript/promise-function-async": "off"
+      }
+    },
+    {
+      "files": [
+        "src/contexts/saved-tabs/presentation/components/category-group/CategoryGroupRoot.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/no-noninteractive-element-interactions": "off"
+      }
+    },
+    {
+      "files": ["src/contexts/*/public-api.ts"],
+      "rules": {
+        "oxc/no-barrel-file": "off"
+      }
+    },
+    {
+      "files": [
+        "src/contexts/**/*.{ts,tsx}",
+        "src/features/**/*.{ts,tsx}",
+        "src/components/**/*.{ts,tsx}",
+        "src/lib/**/*.{ts,tsx}",
+        "src/entrypoints/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "import/no-nodejs-modules": "error",
+        "eslint/no-restricted-globals": [
           "error",
-          { "max": 2000, "skipBlankLines": true, "skipComments": true }
+          {
+            "name": "alert",
+            "message": "alert は使わず、toast / dialog component 経由にしてください"
+          },
+          {
+            "name": "confirm",
+            "message": "confirm は使わず、確認 dialog component 経由にしてください"
+          },
+          {
+            "name": "prompt",
+            "message": "prompt は使わず、form / dialog component 経由にしてください"
+          },
+          {
+            "name": "DOMParser",
+            "message": "DOMParser は HTML parsing / injection リスクがあるため、用途を限定した sanitizer / adapter 経由にしてください"
+          }
         ],
-        "eslint/complexity": ["error", 20],
-        "import/first": "off",
-        "eslint/max-nested-callbacks": "off",
-        "typescript/await-thenable": "off",
-        "typescript/no-confusing-void-expression": "off",
-        "typescript/non-nullable-type-assertion-style": "off",
-        "typescript/no-unnecessary-type-assertion": "off",
-        "typescript/restrict-template-expressions": "off",
-        "oxc/no-map-spread": "off",
-        "import/no-unassigned-import": "off",
-        "unicorn/no-abusive-eslint-disable": "off",
-        "react-perf/jsx-no-jsx-as-prop": "off",
-        "react-perf/jsx-no-new-array-as-prop": "off",
-        "react-perf/jsx-no-new-function-as-prop": "off",
-        "react-perf/jsx-no-new-object-as-prop": "off"
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "property": "innerHTML",
+            "message": "innerHTML は HTML injection / XSS リスクがあるため禁止です。React render / textContent / sanitizer 経由にしてください"
+          },
+          {
+            "property": "outerHTML",
+            "message": "outerHTML は HTML injection / XSS リスクがあるため禁止です"
+          },
+          {
+            "property": "insertAdjacentHTML",
+            "message": "insertAdjacentHTML は HTML injection / XSS リスクがあるため禁止です"
+          },
+          {
+            "object": "document",
+            "property": "write",
+            "message": "document.write は禁止です。React render / safe renderer に置き換えてください"
+          },
+          {
+            "object": "window",
+            "property": "alert",
+            "message": "window.alert は使わず、toast / dialog component 経由にしてください"
+          },
+          {
+            "object": "window",
+            "property": "confirm",
+            "message": "window.confirm は使わず、確認 dialog component 経由にしてください"
+          },
+          {
+            "object": "window",
+            "property": "prompt",
+            "message": "window.prompt は使わず、form / dialog component 経由にしてください"
+          },
+          {
+            "object": "globalThis",
+            "property": "alert",
+            "message": "globalThis.alert は使わず、toast / dialog component 経由にしてください"
+          },
+          {
+            "object": "globalThis",
+            "property": "confirm",
+            "message": "globalThis.confirm は使わず、確認 dialog component 経由にしてください"
+          },
+          {
+            "object": "globalThis",
+            "property": "prompt",
+            "message": "globalThis.prompt は使わず、form / dialog component 経由にしてください"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "chrome",
+            "message": "features / components 層は chrome.* を直接利用できません（adapter / infrastructure / repository 経由）"
+          },
+          {
+            "name": "browser",
+            "message": "features / components 層は browser.* を直接利用できません（adapter / infrastructure / repository 経由）"
+          },
+          {
+            "name": "localStorage",
+            "message": "features / components 層は localStorage を直接利用できません（src/lib/storage/local-storage-adapter 経由）"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "features / components 層は sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "indexedDB",
+            "message": "features / components 層は indexedDB を直接利用できません（repository / storage adapter 経由）"
+          }
+        ],
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "chrome",
+            "property": "tabs",
+            "message": "features / components 層は chrome.tabs を直接利用できません（BrowserTabPort / adapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "storage",
+            "message": "features / components 層は chrome.storage を直接利用できません（StorageRepository / adapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "runtime",
+            "message": "features / components 層は chrome.runtime を直接利用できません（RuntimeMessageClient / adapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "contextMenus",
+            "message": "features / components 層は chrome.contextMenus を直接利用できません（ContextMenuAdapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "notifications",
+            "message": "features / components 層は chrome.notifications を直接利用できません（NotificationAdapter 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "alarms",
+            "message": "features / components 層は chrome.alarms を直接利用できません（AlarmAdapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "features / components 層は window.localStorage を直接利用できません（src/lib/storage/local-storage-adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "features / components 層は window.sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "indexedDB",
+            "message": "features / components 層は window.indexedDB を直接利用できません（repository / storage adapter 経由）"
+          },
+          {
+            "object": "browser",
+            "property": "storage",
+            "message": "features / components 層は browser.storage を直接利用できません（repository / storage adapter 経由）"
+          }
+        ]
       }
     },
     {
@@ -437,12 +749,617 @@
         "import/no-default-export": "off",
         "import/no-anonymous-default-export": "off",
         "eslint/no-magic-numbers": "off",
+        "eslint/no-restricted-globals": "off",
+        "eslint/no-restricted-properties": "off",
+        "eslint/max-lines": [
+          "error",
+          {
+            "max": 800,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ],
+        "eslint/max-lines-per-function": [
+          "error",
+          {
+            "max": 300,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ],
+        "eslint/max-statements": ["error", 100],
+        "eslint/complexity": ["error", 20],
         "react-perf/jsx-no-jsx-as-prop": "off",
         "react-perf/jsx-no-new-function-as-prop": "off",
         "react-perf/jsx-no-new-object-as-prop": "off",
         "react-perf/jsx-no-new-array-as-prop": "off",
+        "react/jsx-max-depth": "off",
+        "react/only-export-components": "off",
         "unicorn/no-abusive-eslint-disable": "off",
-        "typescript/prefer-ts-expect-error": "off"
+        "typescript/require-await": "off",
+        "typescript/prefer-ts-expect-error": "off",
+        "import/max-dependencies": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*Context.{ts,tsx}",
+        "**/*Provider.{ts,tsx}",
+        "**/*-provider.{ts,tsx}"
+      ],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    },
+    {
+      "files": [
+        "src/contexts/*/domain/**/*.{ts,tsx}",
+        "src/contexts/*/application/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "eslint/no-param-reassign": [
+          "error",
+          {
+            "props": true
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/contexts/*/domain/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "chrome",
+            "message": "domain 層は chrome.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "browser",
+            "message": "domain 層は browser.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "localStorage",
+            "message": "domain 層は localStorage を直接利用できません"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "domain 層は sessionStorage を直接利用できません"
+          },
+          {
+            "name": "document",
+            "message": "domain 層は document に依存できません"
+          },
+          {
+            "name": "window",
+            "message": "domain 層は window に依存できません"
+          },
+          {
+            "name": "indexedDB",
+            "message": "domain 層は indexedDB を直接利用できません"
+          },
+          {
+            "name": "fetch",
+            "message": "domain 層は fetch を直接利用できません（HttpClientPort / AiClientPort / adapter 経由）"
+          }
+        ],
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "chrome",
+            "property": "tabs",
+            "message": "domain 層は chrome.tabs を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "storage",
+            "message": "domain 層は chrome.storage を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "contextMenus",
+            "message": "domain 層は chrome.contextMenus を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "alarms",
+            "message": "domain 層は chrome.alarms を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "notifications",
+            "message": "domain 層は chrome.notifications を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "runtime",
+            "message": "domain 層は chrome.runtime を直接利用できません"
+          },
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "domain 層は Date.now() を直接利用できません。ClockPort 経由で時刻を注入してください"
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "domain 層は Math.random() を直接利用できません。RandomPort / IdGeneratorPort 経由で注入してください"
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "domain 層は crypto.randomUUID() を直接利用できません。IdGeneratorPort 経由で ID を生成してください"
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "domain 層は window.localStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "domain 層は window.sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "indexedDB",
+            "message": "domain 層は window.indexedDB を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "browser",
+            "property": "storage",
+            "message": "domain 層は browser.storage を直接利用できません（repository 経由）"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/contexts/*/application/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "chrome",
+            "property": "tabs",
+            "message": "application 層は chrome.tabs を直接利用できません（BrowserTabPort 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "storage",
+            "message": "application 層は chrome.storage を直接利用できません（Repository 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "contextMenus",
+            "message": "application 層は chrome.contextMenus を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "alarms",
+            "message": "application 層は chrome.alarms を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "notifications",
+            "message": "application 層は chrome.notifications を直接利用できません（NotificationPort 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "runtime",
+            "message": "application 層は chrome.runtime を直接利用できません（MessagingPort 経由）"
+          },
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "application 層は Date.now() を直接利用できません。ClockPort 経由で時刻を注入してください"
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "application 層は Math.random() を直接利用できません。RandomPort / IdGeneratorPort 経由で注入してください"
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "application 層は crypto.randomUUID() を直接利用できません。IdGeneratorPort 経由で ID を生成してください"
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "application 層は window.localStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "application 層は window.sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "indexedDB",
+            "message": "application 層は window.indexedDB を直接利用できません（repository / storage adapter 経由）"
+          },
+          {
+            "object": "browser",
+            "property": "storage",
+            "message": "application 層は browser.storage を直接利用できません（repository 経由）"
+          }
+        ],
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "chrome",
+            "message": "application 層は chrome.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "browser",
+            "message": "application 層は browser.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "localStorage",
+            "message": "application 層は localStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "application 層は sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "indexedDB",
+            "message": "application 層は indexedDB を直接利用できません（repository / storage adapter 経由）"
+          },
+          {
+            "name": "fetch",
+            "message": "application 層は fetch を直接利用できません（HttpClientPort / AiClientPort / adapter 経由）"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/contexts/*/presentation/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "chrome",
+            "property": "storage",
+            "message": "presentation 層は chrome.storage を直接利用できません（Repository 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "tabs",
+            "message": "presentation 層は chrome.tabs を直接利用できません（BrowserTabPort 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "contextMenus",
+            "message": "presentation 層は chrome.contextMenus を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "alarms",
+            "message": "presentation 層は chrome.alarms を直接利用できません"
+          },
+          {
+            "object": "chrome",
+            "property": "runtime",
+            "message": "presentation 層は chrome.runtime を直接利用できません（MessagingPort 経由）"
+          },
+          {
+            "object": "chrome",
+            "property": "notifications",
+            "message": "presentation 層は chrome.notifications を直接利用できません（NotificationPort 経由）"
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "presentation 層は window.localStorage を直接利用できません（src/lib/storage/local-storage-adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "presentation 層は window.sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "object": "window",
+            "property": "indexedDB",
+            "message": "presentation 層は window.indexedDB を直接利用できません（repository / storage adapter 経由）"
+          },
+          {
+            "object": "browser",
+            "property": "storage",
+            "message": "presentation 層は browser.storage を直接利用できません（repository 経由）"
+          }
+        ],
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "chrome",
+            "message": "presentation 層は chrome.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "browser",
+            "message": "presentation 層は browser.* を直接利用できません（adapter / port 経由）"
+          },
+          {
+            "name": "localStorage",
+            "message": "presentation 層は localStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "sessionStorage",
+            "message": "presentation 層は sessionStorage を直接利用できません（storage adapter 経由）"
+          },
+          {
+            "name": "indexedDB",
+            "message": "presentation 層は indexedDB を直接利用できません（repository / storage adapter 経由）"
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/**/*.spec.ts",
+        "src/**/*.spec.tsx",
+        "src/test/**",
+        "src/**/testing/**",
+        "tests/**/*.test.ts",
+        "tests/**/*.test.tsx"
+      ],
+      "rules": {
+        "import/no-nodejs-modules": "off",
+        "testing-library/await-async-events": "error",
+        "testing-library/await-async-queries": "error",
+        "testing-library/await-async-utils": "error",
+        "testing-library/no-await-sync-events": "error",
+        "testing-library/no-await-sync-queries": "error",
+        "testing-library/prefer-screen-queries": "error",
+        "testing-library/prefer-query-by-disappearance": "error",
+        "testing-library/no-global-regexp-flag-in-query": "error",
+        "testing-library/no-dom-import": "error",
+        "testing-library/prefer-user-event-setup": "error",
+        "testing-library/no-debugging-utils": "error",
+        "testing-library/prefer-user-event": "error",
+        "testing-library/no-container": "error",
+        "testing-library/no-node-access": "error"
+      }
+    },
+    {
+      "files": ["e2e/**/*.ts", "e2e/**/*.tsx"],
+      "rules": {
+        "eslint/no-empty-pattern": "off",
+        "playwright/consistent-spacing-between-blocks": "error",
+        "playwright/expect-expect": "error",
+        "playwright/max-nested-describe": "error",
+        "playwright/missing-playwright-await": "error",
+        "playwright/no-conditional-expect": "error",
+        "playwright/no-conditional-in-test": "error",
+        "playwright/no-duplicate-hooks": "error",
+        "playwright/no-duplicate-slow": "error",
+        "playwright/no-element-handle": "error",
+        "playwright/no-eval": "error",
+        "playwright/no-focused-test": "error",
+        "playwright/no-force-option": "error",
+        "playwright/no-nested-step": "error",
+        "playwright/no-networkidle": "error",
+        "playwright/no-page-pause": "error",
+        "playwright/no-skipped-test": "error",
+        "playwright/no-standalone-expect": "error",
+        "playwright/no-unsafe-references": "error",
+        "playwright/no-unused-locators": "error",
+        "playwright/no-useless-await": "error",
+        "playwright/no-useless-not": "error",
+        "playwright/no-wait-for-navigation": "error",
+        "playwright/no-wait-for-selector": "error",
+        "playwright/no-wait-for-timeout": "error",
+        "playwright/prefer-hooks-in-order": "error",
+        "playwright/prefer-hooks-on-top": "error",
+        "playwright/prefer-locator": "error",
+        "playwright/prefer-to-have-count": "error",
+        "playwright/prefer-to-have-length": "error",
+        "playwright/prefer-web-first-assertions": "error",
+        "playwright/valid-describe-callback": "error",
+        "playwright/valid-expect": "error",
+        "playwright/valid-expect-in-promise": "error",
+        "playwright/valid-test-tags": "error",
+        "playwright/valid-title": "error"
+      }
+    },
+    {
+      "files": [
+        "src/**/*.stories.ts",
+        "src/**/*.stories.tsx",
+        "src/**/*.story.ts",
+        "src/**/*.story.tsx"
+      ],
+      "rules": {
+        "storybook/default-exports": "error",
+        "storybook/story-exports": "error",
+        "storybook/no-redundant-story-name": "error",
+        "storybook/prefer-pascal-case": "error",
+        "storybook/context-in-play-function": "error",
+        "storybook/use-storybook-expect": "error",
+        "storybook/use-storybook-testing-library": "error",
+        "storybook/meta-satisfies-type": "error"
+      }
+    },
+    {
+      "files": [
+        ".storybook/main.ts",
+        ".storybook/main.js",
+        ".storybook/main.mjs",
+        ".storybook/main.cjs"
+      ],
+      "rules": {
+        "storybook/no-uninstalled-addons": "error"
+      }
+    },
+    {
+      "files": ["src/**/*.d.ts"],
+      "rules": {
+        "typescript/consistent-type-definitions": "off"
+      }
+    },
+    {
+      "files": [
+        "src/entrypoints/background.ts",
+        "src/lib/background/expired-tabs.ts",
+        "src/lib/background/message-handler.ts"
+      ],
+      "rules": {
+        "eslint/no-console": "error"
+      }
+    },
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/testing/**",
+        "src/test/**"
+      ],
+      "rules": {
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/consistent-type-assertions": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "eslint/no-magic-numbers": "off",
+        "eslint/no-restricted-globals": "off",
+        "eslint/no-restricted-properties": "off",
+        "eslint/max-lines": [
+          "error",
+          {
+            "max": 5000,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ],
+        "eslint/max-lines-per-function": [
+          "error",
+          {
+            "max": 2000,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ],
+        "eslint/max-statements": ["error", 200],
+        "eslint/complexity": ["error", 20],
+        "eslint/max-depth": ["error", 5],
+        "eslint/max-params": "off",
+        "import/first": "off",
+        "eslint/max-nested-callbacks": "off",
+        "typescript/await-thenable": "off",
+        "typescript/no-confusing-void-expression": "off",
+        "typescript/non-nullable-type-assertion-style": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "oxc/no-map-spread": "off",
+        "import/no-unassigned-import": "off",
+        "unicorn/no-abusive-eslint-disable": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off",
+        "react-perf/jsx-no-new-array-as-prop": "off",
+        "react-perf/jsx-no-new-function-as-prop": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "react/jsx-max-depth": "off",
+        "react/only-export-components": "off",
+        "typescript/require-await": "off",
+        "typescript/unbound-method": "off",
+        "react/jsx-no-useless-fragment": "off",
+        "vitest/prefer-strict-equal": "off",
+        "vitest/consistent-test-it": "off",
+        "vitest/prefer-expect-resolves": "off",
+        "vitest/require-top-level-describe": "off",
+        "typescript/no-dynamic-delete": "off",
+        "import/max-dependencies": "off"
+      }
+    },
+    {
+      "files": ["src/contexts/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/app/composition/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/lib/storybook/**/*.{ts,tsx}"],
+      "rules": {
+        "eslint/no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": [
+        "src/contexts/*/application/create*UseCases.ts",
+        "src/contexts/*/application/*UseCases.ts"
+      ],
+      "rules": {
+        "import/max-dependencies": "off"
+      }
+    },
+    {
+      "files": ["src/components/**/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "pascalCase": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/hooks/**/*.{ts,tsx}",
+        "src/features/**/hooks/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "camelCase": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/entrypoints/**/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "camelCase": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/components/ai-elements/**/*.{ts,tsx}"],
+      "rules": {
+        "unicorn/filename-case": "off",
+        "react/only-export-components": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off"
+      }
+    },
+    {
+      "files": ["src/components/ai-elements/**/*.test.{ts,tsx}"],
+      "rules": {
+        "testing-library/no-node-access": "off",
+        "testing-library/no-container": "off",
+        "testing-library/prefer-user-event": "off"
       }
     }
   ]

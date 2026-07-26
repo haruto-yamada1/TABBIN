@@ -10,15 +10,28 @@ target:
   - cursor
   - gemini
   - copilot
+  - opencode
+  - agent-skills
 dependencies:
   apm: []
-  mcp: []
+  mcp:
+    - name: playwright
+      registry: false
+      transport: stdio
+      command: npx
+      args:
+        - -y
+        - '@playwright/mcp'
+    - name: context7
+      registry: false
+      transport: http
+      url: https://mcp.context7.com/mcp
 includes: auto
 scripts:
-  validate: apm compile --validate
+  validate: bun run apm:check
   preview: apm compile --dry-run --verbose
-  install: apm install
-  compile: apm compile
+  install: bun run apm:sync
+  compile: bun run apm:sync
 compilation:
   strategy: distributed
   source_attribution: true
@@ -28,3 +41,4 @@ compilation:
     - coverage/**
     - playwright-report/**
     - test-results/**
+    - .worktrees/**

@@ -14,6 +14,13 @@ import {
   CodeBlockTitle,
 } from '@/components/ai-elements/code-block'
 import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from '@/components/ai-elements/tool'
+import {
   Commit,
   CommitActions,
   CommitAuthor,
@@ -35,7 +42,7 @@ import {
   CommitMetadata,
   CommitSeparator,
   CommitTimestamp,
-} from '@/components/ai-elements/commit'
+} from '@/components/ai-elements/vendor/commit'
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -44,7 +51,7 @@ import {
   ConfirmationRejected,
   ConfirmationRequest,
   ConfirmationTitle,
-} from '@/components/ai-elements/confirmation'
+} from '@/components/ai-elements/vendor/confirmation'
 import {
   StackTrace,
   StackTraceActions,
@@ -56,7 +63,7 @@ import {
   StackTraceExpandButton,
   StackTraceFrames,
   StackTraceHeader,
-} from '@/components/ai-elements/stack-trace'
+} from '@/components/ai-elements/vendor/stack-trace'
 import {
   Terminal,
   TerminalActions,
@@ -66,7 +73,7 @@ import {
   TerminalHeader,
   TerminalStatus,
   TerminalTitle,
-} from '@/components/ai-elements/terminal'
+} from '@/components/ai-elements/vendor/terminal'
 import {
   Test,
   TestDuration,
@@ -85,14 +92,7 @@ import {
   TestSuiteContent,
   TestSuiteName,
   TestSuiteStats,
-} from '@/components/ai-elements/test-results'
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from '@/components/ai-elements/tool'
+} from '@/components/ai-elements/vendor/test-results'
 
 const sampleTrace = `ReferenceError: browser is not defined
     at openSidebar (/Users/tarou/Desktop/TABBIN/features/navigation/sidebar.ts:42:15)
@@ -114,7 +114,6 @@ const Section = ({
 )
 
 const RuntimeDiagnostics = () => (
-  // eslint-disable-line eslint/max-lines-per-function
   <div className='grid gap-6 xl:grid-cols-2'>
     <Section title='Code + Tooling'>
       <div className='space-y-4'>
@@ -154,7 +153,6 @@ const RuntimeDiagnostics = () => (
           />
           <ToolContent>
             <ToolInput
-              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               input={{
                 projectId: 'workspace-weekly-review',
                 summarize: true,
@@ -162,7 +160,6 @@ const RuntimeDiagnostics = () => (
             />
             <ToolOutput
               errorText={undefined}
-              // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
               output={{ archived: 2, saved: 12, status: 'ok' }}
             />
           </ToolContent>
@@ -212,7 +209,6 @@ const RuntimeDiagnostics = () => (
         </Commit>
 
         <div className='space-y-3'>
-          {/* eslint-disable-next-line react-perf/jsx-no-new-object-as-prop */}
           <Confirmation approval={{ id: '1' }} state='approval-requested'>
             <ConfirmationTitle>
               Allow the agent to export saved tabs?
@@ -225,7 +221,6 @@ const RuntimeDiagnostics = () => (
             </ConfirmationRequest>
           </Confirmation>
           <Confirmation
-            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             approval={{ approved: true, id: '2' }}
             state='output-available'
           >
@@ -236,7 +231,6 @@ const RuntimeDiagnostics = () => (
             </ConfirmationAccepted>
           </Confirmation>
           <Confirmation
-            // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
             approval={{ approved: false, id: '3', reason: 'Not needed' }}
             state='output-denied'
           >
@@ -254,7 +248,6 @@ const RuntimeDiagnostics = () => (
       <div className='space-y-4'>
         <Terminal
           isStreaming
-          // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
           onClear={() => undefined}
           output={`$ bun run build-storybook\nDone in 4.21s\n`}
         >
@@ -291,7 +284,6 @@ const RuntimeDiagnostics = () => (
 
     <Section title='Test Results'>
       <TestResults
-        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
         summary={{
           duration: 4210,
           failed: 1,

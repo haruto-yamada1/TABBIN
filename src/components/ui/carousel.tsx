@@ -12,7 +12,7 @@ type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
 type CarouselOptions = UseCarouselParameters[0]
 type CarouselPlugin = UseCarouselParameters[1]
 
-interface CarouselProps {
+type CarouselProps = {
   opts?: CarouselOptions
   plugins?: CarouselPlugin
   orientation?: 'horizontal' | 'vertical'
@@ -106,7 +106,6 @@ const Carousel = ({
     api.on('reInit', handleSelect)
     api.on('select', handleSelect)
 
-    // eslint-disable-next-line typescript/consistent-return
     return () => {
       api.off('reInit', handleSelect)
       api.off('select', handleSelect)
@@ -143,7 +142,6 @@ const Carousel = ({
         ref={ref}
         onKeyDownCapture={handleKeyDown}
         className={cn('relative', className)}
-        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role='region'
         aria-roledescription='carousel'
         {...props}
@@ -188,7 +186,6 @@ const CarouselItem = ({
   return (
     <div
       ref={ref}
-      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role='group'
       aria-roledescription='slide'
       className={cn(

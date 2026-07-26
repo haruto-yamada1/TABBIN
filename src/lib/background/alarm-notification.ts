@@ -12,13 +12,12 @@ const setupExpiredTabsCheckAlarm = (): void => {
     console.log('期限切れタブのチェックアラームを設定しています...')
 
     // Chrome.alarmsが利用可能か確認
-    if (!chrome.alarms) {
+    if (!('alarms' in chrome)) {
       console.error(
         'chrome.alarms APIが利用できません。Manifest.jsonで権限を確認してください。',
       )
       // アラーム処理が使えない場合でも、初回のチェックは実行
-      // eslint-disable-next-line typescript/no-floating-promises
-      checkAndRemoveExpiredTabs()
+      void checkAndRemoveExpiredTabs()
       return
     }
 
@@ -26,8 +25,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
     const createAlarm = () => {
       try {
         console.log('アラームを作成します')
-        // eslint-disable-next-line typescript/no-floating-promises
-        chrome.alarms.create('checkExpiredTabs', {
+        void chrome.alarms.create('checkExpiredTabs', {
           periodInMinutes: 0.5, // 30秒間隔（30sec設定にも追従）
         })
         console.log('アラームが作成されました')
@@ -63,8 +61,7 @@ const setupExpiredTabsCheckAlarm = (): void => {
         `アラームが発火しました: ${alarm.name} (${new Date().toLocaleString()})`,
       )
       if (alarm.name === 'checkExpiredTabs') {
-        // eslint-disable-next-line typescript/no-floating-promises
-        checkAndRemoveExpiredTabs()
+        void checkAndRemoveExpiredTabs()
       }
     })
 
@@ -91,29 +88,28 @@ const scheduleInitialCheck = (): void => {
       await new Promise((resolve) =>
         setTimeout(resolve, INITIAL_CHECK_DELAY_MS),
       )
-      // eslint-disable-next-line typescript/no-floating-promises
-      checkAndRemoveExpiredTabs()
+      void checkAndRemoveExpiredTabs()
     })
     .catch(() => {})
 }
 /**
  * 通知を表示する関数
  */
-const showNotification = (title: string, message: string): Promise<void> => {
+const showNotification = async (
+  title: string,
+  message: string,
+): Promise<void> => {
   try {
     const iconUrl = chrome.runtime.getURL('icon/128.png')
     console.log('通知アイコンURL:', iconUrl)
-    // eslint-disable-next-line typescript/no-floating-promises
-    chrome.notifications.create({
+    await chrome.notifications.create({
       iconUrl,
       message,
       title,
       type: 'basic',
     })
-    return Promise.resolve()
   } catch (notificationError) {
     console.error('通知表示エラー:', notificationError)
-    return Promise.resolve()
   }
 }
 

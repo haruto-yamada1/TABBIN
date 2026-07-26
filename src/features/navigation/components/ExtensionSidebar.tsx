@@ -8,6 +8,7 @@ import {
   PanelLeft,
   Wrench,
 } from 'lucide-react'
+import { useCallback, useMemo } from 'react'
 import { Link, useInRouterContext } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -41,9 +42,10 @@ import type {
   SidebarItemId,
   SidebarState,
 } from '@/features/navigation/lib/pageNavigation'
+import { writeLocalStorage } from '@/lib/storage/local-storage-adapter'
 import { cn } from '@/lib/utils'
 
-interface ExtensionSidebarProps {
+type ExtensionSidebarProps = {
   state: SidebarState
 }
 
@@ -143,7 +145,7 @@ const ICON_RAIL_WIDTH_PX = 48
 const EXPANDED_SIDEBAR_WIDTH_PX = 256
 const SIDEBAR_WIDTH_STORAGE_KEY = 'tabbin-extension-sidebar-width'
 
-interface RailItem {
+type RailItem = {
   icon: React.ComponentType<{ className?: string }>
   isActive: boolean
   label: string
@@ -204,202 +206,300 @@ const IconRailLink = ({
   )
 }
 
+const TabListSubItem = ({
+  item,
+  isActive,
+}: {
+  item: (typeof tabListItems)[number]
+  isActive: boolean
+}) => {
+  const { t } = useI18n()
+  const label = t(item.labelKey)
+
+  return (
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
+        asChild
+        className='h-11 gap-3 rounded-xl px-4 text-base'
+        isActive={isActive}
+      >
+        <LinkLabel to={getAppRoute(item.id)} isActive={isActive} label={label}>
+          <item.icon className='size-4' />
+          <span>{label}</span>
+        </LinkLabel>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  )
+}
+
+const TopLevelNavItem = ({
+  item,
+  isActive,
+}: {
+  item: (typeof topLevelItems)[number]
+  isActive: boolean
+}) => {
+  const { t } = useI18n()
+  const label = t(item.labelKey)
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={isActive}
+        className={expandedPrimaryButtonClass}
+        size='lg'
+        tooltip={label}
+        asChild
+      >
+        <LinkLabel to={getAppRoute(item.id)} isActive={isActive} label={label}>
+          <item.icon className='size-5 shrink-0' />
+          <span className='group-data-[collapsible=icon]:hidden'>{label}</span>
+        </LinkLabel>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
+const HeaderSection = ({
+  isIconCollapsed,
+  onExpand,
+  onCollapse,
+}: {
+  isIconCollapsed: boolean
+  onExpand: () => void
+  onCollapse: () => void
+}) => {
+  const { t } = useI18n()
+
+  return (
+    <div
+      className='flex items-center justify-between gap-2 rounded-lg py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'
+      data-testid='sidebar-header-row'
+    >
+      {isIconCollapsed ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              aria-label={t('sidebar.open')}
+              className={iconRailLinkClass}
+              onClick={onExpand}
+              size='icon'
+              type='button'
+              variant='ghost'
+            >
+              <PanelLeft className='size-5 shrink-0' />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side='right' align='center'>
+            {t('sidebar.open')}
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <div className='flex items-center gap-2'>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                aria-label={t('sidebar.collapse')}
+                className={iconRailLinkClass}
+                onClick={onCollapse}
+                size='icon'
+                type='button'
+                variant='ghost'
+              >
+                <PanelLeft className='size-5 shrink-0' />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side='right' align='center'>
+              {t('sidebar.collapse')}
+            </TooltipContent>
+          </Tooltip>
+          <div className='min-w-0 group-data-[collapsible=icon]:hidden'>
+            <p className='text-3xl leading-none font-semibold'>TABBIN</p>
+          </div>
+        </div>
+      )}
+      {!isIconCollapsed ? (
+        <div aria-hidden='true' className='size-11 shrink-0' />
+      ) : null}
+    </div>
+  )
+}
+
+const CollapsedNav = ({ items }: { items: RailItem[] }) => (
+  <div className='flex h-full flex-col items-center'>
+    <div className='flex flex-col items-center gap-3 pt-2'>
+      {items.map((item) => (
+        <IconRailLink {...item} key={item.label} />
+      ))}
+    </div>
+  </div>
+)
+
+const ExpandedNav = ({
+  state,
+  savedTabsHref,
+}: {
+  state: SidebarState
+  savedTabsHref: string
+}) => {
+  const { t } = useI18n()
+
+  return (
+    <SidebarMenu className='gap-1.5'>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={state.item.startsWith('saved-tabs-')}
+          className={expandedPrimaryButtonClass}
+          size='lg'
+          tooltip={t('sidebar.tabList')}
+          asChild
+        >
+          <LinkLabel
+            to={savedTabsHref}
+            isActive={state.item.startsWith('saved-tabs-')}
+            label={t('sidebar.tabList')}
+          >
+            <FolderTree className='size-5 shrink-0' />
+            <span className='group-data-[collapsible=icon]:hidden'>
+              {t('sidebar.tabList')}
+            </span>
+          </LinkLabel>
+        </SidebarMenuButton>
+        <SidebarMenuSub className={expandedSubmenuClass}>
+          {tabListItems.map((item) => (
+            <TabListSubItem
+              key={item.id}
+              item={item}
+              isActive={state.item === item.id}
+            />
+          ))}
+        </SidebarMenuSub>
+      </SidebarMenuItem>
+      {topLevelItems.map((item) => (
+        <TopLevelNavItem
+          key={item.id}
+          item={item}
+          isActive={state.item === item.id}
+        />
+      ))}
+    </SidebarMenu>
+  )
+}
+
+const FooterSection = ({
+  isIconCollapsed,
+  optionItem,
+  isActive,
+}: {
+  isIconCollapsed: boolean
+  optionItem: {
+    icon: React.ComponentType<{ className?: string }>
+    id: 'options'
+    label: string
+  }
+  isActive: boolean
+}) => {
+  if (isIconCollapsed) {
+    return (
+      <IconRailLink
+        icon={optionItem.icon}
+        isActive={isActive}
+        label={optionItem.label}
+        to={getAppRoute(optionItem.id)}
+      />
+    )
+  }
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          className='rounded-xl p-0'
+          tooltip={optionItem.label}
+          asChild
+        >
+          <LinkLabel
+            to={getAppRoute(optionItem.id)}
+            isActive={isActive}
+            label={optionItem.label}
+          >
+            <optionItem.icon className='size-5 shrink-0' />
+            <span className='group-data-[collapsible=icon]:hidden'>
+              {optionItem.label}
+            </span>
+          </LinkLabel>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  )
+}
+
 export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
   // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const { open, setOpen, setSidebarWidth, sidebarWidth } = useSidebar()
   const isIconCollapsed = open && sidebarWidth <= ICON_RAIL_WIDTH_PX
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleCollapseSidebar = () => {
+  const handleCollapseSidebar = useCallback(() => {
     setOpen(true)
     setSidebarWidth(ICON_RAIL_WIDTH_PX)
 
-    try {
-      window.localStorage.setItem(
-        SIDEBAR_WIDTH_STORAGE_KEY,
-        String(ICON_RAIL_WIDTH_PX),
-      )
-    } catch {
-      // LocalStorage が使えない環境では保持をスキップする
-    }
-  }
-  // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-  const handleExpandSidebar = () => {
+    writeLocalStorage(SIDEBAR_WIDTH_STORAGE_KEY, String(ICON_RAIL_WIDTH_PX))
+  }, [setOpen, setSidebarWidth])
+  const handleExpandSidebar = useCallback(() => {
     setOpen(true)
     setSidebarWidth(EXPANDED_SIDEBAR_WIDTH_PX)
 
-    try {
-      window.localStorage.setItem(
-        SIDEBAR_WIDTH_STORAGE_KEY,
-        String(EXPANDED_SIDEBAR_WIDTH_PX),
-      )
-    } catch {
-      // LocalStorage が使えない環境では保持をスキップする
-    }
-  }
+    writeLocalStorage(
+      SIDEBAR_WIDTH_STORAGE_KEY,
+      String(EXPANDED_SIDEBAR_WIDTH_PX),
+    )
+  }, [setOpen, setSidebarWidth])
   const savedTabsHref = getSavedTabsEntryRoute()
-  const railItems: RailItem[] = [
-    {
-      icon: FolderTree,
-      isActive: state.item.startsWith('saved-tabs-'),
-      label: t('sidebar.tabList'),
-      to: savedTabsHref,
-    },
-    ...topLevelItems.map((item) => ({
-      icon: item.icon,
-      isActive: state.item === item.id,
-      label: t(item.labelKey),
-      to: getAppRoute(item.id),
-    })),
-  ]
-  const optionItem = {
-    icon: Wrench,
-    id: 'options' as const,
-    label: t('sidebar.options'),
-  }
+  const railItems: RailItem[] = useMemo(
+    () => [
+      {
+        icon: FolderTree,
+        isActive: state.item.startsWith('saved-tabs-'),
+        label: t('sidebar.tabList'),
+        to: savedTabsHref,
+      },
+      ...topLevelItems.map((item) => ({
+        icon: item.icon,
+        isActive: state.item === item.id,
+        label: t(item.labelKey),
+        to: getAppRoute(item.id),
+      })),
+    ],
+    [state.item, t, savedTabsHref],
+  )
+  const optionItem = useMemo(
+    () => ({
+      icon: Wrench,
+      id: 'options' as const,
+      label: t('sidebar.options'),
+    }),
+    [t],
+  )
 
   return (
     <Sidebar>
       <SidebarHeader
         className={cn('gap-1 px-3 py-3', isIconCollapsed && 'px-0 py-2')}
       >
-        <div className='flex items-center justify-between gap-2 rounded-lg py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0'>
-          {isIconCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  aria-label={t('sidebar.open')}
-                  className={iconRailLinkClass}
-                  onClick={handleExpandSidebar}
-                  size='icon'
-                  type='button'
-                  variant='ghost'
-                >
-                  <PanelLeft className='size-5 shrink-0' />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side='right' align='center'>
-                {t('sidebar.open')}
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <div className='flex items-center gap-2'>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    aria-label={t('sidebar.collapse')}
-                    className={iconRailLinkClass}
-                    onClick={handleCollapseSidebar}
-                    size='icon'
-                    type='button'
-                    variant='ghost'
-                  >
-                    <PanelLeft className='size-5 shrink-0' />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side='right' align='center'>
-                  {t('sidebar.collapse')}
-                </TooltipContent>
-              </Tooltip>
-              <div className='min-w-0 group-data-[collapsible=icon]:hidden'>
-                <p className='text-3xl leading-none font-semibold'>TABBIN</p>
-              </div>
-            </div>
-          )}
-          {!isIconCollapsed ? (
-            <div aria-hidden='true' className='size-11 shrink-0' />
-          ) : null}
-        </div>
+        <HeaderSection
+          isIconCollapsed={isIconCollapsed}
+          onExpand={handleExpandSidebar}
+          onCollapse={handleCollapseSidebar}
+        />
       </SidebarHeader>
 
       <SidebarContent className={cn(isIconCollapsed && 'items-center')}>
         <SidebarGroup className={cn(isIconCollapsed && 'w-full px-0 py-2')}>
           <SidebarGroupContent>
             {isIconCollapsed ? (
-              <div className='flex h-full flex-col items-center'>
-                <div className='flex flex-col items-center gap-3 pt-2'>
-                  {railItems.map((item) => (
-                    <IconRailLink key={item.label} {...item} />
-                  ))}
-                </div>
-              </div>
+              <CollapsedNav items={railItems} />
             ) : (
-              <SidebarMenu className='gap-1.5'>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={state.item.startsWith('saved-tabs-')}
-                    className={expandedPrimaryButtonClass}
-                    size='lg'
-                    tooltip={t('sidebar.tabList')}
-                    asChild
-                  >
-                    <LinkLabel
-                      to={savedTabsHref}
-                      isActive={state.item.startsWith('saved-tabs-')}
-                      label={t('sidebar.tabList')}
-                    >
-                      <FolderTree className='size-5 shrink-0' />
-                      <span className='group-data-[collapsible=icon]:hidden'>
-                        {t('sidebar.tabList')}
-                      </span>
-                    </LinkLabel>
-                  </SidebarMenuButton>
-                  <SidebarMenuSub className={expandedSubmenuClass}>
-                    {tabListItems.map((item) => (
-                      <SidebarMenuSubItem key={item.id}>
-                        {(() => {
-                          const label = t(item.labelKey)
-
-                          return (
-                            <SidebarMenuSubButton
-                              asChild
-                              className='h-11 gap-3 rounded-xl px-4 text-base'
-                              isActive={state.item === item.id}
-                            >
-                              <LinkLabel
-                                to={getAppRoute(item.id)}
-                                isActive={state.item === item.id}
-                                label={label}
-                              >
-                                <item.icon className='size-4' />
-                                <span>{label}</span>
-                              </LinkLabel>
-                            </SidebarMenuSubButton>
-                          )
-                        })()}
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </SidebarMenuItem>
-                {topLevelItems.map((item) => (
-                  <SidebarMenuItem key={item.id}>
-                    {(() => {
-                      const label = t(item.labelKey)
-
-                      return (
-                        <SidebarMenuButton
-                          isActive={state.item === item.id}
-                          className={expandedPrimaryButtonClass}
-                          size='lg'
-                          tooltip={label}
-                          asChild
-                        >
-                          <LinkLabel
-                            to={getAppRoute(item.id)}
-                            isActive={state.item === item.id}
-                            label={label}
-                          >
-                            <item.icon className='size-5 shrink-0' />
-                            <span className='group-data-[collapsible=icon]:hidden'>
-                              {label}
-                            </span>
-                          </LinkLabel>
-                        </SidebarMenuButton>
-                      )
-                    })()}
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
+              <ExpandedNav state={state} savedTabsHref={savedTabsHref} />
             )}
           </SidebarGroupContent>
         </SidebarGroup>
@@ -411,35 +511,11 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
           isIconCollapsed && 'items-center px-0 py-3',
         )}
       >
-        {isIconCollapsed ? (
-          <IconRailLink
-            icon={optionItem.icon}
-            isActive={state.item === optionItem.id}
-            label={optionItem.label}
-            to={getAppRoute(optionItem.id)}
-          />
-        ) : (
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className='rounded-xl p-0'
-                tooltip={optionItem.label}
-                asChild
-              >
-                <LinkLabel
-                  to={getAppRoute(optionItem.id)}
-                  isActive={state.item === optionItem.id}
-                  label={optionItem.label}
-                >
-                  <optionItem.icon className='size-5 shrink-0' />
-                  <span className='group-data-[collapsible=icon]:hidden'>
-                    {optionItem.label}
-                  </span>
-                </LinkLabel>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        )}
+        <FooterSection
+          isIconCollapsed={isIconCollapsed}
+          optionItem={optionItem}
+          isActive={state.item === optionItem.id}
+        />
       </SidebarFooter>
     </Sidebar>
   )

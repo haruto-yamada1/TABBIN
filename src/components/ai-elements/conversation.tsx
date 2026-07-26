@@ -78,8 +78,7 @@ export const ConversationScrollButton = ({
   const { isAtBottom, scrollToBottom } = useStickToBottomContext()
 
   const handleScrollToBottom = useCallback(() => {
-    // eslint-disable-next-line typescript/no-floating-promises
-    scrollToBottom()
+    void scrollToBottom()
   }, [scrollToBottom])
 
   return (
@@ -101,7 +100,7 @@ export const ConversationScrollButton = ({
   )
 }
 
-export interface ConversationMessage {
+export type ConversationMessage = {
   role: 'user' | 'assistant' | 'system' | 'data' | 'tool'
   content: string
 }
@@ -119,7 +118,6 @@ const defaultFormatMessage = (message: ConversationMessage): string => {
   const roleLabel = message.role.charAt(0).toUpperCase() + message.role.slice(1)
   return `**${roleLabel}:** ${message.content}`
 }
-
 export const messagesToMarkdown = (
   messages: ConversationMessage[],
   formatMessage: (

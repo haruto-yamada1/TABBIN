@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
-import { useId } from 'react'
+import { useCallback, useId } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -14,19 +14,115 @@ import {
 import { autoDeleteOptions } from '@/constants/autoDeleteOptions'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-interface ConfirmationState {
+type ConfirmationState = {
   isVisible: boolean
   message: string
   onConfirm: () => void
 }
 
-interface AutoDeleteSettingsCardProps {
+type AutoDeleteSettingsCardProps = {
   confirmationState: ConfirmationState
   hideConfirmation: () => void
   pendingAutoDeletePeriod: string | null | undefined
   selectedAutoDeletePeriod: string
   onAutoDeletePeriodChange: (value: string) => void
   onPrepareAutoDeletePeriod: () => void
+}
+
+const SelectContentArea = ({
+  autoDeletePeriod,
+  onAutoDeletePeriodChange,
+}: {
+  autoDeletePeriod: string
+  onAutoDeletePeriodChange: (value: string) => void
+}) => {
+  const { t } = useI18n()
+  const handlePointerDownOutside = useCallback((event: Event) => {
+    event.preventDefault()
+  }, [])
+
+  return (
+    <Select value={autoDeletePeriod} onValueChange={onAutoDeletePeriodChange}>
+      <SelectTrigger id='auto-delete-period' className='w-full cursor-pointer'>
+        <SelectValue placeholder={t('options.autoDelete.selectPlaceholder')} />
+      </SelectTrigger>
+      <SelectContent
+        onPointerDownOutside={handlePointerDownOutside}
+        className='p-0'
+      >
+        <ScrollArea className='h-[120px]'>
+          <div className='p-1'>
+            {autoDeleteOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {t(option.labelKey)}
+              </SelectItem>
+            ))}
+          </div>
+        </ScrollArea>
+      </SelectContent>
+    </Select>
+  )
+}
+
+const ConfirmationDialog = ({
+  confirmationState,
+  hideConfirmation,
+  dialogTitleId,
+  dialogDescriptionId,
+}: {
+  confirmationState: ConfirmationState
+  hideConfirmation: () => void
+  dialogTitleId: string
+  dialogDescriptionId: string
+}) => {
+  const { t } = useI18n()
+
+  return (
+    <dialog
+      aria-describedby={dialogDescriptionId}
+      aria-labelledby={dialogTitleId}
+      aria-modal='true'
+      className='mt-3 rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/30'
+      open
+      role='alertdialog'
+    >
+      <div className='flex flex-col gap-3'>
+        <h3 className='sr-only' id={dialogTitleId}>
+          {t('options.autoDelete.title')}
+        </h3>
+        <div className='flex items-start'>
+          <div className='shrink-0 text-yellow-500'>
+            <AlertTriangle size={24} />
+          </div>
+          <p
+            className='ml-3 text-sm whitespace-pre-line text-foreground'
+            id={dialogDescriptionId}
+          >
+            {confirmationState.message}
+          </p>
+        </div>
+
+        <div className='flex justify-end gap-2'>
+          <Button
+            autoFocus
+            type='button'
+            variant='ghost'
+            onClick={hideConfirmation}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type='button'
+            variant='destructive'
+            // eslint-disable-next-line react/jsx-handler-names
+            onClick={confirmationState.onConfirm}
+          >
+            {t('common.confirm')}
+          </Button>
+        </div>
+      </div>
+    </dialog>
+  )
 }
 
 export const AutoDeleteSettingsCard = ({
@@ -60,36 +156,12 @@ export const AutoDeleteSettingsCard = ({
           {t('options.autoDelete.periodLabel')}
         </Label>
         <div className='flex items-center gap-2'>
-          <Select
-            value={pendingAutoDeletePeriod ?? selectedAutoDeletePeriod}
-            onValueChange={onAutoDeletePeriodChange}
-          >
-            <SelectTrigger
-              id='auto-delete-period'
-              className='w-full cursor-pointer'
-            >
-              <SelectValue
-                placeholder={t('options.autoDelete.selectPlaceholder')}
-              />
-            </SelectTrigger>
-            <SelectContent
-              // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-              onPointerDownOutside={(event) => {
-                event.preventDefault()
-              }}
-              className='p-0'
-            >
-              <ScrollArea className='h-[120px]'>
-                <div className='p-1'>
-                  {autoDeleteOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </SelectItem>
-                  ))}
-                </div>
-              </ScrollArea>
-            </SelectContent>
-          </Select>
+          <SelectContentArea
+            autoDeletePeriod={
+              pendingAutoDeletePeriod ?? selectedAutoDeletePeriod
+            }
+            onAutoDeletePeriodChange={onAutoDeletePeriodChange}
+          />
 
           <Button
             type='button'
@@ -102,50 +174,12 @@ export const AutoDeleteSettingsCard = ({
         </div>
 
         {confirmationState.isVisible && (
-          <dialog
-            aria-describedby={dialogDescriptionId}
-            aria-labelledby={dialogTitleId}
-            aria-modal='true'
-            className='mt-3 rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/30'
-            open
-            role='alertdialog'
-          >
-            <div className='flex flex-col gap-3'>
-              <h3 className='sr-only' id={dialogTitleId}>
-                {t('options.autoDelete.title')}
-              </h3>
-              <div className='flex items-start'>
-                <div className='shrink-0 text-yellow-500'>
-                  <AlertTriangle size={24} />
-                </div>
-                <p
-                  className='ml-3 text-sm whitespace-pre-line text-foreground'
-                  id={dialogDescriptionId}
-                >
-                  {confirmationState.message}
-                </p>
-              </div>
-
-              <div className='flex justify-end gap-2'>
-                <Button
-                  autoFocus
-                  type='button'
-                  variant='ghost'
-                  onClick={hideConfirmation}
-                >
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  type='button'
-                  variant='destructive'
-                  // eslint-disable-next-line react/jsx-handler-names
-                  onClick={confirmationState.onConfirm}
-                >
-                  {t('common.confirm')}
-                </Button>
-              </div>
-            </div>
-          </dialog>
+          <ConfirmationDialog
+            confirmationState={confirmationState}
+            hideConfirmation={hideConfirmation}
+            dialogTitleId={dialogTitleId}
+            dialogDescriptionId={dialogDescriptionId}
+          />
         )}
 
         <p className='mt-2 text-sm text-muted-foreground'>
