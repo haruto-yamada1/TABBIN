@@ -3,34 +3,6 @@ import type {
   RawLegacyStorageSnapshot,
 } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 
-export type LegacyUrlDto = {
-  readonly favIconUrl?: unknown
-  readonly id?: unknown
-  readonly savedAt?: unknown
-  readonly title?: unknown
-  readonly url?: unknown
-}
-
-export type LegacyCollectionDto = {
-  readonly id?: unknown
-  readonly urlIds?: unknown
-  readonly urls?: unknown
-}
-
-export type LegacyConversationDto = {
-  readonly createdAt?: unknown
-  readonly id?: unknown
-  readonly messages?: unknown
-  readonly title?: unknown
-  readonly updatedAt?: unknown
-}
-
-export type LegacyAnalyticsViewDto = {
-  readonly createdAt?: unknown
-  readonly id?: unknown
-  readonly updatedAt?: unknown
-}
-
 export type LegacyChromeStorageDto = {
   readonly activeAiChatConversationId: unknown
   readonly aiChatConversations: readonly unknown[]

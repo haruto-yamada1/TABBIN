@@ -46,8 +46,15 @@ export class PersistenceV2MigrationError extends Error {
   }
 }
 
-const compareKeys = (left: string, right: string): number =>
-  left.localeCompare(right)
+const compareKeys = (left: string, right: string): number => {
+  if (left < right) {
+    return -1
+  }
+  if (left > right) {
+    return 1
+  }
+  return 0
+}
 
 const byId = <Value extends { readonly id: string }>(
   left: Value,
@@ -180,6 +187,19 @@ const assertMigratable = (
   return analysis.target
 }
 
+type MigrationSourceDiagnosticSummary = Pick<
+  MigrationPreflightAnalysis,
+  'approximateSourceBytes' | 'entityCounts' | 'issues'
+>
+
+const toDiagnosticSummary = (
+  analysis: MigrationPreflightAnalysis,
+): MigrationSourceDiagnosticSummary => ({
+  approximateSourceBytes: analysis.approximateSourceBytes,
+  entityCounts: { ...analysis.entityCounts },
+  issues: analysis.issues.map((issue) => ({ ...issue })),
+})
+
 const createReport = (
   migrationId: string,
   analysis: MigrationPreflightAnalysis,
@@ -205,7 +225,7 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
   private failureDiagnostic: PersistenceV2MigrationDiagnostic | undefined
   private lastObservedSource:
     | {
-        readonly analysis: MigrationPreflightAnalysis
+        readonly analysis: MigrationSourceDiagnosticSummary
         readonly fingerprint: string
       }
     | undefined
@@ -224,7 +244,10 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
     const source = await this.options.rawReader.readSnapshot()
     const analysis = mapLegacyStorageToPersistenceV2(source)
     const fingerprint = await this.options.fingerprint.create(source)
-    this.lastObservedSource = { analysis, fingerprint }
+    this.lastObservedSource = {
+      analysis: toDiagnosticSummary(analysis),
+      fingerprint,
+    }
     return fingerprint
   }
 
@@ -258,30 +281,10 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
   }
 
   readonly migrate = async (migrationId: string): Promise<void> => {
-    const source = await this.options.rawReader.readSnapshot()
-    const analysis = mapLegacyStorageToPersistenceV2(source)
-    let target: PersistenceV2MigrationTarget
-    try {
-      target = assertMigratable(analysis)
-    } catch (error) {
-      throw this.createFailure(
-        migrationId,
-        'source-map',
-        'MIGRATION_SOURCE_BLOCKED',
-        { analysis, cause: error },
-      )
-    }
-    const approvedFingerprint =
-      await this.readPreflightSourceFingerprint(migrationId)
-    const currentFingerprint = await this.options.fingerprint.create(source)
-    if (currentFingerprint !== approvedFingerprint) {
-      throw this.createFailure(
-        migrationId,
-        'preflight',
-        'MIGRATION_SOURCE_CHANGED',
-        { analysis },
-      )
-    }
+    const { analysis, target } = await this.readValidatedSource(
+      migrationId,
+      'preflight',
+    )
 
     try {
       await this.options.target.prepare(migrationId)
@@ -302,33 +305,14 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
       )
     }
     this.reports.set(migrationId, createReport(migrationId, analysis))
+    this.failureDiagnostic = undefined
   }
 
   readonly verify = async (migrationId: string): Promise<void> => {
-    const source = await this.options.rawReader.readSnapshot()
-    const analysis = mapLegacyStorageToPersistenceV2(source)
-    let expected: PersistenceV2MigrationTarget
-    try {
-      expected = assertMigratable(analysis)
-    } catch (error) {
-      throw this.createFailure(
-        migrationId,
-        'source-map',
-        'MIGRATION_SOURCE_BLOCKED',
-        { analysis, cause: error },
-      )
-    }
-    const approvedFingerprint =
-      await this.readPreflightSourceFingerprint(migrationId)
-    const currentFingerprint = await this.options.fingerprint.create(source)
-    if (currentFingerprint !== approvedFingerprint) {
-      throw this.createFailure(
-        migrationId,
-        'verification',
-        'MIGRATION_SOURCE_CHANGED',
-        { analysis },
-      )
-    }
+    const { analysis, target: expected } = await this.readValidatedSource(
+      migrationId,
+      'verification',
+    )
 
     let actual: PersistenceLogicalSnapshot
     try {
@@ -355,6 +339,7 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
     }
     await this.options.target.markVerified(migrationId)
     this.reports.set(migrationId, createReport(migrationId, analysis))
+    this.failureDiagnostic = undefined
   }
 
   readonly readReport = (
@@ -365,12 +350,49 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
     | PersistenceV2MigrationDiagnostic
     | undefined => this.failureDiagnostic
 
+  private readonly readValidatedSource = async (
+    migrationId: string,
+    fingerprintStage: Extract<
+      PersistenceV2MigrationStage,
+      'preflight' | 'verification'
+    >,
+  ): Promise<{
+    readonly analysis: MigrationPreflightAnalysis
+    readonly target: PersistenceV2MigrationTarget
+  }> => {
+    const source = await this.options.rawReader.readSnapshot()
+    const analysis = mapLegacyStorageToPersistenceV2(source)
+    let target: PersistenceV2MigrationTarget
+    try {
+      target = assertMigratable(analysis)
+    } catch (error) {
+      throw this.createFailure(
+        migrationId,
+        'source-map',
+        'MIGRATION_SOURCE_BLOCKED',
+        { analysis, cause: error },
+      )
+    }
+    const approvedFingerprint =
+      await this.readPreflightSourceFingerprint(migrationId)
+    const currentFingerprint = await this.options.fingerprint.create(source)
+    if (currentFingerprint !== approvedFingerprint) {
+      throw this.createFailure(
+        migrationId,
+        fingerprintStage,
+        'MIGRATION_SOURCE_CHANGED',
+        { analysis },
+      )
+    }
+    return { analysis, target }
+  }
+
   private readonly createFailure = (
     migrationId: string,
     stage: PersistenceV2MigrationStage,
     errorCode: PersistenceV2MigrationErrorCode,
     details?: {
-      readonly analysis?: MigrationPreflightAnalysis
+      readonly analysis?: MigrationSourceDiagnosticSummary
       readonly cause?: unknown
     },
   ): PersistenceV2MigrationError => {

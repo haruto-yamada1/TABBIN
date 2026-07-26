@@ -28,6 +28,7 @@ export type LegacyMigrationIssueCode =
   | 'LEGACY_PARENT_CATEGORY_CONFLICT'
   | 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT'
   | 'LEGACY_CUSTOM_PROJECT_ORDER_CONFLICT'
+  | 'LEGACY_AI_ENTITY_ID_COLLISION'
   | PersistenceV2InvariantCode
 
 export type MigrationPreflightIssue = {
@@ -74,11 +75,12 @@ type AnalyzerState = {
   readonly collisions: UrlIdentityCollisionKind[]
   readonly groups: PersistenceV2CollectionGroup[]
   readonly issues: Map<string, MutableIssue>
+  readonly membershipIndex: Map<string, Map<string, number>>
   readonly memberships: PersistenceV2CollectionMembership[]
   readonly urls: PersistenceV2Url[]
   readonly collisionKinds: Set<UrlIdentityCollisionKind>
   readonly urlIdentityTitles: Map<string, Set<string>>
-  readonly urlsById: Map<string, number>
+  readonly urlsById: Map<string, PersistenceV2Url[]>
   readonly urlsByIdentity: Map<string, number>
 }
 
@@ -110,6 +112,12 @@ const addIssue = (
   }
   state.issues.set(key, { code, occurrenceCount, severity })
 }
+
+const hasIssue = (
+  state: AnalyzerState,
+  code: LegacyMigrationIssueCode,
+  severity: 'error' | 'warning',
+): boolean => state.issues.has(`${severity}:${code}`)
 
 const readStringArray = (value: unknown): readonly string[] | undefined =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -177,13 +185,12 @@ const addUrl = (
     return undefined
   }
 
-  const idCount = state.urlsById.get(input.id) ?? 0
-  if (idCount > 0) {
+  const urlsWithId = state.urlsById.get(input.id) ?? []
+  if (urlsWithId.length > 0) {
     addIssue(state, 'DUPLICATE_URL_ID', 'error')
     state.collisions.push('duplicate-id')
     state.collisionKinds.add('duplicate-id')
   }
-  state.urlsById.set(input.id, idCount + 1)
 
   const identityCount = state.urlsByIdentity.get(identity) ?? 0
   if (identityCount > 0) {
@@ -216,6 +223,8 @@ const addUrl = (
     url: input.url,
   }
   state.urls.push(url)
+  urlsWithId.push(url)
+  state.urlsById.set(input.id, urlsWithId)
   return url
 }
 
@@ -427,7 +436,7 @@ const addMembership = (
     readonly urlId: string
   },
 ): void => {
-  state.memberships.push({
+  const membership: PersistenceV2CollectionMembership = {
     addedAt: input.timestamp,
     ...(input.categoryId ? { categoryId: input.categoryId } : {}),
     collectionId: input.collectionId,
@@ -435,7 +444,14 @@ const addMembership = (
     sortOrder: input.index * ORDER_GAP,
     updatedAt: input.timestamp,
     urlId: input.urlId,
-  })
+  }
+  state.memberships.push(membership)
+  const collectionMemberships =
+    state.membershipIndex.get(input.collectionId) ?? new Map<string, number>()
+  if (!collectionMemberships.has(input.urlId)) {
+    collectionMemberships.set(input.urlId, state.memberships.length - 1)
+  }
+  state.membershipIndex.set(input.collectionId, collectionMemberships)
 }
 
 type DecodedNestedUrl = {
@@ -506,12 +522,8 @@ const mergeMembershipMetadata = (
     readonly urlId: string
   },
 ): boolean => {
-  const index = state.memberships.findIndex(
-    (membership) =>
-      membership.collectionId === input.collectionId &&
-      membership.urlId === input.urlId,
-  )
-  if (index < 0) {
+  const index = state.membershipIndex.get(input.collectionId)?.get(input.urlId)
+  if (index === undefined) {
     return false
   }
   const membership = state.memberships[index]
@@ -540,7 +552,7 @@ const matchesCanonicalUrl = (
   decoded: DecodedNestedUrl,
   state: AnalyzerState,
 ): boolean =>
-  state.urls.some(
+  (state.urlsById.get(decoded.id) ?? []).some(
     (url) =>
       url.id === decoded.id &&
       url.url === decoded.url &&
@@ -840,7 +852,7 @@ const appendNestedSavedTabUrls = (
         return
       }
       if (!idSet.has(decoded.id)) {
-        const canonical = state.urls.find((url) => url.id === decoded.id)
+        const canonical = state.urlsById.get(decoded.id)?.[0]
         if (canonical) {
           addMembership(state, {
             ...(categoryId ? { categoryId } : {}),
@@ -1434,25 +1446,21 @@ type LegacyAiMessageRecord = JsonObject & {
 
 const isLegacyAiConversationRecord = (
   value: unknown,
-  knownIds: ReadonlySet<string>,
 ): value is LegacyAiConversationRecord =>
   isRecord(value) &&
   typeof value.id === 'string' &&
   typeof value.title === 'string' &&
   isFiniteTimestamp(value.createdAt) &&
   isFiniteTimestamp(value.updatedAt) &&
-  Array.isArray(value.messages) &&
-  !knownIds.has(value.id)
+  Array.isArray(value.messages)
 
 const isLegacyAiMessageRecord = (
   value: unknown,
-  knownIds: ReadonlySet<string>,
 ): value is LegacyAiMessageRecord =>
   isRecord(value) &&
   typeof value.id === 'string' &&
   typeof value.content === 'string' &&
   (value.role === 'user' || value.role === 'assistant') &&
-  !knownIds.has(value.id) &&
   isJsonValue(value)
 
 const mapAiEntities = (
@@ -1469,8 +1477,12 @@ const mapAiEntities = (
   const conversationIds = new Set<string>()
   const messageIds = new Set<string>()
   for (const value of conversations) {
-    if (!isLegacyAiConversationRecord(value, conversationIds)) {
+    if (!isLegacyAiConversationRecord(value)) {
       addIssue(state, 'MIGRATION_SOURCE_INVALID_TYPE', 'error')
+      continue
+    }
+    if (conversationIds.has(value.id)) {
+      addIssue(state, 'LEGACY_AI_ENTITY_ID_COLLISION', 'error')
       continue
     }
     conversationIds.add(value.id)
@@ -1484,8 +1496,12 @@ const mapAiEntities = (
     })
     attachments += countMessageAttachments(value.messages, state)
     for (const message of value.messages) {
-      if (!isLegacyAiMessageRecord(message, messageIds)) {
+      if (!isLegacyAiMessageRecord(message)) {
         addIssue(state, 'MIGRATION_SOURCE_INVALID_TYPE', 'error')
+        continue
+      }
+      if (messageIds.has(message.id)) {
+        addIssue(state, 'LEGACY_AI_ENTITY_ID_COLLISION', 'error')
         continue
       }
       messageIds.add(message.id)
@@ -1552,6 +1568,7 @@ export const mapLegacyStorageToPersistenceV2 = (
     collisionKinds: new Set(),
     groups: [],
     issues: new Map(),
+    membershipIndex: new Map(),
     memberships: [],
     urlIdentityTitles: new Map(),
     urls: [],
@@ -1624,7 +1641,7 @@ export const mapLegacyStorageToPersistenceV2 = (
     addIssue(state, 'NON_JSON_SAFE_VALUE', 'error')
   }
   let targetSerializedBytes = 0
-  if (!state.issues.has('error:NON_JSON_SAFE_VALUE')) {
+  if (!hasIssue(state, 'NON_JSON_SAFE_VALUE', 'error')) {
     try {
       targetSerializedBytes = measureSerializedBytes({
         target,

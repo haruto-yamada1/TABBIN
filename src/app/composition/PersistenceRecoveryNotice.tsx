@@ -2,6 +2,7 @@ import { useCallback, useState, useSyncExternalStore } from 'react'
 
 import { Button } from '@/components/ui/button'
 import type { PersistenceRecoveryControllerPort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import { serializePersistenceEmergencyBackup } from '@/contexts/saved-tabs/application/services/PersistenceEmergencyBackupCodecService'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { getPersistenceRecoveryController } from './createPersistenceRecoveryController'
@@ -12,13 +13,18 @@ const downloadEmergencyBackup = (
   >,
 ): void => {
   const url = URL.createObjectURL(
-    new Blob([JSON.stringify(backup)], { type: 'application/json' }),
+    new Blob([serializePersistenceEmergencyBackup(backup)], {
+      type: 'application/json',
+    }),
   )
-  const anchor = document.createElement('a')
-  anchor.download = `tabbin-legacy-emergency-backup-${backup.createdAt}.json`
-  anchor.href = url
-  anchor.click()
-  URL.revokeObjectURL(url)
+  try {
+    const anchor = document.createElement('a')
+    anchor.download = `tabbin-legacy-emergency-backup-${backup.createdAt}.json`
+    anchor.href = url
+    anchor.click()
+  } finally {
+    URL.revokeObjectURL(url)
+  }
 }
 
 export type PersistenceRecoveryNoticeProps = {
@@ -35,11 +41,13 @@ export const PersistenceRecoveryNotice = ({
     recovery.getSnapshot,
     recovery.getSnapshot,
   )
+  const [actionError, setActionError] = useState(false)
   const [isBackingUp, setIsBackingUp] = useState(false)
   const [isRechecking, setIsRechecking] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
 
   const handleRetry = useCallback((): void => {
+    setActionError(false)
     setIsRetrying(true)
     void recovery
       .retry()
@@ -52,16 +60,21 @@ export const PersistenceRecoveryNotice = ({
   }, [recovery])
 
   const handleBackup = useCallback((): void => {
+    setActionError(false)
     setIsBackingUp(true)
     void recovery
       .createEmergencyBackup()
       .then(downloadEmergencyBackup)
+      .catch(() => {
+        setActionError(true)
+      })
       .finally(() => {
         setIsBackingUp(false)
       })
   }, [recovery])
 
   const handleRecheck = useCallback((): void => {
+    setActionError(false)
     setIsRechecking(true)
     void recovery
       .rerunPreflightAndRetry()
@@ -82,7 +95,12 @@ export const PersistenceRecoveryNotice = ({
         )
       : ''
   const handleCopyDiagnostic = useCallback((): void => {
-    void navigator.clipboard.writeText(diagnosticText)
+    setActionError(false)
+    void Promise.resolve()
+      .then(async () => navigator.clipboard.writeText(diagnosticText))
+      .catch(() => {
+        setActionError(true)
+      })
   }, [diagnosticText])
 
   if (state.status === 'available') {
@@ -134,6 +152,14 @@ export const PersistenceRecoveryNotice = ({
           {t('options.persistenceRecovery.copyDiagnostic', 'Copy diagnostics')}
         </Button>
       </details>
+      {actionError ? (
+        <p className='text-sm text-destructive'>
+          {t(
+            'options.persistenceRecovery.actionFailed',
+            'The action could not be completed. Try again.',
+          )}
+        </p>
+      ) : null}
       <div className='flex flex-wrap justify-end gap-2'>
         <Button
           disabled={isBusy}

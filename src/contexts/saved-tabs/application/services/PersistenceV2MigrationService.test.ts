@@ -236,6 +236,65 @@ describe('PersistenceV2MigrationService', () => {
     expect(target.markVerified).not.toHaveBeenCalled()
   })
 
+  it('verifies semantically equal snapshots with code-point ordering and publishes a report', async () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'urls', [
+      {
+        id: 'ab',
+        savedAt: 10,
+        title: 'First',
+        url: 'https://first.example.com',
+      },
+      {
+        id: 'a\u0000b',
+        savedAt: 20,
+        title: 'Second',
+        url: 'https://second.example.com',
+      },
+    ])
+    const expected = logicalSnapshot(source)
+    const targetSnapshot: PersistenceLogicalSnapshot = {
+      ...expected,
+      savedTabs: {
+        ...expected.savedTabs,
+        urls: expected.savedTabs.urls.toReversed(),
+      },
+    }
+    const { service, target } = createService({ source, targetSnapshot })
+
+    await service.verify('migration-1')
+
+    expect(target.markVerified).toHaveBeenCalledWith('migration-1')
+    expect(service.readFailureDiagnostic()).toBeUndefined()
+    expect(service.readReport('migration-1')).toEqual(
+      expect.objectContaining({
+        migratedUrlCount: 2,
+        migrationId: 'migration-1',
+      }),
+    )
+  })
+
+  it('clears an obsolete verification diagnostic after a successful retry', async () => {
+    const source = createValidSource()
+    const expected = logicalSnapshot(source)
+    const { service, target } = createService({ source })
+    vi.mocked(target.readSnapshot)
+      .mockResolvedValueOnce({
+        ...expected,
+        savedTabs: { ...expected.savedTabs, memberships: [] },
+      })
+      .mockResolvedValue(expected)
+
+    await expect(service.verify('migration-1')).rejects.toMatchObject({
+      code: 'MIGRATION_SEMANTIC_VERIFICATION_FAILED',
+    })
+    expect(service.readFailureDiagnostic()).toBeDefined()
+
+    await service.verify('migration-1')
+
+    expect(service.readFailureDiagnostic()).toBeUndefined()
+  })
+
   it('discards and deterministically replays a partial target on retry', async () => {
     const { service, target } = createService()
     vi.mocked(target.writeBatch)
@@ -245,9 +304,22 @@ describe('PersistenceV2MigrationService', () => {
     await expect(service.migrate('migration-1')).rejects.toMatchObject({
       code: 'MIGRATION_TARGET_WRITE_FAILED',
     })
+    const firstAttemptPlans = vi
+      .mocked(target.writeBatch)
+      .mock.calls.map(([, plan]) => plan)
     await service.migrate('migration-1')
 
     expect(target.prepare).toHaveBeenCalledTimes(2)
     expect(target.markWritten).toHaveBeenCalledTimes(1)
+    expect(
+      vi
+        .mocked(target.writeBatch)
+        .mock.calls.slice(
+          firstAttemptPlans.length,
+          firstAttemptPlans.length * 2,
+        )
+        .map(([, plan]) => plan),
+    ).toStrictEqual(firstAttemptPlans)
+    expect(service.readFailureDiagnostic()).toBeUndefined()
   })
 })

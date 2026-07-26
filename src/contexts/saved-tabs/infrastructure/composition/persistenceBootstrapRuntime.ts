@@ -207,6 +207,7 @@ export const createPersistenceBootstrapRuntime = (
     access,
     controlStateRepository,
     coordination,
+    cutoverPolicy: 'defer',
     migrationLifecycle,
   })
   const migrationRecovery = isMigrationRecoveryLifecycle(migrationLifecycle)

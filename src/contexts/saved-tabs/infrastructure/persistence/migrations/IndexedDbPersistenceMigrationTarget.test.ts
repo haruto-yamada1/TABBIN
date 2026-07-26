@@ -1,5 +1,5 @@
 import { IDBFactory } from 'fake-indexeddb'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { PersistenceV2MigrationTargetError } from '@/contexts/saved-tabs/application/ports/PersistenceV2MigrationTargetPort'
 import type { PersistenceV2MigrationTargetErrorCode } from '@/contexts/saved-tabs/application/ports/PersistenceV2MigrationTargetPort'
@@ -24,11 +24,23 @@ const MIGRATABLE_STORE_NAMES = [
   PERSISTENCE_STORE_NAMES.analyticsViews,
 ] as const
 
-const createManager = (databaseName: string) =>
-  new IndexedDbConnectionManager({
+const managers: IndexedDbConnectionManager[] = []
+
+afterEach(() => {
+  for (const manager of managers) {
+    manager.close()
+  }
+  managers.length = 0
+})
+
+const createManager = (databaseName: string) => {
+  const manager = new IndexedDbConnectionManager({
     databaseName,
     indexedDb: new IDBFactory(),
   })
+  managers.push(manager)
+  return manager
+}
 
 const createUrl = (id: string) => ({
   firstSavedAt: 1,
@@ -287,6 +299,98 @@ describe('IndexedDbPersistenceMigrationTarget', () => {
     manager.close()
   })
 
+  it('prepareは別migration IDのtargetを破壊せず同じIDだけを再初期化する', async () => {
+    const manager = createManager('migration-target-prepare-identity')
+    const target = new IndexedDbPersistenceMigrationTarget(manager)
+    await target.prepare('migration-1')
+    await target.writeBatch('migration-1', {
+      urls: { put: [createUrl('partial')] },
+    })
+
+    await expectTargetErrorCode(
+      target.prepare('migration-2'),
+      'MIGRATION_TARGET_ID_MISMATCH',
+    )
+    expect((await readRawTarget(manager)).migratable.urls).toEqual([
+      expect.objectContaining({ id: 'partial' }),
+    ])
+
+    await target.prepare('migration-1')
+
+    expect((await readRawTarget(manager)).migratable.urls).toEqual([])
+  })
+
+  it.each(['', '   '])(
+    '全public methodが空のmigration IDを拒否する: %j',
+    async (migrationId) => {
+      expect.hasAssertions()
+      const target = new IndexedDbPersistenceMigrationTarget(
+        createManager(`migration-target-invalid-id-${migrationId.length}`),
+      )
+
+      await expectTargetErrorCode(
+        target.prepare(migrationId),
+        'MIGRATION_ID_INVALID',
+      )
+      await expectTargetErrorCode(
+        target.writeBatch(migrationId, {
+          urls: { put: [createUrl('url-1')] },
+        }),
+        'MIGRATION_ID_INVALID',
+      )
+      await expectTargetErrorCode(
+        target.markWritten(migrationId),
+        'MIGRATION_ID_INVALID',
+      )
+      await expectTargetErrorCode(
+        target.readSnapshot(migrationId),
+        'MIGRATION_ID_INVALID',
+      )
+      await expectTargetErrorCode(
+        target.markVerified(migrationId),
+        'MIGRATION_ID_INVALID',
+      )
+    },
+  )
+
+  it('membershipの複合key削除を適用し不正なkey shapeを拒否する', async () => {
+    const target = new IndexedDbPersistenceMigrationTarget(
+      createManager('migration-target-membership-delete'),
+    )
+    await target.prepare('migration-1')
+    await target.writeBatch('migration-1', {
+      memberships: {
+        put: [
+          {
+            addedAt: 1,
+            collectionId: 'collection-1',
+            sortOrder: 1024,
+            updatedAt: 1,
+            urlId: 'url-1',
+          },
+        ],
+      },
+    })
+
+    await expectTargetErrorCode(
+      Reflect.apply(target.writeBatch, target, [
+        'migration-1',
+        {
+          memberships: { delete: [['collection-1']] },
+        },
+      ]),
+      'MIGRATION_WRITE_PLAN_INVALID',
+    )
+    await target.writeBatch('migration-1', {
+      memberships: { delete: [['collection-1', 'url-1']] },
+    })
+    await target.markWritten('migration-1')
+
+    await expect(target.readSnapshot('migration-1')).resolves.toMatchObject({
+      savedTabs: { memberships: [] },
+    })
+  })
+
   it('recovery snapshot mutationとnon JSON-safe valueをtyped aggregate errorで拒否する', async () => {
     const manager = createManager('migration-target-invalid-plan')
     const target = new IndexedDbPersistenceMigrationTarget(manager)
@@ -340,6 +444,7 @@ describe('IndexedDbPersistenceMigrationTarget', () => {
       target.writeBatch('migration-1', {
         collections: {
           put: [
+            // Both records deliberately violate the unique domain index.
             createDomainCollection('collection-1', 'same.example.com'),
             createDomainCollection('collection-2', 'same.example.com'),
           ],

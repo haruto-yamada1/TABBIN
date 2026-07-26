@@ -24,17 +24,6 @@ import { decodePersistenceRevision } from '@/contexts/saved-tabs/infrastructure/
 
 const MIGRATION_TARGET_METADATA_KEY = 'migrationTarget'
 
-const MIGRATABLE_STORE_NAMES = [
-  PERSISTENCE_STORE_NAMES.urls,
-  PERSISTENCE_STORE_NAMES.collections,
-  PERSISTENCE_STORE_NAMES.memberships,
-  PERSISTENCE_STORE_NAMES.categories,
-  PERSISTENCE_STORE_NAMES.groups,
-  PERSISTENCE_STORE_NAMES.conversations,
-  PERSISTENCE_STORE_NAMES.messages,
-  PERSISTENCE_STORE_NAMES.analyticsViews,
-] as const satisfies readonly PersistenceStoreName[]
-
 type MigrationPlanKey = Exclude<
   keyof PersistenceV2WritePlan,
   'recoverySnapshots'
@@ -63,6 +52,10 @@ const PLAN_STORE_NAMES = {
   messages: PERSISTENCE_STORE_NAMES.messages,
   urls: PERSISTENCE_STORE_NAMES.urls,
 } as const satisfies Record<MigrationPlanKey, PersistenceStoreName>
+
+const MIGRATABLE_STORE_NAMES = Object.values(
+  PLAN_STORE_NAMES,
+) satisfies readonly PersistenceStoreName[]
 
 const PLAN_RECORD_VALIDATORS = {
   analyticsViews: isPersistenceJsonRecord,
@@ -262,6 +255,7 @@ export class IndexedDbPersistenceMigrationTarget implements PersistenceV2Migrati
 
   async prepare(migrationId: string): Promise<void> {
     assertMigrationId(migrationId)
+    let operationError: PersistenceV2MigrationTargetError | undefined
     try {
       const database = await this.connectionManager.open()
       await queueIndexedDbTransaction(
@@ -275,18 +269,41 @@ export class IndexedDbPersistenceMigrationTarget implements PersistenceV2Migrati
           ],
         },
         (transaction) => {
-          for (const storeName of MIGRATABLE_STORE_NAMES) {
-            transaction.objectStore(storeName).clear()
-          }
           const metadata = transaction.objectStore(
             PERSISTENCE_STORE_NAMES.metadata,
           )
-          metadata.put({ key: 'revision', value: 0 })
-          metadata.put(toTargetMetadataRecord(migrationId, 'copying'))
+          const targetRequest = metadata.get(MIGRATION_TARGET_METADATA_KEY)
+          targetRequest.addEventListener('success', () => {
+            try {
+              const current = readIndexedDbRequestResult(targetRequest)
+              if (current !== undefined) {
+                const existing = decodeMigrationTargetMetadata(current)
+                if (existing.migrationId !== migrationId) {
+                  throw new PersistenceV2MigrationTargetError(
+                    'MIGRATION_TARGET_ID_MISMATCH',
+                  )
+                }
+              }
+              for (const storeName of MIGRATABLE_STORE_NAMES) {
+                transaction.objectStore(storeName).clear()
+              }
+              metadata.put({ key: 'revision', value: 0 })
+              metadata.put(toTargetMetadataRecord(migrationId, 'copying'))
+            } catch (error) {
+              operationError = toTargetError(
+                error,
+                'MIGRATION_TARGET_TRANSACTION_FAILED',
+              )
+              transaction.abort()
+            }
+          })
         },
       )
     } catch (error) {
-      throw toTargetError(error, 'MIGRATION_TARGET_TRANSACTION_FAILED')
+      throw (
+        operationError ??
+        toTargetError(error, 'MIGRATION_TARGET_TRANSACTION_FAILED')
+      )
     }
   }
 

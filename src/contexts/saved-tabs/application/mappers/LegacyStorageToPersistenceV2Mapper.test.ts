@@ -615,7 +615,7 @@ describe('analyzeLegacyMigrationPreflight', () => {
 
     const result = analyzeLegacyMigrationPreflight(source)
 
-    expect(Reflect.get(result, 'target')).toEqual({
+    expect(result.target).toEqual({
       analyticsViews: [
         {
           id: 'analytics-1',
@@ -653,6 +653,41 @@ describe('analyzeLegacyMigrationPreflight', () => {
       ],
       savedTabs: result.snapshot,
     })
+  })
+
+  it('reports duplicate AI entity identifiers with a dedicated typed issue', () => {
+    const source = withSource(createEmptySnapshot(), 'aiChatConversations', [
+      {
+        createdAt: 10,
+        id: 'conversation-1',
+        messages: [
+          {
+            content: 'first',
+            id: 'message-1',
+            role: 'user',
+          },
+          {
+            content: 'duplicate',
+            id: 'message-1',
+            role: 'assistant',
+          },
+        ],
+        title: 'First',
+        updatedAt: 20,
+      },
+      {
+        createdAt: 30,
+        id: 'conversation-1',
+        messages: [],
+        title: 'Duplicate',
+        updatedAt: 40,
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(result.issueCodes).toContain('LEGACY_AI_ENTITY_ID_COLLISION')
+    expect(result.issueCodes).not.toContain('MIGRATION_SOURCE_INVALID_TYPE')
   })
 
   it('returns only safe aggregate issues and does not mutate raw user content', () => {

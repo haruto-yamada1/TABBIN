@@ -115,6 +115,17 @@ describe('persistenceBootstrapRuntime storage facade', () => {
 
     expect(lifecycle.migrate).toHaveBeenCalledWith('migration-1')
     expect(lifecycle.verify).toHaveBeenCalledWith('migration-1')
+    expect(state).toEqual({
+      status: 'cutover-pending',
+      migrationId: 'migration-1',
+    })
+
+    await runtime.bootstrap.ready()
+
+    expect(state).toEqual({
+      status: 'cutover-pending',
+      migrationId: 'migration-1',
+    })
   })
 
   it('retries the same production bootstrap after a transient gate failure', async () => {

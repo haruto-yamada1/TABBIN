@@ -5,6 +5,7 @@ import type {
   PersistenceRecoveryControllerPort,
   PersistenceRecoveryState,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import type { RawLegacyStorageSnapshot } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 import { I18nProvider } from '@/features/i18n/context/I18nProvider'
 
 import { PersistenceRecoveryNotice } from './PersistenceRecoveryNotice'
@@ -26,11 +27,28 @@ const recoveryState = {
   status: 'unavailable',
 } satisfies PersistenceRecoveryState
 
+const rawLegacyStorage: RawLegacyStorageSnapshot = {
+  activeAiChatConversationId: { status: 'missing' },
+  aiChatConversations: { status: 'missing' },
+  customProjectOrder: { status: 'missing' },
+  customProjects: { status: 'missing' },
+  domainCategoryMappings: { status: 'missing' },
+  domainCategorySettings: { status: 'missing' },
+  parentCategories: { status: 'missing' },
+  savedAnalyticsViews: { status: 'missing' },
+  savedTabs: { status: 'missing' },
+  urls: { status: 'missing' },
+}
+
 const recovery = {
   clear: () => undefined,
-  createEmergencyBackup: async () => {
-    throw new Error('Story action is not connected')
-  },
+  createEmergencyBackup: async () => ({
+    createdAt: 0,
+    format: 'tabbin-legacy-emergency-backup' as const,
+    rawLegacyStorage,
+    version: 1 as const,
+    warning: 'contains-private-user-data' as const,
+  }),
   getSnapshot: () => recoveryState,
   reportUnavailable: () => undefined,
   rerunPreflightAndRetry: async () => undefined,

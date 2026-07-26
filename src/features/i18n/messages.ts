@@ -506,6 +506,8 @@ const messages = {
     'options.importExport.unresolvedWarning':
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
+    'options.persistenceRecovery.actionFailed':
+      'The action could not be completed. Try again.',
     'options.persistenceRecovery.backup': 'Back up current data',
     'options.persistenceRecovery.backupPrivacy':
       'The emergency backup contains private URLs, titles, notes, and AI content. Store it securely.',
@@ -1369,6 +1371,8 @@ const messages = {
     'options.importExport.unresolvedWarning':
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',
+    'options.persistenceRecovery.actionFailed':
+      '操作を完了できませんでした。もう一度お試しください。',
     'options.persistenceRecovery.backup': '現在のデータをバックアップ',
     'options.persistenceRecovery.backupPrivacy':
       '緊急バックアップには非公開のURL、タイトル、メモ、AIの内容が含まれます。安全な場所に保管してください。',

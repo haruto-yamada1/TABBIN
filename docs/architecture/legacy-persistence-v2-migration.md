@@ -78,7 +78,9 @@ The application therefore uses batches of at most 1,000 records. Each batch is
 a strict-durability transaction that queues only IndexedDB requests; no
 external `await` occurs after a transaction opens.
 
-`prepare(migrationId)` atomically:
+`prepare(migrationId)` first reads private target metadata in the same strict
+transaction. A different owning ID fails before any clear; the same ID then
+atomically:
 
 1. clears every migratable target store;
 2. preserves `recoverySnapshots`;
@@ -122,6 +124,9 @@ The recovery notice provides three distinct actions:
 - **Back up current data** downloads a versioned
   `tabbin-legacy-emergency-backup` JSON envelope. The envelope deliberately
   contains raw private user data and carries an explicit privacy warning.
+  Its `tabbin-tagged-json-v1` value encoding tags every value, so a present
+  `undefined` and user objects that resemble encoding tags round-trip without
+  ambiguity.
 - **Run checks and retry** executes #738 preflight again and proceeds to
   bootstrap retry only if the new status is healthy.
 - **Retry** repeats bootstrap with the current approval and target state.
@@ -136,3 +141,6 @@ Issue #728 supplies the production lifecycle and resumable target protocol, but
 does not make IndexedDB authoritative. Issue #729 must switch runtime
 repositories and source selection before enabling automatic migration. Until
 then, `ready()` treats `legacy` as stable and no background cutover is started.
+An explicit `migrate()` may copy and verify the target, but the production
+bootstrap policy stops at `cutover-pending`; both the initial call and a restart
+leave the final `complete-cutover` transition to #729.

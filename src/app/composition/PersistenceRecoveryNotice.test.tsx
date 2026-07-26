@@ -9,6 +9,7 @@ import type {
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import { MIGRATION_SOURCE_KEYS } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 import type { RawLegacyStorageSnapshot } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
+import { deserializePersistenceEmergencyBackup } from '@/contexts/saved-tabs/application/services/PersistenceEmergencyBackupCodecService'
 
 import { PersistenceRecoveryNotice } from './PersistenceRecoveryNotice'
 
@@ -121,6 +122,16 @@ describe('PersistenceRecoveryNotice', () => {
         stage: 'source-map',
       },
     })
+    recovery.createEmergencyBackup.mockResolvedValue({
+      createdAt: 123,
+      format: 'tabbin-legacy-emergency-backup',
+      rawLegacyStorage: {
+        ...rawLegacyStorage,
+        urls: { status: 'present', value: undefined },
+      },
+      version: 1,
+      warning: 'contains-private-user-data',
+    })
     const createObjectUrl = vi
       .spyOn(URL, 'createObjectURL')
       .mockReturnValue('blob:backup')
@@ -152,9 +163,59 @@ describe('PersistenceRecoveryNotice', () => {
       expect(recovery.createEmergencyBackup).toHaveBeenCalledTimes(1),
     )
     expect(createObjectUrl).toHaveBeenCalledTimes(1)
+    const blob = createObjectUrl.mock.calls[0]?.[0]
+    expect(blob).toBeInstanceOf(Blob)
+    const restored = deserializePersistenceEmergencyBackup(
+      await (blob as Blob).text(),
+    )
+    expect(restored.rawLegacyStorage.urls).toEqual({
+      status: 'present',
+      value: undefined,
+    })
+    expect(Object.hasOwn(restored.rawLegacyStorage.urls, 'value')).toBe(true)
     expect(click).toHaveBeenCalledTimes(1)
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:backup')
   })
+
+  it.each([
+    {
+      action: 'Back up current data',
+      reject: (recovery: FakeRecoveryController) => {
+        recovery.createEmergencyBackup.mockRejectedValue(
+          new Error('private backup failure'),
+        )
+      },
+    },
+    {
+      action: 'Copy diagnostics',
+      reject: () => {
+        vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(
+          new Error('private clipboard failure'),
+        )
+      },
+    },
+  ])(
+    'shows a raw-free local error when $action fails',
+    async ({ action, reject }) => {
+      const user = userEvent.setup()
+      const recovery = new FakeRecoveryController({
+        status: 'unavailable',
+        errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+      })
+      reject(recovery)
+      render(<PersistenceRecoveryNotice recovery={recovery} />)
+
+      await user.click(screen.getByRole('button', { name: action }))
+
+      await waitFor(() =>
+        expect(
+          screen.getByText('The action could not be completed. Try again.'),
+        ).toBeTruthy(),
+      )
+      expect(screen.queryByText(/private .* failure/)).toBeNull()
+      expect(screen.getByRole('button', { name: action })).not.toBeDisabled()
+    },
+  )
 
   it('reruns preflight before retrying the failed migration', async () => {
     const user = userEvent.setup()
