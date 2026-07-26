@@ -65,9 +65,20 @@ baseline test と build に不要だったため allowlist は空にした。
 - `GHSA-c2c7-rcm5-vvqj`: `picomatch` 2系と4系が共存するため。
 - `GHSA-fx2h-pf6j-xcff`: direct Vite 8 と WXT 経由の Vite 6 が共存するため。
 - `GHSA-p9ff-h696-f583`: 同じ WXT / Vite 6 経路のため。
+- `GHSA-mh99-v99m-4gvg`: WXT → `web-ext-run` → `multimatch` →
+  `minimatch` 3 が修正版のない `brace-expansion` 1.x を要求し、Storybook /
+  ESLint 系 tooling も 5.0.7 を解決する。修正版は 5.0.8 のみで、Bun は親を
+  限定した nested override を未対応。すべて build / test tooling の経路であり、
+  TABBIN は外部入力の glob を渡さない。
+- `GHSA-qwww-vcr4-c8h2`: TABBIN は client-side browser extension であり、対象の
+  unstable React Server Components API を使用しない。修正版 `react-router` 8.3.0
+  に対応する `react-router-dom` は未公開で、現行 7.18.1 が core 7.18.1 を固定するため。
 
-修正版が同じ互換世代にある `defu`、`lodash-es`、`node-forge`、`rollup`、
-`shell-quote`、`tmp`、`undici` は `overrides` で固定し、例外にしない。
+追加した2件の owner は dependency maintenance。期限内に WXT の旧 glob chain と
+`react-router-dom` の 8.x 対応を再確認する。
+
+修正版が同じ互換世代にある `defu`、`lodash-es`、`node-forge`、`postcss`、
+`rollup`、`shell-quote`、`tmp`、`undici` は `overrides` で固定し、例外にしない。
 
 ## Vulnerability response
 

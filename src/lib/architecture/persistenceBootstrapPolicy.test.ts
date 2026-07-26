@@ -151,7 +151,7 @@ describe('PersistenceBootstrap architecture policy', () => {
     )
   })
 
-  it('enforces preflight freshness and exposes app-level recovery', () => {
+  it('enforces preflight freshness, silent startup, and app-level recovery', () => {
     const port = readRepositoryFile(
       'src/contexts/saved-tabs/application/ports/PersistenceBootstrapPort.ts',
     )
@@ -159,6 +159,9 @@ describe('PersistenceBootstrap architecture policy', () => {
       'src/contexts/saved-tabs/application/services/PersistenceBootstrapService.ts',
     )
     const app = readRepositoryFile('src/entrypoints/app/main.tsx')
+    const preflightController = readRepositoryFile(
+      'src/app/composition/createMigrationPreflightController.ts',
+    )
     const preflightPort = readRepositoryFile(
       'src/contexts/saved-tabs/application/ports/MigrationPreflightPort.ts',
     )
@@ -173,7 +176,11 @@ describe('PersistenceBootstrap architecture policy', () => {
     expect(port).toContain('readPreflightSourceFingerprint')
     expect(bootstrap).toContain('PERSISTENCE_PREFLIGHT_STALE')
     expect(app).toContain('<PersistenceRecoveryNotice />')
-    expect(app).toContain('<MigrationPreflightNotice />')
+    expect(app).toContain('getMigrationPreflightController')
+    expect(app).toContain('runMigrationPreflight()')
+    expect(app).not.toContain('<MigrationPreflightNotice />')
+    expect(preflightController).not.toContain('copyDiagnostic')
+    expect(preflightController).not.toContain('backupCurrentData')
     expect(preflightPort).toContain('readHealthySourceFingerprint')
     expect(preflightRuntime).toContain(
       'getPersistenceBootstrapRuntime().coordination',
