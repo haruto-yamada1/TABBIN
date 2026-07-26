@@ -27,7 +27,7 @@ const createTempProject = (contents: {
   writeFileSync(
     path.join(projectRoot, 'package.json'),
     JSON.stringify(
-      contents.packageJson ?? { name: 'tabbin', version: '2.0.7' },
+      contents.packageJson ?? { name: 'tabbin', version: '2.0.8' },
     ),
   )
   writeFileSync(
@@ -140,15 +140,15 @@ describe('generateBuildMetadata', () => {
     )
     const outputDir = path.join(projectRoot, '.output')
     mkdirSync(outputDir, { recursive: true })
-    writeFileSync(path.join(outputDir, 'tabbin-2.0.7-chrome.zip'), 'chrome-zip')
+    writeFileSync(path.join(outputDir, 'tabbin-2.0.8-chrome.zip'), 'chrome-zip')
     writeFileSync(
-      path.join(outputDir, 'tabbin-2.0.7-firefox.zip'),
+      path.join(outputDir, 'tabbin-2.0.8-firefox.zip'),
       'firefox-zip',
     )
 
     const metadata = generateBuildMetadata({
       appName: 'tabbin',
-      appVersion: '2.0.7',
+      appVersion: '2.0.8',
       gitSha: 'abc123',
       nodeVersion: '24',
       bunVersion: '1.3.14',
@@ -166,18 +166,18 @@ describe('generateBuildMetadata', () => {
       expect.arrayContaining([
         expect.objectContaining({
           browser: 'chrome',
-          fileName: 'tabbin-2.0.7-chrome.zip',
+          fileName: 'tabbin-2.0.8-chrome.zip',
           sha256: createHash('sha256').update('chrome-zip').digest('hex'),
         }),
         expect.objectContaining({
           browser: 'firefox',
-          fileName: 'tabbin-2.0.7-firefox.zip',
+          fileName: 'tabbin-2.0.8-firefox.zip',
           sha256: createHash('sha256').update('firefox-zip').digest('hex'),
         }),
       ]),
     )
     expect(metadata.sbom).toEqual({
-      fileName: 'tabbin-2.0.7-sbom.cdx.json',
+      fileName: 'tabbin-2.0.8-sbom.cdx.json',
       format: 'CycloneDX',
       specVersion: '1.6',
     })
@@ -187,7 +187,7 @@ describe('generateBuildMetadata', () => {
 describe('generateSbom', () => {
   it('produces a CycloneDX BOM with an application component and dependencies', () => {
     const projectRoot = createTempProject({
-      packageJson: { name: 'tabbin', version: '2.0.7' },
+      packageJson: { name: 'tabbin', version: '2.0.8' },
     })
     mkdirSync(path.join(projectRoot, 'node_modules', 'react'), {
       recursive: true,
@@ -202,7 +202,7 @@ describe('generateSbom', () => {
 
     const bom = generateSbom({
       appName: 'tabbin',
-      appVersion: '2.0.7',
+      appVersion: '2.0.8',
       packages: [
         {
           name: 'react',
@@ -218,7 +218,7 @@ describe('generateSbom', () => {
     })
 
     expect(bom.metadata.component?.name).toBe('tabbin')
-    expect(bom.metadata.component?.version).toBe('2.0.7')
+    expect(bom.metadata.component?.version).toBe('2.0.8')
     expect(Array.from(bom.components)).toHaveLength(1)
     expect(Array.from(bom.components)[0]?.name).toBe('react')
   })
@@ -227,7 +227,7 @@ describe('generateSbom', () => {
 describe('generateReleaseProvenance', () => {
   it('generates metadata and SBOM from project files', () => {
     const projectRoot = createTempProject({
-      packageJson: { name: 'tabbin', version: '2.0.7' },
+      packageJson: { name: 'tabbin', version: '2.0.8' },
       bunLock: {
         lockfileVersion: 1,
         packages: {
@@ -252,7 +252,7 @@ describe('generateReleaseProvenance', () => {
     })
 
     expect(metadata.appName).toBe('tabbin')
-    expect(metadata.appVersion).toBe('2.0.7')
+    expect(metadata.appVersion).toBe('2.0.8')
     expect(metadata.gitSha).toBe('abc123def456')
     expect(metadata.bunLockSha256).toHaveLength(64)
     expect(metadata.artifacts).toHaveLength(0)
