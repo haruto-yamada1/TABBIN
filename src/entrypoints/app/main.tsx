@@ -1,4 +1,4 @@
-import { MigrationPreflightNotice } from '@/app/composition/MigrationPreflightNotice'
+import { getMigrationPreflightController } from '@/app/composition/createMigrationPreflightController'
 import { PersistenceRecoveryNotice } from '@/app/composition/PersistenceRecoveryNotice'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -9,17 +9,27 @@ import { mountToElement } from '@/lib/react/render-root'
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
+const runMigrationPreflight = (): void => {
+  try {
+    void getMigrationPreflightController()
+      .run()
+      .catch(() => {})
+  } catch {
+    // Preflight is best-effort until migration owns an actionable failure UI.
+  }
+}
+
 const AppPage = () => (
   <I18nProvider>
     <TooltipProvider>
       <PersistenceRecoveryNotice />
-      <MigrationPreflightNotice />
       <AppRouter />
     </TooltipProvider>
   </I18nProvider>
 )
 
 document.addEventListener('DOMContentLoaded', () => {
+  runMigrationPreflight()
   mountToElement(
     'app',
     <ThemeProvider defaultTheme='system' storageKey='tab-manager-theme'>

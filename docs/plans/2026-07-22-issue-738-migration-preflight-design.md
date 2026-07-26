@@ -68,22 +68,40 @@ count, capacity status, and version identifiers. It excludes
 URLs, titles, notes, keywords, prompts, conversation/attachment content, raw
 errors, and raw fingerprints. No external telemetry is added.
 
-## Recovery UX
+## Internal preflight handling
 
-`blocked` states state that preflight did not change current data, while `stale`
-states report that the source changed after preflight. Both offer:
+`blocked` and `stale` remain control-plane states. The preflight-only release
+does not render them as user-facing UI because neither state currently blocks
+normal use or offers a supported user-operated repair.
 
-- copy safe diagnostic;
-- download the raw current-data snapshot without forgiving getters or implicit
-  migration;
-- retry the preflight.
-
-The emergency raw backup is a recovery artifact, not Backup V2 and not evidence
-that the data is migration-ready.
+At app startup, a persisted healthy result is reused and every other state is
+analyzed once again. Raw current-data snapshots and safe diagnostics remain
+internal service and test boundaries; the app does not expose clipboard or
+download actions for them. Actual migration owns any future actionable failure
+UI.
 
 ## Verification
 
 Tests cover missing versus present-empty source values, read failure, invalid
 types, source conflicts, URL identity collisions, capacity blocking, healthy
 reports, writer exclusion, source change during analysis, stale cutover gating,
-diagnostic privacy, copy/backup/retry actions, and the absence of telemetry.
+diagnostic privacy, silent startup, healthy-result reuse, non-healthy relaunch
+retry, failure isolation, and the absence of telemetry.
+
+## Follow-up product decision
+
+The preflight-only release does not show a user-facing notice. A blocked or
+stale result does not currently prevent normal use, and this release provides
+no user-operated repair, supported restore path, or support handoff. Exposing
+raw recovery downloads or diagnostic JSON would therefore create a dead-end
+workflow and a false expectation that the user can resolve the result.
+
+The app starts the preflight as an internal best-effort process. A persisted
+healthy result is reused; not-run, blocked, and stale results are analyzed once
+again on the next page launch. Failure remains stored in the preflight control
+plane and does not interrupt rendering or expose raw error details.
+
+Actual migration owns any future user-facing failure state. Such UI must
+describe an impact the user can observe and provide an action the user can
+complete. Diagnostic or recovery artifacts must not return to the normal UI
+without a supported reporting or restore workflow.
