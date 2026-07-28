@@ -1,0 +1,54 @@
+{
+  "version": "1.9.0",
+  "timestamp": "2026-07-06T00:00:00.000Z",
+  "userSettings": {
+    "language": "en"
+  },
+  "parentCategories": [],
+  "urls": [
+    {
+      "id": "url-mixed-canonical",
+      "url": "https://mixed.example.com/canonical",
+      "title": "Mixed canonical",
+      "savedAt": 1001
+    }
+  ],
+  "savedTabs": [
+    {
+      "id": "domain-mixed",
+      "domain": "mixed.example.com",
+      "savedAt": 1002,
+      "urlIds": ["url-mixed-canonical"]
+    },
+    {
+      "id": "domain-mixed-nested",
+      "domain": "mixed-nested.example.com",
+      "savedAt": 1003,
+      "urls": [
+        {
+          "url": "https://mixed-nested.example.com/nested",
+          "title": "Mixed nested",
+          "savedAt": 1004
+        }
+      ]
+    }
+  ],
+  "customProjects": [
+    {
+      "id": "project-mixed",
+      "name": "Mixed project",
+      "categories": [],
+      "categoryOrder": [],
+      "createdAt": 1005,
+      "updatedAt": 1006,
+      "urls": [
+        {
+          "url": "https://mixed-project.example.com/item",
+          "title": "Mixed project item",
+          "savedAt": 1007
+        }
+      ]
+    }
+  ],
+  "customProjectOrder": ["project-mixed"]
+}

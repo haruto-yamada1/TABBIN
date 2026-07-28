@@ -1,0 +1,40 @@
+{
+  "version": "1.9.0",
+  "timestamp": "2026-07-04T00:00:00.000Z",
+  "userSettings": {},
+  "parentCategories": [],
+  "urls": [
+    {
+      "id": "url-project-metadata",
+      "url": "https://metadata.example.com/item",
+      "title": "Metadata item",
+      "savedAt": 606
+    }
+  ],
+  "savedTabs": [],
+  "customProjects": [
+    {
+      "id": "project-metadata",
+      "name": "Metadata project",
+      "categories": ["important"],
+      "categoryOrder": ["important"],
+      "createdAt": 707,
+      "updatedAt": 808,
+      "urlIds": ["url-project-metadata"],
+      "urls": [
+        {
+          "url": "https://metadata.example.com/item",
+          "title": "Metadata item",
+          "savedAt": 606
+        }
+      ],
+      "urlMetadata": {
+        "url-project-metadata": {
+          "notes": "private-metadata-note",
+          "category": "important"
+        }
+      }
+    }
+  ],
+  "customProjectOrder": ["project-metadata"]
+}

@@ -20,7 +20,6 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/features/options/lib/import-export', () => ({
-  exportSettings: vi.fn(),
   downloadAsJson: vi.fn(),
   importSettings: vi.fn(),
   getImportPreview: vi.fn().mockReturnValue({
@@ -36,6 +35,10 @@ vi.mock('@/features/options/lib/import-export', () => ({
       hasAnalytics: false,
     },
   }),
+}))
+
+vi.mock('@/app/composition/optionsBackupV2Export', () => ({
+  exportBackupV2: vi.fn(),
 }))
 
 vi.mock('@/lib/browser/runtime', () => ({
@@ -116,9 +119,9 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 
 import { toast } from 'sonner'
 
+import { exportBackupV2 } from '@/app/composition/optionsBackupV2Export'
 import {
   downloadAsJson,
-  exportSettings,
   getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
@@ -185,24 +188,35 @@ describe('ImportExportSettingsコンポーネント', () => {
     ;(globalThis as Record<string, unknown>).FileReader =
       MockFileReader as unknown as typeof FileReader
 
-    vi.mocked(exportSettings).mockResolvedValue({
-      version: '1.0.0',
-      timestamp: '2026-02-16T00:00:00.000Z',
-      userSettings: {
-        removeTabAfterOpen: true,
-        removeTabAfterExternalDrop: true,
-        excludePatterns: [],
-        enableCategories: true,
-        showSavedTime: false,
-        clickBehavior: 'saveWindowTabs',
-        excludePinnedTabs: true,
-        openUrlInBackground: true,
-        openAllInNewWindow: false,
-        confirmDeleteAll: false,
-        confirmDeleteEach: false,
+    vi.mocked(exportBackupV2).mockResolvedValue({
+      appVersion: '2.0.8',
+      data: {
+        analyticsViews: [],
+        conversations: [],
+        messages: [],
+        savedTabs: {
+          categories: [],
+          collections: [],
+          groups: [],
+          memberships: [],
+          urls: [],
+        },
+        userSettings: {
+          clickBehavior: 'saveWindowTabs',
+          confirmDeleteAll: false,
+          confirmDeleteEach: false,
+          enableCategories: true,
+          excludePatterns: [],
+          excludePinnedTabs: true,
+          openAllInNewWindow: false,
+          openUrlInBackground: true,
+          removeTabAfterExternalDrop: true,
+          removeTabAfterOpen: true,
+          showSavedTime: false,
+        },
       },
-      parentCategories: [],
-      savedTabs: [],
+      exportedAt: '2026-02-16T00:00:00.000Z',
+      schemaVersion: 2,
     })
   })
 
@@ -214,26 +228,6 @@ describe('ImportExportSettingsコンポーネント', () => {
 
   it('データをエクスポートしてバックアップファイルをダウンロードする', async () => {
     const user = userEvent.setup()
-    vi.mocked(exportSettings).mockResolvedValue({
-      version: '1.0.0',
-      timestamp: '2026-02-16T00:00:00.000Z',
-      userSettings: {
-        removeTabAfterOpen: true,
-        removeTabAfterExternalDrop: true,
-        excludePatterns: [],
-        enableCategories: true,
-        showSavedTime: false,
-        clickBehavior: 'saveWindowTabs',
-        excludePinnedTabs: true,
-        openUrlInBackground: true,
-        openAllInNewWindow: false,
-        confirmDeleteAll: false,
-        confirmDeleteEach: false,
-      },
-      parentCategories: [],
-      savedTabs: [],
-    })
-
     render(<ImportExportSettings />)
 
     await user.click(
@@ -241,7 +235,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     )
 
     await waitFor(() => {
-      expect(exportSettings).toHaveBeenCalledTimes(1)
+      expect(exportBackupV2).toHaveBeenCalledTimes(1)
     })
 
     expect(downloadAsJson).toHaveBeenCalledTimes(1)
@@ -264,7 +258,8 @@ describe('ImportExportSettingsコンポーネント', () => {
 
   it('エクスポート失敗時にエラートーストを表示する', async () => {
     const user = userEvent.setup()
-    vi.mocked(exportSettings).mockRejectedValue(new Error('export failed'))
+    const secret = 'https://secret.example.test/private'
+    vi.mocked(exportBackupV2).mockRejectedValue(new Error(secret))
 
     render(<ImportExportSettings />)
 
@@ -277,6 +272,9 @@ describe('ImportExportSettingsコンポーネント', () => {
         'An error occurred while exporting',
       )
     })
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      secret,
+    )
   })
 
   it('マージ設定を切り替えるとインポート時に mergeData=false を渡す', async () => {
@@ -325,6 +323,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         readerContent,
         false,
         expect.any(Function),
+        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
   })
@@ -379,6 +378,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         readerContent,
         true,
         expect.any(Function),
+        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
   })
@@ -641,6 +641,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         readerContent,
         true,
         expect.any(Function),
+        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
 

@@ -1,0 +1,22 @@
+{
+  "version": "1.9.0",
+  "timestamp": "2026-07-05T00:00:00.000Z",
+  "userSettings": {},
+  "parentCategories": [
+    {
+      "id": "parent-work",
+      "name": "Work",
+      "domains": ["domain-parented"],
+      "domainNames": ["parented.example.com"]
+    }
+  ],
+  "savedTabs": [
+    {
+      "id": "domain-parented",
+      "domain": "parented.example.com",
+      "parentCategoryId": "parent-work",
+      "savedAt": 909,
+      "urlIds": []
+    }
+  ]
+}

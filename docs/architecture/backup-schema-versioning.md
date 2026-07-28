@@ -36,13 +36,71 @@ type BackupEnvelope<TData> = {
 }
 ```
 
-The concrete current `data` schema and production current version belong to
-#730. Components and mappers consume the caller-owned schema registry; they do
-not duplicate a schema-version magic number.
+The production current contract is `BackupEnvelopeV2`:
+
+```ts
+type BackupEnvelopeV2 = {
+  readonly schemaVersion: 2
+  readonly appVersion: string
+  readonly exportedAt: string
+  readonly data: {
+    readonly savedTabs: {
+      readonly urls: readonly PersistenceV2Url[]
+      readonly collections: readonly PersistenceV2Collection[]
+      readonly memberships: readonly PersistenceV2CollectionMembership[]
+      readonly categories: readonly PersistenceV2CollectionCategory[]
+      readonly groups: readonly PersistenceV2CollectionGroup[]
+    }
+    readonly conversations: readonly PersistenceJsonRecord[]
+    readonly messages: readonly PersistenceMessageRecord[]
+    readonly analyticsViews: readonly PersistenceJsonRecord[]
+    readonly userSettings: UserSettings
+  }
+}
+```
 
 Backup V2 is a logical, JSON-safe projection selected by the Storage Placement
 Matrix. It is never an IndexedDB database, object-store, index, cache, migration
-metadata, or transaction log dump.
+metadata, recovery snapshot, revision, transaction log, or other internal
+control state.
+
+The concrete runtime contract and canonical mapper live in
+`src/features/options/lib/import-export/v2/BackupV2Schema.ts` and
+`BackupMapper.ts`. The current Options export entry point is composed in
+`src/app/composition/optionsBackupV2Export.ts`; the old schema-less
+`exportSettings` remains a compatibility boundary and is not called by the
+production Options export button.
+
+## Consistent and deterministic export
+
+The IndexedDB-backed portion of a backup is read by
+`IndexedDbPersistenceSnapshotReader` in one readonly transaction spanning the
+saved-tab, conversation, message, and analytics stores. The mapper then removes
+the internal revision and canonicalizes logical records, entity arrays, and
+JSON object keys. Equivalent logical snapshots therefore produce identical
+`data`; only the caller-provided `exportedAt` changes with the clock.
+
+User settings remain owned by `chrome.storage.local` and are read after the
+IndexedDB snapshot. Browser storage engines cannot participate in one atomic
+transaction, so Backup V2 does not claim cross-engine atomicity for settings.
+The schema still validates the combined public envelope strictly and rejects
+non-JSON-safe values without silently repairing them.
+
+Export validation order is:
+
+```text
+one IndexedDB logical snapshot
+  -> #712 saved-tabs integrity check
+  -> strict public mapping and canonical ordering
+  -> logical resource limits
+  -> JSON serialization
+  -> serialized-byte limit
+```
+
+The shared resource limits live in
+`src/lib/persistence/backupResourcePolicy.ts`. A healthy backup is not rejected
+by the former fixed 10 MiB file limit; both export and import use the shared
+128 MiB serialized limit plus entity, nested-array, and UTF-8 byte limits.
 
 ## Format detection boundary
 
@@ -57,6 +115,13 @@ unknown JSON
 
 Legacy classification is routing information only. The versioned pipeline does
 not parse, migrate, or accept pre-IndexedDB data.
+
+`BackupV2Inspector.ts` owns strict current, future, and legacy inspection.
+Current V2 is fully validated before it is accepted, a future positive integer
+version preserves `UNSUPPORTED_FUTURE_SCHEMA`, and a malformed versioned
+envelope is never retried as legacy. The temporary production mutation boundary
+is `productionImportGate.ts`, which runs before installed-data migration or any
+storage read/write.
 
 ## Sequential migration registry
 
@@ -148,8 +213,46 @@ The target support policy is:
   release, so a late notice release postpones the cutoff consistently across
   #724, #730, #731, #734, docs, i18n, constants, and tests.
 
+The central dates and notice calculation are defined only in
+`compatibility/legacyBackupPolicy.ts`:
+
+| Policy value                  | Date / rule  |
+| ----------------------------- | ------------ |
+| Last supported import date    | `2026-08-31` |
+| Cutoff date                   | `2026-09-01` |
+| Latest on-time notice release | `2026-08-01` |
+| Minimum notice                | 30 days      |
+
+Legacy preview metadata carries a content-free advisory with
+`requiresReExport: true`, `lastSupportedDate`, and `cutoffDate`. Notice rendering
+and translations belong to #731, not this persistence contract.
+
 The live installed-data `chrome.storage.local` to IndexedDB migration has a
 separate lifecycle and is not deleted by the backup cutoff.
+
+## Production import rollout gate
+
+Every production overwrite request, including a valid legacy backup, is
+deliberately fail-closed with the typed code
+`OVERWRITE_RECOVERY_UNAVAILABLE` until #740 provides and wires the required
+recovery-snapshot capability. Current V2 remains blocked in both merge and
+overwrite mode; only a valid legacy merge before the cutoff may pass the
+temporary gate. Versioned input is inspected before the recovery decision so
+future and invalid schemas retain their typed schema errors. No blocked request
+calls `ImportBackupV2UseCase`, installed-data migration, or storage mutation.
+
+An allowed legacy merge is converted by `LegacyBackupAdapter` and committed as
+strict IndexedDB `put` mutations through `IndexedDbPersistenceUnitOfWork`.
+Existing logical records are not cleared, and the actual persistence operation
+gate must authorize the `indexeddb` route. The merge never falls back to
+`chrome.storage.local` domain writes after IndexedDB cutover; user settings
+remain the separately owned cross-engine write.
+
+`ImportBackupV2UseCase.ts` defines the future transactional core and readback
+contract, including the unavoidable separate settings write. It is not a
+production entry point before #740. Legacy, future, expired-legacy, and invalid
+versioned inputs are also classified before mutation; the compatibility parser
+remains isolated under `import-export/legacy/`.
 
 ## Validation and review checklist
 
@@ -161,6 +264,9 @@ separate lifecycle and is not deleted by the backup cutoff.
 - Unsupported old input is rejected with `UNSUPPORTED_SCHEMA_VERSION`.
 - Invalid data is rejected with `INVALID_SCHEMA`.
 - Legacy detection does not import or migrate legacy data.
+- Every production overwrite remains blocked until #740 recovery is available.
+- Settings are documented as a separate cross-engine write.
+- Logical resource validation precedes serialized-byte validation.
 - Golden fixtures cover each supported version, current, future, and invalid
   data.
 - The public backup remains a logical JSON-safe contract rather than an

@@ -2,6 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserSettings } from '@/types/storage'
 
+// Production routing has dedicated actual-IndexedDB integration coverage.
+// This regression isolates the legacy post-gate merge mechanics.
+vi.mock('@/features/options/lib/import-export/productionImportGate', () => ({
+  assertProductionImportAllowed: vi.fn(),
+}))
+
 vi.mock('@/lib/storage/categories', () => ({
   getParentCategories: vi.fn(async () => {
     const result = await chrome.storage.local.get('parentCategories')

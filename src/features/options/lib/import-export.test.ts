@@ -25,6 +25,16 @@ vi.mock('@/lib/storage/migration', () => ({
   migrateToUrlsStorage: vi.fn(),
 }))
 
+vi.mock('@/features/options/lib/import-export/currentImportDate', () => ({
+  getCurrentUtcDateOnly: vi.fn(() => '2026-08-31'),
+}))
+
+// The production boundary has dedicated integration coverage. This suite keeps
+// the legacy post-gate conversion and merge/overwrite mechanics isolated.
+vi.mock('@/features/options/lib/import-export/productionImportGate', () => ({
+  assertProductionImportAllowed: vi.fn(),
+}))
+
 vi.mock('@/lib/storage/settings', () => {
   const defaultSettings: UserSettings = {
     removeTabAfterOpen: true,
