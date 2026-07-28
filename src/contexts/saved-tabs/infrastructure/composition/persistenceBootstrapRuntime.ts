@@ -1,20 +1,28 @@
 import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type {
+  PersistenceBootstrapRecoveryControllerPort,
   PersistenceBootstrapPort,
   PersistenceControlState,
   PersistenceControlStateAccessPort,
   PersistenceControlStateRepositoryPort,
   PersistenceControlStateTransition,
   PersistenceCoordinationPort,
+  PersistenceMigrationLifecyclePort,
   PersistenceOperationGatePort,
-  PersistenceRecoveryControllerPort,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import type { PersistenceMigrationRecoveryLifecyclePort } from '@/contexts/saved-tabs/application/ports/PersistenceMigrationRecoveryPort'
 import { PersistenceBootstrapService } from '@/contexts/saved-tabs/application/services/PersistenceBootstrapService'
 import { transitionPersistenceControlState } from '@/contexts/saved-tabs/application/services/PersistenceControlStateService'
 import { PersistenceOperationGateService } from '@/contexts/saved-tabs/application/services/PersistenceOperationGateService'
 import { PersistenceRecoveryService } from '@/contexts/saved-tabs/application/services/PersistenceRecoveryService'
+import { PersistenceV2MigrationService } from '@/contexts/saved-tabs/application/services/PersistenceV2MigrationService'
 import { WebLocksPersistenceCoordinationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/WebLocksPersistenceCoordinationAdapter'
+import { ChromeRawLegacyStorageReader } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeRawLegacyStorageReader'
+import { ChromeMigrationPreflightReader } from '@/contexts/saved-tabs/infrastructure/persistence/control-plane/ChromeMigrationPreflightRepository'
 import { ChromePersistenceControlStateRepository } from '@/contexts/saved-tabs/infrastructure/persistence/control-plane/ChromePersistenceControlStateRepository'
+import { Sha256MigrationSourceFingerprint } from '@/contexts/saved-tabs/infrastructure/persistence/fingerprint/Sha256MigrationSourceFingerprint'
+import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
+import { IndexedDbPersistenceMigrationTarget } from '@/contexts/saved-tabs/infrastructure/persistence/migrations/IndexedDbPersistenceMigrationTarget'
 import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 
@@ -22,8 +30,43 @@ export type PersistenceBootstrapRuntime = {
   readonly bootstrap: PersistenceBootstrapPort
   readonly coordination: PersistenceCoordinationPort
   readonly controlStateRepository: PersistenceControlStateRepositoryPort
+  readonly migrationLifecycle?: PersistenceMigrationLifecyclePort
+  readonly migrationRecovery?: PersistenceMigrationRecoveryLifecyclePort
   readonly operationGate: PersistenceOperationGatePort
-  readonly recovery: PersistenceRecoveryControllerPort
+  readonly recovery: PersistenceBootstrapRecoveryControllerPort
+}
+
+export type PersistenceV2MigrationStorage = {
+  readonly get: (
+    keys: string | readonly string[],
+  ) => Promise<Record<string, unknown>>
+}
+
+export type PersistenceV2MigrationLifecycleOptions = {
+  readonly batchSize?: number
+  readonly indexedDb?: IDBFactory
+  readonly storage: PersistenceV2MigrationStorage
+}
+
+export const createPersistenceV2MigrationLifecycle = (
+  options: PersistenceV2MigrationLifecycleOptions,
+): PersistenceMigrationRecoveryLifecyclePort => {
+  const rawReader = new ChromeRawLegacyStorageReader({
+    get: async (keys) => options.storage.get(keys),
+  })
+  const preflightRepository = new ChromeMigrationPreflightReader({
+    get: async (key) => options.storage.get(key),
+  })
+  const target = new IndexedDbPersistenceMigrationTarget(
+    new IndexedDbConnectionManager({ indexedDb: options.indexedDb }),
+  )
+  return new PersistenceV2MigrationService({
+    batchSize: options.batchSize,
+    fingerprint: new Sha256MigrationSourceFingerprint(),
+    preflightRepository,
+    rawReader,
+    target,
+  })
 }
 
 export type PersistenceStorageLocal = {
@@ -140,19 +183,42 @@ const getNavigatorLocks = (): unknown => {
     : undefined
 }
 
+const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
+  isObjectLike(value) && !Array.isArray(value)
+
 const isTestEnvironment = (): boolean => import.meta.env.MODE === 'test'
+
+const isMigrationRecoveryLifecycle = (
+  lifecycle: PersistenceMigrationLifecyclePort | undefined,
+): lifecycle is PersistenceMigrationRecoveryLifecyclePort =>
+  lifecycle !== undefined &&
+  'readFailureDiagnostic' in lifecycle &&
+  typeof lifecycle.readFailureDiagnostic === 'function' &&
+  'readReport' in lifecycle &&
+  typeof lifecycle.readReport === 'function'
 
 export const createPersistenceBootstrapRuntime = (
   access: PersistenceControlStateAccessPort,
   controlStateRepository: PersistenceControlStateRepositoryPort,
   coordination: PersistenceCoordinationPort,
+  migrationLifecycle?: PersistenceMigrationLifecyclePort,
 ): PersistenceBootstrapRuntime => {
   const bootstrap = new PersistenceBootstrapService({
     access,
     controlStateRepository,
     coordination,
+    cutoverPolicy: 'defer',
+    migrationLifecycle,
   })
+  const migrationRecovery = isMigrationRecoveryLifecycle(migrationLifecycle)
+    ? migrationLifecycle
+    : undefined
   const recovery = new PersistenceRecoveryService({
+    ...(migrationRecovery
+      ? {
+          readDiagnostic: migrationRecovery.readFailureDiagnostic,
+        }
+      : {}),
     retry: async () => bootstrap.ready(),
   })
   const operationGate = new PersistenceOperationGateService({
@@ -165,6 +231,8 @@ export const createPersistenceBootstrapRuntime = (
     bootstrap,
     coordination,
     controlStateRepository,
+    migrationLifecycle,
+    migrationRecovery,
     operationGate,
     recovery,
   }
@@ -187,12 +255,31 @@ const createDefaultRuntime = (): PersistenceBootstrapRuntime => {
     getManifest: getRuntimeManifest,
     getStorageLocal: getChromeStorageLocal,
   })
+  const storage = getChromeStorageLocal()
+  if (!storage) {
+    throw new PersistenceUnavailableError(
+      'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
+    )
+  }
+  const migrationLifecycle = createPersistenceV2MigrationLifecycle({
+    storage: {
+      get: async (keys) => {
+        const selected = typeof keys === 'string' ? keys : [...keys]
+        const result: unknown = await storage.get(selected)
+        if (!isUnknownRecord(result)) {
+          throw new Error('chrome.storage.local returned an invalid result.')
+        }
+        return result
+      },
+    },
+  })
   return createPersistenceBootstrapRuntime(
     controlStateRepository,
     controlStateRepository,
     new WebLocksPersistenceCoordinationAdapter({
       getLockManager: getNavigatorLocks,
     }),
+    migrationLifecycle,
   )
 }
 

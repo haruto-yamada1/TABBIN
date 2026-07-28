@@ -1,3 +1,8 @@
+import { parseLegacyChromeStorage } from '@/contexts/saved-tabs/application/dto/LegacyChromeStorageDto'
+import type {
+  PersistenceJsonRecord,
+  PersistenceMessageRecord,
+} from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 import type { RawLegacyStorageSnapshot } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 import type {
   PersistenceV2Collection,
@@ -13,6 +18,8 @@ import { createUrlIdentityKey } from '@/contexts/saved-tabs/domain/services/UrlI
 import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import type { PersistenceSourceEntityCounts } from '@/lib/persistence/capacity'
 import { measureSerializedBytes } from '@/lib/persistence/capacity'
+import { isJsonValue } from '@/lib/persistence/jsonValue'
+import type { JsonObject } from '@/lib/persistence/jsonValue'
 
 export type LegacyMigrationIssueCode =
   | 'MIGRATION_SOURCE_MISSING_KEY'
@@ -21,6 +28,7 @@ export type LegacyMigrationIssueCode =
   | 'LEGACY_PARENT_CATEGORY_CONFLICT'
   | 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT'
   | 'LEGACY_CUSTOM_PROJECT_ORDER_CONFLICT'
+  | 'LEGACY_AI_ENTITY_ID_COLLISION'
   | PersistenceV2InvariantCode
 
 export type MigrationPreflightIssue = {
@@ -42,7 +50,15 @@ export type MigrationPreflightAnalysis = {
   readonly issueCodes: readonly LegacyMigrationIssueCode[]
   readonly issues: readonly MigrationPreflightIssue[]
   readonly snapshot: PersistenceV2Snapshot
+  readonly target: PersistenceV2MigrationTarget
   readonly targetSerializedBytes: number
+}
+
+export type PersistenceV2MigrationTarget = {
+  readonly analyticsViews: readonly PersistenceJsonRecord[]
+  readonly conversations: readonly PersistenceJsonRecord[]
+  readonly messages: readonly PersistenceMessageRecord[]
+  readonly savedTabs: PersistenceV2Snapshot
 }
 
 type MutableIssue = {
@@ -59,11 +75,12 @@ type AnalyzerState = {
   readonly collisions: UrlIdentityCollisionKind[]
   readonly groups: PersistenceV2CollectionGroup[]
   readonly issues: Map<string, MutableIssue>
+  readonly membershipIndex: Map<string, Map<string, number>>
   readonly memberships: PersistenceV2CollectionMembership[]
   readonly urls: PersistenceV2Url[]
   readonly collisionKinds: Set<UrlIdentityCollisionKind>
   readonly urlIdentityTitles: Map<string, Set<string>>
-  readonly urlsById: Map<string, number>
+  readonly urlsById: Map<string, PersistenceV2Url[]>
   readonly urlsByIdentity: Map<string, number>
 }
 
@@ -96,22 +113,11 @@ const addIssue = (
   state.issues.set(key, { code, occurrenceCount, severity })
 }
 
-const readArray = (
-  source: RawLegacyStorageSnapshot,
-  key: Exclude<keyof RawLegacyStorageSnapshot, 'activeAiChatConversationId'>,
+const hasIssue = (
   state: AnalyzerState,
-): readonly unknown[] => {
-  const entry = source[key]
-  if (entry.status === 'missing') {
-    addIssue(state, 'MIGRATION_SOURCE_MISSING_KEY', 'warning')
-    return []
-  }
-  if (!Array.isArray(entry.value)) {
-    addIssue(state, 'MIGRATION_SOURCE_INVALID_TYPE', 'error')
-    return []
-  }
-  return entry.value
-}
+  code: LegacyMigrationIssueCode,
+  severity: 'error' | 'warning',
+): boolean => state.issues.has(`${severity}:${code}`)
 
 const readStringArray = (value: unknown): readonly string[] | undefined =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -179,13 +185,12 @@ const addUrl = (
     return undefined
   }
 
-  const idCount = state.urlsById.get(input.id) ?? 0
-  if (idCount > 0) {
+  const urlsWithId = state.urlsById.get(input.id) ?? []
+  if (urlsWithId.length > 0) {
     addIssue(state, 'DUPLICATE_URL_ID', 'error')
     state.collisions.push('duplicate-id')
     state.collisionKinds.add('duplicate-id')
   }
-  state.urlsById.set(input.id, idCount + 1)
 
   const identityCount = state.urlsByIdentity.get(identity) ?? 0
   if (identityCount > 0) {
@@ -218,6 +223,8 @@ const addUrl = (
     url: input.url,
   }
   state.urls.push(url)
+  urlsWithId.push(url)
+  state.urlsById.set(input.id, urlsWithId)
   return url
 }
 
@@ -429,23 +436,40 @@ const addMembership = (
     readonly urlId: string
   },
 ): void => {
-  state.memberships.push({
+  const membership: PersistenceV2CollectionMembership = {
     addedAt: input.timestamp,
     ...(input.categoryId ? { categoryId: input.categoryId } : {}),
     collectionId: input.collectionId,
-    ...(input.notes ? { notes: input.notes } : {}),
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
     sortOrder: input.index * ORDER_GAP,
     updatedAt: input.timestamp,
     urlId: input.urlId,
-  })
+  }
+  state.memberships.push(membership)
+  const collectionMemberships =
+    state.membershipIndex.get(input.collectionId) ?? new Map<string, number>()
+  if (!collectionMemberships.has(input.urlId)) {
+    collectionMemberships.set(input.urlId, state.memberships.length - 1)
+  }
+  state.membershipIndex.set(input.collectionId, collectionMemberships)
 }
 
 type DecodedNestedUrl = {
+  readonly category?: string
   readonly id: string
+  readonly notes?: string
   readonly savedAt?: number
+  readonly subCategory?: string
   readonly title: string
   readonly url: string
 }
+
+const hasInvalidNestedUrlFields = (value: RecordLike): boolean =>
+  (value.category !== undefined && typeof value.category !== 'string') ||
+  (value.id !== undefined && typeof value.id !== 'string') ||
+  (value.notes !== undefined && typeof value.notes !== 'string') ||
+  (value.subCategory !== undefined && typeof value.subCategory !== 'string') ||
+  (value.savedAt !== undefined && !isFiniteTimestamp(value.savedAt))
 
 const decodeNestedUrl = (
   value: unknown,
@@ -456,25 +480,79 @@ const decodeNestedUrl = (
     !isRecord(value) ||
     typeof value.url !== 'string' ||
     typeof value.title !== 'string' ||
-    (value.id !== undefined && typeof value.id !== 'string') ||
-    (value.savedAt !== undefined && !isFiniteTimestamp(value.savedAt))
+    hasInvalidNestedUrlFields(value)
   ) {
     addIssue(state, 'MIGRATION_SOURCE_INVALID_TYPE', 'error')
     return undefined
   }
   return {
+    ...(typeof value.category === 'string' ? { category: value.category } : {}),
     id: typeof value.id === 'string' ? value.id : fallbackId,
+    ...(typeof value.notes === 'string' ? { notes: value.notes } : {}),
     ...(isFiniteTimestamp(value.savedAt) ? { savedAt: value.savedAt } : {}),
+    ...(typeof value.subCategory === 'string'
+      ? { subCategory: value.subCategory }
+      : {}),
     title: value.title,
     url: value.url,
   }
+}
+
+const resolveCategoryId = (
+  categoryName: string | undefined,
+  categoryIds: ReadonlyMap<string, string>,
+  state: AnalyzerState,
+): string | undefined => {
+  if (categoryName === undefined) {
+    return undefined
+  }
+  const categoryId = categoryIds.get(categoryName)
+  if (!categoryId) {
+    addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
+  }
+  return categoryId
+}
+
+const mergeMembershipMetadata = (
+  state: AnalyzerState,
+  input: {
+    readonly categoryId?: string
+    readonly collectionId: string
+    readonly notes?: string
+    readonly urlId: string
+  },
+): boolean => {
+  const index = state.membershipIndex.get(input.collectionId)?.get(input.urlId)
+  if (index === undefined) {
+    return false
+  }
+  const membership = state.memberships[index]
+  if (
+    (membership.categoryId &&
+      input.categoryId &&
+      membership.categoryId !== input.categoryId) ||
+    (membership.notes !== undefined &&
+      input.notes !== undefined &&
+      membership.notes !== input.notes)
+  ) {
+    addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
+    return true
+  }
+  const categoryId = membership.categoryId ?? input.categoryId
+  const notes = membership.notes ?? input.notes
+  state.memberships.splice(index, 1, {
+    ...membership,
+    ...(categoryId ? { categoryId } : {}),
+    ...(notes !== undefined ? { notes } : {}),
+  })
+  return true
 }
 
 const matchesCanonicalUrl = (
   decoded: DecodedNestedUrl,
   state: AnalyzerState,
 ): boolean =>
-  state.urls.some(
+  (state.urlsById.get(decoded.id) ?? []).some(
     (url) =>
       url.id === decoded.id &&
       url.url === decoded.url &&
@@ -506,6 +584,7 @@ type DecodedSavedTab = {
   readonly parentCategoryId?: string
   readonly record: RecordLike
   readonly subCategories: readonly string[]
+  readonly subCategoryOrder?: readonly string[]
   readonly timestamp: number
   readonly urlIds?: readonly string[]
   readonly urlSubCategories: Readonly<Record<string, string>>
@@ -536,17 +615,49 @@ const hasInvalidSavedTabMetadata = (input: {
   (input.urlSubCategories !== undefined &&
     !isStringValueRecord(input.urlSubCategories))
 
+const readSavedTabCategoryOrder = (
+  value: RecordLike,
+  state: AnalyzerState,
+): readonly string[] | null | undefined => {
+  const order = readOptionalStringArray(value, 'subCategoryOrder')
+  const orderWithUncategorized = readOptionalStringArray(
+    value,
+    'subCategoryOrderWithUncategorized',
+  )
+  if (order === null || orderWithUncategorized === null) {
+    return null
+  }
+  const filteredOrder = orderWithUncategorized?.filter(
+    (category) => category !== '__uncategorized',
+  )
+  if (
+    order &&
+    filteredOrder &&
+    (order.length !== filteredOrder.length ||
+      order.some((category, index) => category !== filteredOrder[index]))
+  ) {
+    addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
+  }
+  return order ?? filteredOrder
+}
+
 const decodeSavedTabFields = (
   value: RecordLike,
   state: AnalyzerState,
 ): DecodedSavedTabFields | undefined => {
   const urlIds = readOptionalStringArray(value, 'urlIds')
   const subCategories = readOptionalStringArray(value, 'subCategories')
+  const subCategoryOrder = readSavedTabCategoryOrder(value, state)
   const savedAt = readOptionalTimestamp(value, 'savedAt')
   const nestedUrls = value.urls
   const parentCategoryId = value.parentCategoryId
   if (
-    hasInvalidSavedTabReferences({ nestedUrls, subCategories, urlIds }) ||
+    hasInvalidSavedTabReferences({
+      nestedUrls,
+      subCategories,
+      urlIds,
+    }) ||
+    subCategoryOrder === null ||
     hasInvalidSavedTabMetadata({
       parentCategoryId,
       savedAt,
@@ -563,6 +674,7 @@ const decodeSavedTabFields = (
     ...(Array.isArray(nestedUrls) ? { nestedUrls } : {}),
     ...(typeof parentCategoryId === 'string' ? { parentCategoryId } : {}),
     subCategories: subCategories ?? [],
+    ...(subCategoryOrder ? { subCategoryOrder } : {}),
     timestamp: savedAt ?? 0,
     ...(urlIds ? { urlIds } : {}),
     urlSubCategories: isStringValueRecord(value.urlSubCategories)
@@ -679,8 +791,37 @@ const appendSavedTabMemberships = (
   }
 }
 
+const resolveNestedSavedTabCategoryId = (
+  state: AnalyzerState,
+  input: {
+    readonly categoryIds: ReadonlyMap<string, string>
+    readonly decoded: DecodedNestedUrl
+    readonly savedTab: DecodedSavedTab
+  },
+): string | undefined => {
+  const topLevelCategory = Object.hasOwn(
+    input.savedTab.urlSubCategories,
+    input.decoded.id,
+  )
+    ? input.savedTab.urlSubCategories[input.decoded.id]
+    : undefined
+  if (
+    topLevelCategory !== undefined &&
+    input.decoded.subCategory !== undefined &&
+    topLevelCategory !== input.decoded.subCategory
+  ) {
+    addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
+  }
+  return resolveCategoryId(
+    topLevelCategory ?? input.decoded.subCategory,
+    input.categoryIds,
+    state,
+  )
+}
+
 const appendNestedSavedTabUrls = (
   input: DecodedSavedTab,
+  categoryIds: ReadonlyMap<string, string>,
   state: AnalyzerState,
 ): void => {
   const ids = input.urlIds ?? []
@@ -694,12 +835,27 @@ const appendNestedSavedTabUrls = (
     if (!decoded) {
       return
     }
+    const categoryId = resolveNestedSavedTabCategoryId(state, {
+      categoryIds,
+      decoded,
+      savedTab: input,
+    })
     if (state.urlsById.has(decoded.id)) {
       checkNestedCanonicalUrl(decoded, decoded.id, state)
+      if (
+        mergeMembershipMetadata(state, {
+          ...(categoryId ? { categoryId } : {}),
+          collectionId: input.collectionId,
+          urlId: decoded.id,
+        })
+      ) {
+        return
+      }
       if (!idSet.has(decoded.id)) {
-        const canonical = state.urls.find((url) => url.id === decoded.id)
+        const canonical = state.urlsById.get(decoded.id)?.[0]
         if (canonical) {
           addMembership(state, {
+            ...(categoryId ? { categoryId } : {}),
             collectionId: input.collectionId,
             index: ids.length + index,
             timestamp: canonical.firstSavedAt,
@@ -712,6 +868,7 @@ const appendNestedSavedTabUrls = (
     const url = addUrl(state, decoded)
     if (url && !idSet.has(url.id)) {
       addMembership(state, {
+        ...(categoryId ? { categoryId } : {}),
         collectionId: input.collectionId,
         index: ids.length + index,
         timestamp: url.firstSavedAt,
@@ -727,6 +884,26 @@ const haveSameOrderedStrings = (
 ): boolean =>
   left.length === right.length &&
   left.every((value, index) => value === right[index])
+
+const orderDomainCategoryNames = (
+  names: readonly string[],
+  order: readonly string[] | undefined,
+  state: AnalyzerState,
+): readonly string[] => {
+  if (!order) {
+    return names
+  }
+  const nameSet = new Set(names)
+  if (
+    hasDuplicateStrings(order) ||
+    order.length !== names.length ||
+    order.some((name) => !nameSet.has(name))
+  ) {
+    addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
+    return names
+  }
+  return order
+}
 
 const resolveDomainCategories = (
   input: DecodedSavedTab,
@@ -750,9 +927,14 @@ const resolveDomainCategories = (
   ) {
     addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
   }
-  const names = [
+  const unorderedNames = [
     ...new Set([...(setting?.names ?? []), ...input.subCategories]),
   ]
+  const names = orderDomainCategoryNames(
+    unorderedNames,
+    input.subCategoryOrder,
+    state,
+  )
   const nameSet = new Set(names)
   const keywords = new Map(setting?.keywords)
   for (const [name, values] of embeddedKeywords) {
@@ -806,7 +988,7 @@ const parseSavedTabs = (
     })
     checkParallelUrlRepresentations(input, state)
     appendSavedTabMemberships(input, categoryIds, state)
-    appendNestedSavedTabUrls(input, state)
+    appendNestedSavedTabUrls(input, categoryIds, state)
   })
   for (const domain of settingsByDomain.keys()) {
     if (!matchedSettingDomains.has(domain)) {
@@ -918,6 +1100,31 @@ const readProjectKeywords = (
   return { domainKeywords, titleKeywords, urlKeywords }
 }
 
+const resolveCustomCategoryNames = (
+  categories: readonly string[] | undefined,
+  categoryOrder: readonly string[] | undefined,
+  state: AnalyzerState,
+): readonly string[] => {
+  const names = categories ?? categoryOrder ?? []
+  if (hasDuplicateStrings(names)) {
+    addIssue(state, 'LEGACY_CUSTOM_PROJECT_ORDER_CONFLICT', 'error')
+  }
+  const uniqueNames = [...new Set(names)]
+  if (!categoryOrder || categories === undefined) {
+    return uniqueNames
+  }
+  const nameSet = new Set(uniqueNames)
+  if (
+    hasDuplicateStrings(categoryOrder) ||
+    categoryOrder.length !== uniqueNames.length ||
+    categoryOrder.some((name) => !nameSet.has(name))
+  ) {
+    addIssue(state, 'LEGACY_CUSTOM_PROJECT_ORDER_CONFLICT', 'error')
+    return uniqueNames
+  }
+  return categoryOrder
+}
+
 const decodeCustomProjectFields = (
   value: RecordLike,
   state: AnalyzerState,
@@ -948,7 +1155,11 @@ const decodeCustomProjectFields = (
   }
   const created = createdAt ?? 0
   return {
-    categoryNames: categoryOrder ?? categories ?? [],
+    categoryNames: resolveCustomCategoryNames(
+      categories ?? undefined,
+      categoryOrder ?? undefined,
+      state,
+    ),
     createdAt: created,
     metadata: isRecord(value.urlMetadata) ? value.urlMetadata : {},
     nestedUrls: Array.isArray(value.urls) ? value.urls : [],
@@ -1022,8 +1233,98 @@ const appendCustomProjectMemberships = (
   }
 }
 
+const resolveNestedCustomMetadata = (
+  state: AnalyzerState,
+  input: {
+    readonly categoryIds: ReadonlyMap<string, string>
+    readonly decoded: DecodedNestedUrl
+    readonly metadataKey: string
+    readonly project: DecodedCustomProject
+  },
+): { readonly categoryId?: string; readonly notes?: string } => {
+  const rawTopLevelMetadata = input.project.metadata[input.metadataKey]
+  const topLevelMetadata: RecordLike = isRecord(rawTopLevelMetadata)
+    ? rawTopLevelMetadata
+    : {}
+  const topLevelCategory =
+    typeof topLevelMetadata.category === 'string'
+      ? topLevelMetadata.category
+      : undefined
+  const topLevelNotes =
+    typeof topLevelMetadata.notes === 'string'
+      ? topLevelMetadata.notes
+      : undefined
+  if (
+    (topLevelCategory !== undefined &&
+      input.decoded.category !== undefined &&
+      topLevelCategory !== input.decoded.category) ||
+    (topLevelNotes !== undefined &&
+      input.decoded.notes !== undefined &&
+      topLevelNotes !== input.decoded.notes)
+  ) {
+    addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
+  }
+  const categoryId = resolveCategoryId(
+    topLevelCategory ?? input.decoded.category,
+    input.categoryIds,
+    state,
+  )
+  const notes = topLevelNotes ?? input.decoded.notes
+  return {
+    ...(categoryId ? { categoryId } : {}),
+    ...(notes !== undefined ? { notes } : {}),
+  }
+}
+
+const appendNestedCustomProjectUrl = (
+  state: AnalyzerState,
+  input: {
+    readonly categoryIds: ReadonlyMap<string, string>
+    readonly index: number
+    readonly item: unknown
+    readonly project: DecodedCustomProject
+  },
+): void => {
+  const ids = input.project.urlIds ?? []
+  const pairedId = ids.at(input.index)
+  const decoded = decodeNestedUrl(
+    input.item,
+    pairedId ?? `legacy:custom:${input.project.collectionId}:${input.index}`,
+    state,
+  )
+  if (!decoded) {
+    return
+  }
+  const metadata = resolveNestedCustomMetadata(state, {
+    categoryIds: input.categoryIds,
+    decoded,
+    metadataKey: pairedId ?? decoded.id,
+    project: input.project,
+  })
+  if (pairedId && state.urlsById.has(pairedId)) {
+    checkNestedCanonicalUrl(decoded, pairedId, state)
+    mergeMembershipMetadata(state, {
+      ...metadata,
+      collectionId: input.project.collectionId,
+      urlId: pairedId,
+    })
+    return
+  }
+  const url = addUrl(state, decoded)
+  if (url && !pairedId) {
+    addMembership(state, {
+      ...metadata,
+      collectionId: input.project.collectionId,
+      index: ids.length + input.index,
+      timestamp: url.firstSavedAt,
+      urlId: url.id,
+    })
+  }
+}
+
 const appendNestedCustomProjectUrls = (
   input: DecodedCustomProject,
+  categoryIds: ReadonlyMap<string, string>,
   state: AnalyzerState,
 ): void => {
   const ids = input.urlIds ?? []
@@ -1031,28 +1332,12 @@ const appendNestedCustomProjectUrls = (
     addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
   }
   input.nestedUrls.forEach((item, index) => {
-    const pairedId = ids.at(index)
-    const decoded = decodeNestedUrl(
+    appendNestedCustomProjectUrl(state, {
+      categoryIds,
+      index,
       item,
-      pairedId ?? `legacy:custom:${input.collectionId}:${index}`,
-      state,
-    )
-    if (!decoded) {
-      return
-    }
-    if (pairedId && state.urlsById.has(pairedId)) {
-      checkNestedCanonicalUrl(decoded, pairedId, state)
-      return
-    }
-    const url = addUrl(state, decoded)
-    if (url && !pairedId) {
-      addMembership(state, {
-        collectionId: input.collectionId,
-        index: ids.length + index,
-        timestamp: url.firstSavedAt,
-        urlId: url.id,
-      })
-    }
+      project: input,
+    })
   })
 }
 
@@ -1090,7 +1375,7 @@ const parseCustomProjects = (
       updatedAt: input.updatedAt,
     })
     appendCustomProjectMemberships(input, categoryIds, state)
-    appendNestedCustomProjectUrls(input, state)
+    appendNestedCustomProjectUrls(input, categoryIds, state)
   })
 }
 
@@ -1145,32 +1430,122 @@ const countMessageAttachments = (
   return attachments
 }
 
-const countAiEntities = (
+type LegacyAiConversationRecord = RecordLike & {
+  readonly createdAt: number
+  readonly id: string
+  readonly messages: readonly unknown[]
+  readonly title: string
+  readonly updatedAt: number
+}
+
+type LegacyAiMessageRecord = JsonObject & {
+  readonly content: string
+  readonly id: string
+  readonly role: 'assistant' | 'user'
+}
+
+const isLegacyAiConversationRecord = (
+  value: unknown,
+): value is LegacyAiConversationRecord =>
+  isRecord(value) &&
+  typeof value.id === 'string' &&
+  typeof value.title === 'string' &&
+  isFiniteTimestamp(value.createdAt) &&
+  isFiniteTimestamp(value.updatedAt) &&
+  Array.isArray(value.messages)
+
+const isLegacyAiMessageRecord = (
+  value: unknown,
+): value is LegacyAiMessageRecord =>
+  isRecord(value) &&
+  typeof value.id === 'string' &&
+  typeof value.content === 'string' &&
+  (value.role === 'user' || value.role === 'assistant') &&
+  isJsonValue(value)
+
+const mapAiEntities = (
   conversations: readonly unknown[],
   state: AnalyzerState,
-): { attachments: number; conversations: number; messages: number } => {
+): {
+  readonly attachments: number
+  readonly conversations: readonly PersistenceJsonRecord[]
+  readonly messages: readonly PersistenceMessageRecord[]
+} => {
   let attachments = 0
-  let messages = 0
-  let validConversations = 0
+  const conversationRecords: PersistenceJsonRecord[] = []
+  const messageRecords: PersistenceMessageRecord[] = []
   const conversationIds = new Set<string>()
+  const messageIds = new Set<string>()
   for (const value of conversations) {
-    if (!isRecord(value) || typeof value.id !== 'string') {
+    if (!isLegacyAiConversationRecord(value)) {
       addIssue(state, 'MIGRATION_SOURCE_INVALID_TYPE', 'error')
       continue
     }
-    validConversations += 1
+    if (conversationIds.has(value.id)) {
+      addIssue(state, 'LEGACY_AI_ENTITY_ID_COLLISION', 'error')
+      continue
+    }
     conversationIds.add(value.id)
-    if (value.messages === undefined) {
-      continue
+    conversationRecords.push({
+      id: value.id,
+      updatedAt: value.updatedAt,
+      value: {
+        createdAt: value.createdAt,
+        title: value.title,
+      },
+    })
+    attachments += countMessageAttachments(value.messages, state)
+    for (const message of value.messages) {
+      if (!isLegacyAiMessageRecord(message)) {
+        addIssue(state, 'MIGRATION_SOURCE_INVALID_TYPE', 'error')
+        continue
+      }
+      if (messageIds.has(message.id)) {
+        addIssue(state, 'LEGACY_AI_ENTITY_ID_COLLISION', 'error')
+        continue
+      }
+      messageIds.add(message.id)
+      messageRecords.push({
+        conversationId: value.id,
+        createdAt: value.createdAt,
+        id: message.id,
+        value: message,
+      })
     }
-    if (!Array.isArray(value.messages)) {
+  }
+  return {
+    attachments,
+    conversations: conversationRecords,
+    messages: messageRecords,
+  }
+}
+
+const mapAnalyticsViews = (
+  values: readonly unknown[],
+  state: AnalyzerState,
+): readonly PersistenceJsonRecord[] => {
+  const ids = new Set<string>()
+  const records: PersistenceJsonRecord[] = []
+  for (const value of values) {
+    if (
+      !isRecord(value) ||
+      typeof value.id !== 'string' ||
+      !isFiniteTimestamp(value.createdAt) ||
+      !isFiniteTimestamp(value.updatedAt) ||
+      ids.has(value.id) ||
+      !isJsonValue(value)
+    ) {
       addIssue(state, 'MIGRATION_SOURCE_INVALID_TYPE', 'error')
       continue
     }
-    messages += value.messages.length
-    attachments += countMessageAttachments(value.messages, state)
+    ids.add(value.id)
+    records.push({
+      id: value.id,
+      updatedAt: value.updatedAt,
+      value,
+    })
   }
-  return { attachments, conversations: validConversations, messages }
+  return records
 }
 
 const createSourcePayload = (
@@ -1183,7 +1558,7 @@ const createSourcePayload = (
     ]),
   )
 
-export const analyzeLegacyMigrationPreflight = (
+export const mapLegacyStorageToPersistenceV2 = (
   source: RawLegacyStorageSnapshot,
 ): MigrationPreflightAnalysis => {
   const state: AnalyzerState = {
@@ -1193,6 +1568,7 @@ export const analyzeLegacyMigrationPreflight = (
     collisionKinds: new Set(),
     groups: [],
     issues: new Map(),
+    membershipIndex: new Map(),
     memberships: [],
     urlIdentityTitles: new Map(),
     urls: [],
@@ -1200,29 +1576,23 @@ export const analyzeLegacyMigrationPreflight = (
     urlsByIdentity: new Map(),
   }
 
-  const urls = readArray(source, 'urls', state)
-  const savedTabs = readArray(source, 'savedTabs', state)
-  const customProjects = readArray(source, 'customProjects', state)
-  const customProjectOrder = readArray(source, 'customProjectOrder', state)
-  const parentCategories = readArray(source, 'parentCategories', state)
-  const domainCategorySettings = readArray(
-    source,
-    'domainCategorySettings',
+  const { dto, issues: schemaIssues } = parseLegacyChromeStorage(source)
+  for (const issue of schemaIssues) {
+    addIssue(state, issue.code, issue.severity)
+  }
+
+  parseCanonicalUrls(dto.urls, state)
+  const parentRelations = parseParentCategories(dto.parentCategories, state)
+  const mappingParentsByDomain = parseDomainCategoryMappings(
+    dto.domainCategoryMappings,
     state,
   )
-  const mappings = readArray(source, 'domainCategoryMappings', state)
-  const conversations = readArray(source, 'aiChatConversations', state)
-  const analyticsViews = readArray(source, 'savedAnalyticsViews', state)
-
-  parseCanonicalUrls(urls, state)
-  const parentRelations = parseParentCategories(parentCategories, state)
-  const mappingParentsByDomain = parseDomainCategoryMappings(mappings, state)
   const settingsByDomain = parseDomainCategorySettings(
-    domainCategorySettings,
+    dto.domainCategorySettings,
     state,
   )
   parseSavedTabs(
-    savedTabs,
+    dto.savedTabs,
     {
       mappingParentsByDomain,
       parentIds: parentRelations.ids,
@@ -1232,18 +1602,15 @@ export const analyzeLegacyMigrationPreflight = (
     settingsByDomain,
     state,
   )
-  parseCustomProjects(customProjects, customProjectOrder, state)
+  parseCustomProjects(dto.customProjects, dto.customProjectOrder, state)
 
-  const aiCounts = countAiEntities(conversations, state)
-  const activeConversation = source.activeAiChatConversationId
-  if (activeConversation.status === 'missing') {
-    addIssue(state, 'MIGRATION_SOURCE_MISSING_KEY', 'warning')
-  } else if (typeof activeConversation.value !== 'string') {
-    addIssue(state, 'MIGRATION_SOURCE_INVALID_TYPE', 'error')
-  } else if (
-    activeConversation.value.length > 0 &&
-    !conversations.some(
-      (value) => isRecord(value) && value.id === activeConversation.value,
+  const aiRecords = mapAiEntities(dto.aiChatConversations, state)
+  const analyticsRecords = mapAnalyticsViews(dto.savedAnalyticsViews, state)
+  if (
+    typeof dto.activeAiChatConversationId === 'string' &&
+    dto.activeAiChatConversationId.length > 0 &&
+    !dto.aiChatConversations.some(
+      (value) => isRecord(value) && value.id === dto.activeAiChatConversationId,
     )
   ) {
     addIssue(state, 'INVALID_ACTIVE_CHAT_REFERENCE', 'warning')
@@ -1255,6 +1622,12 @@ export const analyzeLegacyMigrationPreflight = (
     groups: state.groups,
     memberships: state.memberships,
     urls: state.urls,
+  }
+  const target: PersistenceV2MigrationTarget = {
+    analyticsViews: analyticsRecords,
+    conversations: aiRecords.conversations,
+    messages: aiRecords.messages,
+    savedTabs: snapshot,
   }
   const integrity = checkPersistenceIntegrity(snapshot)
   for (const issue of integrity.issues) {
@@ -1268,27 +1641,27 @@ export const analyzeLegacyMigrationPreflight = (
     addIssue(state, 'NON_JSON_SAFE_VALUE', 'error')
   }
   let targetSerializedBytes = 0
-  try {
-    targetSerializedBytes = measureSerializedBytes({
-      analyticsViews,
-      conversations,
-      snapshot,
-    })
-  } catch {
-    addIssue(state, 'NON_JSON_SAFE_VALUE', 'error')
+  if (!hasIssue(state, 'NON_JSON_SAFE_VALUE', 'error')) {
+    try {
+      targetSerializedBytes = measureSerializedBytes({
+        target,
+      })
+    } catch {
+      addIssue(state, 'NON_JSON_SAFE_VALUE', 'error')
+    }
   }
   const issues = [...state.issues.values()].toSorted((left, right) =>
     left.code.localeCompare(right.code),
   )
   const entityCounts: PersistenceSourceEntityCounts = {
-    analyticsViews: analyticsViews.length,
-    attachments: aiCounts.attachments,
+    analyticsViews: analyticsRecords.length,
+    attachments: aiRecords.attachments,
     categories: snapshot.categories.length,
     collections: snapshot.collections.length,
-    conversations: aiCounts.conversations,
+    conversations: aiRecords.conversations.length,
     groups: snapshot.groups.length,
     memberships: snapshot.memberships.length,
-    messages: aiCounts.messages,
+    messages: aiRecords.messages.length,
     settings: 0,
     urls: snapshot.urls.length,
   }
@@ -1301,6 +1674,9 @@ export const analyzeLegacyMigrationPreflight = (
     issueCodes: issues.map(({ code }) => code),
     issues,
     snapshot,
+    target,
     targetSerializedBytes,
   }
 }
+
+export const analyzeLegacyMigrationPreflight = mapLegacyStorageToPersistenceV2

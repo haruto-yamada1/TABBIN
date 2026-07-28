@@ -1,17 +1,19 @@
 import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type {
+  PersistenceBootstrapRecoveryControllerPort,
   PersistenceBootstrapErrorCode,
-  PersistenceRecoveryControllerPort,
   PersistenceRecoveryState,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import type { PersistenceV2MigrationDiagnostic } from '@/contexts/saved-tabs/application/ports/PersistenceRecoveryPort'
 
 export type PersistenceRecoveryServiceOptions = {
+  readonly readDiagnostic?: () => PersistenceV2MigrationDiagnostic | undefined
   readonly retry: () => Promise<void>
 }
 
 const AVAILABLE_STATE: PersistenceRecoveryState = { status: 'available' }
 
-export class PersistenceRecoveryService implements PersistenceRecoveryControllerPort {
+export class PersistenceRecoveryService implements PersistenceBootstrapRecoveryControllerPort {
   private readonly listeners = new Set<() => void>()
   private readonly options: PersistenceRecoveryServiceOptions
   private state: PersistenceRecoveryState = AVAILABLE_STATE
@@ -33,13 +35,19 @@ export class PersistenceRecoveryService implements PersistenceRecoveryController
   readonly reportUnavailable = (
     errorCode: PersistenceBootstrapErrorCode,
   ): void => {
+    const diagnostic = this.options.readDiagnostic?.()
     if (
       this.state.status === 'unavailable' &&
-      this.state.errorCode === errorCode
+      this.state.errorCode === errorCode &&
+      this.state.diagnostic === diagnostic
     ) {
       return
     }
-    this.state = { status: 'unavailable', errorCode }
+    this.state = {
+      ...(diagnostic ? { diagnostic } : {}),
+      status: 'unavailable',
+      errorCode,
+    }
     this.emit()
   }
 
@@ -48,11 +56,7 @@ export class PersistenceRecoveryService implements PersistenceRecoveryController
       await this.options.retry()
       this.clear()
     } catch (error) {
-      this.reportUnavailable(
-        error instanceof PersistenceUnavailableError
-          ? error.code
-          : 'PERSISTENCE_RECOVERY_REQUIRED',
-      )
+      this.retainFailure(error)
       throw error
     }
   }
@@ -68,5 +72,13 @@ export class PersistenceRecoveryService implements PersistenceRecoveryController
     for (const listener of this.listeners) {
       listener()
     }
+  }
+
+  private readonly retainFailure = (error: unknown): void => {
+    this.reportUnavailable(
+      error instanceof PersistenceUnavailableError
+        ? error.code
+        : 'PERSISTENCE_RECOVERY_REQUIRED',
+    )
   }
 }

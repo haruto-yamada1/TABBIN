@@ -154,6 +154,12 @@ both `createSavedTabsRepositories` and `createSavedTabsUseCasesDeps` inject the
 gated domain port into domain repositories and a separate raw settings port
 into `UserSettingsRepository`, so an `indexeddb` cutover cannot turn a settings
 read into a legacy route mismatch.
+
+The recovery notice's emergency backup action calls #738's raw reader under the
+same exclusive coordination boundary. Its “Run checks and retry” action writes
+only the aggregate preflight control record, then invokes bootstrap retry after
+a healthy result; it does not mutate legacy source records.
+
 Production-equivalent background URL mutation and Options export tests execute
 their real call paths and assert that `PersistenceBootstrap.ready()` precedes
 the first raw domain storage read.
@@ -178,10 +184,12 @@ control. #727 places every inventoried domain read/write behind
 SHA-256 fingerprint while that barrier is exclusive, releases it for pure
 identity/relation/integrity/capacity analysis, then re-acquires it to re-read and
 persist `healthy`, `blocked`, or `stale` under
-`tabbin:migrationPreflight:v1`. #728 must perform migration as one verified
-transaction, and the lifecycle boundary compares #738's approved and current
-source fingerprints before migration writes. A mismatch persists
-`PERSISTENCE_PREFLIGHT_STALE`.
+`tabbin:migrationPreflight:v1`. #728 performs bounded strict-durability target
+transactions under one exclusive lifecycle, then verifies the complete
+read-back before publication. The lifecycle compares #738's approved and
+current source fingerprints before writes and again before verification.
+A mismatch fails closed; a subsequent preflight status read records the changed
+source as `stale`.
 
 ## Mutation files
 

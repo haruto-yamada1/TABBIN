@@ -1,3 +1,8 @@
+import type {
+  PersistenceEmergencyBackup,
+  PersistenceV2MigrationDiagnostic,
+} from './PersistenceRecoveryPort'
+
 export const PERSISTENCE_BOOTSTRAP_ERROR_CODES = [
   'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
   'PERSISTENCE_CONTROL_STATE_INVALID',
@@ -138,6 +143,7 @@ export type PersistenceOperationGatePort = {
 export type PersistenceRecoveryState =
   | { readonly status: 'available' }
   | {
+      readonly diagnostic?: PersistenceV2MigrationDiagnostic
       readonly status: 'unavailable'
       readonly errorCode: PersistenceBootstrapErrorCode
     }
@@ -146,10 +152,16 @@ export type PersistenceRecoveryReporterPort = {
   readonly reportUnavailable: (errorCode: PersistenceBootstrapErrorCode) => void
 }
 
-export type PersistenceRecoveryControllerPort =
+export type PersistenceBootstrapRecoveryControllerPort =
   PersistenceRecoveryReporterPort & {
     readonly clear: () => void
     readonly getSnapshot: () => PersistenceRecoveryState
     readonly retry: () => Promise<void>
     readonly subscribe: (listener: () => void) => () => void
+  }
+
+export type PersistenceRecoveryControllerPort =
+  PersistenceBootstrapRecoveryControllerPort & {
+    readonly createEmergencyBackup: () => Promise<PersistenceEmergencyBackup>
+    readonly rerunPreflightAndRetry: () => Promise<void>
   }

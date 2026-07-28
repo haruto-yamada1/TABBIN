@@ -1,6 +1,7 @@
 import type {
   MigrationPreflightDiagnostic,
   MigrationPreflightIssueCode,
+  MigrationPreflightReaderPort,
   MigrationPreflightRepositoryPort,
   StoredMigrationPreflight,
 } from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
@@ -21,6 +22,11 @@ export type MigrationPreflightStorageArea = {
   readonly get: (key: string) => Promise<Record<string, unknown>>
   readonly set: (values: Record<string, unknown>) => Promise<void>
 }
+
+export type MigrationPreflightStorageReader = Pick<
+  MigrationPreflightStorageArea,
+  'get'
+>
 
 const entityKindSet = new Set<string>(PERSISTENCE_SOURCE_ENTITY_KINDS)
 
@@ -113,6 +119,32 @@ export class MigrationPreflightRecordError extends Error {
   }
 }
 
+const readStoredPreflight = async (
+  storage: MigrationPreflightStorageReader,
+): Promise<StoredMigrationPreflight | undefined> => {
+  let stored: Record<string, unknown>
+  try {
+    stored = await storage.get(MIGRATION_PREFLIGHT_STORAGE_KEY)
+  } catch (error) {
+    throw new MigrationPreflightRecordError({ cause: error })
+  }
+  if (!Object.hasOwn(stored, MIGRATION_PREFLIGHT_STORAGE_KEY)) {
+    return undefined
+  }
+  return decodeStoredPreflight(stored[MIGRATION_PREFLIGHT_STORAGE_KEY])
+}
+
+export class ChromeMigrationPreflightReader implements MigrationPreflightReaderPort {
+  private readonly storage: MigrationPreflightStorageReader
+
+  constructor(storage: MigrationPreflightStorageReader) {
+    this.storage = storage
+  }
+
+  readonly read = async (): Promise<StoredMigrationPreflight | undefined> =>
+    readStoredPreflight(this.storage)
+}
+
 export class ChromeMigrationPreflightRepository implements MigrationPreflightRepositoryPort {
   private readonly storage: MigrationPreflightStorageArea
 
@@ -120,18 +152,8 @@ export class ChromeMigrationPreflightRepository implements MigrationPreflightRep
     this.storage = storage
   }
 
-  readonly read = async (): Promise<StoredMigrationPreflight | undefined> => {
-    let stored: Record<string, unknown>
-    try {
-      stored = await this.storage.get(MIGRATION_PREFLIGHT_STORAGE_KEY)
-    } catch (error) {
-      throw new MigrationPreflightRecordError({ cause: error })
-    }
-    if (!Object.hasOwn(stored, MIGRATION_PREFLIGHT_STORAGE_KEY)) {
-      return undefined
-    }
-    return decodeStoredPreflight(stored[MIGRATION_PREFLIGHT_STORAGE_KEY])
-  }
+  readonly read = async (): Promise<StoredMigrationPreflight | undefined> =>
+    readStoredPreflight(this.storage)
 
   readonly save = async (record: StoredMigrationPreflight): Promise<void> => {
     try {

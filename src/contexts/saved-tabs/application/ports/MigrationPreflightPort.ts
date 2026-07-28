@@ -16,6 +16,7 @@ export const MIGRATION_PREFLIGHT_ISSUE_CODES = [
   'PERSISTENCE_DISK_WRITE_FAILED',
   'PERSISTENCE_STORAGE_UNAVAILABLE',
   'PERSISTENCE_CAPACITY_PREFLIGHT_FAILED',
+  'LEGACY_AI_ENTITY_ID_COLLISION',
   'LEGACY_CUSTOM_PROJECT_ORDER_CONFLICT',
   'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT',
   'LEGACY_PARENT_CATEGORY_CONFLICT',
@@ -74,6 +75,11 @@ export type MigrationPreflightRepositoryPort = {
   readonly read: () => Promise<StoredMigrationPreflight | undefined>
   readonly save: (record: StoredMigrationPreflight) => Promise<void>
 }
+
+export type MigrationPreflightReaderPort = Pick<
+  MigrationPreflightRepositoryPort,
+  'read'
+>
 
 export type MigrationSourceFingerprintPort = {
   readonly create: (source: RawLegacyStorageSnapshot) => Promise<string>
