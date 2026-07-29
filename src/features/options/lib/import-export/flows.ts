@@ -1,3 +1,4 @@
+import { importBackupV2WithRecovery } from '@/app/composition/optionsBackupRecovery'
 import { mergeLegacyBackupIntoIndexedDb } from '@/app/composition/optionsLegacyBackupMerge'
 import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { getAppVersion } from '@/constants/app-version'
@@ -9,6 +10,7 @@ import {
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { assertBackupSerializedBytes } from '@/lib/persistence/backupResourcePolicy'
+import { detectBackupFormat } from '@/lib/persistence/backupSchema'
 import { loadSavedAnalyticsViews } from '@/lib/storage/analytics'
 import {
   getParentCategories,
@@ -72,6 +74,7 @@ import {
   normalizeImportedTabsForImport,
   resolveCurrentLanguage,
 } from './url-conversion'
+import { inspectBackupV2 } from './v2/BackupV2Inspector'
 
 type ImportResult = {
   success: boolean
@@ -480,6 +483,22 @@ const importSettings = async (
           : `データをマージしました (${mergeResult.addedEntityCounts.groups}個のカテゴリ、${mergeResult.addedEntityCounts.collections}個のドメインを追加)`,
       }
     }
+    if (gateResult?.kind === 'v2-overwrite') {
+      await importBackupV2WithRecovery(gateResult.inspection)
+      const formattedTimestamp = formatLocaleDateTime(
+        new Date(gateResult.inspection.preview.exportedAt).getTime(),
+      )
+      return {
+        success: true,
+        message: translate
+          ? translate('options.importExport.replaceSuccess', undefined, {
+              timestamp: formattedTimestamp,
+              unresolved: '',
+              version: gateResult.inspection.preview.appVersion,
+            })
+          : `設定とタブデータを置き換えました（バージョン: ${gateResult.inspection.preview.appVersion}、作成日時: ${formattedTimestamp}）`,
+      }
+    }
     await migrateToUrlsStorage()
     const importedData = parseBackupData(jsonData)
     if (!importedData) {
@@ -572,6 +591,30 @@ const getImportPreview = (
   }
 } => {
   try {
+    const parsed: unknown = JSON.parse(jsonData)
+    if (detectBackupFormat(parsed).kind === 'versioned') {
+      const inspection = inspectBackupV2(parsed, {
+        importDate: getCurrentUtcDateOnly(),
+      })
+      const domainCollections = inspection.data.savedTabs.collections.filter(
+        (collection) => collection.definition.type === 'domain',
+      ).length
+      const customCollections =
+        inspection.data.savedTabs.collections.length - domainCollections
+      return {
+        success: true,
+        message: 'データの解析に成功しました',
+        preview: {
+          version: inspection.preview.appVersion,
+          timestamp: inspection.preview.exportedAt,
+          categoriesCount: inspection.preview.entityCounts.categories,
+          domainsCount: domainCollections,
+          projectsCount: customCollections,
+          hasAiChat: inspection.preview.entityCounts.conversations > 0,
+          hasAnalytics: inspection.preview.entityCounts.analyticsViews > 0,
+        },
+      }
+    }
     const importedData = parseBackupData(jsonData)
     if (!importedData) {
       return {

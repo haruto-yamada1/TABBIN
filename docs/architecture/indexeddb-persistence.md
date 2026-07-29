@@ -20,12 +20,31 @@ Issue #726 does not:
 - implement the cross-context notification transport itself (#739, now
   implemented as the
   [persistence change invalidation protocol](persistence-change-invalidation.md));
-- define the public Backup V2 mapper (#730); or
-- implement recovery snapshot retention and restore (#740).
+- define the public Backup V2 mapper (#730).
+
+Issue #740 now builds on this physical schema through
+`IndexedDbPersistenceRecoverySnapshotRepository`. It stores strict logical
+Backup V2 data, not an IndexedDB dump. A snapshot save compares the consistent
+source revision, applies the count/age/aggregate-byte retention policy, and
+increments the persistence revision in one strict transaction. Restore parses
+the stored Backup V2 data again and uses
+`IndexedDbPersistenceReplacementAdapter` for one transactional replacement,
+followed by the separate settings write, read-back, integrity verification, and
+a content-free #739 invalidation. The service reads the pre-restore state before
+mutation. If the settings write or target read-back fails after the IndexedDB
+commit, it compensates by replacing the previous logical state and settings,
+verifies that compensation, and only then reports the restore failure. A failed
+compensation has its own fixed error code.
+
+The recovery snapshot save and restore paths follow #739 post-commit semantics:
+change-ID generation or publication failure resolves as typed partial success
+with the committed revision, scopes, and failed stage. It never reports the
+already committed snapshot or restored state as rolled back.
 
 `userSettings`, active AI selection, release controls, and migration controls
 remain in `chrome.storage.local` as decided by the #725 Storage Placement
-Matrix. No cross-engine atomic transaction is claimed for those records.
+Matrix. No cross-engine atomic transaction is claimed for those records; the
+verified compensation above is the restore failure boundary.
 
 ## Readiness and route gate
 
@@ -63,18 +82,18 @@ contract is defined in
 
 ## Object stores, keys, and indexes
 
-| Store                   | Key                     | Secondary indexes                                                                                          | Policy                                                                                      |
-| ----------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `urls`                  | `id`                    | `normalizedUrl`, `firstSavedAt`, `lastSavedAt`                                                             | `normalizedUrl` is deliberately non-unique until #738 proves source collisions are handled. |
-| `collections`           | `id`                    | `definition.type`, unique `definition.domain`, `groupId`, `createdAt`, `updatedAt`, `[groupId, sortOrder]` | Domain collections have one canonical domain; Custom records have no domain index entry.    |
-| `collectionMemberships` | `[collectionId, urlId]` | `collectionId`, `urlId`, `[collectionId, categoryId]`, `[collectionId, sortOrder]`, `addedAt`              | The composite key is the #725 logical identity and prevents duplicate membership.           |
-| `collectionCategories`  | `id`                    | `collectionId`, `[collectionId, sortOrder]`                                                                | Category ownership remains explicit.                                                        |
-| `collectionGroups`      | `id`                    | `sortOrder`                                                                                                | Group ordering is indexed without requiring contiguous ranks.                               |
-| `conversations`         | `id`                    | `updatedAt`                                                                                                | Context-owned mapper supplies a JSON-safe value; the store does not own AI domain rules.    |
-| `messages`              | `id`                    | `conversationId`, `[conversationId, createdAt]`, `createdAt`                                               | Messages are queryable without loading a conversation blob.                                 |
-| `analyticsViews`        | `id`                    | `updatedAt`                                                                                                | Context-owned JSON-safe projection.                                                         |
-| `recoverySnapshots`     | `id`                    | `createdAt`, `expiresAt`                                                                                   | Physical placement only; retention and restore remain #740.                                 |
-| `metadata`              | `key`                   | none                                                                                                       | Internal monotonic revision; not part of Backup V2.                                         |
+| Store                   | Key                     | Secondary indexes                                                                                          | Policy                                                                                                   |
+| ----------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `urls`                  | `id`                    | `normalizedUrl`, `firstSavedAt`, `lastSavedAt`                                                             | `normalizedUrl` is deliberately non-unique until #738 proves source collisions are handled.              |
+| `collections`           | `id`                    | `definition.type`, unique `definition.domain`, `groupId`, `createdAt`, `updatedAt`, `[groupId, sortOrder]` | Domain collections have one canonical domain; Custom records have no domain index entry.                 |
+| `collectionMemberships` | `[collectionId, urlId]` | `collectionId`, `urlId`, `[collectionId, categoryId]`, `[collectionId, sortOrder]`, `addedAt`              | The composite key is the #725 logical identity and prevents duplicate membership.                        |
+| `collectionCategories`  | `id`                    | `collectionId`, `[collectionId, sortOrder]`                                                                | Category ownership remains explicit.                                                                     |
+| `collectionGroups`      | `id`                    | `sortOrder`                                                                                                | Group ordering is indexed without requiring contiguous ranks.                                            |
+| `conversations`         | `id`                    | `updatedAt`                                                                                                | Context-owned mapper supplies a JSON-safe value; the store does not own AI domain rules.                 |
+| `messages`              | `id`                    | `conversationId`, `[conversationId, createdAt]`, `createdAt`                                               | Messages are queryable without loading a conversation blob.                                              |
+| `analyticsViews`        | `id`                    | `updatedAt`                                                                                                | Context-owned JSON-safe projection.                                                                      |
+| `recoverySnapshots`     | `id`                    | `createdAt`, `expiresAt`                                                                                   | At most 2 snapshots, 7 days, and 256 MiB aggregate; expired/older records are pruned atomically on save. |
+| `metadata`              | `key`                   | none                                                                                                       | Internal monotonic revision; not part of Backup V2.                                                      |
 
 Arbitrary runtime values are not accepted merely because structured clone can
 store them. Every complete write-plan record is validated as `JsonValue` before

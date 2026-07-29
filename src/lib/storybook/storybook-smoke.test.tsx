@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { composeStories } from '@storybook/react'
 import { render, screen } from '@testing-library/react'
+import type { PropsWithChildren } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import * as inputStories from '@/components/ai-elements/vendor/inputs.stories'
@@ -14,6 +15,7 @@ import * as importExportStories from '@/features/options/ImportExportSettings.st
 import { createPreview } from '@/lib/storybook/preview'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
+  I18nProvider: ({ children }: PropsWithChildren) => <>{children}</>,
   useI18n: () => ({
     language: 'ja',
     t: (key: string) =>

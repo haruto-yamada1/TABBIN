@@ -20,6 +20,25 @@ export type {
   RawLegacyStorageSnapshot,
   RawLegacyStorageValue,
 } from './application/ports/RawLegacyStorageReaderPort'
+export type { ClockPort } from './application/ports/ClockPort'
+export type { IdGeneratorPort } from './application/ports/IdGeneratorPort'
+export type {
+  PersistenceChangeEvent,
+  PersistenceChangePort,
+  PersistenceChangeScope,
+} from './application/ports/PersistenceChangePort'
+export type {
+  PersistenceRecoverySnapshotRecord,
+  PersistenceRecoverySnapshotRepositoryPort,
+  PersistenceRecoverySnapshotRetentionPolicy,
+  PersistenceRecoverySnapshotSaveResult,
+  PersistenceRecoverySnapshotSummary,
+} from './application/ports/PersistenceRecoverySnapshotPort'
+export { PERSISTENCE_NOTIFICATION_FAILED_AFTER_COMMIT_CODE } from './application/services/PersistenceMutationCoordinatorService'
+export type {
+  PersistenceNotificationFailureDiagnostic,
+  PersistenceNotificationFailureStage,
+} from './application/services/PersistenceMutationCoordinatorService'
 export type { PersistenceLogicalSnapshot } from './application/ports/PersistenceV2SnapshotReaderPort'
 export type {
   PersistenceV2ReplacementErrorCode,

@@ -41,6 +41,11 @@ vi.mock('@/app/composition/optionsBackupV2Export', () => ({
   exportBackupV2: vi.fn(),
 }))
 
+vi.mock('@/app/composition/optionsBackupRecovery', () => ({
+  listBackupRecoverySnapshots: vi.fn(),
+  restoreBackupRecoverySnapshot: vi.fn(),
+}))
+
 vi.mock('@/lib/browser/runtime', () => ({
   sendRuntimeMessage: vi.fn(),
 }))
@@ -101,6 +106,20 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'Create a recovery backup before importing',
         'options.importExport.autoBackupDescription':
           'Saves current settings to allow recovery if the import fails or is accidental.',
+        'options.importExport.recoveryDescription':
+          'Created {{createdAt}}. Available until {{expiresAt}}.',
+        'options.importExport.recoveryRestore': 'Restore original data',
+        'options.importExport.recoveryRestoreConfirmAction': 'Restore now',
+        'options.importExport.recoveryRestoreConfirmDescription':
+          'Replace current data with this recovery point?',
+        'options.importExport.recoveryRestoreConfirmTitle':
+          'Restore the data from before import?',
+        'options.importExport.recoveryRestoreError':
+          'Could not restore the original data',
+        'options.importExport.recoveryRestoreSuccess':
+          'Restored the original data',
+        'options.importExport.recoveryRestoring': 'Restoring...',
+        'options.importExport.recoveryTitle': 'Recovery point available',
         'options.importExport.back': 'Back',
         'options.importExport.confirmImport': 'Confirm Import',
         'common.yes': 'Yes',
@@ -119,6 +138,10 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 
 import { toast } from 'sonner'
 
+import {
+  listBackupRecoverySnapshots,
+  restoreBackupRecoverySnapshot,
+} from '@/app/composition/optionsBackupRecovery'
 import { exportBackupV2 } from '@/app/composition/optionsBackupV2Export'
 import {
   downloadAsJson,
@@ -184,6 +207,18 @@ describe('ImportExportSettingsコンポーネント', () => {
     readerMode = 'success'
     readerContent = '{"import":"payload"}'
     readerAsync = false
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([])
+    vi.mocked(restoreBackupRecoverySnapshot).mockResolvedValue({
+      notification: {
+        event: {
+          changeId: 'recovery-change',
+          revision: 3,
+          scopes: ['recoverySnapshots'],
+        },
+        kind: 'committed_and_published',
+      },
+      revision: 3,
+    })
 
     ;(globalThis as Record<string, unknown>).FileReader =
       MockFileReader as unknown as typeof FileReader
@@ -254,6 +289,75 @@ describe('ImportExportSettingsコンポーネント', () => {
         'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
       ),
     ).toBeTruthy()
+  })
+
+  it('保存済み回復ポイントを表示し確認後に元のデータへ戻す', async () => {
+    const user = userEvent.setup()
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([
+      {
+        createdAt: Date.UTC(2026, 6, 29, 12),
+        expiresAt: Date.UTC(2026, 7, 5, 12),
+        id: '00000000-0000-4000-8000-000000000740',
+        serializedBytes: 1_024,
+        sourceRevision: 1,
+      },
+    ])
+
+    render(<ImportExportSettings />)
+
+    expect(await screen.findByText('Recovery point available')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: 'Restore original data' }),
+    )
+    expect(
+      screen.getByText('Restore the data from before import?'),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Restore now' }))
+
+    await waitFor(() => {
+      expect(restoreBackupRecoverySnapshot).toHaveBeenCalledWith(
+        '00000000-0000-4000-8000-000000000740',
+      )
+    })
+    expect(sendRuntimeMessage).toHaveBeenCalledWith({
+      action: 'settingsImported',
+    })
+    expect(toast.success).toHaveBeenCalledWith('Restored the original data')
+  })
+
+  it('復元失敗時は内容をログへ出さず失敗を通知する', async () => {
+    const user = userEvent.setup()
+    const secret = 'https://secret.example.test/private'
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([
+      {
+        createdAt: Date.UTC(2026, 6, 29, 12),
+        expiresAt: Date.UTC(2026, 7, 5, 12),
+        id: '00000000-0000-4000-8000-000000000740',
+        serializedBytes: 1_024,
+        sourceRevision: 1,
+      },
+    ])
+    vi.mocked(restoreBackupRecoverySnapshot).mockRejectedValue(
+      new Error(secret),
+    )
+
+    render(<ImportExportSettings />)
+    await screen.findByText('Recovery point available')
+    await user.click(
+      screen.getByRole('button', { name: 'Restore original data' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Restore now' }))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Could not restore the original data',
+      )
+    })
+    expect(sendRuntimeMessage).not.toHaveBeenCalled()
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      secret,
+    )
   })
 
   it('エクスポート失敗時にエラートーストを表示する', async () => {

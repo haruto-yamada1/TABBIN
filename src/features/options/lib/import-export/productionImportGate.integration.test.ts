@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('@/app/composition/optionsBackupRecovery', () => ({
+  importBackupV2WithRecovery: vi.fn(),
+}))
+
 vi.mock('@/lib/storage/migration', () => ({
   migrateToUrlsStorage: vi.fn(),
 }))
 
+import { importBackupV2WithRecovery } from '@/app/composition/optionsBackupRecovery'
 import { migrateToUrlsStorage } from '@/lib/storage/migration'
 
 vi.mock('./currentImportDate', () => ({
@@ -12,7 +17,7 @@ vi.mock('./currentImportDate', () => ({
 }))
 
 import { getCurrentUtcDateOnly } from './currentImportDate'
-import { importSettings } from './flows'
+import { getImportPreview, importSettings } from './flows'
 
 const currentV2 = {
   appVersion: '2.0.8',
@@ -67,6 +72,19 @@ describe('importSettings production pre-mutation gate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(importBackupV2WithRecovery).mockResolvedValue({
+      entityCounts: {
+        analyticsViews: 0,
+        categories: 0,
+        collections: 0,
+        conversations: 0,
+        groups: 0,
+        memberships: 0,
+        messages: 0,
+        urls: 0,
+      },
+      revision: 2,
+    })
     vi.mocked(migrateToUrlsStorage).mockResolvedValue(undefined)
     vi.mocked(getCurrentUtcDateOnly).mockReturnValue('2026-08-31')
     Object.defineProperty(globalThis, 'chrome', {
@@ -112,7 +130,45 @@ describe('importSettings production pre-mutation gate', () => {
     expect(set).not.toHaveBeenCalled()
   })
 
-  it('blocks a valid legacy overwrite before migration or storage access', async () => {
+  it.each([
+    ['current V2', currentV2],
+    ['legacy', legacyBackup],
+  ])(
+    'routes a valid %s overwrite through recovery before legacy mutation paths',
+    async (_label, backup) => {
+      const result = await importSettings(JSON.stringify(backup), false)
+
+      expect(result.success).toBe(true)
+      expect(importBackupV2WithRecovery).toHaveBeenCalledOnce()
+      expect(migrateToUrlsStorage).not.toHaveBeenCalled()
+      expect(get).not.toHaveBeenCalled()
+      expect(set).not.toHaveBeenCalled()
+    },
+  )
+
+  it('returns a strict V2 preview before the overwrite confirmation', () => {
+    const result = getImportPreview(JSON.stringify(currentV2))
+
+    expect(result).toEqual({
+      success: true,
+      message: 'データの解析に成功しました',
+      preview: {
+        categoriesCount: 0,
+        domainsCount: 0,
+        hasAiChat: false,
+        hasAnalytics: false,
+        projectsCount: 0,
+        timestamp: '2026-07-28T00:00:00.000Z',
+        version: '2.0.8',
+      },
+    })
+  })
+
+  it('blocks an overwrite when recovery capture fails', async () => {
+    vi.mocked(importBackupV2WithRecovery).mockRejectedValueOnce(
+      new Error('RECOVERY_CAPTURE_FAILED'),
+    )
+
     const result = await importSettings(JSON.stringify(legacyBackup), false)
 
     expect(result.success).toBe(false)

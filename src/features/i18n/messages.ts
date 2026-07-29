@@ -492,6 +492,19 @@ const messages = {
     'options.importExport.previewTitle': 'Import Preview',
     'options.importExport.previewVersionLabel': 'Backup Version',
     'options.importExport.readError': 'Failed to read the file',
+    'options.importExport.recoveryDescription':
+      'Created {{createdAt}}. Available until {{expiresAt}}.',
+    'options.importExport.recoveryRestore': 'Restore original data',
+    'options.importExport.recoveryRestoreConfirmAction': 'Restore now',
+    'options.importExport.recoveryRestoreConfirmDescription':
+      'Replace the current data with this recovery point? A recovery point for the current data will be saved first.',
+    'options.importExport.recoveryRestoreConfirmTitle':
+      'Restore the data from before import?',
+    'options.importExport.recoveryRestoreError':
+      'Could not restore the original data',
+    'options.importExport.recoveryRestoreSuccess': 'Restored the original data',
+    'options.importExport.recoveryRestoring': 'Restoring...',
+    'options.importExport.recoveryTitle': 'Recovery point available',
     'options.importExport.replaceDescription':
       'Importing will overwrite all current settings and tab data. This cannot be undone.',
     'options.importExport.replaceLabel': 'Warning',
@@ -1357,6 +1370,19 @@ const messages = {
     'options.importExport.previewTitle': 'インポートプレビュー',
     'options.importExport.previewVersionLabel': 'バックアップバージョン',
     'options.importExport.readError': 'ファイルの読み込みに失敗しました',
+    'options.importExport.recoveryDescription':
+      '{{createdAt}} に保存されました。{{expiresAt}} まで利用できます。',
+    'options.importExport.recoveryRestore': '元のデータに戻す',
+    'options.importExport.recoveryRestoreConfirmAction': '復元する',
+    'options.importExport.recoveryRestoreConfirmDescription':
+      '現在のデータをこの回復ポイントで置き換えます。現在のデータも復元前に回復ポイントとして保存されます。',
+    'options.importExport.recoveryRestoreConfirmTitle':
+      'インポート前のデータに戻しますか？',
+    'options.importExport.recoveryRestoreError':
+      '元のデータに戻すことができませんでした',
+    'options.importExport.recoveryRestoreSuccess': '元のデータに戻しました',
+    'options.importExport.recoveryRestoring': '復元中...',
+    'options.importExport.recoveryTitle': '回復ポイントがあります',
     'options.importExport.replaceDescription':
       'インポートすると現在の設定とタブデータがすべて上書きされます。この操作は元に戻せません。',
     'options.importExport.replaceLabel': '警告',
