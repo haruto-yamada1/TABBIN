@@ -111,6 +111,46 @@ const decodeSnapshot = (
   }
 }
 
+const decodeSnapshotSummary = (
+  value: unknown,
+): PersistenceRecoverySnapshotSummary => {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    value.id.length === 0 ||
+    !isSafePositiveInteger(value.backupSchemaVersion) ||
+    !isSafeNonNegativeInteger(value.createdAt) ||
+    !isSafeNonNegativeInteger(value.expiresAt) ||
+    value.expiresAt <= value.createdAt ||
+    !isSafeNonNegativeInteger(value.serializedBytes) ||
+    !isSafeNonNegativeInteger(value.sourceRevision) ||
+    !Object.hasOwn(value, 'data')
+  ) {
+    throw new PersistenceRecoverySnapshotRepositoryError(
+      'INVALID_STORED_SNAPSHOT',
+    )
+  }
+
+  return {
+    createdAt: value.createdAt,
+    expiresAt: value.expiresAt,
+    id: value.id,
+    serializedBytes: value.serializedBytes,
+    sourceRevision: value.sourceRevision,
+  }
+}
+
+const decodeSnapshotSummaries = (
+  value: unknown,
+): readonly PersistenceRecoverySnapshotSummary[] => {
+  if (!Array.isArray(value)) {
+    throw new PersistenceRecoverySnapshotRepositoryError(
+      'INVALID_STORED_SNAPSHOT',
+    )
+  }
+  return value.map(decodeSnapshotSummary)
+}
+
 const decodeSnapshots = (
   value: unknown,
 ): readonly PersistenceRecoverySnapshotRecord[] => {
@@ -149,8 +189,8 @@ const toSummary = (
 })
 
 const compareNewestFirst = (
-  left: PersistenceRecoverySnapshotRecord,
-  right: PersistenceRecoverySnapshotRecord,
+  left: PersistenceRecoverySnapshotSummary,
+  right: PersistenceRecoverySnapshotSummary,
 ): number => right.createdAt - left.createdAt || right.id.localeCompare(left.id)
 
 const selectRetainedSnapshots = (
@@ -382,10 +422,9 @@ export class IndexedDbPersistenceRecoverySnapshotRepository implements Persisten
           })
         },
       )
-      return decodeSnapshots(result ?? [])
+      return decodeSnapshotSummaries(result ?? [])
         .filter(({ expiresAt }) => expiresAt > now)
         .toSorted(compareNewestFirst)
-        .map(toSummary)
     })
   }
 

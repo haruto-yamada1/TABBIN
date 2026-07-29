@@ -2490,6 +2490,20 @@ describe('import-export ユーティリティ', () => {
       message: 'インポートされたデータの形式が正しくありません',
     })
 
+    expect(
+      getImportPreview(
+        JSON.stringify({
+          appVersion: '99.0.0',
+          data: {},
+          exportedAt: '2026-03-15T00:00:00.000Z',
+          schemaVersion: 99,
+        }),
+      ),
+    ).toEqual({
+      success: false,
+      message: 'インポートされたデータの形式が正しくありません',
+    })
+
     expect(getImportPreview('{malformed-json')).toEqual({
       success: false,
       message: 'データの解析中にエラーが発生しました',

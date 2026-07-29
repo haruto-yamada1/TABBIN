@@ -119,13 +119,13 @@ export const PersistenceRecoveryNotice = ({
         <h2 className='font-semibold'>
           {t('options.persistenceRecovery.title', 'Storage recovery required')}
         </h2>
-        <p className='text-sm text-muted-foreground'>
+        <p className='text-sm text-foreground/80'>
           {t(
             'options.persistenceRecovery.description',
             'The update could not be completed. Your previous data has not been deleted.',
           )}
         </p>
-        <p className='mt-2 text-xs text-muted-foreground'>
+        <p className='mt-2 text-xs text-foreground/80'>
           {t(
             'options.persistenceRecovery.backupPrivacy',
             'The emergency backup contains private URLs, titles, notes, and AI content. Store it securely.',

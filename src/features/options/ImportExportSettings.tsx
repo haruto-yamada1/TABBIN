@@ -1,5 +1,5 @@
 import { AlertCircle, Download } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -14,6 +14,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { ImportFileDialog } from '@/features/options/ImportFileDialog'
 import { downloadAsJson } from '@/features/options/lib/import-export'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
+import { logger } from '@/lib/logging/logger'
 
 import { RecoverySnapshotNotice } from './RecoverySnapshotNotice'
 
@@ -24,30 +25,37 @@ export const ImportExportSettings: React.FC = () => {
   const [recoverySnapshots, setRecoverySnapshots] = useState<
     readonly PersistenceRecoverySnapshotSummary[]
   >([])
+  const recoverySnapshotRequestGeneration = useRef(0)
 
   const refreshRecoverySnapshots = useCallback(async () => {
+    const requestGeneration = ++recoverySnapshotRequestGeneration.current
     try {
-      setRecoverySnapshots(await listBackupRecoverySnapshots())
+      const snapshots = await listBackupRecoverySnapshots()
+      if (requestGeneration === recoverySnapshotRequestGeneration.current) {
+        setRecoverySnapshots(snapshots)
+      }
     } catch {
-      setRecoverySnapshots([])
+      if (requestGeneration === recoverySnapshotRequestGeneration.current) {
+        setRecoverySnapshots([])
+      }
     }
   }, [])
 
   useEffect(() => {
-    let isActive = true
+    const requestGeneration = ++recoverySnapshotRequestGeneration.current
     void listBackupRecoverySnapshots()
       .then((snapshots) => {
-        if (isActive) {
+        if (requestGeneration === recoverySnapshotRequestGeneration.current) {
           setRecoverySnapshots(snapshots)
         }
       })
       .catch(() => {
-        if (isActive) {
+        if (requestGeneration === recoverySnapshotRequestGeneration.current) {
           setRecoverySnapshots([])
         }
       })
     return () => {
-      isActive = false
+      recoverySnapshotRequestGeneration.current += 1
     }
   }, [])
 
@@ -82,17 +90,30 @@ export const ImportExportSettings: React.FC = () => {
     if (!recoverySnapshot) {
       return
     }
+    setIsRestoring(true)
     try {
-      setIsRestoring(true)
-      await restoreBackupRecoverySnapshot(recoverySnapshot.id)
+      try {
+        await restoreBackupRecoverySnapshot(recoverySnapshot.id)
+      } catch {
+        console.error('回復ポイントからの復元エラー')
+        toast.error(t('options.importExport.recoveryRestoreError'))
+        return
+      }
+
+      const logPostRestoreFailure = (error: unknown, action: string): void => {
+        logger.error('recovery_postrestore_sync_failed', error, { action })
+      }
       await Promise.all([
-        sendRuntimeMessage({ action: 'settingsImported' }),
-        refreshRecoverySnapshots(),
+        sendRuntimeMessage({ action: 'settingsImported' }).catch(
+          (error: unknown) => {
+            logPostRestoreFailure(error, 'notifySettingsImported')
+          },
+        ),
+        refreshRecoverySnapshots().catch((error: unknown) => {
+          logPostRestoreFailure(error, 'refreshRecoverySnapshots')
+        }),
       ])
       toast.success(t('options.importExport.recoveryRestoreSuccess'))
-    } catch {
-      console.error('回復ポイントからの復元エラー')
-      toast.error(t('options.importExport.recoveryRestoreError'))
     } finally {
       setIsRestoring(false)
     }

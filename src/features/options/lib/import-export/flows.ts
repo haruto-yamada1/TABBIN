@@ -10,7 +10,10 @@ import {
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { assertBackupSerializedBytes } from '@/lib/persistence/backupResourcePolicy'
-import { detectBackupFormat } from '@/lib/persistence/backupSchema'
+import {
+  BackupSchemaError,
+  detectBackupFormat,
+} from '@/lib/persistence/backupSchema'
 import { loadSavedAnalyticsViews } from '@/lib/storage/analytics'
 import {
   getParentCategories,
@@ -636,6 +639,12 @@ const getImportPreview = (
       },
     }
   } catch (error) {
+    if (error instanceof BackupSchemaError) {
+      return {
+        success: false,
+        message: 'インポートされたデータの形式が正しくありません',
+      }
+    }
     console.error('プレビュー解析エラー:', error)
     return {
       success: false,

@@ -1,5 +1,5 @@
 import { IDBFactory } from 'fake-indexeddb'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { PersistenceRecoverySnapshotRecord } from '@/contexts/saved-tabs/application/ports/PersistenceRecoverySnapshotPort'
 import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
@@ -219,6 +219,37 @@ describe('IndexedDbPersistenceRecoverySnapshotRepository', () => {
       }),
     )
     reopenedManager.close()
+  })
+
+  it('lists summaries without reserializing snapshot payloads', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'recovery-summary-without-reserialization',
+      indexedDb: new IDBFactory(),
+    })
+    await seed(manager, [createRecord('summary')])
+    const repository = new IndexedDbPersistenceRecoverySnapshotRepository(
+      manager,
+      createReadyPersistenceOperationGateStub(),
+    )
+    const stringify = vi.spyOn(JSON, 'stringify').mockImplementation(() => {
+      throw new Error('snapshot payload must not be serialized')
+    })
+
+    let summaries
+    try {
+      summaries = await repository.listAvailable(1_000)
+    } finally {
+      stringify.mockRestore()
+      manager.close()
+    }
+
+    expect(summaries).toEqual([
+      expect.objectContaining({
+        id: 'summary',
+        serializedBytes: createRecord('summary').serializedBytes,
+      }),
+    ])
+    expect(stringify).not.toHaveBeenCalled()
   })
 
   it('fails closed on malformed internal snapshot records without exposing content', async () => {

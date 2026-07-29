@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -143,6 +144,7 @@ import {
   restoreBackupRecoverySnapshot,
 } from '@/app/composition/optionsBackupRecovery'
 import { exportBackupV2 } from '@/app/composition/optionsBackupV2Export'
+import type { PersistenceRecoverySnapshotSummary } from '@/contexts/saved-tabs/public-api'
 import {
   downloadAsJson,
   getImportPreview,
@@ -192,6 +194,14 @@ const getHiddenFileInput = (container: HTMLElement): HTMLInputElement =>
 const getDropzoneFileInput = (): HTMLInputElement =>
   screen.getByTestId('dropzone-file-input') as HTMLInputElement
 
+const recoverySnapshot = {
+  createdAt: Date.UTC(2026, 6, 29, 12),
+  expiresAt: Date.UTC(2026, 7, 5, 12),
+  id: '00000000-0000-4000-8000-000000000740',
+  serializedBytes: 1_024,
+  sourceRevision: 1,
+} as const satisfies PersistenceRecoverySnapshotSummary
+
 describe('ImportExportSettingsコンポーネント', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -219,6 +229,7 @@ describe('ImportExportSettingsコンポーネント', () => {
       },
       revision: 3,
     })
+    vi.mocked(sendRuntimeMessage).mockResolvedValue(undefined)
 
     ;(globalThis as Record<string, unknown>).FileReader =
       MockFileReader as unknown as typeof FileReader
@@ -293,15 +304,7 @@ describe('ImportExportSettingsコンポーネント', () => {
 
   it('保存済み回復ポイントを表示し確認後に元のデータへ戻す', async () => {
     const user = userEvent.setup()
-    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([
-      {
-        createdAt: Date.UTC(2026, 6, 29, 12),
-        expiresAt: Date.UTC(2026, 7, 5, 12),
-        id: '00000000-0000-4000-8000-000000000740',
-        serializedBytes: 1_024,
-        sourceRevision: 1,
-      },
-    ])
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([recoverySnapshot])
 
     render(<ImportExportSettings />)
 
@@ -319,25 +322,42 @@ describe('ImportExportSettingsコンポーネント', () => {
       expect(restoreBackupRecoverySnapshot).toHaveBeenCalledWith(
         '00000000-0000-4000-8000-000000000740',
       )
+      expect(sendRuntimeMessage).toHaveBeenCalledWith({
+        action: 'settingsImported',
+      })
+      expect(toast.success).toHaveBeenCalledWith('Restored the original data')
     })
-    expect(sendRuntimeMessage).toHaveBeenCalledWith({
-      action: 'settingsImported',
+  })
+
+  it('復元後の通知失敗を復元失敗として表示しない', async () => {
+    const user = userEvent.setup()
+    const secret = 'https://secret.example.test/private'
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([recoverySnapshot])
+    vi.mocked(sendRuntimeMessage).mockRejectedValue(new Error(secret))
+
+    render(<ImportExportSettings />)
+    await screen.findByText('Recovery point available')
+    await user.click(
+      screen.getByRole('button', { name: 'Restore original data' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Restore now' }))
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('Restored the original data')
     })
-    expect(toast.success).toHaveBeenCalledWith('Restored the original data')
+    expect(toast.error).not.toHaveBeenCalledWith(
+      'Could not restore the original data',
+    )
+    expect(restoreBackupRecoverySnapshot).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      secret,
+    )
   })
 
   it('復元失敗時は内容をログへ出さず失敗を通知する', async () => {
     const user = userEvent.setup()
     const secret = 'https://secret.example.test/private'
-    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([
-      {
-        createdAt: Date.UTC(2026, 6, 29, 12),
-        expiresAt: Date.UTC(2026, 7, 5, 12),
-        id: '00000000-0000-4000-8000-000000000740',
-        serializedBytes: 1_024,
-        sourceRevision: 1,
-      },
-    ])
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([recoverySnapshot])
     vi.mocked(restoreBackupRecoverySnapshot).mockRejectedValue(
       new Error(secret),
     )
@@ -358,6 +378,46 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
       secret,
     )
+  })
+
+  it('古い一覧取得結果でインポート後の回復ポイントを上書きしない', async () => {
+    const user = userEvent.setup()
+    let resolveInitialRequest:
+      | ((snapshots: readonly PersistenceRecoverySnapshotSummary[]) => void)
+      | undefined
+    const initialRequest = new Promise<
+      readonly PersistenceRecoverySnapshotSummary[]
+    >((resolve) => {
+      resolveInitialRequest = resolve
+    })
+    vi.mocked(listBackupRecoverySnapshots)
+      .mockImplementationOnce(async () => initialRequest)
+      .mockResolvedValueOnce([recoverySnapshot])
+    vi.mocked(importSettings).mockResolvedValue({
+      success: true,
+      message: 'Import successful',
+    })
+
+    const { container } = render(<ImportExportSettings />)
+    // user.upload internally calls user.click which fails on hidden inputs.
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+    await user.click(
+      await screen.findByRole('button', { name: 'Confirm Import' }),
+    )
+
+    expect(await screen.findByText('Recovery point available')).toBeTruthy()
+    await act(async () => {
+      resolveInitialRequest?.([])
+      await initialRequest
+    })
+    expect(screen.getByText('Recovery point available')).toBeTruthy()
   })
 
   it('エクスポート失敗時にエラートーストを表示する', async () => {
