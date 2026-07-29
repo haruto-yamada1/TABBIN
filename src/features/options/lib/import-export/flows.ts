@@ -1,3 +1,4 @@
+import { mergeLegacyBackupIntoIndexedDb } from '@/app/composition/optionsLegacyBackupMerge'
 import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
 import { getAppVersion } from '@/constants/app-version'
 import {
@@ -33,6 +34,7 @@ import type {
 } from '@/types/storage'
 import { formatLocaleDateTime } from '@/utils/localDateTime'
 
+import { getCurrentUtcDateOnly } from './currentImportDate'
 import {
   alignCustomProjectsWithSavedTabs,
   mergeImportedCustomProjects,
@@ -43,6 +45,8 @@ import {
   resolveImportedCustomProjects,
   toExportCustomProject,
 } from './custom-projects'
+import { assertProductionImportAllowed } from './productionImportGate'
+import type { ProductionImportGateOptions } from './productionImportGate'
 import type { BackupData, ImportedUrlRecordData } from './schemas'
 import { parseBackupData } from './schemas'
 import {
@@ -211,7 +215,7 @@ const exportSettings = async (): Promise<BackupData> => {
  * @param data ダウンロードするデータ
  * @param filename ファイル名
  */
-const downloadAsJson = (data: BackupData, filename: string): void => {
+const downloadAsJson = (data: unknown, filename: string): void => {
   const json = JSON.stringify(data)
   const blob = new Blob([json], {
     type: 'application/json',
@@ -448,15 +452,34 @@ const importWithOverwrite = async ({
   }
 }
 
+// eslint-disable-next-line eslint/complexity -- routes strict Backup V2, canonical legacy merge, and compatibility parsing
 const importSettings = async (
   jsonData: string,
   mergeData = true, // デフォルトでマージを有効に
   translate?: Translate,
+  options: Partial<ProductionImportGateOptions> = {},
 ): Promise<{
   success: boolean
   message: string
 }> => {
   try {
+    const gateResult = assertProductionImportAllowed(jsonData, {
+      importDate: options.importDate ?? getCurrentUtcDateOnly(),
+      importMode: mergeData ? 'merge' : 'overwrite',
+    })
+    if (gateResult?.kind === 'legacy-merge') {
+      const mergeResult = await mergeLegacyBackupIntoIndexedDb(gateResult)
+      return {
+        success: true,
+        message: translate
+          ? translate('options.importExport.mergeSuccess', undefined, {
+              categories: String(mergeResult.addedEntityCounts.groups),
+              domains: String(mergeResult.addedEntityCounts.collections),
+              unresolved: '',
+            })
+          : `データをマージしました (${mergeResult.addedEntityCounts.groups}個のカテゴリ、${mergeResult.addedEntityCounts.collections}個のドメインを追加)`,
+      }
+    }
     await migrateToUrlsStorage()
     const importedData = parseBackupData(jsonData)
     if (!importedData) {

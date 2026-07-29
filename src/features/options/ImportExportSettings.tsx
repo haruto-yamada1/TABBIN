@@ -2,14 +2,12 @@ import { AlertCircle, Download } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
+import { exportBackupV2 } from '@/app/composition/optionsBackupV2Export'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { ImportFileDialog } from '@/features/options/ImportFileDialog'
-import {
-  downloadAsJson,
-  exportSettings,
-} from '@/features/options/lib/import-export'
+import { downloadAsJson } from '@/features/options/lib/import-export'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
 
 const handleImportSuccess = async () => {
@@ -23,7 +21,7 @@ export const ImportExportSettings: React.FC = () => {
   const handleExport = useCallback(async () => {
     try {
       setIsExporting(true)
-      const data = await exportSettings()
+      const data = await exportBackupV2()
 
       const date = new Date()
       const formattedDate = date.toISOString().split('T')[0]
@@ -31,8 +29,8 @@ export const ImportExportSettings: React.FC = () => {
 
       downloadAsJson(data, filename)
       toast.success(t('options.importExport.exportSuccess'))
-    } catch (error) {
-      console.error('エクスポートエラー:', error)
+    } catch {
+      console.error('エクスポートエラー')
       toast.error(t('options.importExport.exportError'))
     } finally {
       setIsExporting(false)

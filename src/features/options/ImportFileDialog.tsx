@@ -21,6 +21,7 @@ import {
   getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
+import { getCurrentUtcDateOnly } from '@/features/options/lib/import-export/currentImportDate'
 import {
   BACKUP_MAX_SERIALIZED_SIZE_LABEL,
   validateBackupSerializedBytes,
@@ -323,6 +324,9 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             content,
             importDialog.mergeData,
             t,
+            {
+              importDate: getCurrentUtcDateOnly(),
+            },
           )
           if (result.success) {
             toast.success(result.message)

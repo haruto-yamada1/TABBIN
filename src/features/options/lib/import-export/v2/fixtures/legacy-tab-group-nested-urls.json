@@ -1,0 +1,22 @@
+{
+  "version": "1.9.0",
+  "timestamp": "2026-07-01T00:00:00.000Z",
+  "userSettings": {
+    "showSavedTime": true
+  },
+  "parentCategories": [],
+  "savedTabs": [
+    {
+      "id": "domain-nested",
+      "domain": "nested.example.com",
+      "subCategories": ["docs"],
+      "urls": [
+        {
+          "url": "https://nested.example.com/guide",
+          "title": "Nested guide",
+          "subCategory": "docs"
+        }
+      ]
+    }
+  ]
+}

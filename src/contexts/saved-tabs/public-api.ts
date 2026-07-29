@@ -14,6 +14,24 @@
 
 export { normalizeDomainString } from './domain/value-objects/DomainName'
 
+export { mapLegacyStorageToPersistenceV2 } from './application/mappers/LegacyStorageToPersistenceV2Mapper'
+export type { LegacyMigrationIssueCode } from './application/mappers/LegacyStorageToPersistenceV2Mapper'
+export type {
+  RawLegacyStorageSnapshot,
+  RawLegacyStorageValue,
+} from './application/ports/RawLegacyStorageReaderPort'
+export type { PersistenceLogicalSnapshot } from './application/ports/PersistenceV2SnapshotReaderPort'
+export type {
+  PersistenceV2ReplacementErrorCode,
+  PersistenceV2ReplacementPort,
+  PersistenceV2ReplacementResult,
+  PersistenceV2ReplacementTarget,
+} from './application/ports/PersistenceV2ReplacementPort'
+export type {
+  PersistenceJsonRecord,
+  PersistenceMessageRecord,
+} from './application/ports/PersistenceV2UnitOfWorkPort'
+
 // issue #639: settings defaults を public API 経由で提供する
 export { savedTabsActionSettingsDefaults } from './domain/services/SavedTabsActionSettingsPolicy'
 export {
