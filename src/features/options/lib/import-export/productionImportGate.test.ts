@@ -103,6 +103,7 @@ describe('assertProductionImportAllowed', () => {
         preview: { formatKind: 'legacy' },
       },
       kind: 'legacy-merge',
+      serializedBytes: new TextEncoder().encode(legacy).byteLength,
       userSettingsPatch: expect.any(Object),
     })
 

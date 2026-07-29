@@ -130,11 +130,11 @@ export const convertLegacyBackup = (
   input: unknown,
   importDate: string,
 ): LegacyBackupConversion => {
-  if (!isLegacyBackupImportSupported(importDate)) {
-    throw new LegacyBackupImportError('LEGACY_IMPORT_CUTOFF_REACHED')
-  }
   if (detectBackupFormat(input).kind !== 'legacy') {
     throw new BackupSchemaError('INVALID_SCHEMA')
+  }
+  if (!isLegacyBackupImportSupported(importDate)) {
+    throw new LegacyBackupImportError('LEGACY_IMPORT_CUTOFF_REACHED')
   }
 
   const legacyResult = LegacyBackupV0Schema.safeParse(input)
@@ -171,11 +171,14 @@ export const convertLegacyBackup = (
     appVersion: legacyBackup.version,
     data,
     exportedAt: legacyBackup.timestamp,
-    warnings: migration.issues
-      .filter(({ severity }) => severity === 'warning')
-      .map(({ code, occurrenceCount }) => ({
-        code,
-        count: occurrenceCount,
-      })),
+    warnings: migration.issues.reduce<LegacyBackupWarning[]>(
+      (warnings, { code, occurrenceCount, severity }) => {
+        if (severity === 'warning') {
+          warnings.push({ code, count: occurrenceCount })
+        }
+        return warnings
+      },
+      [],
+    ),
   }
 }

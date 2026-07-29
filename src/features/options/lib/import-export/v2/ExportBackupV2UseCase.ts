@@ -36,8 +36,10 @@ export const createExportBackupV2UseCase = (
   deps: ExportBackupV2UseCaseDeps,
 ): ExportBackupV2UseCase => {
   return async () => {
-    const snapshot = await deps.snapshotReader.readConsistentSnapshot()
-    const userSettings = await deps.readUserSettings()
+    const [snapshot, userSettings] = await Promise.all([
+      deps.snapshotReader.readConsistentSnapshot(),
+      deps.readUserSettings(),
+    ])
     const appVersion = deps.getAppVersion()
     const exportedAt = deps.now().toISOString()
     const data = BackupMapper.toBackupData(snapshot, userSettings)

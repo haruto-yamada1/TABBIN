@@ -21,6 +21,7 @@ import {
   getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
+import { getCurrentUtcDateOnly } from '@/features/options/lib/import-export/currentImportDate'
 import {
   BACKUP_MAX_SERIALIZED_SIZE_LABEL,
   validateBackupSerializedBytes,
@@ -34,8 +35,6 @@ import {
   resetImportFileInput,
 } from './importFileDialog.helpers'
 import type { PreviewData } from './importFileDialog.helpers'
-
-const ISO_DATE_ONLY_LENGTH = 10
 
 type ImportSelectStepProps = {
   mergeData: boolean
@@ -326,9 +325,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             importDialog.mergeData,
             t,
             {
-              importDate: new Date()
-                .toISOString()
-                .slice(0, ISO_DATE_ONLY_LENGTH),
+              importDate: getCurrentUtcDateOnly(),
             },
           )
           if (result.success) {

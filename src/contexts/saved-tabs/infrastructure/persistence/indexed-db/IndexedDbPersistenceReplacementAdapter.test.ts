@@ -1,5 +1,5 @@
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceV2ReplacementTarget } from '@/contexts/saved-tabs/application/ports/PersistenceV2ReplacementPort'
@@ -218,6 +218,10 @@ const readRecord = async (
 
   return result
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('IndexedDbPersistenceReplacementAdapter', () => {
   it('8 logical storeを1 strict transactionで全置換しrevisionだけ更新する', async () => {

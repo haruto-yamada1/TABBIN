@@ -1,3 +1,4 @@
+import type { PersistenceLogicalSnapshot } from '@/contexts/saved-tabs/public-api'
 import { mergeUserSettings } from '@/features/options/lib/import-export/settings-merge'
 import type {
   BackupV2Inspection,
@@ -18,10 +19,15 @@ export type LegacyBackupMergeInput = {
   readonly inspection: BackupV2Inspection & {
     readonly preview: LegacyBackupPreview
   }
+  readonly serializedBytes: number
   readonly userSettingsPatch: LegacyBackupV0['userSettings']
 }
 
 export type LegacyBackupMergeResult = {
+  readonly addedEntityCounts: {
+    readonly collections: number
+    readonly groups: number
+  }
   readonly entityCounts: LegacyBackupPreview['entityCounts']
   readonly revision: number | null
 }
@@ -32,6 +38,7 @@ export type ImportLegacyBackupMergeDeps = {
     options: { readonly durability: 'strict' },
   ) => Promise<{ readonly revision: number }>
   readonly isHealthySavedTabs: (savedTabs: BackupDataV2['savedTabs']) => boolean
+  readonly readSnapshot: () => Promise<PersistenceLogicalSnapshot>
   readonly readUserSettings: () => Promise<UserSettings>
   readonly writeUserSettings: (settings: UserSettings) => Promise<void>
 }
@@ -83,25 +90,44 @@ const toWritePlan = (
   }
 }
 
-const hasLogicalRecords = (
-  inspection: LegacyBackupMergeInput['inspection'],
-): boolean =>
-  Object.values(inspection.preview.entityCounts).some((count) => count > 0)
+const hasLogicalRecords = (data: BackupDataV2): boolean =>
+  [
+    data.analyticsViews,
+    data.conversations,
+    data.messages,
+    data.savedTabs.categories,
+    data.savedTabs.collections,
+    data.savedTabs.groups,
+    data.savedTabs.memberships,
+    data.savedTabs.urls,
+  ].some((records) => records.length > 0)
+
+const countNewIds = (
+  incoming: readonly { readonly id: string }[],
+  existing: readonly { readonly id: string }[],
+): number => {
+  const existingIds = new Set(existing.map(({ id }) => id))
+  return incoming.filter(({ id }) => !existingIds.has(id)).length
+}
 
 export const createImportLegacyBackupMergeUseCase = (
   deps: ImportLegacyBackupMergeDeps,
 ) => {
   return async ({
     inspection,
+    serializedBytes,
     userSettingsPatch,
   }: LegacyBackupMergeInput): Promise<LegacyBackupMergeResult> => {
-    collectBackupV2ResourceUsage(inspection.data, 0)
+    collectBackupV2ResourceUsage(inspection.data, serializedBytes)
     if (!deps.isHealthySavedTabs(inspection.data.savedTabs)) {
       throw new LegacyBackupMergeError()
     }
 
-    const currentSettings = await deps.readUserSettings()
-    const commitResult = hasLogicalRecords(inspection)
+    const [currentSnapshot, currentSettings] = await Promise.all([
+      deps.readSnapshot(),
+      deps.readUserSettings(),
+    ])
+    const commitResult = hasLogicalRecords(inspection.data)
       ? await deps.commit(toWritePlan(inspection), { durability: 'strict' })
       : null
     await deps.writeUserSettings(
@@ -109,6 +135,16 @@ export const createImportLegacyBackupMergeUseCase = (
     )
 
     return {
+      addedEntityCounts: {
+        collections: countNewIds(
+          inspection.data.savedTabs.collections,
+          currentSnapshot.savedTabs.collections,
+        ),
+        groups: countNewIds(
+          inspection.data.savedTabs.groups,
+          currentSnapshot.savedTabs.groups,
+        ),
+      },
       entityCounts: inspection.preview.entityCounts,
       revision: commitResult?.revision ?? null,
     }

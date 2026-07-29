@@ -22,6 +22,12 @@ export type {
 } from './application/ports/RawLegacyStorageReaderPort'
 export type { PersistenceLogicalSnapshot } from './application/ports/PersistenceV2SnapshotReaderPort'
 export type {
+  PersistenceV2ReplacementErrorCode,
+  PersistenceV2ReplacementPort,
+  PersistenceV2ReplacementResult,
+  PersistenceV2ReplacementTarget,
+} from './application/ports/PersistenceV2ReplacementPort'
+export type {
   PersistenceJsonRecord,
   PersistenceMessageRecord,
 } from './application/ports/PersistenceV2UnitOfWorkPort'

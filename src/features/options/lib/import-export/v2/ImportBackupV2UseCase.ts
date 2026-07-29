@@ -1,7 +1,8 @@
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/public-api'
 import type {
   PersistenceLogicalSnapshot,
-  PersistenceV2Snapshot,
+  PersistenceV2ReplacementPort,
+  PersistenceV2ReplacementTarget,
 } from '@/contexts/saved-tabs/public-api'
 import type { UserSettings } from '@/types/storage'
 
@@ -52,19 +53,6 @@ export class BackupV2ImportError extends Error {
     this.name = 'BackupV2ImportError'
     this.code = code
   }
-}
-
-type PersistenceV2ReplacementTarget = {
-  readonly analyticsViews: PersistenceLogicalSnapshot['analyticsViews']
-  readonly conversations: PersistenceLogicalSnapshot['conversations']
-  readonly messages: PersistenceLogicalSnapshot['messages']
-  readonly savedTabs: PersistenceV2Snapshot
-}
-
-type PersistenceV2ReplacementPort = {
-  readonly replaceAll: (
-    target: PersistenceV2ReplacementTarget,
-  ) => Promise<{ readonly revision: number }>
 }
 
 export type OverwriteRecoveryCapability = {

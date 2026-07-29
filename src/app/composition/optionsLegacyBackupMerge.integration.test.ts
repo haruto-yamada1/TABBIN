@@ -7,6 +7,7 @@ import type {
   PersistenceBootstrapPort,
   PersistenceControlStateRepositoryPort,
   PersistenceCoordinationPort,
+  PersistenceOperationGatePort,
   PersistenceRecoveryReporterPort,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import { PersistenceOperationGateService } from '@/contexts/saved-tabs/application/services/PersistenceOperationGateService'
@@ -169,5 +170,50 @@ describe('options legacy Backup merge integration', () => {
     )
     expect(snapshot.savedTabs.collections).toHaveLength(2)
     expect(writeUserSettings).toHaveBeenCalledOnce()
+
+    const duplicateResult = await importSettings(
+      legacyFixture,
+      true,
+      undefined,
+      {
+        importDate: '2026-08-31',
+      },
+    )
+
+    expect(duplicateResult).toEqual({
+      message: 'データをマージしました (0個のカテゴリ、0個のドメインを追加)',
+      success: true,
+    })
+  })
+
+  it('replaces a cached runtime when explicit dependencies are supplied', () => {
+    const firstManager = new IndexedDbConnectionManager({
+      databaseName: 'options-legacy-backup-merge-first',
+      indexedDb: new IDBFactory(),
+    })
+    const secondManager = new IndexedDbConnectionManager({
+      databaseName: 'options-legacy-backup-merge-second',
+      indexedDb: new IDBFactory(),
+    })
+    const operationGate = createIndexedDbGate()
+    const createDeps = (manager: IndexedDbConnectionManager) => ({
+      createConnectionManager: () => manager,
+      createUnitOfWork: (
+        connectionManager: IndexedDbConnectionManager,
+        gate: PersistenceOperationGatePort,
+      ) => new IndexedDbPersistenceUnitOfWork(connectionManager, gate),
+      getOperationGate: () => operationGate,
+      readUserSettings: vi.fn(async () => defaultSettings),
+      writeUserSettings: vi.fn(async () => undefined),
+    })
+
+    const firstRuntime = getOptionsLegacyBackupMergeRuntime(
+      createDeps(firstManager),
+    )
+    const secondRuntime = getOptionsLegacyBackupMergeRuntime(
+      createDeps(secondManager),
+    )
+
+    expect(secondRuntime).not.toBe(firstRuntime)
   })
 })

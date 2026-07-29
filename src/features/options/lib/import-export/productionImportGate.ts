@@ -8,6 +8,7 @@ import type { LegacyBackupMergeInput } from './legacy/ImportLegacyBackupMergeUse
 import { LegacyBackupImportError } from './legacy/LegacyBackupAdapter'
 import { LegacyBackupV0Schema } from './legacy/LegacyBackupV0Schema'
 import { inspectBackupV2 } from './v2/BackupV2Inspector'
+import type { BackupV2Inspection } from './v2/BackupV2Inspector'
 
 export type ProductionBackupImportErrorCode = 'OVERWRITE_RECOVERY_UNAVAILABLE'
 
@@ -42,6 +43,13 @@ const parseJson = (input: string): JsonParseResult => {
     return { success: false }
   }
 }
+
+const isLegacyInspection = (
+  inspection: BackupV2Inspection,
+): inspection is LegacyBackupMergeInput['inspection'] =>
+  inspection.preview.formatKind === 'legacy'
+
+const textEncoder = new TextEncoder()
 
 /**
  * Fail-closed production boundary for backup import.
@@ -83,18 +91,16 @@ export function assertProductionImportAllowed(
       throw new BackupSchemaError('INVALID_SCHEMA')
     }
     const inspection = inspectBackupV2(parseResult.data, { importDate })
-    if (inspection.preview.formatKind !== 'legacy') {
+    if (!isLegacyInspection(inspection)) {
       throw new BackupSchemaError('INVALID_SCHEMA')
     }
     if (importMode === 'overwrite') {
       throw new ProductionBackupImportError('OVERWRITE_RECOVERY_UNAVAILABLE')
     }
     return {
-      inspection: {
-        ...inspection,
-        preview: inspection.preview,
-      },
+      inspection,
       kind: 'legacy-merge',
+      serializedBytes: textEncoder.encode(input).byteLength,
       userSettingsPatch: legacyResult.data.userSettings,
     }
   }

@@ -69,6 +69,15 @@ const createLogicalSnapshot = (
         role: 'user',
       },
     },
+    {
+      conversationId: 'conversation-1',
+      createdAt: 2,
+      id: 'message-2',
+      value: {
+        content: 'reply',
+        role: 'assistant',
+      },
+    },
   ] as const
 
   return {
@@ -109,15 +118,12 @@ const createLogicalSnapshot = (
 
 const createDeps = (
   snapshot: PersistenceLogicalSnapshot = createLogicalSnapshot(),
-): {
-  deps: ExportBackupV2UseCaseDeps
-  getAppVersion: ReturnType<typeof vi.fn>
-  now: ReturnType<typeof vi.fn>
-  readConsistentSnapshot: ReturnType<typeof vi.fn>
-  readUserSettings: ReturnType<typeof vi.fn>
-} => {
-  const readConsistentSnapshot = vi.fn().mockResolvedValue(snapshot)
-  const readUserSettings = vi.fn().mockResolvedValue(userSettings)
+) => {
+  const readConsistentSnapshot =
+    vi.fn<() => Promise<PersistenceLogicalSnapshot>>()
+  readConsistentSnapshot.mockResolvedValue(snapshot)
+  const readUserSettings = vi.fn<() => Promise<UserSettings>>()
+  readUserSettings.mockResolvedValue(userSettings)
   const getAppVersion = vi.fn().mockReturnValue('2026.7.28')
   const now = vi.fn().mockReturnValue(new Date('2026-07-28T03:04:05.000Z'))
   const snapshotReader = {
@@ -168,6 +174,42 @@ describe('createExportBackupV2UseCase', () => {
     expect(firstEnvelope.data).toEqual(secondEnvelope.data)
     expect(firstEnvelope.appVersion).toBe(secondEnvelope.appVersion)
     expect(firstEnvelope.exportedAt).not.toBe(secondEnvelope.exportedAt)
+    expect(firstEnvelope.data.messages.map(({ id }) => id)).toEqual([
+      'message-1',
+      'message-2',
+    ])
+  })
+
+  it('starts the independent snapshot and settings reads concurrently', async () => {
+    const context = createDeps()
+    let releaseSnapshot!: () => void
+    let releaseSettings!: () => void
+    const snapshotReady = new Promise<void>((resolve) => {
+      releaseSnapshot = resolve
+    })
+    const settingsReady = new Promise<void>((resolve) => {
+      releaseSettings = resolve
+    })
+    const snapshot = createLogicalSnapshot()
+    const settings = userSettings
+    context.readConsistentSnapshot.mockImplementation(async () => {
+      await snapshotReady
+      return snapshot
+    })
+    context.readUserSettings.mockImplementation(async () => {
+      await settingsReady
+      return settings
+    })
+
+    const exportPromise = createExportBackupV2UseCase(context.deps)()
+    await Promise.resolve()
+    const settingsStartedBeforeSnapshotReleased =
+      context.readUserSettings.mock.calls.length
+    releaseSnapshot()
+    releaseSettings()
+    await exportPromise
+
+    expect(settingsStartedBeforeSnapshotReleased).toBe(1)
   })
 
   it('validates logical resources before serializing the envelope', async () => {
@@ -237,7 +279,7 @@ describe('createExportBackupV2UseCase', () => {
     },
   )
 
-  it('propagates snapshot failures unchanged and does not continue', async () => {
+  it('propagates snapshot failures unchanged and does not build the envelope', async () => {
     const context = createDeps()
     const failure = new Error('snapshot failed')
     context.readConsistentSnapshot.mockRejectedValue(failure)
@@ -246,7 +288,7 @@ describe('createExportBackupV2UseCase', () => {
       failure,
     )
     expect(context.readConsistentSnapshot).toHaveBeenCalledTimes(1)
-    expect(context.readUserSettings).not.toHaveBeenCalled()
+    expect(context.readUserSettings).toHaveBeenCalledTimes(1)
     expect(context.getAppVersion).not.toHaveBeenCalled()
     expect(context.now).not.toHaveBeenCalled()
   })

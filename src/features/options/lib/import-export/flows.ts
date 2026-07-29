@@ -473,11 +473,11 @@ const importSettings = async (
         success: true,
         message: translate
           ? translate('options.importExport.mergeSuccess', undefined, {
-              categories: String(mergeResult.entityCounts.groups),
-              domains: String(mergeResult.entityCounts.collections),
+              categories: String(mergeResult.addedEntityCounts.groups),
+              domains: String(mergeResult.addedEntityCounts.collections),
               unresolved: '',
             })
-          : `データをマージしました (${mergeResult.entityCounts.groups}個のカテゴリ、${mergeResult.entityCounts.collections}個のドメインを追加)`,
+          : `データをマージしました (${mergeResult.addedEntityCounts.groups}個のカテゴリ、${mergeResult.addedEntityCounts.collections}個のドメインを追加)`,
       }
     }
     await migrateToUrlsStorage()

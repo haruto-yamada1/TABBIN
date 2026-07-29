@@ -3,6 +3,7 @@ import type { PersistenceV2UnitOfWorkPort } from '@/contexts/saved-tabs/applicat
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
+import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import { IndexedDbPersistenceUnitOfWork } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork'
 import { createImportLegacyBackupMergeUseCase } from '@/features/options/lib/import-export/legacy/ImportLegacyBackupMergeUseCase'
 import type {
@@ -46,14 +47,17 @@ const createRuntime = (
   deps: OptionsLegacyBackupMergeRuntimeDeps,
 ): ManagedOptionsLegacyBackupMergeRuntime => {
   const connectionManager = deps.createConnectionManager()
-  const unitOfWork = deps.createUnitOfWork(
+  const operationGate = deps.getOperationGate()
+  const unitOfWork = deps.createUnitOfWork(connectionManager, operationGate)
+  const snapshotReader = new IndexedDbPersistenceSnapshotReader(
     connectionManager,
-    deps.getOperationGate(),
+    operationGate,
   )
   const mergeLegacyBackup = createImportLegacyBackupMergeUseCase({
     commit: unitOfWork.commit.bind(unitOfWork),
     isHealthySavedTabs: (savedTabs) =>
       checkPersistenceIntegrity(savedTabs).isHealthy,
+    readSnapshot: snapshotReader.readConsistentSnapshot.bind(snapshotReader),
     readUserSettings: deps.readUserSettings,
     writeUserSettings: deps.writeUserSettings,
   })
@@ -68,9 +72,14 @@ const createRuntime = (
 let runtime: ManagedOptionsLegacyBackupMergeRuntime | undefined
 
 export const getOptionsLegacyBackupMergeRuntime = (
-  deps: OptionsLegacyBackupMergeRuntimeDeps = defaultDeps,
+  deps?: OptionsLegacyBackupMergeRuntimeDeps,
 ): OptionsLegacyBackupMergeRuntime => {
-  runtime ??= createRuntime(deps)
+  if (deps !== undefined) {
+    runtime?.close()
+    runtime = createRuntime(deps)
+    return runtime
+  }
+  runtime ??= createRuntime(defaultDeps)
   return runtime
 }
 
