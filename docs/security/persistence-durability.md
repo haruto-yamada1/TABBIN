@@ -113,6 +113,19 @@ satisfied.
 data was not deleted, and offers backup and retry. The component accepts no raw
 browser error, filesystem path, URL, title, note, prompt, or attachment data.
 
+Pre-import recovery snapshots are also local-only. Their payload is a strict
+logical Backup V2 projection stored in the extension's IndexedDB and is never
+sent through telemetry, diagnostics, logs, or #739 change events. Recovery
+errors expose fixed codes/messages only. The Options UI receives summary
+metadata (`id`, timestamps, serialized bytes, and source revision), never the
+snapshot content.
+
+Restore compensation keeps the pre-restore logical state and settings only in
+memory. Its typed outcome may expose the compensation revision, logical
+invalidation scopes, and failed notification stage, but never either state's
+content. A post-commit notification failure is partial success rather than a
+false rollback signal.
+
 Diagnostics may contain only:
 
 - fixed-kind entity counts;

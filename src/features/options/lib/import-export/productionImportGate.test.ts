@@ -23,7 +23,24 @@ const captureError = (action: () => unknown): Error => {
 }
 
 describe('assertProductionImportAllowed', () => {
-  it('strictly validates current V2 and blocks overwrite until #740 exists', () => {
+  it('strictly validates current V2 and routes overwrite through recovery', () => {
+    const allowed = assertProductionImportAllowed(
+      readFixture('backup-v2-current.json'),
+      {
+        importDate: '2026-07-28',
+        importMode: 'overwrite',
+      },
+    )
+
+    expect(allowed).toMatchObject({
+      inspection: {
+        preview: { formatKind: 'current-v2' },
+      },
+      kind: 'v2-overwrite',
+    })
+  })
+
+  it('keeps current V2 merge fail-closed because it has no merge contract', () => {
     const error = captureError(() =>
       assertProductionImportAllowed(readFixture('backup-v2-current.json'), {
         importDate: '2026-07-28',
@@ -32,7 +49,7 @@ describe('assertProductionImportAllowed', () => {
     )
 
     expect(error).toMatchObject<Partial<ProductionBackupImportError>>({
-      code: 'OVERWRITE_RECOVERY_UNAVAILABLE',
+      code: 'CURRENT_V2_MERGE_UNAVAILABLE',
       name: 'ProductionBackupImportError',
     })
     expect(JSON.stringify(error)).not.toContain('userSettings')
@@ -119,22 +136,21 @@ describe('assertProductionImportAllowed', () => {
     })
   })
 
-  it('blocks a supported legacy overwrite until #740 is available', () => {
-    const error = captureError(() =>
-      assertProductionImportAllowed(
-        readFixture('legacy-tab-group-url-ids.json'),
-        {
-          importDate: '2026-08-31',
-          importMode: 'overwrite',
-        },
-      ),
+  it('routes a supported legacy overwrite through normalized recovery', () => {
+    const allowed = assertProductionImportAllowed(
+      readFixture('legacy-tab-group-url-ids.json'),
+      {
+        importDate: '2026-08-31',
+        importMode: 'overwrite',
+      },
     )
 
-    expect(error).toMatchObject<Partial<ProductionBackupImportError>>({
-      code: 'OVERWRITE_RECOVERY_UNAVAILABLE',
-      name: 'ProductionBackupImportError',
+    expect(allowed).toMatchObject({
+      inspection: {
+        preview: { formatKind: 'legacy' },
+      },
+      kind: 'v2-overwrite',
     })
-    expect(JSON.stringify(error)).not.toContain('urls')
   })
 
   it('does not accept an omitted import date', () => {

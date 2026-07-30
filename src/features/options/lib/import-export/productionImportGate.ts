@@ -10,13 +10,13 @@ import { LegacyBackupV0Schema } from './legacy/LegacyBackupV0Schema'
 import { inspectBackupV2 } from './v2/BackupV2Inspector'
 import type { BackupV2Inspection } from './v2/BackupV2Inspector'
 
-export type ProductionBackupImportErrorCode = 'OVERWRITE_RECOVERY_UNAVAILABLE'
+export type ProductionBackupImportErrorCode = 'CURRENT_V2_MERGE_UNAVAILABLE'
 
 export class ProductionBackupImportError extends Error {
   readonly code: ProductionBackupImportErrorCode
 
   constructor(code: ProductionBackupImportErrorCode) {
-    super('Backup overwrite recovery is unavailable')
+    super('Current Backup V2 merge import is unavailable')
     this.name = 'ProductionBackupImportError'
     this.code = code
   }
@@ -29,6 +29,10 @@ export type ProductionImportGateOptions = {
 
 export type ProductionImportGateResult =
   | ({ readonly kind: 'legacy-merge' } & LegacyBackupMergeInput)
+  | {
+      readonly inspection: BackupV2Inspection
+      readonly kind: 'v2-overwrite'
+    }
   | undefined
 
 type JsonParseResult =
@@ -54,10 +58,10 @@ const textEncoder = new TextEncoder()
 /**
  * Fail-closed production boundary for backup import.
  *
- * Current V2 is validated before reporting the temporary #740 recovery
- * blocker. Schema-less backups are strictly validated before entering the
- * legacy flow through the cutoff. Invalid JSON is left to the existing parser
- * so its user-facing behavior does not change.
+ * Current V2 and schema-less backups are strictly validated before entering
+ * either the recovery-backed overwrite flow or the temporary legacy merge
+ * flow. Invalid JSON is left to the existing parser so its user-facing
+ * behavior does not change.
  */
 export function assertProductionImportAllowed(
   input: string,
@@ -95,7 +99,10 @@ export function assertProductionImportAllowed(
       throw new BackupSchemaError('INVALID_SCHEMA')
     }
     if (importMode === 'overwrite') {
-      throw new ProductionBackupImportError('OVERWRITE_RECOVERY_UNAVAILABLE')
+      return {
+        inspection,
+        kind: 'v2-overwrite',
+      }
     }
     return {
       inspection,
@@ -105,8 +112,14 @@ export function assertProductionImportAllowed(
     }
   }
 
-  inspectBackupV2(parseResult.data, {
+  const inspection = inspectBackupV2(parseResult.data, {
     importDate,
   })
-  throw new ProductionBackupImportError('OVERWRITE_RECOVERY_UNAVAILABLE')
+  if (importMode === 'merge') {
+    throw new ProductionBackupImportError('CURRENT_V2_MERGE_UNAVAILABLE')
+  }
+  return {
+    inspection,
+    kind: 'v2-overwrite',
+  }
 }

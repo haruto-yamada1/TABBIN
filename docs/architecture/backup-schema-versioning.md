@@ -232,14 +232,14 @@ separate lifecycle and is not deleted by the backup cutoff.
 
 ## Production import rollout gate
 
-Every production overwrite request, including a valid legacy backup, is
-deliberately fail-closed with the typed code
-`OVERWRITE_RECOVERY_UNAVAILABLE` until #740 provides and wires the required
-recovery-snapshot capability. Current V2 remains blocked in both merge and
-overwrite mode; only a valid legacy merge before the cutoff may pass the
-temporary gate. Versioned input is inspected before the recovery decision so
-future and invalid schemas retain their typed schema errors. No blocked request
-calls `ImportBackupV2UseCase`, installed-data migration, or storage mutation.
+Current Backup V2 overwrite and a valid legacy overwrite before the cutoff now
+route through the recovery-backed `ImportBackupV2UseCase`. The use case must
+persist a consistent logical recovery snapshot before opening the replacement
+transaction; capture, capacity, retention, or persistence failure blocks the
+overwrite. Current V2 merge remains fail-closed with
+`CURRENT_V2_MERGE_UNAVAILABLE`; a valid legacy merge before the cutoff continues
+through the temporary merge route. Versioned input is inspected before routing
+so future and invalid schemas retain their typed schema errors.
 
 An allowed legacy merge is converted by `LegacyBackupAdapter` and committed as
 strict IndexedDB `put` mutations through `IndexedDbPersistenceUnitOfWork`.
@@ -248,11 +248,20 @@ gate must authorize the `indexeddb` route. The merge never falls back to
 `chrome.storage.local` domain writes after IndexedDB cutover; user settings
 remain the separately owned cross-engine write.
 
-`ImportBackupV2UseCase.ts` defines the future transactional core and readback
-contract, including the unavoidable separate settings write. It is not a
-production entry point before #740. Legacy, future, expired-legacy, and invalid
-versioned inputs are also classified before mutation; the compatibility parser
-remains isolated under `import-export/legacy/`.
+`ImportBackupV2UseCase.ts` owns the production overwrite transaction and
+readback contract, including the unavoidable separate settings write. Recovery
+data is local-only, is strictly parsed before restore, and is never included in
+the public backup, diagnostics, logs, or change-event payload. Legacy, future,
+expired-legacy, and invalid versioned inputs are classified before mutation;
+the compatibility parser remains isolated under `import-export/legacy/`.
+
+`PreImportRecoverySnapshotService` holds the pre-restore logical state and
+settings in memory before replacement. A settings-write or target-readback
+failure after commit runs a second strict replacement to re-establish that
+state, writes the prior settings, verifies both stores, and returns a fixed
+typed failure containing only compensation metadata. Post-commit change-ID or
+publication failure is instead typed partial success retaining the committed
+revision, scopes, and failed notification stage.
 
 ## Validation and review checklist
 
@@ -264,7 +273,13 @@ remains isolated under `import-export/legacy/`.
 - Unsupported old input is rejected with `UNSUPPORTED_SCHEMA_VERSION`.
 - Invalid data is rejected with `INVALID_SCHEMA`.
 - Legacy detection does not import or migrate legacy data.
-- Every production overwrite remains blocked until #740 recovery is available.
+- Every production overwrite enters the recovery-backed use case before
+  mutation.
+- A restore failure after replacement either verifies compensation or returns
+  `RECOVERY_COMPENSATION_FAILED`; it does not silently leave a mixed state.
+- Recovery notification failure retains committed revision and scopes as typed
+  partial success.
+- Current V2 merge remains fail-closed until its own rollout contract exists.
 - Settings are documented as a separate cross-engine write.
 - Logical resource validation precedes serialized-byte validation.
 - Golden fixtures cover each supported version, current, future, and invalid
