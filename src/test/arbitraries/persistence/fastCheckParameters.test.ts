@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 const importParameters = async (env: { runs?: string; seed?: string }) => {
   vi.resetModules()
   vi.unstubAllEnvs()
+  // Start each import without values inherited from the outer environment.
+  vi.stubEnv('FAST_CHECK_RUNS', undefined)
+  vi.stubEnv('FAST_CHECK_SEED', undefined)
   if (env.runs !== undefined) {
     vi.stubEnv('FAST_CHECK_RUNS', env.runs)
   }
