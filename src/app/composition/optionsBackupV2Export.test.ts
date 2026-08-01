@@ -1,8 +1,19 @@
+import { IDBFactory } from 'fake-indexeddb'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
-import type { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
+import type {
+  PersistenceBootstrapPort,
+  PersistenceControlStateRepositoryPort,
+  PersistenceCoordinationPort,
+  PersistenceOperationGatePort,
+  PersistenceRecoveryReporterPort,
+} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import { PersistenceOperationGateService } from '@/contexts/saved-tabs/application/services/PersistenceOperationGateService'
+import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
+import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import type { BackupEnvelopeV2 } from '@/features/options/lib/import-export/v2/BackupV2Schema'
+import { createExportBackupV2UseCase } from '@/features/options/lib/import-export/v2/ExportBackupV2UseCase'
+import { defaultSettings } from '@/lib/storage/settings'
 
 import {
   getOptionsBackupV2ExportRuntime,
@@ -88,5 +99,67 @@ describe('optionsBackupV2Export composition', () => {
 
     resetOptionsBackupV2ExportRuntimeForTesting()
     expect(close).toHaveBeenCalledOnce()
+  })
+
+  it('exports Backup V2 through the real gate while IndexedDB is read-only', async () => {
+    const state = {
+      migrationId: 'migration-1',
+      persistenceGeneration: 2,
+      readSource: 'indexeddb',
+      status: 'read-only-emergency',
+    } as const
+    const bootstrap: PersistenceBootstrapPort = {
+      migrate: vi.fn(async () => undefined),
+      readState: vi.fn(async () => state),
+      ready: vi.fn(async () => undefined),
+    }
+    const controlStateRepository: PersistenceControlStateRepositoryPort = {
+      read: vi.fn(async () => state),
+      transition: vi.fn(),
+    }
+    const coordination: PersistenceCoordinationPort = {
+      runExclusive: async (operation) => operation(),
+      runShared: async (operation) => operation(),
+    }
+    const recovery: PersistenceRecoveryReporterPort = {
+      reportUnavailable: vi.fn(),
+    }
+    const operationGate = new PersistenceOperationGateService({
+      bootstrap,
+      controlStateRepository,
+      coordination,
+      recovery,
+    })
+    const connectionManager = new IndexedDbConnectionManager({
+      databaseName: 'read-only-backup-v2-export',
+      indexedDb: new IDBFactory(),
+    })
+
+    const runtime = getOptionsBackupV2ExportRuntime({
+      createConnectionManager: () => connectionManager,
+      createExportUseCase: createExportBackupV2UseCase,
+      createSnapshotReader: (manager, gate) =>
+        new IndexedDbPersistenceSnapshotReader(manager, gate),
+      getAppVersion: () => '2.0.8',
+      getOperationGate: () => operationGate,
+      now: () => new Date('2026-08-01T00:00:00.000Z'),
+      readUserSettings: async () => defaultSettings,
+    })
+
+    await expect(runtime.exportBackupV2()).resolves.toMatchObject({
+      appVersion: '2.0.8',
+      data: {
+        savedTabs: {
+          categories: [],
+          collections: [],
+          groups: [],
+          memberships: [],
+          urls: [],
+        },
+        userSettings: defaultSettings,
+      },
+      schemaVersion: 2,
+    })
+    expect(recovery.reportUnavailable).not.toHaveBeenCalled()
   })
 })

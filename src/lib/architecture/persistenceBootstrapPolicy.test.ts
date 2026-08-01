@@ -190,4 +190,41 @@ describe('PersistenceBootstrap architecture policy', () => {
     expect(rawReader).not.toContain('getSavedTabs')
     expect(rawReader).not.toContain('getCustomProjects')
   })
+
+  it('requires the post-cutover forward-fix runbook and release guard', () => {
+    const runbookPath = 'docs/runbooks/persistence-v2-emergency.md'
+    expect(existsSync(repositoryPath(runbookPath))).toBe(true)
+    if (!existsSync(repositoryPath(runbookPath))) {
+      return
+    }
+
+    const runbook = readRepositoryFile(runbookPath)
+    const release = readRepositoryFile('docs/release.md')
+    const packageJson = readRepositoryFile('package.json')
+    const releaseMetadata = readRepositoryFile(
+      'src/public/persistence-release.json',
+    )
+    const backupCompositions = [
+      'src/app/composition/optionsBackupRecovery.ts',
+      'src/app/composition/optionsBackupV2Export.ts',
+      'src/app/composition/optionsLegacyBackupMerge.ts',
+    ].map(readRepositoryFile)
+
+    for (const contract of [
+      'pre-IDB',
+      'forward-fix',
+      'read-only-emergency',
+      'minimumCompatibleAppVersion',
+      'destructiveSchemaChange',
+      'queryWriteContractCompatible',
+      'git tag',
+      'verify:persistence-release-compatibility',
+    ]) {
+      expect(`${runbook}\n${release}\n${releaseMetadata}`).toContain(contract)
+    }
+    expect(packageJson).toContain('verify:persistence-release-compatibility')
+    for (const composition of backupCompositions) {
+      expect(composition).toContain('readUserSettingsWithoutRepair')
+    }
+  })
 })

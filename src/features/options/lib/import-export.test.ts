@@ -37,6 +37,7 @@ vi.mock('@/features/options/lib/import-export/productionImportGate', () => ({
 }))
 
 vi.mock('@/lib/storage/settings', () => {
+  const getUserSettings = vi.fn()
   const defaultSettings: UserSettings = {
     removeTabAfterOpen: true,
     removeTabAfterExternalDrop: true,
@@ -56,7 +57,8 @@ vi.mock('@/lib/storage/settings', () => {
 
   return {
     defaultSettings,
-    getUserSettings: vi.fn(),
+    getUserSettings,
+    readUserSettingsWithoutRepair: getUserSettings,
     saveUserSettings: vi.fn(),
   }
 })

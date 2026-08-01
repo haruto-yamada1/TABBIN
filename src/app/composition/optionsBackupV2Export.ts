@@ -8,7 +8,7 @@ import type {
   ExportBackupV2UseCase,
   ExportBackupV2UseCaseDeps,
 } from '@/features/options/lib/import-export/v2/ExportBackupV2UseCase'
-import { getUserSettings } from '@/lib/storage/settings'
+import { readUserSettingsWithoutRepair } from '@/lib/storage/settings'
 
 export type OptionsBackupV2ExportRuntime = {
   readonly exportBackupV2: ExportBackupV2UseCase
@@ -41,7 +41,7 @@ const defaultDeps: OptionsBackupV2ExportRuntimeDeps = {
   getAppVersion,
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   now: () => new Date(),
-  readUserSettings: getUserSettings,
+  readUserSettings: readUserSettingsWithoutRepair,
 }
 
 const createRuntime = (

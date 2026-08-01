@@ -5,6 +5,7 @@ import type {
   PersistenceControlStateTransition,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import { PERSISTENCE_BOOTSTRAP_ERROR_CODES } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import { PERSISTENCE_GENERATION } from '@/contexts/saved-tabs/application/services/PersistenceReleasePolicyService'
 
 const persistenceBootstrapErrorCodes = new Set<string>(
   PERSISTENCE_BOOTSTRAP_ERROR_CODES,
@@ -83,14 +84,14 @@ const decodeIndexedDbState = (
   if (
     !hasOnlyKeys(value, ['status', 'migrationId', 'persistenceGeneration']) ||
     !isMigrationId(value.migrationId) ||
-    value.persistenceGeneration !== 2
+    value.persistenceGeneration !== PERSISTENCE_GENERATION
   ) {
     return invalidControlState()
   }
   return {
     status: 'indexeddb',
     migrationId: value.migrationId,
-    persistenceGeneration: 2,
+    persistenceGeneration: PERSISTENCE_GENERATION,
   }
 }
 
@@ -124,9 +125,12 @@ const decodeReadOnlyEmergencyState = (
   value: Record<string, unknown>,
 ): PersistenceControlState => {
   const hasMigrationId = Object.hasOwn(value, 'migrationId')
-  const keys = hasMigrationId
-    ? ['status', 'readSource', 'migrationId']
-    : ['status', 'readSource']
+  let keys = ['status', 'readSource']
+  if (value.readSource === 'indexeddb') {
+    keys = ['status', 'readSource', 'migrationId', 'persistenceGeneration']
+  } else if (hasMigrationId) {
+    keys = ['status', 'readSource', 'migrationId']
+  }
   if (
     !hasOnlyKeys(value, keys) ||
     (value.readSource !== 'legacy' && value.readSource !== 'indexeddb')
@@ -134,13 +138,18 @@ const decodeReadOnlyEmergencyState = (
     return invalidControlState()
   }
   if (value.readSource === 'indexeddb') {
-    if (!hasMigrationId || !isMigrationId(value.migrationId)) {
+    if (
+      !hasMigrationId ||
+      !isMigrationId(value.migrationId) ||
+      value.persistenceGeneration !== PERSISTENCE_GENERATION
+    ) {
       return invalidControlState()
     }
     return {
       status: 'read-only-emergency',
       readSource: 'indexeddb',
       migrationId: value.migrationId,
+      persistenceGeneration: PERSISTENCE_GENERATION,
     }
   }
   if (!hasMigrationId) {
@@ -250,7 +259,7 @@ const completeCutover = (
   return {
     status: 'indexeddb',
     migrationId: requireMatchingMigrationId(current, transition.migrationId),
-    persistenceGeneration: 2,
+    persistenceGeneration: PERSISTENCE_GENERATION,
   }
 }
 
@@ -300,6 +309,7 @@ const enterReadOnlyEmergency = (
       status: 'read-only-emergency',
       readSource: 'indexeddb',
       migrationId: current.migrationId,
+      persistenceGeneration: current.persistenceGeneration,
     }
   }
 
@@ -319,6 +329,24 @@ const enterReadOnlyEmergency = (
         readSource: 'legacy',
         migrationId,
       }
+}
+
+const exitReadOnlyEmergency = (
+  current: PersistenceControlState,
+  transition: TransitionOf<'exit-read-only-emergency'>,
+): PersistenceControlState => {
+  if (
+    current.status !== 'read-only-emergency' ||
+    current.readSource !== 'indexeddb' ||
+    transition.migrationId !== current.migrationId
+  ) {
+    return invalidTransition()
+  }
+  return {
+    status: 'indexeddb',
+    migrationId: current.migrationId,
+    persistenceGeneration: current.persistenceGeneration,
+  }
 }
 
 export const transitionPersistenceControlState = (
@@ -343,6 +371,9 @@ export const transitionPersistenceControlState = (
     }
     case 'enter-read-only-emergency': {
       return enterReadOnlyEmergency(current, transition)
+    }
+    case 'exit-read-only-emergency': {
+      return exitReadOnlyEmergency(current, transition)
     }
     default: {
       return invalidTransition()
