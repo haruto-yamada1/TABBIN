@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -48,6 +48,7 @@ describe('PersistenceMigrationNotice', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Backups created with older versions can no longer be imported on or after September 1, 2026.',
     )
+    expect(screen.getByRole('alert').getAttribute('aria-live')).toBeNull()
     expect(
       screen
         .getByRole('link', { name: 'Open Import / Export' })
@@ -60,7 +61,32 @@ describe('PersistenceMigrationNotice', () => {
 
     expect(controller.dismiss).toHaveBeenCalledOnce()
     expect(screen.queryByRole('alert')).toBeNull()
-    resolveDismiss?.()
+    await act(async () => {
+      resolveDismiss?.()
+      await Promise.resolve()
+    })
+  })
+
+  it('keeps the notice hidden when dismissal persistence fails', async () => {
+    const user = userEvent.setup()
+    const controller = {
+      ...createController(true),
+      dismiss: vi.fn(async () => {
+        throw new Error('storage unavailable')
+      }),
+    }
+
+    render(<PersistenceMigrationNotice controller={controller} />)
+
+    await screen.findByRole('alert')
+    await user.click(
+      screen.getByRole('button', { name: 'Dismiss migration notice' }),
+    )
+
+    expect(screen.queryByRole('alert')).toBeNull()
+    await waitFor(() => {
+      expect(controller.dismiss).toHaveBeenCalledOnce()
+    })
   })
 
   it('does not render before a completed migration is eligible for notice display', async () => {

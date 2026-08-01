@@ -46,9 +46,12 @@ export const PersistenceMigrationNotice = ({
   const handleDismiss = useCallback(() => {
     setIsVisible(false)
     setIsDismissing(true)
-    void controller.dismiss().finally(() => {
-      setIsDismissing(false)
-    })
+    void controller
+      .dismiss()
+      .catch(() => undefined)
+      .finally(() => {
+        setIsDismissing(false)
+      })
   }, [controller])
 
   if (!isVisible) {
@@ -66,7 +69,6 @@ export const PersistenceMigrationNotice = ({
 
   return (
     <section
-      aria-live='polite'
       className='mx-auto mb-4 flex max-w-5xl gap-3 rounded-lg border border-amber-500/60 bg-amber-50 p-4 text-amber-950 shadow-sm dark:bg-amber-950/30 dark:text-amber-50'
       role='alert'
     >
