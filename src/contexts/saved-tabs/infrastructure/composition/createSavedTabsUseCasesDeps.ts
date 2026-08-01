@@ -46,6 +46,12 @@ export type CreateSavedTabsUseCasesDepsOptions = {
   readonly resolveActive?: () => boolean
 }
 
+type SavedTabsDomainStorageLocal = {
+  readonly get: (key: string) => Promise<Record<string, unknown>>
+  readonly remove: (key: string) => Promise<void>
+  readonly set: (value: Record<string, unknown>) => Promise<void>
+}
+
 type ChromeLike = ChromeApiLikeBase & {
   readonly tabs?: {
     readonly create?: (createProperties: {
@@ -100,11 +106,11 @@ const getChromeMessagingApi = (): ChromeMessagingApiLike | undefined => {
  * const controller = useSavedTabsController({ deps })
  * ```
  */
-export const createSavedTabsUseCasesDeps = (
-  options: CreateSavedTabsUseCasesDepsOptions = {},
+const createSavedTabsUseCasesDepsFromStorage = (
+  options: CreateSavedTabsUseCasesDepsOptions,
+  domainLocal: SavedTabsDomainStorageLocal | null,
+  settingsLocal: SavedTabsDomainStorageLocal | null,
 ): SavedTabsUseCasesDeps => {
-  const domainLocal = getPersistenceStorageLocal()
-  const settingsLocal = getChromeStorageLocal()
   if (!domainLocal || !settingsLocal) {
     warnMissingChromeStorage('createSavedTabsUseCasesDeps')
   }
@@ -163,4 +169,39 @@ export const createSavedTabsUseCasesDeps = (
     urlRecordRepository: createChromeUrlRecordRepository(domainPort),
     userSettingsRepository: createChromeUserSettingsRepository(settingsPort),
   }
+}
+
+export const createSavedTabsUseCasesDeps = (
+  options: CreateSavedTabsUseCasesDepsOptions = {},
+): SavedTabsUseCasesDeps =>
+  createSavedTabsUseCasesDepsFromStorage(
+    options,
+    getPersistenceStorageLocal(),
+    getChromeStorageLocal(),
+  )
+
+/**
+ * Builds the already-selected legacy branch for the outer data-plane router.
+ *
+ * The raw Chrome port is intentional here: applying the legacy operation gate
+ * again inside `PersistenceDataPlaneRouterService` would acquire the same
+ * coordination barrier twice and preselect the route. Only the outer router is
+ * allowed to choose this branch.
+ */
+export const createSelectedLegacySavedTabsUseCasesDeps = (
+  options: CreateSavedTabsUseCasesDepsOptions = {},
+): SavedTabsUseCasesDeps => {
+  const storage = getChromeStorageLocal()
+  const selectedLegacyStorage = storage
+    ? {
+        get: async (key: string) => storage.get(key),
+        remove: async (key: string) => storage.remove(key),
+        set: async (value: Record<string, unknown>) => storage.set(value),
+      }
+    : null
+  return createSavedTabsUseCasesDepsFromStorage(
+    options,
+    selectedLegacyStorage,
+    storage,
+  )
 }

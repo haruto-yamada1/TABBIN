@@ -146,6 +146,35 @@ export type PersistenceOperationGatePort = {
   ) => Promise<Result>
 }
 
+/**
+ * A pair of repository operations for one logical read or write.
+ *
+ * The router invokes exactly one callback after resolving the authoritative
+ * persistence route. Callers must keep backend-specific shapes inside these
+ * callbacks and expose only application/domain values as `Result`.
+ */
+export type PersistenceDataPlaneOperation<Result> = {
+  readonly indexeddb: () => Promise<Result>
+  readonly legacy: () => Promise<Result>
+}
+
+/**
+ * Resolves the authoritative repository from the persistence control state.
+ *
+ * Unlike `PersistenceOperationGatePort`, callers do not preselect a route.
+ * This prevents a matching-state call from producing
+ * `PERSISTENCE_ROUTE_MISMATCH` and gives current use-cases one fail-closed
+ * data-plane entry point.
+ */
+export type PersistenceDataPlaneRouterPort = {
+  readonly read: <Result>(
+    operation: PersistenceDataPlaneOperation<Result>,
+  ) => Promise<Result>
+  readonly write: <Result>(
+    operation: PersistenceDataPlaneOperation<Result>,
+  ) => Promise<Result>
+}
+
 export type PersistenceRecoveryState =
   | { readonly status: 'available' }
   | {

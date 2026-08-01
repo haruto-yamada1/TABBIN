@@ -2,8 +2,13 @@ import { createSavedTabsUseCases as createApplicationSavedTabsUseCases } from '@
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
-import { createSavedTabsUseCasesDeps as createInfrastructureSavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import { createRouteAwareSavedTabsUseCases } from '@/contexts/saved-tabs/application/services/RouteAwareSavedTabsUseCasesService'
+import {
+  createSavedTabsUseCasesDeps as createInfrastructureSavedTabsUseCasesDeps,
+  createSelectedLegacySavedTabsUseCasesDeps,
+} from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
 import type { CreateSavedTabsUseCasesDepsOptions } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 
 /**
  * `createSavedTabsUseCases` 呼び出し時に渡せる任意設定。
@@ -17,6 +22,14 @@ export type CreateSavedTabsUseCasesOptions = CreateSavedTabsUseCasesDepsOptions
 export const createSavedTabsUseCasesDeps = (
   options: CreateSavedTabsUseCasesDepsOptions = {},
 ): SavedTabsUseCasesDeps => createInfrastructureSavedTabsUseCasesDeps(options)
+
+const createProductionSavedTabsUseCases = (
+  deps: SavedTabsUseCasesDeps,
+): SavedTabsUseCases =>
+  createRouteAwareSavedTabsUseCases({
+    legacy: createApplicationSavedTabsUseCases(deps),
+    router: getPersistenceBootstrapRuntime().dataPlaneRouter,
+  })
 
 /**
  * `src/app/composition/` レベルの composition root。
@@ -46,8 +59,8 @@ export const createSavedTabsUseCasesDeps = (
 export const createSavedTabsUseCases = (
   options: CreateSavedTabsUseCasesOptions = {},
 ): SavedTabsUseCases => {
-  const deps: SavedTabsUseCasesDeps = createSavedTabsUseCasesDeps(options)
-  return createApplicationSavedTabsUseCases(deps)
+  const deps = createSelectedLegacySavedTabsUseCasesDeps(options)
+  return createProductionSavedTabsUseCases(deps)
 }
 
 /**
@@ -89,9 +102,9 @@ export const createSavedTabsPresentationComposition = (
   readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
 } => {
-  const deps = createSavedTabsUseCasesDeps(options)
+  const deps = createSelectedLegacySavedTabsUseCasesDeps(options)
   return {
     deps: toSavedTabsPresentationPorts(deps),
-    useCases: createApplicationSavedTabsUseCases(deps),
+    useCases: createProductionSavedTabsUseCases(deps),
   }
 }

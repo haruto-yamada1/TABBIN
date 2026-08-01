@@ -1738,6 +1738,43 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       })
     }
   })
+
+  describe('issue #729 phase 1: production cutover remains deferred', () => {
+    const sourceRoot = resolve(repoRoot, 'src')
+    const productionFiles = collectSourceFiles(sourceRoot).filter(
+      (path) =>
+        !/\.(?:test|testing)\.tsx?$/.test(path) &&
+        !path.includes(`${sep}testing${sep}`),
+    )
+
+    it('production source does not enable complete cutover', () => {
+      for (const absolutePath of productionFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} must not enable production complete cutover`,
+        ).not.toMatch(/cutoverPolicy\s*:\s*['"]complete['"]/)
+      }
+    })
+
+    it('production source does not import testing-only cutover seams', () => {
+      for (const absolutePath of productionFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} must not import a testing-only cutover seam`,
+        ).not.toMatch(
+          /(?:from|import)\s+['"][^'"]*(?:\/testing\/|\.testing)['"]/,
+        )
+      }
+    })
+  })
   describe('issue #739: persistence invalidation contract', () => {
     const unitOfWorkPortPath = resolve(
       repoRoot,

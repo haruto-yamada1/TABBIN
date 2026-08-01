@@ -140,11 +140,11 @@ describe('PersistenceBootstrap architecture policy', () => {
     expect(composition).toContain(
       'createChromeUserSettingsRepository(settingsPort)',
     )
-    expect(useCaseComposition).toContain(
-      'const domainLocal = getPersistenceStorageLocal()',
+    expect(useCaseComposition).toMatch(
+      /createSavedTabsUseCasesDepsFromStorage\(\s*options,\s*getPersistenceStorageLocal\(\),\s*getChromeStorageLocal\(\),?\s*\)/,
     )
     expect(useCaseComposition).toContain(
-      'const settingsLocal = getChromeStorageLocal()',
+      'createSelectedLegacySavedTabsUseCasesDeps',
     )
     expect(useCaseComposition).toContain(
       'createChromeUserSettingsRepository(settingsPort)',
