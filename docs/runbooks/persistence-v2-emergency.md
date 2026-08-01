@@ -29,14 +29,14 @@ checklist を必須の保護境界とする。
 `read-only-emergency` は、既存データを保持しながら追加破損を止めるための
 fail-closed 状態である。
 
-| 操作                                 | 許可 | 備考                                                         |
-| ------------------------------------ | ---- | ------------------------------------------------------------ |
-| 既存 URL、カテゴリ、notes の読み取り | 可   | control state が宣言した source だけを読む                   |
-| Backup V2 export                     | 可   | settings の正規化 repair を含め、永続化 write を発生させない |
-| URL 保存、削除、並べ替え             | 不可 | IndexedDB write gate が拒否する                              |
-| カテゴリ、notes の変更               | 不可 | IndexedDB write gate が拒否する                              |
-| Backup V2 / legacy backup の import  | 不可 | settings-only import も拒否する                              |
-| restore、repair、cleanup、migration  | 不可 | emergency 中はデータ形状を変更しない                         |
+| 操作                                 | 許可 | 備考                                                           |
+| ------------------------------------ | ---- | -------------------------------------------------------------- |
+| 既存 URL、カテゴリ、notes の読み取り | 可   | control state が宣言した source だけを読む                     |
+| Backup V2 export                     | 可   | settings の正規化 repair を行わず、永続化 write を発生させない |
+| URL 保存、削除、並べ替え             | 不可 | IndexedDB write gate が拒否する                                |
+| カテゴリ、notes の変更               | 不可 | IndexedDB write gate が拒否する                                |
+| Backup V2 / legacy backup の import  | 不可 | settings-only import も拒否する                                |
+| restore、repair、cleanup、migration  | 不可 | emergency 中はデータ形状を変更しない                           |
 
 export が失敗した場合も write-disable を解除しない。原因を記録し、読み取り専用の
 診断または forward patch で export path を回復する。
