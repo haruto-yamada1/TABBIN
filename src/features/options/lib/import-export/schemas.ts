@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
 import type { AiChatConversation } from '@/features/ai-chat/types'
+import { LEGACY_BACKUP_ADVISORY } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
+import type { LegacyBackupAdvisory } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
+import { LegacyBackupV0Schema } from '@/features/options/lib/import-export/legacy/LegacyBackupV0Schema'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { storedUserSettingsSchema } from '@/lib/storage/zod-storage'
 import { isValidUrl } from '@/lib/url-filter'
@@ -338,9 +341,17 @@ function parseBackupData(jsonData: string): BackupData | null {
   return backupData
 }
 
+const getLegacyBackupDeadlineAdvisory = (
+  backup: unknown,
+): LegacyBackupAdvisory | undefined =>
+  LegacyBackupV0Schema.safeParse(backup).success
+    ? LEGACY_BACKUP_ADVISORY
+    : undefined
+
 export {
   backupDataSchema,
   favIconUrlSchema,
+  getLegacyBackupDeadlineAdvisory,
   importableUrlSchema,
   parseBackupData,
 }

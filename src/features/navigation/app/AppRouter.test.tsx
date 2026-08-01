@@ -89,6 +89,10 @@ vi.mock('@/features/options/routes/OptionsRoute', () => ({
   OptionsRoute: () => <div>options-route</div>,
 }))
 
+vi.mock('@/app/composition/PersistenceMigrationNotice', () => ({
+  PersistenceMigrationNotice: () => <div>persistence-migration-notice</div>,
+}))
+
 import { AppRouter } from './AppRouter'
 
 describe('AppRouter', () => {
@@ -113,6 +117,21 @@ describe('AppRouter', () => {
       screen.findByText('saved-tabs-route:?mode=domain'),
     ).resolves.toBeTruthy()
     expect(routeModuleLoads.aiChat).toBe(0)
+  })
+
+  it('migration notice は saved-tabs route でのみ描画する', async () => {
+    const { unmount } = render(
+      <AppRouter initialEntries={['/saved-tabs?mode=domain']} />,
+    )
+
+    await expect(
+      screen.findByText('persistence-migration-notice'),
+    ).resolves.toBeTruthy()
+
+    unmount()
+    render(<AppRouter initialEntries={['/options']} />)
+
+    expect(screen.queryByText('persistence-migration-notice')).toBeNull()
   })
 
   it('ルートパスは domain mode の saved-tabs に redirect する', async () => {

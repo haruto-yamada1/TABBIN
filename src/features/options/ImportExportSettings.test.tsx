@@ -53,6 +53,7 @@ vi.mock('@/lib/browser/runtime', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
+    language: 'en',
     t: (key: string, fallback?: string, values?: Record<string, string>) => {
       const messages: Record<string, string> = {
         'options.importExport.cancel': 'Cancel',
@@ -64,6 +65,11 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.scopeDescription':
           'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
         'options.importExport.scopeTitle': 'Backup scope',
+        'options.importExport.compatibilityTitle': 'Backup format',
+        'options.importExport.compatibilityWarning':
+          'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
+        'options.importExport.compatibilityAction':
+          'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
         'options.importExport.export': 'Export settings and tab data',
         'options.importExport.exporting': 'Exporting...',
         'options.importExport.exportError': 'An error occurred while exporting',
@@ -103,6 +109,11 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.previewDomains': 'Domains: {{count}}',
         'options.importExport.previewProjects': 'Projects: {{count}}',
         'options.importExport.previewAiChat': 'AI Chat History: {{hasAiChat}}',
+        'options.importExport.legacyPreviewTitle': 'Legacy backup',
+        'options.importExport.legacyPreviewWarning':
+          'This legacy backup can no longer be imported on or after {{cutoffDate}}.',
+        'options.importExport.legacyPreviewAction':
+          'After importing, export a new-format backup again.',
         'options.importExport.autoBackup':
           'Create a recovery backup before importing',
         'options.importExport.autoBackupDescription':
@@ -298,6 +309,22 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(
       screen.getByText(
         'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('旧backup期限と再エクスポート案内を常設表示する', () => {
+    render(<ImportExportSettings />)
+
+    expect(screen.getByText('Backup format')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Backups created with older versions can no longer be imported on or after September 1, 2026.',
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Import any required backups by August 31, 2026, then export them again in the new format.',
       ),
     ).toBeTruthy()
   })
@@ -771,6 +798,48 @@ describe('ImportExportSettingsコンポーネント', () => {
     await waitFor(() => {
       expect(screen.getByText('Yes')).toBeTruthy()
     })
+    expect(screen.queryByText('Legacy backup')).toBeNull()
+  })
+
+  it('legacy backup preview に期限 warning を表示する', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getImportPreview).mockReturnValueOnce({
+      success: true,
+      message: 'ok',
+      preview: {
+        categoriesCount: 1,
+        domainsCount: 1,
+        hasAiChat: false,
+        hasAnalytics: false,
+        legacyBackupAdvisory: {
+          cutoffDate: '2026-09-01',
+          lastSupportedDate: '2026-08-31',
+          requiresReExport: true,
+        },
+        projectsCount: 0,
+        timestamp: '2026-02-16T00:00:00.000Z',
+        version: '1.0.0',
+      },
+    })
+
+    const { container } = render(<ImportExportSettings />)
+
+    await user.upload(
+      getHiddenFileInput(container),
+      new File(['dummy'], 'legacy-backup.json', {
+        type: 'application/json',
+      }),
+    )
+
+    expect(await screen.findByText('Legacy backup')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'This legacy backup can no longer be imported on or after September 1, 2026.',
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText('After importing, export a new-format backup again.'),
+    ).toBeTruthy()
   })
 
   it('JSON ファイルを正常にインポートして background に通知する', async () => {

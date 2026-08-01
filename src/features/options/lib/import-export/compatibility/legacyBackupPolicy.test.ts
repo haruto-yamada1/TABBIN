@@ -1,5 +1,7 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
+import { formatLocalizedDate } from '@/features/i18n/lib/date-format'
+
 import {
   LEGACY_BACKUP_ADVISORY,
   LEGACY_BACKUP_POLICY,
@@ -18,6 +20,34 @@ describe('LEGACY_BACKUP_POLICY', () => {
       cutoffDate: '2026-09-01',
       latestNoticeReleaseDate: '2026-08-01',
       minimumNoticeDays: 30,
+    })
+  })
+
+  it('keeps the notice dates identical across ja and en surfaces', () => {
+    expect({
+      en: {
+        cutoffDate: formatLocalizedDate('en', LEGACY_BACKUP_POLICY.cutoffDate),
+        lastSupportedDate: formatLocalizedDate(
+          'en',
+          LEGACY_BACKUP_POLICY.lastSupportedDate,
+        ),
+      },
+      ja: {
+        cutoffDate: formatLocalizedDate('ja', LEGACY_BACKUP_POLICY.cutoffDate),
+        lastSupportedDate: formatLocalizedDate(
+          'ja',
+          LEGACY_BACKUP_POLICY.lastSupportedDate,
+        ),
+      },
+    }).toEqual({
+      en: {
+        cutoffDate: 'September 1, 2026',
+        lastSupportedDate: 'August 31, 2026',
+      },
+      ja: {
+        cutoffDate: '2026年9月1日',
+        lastSupportedDate: '2026年8月31日',
+      },
     })
   })
 })

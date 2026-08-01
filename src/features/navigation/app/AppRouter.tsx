@@ -10,6 +10,7 @@ import {
 } from 'react-router-dom'
 
 import { createSavedTabsPresentationComposition } from '@/app/composition/createSavedTabsUseCases'
+import { PersistenceMigrationNotice } from '@/app/composition/PersistenceMigrationNotice'
 import {
   getSavedTabsEntryRoute,
   getSavedTabsHrefForMode,
@@ -125,13 +126,16 @@ const SavedTabsRoutePage = () => {
   }
 
   return (
-    <Suspense fallback={null}>
-      <SavedTabsRouteComponent
-        createDeps={createSavedTabsPresentationComposition}
-        search={routerLocation.search}
-        onViewModeNavigate={handleViewModeNavigate}
-      />
-    </Suspense>
+    <>
+      <PersistenceMigrationNotice />
+      <Suspense fallback={null}>
+        <SavedTabsRouteComponent
+          createDeps={createSavedTabsPresentationComposition}
+          search={routerLocation.search}
+          onViewModeNavigate={handleViewModeNavigate}
+        />
+      </Suspense>
+    </>
   )
 }
 

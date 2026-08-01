@@ -53,7 +53,7 @@ import {
 import { assertProductionImportAllowed } from './productionImportGate'
 import type { ProductionImportGateOptions } from './productionImportGate'
 import type { BackupData, ImportedUrlRecordData } from './schemas'
-import { parseBackupData } from './schemas'
+import { getLegacyBackupDeadlineAdvisory, parseBackupData } from './schemas'
 import {
   buildBulkUrlRecordMap,
   buildOverwriteTabs,
@@ -591,6 +591,7 @@ const getImportPreview = (
     projectsCount: number
     hasAiChat: boolean
     hasAnalytics: boolean
+    legacyBackupAdvisory?: ReturnType<typeof getLegacyBackupDeadlineAdvisory>
   }
 } => {
   try {
@@ -625,6 +626,7 @@ const getImportPreview = (
         message: 'インポートされたデータの形式が正しくありません',
       }
     }
+    const legacyBackupAdvisory = getLegacyBackupDeadlineAdvisory(parsed)
     return {
       success: true,
       message: 'データの解析に成功しました',
@@ -636,6 +638,7 @@ const getImportPreview = (
         projectsCount: importedData.customProjects?.length ?? 0,
         hasAiChat: (importedData.aiChatConversations?.length ?? 0) > 0,
         hasAnalytics: (importedData.savedAnalyticsViews?.length ?? 0) > 0,
+        legacyBackupAdvisory,
       },
     }
   } catch (error) {

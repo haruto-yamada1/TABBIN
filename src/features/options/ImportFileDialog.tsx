@@ -17,6 +17,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { formatLocalizedDate } from '@/features/i18n/lib/date-format'
 import {
   getImportPreview,
   importSettings,
@@ -113,7 +114,11 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
   previewData,
   mergeData,
 }) => {
-  const { t } = useI18n()
+  const { language, t } = useI18n()
+  const legacyBackupAdvisory = previewData.legacyBackupAdvisory
+  const cutoffDate = legacyBackupAdvisory
+    ? formatLocalizedDate(language, legacyBackupAdvisory.cutoffDate)
+    : undefined
 
   return (
     <div className='space-y-4'>
@@ -163,6 +168,23 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
           </div>
         </div>
       </div>
+
+      {legacyBackupAdvisory ? (
+        <Alert className='border-amber-500/60 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-50'>
+          <AlertCircle className='size-4' />
+          <AlertTitle>
+            {t('options.importExport.legacyPreviewTitle')}
+          </AlertTitle>
+          <AlertDescription className='space-y-1'>
+            <p>
+              {t('options.importExport.legacyPreviewWarning', undefined, {
+                cutoffDate: cutoffDate ?? '',
+              })}
+            </p>
+            <p>{t('options.importExport.legacyPreviewAction')}</p>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <Alert variant={mergeData ? 'default' : 'destructive'} className='my-4'>
         <AlertCircle className='size-4' />

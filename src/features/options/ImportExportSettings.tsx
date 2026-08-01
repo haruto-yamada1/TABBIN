@@ -11,15 +11,17 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import type { PersistenceRecoverySnapshotSummary } from '@/contexts/saved-tabs/public-api'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { formatLocalizedDate } from '@/features/i18n/lib/date-format'
 import { ImportFileDialog } from '@/features/options/ImportFileDialog'
 import { downloadAsJson } from '@/features/options/lib/import-export'
+import { LEGACY_BACKUP_POLICY } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import { logger } from '@/lib/logging/logger'
 
 import { RecoverySnapshotNotice } from './RecoverySnapshotNotice'
 
 export const ImportExportSettings: React.FC = () => {
-  const { t } = useI18n()
+  const { language, t } = useI18n()
   const [isExporting, setIsExporting] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
   const [recoverySnapshots, setRecoverySnapshots] = useState<
@@ -86,6 +88,14 @@ export const ImportExportSettings: React.FC = () => {
   }, [t])
 
   const recoverySnapshot = recoverySnapshots.at(0)
+  const cutoffDate = formatLocalizedDate(
+    language,
+    LEGACY_BACKUP_POLICY.cutoffDate,
+  )
+  const lastSupportedDate = formatLocalizedDate(
+    language,
+    LEGACY_BACKUP_POLICY.lastSupportedDate,
+  )
   const handleRestore = useCallback(async () => {
     if (!recoverySnapshot) {
       return
@@ -126,6 +136,23 @@ export const ImportExportSettings: React.FC = () => {
         <AlertTitle>{t('options.importExport.scopeTitle')}</AlertTitle>
         <AlertDescription>
           {t('options.importExport.scopeDescription')}
+        </AlertDescription>
+      </Alert>
+
+      <Alert className='border-amber-500/60 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-50'>
+        <AlertCircle className='size-4' />
+        <AlertTitle>{t('options.importExport.compatibilityTitle')}</AlertTitle>
+        <AlertDescription className='space-y-1'>
+          <p>
+            {t('options.importExport.compatibilityWarning', undefined, {
+              cutoffDate,
+            })}
+          </p>
+          <p>
+            {t('options.importExport.compatibilityAction', undefined, {
+              lastSupportedDate,
+            })}
+          </p>
         </AlertDescription>
       </Alert>
 
