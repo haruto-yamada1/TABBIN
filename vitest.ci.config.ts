@@ -172,6 +172,7 @@ export default defineConfig({
             'src/features/**/lib/**/*.test.ts',
             'src/features/i18n/lib/**/*.test.ts',
             'src/features/analytics/**/*.test.ts',
+            'src/test/**/*.test.ts',
             'tools/**/*.test.ts',
           ],
         },
