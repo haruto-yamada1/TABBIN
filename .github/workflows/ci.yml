@@ -93,6 +93,9 @@ jobs:
       - name: Verify generated manifest version
         run: bun run verify:app-version
 
+      - name: Verify persistence release compatibility metadata
+        run: bun run verify:persistence-release-compatibility
+
       - name: Verify production network policy
         run: bun run verify:production-network-policy
 

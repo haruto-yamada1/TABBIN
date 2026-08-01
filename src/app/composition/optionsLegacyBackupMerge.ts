@@ -10,7 +10,10 @@ import type {
   LegacyBackupMergeInput,
   LegacyBackupMergeResult,
 } from '@/features/options/lib/import-export/legacy/ImportLegacyBackupMergeUseCase'
-import { getUserSettings, saveUserSettings } from '@/lib/storage/settings'
+import {
+  readUserSettingsWithoutRepair,
+  saveUserSettings,
+} from '@/lib/storage/settings'
 
 export type OptionsLegacyBackupMergeRuntime = {
   readonly mergeLegacyBackup: (
@@ -25,7 +28,7 @@ export type OptionsLegacyBackupMergeRuntimeDeps = {
     operationGate: PersistenceOperationGatePort,
   ) => PersistenceV2UnitOfWorkPort
   readonly getOperationGate: () => PersistenceOperationGatePort
-  readonly readUserSettings: typeof getUserSettings
+  readonly readUserSettings: typeof readUserSettingsWithoutRepair
   readonly writeUserSettings: typeof saveUserSettings
 }
 
@@ -39,7 +42,7 @@ const defaultDeps: OptionsLegacyBackupMergeRuntimeDeps = {
   createUnitOfWork: (connectionManager, operationGate) =>
     new IndexedDbPersistenceUnitOfWork(connectionManager, operationGate),
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
-  readUserSettings: getUserSettings,
+  readUserSettings: readUserSettingsWithoutRepair,
   writeUserSettings: saveUserSettings,
 }
 
@@ -53,13 +56,19 @@ const createRuntime = (
     connectionManager,
     operationGate,
   )
+  const writeUserSettings = async (
+    settings: Parameters<typeof saveUserSettings>[0],
+  ) =>
+    operationGate.runIndexedDbWrite(async () =>
+      deps.writeUserSettings(settings),
+    )
   const mergeLegacyBackup = createImportLegacyBackupMergeUseCase({
     commit: unitOfWork.commit.bind(unitOfWork),
     isHealthySavedTabs: (savedTabs) =>
       checkPersistenceIntegrity(savedTabs).isHealthy,
     readSnapshot: snapshotReader.readConsistentSnapshot.bind(snapshotReader),
     readUserSettings: deps.readUserSettings,
-    writeUserSettings: deps.writeUserSettings,
+    writeUserSettings,
   })
   return {
     close: () => {

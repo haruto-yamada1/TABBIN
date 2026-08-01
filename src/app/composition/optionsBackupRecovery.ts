@@ -27,7 +27,10 @@ import type {
   RecoverySnapshotService,
 } from '@/features/options/lib/import-export/v2/PreImportRecoverySnapshotService'
 import type { PersistenceStorageEstimatePort } from '@/lib/persistence/capacity'
-import { getUserSettings, saveUserSettings } from '@/lib/storage/settings'
+import {
+  readUserSettingsWithoutRepair,
+  saveUserSettings,
+} from '@/lib/storage/settings'
 
 export type OptionsBackupRecoveryRuntime = {
   readonly importBackupV2: ImportBackupV2UseCase
@@ -139,7 +142,7 @@ const defaultDeps: OptionsBackupRecoveryRuntimeDeps = {
   estimateStorage: estimateBrowserStorage,
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   idGenerator: createSystemIdGenerator(),
-  readUserSettings: getUserSettings,
+  readUserSettings: readUserSettingsWithoutRepair,
   writeUserSettings: saveUserSettings,
 }
 
@@ -153,6 +156,12 @@ const createRuntime = (
     operationGate,
   )
   const replacement = deps.createReplacement(connectionManager, operationGate)
+  const writeUserSettings = async (
+    settings: Parameters<ImportBackupV2UseCaseDeps['writeUserSettings']>[0],
+  ) =>
+    operationGate.runIndexedDbWrite(async () =>
+      deps.writeUserSettings(settings),
+    )
   const repository = deps.createRecoveryRepository(
     connectionManager,
     operationGate,
@@ -166,7 +175,7 @@ const createRuntime = (
     replacement,
     repository,
     snapshotReader,
-    writeUserSettings: deps.writeUserSettings,
+    writeUserSettings,
   })
   const importBackupV2 = deps.createImportUseCase({
     readUserSettings: deps.readUserSettings,
@@ -178,7 +187,7 @@ const createRuntime = (
     },
     replacement,
     snapshotReader,
-    writeUserSettings: deps.writeUserSettings,
+    writeUserSettings,
   })
 
   return {

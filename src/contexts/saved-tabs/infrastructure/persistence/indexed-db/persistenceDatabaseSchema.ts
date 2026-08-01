@@ -1,8 +1,6 @@
-export const PERSISTENCE_DATABASE_NAME = 'tabbin-persistence-v2'
+export { PERSISTENCE_DATABASE_VERSION } from '@/contexts/saved-tabs/application/services/PersistenceReleasePolicyService'
 
-// This version belongs only to the IndexedDB physical schema. It is unrelated
-// to the extension app version and the public backup schema version.
-export const PERSISTENCE_DATABASE_VERSION = 1
+export const PERSISTENCE_DATABASE_NAME = 'tabbin-persistence-v2'
 
 export const PERSISTENCE_STORE_NAMES = {
   analyticsViews: 'analyticsViews',

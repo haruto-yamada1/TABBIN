@@ -728,8 +728,12 @@ The extension app renders a persistent recovery notice that states legacy data
 was not deleted and exposes an explicit retry action; retry success clears the
 notice, while another typed failure replaces the visible recovery state.
 `read-only-emergency` permits only reads from its declared source. An IndexedDB
-emergency-read state must retain its migration ID; the decoder rejects an
-IndexedDB source without that identity. The
+emergency-read state must retain its migration ID and persistence generation;
+the decoder rejects an IndexedDB source without that identity or generation.
+Only a typed exit transition with the same migration ID restores the IndexedDB
+state. The emergency operation matrix, forward-fix policy, and release
+compatibility procedure are defined in
+[`persistence-v2-emergency.md`](../runbooks/persistence-v2-emergency.md). The
 bootstrap port has no legacy-delete capability. Raw legacy parsing, mapping,
 transactional copy, and semantic verification remain owned by #728. The #727
 lifecycle boundary requires the approved preflight source fingerprint and a

@@ -69,6 +69,7 @@ describe('PersistenceControlStateService', () => {
       status: 'read-only-emergency',
       readSource: 'indexeddb',
       migrationId: 'migration-1',
+      persistenceGeneration: 2,
     },
     {
       status: 'read-only-emergency',
@@ -103,6 +104,11 @@ describe('PersistenceControlStateService', () => {
     {
       status: 'read-only-emergency',
       readSource: 'indexeddb',
+    },
+    {
+      status: 'read-only-emergency',
+      readSource: 'indexeddb',
+      migrationId: 'migration-1',
     },
   ])('rejects invalid authoritative state %#', (value) => {
     expect.hasAssertions()
@@ -211,6 +217,25 @@ describe('PersistenceControlStateService', () => {
         status: 'read-only-emergency',
         readSource: 'indexeddb',
         migrationId: 'migration-1',
+        persistenceGeneration: 2,
+      },
+    },
+    {
+      current: {
+        status: 'read-only-emergency',
+        readSource: 'indexeddb',
+        migrationId: 'migration-1',
+        persistenceGeneration: 2,
+      },
+      transition: {
+        type: 'exit-read-only-emergency',
+        readSource: 'indexeddb',
+        migrationId: 'migration-1',
+      } as unknown as PersistenceControlStateTransition,
+      expected: {
+        status: 'indexeddb',
+        migrationId: 'migration-1',
+        persistenceGeneration: 2,
       },
     },
   ])('applies allowed transition %#', ({ current, transition, expected }) => {
@@ -272,6 +297,19 @@ describe('PersistenceControlStateService', () => {
       transition: {
         type: 'enter-read-only-emergency',
         readSource: 'legacy',
+      },
+    },
+    {
+      current: {
+        status: 'read-only-emergency',
+        readSource: 'indexeddb',
+        migrationId: 'migration-1',
+        persistenceGeneration: 2,
+      },
+      transition: {
+        type: 'exit-read-only-emergency',
+        readSource: 'indexeddb',
+        migrationId: 'migration-2',
       },
     },
   ])('rejects invalid transition %#', ({ current, transition }) => {

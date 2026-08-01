@@ -55,6 +55,7 @@ export type PersistenceControlState =
       readonly status: 'read-only-emergency'
       readonly readSource: 'indexeddb'
       readonly migrationId: string
+      readonly persistenceGeneration: 2
     }
 
 export type PersistenceControlStateTransition =
@@ -86,6 +87,11 @@ export type PersistenceControlStateTransition =
     }
   | {
       readonly type: 'enter-read-only-emergency'
+      readonly readSource: 'indexeddb'
+      readonly migrationId: string
+    }
+  | {
+      readonly type: 'exit-read-only-emergency'
       readonly readSource: 'indexeddb'
       readonly migrationId: string
     }

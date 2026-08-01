@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type {
   PersistenceBootstrapPort,
+  PersistenceControlState,
   PersistenceControlStateRepositoryPort,
   PersistenceCoordinationPort,
   PersistenceOperationGatePort,
@@ -36,27 +37,35 @@ const legacyFixture = readFileSync(
   'utf8',
 )
 
-const createIndexedDbGate = () => {
+const settingsOnlyLegacyFixture = JSON.stringify({
+  parentCategories: [],
+  savedTabs: [],
+  timestamp: '2026-08-01T00:00:00.000Z',
+  userSettings: { language: 'en' },
+  version: '2.0.8',
+})
+
+const indexedDbState = {
+  migrationId: 'migration-1',
+  persistenceGeneration: 2,
+  status: 'indexeddb',
+} as const satisfies PersistenceControlState
+
+const createIndexedDbGate = (
+  state: PersistenceControlState = indexedDbState,
+  coordination: PersistenceCoordinationPort = {
+    runExclusive: async (operation) => operation(),
+    runShared: async (operation) => operation(),
+  },
+) => {
   const bootstrap: PersistenceBootstrapPort = {
     migrate: vi.fn(async () => undefined),
-    readState: vi.fn(async () => ({
-      migrationId: 'migration-1',
-      persistenceGeneration: 2 as const,
-      status: 'indexeddb' as const,
-    })),
+    readState: vi.fn(async () => state),
     ready: vi.fn(async () => undefined),
   }
   const controlStateRepository: PersistenceControlStateRepositoryPort = {
-    read: vi.fn(async () => ({
-      migrationId: 'migration-1',
-      persistenceGeneration: 2 as const,
-      status: 'indexeddb' as const,
-    })),
+    read: vi.fn(async () => state),
     transition: vi.fn(),
-  }
-  const coordination: PersistenceCoordinationPort = {
-    runExclusive: async (operation) => operation(),
-    runShared: async (operation) => operation(),
   }
   const recovery: PersistenceRecoveryReporterPort = {
     reportUnavailable: vi.fn(),
@@ -69,6 +78,27 @@ const createIndexedDbGate = () => {
   })
 }
 
+const createNonReentrantCoordination = (): PersistenceCoordinationPort => {
+  let active = false
+  const run = async <Result>(
+    operation: () => Promise<Result>,
+  ): Promise<Result> => {
+    if (active) {
+      throw new Error('Nested persistence coordination is forbidden.')
+    }
+    active = true
+    try {
+      return await operation()
+    } finally {
+      active = false
+    }
+  }
+  return {
+    runExclusive: run,
+    runShared: run,
+  }
+}
+
 describe('options legacy Backup merge integration', () => {
   afterEach(() => {
     resetOptionsLegacyBackupMergeRuntimeForTesting()
@@ -76,7 +106,10 @@ describe('options legacy Backup merge integration', () => {
   })
 
   it('merges a supported legacy backup through the IndexedDB route', async () => {
-    const operationGate = createIndexedDbGate()
+    const operationGate = createIndexedDbGate(
+      indexedDbState,
+      createNonReentrantCoordination(),
+    )
     const connectionManager = new IndexedDbConnectionManager({
       databaseName: 'options-legacy-backup-merge',
       indexedDb: new IDBFactory(),
@@ -184,6 +217,45 @@ describe('options legacy Backup merge integration', () => {
       message: 'データをマージしました (0個のカテゴリ、0個のドメインを追加)',
       success: true,
     })
+  })
+
+  it('rejects a settings-only legacy import while IndexedDB is read-only', async () => {
+    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const operationGate = createIndexedDbGate({
+      migrationId: 'migration-1',
+      persistenceGeneration: 2,
+      readSource: 'indexeddb',
+      status: 'read-only-emergency',
+    })
+    const connectionManager = new IndexedDbConnectionManager({
+      databaseName: 'options-legacy-settings-only-read-only',
+      indexedDb: new IDBFactory(),
+    })
+    const readUserSettings = vi.fn(async () => defaultSettings)
+    const writeUserSettings = vi.fn(async () => undefined)
+    getOptionsLegacyBackupMergeRuntime({
+      createConnectionManager: () => connectionManager,
+      createUnitOfWork: (manager, gate) =>
+        new IndexedDbPersistenceUnitOfWork(manager, gate),
+      getOperationGate: () => operationGate,
+      readUserSettings,
+      writeUserSettings,
+    })
+
+    const result = await importSettings(
+      settingsOnlyLegacyFixture,
+      true,
+      undefined,
+      { importDate: '2026-08-31' },
+    )
+
+    expect(result.success).toBe(false)
+    expect(readUserSettings).toHaveBeenCalledOnce()
+    expect(writeUserSettings).not.toHaveBeenCalled()
+    expect(errorSpy).toHaveBeenCalledWith(
+      'インポートエラー:',
+      expect.objectContaining({ code: 'PERSISTENCE_READ_ONLY' }),
+    )
   })
 
   it('replaces a cached runtime when explicit dependencies are supplied', () => {

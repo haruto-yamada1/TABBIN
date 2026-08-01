@@ -7,7 +7,10 @@ import type {
   ImportBackupV2UseCase,
   ImportBackupV2UseCaseDeps,
 } from '@/features/options/lib/import-export/v2/ImportBackupV2UseCase'
-import type { RecoverySnapshotService } from '@/features/options/lib/import-export/v2/PreImportRecoverySnapshotService'
+import type {
+  PreImportRecoverySnapshotServiceDeps,
+  RecoverySnapshotService,
+} from '@/features/options/lib/import-export/v2/PreImportRecoverySnapshotService'
 
 import {
   getOptionsBackupRecoveryRuntime,
@@ -24,7 +27,12 @@ describe('optionsBackupRecovery composition', () => {
     const connectionManager = {
       close,
     } as unknown as IndexedDbConnectionManager
-    const operationGate = {} as PersistenceOperationGatePort
+    const runIndexedDbWrite = vi.fn(
+      async <T>(operation: () => Promise<T>): Promise<T> => operation(),
+    )
+    const operationGate = {
+      runIndexedDbWrite,
+    } as unknown as PersistenceOperationGatePort
     const snapshotReader = { readConsistentSnapshot: vi.fn() }
     const replacement = { replaceAll: vi.fn() }
     const repository = {} as PersistenceRecoverySnapshotRepositoryPort
@@ -64,7 +72,9 @@ describe('optionsBackupRecovery composition', () => {
       importUseCaseDeps = deps
       return importBackupV2
     })
-    const createRecoveryService = vi.fn(() => recoveryService)
+    const createRecoveryService = vi.fn(
+      (_deps: PreImportRecoverySnapshotServiceDeps) => recoveryService,
+    )
     const deps = {
       changePort: {
         publish: vi.fn(),
@@ -102,7 +112,7 @@ describe('optionsBackupRecovery composition', () => {
       replacement,
       repository,
       snapshotReader,
-      writeUserSettings: deps.writeUserSettings,
+      writeUserSettings: expect.any(Function),
     })
     expect(createImportUseCase).toHaveBeenCalledWith({
       readUserSettings: deps.readUserSettings,
@@ -112,8 +122,22 @@ describe('optionsBackupRecovery composition', () => {
       },
       replacement,
       snapshotReader,
-      writeUserSettings: deps.writeUserSettings,
+      writeUserSettings: expect.any(Function),
     })
+
+    const guardedSettingsWriter =
+      createRecoveryService.mock.calls[0]?.[0].writeUserSettings
+    expect(importUseCaseDeps?.writeUserSettings).toBe(guardedSettingsWriter)
+    const settings = {} as Parameters<
+      ImportBackupV2UseCaseDeps['writeUserSettings']
+    >[0]
+    await guardedSettingsWriter?.(settings)
+    expect(runIndexedDbWrite).toHaveBeenCalledOnce()
+    expect(deps.writeUserSettings).toHaveBeenCalledWith(settings)
+
+    const inspection = {} as Parameters<ImportBackupV2UseCase>[0]
+    await first.importBackupV2(inspection)
+    expect(importBackupV2).toHaveBeenCalledWith(inspection)
 
     const rollback = importUseCaseDeps?.recovery
     await rollback?.restore(captureResult)
@@ -123,6 +147,7 @@ describe('optionsBackupRecovery composition', () => {
     expect(recoveryService.restore).toHaveBeenLastCalledWith('recovery-id', {
       captureCurrent: true,
     })
+    expect(runIndexedDbWrite).toHaveBeenCalledOnce()
     await expect(first.listRecoverySnapshots()).resolves.toEqual([])
 
     resetOptionsBackupRecoveryRuntimeForTesting()

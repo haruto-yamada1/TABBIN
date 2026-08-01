@@ -50,6 +50,10 @@ export type {
   PersistenceJsonRecord,
   PersistenceMessageRecord,
 } from './application/ports/PersistenceV2UnitOfWorkPort'
+export {
+  PERSISTENCE_DATABASE_VERSION,
+  PERSISTENCE_GENERATION,
+} from './application/services/PersistenceReleasePolicyService'
 
 // issue #639: settings defaults を public API 経由で提供する
 export { savedTabsActionSettingsDefaults } from './domain/services/SavedTabsActionSettingsPolicy'

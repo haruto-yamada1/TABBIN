@@ -38,6 +38,10 @@ const mergeStoredUserSettings = (
   settings: Partial<UserSettings>,
 ): UserSettings => mergeStoredUserSettingsDefaults(defaultSettings, settings)
 
+type GetUserSettingsOptions = {
+  readonly repairStoredSettings?: boolean
+}
+
 // デフォルト設定
 export const defaultSettings: UserSettings = {
   language: 'system',
@@ -71,7 +75,9 @@ export const defaultSettings: UserSettings = {
 }
 
 // 設定を取得する関数
-export const getUserSettings = async (): Promise<UserSettings> => {
+export const getUserSettings = async (
+  options: GetUserSettingsOptions = {},
+): Promise<UserSettings> => {
   try {
     console.log('ユーザー設定を取得中...')
     const storageLocal = getChromeStorageLocal()
@@ -96,9 +102,10 @@ export const getUserSettings = async (): Promise<UserSettings> => {
         ...mergedStoredSettings,
       })
       if (
-        hasLegacyUserSettingsKeys(data.userSettings) ||
-        JSON.stringify(sanitizedStoredSettings.excludePatterns ?? []) !==
-          JSON.stringify(mergedStoredSettings.excludePatterns)
+        options.repairStoredSettings !== false &&
+        (hasLegacyUserSettingsKeys(data.userSettings) ||
+          JSON.stringify(sanitizedStoredSettings.excludePatterns ?? []) !==
+            JSON.stringify(mergedStoredSettings.excludePatterns))
       ) {
         await storageLocal.set({
           userSettings: normalizedSettings,
@@ -121,7 +128,12 @@ export const getUserSettings = async (): Promise<UserSettings> => {
       }),
     }
   }
-} // 設定を保存する関数
+}
+
+export const readUserSettingsWithoutRepair = async (): Promise<UserSettings> =>
+  getUserSettings({ repairStoredSettings: false })
+
+// 設定を保存する関数
 export const saveUserSettings = async (
   settings: UserSettings,
 ): Promise<void> => {
