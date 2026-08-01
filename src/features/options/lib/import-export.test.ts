@@ -1,5 +1,6 @@
 /* eslint-disable eslint/max-lines-per-function -- 1 つの describe ブロックに 4130 行の統合テストがあり、分割すると beforeEach / afterEach の mock 状態が散逸するため */
 // @vitest-environment jsdom
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
@@ -179,6 +180,7 @@ import {
   resolveCurrentLanguage,
   restoreImportedCustomProjectUrlsFromIds,
 } from './import-export'
+import { LEGACY_BACKUP_ADVISORY } from './import-export/compatibility/legacyBackupPolicy'
 import {
   buildCustomProject,
   buildFullUserSettings,
@@ -2479,6 +2481,7 @@ describe('import-export ユーティリティ', () => {
         domainsCount: 1,
         hasAiChat: true,
         hasAnalytics: true,
+        legacyBackupAdvisory: LEGACY_BACKUP_ADVISORY,
         projectsCount: 1,
         timestamp: '2026-03-15T00:00:00.000Z',
         version: '7.0.0',
@@ -2507,6 +2510,25 @@ describe('import-export ユーティリティ', () => {
     expect(getImportPreview('{malformed-json')).toEqual({
       success: false,
       message: 'データの解析中にエラーが発生しました',
+    })
+  })
+
+  it('getImportPreview は strict legacy backup にだけ deadline advisory を付ける', () => {
+    const preview = getImportPreview(
+      JSON.stringify({
+        parentCategories: [],
+        savedTabs: [],
+        timestamp: '2026-07-05T00:00:00.000Z',
+        userSettings: {},
+        version: '1.9.0',
+      }),
+    )
+
+    expect(preview).toMatchObject({
+      preview: {
+        legacyBackupAdvisory: LEGACY_BACKUP_ADVISORY,
+      },
+      success: true,
     })
   })
 

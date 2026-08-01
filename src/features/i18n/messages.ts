@@ -448,6 +448,11 @@ const messages = {
     'options.fontSize.rangeLabel': 'Font size slider',
     'options.importExport.back': 'Back',
     'options.importExport.cancel': 'Cancel',
+    'options.importExport.compatibilityAction':
+      'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
+    'options.importExport.compatibilityTitle': 'Backup format',
+    'options.importExport.compatibilityWarning':
+      'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
     'options.importExport.confirmImport': 'Confirm Import',
     'options.importExport.dialogDescription':
       'Restore settings and tab data from a previously exported backup file.',
@@ -469,6 +474,11 @@ const messages = {
       'The imported data format is invalid',
     'options.importExport.importing': 'Importing...',
     'options.importExport.invalidJson': 'Please select a JSON file',
+    'options.importExport.legacyPreviewAction':
+      'After importing, export a new-format backup again.',
+    'options.importExport.legacyPreviewTitle': 'Legacy backup',
+    'options.importExport.legacyPreviewWarning':
+      'This legacy backup can no longer be imported on or after {{cutoffDate}}.',
     'options.importExport.merge': 'Merge with existing data (recommended)',
     'options.importExport.mergeDescription':
       'Keep existing data and add or update new data.',
@@ -539,6 +549,13 @@ const messages = {
     'options.persistenceRecovery.storageUnavailable':
       'Browser storage is currently unavailable.',
     'options.persistenceRecovery.title': 'Storage recovery required',
+    'persistenceMigrationNotice.dismiss': 'Dismiss migration notice',
+    'persistenceMigrationNotice.importExportLink': 'Open Import / Export',
+    'persistenceMigrationNotice.message':
+      'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
+    'persistenceMigrationNotice.title': 'Data storage was updated',
+    'persistenceMigrationNotice.warning':
+      'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
     'options.previewColorCustomization': '(preview) Color customization',
     'options.previewColorCustomizationReset': 'Reset',
     'options.previewFontSizeCustomization': '(preview) Font size',
@@ -1330,6 +1347,11 @@ const messages = {
     'options.fontSize.rangeLabel': 'フォントサイズスライダー',
     'options.importExport.back': '戻る',
     'options.importExport.cancel': 'キャンセル',
+    'options.importExport.compatibilityAction':
+      '必要なバックアップは{{lastSupportedDate}}までにインポートし、新しい形式で再度エクスポートしてください。',
+    'options.importExport.compatibilityTitle': 'バックアップ形式について',
+    'options.importExport.compatibilityWarning':
+      '以前のバージョンで作成したバックアップは、{{cutoffDate}}以降インポートできなくなります。',
     'options.importExport.confirmImport': 'インポートを実行',
     'options.importExport.dialogDescription':
       '以前にエクスポートしたバックアップファイルから設定とタブデータを復元します。',
@@ -1349,6 +1371,11 @@ const messages = {
       'インポートされたデータの形式が正しくありません',
     'options.importExport.importing': 'インポート中...',
     'options.importExport.invalidJson': 'JSONファイルを選択してください',
+    'options.importExport.legacyPreviewAction':
+      'インポート後、新しい形式でバックアップを再作成してください。',
+    'options.importExport.legacyPreviewTitle': '旧形式のバックアップです',
+    'options.importExport.legacyPreviewWarning':
+      '{{cutoffDate}}以降、この形式はインポートできなくなります。',
     'options.importExport.merge': '既存データとマージする（推奨）',
     'options.importExport.mergeDescription':
       '既存のデータを保持しつつ、新しいデータを追加・更新します。',
@@ -1417,6 +1444,13 @@ const messages = {
     'options.persistenceRecovery.storageUnavailable':
       'ブラウザの保存領域を現在利用できません。',
     'options.persistenceRecovery.title': '保存領域の復旧が必要です',
+    'persistenceMigrationNotice.dismiss': '移行に関するお知らせを閉じる',
+    'persistenceMigrationNotice.importExportLink': 'Import / Export を開く',
+    'persistenceMigrationNotice.message':
+      '必要なバックアップは{{lastSupportedDate}}までにインポートし、新しい形式で再度エクスポートしてください。',
+    'persistenceMigrationNotice.title': 'データの保存方式を更新しました。',
+    'persistenceMigrationNotice.warning':
+      '以前のバージョンで作成したバックアップは、{{cutoffDate}}以降インポートできなくなります。',
     'options.previewColorCustomization': '(preview)カラーカスタマイズ',
     'options.previewColorCustomizationReset': 'リセット',
     'options.previewFontSizeCustomization': '(preview)フォントサイズ',

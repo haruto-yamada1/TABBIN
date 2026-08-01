@@ -359,6 +359,7 @@ describe('Persistence Model v2 architecture contract', () => {
     ]) {
       expect(modelDocument).toContain(dataClass)
     }
+    expect(modelDocument).toContain('tabbin:noticeDismissals:v1')
     expect(modelDocument).not.toContain('要決定')
   })
 

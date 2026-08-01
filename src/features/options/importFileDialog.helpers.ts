@@ -1,5 +1,7 @@
 import type { Dispatch } from 'react'
 
+import type { LegacyBackupAdvisory } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
+
 type PreviewData = {
   version: string
   timestamp: string
@@ -8,6 +10,7 @@ type PreviewData = {
   projectsCount: number
   hasAiChat: boolean
   hasAnalytics: boolean
+  legacyBackupAdvisory?: LegacyBackupAdvisory
 }
 
 type ImportDialogState = {
