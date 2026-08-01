@@ -366,15 +366,18 @@ export const toRawLegacyStorageSnapshot = (
  * improper sync of `Membership.addedAt` into `Url.lastSavedAt`.
  */
 export const sharedUrlLegacyStorageArbitrary = fc
-  .record({
-    groupCount: fc.integer({ min: 2, max: 3 }),
-    groupSavedAts: fc.array(timestampArbitrary, {
-      minLength: 3,
-      maxLength: 3,
+  .integer({ min: 2, max: 3 })
+  .chain((groupCount) =>
+    fc.record({
+      groupCount: fc.constant(groupCount),
+      groupSavedAts: fc.array(timestampArbitrary, {
+        minLength: groupCount,
+        maxLength: groupCount,
+      }),
+      savedAt: timestampArbitrary,
+      title: displayTextArbitrary,
     }),
-    savedAt: timestampArbitrary,
-    title: displayTextArbitrary,
-  })
+  )
   .map((seed): RawLegacyStorageSnapshot => {
     const savedTabs: TabGroup[] = Array.from(
       { length: seed.groupCount },

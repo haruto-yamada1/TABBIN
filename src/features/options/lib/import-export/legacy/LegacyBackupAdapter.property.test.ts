@@ -1,5 +1,5 @@
 import * as fc from 'fast-check'
-import { describe, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/public-api'
 import { BackupDataV2Schema } from '@/features/options/lib/import-export/v2/BackupV2Schema'
@@ -27,10 +27,13 @@ describe('convertLegacyBackup properties (temporary compatibility scope)', () =>
     fc.assert(
       fc.property(legacyBackupV0Arbitrary, ({ backup, importDate }) => {
         const conversion = convertLegacyBackup(backup, importDate)
-        return (
-          BackupDataV2Schema.safeParse(conversion.data).success &&
-          checkPersistenceIntegrity(conversion.data.savedTabs).isHealthy
-        )
+        const parsed = BackupDataV2Schema.safeParse(conversion.data)
+        // Report the exact schema / integrity issue instead of a bare
+        // counterexample when the property fails.
+        expect(parsed.error?.issues ?? []).toEqual([])
+        expect(
+          checkPersistenceIntegrity(conversion.data.savedTabs).issues,
+        ).toEqual([])
       }),
       fastCheckParameters,
     )

@@ -64,14 +64,16 @@ const urlSeedArbitrary = fc.record({
   url: urlStringArbitrary,
 })
 
-type CollectionSeed =
-  typeof collectionSeedArbitrary extends fc.Arbitrary<infer T> ? T : never
+type SeedOf<A> = A extends fc.Arbitrary<infer T> ? T : never
+
+type CollectionSeed = SeedOf<typeof collectionSeedArbitrary>
 type GroupSeed = {
   readonly name: string
   readonly sortOrder: number
   readonly timestamps: readonly [number, number]
 }
-type UrlSeed = typeof urlSeedArbitrary extends fc.Arbitrary<infer T> ? T : never
+type UrlSeed = SeedOf<typeof urlSeedArbitrary>
+type MembershipSeed = SeedOf<typeof membershipSeedArbitrary>
 
 const assembleGroups = (
   seeds: readonly GroupSeed[],
@@ -157,9 +159,7 @@ const assembleMemberships = (
 ): PersistenceV2CollectionMembership[] => {
   const memberships: PersistenceV2CollectionMembership[] = []
   const buildMembership = (
-    seed: typeof membershipSeedArbitrary extends fc.Arbitrary<infer T>
-      ? T
-      : never,
+    seed: MembershipSeed,
     collection: PersistenceV2Collection,
     url: PersistenceV2Url,
     urlIndex: number,

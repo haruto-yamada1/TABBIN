@@ -1,15 +1,22 @@
-const parsePositiveInteger = (
-  value: string | undefined,
-): number | undefined => {
-  if (value === undefined) {
+const parseSafeInteger = (value: string | undefined): number | undefined => {
+  if (value === undefined || value.trim() === '') {
     return undefined
   }
   const parsed = Number(value)
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
+  return Number.isSafeInteger(parsed) ? parsed : undefined
+}
+
+const parsePositiveInteger = (
+  value: string | undefined,
+): number | undefined => {
+  const parsed = parseSafeInteger(value)
+  return parsed !== undefined && parsed > 0 ? parsed : undefined
 }
 
 const numRuns = parsePositiveInteger(process.env.FAST_CHECK_RUNS)
-const seed = parsePositiveInteger(process.env.FAST_CHECK_SEED)
+// fast-check accepts any 32-bit seed and reports negative seeds on failure,
+// so replay values must accept negative integers and 0 as well.
+const seed = parseSafeInteger(process.env.FAST_CHECK_SEED)
 
 /**
  * Shared fast-check parameters for every persistence property test.
