@@ -46,14 +46,14 @@ describe('createRouteAwareSavedTabsUseCases', () => {
     const indexedDbGetSavedTabs = vi.fn(async () => {
       throw failure
     })
-    const legacy = createBundle('unused')
-    const indexeddb = createBundle('unused')
-    Object.defineProperty(legacy, 'getSavedTabs', {
-      value: legacyGetSavedTabs,
-    })
-    Object.defineProperty(indexeddb, 'getSavedTabs', {
-      value: indexedDbGetSavedTabs,
-    })
+    const legacy = {
+      ...createBundle('unused'),
+      getSavedTabs: legacyGetSavedTabs,
+    } as unknown as SavedTabsUseCases
+    const indexeddb = {
+      ...createBundle('unused'),
+      getSavedTabs: indexedDbGetSavedTabs,
+    } as unknown as SavedTabsUseCases
     const router: PersistenceDataPlaneRouterPort = {
       read: async (operation) => operation.indexeddb(),
       write: async (operation) => operation.indexeddb(),
@@ -72,10 +72,10 @@ describe('createRouteAwareSavedTabsUseCases', () => {
 
   it('fails closed without invoking legacy when production has no IndexedDB bundle', async () => {
     const legacyGetSavedTabs = vi.fn(async () => 'legacy')
-    const legacy = createBundle('unused')
-    Object.defineProperty(legacy, 'getSavedTabs', {
-      value: legacyGetSavedTabs,
-    })
+    const legacy = {
+      ...createBundle('unused'),
+      getSavedTabs: legacyGetSavedTabs,
+    } as unknown as SavedTabsUseCases
     const router: PersistenceDataPlaneRouterPort = {
       read: async (operation) => operation.indexeddb(),
       write: async (operation) => operation.indexeddb(),

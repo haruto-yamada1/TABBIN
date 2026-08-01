@@ -138,4 +138,22 @@ describe('PersistenceDataPlaneRouterService', () => {
       'PERSISTENCE_RECOVERY_REQUIRED',
     )
   })
+
+  it('propagates the recorded error code in failed state without invoking either backend', async () => {
+    const { recovery, router } = createRouter({
+      status: 'failed',
+      errorCode: 'PERSISTENCE_CONTROL_STATE_INVALID',
+    })
+    const legacy = vi.fn(async () => 'legacy')
+    const indexeddb = vi.fn(async () => 'indexeddb')
+
+    await expect(router.read({ indexeddb, legacy })).rejects.toEqual(
+      new PersistenceUnavailableError('PERSISTENCE_CONTROL_STATE_INVALID'),
+    )
+    expect(legacy).not.toHaveBeenCalled()
+    expect(indexeddb).not.toHaveBeenCalled()
+    expect(recovery.reportUnavailable).toHaveBeenCalledWith(
+      'PERSISTENCE_CONTROL_STATE_INVALID',
+    )
+  })
 })

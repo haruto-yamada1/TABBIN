@@ -140,14 +140,37 @@ describe('PersistenceBootstrap architecture policy', () => {
     expect(composition).toContain(
       'createChromeUserSettingsRepository(settingsPort)',
     )
+    // 同一型の位置引数による誤配線を防ぐため、名前付き引数で domain / settings
+    // storage の対応を明示的に検証する (CodeRabbit review)。
     expect(useCaseComposition).toMatch(
-      /createSavedTabsUseCasesDepsFromStorage\(\s*options,\s*getPersistenceStorageLocal\(\),\s*getChromeStorageLocal\(\),?\s*\)/,
+      /domainLocal:\s*getPersistenceStorageLocal\(\)/,
     )
-    expect(useCaseComposition).toContain(
-      'createSelectedLegacySavedTabsUseCasesDeps',
+    expect(useCaseComposition).toMatch(
+      /settingsLocal:\s*getChromeStorageLocal\(\)/,
     )
     expect(useCaseComposition).toContain(
       'createChromeUserSettingsRepository(settingsPort)',
+    )
+  })
+
+  it('production composition calls createSelectedLegacySavedTabsUseCasesDeps and routes the result', () => {
+    // 関数名の定義 / import だけでは通らないよう、実際の呼び出し形状と
+    // route-aware use-case composition への結線を検証する (CodeRabbit review)。
+    const productionComposition = readRepositoryFile(
+      'src/app/composition/createSavedTabsUseCases.ts',
+    )
+
+    // import 文 (`createSelectedLegacySavedTabsUseCasesDeps,`) ではなく
+    // 呼び出し (`createSelectedLegacySavedTabsUseCasesDeps(`) を検出する。
+    expect(productionComposition).toMatch(
+      /createSelectedLegacySavedTabsUseCasesDeps\s*\(/,
+    )
+    // 呼び出し結果を route-aware な use-case composition へ渡している。
+    expect(productionComposition).toMatch(
+      /createRouteAwareSavedTabsUseCases\s*\(\s*\{/,
+    )
+    expect(productionComposition).toMatch(
+      /createApplicationSavedTabsUseCases\s*\(\s*deps\s*\)/,
     )
   })
 

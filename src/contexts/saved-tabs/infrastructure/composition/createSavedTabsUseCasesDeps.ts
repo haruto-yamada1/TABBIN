@@ -106,11 +106,17 @@ const getChromeMessagingApi = (): ChromeMessagingApiLike | undefined => {
  * const controller = useSavedTabsController({ deps })
  * ```
  */
-const createSavedTabsUseCasesDepsFromStorage = (
-  options: CreateSavedTabsUseCasesDepsOptions,
-  domainLocal: SavedTabsDomainStorageLocal | null,
-  settingsLocal: SavedTabsDomainStorageLocal | null,
-): SavedTabsUseCasesDeps => {
+type SavedTabsUseCasesDepsFromStorageArgs = {
+  readonly options: CreateSavedTabsUseCasesDepsOptions
+  readonly domainLocal: SavedTabsDomainStorageLocal | null
+  readonly settingsLocal: SavedTabsDomainStorageLocal | null
+}
+
+const createSavedTabsUseCasesDepsFromStorage = ({
+  options,
+  domainLocal,
+  settingsLocal,
+}: SavedTabsUseCasesDepsFromStorageArgs): SavedTabsUseCasesDeps => {
   if (!domainLocal || !settingsLocal) {
     warnMissingChromeStorage('createSavedTabsUseCasesDeps')
   }
@@ -174,11 +180,11 @@ const createSavedTabsUseCasesDepsFromStorage = (
 export const createSavedTabsUseCasesDeps = (
   options: CreateSavedTabsUseCasesDepsOptions = {},
 ): SavedTabsUseCasesDeps =>
-  createSavedTabsUseCasesDepsFromStorage(
+  createSavedTabsUseCasesDepsFromStorage({
     options,
-    getPersistenceStorageLocal(),
-    getChromeStorageLocal(),
-  )
+    domainLocal: getPersistenceStorageLocal(),
+    settingsLocal: getChromeStorageLocal(),
+  })
 
 /**
  * Builds the already-selected legacy branch for the outer data-plane router.
@@ -192,6 +198,9 @@ export const createSelectedLegacySavedTabsUseCasesDeps = (
   options: CreateSavedTabsUseCasesDepsOptions = {},
 ): SavedTabsUseCasesDeps => {
   const storage = getChromeStorageLocal()
+  // `storage.*` の直接呼び出しを保つことで、この composition ファイルが
+  // machine-checked storage writer inventory (docs/architecture/current-storage-writer-inventory.md)
+  // の mutation boundary として分類され続ける。wrapper を省略すると inventory 検証が壊れる。
   const selectedLegacyStorage = storage
     ? {
         get: async (key: string) => storage.get(key),
@@ -199,9 +208,9 @@ export const createSelectedLegacySavedTabsUseCasesDeps = (
         set: async (value: Record<string, unknown>) => storage.set(value),
       }
     : null
-  return createSavedTabsUseCasesDepsFromStorage(
+  return createSavedTabsUseCasesDepsFromStorage({
     options,
-    selectedLegacyStorage,
-    storage,
-  )
+    domainLocal: selectedLegacyStorage,
+    settingsLocal: storage,
+  })
 }
